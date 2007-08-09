@@ -47,7 +47,7 @@ class Plotter( gtk.Frame ):
         
 
         
-    def add_line(self, xpoints, ypoints, pattern='', ax=0, redraw=True, autofit=True):
+    def add_line(self, xpoints, ypoints, pattern='', ax=0, redraw=True ):
         assert( len(xpoints) == len(ypoints) )
         assert( ax < len(self.axis) )
         
@@ -57,31 +57,29 @@ class Plotter( gtk.Frame ):
         self.x_data.append( list(xpoints) )
         self.y_data.append( list(ypoints) )
         
-        if autofit:
-            # adjust axes limits as necessary
-            lin = len(self.line) - 1
-            if len(self.x_data[lin]) > 0:
-                for i in range( len(self.y_data) ):
-                    mxx = max(self.x_data[i])
-                    mnx = min(self.x_data[i])
-                    mxy = max(self.y_data[i])
-                    mny = min(self.y_data[i])
-                    
-                    if i == 0:
-                        xmax, xmin = mxx, mnx
-                        ymax, ymin = mxy, mny
-                    else:
-                        xmax = (xmax > mxx) and xmax or mxx
-                        xmin = (xmin < mnx) and xmin or mnx
-                        ymax = (ymax > mxy) and ymax or mxy
-                        ymin = (ymin < mny) and ymin or mny
+        # adjust axes limits as necessary
+        lin = len(self.line) - 1
+        ymin = min(self.y_data[lin])
+        ymax = max(self.y_data[lin])
+        if len(self.x_data[lin]) > 1:
+            for i in range( len(self.line) ):
+                mx = max(self.x_data[i])
+                mn = min(self.x_data[i])
+                if i == 0:
+                    xmax, xmin = mx, mn
+                else:
+                    xmax = (xmax > mx) and xmax or mx
+                    xmin = (xmin < mn) and xmin or mn
             self.line[lin].axes.set_xlim(xmin, xmax) 
             self.line[lin].axes.xaxis.set_major_formatter(self.xformatter)    
-            ypadding = (ymax - ymin)/8.0  # pad 1/8 of range to either side
-            ymin = ymin - ypadding
-            ymax = ymax + ypadding
-            self.line[lin].axes.set_ylim(ymin, ymax )
+        ypadding = (ymax - ymin)/8.0  # pad 1/8 of range to either side
             
+        #only update limits if they are wider than current limits
+        curr_ymin, curr_ymax = self.line[lin].axes.get_ylim()
+        ymin = (curr_ymin+ypadding < ymin) and curr_ymin  or (ymin - ypadding)
+        ymax = (curr_ymax-ypadding > ymax) and curr_ymax  or (ymax + ypadding)
+        
+        self.line[lin].axes.set_ylim(ymin, ymax )
         if redraw:
             self.canvas.draw()
         return True
