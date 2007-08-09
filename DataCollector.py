@@ -36,6 +36,8 @@ class DataCollector(threading.Thread, gobject.GObject):
     def run(self, widget=None):
         CA.thread_init()
         self.detector = beamline['detectors']['ccd']
+        self.gonio = beamline['goniometer']
+        self.detector.acquire_bg()
         self.pos = 0
         header = {}
         while self.pos < len(self.run_list) :
@@ -53,14 +55,13 @@ class DataCollector(threading.Thread, gobject.GObject):
                 LogServer.log( 'Skipping %s' % frame['file_name'])
                 continue
             velo = frame['delta'] / float(frame['time'])
-            start_pos = frame['start_angle']
             
             
             # Prepare image header
             header['delta'] = frame['delta']
             header['directory'], header['filename'] = os.path.split(frame['file_name'])
-            header['directory'] = header['directory']+'\0'
-            header['filename'] = header['filename']+'\0'
+            header['directory'] = header['directory']
+            header['filename'] = header['filename']
             header['distance'] = frame['distance'] 
             header['time'] = frame['time']
             header['frame_number'] = frame['frame_number']
@@ -78,18 +79,25 @@ class DataCollector(threading.Thread, gobject.GObject):
             beamline['motors']['detector_dist'].wait()
             beamline['motors']['energy'].wait()
             beamline['motors']['energy'].set_mask([1,1,1])
-            self.detector.start()
+            gonio_data = {
+                'time': frame['time'],
+                'delta' : frame['delta'],
+                'start_angle': frame['start_angle'],                
+            }
+            self.gonio.set_params(gonio_data)
             
-            # Place holder for gonio scan and shutter opening
-            time.sleep(frame['time'])
+            self.detector.start()            
+            print 'starting acquire'
+            self.detector.set_header(header)
+            print 'starting gonio scan'
+            self.gonio.scan()
+            
             LogServer.log( "%04d ------------------------------------------" % self.pos)
-            LogServer.log("Osc start: %8.3f   deg:" % start_pos)
-            LogServer.log("Osc delta: %8.3f   deg:" % frame['delta'])
-            LogServer.log("Osc  velo: %8.3f deg/s:" % velo)
             
             # Read and save image
-            self.detector.set_header(header)
+            print 'saving image'
             self.detector.save()
+            print 'image saved'
             
             # Notify new image
             LogServer.log("Image Collected: %s" % frame['file_name'])

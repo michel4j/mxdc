@@ -34,34 +34,20 @@ class EpicsShutter(AbstractShutter):
         self.open_cmd = PV("%s:opr:open" % name)
         self.close_cmd = PV("%s:opr:close" % name)
         self.state = PV("%s:state" % name)
-        self.last_state = self.is_open()
-        gobject.timeout_add(250, self._queue_check)
+        self.state.connect('changed', self._signal_change)
     
-    def _check_change(self):
-        state = self.is_open()
-        if state != self.last_state:
-            gobject.idle_add(self.emit,'changed', state)
-        self.last_state = state
-        return False
-
-    def _queue_check(self):
-        gobject.idle_add(self._check_change)
-        return True
-
+    def _signal_change(self, obj=None, arg=None):
+        gobject.idle_add(self.emit,'changed', self.is_open())
+    
     def is_open(self):
-        if self.state.get() == 1:
-            return True
-        else:
-            return False
+        return self.state.get() == 1
     
     def open(self):
         self.open_cmd.put(1)
-        gobject.idle_add(self.emit,'changed', True)
         LogServer.log( "%s opened" % self.name)
     
     def close(self):
         self.close_cmd.put(1)
-        gobject.idle_add(self.emit,'changed', False)
         LogServer.log( "%s closed" % self.name)        
                
 FakeShutter = AbstractShutter

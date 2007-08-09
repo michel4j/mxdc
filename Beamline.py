@@ -72,7 +72,7 @@ def initialize():
     #beamline['motors']['detector_2th'] = TwoThetaMotor( twotheta_motors )            
     #beamline['motors']['detector_dist'] = DistanceMotor( twotheta_motors )            
     print '...', 'energy'
-    print 'setting up MCA and attenuator'
+    print 'setting up Misc'
     if 'misc' in parser.sections():
         if 'attenuator' in parser.options('misc'):
             bits = parser.get('misc', 'attenuator').split('|')
@@ -85,6 +85,10 @@ def initialize():
             pv =  parser.get('misc', 'mca')
             beamline['detectors']['mca'] = MCA(pv)
             print '... mca'      
+        if 'gonio' in parser.options('misc'):
+            pv =  parser.get('misc', 'gonio')
+            beamline['goniometer'] = Gonio(pv)
+            print '... goniometer'      
     
     print 'setting up Cameras'
     beamline['cameras'] = {}
@@ -141,6 +145,5 @@ def initialize():
         beamline['motors']['detector_dist'].set_position(200)
         beamline['motors']['gslits_hgap'].move_to(0.3)
         beamline['motors']['gslits_vgap'].set_position(0.3)
-        
 initialize()
 print "Beamline Loaded"

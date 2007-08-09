@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, time, copy
+import sys, time
 import threading
 import gtk, gobject
 import numpy

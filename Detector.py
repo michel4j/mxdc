@@ -16,6 +16,8 @@ class Detector(gobject.GObject):
         gobject.GObject.__init__(self)
         self.value = 100
         self.index = 0
+        self.interval = 1.0
+        self.tick = time.time()
         self.name = name
     
     def count(self, t=1.0):
@@ -23,10 +25,6 @@ class Detector(gobject.GObject):
         time.sleep(t)
         return self.value
 
-    def copy(self):
-        tmp = Detector(self.name)
-        return tmp
-            
     def get_value(self):
         return self.value
 
@@ -34,7 +32,9 @@ class Detector(gobject.GObject):
         return self.name
     
     def signal_change(self):
-        gobject.idle_add(self.emit, 'changed')
+        if (time.time() - self.tick) > self.interval:
+            gobject.idle_add(self.emit, 'changed')
+            self.tick = time.time()
        
 class FakeDetector(Detector):
     def __init__(self, name=None):
@@ -56,10 +56,6 @@ class FakeDetector(Detector):
             self.index = 0
         time.sleep(t)
         return self.value
-
-    def copy(self):
-        tmp = FakeDetector(self.name)
-        return tmp
 
     def get_name(self):
         return self.name
@@ -115,11 +111,6 @@ class FakeMCA(Detector):
         self._collect(t)
         return self.get_spectrum()                
         
-    def copy(self):
-        tmp = FakeMCA(self.name)
-        tmp.set_roi(self.ROI)
-        return tmp
-
     def get_name(self):
         return self.name
 
@@ -169,11 +160,6 @@ class EpicsMCA(Detector):
         midp = self._energy_to_roi(energy)
         self.ROI = (midp-15, midp+15)
                
-    def copy(self):
-        tmp = EpicsMCA(self.name, self.channels)
-        tmp.set_roi(roi=self.ROI)
-        return tmp
-
     def _start(self, retries=3, timeout=10):
         i = 0
         success = False
@@ -294,33 +280,43 @@ class EpicsDetector(Detector):
         return self.name
 
 class Normalizer(threading.Thread):
-    def __init__(self, pv):
+    def __init__(self, det=None):
         threading.Thread.__init__(self)
         self.factor = 1.0
         self.start_counting = False
         self.stopped = False
-        self.accum = []
-        self.pv = pv
-        self.first = 0.0
+        self.interval = 0.01
+        self.set_time(1.0)
+        self.detector = det
+        self.first = 1.0
+        self.factor = 1.0
 
     def get_factor(self):
-        return self.first/numpy.mean(self.accum)
+        return self.factor
 
-    def mark_start(self):
-        self.start_counting = True
+    def set_time(self, t=1.0):
+        self.duration = t
+        self.accum = numpy.zeros( (self.duration / self.interval), numpy.float64)
     
+    def initialize(self):
+        self.first = self.detector.get_value()
+        
     def stop(self):
         self.stopped = True
                         
     def run(self):
         thread_init()
-        self.first = self.pv.get()
+        if not self.detector:
+            self.factor = 1.0
+            return
+        self.initialize()
+        self.count = 0
         while not self.stopped:
-            if self.start_counting:
-                self.accum = []
-                self.start_counting = False
-            self.accum.append( self.pv.get() )
-            time.sleep(0.01)
+            self.accum[ self.count ] = self.detector.get_value()
+            self.count = (self.count + 1) % len(self.accum)
+            self.factor = self.first/numpy.mean(self.accum)
+            time.sleep(self.interval)
+            
                 
 gobject.type_register(Detector)
     

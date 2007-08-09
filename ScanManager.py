@@ -46,7 +46,7 @@ class ScanManager(gtk.HBox):
 
         self.show_all()
         
-        self.bragg_energy = beamline['motors']['energy'].copy()       
+        self.bragg_energy = beamline['motors']['energy']      
         self.mca   = beamline['detectors']['mca']
         self.shutter = beamline['shutters']['xbox_shutter']
 
@@ -55,6 +55,10 @@ class ScanManager(gtk.HBox):
         self.scanning = False
         self.scanner = None
             
+        
+    def pulse(self):
+        self.scan_control.progress_bar.pulse()
+        return True
         
     def on_edge_selection(self, widget, data):
         vals = data.split(':')
@@ -71,6 +75,7 @@ class ScanManager(gtk.HBox):
         return True
     
     def on_scan_done(self, widget):
+        self.bragg_energy.set_mask( [1,1,1] )  # Move all
         self.shutter.close()
         self.scan_control.stop_btn.set_sensitive(False)
         self.scan_control.abort_btn.set_sensitive(False)
@@ -80,11 +85,8 @@ class ScanManager(gtk.HBox):
         self.scanning = False
         return True
 
-    def pulse(self):
-        self.scan_control.progress_bar.pulse()
-        return True
-        
     def on_scan_aborted(self, widget):
+        self.bragg_energy.set_mask( [1,1,1] )  # Move all
         self.shutter.close()
         self.scan_control.start_btn.set_sensitive(True)
         self.scan_control.stop_btn.set_sensitive(False)

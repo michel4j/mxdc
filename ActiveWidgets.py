@@ -202,11 +202,12 @@ class DiagnosticLabel(gtk.Label):
         self.update_value( self.variable.get_value() )
         return True
 
-class ShutterButton(gtk.ToggleButton):
+class ShutterButton(gtk.Button):
     def __init__(self, shutter, label=None):
-        gtk.ToggleButton.__init__(self)
+        gtk.Button.__init__(self)
         self.shutter = shutter
         container = gtk.HBox(False,0)
+        self.label_text = label
         self.image = gtk.Image()
         self.label = gtk.Label(label)
         container.pack_start(self.image)
@@ -215,22 +216,24 @@ class ShutterButton(gtk.ToggleButton):
         
         if shutter.is_open():
             self._set_on()
-            self.set_active(True)
         else:
             self._set_off()
         self.shutter.connect('changed', self.on_state_change)
-        self.connect('toggled', self.on_toggle)
+        self.connect('clicked', self.on_clicked)
             
-    def on_toggle(self, widget):
-        if self.get_active():
-            self.shutter.open()
+    def on_clicked(self, widget):
+        if self.shutter.is_open():
+            self.shutter.close()
+        else:
+            self.shutter.open()    
+        
+    def on_state_change(self, widget, state):
+        if state:
+            self.label.set_text("Close %s" % self.label_text)
             self._set_on()
         else:
-            self.shutter.close()    
+            self.label.set_text("Open %s" % self.label_text)
             self._set_off()
-
-    def on_state_change(self, widget, state):
-        self.set_active(state)
         return True
             
     def _set_on(self):

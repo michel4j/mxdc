@@ -274,8 +274,7 @@ class ImgViewer(gtk.VBox):
         else:
             return True     
 
-    def wait_for_file(self):
-    
+    def wait_for_file(self):    
         if os.path.isfile(self.filename) and (os.path.getsize(self.filename) == 18878464):
             LogServer.log("Loading image %s" % (self.filename))
             self.load_image()
@@ -294,7 +293,7 @@ class ImgViewer(gtk.VBox):
     def show_detector_image(self, filename):
         if self.collecting_data and self.follow_frames:
             self.set_filename(filename)
-            self.follow_id = gobject.timeout_add(500,self.wait_for_file)
+            #self.follow_id = gobject.timeout_add(500,self.wait_for_file)
         return True     
         
     def zooming_lens(self,Ox,Oy,src_size = 30, zoom_level = 4):
@@ -479,8 +478,7 @@ class ImgViewer(gtk.VBox):
     def on_follow_toggled(self,widget):
         if widget.get_active():
             self.follow_frames = True
-            if not self.collecting_data:
-                self.follow_id = gobject.timeout_add(3000, self.poll_for_file)
+            self.follow_id = gobject.timeout_add(3000, self.poll_for_file)
         else:
             if self.follow_id is not None:
                 gobject.source_remove(self.follow_id)

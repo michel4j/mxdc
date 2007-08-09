@@ -1,4 +1,4 @@
-import sys, os, gobject
+import sys, os, gobject, gc
 import numpy, thread
 from ctypes import *
 
@@ -97,17 +97,19 @@ class Closure:
 class PV(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['changed'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
-    def __init__(self, name):
+    def __init__(self, name, use_monitor=True):
         gobject.GObject.__init__(self)
         self.chid = c_long()
         self.name = name
         self.count = None
         self.element_type = None
+        self.lock = thread.allocate_lock()
         self.callbacks = {}
         self.connected = NEVER_CONNECTED
         self.__connect()
-        self.__allocate_data_mem()
+        self.data = self.__allocate_data_mem()
         self.connect_monitor(self.on_change)
+        self.use_monitor = use_monitor
         
     def __del__(self):
         libca.ca_clear_channel(self.chid)
@@ -121,19 +123,19 @@ class PV(gobject.GObject):
         self.element_type = libca.ca_field_type(self.chid)
         self.connected = libca.ca_state(self.chid)
     
-    def __allocate_data_mem(self, value=None):
+    def __allocate_data_mem(self):
         if self.count > 1:
            self.data_type = TypeMap[self.element_type] * self.count
         elif self.element_type == DBR_STRING:
            self.data_type = create_string_buffer
         else:
            self.data_type = TypeMap[self.element_type] 
-        if value:
-            self.data = self.data_type(value)
-        elif self.element_type == DBR_STRING:
-            self.data = self.data_type(256)
+           
+        if self.element_type == DBR_STRING:
+            data = self.data_type(256)
         else:
-            self.data = self.data_type()
+            data = self.data_type()
+        return data
 
     def on_change(self):
         gobject.idle_add(self.emit, 'changed')
@@ -160,11 +162,8 @@ class PV(gobject.GObject):
     def disconnect_monitor(self, event_id):
         libca.ca_clear_subscription(event_id)
         libca.ca_pend_io(1.0)
-              
+                      
     def get(self):
-        if self.connected != CONNECTED:
-            self.__connect()
-        self.__allocate_data_mem()
         libca.lock.acquire()
         libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
         libca.ca_pend_io(1.0)
@@ -175,11 +174,10 @@ class PV(gobject.GObject):
             return self.data.value
 
     def put(self, val):
-        if self.connected != CONNECTED:
-            self.__connect()
-        self.__allocate_data_mem(val)
-        libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
-
+        data = self.data_type(val)
+        libca.ca_array_put(self.element_type, self.count, self.chid, byref(data))
+        libca.ca_pend_io(1.0)
+        
 gobject.type_register(PV)
 
 def thread_init():

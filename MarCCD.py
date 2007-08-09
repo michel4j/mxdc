@@ -29,9 +29,6 @@ class CCDDetector:
     def wait_while(self,state, timeout=1.0):        
         pass
     
-    def copy(self):
-        return CCDDetector(self.name)
-        
 class MarCCD(CCDDetector):
     def __init__(self, name):
         #house_keeping
@@ -39,12 +36,13 @@ class MarCCD(CCDDetector):
         self.name = name
         self.start_cmd = PV("%s:start:cmd" % name)
         self.abort_cmd = PV("%s:abort:cmd" % name)
-        self.correct_cmd = PV("%s:correct:cmd" % name)
+        self.readout_cmd = PV("%s:correct:cmd" % name)
         self.writefile_cmd = PV("%s:writefile:cmd" % name)
         self.background_cmd = PV("%s:dezFrm:cmd" % name)
         self.save_cmd = PV("%s:rdwrOut:cmd" % name)
         self.collect_cmd = PV("%s:frameCollect:cmd" % name)
         self.header_cmd = PV("%s:header:cmd" % name)
+        self.readout_flag = PV("%s:readout:flag" % name)
         
         #Header parameters
         self.header = {
@@ -62,7 +60,7 @@ class MarCCD(CCDDetector):
             'start_angle': PV("%s:start:omega" % name),
             'energy': PV("%s:runEnergy" % name),            
         }
-        
+                
         #Status parameters
         self.state = PV("%s:rawState" % name)
         self.state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
@@ -81,21 +79,23 @@ class MarCCD(CCDDetector):
             states.append('idle')
         return states
 
-    def wait_until(self,state, timeout=10.0):      
+    def wait_until(self,state, timeout=5.0):      
+        print "waiting to reach state '%s'" % state
         st_time = time.time()
         elapsed = time.time() - st_time
 
         while (not self.check_state(state)) and elapsed < timeout:
             elapsed = time.time() - st_time
-            time.sleep(0.01)
+            time.sleep(0.001)
         if elapsed < timeout:
             return True
         else:
             return False
 
     def wait_while(self,state):      
+        print "waiting for state '%s' to expire" % state
         while self.check_state(state):
-            time.sleep(0.01)
+            time.sleep(0.001)
         return True
         
     def check_state(self, key):
@@ -104,14 +104,16 @@ class MarCCD(CCDDetector):
         else:
             return False
 
-    def acquire_bg(self, wait=False):
-        success = self.wait_until('idle')
-        if success:
-            self.background_cmd.put(1)
-            self._bg_taken = True
-            if wait:
-                self.wait_until('acquire:exec')
-                self.wait_until('idle')
+    def acquire_bg(self, wait=True):
+        print 'acquiring dezingered  background'
+        self.wait_while('acquire:queue')
+        self.wait_while('acquire:exec')
+        self.wait_while('read:exec')
+        self.background_cmd.put(1)
+        self._bg_taken = True
+        if wait:
+            self.wait_until('acquire:exec')
+            self.wait_until('idle')
                         
     def start(self):
         if not self._bg_taken:
@@ -120,19 +122,18 @@ class MarCCD(CCDDetector):
         self.wait_while('acquire:exec')
         self.wait_while('read:exec')
         self.start_cmd.put(1)
-        self.wait_until('write:exec')
         self.wait_until('acquire:exec')
         
     def set_header(self, data):
         for key in data.keys():
-            self.header[key].put(data[key])
+            self.header[key].put(data[key])        
         self.header_cmd.put(1)
-        
     
     def save(self,wait=False):
+        self.readout_flag.put(0)
         self.save_cmd.put(1)
         if wait:
-            self.wait_until('write:exec')
+            self.wait_until('correct:exec')
             
     def wait_start(self):      
         self.wait_while('acquire:queue')
@@ -140,10 +141,50 @@ class MarCCD(CCDDetector):
         self.wait_while('read:exec')
 
     def wait_stop(self):      
-        self.wait_until('write:exec')
         self.wait_until('acquire:exec')
+        self.wait_until('write:exec')        
+    
+class Gonio:
+    def __init__(self, name):
+        #house_keeping
+        self.name = name
+        self.scan_cmd = PV("%s:scanFrame.PROC" % name)
+
+        #Status parameters
+        self.state = PV("%s:lowerTOUT.B0" % name)
+        self.move_state = PV("%s:moving" % name)
+        self.active = False
+        #parameters
+        self.params = {
+            'time' : PV("%s:expTime" % name),
+            'delta' : PV("%s:deltaOmega" % name),
+            'start_angle': PV("%s:openSHPos" % name),
+        }
         
-                
+                    
+    def set_params(self, data):
+        for key in data.keys():
+            self.params[key].put(data[key])
+            print key, data[key]
+    
+    def scan(self, wait=True):
+        self.scan_cmd.put('\x01')
+        if wait:
+            self.wait(start=True, stop=True)
+    
+    def is_active(self):
+        return self.state.get() == '\x01'
+            
+    def wait(self, start=True, stop=True, poll=0.001):
+        if (start):
+            print 'waiting for shutter to open'
+            while not self.is_active():
+                time.sleep(poll)                               
+        if (stop):
+            print 'waiting gonio to stop'
+            while self.is_active():
+                time.sleep(poll)
+    
 class MarCCD2(CCDDetector):
     def __init__(self, name):
         #house_keeping
@@ -174,15 +215,12 @@ class MarCCD2(CCDDetector):
         self.state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
         self.state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
             
-    def copy(self):
-        return MarCCD2(self.name)
-          
-
     def set_header(self, data):
         for key in data.keys():
             self.header[key].put(data[key])
             
     def wait_until(self,state, timeout=10.0):      
+        print "waiting for state '%s'" % state
         st_time = time.time()
         elapsed = time.time() - st_time
 
@@ -194,7 +232,8 @@ class MarCCD2(CCDDetector):
         else:
             return False
 
-    def wait_while(self,state):      
+    def wait_while(self,state):
+        print "waiting for state '%s' to expire" % state
         while self.check_state(state):
             time.sleep(0.01)
         return True
@@ -207,7 +246,7 @@ class MarCCD2(CCDDetector):
 
     def wait_stop(self):      
         while not self.get_state():
-            #print 'waiting for stop', self.get_state()
+            print 'waiting for stop', self.get_state()
             time.sleep(0.01)
    
     def state_list(self):
@@ -224,7 +263,7 @@ class MarCCD2(CCDDetector):
         
     def wait_start(self):
         while self.get_state():
-            #print 'waiting for start', self.get_state()
+            print 'waiting for start', self.get_state()
             time.sleep(0.01)
         
     def get_state(self):
@@ -240,7 +279,3 @@ class MarCCD2(CCDDetector):
         self.collect_cmd.put(1)
         self.wait_until('acquire:exec')
         self.wait_until('write:exec')
-        
-    
-        
-        

@@ -133,6 +133,7 @@ class CollectManager(gtk.HBox):
         if os.access(config_dir,os.W_OK):
             config.filename = config_file
             for key in self.run_data.keys():
+                if key == 0: continue
                 data = self.run_data[key]
                 keystr = "%s" % key
                 config[keystr] = data

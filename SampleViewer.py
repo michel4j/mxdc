@@ -39,7 +39,7 @@ class VideoThread(threading.Thread, gobject.GObject):
             if not self.paused:
                 self.count += 1
                 if self.count == 30:
-                    gc.collect()
+                    #gc.collect()
                     self.fps = self.count/(time.time() - self.start_time)
                     self.count = 0
                     self.start_time = time.time()
@@ -52,12 +52,15 @@ class VideoThread(threading.Thread, gobject.GObject):
                 gobject.idle_add(self.emit, "image-updated")
             
     def stop(self):
+        self.camera.set_visible(False)
         self.stopped = True
         
     def pause(self):
         self.paused = True
+        self.camera.set_visible(False)
     
     def resume(self):
+        self.camera.set_visible(True)
         self.paused = False
 
         
@@ -237,7 +240,7 @@ class SampleViewer(gtk.HBox):
         self.pixmap = gtk.gdk.Pixmap(self.video.window, width,height)
         self.gc = self.pixmap.new_gc()
         self.othergc = self.video.window.new_gc()
-        self.gc.foreground = self.video.get_colormap().alloc_color("cyan")
+        self.gc.foreground = self.video.get_colormap().alloc_color("green")
         self.gc.set_function(gtk.gdk.XOR)
         self.gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_NOT_LAST,gtk.gdk.JOIN_MITER)
         self.pangolayout = self.video.create_pango_layout("")

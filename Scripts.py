@@ -3,8 +3,8 @@
 from Beamline import beamline
 
 def prepare_for_mounting():
-    safe_distance = 500
-    safe_beamstop = 49
+    safe_distance = 700
+    safe_beamstop = 45
     beamline['motors']['detector_dist'].move_to(safe_distance, wait=True)
     beamline['motors']['bst_z'].move_to(safe_beamstop, wait=True)
     return True
