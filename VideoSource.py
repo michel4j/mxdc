@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy
-import EpicsCA
+from EPICS import PV
 import struct
 from scipy.misc import toimage, fromimage
 
@@ -38,12 +38,12 @@ class EpicsCamera(VideoSource):
     def __init__(self,name):
         VideoSource.__init__(self)
         self.pvname = name
-        self.cam = EpicsCA.PV(self.pvname,use_monitor=False)
+        self.cam = PV(self.pvname)
         self.frame = self.cam.get()
     
     def get_frame(self):
-        self.frame = self.cam.value
-        self.frame = self.frame + struct.pack('B',0)*(307200-len(self.frame))
+        self.frame = self.cam.get()
+        #self.frame = self.frame + struct.pack('B',0)*(307200-len(self.frame))
         return toimage(numpy.fromstring(self.frame, 'B').reshape(480,640))                
 
     def copy(self):

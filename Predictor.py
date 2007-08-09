@@ -21,7 +21,7 @@ from Utils import *
 try:
     from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
 except:
-	from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
+    from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 
@@ -115,7 +115,7 @@ class Predictor( gtk.Frame ):
         self.canvas.connect('visibility-notify-event', self.on_visibility_notify)
         self.canvas.connect('unmap', self.on_unmap)
 
-   	 
+        
     def on_update(self, widget):
         self.axis.clear()
         cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1)

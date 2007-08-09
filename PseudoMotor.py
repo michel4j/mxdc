@@ -3,7 +3,6 @@
 import sys, time
 import gtk, gobject
 from pylab import load
-import EpicsCA
 from Motor import *
 from Utils import *
 import numpy
@@ -19,8 +18,6 @@ class PseudoMotor(AbstractMotor):
         self.mask = []
         for i in range(len(self.motors)):
             self.mask.append(1)
-        self.last_moving = self.is_moving()
-        self.last_position = self.get_position()
         gobject.timeout_add(150, self._queue_check)
         
     def get_position(self):
@@ -29,15 +26,15 @@ class PseudoMotor(AbstractMotor):
     def move_to(self, val, wait=False):
         if not self.is_valid():
             LogServer.log ( "%s is not calibrated. Move cancelled!" % (self.get_name()) )
+            gobject.idle_add(self.emit,"valid", False)
             return False
-        LogServer.log( "%s moving to %f" % (self.get_name(), val))
+        LogServer.log( "%s moving to %f %s" % (self.get_name(), val, self.units))
         self._calc_targets( val )
         for motor, movable, target in zip( self.motors, self.mask, self.targets):
             if movable == 1:
                 motor.move_to(target)
         if wait:
             self.wait(start=True,stop=True)
-        LogServer.log( "%s stopped at %f" % (self.get_name(), self.get_position()))
         
     def move_by(self,val, wait=False):
         val += self.get_position()
@@ -45,14 +42,14 @@ class PseudoMotor(AbstractMotor):
         
     def set_mask(self, mask=[]):
         if len(mask) != len(self.motors):
-            raise self.MotorException, "The mask must be the same lenght as number of motors"
+            raise self.MotorException, "The mask must be the same length as number of motors"
         self.mask = mask
         
     def is_moving(self):
         moving = False
-        for motor, movable in zip( self.motors, self.mask):
+        for motor in self.motors:
             if motor.is_moving():
-                moving =True
+                moving = True
         return moving
 
     def is_valid(self):
@@ -99,7 +96,11 @@ class DCMEnergy(PseudoMotor):
         self.targets = [bragg_target, t1_target, t2_target]
              
     def _calc_position(self):
-        return bragg_to_keV( self.motors[0].get_position() )
+        bragg = self.motors[0].get_position()
+        if bragg:
+            return bragg_to_keV( bragg )
+        else:
+            return -99
 
     def copy(self):
         motors = []

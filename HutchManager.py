@@ -5,6 +5,7 @@ from Predictor import Predictor
 from SampleViewer import SampleViewer
 from LogView import LogView
 from ActiveWidgets import *
+#from VideoWidget import *
 from Beamline import beamline
 
 
@@ -36,11 +37,12 @@ class HutchManager(gtk.VBox):
         videobook = gtk.Notebook()
         self.sample_viewer = SampleViewer(size=0.7)
         videobook.insert_page( self.sample_viewer, tab_label=gtk.Label('Sample Camera') )
-        videobook.insert_page( gtk.Image(), tab_label=gtk.Label('Hutch Camera') )
+        #self.hutch_viewer = VideoWidget()
+        #videobook.insert_page( self.hutch_viewer, tab_label=gtk.Label('Hutch Camera') )
         
         self.entry = {
             'energy':       ActiveEntry('Energy', positioner=beamline['motors']['energy'], format="%0.4f"),
-            'attenuation':  ActiveEntry('Attenuation', positioner=beamline['attenuator'], format="%0.1g"),
+            'attenuation':  ActiveEntry('Attenuation', positioner=beamline['attenuator'], format="%0.2g"),
             'angle':        ActiveEntry('Omega', positioner=beamline['motors']['omega'], format="%0.3f"),
             'beam_width':   ActiveEntry('Beam width', positioner=beamline['motors']['gslits_hgap'], format="%0.3f"),
             'beam_height':  ActiveEntry('Beam height', positioner=beamline['motors']['gslits_vgap'], format="%0.3f"),
@@ -76,7 +78,7 @@ class HutchManager(gtk.VBox):
         control_box = gtk.VButtonBox()
         control_box.set_border_width(6)
         self.front_end_btn = ShutterButton(beamline['shutters']['psh1'], 'Photon Shutter')
-        self.shutter_btn = ShutterButton(beamline['shutters']['esh'], 'Sample Shutter')
+        self.shutter_btn = ShutterButton(beamline['shutters']['gonio_shutter'], 'Sample Shutter')
         self.optimize_btn = gtk.Button('Optimize Beam')
         self.mount_btn = gtk.Button('Prepare for Mounting')
         #self.front_end_btn.set_sensitive(False)

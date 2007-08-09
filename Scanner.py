@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
-import sys, time
+import sys, time, copy
 import threading
 import gtk, gobject
 import numpy
 from Plotter import Plotter
 from LogServer import LogServer
 from Fitting import *
+from Beamline import beamline
+import EPICS as CA
 
 gobject.threads_init()
 
@@ -20,8 +22,8 @@ class Scanner(threading.Thread, gobject.GObject):
     def __init__(self, positioner=None, start=0, end=0, steps=0, detector=None, time=1.0, output=None):
         threading.Thread.__init__(self)
         gobject.GObject.__init__(self)
-        self.ps = positioner
-        self.ds = detector
+        self.positioner = positioner
+        self.detector = detector
         self.time = time
         self.stopped = False
         self.aborted = False
@@ -32,8 +34,8 @@ class Scanner(threading.Thread, gobject.GObject):
         self.calc_targets()
         self.x_data_points = []
         self.y_data_points = []
-        self.plotter = None
-        
+        self.plotter = None            
+
     def _add_point(self, widget, x, y):
         self.plotter.add_point(x, y,0)
         return True
@@ -42,8 +44,8 @@ class Scanner(threading.Thread, gobject.GObject):
         self.fit()
         
     def __call__(self, positioner=None, start=0, end=0, steps=0, detector=None, time=1.0, output=None):
-        self.ps = positioner
-        self.ds = detector
+        self.positioner = beamline['motors'][positioner]
+        self.detector = beamline['detectors'][detector]
         self.time = time
         self.filename = output
         self.steps = steps
@@ -64,32 +66,27 @@ class Scanner(threading.Thread, gobject.GObject):
             gtk.main()
         except KeyboardInterrupt:
             gtk.main_quit()
-            
-        
+          
     def run(self, widget=None):
-        self.detector = self.ds.copy() 
-        self.positioner = self.ps.copy()
+        CA.thread_init()
         self.count = 0
         for x in self.positioner_targets:
-            if not self.positioner.is_valid():
-                self.aborted = True
-                LogServer.log( "%s is not calibrated. Scan aborted!" % self.positioner.get_name())
-                break
             if self.stopped or self.aborted:
                 LogServer.log( "Scan stopped!" )
                 break
                 
-            LogServer.log( "Entering iteration %d" % self.count)
+            LogServer.log( "--- Entering iteration %d ---" % self.count)
             self.count += 1
             prev = self.positioner.get_position()                
+
             self.positioner.move_to(x, wait=True)
-            LogServer.log("--- Position obtained, will now count ---")
+            
             y = self.detector.count(self.time)
             LogServer.log("--- Position and Count obtained ---")
             self.x_data_points.append( x )
             self.y_data_points.append( y )
-            gobject.idle_add(self.emit, "new-point", x, y )
             fraction = float(self.count) / len(self.positioner_targets)
+            gobject.idle_add(self.emit, "new-point", x, y )
             gobject.idle_add(self.emit, "progress", fraction )
             
         if self.aborted:
@@ -153,6 +150,8 @@ class Scanner(threading.Thread, gobject.GObject):
             self.plotter.add_line(xi, yi, 'r.')
             self.plotter.axis[0].axvline(midp, 'r--')
         
+        print "midp, fwhm, success = ", [midp,fwhm,success] 
         return [midp,fwhm,success]
-                                                        
+
 gobject.type_register(Scanner)
+scan = Scanner()

@@ -38,7 +38,7 @@ class LogView(gtk.Expander):
         else:
             self.text_buffer.insert(iter, "%s\n" % ( text ) )
             
-        self.view.scroll_to_iter(iter, 0.4, False)
+        self.view.scroll_to_iter(iter, 0.1, True, yalign=1)
     
     def on_log(self, obj, text):
         self.log(text)

@@ -3,7 +3,7 @@ import gtk, gobject
 import sys, os, time
 
 from Beamline import beamline
-from ActiveWidgets import ActiveLabel
+from ActiveWidgets import *
 
 class StatusPanel(gtk.VBox):
 	def __init__(self):
@@ -13,7 +13,16 @@ class StatusPanel(gtk.VBox):
 		self.layout_table.set_border_width(1)
 		
 		self.clock = gtk.Label()						
-		self.layout_table.attach(self.__frame_control(self.clock, gtk.SHADOW_ETCHED_IN), 10, 11 , 0, 1)
+		self.layout_table.attach(self.__frame_control('',self.clock, gtk.SHADOW_ETCHED_IN), 10, 11 , 0, 1)
+
+		self.intensity = DiagnosticLabel(beamline['detectors']['current'], format="%5.1f")
+		self.layout_table.attach(self.__frame_control('Cur<sub>mA</sub>', self.intensity, gtk.SHADOW_IN), 9, 10 , 0, 1)
+		
+		self.intensity = DiagnosticLabel(beamline['detectors']['i1_bpm'], format="%8.4g")
+		self.layout_table.attach(self.__frame_control('I1<sub>A</sub>', self.intensity, gtk.SHADOW_IN), 8, 9 , 0, 1)
+		
+		self.intensity = DiagnosticLabel(beamline['detectors']['i0_bpm'], format="%8.4g")
+		self.layout_table.attach(self.__frame_control('I0<sub>A</sub>', self.intensity, gtk.SHADOW_IN), 7, 8 , 0, 1)
 		
 		gobject.timeout_add(500,self.update_clock)
 		hseparator = gtk.HSeparator()
@@ -22,12 +31,17 @@ class StatusPanel(gtk.VBox):
 		self.pack_end(self.layout_table, expand= False, fill=False, padding=0)
 		self.show_all()	
 	
-	def __frame_control(self, widget, shadow):
+	def __frame_control(self, label, widget, shadow):
 		assert( shadow in [gtk.SHADOW_ETCHED_IN, gtk.SHADOW_ETCHED_OUT, gtk.SHADOW_IN, gtk.SHADOW_OUT ] )
 		frame = gtk.Frame()
 		frame.set_shadow_type(shadow)
 		frame.add(widget)
-		return frame
+		descr = gtk.Label("<small>%s</small>" % label)
+		descr.set_use_markup(True)
+		hbox = gtk.HBox(False,3)
+		hbox.pack_start(descr, expand=False, fill=False)
+		hbox.pack_end(frame, expand=True, fill=True)
+		return hbox
 
 	def update_clock(self):
 		timevals = time.localtime()

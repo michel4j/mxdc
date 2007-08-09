@@ -3,6 +3,10 @@ import scipy.optimize
 from matplotlib.mlab import slopes
 from random import *
 from PeriodicTable import read_periodic_table
+import threading
+import EPICS as CA
+import gobject, gtk
+gobject.threads_init()
 
 
 def emissions_list():
@@ -20,7 +24,7 @@ def emissions_list():
     return emissions_dict
 
 def assign_peaks(peaks):
-    stdev = 0.05 #kev
+    stdev = 0.01 #kev
     data = emissions_list()
     for peak in peaks:
         hits = []
@@ -53,13 +57,13 @@ def gen_spectrum():
         coeffs[2] = randint(15, 30) # sigma
         y += gaussian(x, coeffs) 
     # add some noise
-    noise = 0.1
+    noise = 0.001
     y = y + noise*(scipy.rand(len(y))-0.5)
     return y
 
 def find_peaks(x, y, w=10, threshold=0.1):
     peaks = []
-    ys = smooth(x,y,w,2)
+    ys = smooth(y,w,1)
     ny = correct_baseline(x,ys)
     yp = slopes(x, ny)
     ypp = slopes(x, yp)
@@ -68,19 +72,19 @@ def find_peaks(x, y, w=10, threshold=0.1):
     for i in range(1,len(x)):
         if scipy.sign(yp[i]) < scipy.sign(yp[i-1]):
             if ny[i] > factor:
-                peaks.append( [x[i], y[i]] )
+                peaks.append( [x[i], ys[i]] )
     return peaks
 
-def smooth(x, y, w, iterates=1):
+def smooth(y, w, iterates=1):
     hw = 1 +  w/2
     my = scipy.array(y)
     for count in range(iterates):
         ys = my.copy()
         for i in range(0,hw):
             ys[i] = my[0:hw].mean()
-        for i in range(len(x)-hw,len(x)):
-            ys[i] = my[len(x)-hw:len(x)].mean()
-        for i in range(hw,len(x)-hw):
+        for i in range(len(y)-hw,len(y)):
+            ys[i] = my[len(y)-hw:len(y)].mean()
+        for i in range(hw,len(y)-hw):
             val=my[i-hw:i+hw].mean()
             ys[i] = val
         my = ys
@@ -99,3 +103,64 @@ def get_baseline(x, y):
 def correct_baseline(x, y):
     return anti_slope(x, slopes(x,y))
 
+class ExcitationScanner(gobject.GObject, threading.Thread):
+    __gsignals__ = {}
+    __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    
+    def __init__(self, positioner, mca, energy, time=1.0, output=None):
+        gobject.GObject.__init__(self)
+        threading.Thread.__init__(self)
+        self.detector = mca
+        self.motor = positioner
+        self.time = time
+        self.energy = energy
+        self.filename = output
+        self.x_data_points = []
+        self.y_data_points = []
+        self.peaks = []
+        
+    def run(self):
+        CA.thread_init()
+        self.motor.set_mask([1,1,1])
+        #if abs(self.energy - self.motor.get_position()) > 1e-4:
+        #    self.motor.move_to(self.energy, wait=True)
+        self.detector.set_roi()
+        self.x_data_points, self.y_data_points = self.detector.acquire(t=self.time)
+        self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=15)
+        assign_peaks(self.peaks)
+        self.save()
+        gobject.idle_add(self.emit, "done")
+
+    def set_output(self, filename):
+        self.filename = filename
+
+    def save(self, filename = None):
+        if filename:
+            self.set_output(filename)
+        scan_data  = "# Positioner: %s \n" % self.motor.get_name()
+        scan_data += "# Detector: %s \n" % self.detector.get_name()
+        scan_data += "# Detector count time: %0.4f sec \n" % (self.time)
+        scan_data += "# \n" 
+        scan_data += "# Columns: (%s) \t (%s) \n" % (self.motor.get_name(), self.detector.get_name())
+        for x,y in zip(self.x_data_points, self.y_data_points):
+            scan_data += "%15.8g %15.8g \n" % (x, y)
+        scan_data += '# Peak Assignments'
+        for peak in self.peaks:
+            peak_log = "#Peak position: %8.3f keV  Height: %8.2f" % (peak[0],peak[1])
+            for ident in peak[2:]:
+                peak_log = "%s \n%s" % (peak_log, ident)
+            scan_data += peak_log
+
+        if self.filename != None:
+            try:
+                scan_file = open(self.filename,'w')        
+                scan_file.write(scan_data)
+                scan_file.flush()
+                scan_file.close()
+            except:
+                print scan_data
+        else:
+            print scan_data
+        
+gobject.type_register(ExcitationScanner)

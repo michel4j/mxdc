@@ -40,8 +40,8 @@ class AutoChooch(threading.Thread, gobject.GObject):
         self.out_file = "%s.out" % (file_root)
         chooch_command = "chooch -e %s -a %s %s -o %s | tee %s " % (element, edge, self.raw_file, self.efs_file, self.out_file)
         self.return_code, self.output = commands.getstatusoutput(chooch_command)
-        if self.return_code == 0:
-            self.read_output()
+        success = self.read_output()
+        if success:
             gobject.idle_add(self.emit, 'done')
         else:
             gobject.idle_add(self.emit, 'error','Premature termination')
@@ -60,7 +60,7 @@ class AutoChooch(threading.Thread, gobject.GObject):
         
         if not found_results:
             self.results = None
-            return
+            return False
         # select remote energy, maximize fp, minimize fpp-fp
         selected = [0, -999, -999]
         for e, fp, fpp in zip(self.data[:,0], self.data[:,2], self.data[:,1]):
@@ -73,6 +73,7 @@ class AutoChooch(threading.Thread, gobject.GObject):
         self.data[:,0] *= 1e-3 # convert x-axis to keV 
         for key in self.results.keys():
             self.results[key][1] *= 1e-3
+        return True
             
 
 gobject.type_register(AutoChooch)

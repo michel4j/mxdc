@@ -75,12 +75,12 @@ class Plotter( gtk.Frame ):
                         xmin = (xmin < mnx) and xmin or mnx
                         ymax = (ymax > mxy) and ymax or mxy
                         ymin = (ymin < mny) and ymin or mny
-                self.line[lin].axes.set_xlim(xmin, xmax) 
-                self.line[lin].axes.xaxis.set_major_formatter(self.xformatter)    
-                ypadding = (ymax - ymin)/8.0  # pad 1/8 of range to either side
-                ymin = ymin - ypadding
-                ymax = ymax + ypadding
-                self.line[lin].axes.set_ylim(ymin, ymax )
+            self.line[lin].axes.set_xlim(xmin, xmax) 
+            self.line[lin].axes.xaxis.set_major_formatter(self.xformatter)    
+            ypadding = (ymax - ymin)/8.0  # pad 1/8 of range to either side
+            ymin = ymin - ypadding
+            ymax = ymax + ypadding
+            self.line[lin].axes.set_ylim(ymin, ymax )
             
         if redraw:
             self.canvas.draw()
@@ -113,7 +113,7 @@ class Plotter( gtk.Frame ):
         
     def add_point(self, x, y, lin=0, redraw=True):
         if len(self.line) <= lin:
-            self.add_line([x],[y],'+-')
+            self.add_line([x],[y],'-+')
         else:                    
             # when using ring buffer, remove first element before adding if full
             if self.simulate_ring_buffer and len(self.x_data[lin]) == self.buffer_size:
@@ -123,7 +123,6 @@ class Plotter( gtk.Frame ):
             # add points to end of line        
             self.x_data[lin].append(x)
             self.y_data[lin].append(y)
-            
             # update the line data
             self.line[lin].set_data(self.x_data[lin],self.y_data[lin])
 
@@ -139,17 +138,18 @@ class Plotter( gtk.Frame ):
             curr_xmin, curr_xmax = self.line[lin].axes.get_xlim()
             ymin = (curr_ymin+ypadding < ymin) and curr_ymin  or (ymin - ypadding)
             ymax = (curr_ymax-ypadding > ymax) and curr_ymax  or (ymax + ypadding)
-                # when using ring buffer, always update x-limits
+            # when using ring buffer, always update x-limits
             if self.simulate_ring_buffer:
                 xmin = (curr_xmin < xmin) and curr_xmin  or xmin
                 xmax = curr_xmax > xmax and curr_xmax  or xmax
-
-            self.line[lin].axes.set_xlim(xmin, xmax)
-            self.line[lin].axes.set_ylim(ymin, ymax )
-            self.line[lin].axes.xaxis.set_major_formatter(self.xformatter)    
+            if (xmax-xmin) > 1e-15:
+                self.line[lin].axes.set_xlim(xmin, xmax)
+                self.line[lin].axes.xaxis.set_major_formatter(self.xformatter)    
+            if (ymax -ymin)> 1e-15:
+                self.line[lin].axes.set_ylim(ymin, ymax )
         
-        if redraw:
-            self.canvas.draw()
+            if redraw:
+                self.canvas.draw()
         
         return True
     

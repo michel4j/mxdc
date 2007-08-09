@@ -36,13 +36,20 @@ class NewEntry(gtk.Frame):
         self.undo_stack = []
         self.undo_btn.set_sensitive(False)
         self.last_event = 0
+        self.width = width
         self.format = format
     
     def set_position(self, val):
-        self.value_box.set_text(self.format % val)
+        text = self.format % val
+        if len(text) > self.width:
+            text = "%8g" % val
+        self.value_box.set_text(text)
 
     def set_target(self,val):
-        self.entry_box.set_text(self.format % val)
+        text = self.format % val
+        if len(text) > self.width:
+            text = "%8g" % val
+        self.entry_box.set_text(text)
     
     def get_position(self):
         return float( self.value_box.get_text() )       
@@ -105,13 +112,18 @@ class ActiveEntry(NewEntry):
     def __init__(self, label, positioner, format="%s", width=8):
         NewEntry.__init__(self, label=label, format=format, width=width)
         self.motor = positioner
-        self.set_position( self.motor.get_position() )
-        self.set_target( self.motor.get_position() )
-        label = '%s (%s)' % (label, self.motor.units)
+        try:
+            self.set_position( self.motor.get_position() )
+            self.set_target( self.motor.get_position() )
+        except:
+            print 'Positioner "%s" not online' % self.motor.name
+        if self.motor.units != "":
+            label = '%s (%s)' % (label, self.motor.units)
         self.set_label(label)
         self.motor.connect('changed', self.on_monitor_pos )
         self.motor.connect('moving', self.on_monitor_state)
         self.motor.connect('valid', self.on_validate)
+        self.connect('expose-event', self.check_motor)
                
     def move(self, save=True):
         try:
@@ -148,15 +160,40 @@ class ActiveEntry(NewEntry):
             self.running = False
             self.act_btn.get_child().set_from_stock('gtk-go-forward',gtk.ICON_SIZE_MENU)
         self.set_position(self.motor.get_position() )
-        return True             
+        return True
+    
+    def check_motor(self, widget, event):
+        if self.motor.is_valid():
+            self.set_sensitive(True)
+        else:
+            self.set_sensitive(False)        
 
 class ActiveLabel(gtk.Label):
     def __init__( self, positioner,  format="%s", width=8):
         gtk.Label.__init__(self, '')
         self.format = format
         self.positioner = positioner
-        self.update_value( self.positioner.get_position() )
+        try:
+            self.update_value( self.positioner.get_position() )
+        except:
+            print 'Positioner "%s" not online' % self.positioner.name
+        
         self.positioner.connect('changed', self.on_monitor_pos )
+        
+    def update_value(self, val):
+        self.set_text(self.format % (val))
+
+    def on_monitor_pos(self, widget, val):
+        self.update_value(val)
+        return True
+
+class DiagnosticLabel(gtk.Label):
+    def __init__( self, positioner,  format="%s", width=8):
+        gtk.Label.__init__(self, '')
+        self.format = format
+        self.positioner = positioner
+        self.update_value( self.positioner.get_value() )
+        self.positioner.connect('update', self.on_monitor_pos )
         
     def update_value(self, val):
         self.set_text(self.format % (val))
@@ -181,7 +218,7 @@ class ShutterButton(gtk.ToggleButton):
             self.set_active(True)
         else:
             self._set_off()
-            
+        self.shutter.connect('changed', self.on_state_change)
         self.connect('toggled', self.on_toggle)
             
     def on_toggle(self, widget):
@@ -192,6 +229,10 @@ class ShutterButton(gtk.ToggleButton):
             self.shutter.close()    
             self._set_off()
 
+    def on_state_change(self, widget, state):
+        self.set_active(state)
+        return True
+            
     def _set_on(self):
         self.image.set_from_stock('gtk-yes', gtk.ICON_SIZE_SMALL_TOOLBAR)
     

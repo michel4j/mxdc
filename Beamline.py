@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-
+import os, sys
 from Motor import *
 from Detector import *
 from PseudoMotor import *
 from VideoSource import *
 from Shutter import *
+from MarCCD import *
 
 from ConfigParser import ConfigParser
 import string
@@ -16,7 +17,11 @@ beamline = {}
 def initialize():
     global beamline
     parser = ConfigParser()
-    filename =sys.path[0] + "/data/%s.dat" % BEAMLINE
+    if sys.path[0] == '':
+        file_path = os.getcwd()
+    else:
+        file_path = sys.path[0]
+    filename =file_path + "/data/%s.dat" % BEAMLINE
     parser.read(filename)
 
     mode = parser.get('config','mode')
@@ -29,16 +34,18 @@ def initialize():
         VideoCamera = FakeCamera
         MCA         = FakeMCA
         Shutter     = FakeShutter
+        CCD         = CCDDetector
         
     else:
         print "Entering Live Mode"
         Motor       = CLSMotor 
-        OldMotor    = FakeMotor #OldCLSMotor 
+        OldMotor    = OldCLSMotor 
         EnergyMotor = DCMEnergy
-        Variable    = EpicsPV 
+        Variable    = EpicsPositioner 
         VideoCamera = EpicsCamera
         MCA         = EpicsMCA
         Shutter     = FakeShutter
+        CCD         = MarCCD
         
                 
     beamline['motors'] = {}
@@ -48,18 +55,18 @@ def initialize():
         for item in parser.options('motors'):
             pv = string.strip( parser.get('motors', item) )
             item = string.strip(item)
-            beamline['motors'][item] = Motor(pv)
             print '...', item
+            beamline['motors'][item] = Motor(pv)
     if 'old_motors' in parser.sections():
         for item in parser.options('old_motors'):
             pv = string.strip( parser.get('old_motors', item) )
             item = string.strip(item)
-            beamline['motors'][item] = OldMotor(pv)
             print '...', item
+            beamline['motors'][item] = OldMotor(pv)
     energy_motors = [beamline['motors']['bragg'],
                      beamline['motors']['c2_t1'],
                      beamline['motors']['c2_t2']]
-    beamline['motors']['energy'] = EnergyMotor( energy_motors )            
+    beamline['motors']['energy'] = EnergyMotor( energy_motors )
     twotheta_motors = [beamline['motors']['detector_z'],
                      beamline['motors']['detector_y1'],
                      beamline['motors']['detector_y2']]
@@ -79,6 +86,7 @@ def initialize():
             pv =  parser.get('misc', 'mca')
             beamline['detectors']['mca'] = MCA(pv)
             print '... mca'      
+    
     print 'setting up Cameras'
     beamline['cameras'] = {}
     if 'cameras' in parser.sections():
@@ -87,6 +95,13 @@ def initialize():
             beamline['cameras'][item] = VideoCamera(pv)
             print '...', item           
         
+    print 'Setting up Detectors'
+    if 'detectors' in parser.sections():
+        for item in parser.options('detectors'):
+            pv = string.strip( parser.get('detectors', item) )
+            item = string.strip(item)
+            beamline['detectors'][item] = EpicsDetector(pv)
+            print '...', item
 
     print 'setting up Other Variables'
     beamline['variables'] = {}
@@ -105,11 +120,21 @@ def initialize():
             pv = string.strip( parser.get('shutters', item) )            
             beamline['shutters'][item] = Shutter(pv)
             print '...', item
-        
+    beamline['shutters']['gonio_shutter'] = GonioShutter('GV6K1608-001')
+    print 'setting up CCD detectors'
+    if 'ccds'  in parser.sections():
+        for item in parser.options('ccds'):
+            item = string.strip(item)
+            pv = string.strip( parser.get('ccds', item) )  
+            beamline['detectors']['ccd'] = CCD(pv)
+               
     #provide some reasonable values for simulation     
     # 2theta not yet implemented so using simulator always    
     beamline['motors']['detector_2th'] = FakeMotor('2th')   
     beamline['motors']['detector_dist'] =   beamline['motors']['detector_z']
+    for motor in ['sample_x','sample_y','sample_z', 'omega','bragg']:
+        beamline['motors'][motor].set_calibrated(True)
+        
     if mode == 'simulation':
         beamline['variables']['beam_x'].move_to(320)
         beamline['variables']['beam_y'].move_to(240)

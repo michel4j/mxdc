@@ -40,39 +40,45 @@ def gauss_fit(x,y):
     return p1, lsqres
 
 def calcfwhm(x,y):
-	"""
-	calcfwhm(x,y) - with input x,y vector this function calculates fwhm and returns
+    """
+    calcfwhm(x,y) - with input x,y vector this function calculates fwhm and returns
     (fwhm,xpeak,ymax)
-	x - input independent variable
-	y - input dependent variable
-	fwhm - return full width half maximum
-	xpeak - return x value at y = ymax
-	"""
-	ymin,ymax = min(y),max(y)
-	y_hpeak = ymin + .5 *(ymax-ymin)
-	x_hpeak = []
-	NPT = len(x)
-	for i in range(NPT):
-		if y[i] >= y_hpeak:
-			i1 = i
-			break
-	for i in range(i1+1,NPT):
-		if y[i] <= y_hpeak:
-			i2 = i
-			break
-		if i == NPT-1: i2 = i
-	if y[i1] == y_hpeak: x_hpeak_l = x[i1]
-	else:
-		x_hpeak_l = (y_hpeak-y[i1-1])/(y[i1]-y[i1-1])*(x[i1]-x[i1-1])+x[i1-1]
-	if y[i2] == y_hpeak: x_hpeak_r = x[i2]
-	else:
-		x_hpeak_r = (y_hpeak-y[i2-1])/(y[i2]-y[i2-1])*(x[i2]-x[i2-1])+x[i2-1]
-	x_hpeak = [x_hpeak_l,x_hpeak_r]
+    x - input independent variable
+    y - input dependent variable
+    fwhm - return full width half maximum
+    xpeak - return x value at y = ymax
+    """
+    ymin,ymax = min(y),max(y)
+    y_hpeak = ymin + .5 *(ymax-ymin)
+    x_hpeak = []
+    NPT = len(x)
+    i1 = 0
+    i2 = NPT
+    i = 0
+    while (y[i] < y_hpeak) and i< NPT:   
+        i+= 1
+    i1 = i
+    i = NPT-1
+    while (y[i] < y_hpeak) and i>0:   
+        i-= 1
+    i2 = i
 
-	fwhm = abs(x_hpeak[1]-x_hpeak[0])
-	for i in range(NPT):
-		if y[i] == ymax: 
-			jmax = i
-			break
-	xpeak = x[jmax]
-	return (fwhm,xpeak,ymax)
+    if y[i1] == y_hpeak: 
+        x_hpeak_l = x[i1]
+    else:
+        x_hpeak_l = (y_hpeak-y[i1-1])/(y[i1]-y[i1-1])*(x[i1]-x[i1-1])+x[i1-1]
+    if y[i2] == y_hpeak: 
+        x_hpeak_r = x[i2]
+    else:
+        x_hpeak_r = (y_hpeak-y[i2-1])/(y[i2]-y[i2-1])*(x[i2]-x[i2-1])+x[i2-1]
+    if i1 == 0: x_hpeak_l = x[0]
+    if i2 == 0: x_hpeak_r = x[0]
+    x_hpeak = [x_hpeak_l,x_hpeak_r]
+    fwhm = abs(x_hpeak[1]-x_hpeak[0])
+    for i in range(NPT):
+        if y[i] == ymax: 
+            jmax = i
+            break
+    xpeak = x[jmax]
+    return (fwhm,xpeak,ymax, x_hpeak[0], x_hpeak[1])
+

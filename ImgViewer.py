@@ -275,12 +275,14 @@ class ImgViewer(gtk.VBox):
             return True     
 
     def wait_for_file(self):
+    
         if os.path.isfile(self.filename) and (os.path.getsize(self.filename) == 18878464):
-            LogServer.log("Loding image %s" % (self.filename))
+            LogServer.log("Loading image %s" % (self.filename))
             self.load_image()
             self.display()
             return False
         else:
+            LogServer.log("Waiting for image %s" % (self.filename))
             return True
 
     def set_collect_mode(self, state=True):

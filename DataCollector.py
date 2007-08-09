@@ -4,9 +4,13 @@ import sys, time, os
 import gtk, gobject
 import threading
 import numpy
-from MarCCD import MarCCD
+from Beamline import beamline
+from MarCCD import MarCCD2
 from Utils import *
+import EPICS as CA
 from LogServer import LogServer
+
+gobject.threads_init()
 
 class DataCollector(threading.Thread, gobject.GObject):
     __gsignals__ = {}
@@ -30,7 +34,8 @@ class DataCollector(threading.Thread, gobject.GObject):
         return
         
     def run(self, widget=None):
-        self.detector = MarCCD('BL08ID1:CCD')
+        CA.thread_init()
+        self.detector = beamline['detectors']['ccd'].copy()
         self.pos = 0
         header = {}
         while self.pos < len(self.run_list) :
@@ -56,7 +61,7 @@ class DataCollector(threading.Thread, gobject.GObject):
             header['directory'], header['filename'] = os.path.split(frame['file_name'])
             header['directory'] = header['directory']+'\0'
             header['filename'] = header['filename']+'\0'
-            header['distance'] = frame['distance'] 
+            header['distance'] = frame['distance']
             header['time'] = frame['time']
             header['wavelength'] = keV_to_A(frame['energy'])
             
@@ -95,5 +100,60 @@ class DataCollector(threading.Thread, gobject.GObject):
     
     def stop(self):
         self.stopped = True
+        
+class SNLDataCollector(DataCollector):
+    def __init__(self, run_list=None, skip_collected=True):
+        DataCollector.__init__(self, run_list, skip_collected)
+        self.last_run = 0
+        #self.distance = beamline['motors']['detector_dist']              
+    def run(self, widget=None):
+        self.detector = MarCCD2('BL08ID1:CCD')
+        self.pos = 0
+        header = {}
+        while self.pos < len(self.run_list) :
+            if self.paused:
+                gobject.idle_add(self.emit, 'paused', True)
+                while self.paused and not self.stopped:
+                    time.sleep(0.05)
+                gobject.idle_add(self.emit, 'paused', False)
+            if self.stopped:
+                gobject.idle_add(self.emit, 'stopped')
+                return
+            frame = self.run_list[self.pos]
+            self.pos += 1
+            if frame['saved'] and self.skip_collected:
+                LogServer.log( 'Skipping %s' % frame['file_name'])
+                continue
+            velo = frame['delta'] / float(frame['time'])
+            start_pos = frame['start_angle']
+            end_pos = start_pos + frame['delta']
+            
+            # prepare image header
+            header['delta'] = frame['delta']
+            header['directory'], header['filename'] = os.path.split(frame['file_name'])
+            header['directory'] = header['directory']+'\0'
+            header['filename'] = header['filename']+'\0'
+            header['distance'] = frame['distance'] 
+            header['time'] = frame['time']
+            header['frame_number'] = frame['frame_number']
+            header['wavelength'] = keV_to_A(frame['energy'])
+            header['energy'] = frame['energy']
+            header['prefix'] = frame['prefix']
+            header['start_angle'] = frame['start_angle']
+            
+            self.detector.set_header(header)
+            self.detector.start()
+            
+            # Place holder for gonio scan and shutter opening            
+            LogServer.log("Image Collected: %s" % frame['file_name'])
+            gobject.idle_add(self.emit, 'new-image', frame['index'], frame['file_name'])
+            
+            # Notify progress
+            fraction = float(self.pos) / len(self.run_list)
+            gobject.idle_add(self.emit, 'progress', fraction)
+            
+        # Wrap things up    
+        gobject.idle_add(self.emit, 'done')
+        gobject.idle_add(self.emit, 'progress', 1.0)
         
 gobject.type_register(DataCollector)

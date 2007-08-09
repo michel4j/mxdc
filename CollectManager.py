@@ -3,7 +3,7 @@ import gtk, gobject
 import sys, os, time
 from RunManager import RunManager
 from ImgViewer import ImgViewer
-from DataCollector import DataCollector
+from DataCollector import SNLDataCollector as DataCollector
 from Beamline import beamline
 from ActiveWidgets import ActiveLabel
 from ConfigParser import ConfigParser
@@ -64,6 +64,7 @@ class CollectManager(gtk.HBox):
         self.progress_bar.set_text('0%')
         controlbox.pack_end(self.progress_bar, expand=False, fill=True)
         dose_frame = gtk.Frame(label='Dose Control')
+        dose_frame.set_sensitive(False)
         dosevbox = gtk.VBox(False, 3)
         self.dose_mode = gtk.CheckButton('Dose Mode')
         dosevbox.pack_start(self.dose_mode)
@@ -270,7 +271,8 @@ class CollectManager(gtk.HBox):
                                 'delta': run['delta'],
                                 'time': run['time'],
                                 'energy': energy,
-                                'distance': run['distance']
+                                'distance': run['distance'],
+                                'prefix': run['prefix']
                             }
                             self.run_list.append(list_item)
                             index += 1
@@ -374,6 +376,7 @@ class CollectManager(gtk.HBox):
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
+        gobject.timeout_add(500, self.image_viewer.wait_for_file)
     
     def on_new_image(self, widget, index, filename):
         self.pos = index

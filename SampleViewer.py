@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
-import threading
-import gtk, gobject, gc
+import threading, gc
+import gtk, gobject
 gobject.threads_init()
-import sys, time, gc
+import sys, time
 import Image
 import ImageEnhance
 import ImageOps
 import numpy
+import EPICS as CA
 from Beamline import beamline
 
 class VideoThread(threading.Thread, gobject.GObject):
@@ -30,13 +31,14 @@ class VideoThread(threading.Thread, gobject.GObject):
         self.stop()
                 
     def run(self):
-        self.camera = self.vid_source.copy()
+        CA.thread_init()
+        self.camera = self.vid_source
         self.start_time = time.time()
         while not self.stopped:
             time.sleep(1./self.parent.max_fps)
             if not self.paused:
                 self.count += 1
-                if self.count == 100:
+                if self.count == 10:
                     gc.collect()
                     self.fps = self.count/(time.time() - self.start_time)
                     self.count = 0
@@ -71,9 +73,7 @@ class SampleViewer(gtk.HBox):
         self.video_realized = False
         self.ready = True
         self.click_centering  = False
-        self.contrast = 0
-        self.lighting = 50
-        
+        self.contrast = 0        
         
         self.omega      = beamline['motors']['omega']
         self.sample_x   = beamline['motors']['sample_x']
@@ -84,12 +84,14 @@ class SampleViewer(gtk.HBox):
         self.slits_x    = beamline['motors']['gslits_hpos']
         self.slits_y    = beamline['motors']['gslits_vpos']
         self.zoom       = beamline['motors']['zoom']
-         
+        self.light      = beamline['variables']['sample_light']
+        self.light_val  =  beamline['variables']['sample_light_val']
         self.cross_x = beamline['variables']['beam_x']
         self.cross_y = beamline['variables']['beam_y']
                 
         self.width = int(self.source_width * self.display_size)
         self.height = int(self.source_height * self.display_size)
+        self.lighting = self.light_val.get_position()
 
         self.zoom_factor = self.zoom.get_position()
         self.pixel_size = 5.34e-3 * numpy.exp( -0.18 * self.zoom_factor)
@@ -136,8 +138,15 @@ class SampleViewer(gtk.HBox):
         self.pixmap.draw_pixbuf(self.othergc, self.video_frame, 0, 0, 0, 0, self.width, self.height, 0,0,0)
         self.draw_cross()
         self.draw_slits()
+        self.pangolayout.set_text("%5.0f FPS" % self.videothread.fps)
         self.draw_measurement()
+        self.pixmap.draw_layout(self.gc, self.width-70, self.height-20, self.pangolayout)
         self.video.queue_draw()
+        if self.click_centering:
+            elapsed = time.time() - self.last_click_time
+            if elapsed > 60:
+                self.click_btn.set_active(False)
+        
         return True     
     
     def draw_cross(self):
@@ -187,7 +196,6 @@ class SampleViewer(gtk.HBox):
             x1, x2, y1, y2 = int(x1), int(y1), int(x2), int(y2)
             self.pixmap.draw_line(self.gc, x1, x2, y1, y2)
             self.pangolayout.set_text("%5.4f mm" % dist)
-            self.pixmap.draw_layout(self.gc, self.width-70, self.height-20, self.pangolayout)
         return True
 
     # callbacks
@@ -229,9 +237,9 @@ class SampleViewer(gtk.HBox):
         self.pixmap = gtk.gdk.Pixmap(self.video.window, width,height)
         self.gc = self.pixmap.new_gc()
         self.othergc = self.video.window.new_gc()
-        self.gc.foreground = self.video.get_colormap().alloc_color("green")
-        self.gc.function = gtk.gdk.XOR
-        self.gc.set_line_attributes(2,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_NOT_LAST,gtk.gdk.JOIN_MITER)
+        self.gc.foreground = self.video.get_colormap().alloc_color("cyan")
+        self.gc.set_function(gtk.gdk.XOR)
+        self.gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_NOT_LAST,gtk.gdk.JOIN_MITER)
         self.pangolayout = self.video.create_pango_layout("")
         return True
     
@@ -299,11 +307,11 @@ class SampleViewer(gtk.HBox):
             sin_w = numpy.sin(tmp_omega * numpy.pi / 180)
             cos_w = numpy.cos(tmp_omega * numpy.pi / 180)
             im_x, im_y, xmm, ymm = self.position(event.x,event.y)
-            self.sample_x.move_by( -xmm * 0.5 )
+            self.sample_x.move_by( -xmm )
             if   abs(sin_w) == 1:
-                self.sample_y1.move_by( -ymm * sin_w * 0.5 )
+                self.sample_y1.move_by( -ymm * sin_w  )
             elif abs(cos_w) == 1:
-                self.sample_y2.move_by( ymm * cos_w * 0.5 )
+                self.sample_y2.move_by( ymm * cos_w  )
         elif event.button == 3:
             self.measuring = True
             self.measure_x1, self.measure_y1 = event.x,event.y
@@ -359,7 +367,8 @@ class SampleViewer(gtk.HBox):
         return True
         
     def on_lighting_changed(self,widget):
-        self.lighting = self.lighting_scale.get_value()
+        self.lighting = 0.5 * self.lighting_scale.get_value()
+        self.light.move_to( self.lighting )
         return True
         
     def stop(self):
@@ -435,7 +444,7 @@ class SampleViewer(gtk.HBox):
         self.home_btn.connect('clicked', self.on_home)
         
         # rotate sample section
-        move_gonio_frame = gtk.Frame('<b>Rotate Sample:</b>')    
+        move_gonio_frame = gtk.Frame('<b>Rotate Sample By:</b>')    
         move_gonio_frame.set_shadow_type(gtk.SHADOW_NONE)
         move_gonio_frame.get_label_widget().set_use_markup(True)
         move_gonio_bbox = gtk.Table(1,3,True)
@@ -505,8 +514,8 @@ class SampleViewer(gtk.HBox):
         self.lighting_scale = gtk.HScale()
         #self.lighting_scale.set_draw_value(False)
         self.lighting_scale.set_value_pos(gtk.POS_RIGHT)
-        self.lighting_scale.set_digits(0)
-        self.lighting_scale.set_adjustment(gtk.Adjustment(self.lighting,0,100,1,0,0))
+        self.lighting_scale.set_digits(1)
+        self.lighting_scale.set_adjustment(gtk.Adjustment(self.lighting,0,10,0.1,0,0))
         self.lighting_scale.set_update_policy(gtk.UPDATE_CONTINUOUS)
         
         self.contrast_scale = gtk.HScale()
