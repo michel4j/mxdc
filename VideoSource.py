@@ -43,7 +43,7 @@ class EpicsCamera(VideoSource):
     def __init__(self,name):
         VideoSource.__init__(self)
         self.pvname = name
-        self.cam = PV(self.pvname, connect=True)
+        self.cam = PV(self.pvname, use_monitor=False)
         self.fetch_frame()
         self.visible = False        
     
