@@ -7,7 +7,7 @@ import numpy
 from Plotter import Plotter
 from LogServer import LogServer
 from Fitting import *
-from Detector import Normalizer
+from Detectors import Normalizer
 from Beamline import beamline
 import EPICS as CA
 

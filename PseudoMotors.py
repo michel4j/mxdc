@@ -3,7 +3,7 @@
 import sys, time
 import gtk, gobject
 from pylab import load
-from Motor import *
+from Motors import *
 from Utils import *
 import numpy
 from numpy import sin, cos, tan, arcsin, arccos, arctan

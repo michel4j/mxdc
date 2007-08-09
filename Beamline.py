@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import os, sys
-from Motor import *
-from Detector import *
-from PseudoMotor import *
-from VideoSource import *
+from Motors import *
+from Detectors import *
+from PseudoMotors import *
+from VideoSources import *
 from Shutters import *
 from MarCCD import *
 
