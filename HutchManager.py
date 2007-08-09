@@ -82,8 +82,8 @@ class HutchManager(gtk.VBox):
         
         control_box = gtk.VButtonBox()
         control_box.set_border_width(6)
-        self.front_end_btn = ShutterButton(beamline['shutters']['psh1'], 'Front End Shutter')
-        self.shutter_btn = ShutterButton(beamline['shutters']['xbox_shutter'], 'Exp.Box Shutter')
+        self.front_end_btn = ShutterButton(beamline['shutters']['psh1'], 'Front End')
+        self.shutter_btn = ShutterButton(beamline['shutters']['xbox_shutter'], 'Shutter')
         self.optimize_btn = gtk.Button('Optimize Beam')
         self.mount_btn = gtk.Button('Prepare for Mounting')
         self.mount_btn.connect('clicked',self.prepare_mounting)
