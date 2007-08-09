@@ -11,6 +11,7 @@ from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
 from matplotlib.numerix import arange, sin, pi
 from matplotlib.ticker import FormatStrFormatter
+from pylab import delaxes
 
 #try:
 #    from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
@@ -99,8 +100,11 @@ class Plotter( gtk.Frame ):
         self.axis[0].set_xlabel(x_label)
         self.axis[0].set_ylabel(y1_label)
 
-    def clear(self, ax=0):
-        self.axis[ax].clear()
+    def clear(self):
+        self.axis[0].clear()
+        for ax in self.axis[1:]:
+            self.fig.delaxes(ax)
+            
         self.line = []
         self.x_data = []
         self.y_data = []

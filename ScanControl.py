@@ -167,7 +167,7 @@ class ScanControl(gtk.VBox):
         params['energy']  =    12.6580
         params['edge'] =  'Se-K'
         params['time'] = 1.0
-        params['emission'] = 11.212
+        params['emission'] = 11.2100
         self.set_parameters(params)
         self.default_folder = '/data/'
         self.show_all()
@@ -188,7 +188,12 @@ class ScanControl(gtk.VBox):
         value = model.get_value(iter, column)
         renderer.set_property('text', format % value)
         return
-
+    
+    def clear(self):
+        self.energy_store.clear()
+        self.energies = []
+        self.names = []
+        
     def set_results(self,results):
         keys = results.keys()
         for key in keys:

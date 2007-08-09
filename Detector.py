@@ -1,19 +1,26 @@
 #!/usr/bin/env python
 
 import sys, time
-import gtk, gobject
+import gtk, gobject, numpy
 from pylab import load
 import EpicsCA
 import thread
 from FakeExcite import *
 
 class Detector(gobject.GObject):
+    __gsignals__ = {}
+    __gsignals__['log'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     def __init__(self, name=None):
         gobject.GObject.__init__(self)
         self.value = 100
         self.index = 0
         self.name = name
     
+    def _logtext(self,s):
+        text = time.strftime('%Y/%m/%d %H:%M:%S ') + s
+        print text
+        gobject.idle_add(self.emit, 'log', text)
+        
     def count(self, t=1.0):
         self.value += 1
         time.sleep(t)
@@ -22,16 +29,15 @@ class Detector(gobject.GObject):
     def copy(self):
         tmp = Detector(self.name)
         return tmp
-        
-    def setup(self, **args):
-        pass
-    
+            
     def get_value(self):
         return self.value
 
     def get_name(self):
         return self.name
-        
+
+gobject.type_register(Detector)
+       
 class FakeDetector(Detector):
     def __init__(self, name=None):
         Detector.__init__(self, name)
@@ -84,18 +90,22 @@ class FakeMCA(Detector):
         
     def get_spectrum(self):
         if not self.ROI:
-            self.values = self.spectrum
+            self.values = self.data
         else:
-            self.values = (self.spectrum[0][self.ROI[0]:self.ROI[1]], self.spectrum[1][self.ROI[0]:self.ROI[1]])
-        return self.values
+            self.values = self.data[self.ROI[0]:self.ROI[1]]
+        return numpy.arange(self.ROI[0],self.ROI[1],1), self.values
+
+    def _collect(self, t=1.0):
+    	time.sleep(t)
+        self.data = self.gen_spectrum()
 
     def acquire(self, t=1.0):
-    	time.sleep(t)
-        self.spectrum = gen_spectrum()
+        self._collect(t)
         return self.get_spectrum()                
         
     def copy(self):
         tmp = FakeMCA(self.name)
+        tmp.set_roi(self.ROI)
         return tmp
 
     def get_name(self):
@@ -121,7 +131,6 @@ class EpicsMCA(Detector):
         self.offset = -0.45347
         self.slope = 0.00498
     
-
     def _debug(self):
         print self.read_status.value
         return True
@@ -135,30 +144,30 @@ class EpicsMCA(Detector):
     def set_roi_energy(self, energy):
         midp = int(round((energy - self.offset) / self.slope))
         self.ROI = (midp-15, midp+15)
-        
-        
+               
     def copy(self):
         tmp = EpicsMCA(self.name)
-        tmp.setup(roi=self.ROI)
-        tmp.full_mode = self.full_mode
+        tmp.set_roi(roi=self.ROI)
         return tmp
     
     def _collect(self, t=1.0):
-        print "%s aquiring for %0.1f secs" % (self.name, t)
+        self._logtext( "%s aquiring for %0.1f secs" % (self.name, t))
         self.count_time.value = t
         self.START.value = 1
+        self._logtext("%s waiting for start" % (self.name) )
         self._wait_count(start=True, stop=True)
         self.READ.value = 1
+        self._logtext("%s waiting for read" % (self.name))
         self._wait_read(start=True, stop=True)
         self.data = self.spectrum.value
-        print "%s finished aquiring" % (self.name)
+        self._logtext("%s finished aquiring" % (self.name))
     
     def count(self, t=1.0):
-        self._collect()
+        self._collect(t)
         return self.get_value()        
 
     def acquire(self, t=1.0):
-        self._collect()
+        self._collect(t)
         return self.get_spectrum()        
         
     def get_value(self):
@@ -173,7 +182,7 @@ class EpicsMCA(Detector):
             self.values = self.data
         else:
             self.values = self.data[self.ROI[0]:self.ROI[1]]
-        return self.values
+        return numpy.arange(self.ROI[0],self.ROI[1],1), self.values
         
     def _wait_count(self, start=False,stop=True,poll=0.01):
         st_time = time.time()

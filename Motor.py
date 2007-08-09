@@ -14,13 +14,21 @@ class Positioner(gobject.GObject):
                     "moving": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                                  []   ),
                     "stopped": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                                 []   )
+                                 []   ),
+                    "log" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, 
+                               (gobject.TYPE_STRING,))
                     }  
 
     def __init__(self, name="Dummy Positioner"):
         gobject.GObject.__init__(self)
         self.value = 0.0
+        self.name = name
     
+    def _logtext(self,s):
+        text = time.strftime('%Y/%m/%d %H:%M:%S ') + s
+        print text
+        gobject.idle_add(self.emit, 'log', text)
+        
     def move_to(self, target, wait=False):
         """
         Moves to a new absolute position specified as the target.        
@@ -54,10 +62,10 @@ class Positioner(gobject.GObject):
         Return the name of the object.       
         @type:  string
         """
-        return ''
+        return self.name
         
     def get_id(self):
-        return ''
+        return self.name
     
     def do_changed(self, value):
         return False
@@ -95,7 +103,7 @@ class EpicsPV(Positioner):
         self.pv.value = val
         
     def move_to(self, val, wait=False):
-        print "%s set to %f" % (self.get_name(), val)
+        self._logtext( "%s set to %f" % (self.get_name(), val) )
         self.pv.value = val
 
     def move_by(self,val, wait=False):
@@ -105,8 +113,6 @@ class EpicsPV(Positioner):
     def get_name(self):
         return self.DESC.value        
     
-    def get_id(self):
-        return self.name
         
         
 class Attenuator(Positioner):
@@ -178,23 +184,50 @@ class Attenuator(Positioner):
         val= (val + self.value)
         self.move_to(val)
         
-    def get_name(self):
-        return self.name                
-
 class AbstractMotor(Positioner):
     MotorException = "Motor Exception"
     def __init__(self, name="Dummy Motor"):
         Positioner.__init__(self,name)
         self.name = name
             
+    def _signal_change(self, pv=None):
+        gobject.idle_add(self.emit,'changed', self.get_position())
+    
+    def _queue_check(self):
+        gobject.idle_add(self._check_change)
+        return True
+
+    def _check_change(self):
+        val = self.get_position()
+        if val != self.last_position:
+            gobject.idle_add(self.emit,'changed', val)
+        self.last_position = val
+        moving = self.is_moving()
+        if moving:
+            if self.last_moving != moving:
+                gobject.idle_add(self.emit,'moving')
+        else:
+            if self.last_moving != moving:
+                gobject.idle_add(self.emit,'stopped')
+                self._logtext( "%s stopped at %f" % (self.get_name(), val) )
+        self.last_moving = moving
+        return False
+
     def stop(self):
-        pass
-            
-    def wait(self, start=False, stop=True, poll=0.01):
         pass
 
     def is_moving(self):
         return False        
+
+    def wait(self, start=False, stop=True, poll=0.01):
+        if (start):
+            self._logtext( '%s waiting for start' % self.get_name() )
+            while not self.is_moving():
+                time.sleep(poll)                               
+        if (stop):
+            self._logtext( '%s waiting for Stop' % self.get_name() )
+            while self.is_moving():
+                time.sleep(poll)
 
     def get_position(self):
         return self.value
@@ -207,13 +240,13 @@ class FakeMotor(AbstractMotor):
         self.step = 0
         self.count = 0
         self.moving = False
-        self.velocity = 5.0
+        self.velocity = 25.0
         self.units = ''
         self.precision = 6
         self.name = name
     
     def move_to(self, val, wait=False):
-        print "%s moving to %f" % (self.get_name(), val)
+        self._logtext( "%s moving to %f" % (self.get_name(), val) )
         time_taken = abs(val - self.value)/self.velocity
         self.count = 1 + int(time_taken/0.15)
         self.step = (val-self.value)/self.count
@@ -239,16 +272,8 @@ class FakeMotor(AbstractMotor):
             self.moving = False
             gobject.idle_add(self.emit,'stopped')
             gobject.idle_add(self.emit, 'changed', self.value)
-            print "%s stopped at %f" % (self.get_name(), self.value)
-            return False
-            
-    def wait(self, start=False, stop=True, poll=0.01):
-        #if (start):
-        #    while not self.moving:
-        #        time.sleep(poll)                               
-        if (stop):
-            while self.moving:
-                time.sleep(poll)
+            self._logtext( "%s stopped at %f" % (self.get_name(), self.value))
+            return False            
             
     def move_by(self, value, wait=False):
         self.move_to(value,wait)
@@ -273,7 +298,7 @@ class CLSMotor(AbstractMotor):
         self.name = name
         self.units = name_parts[1]
         self.DESC = EpicsCA.PV("%s:desc" % (name_parts[0]))               
-        self.VAL  = EpicsCA.PV("%s:%s" % (name_parts[0],name_parts[1]))        
+        self.VAL  = EpicsCA.PV("%s:%s" % (name_parts[0],name_parts[1]), use_monitor=False)        
         self.RBV  = EpicsCA.PV("%s:%s:sp" % (name_parts[0],name_parts[1]), use_monitor=False)
         self.ERBV = EpicsCA.PV("%s:%s:fbk" % (name_parts[0],name_parts[1]))
         self.RLV  = EpicsCA.PV("%s:%s:rel" % (name_parts[0],name_parts[1]))
@@ -287,36 +312,15 @@ class CLSMotor(AbstractMotor):
         self.HLM = None
         self.LLM = None
         self.last_moving = self.is_moving()
-        self.last_value = self.RBV.get()
+        self.last_position = self.get_position()
         gobject.timeout_add(250, self._queue_check)
         self._signal_change()
 
-    def _signal_change(self, pv=None):
-        gobject.idle_add(self.emit,'changed', self.RBV.value)
-    
-    def _queue_check(self):
-        gobject.idle_add(self._check_change)
-        return True
-
+                    
     def copy(self):
         tmp = CLSMotor(self.get_id())
         return tmp
-                    
-    def _check_change(self):
-        val = self.RBV.get()
-        if val != self.last_value:
-            gobject.idle_add(self.emit,'changed', val)
-        self.last_value = val
-        self.moving = self.is_moving()
-        if self.moving:
-            if self.last_moving != self.moving:
-                gobject.idle_add(self.emit,'moving')
-        elif self.last_moving != self.moving:
-            gobject.idle_add(self.emit,'stopped')
-            print "%s stopped at %f" % (self.get_name(), val)
-        self.last_moving = self.moving
-        return False
-                    
+        
     def get_position(self):
         return self.RBV.value
 
@@ -325,32 +329,15 @@ class CLSMotor(AbstractMotor):
         self.SET.value = val
                 
     def move_to(self, val, wait=False):
-        print "%s moving to %f" % (self.get_name(), val)
-        val = float(val)
+        self._logtext ( "%s moving to %f" % (self.get_name(), val) )
         self.VAL.value = val
         if wait:
-            try:
-                self.wait(start=True,stop=True)
-            except  KeyboardInterrupt:
-                self.stop()
+            self.wait(start=True,stop=True)
 
     def move_by(self,val, wait=False):
-        val = float(val)
-        if val == None: return
         self.RLV.value = val
         if wait:
-            try:
-                self.wait(start=True,stop=True)
-            except  KeyboardInterrupt:
-                self.stop()
-
-    def wait(self, start=False,stop=True,poll=0.01):
-        if (start):
-            while self.MOVN.value == 0:
-                time.sleep(poll)                
-        if (stop):
-            while self.MOVN.value != 0:
-                time.sleep(poll)
+            self.wait(start=True,stop=True)
                 
     def is_moving(self):
         if self.MOVN.value == 0:
@@ -363,18 +350,7 @@ class CLSMotor(AbstractMotor):
         
     def get_name(self):
         return self.DESC.value
-    
-    def get_id(self):
-        return self.name
-        
-    def print_all(self):
-        print "Motor Name: \t%s" % self.DESC.value
-        print "Target position: \t%s %s" % (self.VAL.value, self.units)
-        print "Current position: \t%s %s" % (self.RBV.value, self.units)
-        print "Encoder position: \t%s %s" % (self.ERBV.value, self.units)
-        print "Is the motor Moving?: \t%s" % self.MOVN.value
-        print "Motor Acceleration: \t%s %s/s^2" % (self.ACCL.value, self.units)
-        print "Motor Velocity: \t%s %s/s" % (self.VEL.value, self.units)
+            
 
 class OldCLSMotor(AbstractMotor):
     def __init__(self, name=None,timeout=1.):
@@ -388,7 +364,7 @@ class OldCLSMotor(AbstractMotor):
         self.name = name
         self.units = name_parts[1]
         self.DESC = EpicsCA.PV("%s:desc" % (name_parts[0]))                
-        self.VAL  = EpicsCA.PV("%s:%s" % (name_parts[0],name_parts[1]))        
+        self.VAL  = EpicsCA.PV("%s:%s" % (name_parts[0],name_parts[1]), use_monitor=False)        
         self.RBV  = EpicsCA.PV("%s:%s:fbk" % (name_parts[0],name_parts[1]), use_monitor=False)
         self.ERBV = EpicsCA.PV("%s:encod:fbk" % (name_parts[0]))
         self.MOVN = EpicsCA.PV("%s:state" % name_parts[0], use_monitor=False)
@@ -398,36 +374,14 @@ class OldCLSMotor(AbstractMotor):
         self.LLM = None
         self.moving = self.is_moving()
         self.last_moving = self.is_moving()
-        self.last_value = self.RBV.get()
+        self.last_position = self.RBV.get()
         gobject.timeout_add(250, self._queue_check)
         self._signal_change()
-
-    def _signal_change(self, pv=None):
-        gobject.idle_add(self.emit,'changed', self.RBV.value)
-    
-    def _queue_check(self):
-        gobject.idle_add(self._check_change)
-        return True
 
     def copy(self):
         tmp = OldCLSMotor(self.get_id())
         return tmp
-                    
-    def _check_change(self):
-        val = self.RBV.get()
-        if val != self.last_value:
-            gobject.idle_add(self.emit,'changed', val)
-        self.last_value = val
-        self.moving = self.is_moving()
-        if self.moving:
-            if self.last_moving != self.moving:
-                gobject.idle_add(self.emit,'moving')
-        elif self.last_moving != self.moving:
-            gobject.idle_add(self.emit,'stopped')
-            print "%s stopped at %f" % (self.get_name(), val)
-        self.last_moving = self.moving
-        return False
-                       
+                                           
     def get_position(self):
         return self.RBV.value
     
@@ -435,29 +389,13 @@ class OldCLSMotor(AbstractMotor):
         return
                 
     def move_to(self, val, wait=False):
-        print "%s moving to %f" % (self.get_name(), val)
-        val = float(val)
-        if val == None: return 
+        self._logtext("%s moving to %f" % (self.get_name(), val))
         self.VAL.value = val
         if wait:
-            try:
-                self.wait(start=True,stop=True)
-            except  KeyboardInterrupt:
-                self.stop()
+            self.wait(start=True,stop=True)
 
     def move_by(self,val, wait=False):
-        val = float(val)
-        if val == None: return
         self.move_to(self.VAL.value + val, wait)
-
-    def wait(self, start=False,stop=True,poll=0.01):
-        if (start):
-            while self.MOVN.value == 'IDLE':
-                time.sleep(poll)
-                
-        if (stop):
-            while self.MOVN.value != 'IDLE':
-                time.sleep(poll)
 
     def is_moving(self):
         if self.MOVN.value == 'IDLE':
@@ -470,22 +408,7 @@ class OldCLSMotor(AbstractMotor):
         
     def get_name(self):
         return self.DESC.value
-        
-    def get_id(self):
-        return self.name
-              
-    def print_all(self):
-        print "Motor Name: \t%s" % self.DESC.value
-        print "Target position: \t%s %s" % (self.VAL.value, self.units)
-        print "Current position: \t%s %s" % (self.RBV.value, self.units)
-        print "Encoder position: \t%s %s" % (self.ERBV.value, self.units)
-        print "Is the motor Moving?: \t%s" % self.MOVN.value
-
-def create_motor_group(motor_map):
-    motors = {}
-    for key in motor_map.keys():
-        motors[key] = Motor( motor_map[key] )
-    return motors
+                      
 
 # Register objects with signals
 gobject.type_register(Positioner)

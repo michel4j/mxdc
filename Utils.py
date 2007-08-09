@@ -1,6 +1,6 @@
 import gtk, gobject
 import os
-import numpy
+import numpy, time
 
 # Physical Constats
 h = 4.13566733e-15 # eV.s
@@ -59,7 +59,7 @@ def A_to_keV(wavelength): #eV
 def radians(angle):
     return numpy.pi * angle / 180.0
 
-def degree(angle):
+def degrees(angle):
     return 180 * angle / numpy.pi
 
 def bragg_to_keV(bragg):
@@ -70,7 +70,7 @@ def bragg_to_keV(bragg):
 def keV_to_bragg(energy):
     d = S111_a / numpy.sqrt(3.0)
     bragg = numpy.arcsin( keV_to_A(energy)/(2.0*d) )
-    return degree(bragg)
+    return degrees(bragg)
 
 def dec2bin(x):
     return x and (dec2bin(x/2) + str(x%2)) or '0'

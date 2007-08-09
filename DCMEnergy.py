@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, time
+import sys, time, copy
 import gtk, gobject
 from pylab import load
 import EpicsCA
@@ -9,23 +9,24 @@ from Utils import *
 import numpy
 
 class DCMEnergy(AbstractMotor):
-    def __init__(self, bragg,T1, T2, timeout=1.):
+    def __init__(self, motors=[], timeout=1.):
         AbstractMotor.__init__(self, 'DCM')
-        if not (bragg or T1 or T2):
+        if len(motors)<3:
             raise self.MotorException, " bragg, T1 and T2 motors must be specified"
-        self.bragg = bragg
-        self.T1 = T1
-        self.T2 = T2
+        self.bragg = motors[0].copy()
+        self.T1 = motors[1].copy()
+        self.T2 = motors[2].copy()
         self.bragg_only = True
         self.bragg.connect('changed',self._signal_change)
         self.last_moving = self.is_moving()
         self.units = 'keV'
-        gobject.timeout_add(250, self._queue_check)
+        gobject.timeout_add(150, self._queue_check)
         
 
         
-    def set_bragg_only(self, set):
-        self.bragg_only = set
+    def set_mask(self, mask):
+        if mask[1] == 0:
+            self.bragg_only = True
         
         
     def _calc_targets(self, theta, offset=30.0):
@@ -36,6 +37,7 @@ class DCMEnergy(AbstractMotor):
     def copy(self):
         tmp = DCMEnergy(self.bragg.copy(), self.T1.copy(), self.T2.copy())
         tmp.set_bragg_only(self.bragg_only)
+        #tmp = copy.deepcopy(self)
         return tmp
         
     def _signal_change(self, widget, value):

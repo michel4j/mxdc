@@ -5,13 +5,14 @@ import gtk, gobject
 import threading
 import numpy
 
-gobject.threads_init()
+#gobject.threads_init()
 
 class Scanner(threading.Thread, gobject.GObject):
     __gsignals__ = {}
     __gsignals__['new-point'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,gobject.TYPE_FLOAT))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['aborted'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    __gsignals__['log'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     
     def __init__(self, positioner=None, start=0, end=0, steps=0, detector=None, time=1.0, output=None):
         threading.Thread.__init__(self)
@@ -28,22 +29,25 @@ class Scanner(threading.Thread, gobject.GObject):
         self.calc_targets()
         self.data_points = []
         
+    def _logtext(self,s):
+        text = time.strftime('%Y/%m/%d %H:%M:%S ') + s
+        print text
+        gobject.idle_add(self.emit, 'log', text)
+        
     def run(self, widget=None):
-        #self.detector = self.ds.copy() 
-        #self.positioner = self.ps.copy()
-        self.detector = self.ds
-        self.positioner = self.ps
+        self.detector = self.ds.copy() 
+        self.positioner = self.ps.copy()
         self.count = 0
         for x in self.positioner_targets:
             if self.stopped or self.aborted:
                 break
-            print "Entering iteration %d" % self.count
+            self._logtext( "Entering iteration %d" % self.count)
             self.count += 1
             prev = self.positioner.get_position()
             self.positioner.move_to(x, wait=True)
-            print "--- Position obtained, will now count ---"
+            self._logtext("--- Position obtained, will now count ---")
             y = self.detector.count(self.time)
-            print "--- Position and Count obtained ---"
+            self._logtext("--- Position and Count obtained ---")
             self.data_points.append( (x, y) )
             gobject.idle_add(self.emit, "new-point", x, y )
             

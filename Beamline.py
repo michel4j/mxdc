@@ -3,7 +3,7 @@
 
 from Motor import *
 from Detector import *
-from DCMEnergy import *
+from PseudoMotor import *
 from VideoSource import *
 
 from ConfigParser import ConfigParser
@@ -22,10 +22,10 @@ def initialize():
         print "Entering Simulation Mode"
         Motor       = FakeMotor 
         OldMotor    = FakeMotor 
-        EnergyMotor = FakeMotor
+        EnergyMotor = DCMEnergy
         Variable    = Positioner 
         VideoCamera = FakeCamera
-        MCA            = FakeMCA
+        MCA         = FakeMCA
         
     else:
         print "Entering Live Mode"
@@ -34,7 +34,7 @@ def initialize():
         EnergyMotor = DCMEnergy
         Variable    = EpicsPV 
         VideoCamera = EpicsCamera
-        MCA            = EpicsMCA
+        MCA         = EpicsMCA
         
                 
     beamline['motors'] = {}
@@ -52,10 +52,15 @@ def initialize():
             item = string.strip(item)
             beamline['motors'][item] = OldMotor(pv)
             print '...', item
-    beamline['motors']['energy'] = DCMEnergy(beamline['motors']['bragg'],
-                                             beamline['motors']['c2_t1'],
-                                             beamline['motors']['c2_t2']
-                                            )            
+    energy_motors = [beamline['motors']['bragg'],
+                     beamline['motors']['c2_t1'],
+                     beamline['motors']['c2_t2']]
+    beamline['motors']['energy'] = EnergyMotor( energy_motors )            
+    twotheta_motors = [beamline['motors']['detector_z'],
+                     beamline['motors']['detector_y1'],
+                     beamline['motors']['detector_y2']]
+    #beamline['motors']['detector_2th'] = TwoThetaMotor( twotheta_motors )            
+    #beamline['motors']['detector_dist'] = DistanceMotor( twotheta_motors )            
     print '...', 'energy'
     print 'setting up MCA and attenuator'
     if 'misc' in parser.sections():

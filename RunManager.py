@@ -49,7 +49,10 @@ class RunManager(gtk.Notebook):
         if num == len(self.runs):
             num = num-1
         self.set_current_page( num )
-        self.update_parent()
+        if num == 0:
+            self.update_parent_single()
+        else:
+            self.update_parent()
         
     def on_apply_run(self, widget):
         pos = self.get_current_page()
@@ -67,6 +70,10 @@ class RunManager(gtk.Notebook):
         if page_num == len(self.runs):
             self.add_new_run()
             self.emit_stop_by_name('switch-page')
+        elif page_num == 0:
+            self.update_parent_single()
+        else:
+            self.update_parent()
         return True 
         
     def on_delete_run(self, widget):

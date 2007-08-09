@@ -11,6 +11,7 @@ class DataCollector(threading.Thread, gobject.GObject):
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,))
     __gsignals__['stopped'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    __gsignals__['log'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     
     def __init__(self, run_list=None):
         threading.Thread.__init__(self)
@@ -24,6 +25,11 @@ class DataCollector(threading.Thread, gobject.GObject):
         self.run_list = run_list
         self.skip_collected = skip
         return
+        
+    def _logtext(self,s):
+        text = time.strftime('%Y/%m/%d %H:%M:%S ') + s
+        print text
+        gobject.idle_add(self.emit, 'log', text)
         
     def run(self, widget=None):
         self.pos = 0
@@ -39,19 +45,19 @@ class DataCollector(threading.Thread, gobject.GObject):
             frame = self.run_list[self.pos]
             self.pos += 1
             if frame['saved'] and self.skip_collected:
-                print 'Skipping %s' % frame['file_name']
+                self._logtext( 'Skipping %s' % frame['file_name'])
                 continue
             velo = frame['delta'] / float(frame['time'])
             start_pos = frame['start_angle']
             end_pos = start_pos + frame['delta']
             time.sleep(frame['time'])
-            print "%04d ------------------------------------------" % self.pos
-            print "Energy   : %8.3f   keV:" % frame['energy']
-            print "Distance : %8.3f    mm:" % frame['distance']
-            print "Osc start: %8.3f   deg:" % start_pos
-            print "Osc   end: %8.3f   deg:" % end_pos
-            print "Osc  velo: %8.3f deg/s:" % velo
-            print "File name: %s " % frame['file_name']
+            self._logtext( "%04d ------------------------------------------" % self.pos)
+            self._logtext( "Energy   : %8.3f   keV:" % frame['energy'])
+            self._logtext( "Distance : %8.3f    mm:" % frame['distance'])
+            self._logtext("Osc start: %8.3f   deg:" % start_pos)
+            self._logtext("Osc   end: %8.3f   deg:" % end_pos)
+            self._logtext("Osc  velo: %8.3f deg/s:" % velo)
+            self._logtext("File name: %s " % frame['file_name'])
             gobject.idle_add(self.emit, 'new-image', frame['index'], frame['file_name'])
             
         gobject.idle_add(self.emit, 'done')

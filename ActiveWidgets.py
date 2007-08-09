@@ -150,8 +150,6 @@ class ActiveEntry(NewEntry):
         self.update_state(state)
         return True
 
-gobject.type_register(ActiveEntry)
-
 class ActiveLabel(gtk.Label,gobject.GObject):
     def __init__( self, positioner,  width=8):
         gtk.Label.__init__(self, '')

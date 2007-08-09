@@ -44,9 +44,9 @@ class ScanManager(gtk.HBox):
         self.pack_start(self.scan_book)
 
         self.show_all()
-
-        self.bragg_energy = beamline['motors']['energy']
-        self.bragg_energy.set_bragg_only(True)        
+        
+        self.bragg_energy = beamline['motors']['energy'].copy()       
+        self.bragg_energy.set_mask( [1,0,0] )  # Move only bragg
         self.mca   = beamline['detectors']['mca']
 
         self.auto_chooch = AutoChooch()
@@ -86,19 +86,24 @@ class ScanManager(gtk.HBox):
     
     def on_chooch_done(self,widget):
         self.scan_control.start_btn.set_sensitive(True)
-        self.scan_control.create_run_btn.set_sensitive(True)
         self.scan_book.set_current_page( self.plotter_page )
         data = self.auto_chooch.get_data()
         results = self.auto_chooch.get_results()
+        if results is None:
+            return True
         new_axis = self.plotter.add_axis(label="Anomalous scattering factors (f', f'')")
-        self.plotter.axis[0].axvline( results['infl'][1], color='c', linestyle=':', linewidth=1)
-        self.plotter.axis[0].axvline( results['peak'][1], color='c', linestyle=':', linewidth=1)
-        self.plotter.axis[0].axvline( results['remo'][1], color='c', linestyle=':', linewidth=1)
+        if 'infl' in results.keys():
+                self.plotter.axis[0].axvline( results['infl'][1], color='c', linestyle=':', linewidth=1)
+        if 'peak' in results.keys():
+                self.plotter.axis[0].axvline( results['peak'][1], color='c', linestyle=':', linewidth=1)
+        if 'remo' in results.keys():
+                self.plotter.axis[0].axvline( results['remo'][1], color='c', linestyle=':', linewidth=1)
         self.plotter.add_line(data[:,0],data[:,1], 'r', ax=new_axis)
         self.plotter.add_line(data[:,0],data[:,2], 'g', ax=new_axis)
                 
         self.scan_control.set_results(results)
         self.scan_control.create_run_btn.connect('clicked', self.on_create_run)
+        self.scan_control.create_run_btn.set_sensitive(True)
         return True
         
     def on_start_scan(self,widget):        
@@ -165,6 +170,7 @@ class ScanManager(gtk.HBox):
         if self.scanning:
             return True
         self.plotter.clear()
+        self.scan_control.clear()
         scan_parameters = self.scan_control.get_parameters()
             
         if not check_directory(    scan_parameters['directory'] ):
@@ -173,9 +179,7 @@ class ScanManager(gtk.HBox):
         title = scan_parameters['edge'] + " Edge Scan"
         self.plotter.set_labels(title=title, x_label="Energy (keV)", y1_label='Fluorescence')
         energy = scan_parameters['energy']
-        
         self.mca.set_roi_energy( scan_parameters['emission'] )
-        steps = 100
         count_time = scan_parameters['time']
         scan_filename = "%s/%s_%s.raw" % (scan_parameters['directory'],    
             scan_parameters['prefix'], scan_parameters['edge'])
@@ -196,8 +200,10 @@ class ScanManager(gtk.HBox):
         return True
         
     def excitation_scan(self):
-        x,y = self.mca.acquire(t=1.0)
         self.plotter.clear()
+        self.scan_control.clear()
+        self.mca.set_roi()
+        x,y = self.mca.acquire(t=1.0)
         self.plotter.set_labels(title='Excitation Scan',x_label='Channel',y1_label='Fluorescence')
         self.plotter.add_line(x,y,'r-')
         self.scan_book.set_current_page( self.plotter_page )
