@@ -126,6 +126,7 @@ class ImgViewer(gtk.VBox):
             
         self.toolbar.set_tooltips(True)
         self.is_first_image = True
+        self.image_queue = []
         
     def read_header(self):
         # Read MarCCD header
@@ -175,8 +176,6 @@ class ImgViewer(gtk.VBox):
                 file_extension = ""
             self.file_template = "%s%s0%dd%s" % (prefix, '%', len(parts[2]), file_extension)
             self.frame_number = int (parts[2])
-            next_frame_number = self.frame_number + 1
-            self.next_filename = self.file_template % (next_frame_number)
         else:
             self.file_template = None
             self.frame_number = None
@@ -265,35 +264,49 @@ class ImgViewer(gtk.VBox):
         return brightness_enh.enhance(self.brightness_factor)
                         
     def poll_for_file(self):
-        if os.path.isfile(self.next_filename) and (os.path.getsize(self.next_filename) == 18878464):
-            LogServer.log("Loading image %s" % (self.next_filename))
-            self.set_filename(self.next_filename)
+        LogServer.log("%d images in queue" % len(self.image_queue) )
+        if len(self.image_queue) == 0:
+            if self.collecting_data == True:
+                return True
+            else:
+                self.follow_toggle.set_active(False)
+                return False
+        else:
+            next_filename = self.image_queue[0]
+            
+        if os.path.isfile(next_filename) and (os.path.getsize(next_filename) == 18878464):
+            LogServer.log("Loading image %s" % (next_filename))
+            self.set_filename( next_filename )
+            self.image_queue.pop(0) # delete loaded image from queue item
             self.load_image()
             self.display()
             return True
         else:
             return True     
 
-    def wait_for_file(self):    
-        if os.path.isfile(self.filename) and (os.path.getsize(self.filename) == 18878464):
-            LogServer.log("Loading image %s" % (self.filename))
-            self.load_image()
-            self.display()
+    def auto_follow(self):
+        if not (self.frame_number and self.file_template):
             return False
-        else:
-            LogServer.log("Waiting for image %s" % (self.filename))
-            return True
-
+        frame_number = self.frame_number + 1
+        filename = self.file_template % (frame_number)
+        self.image_queue = []
+        self.image_queue.append(filename)
+        self.poll_for_file()
+        return True        
+    
     def set_collect_mode(self, state=True):
         self.collecting_data = state
-        self.follow_toggle.set_active(state)
-        if self.follow_id is not None:
-            gobject.source_remove(self.follow_id)
+        if self.collecting_data:
+            self.follow_toggle.set_active(state)
+            self.follow_frames = True
+            self.image_queue = []
+            if self.follow_id is not None:
+                gobject.source_remove(self.follow_id)
+            gobject.timeout_add(3000, self.poll_for_file)
 
     def show_detector_image(self, filename):
         if self.collecting_data and self.follow_frames:
-            self.set_filename(filename)
-            #self.follow_id = gobject.timeout_add(500,self.wait_for_file)
+            self.image_queue.append(filename)
         return True     
         
     def zooming_lens(self,Ox,Oy,src_size = 30, zoom_level = 4):
@@ -478,7 +491,8 @@ class ImgViewer(gtk.VBox):
     def on_follow_toggled(self,widget):
         if widget.get_active():
             self.follow_frames = True
-            self.follow_id = gobject.timeout_add(3000, self.poll_for_file)
+            if not self.collecting_data:
+                self.follow_id = gobject.timeout_add(3000, self.auto_follow)
         else:
             if self.follow_id is not None:
                 gobject.source_remove(self.follow_id)

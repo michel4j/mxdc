@@ -83,7 +83,6 @@ class EpicsPositioner(Positioner):
         self.last_position = self.pv.get()
 
     def _signal_change(self, obj=None, arg=None):
-        print self.name, 'changed'
         gobject.idle_add(self.emit,'changed', self.get_position())
     
     def get_position(self):
@@ -158,7 +157,6 @@ class Attenuator(Positioner):
     def move_to(self, val, wait=False):
         self.thickness = self._get_thickness(val)
         self.bits = "%04d" % int(dec2bin(int(10 * self.thickness)))
-        print self.thickness, self.bits
         self._set_bits(self.bits)
         
             
@@ -179,12 +177,10 @@ class AbstractMotor(Positioner):
             
     def _signal_change(self, obj=None, arg=None):
         if (time.time() - self.tick) > self.interval:
-            print self.name, 'changed'
             gobject.idle_add(self.emit,'changed', self.get_position())
             self.tick = time.time()
     
     def _signal_move(self, obj=None, arg=None):
-        print self.name, 'moving', self.is_moving()
         gobject.idle_add(self.emit,'moving', self.is_moving())
         
     def _signal_validity(self, obj=None, arg=None):

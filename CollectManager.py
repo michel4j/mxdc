@@ -377,7 +377,6 @@ class CollectManager(gtk.HBox):
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
-        gobject.timeout_add(500, self.image_viewer.wait_for_file)
     
     def on_new_image(self, widget, index, filename):
         self.pos = index

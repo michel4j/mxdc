@@ -78,7 +78,7 @@ TypeMap = {
 class EventHandlerArgs(Structure):
     _fields_ = [
         ('usr',c_void_p),
-        ('chid', c_long),
+        ('chid', c_ulong),
         ('type', c_long),
         ('count', c_long),
         ('dbr',c_void_p),
@@ -99,7 +99,7 @@ class PV(gobject.GObject):
     __gsignals__['changed'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     def __init__(self, name, use_monitor=True):
         gobject.GObject.__init__(self)
-        self.chid = c_long()
+        self.chid = c_ulong()
         self.name = name
         self.count = None
         self.element_type = None
@@ -141,7 +141,7 @@ class PV(gobject.GObject):
         gobject.idle_add(self.emit, 'changed')
                
     def connect_monitor(self, callback):
-        event_id = c_long()
+        event_id = c_ulong()
         cb_closure = Closure(callback)
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
         cb_function = cb_factory(cb_closure)
@@ -164,19 +164,23 @@ class PV(gobject.GObject):
         libca.ca_pend_io(1.0)
                       
     def get(self):
-        libca.lock.acquire()
+        print 'getting', self.name, 
+        #libca.lock.acquire()
         libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
         libca.ca_pend_io(1.0)
-        libca.lock.release()
+        #libca.lock.release()
+        print '... done'
         if self.count > 1 and TypeMap[self.element_type] in [c_int, c_float, c_double, c_long]:
             return self.data
         else:
             return self.data.value
 
     def put(self, val):
+        print 'putting', self.name, val, 
         data = self.data_type(val)
         libca.ca_array_put(self.element_type, self.count, self.chid, byref(data))
         libca.ca_pend_io(1.0)
+        print '... done'
         
 gobject.type_register(PV)
 
@@ -194,11 +198,38 @@ else:
     print """EPICS run-time libraries could not be loaded! 
           Please set EPICS_BASE and EPICS_HOST_ARCH environment variables"""
     sys.exit()
+
+# define argument and return types    
 libca.ca_name.restype = c_char_p
+libca.ca_name.argtypes = [c_ulong]
+
+libca.ca_element_count.restype = c_uint
+libca.ca_element_count.argtypes = [c_ulong]
+
+libca.ca_state.restype = c_ushort
+libca.ca_state.argtypes = [c_ulong]
+
+libca.ca_field_type.restype = c_long
+libca.ca_field_type.argtypes = [c_ulong]
+
 libca.ca_host_name.restype = c_char_p
+libca.ca_host_name.argtypes = [c_ulong]
+
+libca.ca_create_channel.argtypes = [c_char_p, c_void_p, c_void_p, c_int, POINTER(c_ulong)]
+libca.ca_clear_channel.argtypes = [c_ulong]
+
+libca.ca_create_subscription.argtypes = [c_long, c_uint, c_ulong, c_ulong, c_void_p, c_void_p, POINTER(c_ulong)]
+libca.ca_clear_subscription.argtypes = [c_ulong]
+
+libca.ca_array_get.argtypes = [c_long, c_uint, c_ulong, c_void_p]
+libca.ca_array_put.argtypes = [c_long, c_uint, c_ulong, c_void_p]
+
 libca.ca_pend_io.argtypes = [c_double]
 libca.ca_pend_event.argtypes = [c_double]
-libca.ca_context_create.argtypes = [c_int]
+
+libca.ca_context_create.argtypes = [c_ushort]
+
+# initialize channel access
 libca.ca_context_create(ENABLE_PREEMPTIVE_CALLBACK)
 libca.context = libca.ca_current_context()
 libca.lock = thread.allocate_lock()

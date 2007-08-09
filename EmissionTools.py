@@ -69,8 +69,12 @@ def find_peaks(x, y, w=10, threshold=0.1):
     ypp = slopes(x, yp)
     yr = max(y) - min(y)
     factor = threshold*get_baseline(x,y).std()
-    for i in range(1,len(x)):
-        if scipy.sign(yp[i]) < scipy.sign(yp[i-1]):
+    offset = 1+w/2
+    for i in range(offset+1, len(x)-offset):
+        p_sect = scipy.mean(yp[(i-offset):(i+offset)])
+        sect = scipy.mean(yp[(i+1-offset):(i+1+offset)])
+        #if scipy.sign(yp[i]) < scipy.sign(yp[i-1]):
+        if scipy.sign(sect) < scipy.sign(p_sect):
             if ny[i] > factor:
                 peaks.append( [x[i], ys[i]] )
     return peaks
@@ -127,7 +131,7 @@ class ExcitationScanner(gobject.GObject, threading.Thread):
         #    self.motor.move_to(self.energy, wait=True)
         self.detector.set_roi()
         self.x_data_points, self.y_data_points = self.detector.acquire(t=self.time)
-        self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=15)
+        self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
         assign_peaks(self.peaks)
         self.save()
         gobject.idle_add(self.emit, "done")

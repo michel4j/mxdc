@@ -38,8 +38,8 @@ class VideoThread(threading.Thread, gobject.GObject):
             time.sleep(1./self.parent.max_fps)
             if not self.paused:
                 self.count += 1
-                if self.count == 30:
-                    #gc.collect()
+                if self.count == 10:
+                    gc.collect()
                     self.fps = self.count/(time.time() - self.start_time)
                     self.count = 0
                     self.start_time = time.time()
@@ -96,7 +96,7 @@ class SampleViewer(gtk.HBox):
         self.height = int(self.source_height * self.display_size)
         self.lighting = self.light_val.get_position()
 
-        self.zoom_factor = self.zoom.get_position()
+        self.on_change() #initialize display variables
         self.pixel_size = 5.34e-3 * numpy.exp( -0.18 * self.zoom_factor)
 
         self.create_widgets()
@@ -118,7 +118,15 @@ class SampleViewer(gtk.HBox):
         self.video.connect('configure_event', self.on_configure)
         self.video.connect('motion_notify_event', self.on_mouse_motion)
         self.video.connect('button_press_event', self.on_image_click)
-                
+        
+        self.beam_width.connect('changed', self.on_change)
+        self.beam_height.connect('changed', self.on_change)
+        self.slits_x.connect('changed', self.on_change)
+        self.slits_y.connect('changed', self.on_change)
+        self.cross_x.connect('changed', self.on_change)
+        self.cross_y.connect('changed', self.on_change)
+        self.zoom.connect('changed', self.on_change)
+               
         self.gonio_state = 0
         self.connect("destroy", lambda x: self.stop())
         self.video.connect('visibility-notify-event', self.on_visibility_notify)
@@ -136,7 +144,6 @@ class SampleViewer(gtk.HBox):
         return self.width, self.height
                    
     def display(self,widget=None):
-        self.zoom_factor = self.zoom.get_position()
         self.pixel_size = 5.34e-3 * numpy.exp( -0.18 * self.zoom_factor)
         self.pixmap.draw_pixbuf(self.othergc, self.video_frame, 0, 0, 0, 0, self.width, self.height, 0,0,0)
         self.draw_cross()
@@ -153,20 +160,20 @@ class SampleViewer(gtk.HBox):
         return True     
     
     def draw_cross(self):
-        x = int(self.cross_x.get_position() * self.display_size)
-        y = int(self.cross_y.get_position() * self.display_size)
+        x = int(self.cross_x_position * self.display_size)
+        y = int(self.cross_y_position * self.display_size)
         self.pixmap.draw_line(self.gc, x-self.tick_size, y, x+self.tick_size, y)
         self.pixmap.draw_line(self.gc, x, y-self.tick_size, x, y+self.tick_size)
         return
 
     def draw_slits(self):
         
-        beam_width = self.beam_width.get_position()
-        beam_height = self.beam_height.get_position()
-        slits_x = self.slits_x.get_position()
-        slits_y = self.slits_y.get_position()
-        cross_x = self.cross_x.get_position()
-        cross_y = self.cross_y.get_position()
+        beam_width = self.beam_width_position
+        beam_height = self.beam_height_position
+        slits_x = self.slits_x_position
+        slits_y = self.slits_y_position
+        cross_x = self.cross_x_position
+        cross_y = self.cross_y_position
         
         self.slits_width  = beam_width / self.pixel_size
         self.slits_height = beam_height / self.pixel_size
@@ -218,6 +225,15 @@ class SampleViewer(gtk.HBox):
             self.videothread.resume()
         return True
 
+    def on_change(self, obj=None, arg=None):
+        self.beam_width_position = self.beam_width.get_position()
+        self.beam_height_position = self.beam_height.get_position()
+        self.slits_x_position = self.slits_x.get_position()
+        self.slits_y_position = self.slits_y.get_position()
+        self.cross_x_position = self.cross_x.get_position()
+        self.cross_y_position = self.cross_y.get_position()
+        self.zoom_factor = self.zoom.get_position()
+
     def on_unmap(self, widget):
         self.videothread.pause()
         return True
@@ -229,7 +245,6 @@ class SampleViewer(gtk.HBox):
         self.videothread.stop()
         return True
         
-    
     def on_expose(self, videoarea, event):        
         videoarea.window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
             self.width, self.height)
@@ -280,8 +295,8 @@ class SampleViewer(gtk.HBox):
     def position(self,x,y):
         im_x = int( float(x)/self.display_size)
         im_y = int( float(y)/self.display_size)
-        x_offset = self.cross_x.get_position() - im_x
-        y_offset = self.cross_y.get_position() - im_y
+        x_offset = self.cross_x_position - im_x
+        y_offset = self.cross_y_position - im_y
         xmm = x_offset * self.pixel_size
         ymm = y_offset * self.pixel_size
         return (im_x, im_y, xmm, ymm)

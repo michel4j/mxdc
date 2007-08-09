@@ -123,9 +123,9 @@ class ActiveEntry(NewEntry):
         self.motor.connect('changed', self.on_monitor_pos )
         self.motor.connect('moving', self.on_monitor_state)
         self.motor.connect('valid', self.on_validate)
-        self.connect('expose-event', self.check_motor)
                
     def move(self, save=True):
+        self.check_motor()
         try:
             target = float(self.entry_box.get_text())
         except:
@@ -162,7 +162,7 @@ class ActiveEntry(NewEntry):
         self.set_position(self.motor.get_position() )
         return True
     
-    def check_motor(self, widget, event):
+    def check_motor(self, widget=None, event=None):
         if self.motor.is_valid():
             self.set_sensitive(True)
         else:

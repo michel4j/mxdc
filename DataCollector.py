@@ -87,17 +87,17 @@ class DataCollector(threading.Thread, gobject.GObject):
             self.gonio.set_params(gonio_data)
             
             self.detector.start()            
-            print 'starting acquire'
+            #print 'starting acquire'
             self.detector.set_header(header)
-            print 'starting gonio scan'
+            #print 'starting gonio scan'
             self.gonio.scan()
             
             LogServer.log( "%04d ------------------------------------------" % self.pos)
             
             # Read and save image
-            print 'saving image'
+            #print 'saving image'
             self.detector.save()
-            print 'image saved'
+            #print 'image saved'
             
             # Notify new image
             LogServer.log("Image Collected: %s" % frame['file_name'])

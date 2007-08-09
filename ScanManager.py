@@ -260,7 +260,7 @@ class ScanManager(gtk.HBox):
         self.shutter.close()
         self.scan_control.start_btn.set_sensitive(True)
         x = object.x_data_points
-        y = smooth(object.y_data_points, 15,1)
+        y = smooth(object.y_data_points, 20,1)
         self.plotter.set_labels(title='Excitation Scan',x_label='Energy (keV)',y1_label='Fluorescence')
         self.plotter.add_line(x,y,'r-')
         self.scan_book.set_current_page( self.plotter_page )

@@ -197,6 +197,7 @@ def check_folder(directory, parent=None):
         sub_header = "Please select a valid folder and try again."
         response = warning(header, sub_header)
         return False
+    os.system('ssh marccd@cmcf-marccd mkdir -p %s' % directory)
     return True
     
 class FolderSelector:
