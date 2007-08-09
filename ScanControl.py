@@ -197,7 +197,8 @@ class ScanControl(gtk.VBox):
         self.create_run_btn.set_sensitive(False)
         
     def set_results(self,results):
-        keys = results.keys()
+        #keys = results.keys()
+        keys = ['peak','infl','remo']  # collect peak infl remo in that order
         for key in keys:
             self.__add_energy(results[key])
         self.sw.set_sensitive(True)

@@ -1,4 +1,4 @@
-import sys, os, gobject, gc
+import sys, os, gobject
 import numpy, thread
 from ctypes import *
 
@@ -94,27 +94,23 @@ class Closure:
         self.function()
         return True
 
-class PV(gobject.GObject):
-    __gsignals__ = {}
-    __gsignals__['changed'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
-    def __init__(self, name, use_monitor=True):
-        gobject.GObject.__init__(self)
+class PV:
+    def __init__(self, name, connect=True):
         self.chid = c_ulong()
         self.name = name
         self.count = None
         self.element_type = None
-        self.lock = thread.allocate_lock()
         self.callbacks = {}
         self.connected = NEVER_CONNECTED
-        self.__connect()
-        self.data = self.__allocate_data_mem()
-        self.connect_monitor(self.on_change)
-        self.use_monitor = use_monitor
+        if connect:
+            self.__connect()
+        self.__allocate_data_mem()
         
     def __del__(self):
-        libca.ca_clear_channel(self.chid)
-        libca.ca_pend_event(0.01)
-        libca.ca_pend_io(10.0)
+        if libca:
+            libca.ca_clear_channel(self.chid)
+            libca.ca_pend_event(0.01)
+            libca.ca_pend_io(10.0)
     
     def __connect(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
@@ -123,22 +119,19 @@ class PV(gobject.GObject):
         self.element_type = libca.ca_field_type(self.chid)
         self.connected = libca.ca_state(self.chid)
     
-    def __allocate_data_mem(self):
+    def __allocate_data_mem(self, value=None):
         if self.count > 1:
            self.data_type = TypeMap[self.element_type] * self.count
         elif self.element_type == DBR_STRING:
            self.data_type = create_string_buffer
         else:
            self.data_type = TypeMap[self.element_type] 
-           
-        if self.element_type == DBR_STRING:
-            data = self.data_type(256)
+        if value:
+            self.data = self.data_type(value)
+        elif self.element_type == DBR_STRING:
+            self.data = self.data_type(256)
         else:
-            data = self.data_type()
-        return data
-
-    def on_change(self):
-        gobject.idle_add(self.emit, 'changed')
+            self.data = self.data_type()
                
     def connect_monitor(self, callback):
         event_id = c_ulong()
@@ -162,27 +155,25 @@ class PV(gobject.GObject):
     def disconnect_monitor(self, event_id):
         libca.ca_clear_subscription(event_id)
         libca.ca_pend_io(1.0)
-                      
+              
     def get(self):
-        print 'getting', self.name, 
-        #libca.lock.acquire()
+        if self.connected != CONNECTED:
+            self.__connect()
+        libca.lock.acquire()
         libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
         libca.ca_pend_io(1.0)
-        #libca.lock.release()
-        print '... done'
+        libca.lock.release()
         if self.count > 1 and TypeMap[self.element_type] in [c_int, c_float, c_double, c_long]:
             return self.data
         else:
             return self.data.value
 
     def put(self, val):
-        print 'putting', self.name, val, 
-        data = self.data_type(val)
-        libca.ca_array_put(self.element_type, self.count, self.chid, byref(data))
-        libca.ca_pend_io(1.0)
-        print '... done'
-        
-gobject.type_register(PV)
+        if self.connected != CONNECTED:
+            self.__connect()
+        self.data = self.data_type(val)
+        libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
+
 
 def thread_init():
     thread_context = libca.ca_current_context()
@@ -190,13 +181,20 @@ def thread_init():
         libca.ca_attach_context(libca.context)
         
 libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
-if not os.access(libca_file, os.R_OK):
-    libca_file =   "/opt/epics/R3.14.6/base/lib/linux-x86/libca.so"
-if os.access(libca_file, os.R_OK):
+if not os.access(libca_file, os.EX_OK):
+    arch = os.uname()[-1]
+    libca_loc = {
+        'x86_64': '/home/cmcf/michel/EPICS/base-3.14.8.2/lib/linux-x86/libca.so',
+        'i386': '/opt/epics/R3.14.6/base/lib/linux-x86/libca.so',
+        'i686': '/opt/epics/R3.14.6/base/lib/linux-x86/libca.so',
+    }
+    libca_file =   libca_loc[arch]
+    
+# Load CA library
+try:
     libca = cdll.LoadLibrary(libca_file)
-else:
-    print """EPICS run-time libraries could not be loaded! 
-          Please set EPICS_BASE and EPICS_HOST_ARCH environment variables"""
+except:   
+    print """EPICS run-time libraries could not be loaded!"""
     sys.exit()
 
 # define argument and return types    

@@ -72,7 +72,6 @@ class Scanner(threading.Thread, gobject.GObject):
     def run(self, widget=None):
         CA.thread_init()
         self.count = 0
-        self.normalizer(self.normalizer)
         self.normalizer.initialize()
         self.normalizer.set_time(self.time)
         self.normalizer.start()
@@ -116,7 +115,7 @@ class Scanner(threading.Thread, gobject.GObject):
     def set_targets(self, targets):
         self.positioner_targets = targets
     
-    def set_normalizer(self, detector):
+    def set_normalizer(self, detector=None):
         self.normalizer = Normalizer(detector)
     
     def stop(self, widget=None):

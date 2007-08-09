@@ -188,12 +188,13 @@ class ActiveLabel(gtk.Label):
         return True
 
 class DiagnosticLabel(gtk.Label):
-    def __init__( self, variable,  format="%s", width=8):
+    def __init__( self, variable,  format="%s", interval=500, width=8):
         gtk.Label.__init__(self, '')
         self.format = format
         self.variable = variable
+        self.interval = interval
         self.update_value( self.variable.get_value() )
-        self.variable.connect('changed', self.on_update)
+        gobject.timeout_add(self.interval, self.on_update)
 
     def update_value(self, val):
         self.set_text(self.format % (val))

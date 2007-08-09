@@ -262,7 +262,6 @@ class EpicsDetector(Detector):
             raise self.DetectorException, "name must be specified"
         self.name = name
         self.pv = PV(name)
-        self.pv.connect('changed', lambda x: self.signal_change() )
                 
     def count(self, t=1.0):
         interval = 0.01

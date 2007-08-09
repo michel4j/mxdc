@@ -18,10 +18,7 @@ class PseudoMotor(AbstractMotor):
         self.mask = []
         for i in range(len(self.motors)):
             self.mask.append(1)
-        for motor in self.motors:
-            motor.connect('changed', self._signal_change)
-            motor.connect('moving', self._signal_move)
-            motor.connect('valid', self._signal_validity)
+        gobject.timeout_add(150, self._queue_check)
         
     def get_position(self):
         return self._calc_position()                
@@ -76,6 +73,9 @@ class PseudoMotor(AbstractMotor):
     
     def _calc_position(self):
         raise self.MotorException, " You must implement the target calculation for derived classes"              
+
+    def copy(self):
+	    raise self.MotorException, " You must implement the copy operation for derived classes"
 		
     
 
@@ -102,6 +102,13 @@ class DCMEnergy(PseudoMotor):
         else:
             return -99
 
+    def copy(self):
+        motors = []
+        for motor in self.motors:
+            motors.append( motor.copy() )
+        tmp = DCMEnergy(motors)
+        tmp.set_mask(self.mask)
+        return tmp
         
 class TwoThetaMotor(PseudoMotor):
     def __init__(self, motors=[], timeout=1.):
@@ -150,6 +157,14 @@ class TwoThetaMotor(PseudoMotor):
         val = arctan( (ccdy2 - ccdy1)/self.A)
         return degrees( val )
 
+    def copy(self):
+        motors = []
+        for motor in self.motors:
+            motors.append( motor.copy() )
+        tmp = TwoThetaMotor(motors)
+        tmp.set_mask(self.mask)
+        return tmp
+
 class DistanceMotor(PseudoMotor):
     def __init__(self, motors=[], timeout=1.):
         PseudoMotor.__init__(self, motors=motors)
@@ -193,5 +208,13 @@ class DistanceMotor(PseudoMotor):
         cur_theta = arctan( (ccdy2 - ccdy1)/self.A )
         val = (ccdy1 - self.B)*sin(cur_theta) + (ccdz + self.C)*cos(cur_theta)-self.C
         return val
+
+    def copy(self):
+        motors = []
+        for motor in self.motors:
+            motors.append( motor.copy() )
+        tmp = DistanceMotor(motors)
+        tmp.set_mask(self.mask)
+        return tmp
            
            

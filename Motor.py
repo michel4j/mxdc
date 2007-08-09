@@ -78,13 +78,25 @@ class EpicsPositioner(Positioner):
         self.pv = PV(name)
         self.DESC = PV("%s.DESC" % self.name)
         self.units = units
-        self.pv.connect('changed', self._signal_change )
+        #self.pv.set_monitor(callback=self._signal_change)
         self.name = name
         self.last_position = self.pv.get()
+        gobject.timeout_add(250, self._queue_check)
 
-    def _signal_change(self, obj=None, arg=None):
-        gobject.idle_add(self.emit,'changed', self.get_position())
+    def _signal_change(self, pv=None):
+        gobject.idle_add(self.emit,'changed', pv.get())
     
+    def _queue_check(self):
+        gobject.idle_add(self._check_change)
+        return True
+                    
+    def _check_change(self):
+        val = self.pv.get()
+        if val != self.last_position:
+            gobject.idle_add(self.emit,'changed', val)
+        self.last_position = val
+        return False
+
     def get_position(self):
         return self.pv.get()
 
@@ -114,14 +126,27 @@ class Attenuator(Positioner):
         self.energy = energy
         self.bits = '0000'
         self.value = 0.0
+        self._check_change()
         self.units = '%'
-        self.energy.connect('changed', self._signal_change )
-        for fil in self.filters:
-            fil.connect('changed', self._signal_change )   
+        gobject.timeout_add(500, self._queue_check)
 
-    def _signal_change(self, obj=None, arg=None):
-        gobject.idle_add(self.emit,'changed', self.get_position() )
+    def _signal_change(self, pv=None):
+        gobject.idle_add(self.emit,'changed', self.value)
     
+    def _queue_check(self):
+        gobject.idle_add(self._check_change)
+        return True
+                    
+    def _check_change(self):
+        self.bits = ''
+        for flt in self.filters:
+            self.bits += '%d' % flt.get_position()
+        thickness = int(self.bits,2) / 10.0
+        last_value = self.value
+        self.value = self._attenuation(thickness)
+        if last_value != self.value:
+            self._signal_change()
+        return False
         
     def _set_bits(self, bitstr):
         for i in range(4):
@@ -144,11 +169,6 @@ class Attenuator(Positioner):
         return real_thck
 
     def get_position(self):
-        self.bits = ''
-        for flt in self.filters:
-            self.bits += '%d' % flt.get_position()
-        thickness = int(self.bits,2) / 10.0
-        self.value = self._attenuation(thickness)
         return self.value
 
     def set_position(self, val):
@@ -157,8 +177,9 @@ class Attenuator(Positioner):
     def move_to(self, val, wait=False):
         self.thickness = self._get_thickness(val)
         self.bits = "%04d" % int(dec2bin(int(10 * self.thickness)))
+        self.value = self._attenuation(self.thickness)
+        self._signal_change()
         self._set_bits(self.bits)
-        
             
     def move_by(self,val, wait=False):
         val= (val + self.value)
@@ -172,23 +193,41 @@ class AbstractMotor(Positioner):
         self.last_validity = False
         self.last_position = 0.0
         self.name = name
-        self.interval = 0.25
-        self.tick = time.time()
             
-    def _signal_change(self, obj=None, arg=None):
-        if (time.time() - self.tick) > self.interval:
-            gobject.idle_add(self.emit,'changed', self.get_position())
-            self.tick = time.time()
+    def _signal_change(self, pv=None):
+        gobject.idle_add(self.emit,'changed', self.get_position())
     
-    def _signal_move(self, obj=None, arg=None):
+    def _signal_move(self, pv=None):
         gobject.idle_add(self.emit,'moving', self.is_moving())
         
-    def _signal_validity(self, obj=None, arg=None):
-        gobject.idle_add(self.emit,'valid', self.is_valid())
+    def _queue_check(self):
+        gobject.idle_add(self._check_change)
+        return True
 
     def set_calibrated(status):
         pass
     
+    def _check_change(self):
+        val = self.get_position()
+        if val != self.last_position:
+            self._signal_change()
+        self.last_position = val
+        moving = self.is_moving()
+        if moving != self.last_moving:
+            self._signal_move()
+            self.last_moving = moving
+            if not moving:
+                LogServer.log( "%s stopped at %f %s" % (self.get_name(), val, self.units) )
+        valid = self.is_valid()
+        if valid != self.last_validity:
+            gobject.idle_add(self.emit,"valid", valid)
+            self.last_validity = valid
+            if not valid:
+                LogServer.log( "%s disabled. Calibration required." % (self.get_name()) )
+            else:
+                LogServer.log( "%s enabled." % (self.get_name()) )
+        return False
+
     def stop(self):
         pass
 
@@ -232,6 +271,10 @@ class FakeMotor(AbstractMotor):
             self.wait(start=True,stop=True)
         return
 
+    def copy(self):
+        tmp = FakeMotor(self.name)
+        return tmp
+        
     def _sim(self):
         if self.count > 0:
             self.moving = True
@@ -276,17 +319,18 @@ class CLSMotor(AbstractMotor):
         self.ERBV = PV("%s:%s:fbk" % (name_parts[0],name_parts[1]))
         self.RLV  = PV("%s:%s:rel" % (name_parts[0],name_parts[1]))
         self.MOVN = PV("%s:status" % name_parts[0])
-        #self.MOVN = PV("%s:moving" % name_parts[0])
         self.ACCL = PV("%s:acc:%spss:sp" % (name_parts[0],name_parts[1]))
         self.VEL  = PV("%s:vel:%sps:sp" % (name_parts[0],name_parts[1]))
         self.STOP = PV("%s:stop" % name_parts[0])
         self.SET  = PV("%s:%s:setPosn" % (name_parts[0],name_parts[1]))
         self.CALIB = PV("%s:calibDone" % (name_parts[0]))   
-        self.RBV.connect('changed', self._signal_change )
-        self.MOVN.connect('changed', self._signal_move )
-        self.CALIB.connect('changed', self._signal_validity )
+        gobject.timeout_add(250, self._queue_check)
 
                     
+    def copy(self):
+        tmp = CLSMotor(self.get_id())
+        return tmp
+        
     def get_position(self):
         return self.RBV.get()
 
@@ -357,10 +401,12 @@ class OldCLSMotor(AbstractMotor):
         self.last_moving = self.is_moving()
         self.last_validity = self.is_valid()
         self.last_position = self.RBV.get()
-        self.RBV.connect('changed', self._signal_change )
-        self.MOVN.connect('changed', self._signal_move )
-        self.CALIB.connect('changed', self._signal_validity )
+        gobject.timeout_add(250, self._queue_check)
 
+    def copy(self):
+        tmp = OldCLSMotor(self.get_id())
+        return tmp
+                                           
     def get_position(self):
         return self.RBV.get()
     

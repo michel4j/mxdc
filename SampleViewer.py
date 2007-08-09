@@ -3,13 +3,15 @@
 import threading, gc
 import gtk, gobject
 gobject.threads_init()
-import sys, time
+import sys, time, os
 import Image
 import ImageEnhance
 import ImageOps
 import numpy
 import EPICS as CA
+from Dialogs import save_selector
 from Beamline import beamline
+from LogServer import LogServer
 
 class VideoThread(threading.Thread, gobject.GObject):
     __gsignals__ =  { 
@@ -207,7 +209,13 @@ class SampleViewer(gtk.HBox):
             self.pixmap.draw_line(self.gc, x1, x2, y1, y2)
             self.pangolayout.set_text("%5.4f mm" % dist)
         return True
-
+    
+    def save_image(self, filename):
+        ftype = filename.split('.')[-1]
+        if ftype == 'jpg': 
+            ftype = 'jpeg'
+        self.video_frame.save(filename, ftype)
+        
     # callbacks
     def on_realized(self,widget):
         self.video_realized = True
@@ -234,6 +242,14 @@ class SampleViewer(gtk.HBox):
         self.cross_y_position = self.cross_y.get_position()
         self.zoom_factor = self.zoom.get_position()
 
+    def on_save(self, obj=None, arg=None):
+        img_filename = save_selector()
+        if os.access(os.path.split(img_filename)[0], os.W_OK):
+            LogServer.log('Saving sample image to: %s' % img_filename)
+            self.save_image(img_filename)
+        else:
+            LogServer.log("Could not save %s." % img_filename)
+    
     def on_unmap(self, widget):
         self.videothread.pause()
         return True
@@ -515,7 +531,7 @@ class SampleViewer(gtk.HBox):
         self.pos_label.set_alignment(1,0.5)        
         
         #Video Area
-        vbox2 = gtk.VBox(False,3)
+        vbox2 = gtk.VBox(False,2)
         videoframe = gtk.Frame()
         videoframe.set_shadow_type(gtk.SHADOW_IN)
         self.video_frame = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, self.width, self.height)
@@ -526,7 +542,12 @@ class SampleViewer(gtk.HBox):
 
         videoframe.add(self.video)
         vbox2.pack_start(videoframe, expand=False, fill=False)
-        vbox2.pack_end(self.pos_label, expand=False, fill=False)
+        pos_hbox = gtk.HBox(False,6)
+        pos_hbox.pack_end(self.pos_label,expand=True, fill=True)
+        self.save_btn = gtk.Button(stock='gtk-save')
+        self.save_btn.connect('clicked', self.on_save)
+        pos_hbox.pack_start(self.save_btn, expand=False, fill=True)
+        vbox2.pack_end(pos_hbox, expand=False, fill=False)
         
         # Adjustment area         
         self.lighting_scale = gtk.HScale()

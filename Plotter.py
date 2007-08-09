@@ -101,10 +101,12 @@ class Plotter( gtk.Frame ):
         self.axis[0].set_ylabel(y1_label)
 
     def clear(self):
-        self.axis[0].clear()
-        for ax in self.axis[1:]:
-            self.fig.delaxes(ax)
-            
+        #self.axis[0].clear()
+        #    self.fig.delaxes(ax)
+        self.fig.clear()
+        self.axis = []    
+        self.axis.append( self.fig.add_subplot(111) )
+        self.axis[0].xaxis.set_major_formatter(self.xformatter)
         self.line = []
         self.x_data = []
         self.y_data = []

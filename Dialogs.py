@@ -8,6 +8,10 @@ _IMAGE_TYPES = {
     gtk.MESSAGE_ERROR : gtk.STOCK_DIALOG_ERROR,
 }
 
+IMAGE_FORMAT = ['jpg', 'png']
+IMAGE_FORMAT.sort()
+IMAGE_FORMAT_DEFAULT  = 'png'
+
 _BUTTON_TYPES = {
     gtk.BUTTONS_NONE: (),
     gtk.BUTTONS_OK: (gtk.STOCK_OK, gtk.RESPONSE_OK,),
@@ -202,28 +206,29 @@ def check_folder(directory, parent=None):
     
 class FolderSelector:
     def __init__(self):
-        self.current_folder = os.environ['HOME']
+        self.path = os.environ['HOME'] + os.sep
 
-    def __call__(self,default=None):
+    def __call__(self,path=None):
         file_open = gtk.FileChooserDialog(title="Select Folder"
             , action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER
             , buttons=(gtk.STOCK_CANCEL
                 , gtk.RESPONSE_CANCEL
                 , gtk.STOCK_OPEN
                 , gtk.RESPONSE_OK))
-        if not default:
-            default = self.current_folder
-        file_open.set_uri('file:/%s' % default)
+        if path: 
+            self.path = path
+        file_open.set_current_folder (self.path)
+        #file_open.set_uri('file:/%s' % self.path)
         result = None
         if file_open.run() == gtk.RESPONSE_OK:
             result = file_open.get_filename()
-            self.current_folder = result
+            self.path = result + os.sep
         file_open.destroy()    
         return result
 
 class ImageSelector:
     def __init__(self):
-        self.current_folder = os.environ['HOME']
+        self.path = os.environ['HOME']+ os.sep
         self.filter = gtk.FileFilter()
         self.filter.set_name("MARCCD Images")
         self.filter.add_pattern("*.img")
@@ -232,7 +237,7 @@ class ImageSelector:
         self.filter.add_pattern("*.[0-9][0-9][0-9]")
         self.filter.add_pattern("*.[0-9][0-9][0-9][0-9]")
 
-    def __call__(self,default=None):
+    def __call__(self,path=None):
         file_open = gtk.FileChooserDialog(title="Select Image"
                 , action=gtk.FILE_CHOOSER_ACTION_OPEN
                 , buttons=(gtk.STOCK_CANCEL
@@ -241,17 +246,91 @@ class ImageSelector:
                             , gtk.RESPONSE_OK))
    
         file_open.add_filter(self.filter)
-        if not default:
-            default = self.current_folder
-        file_open.set_uri('file:/%s' % default)
+        if path: 
+            self.path = path
+        file_open.set_current_folder (self.path)
+        #file_open.set_uri('file:/%s' % self.path)
         result = None
         if file_open.run() == gtk.RESPONSE_OK:
             result = file_open.get_filename()
-            self.current_folder = os.path.split(result)[0]
+            self.path = os.path.split(result)[0] + os.sep
         file_open.destroy()   
         return result
+
+class FileChooserDialog(gtk.FileChooserDialog):
+    def __init__ (self,
+                  title   = 'Save Image',
+                  parent  = None,
+                  action  = gtk.FILE_CHOOSER_ACTION_SAVE,
+                  buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                             gtk.STOCK_SAVE,   gtk.RESPONSE_OK),
+                  path    = None,
+                  ):
+        super (FileChooserDialog, self).__init__ (title, parent, action,
+                                                  buttons)
+        self.set_default_response (gtk.RESPONSE_OK)
+        if path: self.path = path
+        else:    self.path = os.environ['HOME']+ os.sep
+        # create an extra widget to list supported image formats
+        self.set_current_folder (self.path)
+        self.set_current_name ('image.' + IMAGE_FORMAT_DEFAULT)
+        hbox = gtk.HBox (spacing=10)
+        hbox.pack_start (gtk.Label ("Image Format:"), expand=False)
+
+        self.cbox = gtk.combo_box_new_text()
+        hbox.pack_start (self.cbox)
+
+        for item in IMAGE_FORMAT:
+            self.cbox.append_text (item)
+        self.cbox.set_active (IMAGE_FORMAT.index (IMAGE_FORMAT_DEFAULT))
+
+        def cb_cbox_changed (cbox, data=None):
+            """File extension changed"""
+            head, filename = os.path.split(self.get_filename())
+            root, ext = os.path.splitext(filename)
+            ext = ext[1:]
+            new_ext = IMAGE_FORMAT[cbox.get_active()]
+
+            if ext in IMAGE_FORMAT:
+                filename = filename.replace(ext, new_ext)
+            elif ext == '':
+                filename = filename.rstrip('.') + '.' + new_ext
+
+            self.set_current_name (filename)
+        self.cbox.connect ("changed", cb_cbox_changed)
+
+        hbox.show_all()
+        self.set_extra_widget(hbox)
+
+
+    def __call__(self):
+        while True:
+            filename = None
+            if self.run() != gtk.RESPONSE_OK:
+                break
+            filename = self.get_filename()
+            menu_ext  = IMAGE_FORMAT[self.cbox.get_active()]
+            root, ext = os.path.splitext (filename)
+            ext = ext[1:]
+            if ext == '':
+                ext = menu_ext
+                filename += '.' + ext
+
+            if ext in IMAGE_FORMAT:
+                self.path = filename
+                break
+            else:
+                error_msg_gtk ('Image format "%s" is not supported' % ext,
+                                parent=self)
+                self.set_current_name (os.path.split(root)[1] + '.' +
+                                        menu_ext)
+
+        self.hide()
+        return filename
+    
     
 select_folder = FolderSelector()
 select_image = ImageSelector()
+save_selector = FileChooserDialog()
 ImageSelector = None
 FolderSelector = None

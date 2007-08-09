@@ -16,6 +16,7 @@ class VideoSource:
             self.frame = toimage(self.frame)                
 
     def get_frame(self):
+        self.fetch_frame()
         return self.frame    
     
     def set_visible(self, vis):
@@ -42,10 +43,9 @@ class EpicsCamera(VideoSource):
     def __init__(self,name):
         VideoSource.__init__(self)
         self.pvname = name
-        self.cam = PV(self.pvname, use_monitor=False)
+        self.cam = PV(self.pvname, connect=True)
         self.fetch_frame()
         self.visible = False        
-        self.cam.connect('changed', lambda x: self.fetch_frame())
     
     def fetch_frame(self):
         if self.visible:
