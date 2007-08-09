@@ -5,7 +5,7 @@ from Motor import *
 from Detector import *
 from PseudoMotor import *
 from VideoSource import *
-from Shutter import *
+from Shutters import *
 from MarCCD import *
 
 from ConfigParser import ConfigParser
@@ -44,9 +44,8 @@ def initialize():
         Variable    = EpicsPositioner 
         VideoCamera = EpicsCamera
         MCA         = EpicsMCA
-        Shutter     = FakeShutter
         CCD         = MarCCD
-        
+        Shutter     = EpicsShutter
                 
     beamline['motors'] = {}
     beamline['detectors'] = {}
@@ -118,9 +117,8 @@ def initialize():
         for item in parser.options('shutters'):
             item = string.strip(item)
             pv = string.strip( parser.get('shutters', item) )            
-            beamline['shutters'][item] = Shutter(pv)
+            beamline['shutters'][item] = EpicsShutter(pv)
             print '...', item
-    beamline['shutters']['gonio_shutter'] = GonioShutter('GV6K1608-001')
     print 'setting up CCD detectors'
     if 'ccds'  in parser.sections():
         for item in parser.options('ccds'):

@@ -324,7 +324,7 @@ class CLSMotor(AbstractMotor):
         self.STOP = PV("%s:stop" % name_parts[0])
         self.SET  = PV("%s:%s:setPosn" % (name_parts[0],name_parts[1]))
         self.CALIB = PV("%s:calibDone" % (name_parts[0]))   
-        gobject.timeout_add(150, self._queue_check)
+        gobject.timeout_add(250, self._queue_check)
 
                     
     def copy(self):

@@ -188,18 +188,18 @@ class ActiveLabel(gtk.Label):
         return True
 
 class DiagnosticLabel(gtk.Label):
-    def __init__( self, positioner,  format="%s", width=8):
+    def __init__( self, variable,  format="%s", width=8):
         gtk.Label.__init__(self, '')
         self.format = format
-        self.positioner = positioner
-        self.update_value( self.positioner.get_value() )
-        self.positioner.connect('update', self.on_monitor_pos )
-        
+        self.variable = variable
+        self.update_value( self.variable.get_value() )
+        self.variable.connect('changed', self.on_update)
+
     def update_value(self, val):
         self.set_text(self.format % (val))
 
-    def on_monitor_pos(self, widget, val):
-        self.update_value(val)
+    def on_update(self, widget=None):
+        self.update_value( self.variable.get_value() )
         return True
 
 class ShutterButton(gtk.ToggleButton):

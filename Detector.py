@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
 import sys, os, time
-import gtk, gobject, numpy
-from numpy import sum, mean
-import thread
+import gtk, gobject
+import numpy
+import thread, threading
 from LogServer import LogServer
 from EmissionTools import gen_spectrum, find_peaks
-from EPICS import PV
+from EPICS import PV, thread_init
 
 class Detector(gobject.GObject):
     __gsignals__ = {}
-    __gsignals__['update'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,))
+    __gsignals__['changed'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     DetectorException = "Detector Exception"
     def __init__(self, name=None):
         gobject.GObject.__init__(self)
@@ -32,6 +32,9 @@ class Detector(gobject.GObject):
 
     def get_name(self):
         return self.name
+    
+    def signal_change(self):
+        gobject.idle_add(self.emit, 'changed')
        
 class FakeDetector(Detector):
     def __init__(self, name=None):
@@ -217,7 +220,7 @@ class EpicsMCA(Detector):
             self.values = self.data
         else:
             self.values = self.data[self.ROI[0]:self.ROI[1]]
-        return sum(self.values)
+        return numpy.sum(self.values)
     
     def get_dead_percent(self):
         return self.IDTIM.get()
@@ -273,62 +276,51 @@ class EpicsDetector(Detector):
             raise self.DetectorException, "name must be specified"
         self.name = name
         self.pv = PV(name)
-        self.sampling_interval = 50 #msecs
-        self.value = 0.0
-        self.source_id = None
-        self.update_id = None
-        self.accum = []
-        self.st_time = 0
-        self.set_window(1)
-        self.set_frequency(1)
-        gobject.timeout_add(self.sampling_interval, self._queue_check)
-        
-    def _queue_check(self):
-        gobject.idle_add(self._sample)
-        
+        self.pv.connect('changed', lambda x: self.signal_change() )
+                
     def count(self, t=1.0):
-        self.set_window(t)        
-        while self.full == False:
-            time.sleep(0.001)
-        return self.value
-    
-    def set_frequency(self, h=2):
-        self.update_interval = 1000/2
-        if self.update_id:
-            gobject.source_remove(self.update_id)
-        self.update_id = gobject.timeout_add(self.update_interval, self._signal_update)
-                         
-    def set_window(self, t=0.5):
-        self.time = t
-        self.num_points = int(self.time * 1000 / self.sampling_interval)
-        self.index = 0
-        self.full = False
-        self.values = numpy.zeros(self.num_points, float)
-        if self.source_id:
-            gobject.source_remove(self.source_id)
-        self.source_id = gobject.timeout_add(self.sampling_interval, self._sample)
-    
-    def _sample(self):
-        self.index = (self.index+1) % self.num_points
-        self.values[self.index] = self.pv.get()
-        self.value = self.values.mean()
-        if self.index == 0:
-            self.full = True
-        return True
+        interval = 0.01
+        accum = []
+        while t > 0:
+            accum.append( self.pv.get() )
+            time.sleep(interval)
+            t -= interval
+        return numpy.mean(accum)
+                        
+    def get_value(self):    
+        return self.pv.get()
         
-    def _signal_update(self):
-        gobject.idle_add(self.emit, 'update', self.value)
-        return True       
-                    
-    def get_value(self):
-        return self.value
-        
-    def copy(self):
-        tmp = EpicsDetector(self.name)
-        return tmp
-
     def get_name(self):
         return self.name
+
+class Normalizer(threading.Thread):
+    def __init__(self, pv):
+        threading.Thread.__init__(self)
+        self.factor = 1.0
+        self.start_counting = False
+        self.stopped = False
+        self.accum = []
+        self.pv = pv
+        self.first = 0.0
+
+    def get_factor(self):
+        return self.first/numpy.mean(self.accum)
+
+    def mark_start(self):
+        self.start_counting = True
+    
+    def stop(self):
+        self.stopped = True
+                        
+    def run(self):
+        thread_init()
+        self.first = self.pv.get()
+        while not self.stopped:
+            if self.start_counting:
+                self.accum = []
+                self.start_counting = False
+            self.accum.append( self.pv.get() )
+            time.sleep(0.01)
                 
 gobject.type_register(Detector)
     

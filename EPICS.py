@@ -1,10 +1,12 @@
-import sys, os
+import sys, os, gobject
 import numpy, thread
 from ctypes import *
 
 # Define EPICS constants
 (DISABLE_PREEMPTIVE_CALLBACK,ENABLE_PREEMPTIVE_CALLBACK) = range(2)
-(DBE_VALUE, DBE_ALARM, DBE_LOG) = range(3)
+DBE_VALUE = 1<<0
+DBE_ALARM = 1<<1
+DBE_LOG   = 1<<2
 (
     NEVER_CONNECTED,
     PREVIOUSLY_CONNECTED,
@@ -84,31 +86,33 @@ class EventHandlerArgs(Structure):
     ]
 
 class Closure:
-    def __init__(self, func, pv):
+    def __init__(self, func):
+        self.initialized = True
         self.function = func
-        self.pv = pv
-        print self.pv.get()
         
-    def __call__(self, event_handler_args ):
-        self.function(self.pv)
-        print self.pv.get()
+    def __call__(self, event ):
+        self.function()
         return True
 
-class PV:
+class PV(gobject.GObject):
+    __gsignals__ = {}
+    __gsignals__['changed'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     def __init__(self, name):
+        gobject.GObject.__init__(self)
         self.chid = c_long()
         self.name = name
         self.count = None
         self.element_type = None
+        self.callbacks = {}
         self.connected = NEVER_CONNECTED
         self.__connect()
-        #self.changeid = self.connect_monitor( self.on_change )
+        self.__allocate_data_mem()
+        self.connect_monitor(self.on_change)
         
     def __del__(self):
-        if self.connected != NEVER_CONNECTED:
-            libca.ca_clear_channel(self.chid)
-            libca.ca_pend_event(0.01)
-            libca.ca_pend_io(10.0)
+        libca.ca_clear_channel(self.chid)
+        libca.ca_pend_event(0.01)
+        libca.ca_pend_io(10.0)
     
     def __connect(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
@@ -125,55 +129,58 @@ class PV:
         else:
            self.data_type = TypeMap[self.element_type] 
         if value:
-            data = self.data_type(value)
+            self.data = self.data_type(value)
         elif self.element_type == DBR_STRING:
-            data = self.data_type(256)
+            self.data = self.data_type(256)
         else:
-            data = self.data_type()
-        return data
+            self.data = self.data_type()
 
-    def on_change(self, pv):
-        print 'changed'
+    def on_change(self):
+        gobject.idle_add(self.emit, 'changed')
                
     def connect_monitor(self, callback):
         event_id = c_long()
-        cb_closure = Closure(callback, self)
+        cb_closure = Closure(callback)
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
         cb_function = cb_factory(cb_closure)
+        key = repr(callback)
+        self.callbacks[ key ] = [cb_factory, cb_function]        
         libca.ca_create_subscription(
             self.element_type,
             self.count,
             self.chid,
             DBE_VALUE | DBE_ALARM | DBE_LOG,
-            cb_function,
+            self.callbacks[key][1],
             0,
             byref(event_id)
         )
         libca.ca_pend_io(1.0)
-        return event_id.value
+        return event_id
                       
     def disconnect_monitor(self, event_id):
-        libca.ca_clear_subscription(c_long(event_id))
+        libca.ca_clear_subscription(event_id)
         libca.ca_pend_io(1.0)
               
     def get(self):
         if self.connected != CONNECTED:
             self.__connect()
-        data = self.__allocate_data_mem()
+        self.__allocate_data_mem()
         libca.lock.acquire()
-        libca.ca_array_get( self.element_type, self.count, self.chid, byref(data))
+        libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
         libca.ca_pend_io(1.0)
         libca.lock.release()
         if self.count > 1 and TypeMap[self.element_type] in [c_int, c_float, c_double, c_long]:
-            return data
+            return self.data
         else:
-            return data.value
+            return self.data.value
 
     def put(self, val):
         if self.connected != CONNECTED:
             self.__connect()
-        data = self.__allocate_data_mem(val)
-        libca.ca_array_put(self.element_type, self.count, self.chid, byref(data))
+        self.__allocate_data_mem(val)
+        libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
+
+gobject.type_register(PV)
 
 def thread_init():
     thread_context = libca.ca_current_context()
@@ -184,7 +191,6 @@ libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_
 if not os.access(libca_file, os.R_OK):
     libca_file =   "/opt/epics/R3.14.6/base/lib/linux-x86/libca.so"
 if os.access(libca_file, os.R_OK):
-    print 'Loading EPICS run-time library:', libca_file
     libca = cdll.LoadLibrary(libca_file)
 else:
     print """EPICS run-time libraries could not be loaded! 

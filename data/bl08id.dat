@@ -29,9 +29,9 @@ gslits_vpos	=	SMTR16083I1004:mm
 detector_y1	=	SMTR16083I1017:mm
 detector_y2	=	SMTR16083I1019:mm
 detector_z	=	SMTR16083I1018:mm
-#expbox_x	=	SMTR16083I1005:mm
-#expbox_y	=	SMTR16083I1006:mm
-#expbox_pitch	=	SMTR16083I1007:mm
+#xbox_x	=	SMTR16083I1005:mm
+#xbox_y	=	SMTR16083I1006:mm
+#xbox_pitch	=	SMTR16083I1007:mm
 
 [old_motors]
 zoom		=	SMTR16083I1021:mm
@@ -50,8 +50,8 @@ sample_light_val = ILM16083I1001:fbk
 sample = CAM1608-001:data
 
 [shutters]
-PSH1 = photonshutter1
-
+PSH1    = PSH1408-I00-02
+xbox_shutter = PSH16083I1001
 [ccds]
 ccd = BL08ID1:CCD
 

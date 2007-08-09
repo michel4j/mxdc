@@ -180,7 +180,7 @@ class Predictor( gtk.Frame ):
                 
     def update(self, force=False):
         elapsed_time = time.time() - self.last_updated
-        if (elapsed_time < 0.5):
+        if (elapsed_time < 1) and not force:
             pass
         elif (not self.visible):
             pass

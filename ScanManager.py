@@ -48,7 +48,7 @@ class ScanManager(gtk.HBox):
         
         self.bragg_energy = beamline['motors']['energy'].copy()       
         self.mca   = beamline['detectors']['mca']
-        self.shutter = beamline['shutters']['gonio_shutter']
+        self.shutter = beamline['shutters']['xbox_shutter']
 
         self.auto_chooch = AutoChooch()
         
@@ -219,6 +219,7 @@ class ScanManager(gtk.HBox):
 
         self.scanner = Scanner(positioner=self.bragg_energy, detector=self.mca, time=count_time, output=scan_filename)
         self.scanner.set_targets( self.generate_scan_targets(energy) )
+        self.scanner.set_normalizer(beamline['detectors']['i0_bpm'])
         #self.scanner.set_targets( self.linear_scan_targets(energy) )
         self.scanner.connect('new-point', self.on_new_scan_point)
         self.scanner.connect('done', self.on_scan_done)

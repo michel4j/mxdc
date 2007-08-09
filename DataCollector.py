@@ -35,7 +35,7 @@ class DataCollector(threading.Thread, gobject.GObject):
         
     def run(self, widget=None):
         CA.thread_init()
-        self.detector = beamline['detectors']['ccd'].copy()
+        self.detector = beamline['detectors']['ccd']
         self.pos = 0
         header = {}
         while self.pos < len(self.run_list) :
@@ -54,34 +54,48 @@ class DataCollector(threading.Thread, gobject.GObject):
                 continue
             velo = frame['delta'] / float(frame['time'])
             start_pos = frame['start_angle']
-            end_pos = start_pos + frame['delta']
             
-            # prepare image header
+            
+            # Prepare image header
             header['delta'] = frame['delta']
             header['directory'], header['filename'] = os.path.split(frame['file_name'])
             header['directory'] = header['directory']+'\0'
             header['filename'] = header['filename']+'\0'
-            header['distance'] = frame['distance']
+            header['distance'] = frame['distance'] 
             header['time'] = frame['time']
+            header['frame_number'] = frame['frame_number']
             header['wavelength'] = keV_to_A(frame['energy'])
+            header['energy'] = frame['energy']
+            header['prefix'] = frame['prefix']
+            header['start_angle'] = frame['start_angle']
             
+            # Check and prepare beamline
+            if abs(beamline['motors']['detector_dist'].get_position() - frame['distance']) > 1e-2:
+                beamline['motors']['detector_dist'].move_to(frame['distance'])
+            if abs(beamline['motors']['energy'].get_position() - frame['energy']) > 1e-4:
+                beamline['motors']['energy'].set_mask([1,0,0])
+                beamline['motors']['energy'].move_to(frame['energy'])
+            beamline['motors']['detector_dist'].wait()
+            beamline['motors']['energy'].wait()
+            beamline['motors']['energy'].set_mask([1,1,1])
             self.detector.start()
-            self.detector.set_header(header)
             
             # Place holder for gonio scan and shutter opening
             time.sleep(frame['time'])
             LogServer.log( "%04d ------------------------------------------" % self.pos)
-            LogServer.log( "Energy   : %8.3f   keV:" % frame['energy'])
-            LogServer.log( "Distance : %8.3f    mm:" % frame['distance'])
             LogServer.log("Osc start: %8.3f   deg:" % start_pos)
-            LogServer.log("Osc   end: %8.3f   deg:" % end_pos)
+            LogServer.log("Osc delta: %8.3f   deg:" % frame['delta'])
             LogServer.log("Osc  velo: %8.3f deg/s:" % velo)
             
             # Read and save image
             self.detector.set_header(header)
             self.detector.save()
-            LogServer.log("File name: %s" % frame['file_name'])
+            
+            # Notify new image
+            LogServer.log("Image Collected: %s" % frame['file_name'])
             gobject.idle_add(self.emit, 'new-image', frame['index'], frame['file_name'])
+            
+            # Notify progress
             fraction = float(self.pos) / len(self.run_list)
             gobject.idle_add(self.emit, 'progress', fraction)
             

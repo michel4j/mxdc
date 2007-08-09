@@ -42,9 +42,10 @@ class MarCCD(CCDDetector):
         self.correct_cmd = PV("%s:correct:cmd" % name)
         self.writefile_cmd = PV("%s:writefile:cmd" % name)
         self.background_cmd = PV("%s:dezFrm:cmd" % name)
-        self.acquire_cmd = PV("%s:rdwrOut:cmd" % name)
+        self.save_cmd = PV("%s:rdwrOut:cmd" % name)
         self.collect_cmd = PV("%s:frameCollect:cmd" % name)
-
+        self.header_cmd = PV("%s:header:cmd" % name)
+        
         #Header parameters
         self.header = {
             'filename' : PV("%s:img:filename" % name),
@@ -56,16 +57,18 @@ class MarCCD(CCDDetector):
             'axis' : PV("%s:rot:axis" % name),
             'wavelength':  PV("%s:src:wavelgth" % name),
             'delta' : PV("%s:omega:incr" % name),
-            'prefix' : PV("%s:img:prefix" % name)
+            'frame_number': PV("%s:startFrame" % name),
+            'prefix' : PV("%s:img:prefix" % name),
+            'start_angle': PV("%s:start:omega" % name),
+            'energy': PV("%s:runEnergy" % name),            
         }
+        
         #Status parameters
         self.state = PV("%s:rawState" % name)
         self.state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
         self.state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
-            
-    def copy(self):
-        return MarCCD(self.name)
-          
+        self._bg_taken = False
+                      
     def state_list(self):
         state_string = "%08x" % self.state.get()
         states = []
@@ -111,22 +114,35 @@ class MarCCD(CCDDetector):
                 self.wait_until('idle')
                         
     def start(self):
-        #if not self._bg_taken:
-        #    self.acquire_bg(wait=True)
+        if not self._bg_taken:
+            self.acquire_bg(wait=True)
         self.wait_while('acquire:queue')
         self.wait_while('acquire:exec')
+        self.wait_while('read:exec')
         self.start_cmd.put(1)
-        success = self.wait_until('acquire:exec')
+        self.wait_until('write:exec')
+        self.wait_until('acquire:exec')
         
     def set_header(self, data):
         for key in data.keys():
             self.header[key].put(data[key])
+        self.header_cmd.put(1)
+        
     
     def save(self,wait=False):
-        self.acquire_cmd.put(1)
+        self.save_cmd.put(1)
         if wait:
             self.wait_until('write:exec')
             
+    def wait_start(self):      
+        self.wait_while('acquire:queue')
+        self.wait_while('acquire:exec')
+        self.wait_while('read:exec')
+
+    def wait_stop(self):      
+        self.wait_until('write:exec')
+        self.wait_until('acquire:exec')
+        
                 
 class MarCCD2(CCDDetector):
     def __init__(self, name):

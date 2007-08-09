@@ -7,6 +7,8 @@ from LogView import LogView
 from ActiveWidgets import *
 #from VideoWidget import *
 from Beamline import beamline
+from Scripting import Script
+from Scripts import *
 
 
 (
@@ -67,7 +69,9 @@ class HutchManager(gtk.VBox):
         motor_vbox2 = gtk.VBox(False,0)        
         for key in ['angle','beam_stop','distance','two_theta']:
             motor_vbox2.pack_start(self.entry[key], expand=True, fill=False)
-            
+        
+        self.device_box = gtk.HBox(True,6)
+           
         diagram = gtk.Image()
         diag_frame = gtk.Frame()
         diag_frame.set_shadow_type(gtk.SHADOW_IN)
@@ -78,22 +82,26 @@ class HutchManager(gtk.VBox):
         control_box = gtk.VButtonBox()
         control_box.set_border_width(6)
         self.front_end_btn = ShutterButton(beamline['shutters']['psh1'], 'Photon Shutter')
-        self.shutter_btn = ShutterButton(beamline['shutters']['gonio_shutter'], 'Sample Shutter')
+        self.shutter_btn = ShutterButton(beamline['shutters']['xbox_shutter'], 'Exposure Shutter')
         self.optimize_btn = gtk.Button('Optimize Beam')
         self.mount_btn = gtk.Button('Prepare for Mounting')
-        #self.front_end_btn.set_sensitive(False)
+        self.mount_btn.connect('clicked',self.prepare_mounting)
+        self.reset_btn = gtk.Button('Reset Beamstop')
+        self.reset_btn.connect('clicked',self.restore_beamstop)
+        self.front_end_btn.set_sensitive(False)
         self.optimize_btn.set_sensitive(False)
-        self.mount_btn.set_sensitive(False)
-        #self.shutter_btn.set_sensitive(False)
         control_box.pack_start(self.front_end_btn)
         control_box.pack_start(self.shutter_btn)
         control_box.pack_start(self.optimize_btn)
         control_box.pack_start(self.mount_btn)
+        control_box.pack_start(self.reset_btn)
+        
         hbox1.pack_start(control_box, expand=False, fill=False)
         hbox1.pack_end(diag_frame, expand=False, fill=True)
-
-        hbox1.pack_end(motor_vbox2,expand=False,fill=True)
-        hbox1.pack_end(motor_vbox1,expand=False,fill=True)
+        self.device_box.pack_start(motor_vbox1,expand=False,fill=True)
+        self.device_box.pack_start(motor_vbox2,expand=False,fill=True)
+        
+        hbox1.pack_end(self.device_box,expand=False,fill=True)
         
         self.pack_start(hbox1)
         hbox3.pack_start(videobook, expand=False,fill=False)
@@ -143,7 +151,17 @@ class HutchManager(gtk.VBox):
     def update_pred(self, widget):
         self.predictor.update()
         return True
+        
+    def prepare_mounting(self, widget):
+        self.device_box.set_sensitive(False)
+        script = Script(prepare_for_mounting)
+        script.start()
 
+    def restore_beamstop(self, widget):
+        script = Script(restore_beamstop)
+        script.start()
+        script.connect('done', lambda x: self.device_box.set_sensitive(True))
+        
     def __add_script(self, item): 
         iter = self.script_store.append()                
         self.script_store.set(iter, 

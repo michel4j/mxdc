@@ -3,7 +3,7 @@ import gtk, gobject
 import sys, os, time
 from RunManager import RunManager
 from ImgViewer import ImgViewer
-from DataCollector import SNLDataCollector as DataCollector
+from DataCollector import DataCollector as DataCollector
 from Beamline import beamline
 from ActiveWidgets import ActiveLabel
 from ConfigParser import ConfigParser

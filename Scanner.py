@@ -34,7 +34,9 @@ class Scanner(threading.Thread, gobject.GObject):
         self.calc_targets()
         self.x_data_points = []
         self.y_data_points = []
-        self.plotter = None            
+        self.plotter = None
+        self.normalizer = None   
+        self.norm_origin = None        
 
     def _add_point(self, widget, x, y):
         self.plotter.add_point(x, y,0)
@@ -66,7 +68,7 @@ class Scanner(threading.Thread, gobject.GObject):
             gtk.main()
         except KeyboardInterrupt:
             gtk.main_quit()
-          
+            
     def run(self, widget=None):
         CA.thread_init()
         self.count = 0
@@ -82,13 +84,16 @@ class Scanner(threading.Thread, gobject.GObject):
             self.positioner.move_to(x, wait=True)
             
             y = self.detector.count(self.time)
+            y *= self._get_norm_factor()
+            
             LogServer.log("--- Position and Count obtained ---")
             self.x_data_points.append( x )
             self.y_data_points.append( y )
             fraction = float(self.count) / len(self.positioner_targets)
             gobject.idle_add(self.emit, "new-point", x, y )
             gobject.idle_add(self.emit, "progress", fraction )
-            
+
+        self.norm_origin = 0
         if self.aborted:
             gobject.idle_add(self.emit, "aborted")
             gobject.idle_add(self.emit, "progress", 0.0 )
@@ -104,8 +109,20 @@ class Scanner(threading.Thread, gobject.GObject):
         else:
             self.positioner_targets = []
     
+    def _get_norm_factor(self):
+        if not self.normalizer:
+            return 1.0
+        if not self.norm_origin:
+            self.norm_origin = self.normalizer.get_value()
+            return 1.0
+        else:
+            return self.norm_origin/self.normalizer.get_value()
+            
     def set_targets(self, targets):
         self.positioner_targets = targets
+    
+    def set_normalizer(self, detector):
+        self.normalizer = detector
     
     def stop(self, widget=None):
         self.stopped = True    
