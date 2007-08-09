@@ -10,7 +10,8 @@ from Scanner import Scanner
 from Beamline import beamline
 from AutoChooch import AutoChooch
 from pylab import load
-from Utils import *
+from Dialogs import *
+from EmissionTools import *
 
 class ScanManager(gtk.HBox):
     __gsignals__ = {
@@ -34,9 +35,9 @@ class ScanManager(gtk.HBox):
         self.plotter.set_border_width(12)
         self.plotter_page = self.scan_book.append_page(self.plotter, tab_label=gtk.Label('Scan Plot'))
         
-        self.log_view = LogView(label='Scan Log')
+        self.log_view = LogView(label='Log')
         self.log_view.set_border_width(12)
-        self.log_page = self.scan_book.append_page(self.log_view, tab_label=gtk.Label('Scan Log'))
+        self.log_page = self.scan_book.append_page(self.log_view, tab_label=gtk.Label('Output Log'))
         self.log_view.set_expanded(True)
         
         self.periodic_table.connect('edge-selected',self.on_edge_selection)
@@ -52,6 +53,7 @@ class ScanManager(gtk.HBox):
         self.auto_chooch = AutoChooch()
         
         self.scanning = False
+        self.scanner = None
             
         
     def on_edge_selection(self, widget, data):
@@ -72,11 +74,15 @@ class ScanManager(gtk.HBox):
         self.scan_control.stop_btn.set_sensitive(False)
         self.scan_control.abort_btn.set_sensitive(False)
         self.scan_control.start_btn.set_sensitive(True)
-        self.scan_book.set_current_page( self.log_page )
+        #self.scan_book.set_current_page( self.log_page )
         self.run_auto_chooch()
         self.scanning = False
         return True
 
+    def pulse(self):
+        self.scan_control.progress_bar.pulse()
+        return True
+        
     def on_scan_aborted(self, widget):
         self.scan_control.start_btn.set_sensitive(True)
         self.scan_control.stop_btn.set_sensitive(False)
@@ -104,6 +110,9 @@ class ScanManager(gtk.HBox):
         self.scan_control.set_results(results)
         self.scan_control.create_run_btn.connect('clicked', self.on_create_run)
         self.scan_control.create_run_btn.set_sensitive(True)
+        gobject.source_remove(self.progress_id)
+        self.scan_control.progress_bar.set_fraction(1.0)
+        #self.scan_control.progress_bar.set_text("100.0%")
         return True
         
     def on_start_scan(self,widget):        
@@ -118,6 +127,11 @@ class ScanManager(gtk.HBox):
         
     def on_create_run(self,widget):
         self.emit('create-run')
+        return True
+
+    def on_progress(self, widget, fraction):
+        self.scan_control.progress_bar.set_fraction(fraction)
+        self.scan_control.progress_bar.set_text("%4.1f%s" % (fraction*100,'%'))
         return True
                     
     def generate_scan_targets(self, energy):
@@ -173,8 +187,8 @@ class ScanManager(gtk.HBox):
         self.scan_control.clear()
         scan_parameters = self.scan_control.get_parameters()
             
-        if not check_directory(    scan_parameters['directory'] ):
-            return True    
+        if not check_folder( scan_parameters['directory'], None ):
+            return False    
             
         title = scan_parameters['edge'] + " Edge Scan"
         self.plotter.set_labels(title=title, x_label="Energy (keV)", y1_label='Fluorescence')
@@ -188,6 +202,7 @@ class ScanManager(gtk.HBox):
         self.scanner.connect('new-point', self.on_new_scan_point)
         self.scanner.connect('done', self.on_scan_done)
         self.scanner.connect('aborted', self.on_scan_aborted)        
+        self.scanner.connect('progress', self.on_progress)
         self.connect('destroy', lambda x: self.scanner.stop())
         self.scan_control.stop_btn.connect('clicked', lambda x: self.scanner.stop())
         self.scan_control.abort_btn.connect('clicked', lambda x: self.scanner.abort())
@@ -200,20 +215,40 @@ class ScanManager(gtk.HBox):
         return True
         
     def excitation_scan(self):
+        scan_parameters = self.scan_control.get_parameters() 
+        count_time = scan_parameters['time']
         self.plotter.clear()
         self.scan_control.clear()
         self.mca.set_roi()
-        x,y = self.mca.acquire(t=1.0)
-        self.plotter.set_labels(title='Excitation Scan',x_label='Channel',y1_label='Fluorescence')
+        x,y = self.mca.acquire(t=count_time)
+        self.plotter.set_labels(title='Excitation Scan',x_label='Energy (keV)',y1_label='Fluorescence')
         self.plotter.add_line(x,y,'r-')
         self.scan_book.set_current_page( self.plotter_page )
+        maxy = max(y)
+        tick_size = maxy/20.0
+        peaks = find_peaks(x,y,threshold=0.2,w=20)
+        assign_peaks(peaks)
+        self.log_view.clear()
+        for peak in peaks:
+            self.plotter.add_line([peak[0], peak[0]], [peak[1]+tick_size*3,peak[1]+tick_size*4], 'g-', redraw=False, autofit=True)
+            peak_log = "Peak position: %8.3f keV  Height: %8.2f" % (peak[0],peak[1])
+            for ident in peak[2:]:
+                peak_log = "%s \n%s" % (peak_log, ident)
+            self.log_view.log( peak_log, False )
+        self.plotter.canvas.draw()
         return True
-                
+
+    def stop(self):
+        if self.scanner is not None:
+            self.scanner.stop()
+                            
     def run_auto_chooch(self):
         self.auto_chooch = AutoChooch()
         self.auto_chooch.set_parameters( self.scan_control.get_parameters() )
         self.auto_chooch.connect('done', self.on_chooch_done)
         self.auto_chooch.connect('done', lambda x: self.log_view.log( self.auto_chooch.output, False ))
+        self.progress_id = gobject.timeout_add(100, self.pulse)
+
         self.auto_chooch.start()
         return True
                         

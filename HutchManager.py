@@ -39,14 +39,14 @@ class HutchManager(gtk.VBox):
         videobook.insert_page( gtk.Image(), tab_label=gtk.Label('Hutch Camera') )
         
         self.entry = {
-            'energy':       ActiveEntry('Energy', positioner=beamline['motors']['energy']),
-            'attenuation':  ActiveEntry('Attenuation', positioner=beamline['attenuator']),
-            'angle':        ActiveEntry('Omega', positioner=beamline['motors']['omega']),
-            'beam_width':   ActiveEntry('Beam width', positioner=beamline['motors']['gslits_hgap']),
-            'beam_height':  ActiveEntry('Beam height', positioner=beamline['motors']['gslits_vgap']),
-            'distance':     ActiveEntry('Detector Distance', positioner=beamline['motors']['detector_dist']),
-            'beam_stop':    ActiveEntry('Beam-stop', positioner=beamline['motors']['bst_z']),
-            'two_theta':    ActiveEntry('Detector TwoTheta',positioner=beamline['motors']['detector_2th'])
+            'energy':       ActiveEntry('Energy', positioner=beamline['motors']['energy'], format="%0.4f"),
+            'attenuation':  ActiveEntry('Attenuation', positioner=beamline['attenuator'], format="%0.1g"),
+            'angle':        ActiveEntry('Omega', positioner=beamline['motors']['omega'], format="%0.3f"),
+            'beam_width':   ActiveEntry('Beam width', positioner=beamline['motors']['gslits_hgap'], format="%0.3f"),
+            'beam_height':  ActiveEntry('Beam height', positioner=beamline['motors']['gslits_vgap'], format="%0.3f"),
+            'distance':     ActiveEntry('Detector Distance', positioner=beamline['motors']['detector_dist'], format="%0.2f"),
+            'beam_stop':    ActiveEntry('Beam-stop', positioner=beamline['motors']['bst_z'], format="%0.2f"),
+            'two_theta':    ActiveEntry('Detector TwoTheta',positioner=beamline['motors']['detector_2th'], format="%0.2f")
         }
         beamline['motors']['detector_dist'].connect('changed', self.predictor.on_distance_changed)
         beamline['motors']['detector_2th'].connect('changed', self.predictor.on_two_theta_changed)
@@ -71,19 +71,23 @@ class HutchManager(gtk.VBox):
         diag_frame.set_shadow_type(gtk.SHADOW_IN)
         diag_frame.set_border_width(6)
         diag_frame.add(diagram)
-        diagram.set_from_file('images/hutch_devices.png')
+        diagram.set_from_file(sys.path[0] + '/images/hutch_devices.png')
         
-        control_box = gtk.VBox()
+        control_box = gtk.VButtonBox()
         control_box.set_border_width(6)
-        self.front_end_btn = gtk.Button('Open Front-End Shutter')
-        self.shutter_btn = gtk.Button('Open End-Station Shutter')
+        self.front_end_btn = ShutterButton(beamline['shutters']['psh1'], 'Photon Shutter')
+        self.shutter_btn = ShutterButton(beamline['shutters']['esh'], 'Sample Shutter')
         self.optimize_btn = gtk.Button('Optimize Beam')
         self.mount_btn = gtk.Button('Prepare for Mounting')
-        control_box.pack_start(self.front_end_btn,expand=True)
-        control_box.pack_start(self.shutter_btn,expand=True)
-        control_box.pack_start(self.optimize_btn,expand=True)
-        control_box.pack_start(self.mount_btn,expand=True)
-        hbox1.pack_start(control_box, expand=False, fill=True)
+        #self.front_end_btn.set_sensitive(False)
+        self.optimize_btn.set_sensitive(False)
+        self.mount_btn.set_sensitive(False)
+        #self.shutter_btn.set_sensitive(False)
+        control_box.pack_start(self.front_end_btn)
+        control_box.pack_start(self.shutter_btn)
+        control_box.pack_start(self.optimize_btn)
+        control_box.pack_start(self.mount_btn)
+        hbox1.pack_start(control_box, expand=False, fill=False)
         hbox1.pack_end(diag_frame, expand=False, fill=True)
 
         hbox1.pack_end(motor_vbox2,expand=False,fill=True)
@@ -113,14 +117,14 @@ class HutchManager(gtk.VBox):
             gobject.TYPE_BOOLEAN
         )
         self.script_list = gtk.TreeView(model=self.script_store)
-        #self.script_list.set_rules_hint(True)
+        self.script_list.set_rules_hint(True)
         for item in script_data:
             self.__add_script(item)
         script_vbox = gtk.VBox(False,6)
         script_vbox.set_border_width(6)
         renderer = gtk.CellRendererText()
         renderer.set_data('column',COLUMN_DESCRIPTION)
-        column1 = gtk.TreeViewColumn('Run Script', renderer, text=COLUMN_DESCRIPTION)
+        column1 = gtk.TreeViewColumn('Scripts', renderer, text=COLUMN_DESCRIPTION)
         
         self.script_list.append_column(column1)
         sw = gtk.ScrolledWindow()
@@ -130,6 +134,7 @@ class HutchManager(gtk.VBox):
         script_vbox.pack_start(sw)
         self.run_script_btn= gtk.Button('Execute Script')
         script_vbox.pack_end(self.run_script_btn,expand=False, fill=False)
+        script_vbox.set_sensitive(False)
         #hbox1.pack_end(script_vbox,expand=False, fill=False)
         self.show_all()
 

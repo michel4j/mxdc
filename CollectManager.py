@@ -2,18 +2,25 @@
 import gtk, gobject
 import sys, os, time
 from RunManager import RunManager
+from ImgViewer import ImgViewer
 from DataCollector import DataCollector
+from Beamline import beamline
+from ActiveWidgets import ActiveLabel
+from ConfigParser import ConfigParser
+from configobj import ConfigObj
+from Dialogs import *
+
 (
-    COLUMN_SAVED,
-    COLUMN_ANGLE,
-    COLUMN_RUN,
-    COLUMN_NAME
+    COLLECT_COLUMN_SAVED,
+    COLLECT_COLUMN_ANGLE,
+    COLLECT_COLUMN_RUN,
+    COLLECT_COLUMN_NAME
 ) = range(4)
 
 (
-    COLLECT_IDLE,
-    COLLECT_RUNNING,
-    COLLECT_PAUSED
+    COLLECT_STATE_IDLE,
+    COLLECT_STATE_RUNNING,
+    COLLECT_STATE_PAUSED
 ) = range(3)
 
 class CollectManager(gtk.HBox):
@@ -23,8 +30,9 @@ class CollectManager(gtk.HBox):
         self.run_data = {}
         self.labels = {}
         self.run_list = []
+        self.image_viewer = ImgViewer()
         self.run_manager = RunManager()
-        self.collect_state = COLLECT_IDLE
+        self.collect_state = COLLECT_STATE_IDLE
         self.pos = None
         self.listmodel = gtk.ListStore(
             gobject.TYPE_BOOLEAN,
@@ -40,17 +48,21 @@ class CollectManager(gtk.HBox):
         self.__add_columns()
         listbox = gtk.ScrolledWindow()
         listbox.set_shadow_type(gtk.SHADOW_ETCHED_IN)
-        listbox.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        listbox.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         listbox.add(self.listview)
         controlbox.pack_end(listbox, expand=True, fill=True)
 
-        bbox = gtk.VBox(True, 3)
+        bbox = gtk.HBox(True, 3)
         self.collect_btn = gtk.Button(stock='cm-collect')
         self.stop_btn = gtk.Button(stock='cm-stop')
         self.stop_btn.set_sensitive(False)
-        bbox.pack_start(self.collect_btn, expand=True, fill=False)
-        bbox.pack_start(self.stop_btn, expand=True, fill=False)
-        controlbox.pack_start(bbox, expand=False, fill=False)
+        bbox.pack_start(self.collect_btn, expand=True, fill=True)
+        bbox.pack_start(self.stop_btn, expand=True, fill=True)
+        controlbox.pack_start(bbox, expand=False, fill=True)
+        self.progress_bar = gtk.ProgressBar()
+        self.progress_bar.set_fraction(0)
+        self.progress_bar.set_text('0%')
+        controlbox.pack_end(self.progress_bar, expand=False, fill=True)
         dose_frame = gtk.Frame(label='Dose Control')
         dosevbox = gtk.VBox(False, 3)
         self.dose_mode = gtk.CheckButton('Dose Mode')
@@ -70,9 +82,9 @@ class CollectManager(gtk.HBox):
         pos_frame = gtk.Frame(label='Current Position')
         pos_table = gtk.Table(3,3,True)
         items = {
-            'angle':      ('Angle:', 0, 0, 'deg'),
-            'twotheta':   ('Two Theta:',0, 1, 'deg'),
-            'distance':    ('Distance:',0, 2, 'mm')
+            'omega':      ('Angle:', 0, 0, 'deg'),
+            'detector_2th':   ('Two Theta:',0, 1, 'deg'),
+            'detector_dist':    ('Distance:',0, 2, 'mm')
         }
         
         for (key,val) in zip(items.keys(),items.values()):
@@ -80,14 +92,15 @@ class CollectManager(gtk.HBox):
             label.set_alignment(1,0.5)
             pos_table.attach( label, val[1], val[1]+1, val[2], val[2]+1)
             pos_table.attach(gtk.Label(val[3]), 2, 3, val[2], val[2]+1)
-            self.labels[key] = gtk.Label('')
-            self.labels[key].set_alignment(1,0.5)
-            pos_table.attach(self.labels[key],1, 2, val[2], val[2]+1)
+            pos_label = ActiveLabel( beamline['motors'][key], format="%8.3f" )
+            pos_label.set_alignment(1,0.5)
+            pos_table.attach(pos_label,1, 2, val[2], val[2]+1)
         pos_table.set_border_width(3)
         pos_frame.add(pos_table)
         
         controlbox.pack_start(pos_frame, expand=False, fill=False)
         controlbox.pack_start(dose_frame, expand=False, fill=False)
+        self.pack_start(self.image_viewer,expand = False, fill = False)
         self.pack_start(controlbox)
         self.pack_start(self.run_manager)
         self.show_all()
@@ -95,14 +108,42 @@ class CollectManager(gtk.HBox):
         self.listview.connect('row-activated',self.on_row_activated)
         self.collect_btn.connect('clicked',self.on_activate)
         self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
+        self.collector = None
+        self.set_border_width(6)
+        self.__load_config()
         
+
+    def __load_config(self):
+        config_file = os.environ['HOME'] + '/.mxdc/run_config.dat'
+        if os.access(config_file, os.R_OK):
+            data = {}
+            config = ConfigObj(config_file, options={'unrepr':True})
+            for section in config.keys():
+                run = int(section)
+                data[run] = config[section]
+                self.add_run(data[run])
+        self.apply_run(save=False)
+
+    def __save_config(self):
+        config = ConfigObj()
+        config.unrepr = True
+        config_file = os.environ['HOME'] + '/.mxdc/run_config.dat'
+        config_dir = os.environ['HOME'] + '/.mxdc'
+        if os.access(config_dir,os.W_OK):
+            config.filename = config_file
+            for key in self.run_data.keys():
+                data = self.run_data[key]
+                keystr = "%s" % key
+                config[keystr] = data
+            config.write()
+
     def __add_item(self, item):       
         iter = self.listmodel.append()        
         self.listmodel.set(iter, 
-            COLUMN_SAVED, item['saved'], 
-            COLUMN_ANGLE, item['start_angle'],
-            COLUMN_RUN, item['run_number'],
-            COLUMN_NAME, item['frame_name']
+            COLLECT_COLUMN_SAVED, item['saved'], 
+            COLLECT_COLUMN_ANGLE, item['start_angle'],
+            COLLECT_COLUMN_RUN, item['run_number'],
+            COLLECT_COLUMN_NAME, item['frame_name']
         )
     
     def __register_icons(self):
@@ -125,19 +166,19 @@ class CollectManager(gtk.HBox):
             factory.add(new_stock, icon_set)
         
     def __float_format(self, column, renderer, model, iter, format):
-        value = model.get_value(iter, COLUMN_ANGLE)
-        saved = model.get_value(iter, COLUMN_SAVED)
+        value = model.get_value(iter, COLLECT_COLUMN_ANGLE)
+        saved = model.get_value(iter, COLLECT_COLUMN_SAVED)
         renderer.set_property('text', format % value)
         if saved:
-            renderer.set_property("foreground", '#0000cc')
+            renderer.set_property("foreground", '#cc0000')
         else:
             renderer.set_property("foreground", None)
         return
 
     def __saved_color(self,column, renderer, model, iter):
-        value = model.get_value(iter, COLUMN_SAVED)
+        value = model.get_value(iter, COLLECT_COLUMN_SAVED)
         if value:
-            renderer.set_property("foreground", '#0000cc')
+            renderer.set_property("foreground", '#cc0000')
         else:
             renderer.set_property("foreground", None)
         return
@@ -145,27 +186,36 @@ class CollectManager(gtk.HBox):
                 
     def __add_columns(self):
         model = self.listview.get_model()
+                                        
         # Saved Column
         renderer = gtk.CellRendererToggle()
-        column = gtk.TreeViewColumn('Saved', renderer, active=COLUMN_SAVED)
+        column = gtk.TreeViewColumn('Saved', renderer, active=COLLECT_COLUMN_SAVED)
         column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         column.set_fixed_width(50)
-        self.listview.append_column(column)
-                                
-        # Angle Column
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Angle', renderer, text=COLUMN_ANGLE)
-        column.set_cell_data_func(renderer, self.__float_format, '%5.2f')
         self.listview.append_column(column)
         
         # Name Column
         renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Name', renderer, text=COLUMN_NAME)
+        column = gtk.TreeViewColumn('Name', renderer, text=COLLECT_COLUMN_NAME)
         column.set_cell_data_func(renderer, self.__saved_color)
         self.listview.append_column(column)
+
+        # Angle Column
+        renderer = gtk.CellRendererText()
+        column = gtk.TreeViewColumn('Angle', renderer, text=COLLECT_COLUMN_ANGLE)
+        column.set_cell_data_func(renderer, self.__float_format, '%5.2f')
+        self.listview.append_column(column)
         
-    def apply_run(self, data):
-        self.run_data[ data['number'] ] = data.copy()
+        
+    def apply_run(self, save=True):
+        for run in self.run_manager.runs:
+            data = run.get_parameters()
+            if check_folder(data['directory']):
+                self.run_data[ data['number'] ] = data
+            else:
+                return
+        if save:
+            self.__save_config()
         self.create_runlist()
         
     def add_run(self, data):
@@ -181,10 +231,21 @@ class CollectManager(gtk.HBox):
         self.run_data.clear()
             
     def create_runlist(self):
+        run_num = self.run_manager.get_current_page()
+        run_data = self.run_data.copy()
+        if run_num != 0 and 0 in run_data.keys():
+            del run_data[0]
+            run_keys = run_data.keys()
+        elif 0 in run_data.keys():
+            run_keys = [0,]
+        else:
+            run_keys = run_data.keys()
+            
         self.run_list = []
         index = 0
-        for run in self.run_data.values():
-            offsets = run['inverse_beam'] and [0, 180] or [0]
+        for pos in run_keys:
+            run = run_data[pos]
+            offsets = run['inverse_beam'] and [0, 180] or [0,]
             angle_range = run['end_angle'] - run['start_angle']
             wedge = ( run['wedge'] < angle_range and run['wedge'] or angle_range )
             passes = int ( round( angle_range  /  wedge ) )
@@ -195,7 +256,8 @@ class CollectManager(gtk.HBox):
                         for j in range(wedge_size):
                             angle = run['start_angle'] + (j * run['delta']) + (i * wedge) + offset
                             frame_number =  i * wedge_size + j + int(offset/run['delta']) + 1
-                            file_name = "%s/%s_%d_%s_%04d.img" % (run['directory'], run['prefix'], run['number'], energy_label, frame_number)
+                            file_name = "%s/%s_%d_%s_%04d.img" % (run['directory'], run['prefix'], 
+                                run['number'], energy_label, frame_number)
                             frame_name = "%s_%d_%s_%04d" % (run['prefix'], run['number'], energy_label, frame_number)
                             list_item = {
                                 'index': index,
@@ -222,22 +284,35 @@ class CollectManager(gtk.HBox):
     
     def check_runlist(self):
         existlist = []
+        details = ""
         for frame in self.run_list:
             if os.path.exists(frame['file_name']):
                 existlist.append( frame['index'] )
-        for index in existlist:
-            self.run_list[index]['saved'] = True
-            self.set_row_state(index, saved=True)
+                details += frame['file_name'] + "\n"
+        if len(existlist) > 0:
+            header = 'Frames from this sequence already exist! Do you want to skip or replace them?'
+            sub_header = 'Replacing them will overwrite their contents. Skipped frames will not be re-acquired.'
+            buttons = ( ('gtk-cancel',gtk.RESPONSE_CANCEL), ('Skip', gtk.RESPONSE_YES), ('Replace', gtk.RESPONSE_NO))
+            response = warning(header, sub_header, details, buttons=buttons)
+            if response == gtk.RESPONSE_YES:
+                for index in existlist:
+                    self.run_list[index]['saved'] = True
+                    self.set_row_state(index, saved=True)
+                return True
+            elif response == gtk.RESPONSE_NO:
+                return True
+            else:
+                return False
         return True
             
     def set_row_state(self, pos, saved=True):
         path = (pos,)
         iter = self.listmodel.get_iter(path)
-        self.listmodel.set(iter, COLUMN_SAVED, saved)
+        self.listmodel.set(iter, COLLECT_COLUMN_SAVED, saved)
         self.listview.scroll_to_cell(path,use_align=True,row_align=0.9)
         
     def on_row_activated(self, treeview, path, column):
-        if self.collect_state != COLLECT_PAUSED:
+        if self.collect_state != COLLECT_STATE_PAUSED:
             return True
         model = treeview.get_model()
         iter = model.get_iter_first()
@@ -246,47 +321,47 @@ class CollectManager(gtk.HBox):
         while iter:
             i = model.get_path(iter)[0]
             if i < self.pos:
-                model.set(iter, COLUMN_SAVED, True)
+                model.set(iter, COLLECT_COLUMN_SAVED, True)
                 self.run_list[i]['saved'] = True
             else:
-                model.set(iter, COLUMN_SAVED, False)
+                model.set(iter, COLLECT_COLUMN_SAVED, False)
                 self.run_list[i]['saved'] = False
             iter = model.iter_next(iter)
             
-        if self.collect_state == COLLECT_PAUSED:
+        if self.collect_state == COLLECT_STATE_PAUSED:
             print 'Resetting position to', self.pos + 1
             self.collector.set_position( self.pos )
         return True
     
     def on_row_toggled(self, treeview, path, column):
-        if self.collect_state != COLLECT_PAUSED:
+        if self.collect_state != COLLECT_STATE_PAUSED:
             return True
         model = treeview.get_model()
         iter = model.get_iter_first()
         pos = model.get_iter(path)
         i = model.get_path(pos)[0]             
         if self.run_list[i]['saved'] :
-            model.set(iter, COLUMN_SAVED, False)
+            model.set(iter, COLLECT_COLUMN_SAVED, False)
             self.run_list[i]['saved'] = False
         else:
-            model.set(iter, COLUMN_SAVED, True)
+            model.set(iter, COLLECT_COLUMN_SAVED, True)
             self.run_list[i]['saved'] = True
         return True
 
     def on_pause(self,widget, paused):
         if paused:
             self.collect_btn.set_label('cm-resume')
-            self.collect_state = COLLECT_PAUSED
+            self.collect_state = COLLECT_STATE_PAUSED
         else:
             self.collect_btn.set_label('cm-pause')    
-            self.collect_state = COLLECT_RUNNING
+            self.collect_state = COLLECT_STATE_RUNNING
 
     def on_activate(self, widget):
-        if self.collect_state == COLLECT_IDLE:
+        if self.collect_state == COLLECT_STATE_IDLE:
             self.start_collection()
-        elif self.collect_state == COLLECT_RUNNING:
+        elif self.collect_state == COLLECT_STATE_RUNNING:
             self.collector.pause()  
-        elif self.collect_state == COLLECT_PAUSED:
+        elif self.collect_state == COLLECT_STATE_PAUSED:
             self.collector.resume()
     
 
@@ -294,53 +369,56 @@ class CollectManager(gtk.HBox):
         self.collector.stop()
         
     def on_stop(self, widget=None):
-        self.collect_state = COLLECT_IDLE
+        self.collect_state = COLLECT_STATE_IDLE
         self.collect_btn.set_label('cm-collect')
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
+        self.image_viewer.set_collect_mode(False)
     
     def on_new_image(self, widget, index, filename):
         self.pos = index
         self.set_row_state(index, saved=True)
-        
+        self.image_viewer.show_detector_image(filename)
+      
+
+    def on_progress(self, widget, fraction):
+        elapsed_time = time.time() - self.start_time
+        time_unit = elapsed_time / fraction
+        eta_time = time_unit * (1 - fraction)
+        percent = fraction * 100
+        text = "%4.1f%s  ETA: %s" % (percent,'%',time.strftime('%H:%M:%S',time.gmtime(eta_time)))
+        self.progress_bar.set_fraction(fraction)
+        self.progress_bar.set_text(text)
+                
     def update_values(self,dict):        
         for key in dict.keys():
             self.labels[key].set_text(dict[key])
 
     def start_collection(self):
+        self.start_time = time.time()
         self.create_runlist()
         if self.check_runlist():
-            self.collector = DataCollector(self.run_list)
+            self.collector = DataCollector(self.run_list, skip_collected=True)
             self.collector.connect('done', self.on_stop)
             self.collector.connect('paused',self.on_pause)
             self.collector.connect('new-image', self.on_new_image)
             self.collector.connect('stopped', self.on_stop)
+            self.collector.connect('progress', self.on_progress)
             self.collector.start()
-            self.collect_state = COLLECT_RUNNING
+            self.collect_state = COLLECT_STATE_RUNNING
             self.collect_btn.set_label('cm-pause')
             self.stop_btn.set_sensitive(True)
             self.run_manager.set_sensitive(False)
+            self.image_viewer.set_collect_mode(True)
         return            
-    
+
+    def stop(self):
+        if self.collector is not None:
+            self.collector.stop()
     
 
                                                                                                                                                                                     
 if __name__ == "__main__":
-    run_data = {}
-    run_data['prefix'] = 'insulin'
-    run_data['directory'] = '/home/michel/data/insulin'
-    run_data['distance'] = 250.0
-    run_data['delta'] = 1
-    run_data['time'] = 2
-    run_data['start_angle'] = 0
-    run_data['end_angle']= 180
-    run_data['start_frame']= 1
-    run_data['end_frame']= 180
-    run_data['inverse_beam']= False
-    run_data['wedge']=180
-    run_data['energy'] = [12.6850]
-    run_data['energy_label'] = ['E1',]
-    run_data['number']=1
    
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
@@ -349,7 +427,6 @@ if __name__ == "__main__":
     win.set_title("CollectManager Widget Demo")
 
     example = CollectManager()
-    example.add_run(run_data)
 
     win.add(example)
     win.show_all()

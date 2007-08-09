@@ -2,7 +2,7 @@
 
 import gtk, gobject
 import sys, os
-from Utils import select_folder
+from Dialogs import select_folder
 
 (
   COLUMN_LABEL,
@@ -42,13 +42,10 @@ class ScanControl(gtk.VBox):
         # Scan description Section
         descr_frame = gtk.Frame('<b>Description:</b>')
         self.descriptions = {
-            'MAD': 'Scan sample to determine peak, '
-           +'inflection and remote energies '
-           +'for a MAD data collection. The scan range is '
-           +'200eV around the selected edge.',
-            'Excitation': 'Collect a full spectrum at specific '
-           +'energy to identify elements present in the sample. '
-           +'The excitation energy is 500eV above selected edge.' 
+            'MAD': 'Scan absorption edge to find '
+           +'peak, inflection and remote energies.',
+            'Excitation': 'Collect a full spectrum '
+           +'to identify elements present in the sample.' 
         }
         descr_frame.set_shadow_type(gtk.SHADOW_NONE)
         descr_frame.get_label_widget().set_use_markup(True)
@@ -110,6 +107,10 @@ class ScanControl(gtk.VBox):
         self.stop_btn.set_sensitive(False) # initially disabled
         self.abort_btn.set_sensitive(False)
         self.create_run_btn.set_sensitive(False)
+        self.progress_bar = gtk.ProgressBar()
+        self.progress_bar.set_fraction(0.0)
+        self.progress_bar.set_text('0.0%')
+        
 
         # Results section
         # Energy
@@ -157,6 +158,7 @@ class ScanControl(gtk.VBox):
         bbox.pack_start(self.stop_btn)
         bbox.pack_start(self.abort_btn)
         bbox.pack_start(self.create_run_btn)
+        bbox.pack_end(self.progress_bar)
         
         bbox.set_border_width(6)
         self.pack_end(bbox, expand=False,fill=False)
@@ -169,7 +171,6 @@ class ScanControl(gtk.VBox):
         params['time'] = 1.0
         params['emission'] = 11.2100
         self.set_parameters(params)
-        self.default_folder = '/data/'
         self.show_all()
 
     def __add_energy(self, item=None): 
@@ -193,6 +194,7 @@ class ScanControl(gtk.VBox):
         self.energy_store.clear()
         self.energies = []
         self.names = []
+        self.create_run_btn.set_sensitive(False)
         
     def set_results(self,results):
         keys = results.keys()
@@ -240,18 +242,18 @@ class ScanControl(gtk.VBox):
         run_data['start_angle'] = 0
         run_data['end_angle']= 180
         run_data['start_frame']= 1
-        run_data['end_frame']= 181
+        run_data['end_frame']= 180
         run_data['inverse_beam']= False
         run_data['wedge']=180
         run_data['energy'] = self.energies
         run_data['energy_label'] = self.names
+        run_data['number'] = -1
         return run_data
             
     def on_select_dir(self, widget):
-        folder = select_folder(self.default_folder)
+        folder = select_folder()
         if folder:
             self.entry['directory'].set_text(folder)
-            self.default_folder = folder
         return True
         
 def main():

@@ -3,6 +3,20 @@
 import gtk, gobject, gc
 import sys, time
 
+def read_periodic_table():
+    filename = sys.path[0] + '/data/periodic_table.dat'
+    data_file = open(filename)
+    table_data = {}
+    data = data_file.readlines()
+    data_file.close()
+    keys = data[0].split()
+    for line in data[1:] :
+        vals = line.split()
+        table_data[vals[1]] = {}
+        for (key,val) in zip(keys,vals):
+            table_data[vals[1]][key] = val
+    return table_data
+
 class PeriodicTable(gtk.Alignment):
     __gsignals__ = {
         'edge-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
@@ -21,18 +35,9 @@ class PeriodicTable(gtk.Alignment):
         self.type_colors = ['#ff6666','#ffdead','#ffbfff','#ff99cc','#ffc0c0','#cccccc','#cccc99','#a0ffa0','#ffff99','#c0ffff']
         self.edge_colors = ['#d95757','#d9bd93','#d9a2d9','#d982ad','#d9a3a3','#b3b3b3','#b3b386','#88d988','#d9d982','#a3d9d9']
 
-        self.table = gtk.Table(4,19,True)
-        data_file = open('data/periodic_table.dat')
-        self.table_data = {}
-        data = data_file.readlines()
-        data_file.close()
-        keys = data[0].split()
-        for line in data[1:] :
-            vals = line.split()
-            self.table_data[vals[1]] = {}
-            for (key,val) in zip(keys,vals):
-                self.table_data[vals[1]][key] = val
-            
+        self.table = gtk.Table(4,18,True)
+        self.table_data = read_periodic_table()
+                    
         # set the title
         self.title = gtk.Label('<big><big><b>Select an X-ray Absorption Edge</b></big></big>')
         self.title.set_use_markup(True)
@@ -53,7 +58,7 @@ class PeriodicTable(gtk.Alignment):
         edge_names = ['K','L1','L2','L3']
         # Verify L1 emission lines
         emissions = {
-            'K': 'Ka',
+            'K':  'Ka',
             'L1': 'Lg2',
             'L2': 'Lb2',
             'L3': 'Lb1'

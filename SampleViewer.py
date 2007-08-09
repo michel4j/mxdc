@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import gtk, gobject, gc
 import threading
+import gtk, gobject, gc
 gobject.threads_init()
-import sys, time
+import sys, time, gc
 import Image
 import ImageEnhance
 import ImageOps
@@ -27,7 +27,6 @@ class VideoThread(threading.Thread, gobject.GObject):
         self.vid_source = beamline['cameras']['sample']
 
     def __del__(self):
-        print "VideoThread Destroyed!"
         self.stop()
                 
     def run(self):
@@ -37,12 +36,13 @@ class VideoThread(threading.Thread, gobject.GObject):
             time.sleep(1./self.parent.max_fps)
             if not self.paused:
                 self.count += 1
-                if self.count == 10:
+                if self.count == 100:
+                    gc.collect()
                     self.fps = self.count/(time.time() - self.start_time)
                     self.count = 0
                     self.start_time = time.time()
                 img = self.camera.get_frame()
-                self.contrast_factor = self.parent.contrast/2.5
+                self.contrast_factor = self.parent.contrast/3.
                 img = ImageOps.autocontrast(img,cutoff=self.contrast_factor)
                 img = img.resize((self.width,self.height),Image.ANTIALIAS).convert('RGB')
                 self.parent.video_frame = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
@@ -115,10 +115,11 @@ class SampleViewer(gtk.HBox):
         self.video.connect('button_press_event', self.on_image_click)
                 
         self.gonio_state = 0
-        self.connect("destroy", self.stop)
+        self.connect("destroy", lambda x: self.stop())
         self.video.connect('visibility-notify-event', self.on_visibility_notify)
         self.video.connect('unmap', self.on_unmap)
         self.last_click_time = time.time()
+        self.videothread = None
 
     def __del__(self):
         self.videothread.stop()
@@ -137,7 +138,6 @@ class SampleViewer(gtk.HBox):
         self.draw_slits()
         self.draw_measurement()
         self.video.queue_draw()
-
         return True     
     
     def draw_cross(self):
@@ -212,7 +212,6 @@ class SampleViewer(gtk.HBox):
         return True
 
     def on_no_expose(self, widget, event):
-        print event.state
         return True
         
     def on_delete(self,widget):
@@ -230,8 +229,8 @@ class SampleViewer(gtk.HBox):
         self.pixmap = gtk.gdk.Pixmap(self.video.window, width,height)
         self.gc = self.pixmap.new_gc()
         self.othergc = self.video.window.new_gc()
-        self.gc.foreground = self.video.get_colormap().alloc_color("red")
-        #self.gc.function = gtk.gdk.XOR
+        self.gc.foreground = self.video.get_colormap().alloc_color("green")
+        self.gc.function = gtk.gdk.XOR
         self.gc.set_line_attributes(2,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_NOT_LAST,gtk.gdk.JOIN_MITER)
         self.pangolayout = self.video.create_pango_layout("")
         return True
@@ -251,18 +250,15 @@ class SampleViewer(gtk.HBox):
     def on_incr_omega(self,widget):
         cur_omega = int( self.omega.get_position() / 90) * 90
         self.omega.move_to(cur_omega + 90.0)
-        print cur_omega, cur_omega + 90.0
         return True
 
     def on_decr_omega(self,widget):
         cur_omega = int(self.omega.get_position() / 90) * 90
         self.omega.move_to(cur_omega - 90.0)
-        print cur_omega, cur_omega - 90.0
         return True
 
     def on_double_incr_omega(self,widget):
         cur_omega = int(self.omega.get_position() / 90) * 90
-        print cur_omega, cur_omega + 180.0       
         self.omega.move_to(cur_omega + 180.0)
         return True
 
@@ -315,7 +311,41 @@ class SampleViewer(gtk.HBox):
 
         return True
             
-            
+    def on_fine_up(self,widget):
+        tmp_omega = int(round(self.omega.get_position()))
+        sin_w = numpy.sin(tmp_omega * numpy.pi / 180)
+        cos_w = numpy.cos(tmp_omega * numpy.pi / 180)
+        step_size = self.pixel_size * 10.0
+        if  abs(sin_w) == 1:
+            self.sample_y1.move_by( step_size * sin_w * 0.5 )
+        elif abs(cos_w) == 1:
+            self.sample_y2.move_by( -step_size * cos_w * 0.5 )   
+        return True
+        
+    def on_fine_down(self,widget):
+        tmp_omega = int(round(self.omega.get_position()))
+        sin_w = numpy.sin(tmp_omega * numpy.pi / 180)
+        cos_w = numpy.cos(tmp_omega * numpy.pi / 180)
+        step_size = self.pixel_size * 10.0
+        if  abs(sin_w) == 1:
+            self.sample_y1.move_by( -step_size * sin_w * 0.5 )
+        elif abs(cos_w) == 1:
+            self.sample_y2.move_by( step_size * cos_w * 0.5 )
+        return True
+        
+    def on_fine_left(self,widget):
+        step_size = self.pixel_size * 10.0
+        self.sample_x.move_by( step_size * 0.5 )
+        return True
+        
+    def on_fine_right(self,widget):
+        step_size = self.pixel_size * 10.0
+        self.sample_x.move_by( -step_size * 0.5 )
+        return True
+        
+    def on_home(self,widget):
+        return True
+                
     def toggle_click_centering(self, widget):
         if self.click_centering == True:
             self.click_centering = False
@@ -332,6 +362,10 @@ class SampleViewer(gtk.HBox):
         self.lighting = self.lighting_scale.get_value()
         return True
         
+    def stop(self):
+        if self.videothread is not None:
+            self.videothread.stop()
+            
     def create_widgets(self):
         # side-panel
         vbox = gtk.VBox(False, 6)
@@ -394,6 +428,11 @@ class SampleViewer(gtk.HBox):
         move_sample_align.add(move_sample_bbox)
         move_sample_frame.add(move_sample_align)
         vbox.pack_start(move_sample_frame,expand=False, fill=False)
+        self.up_btn.connect('clicked', self.on_fine_up)
+        self.dn_btn.connect('clicked', self.on_fine_down)
+        self.left_btn.connect('clicked', self.on_fine_left)
+        self.right_btn.connect('clicked', self.on_fine_right)
+        self.home_btn.connect('clicked', self.on_home)
         
         # rotate sample section
         move_gonio_frame = gtk.Frame('<b>Rotate Sample:</b>')    
@@ -440,6 +479,8 @@ class SampleViewer(gtk.HBox):
         align_frame.add(align_align)
         vbox.pack_start(align_frame,expand=False, fill=False)
         self.click_btn.connect('clicked', self.toggle_click_centering)
+        self.loop_btn.set_sensitive(False)
+        self.crystal_btn.set_sensitive(False)
         
         # status area
         self.pos_label = gtk.Label("<tt>%4d,%4d [%6.3f, %6.3f mm]</tt>" % (0,0,0,0))

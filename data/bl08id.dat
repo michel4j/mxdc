@@ -1,7 +1,8 @@
 # Beamline Configuration file for 08ID
 
 [config]
-mode = simulation
+mode = live
+#mode = simulation
 
 [motors] 
 c2_roll		=	SMTR16082I1008:deg
@@ -28,7 +29,6 @@ gslits_vpos	=	SMTR16083I1004:mm
 detector_y1	=	SMTR16083I1017:mm
 detector_y2	=	SMTR16083I1019:mm
 detector_z	=	SMTR16083I1018:mm
-detector_dist	=	SMTR16083I1018:mm
 expbox_x	=	SMTR16083I1005:mm
 expbox_y	=	SMTR16083I1006:mm
 expbox_pitch	=	SMTR16083I1007:mm
@@ -47,3 +47,9 @@ beam_y  =	BL08ID1:video:sample:y
 [cameras]
 sample = CAM1608-001:data
 
+[shutters]
+PSH1 = photonshutter1
+PSH2 = photonshutter2
+SSH1 = safetyshutter1
+SSH2 = safetyshutter2
+ESH  = endstationsutter

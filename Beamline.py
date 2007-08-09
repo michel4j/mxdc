@@ -5,17 +5,19 @@ from Motor import *
 from Detector import *
 from PseudoMotor import *
 from VideoSource import *
+from Shutter import *
 
 from ConfigParser import ConfigParser
 import string
 
-BEAMLINE = 'BL08ID'
+BEAMLINE = 'bl08id'
 beamline = {}
 
 def initialize():
     global beamline
     parser = ConfigParser()
-    parser.read("data/%s.dat" % BEAMLINE)
+    filename =sys.path[0] + "/data/%s.dat" % BEAMLINE
+    parser.read(filename)
 
     mode = parser.get('config','mode')
     if mode == 'simulation':
@@ -26,15 +28,17 @@ def initialize():
         Variable    = Positioner 
         VideoCamera = FakeCamera
         MCA         = FakeMCA
+        Shutter     = FakeShutter
         
     else:
         print "Entering Live Mode"
         Motor       = CLSMotor 
-        OldMotor    = OldCLSMotor 
+        OldMotor    = FakeMotor #OldCLSMotor 
         EnergyMotor = DCMEnergy
         Variable    = EpicsPV 
         VideoCamera = EpicsCamera
         MCA         = EpicsMCA
+        Shutter     = FakeShutter
         
                 
     beamline['motors'] = {}
@@ -92,8 +96,28 @@ def initialize():
             pv = string.strip( parser.get('variables', item) )            
             beamline['variables'][item] = Variable(pv)
             print '...', item
-    # 2theta not yet implemented so using simulator always    
-    beamline['motors']['detector_2th'] = FakeMotor('2th')        
 
+    print 'setting up Shutters'
+    beamline['shutters'] = {}
+    if 'shutters'  in parser.sections():
+        for item in parser.options('shutters'):
+            item = string.strip(item)
+            pv = string.strip( parser.get('shutters', item) )            
+            beamline['shutters'][item] = Shutter(pv)
+            print '...', item
+        
+    #provide some reasonable values for simulation     
+    # 2theta not yet implemented so using simulator always    
+    beamline['motors']['detector_2th'] = FakeMotor('2th')   
+    beamline['motors']['detector_dist'] =   beamline['motors']['detector_z']
+    if mode == 'simulation':
+        beamline['variables']['beam_x'].move_to(320)
+        beamline['variables']['beam_y'].move_to(240)
+        beamline['motors']['zoom'].move_to(3)
+        beamline['motors']['energy'].move_to(12.65)
+        beamline['motors']['detector_dist'].set_position(200)
+        beamline['motors']['gslits_hgap'].move_to(0.3)
+        beamline['motors']['gslits_vgap'].set_position(0.3)
+        
 initialize()
 print "Beamline Loaded"

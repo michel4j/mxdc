@@ -105,6 +105,15 @@ class Predictor( gtk.Frame ):
         self.two_theta = 0
         self.wavelength = 1.000
         self.last_updated = time.time()
+        self.visible = True
+        self.canvas.set_events(gtk.gdk.EXPOSURE_MASK |
+                gtk.gdk.LEAVE_NOTIFY_MASK |
+                gtk.gdk.BUTTON_PRESS_MASK |
+                gtk.gdk.POINTER_MOTION_MASK |
+                gtk.gdk.POINTER_MOTION_HINT_MASK|
+                gtk.gdk.VISIBILITY_NOTIFY_MASK)  
+        self.canvas.connect('visibility-notify-event', self.on_visibility_notify)
+        self.canvas.connect('unmap', self.on_unmap)
 
    	 
     def on_update(self, widget):
@@ -157,23 +166,37 @@ class Predictor( gtk.Frame ):
         self.set_energy(val)
         self.update()
         return True
-
         
+    def on_visibility_notify(self, widget, event):
+        if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
+            self.visible = False
+        else:
+            self.visible = True
+        return True
+
+    def on_unmap(self, widget):
+        self.visible = False
+        return True
+                
     def update(self, force=False):
-        if (time.time() - self.last_updated) < 0.5 and force==False:
-            return True
-        if (self.wavelength * self.distance) == 0.0:
-            return True
-        self.last_updated = time.time()
-        calculator = CalcThread(self)
-        calculator.set_all( self.wavelength, 
+        elapsed_time = time.time() - self.last_updated
+        if (elapsed_time < 0.5):
+            pass
+        elif (not self.visible):
+            pass
+        elif (self.wavelength*self.distance < 1.0):
+            pass
+        else:
+            self.last_updated = time.time()
+            calculator = CalcThread(self)
+            calculator.set_all( self.wavelength, 
                             self.distance, self.two_theta,
                             self.beam_x, 
                             self.beam_y)
-        calculator.pixel_size = self.pixel_size
-        calculator.detector_size = self.detector_size
-        calculator.connect('updated', self.on_update)
-        calculator.start()
+            calculator.pixel_size = self.pixel_size
+            calculator.detector_size = self.detector_size
+            calculator.connect('updated', self.on_update)
+            calculator.start()
         return True
     
 # Register objects with signals

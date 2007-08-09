@@ -5,22 +5,16 @@ import gtk, gobject, numpy
 from pylab import load
 import EpicsCA
 import thread
-from FakeExcite import *
+from LogServer import LogServer
+from EmissionTools import gen_spectrum, find_peaks
 
 class Detector(gobject.GObject):
-    __gsignals__ = {}
-    __gsignals__['log'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     def __init__(self, name=None):
         gobject.GObject.__init__(self)
         self.value = 100
         self.index = 0
         self.name = name
     
-    def _logtext(self,s):
-        text = time.strftime('%Y/%m/%d %H:%M:%S ') + s
-        print text
-        gobject.idle_add(self.emit, 'log', text)
-        
     def count(self, t=1.0):
         self.value += 1
         time.sleep(t)
@@ -35,13 +29,12 @@ class Detector(gobject.GObject):
 
     def get_name(self):
         return self.name
-
-gobject.type_register(Detector)
        
 class FakeDetector(Detector):
     def __init__(self, name=None):
         Detector.__init__(self, name)
-        self.data = load("data/raw.dat",'#')
+        filename = sys.path[0] + "/data/raw.dat"
+        self.data = load(filename,'#')
         self.ypoints = self.data[:,1]
         self.index = 0
 
@@ -64,7 +57,8 @@ class FakeDetector(Detector):
 class FakeMCA(Detector):
     def __init__(self, name=None, channels=4096):
         Detector.__init__(self, name)
-        self.data = load("data/raw.dat",'#')
+        filename = sys.path[0] + "/data/raw.dat"
+        self.data = load(filename,'#')
         self.ypoints = self.data[:,1]
         self.index = 0
         self.channels = channels
@@ -72,6 +66,12 @@ class FakeMCA(Detector):
         self.offset = -0.45347
         self.slope = 0.00498
         
+    def _roi_to_energy(self, x):
+        return ( x * self.slope + self.offset)
+    
+    def _energy_to_roi(self, y):
+        return   int(round((y - self.offset) / self.slope))
+
     def count(self, t=1.0):
         self.value = self.ypoints[self.index]
         self.index = self.index % len(self.ypoints) + 1
@@ -85,19 +85,17 @@ class FakeMCA(Detector):
             self.ROI = roi
 
     def set_roi_energy(self, energy):
-        midp = int(round((energy - self.offset) / self.slope))
+        midp = self._energy_to_roi(energy)
         self.ROI = (midp-15, midp+15)
         
     def get_spectrum(self):
-        if not self.ROI:
-            self.values = self.data
-        else:
-            self.values = self.data[self.ROI[0]:self.ROI[1]]
-        return numpy.arange(self.ROI[0],self.ROI[1],1), self.values
+        x = self._roi_to_energy( numpy.arange(0,4096,1) )
+        return (x, self.data)
+    
 
     def _collect(self, t=1.0):
     	time.sleep(t)
-        self.data = self.gen_spectrum()
+        self.data = gen_spectrum()
 
     def acquire(self, t=1.0):
         self._collect(t)
@@ -120,20 +118,22 @@ class EpicsMCA(Detector):
             raise self.MCAException, "name must be specified"
         name_parts = name.split(':')
         self.spectrum = EpicsCA.PV(name, use_monitor=False)
-        self.count_time = EpicsCA.PV("%s:mca1.PRTM" % name_parts[0], use_monitor = False)
+        self.count_time = EpicsCA.PV("%s:mca1.PRTM" % name_parts[0], use_monitor=False)
         self.time_left = EpicsCA.PV("%s:timeRem" % name_parts[0])
-        self.READ = EpicsCA.PV("%s:mca1.READ" % name_parts[0], use_monitor = False)
+        self.READ = EpicsCA.PV("%s:mca1.READ" % name_parts[0], use_monitor=False)
         self.read_status = self.READ
-        self.START = EpicsCA.PV("%s:mca1EraseStart" % name_parts[0], use_monitor = False)
-        self.dead_time = EpicsCA.PV("%s.IDTIM" % name, use_monitor = False)
+        self.START = EpicsCA.PV("%s:mca1EraseStart" % name_parts[0], use_monitor=False)
+        self.dead_time = EpicsCA.PV("%s.IDTIM" % name, use_monitor=False)
         self.channels = channels
         self.ROI = (0, self.channels)
         self.offset = -0.45347
         self.slope = 0.00498
+            
+    def _roi_to_energy(self, x):
+        return ( x * self.slope + self.offset)
     
-    def _debug(self):
-        print self.read_status.value
-        return True
+    def _energy_to_roi(self, y):
+        return   int(round((y - self.offset) / self.slope))
         
     def set_roi(self, roi=None):
         if roi is None:
@@ -142,7 +142,7 @@ class EpicsMCA(Detector):
             self.ROI = roi
             
     def set_roi_energy(self, energy):
-        midp = int(round((energy - self.offset) / self.slope))
+        midp = self._energy_to_roi(energy)
         self.ROI = (midp-15, midp+15)
                
     def copy(self):
@@ -151,16 +151,16 @@ class EpicsMCA(Detector):
         return tmp
     
     def _collect(self, t=1.0):
-        self._logtext( "%s aquiring for %0.1f secs" % (self.name, t))
+        LogServer.log( "%s aquiring for %0.1f secs" % (self.name, t))
         self.count_time.value = t
         self.START.value = 1
-        self._logtext("%s waiting for start" % (self.name) )
+        LogServer.log("%s waiting for start" % (self.name) )
         self._wait_count(start=True, stop=True)
         self.READ.value = 1
-        self._logtext("%s waiting for read" % (self.name))
+        LogServer.log("%s waiting for read" % (self.name))
         self._wait_read(start=True, stop=True)
         self.data = self.spectrum.value
-        self._logtext("%s finished aquiring" % (self.name))
+        LogServer.log("%s finished aquiring" % (self.name))
     
     def count(self, t=1.0):
         self._collect(t)
@@ -178,11 +178,8 @@ class EpicsMCA(Detector):
         return sum(self.values)
     
     def get_spectrum(self):
-        if not self.ROI:
-            self.values = self.data
-        else:
-            self.values = self.data[self.ROI[0]:self.ROI[1]]
-        return numpy.arange(self.ROI[0],self.ROI[1],1), self.values
+        x = self._roi_to_energy( numpy.arange(0,4096,1) )
+        return (x, self.data)
         
     def _wait_count(self, start=False,stop=True,poll=0.01):
         st_time = time.time()

@@ -22,20 +22,22 @@ class RunManager(gtk.Notebook):
     def add_new_run(self, data=None):
         number = len(self.runs)
         newrun = RunWidget(num=number)
-        self.runs.append(newrun)
         if data:
-            data['number'] = number
-            self.runs[number].set_parameters(data)
+            if data['number'] == 0:
+                number =0
+                self.runs[0].set_parameters(data)
+                return
+            else:
+                data['number'] = number
+                newrun.set_parameters(data)
+        self.runs.append(newrun)
         self.run_labels.append( gtk.Label(" %d " % (len(self.runs)-1)) )
         pos = len(self.runs) - 1
         self.insert_page(self.runs[-1], tab_label=self.run_labels[-1], position=pos)
         self.set_current_page( pos )
+        self.runs[-1].apply_btn.connect('clicked', self.on_apply_run )
         if len(self.runs) > 1:
-            self.runs[-1].apply_btn.connect('clicked', self.on_apply_run )
             self.runs[-1].delete_btn.connect('clicked', self.on_delete_run )
-        else:
-            self.runs[-1].apply_btn.connect('clicked', self.on_apply_single_run )
-        self.update_parent()
             
  
     def del_run(self, num):
@@ -49,44 +51,35 @@ class RunManager(gtk.Notebook):
         if num == len(self.runs):
             num = num-1
         self.set_current_page( num )
-        if num == 0:
-            self.update_parent_single()
-        else:
-            self.update_parent()
         
     def on_apply_run(self, widget):
-        pos = self.get_current_page()
-        if pos == 0:
-            self.update_parent_single()
-        else:
-            self.update_parent(pos)
+        num = self.get_current_page()
+        self.update_parent(num)
         return True
 
-    def on_apply_single_run(self, widget):
-        self.update_parent_single()
-        return True        
     
     def on_switch_page(self, notebook, junk, page_num):
         if page_num == len(self.runs):
             self.add_new_run()
             self.emit_stop_by_name('switch-page')
-        elif page_num == 0:
-            self.update_parent_single()
-        else:
-            self.update_parent()
+        #else:
+        #    self.update_parent(page_num)
         return True 
         
     def on_delete_run(self, widget):
         num = self.get_current_page()
         self.del_run(num)
+        self.reset_parent()
     
-    def update_parent_single(self):
+    def reset_parent(self):
         if self.parent:
             self.parent.clear_runs()
-            self.parent.apply_run(self.runs[0].get_parameters())
-        
-    def update_parent(self, pos=0):
+            for run in self.runs:
+                self.parent.apply_run()
+                          
+    def update_parent(self, pos):
         if self.parent:
-            self.parent.clear_runs()
-            for run in self.runs[1:]:
-                self.parent.apply_run(run.get_parameters())
+           self.parent.apply_run()
+                
+                
+                

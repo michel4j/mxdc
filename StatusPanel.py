@@ -2,39 +2,18 @@
 import gtk, gobject
 import sys, os, time
 
+from Beamline import beamline
+from ActiveWidgets import ActiveLabel
 
 class StatusPanel(gtk.VBox):
 	def __init__(self):
 		gtk.VBox.__init__(self,False,0)
-		self.layout_table = gtk.Table(1,5,True)
+		self.layout_table = gtk.Table(1,10,True)
 		self.layout_table.set_col_spacings(4)
 		self.layout_table.set_border_width(1)
 		
-		#    key       txt        pos frame? alignment
-		items = {
-			'status': ('IDLE',    	0, 	1,	0.5),
-			'label1': ('Hutch:',  	1, 	0,	1),
-			'hutch':  ('OPEN',    	2, 	1,	0.5),
-			'label2': ('Energy:', 	3,	0,	1),
-			'energy': ('12.6580', 	4, 	1,	0.5),
-			'label3': ('keV',		5, 	0,	0),
-			'label5': ('I<sub>0</sub>:', 6, 0, 1),
-			'flux':	  ('6.00 e-6',	7,	1,	0.5), 
-			'label4': ('Shutter',	8,	0,  1),
-			'shutter': ('OPEN',		9,	1,	0.5),
-			'clock':  ('14:43:17',	10, 	1,	0.5)	
-		}
-		self.controls = {}
-		for key in items.keys():
-			val = items[key]
-			self.controls[key] = gtk.Label(val[0])
-			self.controls[key].set_alignment(val[3], 0.5)
-			self.controls[key].set_use_markup(True)
-							
-			if val[2] == 1:
-				self.layout_table.attach(self.__frame_control(self.controls[key], gtk.SHADOW_IN), val[1], val[1]+1 , 0, 1)
-			else:
-				self.layout_table.attach(self.controls[key], val[1], val[1]+1 , 0, 1)
+		self.clock = gtk.Label()						
+		self.layout_table.attach(self.__frame_control(self.clock, gtk.SHADOW_ETCHED_IN), 10, 11 , 0, 1)
 		
 		gobject.timeout_add(500,self.update_clock)
 		hseparator = gtk.HSeparator()
@@ -53,12 +32,8 @@ class StatusPanel(gtk.VBox):
 	def update_clock(self):
 		timevals = time.localtime()
 		time_string = "%02d:%02d:%02d" % timevals[3:6]
-		self.controls['clock'].set_text(time_string)
+		self.clock.set_text(time_string)
 		return True
-
-	def update_values(self,dict):		
-		for key in dict.keys():
-			self.controls[key].set_text(dict[key])
 		
 if __name__ == "__main__":
    

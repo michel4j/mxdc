@@ -27,14 +27,17 @@ class PseudoMotor(AbstractMotor):
         return self._calc_position()                
 
     def move_to(self, val, wait=False):
-        print "%s moving to %f" % (self.get_name(), val)
+        if not self.is_valid():
+            LogServer.log ( "%s is not calibrated. Move cancelled!" % (self.get_name()) )
+            return False
+        LogServer.log( "%s moving to %f" % (self.get_name(), val))
         self._calc_targets( val )
         for motor, movable, target in zip( self.motors, self.mask, self.targets):
             if movable == 1:
                 motor.move_to(target)
         if wait:
             self.wait(start=True,stop=True)
-        print "%s stopped at %f" % (self.get_name(), self.get_position())
+        LogServer.log( "%s stopped at %f" % (self.get_name(), self.get_position()))
         
     def move_by(self,val, wait=False):
         val += self.get_position()
@@ -51,6 +54,13 @@ class PseudoMotor(AbstractMotor):
             if motor.is_moving():
                 moving =True
         return moving
+
+    def is_valid(self):
+        invalid = False
+        for motor, movable in zip( self.motors, self.mask):
+            if (not motor.is_valid()) and movable==1:
+                invalid =True
+        return not invalid
         
     def stop(self):
         for motor, movable in zip( self.motors, self.mask):
@@ -134,7 +144,6 @@ class TwoThetaMotor(PseudoMotor):
         ccdz = self.motors[0].get_position()
         cur_theta = radians( self._calc_position() )
         approach = - ((self.B+225/2.0)*sin(cur_theta) + self.C * cos(cur_theta) - ccdz - self.C)
-        print approach
         if approach < self.safety_margin:
             return False
         else:
@@ -170,7 +179,6 @@ class DistanceMotor(PseudoMotor):
     def _check_limits(self, val):
         cur_theta = arctan( (self.targets[1] - self.targets[2])/self.A )
         approach = - ((self.B+225/2.0)*sin(cur_theta) + self.C * cos(cur_theta) - self.targets[0] - self.C)
-        print approach
         if approach < self.safety_margin:
             return False
         else:
