@@ -314,15 +314,16 @@ class CLSMotor(AbstractMotor):
         self.name = name
         self.units = name_parts[1]
         self.DESC = PV("%s:desc" % (name_parts[0]))               
-        self.VAL  = PV("%s:%s" % (name_parts[0],name_parts[1]))        
+        self.VAL  = PV("%s:%s" % (name_parts[0],name_parts[1]), connect=False)        
         self.RBV  = PV("%s:%s:sp" % (name_parts[0],name_parts[1]))
-        self.ERBV = PV("%s:%s:fbk" % (name_parts[0],name_parts[1]))
-        self.RLV  = PV("%s:%s:rel" % (name_parts[0],name_parts[1]))
-        self.MOVN = PV("%s:status" % name_parts[0])
-        self.ACCL = PV("%s:acc:%spss:sp" % (name_parts[0],name_parts[1]))
-        self.VEL  = PV("%s:vel:%sps:sp" % (name_parts[0],name_parts[1]))
+        self.ERBV = PV("%s:%s:fbk" % (name_parts[0],name_parts[1]), connect=False)
+        self.RLV  = PV("%s:%s:rel" % (name_parts[0],name_parts[1]), connect=False)
+        #self.MOVN = PV("%s:status" % name_parts[0])
+        self.MOVN = PV("%s:moving" % name_parts[0])
+        self.ACCL = PV("%s:acc:%spss:sp" % (name_parts[0],name_parts[1]), connect=False)
+        self.VEL  = PV("%s:vel:%sps:sp" % (name_parts[0],name_parts[1]), connect=False)
         self.STOP = PV("%s:stop" % name_parts[0])
-        self.SET  = PV("%s:%s:setPosn" % (name_parts[0],name_parts[1]))
+        self.SET  = PV("%s:%s:setPosn" % (name_parts[0],name_parts[1]), connect=False)
         self.CALIB = PV("%s:calibDone" % (name_parts[0]))   
         gobject.timeout_add(250, self._queue_check)
 
@@ -341,6 +342,8 @@ class CLSMotor(AbstractMotor):
             self.CALIB.put(0)
             
     def move_to(self, val, wait=False):
+        if self.get_position() == val:
+            return
         if not self.is_valid():
             LogServer.log ( "%s is not calibrated. Move cancelled!" % (self.get_name()) )
             gobject.idle_add(self.emit,"valid", False)
@@ -351,6 +354,8 @@ class CLSMotor(AbstractMotor):
             self.wait(start=True,stop=True)
 
     def move_by(self,val, wait=False):
+        if val == 0.0:
+            return
         if not self.is_valid():
             LogServer.log ( "%s is not calibrated. Move cancelled!" % (self.get_name()) )
             gobject.idle_add(self.emit,"valid", False)
@@ -361,7 +366,7 @@ class CLSMotor(AbstractMotor):
             self.wait(start=True,stop=True)
                 
     def is_moving(self):
-        if self.MOVN.get() == 1:
+        if self.MOVN.get() != 0:
             return True
         else:
             return False
@@ -391,9 +396,9 @@ class OldCLSMotor(AbstractMotor):
         self.name = name
         self.units = name_parts[1]
         self.DESC = PV("%s:desc" % (name_parts[0]))                
-        self.VAL  = PV("%s:%s" % (name_parts[0],name_parts[1]))        
+        self.VAL  = PV("%s:%s" % (name_parts[0],name_parts[1]), connect=False)        
         self.RBV  = PV("%s:%s:fbk" % (name_parts[0],name_parts[1]))
-        self.ERBV = PV("%s:encod:fbk" % (name_parts[0]))
+        self.ERBV = PV("%s:encod:fbk" % (name_parts[0]), connect=False)
         self.MOVN = PV("%s:state" % name_parts[0])
         self.STOP = PV("%s:emergStop" % name_parts[0])
         self.CALIB =   PV("%s:isCalib" % (name_parts[0]))     
@@ -412,6 +417,8 @@ class OldCLSMotor(AbstractMotor):
     
                 
     def move_to(self, val, wait=False):
+        if self.get_position() == val:
+            return
         if not self.is_valid():
             LogServer.log ( "%s is not calibrated. Move cancelled!" % (self.get_name()) )
             gobject.idle_add(self.emit,"valid", False)

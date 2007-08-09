@@ -4,15 +4,14 @@ import numpy
 from EPICS import PV
 import struct, thread
 from scipy.misc import toimage, fromimage
-import Image, urllib, cStringIO
+import Image, ImageOps, urllib, cStringIO
 import httplib
 
 class VideoSource:
     def __init__(self):
         self.visible = True        
         self.controller = None
-        pass
-    
+            
     def fetch_frame(self):
         if self.visible:
             self.raw_frame = numpy.zeros([480,640])
@@ -24,6 +23,13 @@ class VideoSource:
     
     def set_visible(self, vis):
         self.visible = vis
+
+    def save(self, filename):
+        try:
+            img = ImageOps.autocontrast(self.frame)
+            img.save(filename)
+        except:
+            print 'Could not save image:', filename
               
 class FakeCamera(VideoSource):
     def __init__(self, name=None):

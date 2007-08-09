@@ -42,7 +42,6 @@ class VideoThread(threading.Thread, gobject.GObject):
                 img = self.camera.get_frame()
                 self.contrast_factor = self.parent.contrast/3.
                 img = ImageOps.autocontrast(img,cutoff=self.contrast_factor)
-                self.raw_image = img
                 img = img.resize((self.width,self.height),Image.ANTIALIAS).convert('RGB')
                 self.parent.video_frame = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
                     False, 8, self.width, self.height, 3 * self.width )

@@ -14,8 +14,27 @@ import string
 BEAMLINE = 'bl08id'
 beamline = {}
 
-def initialize():
+class Progress:
+    def __init__(self, pbar):
+        self.pbar = pbar
+        self.count = 0
+        self.total = 44
+
+    def __call__(self, text=''):
+        self.count +=  1
+        fraction = float(self.count)/float(self.total)
+        if fraction > 1.0:
+            fraction = 1.0
+        if self.pbar:
+            self.pbar.set_fraction( fraction )
+            self.pbar.set_text( 'Setting up: %s' % text )
+        while gtk.events_pending():
+            gtk.main_iteration()
+            
+def init_beamline(pbar=None):
     global beamline
+    
+    note_progress = Progress(pbar)
     parser = ConfigParser()
     if sys.path[0] == '':
         file_path = os.getcwd()
@@ -26,7 +45,7 @@ def initialize():
 
     mode = parser.get('config','mode')
     if mode == 'simulation':
-        print "Entering Simulation Mode"
+        note_progress("Entering Simulation Mode")
         Motor       = FakeMotor 
         OldMotor    = FakeMotor 
         EnergyMotor = DCMEnergy
@@ -37,7 +56,7 @@ def initialize():
         CCD         = CCDDetector
         
     else:
-        print "Entering Live Mode"
+        note_progress( "Entering Live Mode")
         Motor       = CLSMotor 
         OldMotor    = OldCLSMotor 
         EnergyMotor = DCMEnergy
@@ -49,18 +68,18 @@ def initialize():
                 
     beamline['motors'] = {}
     beamline['detectors'] = {}
-    print 'Setting up Motors'
+    note_progress('Motors')
     if 'motors' in parser.sections():
         for item in parser.options('motors'):
             pv = string.strip( parser.get('motors', item) )
             item = string.strip(item)
-            print '...', item
+            note_progress(item)
             beamline['motors'][item] = Motor(pv)
     if 'old_motors' in parser.sections():
         for item in parser.options('old_motors'):
             pv = string.strip( parser.get('old_motors', item) )
             item = string.strip(item)
-            print '...', item
+            note_progress(item)
             beamline['motors'][item] = OldMotor(pv)
     energy_motors = [beamline['motors']['bragg'],
                      beamline['motors']['c2_t1'],
@@ -71,8 +90,8 @@ def initialize():
                      beamline['motors']['detector_y2']]
     #beamline['motors']['detector_2th'] = TwoThetaMotor( twotheta_motors )            
     #beamline['motors']['detector_dist'] = DistanceMotor( twotheta_motors )            
-    print '...', 'energy'
-    print 'setting up Misc'
+    note_progress('energy')
+    note_progress('Misc')
     if 'misc' in parser.sections():
         if 'attenuator' in parser.options('misc'):
             bits = parser.get('misc', 'attenuator').split('|')
@@ -80,54 +99,54 @@ def initialize():
             for bit in bits:
                 bit_positioners.append( Variable(bit) )
             beamline['attenuator'] = Attenuator(bit_positioners, beamline['motors']['energy'])
-            print '... attenuator'
+            note_progress('attenuator')
         if 'mca' in parser.options('misc'):
             pv =  parser.get('misc', 'mca')
             beamline['detectors']['mca'] = MCA(pv)
-            print '... mca'      
+            note_progress('mca')
         if 'gonio' in parser.options('misc'):
             pv =  parser.get('misc', 'gonio')
             beamline['goniometer'] = Gonio(pv)
-            print '... goniometer'      
+            note_progress('goniometer')      
     
-    print 'setting up Cameras'
+    note_progress('Cameras')
     beamline['cameras'] = {}
     if 'cameras' in parser.sections():
         if 'sample' in parser.options('cameras'):
             name = string.strip( parser.get('cameras', 'sample') )            
             beamline['cameras']['sample'] = VideoCamera(name)
-            print '...', 'Sample Camera'
+            note_progress('Sample Camera')
         if 'hutch' in parser.options('cameras'):           
             name = string.strip( parser.get('cameras', 'hutch') )            
             beamline['cameras']['hutch'] = AxisServer(name)
-            print '...', 'Hutch Camera'
+            note_progress('Hutch Camera')
         
-    print 'Setting up Detectors'
+    note_progress('Detectors')
     if 'detectors' in parser.sections():
         for item in parser.options('detectors'):
             pv = string.strip( parser.get('detectors', item) )
             item = string.strip(item)
             beamline['detectors'][item] = EpicsDetector(pv)
-            print '...', item
+            note_progress(item)
 
-    print 'setting up Other Variables'
+    note_progress('Other Variables')
     beamline['variables'] = {}
     if 'variables' in parser.sections():
         for item in parser.options('variables'):
             item = string.strip(item)
             pv = string.strip( parser.get('variables', item) )            
             beamline['variables'][item] = Variable(pv)
-            print '...', item
+            note_progress(item)
 
-    print 'setting up Shutters'
+    note_progress('Shutters')
     beamline['shutters'] = {}
     if 'shutters'  in parser.sections():
         for item in parser.options('shutters'):
             item = string.strip(item)
             pv = string.strip( parser.get('shutters', item) )            
             beamline['shutters'][item] = EpicsShutter(pv)
-            print '...', item
-    print 'setting up CCD detectors'
+            note_progress(item)
+    note_progress('CCD detectors')
     if 'ccds'  in parser.sections():
         for item in parser.options('ccds'):
             item = string.strip(item)
@@ -149,5 +168,4 @@ def initialize():
         beamline['motors']['detector_dist'].set_position(200)
         beamline['motors']['gslits_hgap'].move_to(0.3)
         beamline['motors']['gslits_vgap'].set_position(0.3)
-initialize()
-print "Beamline Loaded"
+    note_progress('Beamline configured, launching MXDC')

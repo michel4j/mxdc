@@ -24,6 +24,8 @@ class PseudoMotor(AbstractMotor):
         return self._calc_position()                
 
     def move_to(self, val, wait=False):
+        if self.get_position() == val:
+            return
         if not self.is_valid():
             LogServer.log ( "%s is not calibrated. Move cancelled!" % (self.get_name()) )
             gobject.idle_add(self.emit,"valid", False)

@@ -8,7 +8,7 @@ from LogView import LogView
 from ActiveWidgets import *
 from Beamline import beamline
 from Scripting import Script
-from Scripts import *
+from Scripts import prepare_for_mounting, restore_beamstop
 
 
 (

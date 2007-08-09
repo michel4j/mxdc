@@ -8,6 +8,8 @@ from Dialogs import save_selector
 from Beamline import beamline
 from LogServer import LogServer
 from VideoThread import VideoThread
+from Scripting import Script
+import Scripts
 
         
 class SampleViewer(gtk.HBox):
@@ -156,11 +158,7 @@ class SampleViewer(gtk.HBox):
         return True
     
     def save_image(self, filename):
-        ftype = filename.split('.')[-1]
-        if ftype == 'jpg': 
-            ftype = 'jpeg'
-        #self.video_frame.save(filename, ftype)
-        self.videothread.raw_image.save(filename)
+        self.camera.save(filename)
         
     # callbacks
     def on_realized(self,widget):
@@ -196,6 +194,26 @@ class SampleViewer(gtk.HBox):
         else:
             LogServer.log("Could not save %s." % img_filename)
     
+    def on_center_loop(self,widget):
+        script = Script(Scripts.center_sample)
+        self.side_panel.set_sensitive(False)
+        script.connect('done', self.done_centering)
+        script.connect('error', self.done_centering)
+        script.start()
+        return True
+              
+    def on_center_crystal(self,widget):
+        script = Script(Scripts.center_sample, crystal=True)
+        self.side_panel.set_sensitive(False)
+        script.connect('done', self.done_centering)
+        script.connect('error', self.done_centering)
+        script.start()
+        return True
+
+    def done_centering(self,obj):
+        self.side_panel.set_sensitive(True)
+        return True
+            
     def on_unmap(self, widget):
         self.videothread.pause()
         return True
@@ -283,22 +301,25 @@ class SampleViewer(gtk.HBox):
             if self.gonio_state == 1 or self.click_centering == False:
                 return True
             self.last_click_time = time.time()
-            tmp_omega = int(round(self.omega.get_position()))
-            sin_w = numpy.sin(tmp_omega * numpy.pi / 180)
-            cos_w = numpy.cos(tmp_omega * numpy.pi / 180)
-            im_x, im_y, xmm, ymm = self.position(event.x,event.y)
-            self.sample_x.move_by( -xmm )
-            if   abs(sin_w) == 1:
-                self.sample_y1.move_by( -ymm * sin_w  )
-            elif abs(cos_w) == 1:
-                self.sample_y2.move_by( ymm * cos_w  )
+            self.center_pixel(event.x, event.y)
         elif event.button == 3:
             self.measuring = True
             self.measure_x1, self.measure_y1 = event.x,event.y
             self.measure_x2, self.measure_y2 = event.x,event.y
 
         return True
-            
+    
+    def center_pixel(self, x, y):
+        tmp_omega = int(round(self.omega.get_position()))
+        sin_w = numpy.sin(tmp_omega * numpy.pi / 180)
+        cos_w = numpy.cos(tmp_omega * numpy.pi / 180)
+        im_x, im_y, xmm, ymm = self.position(x,y)
+        self.sample_x.move_by( -xmm )
+        #if   abs(sin_w) == 1:
+        self.sample_y1.move_by( -ymm * sin_w  )
+        #elif abs(cos_w) == 1:
+        self.sample_y2.move_by( ymm * cos_w  )
+                
     def on_fine_up(self,widget):
         tmp_omega = int(round(self.omega.get_position()))
         sin_w = numpy.sin(tmp_omega * numpy.pi / 180)
@@ -357,7 +378,7 @@ class SampleViewer(gtk.HBox):
             
     def create_widgets(self):
         # side-panel
-        vbox = gtk.VBox(False, 6)
+        self.side_panel = gtk.VBox(False, 6)
         self.set_border_width(6)
         
         # zoom section
@@ -382,8 +403,8 @@ class SampleViewer(gtk.HBox):
         zoombbox.attach(self.zoom_in_btn, 2,3,0,1)
         zoomalign.add(zoombbox)
         zoomframe.add(zoomalign)
-        vbox.pack_start(zoomframe,expand=False, fill=False)
-        self.pack_start(vbox, expand=False, fill=False)
+        self.side_panel.pack_start(zoomframe,expand=False, fill=False)
+        self.pack_start(self.side_panel, expand=False, fill=False)
         self.zoom_out_btn.connect('clicked', self.on_zoom_out)
         self.zoom_in_btn.connect('clicked', self.on_zoom_in)
         self.zoom_100_btn.connect('clicked', self.on_unzoom)
@@ -416,7 +437,7 @@ class SampleViewer(gtk.HBox):
         move_sample_bbox.attach(self.home_btn, 1,2,1,2)
         move_sample_align.add(move_sample_bbox)
         move_sample_frame.add(move_sample_align)
-        vbox.pack_start(move_sample_frame,expand=False, fill=False)
+        self.side_panel.pack_start(move_sample_frame,expand=False, fill=False)
         self.up_btn.connect('clicked', self.on_fine_up)
         self.dn_btn.connect('clicked', self.on_fine_down)
         self.left_btn.connect('clicked', self.on_fine_left)
@@ -442,7 +463,7 @@ class SampleViewer(gtk.HBox):
         move_gonio_bbox.attach(self.incr_180_btn, 2,3,0,1)
         move_gonio_align.add(move_gonio_bbox)
         move_gonio_frame.add(move_gonio_align)
-        vbox.pack_start(move_gonio_frame,expand=False, fill=False)
+        self.side_panel.pack_start(move_gonio_frame,expand=False, fill=False)
         self.decr_90_btn.connect('clicked',self.on_decr_omega)
         self.incr_90_btn.connect('clicked',self.on_incr_omega)
         self.incr_180_btn.connect('clicked',self.on_double_incr_omega)
@@ -466,10 +487,12 @@ class SampleViewer(gtk.HBox):
         align_bbox.attach(self.click_btn, 2,3,0,1)
         align_align.add(align_bbox)
         align_frame.add(align_align)
-        vbox.pack_start(align_frame,expand=False, fill=False)
+        self.side_panel.pack_start(align_frame,expand=False, fill=False)
         self.click_btn.connect('clicked', self.toggle_click_centering)
-        self.loop_btn.set_sensitive(False)
-        self.crystal_btn.set_sensitive(False)
+        self.loop_btn.connect('clicked', self.on_center_loop)
+        self.crystal_btn.connect('clicked', self.on_center_crystal)
+        #self.loop_btn.set_sensitive(False)
+        #self.crystal_btn.set_sensitive(False)
         
         # status area
         self.pos_label = gtk.Label("<tt>%4d,%4d [%6.3f, %6.3f mm]</tt>" % (0,0,0,0))

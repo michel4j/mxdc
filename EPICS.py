@@ -1,5 +1,5 @@
 import sys, os, gobject
-import numpy, thread
+import numpy, thread, time
 from ctypes import *
 
 # Define EPICS constants
@@ -113,7 +113,7 @@ class PV:
     
     def __connect(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
-        libca.ca_pend_io(2.0)
+        libca.ca_pend_io(2)
         self.count = libca.ca_element_count(self.chid)
         self.element_type = libca.ca_field_type(self.chid)
         self.connected = libca.ca_state(self.chid)
@@ -199,7 +199,7 @@ if (not libca_file) or (not os.access(libca_file, os.EX_OK)):
 try:
     libca = cdll.LoadLibrary(libca_file)
 except:   
-    print """EPICS run-time libraries could not be loaded!"""
+    print "EPICS run-time libraries (%s) could not be loaded!" % libca_file
     sys.exit()
 
 # define argument and return types    
