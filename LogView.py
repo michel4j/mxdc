@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+
+import gtk, gobject, pango
+import sys, os, time
+
+class LogView(gtk.Expander):
+	def __init__(self, label=None, size=500):
+	
+		gtk.Expander.__init__(self, label=label)
+		self.buffer_size = size
+	
+		self.text_buffer = gtk.TextBuffer()
+		self.view = gtk.TextView(self.text_buffer)
+		self.view.set_editable(False)
+		sw = gtk.ScrolledWindow()
+		sw.set_policy(gtk.POLICY_NEVER,gtk.POLICY_AUTOMATIC)
+		sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+		sw.add(self.view)
+		pango_font = pango.FontDescription('Monospace 9')
+		self.view.modify_font(pango_font)
+		self.add(sw)
+		self.show_all()
+	
+	def log(self, text, show_time=True):
+		linecount = self.text_buffer.get_line_count()
+		if linecount > self.buffer_size:
+			start_iter = self.text_buffer.get_start_iter()
+			end_iter = self.text_buffer.get_start_iter()
+			end_iter.forward_lines(10)
+			self.text_buffer.delete(start_iter, end_iter)
+		iter = self.text_buffer.get_end_iter()
+		if show_time:
+			timestr =  "%02d:%02d:%02d" % time.localtime()[3:6]
+			self.text_buffer.insert(iter, "%8s  %s\n" % ( timestr, text ) )
+		else:
+			self.text_buffer.insert(iter, "%s\n" % ( text ) )
+			
+		self.view.scroll_to_iter(iter, 0.0, False)
+		
+		
