@@ -3,9 +3,9 @@ import gtk, gobject
 import sys, os
 from Predictor import Predictor
 from SampleViewer import SampleViewer
+from HutchViewer import HutchViewer
 from LogView import LogView
 from ActiveWidgets import *
-#from VideoWidget import *
 from Beamline import beamline
 from Scripting import Script
 from Scripts import *
@@ -37,10 +37,11 @@ class HutchManager(gtk.VBox):
         self.show_all()
 
         videobook = gtk.Notebook()
-        self.sample_viewer = SampleViewer(size=0.7)
+        video_size = 0.7
+        self.sample_viewer = SampleViewer(video_size)
+        self.hutch_viewer = HutchViewer(video_size)
         videobook.insert_page( self.sample_viewer, tab_label=gtk.Label('Sample Camera') )
-        #self.hutch_viewer = VideoWidget()
-        #videobook.insert_page( self.hutch_viewer, tab_label=gtk.Label('Hutch Camera') )
+        videobook.insert_page( self.hutch_viewer, tab_label=gtk.Label('Hutch Camera') )
         
         self.entry = {
             'energy':       ActiveEntry('Energy', positioner=beamline['motors']['energy'], format="%0.4f"),
@@ -81,8 +82,8 @@ class HutchManager(gtk.VBox):
         
         control_box = gtk.VButtonBox()
         control_box.set_border_width(6)
-        self.front_end_btn = ShutterButton(beamline['shutters']['psh1'], 'Photon Shutter')
-        self.shutter_btn = ShutterButton(beamline['shutters']['xbox_shutter'], 'Exposure Shutter')
+        self.front_end_btn = ShutterButton(beamline['shutters']['psh1'], 'Front End Shutter')
+        self.shutter_btn = ShutterButton(beamline['shutters']['xbox_shutter'], 'Exp.Box Shutter')
         self.optimize_btn = gtk.Button('Optimize Beam')
         self.mount_btn = gtk.Button('Prepare for Mounting')
         self.mount_btn.connect('clicked',self.prepare_mounting)
@@ -161,7 +162,11 @@ class HutchManager(gtk.VBox):
         script = Script(restore_beamstop)
         script.start()
         script.connect('done', lambda x: self.device_box.set_sensitive(True))
-        
+
+    def stop(self):
+        self.sample_viewer.stop()
+        self.hutch_viewer.stop()
+                
     def __add_script(self, item): 
         iter = self.script_store.append()                
         self.script_store.set(iter, 
@@ -184,7 +189,7 @@ def main():
         gtk.main()
     finally: 
         print "Quiting..."
-        hutch.sample_viewer.videothread.stop()
+        hutch.stop()
         
 
 

@@ -30,6 +30,11 @@ class RunManager(gtk.Notebook):
             else:
                 data['number'] = number
                 newrun.set_parameters(data)
+        else:
+            if number > 0:
+                data = self.runs[number - 1].get_parameters()
+                data['number'] = number
+                newrun.set_parameters(data)
         self.runs.append(newrun)
         self.run_labels.append( gtk.Label(" %d " % (len(self.runs)-1)) )
         pos = len(self.runs) - 1

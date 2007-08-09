@@ -4,10 +4,13 @@ import numpy
 from EPICS import PV
 import struct, thread
 from scipy.misc import toimage, fromimage
+import Image, urllib, cStringIO
+import httplib
 
 class VideoSource:
     def __init__(self):
         self.visible = True        
+        self.controller = None
         pass
     
     def fetch_frame(self):
@@ -43,7 +46,7 @@ class EpicsCamera(VideoSource):
     def __init__(self,name):
         VideoSource.__init__(self)
         self.pvname = name
-        self.cam = PV(self.pvname, use_monitor=False)
+        self.cam = PV(self.pvname, connect=True)
         self.fetch_frame()
         self.visible = False        
     
@@ -51,4 +54,49 @@ class EpicsCamera(VideoSource):
         if self.visible:
             self.raw_frame = self.cam.get()
             self.frame = toimage(numpy.fromstring(self.raw_frame, 'B').reshape(480,640))                
+        
+class AxisController:
+    def __init__(self,hostname):
+        self.server = httplib.HTTPConnection(hostname)
+        self.rzoom = 0
+        
+    def zoom(self,value):
+        self.server.connect()
+        command = "/axis-cgi/com/ptz.cgi?rzoom=%s" % value
+        result = self.server.request("GET", command)
+        self.rzoom -= value
+        self.server.close()
+        return
+
+    def center(self, x, y):
+        self.server.connect()
+        command = "/axis-cgi/com/ptz.cgi?center=%d,%d" % (x, y)
+        result = self.server.request("GET", command)
+        self.server.close()
+        return
+    
+    def goto(self, position):
+        self.server.connect()
+        position = urllib.quote_plus(position)
+        command = "/axis-cgi/com/ptz.cgi?gotoserverpresetname=%s" % position
+        result = self.server.request("GET", command)
+        self.rzoom = 0
+        self.server.close()
+        return
+
+class AxisServer(VideoSource):
+    def __init__(self,hostname):
+        VideoSource.__init__(self)
+        self.url = 'http://%s/jpg/image.jpg' % hostname
+        self.controller = AxisController(hostname)
+        self.fetch_frame()
+        self.visible = False        
+    
+    def fetch_frame(self):
+        if self.visible:
+            img_file = urllib.urlopen(self.url)
+            img_str = cStringIO.StringIO(img_file.read())
+            self.frame = Image.open(img_str)
+
+
         

@@ -86,7 +86,8 @@ class CollectManager(gtk.HBox):
         items = {
             'omega':      ('Angle:', 0, 0, 'deg'),
             'detector_2th':   ('Two Theta:',0, 1, 'deg'),
-            'detector_dist':    ('Distance:',0, 2, 'mm')
+            'detector_dist':    ('Distance:',0, 2, 'mm'),
+            'energy':    ('Energy:',0, 3, 'keV')
         }
         
         for (key,val) in zip(items.keys(),items.values()):
@@ -94,7 +95,7 @@ class CollectManager(gtk.HBox):
             label.set_alignment(1,0.5)
             pos_table.attach( label, val[1], val[1]+1, val[2], val[2]+1)
             pos_table.attach(gtk.Label(val[3]), 2, 3, val[2], val[2]+1)
-            pos_label = ActiveLabel( beamline['motors'][key], format="%8.3f" )
+            pos_label = ActiveLabel( beamline['motors'][key], format="%8.4f" )
             pos_label.set_alignment(1,0.5)
             pos_table.attach(pos_label,1, 2, val[2], val[2]+1)
         pos_table.set_border_width(3)

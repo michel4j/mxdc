@@ -230,17 +230,17 @@ class ShutterButton(gtk.Button):
         
     def on_state_change(self, widget, state):
         if state:
-            self.label.set_text("Close %s" % self.label_text)
             self._set_on()
         else:
-            self.label.set_text("Open %s" % self.label_text)
             self._set_off()
         return True
             
     def _set_on(self):
+        self.label.set_text("Close %s" % self.label_text)
         self.image.set_from_stock('gtk-yes', gtk.ICON_SIZE_SMALL_TOOLBAR)
     
     def _set_off(self):
+        self.label.set_text("Open %s" % self.label_text)
         self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_SMALL_TOOLBAR)
     
     

@@ -25,7 +25,7 @@ def main():
     gtk.window_set_auto_startup_notification(True)    
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
-    win.set_title("MX Data Collector Demo")
+    win.set_title("MX Data Collector")
     
     config_dir = os.environ['HOME'] + '/.mxdc'
     if not os.access( config_dir , os.R_OK):
@@ -60,7 +60,7 @@ def main():
         gtk.main()
     finally:
         scan_manager.stop()
-        hutch_manager.sample_viewer.stop()
+        hutch_manager.stop()
         collect_manager.stop()
         sys.exit()
         

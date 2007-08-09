@@ -149,6 +149,7 @@ class RunWidget(gtk.VBox):
         renderer.set_data('column',COLUMN_ENERGY)
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
         column2 = gtk.TreeViewColumn('Energy (keV)', renderer, text=COLUMN_ENERGY, editable=COLUMN_EDITABLE)
+        column2.set_cell_data_func(renderer, self.__float_format, ('%8.4f', COLUMN_ENERGY))
         column2.set_fixed_width(20)
         
         self.energy_list.append_column(column1)
@@ -197,6 +198,12 @@ class RunWidget(gtk.VBox):
             COLUMN_ENERGY, item[COLUMN_ENERGY],
             COLUMN_EDITABLE, item[COLUMN_EDITABLE]
         )
+        
+    def __float_format(self, cell, renderer, model, iter, data):
+        format, column = data
+        value = model.get_value(iter, column)
+        renderer.set_property('text', format % value)
+        return
         
     def on_energy_edited(self, cell, path_string, new_text, model):
         iter = model.get_iter_from_string(path_string)
@@ -253,6 +260,10 @@ class RunWidget(gtk.VBox):
         self.energy_store.clear()
         self.energy = []
         self.energy_label = []
+        # set energy to current value for run 0
+        if self.number ==0:
+            dict['energy'] = [ beamline['motors']['energy'].get_position() ]
+            dict['energy_label'] = [ 'E0' ]
         for i in range(len(dict['energy'])):
             self.__add_energy([dict['energy_label'][i], dict['energy'][i], True] )
         self.__reset_e_btn_states()
@@ -317,7 +328,7 @@ class RunWidget(gtk.VBox):
             self.energy_btn_box.hide()
             self.inverse_beam.set_sensitive(False)
             self.energy_list.set_sensitive(False)
-            #self.sw.hide()    
+            self.sw.hide()    
             self.delete_btn.set_sensitive(False)
             if self.predictor is None:    
                 #add Predictor

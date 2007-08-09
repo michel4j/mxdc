@@ -95,15 +95,15 @@ class Closure:
         return True
 
 class PV:
-    def __init__(self, name, use_monitor=False):
+    def __init__(self, name, connect=True):
         self.chid = c_ulong()
         self.name = name
         self.count = None
         self.element_type = None
         self.callbacks = {}
         self.connected = NEVER_CONNECTED
-        self.__connect()
-        self.__allocate_data_mem()
+        if connect:
+            self.__connect()
         
     def __del__(self):
         if libca:
@@ -117,6 +117,7 @@ class PV:
         self.count = libca.ca_element_count(self.chid)
         self.element_type = libca.ca_field_type(self.chid)
         self.connected = libca.ca_state(self.chid)
+        self.__allocate_data_mem()
     
     def __allocate_data_mem(self, value=None):
         if self.count > 1:
@@ -133,6 +134,8 @@ class PV:
             self.data = self.data_type()
                
     def connect_monitor(self, callback):
+        if self.connected != CONNECTED:
+            self.__connect()
         event_id = c_ulong()
         cb_closure = Closure(callback)
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
@@ -179,14 +182,24 @@ def thread_init():
     if thread_context == 0:
         libca.ca_attach_context(libca.context)
         
-libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
-if not os.access(libca_file, os.R_OK):
-    libca_file =   "/opt/epics/R3.14.6/base/lib/linux-x86/libca.so"
-if os.access(libca_file, os.R_OK):
+try:
+    libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
+except:
+    libca_file = None
+if (not libca_file) or (not os.access(libca_file, os.EX_OK)):
+    arch = os.uname()[-1]
+    libca_loc = {
+        'x86_64': '/home/cmcf/michel/EPICS/base-3.14.8.2/lib/linux-x86/libca.so',
+        'i386': '/opt/epics/R3.14.6/base/lib/linux-x86/libca.so',
+        'i686': '/opt/epics/R3.14.6/base/lib/linux-x86/libca.so',
+    }
+    libca_file =   libca_loc[arch]
+    
+# Load CA library
+try:
     libca = cdll.LoadLibrary(libca_file)
-else:
-    print """EPICS run-time libraries could not be loaded! 
-          Please set EPICS_BASE and EPICS_HOST_ARCH environment variables"""
+except:   
+    print """EPICS run-time libraries could not be loaded!"""
     sys.exit()
 
 # define argument and return types    

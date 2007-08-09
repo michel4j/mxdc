@@ -37,6 +37,9 @@ class DataCollector(threading.Thread, gobject.GObject):
         CA.thread_init()
         self.detector = beamline['detectors']['ccd']
         self.gonio = beamline['goniometer']
+        self.shutter = beamline['shutters']['xbox_shutter']
+        
+        self.shutter.close()
         self.detector.acquire_bg()
         self.pos = 0
         header = {}

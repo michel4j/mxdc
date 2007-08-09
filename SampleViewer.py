@@ -1,73 +1,17 @@
 #!/usr/bin/env python
 
-import threading, gc
 import gtk, gobject
-gobject.threads_init()
 import sys, time, os
-import Image
-import ImageEnhance
-import ImageOps
 import numpy
 import EPICS as CA
 from Dialogs import save_selector
 from Beamline import beamline
 from LogServer import LogServer
-
-class VideoThread(threading.Thread, gobject.GObject):
-    __gsignals__ =  { 
-                    "image-updated": (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
-                    }
-    
-    def __init__(self, parent, *args):
-        threading.Thread.__init__(self)
-        gobject.GObject.__init__(self)
-        self.parent = parent
-        self.width, self.height = self.parent.get_size()
-        self.count = 0
-        self.fps = 0
-        self.stopped = False
-        self.paused = False
-        self.vid_source = beamline['cameras']['sample']
-
-    def __del__(self):
-        self.stop()
-                
-    def run(self):
-        CA.thread_init()
-        self.camera = self.vid_source
-        self.start_time = time.time()
-        while not self.stopped:
-            time.sleep(1./self.parent.max_fps)
-            if not self.paused:
-                self.count += 1
-                if self.count == 10:
-                    gc.collect()
-                    self.fps = self.count/(time.time() - self.start_time)
-                    self.count = 0
-                    self.start_time = time.time()
-                img = self.camera.get_frame()
-                self.contrast_factor = self.parent.contrast/3.
-                img = ImageOps.autocontrast(img,cutoff=self.contrast_factor)
-                img = img.resize((self.width,self.height),Image.ANTIALIAS).convert('RGB')
-                self.parent.video_frame = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
-                    False, 8, self.width, self.height, 3 * self.width )
-                gobject.idle_add(self.emit, "image-updated")
-            
-    def stop(self):
-        self.camera.set_visible(False)
-        self.stopped = True
-        
-    def pause(self):
-        self.paused = True
-        self.camera.set_visible(False)
-    
-    def resume(self):
-        self.camera.set_visible(True)
-        self.paused = False
+from VideoThread import VideoThread
 
         
 class SampleViewer(gtk.HBox):
-    def __init__(self,size=0.75):
+    def __init__(self,size=1.0):
         gtk.HBox.__init__(self,False,6)
         
         self.timeout_id = None
@@ -93,7 +37,8 @@ class SampleViewer(gtk.HBox):
         self.light_val  =  beamline['variables']['sample_light_val']
         self.cross_x = beamline['variables']['beam_x']
         self.cross_y = beamline['variables']['beam_y']
-                
+        self.camera = beamline['cameras']['sample']      
+        
         self.width = int(self.source_width * self.display_size)
         self.height = int(self.source_height * self.display_size)
         self.lighting = self.light_val.get_position()
@@ -214,12 +159,13 @@ class SampleViewer(gtk.HBox):
         ftype = filename.split('.')[-1]
         if ftype == 'jpg': 
             ftype = 'jpeg'
-        self.video_frame.save(filename, ftype)
+        #self.video_frame.save(filename, ftype)
+        self.videothread.raw_image.save(filename)
         
     # callbacks
     def on_realized(self,widget):
         self.video_realized = True
-        self.videothread = VideoThread(self)
+        self.videothread = VideoThread(self, self.camera)
         self.videothread.connect('image-updated', self.display)
         self.connect('destroy', self.on_delete)
         self.videothread.start()
@@ -573,18 +519,14 @@ class SampleViewer(gtk.HBox):
         self.contrast_scale.connect('value-changed',self.on_contrast_changed)
         self.lighting_scale.connect('value-changed',self.on_lighting_changed)
         vbox2.pack_start(adjustment_box,expand=False,fill=False)
-        self.pack_start(vbox2, expand=False, fill=False)
+        self.pack_end(vbox2, expand=False, fill=False)
         self.show_all()
-
-# Register objects with signals
-gobject.type_register(VideoThread)
-
 
 def main():
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(0)
-    win.set_title("SampleViewer Widget Demo")
+    win.set_title("SampleViewer")
     book = gtk.Notebook()
     win.add(book)
     myviewer = SampleViewer()

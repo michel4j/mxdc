@@ -6,6 +6,8 @@ import re, os, time, gc
 import gtk, gobject
 import Image, ImageEnhance, ImageOps, ImageDraw
 import numpy, re, struct
+from scipy.misc import toimage, fromimage
+from ctypes import *
 from LogServer import LogServer
 from Dialogs import select_image
 
@@ -126,8 +128,20 @@ class ImgViewer(gtk.VBox):
             
         self.toolbar.set_tooltips(True)
         self.is_first_image = True
+        self.last_displayed = 0
+        self.cursor = None
         self.image_queue = []
-        
+        #self.load_pck_image('ABS.pck')
+        #self.display()
+
+    def __set_busy(self, busy ):
+        if busy:
+            self.cursor = gtk.gdk.Cursor(gtk.gdk.WATCH)
+            self.image_canvas.window.set_cursor( self.cursor )
+        else:
+            self.cursor = None
+            self.image_canvas.window.set_cursor( self.cursor )
+            
     def read_header(self):
         # Read MarCCD header
         header_format = 'I16s39I80x' # 256 bytes
@@ -161,7 +175,18 @@ class ImgViewer(gtk.VBox):
         self.phi_start =  self.goniostat_pars[(7 + self.goniostat_pars[23])] / 1e3
         self.delta_time = self.goniostat_pars[4] / 1e3
     
-
+    def read_pck_header(self, filename):
+        header_format = '70s' # 40 bytes
+        myfile = open(filename,'rb')
+        header = myfile.readline()
+        while header[0:17] != 'CCP4 packed image':
+            header = myfile.readline()
+        tokens = header.strip().split(',')
+        x_dim = int((tokens[1].split(':'))[1])
+        y_dim = int((tokens[2].split(':'))[1])
+        myfile.close()
+        return x_dim, y_dim
+    
     def set_filename(self, filename):
         self.filename = filename
         # determine file template and frame_number
@@ -180,6 +205,30 @@ class ImgViewer(gtk.VBox):
             self.file_template = None
             self.frame_number = None
         
+    def load_pck_image(self, filename):
+        libpck = cdll.LoadLibrary('./libpck.so')
+        libpck.argtypes = [c_char_p, POINTER(c_ushort)]
+        libpck.restype = c_int
+        x_dim, y_dim = self.read_pck_header(filename)
+        size = x_dim * y_dim
+        data = create_string_buffer( sizeof(c_ushort) * size )
+        libpck.openfile(filename, byref(data))
+        img = numpy.fromstring(data, numpy.ushort)
+        img.resize((x_dim, y_dim))
+        self.raw_img = toimage(img)
+        self.average_intensity = numpy.mean( numpy.fromstring(self.raw_img.tostring(), 'H') )
+        #self.gamma_correction = 80.0 / self.average_intensity
+        #self.img = self.raw_img.convert('I')
+        self.orig_size = max(self.raw_img.size)
+        
+        # invert the image to get black spots on white background and resize
+        #self.img = self.img.point(lambda x: x * -1 + 255)
+        self.work_img = self.raw_img.resize( (self.image_size, self.image_size), self.interpolation)
+        self.image_label.set_text(filename)
+        self.beam_x, self.beam_y = x_dim/2, y_dim/2
+        self.pixel_size = 0.07324
+        self.distance = 100
+        self.wavelength = 1
 
     def load_image(self):
         self.read_header()
@@ -196,10 +245,6 @@ class ImgViewer(gtk.VBox):
         self.work_img = self.img.resize( (self.image_size, self.image_size), self.interpolation)
         self.image_label.set_text(self.filename)
         
-        # enable toolbar and connect mouse events if this is the first image
-        if self.is_first_image:
-            self.delayed_init()
-            self.is_first_image = False
 
     def delayed_init(self):
         # activate toolbar 
@@ -241,7 +286,7 @@ class ImgViewer(gtk.VBox):
         y = scale * self.beam_y
         tmp_image = self.work_img.crop(mybounds).convert('RGBA')
         self.draw_cross(tmp_image)
-
+        self.last_displayed = time.time()
 
         imagestr = self.apply_filters(tmp_image).tostring()    
         try:
@@ -256,6 +301,10 @@ class ImgViewer(gtk.VBox):
         # keep track of time to prevent loading next frame too quickly 
         # when following images
         self.last_open_time = time.time()
+        # enable toolbar and connect mouse events if this is the first image
+        if self.is_first_image:
+            self.delayed_init()
+            self.is_first_image = False
 
     def apply_filters(self, image):
         #contrast_enh = ImageEnhance.Contrast(image)
@@ -264,7 +313,7 @@ class ImgViewer(gtk.VBox):
         return brightness_enh.enhance(self.brightness_factor)
                         
     def poll_for_file(self):
-        LogServer.log("%d images in queue" % len(self.image_queue) )
+        LogServer.log("%d images in display queue" % len(self.image_queue) )
         if len(self.image_queue) == 0:
             if self.collecting_data == True:
                 return True
@@ -285,6 +334,9 @@ class ImgViewer(gtk.VBox):
             return True     
 
     def auto_follow(self):
+        # prevent chainloading by only loading images 3 seconds appart
+        if time.time() - self.last_displayed < 3:
+            return True
         if not (self.frame_number and self.file_template):
             return False
         frame_number = self.frame_number + 1
@@ -302,7 +354,8 @@ class ImgViewer(gtk.VBox):
             self.image_queue = []
             if self.follow_id is not None:
                 gobject.source_remove(self.follow_id)
-            gobject.timeout_add(3000, self.poll_for_file)
+            self.__set_busy(True)
+            gobject.timeout_add(500, self.poll_for_file)
 
     def show_detector_image(self, filename):
         if self.collecting_data and self.follow_frames:
@@ -447,7 +500,7 @@ class ImgViewer(gtk.VBox):
         if 'GDK_BUTTON2_MASK' in event.state.value_names:
             self.zooming_lens(Ox, Oy)
         else:
-            self.image_canvas.window.set_cursor(None)
+            self.image_canvas.window.set_cursor(self.cursor)
         return True
 
     def on_next_frame(self,widget):
@@ -492,8 +545,9 @@ class ImgViewer(gtk.VBox):
         if widget.get_active():
             self.follow_frames = True
             if not self.collecting_data:
-                self.follow_id = gobject.timeout_add(3000, self.auto_follow)
+                self.follow_id = gobject.timeout_add(500, self.auto_follow)
         else:
+            self.__set_busy(False)
             if self.follow_id is not None:
                 gobject.source_remove(self.follow_id)
                 self.follow_id = None

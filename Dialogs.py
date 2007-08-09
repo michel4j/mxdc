@@ -206,7 +206,8 @@ def check_folder(directory, parent=None):
     
 class FolderSelector:
     def __init__(self):
-        self.path = os.environ['HOME'] + os.sep
+        #self.path = os.environ['HOME']+ os.sep
+        self.path = "/data" + os.sep
 
     def __call__(self,path=None):
         file_open = gtk.FileChooserDialog(title="Select Folder"
@@ -228,7 +229,8 @@ class FolderSelector:
 
 class ImageSelector:
     def __init__(self):
-        self.path = os.environ['HOME']+ os.sep
+        #self.path = os.environ['HOME']+ os.sep
+        self.path = "/data" + os.sep
         self.filter = gtk.FileFilter()
         self.filter.set_name("MARCCD Images")
         self.filter.add_pattern("*.img")
@@ -270,7 +272,9 @@ class FileChooserDialog(gtk.FileChooserDialog):
                                                   buttons)
         self.set_default_response (gtk.RESPONSE_OK)
         if path: self.path = path
-        else:    self.path = os.environ['HOME']+ os.sep
+        else:    
+            #self.path = os.environ['HOME']+ os.sep
+            self.path = "/data" + os.sep
         # create an extra widget to list supported image formats
         self.set_current_folder (self.path)
         self.set_current_name ('image.' + IMAGE_FORMAT_DEFAULT)

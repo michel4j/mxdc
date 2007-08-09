@@ -151,9 +151,11 @@ class Gonio:
         self.scan_cmd = PV("%s:scanFrame.PROC" % name)
 
         #Status parameters
-        self.state = PV("%s:lowerTOUT.B0" % name)
+        self.state = PV("%s:scanFrame:status" % name)
+        
         self.move_state = PV("%s:moving" % name)
         self.active = False
+        
         #parameters
         self.params = {
             'time' : PV("%s:expTime" % name),
@@ -173,17 +175,21 @@ class Gonio:
             self.wait(start=True, stop=True)
     
     def is_active(self):
-        return self.state.get() == '\x01'
+        return self.state.get() != 0
             
-    def wait(self, start=True, stop=True, poll=0.001):
+    def wait(self, start=True, stop=True, poll=0.01, timeout=60):
         if (start):
+            time_left = timeout
             #print 'waiting for shutter to open'
-            while not self.is_active():
-                time.sleep(poll)                               
-        if (stop):
-            #print 'waiting gonio to stop'
-            while self.is_active():
+            while not self.is_active() and time_left > 0:
                 time.sleep(poll)
+                time_left -= poll
+        if (stop):
+            time_left = timeout
+            #print 'waiting gonio to stop'
+            while self.is_active() and time_left > 0:
+                time.sleep(poll)
+                time_left -= poll
     
 class MarCCD2(CCDDetector):
     def __init__(self, name):

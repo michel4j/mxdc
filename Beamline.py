@@ -93,10 +93,14 @@ def initialize():
     print 'setting up Cameras'
     beamline['cameras'] = {}
     if 'cameras' in parser.sections():
-        for item in parser.options('cameras'):
-            pv = string.strip( parser.get('cameras', item) )            
-            beamline['cameras'][item] = VideoCamera(pv)
-            print '...', item           
+        if 'sample' in parser.options('cameras'):
+            name = string.strip( parser.get('cameras', 'sample') )            
+            beamline['cameras']['sample'] = VideoCamera(name)
+            print '...', 'Sample Camera'
+        if 'hutch' in parser.options('cameras'):           
+            name = string.strip( parser.get('cameras', 'hutch') )            
+            beamline['cameras']['hutch'] = AxisServer(name)
+            print '...', 'Hutch Camera'
         
     print 'Setting up Detectors'
     if 'detectors' in parser.sections():

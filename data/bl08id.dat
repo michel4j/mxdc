@@ -42,13 +42,14 @@ mca = XFD1608-101:mca1
 gonio = GV6K1608-001
 
 [variables]
-beam_x 	=	BL08ID1:video:sample:x
-beam_y  =	BL08ID1:video:sample:y
+beam_x 	    =	BL08ID1:video:sample:x
+beam_y      =	BL08ID1:video:sample:y
 sample_light = ILM16083I1001:sp
 sample_light_val = ILM16083I1001:fbk
 
 [cameras]
-sample = CAM1608-001:data
+sample  = CAM1608-001:data
+hutch = ccd1608-201.cs.cls
 
 [shutters]
 PSH1    = PSH1408-I00-02
