@@ -366,7 +366,7 @@ class CLSMotor(AbstractMotor):
             self.wait(start=True,stop=True)
                 
     def is_moving(self):
-        if self.MOVN.get() != 0:
+        if self.MOVN.get() == 1:
             return True
         else:
             return False
