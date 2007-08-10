@@ -127,6 +127,7 @@ class ScanManager(gtk.HBox):
         gobject.source_remove(self.progress_id)
         self.scan_control.progress_bar.set_fraction(0.0)
         self.scan_control.progress_bar.set_text("0.0%")
+        return True
 
     def on_start_scan(self,widget):        
         pars = self.scan_control.get_parameters()

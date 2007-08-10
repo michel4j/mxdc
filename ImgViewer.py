@@ -545,7 +545,7 @@ class ImgViewer(gtk.VBox):
         if widget.get_active():
             self.follow_frames = True
             if not self.collecting_data:
-                self.follow_id = gobject.timeout_add(500, self.auto_follow)
+                self.follow_id = gobject.idle_add(self.auto_follow)
         else:
             self.__set_busy(False)
             if self.follow_id is not None:
