@@ -219,7 +219,7 @@ class ScanManager(gtk.HBox):
             
         #Optimize beam here
         self.bragg_energy.set_mask( [1,0,0] )  # Move only bragg
-
+        
         self.scanner = Scanner(positioner=self.bragg_energy, detector=self.mca, time=count_time, output=scan_filename)
         self.scanner.set_targets( self.generate_scan_targets(energy) )
         self.scanner.set_normalizer(beamline['detectors']['i1_bpm'])
