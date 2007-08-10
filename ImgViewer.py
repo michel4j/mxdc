@@ -2,7 +2,7 @@
 # -*- coding: UTF8 -*-
 
 import sys
-import re, os, time, gc
+import re, os, time, gc, stat
 import gtk, gobject
 import Image, ImageEnhance, ImageOps, ImageDraw
 import numpy, re, struct
@@ -323,7 +323,7 @@ class ImgViewer(gtk.VBox):
         else:
             next_filename = self.image_queue[0]
             
-        if os.path.isfile(next_filename) and (os.path.getsize(next_filename) == 18878464):
+        if os.path.isfile(next_filename) and (os.stat(next_filename)[stat.ST_SIZE] == 18878464):
             LogServer.log("Loading image %s" % (next_filename))
             self.set_filename( next_filename )
             self.image_queue.pop(0) # delete loaded image from queue item
@@ -334,8 +334,8 @@ class ImgViewer(gtk.VBox):
             return True     
 
     def auto_follow(self):
-        # prevent chainloading by only loading images 3 seconds appart
-        if time.time() - self.last_displayed < 3:
+        # prevent chainloading by only loading images 4 seconds appart
+        if time.time() - self.last_displayed < 4:
             return True
         if not (self.frame_number and self.file_template):
             return False
@@ -545,7 +545,7 @@ class ImgViewer(gtk.VBox):
         if widget.get_active():
             self.follow_frames = True
             if not self.collecting_data:
-                self.follow_id = gobject.idle_add(self.auto_follow)
+                self.follow_id = gobject.timeout_add(500, self.auto_follow)
         else:
             self.__set_busy(False)
             if self.follow_id is not None:
