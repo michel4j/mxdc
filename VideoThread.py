@@ -35,7 +35,7 @@ class VideoThread(threading.Thread, gobject.GObject):
             if not self.paused:
                 self.count += 1
                 if self.count == 10:
-                    gc.collect()
+                    #gc.collect()
                     self.fps = self.count/(time.time() - self.start_time)
                     self.count = 0
                     self.start_time = time.time()
