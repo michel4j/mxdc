@@ -366,10 +366,13 @@ class CLSMotor(AbstractMotor):
             self.wait(start=True,stop=True)
                 
     def is_moving(self):
-        if self.MOVN.get() == 1 or self.MOVN1.get() == 1:
+        if self.MOVN.get() == 1:
             return True
         else:
-            return False
+            if self.MOVN1.get() == 1:
+                return True
+            else:
+                return False
     
     def is_valid(self):
         if self.CALIB.get() == 0:
