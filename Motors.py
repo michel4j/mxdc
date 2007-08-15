@@ -319,7 +319,7 @@ class CLSMotor(AbstractMotor):
         self.ERBV = PV("%s:%s:fbk" % (name_parts[0],name_parts[1]), connect=False)
         self.RLV  = PV("%s:%s:rel" % (name_parts[0],name_parts[1]), connect=False)
         self.MOVN = PV("%s:status" % name_parts[0])
-        #self.MOVN = PV("%s:moving" % name_parts[0])
+        self.MOVN1 = PV("%s:moving" % name_parts[0])
         self.ACCL = PV("%s:acc:%spss:sp" % (name_parts[0],name_parts[1]), connect=False)
         self.VEL  = PV("%s:vel:%sps:sp" % (name_parts[0],name_parts[1]), connect=False)
         self.STOP = PV("%s:stop" % name_parts[0])
@@ -366,7 +366,7 @@ class CLSMotor(AbstractMotor):
             self.wait(start=True,stop=True)
                 
     def is_moving(self):
-        if self.MOVN.get() == 1:
+        if self.MOVN.get() == 1 or self.MOVN1.get() == 1:
             return True
         else:
             return False
