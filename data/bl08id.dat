@@ -48,7 +48,7 @@ sample_light = ILM16083I1001:sp
 sample_light_val = ILM16083I1001:fbk
 ring_status = SYSTEM:mode:fbk
 
-# SYSTEM:mode:fbk , 3 = SR1 Fill, ?? = SR1 Stored
+# SYSTEM:mode:fbk , 3 = SR1 Fill, 4 = SR1 Stored
 
 [cameras]
 sample  = CAM1608-001:data

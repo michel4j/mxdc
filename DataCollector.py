@@ -32,7 +32,13 @@ class DataCollector(threading.Thread, gobject.GObject):
         self.run_list = run_list
         self.skip_collected = skip_collected
         return
-        
+    
+    def beam_is_ready(self):
+        if beamline['variables']['ring_status'].get_position() == 4:
+            return True
+        else:
+            return False
+
     def run(self, widget=None):
         CA.thread_init()
         self.detector = beamline['detectors']['ccd']
@@ -44,6 +50,10 @@ class DataCollector(threading.Thread, gobject.GObject):
         self.pos = 0
         header = {}
         while self.pos < len(self.run_list) :
+            if not self.beam_is_ready():
+                self.paused = True
+                # place holder for displaying a mesage box for the user
+                
             if self.paused:
                 gobject.idle_add(self.emit, 'paused', True)
                 while self.paused and not self.stopped:
@@ -52,6 +62,7 @@ class DataCollector(threading.Thread, gobject.GObject):
             if self.stopped:
                 gobject.idle_add(self.emit, 'stopped')
                 return
+
             frame = self.run_list[self.pos]
             self.pos += 1
             if frame['saved'] and self.skip_collected:

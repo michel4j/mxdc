@@ -169,3 +169,4 @@ def init_beamline(pbar=None):
         beamline['motors']['gslits_hgap'].move_to(0.3)
         beamline['motors']['gslits_vgap'].set_position(0.3)
     note_progress('Beamline configured, launching MXDC')
+    
