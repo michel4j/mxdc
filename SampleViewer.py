@@ -254,18 +254,24 @@ class SampleViewer(gtk.HBox):
         return True
 
     def on_incr_omega(self,widget):
-        cur_omega = int( self.omega.get_position() / 90) * 90
-        self.omega.move_to(cur_omega + 90.0)
+        cur_omega = int(self.omega.get_position() )
+        target = (cur_omega + 90)
+        target = (target > 360) and (target % 360) or target
+        self.omega.move_to(target)
         return True
 
     def on_decr_omega(self,widget):
-        cur_omega = int(self.omega.get_position() / 90) * 90
-        self.omega.move_to(cur_omega - 90.0)
+        cur_omega = int(self.omega.get_position() )
+        target = (cur_omega - 90)
+        target = (target < -180) and (target % 360) or target
+        self.omega.move_to(target)
         return True
 
     def on_double_incr_omega(self,widget):
-        cur_omega = int(self.omega.get_position() / 90) * 90
-        self.omega.move_to(cur_omega + 180.0)
+        cur_omega = int(self.omega.get_position() )
+        target = (cur_omega + 180)
+        target = (target > 360) and (target % 360) or target
+        self.omega.move_to(target)
         return True
 
     def on_unzoom(self,widget):
