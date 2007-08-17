@@ -65,7 +65,7 @@ class ImgViewer(gtk.VBox):
         self.toolbar.insert(gtk.SeparatorToolItem(),14)
         
         #image information display
-        info_table = gtk.Table(1,2,True)
+        info_table = gtk.Table(1,2,False)
         info_text = [
             'Δt',
             'Δϕ',
