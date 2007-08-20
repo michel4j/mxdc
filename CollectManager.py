@@ -254,19 +254,26 @@ class CollectManager(gtk.HBox):
             
         self.run_list = []
         index = 0
+        
         for pos in run_keys:
             run = run_data[pos]
             offsets = run['inverse_beam'] and [0, 180] or [0,]
+            
             angle_range = run['end_angle'] - run['start_angle']
             wedge = run['wedge'] < angle_range and run['wedge'] or angle_range
-            passes = int ( round( 0.5 + (angle_range / wedge)) ) # take the roof (round_up) of the number
             wedge_size = int( (wedge) / run['delta'])
+            total_size = int( angle_range/run['delta'] )
+            passes = int ( round( 0.5 + (angle_range-run['delta']) / wedge) ) # take the roof (round_up) of the number
+            remaining_frames = total_size
+            current_slice = wedge_size
             for i in range(passes):
+                if current_slice > remaining_frames:
+                    current_slice = remaining_frames
                 for (energy,energy_label) in zip(run['energy'],run['energy_label']):
-                    for offset in offsets:
-                        for j in range(wedge_size):
+                    for offset in offsets:                        
+                        for j in range(current_slice):
                             angle = run['start_angle'] + (j * run['delta']) + (i * wedge) + offset
-                            frame_number =  i * wedge_size + j + int(offset/run['delta']) + 1
+                            frame_number =  i * wedge_size + j + int(offset/run['delta']) + run['start_frame']
                             file_name = "%s/%s_%d_%s_%04d.img" % (run['directory'], run['prefix'], 
                                 run['number'], energy_label, frame_number)
                             frame_name = "%s_%d_%s_%04d" % (run['prefix'], run['number'], energy_label, frame_number)
@@ -286,6 +293,7 @@ class CollectManager(gtk.HBox):
                             }
                             self.run_list.append(list_item)
                             index += 1
+                remaining_frames -= current_slice
         self.pos = 0
         self.gen_sequence()
                                                                         

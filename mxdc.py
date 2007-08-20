@@ -56,7 +56,7 @@ class AppClass:
     def run(self, obj=None, arg=None):
         while gtk.events_pending():
             gtk.main_iteration()
-        win = gtk.Window()
+        win = gtk.Window(gtk.WINDOW_TOPLEVEL)
         win.set_position(gtk.WIN_POS_CENTER)
         gtk.window_set_auto_startup_notification(False)
         init_beamline(self.pbar)

@@ -99,6 +99,8 @@ class RunWidget(gtk.VBox):
                 self.layout_table.attach(self.units[key], val[0]+val[2], val[0]+val[2]+1, val[1], val[1]+1, xoptions=gtk.EXPAND)
             
         # entry signals
+        self.entry['prefix'].connect('focus-out-event', self.on_prefix_changed)
+        self.entry['directory'].connect('focus-out-event', self.on_directory_changed)
         self.entry['start_angle'].connect('focus-out-event', self.on_start_angle_changed)
         self.entry['delta'].connect('focus-out-event', self.on_delta_changed)
         self.entry['end_angle'].connect('focus-out-event', self.on_end_angle_changed)
@@ -106,7 +108,10 @@ class RunWidget(gtk.VBox):
         self.entry['start_frame'].connect('focus-out-event', self.on_start_frame_changed)
         self.entry['distance'].connect('focus-out-event', self.on_distance_changed)
         self.entry['time'].connect('focus-out-event', self.on_time_changed)
+        self.entry['wedge'].connect('focus-out-event', self.on_wedge_changed)
         
+        self.entry['prefix'].connect('activate', self.on_prefix_changed)
+        self.entry['directory'].connect('activate', self.on_directory_changed)
         self.entry['start_angle'].connect('activate', self.on_start_angle_changed)
         self.entry['delta'].connect('activate', self.on_delta_changed)
         self.entry['end_angle'].connect('activate', self.on_end_angle_changed)
@@ -114,6 +119,7 @@ class RunWidget(gtk.VBox):
         self.entry['start_frame'].connect('activate', self.on_start_frame_changed)
         self.entry['distance'].connect('activate', self.on_distance_changed)
         self.entry['time'].connect('activate', self.on_time_changed)
+        self.entry['wedge'].connect('activate', self.on_wedge_changed)
        
         # Inverse Beam
         self.inverse_beam = gtk.CheckButton(label='Inverse beam')
@@ -246,7 +252,8 @@ class RunWidget(gtk.VBox):
                 model.remove(iter)
         self.__reset_e_btn_states()
             
-    def set_parameters(self,dict):
+    def set_parameters(self, dict):
+        self.parameters = dict
         keys = ['distance','delta','start_angle','end_angle','wedge','time'] # Floats
         for key in keys:
             self.entry[key].set_text("%0.2f" % dict[key])
@@ -290,9 +297,9 @@ class RunWidget(gtk.VBox):
 
     def default_parameters(self):
         run_data = {}
-        run_data['prefix'] = 'Testing'
-        run_data['directory'] = '/data/default'
-        run_data['distance'] = beamline['motors']['detector_dist'].get_position()
+        run_data['prefix'] = 'test'
+        run_data['directory'] = '/data'
+        run_data['distance'] = 150.0
         run_data['delta'] = 0.5
         run_data['time'] = 5
         run_data['start_angle'] = 0
@@ -336,7 +343,27 @@ class RunWidget(gtk.VBox):
                 beamline['motors']['detector_2th'].connect('changed', self.predictor.on_two_theta_changed)
                 self.predictor.set_size_request(220,220)
                 self.pack_end( self.predictor, expand=False, fill=False)
-                
+    
+    def check_changes(self):
+        new_values = self.get_parameters()
+        for key in new_values.keys():
+            if key in ['energy', 'energy_label']:
+                widget = self.energy_list
+            elif key == 'inverse_beam':
+                widget = self.inverse_beam
+            elif key == 'number':
+                widget = self.title
+            else:
+                widget = self.entry[key]
+            if new_values[key] != self.parameters[key]:
+                widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
+            else:
+                widget.modify_text(gtk.STATE_NORMAL, None)
+
+    def on_prefix_changed(self, widget, event=None):
+        self.check_changes()
+        return False
+    
     def on_distance_changed(self,widget,event=None):
         try:
             distance = float(self.entry['distance'].get_text())
@@ -345,6 +372,8 @@ class RunWidget(gtk.VBox):
         if self.number==0 and self.predictor:
             self.update_predictor()
         self.entry['distance'].set_text('%0.2f' % distance)
+        self.check_changes()
+        return False
 
     def on_start_angle_changed(self,widget,event=None):
         delta = float(self.entry['delta'].get_text())
@@ -359,6 +388,8 @@ class RunWidget(gtk.VBox):
         self.entry['start_angle'].set_text('%0.2f' % start_angle)            
         end_angle = start_angle + delta * (end_frame - start_frame + 1)
         self.entry['end_angle'].set_text('%0.2f' % end_angle)
+        self.check_changes()
+        return False
     
     def on_end_angle_changed(self,widget,event=None):
         start_angle = float(self.entry['start_angle'].get_text())    
@@ -378,6 +409,8 @@ class RunWidget(gtk.VBox):
         self.entry['end_angle'].set_text('%0.2f' % end_angle)                       
         end_frame = start_frame + (end_angle - start_angle)/delta - 1 
         self.entry['end_frame'].set_text('%d' % end_frame)
+        self.check_changes()
+        return False
 
     def on_delta_changed(self,widget,event=None):
         try:
@@ -403,6 +436,8 @@ class RunWidget(gtk.VBox):
                 self.entry['end_angle'].set_text('%0.2f' % end_angle)             
             end_frame = start_frame + (end_angle - start_angle)/delta - 1
             self.entry['end_frame'].set_text('%d' % end_frame)
+        self.check_changes()
+        return False
 
     def on_time_changed(self,widget,event=None):
         try:
@@ -429,6 +464,8 @@ class RunWidget(gtk.VBox):
         end_frame = start_frame + ((end_angle - start_angle - delta)/delta )
     
         self.entry['end_frame'].set_text('%d' % end_frame)
+        self.check_changes()
+        return False
 
     def on_end_frame_changed(self,widget,event=None):
         start_frame = int( self.entry['start_frame'].get_text() )
@@ -450,16 +487,29 @@ class RunWidget(gtk.VBox):
         end_angle = start_angle + ((end_frame - start_frame + 1) * delta )
     
         self.entry['end_angle'].set_text('%0.2f' % end_angle)
+        self.check_changes()
+        return False
+
+    def on_wedge_changed(self,widget,event=None):
+        try:
+            wedge = float(self.entry['wedge'].get_text())    
+        except:
+            wedge = 180.0
+
+        self.entry['wedge'].set_text('%0.2f' % wedge) 
+        self.check_changes()
+        return False
+        
+    def on_directory_changed(self,widget, event=None):
+        directory = self.entry['directory'].get_text()
+        self.check_changes()
+        return False
 
     def on_select_dir(self, widget):
         folder = select_folder()
         if folder:
             self.entry['directory'].set_text(folder)
         return True
-
-    def on_directory_changed(self,widget, event=None):
-        directory = self.entry['directory'].get_text()
-        check_folder(directory)
             
     def update_predictor(self):
         self.predictor.set_energy(self.energy[0])
@@ -470,9 +520,9 @@ class RunWidget(gtk.VBox):
         
 
     def on_apply(self, widget):
-        run_data = self.get_parameters()
-        self.set_parameters(run_data)
-        self.undo_stack.append(run_data)
+        self.parameters = self.get_parameters()
+        self.undo_stack.append(self.parameters)
+        self.check_changes()
         self.undo_btn.set_sensitive(True)
         if self.predictor is not None:
             self.update_predictor()
@@ -484,3 +534,4 @@ class RunWidget(gtk.VBox):
             self.set_parameters(run_data)
         if len(self.undo_stack) == 0:
             self.undo_btn.set_sensitive(False)
+        self.check_changes()
