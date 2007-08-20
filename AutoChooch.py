@@ -60,7 +60,9 @@ class AutoChooch(threading.Thread, gobject.GObject):
         
         if not found_results:
             self.results = None
+            gobject.idle_add(self.emit, 'error','AutoChooch Failed')
             return False
+            
         # select remote energy, maximize fp, minimize fpp-fp
         selected = [0, -999, -999]
         for e, fp, fpp in zip(self.data[:,0], self.data[:,2], self.data[:,1]):

@@ -3,6 +3,7 @@
 import gtk, gobject
 import sys, os
 from Dialogs import select_folder
+from ActiveWidgets import ActiveProgressBar
 
 (
   COLUMN_LABEL,
@@ -107,7 +108,7 @@ class ScanControl(gtk.VBox):
         self.stop_btn.set_sensitive(False) # initially disabled
         self.abort_btn.set_sensitive(False)
         self.create_run_btn.set_sensitive(False)
-        self.progress_bar = gtk.ProgressBar()
+        self.progress_bar = ActiveProgressBar()
         self.progress_bar.set_fraction(0.0)
         self.progress_bar.set_text('0.0%')
         
@@ -200,7 +201,8 @@ class ScanControl(gtk.VBox):
         #keys = results.keys()
         keys = ['peak','infl','remo']  # collect peak infl remo in that order
         for key in keys:
-            self.__add_energy(results[key])
+            if key in results.keys():  # all energies are not necessarily present
+                self.__add_energy(results[key])
         self.sw.set_sensitive(True)
         self.create_run_btn.set_sensitive(True)
         return True
@@ -239,7 +241,7 @@ class ScanControl(gtk.VBox):
         run_data = self.get_parameters()
         run_data['distance'] = 150.0
         run_data['delta'] = 1
-        run_data['time'] = 5
+        run_data['time'] = 1
         run_data['start_angle'] = 0
         run_data['end_angle']= 180
         run_data['start_frame']= 1

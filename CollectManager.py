@@ -223,12 +223,20 @@ class CollectManager(gtk.HBox):
         
     def add_run(self, data):
         self.run_manager.add_new_run(data)
+        self.create_runlist()
             
     
     def remove_run(self, index):
-        if index in self.run_data.keys():
-            del self.run_data[index]
-        self.create_runlist()
+        run_data = {}
+        for key in self.run_data.keys():
+            if key < index:
+                run_data[key] = self.run_data[key]
+                run_data[key]['number'] = key
+            elif key > index:
+                run_data[key-1] = self.run_data[key]
+                run_data[key-1]['number'] = key-1
+        self.run_data = run_data
+        #self.create_runlist()
     
     def clear_runs(self):
         self.run_data.clear()
@@ -250,8 +258,8 @@ class CollectManager(gtk.HBox):
             run = run_data[pos]
             offsets = run['inverse_beam'] and [0, 180] or [0,]
             angle_range = run['end_angle'] - run['start_angle']
-            wedge = ( run['wedge'] < angle_range and run['wedge'] or angle_range )
-            passes = int ( round( angle_range  /  wedge ) )
+            wedge = run['wedge'] < angle_range and run['wedge'] or angle_range
+            passes = int ( round( 0.5 + (angle_range / wedge)) ) # take the roof (round_up) of the number
             wedge_size = int( (wedge) / run['delta'])
             for i in range(passes):
                 for (energy,energy_label) in zip(run['energy'],run['energy_label']):

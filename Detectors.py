@@ -7,6 +7,7 @@ import thread, threading
 from LogServer import LogServer
 from EmissionTools import gen_spectrum, find_peaks
 from EPICS import PV, thread_init
+from pylab import load
 
 class Detector(gobject.GObject):
     __gsignals__ = {}
@@ -50,10 +51,7 @@ class FakeDetector(Detector):
 
     def count(self, t=1.0):
         self.value = self.ypoints[self.index]
-        if self.index < len(self.ypoints):
-            self.index += 1
-        else:
-            self.index = 0
+        self.index = (self.index + 1) % len(self.ypoints)
         time.sleep(t)
         return self.value
 
@@ -84,7 +82,7 @@ class FakeMCA(Detector):
 
     def count(self, t=1.0):
         self.value = self.ypoints[self.index]
-        self.index = self.index % len(self.ypoints) + 1
+        self.index = (self.index + 1) % len(self.ypoints)
         time.sleep(t)
         return self.value
 

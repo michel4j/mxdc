@@ -23,6 +23,8 @@ class ScanManager(gtk.HBox):
         self.scan_control = ScanControl()
         self.scan_control.set_border_width(12)
         self.scan_control.start_btn.connect('clicked', self.on_start_scan)
+        self.scan_control.create_run_btn.connect('clicked', self.on_create_run)
+        self.scan_control.create_run_btn.set_sensitive(False)
         self.pack_start(self.scan_control, expand=False, fill=False)
         
         self.scan_book = gtk.Notebook()
@@ -54,12 +56,8 @@ class ScanManager(gtk.HBox):
         
         self.scanning = False
         self.scanner = None
-            
-        
-    def pulse(self):
-        self.scan_control.progress_bar.pulse()
-        return True
-        
+        self.progress_id = None
+                    
     def on_edge_selection(self, widget, data):
         vals = data.split(':')
         new_data = {}
@@ -92,8 +90,7 @@ class ScanManager(gtk.HBox):
         self.scan_control.stop_btn.set_sensitive(False)
         self.scan_control.abort_btn.set_sensitive(False)
         self.scanning = False
-        self.scan_control.progress_bar.set_fraction(0.0)
-        self.scan_control.progress_bar.set_text("0.0%")
+        self.scan_control.progress_bar.idle_text('Scan Aborted')
         return True
     
     def on_chooch_done(self,widget):
@@ -114,19 +111,14 @@ class ScanManager(gtk.HBox):
         self.plotter.add_line(data[:,0],data[:,2], 'g', ax=new_axis)
                 
         self.scan_control.set_results(results)
-        self.scan_control.create_run_btn.connect('clicked', self.on_create_run)
         self.scan_control.create_run_btn.set_sensitive(True)
-        gobject.source_remove(self.progress_id)
-        self.scan_control.progress_bar.set_fraction(1.0)
-        self.scan_control.progress_bar.set_text("100.0%")
+        self.scan_control.progress_bar.idle_text("Scan Complete")
         return True
         
     def on_chooch_error(self,widget, error):
         self.scan_control.start_btn.set_sensitive(True)
         self.scan_book.set_current_page( self.plotter_page )
-        gobject.source_remove(self.progress_id)
-        self.scan_control.progress_bar.set_fraction(0.0)
-        self.scan_control.progress_bar.set_text("0.0%")
+        self.scan_control.progress_bar.idle_text("Scan Error:  analysis failed!")
         return True
 
     def on_start_scan(self,widget):        
@@ -141,11 +133,9 @@ class ScanManager(gtk.HBox):
         
     def on_create_run(self,widget):
         self.emit('create-run')
-        return True
 
     def on_progress(self, widget, fraction):
-        self.scan_control.progress_bar.set_fraction(fraction)
-        self.scan_control.progress_bar.set_text("%4.1f%s" % (fraction*100,'%'))
+        self.scan_control.progress_bar.set_complete(fraction)
         return True
                     
     def linear_scan_targets(self,energy):
@@ -228,13 +218,14 @@ class ScanManager(gtk.HBox):
         self.scanner.connect('done', self.on_scan_done)
         self.scanner.connect('aborted', self.on_scan_aborted)        
         self.scanner.connect('progress', self.on_progress)
-        self.connect('destroy', self.scanner.stop)
         self.scan_control.stop_btn.connect('clicked', self.scanner.stop)
         self.scan_control.abort_btn.connect('clicked', self.scanner.abort)
         self.scan_control.stop_btn.set_sensitive(True)
         self.scan_control.abort_btn.set_sensitive(True)
         self.scan_control.start_btn.set_sensitive(False)
         self.scan_book.set_current_page( self.plotter_page )
+        self.scan_control.progress_bar.set_complete(0.0)
+        self.scan_control.progress_bar.busy_text("Starting MAD scan...")
         self.shutter.open()
         self.scanner.start()
         self.scanning = True
@@ -254,7 +245,7 @@ class ScanManager(gtk.HBox):
         self.shutter.open()
         self.scan_control.start_btn.set_sensitive(False)
         self.ex_scanner.start()
-        self.progress_id = gobject.timeout_add(100, self.pulse)
+        self.scan_control.progress_bar.busy_text('Performing Excitation Scan...')
         return True
 
     def on_excitation_done(self, object):
@@ -283,9 +274,7 @@ class ScanManager(gtk.HBox):
                 peak_log = "%s \n%s" % (peak_log, ident)
             self.log_view.log( peak_log, False )
         self.plotter.canvas.draw()
-        gobject.source_remove(self.progress_id)
-        self.scan_control.progress_bar.set_fraction(1.0)
-        self.scan_control.progress_bar.set_text("100.0%")
+        self.scan_control.progress_bar.idle_text("Scan complete.")
         return True
         
         
@@ -300,8 +289,7 @@ class ScanManager(gtk.HBox):
         self.auto_chooch.connect('error', self.on_chooch_error)
         self.auto_chooch.connect('done', lambda x: self.log_view.log( self.auto_chooch.output, False ))       
         self.auto_chooch.connect('error', lambda x: self.log_view.log( self.auto_chooch.output, False ))
-        self.progress_id = gobject.timeout_add(100, self.pulse)
-
+        self.scan_control.progress_bar.busy_text("Analysing scan data ...")
         self.auto_chooch.start()
         return True
                         

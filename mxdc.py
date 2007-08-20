@@ -50,8 +50,8 @@ class AppClass:
                 os.mkdir( config_dir )
         
     def on_create_run(self, obj=None, arg=None):
-        self.collect_manager.add_run( self.scan_manager.get_run_data() )
-        return True
+        run_data = self.scan_manager.get_run_data()
+        self.collect_manager.add_run( run_data )
     
     def run(self, obj=None, arg=None):
         while gtk.events_pending():
@@ -62,7 +62,7 @@ class AppClass:
         init_beamline(self.pbar)
         self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
-        self.scan_manager.connect('create-run', self.on_create_run, self.collect_manager)
+        self.scan_manager.connect('create-run', self.on_create_run)
         self.hutch_manager = HutchManager()
         self.status_panel = StatusPanel()
         self.general_log = LogView(label='Log')

@@ -244,4 +244,46 @@ class ShutterButton(gtk.Button):
         self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_SMALL_TOOLBAR)
     
     
+class ActiveProgressBar(gtk.ProgressBar):
+    def __init__(self):
+        gtk.ProgressBar.__init__(self)    
+        self.set_fraction(0.0)
+        self.set_text('0.0%')
+        self.progress_id = None
+      
+    def set_busy(self,busy):
+        if busy:
+            self.progress_id = gobject.timeout_add(100, self.busy)
+        elif self.progress_id:
+            gobject.source_remove(self.progress_id)
+            self.progress_id = None
+
+    def busy(self):
+        self.pulse()
+        self.set_text(self.get_text())
+        return True
+     
+    def busy_text(self,text):
+        self.set_text(text)
+        self.set_busy(True)
     
+    def idle_text(self,text):
+        self.set_busy(False)
+        self.set_fraction(0.0)
+        self.set_text(text)
+    
+    def set_complete(self, complete, text=''):
+        if self.progress_id:
+            gobject.source_remove(self.progress_id)
+            self.progress_id = None
+        self.set_fraction(complete)
+        complete_text = '%0.1f%% %s' % ((complete * 100), text)
+        self.set_text(complete_text)
+    
+        
+    
+        
+        
+        
+        
+        

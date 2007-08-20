@@ -9,6 +9,7 @@ from MarCCD import MarCCD2
 from Utils import *
 import EPICS as CA
 from LogServer import LogServer
+from Dialogs import messagedialog
 
 gobject.threads_init()
 
@@ -53,6 +54,10 @@ class DataCollector(threading.Thread, gobject.GObject):
             if not self.beam_is_ready():
                 self.paused = True
                 # place holder for displaying a mesage box for the user
+                gobject.idle_add( messagedialog, 
+                   gtk.MESSAGE_WARNING,
+                   'Data Collection Paused',
+                   'Data Collection has been paused because the state of the storage ring has changed. Please resume data collection once the beam is ready')
                 
             if self.paused:
                 gobject.idle_add(self.emit, 'paused', True)
