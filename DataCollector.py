@@ -28,14 +28,16 @@ class DataCollector(threading.Thread, gobject.GObject):
         self.paused = False
         self.stopped = False
         self.skip_collected = skip_collected
+        self.beam_status = beamline['variables']['ring_status'].get_position()
         
     def setup(self, run_list, skip_collected=True):
         self.run_list = run_list
         self.skip_collected = skip_collected
         return
     
-    def beam_is_ready(self):
-        if beamline['variables']['ring_status'].get_position() == 4:
+    def beam_changed(self):
+        status = beamline['variables']['ring_status'].get_position()
+        if (status != self.beam_status) and self.beam_status == 4:
             return True
         else:
             return False
@@ -51,7 +53,7 @@ class DataCollector(threading.Thread, gobject.GObject):
         self.pos = 0
         header = {}
         while self.pos < len(self.run_list) :
-            if not self.beam_is_ready():
+            if self.beam_changed():
                 self.paused = True
                 # place holder for displaying a mesage box for the user
                 gobject.idle_add( messagedialog, 
