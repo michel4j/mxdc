@@ -91,7 +91,7 @@ class ImgViewer(gtk.VBox):
         self.pack_start(self.toolbar, expand=False, fill=True)
         self.show_all()
         
-        self.contrast_level = 1.0
+        self.contrast_level = 0.0
         self.brightness_factor = 1.0
         self.image_size = self.disp_size
         self.x_center = self.y_center = self.image_size / 2
@@ -107,8 +107,8 @@ class ImgViewer(gtk.VBox):
         self.zoom_100_btn.connect('clicked', self.on_zoom_100)
         self.incr_contrast_btn.connect('clicked', self.on_incr_contrast)
         self.decr_contrast_btn.connect('clicked', self.on_decr_contrast)
-        self.incr_contrast_btn.connect('clicked', self.on_incr_brightness)
-        self.decr_contrast_btn.connect('clicked', self.on_decr_brightness)
+        #self.incr_brightness_btn.connect('clicked', self.on_incr_brightness)
+        #self.decr_brightness_btn.connect('clicked', self.on_decr_brightness)
         self.undo_btn.connect('clicked', self.on_reset_filters)
         self.prev_btn.connect('clicked', self.on_prev_frame)
         self.next_btn.connect('clicked', self.on_next_frame)
@@ -284,11 +284,13 @@ class ImgViewer(gtk.VBox):
         scale = self.image_size / float(self.orig_size)
         x = scale * self.beam_x
         y = scale * self.beam_y
-        tmp_image = self.work_img.crop(mybounds).convert('RGBA')
+        tmp_image = self.work_img.crop(mybounds)
+        tmp_image = self.apply_filters(tmp_image)   
+        tmp_image = tmp_image.convert('RGBA')
         self.draw_cross(tmp_image)
+        imagestr = tmp_image.tostring()
         self.last_displayed = time.time()
 
-        imagestr = self.apply_filters(tmp_image).tostring()    
         try:
             IS_RGBA = tmp_image.mode=='RGBA'
             pixbuf = gtk.gdk.pixbuf_new_from_data(imagestr,gtk.gdk.COLORSPACE_RGB, IS_RGBA, 8, tmp_image.size[0],
@@ -307,10 +309,11 @@ class ImgViewer(gtk.VBox):
             self.is_first_image = False
 
     def apply_filters(self, image):
+        return ImageOps.autocontrast(image,cutoff=self.contrast_level)
         #contrast_enh = ImageEnhance.Contrast(image)
-        #return contrast_enh.enhance(self.contrast_level)
-        brightness_enh = ImageEnhance.Brightness(image)
-        return brightness_enh.enhance(self.brightness_factor)
+        #return contrast_enh.enhance(self.brightness_factor)
+        #brightness_enh = ImageEnhance.Brightness(image)
+        #return brightness_enh.enhance(self.brightness_factor)
                         
     def poll_for_file(self):
         LogServer.log("%d images in display queue" % len(self.image_queue) )
@@ -433,17 +436,23 @@ class ImgViewer(gtk.VBox):
         return True    
     
     def on_incr_contrast(self,widget):
-        self.contrast_level += 0.1
+        if self.contrast_level < 45.0:
+            self.contrast_level += 2.0
+        else:
+            self.contrast_level = 0.0
         self.display()
         return True    
 
     def on_decr_contrast(self,widget):
-        self.contrast_level -= 0.1
+        if self.contrast_level >= 2.0:
+            self.contrast_level -= 2.0
+        else:
+            self.contrast_level = 0.0
         self.display()
         return True    
     
     def on_reset_filters(self,widget):
-        self.contrast_level = 1.0
+        self.contrast_level = 0.0
         self.brightness_factor = 1.0
         self.image_size = self.disp_size
         self.work_img = self.img.resize((self.image_size,self.image_size),self.interpolation)
