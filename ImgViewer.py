@@ -66,14 +66,6 @@ class ImgViewer(gtk.VBox):
         
         #image information display
         info_table = gtk.Table(1,2,False)
-        info_text = [
-            'Δt',
-            'Δϕ',
-            'D',
-            'ϕ',
-            'λ',
-            'Imean'
-        ]
         self.image_label = gtk.Label()
         self.image_info = gtk.Label()
         self.image_info.set_alignment(1,0.1)
@@ -236,14 +228,25 @@ class ImgViewer(gtk.VBox):
         # calculate average I and correct gamma
         self.raw_img = Image.open(self.filename)
         self.average_intensity = numpy.mean( numpy.fromstring(self.raw_img.tostring(), 'H') )
-        self.gamma_correction = 80.0 / self.average_intensity
-        self.img = self.raw_img.point(lambda x: x * self.gamma_correction).convert('L')
+        self.gamma_factor = 0.68 
+        self.img = self.raw_img.point(lambda x: x * self.gamma_factor).convert('L')
         self.orig_size = max(self.raw_img.size)
         
         # invert the image to get black spots on white background and resize
         self.img = self.img.point(lambda x: x * -1 + 255)
         self.work_img = self.img.resize( (self.image_size, self.image_size), self.interpolation)
         self.image_label.set_text(self.filename)
+        info_text = [
+            'Δt= %0.1f' % (self.delta_time),
+            'Δϕ = %0.2f' % (self.delta),
+            'D = %0.1f'% (self.distance),
+            'ϕ = %0.2f' % (self.phi_start),
+            'λ = %0.4f'% (self.wavelength),
+            'Imean = %0.1f' % (self.average_intensity)
+        ]
+        for text in info_text:
+            LogServer.log(text)
+
         
 
     def delayed_init(self):

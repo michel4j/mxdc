@@ -419,8 +419,8 @@ class RunWidget(gtk.VBox):
         except:
             delta = 1.0
         delta = (delta > 0.2 and delta) or 0.2
-        if (delta/time) < (1.0/5.0): # temporary velocity limit
-            delta = time * 1.0/5.0
+        #if (delta/time) < (1.0/5.0): # temporary velocity limit
+        #    delta = time * 1.0/5.0
         self.entry['delta'].set_text('%0.2f' % delta)
         start_angle = float(self.entry['start_angle'].get_text())
         end_angle = float(self.entry['end_angle'].get_text())
@@ -446,8 +446,8 @@ class RunWidget(gtk.VBox):
         except:
             time = 1.0
         time = (abs(time) > 0.1 and abs(time)) or 0.1
-        if (delta/time) < (1.0/5.0): # temporary velocity limit
-            time = delta / (1.0/5.0)
+        #if (delta/time) < (1.0/5.0): # temporary velocity limit
+        #    time = delta / (1.0/5.0)
         self.entry['time'].set_text('%0.2f' % time)
 
     def on_start_frame_changed(self,widget,event=None):
