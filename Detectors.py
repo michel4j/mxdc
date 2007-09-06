@@ -112,6 +112,9 @@ class FakeMCA(Detector):
     def get_name(self):
         return self.name
 
+    def set_cooling(self, mode):
+        return
+
 class EpicsMCA(Detector):
     MCAException = "MCA Exception"
     def __init__(self, name=None, channels=4096):
@@ -138,6 +141,15 @@ class EpicsMCA(Detector):
         self.slope = 0.00498
         self.status_scan.put(9)
         self.read_scan.put(0)
+        self.last_activity = time.time()
+        gobject.timeout_add(10000, self._monitor_mode)
+            
+    def _monitor_mode(self):
+        if time.time() - self.last_activity > 300:
+            self.last_activity = time.time()
+            self.set_cooling(False)
+        return True
+            
             
     def _roi_to_energy(self, x):
         return ( x * self.slope + self.offset)
@@ -151,8 +163,12 @@ class EpicsMCA(Detector):
         else:
             self.ROI = roi
 
-    def set_temperature(self, val):
-        self.TMODE.put(val)
+    def set_cooling(self, mode):
+        self.last_activity = time.time()
+        if mode:
+            self.TMODE.put(1)
+        else:
+            self.TMODE.put(0)
                     
     def set_roi_energy(self, energy):
         midp = self._energy_to_roi(energy)
@@ -183,6 +199,7 @@ class EpicsMCA(Detector):
             raise MCAException, 'MCA reading failed'
             
     def _collect(self, t=1.0):
+        self.last_activity = time.time()
         LogServer.log( "%s aquiring for %0.1f secs" % (self.name, t))
         self.count_time.put(t)
         self._start()

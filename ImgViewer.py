@@ -244,8 +244,9 @@ class ImgViewer(gtk.VBox):
             'λ = %0.4f'% (self.wavelength),
             'Imean = %0.1f' % (self.average_intensity)
         ]
-        for text in info_text:
-            LogServer.log(text)
+        
+        text = ' '.join(info_text)
+        LogServer.log(text)
 
         
 

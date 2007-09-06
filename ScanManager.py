@@ -123,6 +123,7 @@ class ScanManager(gtk.HBox):
 
     def on_start_scan(self,widget):        
         pars = self.scan_control.get_parameters()
+        self.mca.set_cooling(True)
         if pars['mode'] == 'MAD':
             self.edge_scan()
         else:
@@ -197,7 +198,7 @@ class ScanManager(gtk.HBox):
             
         if not check_folder( scan_parameters['directory'], None ):
             return False    
-            
+        
         title = scan_parameters['edge'] + " Edge Scan"
         self.plotter.set_labels(title=title, x_label="Energy (keV)", y1_label='Fluorescence')
         energy = scan_parameters['energy']

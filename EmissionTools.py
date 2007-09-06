@@ -127,8 +127,8 @@ class ExcitationScanner(gobject.GObject, threading.Thread):
     def run(self):
         CA.thread_init()
         self.motor.set_mask([1,1,1])
-        #if abs(self.energy - self.motor.get_position()) > 1e-4:
-        #    self.motor.move_to(self.energy, wait=True)
+        if abs(self.energy - self.motor.get_position()) > 1e-4:
+            self.motor.move_to(self.energy, wait=True)
         self.detector.set_roi()
         self.x_data_points, self.y_data_points = self.detector.acquire(t=self.time)
         self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
