@@ -250,13 +250,18 @@ class ActiveProgressBar(gtk.ProgressBar):
         self.set_fraction(0.0)
         self.set_text('0.0%')
         self.progress_id = None
+        self.busy_state = False
       
     def set_busy(self,busy):
         if busy:
-            self.progress_id = gobject.timeout_add(100, self.busy)
-        elif self.progress_id:
-            gobject.source_remove(self.progress_id)
-            self.progress_id = None
+            if self.busy_state == False:
+                self.progress_id = gobject.timeout_add(100, self.busy)
+                self.busy_state = True
+        else:
+            if self.progress_id:
+                gobject.source_remove(self.progress_id)
+                self.busy_state = False
+                self.progress_id = None
 
     def busy(self):
         self.pulse()
@@ -267,9 +272,10 @@ class ActiveProgressBar(gtk.ProgressBar):
         self.set_text(text)
         self.set_busy(True)
     
-    def idle_text(self,text):
+    def idle_text(self,text, fraction=None):
         self.set_busy(False)
-        self.set_fraction(0.0)
+        if fraction:
+            self.set_fraction(fraction)
         self.set_text(text)
     
     def set_complete(self, complete, text=''):
@@ -277,7 +283,7 @@ class ActiveProgressBar(gtk.ProgressBar):
             gobject.source_remove(self.progress_id)
             self.progress_id = None
         self.set_fraction(complete)
-        complete_text = '%0.1f%% %s' % ((complete * 100), text)
+        complete_text = '%0.1f%%  %s' % ((complete * 100), text)
         self.set_text(complete_text)
     
         

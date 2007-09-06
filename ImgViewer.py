@@ -4,7 +4,7 @@
 import sys
 import re, os, time, gc, stat
 import gtk, gobject
-import Image, ImageEnhance, ImageOps, ImageDraw
+import Image, ImageEnhance, ImageOps, ImageDraw, ImageFont
 import numpy, re, struct
 from scipy.misc import toimage, fromimage
 from ctypes import *
@@ -65,12 +65,13 @@ class ImgViewer(gtk.VBox):
         self.toolbar.insert(gtk.SeparatorToolItem(),14)
         
         #image information display
-        info_table = gtk.Table(1,2,False)
+        info_table = gtk.HBox(0,False)
         self.image_label = gtk.Label()
         self.image_info = gtk.Label()
-        self.image_info.set_alignment(1,0.1)
-        info_table.attach(self.image_label,0, 1, 0, 1,  xoptions=gtk.FILL)
-        info_table.attach(self.image_info,1, 2, 0, 1,  xoptions=gtk.FILL)
+        #self.image_info.set_alignment(1,0.5)
+        #self.image_label.set_alignment(0,0.5)
+        info_table.pack_start(self.image_label, expand=False, fill=False)
+        info_table.pack_end(self.image_info, expand=False, fill=False)
         
 
         self.pointer = gtk.Label("")
@@ -216,7 +217,8 @@ class ImgViewer(gtk.VBox):
         # invert the image to get black spots on white background and resize
         #self.img = self.img.point(lambda x: x * -1 + 255)
         self.work_img = self.raw_img.resize( (self.image_size, self.image_size), self.interpolation)
-        self.image_label.set_text(filename)
+        self.image_label.set_markup("<small>%s</small>" % os.path.split(self.filename)[1])
+        self.image_info.set_markup("<small>%s</small>" % "PCK Image")
         self.beam_x, self.beam_y = x_dim/2, y_dim/2
         self.pixel_size = 0.07324
         self.distance = 100
@@ -235,18 +237,10 @@ class ImgViewer(gtk.VBox):
         # invert the image to get black spots on white background and resize
         self.img = self.img.point(lambda x: x * -1 + 255)
         self.work_img = self.img.resize( (self.image_size, self.image_size), self.interpolation)
-        self.image_label.set_text(self.filename)
-        info_text = [
-            'Δt= %0.1f' % (self.delta_time),
-            'Δϕ = %0.2f' % (self.delta),
-            'D = %0.1f'% (self.distance),
-            'ϕ = %0.2f' % (self.phi_start),
-            'λ = %0.4f'% (self.wavelength),
-            'Imean = %0.1f' % (self.average_intensity)
-        ]
-        
-        text = ' '.join(info_text)
-        LogServer.log(text)
+        self.image_info_text = 'Δt= %0.1f Δϕ = %0.2f D = %0.1f ϕ = %0.2f λ = %0.4f Imean = %0.1f' % (self.delta_time, self.delta, self.distance,self.phi_start, self.wavelength,self.average_intensity)
+        self.image_label.set_markup("<small>%s</small>" % os.path.split(self.filename)[1])
+        self.image_info.set_markup("<small>%s</small>" % self.image_info_text)
+        LogServer.log(self.image_info_text)
 
         
 
@@ -292,6 +286,7 @@ class ImgViewer(gtk.VBox):
         tmp_image = self.apply_filters(tmp_image)   
         tmp_image = tmp_image.convert('RGBA')
         self.draw_cross(tmp_image)
+        #self.draw_info(tmp_image)
         imagestr = tmp_image.tostring()
         self.last_displayed = time.time()
 
@@ -406,6 +401,14 @@ class ImgViewer(gtk.VBox):
         draw.line((x, y-5, x, y+5),width=1,fill='#ff0000')
         return
 
+    def draw_info(self, img):
+        draw = ImageDraw.Draw(img)
+        font = ImageFont.load_default()
+        x = 10
+        y = self.disp_size - 10
+        draw.text( (x,y), self.image_info_text, font=font, fill='#ff0000')
+        return
+
     def resolution(self,x,y):
         displacement = self.pixel_size * numpy.sqrt ( (x -self.beam_x)**2 + (y -self.beam_y)**2 )
         angle = 0.5 * numpy.arctan(displacement/self.distance)
@@ -443,7 +446,7 @@ class ImgViewer(gtk.VBox):
         if self.contrast_level < 45.0:
             self.contrast_level += 2.0
         else:
-            self.contrast_level = 0.0
+            self.contrast_level = 45.0
         self.display()
         return True    
 

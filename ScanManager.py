@@ -112,7 +112,7 @@ class ScanManager(gtk.HBox):
                 
         self.scan_control.set_results(results)
         self.scan_control.create_run_btn.set_sensitive(True)
-        self.scan_control.progress_bar.idle_text("Scan Complete")
+        self.scan_control.progress_bar.idle_text("Scan Complete", 1.0)
         return True
         
     def on_chooch_error(self,widget, error):
@@ -275,7 +275,7 @@ class ScanManager(gtk.HBox):
                 peak_log = "%s \n%s" % (peak_log, ident)
             self.log_view.log( peak_log, False )
         self.plotter.canvas.draw()
-        self.scan_control.progress_bar.idle_text("Scan complete.")
+        self.scan_control.progress_bar.idle_text("Scan complete.", 1.0)
         return True
         
         

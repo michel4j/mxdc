@@ -10,7 +10,7 @@ from ConfigParser import ConfigParser
 from LogServer import LogServer
 from configobj import ConfigObj
 from Dialogs import *
-
+from ActiveWidgets import ActiveProgressBar
 (
     COLLECT_COLUMN_SAVED,
     COLLECT_COLUMN_ANGLE,
@@ -60,9 +60,9 @@ class CollectManager(gtk.HBox):
         bbox.pack_start(self.collect_btn, expand=True, fill=True)
         bbox.pack_start(self.stop_btn, expand=True, fill=True)
         controlbox.pack_start(bbox, expand=False, fill=True)
-        self.progress_bar = gtk.ProgressBar()
-        self.progress_bar.set_fraction(0)
-        self.progress_bar.set_text('0%')
+        self.progress_bar = ActiveProgressBar()
+        self.progress_bar.set_fraction(0.0)
+        self.progress_bar.idle_text('0%')
         controlbox.pack_end(self.progress_bar, expand=False, fill=True)
         dose_frame = gtk.Frame(label='Dose Control')
         dose_frame.set_sensitive(False)
@@ -377,21 +377,26 @@ class CollectManager(gtk.HBox):
         if paused:
             self.collect_btn.set_label('cm-resume')
             self.collect_state = COLLECT_STATE_PAUSED
+            self.progress_bar.idle_text("Paused")
         else:
-            self.collect_btn.set_label('cm-pause')    
+            self.collect_btn.set_label('cm-pause')   
             self.collect_state = COLLECT_STATE_RUNNING
 
     def on_activate(self, widget):
         if self.collect_state == COLLECT_STATE_IDLE:
             self.start_collection()
+            self.progress_bar.set_fraction(0)
+            self.progress_bar.busy_text("Starting data collection...")
         elif self.collect_state == COLLECT_STATE_RUNNING:
-            self.collector.pause()  
+            self.collector.pause()
+            self.progress_bar.busy_text("Pausing after this frame...")
         elif self.collect_state == COLLECT_STATE_PAUSED:
             self.collector.resume()
     
 
     def on_stop_btn_clicked(self,widget):
         self.collector.stop()
+        self.progress_bar.busy_text("Stopping after this frame...")
         
     def on_stop(self, widget=None):
         self.collect_state = COLLECT_STATE_IDLE
@@ -399,6 +404,7 @@ class CollectManager(gtk.HBox):
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
+        self.progress_bar.idle_text("Stopped")
     
     def on_new_image(self, widget, index, filename):
         self.pos = index
@@ -411,9 +417,8 @@ class CollectManager(gtk.HBox):
         time_unit = elapsed_time / fraction
         eta_time = time_unit * (1 - fraction)
         percent = fraction * 100
-        text = "%4.1f%s  ETA: %s" % (percent,'%',time.strftime('%H:%M:%S',time.gmtime(eta_time)))
-        self.progress_bar.set_fraction(fraction)
-        self.progress_bar.set_text(text)
+        text = "ETA: %s" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)))
+        self.progress_bar.set_complete(fraction, text)
                 
     def update_values(self,dict):        
         for key in dict.keys():

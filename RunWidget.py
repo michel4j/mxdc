@@ -449,6 +449,8 @@ class RunWidget(gtk.VBox):
         #if (delta/time) < (1.0/5.0): # temporary velocity limit
         #    time = delta / (1.0/5.0)
         self.entry['time'].set_text('%0.2f' % time)
+        self.check_changes()
+        return False
 
     def on_start_frame_changed(self,widget,event=None):
         start_angle = float(self.entry['start_angle'].get_text())
