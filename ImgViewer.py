@@ -230,7 +230,7 @@ class ImgViewer(gtk.VBox):
         # calculate average I and correct gamma
         self.raw_img = Image.open(self.filename)
         self.average_intensity = numpy.mean( numpy.fromstring(self.raw_img.tostring(), 'H') )
-        self.gamma_factor = 0.68 
+        self.gamma_factor = 80.0 / self.average_intensity
         self.img = self.raw_img.point(lambda x: x * self.gamma_factor).convert('L')
         self.orig_size = max(self.raw_img.size)
         
