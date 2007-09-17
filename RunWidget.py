@@ -4,7 +4,7 @@ import gtk, gobject
 import sys, os
 from Predictor import Predictor
 from Beamline import beamline
-from Dialogs import select_folder, check_folder
+from Dialogs import select_folder, check_folder, DirectoryButton
 from Utils import *
 (
   COLUMN_LABEL,
@@ -51,7 +51,7 @@ class RunWidget(gtk.VBox):
         # Data for labels (label: (col, row))
         labels = {
             'Prefix:':      (0, 0),
-            'Directory:':   (0, 1),
+            'Folder:':   (0, 1),
             'Distance:':    (0, 2),
             'Delta:':       (0, 3),
             'Time:':        (0, 4),
@@ -64,7 +64,7 @@ class RunWidget(gtk.VBox):
         # Data for entries (name: (col, row, length, [unit]))
         entries = {
             'prefix':       (1, 0, 3),
-            'directory':    (1, 1, 3),
+            #'directory':    (1, 1, 3),
             'distance':     (1, 2, 2, 'mm'),
             'delta':        (1, 3, 2, 'deg'),
             'time':         (1, 4, 2, 'sec'),
@@ -97,10 +97,15 @@ class RunWidget(gtk.VBox):
             if len(val)>3:
                 self.units[key] = gtk.Label(val[3])
                 self.layout_table.attach(self.units[key], val[0]+val[2], val[0]+val[2]+1, val[1], val[1]+1, xoptions=gtk.EXPAND)
-            
+        
+        # Set directory field non-editable, must use directory selector
+        self.entry['directory'] = DirectoryButton()
+        self.layout_table.attach(self.entry['directory'], 1, 4, 1, 2)
+        #self.entry['directory'].set_sensitive(False)
+    
         # entry signals
         self.entry['prefix'].connect('focus-out-event', self.on_prefix_changed)
-        self.entry['directory'].connect('focus-out-event', self.on_directory_changed)
+        #self.entry['directory'].connect('focus-out-event', self.on_directory_changed)
         self.entry['start_angle'].connect('focus-out-event', self.on_start_angle_changed)
         self.entry['delta'].connect('focus-out-event', self.on_delta_changed)
         self.entry['end_angle'].connect('focus-out-event', self.on_end_angle_changed)
@@ -111,7 +116,7 @@ class RunWidget(gtk.VBox):
         self.entry['wedge'].connect('focus-out-event', self.on_wedge_changed)
         
         self.entry['prefix'].connect('activate', self.on_prefix_changed)
-        self.entry['directory'].connect('activate', self.on_directory_changed)
+        #self.entry['directory'].connect('activate', self.on_directory_changed)
         self.entry['start_angle'].connect('activate', self.on_start_angle_changed)
         self.entry['delta'].connect('activate', self.on_delta_changed)
         self.entry['end_angle'].connect('activate', self.on_end_angle_changed)
@@ -126,9 +131,7 @@ class RunWidget(gtk.VBox):
         self.layout_table.attach(self.inverse_beam, 1, 3, 10, 11, xoptions=gtk.FILL)
         
         # Select Directory Button
-        self.dir_btn = gtk.ToolButton('gtk-open')
-        self.dir_btn.connect('clicked', self.on_select_dir)
-        self.layout_table.attach(self.dir_btn, 4, 5, 1, 2,xoptions=gtk.EXPAND)
+        self.entry['directory'].connect('clicked', self.on_select_dir)
 
         # Energy
         self.energy_store = gtk.ListStore(
@@ -160,7 +163,7 @@ class RunWidget(gtk.VBox):
         
         self.energy_list.append_column(column1)
         self.energy_list.append_column(column2)
-        self.layout_table.attach(self.sw, 1, 4, 11,12, xoptions=gtk.FILL)
+        self.layout_table.attach(self.sw, 1, 3, 11,12, xoptions=gtk.FILL)
         self.pack_start(self.layout_table, expand=False, fill=False)
             
         self.energy_btn_box = gtk.VBox(False,6)
@@ -171,7 +174,7 @@ class RunWidget(gtk.VBox):
         self.del_e_btn = gtk.ToolButton('gtk-remove')
         self.del_e_btn.connect("clicked", self.on_remove_energy_clicked)
         self.energy_btn_box.pack_start(self.del_e_btn, expand=False, fill=False)
-        self.layout_table.attach(self.energy_btn_box, 4, 5, 11,12)
+        self.layout_table.attach(self.energy_btn_box, 3, 4, 11,12)
         self.predictor = None
 
         # connect signals
@@ -353,6 +356,8 @@ class RunWidget(gtk.VBox):
                 widget = self.inverse_beam
             elif key == 'number':
                 widget = self.title
+            elif key == 'directory':
+                widget = self.entry['prefix']
             else:
                 widget = self.entry[key]
             if new_values[key] != self.parameters[key]:
@@ -511,6 +516,7 @@ class RunWidget(gtk.VBox):
         folder = select_folder()
         if folder:
             self.entry['directory'].set_text(folder)
+            self.check_changes()
         return True
             
     def update_predictor(self):
@@ -524,6 +530,10 @@ class RunWidget(gtk.VBox):
     def on_apply(self, widget):
         self.parameters = self.get_parameters()
         self.undo_stack.append(self.parameters)
+        if self.parameters['number'] == 0:
+            self.parameters['energy'] = [ beamline['motors']['energy'].get_position() ]
+            self.parameters['energy_label'] = ['E0']
+            self.set_parameters(self.parameters)       
         self.check_changes()
         self.undo_btn.set_sensitive(True)
         if self.predictor is not None:

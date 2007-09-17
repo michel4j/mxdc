@@ -29,6 +29,7 @@ class DataCollector(threading.Thread, gobject.GObject):
         self.stopped = False
         self.skip_collected = skip_collected
         self.beam_status = beamline['variables']['ring_status'].get_position()
+        self.beam_current = beamline['detectors']['current'].get_value()
         
     def setup(self, run_list, skip_collected=True):
         self.run_list = run_list
@@ -37,10 +38,14 @@ class DataCollector(threading.Thread, gobject.GObject):
     
     def beam_changed(self):
         status = beamline['variables']['ring_status'].get_position()
+        current = beamline['detectors']['current'].get_value()
         if (status != self.beam_status) and self.beam_status == 4:
             return True
         else:
-            return False
+            if current == 0.0 and self.beam_current > 5.0:
+                return True
+            else:
+                return False
 
     def run(self, widget=None):
         CA.thread_init()
@@ -49,6 +54,7 @@ class DataCollector(threading.Thread, gobject.GObject):
         self.shutter = beamline['shutters']['xbox_shutter']
         
         self.shutter.close()
+        time.sleep(0.1) # small delay to make sure shutter is closed
         self.detector.acquire_bg()
         self.pos = 0
         header = {}

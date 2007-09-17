@@ -124,7 +124,7 @@ class ImgViewer(gtk.VBox):
         self.last_displayed = 0
         self.cursor = None
         self.image_queue = []
-        #self.load_pck_image('ABS.pck')
+        #self.load_pck_image('FRAME.pck')
         #self.display()
 
     def __set_busy(self, busy ):
@@ -237,7 +237,7 @@ class ImgViewer(gtk.VBox):
         # invert the image to get black spots on white background and resize
         self.img = self.img.point(lambda x: x * -1 + 255)
         self.work_img = self.img.resize( (self.image_size, self.image_size), self.interpolation)
-        self.image_info_text = 'Δt= %0.1f Δϕ = %0.2f D = %0.1f ϕ = %0.2f λ = %0.4f Imean = %0.1f' % (self.delta_time, self.delta, self.distance,self.phi_start, self.wavelength,self.average_intensity)
+        self.image_info_text = 'Δt= %0.1f Δω = %0.2f D = %0.1f ω = %0.2f λ = %0.4f I_mean = %0.1f' % (self.delta_time, self.delta, self.distance,self.phi_start, self.wavelength,self.average_intensity)
         self.image_label.set_markup("<small>%s</small>" % os.path.split(self.filename)[1])
         self.image_info.set_markup("<small>%s</small>" % self.image_info_text)
         LogServer.log(self.image_info_text)

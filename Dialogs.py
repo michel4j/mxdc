@@ -331,7 +331,39 @@ class FileChooserDialog(gtk.FileChooserDialog):
 
         self.hide()
         return filename
-    
+
+class DirectoryButton(gtk.Button):
+    def __init__(self):
+        gtk.Button.__init__(self)
+        self.dir_label = gtk.Label('/data')
+        self.icon = gtk.image_new_from_stock('gtk-open', gtk.ICON_SIZE_MENU)
+        hbox = gtk.HBox(False,3)
+        hbox.pack_end(self.icon, expand=False, fill=False)
+        hbox.pack_end(gtk.VSeparator(), expand=False, fill=False)
+        hbox.pack_start(self.dir_label, expand=True, fill=True)
+        hbox.show_all()
+        self.add(hbox)
+        
+    def ellipsize(self,text):
+        base = os.path.basename(text)
+        root = os.path.dirname(text)
+        newtext = "%s/%s" % (os.path.basename(root), base)
+        if os.path.dirname( root ) == '/':
+            newtext = "/%s" % newtext
+        else:
+            newtext = ".../%s" % newtext
+        return newtext
+
+    def set_text(self,text):
+        self.path = text
+        self.dir_label.set_text( self.ellipsize(text) )
+
+    def get_text(self):
+        text = self.path
+        if text == '(None)':
+            return None
+        else:
+            return text
     
 select_folder = FolderSelector()
 select_image = ImageSelector()

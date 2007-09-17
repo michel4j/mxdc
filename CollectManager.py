@@ -378,6 +378,7 @@ class CollectManager(gtk.HBox):
             self.collect_btn.set_label('cm-resume')
             self.collect_state = COLLECT_STATE_PAUSED
             self.progress_bar.idle_text("Paused")
+            self.collect_btn.set_sensitive(True)
         else:
             self.collect_btn.set_label('cm-pause')   
             self.collect_state = COLLECT_STATE_RUNNING
@@ -389,6 +390,7 @@ class CollectManager(gtk.HBox):
             self.progress_bar.busy_text("Starting data collection...")
         elif self.collect_state == COLLECT_STATE_RUNNING:
             self.collector.pause()
+            self.collect_btn.set_sensitive(False)
             self.progress_bar.busy_text("Pausing after this frame...")
         elif self.collect_state == COLLECT_STATE_PAUSED:
             self.collector.resume()
@@ -396,6 +398,7 @@ class CollectManager(gtk.HBox):
 
     def on_stop_btn_clicked(self,widget):
         self.collector.stop()
+        self.stop_btn.set_sensitive(False)
         self.progress_bar.busy_text("Stopping after this frame...")
         
     def on_stop(self, widget=None):
