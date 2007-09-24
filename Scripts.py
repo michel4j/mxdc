@@ -112,3 +112,4 @@ def center_sample(crystal=False):
     os.remove(infile_name)
     LogServer.log('Loop centering complete in %d seconds.' % (time.time() - tst))
     return True
+

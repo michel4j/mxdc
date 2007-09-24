@@ -5,19 +5,19 @@ mode = live
 #mode = simulation
 
 [motors] 
-c2_roll		=	SMTR16082I1008:deg
-c2_pitch 	=	SMTR16082I1010:deg
-c2_yaw		=	SMTR16082I1009:deg
-c1_roll		=	SMTR16082I1007:deg
-dcm_y		=	SMTR16082I1006:mm
+#c2_roll		=	SMTR16082I1008:deg
+#c2_pitch 	=	SMTR16082I1010:deg
+#c2_yaw		=	SMTR16082I1009:deg
+#c1_roll		=	SMTR16082I1007:deg
+#dcm_y		=	SMTR16082I1006:mm
 c2_t1		=	SMTR16082I1011:mm
 c2_t2		=	SMTR16082I1012:mm  
 bragg		=	SMTR16082I1005:deg
 bst_x		=	SMTR16083I1014:mm
 bst_y		=	SMTR16083I1015:mm
 bst_z		=	SMTR16083I1016:mm
-gonio_stage_x	=	SMTR16083I1008:mm
-gonio_stage_y	=	SMTR16083I1009:mm
+#gonio_stage_x	=	SMTR16083I1008:mm
+#gonio_stage_y	=	SMTR16083I1009:mm
 sample_x	=	SMTR16083I1011:mm
 sample_y	=	SMTR16083I1012:mm
 sample_z	=	SMTR16083I1013:mm

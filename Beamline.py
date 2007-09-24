@@ -18,7 +18,7 @@ class Progress:
     def __init__(self, pbar):
         self.pbar = pbar
         self.count = 0
-        self.total = 44
+        self.total = 41
 
     def __call__(self, text=''):
         self.count +=  1
