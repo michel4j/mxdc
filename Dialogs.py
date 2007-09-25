@@ -349,7 +349,7 @@ class DirectoryButton(gtk.Button):
         root = os.path.dirname(text)
         newtext = "%s/%s" % (os.path.basename(root), base)
         if os.path.dirname( root ) == '/':
-            newtext = "%s" % newtext
+            newtext = "/%s" % newtext
         else:
             newtext = ".../%s" % newtext
         return newtext
