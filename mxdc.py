@@ -48,6 +48,9 @@ class AppClass:
         if not os.access( config_dir , os.R_OK):
             if os.access( os.environ['HOME'], os.W_OK):
                 os.mkdir( config_dir )
+
+        # register User on marccd server
+        self.config_user()
         
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
@@ -86,6 +89,10 @@ class AppClass:
         while gtk.events_pending():
             gtk.main_iteration()
         gobject.timeout_add(100, self.splash.hide)
+
+    def config_user(self):
+        username = "%s@%s" % (os.environ['USER'], os.environ['HOST'])
+        os.system('ssh marccd@cmcf-marccd config_mxdc_user %s' % username)
 
     def stop(self):
         self.scan_manager.stop()
