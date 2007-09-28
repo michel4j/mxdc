@@ -387,7 +387,6 @@ class CollectManager(gtk.HBox):
         if self.collect_state == COLLECT_STATE_IDLE:
             self.start_collection()
             self.progress_bar.set_fraction(0)
-            self.progress_bar.busy_text("Starting data collection...")
         elif self.collect_state == COLLECT_STATE_RUNNING:
             self.collector.pause()
             self.collect_btn.set_sensitive(False)
@@ -431,6 +430,7 @@ class CollectManager(gtk.HBox):
         self.start_time = time.time()
         self.create_runlist()
         if self.check_runlist():
+            self.progress_bar.busy_text("Starting data collection...")
             self.collector = DataCollector(self.run_list, skip_collected=True)
             self.collector.connect('done', self.on_stop)
             self.collector.connect('paused',self.on_pause)
