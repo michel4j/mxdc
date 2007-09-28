@@ -35,6 +35,10 @@ class DataCollector(threading.Thread, gobject.GObject):
         self.run_list = run_list
         self.skip_collected = skip_collected
         return
+
+    def config_user(self):
+        username = "%s@%s" % (os.environ['USER'], os.environ['HOST'])
+        os.system('ssh marccd@cmcf-marccd config_mxdc_user %s' % username)
     
     def beam_changed(self):
         status = beamline['variables']['ring_status'].get_position()
@@ -49,6 +53,7 @@ class DataCollector(threading.Thread, gobject.GObject):
 
     def run(self, widget=None):
         CA.thread_init()
+        self.config_user()
         self.detector = beamline['detectors']['ccd']
         self.gonio = beamline['goniometer']
         self.shutter = beamline['shutters']['xbox_shutter']
