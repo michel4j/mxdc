@@ -237,7 +237,7 @@ class SampleViewer(gtk.HBox):
         self.othergc = self.video.window.new_gc()
         self.gc.foreground = self.video.get_colormap().alloc_color("green")
         self.gc.set_function(gtk.gdk.XOR)
-        self.gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_NOT_LAST,gtk.gdk.JOIN_MITER)
+        self.gc.set_line_attributes(2,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
         self.pangolayout = self.video.create_pango_layout("")
         return True
     
