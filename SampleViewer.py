@@ -5,7 +5,7 @@ import sys, time, os
 import numpy
 import EPICS as CA
 from Dialogs import save_selector
-from Beamline import beamline
+from Beamline import beamline, init_beamline
 from LogServer import LogServer
 from VideoThread import VideoThread
 from Scripting import Script
@@ -242,15 +242,19 @@ class SampleViewer(gtk.HBox):
         return True
     
     def on_zoom_in(self,widget):
-        cur_zoom = self.zoom.get_position()
-        next_zoom = (cur_zoom < 13) and int(cur_zoom + 1) or int(cur_zoom)
-        self.zoom.move_to(next_zoom)
+        #cur_zoom = self.zoom.get_position()
+        #next_zoom = (cur_zoom < 13) and int(cur_zoom + 1) or int(cur_zoom)
+        self.zoom.move_to(10)
         return True
 
     def on_zoom_out(self,widget):
-        cur_zoom = self.zoom.get_position()
-        next_zoom = (cur_zoom > 1) and int(cur_zoom - 1) or int(cur_zoom)
-        self.zoom.move_to(next_zoom)
+        #cur_zoom = self.zoom.get_position()
+        #next_zoom = (cur_zoom > 1) and int(cur_zoom - 1) or int(cur_zoom)
+        self.zoom.move_to(1)
+        return True
+
+    def on_unzoom(self,widget):
+        self.zoom.move_to(5)
         return True
 
     def on_incr_omega(self,widget):
@@ -274,9 +278,6 @@ class SampleViewer(gtk.HBox):
         self.omega.move_to(target)
         return True
 
-    def on_unzoom(self,widget):
-        self.zoom.move_to(1)
-        return True
 
     def position(self,x,y):
         im_x = int( float(x)/self.display_size)
@@ -558,6 +559,7 @@ def main():
     win.set_title("SampleViewer")
     book = gtk.Notebook()
     win.add(book)
+    init_beamline()
     myviewer = SampleViewer()
     book.append_page(myviewer, tab_label=gtk.Label('Sample Viewer') )
     #book.append_page(gtk.DrawingArea(), tab_label=gtk.Label('Hutch Viewer') )
