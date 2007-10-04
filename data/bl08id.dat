@@ -38,6 +38,8 @@ zoom		=	SMTR16083I1021:mm
 
 [misc] 
 attenuator = PFIL16083I1004:bit|PFIL16083I1003:bit|PFIL16083I1002:bit|PFIL16083I1001:bit
+dcm_bpm = A1608-2-I10-01:A:fbk|A1608-2-I10-04:A:fbk|A1608-2-I10-02:A:fbk|A1608-2-I10-03:A:fbk
+xray_bpm = A1608-3-01:A:fbk|A1608-3-03:A:fbk|A1608-3-04:A:fbk|A1608-3-02:A:fbk
 mca = XFD1608-101:mca1
 gonio = GV6K1608-001
 

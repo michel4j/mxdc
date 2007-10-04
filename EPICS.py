@@ -108,12 +108,12 @@ class PV:
     def __del__(self):
         if libca:
             libca.ca_clear_channel(self.chid)
-            libca.ca_pend_event(0.01)
-            libca.ca_pend_io(10.0)
+            libca.ca_pend_event(0.1)
+            libca.ca_pend_io(20.0)
     
     def __connect(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
-        libca.ca_pend_io(2)
+        libca.ca_pend_io(20)
         self.count = libca.ca_element_count(self.chid)
         self.element_type = libca.ca_field_type(self.chid)
         self.connected = libca.ca_state(self.chid)

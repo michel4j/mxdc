@@ -331,6 +331,26 @@ class Normalizer(threading.Thread):
             self.factor = self.first/numpy.mean(self.accum)
             time.sleep(self.interval)
             
-                
+
+class QBPM:
+    def __init__(self, A, B, C, D):
+        self.A = PV(A)
+        self.B = PV(B)
+        self.C = PV(C)
+        self.D = PV(D)
+    
+    def get_position(self):
+        a = self.A.get()
+        b= self.B.get()
+        c = self.C.get()
+        d = self.D.get()
+        y = (a - b) / (a + b)
+        x = (c - d) / (c + d)
+        return [x, y]
+    
+    def sum(self):
+        a, b, c, d = self.A.get(), self.B.get(), self.C.get(), self.D.get()
+        return a + b + c + d
+   
 gobject.type_register(Detector)
     
