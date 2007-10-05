@@ -340,18 +340,24 @@ class QBPM:
         self.D = PV(D)
         self.x_factor = 1.0
         self.y_factor = 1.0
+        self.x_offset = 0.0
+        self.y_offset = 0.0
 
     def set_factors(self, xf=1, yf=1):
         self.x_factor = xf
         self.y_factor = yf
-        
+    
+    def set_offsets(self, xoff=0, yoff=0):
+        self.x_offset = xoff
+        self.y_offset = yoff
+
     def get_position(self):
         a = self.A.get()
         b= self.B.get()
         c = self.C.get()
         d = self.D.get()
-        y = self.y_factor * (a - b) / (a + b)
-        x = self.x_factor * (c - d) / (c + d)
+        y = (self.y_factor * (a - b) / (a + b)) - self.y_offset
+        x = (self.x_factor * (c - d) / (c + d)) - self.x_offset
         return [x, y]
     
     def sum(self):

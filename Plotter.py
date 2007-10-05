@@ -20,9 +20,9 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanva
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 
 class Plotter( gtk.Frame ):
-    def __init__( self, loop=False, buffer_size=500 ):
+    def __init__( self, loop=False, buffer_size=2500 ):
         gtk.Frame.__init__(self)
-        self.fig = Figure( figsize=( 10, 8 ), dpi=100, facecolor='w' )
+        self.fig = Figure( figsize=( 10, 8 ), dpi=72, facecolor='w' )
         self.axis = []
         self.axis.append( self.fig.add_subplot(111) )
         self.xformatter = FormatStrFormatter('%0.4g')
