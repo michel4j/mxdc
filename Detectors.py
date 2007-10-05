@@ -338,14 +338,20 @@ class QBPM:
         self.B = PV(B)
         self.C = PV(C)
         self.D = PV(D)
-    
+        self.x_factor = 1.0
+        self.y_factor = 1.0
+
+    def set_factors(self, xf=1, yf=1):
+        self.x_factor = xf
+        self.y_factor = yf
+        
     def get_position(self):
         a = self.A.get()
         b= self.B.get()
         c = self.C.get()
         d = self.D.get()
-        y = (a - b) / (a + b)
-        x = (c - d) / (c + d)
+        y = self.y_factor * (a - b) / (a + b)
+        x = self.x_factor * (c - d) / (c + d)
         return [x, y]
     
     def sum(self):
