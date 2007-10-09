@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 A Plotting widget using matplotlib - several lines can be added to multiple axes
 points can be added to each line and the plot is automatically updated.
