@@ -708,7 +708,7 @@ def main():
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(6)
     win.set_title("ImgViewer Demo")
-    myview = ImgViewer()
+    myview = ImgViewer(size=768)
     hbox = gtk.HBox(False)
     hbox.pack_start(myview)
     win.add(hbox)
