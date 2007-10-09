@@ -380,7 +380,7 @@ class ImgViewer(gtk.VBox):
         tmp_image = tmp_image.resize((lens_size,lens_size),Image.NEAREST)
         tmp_image = ImageOps.expand(tmp_image, border=1, fill=(255, 255, 255))
         tmp_image = ImageOps.expand(tmp_image, border=1, fill=(0, 0, 0))
-        imagestr = self.apply_filters(tmp_image).tostring()
+        imagestr = tmp_image.tostring()
         #gc.collect() # we need to cleanup memory a bit more often 
         try:
             IS_RGBA = tmp_image.mode=='RGBA'
