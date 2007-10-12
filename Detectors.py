@@ -356,8 +356,14 @@ class QBPM:
         b= self.B.get()
         c = self.C.get()
         d = self.D.get()
-        y = (self.y_factor * (a - b) / (a + b)) - self.y_offset
-        x = (self.x_factor * (c - d) / (c + d)) - self.x_offset
+        sumy = (a+b) -self.y_offset
+        sumx = (c + d)) - self.x_offset
+        if sumy == 0.0:
+            sumy = 1.0e-10
+        if sumx == 0.0:
+            sumx = 1.0e-10
+        y = (self.y_factor * (a - b) / sumy
+        x = (self.x_factor * (c - d) / sumx
         return [x, y]
     
     def sum(self):
