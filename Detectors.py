@@ -362,8 +362,8 @@ class QBPM:
             sumy = 1.0e-10
         if sumx == 0.0:
             sumx = 1.0e-10
-        y = (self.y_factor * (a - b) / sumy
-        x = (self.x_factor * (c - d) / sumx
+        y = self.y_factor * (a - b) / sumy
+        x = self.x_factor * (c - d) / sumx
         return [x, y]
     
     def sum(self):
