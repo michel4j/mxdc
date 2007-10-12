@@ -356,8 +356,8 @@ class QBPM:
         b= self.B.get()
         c = self.C.get()
         d = self.D.get()
-        sumy = (a+b) -self.y_offset
-        sumx = (c + d)) - self.x_offset
+        sumy = (a + b) - self.y_offset
+        sumx = (c + d) - self.x_offset
         if sumy == 0.0:
             sumy = 1.0e-10
         if sumx == 0.0:
