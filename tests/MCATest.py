@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-from Detector import *
+import sys, os
+sys.path += ['../']
+
+from Detectors import *
 
 mca = EpicsMCA('XFD1608-101:mca1')
 mca.setup(roi=(0,100))
