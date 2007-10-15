@@ -2,7 +2,8 @@
 
 import gtk, gobject
 import sys, os
-from Dialogs import select_folder
+from Dialogs import select_folder, check_folder, DirectoryButton
+
 from ActiveWidgets import ActiveProgressBar
 
 (
@@ -66,13 +67,14 @@ class ScanControl(gtk.VBox):
         param_frame.get_label_widget().set_use_markup(True)
         param_align = gtk.Alignment()
         param_box = gtk.Table(3,4,False)
+        param_box.set_col_spacings(3)
+        param_box.set_row_spacings(3)
         param_align.set(0.5,0.5,1,1)
         param_align.set_padding(0,0,0,0)
         param_frame.add(param_align)
         param_align.add(param_box)
         items = {
             'prefix': ('Prefix:',0,'',2),
-            'directory': ('Directory:',1,'',2),            
             'edge':    ('Edge:', 2, '',1),
             'energy': ('Energy:',3,'keV',1),
             'time': ('Time:', 4, 'sec',1)
@@ -95,9 +97,12 @@ class ScanControl(gtk.VBox):
             self.scan_option[key].connect('toggled',self.update_description, key)
         
         # Select Directory Button
-        self.dir_btn = gtk.ToolButton('gtk-open')
-        self.dir_btn.connect('clicked', self.on_select_dir)
-        param_box.attach(self.dir_btn, 3, 4, 1, 2,xoptions=gtk.EXPAND)
+        lbl = gtk.Label('Directory:')
+        lbl.set_alignment(1,0.5)
+        param_box.attach(lbl, 0, 1, 1, 2)
+        self.entry['directory'] = DirectoryButton()
+        param_box.attach(self.entry['directory'], 1, 3, 1, 2,xoptions=gtk.FILL)
+        self.entry['directory'].connect('clicked', self.on_select_dir)
 
         # command button area        
         bbox = gtk.VBox(False,6)
