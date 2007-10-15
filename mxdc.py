@@ -20,11 +20,11 @@ from Beamline import init_beamline
 class AppClass:
     def __init__(self):
         self.splash = gtk.Window()
-        self.splash.set_size_request(480,300)
+        self.splash.set_size_request(480,296)
         self.splash.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
         self.splash.set_gravity(gtk.gdk.GRAVITY_CENTER)
         self.splash_frame = gtk.Frame()
-        self.splash_frame.set_shadow_type(gtk.SHADOW_OUT)
+        #self.splash_frame.set_shadow_type(gtk.SHADOW_OUT)
         self.img = gtk.Image()
         self.img.show()
         self.img.set_from_file(sys.path[0] + '/images/splash.png')
