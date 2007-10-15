@@ -86,6 +86,7 @@ class ImgViewer(gtk.VBox):
         
         self.contrast_level = 0.0
         self.brightness_factor = 1.0
+        self.histogram_shift = 0
         self.image_size = self.disp_size
         self.x_center = self.y_center = self.image_size / 2
         self.follow_frames = False
@@ -307,12 +308,14 @@ class ImgViewer(gtk.VBox):
             self.delayed_init()
             self.is_first_image = False
 
-    def apply_filters(self, image):
-        return ImageOps.autocontrast(image,cutoff=self.contrast_level)
-        #contrast_enh = ImageEnhance.Contrast(image)
-        #return contrast_enh.enhance(self.brightness_factor)
-        #brightness_enh = ImageEnhance.Brightness(image)
-        #return brightness_enh.enhance(self.brightness_factor)
+    def apply_filters(self, image):       
+        if self.histogram_shift != 0:
+            new_img = self.adjust_level(image, self.histogram_shift)
+        
+        else:
+            #using auto_contrast        
+            new_img = ImageOps.autocontrast(image,cutoff=self.contrast_level)
+        return new_img
                         
     def poll_for_file(self):
         LogServer.log("%d images in display queue" % len(self.image_queue) )
@@ -430,7 +433,9 @@ class ImgViewer(gtk.VBox):
         self.x_center = int(scale * self.x_center) 
         self.y_center = int(scale * self.y_center)
 
-        
+    def adjust_level(self, img, shift):        
+        return img.point(lambda x: x * 1 + shift)
+    
     # callbacks    
     def on_incr_brightness(self,widget):
         self.brightness_factor += 0.1
@@ -443,17 +448,20 @@ class ImgViewer(gtk.VBox):
         return True    
     
     def on_incr_contrast(self,widget):
-        if self.contrast_level < 45.0:
+        if self.contrast_level < 45.0 and self.histogram_shift ==0:
             self.contrast_level += 2.0
         else:
+            self.histogram_shift -= 5
             self.contrast_level = 45.0
+
         self.display()
         return True    
 
     def on_decr_contrast(self,widget):
-        if self.contrast_level >= 2.0:
+        if self.contrast_level >= 2.0 and self.histogram_shift ==0:
             self.contrast_level -= 2.0
         else:
+            self.histogram_shift += 5
             self.contrast_level = 0.0
         self.display()
         return True    
@@ -461,6 +469,7 @@ class ImgViewer(gtk.VBox):
     def on_reset_filters(self,widget):
         self.contrast_level = 0.0
         self.brightness_factor = 1.0
+        self.histogram_shift = 0
         self.image_size = self.disp_size
         self.work_img = self.img.resize((self.image_size,self.image_size),self.interpolation)
         self.display()
