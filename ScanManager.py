@@ -242,6 +242,7 @@ class ScanManager(gtk.HBox):
             scan_parameters['prefix'], scan_parameters['edge'])
         self.ex_scanner = ExcitationScanner(self.bragg_energy, self.mca, energy, count_time, scan_filename)
         self.ex_scanner.connect('done', self.on_excitation_done)
+        self.ex_scanner.connect('error', self.on_scan_aborted)
         
         self.shutter.open()
         self.scan_control.start_btn.set_sensitive(False)
