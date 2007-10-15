@@ -20,7 +20,7 @@ from Beamline import init_beamline
 class AppClass:
     def __init__(self):
         self.splash = gtk.Window()
-        self.splash.set_size_request(480,296)
+        self.splash.set_size_request(480,290)
         self.splash.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
         self.splash.set_gravity(gtk.gdk.GRAVITY_CENTER)
         self.splash_frame = gtk.Frame()
