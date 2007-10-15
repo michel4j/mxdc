@@ -84,18 +84,19 @@ class Scanner(threading.Thread, gobject.GObject):
             self.count += 1
             prev = self.positioner.get_position()                
 
-            self.positioner.move_to(x, wait=True)
-            
-            y = self.detector.count(self.time)
-            y *= self.normalizer.get_factor()
-            
-            LogServer.log("--- Position and Count obtained ---")
-            self.x_data_points.append( x )
-            self.y_data_points.append( y )
-            fraction = float(self.count) / len(self.positioner_targets)
-            gobject.idle_add(self.emit, "new-point", x, y )
-            gobject.idle_add(self.emit, "progress", fraction )
-            
+            try:
+                self.positioner.move_to(x, wait=True)            
+                y = self.detector.count(self.time)
+                y *= self.normalizer.get_factor()
+                LogServer.log("--- Position and Count obtained ---")
+                self.x_data_points.append( x )
+                self.y_data_points.append( y )
+                fraction = float(self.count) / len(self.positioner_targets)
+                gobject.idle_add(self.emit, "new-point", x, y )
+                gobject.idle_add(self.emit, "progress", fraction )
+            except:
+                self.aborted = True
+             
         self.normalizer.stop()
         if self.aborted:
             gobject.idle_add(self.emit, "aborted")

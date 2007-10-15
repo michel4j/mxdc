@@ -149,8 +149,7 @@ class EpicsMCA(Detector):
             self.last_activity = time.time()
             self.set_cooling(False)
         return True
-            
-            
+
     def _roi_to_energy(self, x):
         return ( x * self.slope + self.offset)
     
@@ -174,7 +173,7 @@ class EpicsMCA(Detector):
         midp = self._energy_to_roi(energy)
         self.ROI = (midp-15, midp+15)
                
-    def _start(self, retries=3, timeout=10):
+    def _start(self, retries=5, timeout=10):
         i = 0
         success = False
         while i < retries and not success:
@@ -184,6 +183,7 @@ class EpicsMCA(Detector):
             self.START.put(1)
             success = self.wait_count(start=True, stop=False, timeout=timeout)
         if i==retries and not success:
+            LogServer.log( "%s MCA acquire failed." )
             raise MCAException, 'MCA acquire failed'
                   
     def _read(self, retries=3, timeout=5):
