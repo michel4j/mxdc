@@ -116,7 +116,6 @@ class FakeMCA(Detector):
         return
 
 class EpicsMCA(Detector):
-    MCAException = "MCA Exception"
     def __init__(self, name=None, channels=4096):
         Detector.__init__(self,name)
         self.name = name     
@@ -184,7 +183,7 @@ class EpicsMCA(Detector):
             success = self.wait_count(start=True, stop=False, timeout=timeout)
         if i==retries and not success:
             LogServer.log( "MCA acquire failed. Could not start after %s attempts." % i )
-            raise MCAException, 'MCA acquire failed'
+            raise DetectorException, 'MCA acquire failed'
                   
     def _read(self, retries=3, timeout=5):
         i = 0
@@ -196,7 +195,7 @@ class EpicsMCA(Detector):
             self.READ.put(1)
             success = self.wait_read(start=True, stop=False, timeout=timeout)
         if i==retries and not success:
-            raise MCAException, 'MCA reading failed'
+            raise DetectorException, 'MCA reading failed'
             
     def _collect(self, t=1.0):
         self.last_activity = time.time()
