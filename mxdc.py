@@ -23,7 +23,7 @@ class AppClass:
         self.splash.set_size_request(480,290)
         self.splash.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
         self.splash.set_gravity(gtk.gdk.GRAVITY_CENTER)
-        self.splash_frame = gtk.Frame()
+        #self.splash_frame = gtk.Frame()
         #self.splash_frame.set_shadow_type(gtk.SHADOW_OUT)
         self.img = gtk.Image()
         self.img.show()
