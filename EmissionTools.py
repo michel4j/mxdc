@@ -130,11 +130,14 @@ class ExcitationScanner(gobject.GObject, threading.Thread):
         if abs(self.energy - self.motor.get_position()) > 1e-4:
             self.motor.move_to(self.energy, wait=True)
         self.detector.set_roi()
-        self.x_data_points, self.y_data_points = self.detector.acquire(t=self.time)
-        self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
-        assign_peaks(self.peaks)
-        self.save()
-        gobject.idle_add(self.emit, "done")
+        try:
+            self.x_data_points, self.y_data_points = self.detector.acquire(t=self.time)
+            self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
+            assign_peaks(self.peaks)
+            self.save()
+            gobject.idle_add(self.emit, "done")
+        except:
+            gobject.idle_add(self.emit, "error")
 
     def set_output(self, filename):
         self.filename = filename
