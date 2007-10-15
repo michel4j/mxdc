@@ -90,7 +90,7 @@ class ScanManager(gtk.HBox):
         self.scan_control.stop_btn.set_sensitive(False)
         self.scan_control.abort_btn.set_sensitive(False)
         self.scanning = False
-        self.scan_control.progress_bar.idle_text('Scan Aborted')
+        self.scan_control.progress_bar.idle_text('Scan Aborted', 0.0)
         return True
     
     def on_chooch_done(self,widget):
