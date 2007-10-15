@@ -33,7 +33,7 @@ class AppClass:
         #self.splash_frame.add( vbox )
         self.pbar = gtk.ProgressBar()
         vbox.pack_end(self.pbar)
-        self.splash.add(self.vbox)
+        self.splash.add(vbox)
         self.splash.set_position(gtk.WIN_POS_CENTER)        
         self.win = gtk.Window()
         self.win.set_position(gtk.WIN_POS_CENTER)
