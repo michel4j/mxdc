@@ -172,7 +172,7 @@ class EpicsMCA(Detector):
         midp = self._energy_to_roi(energy)
         self.ROI = (midp-15, midp+15)
                
-    def _start(self, retries=5, timeout=10):
+    def _start(self, retries=5, timeout=5):
         i = 0
         success = False
         while i < retries and not success:
@@ -250,7 +250,7 @@ class EpicsMCA(Detector):
                 return False
         return True        
                 
-    def wait_read(self, start=False,stop=True, poll=0.05, timeout=10):       
+    def wait_read(self, start=False,stop=True, poll=0.05, timeout=5):       
         if (start):
             time_left = timeout
             LogServer.log("%s waiting for MCA to start reading" % (self.name) )
