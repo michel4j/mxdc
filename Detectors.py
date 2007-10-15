@@ -178,12 +178,12 @@ class EpicsMCA(Detector):
         success = False
         while i < retries and not success:
             if i > 0:
-                LogServer.log( "%s MCA could not start. Retrying %d" % (self.name, i))
+                LogServer.log( "%s MCA could not start. Retry %d" % (self.name, i))
             i += 1
             self.START.put(1)
             success = self.wait_count(start=True, stop=False, timeout=timeout)
         if i==retries and not success:
-            LogServer.log( "%s MCA acquire failed." )
+            LogServer.log( "MCA acquire failed. Could not start after %s attempts." % i )
             raise MCAException, 'MCA acquire failed'
                   
     def _read(self, retries=3, timeout=5):
@@ -191,7 +191,7 @@ class EpicsMCA(Detector):
         success = False
         while i < retries and not success:
             if i > 0:
-                LogServer.log( "%s MCA could not read. Retrying %d" % (self.name, i))
+                LogServer.log( "%s MCA could not read. Retry %d" % (self.name, i))
             i += 1
             self.READ.put(1)
             success = self.wait_read(start=True, stop=False, timeout=timeout)
