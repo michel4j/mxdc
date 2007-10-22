@@ -722,6 +722,11 @@ def main():
     hbox.pack_start(myview)
     win.add(hbox)
     win.show_all()
+
+    if len(sys.argv) == 2:
+        myview.set_filename(sys.argv[1])
+        myview.load_image()
+        myview.display()
     
     try:
         gtk.main()
