@@ -356,8 +356,8 @@ class RunWidget(gtk.VBox):
                 widget = self.inverse_beam
             elif key == 'number':
                 widget = self.title
-            elif key == 'directory':
-                widget = self.entry['prefix']
+            #elif key == 'directory':
+            #    widget = self.entry['prefix']
             else:
                 widget = self.entry[key]
             if new_values[key] != self.parameters[key]:
