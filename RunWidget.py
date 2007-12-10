@@ -325,15 +325,15 @@ class RunWidget(gtk.VBox):
             keys = ['end_angle','end_frame','wedge']
             for key in keys:
                 self.entry[key].set_sensitive(False)
-                self.entry[key].hide()
+                #self.entry[key].hide()
             keys = ['end_angle','wedge']
             for key in keys:
                 self.units[key].set_sensitive(False)
-                self.units[key].hide()
+                #self.units[key].hide()
             keys = ['End:','Wedge:']
             for key in keys:
                 self.labels[key].set_sensitive(False)
-                self.labels[key].hide()
+                #self.labels[key].hide()
             self.inverse_beam.hide()
             self.energy_btn_box.hide()
             self.inverse_beam.set_sensitive(False)

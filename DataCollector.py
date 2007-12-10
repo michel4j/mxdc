@@ -67,7 +67,7 @@ class DataCollector(threading.Thread, gobject.GObject):
             if self.beam_changed():
                 self.paused = True
                 # place holder for displaying a mesage box for the user
-                gobject.idle_add( messagedialog, 
+                gobject.timeout_add(0, messagedialog, 
                    gtk.MESSAGE_WARNING,
                    'Data Collection Paused',
                    'Data Collection has been paused because the state of the storage ring has changed. Please resume data collection once the beam is ready')
