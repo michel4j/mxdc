@@ -362,7 +362,6 @@ class RunWidget(gtk.VBox):
                 widget = self.entry[key]
             if new_values[key] != self.parameters[key]:
                 widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
-                print key
             else:
                 widget.modify_text(gtk.STATE_NORMAL, None)
 
