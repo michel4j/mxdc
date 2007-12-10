@@ -349,8 +349,6 @@ class RunWidget(gtk.VBox):
     
     def check_changes(self):
         new_values = self.get_parameters()
-        print new_values
-        print self.parameters
         for key in new_values.keys():
             if key in ['energy', 'energy_label']:
                 widget = self.energy_list
@@ -364,6 +362,7 @@ class RunWidget(gtk.VBox):
                 widget = self.entry[key]
             if new_values[key] != self.parameters[key]:
                 widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
+                print key
             else:
                 widget.modify_text(gtk.STATE_NORMAL, None)
 
