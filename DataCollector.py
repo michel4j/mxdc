@@ -66,11 +66,12 @@ class DataCollector(threading.Thread, gobject.GObject):
         while self.pos < len(self.run_list) :
             if self.beam_changed():
                 self.paused = True
+                LogServer.log("No beam: Data collection paused! Please resume when the beam is up again")
                 # place holder for displaying a mesage box for the user
-                gobject.timeout_add(0, messagedialog, 
-                   gtk.MESSAGE_WARNING,
-                   'Data Collection Paused',
-                   'Data Collection has been paused because the state of the storage ring has changed. Please resume data collection once the beam is ready')
+                #gobject.timeout_add(0, messagedialog, 
+                #   gtk.MESSAGE_WARNING,
+                #   'Data Collection Paused',
+                #   'Data Collection has been paused because the state of the storage ring has changed. Please resume data collection once the beam is ready')
                 
             if self.paused:
                 gobject.idle_add(self.emit, 'paused', True)
