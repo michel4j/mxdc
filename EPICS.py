@@ -4,6 +4,7 @@ import thread
 import time
 import atexit
 from ctypes import *
+import gobject
 
 # Define EPICS constants
 (
@@ -253,6 +254,10 @@ def thread_init():
 def ca_exception_handler(event):
     print event.stat
     return 0
+
+def heart_beat():
+    libca.ca_pend_io(0.01)
+    return True
         
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
@@ -311,7 +316,8 @@ libca.lock = thread.allocate_lock()
 _cb_factory = CFUNCTYPE(c_int, ExceptionHandlerArgs)        
 _cb_function = _cb_factory(ca_exception_handler)
 _cb_user_agg = c_void_p()
-#libca.ca_add_exception_event(_cb_function, _cb_user_agg)
+libca.ca_add_exception_event(_cb_function, _cb_user_agg)
+gobject.timeout_add(10, heart_beat)
 
 # cleanup gracefully at termination
 atexit.register(libca.ca_context_destroy)
