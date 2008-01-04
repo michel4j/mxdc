@@ -137,7 +137,7 @@ class PV:
         self.count = None
         self.element_type = None
         self.callbacks = {}
-        self.connected = NEVER_CONNECTED
+        self.state = NEVER_CONNECTED
         if connect:
             self.__connect()
         else:
@@ -154,7 +154,7 @@ class PV:
         libca.ca_pend_io(20)
         self.count = libca.ca_element_count(self.chid)
         self.element_type = libca.ca_field_type(self.chid)
-        self.connected = libca.ca_state(self.chid)
+        self.state = libca.ca_state(self.chid)
         self.__allocate_data_mem()
 
     def __connect_deferred(self):
@@ -198,7 +198,7 @@ class PV:
             self.data = self.data_type()
                
     def connect_monitor(self, callback):
-        if self.connected != CONNECTED:
+        if self.state != CONNECTED:
             self.__connect()
         event_id = c_ulong()
         cb_closure = Closure(callback)
@@ -223,7 +223,7 @@ class PV:
         libca.ca_pend_io(1.0)
               
     def get(self):
-        if self.connected != CONNECTED:
+        if self.state != CONNECTED:
             self.__connect()
         libca.lock.acquire()
         libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
@@ -235,7 +235,7 @@ class PV:
             return self.data.value
 
     def put(self, val):
-        if self.connected != CONNECTED:
+        if self.state != CONNECTED:
             self.__connect()
         self.data = self.data_type(val)
         libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
