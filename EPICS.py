@@ -4,7 +4,6 @@ import thread
 import time
 import atexit
 from ctypes import *
-import gobject
 
 # Define EPICS constants
 (
@@ -145,7 +144,8 @@ class PV:
         for key,val in self.callbacks:
             self.disconnect_monitor(val[2])
         libca.ca_clear_channel(self.chid)
-        libca.ca_pend_io(1.0)
+        libca.ca_pend_event(0.1)
+        libca.ca_pend_io(20.0)
     
     def __connect(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
@@ -317,7 +317,6 @@ _cb_factory = CFUNCTYPE(c_int, ExceptionHandlerArgs)
 _cb_function = _cb_factory(ca_exception_handler)
 _cb_user_agg = c_void_p()
 libca.ca_add_exception_event(_cb_function, _cb_user_agg)
-gobject.timeout_add(10, heart_beat)
 
 # cleanup gracefully at termination
-atexit.register(libca.ca_context_destroy)
+#atexit.register(libca.ca_context_destroy)
