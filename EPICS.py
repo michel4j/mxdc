@@ -1,6 +1,5 @@
 import sys
 import os
-import gobject
 import thread
 import time
 import atexit
@@ -312,7 +311,7 @@ libca.lock = thread.allocate_lock()
 _cb_factory = CFUNCTYPE(c_int, ExceptionHandlerArgs)        
 _cb_function = _cb_factory(ca_exception_handler)
 _cb_user_agg = c_void_p()
-libca.ca_add_exception_event(_cb_function, _cb_user_agg)
+#libca.ca_add_exception_event(_cb_function, _cb_user_agg)
 
 # cleanup gracefully at termination
 atexit.register(libca.ca_context_destroy)

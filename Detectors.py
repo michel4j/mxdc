@@ -140,16 +140,12 @@ class EpicsMCA(Detector):
         self.slope = 0.00498
         self.status_scan.put(9)
         self.read_scan.put(0)
-        self.last_activity = time.time()
-        gobject.timeout_add(30000, self._monitor_mode)
-            
-    def _monitor_mode(self):
-        elapsed_time = time.time() - self.last_activity
-        if elapsed_time > 300:
-            LogServer.log("%s MCA: No activity after %d seconds. Turning peltier off." % (self.name, elapsed_time))
-            self.last_activity = time.time()
-            self.set_cooling(False)
-        return True
+        self.monitor_id = None
+
+    def disable_peltier(self):
+        LogServer.log("%s MCA: No activity after 5 minutes. Turning peltier off." % (self.name))
+        self.set_cooling(False)
+        return False
 
     def _roi_to_energy(self, x):
         return ( x * self.slope + self.offset)
@@ -164,7 +160,6 @@ class EpicsMCA(Detector):
             self.ROI = roi
 
     def set_cooling(self, mode):
-        self.last_activity = time.time()
         if mode:
             self.TMODE.put(2)
         else:
@@ -200,7 +195,7 @@ class EpicsMCA(Detector):
             raise DetectorException, 'MCA reading failed'
             
     def _collect(self, t=1.0):
-        self.last_activity = time.time()
+        self.set_temp_monitor(False)
         LogServer.log( "%s aquiring for %0.1f secs" % (self.name, t))
         self.count_time.put(t)
         self._start()
@@ -208,7 +203,14 @@ class EpicsMCA(Detector):
         self.wait_read(start=True,stop=True)
         self.data = self.spectrum.get()
         LogServer.log("%s finished aquiring" % (self.name))
-    
+        self.set_temp_monitor(True)
+
+    def set_temp_monitor(self, mode):
+        if mode:
+              self.monitor_id = gobject.timeout_add(300, self.disable_peltier)
+        elif self.monitor_id:
+            gobject.source_remove(self.monitor_id)
+
     def count(self, t=1.0):
         self._collect(t)
         return self.get_value()        
