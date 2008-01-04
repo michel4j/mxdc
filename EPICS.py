@@ -140,8 +140,6 @@ class PV:
         self.state = NEVER_CONNECTED
         if connect:
             self.__connect()
-        else:
-            self.__connect_deferred()
         
     def __del__(self):
         for key,val in self.callbacks:
@@ -176,7 +174,6 @@ class PV:
             self.count = libca.ca_element_count(self.chid)
             self.element_type = libca.ca_field_type(self.chid)
             self.state = libca.ca_state(self.chid)
-            self.connect_monitor(self.on_change)
             libca.ca_pend_io(1.0)
             self.__allocate_data_mem()
         elif self.state == CONNECTED:
