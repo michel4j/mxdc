@@ -171,6 +171,7 @@ class PV:
     
     def on_connect(self, event):
         if event.op == CA_OP_CONN_UP:
+            self.chid = event.chid
             self.count = libca.ca_element_count(self.chid)
             self.element_type = libca.ca_field_type(self.chid)
             self.state = libca.ca_state(self.chid)
