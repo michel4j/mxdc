@@ -207,7 +207,7 @@ class EpicsMCA(Detector):
 
     def set_temp_monitor(self, mode):
         if mode:
-              self.monitor_id = gobject.timeout_add(300, self.disable_peltier)
+              self.monitor_id = gobject.timeout_add(300000, self.disable_peltier)
         elif self.monitor_id:
             gobject.source_remove(self.monitor_id)
 
