@@ -148,7 +148,7 @@ class EpicsMCA(Detector):
         if elapsed_time > 300:
             LogServer.log("%s MCA: No activity after %d seconds. Turning peltier off." % (self.name, elapsed_time))
             self.last_activity = time.time()
-            #self.set_cooling(False)
+            self.set_cooling(False)
         return True
 
     def _roi_to_energy(self, x):
