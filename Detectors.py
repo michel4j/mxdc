@@ -202,7 +202,7 @@ class EpicsMCA(Detector):
         LogServer.log( "%s aquiring for %0.1f secs" % (self.name, t))
         self.count_time.put(t)
         self._start()
-        self.wait_count(start=False,stop=True)
+        #self.wait_count(start=False,stop=True)
         self.wait_read(start=True,stop=True)
         self.data = self.spectrum.get()
         LogServer.log("%s finished aquiring" % (self.name))
