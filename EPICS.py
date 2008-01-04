@@ -1,18 +1,28 @@
-import sys, os, gobject
-import numpy, thread, time
+import sys
+import os
+import gobject
+import thread
+import time
+import atexit
 from ctypes import *
 
 # Define EPICS constants
-(DISABLE_PREEMPTIVE_CALLBACK,ENABLE_PREEMPTIVE_CALLBACK) = range(2)
-DBE_VALUE = 1<<0
-DBE_ALARM = 1<<1
-DBE_LOG   = 1<<2
+(
+    DISABLE_PREEMPTIVE_CALLBACK,
+    ENABLE_PREEMPTIVE_CALLBACK
+) = range(2)
+
 (
     NEVER_CONNECTED,
     PREVIOUSLY_CONNECTED,
     CONNECTED,
     CLOSED
 ) = range(4)
+
+DBE_VALUE = 1<<0
+DBE_ALARM = 1<<1
+DBE_LOG   = 1<<2
+
 DBF_STRING  = 0
 DBF_INT  = 1
 DBF_SHORT  = 1
@@ -63,6 +73,12 @@ DBR_CTRL_CHAR  = 32
 DBR_CTRL_LONG  = 33
 DBR_CTRL_DOUBLE  = 34
 
+ECA_NORMAL = 1
+ECA_TIMEOUT = 10
+
+CA_OP_CONN_UP =  6
+CA_OP_CONN_DOWN = 7
+
 TypeMap = {
     DBR_STRING: c_char_p,
     DBR_CHAR: c_char,
@@ -85,6 +101,26 @@ class EventHandlerArgs(Structure):
         ('status', c_int)
     ]
 
+class ConnectionHandlerArgs(Structure):
+    _fields_ = [
+        ('chid', c_ulong),
+        ('op', c_long)
+    ]
+
+class ExceptionHandlerArgs(Structure):
+    _fields_ = [
+        ('usr',c_void_p),
+        ('chid', c_ulong),
+        ('type', c_long),
+        ('count', c_long),
+        ('addr', c_void_p),
+        ('stat',c_long),
+        ('op', c_long),
+        ('ctx', c_char_p),
+        ('pFile', c_char_p),
+        ('lineNo', c_uint),
+   ]
+
 class Closure:
     def __init__(self, func):
         self.initialized = True
@@ -104,12 +140,14 @@ class PV:
         self.connected = NEVER_CONNECTED
         if connect:
             self.__connect()
+        else:
+            self.__connect_deferred()
         
     def __del__(self):
-        if libca:
-            libca.ca_clear_channel(self.chid)
-            libca.ca_pend_event(0.1)
-            libca.ca_pend_io(20.0)
+        for key,val in self.callbacks:
+            self.disconnect_monitor(val[2])
+        libca.ca_clear_channel(self.chid)
+        libca.ca_pend_io(1.0)
     
     def __connect(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
@@ -118,7 +156,33 @@ class PV:
         self.element_type = libca.ca_field_type(self.chid)
         self.connected = libca.ca_state(self.chid)
         self.__allocate_data_mem()
+
+    def __connect_deferred(self):
+        if self.state != CONNECTED:
+            cb_factory = CFUNCTYPE(c_int, ConnectionHandlerArgs)
+            cb_function = cb_factory(self.on_connect)
+            self.connect_args = ConnectionHandlerArgs()
+
+            libca.ca_create_channel(
+                self.name, 
+                cb_function, 
+                None, 
+                10, 
+                byref(self.chid)
+            )
     
+    def on_connect(self, event):
+        if event.op == CA_OP_CONN_UP:
+            self.count = libca.ca_element_count(self.chid)
+            self.element_type = libca.ca_field_type(self.chid)
+            self.state = libca.ca_state(self.chid)
+            self.connect_monitor(self.on_change)
+            libca.ca_pend_io(1.0)
+            self.__allocate_data_mem()
+        elif self.state == CONNECTED:
+            self.state = libca.ca_state(self.chid)
+        return self.state
+
     def __allocate_data_mem(self, value=None):
         if self.count > 1:
            self.data_type = TypeMap[self.element_type] * self.count
@@ -141,17 +205,17 @@ class PV:
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
         cb_function = cb_factory(cb_closure)
         key = repr(callback)
-        self.callbacks[ key ] = [cb_factory, cb_function]        
         libca.ca_create_subscription(
             self.element_type,
             self.count,
             self.chid,
             DBE_VALUE | DBE_ALARM | DBE_LOG,
-            self.callbacks[key][1],
+            cb_function,
             0,
-            byref(event_id)
+            event_id
         )
         libca.ca_pend_io(1.0)
+        self.callbacks[ key ] = [cb_factory, cb_function, event_id]
         return event_id
                       
     def disconnect_monitor(self, event_id):
@@ -177,10 +241,21 @@ class PV:
         libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
 
 
+class caException(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
 def thread_init():
     thread_context = libca.ca_current_context()
     if thread_context == 0:
         libca.ca_attach_context(libca.context)
+
+def ca_exception_handler(event):
+    print event.stat
+    return 0
         
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
@@ -236,3 +311,10 @@ libca.ca_context_create.argtypes = [c_ushort]
 libca.ca_context_create(ENABLE_PREEMPTIVE_CALLBACK)
 libca.context = libca.ca_current_context()
 libca.lock = thread.allocate_lock()
+_cb_factory = CFUNCTYPE(c_int, ExceptionHandlerArgs)        
+_cb_function = _cb_factory(ca_exception_handler)
+_cb_user_agg = c_void_p()
+libca.ca_add_exception_event(_cb_function, _cb_user_agg)
+
+# cleanup gracefully at termination
+atexit.register(libca.ca_context_destroy)

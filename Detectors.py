@@ -166,7 +166,7 @@ class EpicsMCA(Detector):
     def set_cooling(self, mode):
         self.last_activity = time.time()
         if mode:
-            self.TMODE.put(1)
+            self.TMODE.put(2)
         else:
             self.TMODE.put(0)
                     
