@@ -141,10 +141,12 @@ class EpicsMCA(Detector):
         self.status_scan.put(9)
         self.read_scan.put(0)
         self.last_activity = time.time()
-        gobject.timeout_add(10000, self._monitor_mode)
+        gobject.timeout_add(30000, self._monitor_mode)
             
     def _monitor_mode(self):
-        if time.time() - self.last_activity > 300:
+        elapsed_time = time.time() - self.last_activity
+        if elapsed_time > 300:
+            LogServer.log("%s MCA: No activity after %d seconds. Turning peltier off." % (self.name, elapsed_time))
             self.last_activity = time.time()
             self.set_cooling(False)
         return True
