@@ -4,7 +4,7 @@ import gtk, gobject
 import sys, os
 from Predictor import Predictor
 from Beamline import beamline
-from Dialogs import select_folder, check_folder, DirectoryButton
+from Dialogs import select_folder, check_folder, DirectoryButton, warning
 from Utils import *
 (
   COLUMN_LABEL,
@@ -286,6 +286,11 @@ class RunWidget(gtk.VBox):
         run_data = {}
         run_data['prefix']      = self.entry['prefix'].get_text().strip()
         run_data['directory']   = self.entry['directory'].get_text().strip()
+        if len(run_data['directory']) > 36:
+            msg1 = "Directory name too long!"
+            msg2 = "Directory path should be less than 37 characters. Your selection '%s' is %d characters long. Please use shorter names, or fewer levels of subdirectories." % (run_data['directory'], len(run_data['directory']))
+            result = warning(msg1, msg2)
+        
         run_data['energy']  =    self.energy
         run_data['energy_label'] = self.energy_label
         run_data['inverse_beam'] = self.inverse_beam.get_active()
