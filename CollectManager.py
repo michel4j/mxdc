@@ -151,17 +151,9 @@ class CollectManager(gtk.HBox):
         username = os.getlogin()
         userid = os.getuid()
         groupid = os.getgid()
-        try:
-            beamline['image_server'].set_user(username,userid,groupid)
-            return True
-        except:
-            msg_title = 'Image Syncronization Server not found'
-            msg_sub = 'MXDC could not successfully connect to the Image Synchronization server. '
-            msg_sub += 'Data collection can not proceed reliably without the server up and running.'
-            warning(msg_title, msg_sub)
-            return False   
+        beamline['image_server'].set_user(username,userid,groupid)
 
-    def __add_item(self, item):       
+   def __add_item(self, item):       
         iter = self.listmodel.append()        
         self.listmodel.set(iter, 
             COLLECT_COLUMN_SAVED, item['saved'], 
@@ -451,21 +443,28 @@ class CollectManager(gtk.HBox):
     def start_collection(self):
         self.start_time = time.time()
         self.create_runlist()
-        #self.config_user()
-        if self.check_runlist():
-            self.progress_bar.busy_text("Starting data collection...")
-            self.collector = DataCollector(self.run_list, skip_collected=True)
-            self.collector.connect('done', self.on_stop)
-            self.collector.connect('paused',self.on_pause)
-            self.collector.connect('new-image', self.on_new_image)
-            self.collector.connect('stopped', self.on_stop)
-            self.collector.connect('progress', self.on_progress)
-            self.collector.start()
-            self.collect_state = COLLECT_STATE_RUNNING
-            self.collect_btn.set_label('cm-pause')
-            self.stop_btn.set_sensitive(True)
-            self.run_manager.set_sensitive(False)
-            self.image_viewer.set_collect_mode(True)
+        try:
+            self.config_user()
+        except:
+            msg_title = 'Image Syncronization Server not found'
+            msg_sub = 'MXDC could not successfully connect to the Image Synchronization server. '
+            msg_sub += 'Data collection can not proceed reliably without the server up and running.'
+            warning(msg_title, msg_sub)
+        else:
+            if self.check_runlist():
+                self.progress_bar.busy_text("Starting data collection...")
+                self.collector = DataCollector(self.run_list, skip_collected=True)
+                self.collector.connect('done', self.on_stop)
+                self.collector.connect('paused',self.on_pause)
+                self.collector.connect('new-image', self.on_new_image)
+                self.collector.connect('stopped', self.on_stop)
+                self.collector.connect('progress', self.on_progress)
+                self.collector.start()
+                self.collect_state = COLLECT_STATE_RUNNING
+                self.collect_btn.set_label('cm-pause')
+                self.stop_btn.set_sensitive(True)
+                self.run_manager.set_sensitive(False)
+                self.image_viewer.set_collect_mode(True)
         return            
 
     def stop(self):
