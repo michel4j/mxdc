@@ -309,7 +309,7 @@ class RunWidget(gtk.VBox):
     def default_parameters(self):
         run_data = {}
         run_data['prefix'] = 'test'
-        run_data['directory'] = '/data'
+        run_data['directory'] = os.environ['HOME']
         run_data['distance'] = 150.0
         run_data['delta'] = 0.5
         run_data['time'] = 5
