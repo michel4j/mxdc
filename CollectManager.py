@@ -451,7 +451,7 @@ class CollectManager(gtk.HBox):
     def start_collection(self):
         self.start_time = time.time()
         self.create_runlist()
-        self.config_user()
+        #self.config_user()
         if self.check_runlist():
             self.progress_bar.busy_text("Starting data collection...")
             self.collector = DataCollector(self.run_list, skip_collected=True)
