@@ -327,7 +327,7 @@ class ImgViewer(gtk.VBox):
                 return False
         else:
             next_filename = self.image_queue[0]
-            
+        
         if os.path.isfile(next_filename) and (os.stat(next_filename)[stat.ST_SIZE] == 18878464):
             LogServer.log("Loading image %s" % (next_filename))
             self.set_filename( next_filename )

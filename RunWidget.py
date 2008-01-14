@@ -131,7 +131,7 @@ class RunWidget(gtk.VBox):
         self.layout_table.attach(self.inverse_beam, 1, 3, 10, 11, xoptions=gtk.FILL)
         
         # Select Directory Button
-        self.entry['directory'].connect('clicked', self.on_select_dir)
+        #self.entry['directory'].connect('clicked', self.on_select_dir)
 
         # Energy
         self.energy_store = gtk.ListStore(
@@ -290,7 +290,10 @@ class RunWidget(gtk.VBox):
             msg1 = "Directory name too long!"
             msg2 = "Directory path should be less than 37 characters. Your selection '%s' is %d characters long. Please use shorter names, or fewer levels of subdirectories." % (run_data['directory'], len(run_data['directory']))
             result = warning(msg1, msg2)
-        
+        dir_parts = run_data['directory'].split('/')
+        if dir_parts[1] == 'users':
+            dir_parts[1] = 'data'
+        run_data['remote_directory'] = '/'.join(dir_parts)
         run_data['energy']  =    self.energy
         run_data['energy_label'] = self.energy_label
         run_data['inverse_beam'] = self.inverse_beam.get_active()
@@ -361,8 +364,8 @@ class RunWidget(gtk.VBox):
                 widget = self.inverse_beam
             elif key == 'number':
                 widget = self.title
-            #elif key == 'directory':
-            #    widget = self.entry['prefix']
+            elif key == 'remote_directory':
+                pass
             else:
                 widget = self.entry[key]
             if new_values[key] != self.parameters[key]:
@@ -516,13 +519,6 @@ class RunWidget(gtk.VBox):
         directory = self.entry['directory'].get_text()
         self.check_changes()
         return False
-
-    def on_select_dir(self, widget):
-        folder = select_folder()
-        if folder:
-            self.entry['directory'].set_text(folder)
-            self.check_changes()
-        return True
             
     def update_predictor(self):
         self.predictor.set_energy(self.energy[0])

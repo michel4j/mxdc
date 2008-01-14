@@ -201,7 +201,6 @@ def check_folder(directory, parent=None):
         sub_header = "Please select a valid folder and try again."
         response = warning(header, sub_header)
         return False
-    os.system('ssh marccd@cmcf-marccd mkdir -p %s' % directory)
     return True
     
 class FolderSelector:
@@ -343,6 +342,14 @@ class DirectoryButton(gtk.Button):
         hbox.pack_start(self.dir_label, expand=True, fill=True)
         hbox.show_all()
         self.add(hbox)
+        self.path = os.environ['HOME']
+        self.connect('clicked', self.on_select_dir)
+
+    def on_select_dir(self, widget):
+        folder = select_folder(self.path)
+        if folder:
+            self.set_text(folder)
+        return True
         
     def ellipsize(self,text):
         base = os.path.basename(text)

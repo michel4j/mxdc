@@ -5,7 +5,7 @@ import gtk, gobject
 #from pylab import load
 from EPICS import *
 import numpy
-from Utils import dec2bin
+from Utils import *
 from LogServer import LogServer
     
 class Positioner(gobject.GObject):
@@ -316,12 +316,9 @@ class CLSMotor(AbstractMotor):
         self.DESC = PV("%s:desc" % (name_parts[0]))               
         self.VAL  = PV("%s:%s" % (name_parts[0],name_parts[1]), connect=False)        
         self.RBV  = PV("%s:%s:sp" % (name_parts[0],name_parts[1]))
-        self.ERBV = PV("%s:%s:fbk" % (name_parts[0],name_parts[1]), connect=False)
         self.RLV  = PV("%s:%s:rel" % (name_parts[0],name_parts[1]), connect=False)
         self.MOVN = PV("%s:status" % name_parts[0])
         self.MOVN1 = PV("%s:moving" % name_parts[0])
-        self.ACCL = PV("%s:acc:%spss:sp" % (name_parts[0],name_parts[1]), connect=False)
-        self.VEL  = PV("%s:vel:%sps:sp" % (name_parts[0],name_parts[1]), connect=False)
         self.STOP = PV("%s:stop" % name_parts[0])
         self.SET  = PV("%s:%s:setPosn" % (name_parts[0],name_parts[1]), connect=False)
         self.CALIB = PV("%s:calibDone" % (name_parts[0]))   
@@ -401,7 +398,6 @@ class OldCLSMotor(AbstractMotor):
         self.DESC = PV("%s:desc" % (name_parts[0]))                
         self.VAL  = PV("%s:%s" % (name_parts[0],name_parts[1]), connect=False)        
         self.RBV  = PV("%s:%s:fbk" % (name_parts[0],name_parts[1]))
-        self.ERBV = PV("%s:encod:fbk" % (name_parts[0]), connect=False)
         self.MOVN = PV("%s:state" % name_parts[0])
         self.STOP = PV("%s:emergStop" % name_parts[0])
         self.CALIB =   PV("%s:isCalib" % (name_parts[0]))     
@@ -457,6 +453,73 @@ class OldCLSMotor(AbstractMotor):
     def get_name(self):
         return self.DESC.get()
                       
+class AutoEnergyMotor(AbstractMotor):
+    def __init__(self):
+        AbstractMotor.__init__(self)
+        self.units = 'keV'
+        self.VAL  = PV("BL08ID1:energy", connect=False)        
+        self.RBV  = PV("ENC16082I1001:cmbndPos")
+        self.MOVN = PV("BL08ID1:energy:moving" )
+        self.STOP = PV("BL08ID1:energy:stop")
+        self.CALIB =   PV("SMTR16082I1005:calibDone")     
+        self.moving = self.is_moving()
+        self.last_moving = self.is_moving()
+        self.last_validity = self.is_valid()
+        self.last_position = self.RBV.get()
+        gobject.timeout_add(250, self._queue_check)
 
+                                                   
+    def get_position(self):
+        return bragg_to_keV( self.RBV.get() )
+
+    def set_calibrated(self,status):
+        if status:
+            self.CALIB.put(1)
+        else:
+            self.CALIB.put(0)
+            
+    def move_to(self, val, wait=False):
+        if self.get_position() == val:
+            return
+        if not self.is_valid():
+            LogServer.log ( "%s is not calibrated. Move cancelled!" % (self.get_name()) )
+            gobject.idle_add(self.emit,"valid", False)
+            return False
+        LogServer.log ( "%s moving to %f %s" % (self.get_name(), val, self.units) )
+        self.VAL.put(val)
+        if wait:
+            self.wait(start=True,stop=True)
+
+    def move_by(self,val, wait=False):
+        if val == 0.0:
+            return
+        if not self.is_valid():
+            LogServer.log ( "%s is not calibrated. Move cancelled!" % (self.get_name()) )
+            gobject.idle_add(self.emit,"valid", False)
+            return False
+        LogServer.log ( "%s moving by %f %s" % (self.get_name(), val, self.units) )
+        self.RLV.put(val)
+        if wait:
+            self.wait(start=True,stop=True)
+                
+    def is_moving(self):
+        if self.MOVN.get() == 1:
+            return True
+        else:
+            return False
+    
+    def is_valid(self):
+        if self.CALIB.get() == 0:
+            return False
+        else:
+            return True
+        return False
+                                 
+    def stop(self):
+        self.STOP.put(1)
+                
+    def get_name(self):
+        return 'Energy'
+   
 # Register objects with signals
 gobject.type_register(Positioner)

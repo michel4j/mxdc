@@ -138,7 +138,28 @@ class CollectManager(gtk.HBox):
                 data = self.run_data[key]
                 keystr = "%s" % key
                 config[keystr] = data
+                try:
+                    beamline['image_server'].create_folder(data['remote_directory'])
+                except:
+                    msg_title = 'Image Syncronization Server not found'
+                    msg_sub = 'MXDC could not successfully connect to the Image Synchronization server. '
+                    msg_sub += 'Data collection can not proceed reliably without the server up and running.'
+                    warning(msg_title, msg_sub)
             config.write()
+
+    def config_user(self):
+        username = os.getlogin()
+        userid = os.getuid()
+        groupid = os.getgid()
+        try:
+            beamline['image_server'].set_user(username,userid,groupid)
+            return True
+        except:
+            msg_title = 'Image Syncronization Server not found'
+            msg_sub = 'MXDC could not successfully connect to the Image Synchronization server. '
+            msg_sub += 'Data collection can not proceed reliably without the server up and running.'
+            warning(msg_title, msg_sub)
+            return False   
 
     def __add_item(self, item):       
         iter = self.listmodel.append()        
@@ -274,8 +295,7 @@ class CollectManager(gtk.HBox):
                         for j in range(current_slice):
                             angle = run['start_angle'] + (j * run['delta']) + (i * wedge) + offset
                             frame_number =  i * wedge_size + j + int(offset/run['delta']) + run['start_frame']
-                            file_name = "%s/%s_%d_%s_%04d.img" % (run['directory'], run['prefix'], 
-                                run['number'], energy_label, frame_number)
+                            file_name = "%s_%d_%s_%04d.img" % (run['prefix'], run['number'], energy_label, frame_number)
                             frame_name = "%s_%d_%s_%04d" % (run['prefix'], run['number'], energy_label, frame_number)
                             list_item = {
                                 'index': index,
@@ -289,7 +309,9 @@ class CollectManager(gtk.HBox):
                                 'time': run['time'],
                                 'energy': energy,
                                 'distance': run['distance'],
-                                'prefix': run['prefix']
+                                'prefix': run['prefix'],
+                                'remote_directory': run['remote_directory'],
+                                'directory': run['directory']
                             }
                             self.run_list.append(list_item)
                             index += 1
@@ -429,7 +451,7 @@ class CollectManager(gtk.HBox):
     def start_collection(self):
         self.start_time = time.time()
         self.create_runlist()
-        if self.check_runlist():
+        if self.check_runlist() and self.config_user():
             self.progress_bar.busy_text("Starting data collection...")
             self.collector = DataCollector(self.run_list, skip_collected=True)
             self.collector.connect('done', self.on_stop)

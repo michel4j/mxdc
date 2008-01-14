@@ -102,7 +102,6 @@ class ScanControl(gtk.VBox):
         param_box.attach(lbl, 0, 1, 1, 2)
         self.entry['directory'] = DirectoryButton()
         param_box.attach(self.entry['directory'], 1, 3, 1, 2,xoptions=gtk.FILL)
-        self.entry['directory'].connect('clicked', self.on_select_dir)
 
         # command button area        
         bbox = gtk.VBox(False,6)
@@ -171,7 +170,7 @@ class ScanControl(gtk.VBox):
         
         params = {}
         params['prefix']      = 'test_scan'
-        params['directory']   = '/data/default'
+        params['directory']   = os.environ['HOME']
         params['energy']  =    12.6580
         params['edge'] =  'Se-K'
         params['time'] = 1.0
@@ -257,13 +256,7 @@ class ScanControl(gtk.VBox):
         run_data['energy_label'] = self.names
         run_data['number'] = -1
         return run_data
-            
-    def on_select_dir(self, widget):
-        folder = select_folder()
-        if folder:
-            self.entry['directory'].set_text(folder)
-        return True
-        
+                    
 def main():
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())

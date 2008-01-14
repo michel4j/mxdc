@@ -252,7 +252,7 @@ def thread_init():
         libca.ca_attach_context(libca.context)
 
 def ca_exception_handler(event):
-    print event.stat
+    print event, event.stat
     return 0
 
 def heart_beat():

@@ -7,6 +7,7 @@ from PseudoMotors import *
 from VideoSources import *
 from Shutters import *
 from MarCCD import *
+import xmlrpclib
 
 from ConfigParser import ConfigParser
 import string
@@ -48,7 +49,7 @@ def init_beamline(pbar=None):
         note_progress("Entering Simulation Mode")
         Motor       = FakeMotor 
         OldMotor    = FakeMotor 
-        EnergyMotor = DCMEnergy
+        EnergyMotor = FakeMotor
         Variable    = Positioner 
         VideoCamera = FakeCamera
         MCA         = FakeMCA
@@ -59,7 +60,7 @@ def init_beamline(pbar=None):
         note_progress( "Entering Live Mode")
         Motor       = CLSMotor 
         OldMotor    = OldCLSMotor 
-        EnergyMotor = DCMEnergy
+        EnergyMotor = AutoEnergyMotor
         Variable    = EpicsPositioner 
         VideoCamera = EpicsCamera
         MCA         = EpicsMCA
@@ -81,10 +82,10 @@ def init_beamline(pbar=None):
             item = string.strip(item)
             note_progress(item)
             beamline['motors'][item] = OldMotor(pv)
-    energy_motors = [beamline['motors']['bragg'],
-                     beamline['motors']['c2_t1'],
-                     beamline['motors']['c2_t2']]
-    beamline['motors']['energy'] = EnergyMotor( energy_motors )
+    #energy_motors = [beamline['motors']['bragg'],
+    #                 beamline['motors']['c2_t1'],
+    #                 beamline['motors']['c2_t2']]
+    beamline['motors']['energy'] = EnergyMotor()
     twotheta_motors = [beamline['motors']['detector_z'],
                      beamline['motors']['detector_y1'],
                      beamline['motors']['detector_y2']]
@@ -159,7 +160,10 @@ def init_beamline(pbar=None):
     beamline['motors']['detector_dist'] =   beamline['motors']['detector_z']
     for motor in ['sample_x','sample_y','sample_z', 'omega','bragg']:
         beamline['motors'][motor].set_calibrated(True)
-        
+
+    #MarCCD image server
+    beamline['image_server'] = xmlrpclib.ServerProxy("http://cmcf-marccd.cs.cls:8888")
+
     if mode == 'simulation':
         beamline['variables']['beam_x'].move_to(320)
         beamline['variables']['beam_y'].move_to(240)
