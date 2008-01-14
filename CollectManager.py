@@ -151,7 +151,7 @@ class CollectManager(gtk.HBox):
         username = os.getlogin()
         userid = os.getuid()
         groupid = os.getgid()
-        beamline['image_server'].set_user( username,userid,groupid )
+        beamline['image_server'].set_user( username, userid, groupid )
 
 
     def __add_item(self, item):
@@ -444,6 +444,7 @@ class CollectManager(gtk.HBox):
     def start_collection(self):
         self.start_time = time.time()
         self.create_runlist()
+        self.config_user()
         try:
             self.config_user()
         except:
