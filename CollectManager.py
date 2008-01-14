@@ -148,7 +148,7 @@ class CollectManager(gtk.HBox):
             config.write()
 
     def config_user(self):
-        username = os.getlogin()
+        username = "" #os.getlogin()
         LogServer.log( "%s" % (username))
         userid = os.getuid()
         groupid = os.getgid()
