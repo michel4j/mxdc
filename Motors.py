@@ -471,6 +471,9 @@ class AutoEnergyMotor(AbstractMotor):
                                                    
     def get_position(self):
         return bragg_to_keV( self.RBV.get() )
+    
+    def set_mask(self, mask):
+        pass
 
     def set_calibrated(self,status):
         if status:
