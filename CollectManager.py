@@ -151,6 +151,7 @@ class CollectManager(gtk.HBox):
         username = os.getlogin()
         userid = os.getuid()
         groupid = os.getgid()
+        LogServer.log( "%s %s %s" % (username, userid, groupid ))
         beamline['image_server'].set_user( username, userid, groupid )
 
 
