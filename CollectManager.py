@@ -148,7 +148,7 @@ class CollectManager(gtk.HBox):
             config.write()
 
     def config_user(self):
-        username = "" #os.getlogin()
+        username = os.environ['USER']
         LogServer.log( "%s" % (username))
         userid = os.getuid()
         groupid = os.getgid()
@@ -445,7 +445,6 @@ class CollectManager(gtk.HBox):
     def start_collection(self):
         self.start_time = time.time()
         self.create_runlist()
-        self.config_user()
         try:
             self.config_user()
         except:
