@@ -151,9 +151,10 @@ class CollectManager(gtk.HBox):
         username = os.getlogin()
         userid = os.getuid()
         groupid = os.getgid()
-        beamline['image_server'].set_user(username,userid,groupid)
+        beamline['image_server'].set_user( username,userid,groupid )
 
-   def __add_item(self, item):       
+
+    def __add_item(self, item):
         iter = self.listmodel.append()        
         self.listmodel.set(iter, 
             COLLECT_COLUMN_SAVED, item['saved'], 
