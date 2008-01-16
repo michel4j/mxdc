@@ -458,7 +458,8 @@ class AutoEnergyMotor(AbstractMotor):
         AbstractMotor.__init__(self)
         self.units = 'keV'
         self.VAL  = PV("BL08ID1:energy", connect=False)        
-        self.RBV  = PV("ENC16082I1001:cmbndPos")
+        self.RBV  = PV("SMTR16082I1005:deg:sp")
+        #self.RBV  = PV("ENC16082I1001:cmbndPos") #encoder
         self.MOVN = PV("BL08ID1:energy:moving" )
         self.STOP = PV("BL08ID1:energy:stop")
         self.CALIB =   PV("SMTR16082I1005:calibDone")     

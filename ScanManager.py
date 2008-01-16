@@ -48,7 +48,7 @@ class ScanManager(gtk.HBox):
 
         self.show_all()
         
-        self.bragg_energy = beamline['motors']['energy']      
+        self.bragg_energy = beamline['motors']['bragg_energy']      
         self.mca   = beamline['detectors']['mca']
         self.shutter = beamline['shutters']['xbox_shutter']
 
@@ -206,7 +206,9 @@ class ScanManager(gtk.HBox):
         count_time = scan_parameters['time']
         scan_filename = "%s/%s_%s.raw" % (scan_parameters['directory'],    
             scan_parameters['prefix'], scan_parameters['edge'])
-        #self.bragg_energy.move_to( energy )
+        
+        #move to peak energy and optimize
+        beamline['motors']['energy'].move_to( energy )
             
         #Optimize beam here
         self.bragg_energy.set_mask( [1,0,0] )  # Move only bragg
@@ -228,6 +230,7 @@ class ScanManager(gtk.HBox):
         self.scan_control.progress_bar.set_complete(0.0)
         self.scan_control.progress_bar.busy_text("Starting MAD scan...")
         self.shutter.open()
+        self.scanner.waitress = beamline['motors']['energy']
         self.scanner.start()
         self.scanning = True
         return True

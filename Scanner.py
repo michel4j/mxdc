@@ -36,7 +36,8 @@ class Scanner(threading.Thread, gobject.GObject):
         self.x_data_points = []
         self.y_data_points = []
         self.plotter = None
-        self.normalizer = None   
+        self.normalizer = None
+        self.waitress = None
 
     def _add_point(self, widget, x, y):
         self.plotter.add_point(x, y,0)
@@ -75,6 +76,8 @@ class Scanner(threading.Thread, gobject.GObject):
         self.normalizer.initialize()
         self.normalizer.set_time(self.time)
         self.normalizer.start()
+        if self.waitress:
+            self.waitress.wait() # Wait for the waitress
         for x in self.positioner_targets:
             if self.stopped or self.aborted:
                 LogServer.log( "Scan stopped!" )
@@ -82,6 +85,7 @@ class Scanner(threading.Thread, gobject.GObject):
                 
             LogServer.log( "--- Entering iteration %d ---" % self.count)
             self.count += 1
+
             prev = self.positioner.get_position()                
 
             try:

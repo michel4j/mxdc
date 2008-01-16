@@ -82,13 +82,15 @@ def init_beamline(pbar=None):
             item = string.strip(item)
             note_progress(item)
             beamline['motors'][item] = OldMotor(pv)
-    #energy_motors = [beamline['motors']['bragg'],
-    #                 beamline['motors']['c2_t1'],
-    #                 beamline['motors']['c2_t2']]
+    energy_motors = [beamline['motors']['bragg'],
+                     beamline['motors']['c2_t1'],
+                     beamline['motors']['c2_t2']]
     beamline['motors']['energy'] = EnergyMotor()
+    beamline['motors']['bragg_energy'] = DCMEnergy(energy_motors)
     twotheta_motors = [beamline['motors']['detector_z'],
                      beamline['motors']['detector_y1'],
                      beamline['motors']['detector_y2']]
+
     #beamline['motors']['detector_2th'] = TwoThetaMotor( twotheta_motors )            
     #beamline['motors']['detector_dist'] = DistanceMotor( twotheta_motors )            
     note_progress('energy')
