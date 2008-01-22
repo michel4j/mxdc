@@ -322,7 +322,8 @@ class CollectManager(gtk.HBox):
         existlist = []
         details = ""
         for frame in self.run_list:
-            if os.path.exists(frame['file_name']):
+            path_to_frame = "%s/%s" % (frame['directory'],frame['file_name'])
+            if os.path.exists(path_to_frame):
                 existlist.append( frame['index'] )
                 details += frame['file_name'] + "\n"
         if len(existlist) > 0:
