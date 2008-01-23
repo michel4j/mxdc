@@ -338,7 +338,7 @@ class CollectManager(gtk.HBox):
                 return True
             elif response == gtk.RESPONSE_NO:
                 for index in existlist:
-                    old_name = self.run_list[index]['file_name']
+                    old_name = "%s/%s" % (self.run_list[index]['directory'], self.run_list[index]['file_name']) 
                     new_name = old_name + '.bk'
                     LogServer.log("Renaming existing file '%s' to '%s'" % (old_name, new_name)) 
                     os.rename(old_name, new_name)
