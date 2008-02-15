@@ -177,9 +177,9 @@ class Gonio:
     def is_active(self):
         return self.state.get() != 0
             
-    def wait(self, start=True, stop=True, poll=0.01, timeout=60):
+    def wait(self, start=True, stop=True, poll=0.001, timeout=20):
         if (start):
-            time_left = timeout
+            time_left = 2
             #print 'waiting for shutter to open'
             while not self.is_active() and time_left > 0:
                 time.sleep(poll)
