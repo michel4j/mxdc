@@ -158,8 +158,7 @@ class ActiveEntry(NewEntry):
         if state:
             self.running = True
             self.act_btn.get_child().set_from_stock('gtk-stop',gtk.ICON_SIZE_MENU)
-            img, mask = self.throbber.get_image()
-            self.undo_btn.get_child().set_from_image(img, mask)
+            self.undo_btn.get_child().set_from_file('images/throbber.gif')
         else:
             self.running = False
             self.act_btn.get_child().set_from_stock('gtk-go-forward',gtk.ICON_SIZE_MENU)
