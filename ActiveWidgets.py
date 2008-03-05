@@ -38,6 +38,7 @@ class NewEntry(gtk.Frame):
         self.last_event = 0
         self.width = width
         self.format = format
+        self.throbber = gtk.image_new_from_file('images/throbber.gif')
     
     def set_position(self, val):
         text = self.format % val
@@ -77,7 +78,7 @@ class NewEntry(gtk.Frame):
         return True
             
     def on_undo_btn_clicked(self,widget):
-        if len(self.undo_stack)>0:
+        if len(self.undo_stack)>0 and self.running == False:
             self.set_target( self._get_undo() )
             self.move(save=False)
         else:
@@ -156,9 +157,12 @@ class ActiveEntry(NewEntry):
         if state:
             self.running = True
             self.act_btn.get_child().set_from_stock('gtk-stop',gtk.ICON_SIZE_MENU)
+            img, mask = self.throbber.get_image()
+            self.undo_btn.get_child().set_from_image(img, mask)
         else:
             self.running = False
             self.act_btn.get_child().set_from_stock('gtk-go-forward',gtk.ICON_SIZE_MENU)
+            self.undo_btn.add(gtk.image_new_from_stock('gtk-undo',gtk.ICON_SIZE_MENU))
         self.set_position(self.motor.get_position() )
         return True
     
