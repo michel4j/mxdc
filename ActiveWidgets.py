@@ -38,7 +38,8 @@ class NewEntry(gtk.Frame):
         self.last_event = 0
         self.width = width
         self.format = format
-        self.throbber = gtk.image_new_from_file('images/throbber.gif')
+        self.throbber = gtk.Image()
+        self.throbber.set_from_file('images/throbber.gif')
     
     def set_position(self, val):
         text = self.format % val
