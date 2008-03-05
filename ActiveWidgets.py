@@ -163,7 +163,7 @@ class ActiveEntry(NewEntry):
         else:
             self.running = False
             self.act_btn.get_child().set_from_stock('gtk-go-forward',gtk.ICON_SIZE_MENU)
-            self.undo_btn.get_child().set_from_from_stock('gtk-undo',gtk.ICON_SIZE_MENU)
+            self.undo_btn.get_child().set_from_stock('gtk-undo',gtk.ICON_SIZE_MENU)
         self.set_position(self.motor.get_position() )
         return True
     
