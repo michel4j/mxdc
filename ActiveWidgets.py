@@ -158,7 +158,7 @@ class ActiveEntry(NewEntry):
         if state:
             self.running = True
             self.act_btn.get_child().set_from_stock('gtk-stop',gtk.ICON_SIZE_MENU)
-            self.undo_btn.get_child().set_from_file('images/throbber.gif')
+            self.undo_btn.get_child().set_from_file(sys.path[0] + '/images/throbber.gif')
             #print 'state changed'
         else:
             self.running = False
