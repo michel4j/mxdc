@@ -190,9 +190,10 @@ class Gonio:
         if (stop):
             time_left = timeout
             #print 'waiting gonio to stop'
-            while self.shutter_is_open() and time_left > 0:
+            while self.is_active() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
+            #time.sleep(0.5) # delay between shutter close command and actual closing
     
 class MarCCD2(CCDDetector):
     def __init__(self, name):
@@ -235,7 +236,7 @@ class MarCCD2(CCDDetector):
 
         while (not self.check_state(state)) and elapsed < timeout:
             elapsed = time.time() - st_time
-            time.sleep(0.01)
+            time.sleep(0.001)
         if elapsed < timeout:
             return True
         else:
@@ -244,7 +245,7 @@ class MarCCD2(CCDDetector):
     def wait_while(self,state):
         #print "waiting for state '%s' to expire" % state
         while self.check_state(state):
-            time.sleep(0.01)
+            time.sleep(0.001)
         return True
         
     def check_state(self, key):
@@ -256,7 +257,7 @@ class MarCCD2(CCDDetector):
     def wait_stop(self):      
         while not self.get_state():
             #print 'waiting for stop', self.get_state()
-            time.sleep(0.01)
+            time.sleep(0.001)
    
     def state_list(self):
         state_string = "%08x" % self.state.get()
@@ -273,7 +274,7 @@ class MarCCD2(CCDDetector):
     def wait_start(self):
         while self.get_state():
             #print 'waiting for start', self.get_state()
-            time.sleep(0.01)
+            time.sleep(0.001)
         
     def get_state(self):
         if self.state.get() == 0:
