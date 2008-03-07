@@ -152,7 +152,7 @@ class Gonio:
 
         #Status parameters
         self.state = PV("%s:scanFrame:status" % name)
-        
+        self.shutter_state = PV("%s:lowerTOUT.B0" % name)
         self.move_state = PV("%s:moving" % name)
         self.active = False
         
@@ -173,7 +173,10 @@ class Gonio:
         self.scan_cmd.put('\x01')
         if wait:
             self.wait(start=True, stop=True)
-    
+
+    def shutter_is_open(self):
+        return self.shutter_state.get() == '\x01'
+
     def is_active(self):
         return self.state.get() != 0
             
@@ -187,7 +190,7 @@ class Gonio:
         if (stop):
             time_left = timeout
             #print 'waiting gonio to stop'
-            while self.is_active() and time_left > 0:
+            while self.shutter_is_open() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
     
