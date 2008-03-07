@@ -138,9 +138,9 @@ class Plotter( gtk.Frame ):
             ymin = (curr_ymin+ypadding < ymin) and curr_ymin  or (ymin - ypadding)
             ymax = (curr_ymax-ypadding > ymax) and curr_ymax  or (ymax + ypadding)
             # when using ring buffer, always update x-limits
-            if self.simulate_ring_buffer:
-                xmin = (curr_xmin < xmin) and curr_xmin  or xmin
-                xmax = curr_xmax > xmax and curr_xmax  or xmax
+            #if self.simulate_ring_buffer:
+            #    xmin = (curr_xmin < xmin) and curr_xmin  or xmin
+            #    xmax = curr_xmax > xmax and curr_xmax  or xmax
             if (xmax-xmin) > 1e-15:
                 self.line[lin].axes.set_xlim(xmin, xmax)
                 self.line[lin].axes.xaxis.set_major_formatter(self.xformatter)    
