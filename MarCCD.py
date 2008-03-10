@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys, time
 import gtk, gobject, numpy
-from EPICS import PV
+from EPICS import PV, thread_init
 from LogServer import LogServer
 
 class CCDDetector:
@@ -80,22 +80,31 @@ class MarCCD(CCDDetector):
         return states
 
     def wait_until(self,state, timeout=5.0):      
-        #print "waiting to reach state '%s'" % state
+        tf = time.time()
+        tI = int(tf)
+        #print "%s:%0.0f waiting to reach state '%s'" % ( time.strftime('%H:%M:%S', time.localtime(tf) ), 10*(tf - tI), state )
         st_time = time.time()
         elapsed = time.time() - st_time
 
         while (not self.check_state(state)) and elapsed < timeout:
             elapsed = time.time() - st_time
             time.sleep(0.001)
+        #print "Waited for %0.1f sec" % (elapsed)
         if elapsed < timeout:
             return True
         else:
             return False
 
     def wait_while(self,state):      
-        #print "waiting for state '%s' to expire" % state
+        tf = time.time()
+        tI = int(tf)
+        #print "%s:%0.0f waiting for state '%s' to expire" % ( time.strftime('%H:%M:%S', time.localtime(tf) ), 10*(tf - tI), state )
+        st_time = time.time()
+        elapsed = time.time() - st_time
         while self.check_state(state):
+            elapsed = time.time() - st_time
             time.sleep(0.001)
+        #print "Waited for %0.1f sec" % (elapsed)
         return True
         
     def check_state(self, key):
@@ -108,7 +117,7 @@ class MarCCD(CCDDetector):
         #print 'acquiring dezingered  background'
         self.wait_while('acquire:queue')
         self.wait_while('acquire:exec')
-        self.wait_while('read:exec')
+        #self.wait_while('read:exec')
         self.background_cmd.put(1)
         self._bg_taken = True
         if wait:
@@ -120,7 +129,7 @@ class MarCCD(CCDDetector):
             self.acquire_bg(wait=True)
         self.wait_while('acquire:queue')
         self.wait_while('acquire:exec')
-        self.wait_while('read:exec')
+        #self.wait_while('read:exec')
         self.start_cmd.put(1)
         self.wait_until('acquire:exec')
         
@@ -133,7 +142,7 @@ class MarCCD(CCDDetector):
         self.readout_flag.put(0)
         self.save_cmd.put(1)
         if wait:
-            self.wait_until('correct:exec')
+            self.wait_until('read:exec')
             
     def wait_start(self):      
         self.wait_while('acquire:queue')
@@ -162,9 +171,9 @@ class Gonio:
             'delta' : PV("%s:deltaOmega" % name),
             'start_angle': PV("%s:openSHPos" % name),
         }
-        
-                    
+                
     def set_params(self, data):
+        self.param_vals = data
         for key in data.keys():
             self.params[key].put(data[key])
             #print key, data[key]
@@ -175,11 +184,11 @@ class Gonio:
             self.wait(start=True, stop=True)
 
     def shutter_is_open(self):
-        return self.shutter_state.get() == 1
+        return self.shutter_state.get() != 0
 
     def is_active(self):
-        return self.state.get() != 0
-            
+        return self.state.get() != 0        
+                        
     def wait(self, start=True, stop=True, poll=0.01, timeout=20):
         if (start):
             time_left = 2
@@ -190,10 +199,10 @@ class Gonio:
         if (stop):
             time_left = timeout
             #print 'waiting gonio to stop'
-            while self.shutter_is_open() and time_left > 0:
+            while self.is_active() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
-            #time.sleep(0.5) # delay between shutter close command and actual closing
+
     
 class MarCCD2(CCDDetector):
     def __init__(self, name):

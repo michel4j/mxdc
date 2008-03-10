@@ -19,12 +19,12 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanva
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 
 class Plotter( gtk.Frame ):
-    def __init__( self, loop=False, buffer_size=2500 ):
+    def __init__( self, loop=False, buffer_size=2500, xformat = '%0.4g' ):
         gtk.Frame.__init__(self)
         self.fig = Figure( figsize=( 10, 8 ), dpi=72, facecolor='w' )
         self.axis = []
         self.axis.append( self.fig.add_subplot(111) )
-        self.xformatter = FormatStrFormatter('%0.4g')
+        self.xformatter = FormatStrFormatter(xformat)
         self.axis[0].xaxis.set_major_formatter(self.xformatter)
         #self.axis[-1].yaxis.tick_left()
         #self.axis[-1].yaxis.set_label_position('left')
@@ -151,5 +151,7 @@ class Plotter( gtk.Frame ):
                 self.canvas.draw()
         
         return True
-    
+
+    def redraw(self):
+        self.canvas.draw()    
 

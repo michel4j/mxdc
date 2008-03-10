@@ -126,6 +126,7 @@ class Closure:
         self.function = func
         
     def __call__(self, event ):
+        thread_init()
         self.function()
         return True
 
@@ -312,6 +313,7 @@ libca.ca_context_create.argtypes = [c_ushort]
 # initialize channel access
 libca.ca_context_create(ENABLE_PREEMPTIVE_CALLBACK)
 libca.context = libca.ca_current_context()
+
 libca.lock = thread.allocate_lock()
 _cb_factory = CFUNCTYPE(c_int, ExceptionHandlerArgs)        
 _cb_function = _cb_factory(ca_exception_handler)

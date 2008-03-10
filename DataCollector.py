@@ -113,18 +113,23 @@ class DataCollector(threading.Thread, gobject.GObject):
             }
             self.gonio.set_params(gonio_data)
             
+            tf = time.time()
+            tI = int(tf)
+            #print '%s:%0.0f starting acquire' % ( time.strftime('%H:%M:%S', time.localtime(tf) ), 10*(tf - tI) )
             self.detector.start()            
-            #print 'starting acquire'
             self.detector.set_header(header)
             #print 'starting gonio scan'
             self.gonio.scan()
-            
+
             LogServer.log( "%04d ------------------------------------------" % self.pos)
             
             # Read and save image
             #print 'saving image'
             self.detector.save()
-            #print 'image saved'
+
+            tf = time.time()
+            tI = int(tf)
+            #print '%s:%0.0f image saved' % ( time.strftime('%H:%M:%S', time.localtime(tf) ), 10*(tf - tI) )
             
             # Notify new image
             LogServer.log("Image Collected: %s" % frame['file_name'])
