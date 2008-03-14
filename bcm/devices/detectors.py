@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import sys, os, time
 import gtk, gobject
 import numpy
