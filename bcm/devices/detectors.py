@@ -3,7 +3,6 @@
 import sys, os, time
 import gtk, gobject
 import numpy
-import thread, threading
 from LogServer import LogServer
 from EmissionTools import gen_spectrum, find_peaks
 from EPICS import PV, thread_init
@@ -296,82 +295,9 @@ class EpicsDetector(Detector):
     def get_name(self):
         return self.name
 
-class Normalizer(threading.Thread):
-    def __init__(self, det=None):
-        threading.Thread.__init__(self)
-        self.factor = 1.0
-        self.start_counting = False
-        self.stopped = False
-        self.interval = 0.01
-        self.set_time(1.0)
-        self.detector = det
-        self.first = 1.0
-        self.factor = 1.0
 
-    def get_factor(self):
-        return self.factor
-
-    def set_time(self, t=1.0):
-        self.duration = t
-        self.accum = numpy.zeros( (self.duration / self.interval), numpy.float64)
-    
-    def initialize(self):
-        self.first = self.detector.get_value()
-        
-    def stop(self):
-        self.stopped = True
-                        
-    def run(self):
-        thread_init()
-        if not self.detector:
-            self.factor = 1.0
-            return
-        self.initialize()
-        self.count = 0
-        while not self.stopped:
-            self.accum[ self.count ] = self.detector.get_value()
-            self.count = (self.count + 1) % len(self.accum)
-            self.factor = self.first/numpy.mean(self.accum)
-            time.sleep(self.interval)
             
 
-class QBPM:
-    def __init__(self, A, B, C, D):
-        self.A = PV(A)
-        self.B = PV(B)
-        self.C = PV(C)
-        self.D = PV(D)
-        self.x_factor = 1.0
-        self.y_factor = 1.0
-        self.x_offset = 0.0
-        self.y_offset = 0.0
-
-    def set_factors(self, xf=1, yf=1):
-        self.x_factor = xf
-        self.y_factor = yf
-    
-    def set_offsets(self, xoff=0, yoff=0):
-        self.x_offset = xoff
-        self.y_offset = yoff
-
-    def get_position(self):
-        a = self.A.get()
-        b= self.B.get()
-        c = self.C.get()
-        d = self.D.get()
-        sumy = (a + b) - self.y_offset
-        sumx = (c + d) - self.x_offset
-        if sumy == 0.0:
-            sumy = 1.0e-10
-        if sumx == 0.0:
-            sumx = 1.0e-10
-        y = self.y_factor * (a - b) / sumy
-        x = self.x_factor * (c - d) / sumx
-        return [x, y]
-    
-    def sum(self):
-        a, b, c, d = self.A.get(), self.B.get(), self.C.get(), self.D.get()
-        return a + b + c + d
    
 gobject.type_register(Detector)
     

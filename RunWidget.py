@@ -279,7 +279,7 @@ class RunWidget(gtk.VBox):
         self.__reset_e_btn_states()
         
         if self.number==0 and self.predictor:
-            self.predictor.set_all( keV_to_A(dict['energy'][0]), dict['distance'], 0)
+            self.predictor.set_all( keVToA(dict['energy'][0]), dict['distance'], 0)
             self.predictor.update(force=True)
         
     def get_parameters(self):
