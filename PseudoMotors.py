@@ -90,7 +90,7 @@ class DCMEnergy(PseudoMotor):
         self.name = 'DCM Energy'
         
     def _calc_targets(self, val):
-        theta = keV_to_bragg(val)
+        theta = keVToBragg(val)
         offset = 30.0
         bragg_target = theta
         t1_target = offset / (2.0 * numpy.sin( radians(theta) ))
@@ -100,7 +100,7 @@ class DCMEnergy(PseudoMotor):
     def _calc_position(self):
         bragg = self.motors[0].get_position()
         if bragg:
-            return bragg_to_keV( bragg )
+            return braggToKeV( bragg )
         else:
             return -99
 

@@ -92,7 +92,7 @@ class DataCollector(threading.Thread, gobject.GObject):
             header['distance'] = frame['distance'] 
             header['time'] = frame['time']
             header['frame_number'] = frame['frame_number']
-            header['wavelength'] = keV_to_A(frame['energy'])
+            header['wavelength'] = keVToA(frame['energy'])
             header['energy'] = frame['energy']
             header['prefix'] = frame['prefix']
             header['start_angle'] = frame['start_angle']
@@ -189,7 +189,7 @@ class SNLDataCollector(DataCollector):
             header['distance'] = frame['distance'] 
             header['time'] = frame['time']
             header['frame_number'] = frame['frame_number']
-            header['wavelength'] = keV_to_A(frame['energy'])
+            header['wavelength'] = keVToA(frame['energy'])
             header['energy'] = frame['energy']
             header['prefix'] = frame['prefix']
             header['start_angle'] = frame['start_angle']

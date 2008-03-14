@@ -128,7 +128,7 @@ class Predictor( gtk.Frame ):
         return True
         
     def set_energy(self,energy):
-        self.wavelength = keV_to_A(energy)
+        self.wavelength = keVToA(energy)
         return True
         
     def set_distance(self, distance):
