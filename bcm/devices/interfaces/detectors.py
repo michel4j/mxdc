@@ -57,7 +57,7 @@ class IMultiChannelAnalyzer(ICounter):
         
         """
         
-    def setROI(roi=None):
+    def setChannelROI(roi=None):
         """
         Set the region of interest
         :Parameters:
@@ -66,14 +66,30 @@ class IMultiChannelAnalyzer(ICounter):
         
         """
 
-    def setEnergy(energy, width):
+    def setEnergyROI(roi=None):
+        """
+        Set the region of interest
+        :Parameters:
+            - `roi` : [(float,float)] default all 
+                A tuple of 2 floats for start and end region.
+        
+        """
+
+    def setEnergy(energy):
         """
         Set the region of interest by energy
         :Parameters:
             - `energy` : [float]
                 Median energy of desired region of interest.
-            - `width`: [float]
-                Width of region of interest in energy units          
+        
+        """
+
+    def setChannel(channel):
+        """
+        Set the region of interest by energy
+        :Parameters:
+            - `channel` : [int]
+                Median channel number of desired region of interest.
         
         """
         
