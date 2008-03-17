@@ -138,4 +138,17 @@ class IMultiChannelAnalyzer(ICounter):
         """
         Wait for MultiChannel Analyzer to complete task
         
-        """  
+        """
+
+class IImagingDetector(Interface):
+    """Interface for imaging detectors"""
+    
+    def start():
+        """Start Acquiring"""
+                
+    def save():
+        """Stop Acquiring and Save image"""
+    
+    def setParameters(params):
+        """Set image parameters"""
+          
