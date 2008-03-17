@@ -1,5 +1,6 @@
 from zope.interface import Interface
 
+
 class IPositioner(Interface):
     """Positioner interface"""
     
