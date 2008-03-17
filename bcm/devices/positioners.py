@@ -146,8 +146,6 @@ class clsMotor(Motor):
     def __init__(self, name):
         Motor.__init__(self, name, motor_type = 'cls')
 
-        
-
 class Positioner(PositionerBase):
     implements(IPositioner)
     
