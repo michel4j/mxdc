@@ -1,7 +1,8 @@
 from zope.interface import implements
-from bcm.interfaces.positioners import IMotor
+from bcm.interfaces.positioners import IMotor, IPositioner
 from bcm.protocols.ca import PV
 from bcm import utils
+import gobject
     
 class PositionerException(Exception):
     def __init__(self,message):
@@ -10,25 +11,45 @@ class PositionerException(Exception):
 class MotorException(PositionerException):
     pass
 
-class PositonerBase(gobject.GObject):
+class PositionerBase(gobject.GObject):
     __gsignals__ =  { 
-        "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)),
+        "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
         }  
 
     def __init__(self):
         gobject.GObject.__init__(self)
 
-class MotorBase(gobject.GObject):
+    def signal_change(self, obj, value):
+        gobject.idle_add(self.emit,'changed', value)
+    
+    def log(self, message):
+        gobject.idle_add(self.emit, 'log', message)
+        
+
+class MotorBase(PositionerBase):
     __gsignals__ =  { 
-        "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)),
         "moving": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
         "health": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
-        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
         }  
 
     def __init__(self):
-        gobject.GObject.__init__(self)
+        PositionerBase.__init__(self)
+    
+    def signal_move(self, obj, state):
+        if state == 0:
+            is_moving = False
+        else:
+            is_moving = True
+        gobject.idle_add(self.emit, 'moving', is_moving)
+    
+    def signal_health(self, obj, state):
+        if state == 0:
+            is_healthy = False
+        else:
+            is_healthy = True
+        gobject.idle_add(self.emit, 'health', is_healthy)    
+
     
 class Motor(MotorBase):
     implements(IMotor)    
@@ -64,9 +85,9 @@ class Motor(MotorBase):
         self.name = self.DESC.get()
         
         # connect monitors
-        self.RBV.connect('changed', self._signal_change)
-        self.STAT.connect('changed', self._signal_move)
-        self.CALIB.connect('changed', self._signal_health)
+        self.RBV.connect('changed', self.signal_change)
+        self.STAT.connect('changed', self.signal_move)
+        self.CALIB.connect('changed', self.signal_health)
                             
     def getPosition(self):
         return self.RBV.get()
@@ -85,10 +106,10 @@ class Motor(MotorBase):
         if self.getPosition() == target:
             return
         if not self.isHealthy():
-            self._log( "%s is not calibrated. Move canceled!" % self.name )
+            self.log( "%s is not calibrated. Move canceled!" % self.name )
             return
 
-        self._log( "%s moving to %f %s" % (self.name, target, self.units) )
+        self.log( "%s moving to %f %s" % (self.name, target, self.units) )
         self.VAL.put(target)
         if wait:
             self.wait(start=True,stop=True)
@@ -97,9 +118,9 @@ class Motor(MotorBase):
         if val == 0.0:
             return
         if not self.isHealthy():
-            self._log("%s is not calibrated. Move canceled!" % self.name)
+            self.log("%s is not calibrated. Move canceled!" % self.name)
             return False
-        self._log( "%s relative move by %f %s requested" % (self.name, val, self.units) )
+        self.log( "%s relative move by %f %s requested" % (self.name, val, self.units) )
         cur_pos = self.getPosition()
         self.moveTo(cur_pos + val, wait)
                 
@@ -118,26 +139,6 @@ class Motor(MotorBase):
     def stop(self):
         self.STOP.put(1)
     
-    def _log(self, message):
-        gobject.idle_add(self.emit, 'log', message)
-    
-    def _signal_change(self, object, position):
-        gobject.idle_add(self.emit, 'changed', position)
-    
-    def _signal_move(self, object, state):
-        if state == 0:
-            is_moving = False
-        else:
-            is_moving = True
-        gobject.idle_add(self.emit, 'moving', is_moving)
-    
-    def _signal_health(self, object, state):
-        if state == 0:
-            is_healthy = False
-        else:
-            is_healthy = True
-        gobject.idle_add(self.emit, 'health', is_healthy)    
-
 class vmeMotor(Motor):
     def __init__(self, name):
         Motor.__init__(self, name, motor_type = 'vme')
@@ -153,26 +154,20 @@ class Positioner(PositionerBase):
         self.PV = PV(name)
         self.DESC = PV('%s.DESC' % name)
         self.name = self.DESC.get()
-        self.PV.connect('changed', self._signal_change)
+        self.PV.connect('changed', self.signal_change)
         
     def moveTo(self, target):
-        self._log('%s moving to %s' % (self.name, target))
+        self.log('%s moving to %s' % (self.name, target))
         self.PV.put(target)
 
     def moveBy(self, value):
         cur_position = self.getPosition()
-        self._log('%s relative move of %s requested' % (self.name, value))
+        self.log('%s relative move of %s requested' % (self.name, value))
         self.moveTo(cur_position + value)
         
     def getPosition(self):
         return self.PV.get()
     
-    def _log(self, message):
-        gobject.idle_add(self.emit, 'log', message)
-        
-    def _signal_change(self, object, position):
-        gobject.idle_add(self.emit, 'changed', position)
-
 
 class energyMotor(MotorBase):
     """Temporary class until energy motor is standardized"""
@@ -190,9 +185,9 @@ class energyMotor(MotorBase):
         self.CALIB =  PV("SMTR16082I1005:calibDone")     
         
         # connect monitors
-        self.RBV.connect('changed', self._signal_change)
-        self.MOVN.connect('changed', self._signal_move)
-        self.CALIB.connect('changed', self._signal_health)
+        self.RBV.connect('changed', self.signal_change)
+        self.MOVN.connect('changed', self.signal_move)
+        self.CALIB.connect('changed', self.signal_health)
                             
     def getPosition(self):
         return utils.braggToKeV(self.RBV.get())
@@ -210,10 +205,10 @@ class energyMotor(MotorBase):
         if self.getPosition() == target:
             return
         if not self.isHealthy():
-            self._log( "%s is not calibrated. Move canceled!" % self.name )
+            self.log( "%s is not calibrated. Move canceled!" % self.name )
             return
 
-        self._log( "%s moving to %f %s" % (self.name, target, self.units) )
+        self.log( "%s moving to %f %s" % (self.name, target, self.units) )
         self.VAL.put(target)
         if wait:
             self.wait(start=True,stop=True)
@@ -222,9 +217,9 @@ class energyMotor(MotorBase):
         if val == 0.0:
             return
         if not self.isHealthy():
-            self._log("%s is not calibrated. Move canceled!" % self.name)
+            self.log("%s is not calibrated. Move canceled!" % self.name)
             return False
-        self._log( "%s relative move by %f %s requested" % (self.name, val, self.units) )
+        self.log( "%s relative move by %f %s requested" % (self.name, val, self.units) )
         cur_pos = self.getPosition()
         self.moveTo(cur_pos + val, wait)
                 
@@ -242,27 +237,7 @@ class energyMotor(MotorBase):
                                  
     def stop(self):
         self.STOP.put(1)
-    
-    def _log(self, message):
-        gobject.idle_add(self.emit, 'log', message)
-    
-    def _signal_change(self, object, position):
-        gobject.idle_add(self.emit, 'changed', position)
-    
-    def _signal_move(self, object, state):
-        if state == 0:
-            is_moving = False
-        else:
-            is_moving = True
-        gobject.idle_add(self.emit, 'moving', is_moving)
-    
-    def _signal_health(self, object, state):
-        if state == 0:
-            is_healthy = False
-        else:
-            is_healthy = True
-        gobject.idle_add(self.emit, 'health', is_healthy)    
-    
+        
 
 gobject.type_register(MotorBase)
 gobject.type_register(PositionerBase)
