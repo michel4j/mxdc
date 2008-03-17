@@ -5,10 +5,10 @@ class ICounter(Interface):
             
     def count(time):
         """
-        Integrate the counter
+        Integrate the counter. This command blocks for 'time' seconds
         :Parameters:
             - `time`: [float]
-                Duration to integrate object
+                Duration to integrate object in seconds
         :Return:
             - the integrated counts [float]
         
@@ -22,6 +22,27 @@ class ICounter(Interface):
             
         """
 
+class IBeamPositionMonitor(ICounter):
+    """Interface for Beam Position Monitors"""
+    
+    def setFactors(x_factor, y_factor):
+        """
+        Set the conversion factors for the BPM
+        :Parameters:
+            - `x_factor` : [float]
+            - `y_factor` : [float]
+        
+        """
+
+    def setOffsets(x_offset, y_offset):
+        """
+        Set the offset factors for the BPM
+        :Parameters:
+            - `x_offset` : [float]
+            - `y_offset` : [float]
+        
+        """
+        
     
 class IMultiChannelAnalyzer(ICounter):
     """Interface for MultiChannelAnalyzer objects"""
