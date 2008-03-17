@@ -1,4 +1,4 @@
-from bcm.interfaces.detectors import IMultiChannelAnalyzer, ICounter, IBeamPositionMonitor
+from bcm.interfaces.detectors import *
 from bcm.protocols.ca import PV
 from zope.interface import implements
 import time
@@ -263,9 +263,118 @@ class Counter(DetectorBase):
     def getValue(self):    
         return self.pv.get()
         
+class MarCCDImager:
+    implements(IImagingDetector)
+    def __init__(self, name):
+        self.name = name
+        self.start_cmd = PV("%s:start:cmd" % name)
+        self.abort_cmd = PV("%s:abort:cmd" % name)
+        self.readout_cmd = PV("%s:correct:cmd" % name)
+        self.writefile_cmd = PV("%s:writefile:cmd" % name)
+        self.background_cmd = PV("%s:dezFrm:cmd" % name)
+        self.save_cmd = PV("%s:rdwrOut:cmd" % name)
+        self.collect_cmd = PV("%s:frameCollect:cmd" % name)
+        self.header_cmd = PV("%s:header:cmd" % name)
+        self.readout_flag = PV("%s:readout:flag" % name)
+        
+        #Header parameters
+        self.header = {
+            'filename' : PV("%s:img:filename" % name),
+            'directory': PV("%s:img:dirname" % name),
+            'beam_x' : PV("%s:beam:x" % name),
+            'beam_y' : PV("%s:beam:y" % name),
+            'distance' : PV("%s:distance" % name),
+            'time' : PV("%s:exposureTime" % name),
+            'axis' : PV("%s:rot:axis" % name),
+            'wavelength':  PV("%s:src:wavelgth" % name),
+            'delta' : PV("%s:omega:incr" % name),
+            'frame_number': PV("%s:startFrame" % name),
+            'prefix' : PV("%s:img:prefix" % name),
+            'start_angle': PV("%s:start:omega" % name),
+            'energy': PV("%s:runEnergy" % name),            
+        }
+                
+        #Status parameters
+        self.state = PV("%s:rawState" % name)
+        self.state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
+        self.state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
+        self._bg_taken = False
+                      
+    def start(self):
+        if not self._bg_taken:
+            self._acquire_background(wait=True)
+        self._wait_in_state('acquire:queue')
+        self._wait_in_state('acquire:exec')
+        self.start_cmd.put(1)
+        self._wait_for_state('acquire:exec')
+        
+    def setParameters(self, data):
+        for key in data.keys():
+            self.header[key].put(data[key])        
+        self.header_cmd.put(1)
+    
+    def save(self,wait=False):
+        self.readout_flag.put(0)
+        self.save_cmd.put(1)
+        if wait:
+            self._wait_for_state('read:exec')
 
+    def _get_states(self):
+        state_string = "%08x" % self.state.get()
+        states = []
+        for i in range(8):
+            state_val = int(state_string[i])
+            if state_val != 0:
+                state_unit = "%s:%s" % (self.state_names[i],self.state_bits[state_val])
+                states.append(state_unit)
+        if len(states) == 0:
+            states.append('idle')
+        return states
 
+    def _wait_for_state(self,state, timeout=5.0):      
+        tf = time.time()
+        tI = int(tf)
+        st_time = time.time()
+        elapsed = time.time() - st_time
+
+        while (not self._is_in_state(state)) and elapsed < timeout:
+            elapsed = time.time() - st_time
+            time.sleep(0.001)
+        if elapsed < timeout:
+            return True
+        else:
+            return False
+
+    def _wait_in_state(self,state):      
+        tf = time.time()
+        tI = int(tf)
+        st_time = time.time()
+        elapsed = time.time() - st_time
+        while self._is_in_state(state):
+            elapsed = time.time() - st_time
+            time.sleep(0.001)
+        return True
+        
+    def _is_in_state(self, key):
+        if key in self._get_states():
+            return True
+        else:
+            return False
+
+    def _acquire_background(self, wait=True):
+        self._wait_in_state('acquire:queue')
+        self._wait_in_state('acquire:exec')
+        self.background_cmd.put(1)
+        self._bg_taken = True
+        if wait:
+            self._wait_for_state('acquire:exec')
+            self._wait_for_state('idle')
+                        
             
+
+    
+
+          
 
    
 gobject.type_register(Detector)
