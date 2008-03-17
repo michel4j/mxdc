@@ -3,6 +3,7 @@ from bcm.interfaces.positioners import IMotor, IPositioner
 from bcm.protocols.ca import PV
 from bcm import utils
 import gobject
+import math
     
 class PositionerException(Exception):
     def __init__(self,message):
@@ -238,7 +239,46 @@ class energyMotor(MotorBase):
     def stop(self):
         self.STOP.put(1)
         
-
+class Attenuator(PositionerBase):
+    def __init__(self, bit1, bit2, bit3, bit4, energy):
+        PositionerBase.__init__(self)
+        self.filters = [
+            PV(bit1),
+            PV(bit2),
+            PV(bit3),
+            PV(bit4) ]
+        self.energy = PV(energy)
+        
+        
+    def getPosition(self):
+        e = self.energy.get()
+        bitmap = ''
+        for f in self.filters:
+            bitmap += '%d' % f.get()
+        thickness = int(bitmap, 2) / 10.0
+        attenuation = 1.0 - math.exp( -4.4189e12 * thickness / (e*1000)**2.9554 )
+        return attenuation
+    
+    def moveTo(self, target):
+        e = self.energy.get()
+        if target > 99.9:
+            target = 99.9
+        elif target < 0.0:
+            target = 0.0
+        frac = target/100.0
+        thickness = math.log(1.0-frac) * (e*1000)**2.9554 / -4.4189e12
+        thk = int(round(thickness * 10.0))
+        if thk > 15: thk = 15
+        bitmap = '%04d' % utils.decToBin(thk)
+        for i in range(4):
+            self.filters[i].put( int(bitmap[i]) )
+        self.log('Attenuator, moving to %s' % target)
+        self.log('Attenuator, requested bit-map is"%s"' % bitmap)
+    
+    def moveBy(self, value):
+        target = value + self.getPosition()
+        self.moveTo(target)
+        
 gobject.type_register(MotorBase)
 gobject.type_register(PositionerBase)
         
