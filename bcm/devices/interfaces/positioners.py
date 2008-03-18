@@ -4,7 +4,7 @@ from zope.interface import Interface
 class IPositioner(Interface):
     """Positioner interface"""
     
-    def moveTo(target, wait=False):
+    def move_to(target, wait=False):
         """
         Moves to a new absolute position specified.
         :Parameters:        
@@ -15,7 +15,7 @@ class IPositioner(Interface):
                 
         """
                 
-    def moveBy(value, wait=False):
+    def move_by(value, wait=False):
         """
         Moves a specified value relative to the current position.         
         :Parameters:
@@ -26,7 +26,7 @@ class IPositioner(Interface):
 
         """
                     
-    def getPosition():
+    def get_position():
         """
         Get the current position of the positioner.       
         :Return:  
@@ -38,7 +38,7 @@ class IPositioner(Interface):
 class IMotor(IPositioner):
     """Motor interface"""
 
-    def isHealthy():
+    def is_healthy():
         """
         Check the health of the motor.       
         :Return:  
@@ -46,7 +46,7 @@ class IMotor(IPositioner):
             
         """
 
-    def isMoving():
+    def is_moving():
         """
         Check if the motor is moving.       
         :Return:  
@@ -69,7 +69,7 @@ class IMotor(IPositioner):
     def stop():  
         """Stop Motor movement"""
     
-    def setCalibrated():
+    def set_calibrated():
         """Set the Motor to calibrated status"""
         
         
