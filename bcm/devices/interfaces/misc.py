@@ -10,19 +10,19 @@ class IShutter(Interface):
     def close():
         """Set the device to the Close position"""
 
-    def isOpen():
+    def is_open():
         """Returns True[boolean] if the device is open"""
 
 class IGoniometer(Interface):
     """An interface for Goniometer devices"""
     
-    def setParameters(params):
+    def set_parameters(params):
         """Set goniometer parameters"""
     
     def scan():
         """Scan the goniometer with current parameters"""
         
-    def isActive():
+    def is_active():
         """Query the state of the goniometer. Returns True if scanning"""
         
                         

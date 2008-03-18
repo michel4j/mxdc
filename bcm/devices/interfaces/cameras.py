@@ -2,7 +2,7 @@ from zope.interface import Interface
 
 class ICamera(Interface):
             
-    def getFrame():
+    def get_frame():
         """Get current frame of video"""
           
     def stop():
@@ -22,6 +22,6 @@ class ICamera(Interface):
         
         """
         
-    def isOn():
+    def is_on():
         """ Reports the state of the Camera. True means it is On"""
     

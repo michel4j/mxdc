@@ -14,7 +14,7 @@ class ICounter(Interface):
         
         """
 
-    def getValue():
+    def get_value():
         """
         Get the instantaneous value of the object
         :Return:
@@ -25,7 +25,7 @@ class ICounter(Interface):
 class IBeamPositionMonitor(ICounter):
     """Interface for Beam Position Monitors"""
     
-    def setFactors(x_factor, y_factor):
+    def set_factors(x_factor, y_factor):
         """
         Set the conversion factors for the BPM
         :Parameters:
@@ -34,7 +34,7 @@ class IBeamPositionMonitor(ICounter):
         
         """
 
-    def setOffsets(x_offset, y_offset):
+    def set_offsets(x_offset, y_offset):
         """
         Set the offset factors for the BPM
         :Parameters:
@@ -47,7 +47,7 @@ class IBeamPositionMonitor(ICounter):
 class IMultiChannelAnalyzer(ICounter):
     """Interface for MultiChannelAnalyzer objects"""
     
-    def setCooling(state):
+    def set_cooling(state):
         """
         Set the cooling  the device if cooling is available
         :Parameters:
@@ -56,7 +56,7 @@ class IMultiChannelAnalyzer(ICounter):
         
         """
         
-    def channelToEnergy(channel):
+    def channel_to_energy(channel):
         """
         Convert Channel to Energy
         :Parameters:
@@ -67,7 +67,7 @@ class IMultiChannelAnalyzer(ICounter):
         
         """
     
-    def energyToChannel(energy):
+    def energy_to_channel(energy):
         """
         Convert Energy to channel number
         :Parameters:
@@ -78,7 +78,7 @@ class IMultiChannelAnalyzer(ICounter):
         
         """
         
-    def setChannelROI(roi=None):
+    def set_channel_ROI(roi=None):
         """
         Set the region of interest
         :Parameters:
@@ -87,7 +87,7 @@ class IMultiChannelAnalyzer(ICounter):
         
         """
 
-    def setEnergyROI(roi=None):
+    def set_energy_ROI(roi=None):
         """
         Set the region of interest
         :Parameters:
@@ -96,7 +96,7 @@ class IMultiChannelAnalyzer(ICounter):
         
         """
 
-    def setEnergy(energy):
+    def set_energy(energy):
         """
         Set the region of interest by energy
         :Parameters:
@@ -105,7 +105,7 @@ class IMultiChannelAnalyzer(ICounter):
         
         """
 
-    def setChannel(channel):
+    def set_channel(channel):
         """
         Set the region of interest by energy
         :Parameters:
@@ -114,7 +114,7 @@ class IMultiChannelAnalyzer(ICounter):
         
         """
         
-    def getSpectrum():
+    def get_spectrum():
         """
         Get the full spectrum of the MultiChannelAnalyzer
         :Return:
@@ -149,6 +149,6 @@ class IImagingDetector(Interface):
     def save():
         """Stop Acquiring and Save image"""
     
-    def setParameters(params):
+    def set_parameters(params):
         """Set image parameters"""
           
