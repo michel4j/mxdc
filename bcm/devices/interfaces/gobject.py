@@ -42,3 +42,4 @@ class IGObject(Interface):
                 an integer handler identifier
             
         """
+
