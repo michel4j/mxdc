@@ -152,6 +152,7 @@ class Positioner(PositionerBase):
     implements(IPositioner)
     
     def __init__(self, name):
+        PositionerBase.__init__(self)
         self.PV = PV(name)
         self.DESC = PV('%s.DESC' % name)
         self.name = self.DESC.get()
