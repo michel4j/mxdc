@@ -27,20 +27,20 @@ class Gonio(gobject.GObject):
             'start_angle': PV("%s:openSHPos" % name),
         }
         
-        self.state.connect('changed', self.signal_change)
+        self.state.connect('changed', self._signal_change)
 
-    def signal_change(self, obj, value):
+    def _signal_change(self, obj, value):
         if value != 0:
             gobject.idle_add(self.emit,'changed', True)
         else:
             gobject.idle_add(self.emit,'changed', False)
         
     
-    def log(self, message):
+    def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
 
                 
-    def setParameters(self, params):
+    def set_parameters(self, params):
         for key in params.keys():
             self.settings[key].put(data[key])
     
@@ -49,18 +49,18 @@ class Gonio(gobject.GObject):
         if wait:
             self.wait(start=True, stop=True)
 
-    def isActive(self):
+    def is_active(self):
         return self.state.get() != 0        
                         
     def wait(self, start=True, stop=True, poll=0.01, timeout=20):
         if (start):
             time_left = 2
-            while not self.isActive() and time_left > 0:
+            while not self.is_active() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
         if (stop):
             time_left = timeout
-            while self.isActive() and time_left > 0:
+            while self.is_active() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
 
@@ -75,9 +75,9 @@ class Shutter(gobject.GObject):
         self.open_cmd = PV("%s:opr:open" % name)
         self.close_cmd = PV("%s:opr:close" % name)
         self.state = PV("%s:state" % name)
-        self.state.connect('changed', self.signal_change)
+        self.state.connect('changed', self._signal_change)
 
-    def isOpen(self):
+    def is_open(self):
         return self.state.get() == 1
     
     def open(self):
@@ -86,13 +86,13 @@ class Shutter(gobject.GObject):
     def close(self):
         self.close_cmd.put(1)
 
-    def signal_change(self, obj, value):
+    def _signal_change(self, obj, value):
         if value != 0:
             gobject.idle_add(self.emit,'changed', True)
         else:
             gobject.idle_add(self.emit,'changed', False)
         
-    def log(self, message):
+    def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
 
 

@@ -26,7 +26,7 @@ class CameraBase(gobject.GObject):
     def log(self, message):
         gobject.idle_add(self.emit, 'log', message)
 
-    def getFrame(self):
+    def get_frame(self):
         return self.frame
     
     def save(self, filename):
@@ -39,7 +39,7 @@ class CameraBase(gobject.GObject):
             except:
                 self.log('Could not save image: %s' % filename)
     
-    def isOn(self):
+    def is_on(self):
         return self.camera_on
     
     def stop(self):
@@ -59,7 +59,7 @@ class CameraSim(CameraBase):
         self._data = None 
     
     def update():
-        if self.isOn():
+        if self.is_on():
             self._data = self._fsource.read(307200)
             self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
                    
@@ -72,7 +72,7 @@ class Camera(CameraBase):
         self.cam.connect('changed', self.signal_change)
     
     def update(self):
-        if self.isOn():
+        if self.is_on():
             self._data = self.cam.get()
             self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
 
@@ -116,7 +116,7 @@ class AxisCamera(CameraBase):
         self.controller = AxisController(hostname)
     
     def update(self):
-        if self.isOn():
+        if self.is_on():
             img_file = urllib.urlopen(self.url)
             img_str = cStringIO.StringIO(img_file.read())
             self.frame = Image.open(img_str)

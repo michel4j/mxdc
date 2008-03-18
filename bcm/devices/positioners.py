@@ -21,10 +21,10 @@ class PositionerBase(gobject.GObject):
     def __init__(self):
         gobject.GObject.__init__(self)
 
-    def signal_change(self, obj, value):
+    def _signal_change(self, obj, value):
         gobject.idle_add(self.emit,'changed', value)
     
-    def log(self, message):
+    def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
         
 
@@ -37,14 +37,14 @@ class MotorBase(PositionerBase):
     def __init__(self):
         PositionerBase.__init__(self)
     
-    def signal_move(self, obj, state):
+    def _signal_move(self, obj, state):
         if state == 0:
             is_moving = False
         else:
             is_moving = True
         gobject.idle_add(self.emit, 'moving', is_moving)
     
-    def signal_health(self, obj, state):
+    def _signal_health(self, obj, state):
         if state == 0:
             is_healthy = False
         else:
@@ -86,46 +86,46 @@ class Motor(MotorBase):
         self.name = self.DESC.get()
         
         # connect monitors
-        self.RBV.connect('changed', self.signal_change)
-        self.STAT.connect('changed', self.signal_move)
-        self.CALIB.connect('changed', self.signal_health)
+        self.RBV.connect('changed', self._signal_change)
+        self.STAT.connect('changed', self._signal_move)
+        self.CALIB.connect('changed', self._signal_health)
                             
-    def getPosition(self):
+    def get_position(self):
         return self.RBV.get()
 
-    def setPosition(self, value):
+    def set_position(self, value):
         if self.motor_type == 'vme':
             self.SET.put(value)
 
-    def setCalibrated(self, status):
+    def set_calibrated(self, status):
         if status:
             self.CALIB.put(1)
         else:
             self.CALIB.put(0)
             
-    def moveTo(self, target, wait=False):
-        if self.getPosition() == target:
+    def move_to(self, target, wait=False):
+        if self.get_position() == target:
             return
-        if not self.isHealthy():
-            self.log( "%s is not calibrated. Move canceled!" % self.name )
+        if not self.is_healthy():
+            self._log( "%s is not calibrated. Move canceled!" % self.name )
             return
 
-        self.log( "%s moving to %f %s" % (self.name, target, self.units) )
+        self._log( "%s moving to %f %s" % (self.name, target, self.units) )
         self.VAL.put(target)
         if wait:
             self.wait(start=True,stop=True)
 
-    def moveBy(self,val, wait=False):
+    def move_by(self,val, wait=False):
         if val == 0.0:
             return
-        if not self.isHealthy():
-            self.log("%s is not calibrated. Move canceled!" % self.name)
+        if not self.is_healthy():
+            self._log("%s is not calibrated. Move canceled!" % self.name)
             return False
-        self.log( "%s relative move by %f %s requested" % (self.name, val, self.units) )
-        cur_pos = self.getPosition()
-        self.moveTo(cur_pos + val, wait)
+        self._log( "%s relative move by %f %s requested" % (self.name, val, self.units) )
+        cur_pos = self.get_position()
+        self.move_to(cur_pos + val, wait)
                 
-    def isMoving(self):
+    def is_moving(self):
         if self.STAT.get() == 1:
             return True
         else:
@@ -134,7 +134,7 @@ class Motor(MotorBase):
             else:
                 return False
     
-    def isHealthy(self):
+    def is_healthy(self):
         return (self.CALIB.get() == 1) and (self.STAT.get() != 3)
                                  
     def stop(self):
@@ -155,18 +155,18 @@ class Positioner(PositionerBase):
         self.PV = PV(name)
         self.DESC = PV('%s.DESC' % name)
         self.name = self.DESC.get()
-        self.PV.connect('changed', self.signal_change)
+        self.PV.connect('changed', self._signal_change)
         
-    def moveTo(self, target):
-        self.log('%s moving to %s' % (self.name, target))
+    def move_to(self, target):
+        self._log('%s moving to %s' % (self.name, target))
         self.PV.put(target)
 
-    def moveBy(self, value):
-        cur_position = self.getPosition()
-        self.log('%s relative move of %s requested' % (self.name, value))
-        self.moveTo(cur_position + value)
+    def move_by(self, value):
+        cur_position = self.get_position()
+        self._log('%s relative move of %s requested' % (self.name, value))
+        self.move_to(cur_position + value)
         
-    def getPosition(self):
+    def get_position(self):
         return self.PV.get()
     
 
@@ -186,45 +186,45 @@ class energyMotor(MotorBase):
         self.CALIB =  PV("SMTR16082I1005:calibDone")     
         
         # connect monitors
-        self.RBV.connect('changed', self.signal_change)
-        self.MOVN.connect('changed', self.signal_move)
-        self.CALIB.connect('changed', self.signal_health)
+        self.RBV.connect('changed', self._signal_change)
+        self.MOVN.connect('changed', self._signal_move)
+        self.CALIB.connect('changed', self._signal_health)
                             
-    def getPosition(self):
+    def get_position(self):
         return utils.braggToKeV(self.RBV.get())
 
-    def setPosition(self, value):
+    def set_position(self, value):
         pass
     
-    def setCalibrated(self, status):
+    def set_calibrated(self, status):
         if status:
             self.CALIB.put(1)
         else:
             self.CALIB.put(0)
             
-    def moveTo(self, target, wait=False):
-        if self.getPosition() == target:
+    def move_to(self, target, wait=False):
+        if self.get_position() == target:
             return
-        if not self.isHealthy():
-            self.log( "%s is not calibrated. Move canceled!" % self.name )
+        if not self.is_healthy():
+            self._log( "%s is not calibrated. Move canceled!" % self.name )
             return
 
-        self.log( "%s moving to %f %s" % (self.name, target, self.units) )
+        self._log( "%s moving to %f %s" % (self.name, target, self.units) )
         self.VAL.put(target)
         if wait:
             self.wait(start=True,stop=True)
 
-    def moveBy(self,val, wait=False):
+    def move_by(self,val, wait=False):
         if val == 0.0:
             return
-        if not self.isHealthy():
-            self.log("%s is not calibrated. Move canceled!" % self.name)
+        if not self.is_healthy():
+            self._log("%s is not calibrated. Move canceled!" % self.name)
             return False
-        self.log( "%s relative move by %f %s requested" % (self.name, val, self.units) )
-        cur_pos = self.getPosition()
-        self.moveTo(cur_pos + val, wait)
+        self._log( "%s relative move by %f %s requested" % (self.name, val, self.units) )
+        cur_pos = self.get_position()
+        self.move_to(cur_pos + val, wait)
                 
-    def isMoving(self):
+    def is_moving(self):
         if self.STAT.get() == 1:
             return True
         else:
@@ -233,7 +233,7 @@ class energyMotor(MotorBase):
             else:
                 return False
     
-    def isHealthy(self):
+    def is_healthy(self):
         return (self.CALIB.get() == 1) and (self.STAT.get() != 3)
                                  
     def stop(self):
@@ -250,7 +250,7 @@ class Attenuator(PositionerBase):
         self.energy = PV(energy)
         
         
-    def getPosition(self):
+    def get_position(self):
         e = self.energy.get()
         bitmap = ''
         for f in self.filters:
@@ -259,7 +259,7 @@ class Attenuator(PositionerBase):
         attenuation = 1.0 - math.exp( -4.4189e12 * thickness / (e*1000)**2.9554 )
         return attenuation
     
-    def moveTo(self, target):
+    def move_to(self, target):
         e = self.energy.get()
         if target > 99.9:
             target = 99.9
@@ -272,12 +272,12 @@ class Attenuator(PositionerBase):
         bitmap = '%04d' % utils.decToBin(thk)
         for i in range(4):
             self.filters[i].put( int(bitmap[i]) )
-        self.log('Attenuator, moving to %s' % target)
-        self.log('Attenuator, requested bit-map is"%s"' % bitmap)
+        self._log('Attenuator, moving to %s' % target)
+        self._log('Attenuator, requested bit-map is"%s"' % bitmap)
     
-    def moveBy(self, value):
-        target = value + self.getPosition()
-        self.moveTo(target)
+    def move_by(self, value):
+        target = value + self.get_position()
+        self.move_to(target)
         
 gobject.type_register(MotorBase)
 gobject.type_register(PositionerBase)

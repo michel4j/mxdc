@@ -9,15 +9,15 @@ class Normalizer(threading.Thread):
         self.start_counting = False
         self.stopped = False
         self.interval = 0.05
-        self.setTime(1.0)
+        self.set_time(1.0)
         self.device = dev
         self.first = 1.0
         self.factor = 1.0
 
-    def getFactor(self):
+    def get_factor(self):
         return self.factor
 
-    def setTime(self, t=1.0):
+    def set_time(self, t=1.0):
         self.duration = t
         self.accum = numpy.zeros( (self.duration / self.interval), numpy.float64)
     
