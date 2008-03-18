@@ -302,7 +302,7 @@ class MarCCDImager:
                       
     def start(self):
         if not self._bg_taken:
-            self._acquire_background(wait=True)
+            self.initialize(wait=True)
         self._wait_in_state('acquire:queue')
         self._wait_in_state('acquire:exec')
         self.start_cmd.put(1)
@@ -361,7 +361,7 @@ class MarCCDImager:
         else:
             return False
 
-    def _acquire_background(self, wait=True):
+    def initialize(self, wait=True):
         self._wait_in_state('acquire:queue')
         self._wait_in_state('acquire:exec')
         self.background_cmd.put(1)
