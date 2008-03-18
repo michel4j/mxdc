@@ -7,10 +7,10 @@ c = 299792458e10   # A/s
 S111_a_rt   = 5.4310209 # A at RT
 S111_a_ln2  = 5.4297575 # A at LN2 
 
-def keVToA(energy): #Angstroms
+def energy_to_wavelength(energy): #Angstroms
 	return (h*c)/(energy*1000.0)
 
-def AToKeV(wavelength): #eV
+def wavelength_to_energy(wavelength): #eV
 	return (h*c)/(wavelength*1000.0)
 
 def radians(angle):
@@ -20,16 +20,29 @@ def degrees(angle):
     return 180 * angle / math.pi
     
 
-def braggToKeV(bragg):
+def bragg_to_energy(bragg):
     d = S111_a_ln2 / math.sqrt(3.0)
     wavelength = 2.0 * d * math.sin( radians(bragg) )
-    return AToKeV(wavelength)
+    return wavelength_to_energy(wavelength)
 
-def keVToBragg(energy):
+def energy_to_bragg(energy):
     d = S111_a_ln2 / math.sqrt(3.0)
-    bragg = math.asin( keVToA(energy)/(2.0*d) )
+    bragg = math.asin( energy_to_wavelength(energy)/(2.0*d) )
     return degrees(bragg)
 
-def decToBin(x):
-    return x and (decToBin(x/2) + str(x%2)) or '0'
+def dec_to_bin(x):
+    return x and (dec_to_bin(x/2) + str(x%2)) or '0'
     
+def read_periodic_table():
+    filename = 'data/periodic_table.dat'
+    data_file = open(filename)
+    table_data = {}
+    data = data_file.readlines()
+    data_file.close()
+    keys = data[0].split()
+    for line in data[1:] :
+        vals = line.split()
+        table_data[vals[1]] = {}
+        for (key,val) in zip(keys,vals):
+            table_data[vals[1]][key] = val
+    return table_data

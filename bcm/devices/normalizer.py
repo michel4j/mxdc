@@ -22,7 +22,7 @@ class Normalizer(threading.Thread):
         self.accum = numpy.zeros( (self.duration / self.interval), numpy.float64)
     
     def initialize(self):
-        self.first = self.device.getValue()
+        self.first = self.device.get_value()
         
     def stop(self):
         self.stopped = True
@@ -35,7 +35,7 @@ class Normalizer(threading.Thread):
         self.initialize()
         self.count = 0
         while not self.stopped:
-            self.accum[ self.count ] = self.device.getValue()
+            self.accum[ self.count ] = self.device.get_value()
             self.count = (self.count + 1) % len(self.accum)
             self.factor = self.first/numpy.mean(self.accum)
             time.sleep(self.interval)

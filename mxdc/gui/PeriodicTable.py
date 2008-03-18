@@ -3,19 +3,7 @@
 import gtk, gobject, gc
 import sys, time
 
-def read_periodic_table():
-    filename = sys.path[0] + '/data/periodic_table.dat'
-    data_file = open(filename)
-    table_data = {}
-    data = data_file.readlines()
-    data_file.close()
-    keys = data[0].split()
-    for line in data[1:] :
-        vals = line.split()
-        table_data[vals[1]] = {}
-        for (key,val) in zip(keys,vals):
-            table_data[vals[1]][key] = val
-    return table_data
+
 
 class PeriodicTable(gtk.Alignment):
     __gsignals__ = {
