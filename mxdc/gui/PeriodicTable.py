@@ -1,9 +1,5 @@
-#!/usr/bin/env python
-
-import gtk, gobject, gc
-import sys, time
-
-
+import gtk, gobject
+import bcm.utils
 
 class PeriodicTable(gtk.Alignment):
     __gsignals__ = {
@@ -24,7 +20,7 @@ class PeriodicTable(gtk.Alignment):
         self.edge_colors = ['#d95757','#d9bd93','#d9a2d9','#d982ad','#d9a3a3','#b3b3b3','#b3b386','#88d988','#d9d982','#a3d9d9']
 
         self.table = gtk.Table(4,18,True)
-        self.table_data = read_periodic_table()
+        self.table_data = bcm.utils.read_periodic_table()
                     
         # set the title
         self.title = gtk.Label('<big><big><b>Select an X-ray Absorption Edge</b></big></big>')
@@ -33,7 +29,6 @@ class PeriodicTable(gtk.Alignment):
                 
         # populate table and display it
         self.populate_table()
-        gc.collect()
         self.table.set_row_spacings(1)
         self.table.set_col_spacings(1)
         self.table.set_row_spacing(6,4)
