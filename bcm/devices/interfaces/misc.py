@@ -23,11 +23,11 @@ class IGoniometer(Interface):
         """Scan the goniometer with current parameters"""
         
     def isActive():
-        """Query the state of the goniometer. Returns True if scanning"
+        """Query the state of the goniometer. Returns True if scanning"""
         
                         
     def wait(start=True, stop=True):
-        """
+        """        
         Wait for goniometer to scan.
         :Parameters:
             - `start`: [boolean] default True
