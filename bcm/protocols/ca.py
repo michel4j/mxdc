@@ -164,19 +164,40 @@ class PV(gobject.GObject):
         self.callbacks = {}
         self.state = NEVER_CONNECTED
         self._lock = thread.allocate_lock()
-        self.__connect()
+        self._create_connection()
         if monitor:
-            self.connect_monitor( self.change_monitor )
-        print 'initializing', self.name
+            self._add_handler( self._on_change )
                    
     def __del__(self):
         for key,val in self.callbacks:
-            self.disconnect_monitor(val[2])
+            self._del_handler(val[2])
         libca.ca_clear_channel(self.chid)
         libca.ca_pend_event(0.1)
         libca.ca_pend_io(1.0)
     
-    def __connect(self):
+    def get(self):
+        if self.state != CONNECTED:
+            self._create_connection()
+        self._lock.acquire()
+        if self.value_changed:
+            ret_val = self.value
+        else:
+            libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
+            libca.ca_pend_io(0.1)
+            if self.count > 1 and TypeMap[self.element_type] in [c_int, c_float, c_double, c_long]:
+                self.value = self.data
+            else:
+                self.value = self.data.value
+            ret_val = self.value
+        self._lock.release()
+        return ret_val
+
+    def put(self, val):
+        self.data = self.data_type(val)
+        libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
+        libca.ca_pend_io(0.1)
+
+    def _create_connection(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
         libca.ca_pend_io(1.0)
         self.count = libca.ca_element_count(self.chid)
@@ -198,10 +219,10 @@ class PV(gobject.GObject):
         else:
             self.data = self.data_type()
 
-    def __connect_deferred(self):
+    def _defer_connection(self):
         if self.state != CONNECTED:
             cb_factory = CFUNCTYPE(c_int, ConnectionHandlerArgs)
-            cb_function = cb_factory(self.on_connect)
+            cb_function = cb_factory(self._on_connect)
             self.connect_args = ConnectionHandlerArgs()
 
             libca.ca_create_channel(
@@ -212,7 +233,7 @@ class PV(gobject.GObject):
                 byref(self.chid)
             )
             
-    def change_monitor(self, event):
+    def _on_change(self, event):
         self._lock.acquire()
         if event.type == DBR_STRING:
             val_p = cast(event.dbr, c_char_p)
@@ -229,7 +250,7 @@ class PV(gobject.GObject):
         gobject.idle_add(self.emit,'changed', self.value)
         return 0
         
-    def on_connect(self, event):
+    def _on_connect(self, event):
         if event.op == CA_OP_CONN_UP:
             self.chid = event.chid
             self.count = libca.ca_element_count(self.chid)
@@ -241,9 +262,9 @@ class PV(gobject.GObject):
             self.state = libca.ca_state(self.chid)
         return self.state
                
-    def connect_monitor(self, callback):
+    def _add_handler(self, callback):
         if self.state != CONNECTED:
-            self.__connect()
+            self._create_connection()
         event_id = c_ulong()
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
         cb_function = cb_factory(callback)
@@ -262,40 +283,18 @@ class PV(gobject.GObject):
         self.callbacks[ key ] = [cb_factory, cb_function, event_id]
         return event_id
                       
-    def disconnect_monitor(self, event_id):
+    def _del_handler(self, event_id):
         libca.ca_clear_subscription(event_id)
         libca.ca_pend_io(0.1)
               
-    def get(self):
-        if self.state != CONNECTED:
-            self.__connect()
-        self._lock.acquire()
-        if self.value_changed:
-            ret_val = self.value
-        else:
-            libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
-            libca.ca_pend_io(0.1)
-            if self.count > 1 and TypeMap[self.element_type] in [c_int, c_float, c_double, c_long]:
-                self.value = self.data
-            else:
-                self.value = self.data.value
-            ret_val = self.value
-        self._lock.release()
-        return ret_val
-
-    def put(self, val):
-        self.data = self.data_type(val)
-        libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
-        libca.ca_pend_io(0.1)
-
 gobject.type_register(PV)
 
-class caException(Exception):
-    def __init__(self, value):
-        self.value = value
+class Error(Exception):
+    def __init__(self, message):
+        self.message = message
 
     def __str__(self):
-        return "CA Exception: error '%s'\n" % OP_messages[value.op]
+        return "CA Error: '%s'" % self.message
         
 
 def thread_init():
@@ -304,32 +303,17 @@ def thread_init():
         libca.ca_attach_context(libca.context)
 
 def ca_exception_handler(event):
-    print caException(event)
+    print Error(event.op)
     return 0
 
 def heart_beat():
     libca.ca_pend_io(0.01)
     return True
-
-#gobject.timeout_add(10, heart_beat)
      
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
-except:
-    libca_file = None
-if (not libca_file) or (not os.access(libca_file, os.EX_OK)):
-    arch = os.uname()[-1]
-    libca_loc = {
-        'x86_64': '/home/cmcf/michel/EPICS/base-3.14.8.2/lib/linux-x86/libca.so',
-        'i386': '/opt/epics/R3.14.6/base/lib/linux-x86/libca.so',
-        'i686': '/opt/epics/R3.14.6/base/lib/linux-x86/libca.so',
-    }
-    libca_file =   libca_loc[arch]
-    
-# Load CA library
-try:
     libca = cdll.LoadLibrary(libca_file)
-except:   
+except:
     print "EPICS run-time libraries (%s) could not be loaded!" % libca_file
     sys.exit()
 
@@ -367,7 +351,6 @@ libca.ca_context_create.argtypes = [c_ushort]
 libca.ca_context_create(ENABLE_PREEMPTIVE_CALLBACK)
 libca.context = libca.ca_current_context()
 
-#libca.lock = thread.allocate_lock()
 _cb_factory = CFUNCTYPE(c_int, ExceptionHandlerArgs)        
 _cb_function = _cb_factory(ca_exception_handler)
 _cb_user_agg = c_void_p()
