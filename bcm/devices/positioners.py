@@ -192,7 +192,7 @@ class energyMotor(MotorBase):
         self.CALIB.connect('changed', self._signal_health)
                             
     def get_position(self):
-        return utils.braggToKeV(self.RBV.get())
+        return utils.bragg_to_energy(self.RBV.get())
 
     def set_position(self, value):
         pass
@@ -270,7 +270,7 @@ class Attenuator(PositionerBase):
         thickness = math.log(1.0-frac) * (e*1000)**2.9554 / -4.4189e12
         thk = int(round(thickness * 10.0))
         if thk > 15: thk = 15
-        bitmap = '%04d' % utils.decToBin(thk)
+        bitmap = '%04d' % utils.dec_to_bin(thk)
         for i in range(4):
             self.filters[i].put( int(bitmap[i]) )
         self._log('Attenuator, moving to %s' % target)

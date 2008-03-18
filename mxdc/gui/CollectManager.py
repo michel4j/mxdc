@@ -4,7 +4,6 @@ import sys, os, time
 from RunManager import RunManager
 from ImgViewer import ImgViewer
 from DataCollector import DataCollector as DataCollector
-from Beamline import beamline
 from ActiveWidgets import ActiveLabel
 from ConfigParser import ConfigParser
 from LogServer import LogServer

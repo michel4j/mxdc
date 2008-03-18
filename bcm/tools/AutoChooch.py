@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-
 import sys, os, re
-import gtk, gobject
+import gobject
 import threading
 import commands
 from pylab import load
