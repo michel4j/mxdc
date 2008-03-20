@@ -1,9 +1,10 @@
 from bcm.interfaces.detectors import *
-from bcm.protocols.ca import PV
+from bcm.protocols import ca
 from zope.interface import implements
 import time
 import threading
 import numpy
+import gobject
 
 class DetectorException(Exception):
     def __init__(self, message):
@@ -36,18 +37,18 @@ class MCA(DetectorBase):
     def __init__(self, name, channels=4096):
         DetectorBase.__init__(self)
         name_parts = name.split(':')
-        self.spectrum = PV(name)
-        self.count_time = PV("%s.PRTM" % name)
-        self.time_left = PV("%s:timeRem" % name_parts[0])
-        self.READ = PV("%s.READ" % name)
-        self.RDNG = PV("%s.RDNG" % name)
-        self.START = PV("%s.ERST" % name)
-        self.IDTIM = PV("%s.IDTIM" % name)
-        self.TMODE = PV("%s:Rontec1SetMode" % name_parts[0])
-        self.SCAN = PV("%s.SCAN" % name)
-        self.ACQG = PV("%s.ACQG" % name)
-        self.status_scan = PV("%s:mca1Status.SCAN" % name_parts[0])
-        self.read_scan = PV("%s:mca1Read.SCAN" % name_parts[0])
+        self.spectrum = ca.PV(name)
+        self.count_time = ca.PV("%s.PRTM" % name)
+        self.time_left = ca.PV("%s:timeRem" % name_parts[0])
+        self.READ = ca.PV("%s.READ" % name)
+        self.RDNG = ca.PV("%s.RDNG" % name)
+        self.START = ca.PV("%s.ERST" % name)
+        self.IDTIM = ca.PV("%s.IDTIM" % name)
+        self.TMODE = ca.PV("%s:Rontec1SetMode" % name_parts[0])
+        self.SCAN = ca.PV("%s.SCAN" % name)
+        self.ACQG = ca.PV("%s.ACQG" % name)
+        self.status_scan = ca.PV("%s:mca1Status.SCAN" % name_parts[0])
+        self.read_scan = ca.PV("%s:mca1Read.SCAN" % name_parts[0])
         self.channels = channels
         self.ROI = (0, self.channels)
         
@@ -187,10 +188,10 @@ class QBPM(DetectorBase):
     implements(IBeamPositionMonitor)
     def __init__(self, A, B, C, D):
         DetectorBase.__init__(self)
-        self.A = ca.PV(A)
-        self.B = ca.PV(B)
-        self.C = ca.PV(C)
-        self.D = ca.PV(D)
+        self.A = ca.ca.PV(A)
+        self.B = ca.ca.PV(B)
+        self.C = ca.ca.PV(C)
+        self.D = ca.ca.PV(D)
         self.x_factor = 1.0
         self.y_factor = 1.0
         self.x_offset = 0.0
@@ -249,7 +250,7 @@ class Counter(DetectorBase):
     def __init__(self, pv_name):
         DetectorBase.__init__(self)
         self.name = pv_name     
-        self.pv = PV(pv_name)
+        self.pv = ca.PV(pv_name)
         self.pv.connect('changed', self._signal_change)
                 
     def count(self, t):
@@ -269,35 +270,35 @@ class MarCCDImager:
     implements(IImagingDetector)
     def __init__(self, name):
         self.name = name
-        self.start_cmd = PV("%s:start:cmd" % name)
-        self.abort_cmd = PV("%s:abort:cmd" % name)
-        self.readout_cmd = PV("%s:correct:cmd" % name)
-        self.writefile_cmd = PV("%s:writefile:cmd" % name)
-        self.background_cmd = PV("%s:dezFrm:cmd" % name)
-        self.save_cmd = PV("%s:rdwrOut:cmd" % name)
-        self.collect_cmd = PV("%s:frameCollect:cmd" % name)
-        self.header_cmd = PV("%s:header:cmd" % name)
-        self.readout_flag = PV("%s:readout:flag" % name)
+        self.start_cmd = ca.PV("%s:start:cmd" % name)
+        self.abort_cmd = ca.PV("%s:abort:cmd" % name)
+        self.readout_cmd = ca.PV("%s:correct:cmd" % name)
+        self.writefile_cmd = ca.PV("%s:writefile:cmd" % name)
+        self.background_cmd = ca.PV("%s:dezFrm:cmd" % name)
+        self.save_cmd = ca.PV("%s:rdwrOut:cmd" % name)
+        self.collect_cmd = ca.PV("%s:frameCollect:cmd" % name)
+        self.header_cmd = ca.PV("%s:header:cmd" % name)
+        self.readout_flag = ca.PV("%s:readout:flag" % name)
         
         #Header parameters
         self.header = {
-            'filename' : PV("%s:img:filename" % name),
-            'directory': PV("%s:img:dirname" % name),
-            'beam_x' : PV("%s:beam:x" % name),
-            'beam_y' : PV("%s:beam:y" % name),
-            'distance' : PV("%s:distance" % name),
-            'time' : PV("%s:exposureTime" % name),
-            'axis' : PV("%s:rot:axis" % name),
-            'wavelength':  PV("%s:src:wavelgth" % name),
-            'delta' : PV("%s:omega:incr" % name),
-            'frame_number': PV("%s:startFrame" % name),
-            'prefix' : PV("%s:img:prefix" % name),
-            'start_angle': PV("%s:start:omega" % name),
-            'energy': PV("%s:runEnergy" % name),            
+            'filename' : ca.PV("%s:img:filename" % name),
+            'directory': ca.PV("%s:img:dirname" % name),
+            'beam_x' : ca.PV("%s:beam:x" % name),
+            'beam_y' : ca.PV("%s:beam:y" % name),
+            'distance' : ca.PV("%s:distance" % name),
+            'time' : ca.PV("%s:exposureTime" % name),
+            'axis' : ca.PV("%s:rot:axis" % name),
+            'wavelength':  ca.PV("%s:src:wavelgth" % name),
+            'delta' : ca.PV("%s:omega:incr" % name),
+            'frame_number': ca.PV("%s:startFrame" % name),
+            'prefix' : ca.PV("%s:img:prefix" % name),
+            'start_angle': ca.PV("%s:start:omega" % name),
+            'energy': ca.PV("%s:runEnergy" % name),            
         }
                 
         #Status parameters
-        self.state = PV("%s:rawState" % name)
+        self.state = ca.PV("%s:rawState" % name)
         self.state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
         self.state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
         self._bg_taken = False
@@ -385,6 +386,11 @@ class Normalizer(threading.Thread):
         self.device = dev
         self.first = 1.0
         self.factor = 1.0
+        
+        # Enable the use of both PVs and positioners 
+        if not hasattr(dev, 'get_value') and hasattr(dev, 'get'):
+            self.device.get_value = self.device.get
+            
 
     def get_factor(self):
         return self.factor
@@ -394,7 +400,8 @@ class Normalizer(threading.Thread):
         self.accum = numpy.zeros( (self.duration / self.interval), numpy.float64)
     
     def initialize(self):
-        self.first = self.device.get_value()
+        if self.device:
+            self.first = self.device.get_value()
         
     def stop(self):
         self.stopped = True
@@ -412,5 +419,5 @@ class Normalizer(threading.Thread):
             self.factor = self.first/numpy.mean(self.accum)
             time.sleep(self.interval)   
    
-gobject.type_register(Detector)
+gobject.type_register(DetectorBase)
     

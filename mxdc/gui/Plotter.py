@@ -12,23 +12,21 @@ from matplotlib.numerix import arange, sin, pi
 from matplotlib.ticker import FormatStrFormatter
 from pylab import delaxes
 
-#try:
-#    from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
-#except:
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
+try:
+    from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
+except:
+    from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
+    
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 
 class Plotter( gtk.Frame ):
-    def __init__( self, loop=False, buffer_size=2500, xformat = '%0.4g' ):
+    def __init__( self, loop=False, buffer_size=2500, xformat='%0.4g' ):
         gtk.Frame.__init__(self)
         self.fig = Figure( figsize=( 10, 8 ), dpi=72, facecolor='w' )
         self.axis = []
         self.axis.append( self.fig.add_subplot(111) )
         self.xformatter = FormatStrFormatter(xformat)
-        self.axis[0].xaxis.set_major_formatter(self.xformatter)
-        #self.axis[-1].yaxis.tick_left()
-        #self.axis[-1].yaxis.set_label_position('left')
-        
+        self.axis[0].xaxis.set_major_formatter(self.xformatter)        
     
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.vbox = gtk.VBox()
@@ -41,7 +39,7 @@ class Plotter( gtk.Frame ):
         self.simulate_ring_buffer = loop
         self.buffer_size = buffer_size
         self.add(self.vbox)
-        self.set_shadow_type(gtk.SHADOW_IN)
+        self.set_shadow_type(gtk.SHADOW_NONE)
         self.show_all()
         
 
