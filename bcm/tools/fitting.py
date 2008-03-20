@@ -35,9 +35,9 @@ def gaussian_fit(x,y):
     """
     pars = histogram_fit(x,y)
     p0= [pars[2], pars[1],pars[0]/2.35,0.0]
-    p1,lsqres=optimize.leastsq(_res, p0, args=(y,x))
+    p1,lsqres=optimize.leastsq(_res, p0, args=(y,x), maxfev=10000)
     return p1, lsqres
-
+    
 def histogram_fit(x,y):
     """
     calcfwhm(x,y) - with input x,y vector this function calculates fwhm and returns
