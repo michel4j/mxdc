@@ -34,7 +34,8 @@ class PXBeamline:
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
                 for item in self.config.options(section):
-                    print item
+                    args = self.config.get(section, item).split('|')
+                    print item, args
     
 if __name__ == '__main__':
     bl = PXBeamline('08id1.conf')
