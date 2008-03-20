@@ -149,7 +149,7 @@ class Scanner(threading.Thread, gobject.GObject):
             except:
                 self._log('Error saving Scan data')
 
-    def fit(self, func='gaussian'):
+    def fit(self):
         x = numpy.array(self.x_data_points)
         y = numpy.array(self.y_data_points)
         params, success = gaussian_fit(x,y)
