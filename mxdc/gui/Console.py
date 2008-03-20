@@ -153,7 +153,7 @@ class BeamlineConsole(gtk.ScrolledWindow):
 
     self.mark = self.text.get_buffer().create_mark("End",self.text.get_buffer().get_end_iter(), False )
 
-            #setup colors
+    #setup colors
     self.style_banner = gtk.TextTag("banner")
     self.style_banner.set_property( "foreground", "saddle brown" )
 

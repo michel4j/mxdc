@@ -96,7 +96,6 @@ class Shutter(gobject.GObject):
         gobject.idle_add(self.emit, 'log', message)
 
 
-
 # Register objects with signals
 gobject.type_register(Shutter)
 gobject.type_register(Gonio)

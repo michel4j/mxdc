@@ -4,9 +4,9 @@ from bcm.devices.detectors import Normalizer
 import threading
 import gtk, gobject
 from bcm.protocols import ca
-import numpy
-
-class Scanner(threading.Thread, gobject.GObject):
+import numpy            
+        
+class Scanner(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['new-point'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,gobject.TYPE_FLOAT))
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,))
@@ -15,7 +15,6 @@ class Scanner(threading.Thread, gobject.GObject):
     __gsignals__['log'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     
     def __init__(self, positioner=None, start=0, end=0, steps=0, counter=None, time=1.0, output=None):
-        threading.Thread.__init__(self)
         gobject.GObject.__init__(self)
         self.positioner = positioner
         self.counter = counter
@@ -32,6 +31,7 @@ class Scanner(threading.Thread, gobject.GObject):
         self.plotter = None
         self.normalizer = Normalizer()
         self.waitress = None
+        self._connections = []
 
     def _add_point(self, widget, x, y):
         self.plotter.add_point(x, y,0)
@@ -39,10 +39,11 @@ class Scanner(threading.Thread, gobject.GObject):
     
     def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
-        print message
             
     def _done(self, widget):
         self.fit()
+        for con in self._connections:
+            self.disconnect(con)
         
     def __call__(self, positioner=None, start=0, end=0, steps=0, counter=None, time=1.0, output=None, normalizer=None):
         self.positioner = positioner
@@ -61,11 +62,18 @@ class Scanner(threading.Thread, gobject.GObject):
         self.plotter = Plotter()
         win.add(self.plotter)
         win.show_all()
-        self.connect('done', self._done)
-        self.connect('new-point', self._add_point)
-        self.run()
-            
-    def run(self):
+        con = self.connect('done', self._done)
+        self._connections.append(con)
+        con = self.connect('new-point', self._add_point)
+        self._connections.append(con)
+        
+        self.start()
+    
+    def start(self):
+        self.worker_thread = threading.Thread(target=self._do_scan)
+        self.worker_thread.start()
+        
+    def _do_scan(self):
         ca.thread_init()
         self.count = 0
         self.normalizer.initialize()
@@ -78,15 +86,15 @@ class Scanner(threading.Thread, gobject.GObject):
                 self._log( "Scan stopped!" )
                 break
                 
-            self._log( "--- Entering iteration %d ---" % self.count)
             self.count += 1
 
             prev = self.positioner.get_position()                
 
             self.positioner.move_to(x, wait=True)            
             y = self.counter.count(self.time)
-            y *= self.normalizer.get_factor()
-            self._log("--- Position and Count obtained ---")
+            f = self.normalizer.get_factor()
+            self._log("%8d %8g %8g %8g" % (self.count, x, y, f))
+            y = y * f
             self.x_data_points.append( x )
             self.y_data_points.append( y )
             fraction = float(self.count) / len(self.positioner_targets)
@@ -148,14 +156,15 @@ class Scanner(threading.Thread, gobject.GObject):
         y = numpy.array(self.y_data_points)
         params, success = gaussian_fit(x,y)
         [A, midp, s, yoffset] = params
+        (fwhm_h, xpeak, ymax, fwhm_x_left, fwhm_x_right) = histogram_fit(x, y)
         fwhm = s*2.35
         xi = numpy.linspace(min(x), max(x), 100)
         yi = gaussian(xi, params)
         if self.plotter:
             self.plotter.add_line(xi, yi, 'r.')
-            self.plotter.axis[0].axvline(midp, 'r--')
+            #self.plotter.axis[0].axvline(midp, 'r--')
         
-        print "MIDP=%g, FWHM=%g, success=%g" % (midp,fwhm,success) 
+        print "\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g" % (midp,fwhm, fwhm_h, ymax, xpeak) 
         return [midp,fwhm,success]
 
 gobject.type_register(Scanner)
