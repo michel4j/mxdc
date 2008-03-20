@@ -195,7 +195,7 @@ class PV(gobject.GObject):
     def put(self, val):
         self.data = self.data_type(val)
         libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
-        libca.ca_pend_io(0.1)
+        libca.ca_pend_io(1.0)
 
     def _create_connection(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
@@ -246,7 +246,6 @@ class PV(gobject.GObject):
                 self.value = val_p.contents.value
         self._lock.release()
         self.value_changed = True
-        
         gobject.idle_add(self.emit,'changed', self.value)
         return 0
         
@@ -306,9 +305,12 @@ def ca_exception_handler(event):
     print Error(event.op)
     return 0
 
-def heart_beat():
-    libca.ca_pend_io(0.01)
+def heart_beat(duration=0.01):
+    libca.ca_pend_io(duration)
     return True
+
+#Make sure you get the events on time.
+gobject.timeout_add(15, heart_beat, 0.01)
      
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
