@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #  GTK Interactive Console
 #  (C) 2003, Jon Anderson
 #  See www.python.org/2.2/license.html for
@@ -16,7 +14,7 @@ import pango
 import __builtin__
 import __main__
 
-banner = """GTK Interactive Python Console
+banner = """Beamline Interactive Python Console
 %s
 """ % sys.version
 
@@ -135,6 +133,9 @@ class BeamlineConsole(gtk.ScrolledWindow):
 
     self.text = gtk.TextView()
     self.text.set_wrap_mode(True)
+    pango_font = pango.FontDescription('Monospace 8')
+    self.text.modify_font(pango_font)
+
 
     self.interpreter = code.InteractiveInterpreter()
 
@@ -328,10 +329,11 @@ def run():
   console = BeamlineConsole()
   console.set_size_request(640,480)
   w.add(console)
+  w.set_title('Beamline Console')
   
   #initialize the gtk environment
   console.interpreter.runsource("import gtk, sys, os\n")
-  #console.interpreter.runsource("sys.path.append(os.environ['DPM_PATH'])\n")
+  console.interpreter.runsource("sys.path.append(os.environ['BCM_PATH'])\n")
 
   def destroy(arg=None):
       gtk.main_quit()

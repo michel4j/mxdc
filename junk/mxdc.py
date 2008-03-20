@@ -6,7 +6,6 @@ import sys, os
 from random import *
 import time
 
-gobject.threads_init()
 
 from ImgViewer import ImgViewer
 from CollectManager import CollectManager
