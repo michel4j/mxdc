@@ -2,6 +2,8 @@ from bcm.interfaces.detectors import *
 from bcm.protocols.ca import PV
 from zope.interface import implements
 import time
+import threading
+import numpy
 
 class DetectorException(Exception):
     def __init__(self, message):
@@ -372,10 +374,43 @@ class MarCCDImager:
                         
             
 
+class Normalizer(threading.Thread):
+    def __init__(self, dev=None):
+        threading.Thread.__init__(self)
+        self.factor = 1.0
+        self.start_counting = False
+        self.stopped = False
+        self.interval = 0.05
+        self.set_time(1.0)
+        self.device = dev
+        self.first = 1.0
+        self.factor = 1.0
+
+    def get_factor(self):
+        return self.factor
+
+    def set_time(self, t=1.0):
+        self.duration = t
+        self.accum = numpy.zeros( (self.duration / self.interval), numpy.float64)
     
-
-          
-
+    def initialize(self):
+        self.first = self.device.get_value()
+        
+    def stop(self):
+        self.stopped = True
+                        
+    def run(self):
+        ca.thread_init()
+        if not self.device:
+            self.factor = 1.0
+            return
+        self.initialize()
+        self.count = 0
+        while not self.stopped:
+            self.accum[ self.count ] = self.device.get_value()
+            self.count = (self.count + 1) % len(self.accum)
+            self.factor = self.first/numpy.mean(self.accum)
+            time.sleep(self.interval)   
    
 gobject.type_register(Detector)
     
