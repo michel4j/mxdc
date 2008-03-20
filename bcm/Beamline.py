@@ -23,11 +23,13 @@ _DEVICE_MAP = {
 class PXBeamline:
     def __init__(self, filename):
         self.config_file = os.environ['BCM_CONFIG_PATH'] + '/' + filename
+        print self.config_file
         self.devices = {}
-        self.config = ConfigParser()
-        self.config.read(self.config_file)
         
     def setup(self):
+        self.config = ConfigParser()
+        self.config.read(self.config_file)
+        print self.config.sections()
         for section in self.config.sections():
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
@@ -35,5 +37,6 @@ class PXBeamline:
                     print item
     
 if __name__ == '__main__':
-    bl = PXBeamline('bl08id1.dat')
+    bl = PXBeamline('08id1.conf')
     bl.setup()
+    
