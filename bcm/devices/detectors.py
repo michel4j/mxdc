@@ -22,7 +22,7 @@ class DetectorBase(gobject.GObject):
     def __init__(self):
         gobject.GObject.__init__(self)
         self._last_changed = time.time()
-        self._change_interval
+        self._change_interval = 0.1
     
     def _signal_change(self, obj, value):
         if time.time() - self._last_changed > self._change_interval:
@@ -259,6 +259,7 @@ class Counter(DetectorBase):
         time_left = t
         while time_left > 0.0:
             values.append( self.pv.get() )
+            time.sleep(interval)
             time_left -= interval
         total = (t/interval) * sum(values, 0.0)/len(values)
         return total

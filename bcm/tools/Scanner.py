@@ -1,13 +1,10 @@
-#!/usr/bin/env python
-
-import sys, time
-import threading
-import gtk, gobject
-import numpy
 from mxdc.gui.Plotter import Plotter
 from bcm.tools.fitting import *
 from bcm.devices.detectors import Normalizer
+import threading
+import gtk, gobject
 from bcm.protocols import ca
+import numpy
 
 class Scanner(threading.Thread, gobject.GObject):
     __gsignals__ = {}
@@ -165,4 +162,4 @@ class Scanner(threading.Thread, gobject.GObject):
         return [midp,fwhm,success]
 
 gobject.type_register(Scanner)
-scan = Scanner()
+#scan = Scanner()
