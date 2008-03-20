@@ -2154,7 +2154,7 @@ class SimpleVal(object):
         return member
 
 # Check / processing functions for options
-def flatten_errors(cfg, res, levels=None, results=None):
+def flatten_errors(cfg, _res, levels=None, results=None):
     """
     An example function that will turn a nested dictionary of results
     (as returned by ``ConfigObj.validate``) into a flat list.

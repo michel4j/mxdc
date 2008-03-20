@@ -1,16 +1,11 @@
 #!/usr/bin/env python
 
-import time, sys
 from numpy import *
-from Plotter import Plotter
+from mxdc.gui.Plotter import Plotter
 import gobject, gtk
 import pylab
 
-def main():
-    if len(sys.argv) < 2:
-        print 'usage: <prog> file.data'
-        sys.exit()
-    
+def main():    
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_default_size(800,600)
@@ -21,19 +16,21 @@ def main():
     myplot = Plotter()
     vbox.pack_start(myplot)
     
-    data = pylab.load(sys.argv[1])
+    data = pylab.load('plotter_test.data')
     x = data[:,0]
     y = data[:,1]
     count = 1
     myplot.add_line(x[:count],y[:count])
+    
     def addpoint():
         myplot.add_point(x[addpoint.count], y[addpoint.count], 0)
         addpoint.count = addpoint.count + 1
         if addpoint.count == len(x):
             return False
         return True
+    
     myplot.set_labels(title="Se-K absorption Edge", x_label="Energy (eV)", y1_label="Absorption")    
-    gobject.timeout_add(100,addpoint)
+    gobject.timeout_add(100, addpoint)
     addpoint.count = count
     win.show_all()
 
