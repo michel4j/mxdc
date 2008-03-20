@@ -113,7 +113,7 @@ class Motor(MotorBase):
         self._log( "%s moving to %f %s" % (self.name, target, self.units) )
         self.VAL.put(target)
         if wait:
-            self.wait(start=True,stop=True)
+            self.wait(start=True, stop=True)
 
     def move_by(self,val, wait=False):
         if val == 0.0:
@@ -158,11 +158,11 @@ class Positioner(PositionerBase):
         self.name = self.DESC.get()
         self.PV.connect('changed', self._signal_change)
         
-    def move_to(self, target):
+    def move_to(self, target, wait=False):
         self._log('%s moving to %s' % (self.name, target))
         self.PV.put(target)
 
-    def move_by(self, value):
+    def move_by(self, value, wait=False):
         cur_position = self.get_position()
         self._log('%s relative move of %s requested' % (self.name, value))
         self.move_to(cur_position + value)
@@ -260,7 +260,7 @@ class Attenuator(PositionerBase):
         attenuation = 1.0 - math.exp( -4.4189e12 * thickness / (e*1000)**2.9554 )
         return attenuation
     
-    def move_to(self, target):
+    def move_to(self, target, wait=False):
         e = self.energy.get()
         if target > 99.9:
             target = 99.9
@@ -276,7 +276,7 @@ class Attenuator(PositionerBase):
         self._log('Attenuator, moving to %s' % target)
         self._log('Attenuator, requested bit-map is"%s"' % bitmap)
     
-    def move_by(self, value):
+    def move_by(self, value, wait=False):
         target = value + self.get_position()
         self.move_to(target)
         
