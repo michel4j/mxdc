@@ -39,8 +39,9 @@ class Scanner(threading.Thread, gobject.GObject):
     
     def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
+        print message
             
-    def _done(self,widget):
+    def _done(self, widget):
         self.fit()
         
     def __call__(self, positioner=None, start=0, end=0, steps=0, counter=None, time=1.0, output=None, normalizer=None):
@@ -82,32 +83,28 @@ class Scanner(threading.Thread, gobject.GObject):
 
             prev = self.positioner.get_position()                
 
-            try:
-                self.positioner.move_to(x, wait=True)            
-                y = self.counter.count(self.time)
-                y *= self.normalizer.get_factor()
-                self._log("--- Position and Count obtained ---")
-                self.x_data_points.append( x )
-                self.y_data_points.append( y )
-                fraction = float(self.count) / len(self.positioner_targets)
-                gobject.idle_add(self.emit, "new-point", x, y )
-                gobject.idle_add(self.emit, "progress", fraction )
-            except:
-                self.aborted = True
+            self.positioner.move_to(x, wait=True)            
+            y = self.counter.count(self.time)
+            y *= self.normalizer.get_factor()
+            self._log("--- Position and Count obtained ---")
+            self.x_data_points.append( x )
+            self.y_data_points.append( y )
+            fraction = float(self.count) / len(self.positioner_targets)
+            gobject.idle_add(self.emit, "new-point", x, y )
+            gobject.idle_add(self.emit, "progress", fraction )
              
         self.normalizer.stop()
         if self.aborted:
             gobject.idle_add(self.emit, "aborted")
             gobject.idle_add(self.emit, "progress", 0.0 )
         else:
-            self.save()
+            #self.save()
             gobject.idle_add(self.emit, "done")
             gobject.idle_add(self.emit, "progress", 1.0 )
 
     def calc_targets(self):
         if self.steps > 0:
-            self.step_size = abs(self.range_end-self.range_start)/float(self.steps)
-            self.positioner_targets = numpy.arange(self.range_start,self.range_end,self.step_size)
+             self.positioner_targets = numpy.linspace(self.range_start,self.range_end,self.steps)
         else:
             self.positioner_targets = []
                 
@@ -115,7 +112,7 @@ class Scanner(threading.Thread, gobject.GObject):
         self.positioner_targets = targets
     
     def set_normalizer(self, normalizer=None):
-        self.normalizer = Normalizer(norm)
+        self.normalizer = Normalizer(normalizer)
     
     def stop(self, widget=None):
         self.stopped = True    
@@ -162,4 +159,4 @@ class Scanner(threading.Thread, gobject.GObject):
         return [midp,fwhm,success]
 
 gobject.type_register(Scanner)
-#scan = Scanner()
+scan = Scanner()
