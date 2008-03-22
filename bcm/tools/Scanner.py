@@ -42,8 +42,9 @@ class Scanner(gobject.GObject):
             
     def _done(self, widget):
         self.fit()
-        for con in self._connections:
-            self.disconnect(con)
+        while self._connections:
+            self.disconnect( self._connections.pop() )
+
         
     def __call__(self, positioner=None, start=0, end=0, steps=0, counter=None, time=1.0, output=None, normalizer=None):
         self.positioner = positioner
@@ -65,9 +66,9 @@ class Scanner(gobject.GObject):
         con = self.connect('done', self._done)
         self._connections.append(con)
         con = self.connect('new-point', self._add_point)
-        self._connections.append(con)
-        
+        self._connections.append(con)      
         self.start()
+        
     
     def start(self):
         self.worker_thread = threading.Thread(target=self._do_scan)
@@ -81,6 +82,8 @@ class Scanner(gobject.GObject):
         self.normalizer.start()
         if self.waitress:
             self.waitress.wait() # Wait for the waitress
+        self.x_data_points = []
+        self.y_data_points = []
         for x in self.positioner_targets:
             if self.stopped or self.aborted:
                 self._log( "Scan stopped!" )
@@ -159,12 +162,14 @@ class Scanner(gobject.GObject):
         (fwhm_h, xpeak, ymax, fwhm_x_left, fwhm_x_right) = histogram_fit(x, y)
         fwhm = s*2.35
         xi = numpy.linspace(min(x), max(x), 100)
+        print min(x), max(x)
         yi = gaussian(xi, params)
         if self.plotter:
             self.plotter.add_line(xi, yi, 'r.')
             #self.plotter.axis[0].axvline(midp, 'r--')
         
-        print "\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g" % (midp,fwhm, fwhm_h, ymax, xpeak) 
+        print "\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g \n" % (midp,fwhm, fwhm_h, ymax, xpeak) 
+        self.midp_fit, self.fwhm_fit, self.fwhm_his, self.ymax, self.xpeak = (midp,fwhm, fwhm_h, ymax, xpeak)
         return [midp,fwhm,success]
 
 gobject.type_register(Scanner)
