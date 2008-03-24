@@ -14,9 +14,9 @@ import pango
 import __builtin__
 import __main__
 
-banner = """Beamline Interactive Python Console
-%s
-""" % sys.version
+banner = """Interactive Beamline Console
+Using Python %s
+""" % sys.version.split('\n')[0]
 
 class Completer:
   """Taken from rlcompleter, with readline references stripped, and a
@@ -133,7 +133,12 @@ class BeamlineConsole(gtk.ScrolledWindow):
 
     self.text = gtk.TextView()
     self.text.set_wrap_mode(True)
-    self.text.get_buffer().connect('insert-text', self.on_insert)
+    #self.text.get_buffer().connect('insert-text', self.on_insert)
+    self.text.connect ('drag-data-received', self.on_drag_data_received)
+    self.text.connect('button-press-event', self.on_button_pressed)
+    self.text.connect('selection-received', self.on_selection_received)
+    self.text.connect('paste-clipboard', self.on_clipboard_pasted)
+
     pango_font = pango.FontDescription('Monospace 8')
     self.text.modify_font(pango_font)
 
@@ -161,17 +166,17 @@ class BeamlineConsole(gtk.ScrolledWindow):
     self.style_ps1 = gtk.TextTag("ps1")
     self.style_ps1.set_property( "foreground", "DarkOrchid4" )
     self.style_ps1.set_property( "editable", False )
-    self.style_ps1.set_property("font", "courier" )
+    self.style_ps1.set_property("font", "Monospace" )
 
     self.style_ps2 = gtk.TextTag("ps2")
     self.style_ps2.set_property( "foreground", "DarkOliveGreen" )
     self.style_ps2.set_property( "editable", False  )
-    self.style_ps2.set_property("font", "courier" )
+    self.style_ps2.set_property("font", "Monospace" )
 
     self.style_out = gtk.TextTag("stdout")
     self.style_out.set_property( "foreground", "midnight blue" )
     self.style_err = gtk.TextTag("stderr")
-    self.style_err.set_property( "style", pango.STYLE_ITALIC )
+    #self.style_err.set_property( "style", pango.STYLE_ITALIC )
     self.style_err.set_property( "foreground", "red" )
 
     self.text.get_buffer().get_tag_table().add(self.style_banner)
@@ -194,13 +199,39 @@ class BeamlineConsole(gtk.ScrolledWindow):
     self.add(self.text)
     self.text.show()
 
+  def _execute_text(self, text):
+    lines = text.split('\n')
+    for line in lines[:-1] :
+        self.execute_line(line)
+    self.text.get_buffer().insert_at_cursor(lines[-1])
+      
+  
   def on_insert(self, obj, iter, text, length):
     end_iter =  obj.get_end_iter()
     if not (iter.is_end() or iter.get_line() == end_iter.get_line()):
         obj.place_cursor(end_iter)
         obj.stop_emission('insert-text')
-        obj.emit('insert-text', end_iter, text, length)
-    return True
+        for line in text.split('\n') :
+            self.execute_line(line)
+
+  def on_drag_data_received(self, obj, context, x, y, selection, info, etime):
+    obj.stop_emission("drag-data-received")
+    self._execute_text(selection.data)
+    
+  def on_button_pressed(self, obj, event):
+    if event.button == 2:
+        obj.stop_emission("button-press-event")
+        ret = obj.selection_convert("PRIMARY", "STRING")
+    
+  def on_selection_received(self, obj, selection, data):
+    if str(selection.type) == "STRING":
+        self._execute_text(selection.get_text())
+    return False
+
+  def on_clipboard_pasted(self, obj):
+    obj.stop_emission("paste-clipboard")
+    obj.selection_convert("CLIPBOARD", "STRING")
+    
 
   def reset_history(self):
     self.history = []
@@ -226,7 +257,6 @@ class BeamlineConsole(gtk.ScrolledWindow):
     self.text.scroll_to_mark(self.mark, 0, True, 1, 1)
 
   def push(self, line):
-
     self.buffer.append(line)
     if len(line) > 0:
       self.history.append(line)
@@ -289,8 +319,11 @@ class BeamlineConsole(gtk.ScrolledWindow):
     self.text.get_buffer().delete(start,end)
     self.write_line(txt)
 
-  def execute_line(self):
-    line = self.current_line()
+  def execute_line(self, line=None):
+    if line is None:
+        line = self.current_line()
+    else:
+        self.write_line(line)
 
     self.write_line("\n")
 
@@ -333,14 +366,35 @@ class BeamlineConsole(gtk.ScrolledWindow):
 
 def run():
   w = gtk.Window()
+  logo = ["16 16 4 1",
+        "     c None", ".    c #476F90", "+    c #FFE35E", "@    c #F3F6F3",
+        "     @@@@@      ",
+        "    @@...@@     ",
+        "    @.@...@     ",
+        "    @.....@     ",
+        " @@@@@@...@@@@  ",
+        "@@........@++@@ ",
+        "@.........@+++@ ",
+        "@....@@@@@++++@ ",
+        "@...@+++++++++@ ",
+        "@@..@++++++++@@ ",
+        " @@@@+++@@@@@@  ",
+        "    @+++++@     ",
+        "    @+++@+@     ",
+        "    @@++++@     ",
+        "     @@@@@      ",
+        "                "]
+ 
+  pixbuf = gtk.gdk.pixbuf_new_from_xpm_data(logo)
+  w.set_icon (pixbuf)
   console = BeamlineConsole()
-  console.set_size_request(640,480)
+  console.set_size_request(640,400)
   w.add(console)
-  w.set_title('Beamline Console')
+  w.set_title('Interactive Beamline Console')
   
   #initialize the gtk environment
-  console.interpreter.runsource("import gtk, sys, os\n")
-  console.interpreter.runsource("sys.path.append(os.environ['BCM_PATH'])\n")
+  console.interpreter.runsource("import gtk, sys, os\n", "<<console>>")
+  console.interpreter.runsource("sys.path.append(os.environ['BCM_PATH'])\n", "<<console>>")
 
   def destroy(arg=None):
       gtk.main_quit()
