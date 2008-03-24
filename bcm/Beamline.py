@@ -26,7 +26,6 @@ class PXBeamline:
         self.devices = {}
         
     def setup(self):
-        print self.config_file
         self.config = ConfigParser()
         self.config.read(self.config_file)
         for section in self.config.sections():
