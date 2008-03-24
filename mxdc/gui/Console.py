@@ -133,6 +133,7 @@ class BeamlineConsole(gtk.ScrolledWindow):
 
     self.text = gtk.TextView()
     self.text.set_wrap_mode(True)
+    self.text.get_buffer().connect('insert-text', self.on_insert)
     pango_font = pango.FontDescription('Monospace 8')
     self.text.modify_font(pango_font)
 
@@ -193,7 +194,13 @@ class BeamlineConsole(gtk.ScrolledWindow):
     self.add(self.text)
     self.text.show()
 
-
+  def on_insert(self, obj, iter, text, length):
+    end_iter =  obj.get_end_iter()
+    if not (iter.is_end() or iter.get_line() == end_iter.get_line()):
+        obj.place_cursor(end_iter)
+        obj.stop_emission('insert-text')
+        obj.emit('insert-text', end_iter, text, length)
+    return True
 
   def reset_history(self):
     self.history = []
