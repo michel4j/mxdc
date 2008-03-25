@@ -227,14 +227,14 @@ class QBPM(DetectorBase):
         x = self.x_factor * (c - d) / sumx
         return [x, y]
     
-    def count(self, t):
-        interval=0.01
+    def count(self, t): 
+        interval=0.001
         values = []
-        time_left = t
-        while time_left > 0.0:
+        time_to_finish = time.time() + t
+        while time.time() < time_to_finish:
             values.append( self.get_value() )
-            time_left -= interval
-        total = (t/interval) * sum(values, 0.0)/len(values)
+            time.sleep(interval)
+        total = sum(values, 0.0)/len(values)
         return total
         
     def _signal_change(self, obj, val):
