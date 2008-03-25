@@ -152,6 +152,7 @@ class Motor(MotorBase):
     
     def wait(self, start=True, stop=True):
         poll=0.01
+        tstart = time.time()
         if (start):
             self._log( 'Waiting for %s to start moving' % self.name )
             while not self.is_moving():
@@ -160,6 +161,7 @@ class Motor(MotorBase):
             self._log( 'Waiting for %s to stop moving' % self.name )
             while self.is_moving():
                 time.sleep(poll)
+        return time.time() - tstart
         
 class vmeMotor(Motor):
     def __init__(self, name):
