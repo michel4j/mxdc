@@ -2,6 +2,7 @@ from zope.interface import implements
 from bcm.interfaces.positioners import IMotor, IPositioner
 from bcm.protocols.ca import PV
 from bcm import utils
+import time
 import gobject
 import math
     
