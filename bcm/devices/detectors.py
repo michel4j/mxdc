@@ -258,6 +258,7 @@ class Counter(DetectorBase):
         values = []
         time_left = t
         while time_left > 0.0:
+            print time_left
             values.append( self.pv.get() )
             time.sleep(interval)
             time_left -= interval
