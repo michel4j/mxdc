@@ -98,7 +98,9 @@ class Scanner(gobject.GObject):
 
             prev = self.positioner.get_position()                
 
-            self.positioner.move_to(x, wait=True)
+            self.positioner.move_to(x)
+            wt = self.positioner.wait()
+            self._log("waited for %s sec" % wt)
             y = self.counter.count(self.time)
             f = self.normalizer.get_factor()
             self._log("%8d %8g %8g %8g" % (self.count, x, y, f))
