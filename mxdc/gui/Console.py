@@ -133,7 +133,7 @@ class BeamlineConsole(gtk.ScrolledWindow):
     self.text.set_wrap_mode(True)
     self.text.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse('papaya whip'))
     
-    #self.text.get_buffer().connect('insert-text', self.on_insert)
+    self.text.get_buffer().connect('insert-text', self.on_insert)
     self.text.connect ('drag-data-received', self.on_drag_data_received)
     self.text.connect('button-press-event', self.on_button_pressed)
     self.text.connect('selection-received', self.on_selection_received)
@@ -211,9 +211,8 @@ class BeamlineConsole(gtk.ScrolledWindow):
     if not (iter.is_end() or iter.get_line() == end_iter.get_line()):
         obj.place_cursor(end_iter)
         obj.stop_emission('insert-text')
-        for line in text.split('\n') :
-            self.execute_line(line)
-
+        obj.emit('insert-text', iter, text, length)
+        
   def on_drag_data_received(self, obj, context, x, y, selection, info, etime):
     obj.stop_emission("drag-data-received")
     self._execute_text(selection.data)
