@@ -93,7 +93,7 @@ class Scanner(gobject.GObject):
 
             prev = self.positioner.get_position()                
 
-            self.positioner.move_to(x, wait=True)            
+            self.positioner.move_to(x, wait=True)
             y = self.counter.count(self.time)
             f = self.normalizer.get_factor()
             self._log("%8d %8g %8g %8g" % (self.count, x, y, f))
@@ -112,6 +112,10 @@ class Scanner(gobject.GObject):
             #self.save()
             gobject.idle_add(self.emit, "done")
             gobject.idle_add(self.emit, "progress", 1.0 )
+            
+        while gtk.events_pending():
+                gtk.main_iteration()
+        
 
     def calc_targets(self):
         if self.steps > 0:
