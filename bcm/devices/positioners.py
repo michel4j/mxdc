@@ -76,6 +76,7 @@ class Motor(MotorBase):
             self.STOP = PV("%s:stop" % name_parts[0])
             self.SET  = PV("%s:%s:setPosn" % (name_parts[0],name_parts[1]))
             self.CALIB = PV("%s:calibDone" % (name_parts[0]))
+            
         elif self.motor_type == 'cls':
             self.RBV  = PV("%s:%s:fbk" % (name_parts[0],name_parts[1]))
             self.MOVN = PV("%s:state" % name_parts[0])
