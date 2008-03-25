@@ -188,10 +188,10 @@ class QBPM(DetectorBase):
     implements(IBeamPositionMonitor)
     def __init__(self, A, B, C, D):
         DetectorBase.__init__(self)
-        self.A = ca.ca.PV(A)
-        self.B = ca.ca.PV(B)
-        self.C = ca.ca.PV(C)
-        self.D = ca.ca.PV(D)
+        self.A = ca.PV(A)
+        self.B = ca.PV(B)
+        self.C = ca.PV(C)
+        self.D = ca.PV(D)
         self.x_factor = 1.0
         self.y_factor = 1.0
         self.x_offset = 0.0
