@@ -115,12 +115,10 @@ class OutputStream:
     if self.tee:
       self.out.write(text)
 
-    end = self.buffer.get_end_iter()
-
-    if not self.view  == None:
+    if self.view is not None:
       self.view.scroll_to_mark(self.mark, 0, True, 1, 1)
 
-    self.buffer.insert_with_tags(end,text,self.style)
+    self.buffer.insert_with_tags(self.buffer.get_end_iter(), text, self.style)
 
 class BeamlineConsole(gtk.ScrolledWindow):
   """
