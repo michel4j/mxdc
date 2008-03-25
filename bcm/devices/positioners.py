@@ -161,6 +161,16 @@ class Motor(MotorBase):
             while self.is_moving():
                 time.sleep(poll)
     
+    def __repr__(self):
+        text = '<Motor: %s type=%s moving=%s healthy=%s position=%s' % (
+                self.name,
+                self.motor_type,
+                self.is_moving,
+                self.is_healthy,
+                self.get_position()
+                )
+        return text
+    
 class vmeMotor(Motor):
     def __init__(self, name):
         Motor.__init__(self, name, motor_type = 'vme')
@@ -190,6 +200,13 @@ class Positioner(PositionerBase):
         
     def get_position(self):
         return self.PV.get()
+
+    def __repr__(self):
+        text = '<Positioner: %s position=%s' % (
+                self.name,
+                self.get_position()
+                )
+        return text
     
 
 class energyMotor(MotorBase):
