@@ -253,7 +253,7 @@ class Counter(DetectorBase):
         self.pv = ca.PV(pv_name)
         self.pv.connect('changed', self._signal_change)
     
-    def count(self):
+    def count(self, t):
         worker_thread = threading.Thread(target=self._do_count, args=(t))
         worker_thread.start()
         worker_thread.join()
