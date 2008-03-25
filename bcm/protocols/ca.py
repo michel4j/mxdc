@@ -285,11 +285,7 @@ class PV(gobject.GObject):
     def _del_handler(self, event_id):
         libca.ca_clear_subscription(event_id)
         libca.ca_pend_io(0.1)
-    
-    def __repr__(self):
-        text = '<PV:%s connected=%s value=%s>' % (self.name, self.state==CONNECTED, self.value)
-        return text
-              
+                  
 gobject.type_register(PV)
 
 class Error(Exception):
