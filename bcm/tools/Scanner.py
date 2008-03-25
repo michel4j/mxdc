@@ -89,27 +89,34 @@ class Scanner(gobject.GObject):
             self.waitress.wait() # Wait for the waitress
         self.x_data_points = []
         self.y_data_points = []
+        print 'starting'
         for x in self.positioner_targets:
             if self.stopped or self.aborted:
                 self._log( "Scan stopped!" )
                 break
                 
             self.count += 1
-
             prev = self.positioner.get_position()                
+            print 'got old pos'
 
-            self.positioner.move_to(x)
-            wt = self.positioner.wait()
-            self._log("waited for %s sec" % wt)
+            self.positioner.move_to(x, wait=True)
+            print 'positioner at new pos', x
+            
             y = self.counter.count(self.time)
+            print 'counter counted', y
+            
             f = self.normalizer.get_factor()
+            print 'normalizer obtained', f
+            
             self._log("%8d %8g %8g %8g" % (self.count, x, y, f))
             y = y * f
             self.x_data_points.append( x )
             self.y_data_points.append( y )
+            
             fraction = float(self.count) / len(self.positioner_targets)
             gobject.idle_add(self.emit, "new-point", x, y )
             gobject.idle_add(self.emit, "progress", fraction )
+            print 'signals emitted'
              
         self.normalizer.stop()
         if self.aborted:
