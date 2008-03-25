@@ -47,7 +47,7 @@ class Scanner(gobject.GObject):
         while self._connections:
             self.disconnect( self._connections.pop() )
 
-    def do_log(self, obj, message):
+    def do_log(self, message):
         print message
         
     def __call__(self, positioner=None, start=0, end=0, steps=0, counter=None, time=1.0, output=None, normalizer=None):
