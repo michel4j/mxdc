@@ -20,7 +20,8 @@ _DEVICE_MAP = {
     'attenuators': positioners.Attenuator,
     'variables': ca.PV
     }
-class PXBeamline:
+
+class PX:
     def __init__(self, filename):
         self.config_file = os.environ['BCM_CONFIG_PATH'] + '/' + filename
         self.devices = {}
@@ -38,6 +39,6 @@ class PXBeamline:
                     setattr(self, item, self.devices[item])
     
 if __name__ == '__main__':
-    bl = PXBeamline('vlinac.conf')
+    bl = PX('vlinac.conf')
     bl.setup()
     
