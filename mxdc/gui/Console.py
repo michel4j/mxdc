@@ -211,7 +211,7 @@ class BeamlineConsole(gtk.ScrolledWindow):
     if not (iter.is_end() or iter.get_line() == end_iter.get_line()):
         obj.place_cursor(end_iter)
         obj.stop_emission('insert-text')
-        obj.emit('insert-text', iter, text, length)
+        obj.emit('insert-text', end_iter, text, length)
         
   def on_drag_data_received(self, obj, context, x, y, selection, info, etime):
     obj.stop_emission("drag-data-received")
