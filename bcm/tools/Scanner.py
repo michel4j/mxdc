@@ -80,6 +80,7 @@ class Scanner(gobject.GObject):
         
     def _do_scan(self):
         ca.thread_init()
+        self._log("Scanning '%s' vs '%s' " % (self.positioner.name, self.counter.name))
         self.count = 0
         self.normalizer.initialize()
         self.normalizer.set_time(self.time)
@@ -167,13 +168,12 @@ class Scanner(gobject.GObject):
         (fwhm_h, xpeak, ymax, fwhm_x_left, fwhm_x_right) = histogram_fit(x, y)
         fwhm = s*2.35
         xi = numpy.linspace(min(x), max(x), 100)
-        print min(x), max(x)
         yi = gaussian(xi, params)
         if self.plotter:
             self.plotter.add_line(xi, yi, 'r.')
             #self.plotter.axis[0].axvline(midp, 'r--')
         
-        print "\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g \n" % (midp,fwhm, fwhm_h, ymax, xpeak) 
+        self._log("\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g \n" % (midp,fwhm, fwhm_h, ymax, xpeak)) 
         self.midp_fit, self.fwhm_fit, self.fwhm_his, self.ymax, self.xpeak = (midp,fwhm, fwhm_h, ymax, xpeak)
         return [midp,fwhm,success]
 
