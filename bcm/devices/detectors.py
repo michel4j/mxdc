@@ -257,7 +257,7 @@ class Counter(DetectorBase):
         self.time = t
         worker_thread = threading.Thread(target=self._do_count)
         worker_thread.start()
-        worker_thread.join()
+        worker_thread.join(t*1.05)
         return self.total_count
         
                   
