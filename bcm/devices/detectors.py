@@ -254,7 +254,7 @@ class Counter(DetectorBase):
         self.pv.connect('changed', self._signal_change)
                 
     def count(self, t):
-        interval=0.001
+        interval=0.05
         values = []
         time_left = t
         while time_left > 0.0:
