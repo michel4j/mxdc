@@ -28,15 +28,23 @@ class PositionerBase(gobject.GObject):
         gobject.idle_add(self.emit, 'log', message)
         
 
-class MotorBase(PositionerBase):
+class MotorBase(gobject.GObject):
     __gsignals__ =  { 
+        "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
         "moving": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
         "health": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
         }  
 
     def __init__(self):
-        PositionerBase.__init__(self)
+        gobject.GObject.__init__(self)
     
+    def _signal_change(self, obj, value):
+        gobject.idle_add(self.emit,'changed', value)
+    
+    def _log(self, message):
+        gobject.idle_add(self.emit, 'log', message)
+
     def _signal_move(self, obj, state):
         if state == 0:
             is_moving = False
