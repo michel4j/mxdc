@@ -258,7 +258,6 @@ class Counter(DetectorBase):
         time_to_finish = time.time() + t
         while time.time() < time_to_finish:
             values.append( self.pv.get() )
-            time.sleep(interval)
         total = sum(values, 0.0)/len(values)
         return total
                         
