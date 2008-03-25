@@ -68,6 +68,7 @@ class Shutter(gobject.GObject):
     implements(misc.IShutter)
     __gsignals__ =  { 
                     "changed": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)  ),
+                    "log": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)  ),
                     }  
     def __init__(self, name):
         gobject.GObject.__init__(self)
