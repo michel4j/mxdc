@@ -5,7 +5,9 @@ import threading
 import gtk, gobject
 from bcm.protocols import ca
 import numpy            
-        
+
+gobject.threads_init()
+ 
 class Scanner(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['new-point'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,gobject.TYPE_FLOAT))
