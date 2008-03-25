@@ -71,7 +71,7 @@ class Scanner(gobject.GObject):
         self._connections.append(con)
         con = self.connect('new-point', self._add_point)
         self._connections.append(con)    
-        gobject.idle_add(self.start)
+        self.start()
         
     
     def start(self):
