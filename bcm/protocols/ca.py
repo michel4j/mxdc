@@ -287,7 +287,7 @@ class PV(gobject.GObject):
         libca.ca_pend_io(0.1)
     
     def __repr__(self):
-        text = '<PV:%s connected=%s type=%s value=%s>' % (self.name, self.state==CONNECTED, self.value)
+        text = '<PV:%s connected=%s value=%s>' % (self.name, self.state==CONNECTED, self.value)
         return text
               
 gobject.type_register(PV)
