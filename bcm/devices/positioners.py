@@ -149,6 +149,17 @@ class Motor(MotorBase):
     def stop(self):
         self.STOP.put(1)
     
+    def wait(self, start=True, stop=True):
+        poll=0.01
+        if (start):
+            self._log( 'Waiting for %s to start moving' % self.name )
+            while not self.is_moving():
+                time.sleep(poll)                               
+        if (stop):
+            self._log( 'Waiting for %s to stop moving' % self.name )
+            while self.is_moving():
+                time.sleep(poll)
+    
 class vmeMotor(Motor):
     def __init__(self, name):
         Motor.__init__(self, name, motor_type = 'vme')
@@ -248,6 +259,17 @@ class energyMotor(MotorBase):
                                  
     def stop(self):
         self.STOP.put(1)
+
+    def wait(self, start=True, stop=True):
+        poll=0.01
+        if (start):
+            self._log( 'Waiting for %s to start moving' % self.name )
+            while not self.is_moving():
+                time.sleep(poll)                               
+        if (stop):
+            self._log( 'Waiting for %s to stop moving' % self.name )
+            while self.is_moving():
+                time.sleep(poll)
         
 class Attenuator(PositionerBase):
     def __init__(self, bit1, bit2, bit3, bit4, energy):
