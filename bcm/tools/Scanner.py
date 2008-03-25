@@ -47,6 +47,8 @@ class Scanner(gobject.GObject):
         while self._connections:
             self.disconnect( self._connections.pop() )
 
+    def do_log(self, obj, message):
+        print message
         
     def __call__(self, positioner=None, start=0, end=0, steps=0, counter=None, time=1.0, output=None, normalizer=None):
         self.positioner = positioner
@@ -114,10 +116,7 @@ class Scanner(gobject.GObject):
             #self.save()
             gobject.idle_add(self.emit, "done")
             gobject.idle_add(self.emit, "progress", 1.0 )
-            
-        while gtk.events_pending():
-                gtk.main_iteration()
-        
+                    
 
     def calc_targets(self):
         if self.steps > 0:
