@@ -198,6 +198,7 @@ class PV(gobject.GObject):
         libca.ca_pend_io(1.0)
 
     def _create_connection(self):
+        print self.name
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
         libca.ca_pend_io(1.0)
         self.count = libca.ca_element_count(self.chid)
