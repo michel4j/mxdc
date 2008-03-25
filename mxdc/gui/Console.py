@@ -139,7 +139,7 @@ class BeamlineConsole(gtk.ScrolledWindow):
     self.text.connect('selection-received', self.on_selection_received)
     self.text.connect('paste-clipboard', self.on_clipboard_pasted)
 
-    pango_font = pango.FontDescription('Monospace 8')
+    pango_font = pango.FontDescription('Monospace 10')
     self.text.modify_font(pango_font)
 
 
