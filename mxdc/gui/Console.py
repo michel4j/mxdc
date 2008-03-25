@@ -129,10 +129,12 @@ class BeamlineConsole(gtk.ScrolledWindow):
   """
   def __init__(self):
     gtk.ScrolledWindow.__init__(self)
-    self.set_policy (gtk.POLICY_AUTOMATIC,gtk.POLICY_AUTOMATIC)
+    self.set_policy (gtk.POLICY_AUTOMATIC,gtk.POLICY_ALWAYS)
 
     self.text = gtk.TextView()
     self.text.set_wrap_mode(True)
+    self.text.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse('papaya whip'))
+    
     #self.text.get_buffer().connect('insert-text', self.on_insert)
     self.text.connect ('drag-data-received', self.on_drag_data_received)
     self.text.connect('button-press-event', self.on_button_pressed)
