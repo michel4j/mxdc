@@ -254,23 +254,24 @@ class Counter(DetectorBase):
         self.pv.connect('changed', self._signal_change)
     
     def count(self, t):
-        worker_thread = threading.Thread(target=self._do_count, args=(t))
+        self.time = t
+        worker_thread = threading.Thread(target=self._do_count)
         worker_thread.start()
         worker_thread.join()
         return self.total_count
         
                   
-    def _do_count(self, t):
+    def _do_count(self):
         ca.thread_init()
         interval=0.05
         values = []
-        time_left = t
+        time_left = self.time
         while time_left > 0.0:
             print time_left
             values.append( self.pv.get() )
             time.sleep(interval)
             time_left -= interval
-        total = (t/interval) * sum(values, 0.0)/len(values)
+        total = sum(values, 0.0)/len(values)
         self.total_count = total
                         
     def get_value(self):    
