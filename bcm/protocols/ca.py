@@ -205,6 +205,7 @@ class PV(gobject.GObject):
         self.element_type = libca.ca_field_type(self.chid)
         self.state = CA_OP_CONN_UP
         self.__allocate_data_mem()
+        self._add_handler( self._on_change )
 
     def __allocate_data_mem(self, value=None):
         if self.count > 1:
