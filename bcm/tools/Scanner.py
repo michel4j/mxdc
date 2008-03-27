@@ -6,7 +6,14 @@ import gtk, gobject
 from bcm.protocols import ca
 from bcm.utils import gtk_idle
 import numpy            
- 
+
+class Error(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return self.message
+
 class Scanner(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['new-point'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,gobject.TYPE_FLOAT))
@@ -33,6 +40,7 @@ class Scanner(gobject.GObject):
         self.normalizer = Normalizer()
         self.waitress = None
         self._connections = []
+        self.relative = False
 
     def _add_point(self, widget, x, y):
         self.plotter.add_point(x, y,0)
@@ -123,6 +131,11 @@ class Scanner(gobject.GObject):
                     
 
     def calc_targets(self):
+        if self.range_start == self.range_end:
+            raise Error('Start and End positions are identical')
+        if self.relative:
+            self.range_start += self.positioner.get_position()
+            self.range_end += self.positioner.get_position()
         if self.steps > 0:
              self.positioner_targets = numpy.linspace(self.range_start,self.range_end,self.steps)
         else:
@@ -182,3 +195,6 @@ class Scanner(gobject.GObject):
 
 gobject.type_register(Scanner)
 scan = Scanner()
+rscan = Scanner()
+rscan.relative = True
+
