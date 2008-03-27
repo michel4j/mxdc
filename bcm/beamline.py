@@ -34,10 +34,11 @@ class PX:
         
     def setup(self, idle_func=gtk_idle):
         print "Beamline config: '%s' " % self.config_file
-        print "Setting up beamline devices: ",
+        print "Setting up beamline devices"
         self.config = ConfigParser()
         self.config.read(self.config_file)
         for section in self.config.sections():
+            print "\n*** %s ***:" % section
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
                 for item in self.config.options(section):
