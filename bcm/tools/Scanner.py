@@ -31,8 +31,12 @@ class Scanner(gobject.GObject):
         self.aborted = False
         self.filename = output
         self.steps = steps
-        self.range_start = start
-        self.range_end = end
+        if self.relative:
+            self.range_start = start + self.positioner.get_position()
+            self.range_end = end + self.positioner.get_position()
+        else:
+            self.range_start = start
+            self.range_end = end
         self.calc_targets()
         self.x_data_points = []
         self.y_data_points = []
@@ -63,8 +67,14 @@ class Scanner(gobject.GObject):
         self.time = time
         self.filename = output
         self.steps = steps
-        self.range_start = start
-        self.range_end = end
+        if start == end:
+            raise Error('Start and End positions are identical')
+        if self.relative:
+            self.range_start = start + self.positioner.get_position()
+            self.range_end = end + self.positioner.get_position()
+        else:
+            self.range_start = start
+            self.range_end = end
         self.calc_targets()
         self.set_normalizer(normalizer)
         win = gtk.Window()
@@ -78,6 +88,7 @@ class Scanner(gobject.GObject):
         con = self.connect('new-point', self._add_point)
         self._connections.append(con)    
         self._do_scan()
+        
         
     
     def start(self):
@@ -131,11 +142,6 @@ class Scanner(gobject.GObject):
                     
 
     def calc_targets(self):
-        if self.range_start == self.range_end:
-            raise Error('Start and End positions are identical')
-        if self.relative:
-            self.range_start += self.positioner.get_position()
-            self.range_end += self.positioner.get_position()
         if self.steps > 0:
              self.positioner_targets = numpy.linspace(self.range_start,self.range_end,self.steps)
         else:
