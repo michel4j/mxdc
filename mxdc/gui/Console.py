@@ -394,6 +394,10 @@ def run():
   #initialize the gtk environment
   console.interpreter.runsource("import gtk, sys, os\n", "<<console>>")
   console.interpreter.runsource("sys.path.append(os.environ['BCM_PATH'])\n", "<<console>>")
+  console.execute_line('from bcm.tools.Scanner import scan')
+  console.execute_line('from bcm.beamline import PX')
+  console.execute_line("bl = PX('%s.conf')" % os.environ['BCM_BEAMLINE'])
+  console.execute_line('bl.setup()')
 
   def destroy(arg=None):
       gtk.main_quit()
