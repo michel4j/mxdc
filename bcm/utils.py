@@ -1,5 +1,6 @@
 import os
 import math, time
+import gtk
 
 # Physical Constats
 h = 4.13566733e-15 # eV.s
@@ -46,3 +47,7 @@ def read_periodic_table():
         for (key,val) in zip(keys,vals):
             table_data[vals[1]][key] = val
     return table_data
+   
+def gtk_idle():
+    while gtk.events_pending():
+        gtk.main_iteration()
