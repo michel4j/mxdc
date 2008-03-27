@@ -1,9 +1,9 @@
 from bcm.interfaces.detectors import *
 from bcm.protocols import ca
-from bcm.utils import gtk_idle
 from zope.interface import implements
 import time
 import threading
+import sys
 import numpy
 import gobject
 
@@ -233,10 +233,16 @@ class QBPM(DetectorBase):
         interval=0.001
         values = []
         time_to_finish = time.time() + t
+        
+        _check_interval = sys.getcheckinterval()
+        sys.setcheckinterval(1)
+        
         while time.time() < time_to_finish:
             values.append( self.get_value() )
-            gtk_idle()
         total = sum(values, 0.0)/len(values)
+
+        sys.setcheckinterval(_check_interval)
+        
         return total
         
     def _signal_change(self, obj, val):
@@ -259,10 +265,16 @@ class Counter(DetectorBase):
         interval=0.001
         values = []
         time_to_finish = time.time() + t
+
+        _check_interval = sys.getcheckinterval()
+        sys.setcheckinterval(1)
+
         while time.time() < time_to_finish:
             values.append( self.pv.get() )
-            gtk_idle()
         total = sum(values, 0.0)/len(values)
+        
+        sys.setcheckinterval(_check_interval)
+        
         return total
                         
     def get_value(self):    
@@ -419,7 +431,7 @@ class Normalizer(threading.Thread):
             self.accum[ self.count ] = self.device.get_value()
             self.count = (self.count + 1) % len(self.accum)
             self.factor = self.first/numpy.mean(self.accum)
-            time.sleep(self.interval)   
+            time.sleep(self.interval) 
    
 gobject.type_register(DetectorBase)
     

@@ -36,7 +36,7 @@ class PX:
         self.config = ConfigParser()
         self.config.read(self.config_file)
         for section in self.config.sections():
-            print "%s:" % section,
+            print "%s:" % section.upper(),
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
                 for item in self.config.options(section):
