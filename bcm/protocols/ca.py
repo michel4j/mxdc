@@ -151,8 +151,6 @@ class PV(gobject.GObject):
     __gsignals__ = {
         'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
                     (gobject.TYPE_PYOBJECT,)),
-        'connected' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                    (gobject.TYPE_BOOLEAN,))
     }
     
     def __init__(self, name, monitor=True):
@@ -234,6 +232,7 @@ class PV(gobject.GObject):
                 10, 
                 byref(self.chid)
             )
+            self._connection_callbacks = [cb_factory, cb_function]
             
     def _on_change(self, event):
         self._lock.acquire()
@@ -251,18 +250,21 @@ class PV(gobject.GObject):
         return 0
         
     def _on_connect(self, event):
+        print self.name,
+        self._lock.acquire()
         self.state = event.op
         if self.state == CA_OP_CONN_UP:
             self.chid = event.chid
             self.count = libca.ca_element_count(self.chid)
             self.element_type = libca.ca_field_type(self.chid)
+
             self.__allocate_data_mem()
             self._add_handler( self._on_change )
-            gobject.idle_add(self.emit, 'connected', True)
-            print self.name, 'connected'
+            print 'connected'
         else:
-            gobject.idle_add(self.emit, 'connected', False)
-            print self.name, 'disconnected'
+            print 'disconnected'
+        self._lock.release()
+        return 0
         
     def _add_handler(self, callback):
         if self.state != CA_OP_CONN_UP:
@@ -313,7 +315,7 @@ def heart_beat(duration=0.01):
     return True
 
 #Make sure you get the events on time.
-gobject.timeout_add(15, heart_beat, 0.01)
+gobject.timeout_add(30, heart_beat, 0.02)
      
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
