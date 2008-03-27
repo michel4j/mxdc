@@ -21,12 +21,20 @@ _DEVICE_MAP = {
     'variables': ca.PV
     }
 
+def gtk_idle():
+    import gtk
+    while gtk.events_pending():
+        gtk.main_iteration()
+    
+
 class PX:
     def __init__(self, filename):
         self.config_file = os.environ['BCM_CONFIG_PATH'] + '/' + filename
         self.devices = {}
         
-    def setup(self):
+    def setup(self, idle_func=gtk_idle):
+        print "Beamline config: '%s' " % self.config_file
+        print "Setting up beamline devices: ",
         self.config = ConfigParser()
         self.config.read(self.config_file)
         for section in self.config.sections():
@@ -34,9 +42,12 @@ class PX:
                 dev_type = _DEVICE_MAP[section]
                 for item in self.config.options(section):
                     args = self.config.get(section, item).split('|')
-                    print item
                     self.devices[item] = dev_type(*args)
                     setattr(self, item, self.devices[item])
+                    print item,
+                    if idle_func is not None:
+                        idle_func()
+        print " - done."
     
 if __name__ == '__main__':
     bl = PX('vlinac.conf')
