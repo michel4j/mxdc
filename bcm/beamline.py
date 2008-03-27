@@ -1,7 +1,7 @@
 import os
 from bcm.devices import positioners, detectors, cameras, misc
 from bcm.protocols import ca
-from bcm.mxdc.gui.utils import gtk_idle
+from bcm.utils import gtk_idle
 from ConfigParser import ConfigParser
 import string
 
