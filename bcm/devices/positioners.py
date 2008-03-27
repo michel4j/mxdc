@@ -93,7 +93,7 @@ class Motor(MotorBase):
             self.STOP = PV("%s:emergStop" % name_parts[0])
             self.CALIB = PV("%s:isCalib" % (name_parts[0]))            
         
-        self.name = self.DESC.get()
+        self.name = name_parts[0]
         
         # connect monitors
         self.RBV.connect('changed', self._signal_change)
@@ -178,7 +178,7 @@ class Positioner(PositionerBase):
         PositionerBase.__init__(self)
         self.PV = PV(name)
         self.DESC = PV('%s.DESC' % name)
-        self.name = self.DESC.get()
+        self.name = name
         self.PV.connect('changed', self._signal_change)
         
     def move_to(self, target, wait=False):

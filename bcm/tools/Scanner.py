@@ -5,8 +5,6 @@ import threading
 import gtk, gobject
 from bcm.protocols import ca
 import numpy            
-
-gobject.threads_init()
  
 class Scanner(gobject.GObject):
     __gsignals__ = {}
