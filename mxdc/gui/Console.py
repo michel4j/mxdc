@@ -392,7 +392,7 @@ def run():
   w.set_title('Interactive Beamline Console')
   
   #initialize the gtk environment
-  console.interpreter.runsource("import gtk, sys, os\n", "<<console>>")
+  console.interpreter.runsource("import gtk, gobject, sys, os\n", "<<console>>")
   console.interpreter.runsource("sys.path.append(os.environ['BCM_PATH'])\n", "<<console>>")
   console.execute_line('from bcm.tools.Scanner import scan')
   console.execute_line('from bcm.beamline import PX')
