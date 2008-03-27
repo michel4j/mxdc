@@ -32,12 +32,8 @@ class Scanner(gobject.GObject):
         self.filename = output
         self.steps = steps
         self.relative = relative
-        if self.relative:
-            self.range_start = start + self.positioner.get_position()
-            self.range_end = end + self.positioner.get_position()
-        else:
-            self.range_start = start
-            self.range_end = end
+        self.range_start = start
+        self.range_end = end
         self.calc_targets()
         self.x_data_points = []
         self.y_data_points = []
@@ -61,7 +57,7 @@ class Scanner(gobject.GObject):
     def do_log(self, message):
         print message
         
-    def __call__(self, positioner=None, start=0, end=0, steps=0, counter=None, time=1.0, output=None, normalizer=None):
+    def __call__(self, positioner, start, end, steps, counter, time=1.0, output=None, normalizer=None):
         self.positioner = positioner
         self.counter = counter
         self.time = time
