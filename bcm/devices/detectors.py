@@ -233,15 +233,10 @@ class QBPM(DetectorBase):
         interval=0.001
         values = []
         time_to_finish = time.time() + t
-        
-        _check_interval = sys.getcheckinterval()
-        sys.setcheckinterval(1)
-        
+                
         while time.time() < time_to_finish:
             values.append( self.get_value() )
         total = sum(values, 0.0)/len(values)
-
-        sys.setcheckinterval(_check_interval)
         
         return total
         
@@ -265,16 +260,9 @@ class Counter(DetectorBase):
         interval=0.001
         values = []
         time_to_finish = time.time() + t
-
-        _check_interval = sys.getcheckinterval()
-        sys.setcheckinterval(1)
-
         while time.time() < time_to_finish:
             values.append( self.pv.get() )
         total = sum(values, 0.0)/len(values)
-        
-        sys.setcheckinterval(_check_interval)
-        
         return total
                         
     def get_value(self):    
