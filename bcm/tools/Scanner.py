@@ -22,7 +22,7 @@ class Scanner(gobject.GObject):
     __gsignals__['aborted'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['log'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     
-    def __init__(self, positioner=None, start=0, end=0, steps=0, counter=None, time=1.0, output=None):
+    def __init__(self, positioner=None, start=0, end=0, steps=0, counter=None, time=1.0, output=None, relative=False):
         gobject.GObject.__init__(self)
         self.positioner = positioner
         self.counter = counter
@@ -31,6 +31,7 @@ class Scanner(gobject.GObject):
         self.aborted = False
         self.filename = output
         self.steps = steps
+        self.relative = relative
         if self.relative:
             self.range_start = start + self.positioner.get_position()
             self.range_end = end + self.positioner.get_position()
@@ -44,7 +45,6 @@ class Scanner(gobject.GObject):
         self.normalizer = Normalizer()
         self.waitress = None
         self._connections = []
-        self.relative = False
 
     def _add_point(self, widget, x, y):
         self.plotter.add_point(x, y,0)
@@ -201,6 +201,5 @@ class Scanner(gobject.GObject):
 
 gobject.type_register(Scanner)
 scan = Scanner()
-rscan = Scanner()
-rscan.relative = True
+rscan = Scanner(relative=True)
 
