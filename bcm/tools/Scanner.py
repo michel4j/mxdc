@@ -4,6 +4,7 @@ from bcm.devices.detectors import Normalizer
 import threading
 import gtk, gobject
 from bcm.protocols import ca
+from bcm.utils import gtk_idle
 import numpy            
  
 class Scanner(gobject.GObject):
@@ -58,17 +59,17 @@ class Scanner(gobject.GObject):
         self.range_end = end
         self.calc_targets()
         self.set_normalizer(normalizer)
-        #win = gtk.Window()
-        #win.set_default_size(800,600)
-        #win.set_title("Scanner")
-        #self.plotter = Plotter()
-        #win.add(self.plotter)
-        #win.show_all()
-        #con = self.connect('done', self._done)
-        #self._connections.append(con)
-        #con = self.connect('new-point', self._add_point)
-        #self._connections.append(con)    
-        self.start()
+        win = gtk.Window()
+        win.set_default_size(800,600)
+        win.set_title("Scanner")
+        self.plotter = Plotter()
+        win.add(self.plotter)
+        win.show_all()
+        con = self.connect('done', self._done)
+        self._connections.append(con)
+        con = self.connect('new-point', self._add_point)
+        self._connections.append(con)    
+        self._do_scan()
         
     
     def start(self):
@@ -108,6 +109,8 @@ class Scanner(gobject.GObject):
             fraction = float(self.count) / len(self.positioner_targets)
             gobject.idle_add(self.emit, "new-point", x, y )
             gobject.idle_add(self.emit, "progress", fraction )
+
+            gtk_idle()
              
         self.normalizer.stop()
         if self.aborted:
