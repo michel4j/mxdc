@@ -1,6 +1,7 @@
 import os
 from bcm.devices import positioners, detectors, cameras, misc
 from bcm.protocols import ca
+from bcm.mxdc.gui.utils import gtk_idle
 from ConfigParser import ConfigParser
 import string
 
@@ -21,10 +22,7 @@ _DEVICE_MAP = {
     'variables': ca.PV
     }
 
-def gtk_idle():
-    import gtk
-    while gtk.events_pending():
-        gtk.main_iteration()
+
     
 
 class PX:
@@ -34,11 +32,11 @@ class PX:
         
     def setup(self, idle_func=gtk_idle):
         print "Beamline config: '%s' " % self.config_file
-        print "Setting up beamline devices"
+        print "Setting up beamline devices ..."
         self.config = ConfigParser()
         self.config.read(self.config_file)
         for section in self.config.sections():
-            print "\n*** %s ***:" % section
+            print "%s:" % section,
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
                 for item in self.config.options(section):
@@ -48,7 +46,7 @@ class PX:
                     print item,
                     if idle_func is not None:
                         idle_func()
-        print " - done."
+        print "\nDone."
     
 if __name__ == '__main__':
     bl = PX('vlinac.conf')

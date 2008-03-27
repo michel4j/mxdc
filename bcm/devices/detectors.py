@@ -1,5 +1,6 @@
 from bcm.interfaces.detectors import *
 from bcm.protocols import ca
+from bcm.utils import gtk_idle
 from zope.interface import implements
 import time
 import threading
@@ -234,6 +235,7 @@ class QBPM(DetectorBase):
         time_to_finish = time.time() + t
         while time.time() < time_to_finish:
             values.append( self.get_value() )
+            gtk_idle()
         total = sum(values, 0.0)/len(values)
         return total
         
@@ -259,6 +261,7 @@ class Counter(DetectorBase):
         time_to_finish = time.time() + t
         while time.time() < time_to_finish:
             values.append( self.pv.get() )
+            gtk_idle()
         total = sum(values, 0.0)/len(values)
         return total
                         
