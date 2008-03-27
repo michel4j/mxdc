@@ -164,7 +164,7 @@ class PV(gobject.GObject):
         self.state = CA_OP_CONN_DOWN
         self.monitor = monitor
         self._lock = thread.allocate_lock()
-        self._defer_connection()
+        self._create_connection()
 
                    
     def __del__(self):
