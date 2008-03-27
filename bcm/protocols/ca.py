@@ -150,7 +150,9 @@ class Closure:
 class PV(gobject.GObject):
     __gsignals__ = {
         'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                    (gobject.TYPE_PYOBJECT,))
+                    (gobject.TYPE_PYOBJECT,)),
+        'connected' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
+                    (gobject.TYPE_BOOLEAN,))
     }
     
     def __init__(self, name, monitor=True):
@@ -158,15 +160,14 @@ class PV(gobject.GObject):
         self.chid = c_ulong()
         self.name = name
         self.value = None
-        self.value_changed = False
         self.count = None
         self.element_type = None
         self.callbacks = {}
-        self.state = NEVER_CONNECTED
+        self.state = CA_OP_CONN_DOWN
+        self.monitor = monitor
         self._lock = thread.allocate_lock()
-        self._create_connection()
-        if monitor:
-            self._add_handler( self._on_change )
+        self._defer_connection()
+
                    
     def __del__(self):
         for key,val in self.callbacks:
@@ -176,10 +177,10 @@ class PV(gobject.GObject):
         libca.ca_pend_io(1.0)
     
     def get(self):
-        if self.state != CONNECTED:
-            self._create_connection()
+        if self.state != CA_OP_CONN_UP:
+            raise Error('Channel %s not connected' % self.name)
         self._lock.acquire()
-        if self.value_changed:
+        if self.value is not None:
             ret_val = self.value
         else:
             libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
@@ -193,6 +194,8 @@ class PV(gobject.GObject):
         return ret_val
 
     def put(self, val):
+        if self.state != CA_OP_CONN_UP:
+            raise Error('Channel %s not connected' % self.name)
         self.data = self.data_type(val)
         libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
         libca.ca_pend_io(1.0)
@@ -220,11 +223,10 @@ class PV(gobject.GObject):
             self.data = self.data_type()
 
     def _defer_connection(self):
-        if self.state != CONNECTED:
+        if self.state != CA_OP_CONN_UP:
             cb_factory = CFUNCTYPE(c_int, ConnectionHandlerArgs)
             cb_function = cb_factory(self._on_connect)
             self.connect_args = ConnectionHandlerArgs()
-
             libca.ca_create_channel(
                 self.name, 
                 cb_function, 
@@ -245,25 +247,27 @@ class PV(gobject.GObject):
             else:
                 self.value = val_p.contents.value
         self._lock.release()
-        self.value_changed = True
         gobject.idle_add(self.emit,'changed', self.value)
         return 0
         
     def _on_connect(self, event):
-        if event.op == CA_OP_CONN_UP:
+        self.state = event.op
+        if self.state == CA_OP_CONN_UP:
             self.chid = event.chid
             self.count = libca.ca_element_count(self.chid)
             self.element_type = libca.ca_field_type(self.chid)
             self.state = libca.ca_state(self.chid)
-            libca.ca_pend_io(0.1)
             self.__allocate_data_mem()
-        elif self.state == CONNECTED:
-            self.state = libca.ca_state(self.chid)
-        return self.state
-               
+            self._add_handler( self._on_change )
+            gobject.idle_add(self.emit, 'connected', True)
+            print self.name, 'connected'
+        else:
+            gobject.idle_add(self.emit, 'connected', False)
+            print self.name, 'disconnected'
+        
     def _add_handler(self, callback):
-        if self.state != CONNECTED:
-            self._create_connection()
+        if self.state != CA_OP_CONN_UP:
+            raise Error('Channel %s not connected' % self.name)
         event_id = c_ulong()
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
         cb_function = cb_factory(callback)
@@ -302,7 +306,7 @@ def thread_init():
         libca.ca_attach_context(libca.context)
 
 def ca_exception_handler(event):
-    print Error(event.op)
+    raise Error("Context:%s \nFile:%s \nLine:%s" % (event.ctx, event.pFile, event.lineNo))
     return 0
 
 def heart_beat(duration=0.01):
