@@ -397,7 +397,7 @@ def run():
   console.execute_line('from bcm.tools.Scanner import scan')
   console.execute_line('from bcm.beamline import PX')
   console.execute_line("bl = PX('%s.conf' % os.environ['BCM_BEAMLINE'])")
-  console.execute_line('bl.setup()')
+  console.execute_line('gobject.idle_add(bl.setup)')
 
   def destroy(arg=None):
       gtk.main_quit()
