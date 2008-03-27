@@ -205,7 +205,7 @@ class PV(gobject.GObject):
         libca.ca_pend_io(1.0)
         self.count = libca.ca_element_count(self.chid)
         self.element_type = libca.ca_field_type(self.chid)
-        self.state = libca.ca_state(self.chid)
+        self.state = CA_OP_CONN_UP
         self.__allocate_data_mem()
 
     def __allocate_data_mem(self, value=None):
@@ -256,7 +256,6 @@ class PV(gobject.GObject):
             self.chid = event.chid
             self.count = libca.ca_element_count(self.chid)
             self.element_type = libca.ca_field_type(self.chid)
-            self.state = libca.ca_state(self.chid)
             self.__allocate_data_mem()
             self._add_handler( self._on_change )
             gobject.idle_add(self.emit, 'connected', True)
@@ -297,7 +296,7 @@ class Error(Exception):
         self.message = message
 
     def __str__(self):
-        return "CA Error: '%s'" % self.message
+        return self.message
         
 
 def thread_init():

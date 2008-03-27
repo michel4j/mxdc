@@ -51,6 +51,7 @@ class MCA(DetectorBase):
         self.read_scan = ca.PV("%s:mca1Read.SCAN" % name_parts[0])
         self.channels = channels
         self.ROI = (0, self.channels)
+        self.name = name_parts[0]
         
         # Default parameters
         self.half_roi_width = 15 # in channel units 
