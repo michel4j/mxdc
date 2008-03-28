@@ -36,7 +36,7 @@ class PX:
         self.config = ConfigParser()
         self.config.read(self.config_file)
         for section in self.config.sections():
-            print "%s:" % section.upper(),
+            print "%s:" % section.upper()
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
                 for item in self.config.options(section):
@@ -46,7 +46,7 @@ class PX:
                     print item,
                     if idle_func is not None:
                         idle_func()
-        print "\nDone."
+            print ''
     
 if __name__ == '__main__':
     bl = PX('vlinac.conf')

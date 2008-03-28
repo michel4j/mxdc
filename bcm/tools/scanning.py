@@ -73,20 +73,25 @@ class Scanner(gobject.GObject):
             self.range_end = end
         self.calc_targets()
         self.set_normalizer(normalizer)
+        self.check()
+        
+    def check(self):
+        self._log("Will scan '%s' from %g to %g with %d intervals" % (self.positioner.name, self.range_start, self.range_end, self.steps))
+        self._log("Will count '%s' for %g second(s) at each point" % (self.counter.name, self.time))
+    
+    def run(self):
         win = gtk.Window()
         win.set_default_size(800,600)
         win.set_title("Scanner")
         self.plotter = Plotter()
         win.add(self.plotter)
-        win.show_all()
         con = self.connect('done', self._done)
         self._connections.append(con)
         con = self.connect('new-point', self._add_point)
-        self._connections.append(con)    
+        self._connections.append(con)
+        win.show_all()
         self._do_scan()
         
-        
-    
     def start(self):
         self.worker_thread = threading.Thread(target=self._do_scan)
         self.worker_thread.start()
