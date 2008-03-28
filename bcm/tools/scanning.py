@@ -77,9 +77,6 @@ class Scanner(gobject.GObject):
         self._log("Will count '%s' for %g second(s) at each point" % (self.counter.name, self.time))
     
     def _run(self):
-        if self._win is not None:
-            self._win.hide_all()
-            self._win.emit('destroy')
         self._win = gtk.Window()
         self._win.set_default_size(800,600)
         self._win.set_title("Scanner")
