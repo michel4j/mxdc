@@ -184,11 +184,13 @@ class Positioner(PositionerBase):
     def move_to(self, target, wait=False):
         self._log('%s moving to %s' % (self.name, target))
         self.PV.put(target)
+        if wait:
+            time.sleep(0.4)
 
     def move_by(self, value, wait=False):
         cur_position = self.get_position()
         self._log('%s relative move of %s requested' % (self.name, value))
-        self.move_to(cur_position + value)
+        self.move_to(cur_position + value, wait)
         
     def get_position(self):
         return self.PV.get()
@@ -309,10 +311,12 @@ class Attenuator(PositionerBase):
             self.filters[i].put( int(bitmap[i]) )
         self._log('Attenuator, moving to %s' % target)
         self._log('Attenuator, requested bit-map is"%s"' % bitmap)
+        if wait:
+            time.sleep(0.5)
     
     def move_by(self, value, wait=False):
         target = value + self.get_position()
-        self.move_to(target)
+        self.move_to(target, wait)
         
 gobject.type_register(MotorBase)
 gobject.type_register(PositionerBase)
