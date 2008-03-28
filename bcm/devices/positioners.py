@@ -113,7 +113,7 @@ class Motor(MotorBase):
         else:
             self.CALIB.put(0)
             
-    def move_to(self, target, wait=False):
+    def move_to(self, target, wait=True):
         if self.get_position() == target:
             return
         if not self.is_healthy():
@@ -125,7 +125,7 @@ class Motor(MotorBase):
         if wait:
             self.wait(start=True, stop=True)
 
-    def move_by(self,val, wait=False):
+    def move_by(self,val, wait=True):
         if val == 0.0:
             return
         if not self.is_healthy():
@@ -181,13 +181,13 @@ class Positioner(PositionerBase):
         self.name = name
         self.PV.connect('changed', self._signal_change)
         
-    def move_to(self, target, wait=False):
+    def move_to(self, target, wait=True):
         self._log('%s moving to %s' % (self.name, target))
         self.PV.put(target)
         if wait:
             time.sleep(0.4)
 
-    def move_by(self, value, wait=False):
+    def move_by(self, value, wait=True):
         cur_position = self.get_position()
         self._log('%s relative move of %s requested' % (self.name, value))
         self.move_to(cur_position + value, wait)
@@ -228,7 +228,7 @@ class energyMotor(MotorBase):
         else:
             self.CALIB.put(0)
             
-    def move_to(self, target, wait=False):
+    def move_to(self, target, wait=True):
         if self.get_position() == target:
             return
         if not self.is_healthy():
@@ -240,7 +240,7 @@ class energyMotor(MotorBase):
         if wait:
             self.wait(start=True,stop=True)
 
-    def move_by(self,val, wait=False):
+    def move_by(self,val, wait=True):
         if val == 0.0:
             return
         if not self.is_healthy():
@@ -296,7 +296,7 @@ class Attenuator(PositionerBase):
         attenuation = 1.0 - math.exp( -4.4189e12 * thickness / (e*1000)**2.9554 )
         return attenuation
     
-    def move_to(self, target, wait=False):
+    def move_to(self, target, wait=True):
         e = self.energy.get()
         if target > 99.9:
             target = 99.9
@@ -314,7 +314,7 @@ class Attenuator(PositionerBase):
         if wait:
             time.sleep(0.5)
     
-    def move_by(self, value, wait=False):
+    def move_by(self, value, wait=True):
         target = value + self.get_position()
         self.move_to(target, wait)
         
