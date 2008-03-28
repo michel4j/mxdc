@@ -78,7 +78,8 @@ class Scanner(gobject.GObject):
     
     def _run(self):
         if self._win is not None:
-            del self._win
+            self._win.hide_all()
+            self._win.emit('destroy')
         self._win = gtk.Window()
         self._win.set_default_size(800,600)
         self._win.set_title("Scanner")
@@ -120,7 +121,7 @@ class Scanner(gobject.GObject):
             
             f = self.normalizer.get_factor()
             
-            self._log("%8d %8g %8g %8g" % (self.count, x, y, f))
+            self._log("%4d %15g %15g %15g" % (self.count, x, y, f))
             y = y * f
             self.x_data_points.append( x )
             self.y_data_points.append( y )
