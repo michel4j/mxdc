@@ -53,11 +53,10 @@ class Scanner(gobject.GObject):
     def do_log(self, message):
         print message
         
-    def __call__(self, positioner, start, end, steps, counter, time=1.0, output=None, normalizer=None):
+    def __call__(self, positioner, start, end, steps, counter, time=1.0, normalizer=None, plot=False):
         self.positioner = positioner
         self.counter = counter
         self.time = time
-        self.filename = output
         self.steps = steps
         if start == end:
             raise Error('Start and End positions are identical')
@@ -70,13 +69,16 @@ class Scanner(gobject.GObject):
         self.calc_targets()
         self.set_normalizer(normalizer)
         self._check()
-        self._run()
+        if plot:
+            self._run_gui()
+        else:
+            self._run_plain()
         
     def _check(self):
         self._log("Will scan '%s' from %g to %g with %d intervals" % (self.positioner.name, self.range_start, self.range_end, self.steps))
         self._log("Will count '%s' for %g second(s) at each point" % (self.counter.name, self.time))
     
-    def _run(self):
+    def _run_gui(self):
         self._win = gtk.Window()
         self._win.set_default_size(800,600)
         self._win.set_title("Scanner")
@@ -87,6 +89,10 @@ class Scanner(gobject.GObject):
         self._do_scan()
         self.fit()
         self.disconnect(con)
+
+    def _run_plain(self):
+        self._do_scan()
+        self.fit()
 
         
     def start(self):
