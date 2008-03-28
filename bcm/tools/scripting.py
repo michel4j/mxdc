@@ -1,17 +1,18 @@
-#!/usr/bin/env python
-
 import sys, time
 import threading
 import gtk, gobject
 import numpy
 from Plotter import Plotter
 from LogServer import LogServer
-from Fitting import *
-from Beamline import beamline
-import EPICS as CA
+from bcm.protocols import ca
 
-gobject.threads_init()
-
+class Error(Exception):
+    def __init__(self, msg):
+        self.message = msg
+    
+    def __str__(self):
+        return self.message
+            
 class Script(threading.Thread, gobject.GObject):
     __gsignals__ = {}
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
@@ -33,7 +34,7 @@ class Script(threading.Thread, gobject.GObject):
             gobject.idle_add(self.emit, "error")
             
     def run(self):
-        CA.thread_init()
+        ca.thread_init()
         try:
             if self.func:
                 self.func(*self.args, **self.kw)
