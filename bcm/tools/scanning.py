@@ -40,7 +40,7 @@ class Scanner(gobject.GObject):
         self.plotter = None
         self.normalizer = Normalizer()
         self.waitress = None
-        self._connections = []
+        self._win = None
 
     def _add_point(self, widget, x, y):
         self.plotter.add_point(x, y,0)
@@ -49,10 +49,6 @@ class Scanner(gobject.GObject):
     def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
             
-    def _done(self, widget):
-        self.fit()
-        while self._connections:
-            self.disconnect( self._connections.pop() )
 
     def do_log(self, message):
         print message
@@ -73,24 +69,27 @@ class Scanner(gobject.GObject):
             self.range_end = end
         self.calc_targets()
         self.set_normalizer(normalizer)
-        self.check()
+        self._check()
+        self._run()
         
-    def check(self):
+    def _check(self):
         self._log("Will scan '%s' from %g to %g with %d intervals" % (self.positioner.name, self.range_start, self.range_end, self.steps))
         self._log("Will count '%s' for %g second(s) at each point" % (self.counter.name, self.time))
     
-    def run(self):
-        win = gtk.Window()
-        win.set_default_size(800,600)
-        win.set_title("Scanner")
+    def _run(self):
+        if self._win is not None:
+            del self._win
+        self._win = gtk.Window()
+        self._win.set_default_size(800,600)
+        self._win.set_title("Scanner")
         self.plotter = Plotter()
-        win.add(self.plotter)
-        con = self.connect('done', self._done)
-        self._connections.append(con)
+        self._win.add(self.plotter)
         con = self.connect('new-point', self._add_point)
-        self._connections.append(con)
-        win.show_all()
+        self._win.show_all()
         self._do_scan()
+        self.fit()
+        self.disconnect(con)
+
         
     def start(self):
         self.worker_thread = threading.Thread(target=self._do_scan)
