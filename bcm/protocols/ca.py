@@ -308,7 +308,13 @@ def thread_init():
         libca.ca_attach_context(libca.context)
 
 def ca_exception_handler(event):
-    raise Error("Context:%s \nFile:%s \nLine:%s" % (event.ctx, event.pFile, event.lineNo))
+    msg = """ca.Error(Exception) ...........................
+    Warning: %s
+    Context: %s
+    File: %s line %s
+    Time: %
+    """ % (event.op, event.ctx, event.pFile, event.lineNo, time.strftime('%X %Z %a, %d %b %Y'))
+    raise Error(msg)
     return 0
 
 def heart_beat(duration=0.01):
