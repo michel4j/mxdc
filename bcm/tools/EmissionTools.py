@@ -1,13 +1,10 @@
 import scipy
 import scipy.optimize
 from matplotlib.mlab import slopes
-from random import *
-from PeriodicTable import read_periodic_table
+from bcm.utils import read_periodic_table
 import threading
-import EPICS as CA
+from bcm.protocols import ca
 import gobject, gtk
-gobject.threads_init()
-
 
 def emissions_list():
     table_data = read_periodic_table()
@@ -40,30 +37,9 @@ def assign_peaks(peaks):
             peak.append("%8s : %8.4f (%8.5f)" % (key,value, score))
     return peaks
 
-def gaussian(x, coeffs):
-    return coeffs[0] * scipy.exp( - ( (x-coeffs[1])/coeffs[2] )**2 )
-
-
-def gen_spectrum():
-    x = scipy.linspace(0,4095,4096)
-    y = scipy.zeros( [len(x)] )
-
-    coeffs = [0,0,0]
-
-    # generate peaks in spectrum
-    for i in range(10):
-        coeffs[0] = randint(3, 20)  # amplitude
-        coeffs[1] = randint(20, 4070) # mean
-        coeffs[2] = randint(15, 30) # sigma
-        y += gaussian(x, coeffs) 
-    # add some noise
-    noise = 0.001
-    y = y + noise*(scipy.rand(len(y))-0.5)
-    return y
-
 def find_peaks(x, y, w=10, threshold=0.1):
     peaks = []
-    ys = smooth(y,w,1)
+    ys = _smooth(y,w,1)
     ny = correct_baseline(x,ys)
     yp = slopes(x, ny)
     ypp = slopes(x, yp)
@@ -79,7 +55,7 @@ def find_peaks(x, y, w=10, threshold=0.1):
                 peaks.append( [x[i], ys[i]] )
     return peaks
 
-def smooth(y, w, iterates=1):
+def _smooth(y, w, iterates=1):
     hw = 1 +  w/2
     my = scipy.array(y)
     for count in range(iterates):
@@ -125,7 +101,7 @@ class ExcitationScanner(gobject.GObject, threading.Thread):
         self.peaks = []
         
     def run(self):
-        CA.thread_init()
+        ca.thread_init()
         self.motor.set_mask([1,1,1])
         if abs(self.energy - self.motor.get_position()) > 1e-4:
             self.motor.move_to(self.energy, wait=True)
