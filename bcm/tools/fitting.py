@@ -1,3 +1,4 @@
+import scipy
 from scipy import optimize, array, exp
  
 def _res(p, y, x):
@@ -83,3 +84,30 @@ def histogram_fit(x,y):
     xpeak = x[jmax]
     return (fwhm, xpeak, ymax, x_hpeak[0], x_hpeak[1])
 
+def smooth(y, w, iterates=1):
+    hw = 1 +  w/2
+    my = scipy.array(y)
+    for count in range(iterates):
+        ys = my.copy()
+        for i in range(0,hw):
+            ys[i] = my[0:hw].mean()
+        for i in range(len(y)-hw,len(y)):
+            ys[i] = my[len(y)-hw:len(y)].mean()
+        for i in range(hw,len(y)-hw):
+            val=my[i-hw:i+hw].mean()
+            ys[i] = val
+        my = ys
+    return ys
+
+def anti_slope(x, y):
+    ybl = y.copy()
+    ybl[0] = y[0]
+    for i in range(1,len(y)):
+        ybl[i] = y[i] + ybl[i-1]
+    return ybl
+
+def get_baseline(x, y):
+    return y - anti_slope(x, slopes(x,y))
+    
+def correct_baseline(x, y):
+    return anti_slope(x, slopes(x,y))

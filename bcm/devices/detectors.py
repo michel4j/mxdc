@@ -72,13 +72,13 @@ class MCA(DetectorBase):
     def energy_to_channel(self, y):
         return   int(round((y - self.offset) / self.slope))
         
-    def set_channel_ROI(self, roi=None):
+    def set_channel_roi(self, roi=None):
         if roi is None:
             self.ROI = (0,self.channels)
         else:
             self.ROI = roi
 
-    def set_energy_ROI(self, roi=None):
+    def set_energy_roi(self, roi=None):
         if roi is None:
             self.ROI = (0,self.channels)
         else:
