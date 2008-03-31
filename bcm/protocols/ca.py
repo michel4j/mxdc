@@ -297,7 +297,9 @@ gobject.type_register(PV)
 class Error(Exception):
     def __init__(self, message):
         self.message = message
-        
+
+    def __str__(self):
+        return self.message
 
 def thread_init():
     thread_context = libca.ca_current_context()
@@ -305,12 +307,12 @@ def thread_init():
         libca.ca_attach_context(libca.context)
 
 def ca_exception_handler(event):
+    ctx = '\n    '.join(event.ctx.split(', '))
     msg = """...........................
-    Warning: %s
-    %s
+    Warning: %s %s
     File: %s line %s
     Time: %s
-    """ % (event.op, event.ctx, event.pFile, event.lineNo, time.strftime("%X %Z %a, %d %b %Y"))
+    """ % (event.op, ctx, event.pFile, event.lineNo, time.strftime("%X %Z %a, %d %b %Y"))
     raise Error(msg)
     return 0
 
