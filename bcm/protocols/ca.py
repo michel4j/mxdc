@@ -308,12 +308,12 @@ def thread_init():
 
 def ca_exception_handler(event):
     ctx = '\n    '.join(event.ctx.split(', '))
-    msg = """...........................
+    msg = """.......................................................
     Warning: %s %s
     File: %s line %s
     Time: %s
     """ % (event.op, ctx, event.pFile, event.lineNo, time.strftime("%X %Z %a, %d %b %Y"))
-    raise Error(msg)
+    raise Error(msg), sys.last_traceback.tb_next
     return 0
 
 def heart_beat(duration=0.01):
