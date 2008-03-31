@@ -313,7 +313,7 @@ def ca_exception_handler(event):
     File: %s line %s
     Time: %s
     """ % (event.op, ctx, event.pFile, event.lineNo, time.strftime("%X %Z %a, %d %b %Y"))
-    raise Error(msg), sys.last_traceback.tb_next
+    raise Error(msg), None
     return 0
 
 def heart_beat(duration=0.01):
