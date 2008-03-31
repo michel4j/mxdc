@@ -305,13 +305,12 @@ def thread_init():
         libca.ca_attach_context(libca.context)
 
 def ca_exception_handler(event):
-    chunks = event.ctx.split(', ')
-    ctx = '\n    '.join(chunks)
     msg = """...........................
-    Warning: %s %s
+    Warning: %s
+    %s
     File: %s line %s
     Time: %s
-    """ % (event.op, ctx, event.pFile, event.lineNo, time.strftime("%X %Z %a, %d %b %Y"))
+    """ % (event.op, event.ctx, event.pFile, event.lineNo, time.strftime("%X %Z %a, %d %b %Y"))
     raise Error(msg)
     return 0
 
