@@ -79,16 +79,19 @@ class Scanner(gobject.GObject):
         self._log("Will count '%s' for %g second(s) at each point" % (self.counter.name, self.time))
     
     def _run_gui(self):
-        self._win = gtk.Window()
-        self._win.set_default_size(800,600)
-        self._win.set_title("Scanner")
-        self.plotter = Plotter()
-        self._win.add(self.plotter)
-        con = self.connect('new-point', self._add_point)
-        self._win.show_all()
+        if self._win:
+            self.plotter.clear()
+        else:
+            self._win = gtk.Window()
+            self._win.set_default_size(800,600)
+            self._win.set_title("Scanner")
+            self.plotter = Plotter()
+            self._win.add(self.plotter)
+            con = self.connect('new-point', self._add_point)
+            self._win.show_all()
         self._do_scan()
         self.fit()
-        self.disconnect(con)
+        #self.disconnect(con)
 
     def _run_plain(self):
         self._do_scan()
