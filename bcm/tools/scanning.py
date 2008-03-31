@@ -1,11 +1,15 @@
-from mxdc.gui.Plotter import Plotter
+import threading
+import gtk
+import gobject
+import numpy            
+import scipy
+import scipy.optimize
+from matplotlib.mlab import slopes
+from bcm.utils import read_periodic_table, gtk_idle
+from bcm.protocols import ca
 from bcm.tools.fitting import *
 from bcm.devices.detectors import Normalizer
-import threading
-import gtk, gobject
-from bcm.protocols import ca
-from bcm.utils import gtk_idle
-import numpy            
+from mxdc.gui.Plotter import Plotter
 
 class Error(Exception):
     def __init__(self, message):
@@ -205,6 +209,110 @@ class Scanner(gobject.GObject):
         self._log("\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g \n" % (midp,fwhm, fwhm_h, ymax, xpeak)) 
         self.midp_fit, self.fwhm_fit, self.fwhm_his, self.ymax, self.xpeak = (midp,fwhm, fwhm_h, ymax, xpeak)
         return [midp,fwhm,success]
+
+
+def emissions_list():
+    table_data = read_periodic_table()
+    emissions = {
+            'K':  'Ka',
+            'L1': 'Lg2',
+            'L2': 'Lb2',
+            'L3': 'Lb1'
+    }
+    emissions_dict = {}
+    for key in table_data.keys():
+        for line in emissions.values():
+            emissions_dict["%s-%s" % (key,line)] = float(table_data[key][line])
+    return emissions_dict
+
+def assign_peaks(peaks):
+    stdev = 0.01 #kev
+    data = emissions_list()
+    for peak in peaks:
+        hits = []
+        for key in data.keys():
+            value = data[key]
+            if value == 0.0:
+                continue
+            score = abs(value - peak[0])/ (2.0 * stdev)
+            if abs(value - peak[0]) < 2.0 * stdev:
+                hits.append( (score, key, value) )
+            hits.sort()
+        for score, key,value in hits:
+            peak.append("%8s : %8.4f (%8.5f)" % (key,value, score))
+    return peaks
+
+def find_peaks(x, y, w=10, threshold=0.1):
+    peaks = []
+    ys = smooth(y,w,1)
+    ny = correct_baseline(x,ys)
+    yp = slopes(x, ny)
+    ypp = slopes(x, yp)
+    yr = max(y) - min(y)
+    factor = threshold*get_baseline(x,y).std()
+    offset = 1+w/2
+    for i in range(offset+1, len(x)-offset):
+        p_sect = scipy.mean(yp[(i-offset):(i+offset)])
+        sect = scipy.mean(yp[(i+1-offset):(i+1+offset)])
+        #if scipy.sign(yp[i]) < scipy.sign(yp[i-1]):
+        if scipy.sign(sect) < scipy.sign(p_sect):
+            if ny[i] > factor:
+                peaks.append( [x[i], ys[i]] )
+    return peaks
+
+class ExcitationScanner:
+    def __init__(self, positioner, mca, energy, time=1.0, output=None):
+        self.mca = mca
+        self.energy_motor = positioner
+        self.time = time
+        self.energy = energy
+        self.filename = output
+        self.x_data_points = []
+        self.y_data_points = []
+        self.peaks = []
+        
+    def __call__(self, *args, **kwargs):
+        self.energy_motor.move_to(self.energy, wait=True)
+        self.mca.set_channel_roi()
+        try:
+            self.x_data_points, self.y_data_points = self.mca.acquire(t=self.time)
+            self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
+            assign_peaks(self.peaks)
+            self.save()
+        except:
+            raise Error('Could not run Excitation scan!')
+
+    def set_output(self, filename):
+        self.filename = filename
+
+    def save(self, filename = None):
+        if filename:
+            self.set_output(filename)
+        scan_data  = "# Positioner: %s \n" % self.energy_motor.get_name()
+        scan_data += "# Detector: %s \n" % self.mca.get_name()
+        scan_data += "# Detector count time: %0.4f sec \n" % (self.time)
+        scan_data += "# \n" 
+        scan_data += "# Columns: (%s) \t (%s) \n" % (self.energy_motor.get_name(), self.mca.get_name())
+        for x,y in zip(self.x_data_points, self.y_data_points):
+            scan_data += "%15.8g %15.8g \n" % (x, y)
+        scan_data += '# Peak Assignments'
+        for peak in self.peaks:
+            peak_log = "#Peak position: %8.3f keV  Height: %8.2f" % (peak[0],peak[1])
+            for ident in peak[2:]:
+                peak_log = "%s \n%s" % (peak_log, ident)
+            scan_data += peak_log
+
+        if self.filename != None:
+            try:
+                scan_file = open(self.filename,'w')        
+                scan_file.write(scan_data)
+                scan_file.flush()
+                scan_file.close()
+            except:
+                print scan_data
+        else:
+            print scan_data
+
 
 gobject.type_register(Scanner)
 scan = Scanner()
