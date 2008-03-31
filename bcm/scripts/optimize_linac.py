@@ -12,7 +12,7 @@ def _find_and_optimize(pos, det):
     rscan(pos, -1.5, 1.5, 20, det, 0.5)
     pos.move_to(rscan.midp_fit)
     
-    # fine relative scan around beam
+    # finer relative scan around beam
     rscan(pos, -0.5, 0.5, 15, det, 0.5)
     pos.move_to(rscan.midp_fit)
 
