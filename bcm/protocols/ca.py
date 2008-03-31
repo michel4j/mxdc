@@ -312,8 +312,8 @@ def ca_exception_handler(event):
     Warning: %s
     Context: %s
     File: %s line %s
-    Time: %
-    """ % (event.op, event.ctx, event.pFile, event.lineNo, time.strftime('%X %Z %a, %d %b %Y'))
+    Time: %s
+    """ % (event.op, event.ctx, event.pFile, event.lineNo, time.strftime("%X %Z %a, %d %b %Y"))
     raise Error(msg)
     return 0
 
