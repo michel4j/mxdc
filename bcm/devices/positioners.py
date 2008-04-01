@@ -84,8 +84,7 @@ class Motor(MotorBase):
             self.MOVN = PV("%s:moving" % name_parts[0])
             self.STOP = PV("%s:stop" % name_parts[0])
             self.SET  = PV("%s:%s:setPosn" % (name_parts[0],name_parts[1]))
-            self.CALIB = PV("%s:calibDone" % (name_parts[0]))
-            
+            self.CALIB = PV("%s:calibDone" % (name_parts[0]))  
         elif self.motor_type == 'cls':
             self.RBV  = PV("%s:%s:fbk" % (name_parts[0],name_parts[1]))
             self.MOVN = PV("%s:state" % name_parts[0])
@@ -117,7 +116,7 @@ class Motor(MotorBase):
         if self.get_position() == target:
             return
         if not self.is_healthy():
-            self._log( "%s is not calibrated. Move canceled!" % self.name )
+            self._log( "%s is not sane. Move canceled!" % self.name )
             return
 
         self._log( "%s moving to %f %s" % (self.name, target, self.units) )
@@ -128,9 +127,6 @@ class Motor(MotorBase):
     def move_by(self,val, wait=True):
         if val == 0.0:
             return
-        if not self.is_healthy():
-            self._log("%s is not calibrated. Move canceled!" % self.name)
-            return False
         self._log( "%s relative move by %f %s requested" % (self.name, val, self.units) )
         cur_pos = self.get_position()
         self.move_to(cur_pos + val, wait)
@@ -145,7 +141,7 @@ class Motor(MotorBase):
                 return False
     
     def is_healthy(self):
-        return (self.CALIB.get() == 1) and (self.STAT.get() != 3)
+        return (self.CALIB.get() == 1) and (self.STAT.get() != 4)
                                  
     def stop(self):
         self.STOP.put(1)
@@ -232,7 +228,7 @@ class energyMotor(MotorBase):
         if self.get_position() == target:
             return
         if not self.is_healthy():
-            self._log( "%s is not calibrated. Move canceled!" % self.name )
+            self._log( "%s is not sane. Move canceled!" % self.name )
             return
 
         self._log( "%s moving to %f %s" % (self.name, target, self.units) )
@@ -243,9 +239,6 @@ class energyMotor(MotorBase):
     def move_by(self,val, wait=True):
         if val == 0.0:
             return
-        if not self.is_healthy():
-            self._log("%s is not calibrated. Move canceled!" % self.name)
-            return False
         self._log( "%s relative move by %f %s requested" % (self.name, val, self.units) )
         cur_pos = self.get_position()
         self.move_to(cur_pos + val, wait)
@@ -260,7 +253,7 @@ class energyMotor(MotorBase):
                 return False
     
     def is_healthy(self):
-        return (self.CALIB.get() == 1) and (self.STAT.get() != 3)
+        return (self.CALIB.get() == 1) and (self.STAT.get() != 4)
                                  
     def stop(self):
         self.STOP.put(1)
