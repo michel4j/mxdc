@@ -1,7 +1,7 @@
 from zope.interface import implements
 from bcm.interfaces.cameras import ICamera
 from bcm.protocols.ca import PV
-import gobject
+import gtk, gobject
 
 import numpy
 from scipy.misc import toimage, fromimage
@@ -10,18 +10,19 @@ import httplib
 
 class CameraBase(gobject.GObject):
     __gsignals__ =  { 
-        "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
         "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
         }  
 
-    def __init__(self):
+    def __init__(self, size=(480,640)):
         gobject.GObject.__init__(self)
         self.frame = None
         self.camera_on = False
         self.controller = None
+        self.size = size
 
-    def signal_change(self, obj, value):
-        gobject.idle_add(self.emit,'changed', value)
+    def signal_change(self, obj):
+        gobject.idle_add(self.emit,'changed')
     
     def log(self, message):
         gobject.idle_add(self.emit, 'log', message)
@@ -52,7 +53,7 @@ class CameraSim(CameraBase):
     def __init__(self):
         CameraBase.__init__(self)
         self._fsource = open('/dev/urandom','rb')
-        self._packet_size = 307200
+        self._packet_size = self.size[0] * self.size[1]
     
     def __del__(self):
         self._fsource.close()
@@ -60,13 +61,13 @@ class CameraSim(CameraBase):
     
     def update():
         if self.is_on():
-            self._data = self._fsource.read(307200)
-            self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
+            self._data = self._fsource.read(self._packet_size)
+            self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(*self.size))
                    
 
 class Camera(CameraBase):
     def __init__(self, pv_name):
-        CameraBase.__init__(self)
+        CameraBase.__init__(self, size=(480,640))
         self.cam = PV(pv_name)
         self._data = None
         self.cam.connect('changed', self.signal_change)
@@ -74,11 +75,11 @@ class Camera(CameraBase):
     def update(self):
         if self.is_on():
             self._data = self.cam.get()
-            self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
+            self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(*self.size))
 
     def signal_change(self, obj, value):
         self.update()
-        gobject.idle_add(self.emit,'changed', self.frame)
+        gobject.idle_add(self.emit,'changed')
                                 
 class AxisController:
     def __init__(self,hostname):
@@ -111,7 +112,7 @@ class AxisController:
 
 class AxisCamera(CameraBase):
     def __init__(self,hostname):
-        CameraBase.__init__(self)
+        CameraBase.__init__(self, size=(480,704))
         self.url = 'http://%s/jpg/image.jpg' % hostname
         self.controller = AxisController(hostname)
     
