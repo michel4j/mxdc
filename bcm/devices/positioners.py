@@ -42,7 +42,7 @@ class MotorBase(gobject.GObject):
         gobject.GObject.__init__(self)
     
     def _signal_change(self, obj, value, j=None):
-        print J
+        print j
         gobject.idle_add(self.emit,'changed', value)
     
     def _log(self, message):
