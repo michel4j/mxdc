@@ -23,7 +23,7 @@ class CameraBase(gobject.GObject):
     def do_changed(self):
         self.update()
         
-    def signal_change(self, obj, val=None):
+    def signal_change(self, obj=None, val=None):
         gobject.idle_add(self.emit,'changed')
         return True
     
