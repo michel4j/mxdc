@@ -22,7 +22,8 @@ class PositionerBase(gobject.GObject):
     def __init__(self):
         gobject.GObject.__init__(self)
 
-    def _signal_change(self, obj, value):
+    def _signal_change(self, obj, value, j=None):
+        print j
         gobject.idle_add(self.emit,'changed', value)
     
     def _log(self, message):
@@ -40,7 +41,8 @@ class MotorBase(gobject.GObject):
     def __init__(self):
         gobject.GObject.__init__(self)
     
-    def _signal_change(self, obj, value):
+    def _signal_change(self, obj, value, j=None):
+        print J
         gobject.idle_add(self.emit,'changed', value)
     
     def _log(self, message):
