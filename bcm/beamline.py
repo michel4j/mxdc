@@ -8,6 +8,7 @@ import string
 _DEVICE_MAP = {
     'clsmotors': positioners.clsMotor,
     'vmemotors': positioners.vmeMotor,
+    'pseudomotors': positioners.pseudoMotor,
     'counters': detectors.Counter,
     'positioners': positioners.Positioner,
     'mcas': detectors.MCA,
