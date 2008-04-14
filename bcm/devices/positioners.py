@@ -69,31 +69,36 @@ class Motor(MotorBase):
         if len(name_parts)<2:
             raise MotorException("motor name must be of the format 'name:unit'")
         
-        if motor_type not in ['vme', 'cls']:
-            raise MotorException("motor_type must be one of 'vme', 'cls'")
+        if motor_type not in ['vme', 'cls', 'pseudo']:
+            raise MotorException("motor_type must be one of 'vme', 'cls', 'pseudo'")
           
-        self.units = name_parts[1]
+        self.units = name_parts[-1]
+        self.name = ':'.join(name_parts[:-1])
         self.motor_type = motor_type
         
         # initialize process variables
-        self.DESC = PV("%s:desc" % (name_parts[0]))               
-        self.VAL  = PV("%s:%s" % (name_parts[0],name_parts[1]))        
+        self.DESC = PV("%s:desc" % (self.name))               
+        self.VAL  = PV("%s:%s" % (self.name,self.units))        
         if self.motor_type == 'vme':
-            self.RBV  = PV("%s:%s:sp" % (name_parts[0],name_parts[1]))
-            self.STAT = PV("%s:status" % name_parts[0])
-            self.MOVN = PV("%s:moving" % name_parts[0])
-            self.STOP = PV("%s:stop" % name_parts[0])
-            self.SET  = PV("%s:%s:setPosn" % (name_parts[0],name_parts[1]))
-            self.CALIB = PV("%s:calibDone" % (name_parts[0]))  
+            self.RBV  = PV("%s:%s:sp" % (self.name,self.units))
+            self.STAT = PV("%s:status" % self.name)
+            self.MOVN = PV("%s:moving" % self.name)
+            self.STOP = PV("%s:stop" % self.name)
+            self.SET  = PV("%s:%s:setPosn" % (self.name,self.units))
+            self.CALIB = PV("%s:calibDone" % (self.name))  
         elif self.motor_type == 'cls':
-            self.RBV  = PV("%s:%s:fbk" % (name_parts[0],name_parts[1]))
-            self.MOVN = PV("%s:state" % name_parts[0])
+            self.RBV  = PV("%s:%s:fbk" % (self.name,self.units))
+            self.MOVN = PV("%s:state" % self.name)
             self.STAT = self.MOVN
-            self.STOP = PV("%s:emergStop" % name_parts[0])
-            self.CALIB = PV("%s:isCalib" % (name_parts[0]))            
-        
-        self.name = name_parts[0]
-        
+            self.STOP = PV("%s:emergStop" % self.name)
+            self.CALIB = PV("%s:isCalib" % (self.name))
+        elif self.motor_type == 'pseudo':
+            self.RBV  = PV("%s:%s:sp" % (self.name,self.units))
+            self.STAT = PV("%s:status" % self.name)
+            self.MOVN = self.STAT
+            self.STOP = PV("%s:stop" % self.name)
+            self.CALIB = PV("%s:calibDone" % (self.name)) 
+                
         # connect monitors
         self.RBV.connect('changed', self._signal_change)
         self.STAT.connect('changed', self._signal_move)
@@ -166,6 +171,11 @@ class vmeMotor(Motor):
 class clsMotor(Motor):
     def __init__(self, name):
         Motor.__init__(self, name, motor_type = 'cls')
+
+class pseudoMotor(Motor):
+    def __init__(self, name):
+        Motor.__init__(self, name, motor_type = 'pseudo')
+
 
 class Positioner(PositionerBase):
     implements(IPositioner)
