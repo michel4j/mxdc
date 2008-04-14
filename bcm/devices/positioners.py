@@ -104,10 +104,6 @@ class Motor(MotorBase):
         self.RBV.connect('changed', self._signal_change)
         self.STAT.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
-
-    def __str__(self):
-        txt = "%s: %s" % (__name__, self.DESC.get())  
-        return txt
                             
     def get_position(self):
         return self.RBV.get()
