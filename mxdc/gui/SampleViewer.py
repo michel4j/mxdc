@@ -2,51 +2,45 @@
 
 import gtk, gobject
 import sys, time, os
-import numpy
-import EPICS as CA
+import math
 from Dialogs import save_selector
-from Beamline import beamline, init_beamline
-from LogServer import LogServer
-from VideoThread import VideoThread
-from Scripting import Script
-import Scripts
+from VideoWidget import VideoWidget
+from bcm.tools.scripting import Script
+from bcm.scripts.misc import center_sample 
+from bcm.protocols import ca
 
         
 class SampleViewer(gtk.HBox):
-    def __init__(self,size=1.0):
+    def __init__(self, bl):
         gtk.HBox.__init__(self,False,6)
         
         self.timeout_id = None
-        self.max_fps = 20
-        self.source_height = 480.
-        self.source_width = 640.
         self.display_size = size   # [0.5,0.75, 1.0] (image_pixels / display_pixel)
         self.video_realized = False
         self.ready = True
         self.click_centering  = False
-        self.contrast = 0        
+        self.contrast = 0   
         
-        self.omega      = beamline['motors']['omega']
-        self.sample_x   = beamline['motors']['sample_x']
-        self.sample_y1  = beamline['motors']['sample_y']
-        self.sample_y2  = beamline['motors']['sample_z']
-        self.beam_width = beamline['motors']['gslits_hgap']
-        self.beam_height = beamline['motors']['gslits_vgap']
-        self.slits_x    = beamline['motors']['gslits_hpos']
-        self.slits_y    = beamline['motors']['gslits_vpos']
-        self.zoom       = beamline['motors']['zoom']
-        self.light      = beamline['variables']['sample_light']
-        self.light_val  =  beamline['variables']['sample_light_val']
-        self.cross_x = beamline['variables']['beam_x']
-        self.cross_y = beamline['variables']['beam_y']
-        self.camera = beamline['cameras']['sample']      
+        self.omega      = bl.omega
+        self.sample_x   = bl.sample_x
+        self.sample_y1  = bl.sample_y
+        self.sample_y2  = bl.sample_z
+        self.beam_width = bl.beam_w
+        self.beam_height = bl.beam_h
+        self.beam_x    = bl.beam_x
+        self.beam_y    = bl.beam_y
+        self.zoom       = bl.sample_zoom
+        self.light      = bl.sample_light
+        self.cross_x = bl.cross_x
+        self.cross_y = bl.cross_y
+        self.camera = bl.sample_cam
         
         self.width = int(self.source_width * self.display_size)
         self.height = int(self.source_height * self.display_size)
         self.lighting = self.light_val.get_position()
 
         self.on_change() #initialize display variables
-        self.pixel_size = 5.34e-3 * numpy.exp( -0.18 * self.zoom_factor)
+        self.pixel_size = 5.34e-3 * math.exp( -0.18 * self.zoom_factor)
 
         self.create_widgets()
         
@@ -93,7 +87,7 @@ class SampleViewer(gtk.HBox):
         return self.width, self.height
                    
     def display(self,widget=None):
-        self.pixel_size = 5.34e-3 * numpy.exp( -0.18 * self.zoom_factor)
+        self.pixel_size = 5.34e-3 * math.exp( -0.18 * self.zoom_factor)
         self.pixmap.draw_pixbuf(self.othergc, self.video_frame, 0, 0, 0, 0, self.width, self.height, 0,0,0)
         self.draw_cross()
         self.draw_slits()
@@ -151,7 +145,7 @@ class SampleViewer(gtk.HBox):
             y1 = self.measure_y1
             x2 = self.measure_x2
             y2 = self.measure_y2
-            dist = self.pixel_size * numpy.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.display_size
+            dist = self.pixel_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.display_size
             x1, x2, y1, y2 = int(x1), int(y1), int(x2), int(y2)
             self.pixmap.draw_line(self.gc, x1, x2, y1, y2)
             self.pangolayout.set_text("%5.4f mm" % dist)
@@ -162,21 +156,8 @@ class SampleViewer(gtk.HBox):
         
     # callbacks
     def on_realized(self,widget):
-        self.video_realized = True
-        self.videothread = VideoThread(self, self.camera)
-        self.videothread.connect('image-updated', self.display)
-        self.connect('destroy', self.on_delete)
-        self.videothread.start()
-        self.videothread.pause()
         return True
         
-    def on_visibility_notify(self, widget, event):
-        if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
-            self.videothread.pause()
-        else:
-            self.videothread.resume()
-        return True
-
     def on_change(self, obj=None, arg=None):
         self.beam_width_position = self.beam_width.get_position()
         self.beam_height_position = self.beam_height.get_position()
@@ -318,8 +299,8 @@ class SampleViewer(gtk.HBox):
     
     def center_pixel(self, x, y):
         tmp_omega = int(round(self.omega.get_position()))
-        sin_w = numpy.sin(tmp_omega * numpy.pi / 180)
-        cos_w = numpy.cos(tmp_omega * numpy.pi / 180)
+        sin_w = math.sin(tmp_omega * math.pi / 180)
+        cos_w = math.cos(tmp_omega * math.pi / 180)
         im_x, im_y, xmm, ymm = self.position(x,y)
         self.sample_x.move_by( -xmm )
         #if   abs(sin_w) == 1:
@@ -329,8 +310,8 @@ class SampleViewer(gtk.HBox):
                 
     def on_fine_up(self,widget):
         tmp_omega = int(round(self.omega.get_position()))
-        sin_w = numpy.sin(tmp_omega * numpy.pi / 180)
-        cos_w = numpy.cos(tmp_omega * numpy.pi / 180)
+        sin_w = math.sin(tmp_omega * math.pi / 180)
+        cos_w = math.cos(tmp_omega * math.pi / 180)
         step_size = self.pixel_size * 10.0
         if  abs(sin_w) == 1:
             self.sample_y1.move_by( step_size * sin_w * 0.5 )
@@ -340,8 +321,8 @@ class SampleViewer(gtk.HBox):
         
     def on_fine_down(self,widget):
         tmp_omega = int(round(self.omega.get_position()))
-        sin_w = numpy.sin(tmp_omega * numpy.pi / 180)
-        cos_w = numpy.cos(tmp_omega * numpy.pi / 180)
+        sin_w = math.sin(tmp_omega * math.pi / 180)
+        cos_w = math.cos(tmp_omega * math.pi / 180)
         step_size = self.pixel_size * 10.0
         if  abs(sin_w) == 1:
             self.sample_y1.move_by( -step_size * sin_w * 0.5 )

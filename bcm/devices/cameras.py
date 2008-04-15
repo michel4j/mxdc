@@ -8,25 +8,12 @@ from scipy.misc import toimage, fromimage
 import Image, ImageOps, urllib, cStringIO
 import httplib
 
-class CameraBase(gobject.GObject):
-    __gsignals__ =  { 
-        "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
-        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
-        }  
-
+class CameraBase(object):
     def __init__(self):
-        gobject.GObject.__init__(self)
         self.frame = None
         self.camera_on = False
         self.controller = None
-
-    def do_changed(self):
-        self.update()
-        
-    def signal_change(self, obj=None, val=None):
-        gobject.idle_add(self.emit,'changed')
-        return True
-    
+            
     def log(self, message):
         gobject.idle_add(self.emit, 'log', message)
 
@@ -46,31 +33,25 @@ class CameraBase(gobject.GObject):
             except:
                 self.log('Could not save image: %s' % filename)
     
-    def is_on(self):
-        return self.camera_on
     
-    def stop(self):
-        self.camera_on = False
-        
-    def start(self):
-        self.update(force=True)
-        self.camera_on = True
                  
 class CameraSim(CameraBase):
     def __init__(self):
         CameraBase.__init__(self)
         self._fsource = open('/dev/urandom','rb')
         self._packet_size = 307200
-        gobject.timeout_add(50, self.signal_change)
+        self.update()
+        self.size = self.frame.size
+        gobject.timeout_add(100, self.update)
     
     def __del__(self):
         self._fsource.close()
         self._data = None 
     
-    def update(self, obj=None, force=False):
-        if self.is_on() or force:
-            self._data = self._fsource.read(307200)
-            self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
+    def update(self, obj=None):
+        self._data = self._fsource.read(self._packet_size)
+        self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
+        return True
                    
 
 class Camera(CameraBase):
@@ -78,12 +59,15 @@ class Camera(CameraBase):
         CameraBase.__init__(self)
         self.cam = PV(pv_name)
         self._data = None
-        self.cam.connect('changed', self.signal_change)
+        self.update()
+        self.size = self.frame.size
+        self.cam.connect('changed', self.update)
     
-    def update(self, obj=None, force=False):
-        if self.is_on() or force:
-            self._data = self.cam.get()
-            self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
+    def update(self, obj=None):
+        self._data = self.cam.get()
+        self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
+        return True
+
 
                                 
 class AxisController:
@@ -120,15 +104,14 @@ class AxisCamera(CameraBase):
         CameraBase.__init__(self)
         self.url = 'http://%s/jpg/image.jpg' % hostname
         self.controller = AxisController(hostname)
-        gobject.timeout_add(100, self.signal_change)
+        self.update()
+        self.size = self.frame.size
+        gobject.timeout_add(100, self.update)
         
-    def update(self, obj=None,force=False):
-        if self.is_on() or force:
-            img_file = urllib.urlopen(self.url)
-            img_str = cStringIO.StringIO(img_file.read())
-            self.frame = Image.open(img_str)
-
-
-gobject.type_register(CameraBase)
+    def update(self, obj=None):
+        img_file = urllib.urlopen(self.url)
+        img_str = cStringIO.StringIO(img_file.read())
+        self.frame = Image.open(img_str)
+        return True
 
         

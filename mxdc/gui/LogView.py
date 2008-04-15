@@ -1,5 +1,8 @@
-import gtk, gobject, pango
-import sys, os, time
+import gtk
+import gobject
+import pango
+import time
+
 
 class LogView(gtk.Expander):
     def __init__(self, label=None, size=5000):

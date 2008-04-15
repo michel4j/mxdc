@@ -1,71 +1,36 @@
-#!/usr/bin/env python
-
 import gtk, gobject
 import sys, time, os
-import numpy
-import EPICS as CA
 from Dialogs import save_selector
-from Beamline import beamline
-from LogServer import LogServer
-from VideoThread import VideoThread
+from VideoWidget import VideoWidget
+from bcm.tools.scripting import Script
+from bcm.scripts.misc import center_sample 
+from bcm.protocols import ca
 
         
 class HutchViewer(gtk.HBox):
-    def __init__(self,size=1.0):
+    def __init__(self, bl):
         gtk.HBox.__init__(self,False,6)
         
         self.timeout_id = None
         self.max_fps = 20
-        self.source_height = 480.
-        self.source_width = 640.
-        self.display_size = size   # [0.5,0.75, 1.0] (image_pixels / display_pixel)
         self.video_realized = False
         self.ready = True
         self.click_centering  = False
         self.contrast = 0        
         
-        self.camera = beamline['cameras']['hutch']
-         
-        self.width = int(self.source_width * self.display_size)
-        self.height = int(self.source_height * self.display_size)
-
-
-        self.create_widgets()
+        self.camera = bl.hutch_cam        
+        self.tick_size = 5
         
-        self.tick_size = self.width / 55
-        
-        self.video.set_events(gtk.gdk.EXPOSURE_MASK |
-                gtk.gdk.LEAVE_NOTIFY_MASK |
-                gtk.gdk.BUTTON_PRESS_MASK |
-                gtk.gdk.POINTER_MOTION_MASK |
-                gtk.gdk.POINTER_MOTION_HINT_MASK|
-                gtk.gdk.VISIBILITY_NOTIFY_MASK)  
-        
-        self.video.connect('configure_event', self.on_configure)
-                       
-        self.gonio_state = 0
+        self.create_widgets()        
+                
         self.connect("destroy", lambda x: self.stop())
-        self.video.connect('visibility-notify-event', self.on_visibility_notify)
         self.video.connect('button_press_event', self.on_image_click)
-        self.video.connect('unmap', self.on_unmap)
-        self.videothread = None
 
     def __del__(self):
-        self.videothread.stop()
+        self.video.stop()
                                         
     def stop(self, win=None):
-        self.videothread.stop()
-
-    def get_size(self):
-        return self.width, self.height
-                   
-    def display(self,widget=None):
-        self.pixmap.draw_pixbuf(self.othergc, self.video_frame, 0, 0, 0, 0, self.width, self.height, 0,0,0)
-        self.pangolayout.set_text("%5.0f FPS" % self.videothread.fps)
-        self.pixmap.draw_layout(self.gc, self.width-70, self.height-20, self.pangolayout)
-        self.video.queue_draw()
-
-        return True     
+        self.video.stop()                
                 
     def save_image(self, filename):
         ftype = filename.split('.')[-1]
@@ -74,22 +39,6 @@ class HutchViewer(gtk.HBox):
         self.video_frame.save(filename, ftype)
         
     # callbacks
-    def on_realized(self,widget):
-        self.video_realized = True
-        self.videothread = VideoThread(self, self.camera)
-        self.videothread.connect('image-updated', self.display)
-        self.connect('destroy', self.on_delete)
-        self.videothread.start()
-        self.videothread.pause()
-        return True
-        
-    def on_visibility_notify(self, widget, event):
-        if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
-            self.videothread.pause()
-        else:
-            self.videothread.resume()
-        return True
-
     def on_save(self, obj=None, arg=None):
         img_filename = save_selector()
         if os.access(os.path.split(img_filename)[0], os.W_OK):
@@ -97,34 +46,11 @@ class HutchViewer(gtk.HBox):
             self.save_image(img_filename)
         else:
             LogServer.log("Could not save %s." % img_filename)
-    
-    def on_unmap(self, widget):
-        self.videothread.pause()
-        return True
-
-    def on_no_expose(self, widget, event):
-        return True
-        
+            
     def on_delete(self,widget):
-        self.videothread.stop()
+        self.video.stop()
         return True
-        
-    def on_expose(self, videoarea, event):        
-        videoarea.window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
-            self.width, self.height)
-        return True
-
-    def on_configure(self,widget,event):
-        width, height = widget.window.get_size()
-        self.pixmap = gtk.gdk.Pixmap(self.video.window, width,height)
-        self.gc = self.pixmap.new_gc()
-        self.othergc = self.video.window.new_gc()
-        self.gc.foreground = self.video.get_colormap().alloc_color("green")
-        self.gc.set_function(gtk.gdk.XOR)
-        self.gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_NOT_LAST,gtk.gdk.JOIN_MITER)
-        self.pangolayout = self.video.create_pango_layout("")
-        return True
-    
+            
     def on_zoom_in(self,widget):
         if self.camera.controller:
             self.camera.controller.zoom(150)
@@ -145,13 +71,13 @@ class HutchViewer(gtk.HBox):
         return True
                 
     def stop(self):
-        if self.videothread is not None:
-            self.videothread.stop()
+        if self.video is not None:
+            self.video.stop()
             
     def on_image_click(self, widget, event):
 
         if event.button == 1:
-            im_x, im_y = int(event.x/self.display_size), int(event.y/self.display_size)
+            im_x, im_y = int(event.x/self.video.scale_factor), int(event.y/self.video.scale_factor)
 
             if self.camera.controller:
                 self.camera.controller.center(im_x, im_y)
@@ -221,14 +147,10 @@ class HutchViewer(gtk.HBox):
         
         #Video Area
         vbox2 = gtk.VBox(False,2)
-        videoframe = gtk.Frame()
+        videoframe = gtk.AspectFrame( ratio=640.0/480.0, obey_child=False)
         videoframe.set_shadow_type(gtk.SHADOW_IN)
-        self.video_frame = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, self.width, self.height)
-        self.video = gtk.DrawingArea()
-        self.video.set_size_request(self.width, self.height)
-        self.video.connect('expose_event',self.on_expose)
-        self.video.connect_after('realize',self.on_realized)
-
+        self.video = VideoWidget(self.camera)
+        self.video.set_size_request(480, 360)
         videoframe.add(self.video)
         vbox2.pack_start(videoframe, expand=False, fill=False)
         
@@ -237,24 +159,29 @@ class HutchViewer(gtk.HBox):
 
 
 def main():
+    import bcm.devices.cameras
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(0)
     win.set_title("HutchViewer")
     book = gtk.Notebook()
     win.add(book)
-    myviewer = HutchViewer()
+    
+    class junk(object):
+        pass
+    
+    bl = junk()
+    
+    bl.hutch_cam = bcm.devices.cameras.AxisCamera('ccd1608-201.cs.cls')
+    
+    myviewer = HutchViewer(bl)
     book.append_page(myviewer, tab_label=gtk.Label('Hutch Viewer') )
-    #book.append_page(gtk.DrawingArea(), tab_label=gtk.Label('Hutch Viewer') )
-
     win.show_all()
 
     try:
-        gtk.gdk.threads_enter()
         gtk.main()
-        gtk.gdk.threads_leave()
     finally:
-        myviewer.videothread.stop()
+        myviewer.video.stop()
 
 
 if __name__ == '__main__':

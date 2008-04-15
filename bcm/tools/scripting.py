@@ -7,7 +7,7 @@ class Error(Exception):
     def __init__(self, msg):
         self.message = msg
                 
-class ScriptThread(gobject.GObject):
+class Script(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
@@ -18,9 +18,12 @@ class ScriptThread(gobject.GObject):
         self.args = args
         self.kw = kw
     
-    def start(self):
-        self.worker_thread = threading.Thread(target=self._run)
-        self.worker_thread.start()
+    def start(self, wait=False):
+        if not wait:
+            self.worker_thread = threading.Thread(target=self._run)
+            self.worker_thread.start()
+        else:
+            self._run()
                  
     def _run(self):
         ca.thread_init()
@@ -32,4 +35,4 @@ class ScriptThread(gobject.GObject):
             raise Error("Script '%s' failed!" % str(self.func).split()[1] )
             gobject.idle_add(self.emit, "error")
         
-gobject.type_register(ScriptThread)
+gobject.type_register(Script)
