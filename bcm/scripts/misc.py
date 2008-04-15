@@ -1,45 +1,30 @@
-#!/usr/bin/env python
-
-from Beamline import beamline
-from LogServer import LogServer
 import tempfile, numpy
 import time, os
 
-def prepare_for_mounting():
+def prepare_for_mounting(bl):
     safe_distance = 700
     safe_beamstop = 45
-    beamline['motors']['detector_dist'].move_to(safe_distance, wait=True)
-    beamline['motors']['bst_z'].move_to(safe_beamstop, wait=True)
+    bl.det_d.move_to(safe_distance, wait=True)
+    bl.bst_z.move_to(safe_beamstop, wait=True)
     return True
 
-def restore_beamstop():
+def restore_beamstop(bl):
     distance = 300
     beamstop = 1
-    beamline['motors']['bst_z'].move_to(beamstop, wait=True)
-    beamline['motors']['detector_dist'].move_to(distance, wait=True)
+    bl.bst_z.move_to(beamstop, wait=True)
+    bl.det_d.move_to(distance, wait=True)
     return True
 
-def center_sample(crystal=False):
+def center_sample(bl, crystal=False):
     tst = time.time()
-    LogServer.log('Starting Loop centering.')
     prefix = tempfile.mktemp()
-    omega = beamline['motors']['omega']
-    camera = beamline['cameras']['sample']
-    zoom   = beamline['motors']['zoom']
-    sample_x   = beamline['motors']['sample_x']
-    sample_y1  = beamline['motors']['sample_y']
-    sample_y2  = beamline['motors']['sample_z']
-    cross_x = beamline['variables']['beam_x']
-    cross_y = beamline['variables']['beam_y']
-    #reset zoom to 1
-    #zoom.move_to(1, wait=True)
     
     count = 0
     imglist = []
     tst = time.time()
     
     # determine direction based on current omega
-    angle = omega.get_position()
+    angle = bl.omega.get_position()
     if angle % 360 > 180:
         direction = -1.0
     else:
@@ -48,11 +33,10 @@ def center_sample(crystal=False):
     # get images
     while count < 6:
         count += 1
-        omega.move_to(angle, wait=True)
+        bl.omega.move_to(angle, wait=True)
         imgname = '%s_%03d.png' % (prefix, count)
-        camera.save(imgname)
+        bl.sample_cam.save(imgname)
         imglist.append( (angle%360, imgname) )
-        LogServer.log('Saving image: %s' % imgname)
         angle = angle + (direction * 60.0)
 
     
@@ -84,10 +68,10 @@ def center_sample(crystal=False):
         vals = line.split()
         results[vals[0]] = int(vals[1])
     if results['RELIABILITY'] >= 70:
-        LogServer.log('Loop centering reliability is %d%%.')
+        bl.log('Loop centering reliability is %d%%.')
 
     else:
-        LogServer.log('Loop centering was not reliable enough.')
+        bl.log('Loop centering was not reliable enough.')
         
     # calculate motor positions and move
     x = results['Y_CENTRE']
@@ -95,21 +79,21 @@ def center_sample(crystal=False):
     tmp_omega = results['TARGET_ANGLE']
     sin_w = numpy.sin(tmp_omega * numpy.pi / 180)
     cos_w = numpy.cos(tmp_omega * numpy.pi / 180)
-    pixel_size = 5.34e-3 * numpy.exp( -0.18 * zoom.get_position())
-    x_offset = cross_x.get_position() - x
-    y_offset = cross_y.get_position() - y
+    pixel_size = 5.34e-3 * numpy.exp( -0.18 * bl.sample_zoom.get_position())
+    x_offset = bl.cross_x.get_position() - x
+    y_offset = bl.cross_y.get_position() - y
     xmm = x_offset * pixel_size
     ymm = y_offset * pixel_size
 
-    sample_x.move_by( -xmm )
-    sample_y1.move_by( -ymm * sin_w  )
-    sample_y2.move_by( ymm * cos_w  )
+    bl.sample_x.move_by( -xmm )
+    bl.sample_y1.move_by( -ymm * sin_w  )
+    bl.sample_y2.move_by( ymm * cos_w  )
         
-    LogServer.log('Loop centering cleaning up ...')
+    bl.log('Loop centering cleaning up ...')
     for angle,img in imglist:
         os.remove(img)
     os.remove(outfile_name)
     os.remove(infile_name)
-    LogServer.log('Loop centering complete in %d seconds.' % (time.time() - tst))
+    bl.log('Loop centering complete in %d seconds.' % (time.time() - tst))
     return True
 
