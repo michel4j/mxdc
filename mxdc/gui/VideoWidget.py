@@ -104,7 +104,7 @@ class VideoWidget(gtk.DrawingArea):
         self.pixmap.draw_pixbuf(self.gc, self.transformer.pixbuf, 0, 0, 0, 0, self.width, self.height, 0,0,0)
         if self.overlay_func is not None:
             self.overlay_func(self.pixmap)
-        #self._draw_banner()
+        self._draw_banner()
         self.queue_draw()        
         return True
     
