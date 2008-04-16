@@ -116,21 +116,21 @@ class VideoWidget(gtk.DrawingArea):
         width, height = obj.window.get_size()
         self.pixmap = gtk.gdk.Pixmap(obj.window, width, height)
         self.transformer.resize(width, height)
-        self.gc = self.window.new_gc()
-        self.pl_gc = self.window.new_gc()
-        self.pl_gc.foreground = self.get_colormap().alloc_color("black")
-        self.ol_gc = self.window.new_gc()
-        self.ol_gc.foreground = self.get_colormap().alloc_color("green")
-        self.ol_gc.set_function(gtk.gdk.XOR)
-        self.ol_gc.set_line_attributes(2,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
         self.width, self.height = self.transformer.width, self.transformer.height
         self.scale_factor = self.transformer.scale_factor                    
         return True
     
     def on_realized(self, obj):
-        self.transformer.start()
+        self.gc = self.window.new_gc()
+        self.pl_gc = self.window.new_gc()
+        self.pl_gc.foreground = self.get_colormap().alloc_color("green")
+        self.ol_gc = self.window.new_gc()
+        self.ol_gc.foreground = self.get_colormap().alloc_color("green")
+        self.ol_gc.set_function(gtk.gdk.XOR)
+        self.ol_gc.set_line_attributes(2,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
         self.banner_pl = self.create_pango_layout("")
         self.banner_pl.set_font_description(pango.FontDescription("Monospace 7"))
+        self.transformer.start()
         return True
 
     def on_visibility_notify(self, obj, event):
