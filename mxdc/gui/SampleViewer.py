@@ -278,7 +278,7 @@ class SampleViewer(gtk.HBox):
         self.video = VideoWidget(self.camera)
         self.video.set_size_request(480, 360)
         videoframe.add(self.video)
-        vbox2.pack_start(videoframe, expand=False, fill=False)        
+        vbox2.pack_start(videoframe, expand=True, fill=True)        
 
         pos_hbox = gtk.HBox(False,6)
         pos_hbox.pack_end(self.pos_label,expand=True, fill=True)
@@ -309,7 +309,7 @@ class SampleViewer(gtk.HBox):
         self.contrast_scale.connect('value-changed',self.on_contrast_changed)
         self.lighting_scale.connect('value-changed',self.on_lighting_changed)
         vbox2.pack_start(adjustment_box,expand=False,fill=False)
-        self.pack_end(vbox2, expand=False, fill=False)
+        self.pack_end(vbox2, expand=True, fill=True)
         self.show_all()
 
     def _overlay_function(self, pixmap):
