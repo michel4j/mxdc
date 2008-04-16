@@ -14,7 +14,7 @@ from  matplotlib.colors import normalize
 from matplotlib.numerix import arange, sin, pi, arcsin, arctan, sqrt, cos
 from matplotlib.ticker import FormatStrFormatter
 from pylab import meshgrid
-from bcm.utils import *
+from bcm import utils
 
 try:
     from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
@@ -23,14 +23,15 @@ except:
 
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
             
-class Predictor( gtk.Frame ):
+class Predictor( gtk.AspectFrame ):
     def __init__( self, pixel_size=0.07234, detector_size=3072 ):
-        gtk.Frame.__init__(self)
-        self.fig = Figure( figsize=( 6, 6 ), dpi=72, facecolor='w' )
-        self.axis = self.fig.add_subplot(111, aspect='equal', xticks=[])
+        gtk.AspectFrame.__init__(self, obey_child=False, ratio=1.0)
+        self.fig = Figure( figsize=(8,8), dpi=72, facecolor='w')
+        self.axis = self.fig.add_axes([0.02,0.02,0.96,0.96], aspect='equal')
+        
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.add( self.canvas )
-        self.set_shadow_type(gtk.SHADOW_IN)
+        self.set_shadow_type(gtk.SHADOW_OUT)
         self.show_all()
         self.pixel_size = pixel_size
         self.detector_size = detector_size
@@ -51,25 +52,26 @@ class Predictor( gtk.Frame ):
         
     def display(self, widget=None):
         self.axis.clear()
+        self.axis.set_axis_off()
         cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1)
         self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)        
         self.canvas.draw()
-        return True
+        return False
         
     def set_wavelength(self,wavelength):
         self.wavelength = wavelength
         return True
         
     def set_energy(self,energy):
-        self.wavelength = keVToA(energy)
+        self.wavelength = utils.energy_to_wavelength(energy)
         return True
         
     def set_distance(self, distance):
         self.distance = distance
         return True
     
-    def set_twotheta(self,twotheta):
-        self.two_theta = twotheta
+    def set_twotheta(self,two_theta):
+        self.two_theta = two_theta * pi/ 180.0
         return True
         
     def set_beam_center(self, beam_x, beam_y):
@@ -80,7 +82,7 @@ class Predictor( gtk.Frame ):
     def set_all(self, wavelength, distance, two_theta, beam_x=1535, beam_y=1535):
         self.wavelength = wavelength
         self.distance = distance
-        self.two_theta = two_theta * pi/ 180.0
+        self.two_theta = self.set_twotheta(two_theta)
         self.beam_x = beam_x
         self.beam_y = beam_y
         return True
