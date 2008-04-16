@@ -58,10 +58,9 @@ class VideoTransformer(gobject.GObject):
             img = img.resize((self.width,self.height),Image.ANTIALIAS).convert('RGB')
             self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
                 False, 8, self.width, self.height, 3 * self.width )
-            self._lock.release()
-            
             gobject.idle_add(self.emit, "changed")
             time.sleep(1.0/self.maxfps)
+            self._lock.release()
                  
     def stop(self):
         self._stopped = True
@@ -103,7 +102,7 @@ class VideoWidget(gtk.DrawingArea):
     def display(self, obj):
         self.pixmap.draw_pixbuf(self.gc, self.transformer.pixbuf, 0, 0, 0, 0, self.width, self.height, 0,0,0)
         if self.overlay_func is not None:
-            self.overlay_func(self.pixmap)
+                self.overlay_func(self.pixmap)
         self._draw_banner()
         self.queue_draw()        
         return True
