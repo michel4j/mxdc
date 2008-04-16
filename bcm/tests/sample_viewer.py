@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys
+import gtk
 sys.path.append(os.environ['BCM_PATH'])
 
 from bcm.beamline import PX
