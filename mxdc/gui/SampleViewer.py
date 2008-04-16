@@ -33,7 +33,7 @@ class SampleViewer(gtk.HBox):
         self.cross_y = bl.cross_y
         self.camera = bl.sample_cam
         
-        self.lighting = self.light_val.get_position()
+        self.lighting = self.light.get_position()
 
         self.on_change() #initialize display variables
         self.create_widgets()
