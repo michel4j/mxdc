@@ -52,12 +52,6 @@ class SampleViewer(gtk.HBox):
         self.video.connect('button_press_event', self.on_image_click)
         self.video.set_overlay_func(self._overlay_function)
         
-        self.beam_width.connect('changed', self.on_change)
-        self.beam_height.connect('changed', self.on_change)
-        self.beam_x.connect('changed', self.on_change)
-        self.beam_y.connect('changed', self.on_change)
-        self.cross_x.connect('changed', self.on_change)
-        self.cross_y.connect('changed', self.on_change)
         self.zoom.connect('changed', self.on_change)              
         self.connect("destroy", lambda x: self.stop())
 
@@ -74,20 +68,20 @@ class SampleViewer(gtk.HBox):
         self.video_frame.save(filename, ftype)
             
     def draw_cross(self, pixmap):
-        x = int(self.cross_x_position * self.video.scale_factor)
-        y = int(self.cross_y_position * self.video.scale_factor)
+        x = int(self.cross_x.get_position() * self.video.scale_factor)
+        y = int(self.cross_y.get_position() * self.video.scale_factor)
         pixmap.draw_line(self.gc, x-self._tick_size, y, x+self._tick_size, y)
         pixmap.draw_line(self.gc, x, y-self._tick_size, x, y+self._tick_size)
         return
 
     def draw_slits(self, pixmap):
         
-        beam_width = self.beam_width_position
-        beam_height = self.beam_height_position
-        slits_x = self.slits_x_position
-        slits_y = self.slits_y_position
-        cross_x = self.cross_x_position
-        cross_y = self.cross_y_position
+        beam_width = self.beam_width.get_position()
+        beam_height = self.beam_height.get_position()
+        slits_x = self.beam_x.get_position()
+        slits_y = self.beam_y.get_position()
+        cross_x = self.cross_x.get_position()
+        cross_y = self.cross_y.get_position()
         
         self.slits_width  = beam_width / self.pixel_size
         self.slits_height = beam_height / self.pixel_size
@@ -125,8 +119,8 @@ class SampleViewer(gtk.HBox):
     def calc_position(self,x,y):
         im_x = int( float(x)/self.video.scale_factor)
         im_y = int( float(y)/self.video.scale_factor)
-        x_offset = self.cross_x_position - im_x
-        y_offset = self.cross_y_position - im_y
+        x_offset = self.cross_x.get_position() - im_x
+        y_offset = self.cross_y.get_position() - im_y
         xmm = x_offset * self.pixel_size
         ymm = y_offset * self.pixel_size
         return (im_x, im_y, xmm, ymm)
@@ -323,12 +317,6 @@ class SampleViewer(gtk.HBox):
     
     # callbacks
     def on_change(self, obj=None, arg=None):
-        self.beam_width_position = self.beam_width.get_position()
-        self.beam_height_position = self.beam_height.get_position()
-        self.slits_x_position = self.slits_x.get_position()
-        self.slits_y_position = self.slits_y.get_position()
-        self.cross_x_position = self.cross_x.get_position()
-        self.cross_y_position = self.cross_y.get_position()
         self.zoom_factor = self.zoom.get_position()
         self.pixel_size = 5.34e-3 * math.exp( -0.18 * self.zoom_factor)
         self.lighting = self.light.get_position()
