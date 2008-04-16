@@ -152,9 +152,9 @@ class HutchViewer(gtk.HBox):
         self.video = VideoWidget(self.camera)
         self.video.set_size_request(480, 360)
         videoframe.add(self.video)
-        vbox2.pack_start(videoframe, expand=False, fill=False)
+        vbox2.pack_start(videoframe, expand=True, fill=True)   
+        self.pack_end(vbox2, expand=True, fill=True)
         
-        self.pack_end(vbox2, expand=False, fill=False)
         self.show_all()
 
 
