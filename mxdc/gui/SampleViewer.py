@@ -70,8 +70,8 @@ class SampleViewer(gtk.HBox):
     def draw_cross(self, pixmap):
         x = int(self.cross_x.get_position() * self.video.scale_factor)
         y = int(self.cross_y.get_position() * self.video.scale_factor)
-        pixmap.draw_line(self.gc, x-self._tick_size, y, x+self._tick_size, y)
-        pixmap.draw_line(self.gc, x, y-self._tick_size, x, y+self._tick_size)
+        pixmap.draw_line(self.video.ol_gc, x-self._tick_size, y, x+self._tick_size, y)
+        pixmap.draw_line(self.video.ol_gc, x, y-self._tick_size, x, y+self._tick_size)
         return
 
     def draw_slits(self, pixmap):
@@ -93,15 +93,15 @@ class SampleViewer(gtk.HBox):
         y = int((cross_y - (slits_y / self.pixel_size)) * self.video.scale_factor)
         hw = int(0.5 * self.slits_width * self.video.scale_factor)
         hh = int(0.5 * self.slits_height * self.video.scale_factor)
-        pixmap.draw_line(self.gc, x-hw, y-hh, x-hw, y-hh+self._tick_size)
-        pixmap.draw_line(self.gc, x-hw, y-hh, x-hw+self._tick_size, y-hh)
-        pixmap.draw_line(self.gc, x+hw, y+hh, x+hw, y+hh-self._tick_size)
-        pixmap.draw_line(self.gc, x+hw, y+hh, x+hw-self._tick_size, y+hh)
+        pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw, y-hh+self._tick_size)
+        pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw+self._tick_size, y-hh)
+        pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw, y+hh-self._tick_size)
+        pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw-self._tick_size, y+hh)
 
-        pixmap.draw_line(self.gc, x-hw, y+hh, x-hw, y+hh-self._tick_size)
-        pixmap.draw_line(self.gc, x-hw, y+hh, x-hw+self._tick_size, y+hh)
-        pixmap.draw_line(self.gc, x+hw, y-hh, x+hw, y-hh+self._tick_size)
-        pixmap.draw_line(self.gc, x+hw, y-hh, x+hw-self._tick_size, y-hh)
+        pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw, y+hh-self._tick_size)
+        pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw+self._tick_size, y+hh)
+        pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw, y-hh+self._tick_size)
+        pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw-self._tick_size, y-hh)
         return
         
     def draw_measurement(self, pixmap):
@@ -112,8 +112,11 @@ class SampleViewer(gtk.HBox):
             y2 = self.measure_y2
             dist = self.pixel_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale_factor
             x1, x2, y1, y2 = int(x1), int(y1), int(x2), int(y2)
-            pixmap.draw_line(self.gc, x1, x2, y1, y2)
-            self.pangolayout.set_text("%5.4f mm" % dist)
+            pixmap.draw_line(self.video.ol_gc, x1, x2, y1, y2)
+            self.pango_layout.set_text("%5.4f mm" % dist)
+            pixmap.draw_layout(self.video.pl_gc, self.video.width -70, self.video.height - 20, self.pango_layout)      
+        else:
+            self.pango_layout.set_text("")
         return True
 
     def calc_position(self,x,y):
@@ -316,6 +319,9 @@ class SampleViewer(gtk.HBox):
         
     
     # callbacks
+    def on_realized(self, obj):
+        self.pango_layout = self.video.create_pango_layout("")
+        
     def on_change(self, obj=None, arg=None):
         self.zoom_factor = self.zoom.get_position()
         self.pixel_size = 5.34e-3 * math.exp( -0.18 * self.zoom_factor)
