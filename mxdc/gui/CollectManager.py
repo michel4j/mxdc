@@ -1,15 +1,11 @@
-#!/usr/bin/env python
 import gtk, gobject
 import sys, os, time
+from bcm.tools.DataCollector import DataCollector
+from ActiveWidgets import PositionerLabel, ActiveProgressBar
 from RunManager import RunManager
 from ImgViewer import ImgViewer
-from bcm.tools.DataCollector import DataCollector
-from ActiveWidgets import ActiveLabel
-from ConfigParser import ConfigParser
-from LogServer import LogServer
-from configobj import ConfigObj
+from bcm.tools.configobj import ConfigObj
 from Dialogs import *
-from ActiveWidgets import ActiveProgressBar
 (
     COLLECT_COLUMN_SAVED,
     COLLECT_COLUMN_ANGLE,

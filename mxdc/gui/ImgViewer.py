@@ -8,7 +8,6 @@ import Image, ImageEnhance, ImageOps, ImageDraw, ImageFont
 import numpy, re, struct
 from scipy.misc import toimage, fromimage
 from ctypes import *
-from LogServer import LogServer
 from Dialogs import select_image
 
 class ImgViewer(gtk.VBox):
@@ -241,7 +240,6 @@ class ImgViewer(gtk.VBox):
         self.image_info_text = 'Δt= %0.1f Δω = %0.2f D = %0.1f ω = %0.2f λ = %0.4f I_mean = %0.1f' % (self.delta_time, self.delta, self.distance,self.phi_start, self.wavelength,self.average_intensity)
         self.image_label.set_markup("<small>%s</small>" % os.path.split(self.filename)[1])
         self.image_info.set_markup("<small>%s</small>" % self.image_info_text)
-        LogServer.log(self.image_info_text)
 
         
 
@@ -291,13 +289,10 @@ class ImgViewer(gtk.VBox):
         imagestr = tmp_image.tostring()
         self.last_displayed = time.time()
 
-        try:
-            IS_RGBA = tmp_image.mode=='RGBA'
-            pixbuf = gtk.gdk.pixbuf_new_from_data(imagestr,gtk.gdk.COLORSPACE_RGB, IS_RGBA, 8, tmp_image.size[0],
-                    tmp_image.size[1],(IS_RGBA and 4 or 3) * tmp_image.size[0])
-            self.image_canvas.set_from_pixbuf(pixbuf)
-        except gobject.GError, error:
-            LogServer.log("Unable to display image")
+        IS_RGBA = tmp_image.mode=='RGBA'
+        pixbuf = gtk.gdk.pixbuf_new_from_data(imagestr,gtk.gdk.COLORSPACE_RGB, IS_RGBA, 8, tmp_image.size[0],
+                tmp_image.size[1],(IS_RGBA and 4 or 3) * tmp_image.size[0])
+        self.image_canvas.set_from_pixbuf(pixbuf)
             
         #gc.collect()
         # keep track of time to prevent loading next frame too quickly 
@@ -318,7 +313,6 @@ class ImgViewer(gtk.VBox):
         return new_img
                         
     def poll_for_file(self):
-        LogServer.log("%d images in display queue" % len(self.image_queue) )
         if len(self.image_queue) == 0:
             if self.collecting_data == True:
                 return True
@@ -329,7 +323,6 @@ class ImgViewer(gtk.VBox):
             next_filename = self.image_queue[0]
         
         if os.path.isfile(next_filename) and (os.stat(next_filename)[stat.ST_SIZE] == 18878464):
-            LogServer.log("Loading image %s" % (next_filename))
             self.set_filename( next_filename )
             self.image_queue.pop(0) # delete loaded image from queue item
             self.load_image()
@@ -384,15 +377,12 @@ class ImgViewer(gtk.VBox):
         tmp_image = ImageOps.expand(tmp_image, border=1, fill=(255, 255, 255))
         tmp_image = ImageOps.expand(tmp_image, border=1, fill=(0, 0, 0))
         imagestr = tmp_image.tostring()
-        #gc.collect() # we need to cleanup memory a bit more often 
-        try:
-            IS_RGBA = tmp_image.mode=='RGBA'
-            pixbuf = gtk.gdk.pixbuf_new_from_data(imagestr,gtk.gdk.COLORSPACE_RGB, IS_RGBA, 8, tmp_image.size[0],
-                    tmp_image.size[1],(IS_RGBA and 4 or 3) * tmp_image.size[0])
-            cursor = gtk.gdk.Cursor(gtk.gdk.display_get_default(), pixbuf, lens_size/2+2, lens_size/2+2)
-            self.image_canvas.window.set_cursor(cursor)
-        except gobject.GError, error:
-            LogServer.log("Unable to set zoom lens")
+
+        IS_RGBA = tmp_image.mode=='RGBA'
+        pixbuf = gtk.gdk.pixbuf_new_from_data(imagestr,gtk.gdk.COLORSPACE_RGB, IS_RGBA, 8, tmp_image.size[0],
+                tmp_image.size[1],(IS_RGBA and 4 or 3) * tmp_image.size[0])
+        cursor = gtk.gdk.Cursor(gtk.gdk.display_get_default(), pixbuf, lens_size/2+2, lens_size/2+2)
+        self.image_canvas.window.set_cursor(cursor)
 
     def draw_cross(self, img):
         draw = ImageDraw.Draw(img)
@@ -534,12 +524,9 @@ class ImgViewer(gtk.VBox):
         frame_number = self.frame_number + 1
         filename = self.file_template % (frame_number)
         if os.path.isfile(filename):
-            LogServer.log("Loading %s" % (filename))
             self.set_filename(filename)
             self.load_image()
             self.display()
-        else:
-            LogServer.log("File not found: %s" % (filename))
         return True        
 
     def on_prev_frame(self,widget):
@@ -548,19 +535,15 @@ class ImgViewer(gtk.VBox):
         frame_number = self.frame_number - 1
         filename = self.file_template % (frame_number)
         if os.path.isfile(filename):
-            LogServer.log("Loading %s" % (filename))
             self.frame_number = frame_number
             self.set_filename(filename)
             self.load_image()
             self.display()
-        else:
-            LogServer.log("File not found: %s" % (filename))
         return True
 
     def on_file_open(self,widget):
         filename = select_image()
         if filename and os.path.isfile(filename):
-            LogServer.log("Loading %s" % (filename))
             self.set_filename(filename)
             self.load_image()
             self.display()
