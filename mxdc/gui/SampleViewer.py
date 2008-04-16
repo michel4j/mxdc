@@ -51,9 +51,10 @@ class SampleViewer(gtk.HBox):
         self.video.connect('motion_notify_event', self.on_mouse_motion)
         self.video.connect('button_press_event', self.on_image_click)
         self.video.set_overlay_func(self._overlay_function)
-        
+        self.video.connect('realize', self.on_realize)
         self.zoom.connect('changed', self.on_change)              
         self.connect("destroy", lambda x: self.stop())
+        
 
     def __del__(self):
         self.video.stop()
@@ -319,7 +320,7 @@ class SampleViewer(gtk.HBox):
         
     
     # callbacks
-    def on_realized(self, obj):
+    def on_realize(self, obj):
         self.pango_layout = self.video.create_pango_layout("")
         
     def on_change(self, obj=None, arg=None):
