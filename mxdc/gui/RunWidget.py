@@ -1,11 +1,8 @@
-#!/usr/bin/env python
-
 import gtk, gobject
 import sys, os
 from Predictor import Predictor
-from Beamline import beamline
 from Dialogs import select_folder, check_folder, DirectoryButton, warning
-from Utils import *
+from bcm import utils
 (
   COLUMN_LABEL,
   COLUMN_ENERGY,
@@ -28,7 +25,7 @@ class RunWidget(gtk.VBox):
         self.pack_start(self.title, padding=6, expand=False, fill=False)
         
         hseparator = gtk.HSeparator()
-        hseparator.set_size_request(-1,3)
+        hseparator.set_size_request(-1,2)
         self.pack_start(hseparator, expand=False, fill=False, padding=6)
         
         bbox.pack_start(self.apply_btn)
@@ -37,12 +34,12 @@ class RunWidget(gtk.VBox):
         self.pack_start(bbox, expand=False, fill=False)
         
         hseparator = gtk.HSeparator()
-        hseparator.set_size_request(-1,3)
+        hseparator.set_size_request(-1,2)
         self.pack_start(hseparator, expand=False, fill=False, padding=6)
         
         self.layout_table = gtk.Table(12,4, False)
-        self.layout_table.set_row_spacings(3)
-        self.layout_table.set_col_spacings(3)
+        self.layout_table.set_row_spacings(2)
+        self.layout_table.set_col_spacings(2)
         
         self.entry = {}
         self.units = {}
@@ -58,9 +55,11 @@ class RunWidget(gtk.VBox):
             'Frame':        (1, 5),
             'Angle':        (2, 5),
             'Start:':       (0, 6),
-            'End:':         (0, 7),
-            'Wedge:':       (0, 8)
+            'Total:':       (0, 7),
+            'Wedge:':       (0, 8),
+            'TwoTheta:':  (0,9),
         }
+        
         # Data for entries (name: (col, row, length, [unit]))
         entries = {
             'prefix':       (1, 0, 3),
@@ -70,9 +69,10 @@ class RunWidget(gtk.VBox):
             'time':         (1, 4, 2, 'sec'),
             'start_frame':  (1, 6, 1),
             'start_angle':  (2, 6, 1, 'deg'),
-            'end_frame':    (1, 7, 1),
-            'end_angle':    (2, 7, 1, 'deg'),
-            'wedge':        (1, 8, 2, 'deg')
+            'num_frames':    (1, 7, 1),
+            'angle_range':    (2, 7, 1, 'deg'),
+            'wedge':        (1, 8, 2, 'deg'),
+            'two_theta':    (1, 9, 2, 'deg'),
         }
         
         # Create labels from data
@@ -105,26 +105,28 @@ class RunWidget(gtk.VBox):
     
         # entry signals
         self.entry['prefix'].connect('focus-out-event', self.on_prefix_changed)
-        #self.entry['directory'].connect('focus-out-event', self.on_directory_changed)
+        self.entry['directory'].connect('focus-out-event', self.on_directory_changed)
         self.entry['start_angle'].connect('focus-out-event', self.on_start_angle_changed)
         self.entry['delta'].connect('focus-out-event', self.on_delta_changed)
-        self.entry['end_angle'].connect('focus-out-event', self.on_end_angle_changed)
-        self.entry['end_frame'].connect('focus-out-event', self.on_end_frame_changed)
+        self.entry['angle_range'].connect('focus-out-event', self.on_angle_range_changed)
+        self.entry['num_frames'].connect('focus-out-event', self.on_num_frames_changed)
         self.entry['start_frame'].connect('focus-out-event', self.on_start_frame_changed)
         self.entry['distance'].connect('focus-out-event', self.on_distance_changed)
         self.entry['time'].connect('focus-out-event', self.on_time_changed)
         self.entry['wedge'].connect('focus-out-event', self.on_wedge_changed)
+        self.entry['two_theta'].connect('focus-out-event', self.on_two_theta_changed)
         
         self.entry['prefix'].connect('activate', self.on_prefix_changed)
         #self.entry['directory'].connect('activate', self.on_directory_changed)
         self.entry['start_angle'].connect('activate', self.on_start_angle_changed)
         self.entry['delta'].connect('activate', self.on_delta_changed)
-        self.entry['end_angle'].connect('activate', self.on_end_angle_changed)
-        self.entry['end_frame'].connect('activate', self.on_end_frame_changed)
+        self.entry['angle_range'].connect('activate', self.on_angle_range_changed)
+        self.entry['num_frames'].connect('activate', self.on_num_frames_changed)
         self.entry['start_frame'].connect('activate', self.on_start_frame_changed)
         self.entry['distance'].connect('activate', self.on_distance_changed)
         self.entry['time'].connect('activate', self.on_time_changed)
         self.entry['wedge'].connect('activate', self.on_wedge_changed)
+        self.entry['two_theta'].connect('activate', self.on_two_theta_changed)
        
         # Inverse Beam
         self.inverse_beam = gtk.CheckButton(label='Inverse beam')
@@ -257,10 +259,10 @@ class RunWidget(gtk.VBox):
             
     def set_parameters(self, dict):
         self.parameters = dict
-        keys = ['distance','delta','start_angle','end_angle','wedge','time'] # Floats
+        keys = ['distance','delta','start_angle','angle_range','wedge','time', 'two_theta'] # Floats
         for key in keys:
             self.entry[key].set_text("%0.2f" % dict[key])
-        keys = ['start_frame', 'end_frame']  # ints
+        keys = ['start_frame', 'num_frames']  # ints
         for key in keys:
             self.entry[key].set_text("%d" % dict[key])
         self.entry['prefix'].set_text("%s" % dict['prefix'])
@@ -270,17 +272,11 @@ class RunWidget(gtk.VBox):
         self.energy_store.clear()
         self.energy = []
         self.energy_label = []
-        # set energy to current value for run 0
-        if self.number ==0:
-            dict['energy'] = [ beamline['motors']['energy'].get_position() ]
-            dict['energy_label'] = [ 'E0' ]
+
         for i in range(len(dict['energy'])):
             self.__add_energy([dict['energy_label'][i], dict['energy'][i], True] )
         self.__reset_e_btn_states()
-        
-        if self.number==0 and self.predictor:
-            self.predictor.set_all( keVToA(dict['energy'][0]), dict['distance'], 0)
-            self.predictor.update(force=True)
+        self.check_changes()
         
     def get_parameters(self):
         run_data = {}
@@ -290,18 +286,14 @@ class RunWidget(gtk.VBox):
             msg1 = "Directory name too long!"
             msg2 = "Directory path should be less than 37 characters. Your selection '%s' is %d characters long. Please use shorter names, or fewer levels of subdirectories." % (run_data['directory'], len(run_data['directory']))
             result = warning(msg1, msg2)
-        dir_parts = run_data['directory'].split('/')
-        if dir_parts[1] == 'users':
-            dir_parts[1] = 'data'
-        run_data['remote_directory'] = '/'.join(dir_parts)
         run_data['energy']  =    self.energy
         run_data['energy_label'] = self.energy_label
         run_data['inverse_beam'] = self.inverse_beam.get_active()
         run_data['number'] = self.number
-        keys = ['distance','delta','start_angle','end_angle','wedge','time'] # Floats
+        keys = ['distance','delta','start_angle','angle_range','wedge','time', 'two_theta'] # Floats
         for key in keys:
             run_data[key] = float(self.entry[key].get_text())
-        keys = ['start_frame','end_frame']  # Convert this to int
+        keys = ['start_frame','num_frames']  # Convert this to int
         for key in keys:
             run_data[key] = int(self.entry[key].get_text())
         return run_data.copy()
@@ -310,18 +302,19 @@ class RunWidget(gtk.VBox):
         run_data = {}
         run_data['prefix'] = 'test'
         run_data['directory'] = os.environ['HOME']
-        run_data['distance'] = 150.0
-        run_data['delta'] = 0.5
-        run_data['time'] = 5
+        run_data['distance'] = 200.0
+        run_data['delta'] = 1.0
+        run_data['time'] = 1
         run_data['start_angle'] = 0
-        run_data['end_angle']= 0.5
+        run_data['angle_range']= 0.5
         run_data['start_frame']= 1
-        run_data['end_frame']= 1
+        run_data['num_frames']= 1
         run_data['inverse_beam']= False
         run_data['wedge']=180.0
-        run_data['energy'] = [ beamline['motors']['energy'].get_position() ]
+        run_data['energy'] = [ 12.658 ]
         run_data['energy_label'] = ['E0']
         run_data['number'] = 0
+        run_data['two_theta'] = 0
         return run_data
                 
     def set_number(self, num=0):
@@ -330,15 +323,15 @@ class RunWidget(gtk.VBox):
         self.title.set_use_markup(True)
         # Hide controls for Run 0
         if num == 0:
-            keys = ['end_angle','end_frame','wedge']
+            keys = ['angle_range','num_frames','wedge']
             for key in keys:
                 self.entry[key].set_sensitive(False)
                 #self.entry[key].hide()
-            keys = ['end_angle','wedge']
+            keys = ['angle_range','wedge']
             for key in keys:
                 self.units[key].set_sensitive(False)
                 #self.units[key].hide()
-            keys = ['End:','Wedge:']
+            keys = ['Total:','Wedge:']
             for key in keys:
                 self.labels[key].set_sensitive(False)
                 #self.labels[key].hide()
@@ -351,12 +344,18 @@ class RunWidget(gtk.VBox):
             if self.predictor is None:    
                 #add Predictor
                 self.predictor = Predictor()
-                beamline['motors']['detector_2th'].connect('changed', self.predictor.on_two_theta_changed)
                 self.predictor.set_size_request(220,220)
                 self.pack_end( self.predictor, expand=False, fill=False)
     
     def check_changes(self):
         new_values = self.get_parameters()
+        
+        if self.number == 0 and self.predictor:
+            self.predictor.set_energy(new_values['energy'][0])
+            self.predictor.set_distance(new_values['distance'])
+            self.predictor.set_twotheta(new_values['two_theta'])
+            self.predictor.update(force=True)
+            
         for key in new_values.keys():
             if key in ['energy', 'energy_label']:
                 widget = self.energy_list
@@ -364,14 +363,16 @@ class RunWidget(gtk.VBox):
                 widget = self.inverse_beam
             elif key == 'number':
                 widget = self.title
-            elif key == 'remote_directory':
-                pass
+            elif key == 'directory':
+                widget = self.entry['directory'].dir_label
             else:
                 widget = self.entry[key]
             if new_values[key] != self.parameters[key]:
                 widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
+                widget.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
             else:
                 widget.modify_text(gtk.STATE_NORMAL, None)
+                widget.modify_fg(gtk.STATE_NORMAL, None)
 
     def on_prefix_changed(self, widget, event=None):
         self.check_changes()
@@ -382,73 +383,52 @@ class RunWidget(gtk.VBox):
             distance = float(self.entry['distance'].get_text())
         except:
             distance = 150.0            
-        if self.number==0 and self.predictor:
-            self.update_predictor()
         self.entry['distance'].set_text('%0.2f' % distance)
         self.check_changes()
         return False
 
     def on_start_angle_changed(self,widget,event=None):
-        delta = float(self.entry['delta'].get_text())
-        start_frame = int(self.entry['start_frame'].get_text())
-        end_frame = int(self.entry['end_frame'].get_text())
         try:
             start_angle = float(self.entry['start_angle'].get_text())
         except:
-            end_angle = float(self.entry['end_angle'].get_text())
-            start_angle = end_angle - (end_frame - start_frame + 1) * delta
+            start_angle = 0
             
         self.entry['start_angle'].set_text('%0.2f' % start_angle)            
-        end_angle = start_angle + delta * (end_frame - start_frame + 1)
-        self.entry['end_angle'].set_text('%0.2f' % end_angle)
         self.check_changes()
         return False
     
-    def on_end_angle_changed(self,widget,event=None):
+    def on_angle_range_changed(self,widget,event=None):
         start_angle = float(self.entry['start_angle'].get_text())    
         start_frame = int(self.entry['start_frame'].get_text())
         delta = float(self.entry['delta'].get_text())
         try:
-            end_angle = float(self.entry['end_angle'].get_text())
+            angle_range = float(self.entry['angle_range'].get_text())
+            num_frames = int(angle_range / delta)
         except:
-            end_frame = int(self.entry['end_frame'].get_text())
-            end_angle = start_angle + ((end_frame - start_frame + 1) * delta )
+            num_frames = int(self.entry['num_frames'].get_text())
+            angle_range = num_frames * delta 
 
-        if end_angle < start_angle:
-            tmp = end_angle
-            end_angle = start_angle
-            start_angle = tmp
-        self.entry['start_angle'].set_text('%0.2f' % start_angle) 
-        self.entry['end_angle'].set_text('%0.2f' % end_angle)                       
-        end_frame = start_frame + (end_angle - start_angle)/delta - 1 
-        self.entry['end_frame'].set_text('%d' % end_frame)
+        self.entry['angle_range'].set_text('%0.2f' % angle_range)                       
+        self.entry['num_frames'].set_text('%d' % num_frames)
         self.check_changes()
         return False
 
     def on_delta_changed(self,widget,event=None):
         try:
             delta = float(self.entry['delta'].get_text())
-            time = float(self.entry['time'].get_text())
         except:
             delta = 1.0
-        delta = (delta > 0.2 and delta) or 0.2
-        #if (delta/time) < (1.0/5.0): # temporary velocity limit
-        #    delta = time * 1.0/5.0
+        delta = (delta > 0.1 and delta) or 0.1
+
         self.entry['delta'].set_text('%0.2f' % delta)
-        start_angle = float(self.entry['start_angle'].get_text())
-        end_angle = float(self.entry['end_angle'].get_text())
-        start_frame = int(self.entry['start_frame'].get_text())
-        end_frame = int(self.entry['end_frame'].get_text())
+        angle_range = float(self.entry['angle_range'].get_text())
+        num_frames = int(self.entry['num_frames'].get_text())
 
         if self.number == 0:
-            end_angle = start_angle + delta
-            self.entry['end_angle'].set_text('%0.2f' % end_angle)
-        else:
-            if (end_angle - start_angle) < delta:
-                end_angle = start_angle + delta
-                self.entry['end_angle'].set_text('%0.2f' % end_angle)             
-            end_frame = start_frame + (end_angle - start_angle)/delta - 1
-            self.entry['end_frame'].set_text('%d' % end_frame)
+            angle_range = delta
+            self.entry['angle_range'].set_text('%0.2f' % angle_range)
+        num_frames = int(angle_range/delta)
+        self.entry['num_frames'].set_text('%d' % num_frames)
         self.check_changes()
         return False
 
@@ -459,49 +439,33 @@ class RunWidget(gtk.VBox):
         except:
             time = 1.0
         time = (abs(time) > 0.1 and abs(time)) or 0.1
-        #if (delta/time) < (1.0/5.0): # temporary velocity limit
-        #    time = delta / (1.0/5.0)
         self.entry['time'].set_text('%0.2f' % time)
         self.check_changes()
         return False
 
     def on_start_frame_changed(self,widget,event=None):
         start_angle = float(self.entry['start_angle'].get_text())
-        end_angle = float(self.entry['end_angle'].get_text())
-        delta = float(self.entry['delta'].get_text())
         try:
             start_frame = int( float(self.entry['start_frame'].get_text()) )
         except:
-            end_frame = int(self.entry['end_frame'].get_text())
-            start_frame = end_frame - (end_angle - start_angle)/delta + 1
+            start_frame = 1
         
+        start_frame = (start_frame > 1 and start_frame) or 1
         self.entry['start_frame'].set_text('%d' % start_frame)
-        end_frame = start_frame + ((end_angle - start_angle - delta)/delta )
-    
-        self.entry['end_frame'].set_text('%d' % end_frame)
         self.check_changes()
         return False
 
-    def on_end_frame_changed(self,widget,event=None):
-        start_frame = int( self.entry['start_frame'].get_text() )
+    def on_num_frames_changed(self,widget,event=None):
         delta = float(self.entry['delta'].get_text())
         try:
-            end_frame = float(self.entry['end_frame'].get_text() )
+            num_frames = float(self.entry['num_frames'].get_text() )
+            angle_range = num_frames * delta 
         except:
-            start_angle = float(self.entry['start_angle'].get_text())
-            end_angle = float(self.entry['end_angle'].get_text())
-            end_frame = start_frame + (end_angle - start_angle)/delta - 1
+            angle_range = float(self.entry['angle_range'].get_text())
+            num_frames = int(angle_range / delta)
         
-        if end_frame < start_frame:
-            tmp = end_frame
-            end_frame = start_frame
-            start_frame = tmp
-        self.entry['start_frame'].set_text('%d' % start_frame) 
-        self.entry['end_frame'].set_text('%d' % end_frame)
-        start_angle = float(self.entry['start_angle'].get_text())
-        end_angle = start_angle + ((end_frame - start_frame + 1) * delta )
-    
-        self.entry['end_angle'].set_text('%0.2f' % end_angle)
+        self.entry['num_frames'].set_text('%d' % num_frames)    
+        self.entry['angle_range'].set_text('%0.2f' % angle_range)
         self.check_changes()
         return False
 
@@ -514,31 +478,27 @@ class RunWidget(gtk.VBox):
         self.entry['wedge'].set_text('%0.2f' % wedge) 
         self.check_changes()
         return False
+
+    def on_two_theta_changed(self,widget,event=None):
+        try:
+            two_theta = float(self.entry['two_theta'].get_text())    
+        except:
+            two_theta = 0.0
+
+        self.entry['two_theta'].set_text('%0.2f' % two_theta) 
+        self.check_changes()
+        return False
         
     def on_directory_changed(self,widget, event=None):
         directory = self.entry['directory'].get_text()
         self.check_changes()
-        return False
-            
-    def update_predictor(self):
-        self.predictor.set_energy(self.energy[0])
-        distance = float(self.entry['distance'].get_text())
-        self.predictor.set_distance(distance)
-        self.predictor.set_twotheta( beamline['motors']['detector_2th'].get_position() )
-        self.predictor.update(force = True)
-        
+        return False        
 
     def on_apply(self, widget):
         self.parameters = self.get_parameters()
         self.undo_stack.append(self.parameters)
-        if self.parameters['number'] == 0:
-            self.parameters['energy'] = [ beamline['motors']['energy'].get_position() ]
-            self.parameters['energy_label'] = ['E0']
-            self.set_parameters(self.parameters)       
         self.check_changes()
         self.undo_btn.set_sensitive(True)
-        if self.predictor is not None:
-            self.update_predictor()
         return True
     
     def on_undo(self,widget):
