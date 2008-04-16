@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import gtk, gobject
 import sys, time
 from RunWidget import RunWidget
@@ -83,8 +81,26 @@ class RunManager(gtk.Notebook):
                 self.parent.apply_run()
                           
     def update_parent(self, pos):
+        print self.runs
         if self.parent:
            self.parent.apply_run()
                 
                 
-                
+def main():    
+    win = gtk.Window()
+    win.connect("destroy", lambda x: gtk.main_quit())
+    win.set_title("Run Manager Demo")
+    man = RunManager()
+    
+    win.add(man)
+    win.show_all()
+    
+    try:
+        gtk.main()
+    except KeyboardInterrupt:
+        print "Quiting..."
+        sys.exit()
+
+
+if __name__ == '__main__':
+    main()
