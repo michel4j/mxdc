@@ -85,9 +85,9 @@ class SampleViewer(gtk.HBox):
         
         self.slits_width  = beam_width / self.pixel_size
         self.slits_height = beam_height / self.pixel_size
-        if self.slits_width  >= self.width:
+        if self.slits_width  >= self.video.width:
             return
-        if self.slits_height  >= self.height:
+        if self.slits_height  >= self.video.height:
             return
         x = int((cross_x - (slits_x / self.pixel_size)) * self.video.scale_factor)
         y = int((cross_y - (slits_y / self.pixel_size)) * self.video.scale_factor)
