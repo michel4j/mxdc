@@ -20,14 +20,16 @@ from Dialogs import *
 ) = range(3)
 
 class CollectManager(gtk.HBox):
-    def __init__(self):
+    def __init__(self, beamline=None):
         gtk.HBox.__init__(self,False,6)
         self.__register_icons()
         self.run_data = {}
         self.labels = {}
         self.run_list = []
+        self.beamline = beamline
         self.image_viewer = ImgViewer()
         self.run_manager = RunManager()
+        self.collector = DataCollector(beamline)
         self.collect_state = COLLECT_STATE_IDLE
         self.pos = None
         self.listmodel = gtk.ListStore(
@@ -79,20 +81,20 @@ class CollectManager(gtk.HBox):
         pos_frame = gtk.Frame(label='Current Position')
         pos_table = gtk.Table(3,3,True)
         items = {
-            'omega':      ('Angle:', 0, 0, 'deg'),
-            'detector_2th':   ('Two Theta:',0, 1, 'deg'),
-            'detector_dist':    ('Distance:',0, 2, 'mm'),
+            'omega':      ('Omega angle:', 0, 0, 'deg'),
+            'det_2th':   ('Two Theta:',0, 1, 'deg'),
+            'det_d':    ('Distance:',0, 2, 'mm'),
             'energy':    ('Energy:',0, 3, 'keV')
         }
-        
         for (key,val) in zip(items.keys(),items.values()):
             label = gtk.Label(val[0])
             label.set_alignment(1,0.5)
             pos_table.attach( label, val[1], val[1]+1, val[2], val[2]+1)
             pos_table.attach(gtk.Label(val[3]), 2, 3, val[2], val[2]+1)
-            pos_label = ActiveLabel( beamline['motors'][key], format="%8.4f" )
-            pos_label.set_alignment(1,0.5)
-            pos_table.attach(pos_label,1, 2, val[2], val[2]+1)
+            if self.beamline is not None:
+                pos_label = PositionerLabel( bl.devices[key], format="%8.4f" )
+                pos_label.set_alignment(1,0.5)
+                pos_table.attach(pos_label,1, 2, val[2], val[2]+1)
         pos_table.set_border_width(3)
         pos_frame.add(pos_table)
         
@@ -106,7 +108,15 @@ class CollectManager(gtk.HBox):
         self.listview.connect('row-activated',self.on_row_activated)
         self.collect_btn.connect('clicked',self.on_activate)
         self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
-        self.collector = None
+        self.run_manager.connect('saved', self.save_runs)
+        
+        self.collector.connect('done', self.on_stop)
+        self.collector.connect('paused',self.on_pause)
+        self.collector.connect('new-image', self.on_new_image)
+        self.collector.connect('stopped', self.on_stop)
+        self.collector.connect('progress', self.on_progress)
+       
+        
         self.set_border_width(6)
         self.__load_config()
         
@@ -120,7 +130,6 @@ class CollectManager(gtk.HBox):
                 run = int(section)
                 data[run] = config[section]
                 self.add_run(data[run])
-        self.apply_run(save=False)
 
     def __save_config(self):
         config = ConfigObj()
@@ -134,20 +143,25 @@ class CollectManager(gtk.HBox):
                 keystr = "%s" % key
                 config[keystr] = data
                 try:
-                    beamline['image_server'].create_folder(data['remote_directory'])
+                    self.beamline.image_server.create_folder(data['directory'])
                 except:
-                    msg_title = 'Image Syncronization Server not found'
-                    msg_sub = 'MXDC could not successfully connect to the Image Synchronization server. '
+                    msg_title = 'Image Syncronization Server Error'
+                    msg_sub = 'MXDC could not successfully connect to the Image Synchronization Server. '
                     msg_sub += 'Data collection can not proceed reliably without the server up and running.'
                     warning(msg_title, msg_sub)
             config.write()
 
     def config_user(self):
         username = os.environ['USER']
-        LogServer.log( "%s" % (username))
         userid = os.getuid()
         groupid = os.getgid()
-        beamline['image_server'].set_user( username, userid, groupid )
+        try:
+            self.beamline.image_server.set_user( username, userid, groupid )
+        except:
+            msg_title = 'Image Syncronization Server Error'
+            msg_sub = 'MXDC could not successfully connect to the Image Synchronization Server. '
+            msg_sub += 'Data collection can not proceed reliably without the server up and running.'
+            warning(msg_title, msg_sub)
 
 
     def __add_item(self, item):
@@ -220,15 +234,14 @@ class CollectManager(gtk.HBox):
         self.listview.append_column(column)
         
         
-    def apply_run(self, save=True):
+    def save_runs(self, obj=None):
         for run in self.run_manager.runs:
             data = run.get_parameters()
             if check_folder(data['directory']):
                 self.run_data[ data['number'] ] = data
             else:
                 return
-        if save:
-            self.__save_config()
+        self.__save_config()
         self.create_runlist()
         
     def add_run(self, data):
@@ -246,7 +259,6 @@ class CollectManager(gtk.HBox):
                 run_data[key-1] = self.run_data[key]
                 run_data[key-1]['number'] = key-1
         self.run_data = run_data
-        #self.create_runlist()
     
     def clear_runs(self):
         self.run_data.clear()
@@ -259,6 +271,10 @@ class CollectManager(gtk.HBox):
             run_keys = run_data.keys()
         elif 0 in run_data.keys():
             run_keys = [0,]
+            if self.beamline is not None:
+                run_data[0]['energy'] = [self.beamline.energy.get_position()]
+            run_data[0]['energy_label'] = ['E0']
+            
         else:
             run_keys = run_data.keys()
             
@@ -269,10 +285,10 @@ class CollectManager(gtk.HBox):
             run = run_data[pos]
             offsets = run['inverse_beam'] and [0, 180] or [0,]
             
-            angle_range = run['end_angle'] - run['start_angle']
+            angle_range = run['angle_range']
             wedge = run['wedge'] < angle_range and run['wedge'] or angle_range
             wedge_size = int( (wedge) / run['delta'])
-            total_size = int( angle_range/run['delta'] )
+            total_size = run['num_frames']
             passes = int ( round( 0.5 + (angle_range-run['delta']) / wedge) ) # take the roof (round_up) of the number
             remaining_frames = total_size
             current_slice = wedge_size
@@ -280,12 +296,16 @@ class CollectManager(gtk.HBox):
                 if current_slice > remaining_frames:
                     current_slice = remaining_frames
                 for (energy,energy_label) in zip(run['energy'],run['energy_label']):
+                    if len(run['energy']) > 1:
+                        energy_tag = "_%s" % energy_label
+                    else:
+                        energy_tag = ""
                     for offset in offsets:                        
                         for j in range(current_slice):
                             angle = run['start_angle'] + (j * run['delta']) + (i * wedge) + offset
                             frame_number =  i * wedge_size + j + int(offset/run['delta']) + run['start_frame']
-                            file_name = "%s_%d_%s_%04d.img" % (run['prefix'], run['number'], energy_label, frame_number)
-                            frame_name = "%s_%d_%s_%04d" % (run['prefix'], run['number'], energy_label, frame_number)
+                            frame_name = "%s_%d%s_%03d" % (run['prefix'], run['number'], energy_tag, frame_number)
+                            file_name = "%s.img" % (frame_name)
                             list_item = {
                                 'index': index,
                                 'saved': False, 
@@ -299,7 +319,8 @@ class CollectManager(gtk.HBox):
                                 'energy': energy,
                                 'distance': run['distance'],
                                 'prefix': run['prefix'],
-                                'remote_directory': run['remote_directory'],
+                                'two_theta': run['two_theta'],
+                                #'remote_directory': run['remote_directory'],
                                 'directory': run['directory']
                             }
                             self.run_list.append(list_item)
@@ -451,12 +472,7 @@ class CollectManager(gtk.HBox):
         else:
             if self.check_runlist():
                 self.progress_bar.busy_text("Starting data collection...")
-                self.collector = DataCollector(self.run_list, skip_collected=True)
-                self.collector.connect('done', self.on_stop)
-                self.collector.connect('paused',self.on_pause)
-                self.collector.connect('new-image', self.on_new_image)
-                self.collector.connect('stopped', self.on_stop)
-                self.collector.connect('progress', self.on_progress)
+                self.collector.setup(self.run_list, skip_collected=True)
                 self.collector.start()
                 self.collect_state = COLLECT_STATE_RUNNING
                 self.collect_btn.set_label('cm-pause')

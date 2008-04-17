@@ -7,7 +7,6 @@ import gtk, gobject
 import Image, ImageEnhance, ImageOps, ImageDraw, ImageFont
 import numpy, re, struct
 from scipy.misc import toimage, fromimage
-from ctypes import *
 from Dialogs import select_image
 
 class ImgViewer(gtk.VBox):
@@ -17,10 +16,9 @@ class ImgViewer(gtk.VBox):
         self.interpolation = Image.ANTIALIAS
         # Put image canvas into a frame
         self.img_frame = gtk.Viewport()
-        self.img_frame.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        self.img_frame.set_shadow_type(gtk.SHADOW_IN)
         self.image_canvas = gtk.Image()
-        #self.image_box = gtk.EventBox()
-        #self.image_box.add(self.image_canvas)
+
         self.img_frame.set_events(gtk.gdk.POINTER_MOTION_MASK
                                    | gtk.gdk.STRUCTURE_MASK)
         self.image_canvas.set_size_request(self.disp_size, self.disp_size)
@@ -198,38 +196,14 @@ class ImgViewer(gtk.VBox):
             self.file_template = None
             self.frame_number = None
         
-    def load_pck_image(self, filename):
-        libpck = cdll.LoadLibrary('./libpck.so')
-        libpck.argtypes = [c_char_p, POINTER(c_ushort)]
-        libpck.restype = c_int
-        x_dim, y_dim = self.read_pck_header(filename)
-        size = x_dim * y_dim
-        data = create_string_buffer( sizeof(c_ushort) * size )
-        libpck.openfile(filename, byref(data))
-        img = numpy.fromstring(data, numpy.ushort)
-        img.resize((x_dim, y_dim))
-        self.raw_img = toimage(img)
-        self.average_intensity = numpy.mean( numpy.fromstring(self.raw_img.tostring(), 'H') )
-        #self.gamma_correction = 80.0 / self.average_intensity
-        #self.img = self.raw_img.convert('I')
-        self.orig_size = max(self.raw_img.size)
-        
-        # invert the image to get black spots on white background and resize
-        #self.img = self.img.point(lambda x: x * -1 + 255)
-        self.work_img = self.raw_img.resize( (self.image_size, self.image_size), self.interpolation)
-        self.image_label.set_markup("<small>%s</small>" % os.path.split(self.filename)[1])
-        self.image_info.set_markup("<small>%s</small>" % "PCK Image")
-        self.beam_x, self.beam_y = x_dim/2, y_dim/2
-        self.pixel_size = 0.07324
-        self.distance = 100
-        self.wavelength = 1
-
     def load_image(self):
         self.read_header()
                 
         # calculate average I and correct gamma
         self.raw_img = Image.open(self.filename)
-        self.average_intensity = numpy.mean( numpy.fromstring(self.raw_img.tostring(), 'H') )
+        raw_data = numpy.fromstring(self.raw_img.tostring(), 'H')
+        self.average_intensity = numpy.mean( raw_data )
+        self.max_intensity = numpy.max(raw_data)
         self.gamma_factor = 80.0 / self.average_intensity
         self.img = self.raw_img.point(lambda x: x * self.gamma_factor).convert('L')
         self.orig_size = max(self.raw_img.size)
@@ -237,9 +211,10 @@ class ImgViewer(gtk.VBox):
         # invert the image to get black spots on white background and resize
         self.img = self.img.point(lambda x: x * -1 + 255)
         self.work_img = self.img.resize( (self.image_size, self.image_size), self.interpolation)
-        self.image_info_text = 'Δt= %0.1f Δω = %0.2f D = %0.1f ω = %0.2f λ = %0.4f I_mean = %0.1f' % (self.delta_time, self.delta, self.distance,self.phi_start, self.wavelength,self.average_intensity)
-        self.image_label.set_markup("<small>%s</small>" % os.path.split(self.filename)[1])
-        self.image_info.set_markup("<small>%s</small>" % self.image_info_text)
+        self.image_info_text = 'Δt=%0.1f, Δω=%0.2f, D=%0.1f, ω=%0.2f, λ=%0.4f, I_mean=%0.0f, I_max=%0.0f' % (
+            self.delta_time, self.delta, self.distance,self.phi_start, self.wavelength,self.average_intensity,self.max_intensity)
+        self.image_label.set_markup(os.path.split(self.filename)[1])
+        self.image_info.set_markup(self.image_info_text)
 
         
 
@@ -510,7 +485,7 @@ class ImgViewer(gtk.VBox):
         Iy = event.y - half_size + self.y_center
         Ox = int(Ix/scale)
         Oy = int(Iy/scale)
-        self.pointer.set_text("<tt>(%04d, %04d) %6.2f Å</tt>"% (Ox, Oy, self.resolution(Ox,Oy)))
+        self.pointer.set_text("<tt>(%04d.%04d) %0.2f Å</tt>"% (Ox, Oy, self.resolution(Ox,Oy)))
         self.pointer.set_use_markup(True)
         if 'GDK_BUTTON2_MASK' in event.state.value_names:
             self.zooming_lens(Ox, Oy)
@@ -700,7 +675,7 @@ def main():
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(6)
     win.set_title("Diffraction Image Viewer")
-    myview = ImgViewer(size=800)
+    myview = ImgViewer(size=600)
     hbox = gtk.HBox(False)
     hbox.pack_start(myview)
     win.add(hbox)

@@ -3,7 +3,11 @@ import sys, time
 from RunWidget import RunWidget
 
 class RunManager(gtk.Notebook):
+    __gsignals__ = {
+        'saved' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+    }
     def __init__(self):
+        self.__gobject_init__() 
         gtk.Notebook.__init__(self)       
         self.runs = []
         self.run_labels = []
@@ -38,7 +42,7 @@ class RunManager(gtk.Notebook):
         pos = len(self.runs) - 1
         self.insert_page(self.runs[-1], tab_label=self.run_labels[-1], position=pos)
         self.set_current_page( pos )
-        self.runs[-1].apply_btn.connect('clicked', self.on_apply_run )
+        self.runs[-1].save_btn.connect('clicked', self.on_save )
         if len(self.runs) > 1:
             self.runs[-1].delete_btn.connect('clicked', self.on_delete_run )
             
@@ -55,11 +59,9 @@ class RunManager(gtk.Notebook):
             num = num-1
         self.set_current_page( num )
         
-    def on_apply_run(self, widget):
-        num = self.get_current_page()
-        self.update_parent(num)
+    def on_save(self, widget):
+        self.emit('saved')
         return True
-
     
     def on_switch_page(self, notebook, junk, page_num):
         if page_num == len(self.runs):
@@ -84,6 +86,8 @@ class RunManager(gtk.Notebook):
         print self.runs
         if self.parent:
            self.parent.apply_run()
+
+gobject.type_register(RunManager)
                 
                 
 def main():    
@@ -100,7 +104,5 @@ def main():
     except KeyboardInterrupt:
         print "Quiting..."
         sys.exit()
-
-
 if __name__ == '__main__':
     main()
