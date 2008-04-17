@@ -9,6 +9,24 @@ from bcm import utils
   COLUMN_EDITABLE
 ) = range(3)
 
+DEFAULT_PARAMETERS = {
+    'prefix': 'test',
+    'directory': os.environ['HOME'],
+    'distance': 200.0,
+    'delta': 1.0,
+    'time': 1,
+    'start_angle': 0,
+    'angle_range': 1.0,
+    'start_frame': 1,
+    'num_frames': 1,
+    'inverse_beam': False,
+    'wedge': 180.0,
+    'energy': [ 12.658 ],
+    'energy_label': ['E0'],
+    'number': 0,
+    'two_theta': 0.0,
+}
+
 
 class RunWidget(gtk.VBox):
     def __init__(self, num=0):
@@ -18,7 +36,7 @@ class RunWidget(gtk.VBox):
         self.title = gtk.Label("")
         
         bbox = gtk.HBox(True, 6)
-        self.apply_btn = gtk.Button(stock=gtk.STOCK_SAVE)
+        self.save_btn = gtk.Button(stock=gtk.STOCK_SAVE)
         self.undo_btn = gtk.Button(stock=gtk.STOCK_UNDO)
         self.undo_btn.set_sensitive(False) # initially disabled since stack is empty
         self.delete_btn = gtk.Button(stock=gtk.STOCK_DELETE)
@@ -28,7 +46,7 @@ class RunWidget(gtk.VBox):
         hseparator.set_size_request(-1,2)
         self.pack_start(hseparator, expand=False, fill=False, padding=6)
         
-        bbox.pack_start(self.apply_btn)
+        bbox.pack_start(self.save_btn)
         bbox.pack_start(self.undo_btn)
         bbox.pack_start(self.delete_btn)
         self.pack_start(bbox, expand=False, fill=False)
@@ -180,17 +198,20 @@ class RunWidget(gtk.VBox):
         self.predictor = None
 
         # connect signals
-        self.apply_btn.connect('clicked', self.on_apply)
+        self.save_btn.connect('clicked', self.on_save)
         self.undo_btn.connect('clicked',self.on_undo)
         self.show_all()
         self.set_no_show_all(True)
         
         #initialize parameters
-        run_data = self.default_parameters()
-        self.set_number(num)
-        run_data['number'] = self.number
         self.undo_stack = []
-        self.set_parameters(run_data)
+        self.parameters = DEFAULT_PARAMETERS
+        self.set_number(num)
+        self.set_parameters(self.parameters)
+        self.parameters = self.get_parameters()
+        self.undo_stack.append(self.parameters)
+
+        self._changes_pending = False
                 
     def __add_energy(self, item=None): 
         iter = self.energy_store.append()        
@@ -258,7 +279,6 @@ class RunWidget(gtk.VBox):
         self.__reset_e_btn_states()
             
     def set_parameters(self, dict):
-        self.parameters = dict
         keys = ['distance','delta','start_angle','angle_range','wedge','time', 'two_theta'] # Floats
         for key in keys:
             self.entry[key].set_text("%0.2f" % dict[key])
@@ -297,28 +317,10 @@ class RunWidget(gtk.VBox):
         for key in keys:
             run_data[key] = int(self.entry[key].get_text())
         return run_data.copy()
-
-    def default_parameters(self):
-        run_data = {}
-        run_data['prefix'] = 'test'
-        run_data['directory'] = os.environ['HOME']
-        run_data['distance'] = 200.0
-        run_data['delta'] = 1.0
-        run_data['time'] = 1
-        run_data['start_angle'] = 0
-        run_data['angle_range']= 0.5
-        run_data['start_frame']= 1
-        run_data['num_frames']= 1
-        run_data['inverse_beam']= False
-        run_data['wedge']=180.0
-        run_data['energy'] = [ 12.658 ]
-        run_data['energy_label'] = ['E0']
-        run_data['number'] = 0
-        run_data['two_theta'] = 0
-        return run_data
                 
     def set_number(self, num=0):
         self.number = num
+        self.parameters['number'] = num
         self.title.set_text('<big><b>Run %d</b></big>' % self.number)
         self.title.set_use_markup(True)
         # Hide controls for Run 0
@@ -370,9 +372,11 @@ class RunWidget(gtk.VBox):
             if new_values[key] != self.parameters[key]:
                 widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
                 widget.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
+                self._changes_pending = True
             else:
                 widget.modify_text(gtk.STATE_NORMAL, None)
                 widget.modify_fg(gtk.STATE_NORMAL, None)
+                self._changes_pending = False
 
     def on_prefix_changed(self, widget, event=None):
         self.check_changes()
@@ -494,7 +498,7 @@ class RunWidget(gtk.VBox):
         self.check_changes()
         return False        
 
-    def on_apply(self, widget):
+    def on_save(self, widget):
         self.parameters = self.get_parameters()
         self.undo_stack.append(self.parameters)
         self.check_changes()
@@ -502,6 +506,10 @@ class RunWidget(gtk.VBox):
         return True
     
     def on_undo(self,widget):
+        # when no changes are pending, it means current state is identical to last backup
+        # delete one backup before continuing
+        if not self._changes_pending:
+            self.undo_stack.pop()
         if len(self.undo_stack) > 0:
             run_data = self.undo_stack.pop()
             self.set_parameters(run_data)

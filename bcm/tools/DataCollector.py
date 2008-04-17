@@ -5,7 +5,7 @@ import gtk, gobject
 import threading
 from bcm.protocols import ca
 
-class DataCollector(threading.Thread, gobject.GObject):
+class DataCollector(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['new-image'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT,gobject.TYPE_STRING))
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,))
@@ -14,27 +14,44 @@ class DataCollector(threading.Thread, gobject.GObject):
     __gsignals__['stopped'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['log'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     
-    def __init__(self, run_list, beamline, skip_collected=True):
-        threading.Thread.__init__(self)
+    def __init__(self, beamline):
         gobject.GObject.__init__(self)
-        self.run_list = run_list
         self.paused = False
         self.stopped = False
-        self.beamline = beamline
-        self.skip_collected = skip_collected
+        self.skip_collected = False
+        self._initialized = False
+        
+        #associate beamline devices
+        try:
+            self.beamline = beamline
+            self.detector = beamline.ccd
+            self.gonio = beamline.gonio
+            self.shutter = beamline.shutter
+            self.two_theta = beamline.det_2th
+            self.distance = beamline.det_d
+            self.energy = beamline.energy
+            self._initialized = True
+        except AttributeError:
+            self._initialized = False
+        
         
     def setup(self, run_list, skip_collected=True):
         self.run_list = run_list
         self.skip_collected = skip_collected
         return
     
-    def run(self, widget=None):
+    def start(self):
+        if self._initialized:
+            self._worker = threading.Thread(target=self._collect_data)
+            self._worker.start()
+        else:
+            gobject.idle_add(self.emit, 'stopped')
+            gobject.idle_add(self.emit, 'progress', 1.0)
+
+    
+    def _collect_data(self):
         ca.thread_init()
-        
-        self.detector = self.beamline.imaging_detector
-        self.gonio = self.beamline.goniometer
-        self.shutter = self.beamline.exposure_shutter
-        
+                
         self.shutter.close()
         time.sleep(0.1)  # small delay to make sure shutter is closed
         self.detector.initialize()
@@ -54,7 +71,7 @@ class DataCollector(threading.Thread, gobject.GObject):
             frame = self.run_list[self.pos]
             self.pos += 1
             if frame['saved'] and self.skip_collected:
-                self._log( 'Skipping %s' % frame['file_name'])
+                self.log( 'Skipping %s' % frame['file_name'])
                 continue
             velo = frame['delta'] / float(frame['time'])
             
@@ -62,7 +79,7 @@ class DataCollector(threading.Thread, gobject.GObject):
             # Prepare image header
             header['delta'] = frame['delta']
             header['filename'] = frame['file_name']
-            header['directory'] = frame['remote_directory']
+            header['directory'] = '/data' + frame['directory']
             header['distance'] = frame['distance'] 
             header['time'] = frame['time']
             header['frame_number'] = frame['frame_number']
@@ -72,14 +89,15 @@ class DataCollector(threading.Thread, gobject.GObject):
             header['start_angle'] = frame['start_angle']
             
             # Check and prepare beamline
-            if abs(self.beamline.detector_distance.get_position() - frame['distance']) > 1e-2:
-                self.beamline.detector_distance.move_to(frame['distance'])
+            if abs(self.beamline.det_d.get_position() - frame['distance']) > 1e-2:
+                self.beamline.det_d.move_to(frame['distance'])
             if abs(self.beamline.energy.get_position() - frame['energy']) > 1e-4:
                 self.beamline.energy.move_to(frame['energy'])
             
             #wait for energy and distance to stop moving
-            self.beamline.detector_distance.wait()
-            self.beamline.energy.wait()
+            self.distance.wait()
+            self.energy.wait()
+            
             gonio_data = {
                 'time': frame['time'],
                 'delta' : frame['delta'],
@@ -91,7 +109,7 @@ class DataCollector(threading.Thread, gobject.GObject):
             self.gonio.scan()
             self.detector.save()
 
-            self._log("Image Collected: %s" % frame['file_name'])
+            self.log("Image Collected: %s" % frame['file_name'])
             gobject.idle_add(self.emit, 'new-image', frame['index'], "%s/%s" % (frame['directory'],frame['file_name']))
             
             # Notify progress
@@ -114,7 +132,7 @@ class DataCollector(threading.Thread, gobject.GObject):
     def stop(self):
         self.stopped = True
     
-    def _log(self, message):
+    def log(self, message):
         gobject.idle_add(self.emit, 'log', message)
                 
 gobject.type_register(DataCollector)
