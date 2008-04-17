@@ -65,6 +65,12 @@ class MCA(DetectorBase):
             self.TMODE.put(2)
         else:
             self.TMODE.put(0)
+    
+    def is_cool(self):
+        if self.TMODE.get() == 2:
+            return True
+        else:
+            return False
 
     def channel_to_energy(self, x):
         return ( x * self.slope + self.offset)
@@ -393,7 +399,6 @@ class Normalizer(threading.Thread):
         if not hasattr(dev, 'get_value') and hasattr(dev, 'get'):
             self.device.get_value = self.device.get
             
-
     def get_factor(self):
         return self.factor
 

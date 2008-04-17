@@ -1,9 +1,6 @@
-#!/usr/bin/env python
-
 import gtk, gobject
 import sys, os
 from Dialogs import select_folder, check_folder, DirectoryButton
-
 from ActiveWidgets import ActiveProgressBar
 
 (

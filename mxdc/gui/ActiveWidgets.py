@@ -163,11 +163,16 @@ class VariableLabel(gtk.Label):
         gtk.Label.__init__(self, '')
         self.format = format
         self.variable = variable
+        
+        # enable using both PV's and detectors
+        if not hasattr(self.variable, 'get_value') and hasattr(self.variable, 'get'):
+            self.variable.get_value = self.variable.get
+            
         self.set_current( self.variable.get_value() )
-        self.positioner.connect('changed', self._on_value_change )
+        self.variable.connect('changed', self._on_value_change )
 
     def set_current(self, val):
-        self.set_text(self.format % (val))
+        self.set_markup(self.format % (val))
 
     def _on_value_change(self, widget, val):
         self.set_current(val)

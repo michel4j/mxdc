@@ -1,23 +1,18 @@
-#!/usr/bin/env python
-
 import gtk, gobject, numpy, sys
 
 from ScanControl import ScanControl
 from PeriodicTable import PeriodicTable
 from LogView import LogView
 from Plotter import Plotter
-from Scanner import Scanner
-from Beamline import beamline
-from AutoChooch import AutoChooch
-from pylab import load
 from Dialogs import *
-from EmissionTools import *
+from bcm.tools import scanning
+from bcm.tools.AutoChooch import AutoChooch
 
 class ScanManager(gtk.HBox):
     __gsignals__ = {
             'create-run': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     }
-    def __init__(self):
+    def __init__(self, beamline=None):
         gtk.HBox.__init__(self,False,6)
         
         self.scan_control = ScanControl()
@@ -47,15 +42,26 @@ class ScanManager(gtk.HBox):
         self.pack_start(self.scan_book)
 
         self.show_all()
-        
-        self.bragg_energy = beamline['motors']['bragg_energy']      
-        self.mca   = beamline['detectors']['mca']
-        self.shutter = beamline['shutters']['xbox_shutter']
+        self.beamline = beamline
 
         self.auto_chooch = AutoChooch()
+        self.mad_scanner = scanning.MADScanner(self.beamline)
+        self.ex_scanner = scanning.ExcitationScanner(self.beamline)
         
+        self.auto_chooch.connect('done', self.on_chooch_done)
+        self.auto_chooch.connect('error', self.on_chooch_error)
+        
+        self.mad_scanner.connect('new-point', self.on_new_scan_point)
+        self.mad_scanner.connect('done', self.on_scan_done)
+        self.mad_scanner.connect('aborted', self.on_scan_aborted)        
+        self.mad_scanner.connect('progress', self.on_progress)
+        self.scan_control.stop_btn.connect('clicked', self.mad_scanner.stop)
+        self.scan_control.abort_btn.connect('clicked', self.mad_scanner.abort)
+       
+        self.ex_scanner.connect('done', self.on_excitation_done)
+        self.ex_scanner.connect('error', self.on_scan_aborted)
+
         self.scanning = False
-        self.scanner = None
         self.progress_id = None
                     
     def on_edge_selection(self, widget, data):
@@ -73,19 +79,14 @@ class ScanManager(gtk.HBox):
         return True
     
     def on_scan_done(self, widget):
-        self.bragg_energy.set_mask( [1,1,1] )  # Move all
-        self.shutter.close()
         self.scan_control.stop_btn.set_sensitive(False)
         self.scan_control.abort_btn.set_sensitive(False)
         self.scan_control.start_btn.set_sensitive(True)
-        #self.scan_book.set_current_page( self.log_page )
         self.run_auto_chooch()
         self.scanning = False
         return True
 
     def on_scan_aborted(self, widget):
-        self.bragg_energy.set_mask( [1,1,1] )  # Move all
-        self.shutter.close()
         self.scan_control.start_btn.set_sensitive(True)
         self.scan_control.stop_btn.set_sensitive(False)
         self.scan_control.abort_btn.set_sensitive(False)
@@ -113,17 +114,19 @@ class ScanManager(gtk.HBox):
         self.scan_control.set_results(results)
         self.scan_control.create_run_btn.set_sensitive(True)
         self.scan_control.progress_bar.idle_text("Scan Complete", 1.0)
+        self.log_view.log( self.auto_chooch.output, False )     
+
         return True
         
     def on_chooch_error(self,widget, error):
         self.scan_control.start_btn.set_sensitive(True)
         self.scan_book.set_current_page( self.plotter_page )
         self.scan_control.progress_bar.idle_text("Scan Error:  analysis failed!")
+        self.log_view.log( self.auto_chooch.output, False )
         return True
 
     def on_start_scan(self,widget):        
         pars = self.scan_control.get_parameters()
-        self.mca.set_cooling(True)
         if pars['mode'] == 'MAD':
             self.edge_scan()
         else:
@@ -139,55 +142,6 @@ class ScanManager(gtk.HBox):
         self.scan_control.progress_bar.set_complete(fraction)
         return True
                     
-    def linear_scan_targets(self,energy):
-        targets = numpy.arange(energy-0.1,energy+0.1,0.001)
-        return targets
-        
-    def generate_scan_targets(self, energy):
-        very_low_start = energy - 0.2
-        very_low_end = energy - 0.17
-        low_start = energy -0.15
-        low_end = energy -0.03
-        mid_start = low_end
-        mid_end = energy + 0.03
-        hi_start = mid_end + 0.0015
-        hi_end = energy + 0.16
-        very_hi_start = energy + 0.18
-        very_hi_end = energy + 0.21
-
-        targets = []
-        # Add very low points
-        targets.append(very_low_start)
-        targets.append(very_low_end)
-        
-        # Decreasing step size for the beginning
-        step_size = 0.02
-        val = low_start
-        while val < low_end:
-            targets.append(val)
-            step_size -= 0.0015
-            val += step_size
-
-        # Fixed step_size for the middle
-        val = mid_start
-        step_size = 0.001
-        while val < mid_end:
-            targets.append(val)
-            val += step_size
-            
-        # Increasing step size for the end
-        step_size = 0.002
-        val = hi_start
-        while val < hi_end:
-            targets.append(val)
-            step_size += 0.0015
-            val += step_size
-            
-        # Add very hi points
-        targets.append(very_hi_start)
-        targets.append(very_hi_end)
-            
-        return targets
         
     def edge_scan(self):
         if self.scanning:
@@ -196,42 +150,27 @@ class ScanManager(gtk.HBox):
         self.scan_control.clear()
         scan_parameters = self.scan_control.get_parameters()
             
-        if not check_folder( scan_parameters['directory'], None ):
-            return False    
-        
         title = scan_parameters['edge'] + " Edge Scan"
         self.plotter.set_labels(title=title, x_label="Energy (keV)", y1_label='Fluorescence')
+        
         energy = scan_parameters['energy']
-        self.mca.set_roi_energy( scan_parameters['emission'] )
+        emission = scan_parameters['emission']
         count_time = scan_parameters['time']
         scan_filename = "%s/%s_%s.raw" % (scan_parameters['directory'],    
             scan_parameters['prefix'], scan_parameters['edge'])
         
-        #move to peak energy and optimize
-        beamline['motors']['energy'].move_to( energy )
-            
-        #Optimize beam here
-        self.bragg_energy.set_mask( [1,0,0] )  # Move only bragg
+        self.mad_scanner.setup(energy, emission, count_time, scan_filename)
         
-        self.scanner = Scanner(positioner=self.bragg_energy, detector=self.mca, time=count_time, output=scan_filename)
-        self.scanner.set_targets( self.generate_scan_targets(energy) )
-        self.scanner.set_normalizer(beamline['detectors']['i1_bpm'])
-        #self.scanner.set_targets( self.linear_scan_targets(energy) )
-        self.scanner.connect('new-point', self.on_new_scan_point)
-        self.scanner.connect('done', self.on_scan_done)
-        self.scanner.connect('aborted', self.on_scan_aborted)        
-        self.scanner.connect('progress', self.on_progress)
-        self.scan_control.stop_btn.connect('clicked', self.scanner.stop)
-        self.scan_control.abort_btn.connect('clicked', self.scanner.abort)
         self.scan_control.stop_btn.set_sensitive(True)
         self.scan_control.abort_btn.set_sensitive(True)
         self.scan_control.start_btn.set_sensitive(False)
+        
         self.scan_book.set_current_page( self.plotter_page )
+        
         self.scan_control.progress_bar.set_complete(0.0)
         self.scan_control.progress_bar.busy_text("Starting MAD scan...")
-        self.shutter.open()
-        self.scanner.waitress = beamline['motors']['energy']
-        self.scanner.start()
+
+        self.mad_scanner.start()
         self.scanning = True
         return True
         
@@ -241,20 +180,19 @@ class ScanManager(gtk.HBox):
         energy = scan_parameters['energy']
         self.plotter.clear()
         self.scan_control.clear()
+        
         scan_filename = "%s/%s_excite_%s.raw" % (scan_parameters['directory'],    
             scan_parameters['prefix'], scan_parameters['edge'])
-        self.ex_scanner = ExcitationScanner(self.bragg_energy, self.mca, energy, count_time, scan_filename)
-        self.ex_scanner.connect('done', self.on_excitation_done)
-        self.ex_scanner.connect('error', self.on_scan_aborted)
         
-        self.shutter.open()
+        self.ex_scanner.setup(energy, count_time, scan_filename)
+        
         self.scan_control.start_btn.set_sensitive(False)
         self.ex_scanner.start()
         self.scan_control.progress_bar.busy_text('Performing Excitation Scan...')
         return True
 
     def on_excitation_done(self, object):
-        self.shutter.close()
+
         self.scan_control.start_btn.set_sensitive(True)
         x = object.x_data_points
         y = smooth(object.y_data_points, 20,1)
@@ -284,16 +222,11 @@ class ScanManager(gtk.HBox):
         
         
     def stop(self, object=None, event=None):
-        if self.scanner is not None:
-            self.scanner.stop()
+        if self.mad_scanner is not None:
+            self.mad_scanner.stop()
                             
     def run_auto_chooch(self):
-        self.auto_chooch = AutoChooch()
-        self.auto_chooch.set_parameters( self.scan_control.get_parameters() )
-        self.auto_chooch.connect('done', self.on_chooch_done)
-        self.auto_chooch.connect('error', self.on_chooch_error)
-        self.auto_chooch.connect('done', lambda x: self.log_view.log( self.auto_chooch.output, False ))       
-        self.auto_chooch.connect('error', lambda x: self.log_view.log( self.auto_chooch.output, False ))
+        self.auto_chooch.setup( self.scan_control.get_parameters() )
         self.scan_control.progress_bar.busy_text("Analysing scan data ...")
         self.auto_chooch.start()
         return True
@@ -315,12 +248,4 @@ def main():
         sys.exit()
     
 if __name__ == "__main__":
-    import hotshot
-    import hotshot.stats
-    prof = hotshot.Profile("test.prof")
-    benchtime = prof.runcall(main)
-    prof.close()
-    stats = hotshot.stats.load("test.prof")
-    stats.strip_dirs()
-    stats.sort_stats('time','calls')
-    stats.print_stats(100)
+    main()
