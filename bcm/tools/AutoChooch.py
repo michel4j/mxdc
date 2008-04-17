@@ -4,24 +4,15 @@ import threading
 import commands
 from pylab import load
 
-gobject.threads_init()
-
-
-class AutoChooch(threading.Thread, gobject.GObject):
+class AutoChooch(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     
     def __init__(self):
-        threading.Thread.__init__(self)
         gobject.GObject.__init__(self)
-        self.raw_file = None
-        self.efs_file = None
-        self.out_file = None
-        self.data = None
-        self.results = {}
 
-    def set_parameters(self, params):
+    def setup(self, params):
         self.parameters = params
         
     def get_results(self):
@@ -29,8 +20,17 @@ class AutoChooch(threading.Thread, gobject.GObject):
     
     def get_data(self):
         return self.data
+    
+    def start(self):
+        self.raw_file = None
+        self.efs_file = None
+        self.out_file = None
+        self.data = None
+        self.results = {}
+        worker = threading.Thread(target=self.run)
+        worker.start()
         
-    def run(self, widget=None):    
+    def run(self):    
         file_root = "%s/%s_%s" % (self.parameters['directory'],    self.parameters['prefix'], self.parameters['edge'])
         element, edge = self.parameters['edge'].split('-')
         self.raw_file = "%s.raw" % (file_root)
@@ -75,7 +75,6 @@ class AutoChooch(threading.Thread, gobject.GObject):
             self.results[key][1] *= 1e-3
         return True
             
-
 gobject.type_register(AutoChooch)
 
 

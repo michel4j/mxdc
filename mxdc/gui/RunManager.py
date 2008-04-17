@@ -7,7 +7,6 @@ class RunManager(gtk.Notebook):
         'saved' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
     }
     def __init__(self):
-        self.__gobject_init__() 
         gtk.Notebook.__init__(self)       
         self.runs = []
         self.run_labels = []
