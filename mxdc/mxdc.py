@@ -6,11 +6,11 @@ from random import *
 import time
 
 
-from gui.MainWindow import MainWindow
-from gui.Splash import Splash
+from mxdc.gui.MainWindow import MainWindow
+from mxdc.gui.Splash import Splash
 from bcm.beamline import PX
 
-class AppClass:
+class AppClass(object):
     def __init__(self):
         self.img_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/splash.png'
         self.beamline = PX('vlinac.conf')
