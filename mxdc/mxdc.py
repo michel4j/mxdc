@@ -1,10 +1,7 @@
 import gtk, gobject
 import sys, os
-
-sys.path.append(os.environ['BCM_PATH'])
-
-from mxdc.gui.Splash import Splash
-from mxdc.gui.AppWindow import AppWindow
+from gui.Splash import Splash
+from gui.AppWindow import *
 from bcm.beamline import PX
 
 class AppClass(object):

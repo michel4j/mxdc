@@ -9,7 +9,7 @@ class Splash(object):
         self.win.set_gravity(gtk.gdk.GRAVITY_CENTER)
 
         self.img = gtk.Image()
-        self.img.set_from_file(img)
+        self.img.set_from_file(image)
         vbox = gtk.VBox(False,0)
         vbox.pack_start(self.img, expand=False, fill=False)
 
@@ -23,6 +23,9 @@ class Splash(object):
         self.startup_obj = startup_obj
         self.startup_obj.connect('progress', self.on_progress)
         self.startup_obj.connect('log', self.on_log)
+        
+    def hide(self):
+        self.win.hide_all()
         
     def on_progress(self, obj, frac):
         self.pbar.set_fraction(frac)
