@@ -6,7 +6,7 @@ from ScanManager import ScanManager
 from LogView import LogView
 
 
-def MainWindow(object):
+class MainWindow(object):
     def __init__(self, beamline):
         self.win = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.win.set_position(gtk.WIN_POS_CENTER)
