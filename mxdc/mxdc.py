@@ -10,7 +10,7 @@ from bcm.beamline import PX
 class AppClass(object):
     def __init__(self):
         self.img_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/splash.png'
-        self.beamline = PX('vlinac.conf')
+        self.beamline = PX('08id1.conf')
         self.splash = Splash(self.img_file, self.beamline)
         gobject.idle_add(self.run)
                  
