@@ -36,6 +36,11 @@ class BeamlineBase(gobject.GObject):
     def log(self, text):
         gobject.idle_add(self.emit, 'log', text)
     
+    def __call__(self):
+        self.setup()
+    
+    def setup(self):
+        pass
     
 gobject.type_register(BeamlineBase)
     
@@ -49,6 +54,9 @@ class PX(BeamlineBase):
         self.devices = {}
         self.config = {}
         
+    def __call__(self):
+        self.setup()
+        
     def setup(self, idle_func=gtk_idle):
         self.log("Beamline config: '%s' " % self.config_file)
         self.log("Setting up beamline devices ...")
@@ -59,10 +67,10 @@ class PX(BeamlineBase):
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
                 for item in config.options(section):
+                    self.log(item)
                     args = config.get(section, item).split('|')
                     self.devices[item] = dev_type(*args)
                     setattr(self, item, self.devices[item])
-                    self.log(item)
                     if idle_func is not None:
                         idle_func()
             elif section == 'config':
@@ -77,5 +85,5 @@ class PX(BeamlineBase):
     
 if __name__ == '__main__':
     bl = PX('vlinac.conf')
-    bl.setup()
+    bl()
     

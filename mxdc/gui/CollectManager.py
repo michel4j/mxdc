@@ -122,6 +122,7 @@ class CollectManager(gtk.HBox):
         
 
     def __load_config(self):
+
         config_file = os.environ['HOME'] + '/.mxdc/run_config.dat'
         if os.access(config_file, os.R_OK):
             data = {}
@@ -132,10 +133,16 @@ class CollectManager(gtk.HBox):
                 self.add_run(data[run])
 
     def __save_config(self):
+        config_dir = os.environ['HOME'] + '/.mxdc'
+        # create configuration directory if none exists
+        if not os.access( config_dir , os.R_OK):
+            if os.access( os.environ['HOME'], os.W_OK):
+                os.mkdir( config_dir )
+                
         config = ConfigObj()
         config.unrepr = True
         config_file = os.environ['HOME'] + '/.mxdc/run_config.dat'
-        config_dir = os.environ['HOME'] + '/.mxdc'
+
         if os.access(config_dir,os.W_OK):
             config.filename = config_file
             for key in self.run_data.keys():
