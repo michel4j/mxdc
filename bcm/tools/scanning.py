@@ -25,124 +25,126 @@ class ScannerBase(gobject.GObject):
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['aborted'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['log'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['error'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
    
     def __init__(self):
-        self.waitress = None
         gobject.GObject.__init__(self)
-        
-    def _log(self, message):
-        gobject.idle_add(self.emit, 'log', message)
-        
-class Scanner(ScannerBase):
-    def __init__(self, positioner=None, start=0, end=0, steps=0, counter=None, time=1.0, output=None, relative=False):
-        ScannerBase.__init__(self)
-        self.positioner = positioner
-        self.counter = counter
-        self.time = time
         self.stopped = False
         self.aborted = False
-        self.filename = output
-        self.steps = steps
-        self.relative = relative
-        self.range_start = start
-        self.range_end = end
-        self.calc_targets()
+        self.filename = None
+        self.relative = False
         self.x_data_points = []
         self.y_data_points = []
         self.plotter = None
-        self.normalizer = Normalizer()
-        self.waitress = None
-        self._win = None
-
-    def _add_point(self, widget, x, y):
-        self.plotter.add_point(x, y,0)
-        return True            
-
-    def do_log(self, message):
-        print message
+        self.plotting = False
         
-    def __call__(self, positioner, start, end, steps, counter, time=1.0, normalizer=None, plot=False):
+    def do_new_point(self, x, y):
+        if self.plotter is not None:
+            self.plotter.add_point(x, y,0)
+        return True
+
+    def do_started(self):
+        if self.plotter is not None and self.plotting:
+            self.plotter.clear()
+        
+    def log(self, message):
+        gobject.idle_add(self.emit, 'log', message)
+
+    def start(self):
+        worker_thread = threading.Thread(target=self.run)
+        worker_thread.start()
+
+    def stop(self):
+        self.stopped = True    
+
+    def abort(self):
+        self.aborted = True
+    
+    def run(self):
+        gobject.idle_add(self.emit, "done")
+        gobject.idle_add(self.emit, "progress", 1.0 )
+           
+    def set_relative(self, rel):
+        self.relative = rel
+
+    def enable_plotting(self):
+        self.plotting = True
+    
+    def disable_plotting(self):
+        self.plotting = False
+
+    def set_plotting(self, plotter=None):
+        self.plotter = plotter
+        
+    def set_normalizer(self, normalizer=None):
+        self.normalizer = Normalizer(normalizer)
+    
+    def set_output(self, filename):
+        self.filename = filename
+       
+class Scanner(ScannerBase):
+    def __init__(self):
+        ScannerBase.__init__(self)
+
+    def setup(self, positioner, start, end, steps, counter, time):
         self.positioner = positioner
         self.counter = counter
         self.time = time
         self.steps = steps
-        if start == end:
-            raise Error('Start and End positions are identical')
-        if self.relative:
-            self.range_start = start + self.positioner.get_position()
-            self.range_end = end + self.positioner.get_position()
-        else:
-            self.range_start = start
-            self.range_end = end
-        self.calc_targets()
+        self.start_pos = start
+        self.end_pos = end
+
+    def calc_targets(self):
+        assert self.range_start < self.range_end
+        assert self.steps > 0
+        self.positioner_targets = numpy.linspace(self.range_start,self.range_end,self.steps)
+          
+    def __call__(self, positioner, start, end, steps, counter, time=1.0, normalizer=None, plot=False, relative=False):
+        self.setup(positioner, start, end, steps, counter, time)
         self.set_normalizer(normalizer)
-        self._check()
-        if plot:
-            self._run_gui()
-        else:
-            self._run_plain()
-        
-    def _check(self):
-        self._log("Will scan '%s' from %g to %g with %d intervals" % (self.positioner.name, self.range_start, self.range_end, self.steps))
-        self._log("Will count '%s' for %g second(s) at each point" % (self.counter.name, self.time))
-    
-    def _run_gui(self):
-        if self._win:
-            self.plotter.clear()
-        else:
-            self._win = gtk.Window()
-            self._win.set_default_size(800,600)
-            self._win.set_title("Scanner")
-            self.plotter = Plotter()
-            self._win.add(self.plotter)
-            con = self.connect('new-point', self._add_point)
-            self._win.show_all()
         self.run()
         self.fit()
-        #self.disconnect(con)
-
-    def _run_plain(self):
-        self.run()
-        self.fit()
-
-        
-    def start(self):
-        self.worker_thread = threading.Thread(target=self.run)
-        self.worker_thread.start()
-        
+ 
+     
     def run(self):
         ca.thread_init()
-        self._log("Scanning '%s' vs '%s' " % (self.positioner.name, self.counter.name))
-        self.count = 0
+        gobject.idle_add(self.emit, 'started')
+        self.log("Scanning '%s' vs '%s' " % (self.positioner.name, self.counter.name))
+        if self.relative:
+            self.range_start = self.start_pos + self.positioner.get_position()
+            self.range_end = self.end_pos + self.positioner.get_position()
+        else:
+            self.range_start = self.start_pos
+            self.range_end = self.end_pos
+        self.calc_targets()
+
         self.normalizer.initialize()
         self.normalizer.set_time(self.time)
         self.normalizer.start()
-        if self.waitress:
-            self.waitress.wait() # Wait for the waitress
+        
         self.x_data_points = []
         self.y_data_points = []
+        
+        self.count = 0
         for x in self.positioner_targets:
             if self.stopped or self.aborted:
-                self._log( "Scan stopped!" )
+                self.log( "Scan stopped!" )
                 break
                 
             self.count += 1
             prev = self.positioner.get_position()                
-
             self.positioner.move_to(x, wait=True)
             
-            y = self.counter.count(self.time)
-            
-            f = self.normalizer.get_factor()
-            
-            self._log("%4d %15g %15g %15g" % (self.count, x, y, f))
+            y = self.counter.count(self.time)         
+            f = self.normalizer.get_factor()         
             y = y * f
             self.x_data_points.append( x )
-            self.y_data_points.append( y )
-            
+            self.y_data_points.append( y )          
             fraction = float(self.count) / len(self.positioner_targets)
+            
+            self.log("%4d %15g %15g %15g" % (self.count, x, y, f))
             gobject.idle_add(self.emit, "new-point", x, y )
             gobject.idle_add(self.emit, "progress", fraction )
 
@@ -155,30 +157,8 @@ class Scanner(ScannerBase):
         else:
             #self.save()
             gobject.idle_add(self.emit, "done")
-            gobject.idle_add(self.emit, "progress", 1.0 )
-                    
-
-    def calc_targets(self):
-        if self.steps > 0:
-             self.positioner_targets = numpy.linspace(self.range_start,self.range_end,self.steps)
-        else:
-            self.positioner_targets = []
-                
-    def set_targets(self, targets):
-        self.positioner_targets = targets
-    
-    def set_normalizer(self, normalizer=None):
-        self.normalizer = Normalizer(normalizer)
-    
-    def stop(self, widget=None):
-        self.stopped = True    
-
-    def abort(self, widget=None):
-        self.aborted = True    
-
-    def set_output(self, filename):
-        self.filename = filename
-
+            gobject.idle_add(self.emit, "progress", 1.0 )               
+        
     def save(self, filename=None):
         if filename:
             self.set_output(filename)
@@ -197,7 +177,7 @@ class Scanner(ScannerBase):
                 scan_file.flush()
                 scan_file.close()
             except:
-                self._log('Error saving Scan data')
+                self.log('Error saving Scan data')
 
     def fit(self):
         x = numpy.array(self.x_data_points)
@@ -210,12 +190,202 @@ class Scanner(ScannerBase):
         yi = gaussian(xi, params)
         if self.plotter:
             self.plotter.add_line(xi, yi, 'r.')
-            #self.plotter.axis[0].axvline(midp, 'r--')
         
-        self._log("\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g \n" % (midp,fwhm, fwhm_h, ymax, xpeak)) 
+        self.log("\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g \n" % (midp,fwhm, fwhm_h, ymax, xpeak)) 
         self.midp_fit, self.fwhm_fit, self.fwhm_his, self.ymax, self.xpeak = (midp,fwhm, fwhm_h, ymax, xpeak)
         return [midp,fwhm,success]
 
+class ExcitationScanner(ScannerBase):
+    def __init__(self, beamline):
+        ScannerBase.__init__(self)
+        self.peaks = []
+        self.beamline = beamline
+    
+    def setup(self, energy, time=1.0, output=None):
+        self.time = time
+        self.edge_energy = energy
+        self.filename = output
+                
+    def run(self):
+        ca.thread_init()
+        gobject.idle_add(self.emit, 'started')
+        
+        if not self.beamline.mca.is_cool():
+            self.beamline.mca.set_cooling(True)
+        self.beamline.energy.move_to(self.edge_energy, wait=True)
+        self.beamline.mca.set_channel_roi()
+        self.beamline.shutter.open()
+        
+        try:
+            self.x_data_points, self.y_data_points = self.beamline.mca.acquire(t=self.time)
+            self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
+            assign_peaks(self.peaks)
+            self.save()
+            gobject.idle_add(self.emit, "done")
+            gobject.idle_add(self.emit, "progress", 1.0 )
+        except:
+            gobject.idle_add(self.emit, "error")
+            gobject.idle_add(self.emit, "progress", 1.0 )
+            
+        self.beamline.shutter.close()
+
+    def save(self, filename = None):
+        if filename:
+            self.filename = filename
+        scan_data  = "# Positioner: %s \n" % self.beamline.energy.get_name()
+        scan_data += "# Detector: %s \n" % self.beamline.mca.get_name()
+        scan_data += "# Detector count time: %0.4f sec \n" % (self.time)
+        scan_data += "# \n" 
+        scan_data += "# Columns: (%s) \t (%s) \n" % (self.beamline.energy.get_name(), self.beamline.mca.get_name())
+        for x,y in zip(self.x_data_points, self.y_data_points):
+            scan_data += "%15.8g %15.8g \n" % (x, y)
+        scan_data += '# Peak Assignments'
+        for peak in self.peaks:
+            peak_log = "#Peak position: %8.3f keV  Height: %8.2f" % (peak[0],peak[1])
+            for ident in peak[2:]:
+                peak_log = "%s \n%s" % (peak_log, ident)
+            scan_data += peak_log
+
+        if self.filename != None:
+            try:
+                scan_file = open(self.filename,'w')        
+                scan_file.write(scan_data)
+                scan_file.flush()
+                scan_file.close()
+            except:
+                print scan_data
+        else:
+            print scan_data
+
+class MADScanner(ScannerBase):
+    def __init__(self, beamline):
+        ScannerBase.__init__(self)
+        self.beamline = beamline
+    
+    def setup(self, energy, emission, count_time, output):
+        self.energy = energy
+        self.time = count_time
+        self.filename = output
+        self.beamline.mca.set_energy(emission)
+        self.normalizer.set_time(self.time)
+        
+    def calc_targets(self):
+        energy = self.energy
+        very_low_start = energy - 0.2
+        very_low_end = energy - 0.17
+        low_start = energy -0.15
+        low_end = energy -0.03
+        mid_start = low_end
+        mid_end = energy + 0.03
+        hi_start = mid_end + 0.0015
+        hi_end = energy + 0.16
+        very_hi_start = energy + 0.18
+        very_hi_end = energy + 0.21
+
+        targets = []
+        # Add very low points
+        targets.append(very_low_start)
+        targets.append(very_low_end)
+        
+        # Decreasing step size for the beginning
+        step_size = 0.02
+        val = low_start
+        while val < low_end:
+            targets.append(val)
+            step_size -= 0.0015
+            val += step_size
+
+        # Fixed step_size for the middle
+        val = mid_start
+        step_size = 0.001
+        while val < mid_end:
+            targets.append(val)
+            val += step_size
+            
+        # Increasing step size for the end
+        step_size = 0.002
+        val = hi_start
+        while val < hi_end:
+            targets.append(val)
+            step_size += 0.0015
+            val += step_size
+            
+        # Add very hi points
+        targets.append(very_hi_start)
+        targets.append(very_hi_end)
+            
+        self.energy_targets = targets
+
+    def run(self):
+        ca.thread_init()
+        gobject.idle_add(self.emit, 'started')
+        self.x_data_points = []
+        self.y_data_points = []
+        self.calc_targets()
+        if not self.beamline.mca.is_cool():
+            self.beamline.mca.set_cooling(True)
+        self.beamline.energy.move_to(self.energy, wait=True)   
+        self.beamline.mca.set_energy( scan_parameters['emission'] )
+        
+        self.normalizer = Normalizer(self.beamline.i0)
+        self.normalizer.set_time(self.time)
+        self.normalizer.start()
+        
+        self.count = 0
+        self.beamline.shutter.open()
+        for x in self.energy_targets:
+            if self.stopped or self.aborted:
+                self.log( "Scan stopped!" )
+                break
+                
+            self.count += 1
+            prev = self.beamline.bragg_energy.get_position()                
+            self.beamline.bragg_energy.move_to(x, wait=True)
+            
+            y = self.beamline.mca.count(self.time)
+            f = self.normalizer.get_factor()        
+            y = y * f
+            self.x_data_points.append( x )
+            self.y_data_points.append( y )
+            
+            fraction = float(self.count) / len(self.positioner_targets)
+            self.log("%4d %15g %15g %15g" % (self.count, x, y, f))
+            gobject.idle_add(self.emit, "new-point", x, y )
+            gobject.idle_add(self.emit, "progress", fraction )
+
+            gtk_idle()
+             
+        self.beamline.shutter.close()
+        self.normalizer.stop()
+        
+        if self.aborted:
+            gobject.idle_add(self.emit, "aborted")
+            gobject.idle_add(self.emit, "progress", 0.0 )
+        else:
+            #self.save()
+            gobject.idle_add(self.emit, "done")
+            gobject.idle_add(self.emit, "progress", 1.0 )
+
+    def save(self, filename=None):
+        if filename:
+            self.set_output(filename)
+        scan_data  = "# Positioner: %s \n" % self.beamline.bragg_energy.get_name()
+        scan_data += "# Detector: %s \n" % self.beamline.mca.get_name()
+        scan_data += "# Detector count time: %0.4f sec \n" % (self.time)
+        scan_data += "# \n" 
+        scan_data += "# Columns: (%s) \t (%s) \n" % (self.beamline.bragg_energy.get_name(), self.beamline.mca.get_name())
+        for x,y in zip(self.x_data_points, self.y_data_points):
+            scan_data += "%15.8g %15.8g \n" % (x, y)
+
+        if self.filename != None:
+            try:
+                scan_file = open(self.filename,'w')        
+                scan_file.write(scan_data)
+                scan_file.flush()
+                scan_file.close()
+            except:
+                self.log('Error saving Scan data')
+      
 
 def emissions_list():
     table_data = read_periodic_table()
@@ -266,225 +436,10 @@ def find_peaks(x, y, w=10, threshold=0.1):
                 peaks.append( [x[i], ys[i]] )
     return peaks
 
-class ExcitationScanner(ScannerBase):
-    def __init__(self, beamline):
-        ScannerBase.__init__(self)
-        self.x_data_points = []
-        self.y_data_points = []
-        self.peaks = []
-        self.beamline = beamline
-    
-    def setup(self, energy, time=1.0, output=None):
-        self.mca = self.beamline.mca
-        self.energy = self.beamline.energy
-        self.time = time
-        self.edge_energy = energy
-        self.filename = output
-        
-    def start(self):
-        worker = threading.Thread(target=self.run)
-        worker.start()
-        
-    def stop(self, widget=None):
-        self.stopped = True    
 
-    def abort(self, widget=None):
-        self.aborted = True    
-        
-    def run(self):
-        ca.thread_init()
-        if not self.beamline.mca.is_cool():
-            self.beamline.mca.set_cooling(True)
-        self.energy.move_to(self.edge_energy, wait=True)
-        self.mca.set_channel_roi()
-        self.beamline.shutter.open()
-        try:
-            self.x_data_points, self.y_data_points = self.mca.acquire(t=self.time)
-            self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
-            assign_peaks(self.peaks)
-            self.save()
-            gobject.idle_add(self.emit, "done")
-            gobject.idle_add(self.emit, "progress", 1.0 )
-        except:
-            gobject.idle_add(self.emit, "error")
-            gobject.idle_add(self.emit, "progress", 1.0 )
-        self.beamline.shutter.close()
-
-    def set_output(self, filename):
-        self.filename = filename
-
-    def save(self, filename = None):
-        if filename:
-            self.filename = filename
-        scan_data  = "# Positioner: %s \n" % self.energy_motor.get_name()
-        scan_data += "# Detector: %s \n" % self.mca.get_name()
-        scan_data += "# Detector count time: %0.4f sec \n" % (self.time)
-        scan_data += "# \n" 
-        scan_data += "# Columns: (%s) \t (%s) \n" % (self.energy_motor.get_name(), self.mca.get_name())
-        for x,y in zip(self.x_data_points, self.y_data_points):
-            scan_data += "%15.8g %15.8g \n" % (x, y)
-        scan_data += '# Peak Assignments'
-        for peak in self.peaks:
-            peak_log = "#Peak position: %8.3f keV  Height: %8.2f" % (peak[0],peak[1])
-            for ident in peak[2:]:
-                peak_log = "%s \n%s" % (peak_log, ident)
-            scan_data += peak_log
-
-        if self.filename != None:
-            try:
-                scan_file = open(self.filename,'w')        
-                scan_file.write(scan_data)
-                scan_file.flush()
-                scan_file.close()
-            except:
-                print scan_data
-        else:
-            print scan_data
-
-class MADScanner(ScannerBase):
-    def __init__(self, beamline):
-        ScannerBase.__init__(self)
-        self.x_data_points = []
-        self.y_data_points = []
-        self.beamline = beamline
-    
-    def setup(self, energy, emission, count_time, output):
-        self.energy_targets = self.generate_scan_targets(energy)
-        self.energy = energy
-        self.time = count_time
-        self.filename = output
-        self.beamline.mca.set_energy(emission)
-        self.normalizer.set_time(self.time)
-        self.x_data_points = []
-        self.y_data_points = []
-        
-    def start(self):
-        worker = threading.Thread(target=self.run)
-        worker.start()
-          
-    def run(self):
-        ca.thread_init()
-        if not self.beamline.mca.is_cool():
-            self.beamline.mca.set_cooling(True)
-            self._log('Waiting for MCA Peltier to cool down')
-        self.beamline.energy.move_to(self.energy)
-        self.beamline.mca.set_energy( scan_parameters['emission'] )
-        self.normalizer = Normalizer(self.beamline.i0)
-        self.normalizer.set_time(self.time)
-        self.normalizer.start()
-        self.count = 0
-        self.beamline.shutter.open()
-        for x in self.energy_targets:
-            if self.stopped or self.aborted:
-                self._log( "Scan stopped!" )
-                break
-                
-            self.count += 1
-            prev = self.beamline.bragg_energy.get_position()                
-            self.beamline.bragg_energy.move_to(x, wait=True)
-            
-            y = self.beamline.mca.count(self.time)
-            f = self.normalizer.get_factor()
-            
-            self._log("%4d %15g %15g %15g" % (self.count, x, y, f))
-            y = y * f
-            self.x_data_points.append( x )
-            self.y_data_points.append( y )
-            
-            fraction = float(self.count) / len(self.positioner_targets)
-            gobject.idle_add(self.emit, "new-point", x, y )
-            gobject.idle_add(self.emit, "progress", fraction )
-
-            gtk_idle()
-             
-        self.beamline.shutter.close()
-        self.normalizer.stop()
-        
-        if self.aborted:
-            gobject.idle_add(self.emit, "aborted")
-            gobject.idle_add(self.emit, "progress", 0.0 )
-        else:
-            #self.save()
-            gobject.idle_add(self.emit, "done")
-            gobject.idle_add(self.emit, "progress", 1.0 )
-
-    def set_output(self, filename):
-        self.filename = filename
-
-    def stop(self, widget=None):
-        self.stopped = True    
-
-    def abort(self, widget=None):
-        self.aborted = True
-        
-    def save(self, filename=None):
-        if filename:
-            self.set_output(filename)
-        scan_data  = "# Positioner: %s \n" % self.beamline.bragg_energy.get_name()
-        scan_data += "# Detector: %s \n" % self.beamline.mca.get_name()
-        scan_data += "# Detector count time: %0.4f sec \n" % (self.time)
-        scan_data += "# \n" 
-        scan_data += "# Columns: (%s) \t (%s) \n" % (self.beamline.bragg_energy.get_name(), self.beamline.mca.get_name())
-        for x,y in zip(self.x_data_points, self.y_data_points):
-            scan_data += "%15.8g %15.8g \n" % (x, y)
-
-        if self.filename != None:
-            try:
-                scan_file = open(self.filename,'w')        
-                scan_file.write(scan_data)
-                scan_file.flush()
-                scan_file.close()
-            except:
-                self._log('Error saving Scan data')
-      
-    def generate_scan_targets(self, energy):
-        very_low_start = energy - 0.2
-        very_low_end = energy - 0.17
-        low_start = energy -0.15
-        low_end = energy -0.03
-        mid_start = low_end
-        mid_end = energy + 0.03
-        hi_start = mid_end + 0.0015
-        hi_end = energy + 0.16
-        very_hi_start = energy + 0.18
-        very_hi_end = energy + 0.21
-
-        targets = []
-        # Add very low points
-        targets.append(very_low_start)
-        targets.append(very_low_end)
-        
-        # Decreasing step size for the beginning
-        step_size = 0.02
-        val = low_start
-        while val < low_end:
-            targets.append(val)
-            step_size -= 0.0015
-            val += step_size
-
-        # Fixed step_size for the middle
-        val = mid_start
-        step_size = 0.001
-        while val < mid_end:
-            targets.append(val)
-            val += step_size
-            
-        # Increasing step size for the end
-        step_size = 0.002
-        val = hi_start
-        while val < hi_end:
-            targets.append(val)
-            step_size += 0.0015
-            val += step_size
-            
-        # Add very hi points
-        targets.append(very_hi_start)
-        targets.append(very_hi_end)
-            
-        return targets
-
-gobject.type_register(Scanner)
+gobject.type_register(ScannerBase)
 
 scan = Scanner()
-rscan = Scanner(relative=True)
+rscan = Scanner()
+rscan.set_relative(True)
 
