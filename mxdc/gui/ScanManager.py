@@ -234,11 +234,14 @@ class ScanManager(gtk.HBox):
 gobject.type_register(ScanManager)
 
 def main():
+    from bcm.beamline import PX
     gtk.window_set_auto_startup_notification(True)    
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_title("MX Data Collector Demo")
-    scan_manager = ScanManager()
+    bl = PX('08id1.conf')
+    bl.setup()
+    scan_manager = ScanManager(bl)
     win.add(scan_manager)
     win.show_all()
     try:

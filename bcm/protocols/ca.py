@@ -203,11 +203,15 @@ class PV(gobject.GObject):
         libca.ca_pend_io(1.0)
         self.count = libca.ca_element_count(self.chid)
         self.element_type = libca.ca_field_type(self.chid)
-        self.state = CA_OP_CONN_UP
-        self.__allocate_data_mem()
-        self._add_handler( self._on_change )
+        stat = libca.ca_state(self.chid)
+        if stat != NEVER_CONNECTED:
+            self.state = CA_OP_CONN_UP
+            self._allocate_data_mem()
+            self._add_handler( self._on_change )
+        else:
+            self._defer_connection()
 
-    def __allocate_data_mem(self, value=None):
+    def _allocate_data_mem(self, value=None):
         if self.count > 1:
            self.data_type = TypeMap[self.element_type] * self.count
         elif self.element_type == DBR_STRING:
@@ -259,11 +263,8 @@ class PV(gobject.GObject):
             self.count = libca.ca_element_count(self.chid)
             self.element_type = libca.ca_field_type(self.chid)
 
-            self.__allocate_data_mem()
+            self._allocate_data_mem()
             self._add_handler( self._on_change )
-            print 'connected'
-        else:
-            print 'disconnected'
         self._lock.release()
         return 0
         
