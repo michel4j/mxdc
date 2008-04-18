@@ -8,7 +8,6 @@ from ActiveWidgets import *
 from bcm.tools.scripting import Script
 from bcm.scripts.misc import prepare_for_mounting, restore_beamstop
 
-
 (
   COLUMN_NAME,
   COLUMN_DESCRIPTION,
@@ -75,7 +74,7 @@ class HutchManager(gtk.VBox):
         self.shutter_btn.set_sensitive(False)
         self.optimize_btn = gtk.Button('Optimize Beam')
         self.mount_btn = gtk.Button('Mount Crystal')
-        self.mount_btn.connect('clicked',self.prepare_mounting)
+        self.mount_btn.connect('clicked', self.prepare_mounting)
         self.reset_btn = gtk.Button('Finished Mounting')
         self.reset_btn.connect('clicked',self.restore_beamstop)
         self.front_end_btn.set_sensitive(False)
@@ -114,11 +113,11 @@ class HutchManager(gtk.VBox):
         
     def prepare_mounting(self, widget):
         self.device_box.set_sensitive(False)
-        script = Script(prepare_for_mounting)
+        script = Script(prepare_for_mounting, self.beamline)
         script.start()
 
     def restore_beamstop(self, widget):
-        script = Script(restore_beamstop)
+        script = Script(restore_beamstop, self.beamline)
         script.start()
         script.connect('done', lambda x: self.device_box.set_sensitive(True))
 
@@ -141,8 +140,6 @@ def main():
     finally: 
         print "Quiting..."
         hutch.stop()
-        
-
 
 if __name__ == '__main__':
     main()
