@@ -1,13 +1,7 @@
-#!/usr/bin/env python
-
 import gtk, gobject
 import sys, os
-from random import *
-import time
-
-
-from mxdc.gui.MainWindow import MainWindow
-from mxdc.gui.Splash import Splash
+from gui.MainWindow import MainWindow
+from gui.Splash import Splash
 from bcm.beamline import PX
 
 class AppClass(object):

@@ -5,7 +5,6 @@ from StatusPanel import StatusPanel
 from ScanManager import ScanManager
 from LogView import LogView
 
-
 class MainWindow(object):
     def __init__(self, beamline):
         self.win = gtk.Window(gtk.WINDOW_TOPLEVEL)
