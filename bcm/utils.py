@@ -35,7 +35,7 @@ def dec_to_bin(x):
     return x and (dec_to_bin(x/2) + str(x%2)) or '0'
     
 def read_periodic_table():
-    filename = os.environ['BCM_PATH'] + '/data/periodic_table.dat'
+    filename = os.environ['BCM_DATA_PATH'] + '/periodic_table.dat'
     data_file = open(filename)
     table_data = {}
     data = data_file.readlines()
