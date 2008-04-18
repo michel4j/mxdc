@@ -1,8 +1,10 @@
 import gtk, gobject
+import sys
+
 from CollectManager import CollectManager
-from HutchManager import HutchManager
 from StatusPanel import StatusPanel
 from ScanManager import ScanManager
+from HutchManager import HutchManager
 from LogView import LogView
 
 class AppWindow:

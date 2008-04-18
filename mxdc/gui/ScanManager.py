@@ -5,7 +5,7 @@ from PeriodicTable import PeriodicTable
 from LogView import LogView
 from Plotter import Plotter
 from Dialogs import *
-from bcm.tools import scanning
+from bcm.tools.scanning import MADScanner, ExcitationScanner
 from bcm.tools.AutoChooch import AutoChooch
 
 class ScanManager(gtk.HBox):
@@ -14,6 +14,7 @@ class ScanManager(gtk.HBox):
     }
     def __init__(self, beamline=None):
         gtk.HBox.__init__(self,False,6)
+        self.beamline = beamline
         
         self.scan_control = ScanControl()
         self.scan_control.set_border_width(12)
@@ -46,11 +47,10 @@ class ScanManager(gtk.HBox):
         self.pack_start(self.scan_book)
 
         self.show_all()
-        self.beamline = beamline
 
         self.auto_chooch = AutoChooch()
-        self.mad_scanner = scanning.MADScanner(self.beamline)
-        self.ex_scanner = scanning.ExcitationScanner(self.beamline)
+        self.mad_scanner = MADScanner(self.beamline)
+        self.ex_scanner = ExcitationScanner(self.beamline)
         
         self.auto_chooch.connect('done', self.on_chooch_done)
         self.auto_chooch.connect('error', self.on_chooch_error)
