@@ -58,19 +58,21 @@ class PX(BeamlineBase):
         self.setup()
         
     def setup(self, idle_func=gtk_idle):
-        self.log("Beamline config: '%s' " % self.config_file)
-        self.log("Setting up beamline devices ...")
         config = ConfigParser()
         config.read(self.config_file)
+        sec_step = 1.0 / len(config.sections())
+        frac_complete = 0.0
         for section in config.sections():
-            self.log("%s:" % section.upper())
+            item_step = sec_step / len(config.options(section))
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
                 for item in config.options(section):
-                    self.log(item)
+                    self.log("Setting up %s: %s" % (section, item))
                     args = config.get(section, item).split('|')
                     self.devices[item] = dev_type(*args)
                     setattr(self, item, self.devices[item])
+                    frac_complete += item_step
+                    gobject.idle_add(self.emit, 'progress', frac_complete)
                     if idle_func is not None:
                         idle_func()
             elif section == 'config':
@@ -81,6 +83,8 @@ class PX(BeamlineBase):
                     if item == 'energy_range':
                         args = config.get(section, item).split('-')
                         self.config['energy_range'] = map(float, args)
+                    frac_complete += item_step
+                    gobject.idle_add(self.emit, 'progress', frac_complete)           
                 
     
 if __name__ == '__main__':

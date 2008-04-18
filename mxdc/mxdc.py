@@ -1,5 +1,6 @@
 import gtk, gobject
 import sys, os
+sys.path.append(os.environ['BCM_PATH'])
 from gui.Splash import Splash
 from gui.AppWindow import AppWindow
 from bcm.beamline import PX

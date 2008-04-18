@@ -1,15 +1,14 @@
 import threading
-import gtk
 import gobject
 import numpy            
 import scipy
 import scipy.optimize
 from matplotlib.mlab import slopes
+
 from bcm.utils import read_periodic_table, gtk_idle
 from bcm.protocols import ca
 from bcm.tools.fitting import *
 from bcm.devices.detectors import Normalizer
-from mxdc.gui.Plotter import Plotter
 
 
 class Error(Exception):
