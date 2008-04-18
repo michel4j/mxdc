@@ -47,23 +47,33 @@ class PX(BeamlineBase):
         
         self.config_file = os.environ['BCM_CONFIG_PATH'] + '/' + filename
         self.devices = {}
+        self.config = {}
         
     def setup(self, idle_func=gtk_idle):
         self.log("Beamline config: '%s' " % self.config_file)
         self.log("Setting up beamline devices ...")
-        self.config = ConfigParser()
-        self.config.read(self.config_file)
-        for section in self.config.sections():
+        config = ConfigParser()
+        config.read(self.config_file)
+        for section in config.sections():
             self.log("%s:" % section.upper())
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
-                for item in self.config.options(section):
-                    args = self.config.get(section, item).split('|')
+                for item in config.options(section):
+                    args = config.get(section, item).split('|')
                     self.devices[item] = dev_type(*args)
                     setattr(self, item, self.devices[item])
                     self.log(item)
                     if idle_func is not None:
                         idle_func()
+            elif section == 'config':
+                for item in self.config.options(section):
+                    if item == 'diagram':
+                        arg = config.get(section, item)
+                        self.config[item] = os.environ['BCM_CONFIG_PATH'] + '/' + arg
+                    if item == 'energy_range':
+                        args = config.get(section, item).split('-')
+                        self.config['energy_range'] = map(float, args)
+                
     
 if __name__ == '__main__':
     bl = PX('vlinac.conf')

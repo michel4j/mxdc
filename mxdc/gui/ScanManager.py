@@ -24,7 +24,11 @@ class ScanManager(gtk.HBox):
         
         self.scan_book = gtk.Notebook()
         self.scan_book.set_border_width(12)
-        self.periodic_table = PeriodicTable()
+        if self.beamline is not None:
+            loE, hiE = self.beamline.config['energy_range']
+        else:
+            loE, hiE = 4.0, 18.0
+        self.periodic_table = PeriodicTable(loE, hiE)
         self.periodic_table.set_border_width(12)
         self.periodic_table_page = self.scan_book.append_page(self.periodic_table, tab_label=gtk.Label('Periodic Table'))
         
