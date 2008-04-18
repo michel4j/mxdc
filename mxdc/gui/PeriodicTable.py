@@ -7,7 +7,7 @@ class PeriodicTable(gtk.Alignment):
                       (gobject.TYPE_STRING,))
     }
 
-    def __init__(self, parent=None, loE=4,hiE=18):
+    def __init__(self, loE=4, hiE=18):
         self.__gobject_init__() 
         gtk.Alignment.__init__(self,0.5,0.5,0,0)
         
