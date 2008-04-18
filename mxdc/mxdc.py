@@ -1,7 +1,7 @@
 import gtk, gobject
 import sys, os
 from gui.Splash import Splash
-from gui.AppWindow import *
+from gui.AppWindow import AppWindow
 from bcm.beamline import PX
 
 class AppClass(object):
