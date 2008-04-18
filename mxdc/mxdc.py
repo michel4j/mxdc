@@ -1,7 +1,10 @@
 import gtk, gobject
 import sys, os
-from gui.MainWindow import MainWindow
-from gui.Splash import Splash
+
+sys.path.append(os.environ['BCM_PATH'])
+
+from mxdc.gui.Splash import Splash
+from mxdc.gui.AppWindow import AppWindow
 from bcm.beamline import PX
 
 class AppClass(object):
@@ -14,7 +17,7 @@ class AppClass(object):
     def run(self):
         self.beamline.setup()
         self.splash.hide()
-        self.main_window = MainWindow(self.beamline)
+        self.main_window = AppWindow(self.beamline)
         return False
 
 if __name__ == "__main__":
