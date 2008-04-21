@@ -200,19 +200,16 @@ class PV(gobject.GObject):
         libca.ca_pend_io(0.1)
 
     def _create_connection(self):
-        if self.connect == True:
-            libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
-            libca.ca_pend_io(0.1)
-            self.count = libca.ca_element_count(self.chid)
-            self.element_type = libca.ca_field_type(self.chid)
-            stat = libca.ca_state(self.chid)
-            if stat != NEVER_CONNECTED:
-                self.state = CA_OP_CONN_UP
-                self._allocate_data_mem()
-                if self.monitor == True:
-                    self._add_handler( self._on_change )
-            else:
-                self._defer_connection()
+        libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
+        libca.ca_pend_io(0.1)
+        self.count = libca.ca_element_count(self.chid)
+        self.element_type = libca.ca_field_type(self.chid)
+        stat = libca.ca_state(self.chid)
+        if stat != NEVER_CONNECTED:
+            self.state = CA_OP_CONN_UP
+            self._allocate_data_mem()
+            if self.monitor == True:
+                self._add_handler( self._on_change )
         else:
             self._defer_connection()
 
