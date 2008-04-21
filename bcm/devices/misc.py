@@ -16,15 +16,15 @@ class Gonio(gobject.GObject):
         gobject.GObject.__init__(self)
 
         # initialize process variables
-        self.scan_cmd = PV("%s:scanFrame.PROC" % name, connect=False, monitor=False)
+        self.scan_cmd = PV("%s:scanFrame.PROC" % name, monitor=False)
         self.state = PV("%s:scanFrame:status" % name)
         self.shutter_state = PV("%s:outp1:fbk" % name)
         
         #parameters
         self.settings = {
-            'time' : PV("%s:expTime" % name, connect=False, monitor=False),
-            'delta' : PV("%s:deltaOmega" % name, connect=False, monitor=False),
-            'start_angle': PV("%s:openSHPos" % name, connect=False, monitor=False),
+            'time' : PV("%s:expTime" % name, monitor=False),
+            'delta' : PV("%s:deltaOmega" % name, monitor=False),
+            'start_angle': PV("%s:openSHPos" % name, monitor=False),
         }
         
         self.state.connect('changed', self._signal_change)
@@ -73,8 +73,8 @@ class Shutter(gobject.GObject):
     def __init__(self, name):
         gobject.GObject.__init__(self)
         # initialize variables
-        self.open_cmd = PV("%s:opr:open" % name, connect=False, monitor=False)
-        self.close_cmd = PV("%s:opr:close" % name, connect=False, monitor=False)
+        self.open_cmd = PV("%s:opr:open" % name, monitor=False)
+        self.close_cmd = PV("%s:opr:close" % name, monitor=False)
         self.state = PV("%s:state" % name)
         self.state.connect('changed', self._signal_change)
 
