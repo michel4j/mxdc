@@ -9,7 +9,7 @@ from bcm.protocols import ca
 
         
 class SampleViewer(gtk.HBox):
-    def __init__(self, bl):
+    def __init__(self, beamline):
         gtk.HBox.__init__(self,False,6)
         
         self._timeout_id = None
@@ -17,21 +17,22 @@ class SampleViewer(gtk.HBox):
         self._last_click_time = time.time()
         
         self.contrast = 0   
-        
+        self.beamline = beamline
+
         # assign devices
-        self.omega = bl.omega
-        self.sample_x = bl.sample_x
-        self.sample_y1 = bl.sample_y
-        self.sample_y2 = bl.sample_z
-        self.beam_width = bl.beam_w
-        self.beam_height = bl.beam_h
-        self.beam_x = bl.beam_x
-        self.beam_y = bl.beam_y
-        self.zoom = bl.sample_zoom
-        self.light = bl.sample_light
-        self.cross_x = bl.cross_x
-        self.cross_y = bl.cross_y
-        self.camera = bl.sample_cam
+        self.omega = beamline.omega
+        self.sample_x = beamline.sample_x
+        self.sample_y1 = beamline.sample_y
+        self.sample_y2 = beamline.sample_z
+        self.beam_width = beamline.beam_w
+        self.beam_height = beamline.beam_h
+        self.beam_x = beamline.beam_x
+        self.beam_y = beamline.beam_y
+        self.zoom = beamline.sample_zoom
+        self.light = beamline.sample_light
+        self.cross_x = beamline.cross_x
+        self.cross_y = beamline.cross_y
+        self.camera = beamline.sample_cam
         
         self.lighting = self.light.get_position()
 

@@ -26,20 +26,20 @@ class HutchManager(gtk.VBox):
 
         videobook = gtk.Notebook()
         video_size = 0.7
-        self.sample_viewer = SampleViewer(video_size)
-        self.hutch_viewer = HutchViewer(video_size)
+        self.sample_viewer = SampleViewer(self.beamline)
+        self.hutch_viewer = HutchViewer(self.beamline)
         videobook.insert_page( self.sample_viewer, tab_label=gtk.Label('Sample Camera') )
         videobook.insert_page( self.hutch_viewer, tab_label=gtk.Label('Hutch Camera') )
         
         self.entry = {
-            'energy':       MotorEntry('Energy', self.beamline.energy, format="%0.4f"),
-            'attenuation':  PositionerEntry('Attenuation', self.beamline.attenuator, format="%0.2g"),
-            'angle':        MotorEntry('Omega', self.beamline.omega, format="%0.3f"),
-            'beam_width':   MotorEntry('Beam width', self.beamline.bewm_h, format="%0.3f"),
-            'beam_height':  MotorEntry('Beam height', self.beamline.beam_h, format="%0.3f"),
-            'distance':     MotorEntry('Detector Distance', self.beamline.det_d, format="%0.2f"),
-            'beam_stop':    MotorEntry('Beam-stop', self.beamline.bst_z, format="%0.2f"),
-            'two_theta':    MotorEntry('Detector TwoTheta',self.beamline.det_2th, format="%0.2f")
+            'energy':       MotorEntry(self.beamline.energy, 'Energy', format="%0.4f"),
+            'attenuation':  PositionerEntry(self.beamline.attenuator, 'Attenuation', format="%0.2g"),
+            'angle':        MotorEntry(self.beamline.omega, 'Omega', format="%0.3f"),
+            'beam_width':   MotorEntry(self.beamline.beam_h, 'Beam width', format="%0.3f"),
+            'beam_height':  MotorEntry(self.beamline.beam_h, 'Beam height', format="%0.3f"),
+            'distance':     MotorEntry(self.beamline.det_d, 'Detector Distance', format="%0.2f"),
+            'beam_stop':    MotorEntry(self.beamline.bst_z, 'Beam-stop', format="%0.2f"),
+            'two_theta':    MotorEntry(self.beamline.det_2th, 'Detector TwoTheta', format="%0.2f")
         }
         self.beamline.det_d.connect('changed', self.predictor.on_distance_changed)
         self.beamline.det_2th.connect('changed', self.predictor.on_two_theta_changed)

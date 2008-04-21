@@ -186,6 +186,7 @@ class Positioner(PositionerBase):
         self.PV = PV(name)
         self.DESC = PV('%s.DESC' % name)
         self.name = name
+        self.units = ""
         self.PV.connect('changed', self._signal_change)
         
     def move_to(self, target, wait=True):
@@ -206,7 +207,7 @@ class Positioner(PositionerBase):
 class energyMotor(MotorBase):
     """Temporary class until energy motor is standardized"""
     implements(IMotor)    
-    def __init__(self):
+    def __init__(self, name=None):
         MotorBase.__init__(self)
         self.units = 'keV'
         self.name = 'Beamline Energy'
