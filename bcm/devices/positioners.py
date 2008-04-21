@@ -97,8 +97,8 @@ class Motor(MotorBase):
             self.RBV  = PV("%s:%s:sp" % (self.name,self.units))
             self.STAT = PV("%s:status" % self.name)
             self.MOVN = self.STAT
-            self.STOP = PV("%s:stop" % self.name, connect=False, monitor=False)
-            self.CALIB = PV("%s:calibDone" % (self.name), connect=False) 
+            self.STOP = PV("%s:stop" % self.name)
+            self.CALIB = PV("%s:calibDone" % (self.name)) 
                 
         # connect monitors
         self.RBV.connect('changed', self._signal_change)
