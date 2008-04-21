@@ -153,7 +153,7 @@ class PV(gobject.GObject):
                     (gobject.TYPE_PYOBJECT,)),
     }
     
-    def __init__(self, name, monitor=True, connect=True):
+    def __init__(self, name, monitor=True):
         gobject.GObject.__init__(self)
         self.chid = c_ulong()
         self.name = name
@@ -163,7 +163,6 @@ class PV(gobject.GObject):
         self.callbacks = {}
         self.state = CA_OP_CONN_DOWN
         self.monitor = monitor
-        self.connect = connect
         self._lock = thread.allocate_lock()
         self._create_connection()
 
