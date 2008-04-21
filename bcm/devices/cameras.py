@@ -36,12 +36,12 @@ class CameraBase(object):
     
                  
 class CameraSim(CameraBase):
-    def __init__(self):
+    def __init__(self, name=None):
         CameraBase.__init__(self)
         self._fsource = open('/dev/urandom','rb')
         self._packet_size = 307200
+        self.name = name
         self.update()
-        self.size = self.frame.size
         gobject.timeout_add(100, self.update)
     
     def __del__(self):
@@ -51,6 +51,7 @@ class CameraSim(CameraBase):
     def update(self, obj=None):
         self._data = self._fsource.read(self._packet_size)
         self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
+        self.size = self.frame.size
         return True
                    
 
@@ -60,12 +61,12 @@ class Camera(CameraBase):
         self.cam = PV(pv_name)
         self._data = None
         self.update()
-        self.size = self.frame.size
         self.cam.connect('changed', self.update)
     
-    def update(self, obj=None):
+    def update(self, obj=None, data=None):
         self._data = self.cam.get()
         self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
+        self.size = self.frame.size
         return True
 
 
@@ -105,13 +106,13 @@ class AxisCamera(CameraBase):
         self.url = 'http://%s/jpg/image.jpg' % hostname
         self.controller = AxisController(hostname)
         self.update()
-        self.size = self.frame.size
-        gobject.timeout_add(100, self.update)
+        gobject.timeout_add(150, self.update)
         
     def update(self, obj=None):
         img_file = urllib.urlopen(self.url)
         img_str = cStringIO.StringIO(img_file.read())
         self.frame = Image.open(img_str)
+        self.size = self.frame.size
         return True
 
         

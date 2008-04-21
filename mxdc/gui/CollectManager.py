@@ -92,7 +92,7 @@ class CollectManager(gtk.HBox):
             pos_table.attach( label, val[1], val[1]+1, val[2], val[2]+1)
             pos_table.attach(gtk.Label(val[3]), 2, 3, val[2], val[2]+1)
             if self.beamline is not None:
-                pos_label = PositionerLabel( bl.devices[key], format="%8.4f" )
+                pos_label = PositionerLabel( self.beamline.devices[key], format="%8.4f" )
                 pos_label.set_alignment(1,0.5)
                 pos_table.attach(pos_label,1, 2, val[2], val[2]+1)
         pos_table.set_border_width(3)

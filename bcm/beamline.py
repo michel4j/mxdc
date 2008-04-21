@@ -19,8 +19,10 @@ _DEVICE_MAP = {
     'qbpms': detectors.QBPM,
     'cameras': cameras.Camera,
     'axiscameras': cameras.AxisCamera,
+    'fakecameras': cameras.CameraSim,
     'energymotors': positioners.energyMotor,
     'attenuators': positioners.Attenuator,
+    'energymotor': positioners.energyMotor,
     'variables': ca.PV
     }
 
