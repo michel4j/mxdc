@@ -5,8 +5,7 @@ import gtk
 sys.path.append(os.environ['BCM_PATH'])
 
 from bcm.beamline import PX
-from mxdc.gui.SampleViewer import SampleViewer
-
+from mxdc.gui.HutchViewer import HutchViewer
 def main():
 
     win = gtk.Window()
@@ -17,7 +16,7 @@ def main():
     win.add(book)
     bl = PX('08id1-sample.conf')
     bl.setup()
-    myviewer = SampleViewer(bl)
+    myviewer = HutchViewer(bl)
     book.append_page(myviewer, tab_label=gtk.Label('Sample Viewer') )
     win.show_all()
 

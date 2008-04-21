@@ -153,7 +153,7 @@ class PV(gobject.GObject):
                     (gobject.TYPE_PYOBJECT,)),
     }
     
-    def __init__(self, name, monitor=True):
+    def __init__(self, name, monitor=True, connect=True):
         gobject.GObject.__init__(self)
         self.chid = c_ulong()
         self.name = name
@@ -163,6 +163,7 @@ class PV(gobject.GObject):
         self.callbacks = {}
         self.state = CA_OP_CONN_DOWN
         self.monitor = monitor
+        self.connect = connect
         self._lock = thread.allocate_lock()
         self._create_connection()
 
@@ -178,7 +179,7 @@ class PV(gobject.GObject):
         if self.state != CA_OP_CONN_UP:
             raise Error('Channel %s not connected' % self.name)
         self._lock.acquire()
-        if self.value is not None:
+        if self.monitor == True and self.value is not None:
             ret_val = self.value
         else:
             libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
@@ -196,18 +197,22 @@ class PV(gobject.GObject):
             raise Error('Channel %s not connected' % self.name)
         self.data = self.data_type(val)
         libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
-        libca.ca_pend_io(1.0)
+        libca.ca_pend_io(0.1)
 
     def _create_connection(self):
-        libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
-        libca.ca_pend_io(1.0)
-        self.count = libca.ca_element_count(self.chid)
-        self.element_type = libca.ca_field_type(self.chid)
-        stat = libca.ca_state(self.chid)
-        if stat != NEVER_CONNECTED:
-            self.state = CA_OP_CONN_UP
-            self._allocate_data_mem()
-            self._add_handler( self._on_change )
+        if self.connect == True:
+            libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
+            libca.ca_pend_io(0.1)
+            self.count = libca.ca_element_count(self.chid)
+            self.element_type = libca.ca_field_type(self.chid)
+            stat = libca.ca_state(self.chid)
+            if stat != NEVER_CONNECTED:
+                self.state = CA_OP_CONN_UP
+                self._allocate_data_mem()
+                if self.monitor == True:
+                    self._add_handler( self._on_change )
+            else:
+                self._defer_connection()
         else:
             self._defer_connection()
 
@@ -255,7 +260,7 @@ class PV(gobject.GObject):
         return 0
         
     def _on_connect(self, event):
-        print self.name,
+        print self.name, 'connected'
         self._lock.acquire()
         self.state = event.op
         if self.state == CA_OP_CONN_UP:

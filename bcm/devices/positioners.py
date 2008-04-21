@@ -83,22 +83,22 @@ class Motor(MotorBase):
         if self.motor_type == 'vme':
             self.RBV  = PV("%s:%s:sp" % (self.name,self.units))
             self.STAT = PV("%s:status" % self.name)
-            self.MOVN = PV("%s:moving" % self.name)
-            self.STOP = PV("%s:stop" % self.name)
-            self.SET  = PV("%s:%s:setPosn" % (self.name,self.units))
-            self.CALIB = PV("%s:calibDone" % (self.name))  
+            self.MOVN = PV("%s:moving" % self.name, connect=False)
+            self.STOP = PV("%s:stop" % self.name, connect=False, monitor=False)
+            self.SET  = PV("%s:%s:setPosn" % (self.name,self.units), connect=False, monitor=False)
+            self.CALIB = PV("%s:calibDone" % (self.name), connect=False)  
         elif self.motor_type == 'cls':
             self.RBV  = PV("%s:%s:fbk" % (self.name,self.units))
             self.MOVN = PV("%s:state" % self.name)
             self.STAT = self.MOVN
-            self.STOP = PV("%s:emergStop" % self.name)
-            self.CALIB = PV("%s:isCalib" % (self.name))
+            self.STOP = PV("%s:emergStop" % self.name, connect=False, monitor=False)
+            self.CALIB = PV("%s:isCalib" % (self.name), connect=False)
         elif self.motor_type == 'pseudo':
             self.RBV  = PV("%s:%s:sp" % (self.name,self.units))
             self.STAT = PV("%s:status" % self.name)
             self.MOVN = self.STAT
-            self.STOP = PV("%s:stop" % self.name)
-            self.CALIB = PV("%s:calibDone" % (self.name)) 
+            self.STOP = PV("%s:stop" % self.name, connect=False, monitor=False)
+            self.CALIB = PV("%s:calibDone" % (self.name), connect=False) 
                 
         # connect monitors
         self.RBV.connect('changed', self._signal_change)

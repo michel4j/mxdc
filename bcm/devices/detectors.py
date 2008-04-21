@@ -39,17 +39,17 @@ class MCA(DetectorBase):
         DetectorBase.__init__(self)
         name_parts = name.split(':')
         self.spectrum = ca.PV(name)
-        self.count_time = ca.PV("%s.PRTM" % name)
+        self.count_time = ca.PV("%s.PRTM" % name, connect=False, monitor=False)
         self.time_left = ca.PV("%s:timeRem" % name_parts[0])
-        self.READ = ca.PV("%s.READ" % name)
+        self.READ = ca.PV("%s.READ" % name, connect=False, monitor=False)
         self.RDNG = ca.PV("%s.RDNG" % name)
-        self.START = ca.PV("%s.ERST" % name)
-        self.IDTIM = ca.PV("%s.IDTIM" % name)
-        self.TMODE = ca.PV("%s:Rontec1SetMode" % name_parts[0])
+        self.START = ca.PV("%s.ERST" % name, connect=False, monitor=False)
+        self.IDTIM = ca.PV("%s.IDTIM" % name, connect=False, monitor=False)
+        self.TMODE = ca.PV("%s:Rontec1SetMode" % name_parts[0], connect=False, monitor=False)
         self.SCAN = ca.PV("%s.SCAN" % name)
         self.ACQG = ca.PV("%s.ACQG" % name)
-        self.status_scan = ca.PV("%s:mca1Status.SCAN" % name_parts[0])
-        self.read_scan = ca.PV("%s:mca1Read.SCAN" % name_parts[0])
+        self.status_scan = ca.PV("%s:mca1Status.SCAN" % name_parts[0], connect=False, monitor=False)
+        self.read_scan = ca.PV("%s:mca1Read.SCAN" % name_parts[0], connect=False, monitor=False)
         self.channels = channels
         self.ROI = (0, self.channels)
         self.name = name_parts[0]
@@ -278,31 +278,31 @@ class MarCCDImager:
     implements(IImagingDetector)
     def __init__(self, name):
         self.name = name
-        self.start_cmd = ca.PV("%s:start:cmd" % name)
-        self.abort_cmd = ca.PV("%s:abort:cmd" % name)
-        self.readout_cmd = ca.PV("%s:correct:cmd" % name)
-        self.writefile_cmd = ca.PV("%s:writefile:cmd" % name)
-        self.background_cmd = ca.PV("%s:dezFrm:cmd" % name)
-        self.save_cmd = ca.PV("%s:rdwrOut:cmd" % name)
-        self.collect_cmd = ca.PV("%s:frameCollect:cmd" % name)
-        self.header_cmd = ca.PV("%s:header:cmd" % name)
-        self.readout_flag = ca.PV("%s:readout:flag" % name)
+        self.start_cmd = ca.PV("%s:start:cmd" % name, connect=False, monitor=False)
+        self.abort_cmd = ca.PV("%s:abort:cmd" % name, connect=False, monitor=False)
+        self.readout_cmd = ca.PV("%s:correct:cmd" % name, connect=False, monitor=False)
+        self.writefile_cmd = ca.PV("%s:writefile:cmd" % name, connect=False, monitor=False)
+        self.background_cmd = ca.PV("%s:dezFrm:cmd" % name, connect=False, monitor=False)
+        self.save_cmd = ca.PV("%s:rdwrOut:cmd" % name, connect=False, monitor=False)
+        self.collect_cmd = ca.PV("%s:frameCollect:cmd" % name, connect=False, monitor=False)
+        self.header_cmd = ca.PV("%s:header:cmd" % name, connect=False, monitor=False)
+        self.readout_flag = ca.PV("%s:readout:flag" % name, connect=False, monitor=False)
         
         #Header parameters
         self.header = {
-            'filename' : ca.PV("%s:img:filename" % name),
-            'directory': ca.PV("%s:img:dirname" % name),
-            'beam_x' : ca.PV("%s:beam:x" % name),
-            'beam_y' : ca.PV("%s:beam:y" % name),
-            'distance' : ca.PV("%s:distance" % name),
-            'time' : ca.PV("%s:exposureTime" % name),
-            'axis' : ca.PV("%s:rot:axis" % name),
-            'wavelength':  ca.PV("%s:src:wavelgth" % name),
-            'delta' : ca.PV("%s:omega:incr" % name),
-            'frame_number': ca.PV("%s:startFrame" % name),
-            'prefix' : ca.PV("%s:img:prefix" % name),
-            'start_angle': ca.PV("%s:start:omega" % name),
-            'energy': ca.PV("%s:runEnergy" % name),            
+            'filename' : ca.PV("%s:img:filename" % name, connect=False, monitor=False),
+            'directory': ca.PV("%s:img:dirname" % name, connect=False, monitor=False),
+            'beam_x' : ca.PV("%s:beam:x" % name, connect=False, monitor=False),
+            'beam_y' : ca.PV("%s:beam:y" % name, connect=False, monitor=False),
+            'distance' : ca.PV("%s:distance" % name, connect=False, monitor=False),
+            'time' : ca.PV("%s:exposureTime" % name, connect=False, monitor=False),
+            'axis' : ca.PV("%s:rot:axis" % name, connect=False, monitor=False),
+            'wavelength':  ca.PV("%s:src:wavelgth" % name, connect=False, monitor=False),
+            'delta' : ca.PV("%s:omega:incr" % name, connect=False, monitor=False),
+            'frame_number': ca.PV("%s:startFrame" % name, connect=False, monitor=False),
+            'prefix' : ca.PV("%s:img:prefix" % name, connect=False, monitor=False),
+            'start_angle': ca.PV("%s:start:omega" % name, connect=False, monitor=False),
+            'energy': ca.PV("%s:runEnergy" % name, connect=False, monitor=False),            
         }
                 
         #Status parameters
