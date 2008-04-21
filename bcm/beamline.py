@@ -76,7 +76,7 @@ class PX(BeamlineBase):
                     if idle_func is not None:
                         idle_func()
             elif section == 'config':
-                for item in self.config.options(section):
+                for item in config.options(section):
                     if item == 'diagram':
                         arg = config.get(section, item)
                         self.config[item] = os.environ['BCM_CONFIG_PATH'] + '/' + arg
