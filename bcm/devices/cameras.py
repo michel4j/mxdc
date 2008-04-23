@@ -8,13 +8,18 @@ from scipy.misc import toimage, fromimage
 import Image, ImageOps, urllib, cStringIO
 import httplib
 
-class CameraBase(object):
+
+class CameraBase(gobject.GObject):
+    __gsignals__ =  { 
+        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
+        }
     def __init__(self):
+        gobject.GObject.__init__(self)
         self.frame = None
         self.camera_on = False
         self.controller = None
             
-    def log(self, message):
+    def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
 
     def get_frame(self):
@@ -119,3 +124,4 @@ class AxisCamera(CameraBase):
         return True
 
         
+gobject.type_register(CameraBase)

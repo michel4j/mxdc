@@ -41,7 +41,4 @@ class LogView(gtk.Expander):
             
         self.view.scroll_to_iter(iter, 0.1, True, yalign=1)
     
-    def on_log(self, obj, text):
-        self.log(text)
-        return True       
         

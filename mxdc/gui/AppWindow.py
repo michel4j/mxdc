@@ -22,6 +22,7 @@ class AppWindow:
         self.status_panel = StatusPanel(self.beamline)
         self.general_log = LogView(label='Log')
         self.general_log.set_expanded(True)
+        self.beamline.connect('log', self.log_handler)
 
         main_vbox = gtk.VBox(False,0)
         main_vbox.pack_end(self.status_panel, expand = False, fill = False)
@@ -38,6 +39,9 @@ class AppWindow:
         
         self.win.connect('destroy', self.on_destroy)
         self.win.show_all()
+    
+    def log_handler(self, obj, txt):
+        self.general_log.log(txt)
         
     def on_destroy(self, obj=None):
         self.scan_manager.stop()
