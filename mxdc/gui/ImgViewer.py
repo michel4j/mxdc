@@ -156,7 +156,8 @@ class ImgViewer(gtk.VBox):
         self.file_pars = struct.unpack(file_format, myfile.read(1024))
         self.dataset_pars = struct.unpack(dataset_format, myfile.read(512))
         myfile.close()
-    
+
+
         # extract some values from the header
         self.beam_x, self.beam_y = self.goniostat_pars[1]/1e3, self.goniostat_pars[2]/1e3
         self.distance = self.goniostat_pars[0] / 1e3
@@ -165,18 +166,9 @@ class ImgViewer(gtk.VBox):
         self.delta = self.goniostat_pars[24] / 1e3
         self.phi_start =  self.goniostat_pars[(7 + self.goniostat_pars[23])] / 1e3
         self.delta_time = self.goniostat_pars[4] / 1e3
-    
-    def read_pck_header(self, filename):
-        header_format = '70s' # 40 bytes
-        myfile = open(filename,'rb')
-        header = myfile.readline()
-        while header[0:17] != 'CCP4 packed image':
-            header = myfile.readline()
-        tokens = header.strip().split(',')
-        x_dim = int((tokens[1].split(':'))[1])
-        y_dim = int((tokens[2].split(':'))[1])
-        myfile.close()
-        return x_dim, y_dim
+        self.max_intensity = self.statistics_pars[4]
+        self.average_intensity = self.statistics_pars[5] / 1e3
+        #print self.statistics_pars[7], self.statistics_pars[8]
     
     def set_filename(self, filename):
         self.filename = filename
@@ -199,11 +191,8 @@ class ImgViewer(gtk.VBox):
     def load_image(self):
         self.read_header()
                 
-        # calculate average I and correct gamma
+        # correct gamma
         self.raw_img = Image.open(self.filename)
-        raw_data = numpy.fromstring(self.raw_img.tostring(), 'H')
-        self.average_intensity = numpy.mean( raw_data )
-        self.max_intensity = numpy.max(raw_data)
         self.gamma_factor = 80.0 / self.average_intensity
         self.img = self.raw_img.point(lambda x: x * self.gamma_factor).convert('L')
         self.orig_size = max(self.raw_img.size)
@@ -211,8 +200,9 @@ class ImgViewer(gtk.VBox):
         # invert the image to get black spots on white background and resize
         self.img = self.img.point(lambda x: x * -1 + 255)
         self.work_img = self.img.resize( (self.image_size, self.image_size), self.interpolation)
-        self.image_info_text = 'Δt=%0.1f, Δω=%0.2f, D=%0.1f, ω=%0.2f, λ=%0.4f, I_mean=%0.0f, I_max=%0.0f' % (
-            self.delta_time, self.delta, self.distance,self.phi_start, self.wavelength,self.average_intensity,self.max_intensity)
+        self.image_info_text = 'Δt=%0.1f, Δω=%0.2f, D=%0.1f, ω=%0.2f, λ=%0.4f, avg.I=%0.0f, max.I=%0.0f' % (
+            self.delta_time, self.delta, self.distance,self.phi_start, 
+            self.wavelength,self.average_intensity,self.max_intensity)
         self.image_label.set_markup(os.path.split(self.filename)[1])
         self.image_info.set_markup(self.image_info_text)
 
@@ -372,9 +362,10 @@ class ImgViewer(gtk.VBox):
     def draw_info(self, img):
         draw = ImageDraw.Draw(img)
         font = ImageFont.load_default()
-        x = 10
-        y = self.disp_size - 10
-        draw.text( (x,y), self.image_info_text, font=font, fill='#ff0000')
+        x = self.disp_size - 70
+        y = self.disp_size - 70
+        text = '\r\n'.join( self.image_info_text.split(', ') )
+        draw.text( (x,y), text, font=font, fill='#ff0000')
         return
 
     def resolution(self,x,y):
@@ -398,7 +389,7 @@ class ImgViewer(gtk.VBox):
         self.x_center = int(scale * self.x_center) 
         self.y_center = int(scale * self.y_center)
 
-    def adjust_level(self, img, shift):        
+    def adjust_level(self, img, shift):     
         return img.point(lambda x: x * 1 + shift)
     
     # callbacks    
