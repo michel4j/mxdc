@@ -303,7 +303,7 @@ class Attenuator(PositionerBase):
         for f in self.filters:
             bitmap += '%d' % f.get()
         thickness = int(bitmap, 2) / 10.0
-        attenuation = 1.0 - math.exp( -4.4189e12 * thickness / (e*1000)**2.9554 )
+        attenuation = 1.0 - math.exp( -4.4189e12 * thickness / (e*1000+1e-6)**2.9554 )
         return attenuation
     
     def move_to(self, target, wait=True):

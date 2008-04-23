@@ -33,6 +33,8 @@ class PositionerEntry(gtk.Frame):
         
         # signals and parameters
         self.positioner = positioner
+        self.set_current( self.positioner.get_position() )
+        self.set_target( self.positioner.get_position() )
         self.positioner.connect('changed', self._on_value_change)
         self.act_btn.connect('clicked', self._on_activate)
         self.undo_btn.connect('clicked', self._on_undo)
@@ -111,9 +113,7 @@ class PositionerEntry(gtk.Frame):
 class MotorEntry(PositionerEntry):
     def __init__(self, positioner, label="", format="%s", width=8):
         PositionerEntry.__init__(self, positioner, label=label, format=format, width=width)
-        self.motor = positioner
-        self.set_current( self.motor.get_position() )
-        self.set_target( self.motor.get_position() )
+        self.motor = self.positioner
         if self.motor.units != "":
             label = '%s (%s)' % (label, self.motor.units)
         self.set_label(label)
@@ -135,7 +135,6 @@ class MotorEntry(PositionerEntry):
             self.running = True
             self.act_btn.get_child().set_from_stock('gtk-stop',gtk.ICON_SIZE_MENU)
             self.undo_btn.get_child().set_from_file(sys.path[0] + '/images/throbber.gif')
-            #print 'state changed'
         else:
             self.running = False
             self.act_btn.get_child().set_from_stock('gtk-go-forward',gtk.ICON_SIZE_MENU)
