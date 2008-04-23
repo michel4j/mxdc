@@ -37,14 +37,15 @@ class AppWindow:
         self.win.add(main_vbox)
         
         self.win.connect('destroy', self.on_destroy)
-        self.win.connect('destroy', lambda x: gtk.main_quit())
         self.win.show_all()
         
     def on_destroy(self, obj=None):
         self.scan_manager.stop()
         self.collect_manager.stop()
         self.hutch_manager.stop()
+        gtk.main_quit()
 
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
         self.collect_manager.add_run( run_data )
+        
