@@ -53,7 +53,9 @@ class Predictor( gtk.AspectFrame ):
     def display(self, widget=None):
         self.axis.clear()
         self.axis.set_axis_off()
-        cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1)
+        normFunction = normalize(-1, 5)
+        cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1, cmap=cm.hot_r, norm=normFunction)
+        #cntr = self.axis.contour(self.xp, self.yp, self.Z, 16)
         self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)        
         self.canvas.draw()
         return False
@@ -124,7 +126,7 @@ class Predictor( gtk.AspectFrame ):
          
     def _shells(self, resolution=0.9, num=8):
         max_angle = self._angle( resolution )
-        min_angle = self._angle( 15.0)
+        min_angle = self._angle( 25.0)
         step_size = ( max_angle - min_angle ) / num
         angles = arange(min_angle, max_angle + step_size, step_size)
         result = []
