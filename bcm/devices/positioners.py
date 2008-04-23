@@ -23,12 +23,14 @@ class PositionerBase(gobject.GObject):
         gobject.GObject.__init__(self)
 
     def _signal_change(self, obj, value):
-        gobject.idle_add(self.emit,'changed', value)
+        gobject.idle_add(self.emit,'changed', self.get_position() )
     
     def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
         
-
+    def get_position(self):
+        return 0.0
+    
 class MotorBase(gobject.GObject):
     __gsignals__ =  { 
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
@@ -41,7 +43,7 @@ class MotorBase(gobject.GObject):
         gobject.GObject.__init__(self)
     
     def _signal_change(self, obj, value):
-        gobject.idle_add(self.emit,'changed', value)
+        gobject.idle_add(self.emit,'changed', self.get_position() )
     
     def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
@@ -290,7 +292,10 @@ class Attenuator(PositionerBase):
             PV(bit3),
             PV(bit4) ]
         self.energy = PV(energy)
-        
+        self.units = '%'
+        for f in self.filters:
+            f.connect('changed', self._signal_change)
+        self.energy.connect('changed', self._signal_change)
         
     def get_position(self):
         e = self.energy.get()
