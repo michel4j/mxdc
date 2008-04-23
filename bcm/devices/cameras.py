@@ -59,13 +59,12 @@ class Camera(CameraBase):
     def __init__(self, pv_name):
         CameraBase.__init__(self)
         self.cam = PV(pv_name)
-        self._data = None
         self.update()
         self.cam.connect('changed', self.update)
     
     def update(self, obj=None, data=None):
-        self._data = self.cam.get().copy()
-        self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
+        data = self.cam.get().copy()
+        self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
         self.size = self.frame.size
         return True
 
