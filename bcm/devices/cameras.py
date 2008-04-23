@@ -46,11 +46,10 @@ class CameraSim(CameraBase):
     
     def __del__(self):
         self._fsource.close()
-        self._data = None 
     
     def update(self, obj=None):
-        self._data = self._fsource.read(self._packet_size)
-        self.frame = toimage(numpy.fromstring(self._data, 'B').reshape(480,640))
+        data = self._fsource.read(self._packet_size)
+        self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
         self.size = self.frame.size
         return True
                    
@@ -62,8 +61,9 @@ class Camera(CameraBase):
         self.update()
         self.cam.connect('changed', self.update)
     
-    def update(self, obj=None, data=None):
+    def update(self, obj=None, arg=None):
         data = self.cam.get()
+        print len(data)
         self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
         self.size = self.frame.size
         return True
