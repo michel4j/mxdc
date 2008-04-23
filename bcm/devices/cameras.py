@@ -63,7 +63,7 @@ class Camera(CameraBase):
         self.cam.connect('changed', self.update)
     
     def update(self, obj=None, data=None):
-        data = self.cam.get().copy()
+        data = self.cam.get()
         self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
         self.size = self.frame.size
         return True
