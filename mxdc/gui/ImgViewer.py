@@ -3,10 +3,11 @@
 
 import sys
 import re, os, time, gc, stat
-import gtk, gobject
+import gtk, gobject, pango
 import Image, ImageEnhance, ImageOps, ImageDraw, ImageFont
 import numpy, re, struct
 from scipy.misc import toimage, fromimage
+import pickle
 from Dialogs import select_image
 
 class ImgViewer(gtk.VBox):
@@ -18,6 +19,9 @@ class ImgViewer(gtk.VBox):
         self.img_frame = gtk.Viewport()
         self.img_frame.set_shadow_type(gtk.SHADOW_IN)
         self.image_canvas = gtk.Image()
+        #self.image_canvas = gtk.DrawingArea()
+        self.image_canvas.connect('realize', self.on_realize)
+        self.image_canvas.connect('configure-event', self.on_configure)
 
         self.img_frame.set_events(gtk.gdk.POINTER_MOTION_MASK
                                    | gtk.gdk.STRUCTURE_MASK)
@@ -189,6 +193,7 @@ class ImgViewer(gtk.VBox):
             self.frame_number = None
         
     def load_image(self):
+        
         self.read_header()
                 
         # correct gamma
@@ -196,7 +201,12 @@ class ImgViewer(gtk.VBox):
         self.gamma_factor = 80.0 / self.average_intensity
         self.img = self.raw_img.point(lambda x: x * self.gamma_factor).convert('L')
         self.orig_size = max(self.raw_img.size)
-        
+        self.histogram = self.raw_img.histogram()
+
+        f = open('hist', 'w')
+        pickle.dump( self.histogram, f )
+        f.close()
+
         # invert the image to get black spots on white background and resize
         self.img = self.img.point(lambda x: x * -1 + 255)
         self.work_img = self.img.resize( (self.image_size, self.image_size), self.interpolation)
@@ -258,8 +268,7 @@ class ImgViewer(gtk.VBox):
         pixbuf = gtk.gdk.pixbuf_new_from_data(imagestr,gtk.gdk.COLORSPACE_RGB, IS_RGBA, 8, tmp_image.size[0],
                 tmp_image.size[1],(IS_RGBA and 4 or 3) * tmp_image.size[0])
         self.image_canvas.set_from_pixbuf(pixbuf)
-            
-        #gc.collect()
+  
         # keep track of time to prevent loading next frame too quickly 
         # when following images
         self.last_open_time = time.time()
@@ -392,7 +401,25 @@ class ImgViewer(gtk.VBox):
     def adjust_level(self, img, shift):     
         return img.point(lambda x: x * 1 + shift)
     
-    # callbacks    
+    # callbacks
+    def on_configure(self, obj, event):
+        width, height = obj.window.get_size()
+        self.pixmap = gtk.gdk.Pixmap(self.image_canvas.window, width, height)
+        self.width, self.height = width, height
+        return True
+
+    def on_realize(self, obj):
+        self.gc = self.image_canvas.window.new_gc()
+        self.pl_gc = self.image_canvas.window.new_gc()
+        self.pl_gc.foreground = self.image_canvas.get_colormap().alloc_color("green")
+        self.ol_gc = self.image_canvas.window.new_gc()
+        self.ol_gc.foreground = self.image_canvas.get_colormap().alloc_color("green")
+        self.ol_gc.set_function(gtk.gdk.XOR)
+        self.ol_gc.set_line_attributes(2,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
+        self.banner_pl = self.image_canvas.create_pango_layout("")
+        self.banner_pl.set_font_description(pango.FontDescription("Monospace 7"))
+        return True
+
     def on_incr_brightness(self,widget):
         self.brightness_factor += 0.1
         self.display()
