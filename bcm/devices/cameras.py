@@ -67,7 +67,7 @@ class Camera(CameraBase):
         data = self.cam.get()
         while len(data) != self._packet_size:
             data = self.cam.get()
-            
+        print data, arg
         self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
         self.size = self.frame.size
         return True
