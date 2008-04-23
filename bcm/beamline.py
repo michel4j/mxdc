@@ -37,6 +37,9 @@ class BeamlineBase(gobject.GObject):
         
     def log(self, text):
         gobject.idle_add(self.emit, 'log', text)
+
+    def on_log(self, obj, text):
+        self.log(text)
     
     def __call__(self):
         self.setup()
@@ -77,6 +80,8 @@ class PX(BeamlineBase):
                     gobject.idle_add(self.emit, 'progress', frac_complete)
                     if idle_func is not None:
                         idle_func()
+                if hasattr(self.devices[item], 'connect') and section not in ['variables']:
+                    self.devices[item].connect('log', self.on_log)
             elif section == 'config':
                 for item in config.options(section):
                     if item == 'diagram':
