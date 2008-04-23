@@ -41,7 +41,8 @@ class VideoTransformer(gobject.GObject):
         count = 0
         start_time = time.time()
         while not self._stopped:
-            while self.camera.get_frame() is None or self._paused:
+            if self.camera.get_frame() is None: continue
+            while self._paused and not self._stopped:
                 time.sleep(0.5)
                 
             if count % 100 == 0:

@@ -33,7 +33,7 @@ class HutchManager(gtk.VBox):
         
         self.entry = {
             'energy':       MotorEntry(self.beamline.energy, 'Energy', format="%0.4f"),
-            'attenuation':  PositionerEntry(self.beamline.attenuator, 'Attenuation', format="%0.2g"),
+            'attenuation':  PositionerEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
             'angle':        MotorEntry(self.beamline.omega, 'Omega', format="%0.3f"),
             'beam_width':   MotorEntry(self.beamline.beam_h, 'Beam width', format="%0.3f"),
             'beam_height':  MotorEntry(self.beamline.beam_h, 'Beam height', format="%0.3f"),

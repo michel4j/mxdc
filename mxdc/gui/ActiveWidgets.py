@@ -33,8 +33,6 @@ class PositionerEntry(gtk.Frame):
         
         # signals and parameters
         self.positioner = positioner
-        self.set_current( self.positioner.get_position() )
-        self.set_target( self.positioner.get_position() )
         self.positioner.connect('changed', self._on_value_change)
         self.act_btn.connect('clicked', self._on_activate)
         self.undo_btn.connect('clicked', self._on_undo)
@@ -43,6 +41,10 @@ class PositionerEntry(gtk.Frame):
         self.running = False
         self.width = width
         self.format = format
+        
+        # Set default values from device
+        self.set_current( self.positioner.get_position() )
+        self.set_target( self.positioner.get_position() )
     
     def set_current(self, val):
         text = self.format % val
@@ -119,6 +121,7 @@ class MotorEntry(PositionerEntry):
         self.set_label(label)
         self.motor.connect('moving', self._on_motion_change)
         self.motor.connect('health', self._on_health_change)
+        self.set_sensitive( self.motor.is_healthy() )
                
     def stop(self):
         self.motor.stop()

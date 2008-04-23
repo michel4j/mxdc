@@ -219,7 +219,8 @@ class energyMotor(MotorBase):
         self.RBV  = PV("SMTR16082I1005:deg:sp")
         self.MOVN = PV("BL08ID1:energy:moving" )
         self.STOP = PV("BL08ID1:energy:stop")
-        self.CALIB =  PV("SMTR16082I1005:calibDone")     
+        self.CALIB =  PV("SMTR16082I1005:calibDone")
+        self.STAT =  PV("SMTR16082I1005:status")
         
         # connect monitors
         self.RBV.connect('changed', self._signal_change)
@@ -304,7 +305,11 @@ class Attenuator(PositionerBase):
             bitmap += '%d' % f.get()
         thickness = int(bitmap, 2) / 10.0
         attenuation = 1.0 - math.exp( -4.4189e12 * thickness / (e*1000+1e-6)**2.9554 )
-        return attenuation
+        if attenuation < 0:
+            attenuation = 0
+        elif attenuation > 1.0:
+            attenuation = 1.0
+        return attenuation*100.0
     
     def move_to(self, target, wait=True):
         e = self.energy.get()
@@ -313,16 +318,14 @@ class Attenuator(PositionerBase):
         elif target < 0.0:
             target = 0.0
         frac = target/100.0
-        thickness = math.log(1.0-frac) * (e*1000)**2.9554 / -4.4189e12
+        thickness = math.log(1.0-frac) * (e*1000+1e-6)**2.9554 / -4.4189e12
         thk = int(round(thickness * 10.0))
         if thk > 15: thk = 15
-        bitmap = '%04d' % utils.dec_to_bin(thk)
+        bitmap = '%04d' % int(utils.dec_to_bin(thk))
         for i in range(4):
             self.filters[i].put( int(bitmap[i]) )
         self._log('Attenuator, moving to %s' % target)
-        self._log('Attenuator, requested bit-map is"%s"' % bitmap)
-        if wait:
-            time.sleep(0.5)
+        self._log('Attenuator, requested filter states is"%s"' % bitmap)
     
     def move_by(self, value, wait=True):
         target = value + self.get_position()
