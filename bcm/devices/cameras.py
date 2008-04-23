@@ -64,7 +64,7 @@ class Camera(CameraBase):
     def update(self, obj=None, arg=None):
         
         data = self.cam.get()
-        print len(data), len(arg)
+        print len(data), arg
         self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
         self.size = self.frame.size
         return True
