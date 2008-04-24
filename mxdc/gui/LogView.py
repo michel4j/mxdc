@@ -17,10 +17,11 @@ class LogView(gtk.Expander):
         sw.set_policy(gtk.POLICY_NEVER,gtk.POLICY_AUTOMATIC)
         sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         sw.add(self.view)
-        pango_font = pango.FontDescription('Monospace')
+        pango_font = pango.FontDescription('Monospace 9')
         self.view.modify_font(pango_font)
         self.add(sw)
         self.show_all()
+        self.time_tag = self.text_buffer.create_tag(foreground='Blue')
         
     def clear(self):
         self.text_buffer.delete(self.text_buffer.get_start_iter(), self.text_buffer.get_end_iter())
@@ -34,11 +35,12 @@ class LogView(gtk.Expander):
             self.text_buffer.delete(start_iter, end_iter)
         iter = self.text_buffer.get_end_iter()
         if show_time:
-            timestr =  time.strftime('%X')
-            self.text_buffer.insert(iter, "%s %s\n" % ( timestr, text ) )
+            timestr =  time.strftime('%H:%M:%S ')
+            self.text_buffer.insert_with_tags(iter, timestr, self.time_tag)
+            self.text_buffer.insert(iter, "%s\n" % text )
         else:
             self.text_buffer.insert(iter, "%s\n" % ( text ) )
             
-        self.view.scroll_to_iter(iter, 0.1, True, yalign=1)
+        self.view.scroll_to_iter(iter, 0.4, use_align=True, yalign=0.5)
     
         
