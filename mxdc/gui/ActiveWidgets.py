@@ -1,5 +1,5 @@
 import gtk, gobject
-import sys, time
+import os, sys, time
 
 class PositionerEntry(gtk.Frame):
     def __init__( self, positioner, label="",  format="%g",  width=8):
@@ -64,7 +64,7 @@ class PositionerEntry(gtk.Frame):
     def move(self):
         target = self._get_target()
         self._save_undo()
-        self.positioner.move_to(target)
+        self.positioner.move_to(target, wait=False)
 
     def _get_target(self):
         current = float(self.value_box.get_text())
@@ -90,7 +90,7 @@ class PositionerEntry(gtk.Frame):
         if len(self.undo_stack)>0 and self.running == False:
             target = self._get_undo()
             self.set_target( target )
-            self.positioner.move_to(target)
+            self.positioner.move_to(target, wait=False)
         elif self.running:
             self.undo_btn.set_sensitive(True)
         else:
@@ -137,7 +137,7 @@ class MotorEntry(PositionerEntry):
         if motion:
             self.running = True
             self.act_btn.get_child().set_from_stock('gtk-stop',gtk.ICON_SIZE_MENU)
-            self.undo_btn.get_child().set_from_file(sys.path[0] + '/images/throbber.gif')
+            self.undo_btn.get_child().set_from_file(os.environ['BCM_PATH'] + '/mxdc/gui/images/throbber.gif')
         else:
             self.running = False
             self.act_btn.get_child().set_from_stock('gtk-go-forward',gtk.ICON_SIZE_MENU)
@@ -194,6 +194,7 @@ class ShutterButton(gtk.Button):
         
         self.shutter.connect('changed', self._on_state_change)
         self.connect('clicked', self._on_clicked)
+        self._on_state_change(None, self.shutter.is_open())
             
     def _on_clicked(self, widget):
         if self.shutter.is_open():
