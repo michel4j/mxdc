@@ -210,7 +210,7 @@ class ImgViewer(gtk.VBox):
         # invert the image to get black spots on white background and resize
         self.img = self.img.point(lambda x: x * -1 + 255)
         self.work_img = self.img.resize( (self.image_size, self.image_size), self.interpolation)
-        self.image_info_text = 'Δt=%0.1f, Δω=%0.2f, D=%0.1f, ω=%0.2f, λ=%0.4f, avg.I=%0.0f, max.I=%0.0f' % (
+        self.image_info_text = 'Δt=%0.1f, Δω=%0.2f, D=%0.1f, ω=%0.2f, λ=%0.4f, avg_I=%0.1f, max_I=%0.0f' % (
             self.delta_time, self.delta, self.distance,self.phi_start, 
             self.wavelength,self.average_intensity,self.max_intensity)
         self.image_label.set_markup(os.path.split(self.filename)[1])
