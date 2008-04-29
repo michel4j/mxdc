@@ -210,11 +210,14 @@ class ImgViewer(gtk.VBox):
         # invert the image to get black spots on white background and resize
         self.img = self.img.point(lambda x: x * -1 + 255)
         self.work_img = self.img.resize( (self.image_size, self.image_size), self.interpolation)
-        self.image_info_text = 'Δt=%0.1f, Δω=%0.2f, D=%0.1f, ω=%0.2f, λ=%0.4f, avg_I=%0.1f, max_I=%0.0f' % (
-            self.delta_time, self.delta, self.distance,self.phi_start, 
-            self.wavelength,self.average_intensity,self.max_intensity)
+        self.image_info_text = u'exposure=%0.1f ; delta=%0.2f, dist=%0.1f ; angle=%0.2f, wavelength=%0.4f ; <I>=%0.1f, I-max=%0.0f ; #Sat=%0.0f' % (
+            self.delta_time, 
+            self.delta, self.distance,
+            self.phi_start, 
+            self.wavelength,
+            self.average_intensity,self.max_intensity, 0)
         self.image_label.set_markup(os.path.split(self.filename)[1])
-        self.image_info.set_markup(self.image_info_text)
+        #self.image_info.set_markup(self.image_info_text)
 
         
 
@@ -260,7 +263,7 @@ class ImgViewer(gtk.VBox):
         tmp_image = self.apply_filters(tmp_image)   
         tmp_image = tmp_image.convert('RGBA')
         self.draw_cross(tmp_image)
-        #self.draw_info(tmp_image)
+        self.draw_info(tmp_image)
         imagestr = tmp_image.tostring()
         self.last_displayed = time.time()
 
@@ -364,17 +367,20 @@ class ImgViewer(gtk.VBox):
         scale = self.image_size / float(self.orig_size)
         x = self.beam_x*scale + half_size - self.x_center
         y = self.beam_y*scale + half_size - self.y_center
-        draw.line((x-5, y, x+5, y),width=1,fill='#ff0000')
-        draw.line((x, y-5, x, y+5),width=1,fill='#ff0000')
+        draw.line((x-5, y, x+5, y),width=1,fill='#0033CC')
+        draw.line((x, y-5, x, y+5),width=1,fill='#0033CC')
         return
 
     def draw_info(self, img):
         draw = ImageDraw.Draw(img)
-        font = ImageFont.load_default()
-        x = self.disp_size - 70
-        y = self.disp_size - 70
-        text = '\r\n'.join( self.image_info_text.split(', ') )
-        draw.text( (x,y), text, font=font, fill='#ff0000')
+        #font = ImageFont.load_default()
+        font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 11)
+        lines = self.image_info_text.split(', ')
+        x = 5
+        y = self.disp_size - 56
+        for i in range(len(lines)):
+            line = lines[i]
+            draw.text( (x,y+i*13), line, font=font, fill='#0033CC')
         return
 
     def resolution(self,x,y):

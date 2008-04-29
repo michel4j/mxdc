@@ -4,7 +4,7 @@ import time, os
 def prepare_for_mounting(bl):
     safe_distance = 700
     safe_beamstop = 45
-    bl.det_d.move_to(safe_distance, wait=True)
+    bl.det_z.move_to(safe_distance, wait=True)
     bl.bst_z.move_to(safe_beamstop, wait=True)
     return True
 
@@ -12,7 +12,7 @@ def restore_beamstop(bl):
     distance = 300
     beamstop = 1
     bl.bst_z.move_to(beamstop, wait=True)
-    bl.det_d.move_to(distance, wait=True)
+    bl.det_z.move_to(distance, wait=True)
     return True
 
 def center_sample(bl, crystal=False):
