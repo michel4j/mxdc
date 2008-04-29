@@ -59,8 +59,8 @@ class ScanManager(gtk.HBox):
         self.mad_scanner.connect('done', self.on_scan_done)
         self.mad_scanner.connect('aborted', self.on_scan_aborted)        
         self.mad_scanner.connect('progress', self.on_progress)
-        self.scan_control.stop_btn.connect('clicked', self.mad_scanner.stop)
-        self.scan_control.abort_btn.connect('clicked', self.mad_scanner.abort)
+        self.scan_control.stop_btn.connect('clicked', lambda x: self.mad_scanner.stop())
+        self.scan_control.abort_btn.connect('clicked',lambda x: self.mad_scanner.abort())
        
         self.ex_scanner.connect('done', self.on_excitation_done)
         self.ex_scanner.connect('error', self.on_scan_aborted)

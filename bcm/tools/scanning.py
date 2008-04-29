@@ -266,7 +266,6 @@ class MADScanner(ScannerBase):
         self.time = count_time
         self.filename = output
         self.beamline.mca.set_energy(emission)
-        self.normalizer.set_time(self.time)
         
     def calc_targets(self):
         energy = self.energy
