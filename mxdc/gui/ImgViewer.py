@@ -11,7 +11,12 @@ import pickle
 from Dialogs import select_image
 
 class ImgViewer(gtk.VBox):
+    __gsignals__ = {
+        'log': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                      (gobject.TYPE_STRING,))
+    }
     def __init__(self, size=600):
+        self.__gobject_init__() 
         gtk.VBox.__init__(self,False)
         self.disp_size = size
         self.interpolation = Image.ANTIALIAS
@@ -136,7 +141,10 @@ class ImgViewer(gtk.VBox):
         else:
             self.cursor = None
             self.image_canvas.window.set_cursor( self.cursor )
-            
+
+    def log(self, msg):
+        self.emit('log', 'ImageViewer: %s' % msg)
+       
     def read_header(self):
         # Read MarCCD header
         header_format = 'I16s39I80x' # 256 bytes
@@ -172,7 +180,7 @@ class ImgViewer(gtk.VBox):
         self.delta_time = self.goniostat_pars[4] / 1e3
         self.max_intensity = self.statistics_pars[4]
         self.average_intensity = self.statistics_pars[5] / 1e3
-        #print self.statistics_pars[7], self.statistics_pars[8]
+        self.overloads = self.header_pars[31]
     
     def set_filename(self, filename):
         self.filename = filename
@@ -193,19 +201,16 @@ class ImgViewer(gtk.VBox):
             self.frame_number = None
         
     def load_image(self):
-        
+        self.log("Loading image %s" % (self.filename))
+
         self.read_header()
                 
         # correct gamma
         self.raw_img = Image.open(self.filename)
+       
         self.gamma_factor = 80.0 / self.average_intensity
         self.img = self.raw_img.point(lambda x: x * self.gamma_factor).convert('L')
         self.orig_size = max(self.raw_img.size)
-        self.histogram = self.raw_img.histogram()
-
-        f = open('hist', 'w')
-        pickle.dump( self.histogram, f )
-        f.close()
 
         # invert the image to get black spots on white background and resize
         self.img = self.img.point(lambda x: x * -1 + 255)
@@ -215,7 +220,7 @@ class ImgViewer(gtk.VBox):
             self.delta, self.distance,
             self.phi_start, 
             self.wavelength,
-            self.average_intensity,self.max_intensity, 0)
+            self.average_intensity,self.max_intensity, self.overloads)
         self.image_label.set_markup(os.path.split(self.filename)[1])
         #self.image_info.set_markup(self.image_info_text)
 
@@ -290,6 +295,7 @@ class ImgViewer(gtk.VBox):
         return new_img
                         
     def poll_for_file(self):
+        self.log("%d images in queue" % len(self.image_queue) )
         if len(self.image_queue) == 0:
             if self.collecting_data == True:
                 return True
@@ -526,6 +532,8 @@ class ImgViewer(gtk.VBox):
             self.set_filename(filename)
             self.load_image()
             self.display()
+        else:
+            self.log("File not found: %s" % (filename))
         return True        
 
     def on_prev_frame(self,widget):
@@ -538,6 +546,8 @@ class ImgViewer(gtk.VBox):
             self.set_filename(filename)
             self.load_image()
             self.display()
+        else:
+            self.log("File not found: %s" % (filename))
         return True
 
     def on_file_open(self,widget):
@@ -561,6 +571,7 @@ class ImgViewer(gtk.VBox):
             self.follow_frames = False
         return True
     
+gobject.type_register(ImgViewer)
 
         
         

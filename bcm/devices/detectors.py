@@ -60,7 +60,7 @@ class MCA(DetectorBase):
         self.slope = 0.00498
         self._monitor_id = None
 
-    def set_cooling(state):
+    def set_cooling(self, state):
         if state:
             self.TMODE.put(2)
         else:
