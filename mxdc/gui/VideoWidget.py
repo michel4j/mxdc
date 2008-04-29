@@ -129,7 +129,7 @@ class VideoWidget(gtk.DrawingArea):
         self.ol_gc.set_function(gtk.gdk.XOR)
         self.ol_gc.set_line_attributes(2,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
         self.banner_pl = self.create_pango_layout("")
-        self.banner_pl.set_font_description(pango.FontDescription("Monospace 7"))
+        self.banner_pl.set_font_description(pango.FontDescription("Monospace 9"))
         self.transformer.start()
         return True
 
