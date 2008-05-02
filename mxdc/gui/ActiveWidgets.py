@@ -264,9 +264,35 @@ class ActiveProgressBar(gtk.ProgressBar):
         complete_text = '%0.1f%%  %s' % ((complete * 100), text)
         self.set_text(complete_text)
     
+
+class LinearProgress(gtk.DrawingArea):
+    def __init__(self):
+        gtk.DrawingArea.__init__(self)
+        self.app_paintable = True
+        self.fraction = 0.0
+        self.bar_gc = None
+        self.queue_draw()
         
+    def on_expose(self, event):
+        if self.bar_gc is None:
+            self.bar_gc = self.window.new_gc()
+            self.bar_gc.background = self.get_colormap().alloc_color("white")
+            self.bar_gc.foreground = self.get_colormap().alloc_color("blue")
+        self.draw_gdk()
+        return False
     
-        
+    def draw_gdk(self):
+        allocation = self.get_allocation()
+        bar_width = int( allocation.width * self.fraction - 3.0)
+        if bar_width > 0:
+            self.window.draw_rectangle(self.bar_gc, true, 2, 2, bar_width, allocation.height - 4)
+    
+    def get_fraction(self):
+        return self.fraction
+    
+    def set_fraction(self, frac):
+        self.fraction = max(0.0, min(1.0, value))
+        self.queue_draw()
         
         
         
