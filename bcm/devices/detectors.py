@@ -24,6 +24,7 @@ class DetectorBase(gobject.GObject):
         gobject.GObject.__init__(self)
         self._last_changed = time.time()
         self._change_interval = 0.1
+        self.name = 'Basic Detector'
     
     def _signal_change(self, obj, value):
         if time.time() - self._last_changed > self._change_interval:
@@ -32,6 +33,9 @@ class DetectorBase(gobject.GObject):
     
     def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
+
+    def get_name(self):
+        return self.name
        
 class MCA(DetectorBase):
     implements(IMultiChannelAnalyzer)
@@ -59,6 +63,7 @@ class MCA(DetectorBase):
         self.offset = -0.45347
         self.slope = 0.00498
         self._monitor_id = None
+        self.name = 'MCA'
 
     def set_cooling(self, state):
         if state:
@@ -142,13 +147,13 @@ class MCA(DetectorBase):
             self._log('ERROR: MCA reading failed')
             
     def _collect(self, t=1.0):
-        self.set_temp_monitor(False)
+        self._set_temp_monitor(False)
         self.count_time.put(t)
         self._start()
         #self.wait_count(start=False,stop=True)
         self._wait_read(start=True,stop=True)
         self.data = self.spectrum.get()
-        self.set_temp_monitor(True)
+        self._set_temp_monitor(True)
 
     def _set_temp_monitor(self, mode):
         if mode:
@@ -373,13 +378,14 @@ class MarCCDImager:
             return False
 
     def initialize(self, wait=True):
-        self._wait_in_state('acquire:queue')
-        self._wait_in_state('acquire:exec')
-        self.background_cmd.put(1)
-        self._bg_taken = True
-        if wait:
-            self._wait_for_state('acquire:exec')
-            self._wait_for_state('idle')
+        if not self._bg_taken:
+            self._wait_in_state('acquire:queue')
+            self._wait_in_state('acquire:exec')
+            self.background_cmd.put(1)
+            self._bg_taken = True
+            if wait:
+                self._wait_for_state('acquire:exec')
+                self._wait_for_state('idle')
                         
             
 

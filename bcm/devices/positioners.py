@@ -16,7 +16,7 @@ class MotorException(PositionerException):
 class PositionerBase(gobject.GObject):
     __gsignals__ =  { 
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
+        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         }  
 
     def __init__(self):
@@ -36,10 +36,13 @@ class PositionerBase(gobject.GObject):
     def get_position(self):
         return 0.0
     
+    def get_name(self):
+        return self.name
+
 class MotorBase(gobject.GObject):
     __gsignals__ =  { 
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
+        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         "moving": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
         "health": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
         }  
@@ -80,6 +83,8 @@ class MotorBase(gobject.GObject):
             is_healthy = True
         gobject.idle_add(self.emit, 'health', is_healthy)
 
+    def get_name(self):
+        return self.name
 
     
 class Motor(MotorBase):

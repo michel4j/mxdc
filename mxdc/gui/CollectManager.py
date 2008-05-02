@@ -153,8 +153,9 @@ class CollectManager(gtk.HBox):
                 data = self.run_data[key]
                 keystr = "%s" % key
                 config[keystr] = data
+                res = self.beamline.image_server.create_folder(data['directory'])
                 try:
-                    self.beamline.image_server.create_folder(data['directory'])
+                    assert(res == True)
                 except:
                     msg_title = 'Image Syncronization Server Error'
                     msg_sub = 'MXDC could not successfully connect to the Image Synchronization Server. '
@@ -162,17 +163,20 @@ class CollectManager(gtk.HBox):
                     warning(msg_title, msg_sub)
             config.write()
 
-    def config_user(self, dir_list):
+    def config_user(self):
         username = os.environ['USER']
         userid = os.getuid()
         groupid = os.getgid()
+        res = self.beamline.image_server.set_user( username, userid, groupid )
         try:
-            self.beamline.image_server.set_user( username, userid, groupid )
+            assert(res==True)
+            return True
         except:
             msg_title = 'Image Syncronization Server Error'
             msg_sub = 'MXDC could not successfully connect to the Image Synchronization Server. '
             msg_sub += 'Data collection can not proceed reliably without the server up and running.'
             warning(msg_title, msg_sub)
+            return False
 
 
     def __add_item(self, item):
@@ -331,7 +335,6 @@ class CollectManager(gtk.HBox):
                                 'distance': run['distance'],
                                 'prefix': run['prefix'],
                                 'two_theta': run['two_theta'],
-                                #'remote_directory': run['remote_directory'],
                                 'directory': run['directory']
                             }
                             self.run_list.append(list_item)
@@ -367,7 +370,6 @@ class CollectManager(gtk.HBox):
                 for index in existlist:
                     old_name = "%s/%s" % (self.run_list[index]['directory'], self.run_list[index]['file_name']) 
                     new_name = old_name + '.bk'
-                    LogServer.log("Renaming existing file '%s' to '%s'" % (old_name, new_name)) 
                     os.rename(old_name, new_name)
                 return True
             else:
@@ -479,14 +481,7 @@ class CollectManager(gtk.HBox):
     def start_collection(self):
         self.start_time = time.time()
         self.create_runlist()
-        try:
-            self.config_user()
-        except:
-            msg_title = 'Image Syncronization Server not found'
-            msg_sub = 'MXDC could not successfully connect to the Image Synchronization server. '
-            msg_sub += 'Data collection can not proceed reliably without the server up and running.'
-            warning(msg_title, msg_sub)
-        else:
+        if self.config_user():
             if self.check_runlist():
                 self.progress_bar.busy_text("Starting data collection...")
                 self.collector.setup(self.run_list, skip_collected=True)

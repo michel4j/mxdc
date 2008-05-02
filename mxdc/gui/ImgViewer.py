@@ -295,7 +295,6 @@ class ImgViewer(gtk.VBox):
         return new_img
                         
     def poll_for_file(self):
-        self.log("%d images in queue" % len(self.image_queue) )
         if len(self.image_queue) == 0:
             if self.collecting_data == True:
                 return True
@@ -341,6 +340,7 @@ class ImgViewer(gtk.VBox):
     def show_detector_image(self, filename):
         if self.collecting_data and self.follow_frames:
             self.image_queue.append(filename)
+            self.log("%d images in queue" % len(self.image_queue) )
         return True     
         
     def zooming_lens(self,Ox,Oy,src_size = 30, zoom_level = 4):
