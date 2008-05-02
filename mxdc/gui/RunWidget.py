@@ -382,14 +382,6 @@ class RunWidget(gtk.VBox):
         self.check_changes()
         return False
     
-    def on_distance_changed(self,widget,event=None):
-        try:
-            distance = float(self.entry['distance'].get_text())
-        except:
-            distance = 150.0            
-        self.entry['distance'].set_text('%0.2f' % distance)
-        self.check_changes()
-        return False
 
     def on_start_angle_changed(self,widget,event=None):
         try:
@@ -484,12 +476,51 @@ class RunWidget(gtk.VBox):
         return False
 
     def on_two_theta_changed(self,widget,event=None):
+        distance = float(self.entry['distance'].get_text())    
         try:
             two_theta = float(self.entry['two_theta'].get_text())    
         except:
             two_theta = 0.0
 
+        if distance <= 170.0:
+            tt_max = (14.0/70.0) * (distance - 100.0) + 20.0
+        elif distance <= 850 :
+            tt_max = (-16.0/680.0) * (distance - 170.0) + 34.0
+        else:
+            tt_max = 0.0
+
+        if two_theta > tt_max: two_theta = tt_max
         self.entry['two_theta'].set_text('%0.2f' % two_theta) 
+        self.check_changes()
+        return False
+
+    def on_distance_changed(self,widget,event=None):
+        two_theta = float(self.entry['two_theta'].get_text())    
+        try:
+            distance = float(self.entry['distance'].get_text())
+        except:
+            distance = 150.0
+
+        if two_theta <= 20.0:
+            d_min = 100.0
+        elif two_theta <= 34.0:
+            d_min = (70.0/14.0) * (two_theta - 20.0) + 100.0
+        else:
+            d_min = 100.0
+
+        if two_theta == 0:
+            d_max = 1000.0
+        elif two_theta <= 18.0:
+            d_max = 850.0
+        elif two_theta <= 34.0:
+            d_max = (680/-16.0) * (two_theta - 18.0) + 850.0
+        else:
+            d_max = 1000.0
+
+        if distance < d_min:  distance = d_min
+        if distance > d_max:  distance = d_max
+          
+        self.entry['distance'].set_text('%0.2f' % distance)
         self.check_changes()
         return False
         

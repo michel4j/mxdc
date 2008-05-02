@@ -6,20 +6,20 @@ from ActiveWidgets import *
 class StatusPanel(gtk.VBox):
     def __init__(self, beamline):
         gtk.VBox.__init__(self,False,0)
-        self.layout_table = gtk.Table(1,10,True)
+        self.layout_table = gtk.Table(1,8,True)
         self.layout_table.set_col_spacings(4)
         self.layout_table.set_border_width(1)
 
         self.clock = gtk.Label()                        
         self.layout_table.attach(self.__frame_control('',self.clock, gtk.SHADOW_ETCHED_IN), 10, 11 , 0, 1)
 
-        self.intensity = VariableLabel(beamline.ring_current, format="%8.1f")
+        self.intensity = VariableLabel(beamline.ring_current, format="%10.1f")
         self.layout_table.attach(self.__frame_control('Cur<sub>mA</sub>', self.intensity, gtk.SHADOW_IN), 9, 10 , 0, 1)
         
-        self.intensity = VariableLabel(beamline.i1, format="%8.4g")
+        self.intensity = VariableLabel(beamline.i1, format="%10.2g")
         self.layout_table.attach(self.__frame_control('I1<sub>A</sub>', self.intensity, gtk.SHADOW_IN), 8, 9 , 0, 1)
         
-        self.intensity = VariableLabel(beamline.i0, format="%8.4g")
+        self.intensity = VariableLabel(beamline.i0, format="%10.2g")
         self.layout_table.attach(self.__frame_control('I0<sub>A</sub>', self.intensity, gtk.SHADOW_IN), 7, 8 , 0, 1)
         
         gobject.timeout_add(500,self.update_clock)

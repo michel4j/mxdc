@@ -3,6 +3,7 @@ from bcm.interfaces import misc
 from bcm.protocols.ca import PV
 from bcm import utils
 import gobject
+import time
 import math
 
 class Gonio(gobject.GObject):
@@ -42,7 +43,7 @@ class Gonio(gobject.GObject):
                 
     def set_parameters(self, params):
         for key in params.keys():
-            self.settings[key].put(data[key])
+            self.settings[key].put(params[key])
     
     def scan(self, wait=True):
         self.scan_cmd.put('\x01')

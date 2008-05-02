@@ -36,7 +36,7 @@ class HutchViewer(gtk.HBox):
         ftype = filename.split('.')[-1]
         if ftype == 'jpg': 
             ftype = 'jpeg'
-        self.video_frame.save(filename, ftype)
+        self.camera.save(filename)
         
     # callbacks
     def on_save(self, obj=None, arg=None):

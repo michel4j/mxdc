@@ -67,7 +67,7 @@ class SampleViewer(gtk.HBox):
         ftype = filename.split('.')[-1]
         if ftype == 'jpg': 
             ftype = 'jpeg'
-        self.video_frame.save(filename, ftype)
+        self.camera.save(filename)
             
     def draw_cross(self, pixmap):
         x = int(self.cross_x.get_position() * self.video.scale_factor)
@@ -332,13 +332,10 @@ class SampleViewer(gtk.HBox):
     def on_save(self, obj=None, arg=None):
         img_filename = save_selector()
         if os.access(os.path.split(img_filename)[0], os.W_OK):
-            LogServer.log('Saving sample image to: %s' % img_filename)
             self.save_image(img_filename)
-        else:
-            LogServer.log("Could not save %s." % img_filename)
     
     def on_center_loop(self,widget):
-        script = Script(Scripts.center_sample)
+        script = Script(center_sample, self.beamline)
         self.side_panel.set_sensitive(False)
         script.connect('done', self.done_centering)
         script.connect('error', self.done_centering)
@@ -346,7 +343,7 @@ class SampleViewer(gtk.HBox):
         return True
               
     def on_center_crystal(self, widget):
-        script = Script(Scripts.center_sample, crystal=True)
+        script = Script(center_sample, self.beamline, crystal=True)
         self.side_panel.set_sensitive(False)
         script.connect('done', self.done_centering)
         script.connect('error', self.done_centering)
@@ -444,10 +441,8 @@ class SampleViewer(gtk.HBox):
         sin_w = math.sin(tmp_omega * math.pi / 180)
         cos_w = math.cos(tmp_omega * math.pi / 180)
         step_size = self.pixel_size * 10.0
-        if  abs(sin_w) == 1:
-            self.sample_y1.move_by( step_size * sin_w * 0.5 )
-        elif abs(cos_w) == 1:
-            self.sample_y2.move_by( -step_size * cos_w * 0.5 )   
+        self.sample_y1.move_by( step_size * sin_w * 0.5 )
+        self.sample_y2.move_by( -step_size * cos_w * 0.5 )   
         return True
         
     def on_fine_down(self,widget):
@@ -455,10 +450,8 @@ class SampleViewer(gtk.HBox):
         sin_w = math.sin(tmp_omega * math.pi / 180)
         cos_w = math.cos(tmp_omega * math.pi / 180)
         step_size = self.pixel_size * 10.0
-        if  abs(sin_w) == 1:
-            self.sample_y1.move_by( -step_size * sin_w * 0.5 )
-        elif abs(cos_w) == 1:
-            self.sample_y2.move_by( step_size * cos_w * 0.5 )
+        self.sample_y1.move_by( -step_size * sin_w * 0.5 )
+        self.sample_y2.move_by( step_size * cos_w * 0.5 )
         return True
         
     def on_fine_left(self,widget):
@@ -472,6 +465,7 @@ class SampleViewer(gtk.HBox):
         return True
         
     def on_home(self,widget):
+        self.sample_x.move_to( 0.0 )
         return True
                 
     

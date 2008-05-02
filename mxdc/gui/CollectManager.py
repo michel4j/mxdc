@@ -131,6 +131,10 @@ class CollectManager(gtk.HBox):
                 run = int(section)
                 data[run] = config[section]
                 self.add_run(data[run])
+        self.beamline.energy.connect('changed', self.on_energy_changed)
+        data = self.run_manager.runs[0].get_parameters()
+        data['energy'] = [ self.beamline.energy.get_position() ]
+        self.run_manager.runs[0].set_parameters(data)
 
     def __save_config(self):
         config_dir = os.environ['HOME'] + '/.mxdc'
@@ -158,7 +162,7 @@ class CollectManager(gtk.HBox):
                     warning(msg_title, msg_sub)
             config.write()
 
-    def config_user(self):
+    def config_user(self, dir_list):
         username = os.environ['USER']
         userid = os.getuid()
         groupid = os.getgid()
@@ -462,6 +466,12 @@ class CollectManager(gtk.HBox):
         text = "ETA: %s" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)))
         self.progress_bar.set_complete(fraction, text)
                 
+    def on_energy_changed(self, obj, val):
+        run_zero = self.run_manager.runs[0]
+        data = run_zero.get_parameters()
+        data['energy'] = [ val ]
+        run_zero.set_parameters(data)
+
     def update_values(self,dict):        
         for key in dict.keys():
             self.labels[key].set_text(dict[key])

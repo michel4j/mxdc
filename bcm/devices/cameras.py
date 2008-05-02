@@ -30,13 +30,13 @@ class CameraBase(gobject.GObject):
     
     def save(self, filename):
         if self.frame is None:
-            self.log('No image available to save')
+            self._log('No image available to save')
         else:
             try:
-                img = ImageOps.autocontrast(self.frame)
+                img = ImageOps.autocontrast(self.get_frame())
                 img.save(filename)
             except:
-                self.log('Could not save image: %s' % filename)
+                self._log('Could not save image: %s' % filename)
     
     
                  
@@ -114,13 +114,16 @@ class AxisCamera(CameraBase):
         self.url = 'http://%s/jpg/image.jpg' % hostname
         self.controller = AxisController(hostname)
         self.update()
-        gobject.timeout_add(150, self.update)
-        
+        gobject.timeout_add(100, self.update)
+
     def update(self, obj=None):
-        img_file = urllib.urlopen(self.url)
-        img_str = cStringIO.StringIO(img_file.read())
-        self.frame = Image.open(img_str)
-        self.size = self.frame.size
+        try:
+            img_file = urllib.urlopen(self.url)
+            img_str = cStringIO.StringIO(img_file.read())
+            self.frame = Image.open(img_str)
+            self.size = self.frame.size
+        except:
+            self._log('Error fetching frame')
         return True
 
         
