@@ -154,7 +154,7 @@ class Scanner(ScannerBase):
             gobject.idle_add(self.emit, "aborted")
             gobject.idle_add(self.emit, "progress", 0.0 )
         else:
-            #self.save()
+            self.save()
             gobject.idle_add(self.emit, "done")
             gobject.idle_add(self.emit, "progress", 1.0 )               
         
@@ -204,29 +204,30 @@ class ExcitationScanner(ScannerBase):
         self.time = time
         self.edge_energy = energy
         self.filename = output
+        self.beamline.mca.set_cooling(True)
                 
     def run(self):
         ca.thread_init()
         gobject.idle_add(self.emit, 'started')
         
-        if not self.beamline.mca.is_cool():
-            self.beamline.mca.set_cooling(True)
         self.beamline.energy.move_to(self.edge_energy, wait=True)
         self.beamline.mca.set_channel_roi()
-        self.beamline.shutter.open()
         
+        self.beamline.shutter.open()
+        self.x_data_points, self.y_data_points = self.beamline.mca.acquire(t=self.time)
+        self.beamline.shutter.close()
+        self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
+        assign_peaks(self.peaks)
+        self.save()
         try:
-            self.x_data_points, self.y_data_points = self.beamline.mca.acquire(t=self.time)
-            self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
-            assign_peaks(self.peaks)
-            self.save()
             gobject.idle_add(self.emit, "done")
             gobject.idle_add(self.emit, "progress", 1.0 )
+
         except:
+            self.beamline.shutter.close()
             gobject.idle_add(self.emit, "error")
             gobject.idle_add(self.emit, "progress", 1.0 )
             
-        self.beamline.shutter.close()
 
     def save(self, filename = None):
         if filename:
@@ -266,6 +267,7 @@ class MADScanner(ScannerBase):
         self.time = count_time
         self.filename = output
         self.beamline.mca.set_energy(emission)
+        self.beamline.mca.set_cooling(True)
         
     def calc_targets(self):
         energy = self.energy
@@ -323,7 +325,6 @@ class MADScanner(ScannerBase):
         if not self.beamline.mca.is_cool():
             self.beamline.mca.set_cooling(True)
         self.beamline.energy.move_to(self.energy, wait=True)   
-        self.beamline.mca.set_energy( scan_parameters['emission'] )
         
         self.normalizer = Normalizer(self.beamline.i0)
         self.normalizer.set_time(self.time)
@@ -346,7 +347,7 @@ class MADScanner(ScannerBase):
             self.x_data_points.append( x )
             self.y_data_points.append( y )
             
-            fraction = float(self.count) / len(self.positioner_targets)
+            fraction = float(self.count) / len(self.energy_targets)
             self.log("%4d %15g %15g %15g" % (self.count, x, y, f))
             gobject.idle_add(self.emit, "new-point", x, y )
             gobject.idle_add(self.emit, "progress", fraction )
@@ -360,7 +361,7 @@ class MADScanner(ScannerBase):
             gobject.idle_add(self.emit, "aborted")
             gobject.idle_add(self.emit, "progress", 0.0 )
         else:
-            #self.save()
+            self.save()
             gobject.idle_add(self.emit, "done")
             gobject.idle_add(self.emit, "progress", 1.0 )
 

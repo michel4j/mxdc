@@ -1,6 +1,7 @@
 import scipy
 from scipy import optimize, array, exp
- 
+from matplotlib.mlab import slopes
+
 def _res(p, y, x):
     vals = gaussian(x,p)
     err=(y-vals)

@@ -6,6 +6,7 @@ from LogView import LogView
 from Plotter import Plotter
 from Dialogs import *
 from bcm.tools.scanning import MADScanner, ExcitationScanner
+from bcm.tools import fitting
 from bcm.tools.AutoChooch import AutoChooch
 
 class ScanManager(gtk.HBox):
@@ -195,17 +196,16 @@ class ScanManager(gtk.HBox):
         self.scan_control.progress_bar.busy_text('Performing Excitation Scan...')
         return True
 
-    def on_excitation_done(self, object):
-
+    def on_excitation_done(self, obj):
         self.scan_control.start_btn.set_sensitive(True)
-        x = object.x_data_points
-        y = smooth(object.y_data_points, 20,1)
+        x = obj.x_data_points
+        y = fitting.smooth(obj.y_data_points, 20 , 1)
         self.plotter.set_labels(title='Excitation Scan',x_label='Energy (keV)',y1_label='Fluorescence')
         self.plotter.add_line(x,y,'r-')
         self.scan_book.set_current_page( self.plotter_page )
         maxy = max(y)
         tick_size = maxy/30.0
-        peaks = object.peaks
+        peaks = obj.peaks
         self.log_view.clear()
         fontpar = {
             "family" :"monospace",
