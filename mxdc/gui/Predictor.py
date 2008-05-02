@@ -53,7 +53,7 @@ class Predictor( gtk.AspectFrame ):
     def display(self, widget=None):
         self.axis.clear()
         self.axis.set_axis_off()
-        normFunction = normalize(-1, 5)
+        normFunction = normalize(-3, 5)
         cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1, cmap=cm.hot_r, norm=normFunction)
         #cntr = self.axis.contour(self.xp, self.yp, self.Z, 16)
         self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)        

@@ -58,11 +58,14 @@ class MotorBase(gobject.GObject):
         msg = "%s: %s" % (nm, message)
         gobject.idle_add(self.emit, 'log', msg)
 
+    def _on_log(self, obj, msg):
+        self._log(msg)
+
     def _signal_move(self, obj, state):
-        if state == 0:
-            is_moving = False
-        else:
+        if state == 1:
             is_moving = True
+        else:
+            is_moving = False
         gobject.idle_add(self.emit, 'moving', is_moving)
         if not is_moving:
             self._log( "stopped at %g %s" % (self.get_position(), self.units) )
@@ -115,7 +118,9 @@ class Motor(MotorBase):
             self.STAT = PV("%s:status" % self.name)
             self.MOVN = self.STAT
             self.STOP = PV("%s:stop" % self.name)
-            self.CALIB = PV("%s:calibDone" % (self.name)) 
+            self.CALIB = PV("%s:calibDone" % (self.name))
+            self.LOG = PV("%s:log" % (self.name))
+            self.LOG.connect('changed', self._on_log)
                 
         # connect monitors
         self.VAL.connect('changed', self._signal_request)
@@ -136,7 +141,7 @@ class Motor(MotorBase):
         else:
             self.CALIB.put(0)
             
-    def move_to(self, target, wait=True):
+    def move_to(self, target, wait=False):
         if self.get_position() == target:
             return
         if not self.is_healthy():
@@ -147,7 +152,7 @@ class Motor(MotorBase):
         if wait:
             self.wait(start=True, stop=True)
 
-    def move_by(self,val, wait=True):
+    def move_by(self,val, wait=False):
         if val == 0.0:
             return
         self._log( "relative move by %g %s requested" % (val, self.units) )
@@ -170,12 +175,14 @@ class Motor(MotorBase):
         self.STOP.put(1)
     
     def wait(self, start=True, stop=True):
-        poll=0.01
+        poll=0.05
+        timeout = 0.5
         tstart = time.time()
         if (start):
             self._log('Waiting to start moving')
-            while not self.is_moving():
-                time.sleep(poll)                               
+            while not self.is_moving() and timeout > 0:
+                time.sleep(poll)
+                timeout -= poll                               
         if (stop):
             self._log('Waiting to stop moving')
             while self.is_moving():
@@ -206,11 +213,11 @@ class Positioner(PositionerBase):
         self.units = ""
         self.PV.connect('changed', self._signal_change)
         
-    def move_to(self, target, wait=True):
+    def move_to(self, target, wait=False):
         self._log('moving to %s' % (target))
         self.PV.put(target)
 
-    def move_by(self, value, wait=True):
+    def move_by(self, value, wait=False):
         cur_position = self.get_position()
         self._log('relative move of %g requested' % (value))
         self.move_to(cur_position + value, wait)
@@ -252,7 +259,7 @@ class energyMotor(MotorBase):
         else:
             self.CALIB.put(0)
             
-    def move_to(self, target, wait=True):
+    def move_to(self, target, wait=False):
         if self.get_position() == target:
             return
         if not self.is_healthy():
@@ -264,7 +271,7 @@ class energyMotor(MotorBase):
         if wait:
             self.wait(start=True,stop=True)
 
-    def move_by(self,val, wait=True):
+    def move_by(self,val, wait=False):
         if val == 0.0:
             return
         self._log( "relative move by %g %s requested" % (val, self.units) )
@@ -287,11 +294,14 @@ class energyMotor(MotorBase):
         self.STOP.put(1)
 
     def wait(self, start=True, stop=True):
-        poll=0.01
+        poll = 0.05
+        timeout = 0.5
+        tstart = time.time()
         if (start):
-            self._log( 'Waiting to start moving' )
-            while not self.is_moving():
-                time.sleep(poll)                               
+            self._log('Waiting to start moving')
+            while not self.is_moving() and timeout > 0:
+                time.sleep(poll)
+                timeout -= poll                               
         if (stop):
             self._log( 'Waiting to stop moving' )
             while self.is_moving():
@@ -325,7 +335,7 @@ class Attenuator(PositionerBase):
             attenuation = 1.0
         return attenuation*100.0
     
-    def move_to(self, target, wait=True):
+    def move_to(self, target, wait=False):
         e = self.energy.get()
         if target > 99.9:
             target = 99.9
@@ -341,7 +351,7 @@ class Attenuator(PositionerBase):
         self._log('moving to %g %s' % (target, self.units))
         self._log('requested filter states is"%s"' % bitmap)
     
-    def move_by(self, value, wait=True):
+    def move_by(self, value, wait=False):
         target = value + self.get_position()
         self.move_to(target, wait)
         

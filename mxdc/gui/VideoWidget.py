@@ -43,7 +43,7 @@ class VideoTransformer(gobject.GObject):
         while not self._stopped:
             if self.camera.get_frame() is None: continue
             while self._paused and not self._stopped:
-                time.sleep(0.5)
+                time.sleep(0.1)
                 
             if count % 100 == 0:
                 start_time = time.time()
@@ -123,11 +123,11 @@ class VideoWidget(gtk.DrawingArea):
     def on_realized(self, obj):
         self.gc = self.window.new_gc()
         self.pl_gc = self.window.new_gc()
-        self.pl_gc.foreground = self.get_colormap().alloc_color("green")
+        self.pl_gc.foreground = self.get_colormap().alloc_color("blue")
         self.ol_gc = self.window.new_gc()
         self.ol_gc.foreground = self.get_colormap().alloc_color("green")
         self.ol_gc.set_function(gtk.gdk.XOR)
-        self.ol_gc.set_line_attributes(2,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
+        self.ol_gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
         self.banner_pl = self.create_pango_layout("")
         self.banner_pl.set_font_description(pango.FontDescription("Monospace 9"))
         self.transformer.start()

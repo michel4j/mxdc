@@ -41,7 +41,11 @@ class PositionerEntry(gtk.Frame):
         self.running = False
         self.width = width
         self.format = format
-        
+
+        if self.positioner.units != "":
+            label = '%s (%s)' % (label, self.positioner.units)
+        self.set_label(label)
+
         # Set default values from device
         self.set_current( self.positioner.get_position() )
         self.set_target( self.positioner.get_position() )

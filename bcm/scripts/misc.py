@@ -25,7 +25,7 @@ def center_sample(bl, crystal=False):
     
     # determine direction based on current omega
     angle = bl.omega.get_position()
-    if angle % 360 > 180:
+    if angle >  270:
         direction = -1.0
     else:
         direction = 1.0
@@ -86,8 +86,8 @@ def center_sample(bl, crystal=False):
     ymm = y_offset * pixel_size
 
     bl.sample_x.move_by( -xmm )
-    bl.sample_y1.move_by( -ymm * sin_w  )
-    bl.sample_y2.move_by( ymm * cos_w  )
+    bl.sample_y.move_by( -ymm * sin_w  )
+    bl.sample_z.move_by( ymm * cos_w  )
         
     bl.log('Loop centering cleaning up ...')
     for angle,img in imglist:

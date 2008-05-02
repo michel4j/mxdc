@@ -6,6 +6,9 @@ from bcm.protocols import ca
 class Error(Exception):
     def __init__(self, msg):
         self.message = msg
+
+    def __str__(self):
+        return self.message
                 
 class Script(gobject.GObject):
     __gsignals__ = {}
@@ -27,12 +30,12 @@ class Script(gobject.GObject):
                  
     def _run(self):
         ca.thread_init()
-        try:
-            if self.func:
-                self.func(*self.args, **self.kw)
-            gobject.idle_add(self.emit, "done")
-        except:
-            raise Error("Script '%s' failed!" % str(self.func).split()[1] )
-            gobject.idle_add(self.emit, "error")
+#        try:
+        if self.func:
+            self.func(*self.args, **self.kw)
+        gobject.idle_add(self.emit, "done")
+#        except:
+#            raise Error("Script failed!" )
+#            gobject.idle_add(self.emit, "error")
         
 gobject.type_register(Script)

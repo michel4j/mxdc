@@ -4,6 +4,7 @@ import sys, time, os
 import gtk, gobject
 import threading
 from bcm.protocols import ca
+from bcm import utils
 
 class DataCollector(gobject.GObject):
     __gsignals__ = {}
@@ -83,7 +84,7 @@ class DataCollector(gobject.GObject):
             header['distance'] = frame['distance'] 
             header['time'] = frame['time']
             header['frame_number'] = frame['frame_number']
-            header['wavelength'] = keVToA(frame['energy'])
+            header['wavelength'] = utils.energy_to_wavelength(frame['energy'])
             header['energy'] = frame['energy']
             header['prefix'] = frame['prefix']
             header['start_angle'] = frame['start_angle']
@@ -103,7 +104,7 @@ class DataCollector(gobject.GObject):
                 'delta' : frame['delta'],
                 'start_angle': frame['start_angle'],                
             }
-            self.gonio.set_params(gonio_data)
+            self.gonio.set_parameters(gonio_data)
             self.detector.start()            
             self.detector.set_parameters(header)
             self.gonio.scan()
