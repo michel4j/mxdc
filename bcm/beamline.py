@@ -5,6 +5,7 @@ from bcm.protocols import ca
 from bcm.utils import gtk_idle
 from ConfigParser import ConfigParser
 import string
+import xmlrpclib
 
 _DEVICE_MAP = {
     'clsmotors': positioners.clsMotor,
@@ -23,7 +24,8 @@ _DEVICE_MAP = {
     'energymotors': positioners.energyMotor,
     'attenuators': positioners.Attenuator,
     'energymotor': positioners.energyMotor,
-    'variables': ca.PV
+    'variables': ca.PV,
+    'webservices': xmlrpclib.ServerProxy
     }
 
 
