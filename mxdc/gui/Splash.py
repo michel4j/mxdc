@@ -18,6 +18,7 @@ class Splash(object):
 
         vbox = gtk.VBox(False,0)
         hbox = gtk.HBox(False, 0)
+        hbox.set_border_width(20)
 
         self.pbar = LinearProgress()
         self.pbar.set_size_request(0,10)
