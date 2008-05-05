@@ -52,7 +52,6 @@ class Splash(object):
         
     def on_progress(self, obj, frac):
         self.pbar.set_fraction(frac)
-        print frac
     
     def on_log(self, obj, text):
         self.log.set_text(text)
