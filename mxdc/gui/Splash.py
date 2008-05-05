@@ -48,7 +48,7 @@ class Splash(object):
         self.startup_obj.connect('log', self.on_log)
         
     def hide(self):
-        self.win.hide_all()
+        gobject.timeout_add(2000, self.win.hide_all)
         
     def on_progress(self, obj, frac):
         self.pbar.set_fraction(frac)
