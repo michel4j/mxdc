@@ -268,31 +268,38 @@ class ActiveProgressBar(gtk.ProgressBar):
 class LinearProgress(gtk.DrawingArea):
     def __init__(self):
         gtk.DrawingArea.__init__(self)
-        self.app_paintable = True
+        self.set_app_paintable(True)
         self.fraction = 0.0
-        self.bar_gc = None
+        self.bar_gc = None 
+        self.connect('expose-event', self.on_expose)
         self.queue_draw()
-        
-    def on_expose(self, event):
+           
+    
+    def on_expose(self, obj, event):
         if self.bar_gc is None:
-            self.bar_gc = self.window.new_gc()
-            self.bar_gc.background = self.get_colormap().alloc_color("white")
-            self.bar_gc.foreground = self.get_colormap().alloc_color("blue")
+            obj.window.clear()
+            self.bar_gc = obj.window.new_gc()
+        style = self.get_style()
+        self.bar_gc.foreground = style.bg[gtk.STATE_PRELIGHT]
+        
         self.draw_gdk()
         return False
-    
+
     def draw_gdk(self):
-        allocation = self.get_allocation()
-        bar_width = int( allocation.width * self.fraction - 3.0)
+        self.window.set_back_pixmap(None, True)
+        bar_width = int(self.allocation.width * self.fraction - 3.0)       
+        self.window.draw_rectangle(self.bar_gc, False, 0, 0, self.allocation.width-1,
+            self.allocation.height-1)
         if bar_width > 0:
-            self.window.draw_rectangle(self.bar_gc, true, 2, 2, bar_width, allocation.height - 4)
-    
+            self.window.draw_rectangle(self.bar_gc, True, 2, 2, bar_width-1, 
+                self.allocation.height - 4)
+             
+    def set_fraction(self, fraction):
+        self.fraction = max(0.0, min(1.0, fraction))
+        self.queue_draw()
+
     def get_fraction(self):
         return self.fraction
-    
-    def set_fraction(self, frac):
-        self.fraction = max(0.0, min(1.0, value))
-        self.queue_draw()
         
         
         
