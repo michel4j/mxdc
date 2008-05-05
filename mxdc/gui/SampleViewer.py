@@ -39,7 +39,7 @@ class SampleViewer(gtk.HBox):
         self.on_change() #initialize display variables
         self.create_widgets()
         
-        self._tick_size = 5
+        self._tick_size = 8
         self._gonio_state = 0
         
         # initialize measurement variables
