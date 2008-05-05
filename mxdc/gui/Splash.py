@@ -5,12 +5,13 @@ from ActiveWidgets import LinearProgress
 class Splash(object):
     def __init__(self, image, startup_obj, icon=None, logo=None):
         self.win = gtk.Window()
-        self.win.set_size_request(480,290)
+        #self.win.set_size_request(480,290)
         self.win.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
         #self.win.set_gravity(gtk.gdk.GRAVITY_CENTER)
 
         pixbuf = gtk.gdk.pixbuf_new_from_file(image)
         pixmap, mask = pixbuf.render_pixmap_and_mask()
+        width, height = pixmap.get_size()
         self.win.set_app_paintable(True)
         self.win.resize(width, height)
         self.win.realize()
