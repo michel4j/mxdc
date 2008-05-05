@@ -70,7 +70,7 @@ class PX(BeamlineBase):
         sec_step = 1.0 / len(config.sections())
         frac_complete = 0.0
         for section in config.sections():
-            item_step = sec_step / (1+len(config.options(section)))
+            item_step = sec_step / (len(config.options(section)))
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
                 for item in config.options(section):
