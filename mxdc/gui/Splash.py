@@ -15,7 +15,7 @@ class Splash(object):
         self.win.set_app_paintable(True)
         self.win.resize(width, height)
         self.win.realize()
-        self.win.set_back_pixmap(pixmap, False)
+        self.win.window.set_back_pixmap(pixmap, False)
 
         vbox = gtk.VBox(False,0)
         hbox = gtk.HBox(False, 0)
