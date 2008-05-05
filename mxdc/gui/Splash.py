@@ -20,7 +20,7 @@ class Splash(object):
         hbox = gtk.HBox(False, 0)
 
         self.pbar = LinearProgress()
-        self.pbar.set_size_request(0,8)
+        self.pbar.set_size_request(0,10)
         self.log = gtk.Label()
         self.log.modify_fg( gtk.STATE_NORMAL, self.log.get_style().fg[gtk.STATE_SELECTED])
         self.log.set_alignment(0,0.5)
@@ -35,6 +35,10 @@ class Splash(object):
         vbox.pack_start(hbox)
         vbox.pack_end(self.pbar, expand=False, fill=False)
         vbox.pack_end(self.log, expand=False, fill=False)
+        vers = gtk.Label('Revision 366')
+        vers.set_alignment(0,0.5)
+        vers.modify_fg(gtk.STATE_NORMAL, vers.get_style().fg[gtk.STATE_SELECTED])
+        vbox.pack_end(vers, expand=False, fill=False)
         vbox.set_spacing(4)
         vbox.set_border_width(16)
         
