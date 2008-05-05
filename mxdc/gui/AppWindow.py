@@ -1,5 +1,5 @@
 import gtk, gobject
-import sys
+import sys, os
 
 from CollectManager import CollectManager
 from StatusPanel import StatusPanel
@@ -11,6 +11,9 @@ class AppWindow:
     def __init__(self, beamline):
         self.win = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.win.set_position(gtk.WIN_POS_CENTER)
+        icon_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/icon.png'
+        pixbuf = gtk.gdk.pixbuf_new_from_xpm_data(icon_file)
+        self.win.set_icon (pixbuf)
         
         self.beamline = beamline
         

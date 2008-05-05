@@ -9,15 +9,19 @@ from bcm.beamline import PX
 
 class AppClass(object):
     def __init__(self):
-        self.img_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/splash.png'
+        img_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/splash.png'
+        logo_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/logo.png'
+        icon_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/icon.png'
         self.beamline = PX('08id1.conf')
-        self.splash = Splash(self.img_file, self.beamline)
+        self.splash = Splash(img_file, self.beamline,
+            icon=icon_file, logo=logo_file)
         gobject.idle_add(self.run)
                  
     def run(self):
         self.beamline.setup()
         self.splash.hide()
         self.main_window = AppWindow(self.beamline)
+        
         return False
 
 if __name__ == "__main__":
