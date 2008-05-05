@@ -31,7 +31,7 @@ class Splash(object):
         if logo:
             self.logo.set_from_file(logo)
         hbox.pack_start(self.icon)
-        hbox.pack_start(self.logo)
+        hbox.pack_start(self.logo, expand=False, fill=False)
         vbox.pack_start(hbox)
         vbox.pack_end(self.pbar, expand=False, fill=False)
         vbox.pack_end(self.log, expand=False, fill=False)
