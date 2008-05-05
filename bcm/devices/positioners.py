@@ -174,7 +174,7 @@ class Motor(MotorBase):
                 return False
     
     def is_healthy(self):
-        return (self.CALIB.get() == 1) and (self.STAT.get() != 4)
+        return (self.CALIB.get() == 1) #and (self.STAT.get() != 4)
                                  
     def stop(self):
         self.STOP.put(1)
