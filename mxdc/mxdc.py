@@ -14,7 +14,7 @@ class AppClass(object):
         icon_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/icon.png'
         self.beamline = PX('08id1.conf')
         self.splash = Splash(img_file, self.beamline,
-            icon=icon_file, logo=logo_file, color='#d3a5e7')
+            icon=icon_file, logo=logo_file, color='#ead3f4')
         gobject.idle_add(self.run)
                  
     def run(self):
