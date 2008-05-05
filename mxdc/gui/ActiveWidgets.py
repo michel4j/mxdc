@@ -273,14 +273,18 @@ class LinearProgress(gtk.DrawingArea):
         self.bar_gc = None 
         self.connect('expose-event', self.on_expose)
         self.queue_draw()
+        self.color_spec = None
            
     
     def on_expose(self, obj, event):
         if self.bar_gc is None:
             obj.window.clear()
             self.bar_gc = obj.window.new_gc()
-        style = self.get_style()
-        self.bar_gc.foreground = style.bg[gtk.STATE_PRELIGHT]
+            style = self.get_style()
+            if self.color_spec:
+                self.bar_gc.foreground = self.get_colormap().alloc_color(self.color_spec)
+            else:
+                self.bar_gc.foreground = style.bg[gtk.STATE_PRELIGHT]
         
         self.draw_gdk()
         return False
@@ -300,6 +304,9 @@ class LinearProgress(gtk.DrawingArea):
 
     def get_fraction(self):
         return self.fraction
+    
+    def set_color(self, spec):
+        self.color_spec = spec
         
         
         

@@ -3,7 +3,7 @@ import sys, os
 from ActiveWidgets import LinearProgress
 
 class Splash(object):
-    def __init__(self, image, startup_obj, icon=None, logo=None):
+    def __init__(self, image, startup_obj, icon=None, logo=None, color=None):
         self.win = gtk.Window()
         self.win.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
         self.win.set_gravity(gtk.gdk.GRAVITY_CENTER)
@@ -21,9 +21,10 @@ class Splash(object):
         hbox.set_border_width(50)
 
         self.pbar = LinearProgress()
+        self.pbar.set_color(color)
         self.pbar.set_size_request(0,10)
         self.log = gtk.Label()
-        self.log.modify_fg( gtk.STATE_NORMAL, self.log.get_style().fg[gtk.STATE_SELECTED])
+        self.log.modify_fg( gtk.STATE_NORMAL, self.log.get_colormap().alloc_color(color) )
         self.log.set_alignment(0,0.5)
         self.icon = gtk.Image()
         self.logo = gtk.Image()
@@ -38,7 +39,7 @@ class Splash(object):
         vbox.pack_end(self.log, expand=False, fill=False)
         vers = gtk.Label('Version 2.0')
         vers.set_alignment(0,0.5)
-        vers.modify_fg(gtk.STATE_NORMAL, vers.get_style().fg[gtk.STATE_SELECTED])
+        vers.modify_fg( gtk.STATE_NORMAL, vers.get_colormap().alloc_color(color) )
         vbox.pack_end(vers, expand=False, fill=False)
         vbox.set_spacing(4)
         vbox.set_border_width(16)
