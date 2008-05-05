@@ -22,6 +22,7 @@ class Splash(object):
         self.pbar = LinearProgress()
         self.pbar.set_size_request(0,8)
         self.log = gtk.Label()
+        self.log.modify_fg( gtk.STATE_NORMAL, self.logo.get_style().fg[gtk.STATE_SELECTED])
         self.log.set_alignment(0,0.5)
         self.icon = gtk.Image()
         self.logo = gtk.Image()
