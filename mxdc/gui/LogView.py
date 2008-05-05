@@ -35,7 +35,7 @@ class LogView(gtk.Expander):
             self.text_buffer.delete(start_iter, end_iter)
         iter = self.text_buffer.get_end_iter()
         if show_time:
-            timestr =  time.strftime('%H:%M:%S ')
+            timestr =  time.strftime('%x %X ')
             self.text_buffer.insert_with_tags(iter, timestr, self.time_tag)
             self.text_buffer.insert(iter, "%s\n" % text )
         else:
