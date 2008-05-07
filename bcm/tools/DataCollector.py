@@ -14,6 +14,7 @@ class DataCollector(gobject.GObject):
     __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,))
     __gsignals__['stopped'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['log'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
+    __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     
     def __init__(self, beamline):
         gobject.GObject.__init__(self)
@@ -59,7 +60,9 @@ class DataCollector(gobject.GObject):
         self.pos = 0
         header = {}
         while self.pos < len(self.run_list) :
-                
+            if not self.detector.is_healthy():
+                self.stopped = True
+                gobject.idle_add(self.emit, 'error', 'Connection to Detector Lost!')
             if self.paused:
                 gobject.idle_add(self.emit, 'paused', True)
                 while self.paused and not self.stopped:
@@ -92,16 +95,15 @@ class DataCollector(gobject.GObject):
             # Check and prepare beamline
             if abs(self.distance.get_position() - frame['distance']) > 1e-2:
                 self.distance.move_to(frame['distance'])
+                self.distance.wait()
             if abs(self.energy.get_position() - frame['energy']) > 1e-4:
                 self.energy.move_to(frame['energy'])
+                self.energy.wait()
             if abs(self.two_theta.get_position() - frame['two_theta']) > 1e-2:
                 self.two_theta.move_to(frame['two_theta'])
+                self.two_theta.wait()
             
-            #wait for energy and distance to stop moving
-            self.distance.wait()
-            self.energy.wait()
-            self.two_theta.wait()
-           
+               
             gonio_data = {
                 'time': frame['time'],
                 'delta' : frame['delta'],

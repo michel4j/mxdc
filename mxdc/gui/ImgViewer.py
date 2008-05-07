@@ -24,7 +24,6 @@ class ImgViewer(gtk.VBox):
         self.img_frame = gtk.Viewport()
         self.img_frame.set_shadow_type(gtk.SHADOW_IN)
         self.image_canvas = gtk.Image()
-        #self.image_canvas = gtk.DrawingArea()
         self.image_canvas.connect('realize', self.on_realize)
         self.image_canvas.connect('configure-event', self.on_configure)
 
@@ -257,7 +256,7 @@ class ImgViewer(gtk.VBox):
             self.y_center = self.image_size - half_size
         return (self.x_center-half_size, self.y_center-half_size, 
                 self.x_center + half_size, self.y_center + half_size)
-        
+
     def display(self):
         mybounds = self.img_bounds()
         half_size = self.disp_size/2

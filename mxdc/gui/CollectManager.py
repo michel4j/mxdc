@@ -111,6 +111,7 @@ class CollectManager(gtk.HBox):
         self.run_manager.connect('saved', self.save_runs)
         
         self.collector.connect('done', self.on_stop)
+        self.collector.connect('error', self.on_error)
         self.collector.connect('paused',self.on_pause)
         self.collector.connect('new-image', self.on_new_image)
         self.collector.connect('stopped', self.on_stop)
@@ -428,6 +429,12 @@ class CollectManager(gtk.HBox):
         else:
             self.collect_btn.set_label('cm-pause')   
             self.collect_state = COLLECT_STATE_RUNNING
+    def on_error(self, widget, msg):
+        msg_title = msg
+        msg_sub = 'Connection to detector was lost. '
+        msg_sub += 'Data collection can not proceed reliably.'
+        error(msg_title, msg_sub)
+
 
     def on_activate(self, widget):
         if self.collect_state == COLLECT_STATE_IDLE:

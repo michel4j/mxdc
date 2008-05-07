@@ -1,4 +1,4 @@
-import gtk, gobject
+import gtk, gobject, pango
 import sys, time, os
 import math
 from Dialogs import save_selector
@@ -11,7 +11,7 @@ from bcm.protocols import ca
 class SampleViewer(gtk.HBox):
     def __init__(self, beamline):
         gtk.HBox.__init__(self,False,6)
-        
+        self.__register_icons()
         self._timeout_id = None
         self._click_centering  = False
         self._last_click_time = time.time()
@@ -59,6 +59,19 @@ class SampleViewer(gtk.HBox):
 
     def __del__(self):
         self.video.stop()
+
+    def __register_icons(self):
+        items = [('sv-save', '_Save Snapshot', 0, 0, None),]
+
+        # We're too lazy to make our own icons, so we use regular stock icons.
+        aliases = [('sv-save', gtk.STOCK_SAVE),]
+
+        gtk.stock_add(items)
+        factory = gtk.IconFactory()
+        factory.add_default()
+        for new_stock, alias in aliases:
+            icon_set = gtk.icon_factory_lookup_default(alias)
+            factory.add(new_stock, icon_set)
                                         
     def stop(self, win=None):
         self.video.stop()
@@ -116,7 +129,8 @@ class SampleViewer(gtk.HBox):
             x1, x2, y1, y2 = int(x1), int(y1), int(x2), int(y2)
             pixmap.draw_line(self.video.ol_gc, x1, x2, y1, y2)
             self.pango_layout.set_text("%5.4f mm" % dist)
-            pixmap.draw_layout(self.video.pl_gc, self.video.width -70, self.video.height - 20, self.pango_layout)      
+            w,h = self.pango_layout.get_pixel_size()
+            pixmap.draw_layout(self.video.pl_gc, self.video.width -w-4, 0, self.pango_layout)      
         else:
             self.pango_layout.set_text("")
         return True
@@ -151,7 +165,7 @@ class SampleViewer(gtk.HBox):
 
     def create_widgets(self):
         # side-panel
-        self.side_panel = gtk.VBox(False, 6)
+        self.side_panel = gtk.VBox(False, 2)
         self.set_border_width(6)
         
         # zoom section
@@ -164,13 +178,13 @@ class SampleViewer(gtk.HBox):
         zoombbox.set_border_width(3)
         zoomalign = gtk.Alignment()
         zoomalign.set(0.5,0.5,1,1)
-        zoomalign.set_padding(0,0,12,0)
+        zoomalign.set_padding(0,0,6,0)
         self.zoom_out_btn = gtk.Button()
         self.zoom_in_btn = gtk.Button()
         self.zoom_100_btn = gtk.Button()
-        self.zoom_out_btn.add( gtk.image_new_from_stock('gtk-zoom-out',gtk.ICON_SIZE_SMALL_TOOLBAR))
-        self.zoom_in_btn.add( gtk.image_new_from_stock('gtk-zoom-in',gtk.ICON_SIZE_SMALL_TOOLBAR))
-        self.zoom_100_btn.add( gtk.image_new_from_stock('gtk-zoom-100',gtk.ICON_SIZE_SMALL_TOOLBAR))
+        self.zoom_out_btn.add( gtk.image_new_from_stock('gtk-zoom-out',gtk.ICON_SIZE_MENU))
+        self.zoom_in_btn.add( gtk.image_new_from_stock('gtk-zoom-in',gtk.ICON_SIZE_MENU))
+        self.zoom_100_btn.add( gtk.image_new_from_stock('gtk-zoom-100',gtk.ICON_SIZE_MENU))
         zoombbox.attach(self.zoom_out_btn, 0, 1, 0, 1)
         zoombbox.attach(self.zoom_100_btn, 1, 2, 0, 1)
         zoombbox.attach(self.zoom_in_btn, 2,3,0,1)
@@ -192,7 +206,7 @@ class SampleViewer(gtk.HBox):
         move_sample_bbox.set_border_width(3)
         move_sample_align = gtk.Alignment()
         move_sample_align.set(0.5,0.5,1,1)
-        move_sample_align.set_padding(0,0,12,0)
+        move_sample_align.set_padding(0,0,6,0)
         self.up_btn = gtk.Button()
         self.up_btn.add(gtk.image_new_from_stock('gtk-go-up',gtk.ICON_SIZE_MENU))
         move_sample_bbox.attach(self.up_btn, 1,2,0,1)
@@ -227,7 +241,7 @@ class SampleViewer(gtk.HBox):
         move_gonio_bbox.set_border_width(3)
         move_gonio_align = gtk.Alignment()
         move_gonio_align.set(0.5,0.5,1,1)
-        move_gonio_align.set_padding(0,0,12,0)
+        move_gonio_align.set_padding(0,0,6,0)
         self.decr_90_btn = gtk.Button('-90')
         move_gonio_bbox.attach(self.decr_90_btn, 0,1,0,1)
         self.incr_90_btn = gtk.Button('+90')
@@ -251,7 +265,7 @@ class SampleViewer(gtk.HBox):
         align_bbox.set_border_width(3)
         align_align = gtk.Alignment()
         align_align.set(0.5,0.5,1,1)
-        align_align.set_padding(0,0,12,0)
+        align_align.set_padding(0,0,6,0)
         self.loop_btn = gtk.Button('Loop')
         align_bbox.attach(self.loop_btn, 0,1,0,1)
         self.crystal_btn = gtk.Button('Crystal')
@@ -266,7 +280,12 @@ class SampleViewer(gtk.HBox):
         self.crystal_btn.connect('clicked', self.on_center_crystal)
         #self.loop_btn.set_sensitive(False)
         #self.crystal_btn.set_sensitive(False)
-        
+
+        # light/save section
+        hline = gtk.HSeparator()
+        hline.set_size_request(-1,24)
+        self.side_panel.pack_start(hline, expand=False, fill=False)
+
         # status area
         self.pos_label = gtk.Label("<tt>%4d,%4d [%6.3f, %6.3f mm]</tt>" % (0,0,0,0))
         self.pos_label.set_use_markup(True)
@@ -274,25 +293,22 @@ class SampleViewer(gtk.HBox):
         
         #Video Area
         vbox2 = gtk.VBox(False,2)
-        videoframe = gtk.AspectFrame( ratio=640.0/480.0, obey_child=False)
+        videoframe = gtk.AspectFrame( ratio=640.0/480.0, obey_child=True)
         videoframe.set_shadow_type(gtk.SHADOW_IN)
         self.video = VideoWidget(self.camera)
-        self.video.set_size_request(480, 360)
+        self.video.set_size_request(400, 300)
         videoframe.add(self.video)
-        vbox2.pack_start(videoframe, expand=True, fill=True)        
-
-        pos_hbox = gtk.HBox(False,6)
-        pos_hbox.pack_end(self.pos_label,expand=True, fill=True)
-        self.save_btn = gtk.Button(stock='gtk-save')
+        self.save_btn = gtk.Button(stock='sv-save')
         self.save_btn.connect('clicked', self.on_save)
-        pos_hbox.pack_start(self.save_btn, expand=False, fill=True)
-        vbox2.pack_end(pos_hbox, expand=False, fill=False)
+        vbox2.pack_start(videoframe, expand=True, fill=True)
+        vbox2.pack_start(self.pos_label, expand=False, fill=False)
+        vbox2.pack_end(gtk.Label(), expand=True, fill=True)
         
         # Adjustment area         
         self.lighting_scale = gtk.HScale()
         self.lighting_scale.set_value_pos(gtk.POS_RIGHT)
         self.lighting_scale.set_digits(1)
-        self.lighting_scale.set_adjustment(gtk.Adjustment(self.lighting,0,10,0.1,0,0))
+        self.lighting_scale.set_adjustment(gtk.Adjustment(self.lighting,0,5, 0.1,0,0))
         self.lighting_scale.set_update_policy(gtk.UPDATE_CONTINUOUS)
         
         self.contrast_scale = gtk.HScale()
@@ -301,15 +317,16 @@ class SampleViewer(gtk.HBox):
         self.contrast_scale.set_adjustment(gtk.Adjustment(self.contrast,0,100,1,0,0))
         self.contrast_scale.set_update_policy(gtk.UPDATE_CONTINUOUS)
         
-        adjustment_box = gtk.HBox(False, 6)
+        adjustment_box = gtk.HBox(False, 2)
         adjustment_box.pack_start(gtk.Label('Lighting: '), expand=False, fill=False)
         adjustment_box.pack_start(self.lighting_scale, expand=True, fill=True)
-        adjustment_box.pack_start(gtk.Label('Contrast: '), expand=False, fill=False)
-        adjustment_box.pack_start(self.contrast_scale,expand=True, fill=True)
+        #adjustment_box.pack_start(gtk.Label('Contrast: '), expand=False, fill=False)
+        #adjustment_box.pack_start(self.contrast_scale,expand=True, fill=True)
         
         self.contrast_scale.connect('value-changed',self.on_contrast_changed)
         self.lighting_scale.connect('value-changed',self.on_lighting_changed)
-        vbox2.pack_start(adjustment_box,expand=False,fill=False)
+        self.side_panel.pack_start(adjustment_box,expand=False,fill=False)
+        self.side_panel.pack_end(self.save_btn, expand=False, fill=False)
         self.pack_end(vbox2, expand=True, fill=True)
         self.show_all()
 
@@ -323,6 +340,7 @@ class SampleViewer(gtk.HBox):
     # callbacks
     def on_realize(self, obj):
         self.pango_layout = self.video.create_pango_layout("")
+        self.pango_layout.set_font_description(pango.FontDescription('Fixed 8'))
         
     def on_change(self, obj=None, arg=None):
         self.zoom_factor = self.zoom.get_position()
@@ -331,6 +349,8 @@ class SampleViewer(gtk.HBox):
 
     def on_save(self, obj=None, arg=None):
         img_filename = save_selector()
+        if not img_filename:
+            return
         if os.access(os.path.split(img_filename)[0], os.W_OK):
             self.save_image(img_filename)
     
@@ -474,7 +494,7 @@ class SampleViewer(gtk.HBox):
         return True
         
     def on_lighting_changed(self,widget):
-        self.lighting = 0.5 * self.lighting_scale.get_value()
+        self.lighting = self.lighting_scale.get_value()
         self.light.move_to( self.lighting )
         return True
                     

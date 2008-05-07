@@ -13,11 +13,12 @@ class CameraBase(gobject.GObject):
     __gsignals__ =  { 
         "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
         }
-    def __init__(self):
+    def __init__(self, name='Video'):
         gobject.GObject.__init__(self)
         self.frame = None
         self.camera_on = False
         self.controller = None
+        self.name = name
             
     def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
@@ -37,12 +38,15 @@ class CameraBase(gobject.GObject):
                 img.save(filename)
             except:
                 self._log('Could not save image: %s' % filename)
+
+    def get_name(self):
+        return self.name
     
     
                  
 class CameraSim(CameraBase):
-    def __init__(self, name=None):
-        CameraBase.__init__(self)
+    def __init__(self,name='Video'):
+        CameraBase.__init__(self,name)
         self._fsource = open('/dev/urandom','rb')
         self._packet_size = 307200
         self.name = name
@@ -60,8 +64,8 @@ class CameraSim(CameraBase):
                    
 
 class Camera(CameraBase):
-    def __init__(self, pv_name):
-        CameraBase.__init__(self)
+    def __init__(self, pv_name, name='Video'):
+        CameraBase.__init__(self,name)
         self.cam = PV(pv_name)
         self._packet_size = 307200
         self.update()
@@ -109,8 +113,8 @@ class AxisController:
         return
 
 class AxisCamera(CameraBase):
-    def __init__(self,hostname):
-        CameraBase.__init__(self)
+    def __init__(self,hostname, name='Video'):
+        CameraBase.__init__(self,name)
         self.url = 'http://%s/jpg/image.jpg' % hostname
         self.controller = AxisController(hostname)
         self.update()

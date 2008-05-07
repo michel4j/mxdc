@@ -1,10 +1,10 @@
+import os, sys
 import gtk
 import gobject
 import pango
 import time
 import threading, thread
-import Image
-import ImageOps
+import Image, ImageOps, ImageDraw, ImageFont
 import bcm.utils
 from bcm.protocols import ca
 
@@ -24,6 +24,7 @@ class VideoTransformer(gobject.GObject):
         self._stopped = False
         self._paused = True
         self._lock = thread.allocate_lock()
+        self.banner_text = "Video"
     
     def resize(self, w, h):
         self._lock.acquire()
@@ -36,6 +37,16 @@ class VideoTransformer(gobject.GObject):
         self.worker_thread = threading.Thread(target=self._run)
         self.worker_thread.start()
                 
+    def _draw_banner(self, img):
+        draw = ImageDraw.Draw(img)
+        #try:
+        #    font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 11)
+        #except:
+        font = ImageFont.load_default()
+        w,h = img.size
+        draw.rectangle([0, 0, w, 13], outline='#000000', fill='#000000')
+        draw.text( (4, 1), self.banner_text, font=font, fill= '#aaffaa')
+        
     def _run(self):
         ca.thread_init()
         count = 0
@@ -50,13 +61,14 @@ class VideoTransformer(gobject.GObject):
                 count = 0
             self.fps = count/(time.time() - start_time + 0.0001)
             count += 1
-            
+            self.banner_text = '%s: %s, %2.0f FPS' % (self.camera.get_name(), time.strftime('%x %X %Z'), self.fps)
              
             img = self.camera.get_frame()
             self.source_w, self.source_h = img.size
             img = ImageOps.autocontrast(img, cutoff=self.contrast)
             self._lock.acquire()
             img = img.resize((self.width,self.height),Image.ANTIALIAS).convert('RGB')
+            self._draw_banner(img)
             self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
                 False, 8, self.width, self.height, 3 * self.width )
             gobject.idle_add(self.emit, "changed")
@@ -101,16 +113,16 @@ class VideoWidget(gtk.DrawingArea):
         self.overlay_func = func
         
     def display(self, obj):
-        self.pixmap.draw_pixbuf(self.gc, self.transformer.pixbuf, 0, 0, 0, 0, self.width, self.height, 0,0,0)
-        if self.overlay_func is not None:
-                self.overlay_func(self.pixmap)
-        self._draw_banner()
         self.queue_draw()        
         return True
     
-    def _draw_banner(self):
-        self.banner_pl.set_text('%2.0f FPS, %s' % (self.transformer.fps, time.strftime('%x %X %Z')))
-        self.pixmap.draw_layout(self.pl_gc, 0, 0, self.banner_pl)
+    def on_expose(self, widget, event):
+        if self.transformer.pixbuf is not None:
+            self.pixmap.draw_pixbuf(self.gc, self.transformer.pixbuf, 0, 0, 0, 0, self.width, self.height, 0,0,0)
+            if self.overlay_func is not None:
+                    self.overlay_func(self.pixmap)
+            self.window.draw_drawable(self.gc, self.pixmap, 0, 0, 0, 0, 
+                self.width, self.height)
 
     def on_configure(self, obj, event):
         width, height = obj.window.get_size()
@@ -123,13 +135,11 @@ class VideoWidget(gtk.DrawingArea):
     def on_realized(self, obj):
         self.gc = self.window.new_gc()
         self.pl_gc = self.window.new_gc()
-        self.pl_gc.foreground = self.get_colormap().alloc_color("blue")
+        self.pl_gc.foreground = self.get_colormap().alloc_color("#ffaaff")
         self.ol_gc = self.window.new_gc()
         self.ol_gc.foreground = self.get_colormap().alloc_color("green")
         self.ol_gc.set_function(gtk.gdk.XOR)
         self.ol_gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
-        self.banner_pl = self.create_pango_layout("")
-        self.banner_pl.set_font_description(pango.FontDescription("Monospace 9"))
         self.transformer.start()
         return True
 
@@ -142,11 +152,6 @@ class VideoWidget(gtk.DrawingArea):
 
     def on_unmap(self, obj):
         self.transformer.pause()
-
-    def on_expose(self, obj, event):        
-        obj.window.draw_drawable(self.gc, self.pixmap, 0, 0, 0, 0, 
-            self.width, self.height)
-        return True
 
     def stop(self):
         self.transformer.stop()
