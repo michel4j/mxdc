@@ -121,7 +121,7 @@ class Motor(MotorBase):
         elif self.motor_type == 'pseudo':
             self.RBV  = PV("%s:%s:sp" % (self.name,self.units))
             self.STAT = PV("%s:status" % self.name)
-            self.MOVN = self.STAT
+            self.MOVN = PV("%s:moving" % self.name)
             self.STOP = PV("%s:stop" % self.name)
             self.CALIB = PV("%s:calibDone" % (self.name))
             self.LOG = PV("%s:log" % (self.name))

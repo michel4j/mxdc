@@ -292,6 +292,7 @@ class MarCCDImager:
         self.collect_cmd = ca.PV("%s:frameCollect:cmd" % name, monitor=False)
         self.header_cmd = ca.PV("%s:header:cmd" % name, monitor=False)
         self.readout_flag = ca.PV("%s:readout:flag" % name, monitor=False)
+        self.connection_state = ca.PV('%s:sock:state'% name)
         
         #Header parameters
         self.header = {
@@ -323,7 +324,13 @@ class MarCCDImager:
         self._wait_in_state('acquire:exec')
         self.start_cmd.put(1)
         self._wait_for_state('acquire:exec')
-        
+
+    def is_healthy(self):
+        if self.connection_state.get() == 1:
+            return True
+        else:
+            return False
+
     def set_parameters(self, data):
         for key in data.keys():
             self.header[key].put(data[key])        
@@ -361,7 +368,7 @@ class MarCCDImager:
         else:
             return False
 
-    def _wait_in_state(self,state):      
+    def _wait_in_state(self, state):      
         tf = time.time()
         tI = int(tf)
         st_time = time.time()
