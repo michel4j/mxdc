@@ -39,10 +39,10 @@ class VideoTransformer(gobject.GObject):
                 
     def _draw_banner(self, img):
         draw = ImageDraw.Draw(img)
-        #try:
-        #    font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 11)
-        #except:
-        font = ImageFont.load_default()
+        try:
+            font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 8)
+        except:
+            font = ImageFont.load_default()
         w,h = img.size
         draw.rectangle([0, 0, w, 13], outline='#000000', fill='#000000')
         draw.text( (4, 1), self.banner_text, font=font, fill= '#aaffaa')
