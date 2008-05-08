@@ -61,7 +61,7 @@ class VideoTransformer(gobject.GObject):
                 count = 0
             self.fps = count/(time.time() - start_time + 0.0001)
             count += 1
-            self.banner_text = '%s: %s, %2.0f FPS' % (self.camera.get_name(), time.strftime('%x %X %Z'), self.fps)
+            self.banner_text = '%s: %s, %0.0f fps' % (self.camera.get_name(), time.strftime('%x %X'), self.fps)
              
             img = self.camera.get_frame()
             self.source_w, self.source_h = img.size
