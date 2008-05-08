@@ -40,7 +40,7 @@ class VideoTransformer(gobject.GObject):
     def _draw_banner(self, img):
         draw = ImageDraw.Draw(img)
         try:
-            font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 8)
+            font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 10)
         except:
             font = ImageFont.load_default()
         w,h = img.size
