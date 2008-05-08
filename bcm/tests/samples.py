@@ -23,6 +23,15 @@ for port in ['L','R','M']:
                 }
             dummy_data.append(item)
 
+screen_actions = [
+    ('Mount Next Sample',True,True),
+    ('Align Sample', True,True),
+    ('Pause',False, False),
+    ('Save Snapshot', True, True),
+    ('Collect Images', True, True),
+    ('Analyze Images', False, True)
+    ]
+
 class SampleManager(gtk.VBox):
     def __init__(self):
         gtk.VBox.__init__(self, False,6)
@@ -40,7 +49,7 @@ class SampleManager(gtk.VBox):
         self.view.set_property('headers-clickable', True)
         
         sw = gtk.ScrolledWindow()
-        sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        sw.set_shadow_type(gtk.SHADOW_IN)
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         sw.add(self.view)
         
@@ -115,12 +124,25 @@ class SampleManager(gtk.VBox):
             iter = self.model.get_iter(path)
             selected = self.model.get_value(iter, SAMPLE_SELECTED)
             self.model.set_value(iter, SAMPLE_SELECTED, val)
+
+
+class ScreenSequence(gtk.VBox):
+    def __init__(self):
+        gtk.VBox.__init__(self)
         
+        fr = gtk.Frame('Screening Sequence')
+        tb = gtk.Table(6,2,False)
+        tb.set_border_width(5)
+        tb.set_row_spacings(5)
+        tb.set_col_spacings(5)
+        fr.add(tb)
+        
+         
 if __name__ == "__main__":
    
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
-    win.set_default_size(300,400)
+    win.set_default_size(400,200)
     win.set_border_width(2)
     win.set_title("Sample Manager Widget Demo")
 
