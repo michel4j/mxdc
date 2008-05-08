@@ -379,13 +379,13 @@ class ImgViewer(gtk.VBox):
     def draw_info(self, img):
         draw = ImageDraw.Draw(img)
         #font = ImageFont.load_default()
-        font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 11)
+        font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 10)
         lines = self.image_info_text.split(', ')
         x = 5
-        y = self.disp_size - 56
+        y = self.disp_size - 50
         for i in range(len(lines)):
             line = lines[i]
-            draw.text( (x,y+i*13), line, font=font, fill='#0033CC')
+            draw.text( (x,y+i*12), line, font=font, fill='#0033CC')
         return
 
     def resolution(self,x,y):
