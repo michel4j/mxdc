@@ -340,7 +340,7 @@ class SampleViewer(gtk.HBox):
     # callbacks
     def on_realize(self, obj):
         self.pango_layout = self.video.create_pango_layout("")
-        self.pango_layout.set_font_description(pango.FontDescription('Fixed 8'))
+        self.pango_layout.set_font_description(pango.FontDescription('Monospace 8'))
         
     def on_change(self, obj=None, arg=None):
         self.zoom_factor = self.zoom.get_position()
