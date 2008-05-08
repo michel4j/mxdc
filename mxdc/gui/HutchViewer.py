@@ -147,10 +147,10 @@ class HutchViewer(gtk.HBox):
         
         #Video Area
         vbox2 = gtk.VBox(False,2)
-        videoframe = gtk.AspectFrame( ratio=640.0/480.0, obey_child=False)
+        videoframe = gtk.AspectFrame( ratio=704.0/480.0, obey_child=False)
         videoframe.set_shadow_type(gtk.SHADOW_IN)
         self.video = VideoWidget(self.camera)
-        self.video.set_size_request(400, 300)
+        self.video.set_size_request(440, 300)
         videoframe.add(self.video)
         vbox2.pack_start(videoframe, expand=True, fill=True)   
         self.pack_end(vbox2, expand=True, fill=True)
