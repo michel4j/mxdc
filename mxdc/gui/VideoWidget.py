@@ -45,7 +45,7 @@ class VideoTransformer(gobject.GObject):
             font = ImageFont.load_default()
         w,h = img.size
         draw.rectangle([0, 0, w, 13], outline='#000000', fill='#000000')
-        draw.text( (4, 1), self.banner_text, font=font, fill= '#aaffaa')
+        draw.text( (4, 0), self.banner_text, font=font, fill= '#aaffaa')
         
     def _run(self):
         ca.thread_init()
