@@ -74,11 +74,14 @@ class ScannerBase(gobject.GObject):
     def disable_plotting(self):
         self.plotting = False
 
-    def set_plotting(self, plotter=None):
+    def set_plotter(self, plotter=None):
         self.plotter = plotter
         
     def set_normalizer(self, normalizer=None):
-        self.normalizer = Normalizer(normalizer)
+        if normalizer:
+            self.normalizer = Normalizer(normalizer)
+        else:
+            self.normalizer = Normalizer()
     
     def set_output(self, filename):
         self.filename = filename
@@ -87,20 +90,20 @@ class Scanner(ScannerBase):
     def __init__(self):
         ScannerBase.__init__(self)
 
-    def setup(self, positioner, start, end, steps, counter, time):
+    def setup(self, positioner, start, end, steps, counter, time, normalizer=None):
         self.positioner = positioner
         self.counter = counter
         self.time = time
         self.steps = steps
         self.start_pos = start
         self.end_pos = end
+        self.set_normalizer(normalizer)
 
     def calc_targets(self):
-        assert self.range_start < self.range_end
         assert self.steps > 0
         self.positioner_targets = numpy.linspace(self.range_start,self.range_end,self.steps)
           
-    def __call__(self, positioner, start, end, steps, counter, time=1.0, normalizer=None, plot=False, relative=False):
+    def __call__(self, positioner, start, end, steps, counter, time=1.0, normalizer=None):
         self.setup(positioner, start, end, steps, counter, time)
         self.set_normalizer(normalizer)
         self.run()
@@ -439,6 +442,8 @@ def find_peaks(x, y, w=10, threshold=0.1):
 gobject.type_register(ScannerBase)
 
 scan = Scanner()
+scan.enable_plotting()
 rscan = Scanner()
 rscan.set_relative(True)
+rscan.enable_plotting()
 
