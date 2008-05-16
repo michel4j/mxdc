@@ -66,16 +66,23 @@ class CameraSim(CameraBase):
 class Camera(CameraBase):
     def __init__(self, pv_name, name='Video'):
         CameraBase.__init__(self,name)
+        self._fsource = open('/dev/urandom','rb')
         self.cam = PV(pv_name)
         self._packet_size = 307200
         self.update()
         self.cam.connect('changed', self.update)
     
+    def __del__(self):
+        self._fsource.close()
+
+
     def update(self, obj=None, arg=None):
-        
-        data = self.cam.get()
-        while len(data) != self._packet_size:
+        if self.cam.is_connected():
             data = self.cam.get()
+            while len(data) != self._packet_size:
+                data = self.cam.get()
+        else:
+            data = self._fsource.read(self._packet_size)
 
         self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
         self.size = self.frame.size

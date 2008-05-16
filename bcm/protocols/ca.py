@@ -198,6 +198,12 @@ class PV(gobject.GObject):
         libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
         libca.ca_pend_io(0.1)
 
+    def is_connected(self):
+        if self.state == CA_OP_CONN_UP:
+            return True
+        else:
+            return False
+
     def _create_connection(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
         libca.ca_pend_io(0.1)
