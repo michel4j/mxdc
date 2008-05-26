@@ -180,6 +180,7 @@ class ImgViewer(gtk.VBox):
         self.max_intensity = self.statistics_pars[4]
         self.average_intensity = self.statistics_pars[5] / 1e3
         self.overloads = self.header_pars[31]
+        self.saturated_value = self.header_pars[23]
     
     def set_filename(self, filename):
         self.filename = filename
@@ -204,9 +205,13 @@ class ImgViewer(gtk.VBox):
 
         self.read_header()
                 
-        # correct gamma
+
         self.raw_img = Image.open(self.filename)
-       
+
+        # calculate number of overloads. FIXME need more efficient way.
+        data = list(self.raw_img.getdata())
+        self.overloads = data.count(self.saturated_value)
+        
         self.gamma_factor = 80.0 / self.average_intensity
         self.img = self.raw_img.point(lambda x: x * self.gamma_factor).convert('L')
         self.orig_size = max(self.raw_img.size)
@@ -378,8 +383,10 @@ class ImgViewer(gtk.VBox):
 
     def draw_info(self, img):
         draw = ImageDraw.Draw(img)
-        #font = ImageFont.load_default()
-        font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 10)
+        try:
+            font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 10)
+        except:
+            font = ImageFont.load_default()
         lines = self.image_info_text.split(', ')
         x = 5
         y = self.disp_size - 50
