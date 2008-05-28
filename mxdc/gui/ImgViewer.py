@@ -19,7 +19,8 @@ class ImgViewer(gtk.VBox):
         self.__gobject_init__() 
         gtk.VBox.__init__(self,False)
         self.disp_size = size
-        self.interpolation = Image.ANTIALIAS
+        self.ds_interp = Image.ANTIALIAS
+        self.os_interp = Image.NEAREST
         # Put image canvas into a frame
         self.img_frame = gtk.Viewport()
         self.img_frame.set_shadow_type(gtk.SHADOW_IN)
@@ -91,7 +92,8 @@ class ImgViewer(gtk.VBox):
         
         self.contrast_level = 0.0
         self.brightness_factor = 1.0
-        self.histogram_shift = 0
+        self.shift_up = 0
+        self.shift_dn = 0
         self.image_size = self.disp_size
         self.x_center = self.y_center = self.image_size / 2
         self.follow_frames = False
@@ -177,9 +179,11 @@ class ImgViewer(gtk.VBox):
         self.delta = self.goniostat_pars[24] / 1e3
         self.phi_start =  self.goniostat_pars[(7 + self.goniostat_pars[23])] / 1e3
         self.delta_time = self.goniostat_pars[4] / 1e3
+        self.min_intensity = self.statistics_pars[3]
         self.max_intensity = self.statistics_pars[4]
+        self.rms_intensity = self.statistics_pars[6] / 1e3
         self.average_intensity = self.statistics_pars[5] / 1e3
-        self.overloads = self.header_pars[31]
+        self.overloads = self.statistics_pars[8]
         self.saturated_value = self.header_pars[23]
     
     def set_filename(self, filename):
@@ -204,21 +208,17 @@ class ImgViewer(gtk.VBox):
         self.log("Loading image %s" % (self.filename))
 
         self.read_header()
-                
-
-        self.raw_img = Image.open(self.filename)
-
-        # calculate number of overloads. FIXME need more efficient way.
-        data = list(self.raw_img.getdata())
-        self.overloads = data.count(self.saturated_value)
+        self.raw_img = Image.open(self.filename)        
+        self.gamma_factor = min(1.0, self.rms_intensity / self.average_intensity)
         
-        self.gamma_factor = 80.0 / self.average_intensity
+        
         self.img = self.raw_img.point(lambda x: x * self.gamma_factor).convert('L')
+        
         self.orig_size = max(self.raw_img.size)
 
         # invert the image to get black spots on white background and resize
         self.img = self.img.point(lambda x: x * -1 + 255)
-        self.work_img = self.img.resize( (self.image_size, self.image_size), self.interpolation)
+        self.work_img = self.img.resize( (self.image_size, self.image_size), self.ds_interp)
         self.image_info_text = u'exposure=%0.1f ; delta=%0.2f, dist=%0.1f ; angle=%0.2f, wavelength=%0.4f ; <I>=%0.1f, I-max=%0.0f ; #Sat=%0.0f' % (
             self.delta_time, 
             self.delta, self.distance,
@@ -269,7 +269,7 @@ class ImgViewer(gtk.VBox):
         x = scale * self.beam_x
         y = scale * self.beam_y
         tmp_image = self.work_img.crop(mybounds)
-        tmp_image = self.apply_filters(tmp_image)   
+        tmp_image = self.apply_filters(tmp_image)
         tmp_image = tmp_image.convert('RGBA')
         self.draw_cross(tmp_image)
         self.draw_info(tmp_image)
@@ -290,12 +290,9 @@ class ImgViewer(gtk.VBox):
             self.is_first_image = False
 
     def apply_filters(self, image):       
-        if self.histogram_shift != 0:
-            new_img = self.adjust_level(image, self.histogram_shift)
-        
-        else:
-            #using auto_contrast        
-            new_img = ImageOps.autocontrast(image,cutoff=self.contrast_level)
+        #using auto_contrast
+        pc = self.shift_up / 5.0
+        new_img = ImageOps.autocontrast(image,cutoff=pc)
         return new_img
                         
     def poll_for_file(self):
@@ -347,7 +344,7 @@ class ImgViewer(gtk.VBox):
             self.log("%d images in queue" % len(self.image_queue) )
         return True     
         
-    def zooming_lens(self,Ox,Oy,src_size = 30, zoom_level = 4):
+    def zooming_lens(self,Ox,Oy,src_size = 25, zoom_level = 5):
         half_src = src_size / 2
         lens_size = src_size * zoom_level
         half_image = self.orig_size / 2
@@ -360,7 +357,7 @@ class ImgViewer(gtk.VBox):
         if src_y + src_size > self.orig_size:
             src_y = self.orig_size - src_size
         tmp_image = self.img.crop((src_x,src_y,src_x+src_size,src_y+src_size)).convert('RGBA')
-        tmp_image = tmp_image.resize((lens_size,lens_size),Image.NEAREST)
+        tmp_image = tmp_image.resize((lens_size,lens_size), self.os_interp)
         tmp_image = ImageOps.expand(tmp_image, border=1, fill=(255, 255, 255))
         tmp_image = ImageOps.expand(tmp_image, border=1, fill=(0, 0, 0))
         imagestr = tmp_image.tostring()
@@ -408,13 +405,18 @@ class ImgViewer(gtk.VBox):
         if self.image_size < self.disp_size:
             self.image_size = self.disp_size
         if self.image_size > self.orig_size:
-            interpolation = Image.NEAREST
+            interpolation = self.os_interp
         else:
-            interpolation = self.interpolation
+            interpolation = self.ds_interp
         self.work_img = self.img.resize((self.image_size,self.image_size),interpolation)
         scale = float(self.image_size) / old_size
         self.x_center = int(scale * self.x_center) 
         self.y_center = int(scale * self.y_center)
+
+    def autolevel(self, img, lo, hi):        
+        scale = 256.0/(hi - lo)
+        offset = -lo * scale
+        return img.point(lambda x: x * scale + offset)
 
     def adjust_level(self, img, shift):     
         return img.point(lambda x: x * 1 + shift)
@@ -449,42 +451,34 @@ class ImgViewer(gtk.VBox):
         return True    
     
     def on_incr_contrast(self,widget):
-        if self.contrast_level < 45.0 and self.histogram_shift ==0:
-            self.contrast_level += 2.0
-        else:
-            self.histogram_shift -= 5
-            self.contrast_level = 45.0
-
+        self.shift_up = max(0, min(100, self.shift_up + 10))
         self.display()
         return True    
 
     def on_decr_contrast(self,widget):
-        if self.contrast_level >= 2.0 and self.histogram_shift ==0:
-            self.contrast_level -= 2.0
-        else:
-            self.histogram_shift += 5
-            self.contrast_level = 0.0
+        self.shift_up = min(100, max(0, self.shift_up - 10))
         self.display()
         return True    
     
     def on_reset_filters(self,widget):
         self.contrast_level = 0.0
         self.brightness_factor = 1.0
-        self.histogram_shift = 0
+        self.shift_up = 0
+        self.shift_dn = 0
         self.image_size = self.disp_size
-        self.work_img = self.img.resize((self.image_size,self.image_size),self.interpolation)
+        self.work_img = self.img.resize((self.image_size,self.image_size),self.ds_interp)
         self.display()
         return True    
     
     def on_zoom_in(self,widget):
-        size =    self.image_size + 512
+        size =    self.image_size * 2
         self.zoom(size)
         self.display()
         return True
 
 
     def on_zoom_out(self,widget):
-        size =    self.image_size - 512
+        size =    self.image_size / 2
         self.zoom(size)
         self.display()
         return True 
@@ -501,7 +495,7 @@ class ImgViewer(gtk.VBox):
      
     def on_zoom_fit(self,widget):
         self.image_size = self.disp_size
-        self.work_img = self.img.resize((self.image_size,self.image_size),self.interpolation)        
+        self.work_img = self.img.resize((self.image_size,self.image_size),self.ds_interp)        
         self.display()
         return True 
         
