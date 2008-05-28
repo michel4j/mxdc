@@ -124,7 +124,7 @@ class CollectManager(gtk.HBox):
 
     def __load_config(self):
 
-        config_file = os.environ['HOME'] + '/.mxdc/run_config.dat'
+        config_file = os.environ['HOME'] + '/.mxdc/run_config2.dat'
         if os.access(config_file, os.R_OK):
             data = {}
             config = ConfigObj(config_file, options={'unrepr':True})
@@ -146,7 +146,7 @@ class CollectManager(gtk.HBox):
                 
         config = ConfigObj()
         config.unrepr = True
-        config_file = os.environ['HOME'] + '/.mxdc/run_config.dat'
+        config_file = os.environ['HOME'] + '/.mxdc/run_config2.dat'
 
         if os.access(config_dir,os.W_OK):
             config.filename = config_file
