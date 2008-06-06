@@ -335,7 +335,7 @@ class braggEnergyMotor(MotorBase):
                             
         # settings
         self.MOSTAB = PV('BL08ID1:energy:enMostabChg')
-        self.BEND = PV('BL08ID1:C2Bend:enable')
+        self.BEND = PV('BL08ID1:C2Bnd:enable')
         self.T1T2 = PV('BL08ID1:energy:enT1T2Chg')
 
     def _bragg_only(self):
