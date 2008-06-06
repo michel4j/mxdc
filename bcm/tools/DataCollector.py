@@ -44,6 +44,8 @@ class DataCollector(gobject.GObject):
     
     def start(self):
         if self._initialized:
+            self.paused = False
+            self.stopped = False
             self._worker = threading.Thread(target=self._collect_data)
             self._worker.start()
         else:
