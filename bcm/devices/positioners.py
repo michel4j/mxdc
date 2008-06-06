@@ -318,21 +318,37 @@ class braggEnergyMotor(MotorBase):
     def __init__(self, name=None):
         MotorBase.__init__(self)
         self.units = 'keV'
-        self.name = 'Beamline Bragg Energy'
+        self.name = 'Beamline Energy'
         
         # initialize process variables
-        self.VAL  = PV("SMTR16082I1005:deg")
-        self.RBV  = PV("ENC16082I1001:cmbndPos")
-        self.MOVN  = PV("SMTR16082I1005:moving")
-        self.STAT  = PV("SMTR16082I1005:status")
-        self.STOP = PV("SMTR16082I1005:stop")
+        self.VAL  = PV("BL08ID1:energy")        
+        self.RBV  = PV("SMTR16082I1005:deg:sp")
+        self.MOVN = PV("BL08ID1:energy:moving" )
+        self.STOP = PV("BL08ID1:energy:stop")
         self.CALIB =  PV("SMTR16082I1005:calibDone")
+        self.STAT =  PV("SMTR16082I1005:status")
         
         # connect monitors
         self.RBV.connect('changed', self._signal_change)
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
                             
+        # settings
+        self.MOSTAB = PV('BL08ID1:energy:enMostabChg')
+        self.BEND = PV('BL08ID1:C2Bend:enable')
+        self.T1T2 = PV('BL08ID1:energy:enT1T2Chg')
+
+    def _bragg_only(self):
+        self.MOSTAB.put(0)
+        self.BEND.put(0)
+        self.T1T2.put(0)
+
+    def _restore(self):
+        self.MOSTAB.put(1)
+        self.BEND.put(1)
+        self.T1T2.put(1)
+
+
     def get_position(self):
         return utils.bragg_to_energy(self.RBV.get())
 
@@ -346,6 +362,7 @@ class braggEnergyMotor(MotorBase):
             self.CALIB.put(0)
             
     def move_to(self, target, wait=False):
+        self._bragg_only()
         if self.get_position() == target:
             return
         if not self.is_healthy():
@@ -356,6 +373,7 @@ class braggEnergyMotor(MotorBase):
         self.VAL.put(target)
         if wait:
             self.wait(start=True,stop=True)
+        self._restore()
 
     def move_by(self,val, wait=False):
         if val == 0.0:
@@ -392,7 +410,9 @@ class braggEnergyMotor(MotorBase):
             self._log( 'Waiting to stop moving' )
             while self.is_moving():
                 time.sleep(poll)
-        
+
+
+       
 class Attenuator(PositionerBase):
     def __init__(self, bit1, bit2, bit3, bit4, energy):
         PositionerBase.__init__(self)
