@@ -24,6 +24,7 @@ _DEVICE_MAP = {
     'energymotors': positioners.energyMotor,
     'attenuators': positioners.Attenuator,
     'energymotor': positioners.energyMotor,
+    'braggenergymotor': positioners.braggEnergyMotor,
     'variables': ca.PV,
     'webservices': xmlrpclib.ServerProxy
     }
