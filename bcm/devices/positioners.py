@@ -252,6 +252,16 @@ class energyMotor(MotorBase):
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
                             
+        # settings
+        self.MOSTAB = PV('BL08ID1:energy:enMostabChg')
+        self.BEND = PV('BL08ID1:C2Bnd:enable')
+        self.T1T2 = PV('BL08ID1:energy:enT1T2Chg')
+
+    def _restore(self):
+        self.MOSTAB.put(1)
+        self.BEND.put(1)
+        self.T1T2.put(1)
+
     def get_position(self):
         return utils.bragg_to_energy(self.RBV.get())
 
@@ -265,6 +275,7 @@ class energyMotor(MotorBase):
             self.CALIB.put(0)
             
     def move_to(self, target, wait=False):
+        self._restore()
         if self.get_position() == target:
             return
         if not self.is_healthy():
@@ -343,12 +354,6 @@ class braggEnergyMotor(MotorBase):
         self.BEND.put(0)
         self.T1T2.put(0)
 
-    def _restore(self):
-        self.MOSTAB.put(1)
-        self.BEND.put(1)
-        self.T1T2.put(1)
-
-
     def get_position(self):
         return utils.bragg_to_energy(self.RBV.get())
 
@@ -373,7 +378,6 @@ class braggEnergyMotor(MotorBase):
         self.VAL.put(target)
         if wait:
             self.wait(start=True,stop=True)
-        self._restore()
 
     def move_by(self,val, wait=False):
         if val == 0.0:
