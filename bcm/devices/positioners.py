@@ -311,6 +311,87 @@ class energyMotor(MotorBase):
             self._log( 'Waiting to stop moving' )
             while self.is_moving():
                 time.sleep(poll)
+
+class braggEnergyMotor(MotorBase):
+    """Temporary class until energy motor is standardized"""
+    implements(IMotor)    
+    def __init__(self, name=None):
+        MotorBase.__init__(self)
+        self.units = 'keV'
+        self.name = 'Beamline Bragg Energy'
+        
+        # initialize process variables
+        self.VAL  = PV("SMTR16082I1005:deg")
+        self.RBV  = PV("ENC16082I1001:cmbndPos")
+        self.MOVN  = PV("SMTR16082I1005:moving")
+        self.STAT  = PV("SMTR16082I1005:status")
+        self.STOP = PV("SMTR16082I1005:stop")
+        self.CALIB =  PV("SMTR16082I1005:calibDone")
+        
+        # connect monitors
+        self.RBV.connect('changed', self._signal_change)
+        self.MOVN.connect('changed', self._signal_move)
+        self.CALIB.connect('changed', self._signal_health)
+                            
+    def get_position(self):
+        return utils.bragg_to_energy(self.RBV.get())
+
+    def set_position(self, value):
+        pass
+    
+    def set_calibrated(self, status):
+        if status:
+            self.CALIB.put(1)
+        else:
+            self.CALIB.put(0)
+            
+    def move_to(self, target, wait=False):
+        if self.get_position() == target:
+            return
+        if not self.is_healthy():
+            self._log( "not sane. Move canceled!" )
+            return
+
+        self._log( "moving to %f %s" % (target, self.units) )
+        self.VAL.put(target)
+        if wait:
+            self.wait(start=True,stop=True)
+
+    def move_by(self,val, wait=False):
+        if val == 0.0:
+            return
+        self._log( "relative move by %g %s requested" % (val, self.units) )
+        cur_pos = self.get_position()
+        self.move_to(cur_pos + val, wait)
+                
+    def is_moving(self):
+        if self.STAT.get() == 1:
+            return True
+        else:
+            if self.MOVN.get() == 1:
+                return True
+            else:
+                return False
+    
+    def is_healthy(self):
+        return (self.CALIB.get() == 1) and (self.STAT.get() != 4)
+                                 
+    def stop(self):
+        self.STOP.put(1)
+
+    def wait(self, start=True, stop=True):
+        poll = 0.05
+        timeout = 0.5
+        tstart = time.time()
+        if (start):
+            self._log('Waiting to start moving')
+            while not self.is_moving() and timeout > 0:
+                time.sleep(poll)
+                timeout -= poll                               
+        if (stop):
+            self._log( 'Waiting to stop moving' )
+            while self.is_moving():
+                time.sleep(poll)
         
 class Attenuator(PositionerBase):
     def __init__(self, bit1, bit2, bit3, bit4, energy):
