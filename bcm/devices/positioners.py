@@ -256,11 +256,13 @@ class energyMotor(MotorBase):
         self.MOSTAB = PV('BL08ID1:energy:enMostabChg')
         self.BEND = PV('BL08ID1:C2Bnd:enable')
         self.T1T2 = PV('BL08ID1:energy:enT1T2Chg')
+        self.UND = PV('BL08ID1:energy:enGapChg')
 
     def _restore(self):
         self.MOSTAB.put(1)
         self.BEND.put(1)
         self.T1T2.put(1)
+        self.UND.put(1)
 
     def get_position(self):
         return utils.bragg_to_energy(self.RBV.get())
@@ -348,11 +350,13 @@ class braggEnergyMotor(MotorBase):
         self.MOSTAB = PV('BL08ID1:energy:enMostabChg')
         self.BEND = PV('BL08ID1:C2Bnd:enable')
         self.T1T2 = PV('BL08ID1:energy:enT1T2Chg')
+        self.UND = PV('BL08ID1:energy:enGapChg')
 
     def _bragg_only(self):
         self.MOSTAB.put(0)
         self.BEND.put(0)
         self.T1T2.put(0)
+        self.UND.put(0)
 
     def get_position(self):
         return utils.bragg_to_energy(self.RBV.get())
