@@ -161,7 +161,7 @@ class MCA(DetectorBase):
         elif self._monitor_id:
             gobject.source_remove(self._monitor_id)
 
-    def _wait_count(self, start=False,stop=True,poll=0.05, timeout=5):
+    def _wait_count(self, start=False,stop=True,poll=0.05, timeout=2):
         if (start):
             time_left = timeout
             while self.ACQG.get() == 0 and time_left > 0:
@@ -180,7 +180,7 @@ class MCA(DetectorBase):
                 return False
         return True        
                 
-    def _wait_read(self, start=False,stop=True, poll=0.05, timeout=5):       
+    def _wait_read(self, start=False,stop=True, poll=0.05, timeout=2):       
         if (start):
             time_left = timeout
             while self.RDNG.get() == 0 and time_left > 0:
