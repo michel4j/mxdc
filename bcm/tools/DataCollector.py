@@ -97,6 +97,7 @@ class DataCollector(gobject.GObject):
             # Check and prepare beamline
             print 'starting wait'
             if abs(self.distance.get_position() - frame['distance']) > 0.05:
+                print self.distance.get_position(), frame['distance']
                 self.distance.move_to(frame['distance'])
                 self.distance.wait()
             if abs(self.energy.get_position() - frame['energy']) > 0.0005:
