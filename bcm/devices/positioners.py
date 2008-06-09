@@ -154,8 +154,9 @@ class Motor(MotorBase):
             return
 
         self.VAL.put(target)
+        self.wait(start=True, stop=False)
         if wait:
-            self.wait(start=True, stop=True)
+            self.wait(start=False, stop=True)
 
     def move_by(self,val, wait=False):
         if val == 0.0:
@@ -180,8 +181,8 @@ class Motor(MotorBase):
         self.STOP.put(1)
     
     def wait(self, start=True, stop=True):
-        poll=0.05
-        timeout = 0.5
+        poll=0.01
+        timeout = 0.05
         tstart = time.time()
         if (start):
             self._log('Waiting to start moving')
@@ -286,8 +287,9 @@ class energyMotor(MotorBase):
 
         self._log( "moving to %f %s" % (target, self.units) )
         self.VAL.put(target)
+        self.wait(start=True, stop=False)
         if wait:
-            self.wait(start=True,stop=True)
+            self.wait(start=False,stop=True)
 
     def move_by(self,val, wait=False):
         if val == 0.0:
@@ -312,8 +314,8 @@ class energyMotor(MotorBase):
         self.STOP.put(1)
 
     def wait(self, start=True, stop=True):
-        poll = 0.05
-        timeout = 0.5
+        poll = 0.01
+        timeout = 0.05
         tstart = time.time()
         if (start):
             self._log('Waiting to start moving')
@@ -371,7 +373,7 @@ class braggEnergyMotor(MotorBase):
             self.CALIB.put(0)
             
     def move_to(self, target, wait=False):
-        self._bragg_only()
+        self._restore()
         if self.get_position() == target:
             return
         if not self.is_healthy():
@@ -380,8 +382,9 @@ class braggEnergyMotor(MotorBase):
 
         self._log( "moving to %f %s" % (target, self.units) )
         self.VAL.put(target)
+        self.wait(start=True, stop=False)
         if wait:
-            self.wait(start=True,stop=True)
+            self.wait(start=False,stop=True)
 
     def move_by(self,val, wait=False):
         if val == 0.0:
@@ -406,8 +409,8 @@ class braggEnergyMotor(MotorBase):
         self.STOP.put(1)
 
     def wait(self, start=True, stop=True):
-        poll = 0.05
-        timeout = 0.5
+        poll = 0.01
+        timeout = 0.05
         tstart = time.time()
         if (start):
             self._log('Waiting to start moving')
