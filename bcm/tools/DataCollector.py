@@ -95,16 +95,16 @@ class DataCollector(gobject.GObject):
             header['start_angle'] = frame['start_angle']
             
             # Check and prepare beamline
+            print 'starting wait'
             if abs(self.distance.get_position() - frame['distance']) > 0.05:
                 self.distance.move_to(frame['distance'])
+                self.distance.wait()
             if abs(self.energy.get_position() - frame['energy']) > 0.0005:
                 self.energy.move_to(frame['energy'])
+                self.energy.wait()
             if abs(self.two_theta.get_position() - frame['two_theta']) > 0.05:
                 self.two_theta.move_to(frame['two_theta'])
-            print 'waiting'
-            self.two_theta.wait()
-            self.distance.wait()
-            self.energy.wait()
+                self.two_theta.wait()
             print 'finished waiting'
             
                
