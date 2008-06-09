@@ -49,6 +49,7 @@ class MotorBase(gobject.GObject):
 
     def __init__(self):
         gobject.GObject.__init__(self)
+        self.__is_moving = False
     
     def _signal_change(self, obj, value):
         gobject.idle_add(self.emit,'changed', self.get_position() )
@@ -66,11 +67,11 @@ class MotorBase(gobject.GObject):
 
     def _signal_move(self, obj, state):
         if state == 1:
-            is_moving = True
+            self.__is_moving = True           
         else:
-            is_moving = False
-        gobject.idle_add(self.emit, 'moving', is_moving)
-        if not is_moving:
+            self.__is_moving = False
+        gobject.idle_add(self.emit, 'moving', self.__is_moving)
+        if not self.__is_moving:
             self._log( "stopped at %g %s" % (self.get_position(), self.units) )
 
     def _signal_request(self, obj, value):
@@ -186,14 +187,13 @@ class Motor(MotorBase):
         tstart = time.time()
         if (start):
             self._log('Waiting to start moving')
-            while not self.is_moving() and timeout > 0:
+            while not self.__is_moving and timeout > 0:
                 time.sleep(poll)
                 timeout -= poll                               
         if (stop):
             self._log('Waiting to stop moving')
-            while self.is_moving():
+            while self.__is_moving:
                 time.sleep(poll)
-        return time.time() - tstart
         
 class vmeMotor(Motor):
     def __init__(self, name):
