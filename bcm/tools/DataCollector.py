@@ -95,15 +95,15 @@ class DataCollector(gobject.GObject):
             header['start_angle'] = frame['start_angle']
             
             # Check and prepare beamline
-            if abs(self.distance.get_position() - frame['distance']) > 1e-2:
-                self.distance.move_to(frame['distance'])
-                self.distance.wait()
-            if abs(self.energy.get_position() - frame['energy']) > 1e-4:
-                self.energy.move_to(frame['energy'])
-                self.energy.wait()
-            if abs(self.two_theta.get_position() - frame['two_theta']) > 1e-2:
-                self.two_theta.move_to(frame['two_theta'])
-                self.two_theta.wait()
+            #if abs(self.distance.get_position() - frame['distance']) > 1e-2:
+            self.distance.move_to(frame['distance'])
+            #if abs(self.energy.get_position() - frame['energy']) > 1e-4:
+            self.energy.move_to(frame['energy'])
+            #if abs(self.two_theta.get_position() - frame['two_theta']) > 1e-2:
+            self.two_theta.move_to(frame['two_theta'])
+            self.two_theta.wait()
+            self.distance.wait()
+            self.energy.wait()
             
                
             gonio_data = {
