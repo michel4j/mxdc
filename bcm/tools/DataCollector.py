@@ -100,7 +100,6 @@ class DataCollector(gobject.GObject):
                 self.distance.move_to(frame['distance'], wait=True)
             if abs(self.energy.get_position() - frame['energy']) > 0.0005:
                 self.energy.move_to(frame['energy'], wait=True)
-                self.energy.wait()
             if abs(self.two_theta.get_position() - frame['two_theta']) > 0.05:
                 self.two_theta.move_to(frame['two_theta'], wait=True)
             print 'finished waiting'
