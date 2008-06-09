@@ -101,9 +101,11 @@ class DataCollector(gobject.GObject):
                 self.energy.move_to(frame['energy'])
             if abs(self.two_theta.get_position() - frame['two_theta']) > 0.05:
                 self.two_theta.move_to(frame['two_theta'])
+            print 'waiting'
             self.two_theta.wait()
             self.distance.wait()
             self.energy.wait()
+            print 'finished waiting'
             
                
             gonio_data = {
