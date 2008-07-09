@@ -347,8 +347,8 @@ class braggEnergyMotor(Motor):
             self._log( "not sane. Move canceled!" )
             return
 
-        self._log( "moving to %f %s" % (target, self.units) )
         deg_target = utils.energy_to_bragg(target)
+        self._log( "moving to %f %s" % (deg_target, self.units) )
         self.VAL.put(deg_target)
         self.wait(start=True, stop=False)
         if wait:
