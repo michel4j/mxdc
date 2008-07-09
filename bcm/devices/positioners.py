@@ -21,9 +21,11 @@ class PositionerBase(gobject.GObject):
 
     def __init__(self):
         gobject.GObject.__init__(self)
+        self._last_changed = time.time()
 
     def _signal_change(self, obj, value):
         gobject.idle_add(self.emit,'changed', self.get_position() )
+        self._last_changed = time.time()
     
     def _log(self, message):
         if hasattr(self, 'DESC'):
@@ -49,10 +51,12 @@ class MotorBase(gobject.GObject):
 
     def __init__(self):
         gobject.GObject.__init__(self)
-        self.__is_moving = False
+        self._move_active = False
+        self._last_changed = time.time()
     
     def _signal_change(self, obj, value):
         gobject.idle_add(self.emit,'changed', self.get_position() )
+        self._last_changed = time.time()
     
     def _log(self, message):
         if hasattr(self, 'DESC'):
@@ -67,11 +71,11 @@ class MotorBase(gobject.GObject):
 
     def _signal_move(self, obj, state):
         if state == 1:
-            self.__is_moving = True           
+            self._move_active = True           
         else:
-            self.__is_moving = False
-        gobject.idle_add(self.emit, 'moving', self.__is_moving)
-        if not self.__is_moving:
+            self._move_active = False
+        gobject.idle_add(self.emit, 'moving', self._move_active)
+        if not self._move_active:
             self._log( "stopped at %g %s" % (self.get_position(), self.units) )
 
     def _signal_request(self, obj, value):
@@ -121,7 +125,7 @@ class Motor(MotorBase):
             self.CALIB = PV("%s:isCalib" % (self.name))
         elif self.motor_type == 'pseudo':
             self.RBV  = PV("%s:%s:sp" % (self.name,self.units))
-            self.STAT = PV("%s:moving" % self.name)
+            self.STAT = PV("%s:status" % self.name)
             self.MOVN = PV("%s:moving" % self.name)
             self.STOP = PV("%s:stop" % self.name)
             self.CALIB = PV("%s:calibDone" % (self.name))
@@ -182,17 +186,16 @@ class Motor(MotorBase):
         self.STOP.put(1)
     
     def wait(self, start=True, stop=True):
-        poll=0.01
-        timeout = 0.05
-        tstart = time.time()
+        poll=0.05
+        timeout = 2.0
         if (start):
             self._log('Waiting to start moving')
-            while not self.__is_moving and timeout > 0:
+            while not self._move_active and timeout > 0:
                 time.sleep(poll)
                 timeout -= poll                               
         if (stop):
             self._log('Waiting to stop moving')
-            while self.__is_moving:
+            while self._move_active:
                 time.sleep(poll)
         
 class vmeMotor(Motor):
@@ -314,8 +317,8 @@ class energyMotor(MotorBase):
         self.STOP.put(1)
 
     def wait(self, start=True, stop=True):
-        poll = 0.01
-        timeout = 0.05
+        poll = 0.05
+        timeout = 2.0
         tstart = time.time()
         if (start):
             self._log('Waiting to start moving')
@@ -327,53 +330,17 @@ class energyMotor(MotorBase):
             while self.is_moving():
                 time.sleep(poll)
 
-class braggEnergyMotor(MotorBase):
+class braggEnergyMotor(Motor):
     """Temporary class until energy motor is standardized"""
-    implements(IMotor)    
     def __init__(self, name=None):
-        MotorBase.__init__(self)
+        Motor.__init__(self, name, motor_type='vme' )
         self.units = 'keV'
-        self.name = 'Beamline Energy'
-        
-        # initialize process variables
-        self.VAL  = PV("BL08ID1:energy")        
-        self.RBV  = PV("SMTR16082I1005:deg:sp")
-        self.MOVN = PV("BL08ID1:energy:moving" )
-        self.STOP = PV("BL08ID1:energy:stop")
-        self.CALIB =  PV("SMTR16082I1005:calibDone")
-        self.STAT =  PV("SMTR16082I1005:status")
-        
-        # connect monitors
-        self.RBV.connect('changed', self._signal_change)
-        self.MOVN.connect('changed', self._signal_move)
-        self.CALIB.connect('changed', self._signal_health)
-                            
-        # settings
-        self.MOSTAB = PV('BL08ID1:energy:enMostabChg')
-        self.BEND = PV('BL08ID1:C2Bnd:enable')
-        self.T1T2 = PV('BL08ID1:energy:enT1T2Chg')
-        self.UND = PV('BL08ID1:energy:enGapChg')
-
-    def _bragg_only(self):
-        self.MOSTAB.put(0)
-        self.BEND.put(0)
-        self.T1T2.put(0)
-        self.UND.put(0)
-
+        self.name = 'Bragg Energy'
+                                   
     def get_position(self):
         return utils.bragg_to_energy(self.RBV.get())
-
-    def set_position(self, value):
-        pass
-    
-    def set_calibrated(self, status):
-        if status:
-            self.CALIB.put(1)
-        else:
-            self.CALIB.put(0)
             
     def move_to(self, target, wait=False):
-        self._restore()
         if self.get_position() == target:
             return
         if not self.is_healthy():
@@ -381,47 +348,11 @@ class braggEnergyMotor(MotorBase):
             return
 
         self._log( "moving to %f %s" % (target, self.units) )
-        self.VAL.put(target)
+        deg_target = utils.energy_to_bragg(target)
+        self.VAL.put(deg_target)
         self.wait(start=True, stop=False)
         if wait:
             self.wait(start=False,stop=True)
-
-    def move_by(self,val, wait=False):
-        if val == 0.0:
-            return
-        self._log( "relative move by %g %s requested" % (val, self.units) )
-        cur_pos = self.get_position()
-        self.move_to(cur_pos + val, wait)
-                
-    def is_moving(self):
-        if self.STAT.get() == 1:
-            return True
-        else:
-            if self.MOVN.get() == 1:
-                return True
-            else:
-                return False
-    
-    def is_healthy(self):
-        return (self.CALIB.get() == 1) and (self.STAT.get() != 4)
-                                 
-    def stop(self):
-        self.STOP.put(1)
-
-    def wait(self, start=True, stop=True):
-        poll = 0.01
-        timeout = 0.05
-        tstart = time.time()
-        if (start):
-            self._log('Waiting to start moving')
-            while not self.is_moving() and timeout > 0:
-                time.sleep(poll)
-                timeout -= poll                               
-        if (stop):
-            self._log( 'Waiting to stop moving' )
-            while self.is_moving():
-                time.sleep(poll)
-
 
        
 class Attenuator(PositionerBase):

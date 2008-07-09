@@ -317,7 +317,7 @@ class MarCCDImager:
         self.state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
         self._bg_taken = False
         
-        self.connection_state.connect('changed', self._update_background)
+        #self.connection_state.connect('changed', self._update_background)
 
 
     def _update_background(self, obj, state):
@@ -325,8 +325,7 @@ class MarCCDImager:
             self.initialize(wait=True)
                       
     def start(self):
-        if not self._bg_taken:
-            self.initialize(wait=True)
+        self.initialize(wait=True)
         self._wait_in_state('acquire:queue')
         self._wait_in_state('acquire:exec')
         self.start_cmd.put(1)
