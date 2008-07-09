@@ -48,6 +48,7 @@ def read_periodic_table():
             table_data[vals[1]][key] = val
     return table_data
    
-def gtk_idle():
+def gtk_idle(sleep=None):
     while gtk.events_pending():
         gtk.main_iteration()
+            

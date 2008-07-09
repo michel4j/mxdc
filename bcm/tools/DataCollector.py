@@ -61,6 +61,10 @@ class DataCollector(gobject.GObject):
         self.detector.initialize()
         self.pos = 0
         header = {}
+        _last_dist = 0.0
+        _last_energy = 0.0
+        _last_2theta = 0.0
+
         while self.pos < len(self.run_list) :
             if not self.detector.is_healthy():
                 self.stopped = True
@@ -75,6 +79,22 @@ class DataCollector(gobject.GObject):
                 return
 
             frame = self.run_list[self.pos]
+
+            # Check and prepare beamline
+            if abs(frame['distance'] - _last_dist) > 1e-2:
+                #print frame['distance'] - _last_dist
+                self.distance.move_to(frame['distance'])
+            if  abs(frame['energy'] - _last_energy) > 1e-5:
+                #print frame['energy'] - _last_energy
+                self.energy.move_to(frame['energy'])
+            if  abs(frame['two_theta'] - _last_2theta) > 1e-3:
+                #print frame['two_theta'] - _last_2theta
+                self.two_theta.move_to(frame['two_theta'])
+            self.distance.wait(start=False,stop=True)
+            self.energy.wait(start=False,stop=True)
+            self.two_theta.wait(start=False,stop=True)
+
+
             self.pos += 1
             if frame['saved'] and self.skip_collected:
                 self.log( 'Skipping %s' % frame['file_name'])
@@ -92,18 +112,7 @@ class DataCollector(gobject.GObject):
             header['wavelength'] = utils.energy_to_wavelength(frame['energy'])
             header['energy'] = frame['energy']
             header['prefix'] = frame['prefix']
-            header['start_angle'] = frame['start_angle']
-            
-            # Check and prepare beamline
-            print 'starting wait'
-            if abs(self.distance.get_position() - frame['distance']) > 0.05:
-                self.distance.move_to(frame['distance'], wait=True)
-            if abs(self.energy.get_position() - frame['energy']) > 0.0005:
-                self.energy.move_to(frame['energy'], wait=True)
-            if abs(self.two_theta.get_position() - frame['two_theta']) > 0.05:
-                self.two_theta.move_to(frame['two_theta'], wait=True)
-            print 'finished waiting'
-            
+            header['start_angle'] = frame['start_angle']            
                
             gonio_data = {
                 'time': frame['time'],
@@ -122,6 +131,10 @@ class DataCollector(gobject.GObject):
             # Notify progress
             fraction = float(self.pos) / len(self.run_list)
             gobject.idle_add(self.emit, 'progress', fraction)
+
+            _last_energy = frame['energy']
+            _last_2theta = frame['two_theta']
+            _last_dist = frame['distance']
             
             
         gobject.idle_add(self.emit, 'done')
