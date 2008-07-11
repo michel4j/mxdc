@@ -48,6 +48,7 @@ class MCA(DetectorBase):
         self.READ = ca.PV("%s.READ" % name, monitor=False)
         self.RDNG = ca.PV("%s.RDNG" % name)
         self.START = ca.PV("%s.ERST" % name, monitor=False)
+        self.ERASE = ca.PV("%s.ERAS" % name, monitor=False)
         self.IDTIM = ca.PV("%s.IDTIM" % name, monitor=False)
         self.TMODE = ca.PV("%s:Rontec1SetMode" % name_parts[0], monitor=False)
         self.SCAN = ca.PV("%s.SCAN" % name)
@@ -161,7 +162,7 @@ class MCA(DetectorBase):
         elif self._monitor_id:
             gobject.source_remove(self._monitor_id)
 
-    def _wait_count(self, start=False,stop=True,poll=0.05, timeout=2):
+    def _wait_count(self, start=False,stop=True,poll=0.05, timeout=5):
         if (start):
             time_left = timeout
             while self.ACQG.get() == 0 and time_left > 0:

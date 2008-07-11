@@ -347,7 +347,8 @@ class MADScanner(ScannerBase):
             self.beamline.bragg_energy.move_to(x, wait=True)
             
             y = self.beamline.mca.count(self.time)
-            f = self.normalizer.get_factor()        
+            f = self.normalizer.get_factor()
+            print x,y,f       
             y = y * f
             self.x_data_points.append( x )
             self.y_data_points.append( y )
