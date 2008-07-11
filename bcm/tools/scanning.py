@@ -344,6 +344,7 @@ class MADScanner(ScannerBase):
                 break
                 
             self.count += 1
+            self.beamline.mca.erase()
             prev = self.beamline.bragg_energy.get_position()                
             self.beamline.bragg_energy.move_to(x, wait=True)
             if self.count == 1:
