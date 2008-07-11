@@ -186,13 +186,14 @@ class MCA(DetectorBase):
                 return False
         return True        
                 
-    def _wait_read(self, start=False,stop=True, poll=0.05, timeout=2):       
+    def _wait_read(self, start=False,stop=True, poll=0.05, timeout=5):       
         if (start):
             time_left = timeout
             while self.RDNG.get() == 0 and time_left > 0:
                 time_left -= poll
                 time.sleep(poll)
             if time_left <= 0:
+                self.__log('ERROR: Timed out waiting for READ to start after %d sec' % timeout)
                 return False
         if (stop):
             time_left = timeout
@@ -201,6 +202,7 @@ class MCA(DetectorBase):
                 time.sleep(poll)
             if time_left <= 0:
                 return False
+                self.__log('ERROR: Timed out waiting for READ to stop after %d sec' % timeout)
         return True        
 
 class QBPM(DetectorBase):
