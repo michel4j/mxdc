@@ -360,7 +360,7 @@ class MADScanner(ScannerBase):
             self.y_data_points.append( y )
             
             fraction = float(self.count) / len(self.energy_targets)
-            self.log("%4d %15g %15g %15g" % (self.count, x, y, f))
+            self.log("%4d %15g %15g %15g" % (self.count, x, y, self.factor))
             gobject.idle_add(self.emit, "new-point", x, y )
             gobject.idle_add(self.emit, "progress", fraction )
 
