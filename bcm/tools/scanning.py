@@ -1,6 +1,6 @@
 import threading
 import gobject
-import numpy            
+import numpy, math           
 import scipy
 import scipy.optimize
 from matplotlib.mlab import slopes
@@ -348,10 +348,10 @@ class MADScanner(ScannerBase):
             prev = self.beamline.bragg_energy.get_position()                
             self.beamline.bragg_energy.move_to(x, wait=True)
             if self.count == 1:
-                self.first_intensity = self.beamline.i0.count(0.1)
+                self.first_intensity = math.log(self.beamline.i0.count(0.1),10)
                 self.factor = 1.0
             else:
-                self.factor = self.first_intensity/self.beamline.i0.count(0.1)
+                self.factor = self.first_intensity/math.log(self.beamline.i0.count(0.1),10)
             y = self.beamline.mca.count(self.time)
             print x, y, y*self.factor, self.factor
                 
