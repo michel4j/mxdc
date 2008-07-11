@@ -332,7 +332,7 @@ class MADScanner(ScannerBase):
             self.beamline.mca.set_cooling(True)
         self.beamline.energy.move_to(self.energy, wait=True)   
         
-        #self.normalizer = Normalizer(self.beamline.i0)
+        #self.normalizer = Normalizer(self.beamline.i2)
         #self.normalizer.set_time(self.time)
         #self.normalizer.start()
         
@@ -348,10 +348,10 @@ class MADScanner(ScannerBase):
             prev = self.beamline.bragg_energy.get_position()                
             self.beamline.bragg_energy.move_to(x, wait=True)
             if self.count == 1:
-                self.first_intensity = math.log(self.beamline.i0.count(0.1),10)
+                self.first_intensity = math.log(self.beamline.i2.count(0.1),10)
                 self.factor = 1.0
             else:
-                self.factor = self.first_intensity/math.log(self.beamline.i0.count(0.1),10)
+                self.factor = self.first_intensity/math.log(self.beamline.i2.count(0.1),10)
             y = self.beamline.mca.count(self.time)
             print x, y, y*self.factor, self.factor
                 
