@@ -325,17 +325,15 @@ class MADScanner(ScannerBase):
     def run(self):
         ca.thread_init()
         gobject.idle_add(self.emit, 'started')
+        self.stopped = False
+        self.aborted = False
         self.x_data_points = []
         self.y_data_points = []
         self.calc_targets()
         if not self.beamline.mca.is_cool():
             self.beamline.mca.set_cooling(True)
         self.beamline.energy.move_to(self.energy, wait=True)   
-        
-        #self.normalizer = Normalizer(self.beamline.i2)
-        #self.normalizer.set_time(self.time)
-        #self.normalizer.start()
-        
+               
         self.count = 0
         self.beamline.shutter.open()
         self.beamline.mca.erase()
@@ -367,7 +365,6 @@ class MADScanner(ScannerBase):
             gtk_idle()
              
         self.beamline.shutter.close()
-        #self.normalizer.stop()
         
         if self.aborted:
             gobject.idle_add(self.emit, "aborted")
