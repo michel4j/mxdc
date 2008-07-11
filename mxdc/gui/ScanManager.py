@@ -142,7 +142,6 @@ class ScanManager(gtk.HBox):
         
     def on_create_run(self,widget):
         self.emit('create-run')
-        print 'Creating MAD runs'
 
     def on_progress(self, widget, fraction):
         self.scan_control.progress_bar.set_complete(fraction)
