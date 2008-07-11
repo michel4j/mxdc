@@ -147,7 +147,7 @@ class MCA(DetectorBase):
         success = False
         while i < retries and not success:
             self.READ.put(1)
-            success = self._wait_read(start=True, stop=False, timeout=timeout)
+            success = self._wait_read(start=True, stop=True, timeout=timeout)
         if i==retries and not success:
             self._log('ERROR: MCA reading failed')
             
@@ -155,7 +155,6 @@ class MCA(DetectorBase):
         self._set_temp_monitor(False)
         self.count_time.put(t)
         self._start()
-        #self.wait_count(start=False,stop=True)
         self._wait_read(start=True,stop=True)
         self.data = self.spectrum.get()
         self._set_temp_monitor(True)
@@ -173,6 +172,7 @@ class MCA(DetectorBase):
                 time_left -= poll
                 time.sleep(poll)
             if time_left <= 0:
+                self.__log('ERROR: Timed out waiting for acquire to start after %d sec' % timeout)
                 return False
                 
         if (stop):
@@ -182,6 +182,7 @@ class MCA(DetectorBase):
                 time_left -= poll
                 time.sleep(poll)
             if time_left <= 0:
+                self.__log('ERROR: Timed out waiting for acquire to stop after %d sec' % timeout)
                 return False
         return True        
                 
