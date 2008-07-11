@@ -252,6 +252,7 @@ class ScanControl(gtk.VBox):
         run_data['energy'] = self.energies
         run_data['energy_label'] = self.names
         run_data['number'] = -1
+        run_data['two_theta'] = 0.0
         return run_data
                     
 def main():

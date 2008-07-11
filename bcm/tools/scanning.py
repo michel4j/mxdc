@@ -351,7 +351,7 @@ class MADScanner(ScannerBase):
                 self.first_intensity = math.log(self.beamline.i2.count(0.1),10)
                 self.factor = 1.0
             else:
-                self.factor = self.first_intensity/math.log(self.beamline.i2.count(0.1),10)
+                self.factor = math.log(self.beamline.i2.count(0.1),10)/self.first_intensity
             y = self.beamline.mca.count(self.time)
             print x, y, y*self.factor, self.factor
                 
