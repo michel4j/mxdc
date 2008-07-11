@@ -155,6 +155,7 @@ class MCA(DetectorBase):
         self._set_temp_monitor(False)
         self.count_time.put(t)
         self._start()
+        self.READ.put(1)
         self._wait_read(start=True,stop=True)
         self.data = self.spectrum.get()
         self._set_temp_monitor(True)
