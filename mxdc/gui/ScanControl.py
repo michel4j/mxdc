@@ -170,7 +170,7 @@ class ScanControl(gtk.VBox):
         params['directory']   = os.environ['HOME']
         params['energy']  =    12.6580
         params['edge'] =  'Se-K'
-        params['time'] = 1.0
+        params['time'] = 0.5
         params['emission'] = 11.2100
         self.set_parameters(params)
         self.show_all()

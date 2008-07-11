@@ -138,7 +138,7 @@ class MCA(DetectorBase):
         while i < retries and not success:
             i += 1
             self.START.put(1)
-            success = self._wait_count(start=True, stop=False, timeout=timeout)
+            success = self._wait_count(start=True, stop=True, timeout=timeout)
         if i==retries and not success:
             self._log('ERROR: MCA acquire failed')
                   
@@ -155,7 +155,6 @@ class MCA(DetectorBase):
         self._set_temp_monitor(False)
         self.count_time.put(t)
         self._start()
-        self.READ.put(1)
         self._wait_read(start=True,stop=True)
         self.data = self.spectrum.get()
         self._set_temp_monitor(True)
