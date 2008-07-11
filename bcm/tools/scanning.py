@@ -348,8 +348,10 @@ class MADScanner(ScannerBase):
             
             y = self.beamline.mca.count(self.time)
             f = self.normalizer.get_factor()
-            print x,y,f       
-            y = y * f
+            print x, y, y*f, f
+                
+            # uncomment following line when normalizer is fixed
+            #y = y * f
             self.x_data_points.append( x )
             self.y_data_points.append( y )
             
