@@ -244,9 +244,9 @@ class ScanControl(gtk.VBox):
         run_data['delta'] = 1
         run_data['time'] = 1
         run_data['start_angle'] = 0
-        run_data['end_angle']= 180
+        run_data['angle_range']= 180
         run_data['start_frame']= 1
-        run_data['end_frame']= 180
+        run_data['num_frames']= 180
         run_data['inverse_beam']= False
         run_data['wedge']=180
         run_data['energy'] = self.energies
