@@ -52,6 +52,8 @@ class ScannerBase(gobject.GObject):
         gobject.idle_add(self.emit, 'log', message)
 
     def start(self):
+        self.stopped = False
+        self.aborded = False
         worker_thread = threading.Thread(target=self.run)
         worker_thread.start()
 

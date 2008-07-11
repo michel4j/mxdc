@@ -56,4 +56,5 @@ class AppWindow:
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
         self.collect_manager.add_run( run_data )
+        print run_data
         

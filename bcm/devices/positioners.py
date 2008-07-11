@@ -79,7 +79,8 @@ class MotorBase(gobject.GObject):
             self._log( "stopped at %g %s" % (self.get_position(), self.units) )
 
     def _signal_request(self, obj, value):
-        self._log( "move to %f %s requested" % (value, self.units) )
+        #self._log( "move to %f %s requested" % (value, self.units) )
+        pass
            
     def _signal_health(self, obj, state):
         if state == 0:
