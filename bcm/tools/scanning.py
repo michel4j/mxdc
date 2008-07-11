@@ -338,13 +338,13 @@ class MADScanner(ScannerBase):
         
         self.count = 0
         self.beamline.shutter.open()
+        self.beamline.mca.erase()
         for x in self.energy_targets:
             if self.stopped or self.aborted:
                 self.log( "Scan stopped!" )
                 break
                 
             self.count += 1
-            self.beamline.mca.erase()
             prev = self.beamline.bragg_energy.get_position()                
             self.beamline.bragg_energy.move_to(x, wait=True)
             if self.count == 1:
@@ -355,7 +355,6 @@ class MADScanner(ScannerBase):
             y = self.beamline.mca.count(self.time)
             print x, y, y*self.factor, self.factor
                 
-            # uncomment following line when normalizer is fixed
             y = y * self.factor
             self.x_data_points.append( x )
             self.y_data_points.append( y )
@@ -368,7 +367,7 @@ class MADScanner(ScannerBase):
             gtk_idle()
              
         self.beamline.shutter.close()
-        self.normalizer.stop()
+        #self.normalizer.stop()
         
         if self.aborted:
             gobject.idle_add(self.emit, "aborted")
