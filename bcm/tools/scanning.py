@@ -266,6 +266,7 @@ class MADScanner(ScannerBase):
     def __init__(self, beamline):
         ScannerBase.__init__(self)
         self.beamline = beamline
+        self.factor = 1.0
     
     def setup(self, energy, emission, count_time, output):
         self.energy = energy
@@ -331,9 +332,9 @@ class MADScanner(ScannerBase):
             self.beamline.mca.set_cooling(True)
         self.beamline.energy.move_to(self.energy, wait=True)   
         
-        self.normalizer = Normalizer(self.beamline.i0)
-        self.normalizer.set_time(self.time)
-        self.normalizer.start()
+        #self.normalizer = Normalizer(self.beamline.i0)
+        #self.normalizer.set_time(self.time)
+        #self.normalizer.start()
         
         self.count = 0
         self.beamline.shutter.open()
@@ -345,13 +346,16 @@ class MADScanner(ScannerBase):
             self.count += 1
             prev = self.beamline.bragg_energy.get_position()                
             self.beamline.bragg_energy.move_to(x, wait=True)
-            
+            if self.count == 1:
+                self.first_intensity = self.beamline.i0.count(0.1)
+                self.factor = 1.0
+            else:
+                self.factor = self.first_intensity/self.beamline.i0.count(0.1)
             y = self.beamline.mca.count(self.time)
-            f = self.normalizer.get_factor()
-            print x, y, y*f, f
+            print x, y, y*self.factor, self.factor
                 
             # uncomment following line when normalizer is fixed
-            #y = y * f
+            y = y * self.factor
             self.x_data_points.append( x )
             self.y_data_points.append( y )
             
