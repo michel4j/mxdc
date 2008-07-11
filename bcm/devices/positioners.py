@@ -76,11 +76,10 @@ class MotorBase(gobject.GObject):
             self._move_active = False
         gobject.idle_add(self.emit, 'moving', self._move_active)
         if not self._move_active:
-            self._log( "stopped at %g %s" % (self.get_position(), self.units) )
+            self._log( "stopped at %g" % self.get_position() )
 
     def _signal_request(self, obj, value):
-        #self._log( "move to %f %s requested" % (value, self.units) )
-        pass
+        self._log( "move to %f requested" % (value) )
 
            
     def _signal_health(self, obj, state):
@@ -336,7 +335,6 @@ class braggEnergyMotor(Motor):
     """Temporary class until energy motor is standardized"""
     def __init__(self, name=None):
         Motor.__init__(self, name, motor_type='vme' )
-        self.units = 'keV'
         self.name = 'Bragg Energy'
                                    
     def get_position(self):
