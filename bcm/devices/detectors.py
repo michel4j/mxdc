@@ -172,7 +172,7 @@ class MCA(DetectorBase):
                 time_left -= poll
                 time.sleep(poll)
             if time_left <= 0:
-                self.__log('ERROR: Timed out waiting for acquire to start after %d sec' % timeout)
+                self._log('ERROR: Timed out waiting for acquire to start after %d sec' % timeout)
                 return False
                 
         if (stop):
@@ -182,7 +182,7 @@ class MCA(DetectorBase):
                 time_left -= poll
                 time.sleep(poll)
             if time_left <= 0:
-                self.__log('ERROR: Timed out waiting for acquire to stop after %d sec' % timeout)
+                self._log('ERROR: Timed out waiting for acquire to stop after %d sec' % timeout)
                 return False
         return True        
                 
@@ -193,7 +193,7 @@ class MCA(DetectorBase):
                 time_left -= poll
                 time.sleep(poll)
             if time_left <= 0:
-                self.__log('ERROR: Timed out waiting for READ to start after %d sec' % timeout)
+                self._log('ERROR: Timed out waiting for READ to start after %d sec' % timeout)
                 return False
         if (stop):
             time_left = timeout
@@ -202,7 +202,7 @@ class MCA(DetectorBase):
                 time.sleep(poll)
             if time_left <= 0:
                 return False
-                self.__log('ERROR: Timed out waiting for READ to stop after %d sec' % timeout)
+                self._log('ERROR: Timed out waiting for READ to stop after %d sec' % timeout)
         return True        
 
 class QBPM(DetectorBase):
