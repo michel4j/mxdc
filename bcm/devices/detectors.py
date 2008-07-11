@@ -111,6 +111,10 @@ class MCA(DetectorBase):
         self._collect(t)
         return self.get_value()        
 
+    def erase(self):
+        self.ERASE.put(0)
+        self.data = self.spectrum.get()
+
     def acquire(self, t=1.0):
         self.status_scan.put(9)
         self.read_scan.put(0)
