@@ -79,6 +79,11 @@ class DataCollector(gobject.GObject):
                 return
 
             frame = self.run_list[self.pos]
+            self.pos += 1
+
+            if frame['saved'] and self.skip_collected:
+                self.log( 'Skipping %s' % frame['file_name'])
+                continue
 
             # Check and prepare beamline
             if abs(frame['distance'] - _last_dist) > 1e-2:
@@ -95,10 +100,6 @@ class DataCollector(gobject.GObject):
             self.two_theta.wait(start=False,stop=True)
 
 
-            self.pos += 1
-            if frame['saved'] and self.skip_collected:
-                self.log( 'Skipping %s' % frame['file_name'])
-                continue
             velo = frame['delta'] / float(frame['time'])
             
             
