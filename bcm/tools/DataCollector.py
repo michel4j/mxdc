@@ -122,8 +122,8 @@ class DataCollector(gobject.GObject):
             }
             self.gonio.set_parameters(gonio_data)
             self.detector.start()            
-            self.detector.set_parameters(header)
             self.gonio.scan()
+            self.detector.set_parameters(header)
             self.detector.save()
 
             self.log("Image Collected: %s" % frame['file_name'])
