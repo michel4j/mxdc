@@ -70,7 +70,8 @@ class Camera(CameraBase):
         self.cam = PV(pv_name)
         self._packet_size = 307200
         self.update()
-        self.cam.connect('changed', self.update)
+        #self.cam.connect('changed', self.update)
+        gobject.timeout_add(100, self.update)
     
     def __del__(self):
         self._fsource.close()
