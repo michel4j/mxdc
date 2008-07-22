@@ -21,11 +21,9 @@ class PositionerBase(gobject.GObject):
 
     def __init__(self):
         gobject.GObject.__init__(self)
-        self._last_changed = time.time()
 
     def _signal_change(self, obj, value):
         gobject.idle_add(self.emit,'changed', self.get_position() )
-        self._last_changed = time.time()
     
     def _log(self, message):
         if hasattr(self, 'DESC'):
@@ -52,11 +50,9 @@ class MotorBase(gobject.GObject):
     def __init__(self):
         gobject.GObject.__init__(self)
         self._move_active = False
-        self._last_changed = time.time()
     
     def _signal_change(self, obj, value):
         gobject.idle_add(self.emit,'changed', self.get_position() )
-        self._last_changed = time.time()
     
     def _log(self, message):
         if hasattr(self, 'DESC'):
@@ -80,7 +76,6 @@ class MotorBase(gobject.GObject):
 
     def _signal_request(self, obj, value):
         self._log( "move to %f requested" % (value) )
-
            
     def _signal_health(self, obj, state):
         if state == 0:
@@ -160,9 +155,8 @@ class Motor(MotorBase):
             return
 
         self.VAL.put(target)
-        self.wait(start=True, stop=False)
         if wait:
-            self.wait(start=False, stop=True)
+            self.wait(start=True, stop=True)
 
     def move_by(self,val, wait=False):
         if val == 0.0:
@@ -191,12 +185,12 @@ class Motor(MotorBase):
         timeout = 2.0
         if (start):
             self._log('Waiting to start moving')
-            while not self._move_active and timeout > 0:
+            while not self.is_moving() and timeout > 0:
                 time.sleep(poll)
                 timeout -= poll                               
         if (stop):
             self._log('Waiting to stop moving')
-            while self._move_active:
+            while self.self.is_moving():
                 time.sleep(poll)
         
 class vmeMotor(Motor):
@@ -257,18 +251,6 @@ class energyMotor(MotorBase):
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
                             
-        # settings
-        self.MOSTAB = PV('BL08ID1:energy:enMostabChg')
-        self.BEND = PV('BL08ID1:C2Bnd:enable')
-        self.T1T2 = PV('BL08ID1:energy:enT1T2Chg')
-        self.UND = PV('BL08ID1:energy:enGapChg')
-
-    def _restore(self):
-        self.MOSTAB.put(1)
-        self.BEND.put(1)
-        self.T1T2.put(1)
-        self.UND.put(1)
-
     def get_position(self):
         return utils.bragg_to_energy(self.RBV.get())
 
@@ -282,7 +264,6 @@ class energyMotor(MotorBase):
             self.CALIB.put(0)
             
     def move_to(self, target, wait=False):
-        self._restore()
         if self.get_position() == target:
             return
         if not self.is_healthy():
@@ -291,9 +272,8 @@ class energyMotor(MotorBase):
 
         self._log( "moving to %f %s" % (target, self.units) )
         self.VAL.put(target)
-        self.wait(start=True, stop=False)
         if wait:
-            self.wait(start=False,stop=True)
+            self.wait(start=True,stop=True)
 
     def move_by(self,val, wait=False):
         if val == 0.0:
@@ -350,9 +330,8 @@ class braggEnergyMotor(Motor):
         deg_target = utils.energy_to_bragg(target)
         self._log( "moving to %f %s" % (deg_target, self.units) )
         self.VAL.put(deg_target)
-        self.wait(start=True, stop=False)
         if wait:
-            self.wait(start=False,stop=True)
+            self.wait(start=True,stop=True)
 
        
 class Attenuator(PositionerBase):
