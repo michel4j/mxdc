@@ -190,7 +190,7 @@ class Motor(MotorBase):
                 timeout -= poll                               
         if (stop):
             self._log('Waiting to stop moving')
-            while self.self.is_moving():
+            while self.is_moving():
                 time.sleep(poll)
         
 class vmeMotor(Motor):
