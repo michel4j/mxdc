@@ -52,10 +52,11 @@ class VideoTransformer(gobject.GObject):
         count = 0
         start_time = time.time()
         while not self._stopped:
-            if self.camera.get_frame() is None: continue
             while self._paused and not self._stopped:
                 time.sleep(0.1)
-                
+            img = self.camera.get_frame()
+            if img is None: continue
+                            
             if count % 100 == 0:
                 start_time = time.time()
                 count = 0
@@ -63,7 +64,6 @@ class VideoTransformer(gobject.GObject):
             count += 1
             self.banner_text = '%s: %s, %0.0f fps' % (self.camera.get_name(), time.strftime('%x %X'), self.fps)
              
-            img = self.camera.get_frame()
             self.source_w, self.source_h = img.size
             img = ImageOps.autocontrast(img, cutoff=self.contrast)
             self._lock.acquire()
