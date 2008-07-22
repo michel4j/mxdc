@@ -24,7 +24,6 @@ class CameraBase(gobject.GObject):
         gobject.idle_add(self.emit, 'log', message)
 
     def get_frame(self):
-        self.update()
         return self.frame
     
     def update(self, obj=None, force=None):
@@ -71,6 +70,8 @@ class Camera(CameraBase):
         self.cam = PV(pv_name)
         self._packet_size = 307200
         self.update()
+        #self.cam.connect('changed', self.update)
+        gobject.timeout_add(100, self.update)
     
     def __del__(self):
         self._fsource.close()
@@ -87,6 +88,7 @@ class Camera(CameraBase):
         self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
         self.size = self.frame.size
         return True
+
 
                                 
 class AxisController:
@@ -123,6 +125,8 @@ class AxisCamera(CameraBase):
         CameraBase.__init__(self,name)
         self.url = 'http://%s/jpg/image.jpg' % hostname
         self.controller = AxisController(hostname)
+        self.update()
+        gobject.timeout_add(100, self.update)
 
     def update(self, obj=None):
         try:
@@ -133,5 +137,6 @@ class AxisCamera(CameraBase):
         except:
             self._log('Error fetching frame')
         return True
+
         
 gobject.type_register(CameraBase)
