@@ -10,7 +10,7 @@ def prepare_for_mounting(bl):
 
 def restore_beamstop(bl):
     distance = 300
-    beamstop = 1
+    beamstop = 20
     bl.bst_z.move_to(beamstop, wait=True)
     bl.det_z.move_to(distance, wait=True)
     return True
