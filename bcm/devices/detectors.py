@@ -66,6 +66,13 @@ class MCA(DetectorBase):
         self._monitor_id = None
         self.name = 'MCA'
 
+        self._read_state = False
+        self.RDNG.connect('changed', self._monitor_reading)
+    
+    def _monitor_reading(self, obj, state):
+        if state == 0:
+            self._read_state = False
+            
     def set_cooling(self, state):
         if state:
             self.TMODE.put(2)
@@ -106,18 +113,16 @@ class MCA(DetectorBase):
         self.ROI = (channel - self.half_roi_width, channel + self.half_roi_width)
                
     def count(self, t=1.0):
-        self.status_scan.put(9)
-        self.read_scan.put(0)
         self._collect(t)
         return self.get_value()        
 
     def erase(self):
         self.ERASE.put(0)
+        self.status_scan.put(9)
+        self.read_scan.put(0)
         self.data = self.spectrum.get()
 
     def acquire(self, t=1.0):
-        self.status_scan.put(9)
-        self.read_scan.put(0)
         self._collect(t)
         return self.get_spectrum()        
         
@@ -141,21 +146,12 @@ class MCA(DetectorBase):
             success = self._wait_count(start=True, stop=True, timeout=timeout)
         if i==retries and not success:
             self._log('ERROR: MCA acquire failed')
-                  
-    def _read(self, retries=3, timeout=5):
-        i = 0
-        success = False
-        while i < retries and not success:
-            self.READ.put(1)
-            success = self._wait_read(start=True, stop=True, timeout=timeout)
-        if i==retries and not success:
-            self._log('ERROR: MCA reading failed')
-            
+                              
     def _collect(self, t=1.0):
         self._set_temp_monitor(False)
         self.count_time.put(t)
         self._start()
-        self._wait_read(start=True,stop=True)
+        self._wait_read()
         self.data = self.spectrum.get()
         self._set_temp_monitor(True)
 
@@ -174,6 +170,7 @@ class MCA(DetectorBase):
             if time_left <= 0:
                 self._log('ERROR: Timed out waiting for acquire to start after %d sec' % timeout)
                 return False
+        self._read_state = True
                 
         if (stop):
             time_left = timeout
@@ -186,24 +183,13 @@ class MCA(DetectorBase):
                 return False
         return True        
                 
-    def _wait_read(self, start=False,stop=True, poll=0.05, timeout=5):       
-        if (start):
-            time_left = timeout
-            while self.RDNG.get() == 0 and time_left > 0:
-                time_left -= poll
-                time.sleep(poll)
-            if time_left <= 0:
-                self._log('ERROR: Timed out waiting for READ to start after %d sec' % timeout)
-                return False
-        if (stop):
-            time_left = timeout
-            while self.RDNG.get() != 0 and time_left > 0:
-                time_left -= poll
-                time.sleep(poll)
-            if time_left <= 0:
-                return False
-                self._log('ERROR: Timed out waiting for READ to stop after %d sec' % timeout)
-        return True        
+    def _wait_read(self, poll=0.05, timeout=5):       
+        while self._read_state and time_left > 0:
+            time_left -= poll
+            time.sleep(poll)
+        if time_left <= 0:
+            self._log('ERROR: Timed out waiting for READ after %d sec' % timeout)
+            return False
 
 class QBPM(DetectorBase):
     implements(IBeamPositionMonitor)
