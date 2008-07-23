@@ -137,15 +137,16 @@ class MCA(DetectorBase):
         x = self.channel_to_energy( numpy.arange(0,4096,1) )
         return (x, self.data)
         
-    def _start(self, retries=5, timeout=5):
+    def _start(self, retries=5):
         i = 0
         success = False
         while i < retries and not success:
             i += 1
             self.START.put(1)
-            success = self._wait_count(start=True, stop=True, timeout=timeout)
+            success = self._wait_count()
+            self._read_state = True
         if i==retries and not success:
-            self._log('ERROR: MCA acquire failed')
+            self._log('ERROR: MCA acquire failed after %s retries' % retries)
                               
     def _collect(self, t=1.0):
         self._set_temp_monitor(False)
@@ -161,7 +162,7 @@ class MCA(DetectorBase):
         elif self._monitor_id:
             gobject.source_remove(self._monitor_id)
 
-    def _wait_count(self, start=False,stop=True,poll=0.05, timeout=5):
+    def _wait_count(self, start=True, stop=False,poll=0.05, timeout=2):
         if (start):
             time_left = timeout
             while self.ACQG.get() == 0 and time_left > 0:
@@ -169,9 +170,7 @@ class MCA(DetectorBase):
                 time.sleep(poll)
             if time_left <= 0:
                 self._log('ERROR: Timed out waiting for acquire to start after %d sec' % timeout)
-                return False
-        self._read_state = True
-                
+                return False                
         if (stop):
             time_left = timeout
             while self.ACQG.get() !=0 and time_left > 0:
