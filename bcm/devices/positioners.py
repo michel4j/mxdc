@@ -185,12 +185,12 @@ class Motor(MotorBase):
         timeout = 2.0
         if (start):
             self._log('Waiting to start moving')
-            while not self.is_moving() and timeout > 0:
+            while not self._move_active and timeout > 0:
                 time.sleep(poll)
                 timeout -= poll                               
         if (stop):
             self._log('Waiting to stop moving')
-            while self.is_moving():
+            while self._move_active:
                 time.sleep(poll)
         
 class vmeMotor(Motor):
@@ -303,12 +303,12 @@ class energyMotor(MotorBase):
         tstart = time.time()
         if (start):
             self._log('Waiting to start moving')
-            while not self.is_moving() and timeout > 0:
+            while not self._move_active and timeout > 0:
                 time.sleep(poll)
                 timeout -= poll                               
         if (stop):
             self._log( 'Waiting to stop moving' )
-            while self.is_moving():
+            while self._move_active:
                 time.sleep(poll)
 
 class braggEnergyMotor(Motor):

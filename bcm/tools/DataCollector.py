@@ -95,9 +95,9 @@ class DataCollector(gobject.GObject):
             if  abs(frame['two_theta'] - _last_2theta) > 1e-3:
                 #print frame['two_theta'] - _last_2theta
                 self.two_theta.move_to(frame['two_theta'])
-            self.distance.wait(start=False,stop=True)
-            self.energy.wait(start=False,stop=True)
-            self.two_theta.wait(start=False,stop=True)
+            self.distance.wait()
+            self.energy.wait()
+            self.two_theta.wait()
 
 
             velo = frame['delta'] / float(frame['time'])
