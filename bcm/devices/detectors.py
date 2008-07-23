@@ -189,6 +189,7 @@ class MCA(DetectorBase):
         if time_left <= 0:
             self._log('ERROR: Timed out waiting for READ after %d sec' % timeout)
             return False
+        
 
 class QBPM(DetectorBase):
     implements(IBeamPositionMonitor)
