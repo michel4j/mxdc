@@ -16,8 +16,8 @@ class PeriodicTable(gtk.Alignment):
         self.high_energy = hiE
         self.edge = 'Se-K'
         self.energy = 12.658
-        self.type_colors = ['#ff6666','#ffdead','#ffbfff','#ff99cc','#ffc0c0','#cccccc','#cccc99','#a0ffa0','#ffff99','#c0ffff']
-        self.edge_colors = ['#d95757','#d9bd93','#d9a2d9','#d982ad','#d9a3a3','#b3b3b3','#b3b386','#88d988','#d9d982','#a3d9d9']
+        self.type_colors = ["#ff9999","#ff99ff","#9999ff","#cc99ff","#99ccff","#99ffff","#99ff99","#ccff99","#ffcc99","#ff6666", "#cccccc", "#ffff99"]
+        self.edge_colors = ["#de7878","#de78de","#7878de","#ab78de","#7899de","#78dede","#78de78","#abde78","#deab78","#de4545", "#ababab", "#dede78"]
 
         self.table = gtk.Table(4,18,True)
         self.table_data = bcm.utils.read_periodic_table()
