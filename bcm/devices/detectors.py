@@ -183,6 +183,7 @@ class MCA(DetectorBase):
         return True        
                 
     def _wait_read(self, poll=0.05, timeout=5):       
+        time_left = timeout
         while self._read_state and time_left > 0:
             time_left -= poll
             time.sleep(poll)
