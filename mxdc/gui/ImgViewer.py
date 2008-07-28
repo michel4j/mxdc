@@ -209,8 +209,8 @@ class ImgViewer(gtk.VBox):
 
         self.read_header()
         self.raw_img = Image.open(self.filename)        
-        self.gamma_factor = min(1.0, self.rms_intensity / self.average_intensity)
-        
+        #self.gamma_factor = min(1.0, self.rms_intensity / self.average_intensity)
+        self.gamma_factor = 80.0 / self.average_intensity
         
         self.img = self.raw_img.point(lambda x: x * self.gamma_factor).convert('L')
         
