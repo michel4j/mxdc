@@ -526,11 +526,11 @@ class RunWidget(gtk.VBox):
             msg1 = "Directory name too long!"
             msg2 = "Directory path should be less than 37 characters. Your selection '%s' is %d characters long. Please use shorter names, or fewer levels of subdirectories." % (directory, len(directory))
             result = warning(msg1, msg2)
-        self.entry['directory'] = self.parameters['directory']
+            self.entry['directory'].set_text(self.parameters['directory'])
         else:
-            for c in [' ','*','#','@','&','[','[']    
+            for c in [' ','*','#','@','&','[','[']:   
                 directory.replace(c,'')
-            self.entry['directory'] = self.parameters['directory']
+            self.entry['directory'].set_text(self.parameters['directory'])
         self.check_changes()
         return False        
 
