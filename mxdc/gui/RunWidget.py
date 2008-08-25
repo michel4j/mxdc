@@ -302,10 +302,6 @@ class RunWidget(gtk.VBox):
         run_data = {}
         run_data['prefix']      = self.entry['prefix'].get_text().strip()
         run_data['directory']   = self.entry['directory'].get_text().strip()
-        if len(run_data['directory']) > 36:
-            msg1 = "Directory name too long!"
-            msg2 = "Directory path should be less than 37 characters. Your selection '%s' is %d characters long. Please use shorter names, or fewer levels of subdirectories." % (run_data['directory'], len(run_data['directory']))
-            result = warning(msg1, msg2)
         run_data['energy']  =    self.energy
         run_data['energy_label'] = self.energy_label
         run_data['inverse_beam'] = self.inverse_beam.get_active()
@@ -526,6 +522,15 @@ class RunWidget(gtk.VBox):
         
     def on_directory_changed(self,widget, event=None):
         directory = self.entry['directory'].get_text()
+        if len(directory) > 36:
+            msg1 = "Directory name too long!"
+            msg2 = "Directory path should be less than 37 characters. Your selection '%s' is %d characters long. Please use shorter names, or fewer levels of subdirectories." % (directory, len(directory))
+            result = warning(msg1, msg2)
+        self.entry['directory'] = self.parameters['directory']
+        else:
+            for c in [' ','*','#','@','&','[','[']    
+                directory.replace(c,'')
+            self.entry['directory'] = self.parameters['directory']
         self.check_changes()
         return False        
 
