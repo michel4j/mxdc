@@ -316,12 +316,12 @@ class ImgViewer(gtk.VBox):
 
     def auto_follow(self):
         # prevent chainloading by only loading images 4 seconds appart
-        if time.time() - self.last_displayed < 4:
+        if time.time() - self.last_displayed < 3:
             return True
         if not (self.frame_number and self.file_template):
             return False
-        frame_number = self.frame_number + 1
-        filename = self.file_template % (frame_number)
+        self.frame_number = self.frame_number + 1
+        filename = self.file_template % (self.frame_number)
         self.image_queue = []
         self.image_queue.append(filename)
         self.poll_for_file()
@@ -526,8 +526,8 @@ class ImgViewer(gtk.VBox):
     def on_next_frame(self,widget):
         if not (self.frame_number and self.file_template):
             return True
-        frame_number = self.frame_number + 1
-        filename = self.file_template % (frame_number)
+        self.frame_number = self.frame_number + 1
+        filename = self.file_template % (self.frame_number)
         if os.path.isfile(filename):
             self.set_filename(filename)
             self.load_image()
@@ -539,10 +539,9 @@ class ImgViewer(gtk.VBox):
     def on_prev_frame(self,widget):
         if not (self.frame_number and self.file_template):
             return True
-        frame_number = self.frame_number - 1
-        filename = self.file_template % (frame_number)
+        self.frame_number = max(1, self.frame_number - 1)
+        filename = self.file_template % (self.frame_number)
         if os.path.isfile(filename):
-            self.frame_number = frame_number
             self.set_filename(filename)
             self.load_image()
             self.display()
