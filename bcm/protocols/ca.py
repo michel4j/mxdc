@@ -327,7 +327,7 @@ def ca_exception_handler(event):
 
 def heart_beat(duration=0.01):
     if time.time() - libca.last_heart_beat > duration:
-        libca.ca_pend_event(duration)
+        libca.ca_pend_io(duration)
         libca.last_heart_beat = time.time()
     return True
 
