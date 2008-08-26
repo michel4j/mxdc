@@ -327,12 +327,12 @@ def ca_exception_handler(event):
 
 def heart_beat(duration=0.01):
     if time.time() - libca.last_heart_beat > duration:
-        libca.ca_pend_io(duration)
+        libca.ca_pend_event(duration)
         libca.last_heart_beat = time.time()
     return True
 
 #Make sure you get the events on time.
-#gobject.timeout_add(20, heart_beat, 0.02)
+gobject.idle_add(heart_beat, 0.02)
      
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
