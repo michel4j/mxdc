@@ -146,7 +146,7 @@ class SampleViewer(gtk.HBox):
         ymm = y_offset * self.pixel_size
         return (im_x, im_y, xmm, ymm)
 
-    def toggle_click_centering(self, widget):
+    def toggle_click_centering(self, widget=None):
         if self._click_centering == True:
             self._click_centering = False
         else:
@@ -450,6 +450,9 @@ class SampleViewer(gtk.HBox):
                 return True
             self._last_click_time = time.time()
             self.center_pixel(event.x, event.y)
+            if self._timeout_id:
+                gobject.source_remove(self._timeout_id)
+            self._timeout_id = gobject.timeout_add(300, self.toggle_click_centering)
         elif event.button == 3:
             self.measuring = True
             self.measure_x1, self.measure_y1 = event.x,event.y
