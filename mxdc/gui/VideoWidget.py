@@ -171,7 +171,7 @@ if __name__ == '__main__':
         fr = gtk.AspectFrame(obey_child=False, ratio=640.0/480.0)
         win.set_size_request(320,240)
         win.connect('destroy', lambda x: gtk.main_quit() )
-        cam = cameras.AxisCamera('ccd1608-201.cs.cls')
+        cam = cameras.Camera('CAM1608-001:data')
         vid = VideoWidget(cam)
         win.add(fr)
         fr.add(vid)
