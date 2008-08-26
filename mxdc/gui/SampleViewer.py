@@ -153,8 +153,8 @@ class SampleViewer(gtk.HBox):
                 self._timeout_id = None
         else:
             self._click_centering = True
-            self._timeout_id = gobject.timeout_add(300, self.toggle_click_centering)
-        return True
+            self._timeout_id = gobject.timeout_add(300000, self.toggle_click_centering)
+        return False
 
     def center_pixel(self, x, y):
         tmp_omega = int(round(self.omega.get_position()))
@@ -453,7 +453,7 @@ class SampleViewer(gtk.HBox):
             self.center_pixel(event.x, event.y)
             if self._timeout_id:
                 gobject.source_remove(self._timeout_id)
-            self._timeout_id = gobject.timeout_add(300, self.toggle_click_centering)
+            self._timeout_id = gobject.timeout_add(300000, self.toggle_click_centering)
         elif event.button == 3:
             self.measuring = True
             self.measure_x1, self.measure_y1 = event.x,event.y
