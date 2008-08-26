@@ -14,7 +14,6 @@ class SampleViewer(gtk.HBox):
         self.__register_icons()
         self._timeout_id = None
         self._click_centering  = False
-        self._last_click_time = time.time()
         
         self.contrast = 0   
         self.beamline = beamline
@@ -149,9 +148,12 @@ class SampleViewer(gtk.HBox):
     def toggle_click_centering(self, widget=None):
         if self._click_centering == True:
             self._click_centering = False
+            if self._timeout_id:
+                gobject.source_remove(self._timeout_id)
+                self._timeout_id = None
         else:
             self._click_centering = True
-            self._last_click_time = time.time()
+            self._timeout_id = gobject.timeout_add(300, self.toggle_click_centering)
         return True
 
     def center_pixel(self, x, y):
@@ -448,7 +450,6 @@ class SampleViewer(gtk.HBox):
         if event.button == 1:
             if self._click_centering == False or self._gonio_is_moving():
                 return True
-            self._last_click_time = time.time()
             self.center_pixel(event.x, event.y)
             if self._timeout_id:
                 gobject.source_remove(self._timeout_id)
