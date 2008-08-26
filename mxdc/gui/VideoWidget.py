@@ -1,4 +1,6 @@
 import os, sys
+if __name__ == "__main__":
+    sys.path.append(os.environ['BCM_PATH'])
 import gtk
 import gobject
 import pango
