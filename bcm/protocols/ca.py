@@ -332,7 +332,7 @@ def heart_beat(duration=0.01):
     return True
 
 #Make sure you get the events on time.
-gobject.idle_add(heart_beat, 0.02)
+gobject.timeout_add(30, heart_beat, 0.02)
      
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
