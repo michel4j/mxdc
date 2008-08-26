@@ -40,8 +40,7 @@ class SampleViewer(gtk.HBox):
         self.create_widgets()
         
         self._tick_size = 8
-        self._gonio_state = 0
-        
+         
         # initialize measurement variables
         self.measuring = False
         self.measure_x1 = 0
@@ -57,6 +56,9 @@ class SampleViewer(gtk.HBox):
         self.connect("destroy", lambda x: self.stop())
         
 
+    def _gonio_is_moving(self):
+        return ( self.sample_x.is_moving() or self.sample_y1.is_moving() or self.sample_y2.is_moving() or self.omega.is_moving() )
+    
     def __del__(self):
         self.video.stop()
 
@@ -444,7 +446,7 @@ class SampleViewer(gtk.HBox):
     def on_image_click(self, widget, event):
 
         if event.button == 1:
-            if self._gonio_state == 1 or self._click_centering == False:
+            if self._click_centering == False or self._gonio_is_moving():
                 return True
             self._last_click_time = time.time()
             self.center_pixel(event.x, event.y)
