@@ -160,17 +160,31 @@ class VideoWidget(gtk.DrawingArea):
         self.transformer.start()
 
 if __name__ == '__main__':
+    import hotshot
+    import hotshot.stats
     from bcm.devices import cameras
-    win = gtk.Window()
-    fr = gtk.AspectFrame(obey_child=False, ratio=640.0/480.0)
-    win.set_size_request(320,240)
-    win.connect('destroy', lambda x: gtk.main_quit() )
-    cam = cameras.AxisCamera('ccd1608-201.cs.cls')
-    vid = VideoWidget(cam)
-    win.add(fr)
-    fr.add(vid)
-    win.show_all()
+    
+    def main():
+        win = gtk.Window()
+        fr = gtk.AspectFrame(obey_child=False, ratio=640.0/480.0)
+        win.set_size_request(320,240)
+        win.connect('destroy', lambda x: gtk.main_quit() )
+        cam = cameras.AxisCamera('ccd1608-201.cs.cls')
+        vid = VideoWidget(cam)
+        win.add(fr)
+        fr.add(vid)
+        win.show_all()
+            
+    prof = hotshot.Profile("test.prof")
+    benchtime = prof.runcall(main)
+    prof.close()
+    stats = hotshot.stats.load("test.prof")
+    stats.strip_dirs()
+    stats.sort_stats('time','calls')
+    stats.print_stats(20)
+    
     try:
         gtk.main()
-    finally:
-        vid.stop()
+    except KeyboardInterrupt:
+        print "Quiting..."
+        sys.exit()
