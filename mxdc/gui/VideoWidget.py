@@ -176,6 +176,7 @@ if __name__ == '__main__':
         win.add(fr)
         fr.add(vid)
         win.show_all()
+        gobject.timeout_add(30000, gtk.main_quit )
             
     
     try:
