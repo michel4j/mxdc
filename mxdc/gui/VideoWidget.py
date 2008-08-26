@@ -177,16 +177,16 @@ if __name__ == '__main__':
         fr.add(vid)
         win.show_all()
             
-    prof = hotshot.Profile("test.prof")
-    benchtime = prof.runcall(main)
-    prof.close()
-    stats = hotshot.stats.load("test.prof")
-    stats.strip_dirs()
-    stats.sort_stats('time','calls')
-    stats.print_stats(20)
     
     try:
-        gtk.main()
+        main()
+        prof = hotshot.Profile("test.prof")
+        benchtime = prof.runcall(gtk.main)
+        prof.close()
+        stats = hotshot.stats.load("test.prof")
+        stats.strip_dirs()
+        stats.sort_stats('time','calls')
+        stats.print_stats(20)
     except KeyboardInterrupt:
         print "Quiting..."
         sys.exit()
