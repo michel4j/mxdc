@@ -182,7 +182,7 @@ class PV(gobject.GObject):
             ret_val = self.value
         else:
             libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
-            libca.ca_pend_io(0.1)
+            libca.ca_pend_io(1.0)
             if self.count > 1 and TypeMap[self.element_type] in [c_int, c_float, c_double, c_long]:
                 self.value = self.data
             else:
@@ -196,7 +196,7 @@ class PV(gobject.GObject):
             raise Error('Channel %s not connected' % self.name)
         self.data = self.data_type(val)
         libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
-        libca.ca_pend_io(0.1)
+        libca.ca_pend_io(1.0)
 
     def is_connected(self):
         if self.state == CA_OP_CONN_UP:
@@ -206,7 +206,7 @@ class PV(gobject.GObject):
 
     def _create_connection(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
-        libca.ca_pend_io(0.1)
+        libca.ca_pend_io(1.0)
         self.count = libca.ca_element_count(self.chid)
         self.element_type = libca.ca_field_type(self.chid)
         stat = libca.ca_state(self.chid)
@@ -293,7 +293,7 @@ class PV(gobject.GObject):
             user_arg,
             event_id
         )
-        libca.ca_pend_io(0.1)
+        libca.ca_pend_io(1.0)
         self.callbacks[ key ] = [cb_factory, cb_function, event_id]
         return event_id
                       
