@@ -325,7 +325,6 @@ def ca_exception_handler(event):
     raise Error(msg), None
     return 0
 
-libca.last_heart_beat = time.time()
 def heart_beat(duration=0.01):
     if time.time() - libca.last_heart_beat > duration:
         libca.ca_pend_event(duration)
@@ -340,6 +339,8 @@ try:
 except:
     print "EPICS run-time libraries (%s) could not be loaded!" % libca_file
     sys.exit()
+
+libca.last_heart_beat = time.time()
 
 # define argument and return types    
 libca.ca_name.restype = c_char_p
