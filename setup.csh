@@ -1,6 +1,6 @@
 #!/bin/csh
 
-# Set BCM_PATH to the top-level directory containing the BCM modules
+# Set BCM_PATH to the top-level directory containing the BCM module
 
 setenv BCM_PATH /opt/cmcf_apps/bcm
 setenv BCM_CONFIG_PATH $BCM_PATH/bcm/config
