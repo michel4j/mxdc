@@ -375,6 +375,10 @@ class RunWidget(gtk.VBox):
                 self._changes_pending = False
 
     def on_prefix_changed(self, widget, event=None):
+        prefix = self.entry['prefix'].get_text()
+        for c in [' ','*','#','@','&','[','[']:   
+            prefix = prefix.replace(c,'')
+        self.entry['prefix'].set_text(prefix)
         self.check_changes()
         return False
     
@@ -520,17 +524,8 @@ class RunWidget(gtk.VBox):
         self.check_changes()
         return False
         
-    def on_directory_changed(self,widget, event=None):
+    def on_directory_changed(self,widget=None, event=None):
         directory = self.entry['directory'].get_text()
-        if len(directory) > 36:
-            msg1 = "Directory name too long!"
-            msg2 = "Directory path should be less than 37 characters. Your selection '%s' is %d characters long. Please use shorter names, or fewer levels of subdirectories." % (directory, len(directory))
-            result = warning(msg1, msg2)
-            self.entry['directory'].set_text(self.parameters['directory'])
-        else:
-            for c in [' ','*','#','@','&','[','[']:   
-                directory.replace(c,'')
-            self.entry['directory'].set_text(self.parameters['directory'])
         self.check_changes()
         return False        
 

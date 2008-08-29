@@ -106,7 +106,12 @@ class DataCollector(gobject.GObject):
             # Prepare image header
             header['delta'] = frame['delta']
             header['filename'] = frame['file_name']
-            header['directory'] = '/data' + frame['directory']
+            dir_parts = frame['directory'].split('/')
+            if dir_parts[1] == 'users':
+                dir_parts[1] = 'data'
+                header['directory'] = '/'.join(dir_parts)
+            else:
+                header['directory'] = frame['directory']
             header['distance'] = frame['distance'] 
             header['time'] = frame['time']
             header['frame_number'] = frame['frame_number']
