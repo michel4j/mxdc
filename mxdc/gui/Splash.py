@@ -37,7 +37,7 @@ class Splash(object):
         vbox.pack_start(hbox)
         vbox.pack_end(self.pbar, expand=False, fill=False)
         vbox.pack_end(self.log, expand=False, fill=False)
-        vers = gtk.Label('Version 2.0')
+        vers = gtk.Label('Version 2.0 | Revision @version $Id$')
         vers.set_alignment(0,0.5)
         vers.modify_fg( gtk.STATE_NORMAL, vers.get_colormap().alloc_color(color) )
         vbox.pack_end(vers, expand=False, fill=False)
