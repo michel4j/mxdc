@@ -1,5 +1,6 @@
 import os
 import gtk
+import re
 
 _IMAGE_TYPES = {
     gtk.MESSAGE_INFO: gtk.STOCK_DIALOG_INFO,
@@ -346,9 +347,22 @@ class DirectoryButton(gtk.Button):
         self.connect('clicked', self.on_select_dir)
 
     def on_select_dir(self, widget):
-        folder = select_folder(self.path)
-        if folder:
-            self.set_text(folder)
+        directory = select_folder(self.path)
+        if directory:
+            if len(directory) > 39:
+                msg1 = "Directory path too long!"
+                msg2 = "The path should be less than 40 characters. Yours '%s' is %d characters long. Please use shorter names, and/or fewer levels of subdirectories." % (directory, len(directory))
+                result = warning(msg1, msg2)
+                self.set_text(self.path)
+            elif re.compile('^[\w/]+$').match(directory):
+                msg1 = "Directory name has special characters!"
+                msg2 = "The path name must be free from spaces and other special characters. Please select another directory."
+                result = warning(msg1, msg2)
+                self.set_text(self.path)
+            else:
+                self.set_text(directory)
+                return True
+
         return True
         
     def ellipsize(self,text):

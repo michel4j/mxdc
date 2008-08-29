@@ -177,7 +177,7 @@ class PV(gobject.GObject):
     def get(self):
         if self.state != CA_OP_CONN_UP:
             raise Error('Channel %s not connected' % self.name)
-        self._lock.acquire()
+        #self._lock.acquire()
         if self.monitor == True and self.value is not None:
             ret_val = self.value
         else:
@@ -188,13 +188,14 @@ class PV(gobject.GObject):
             else:
                 self.value = self.data.value
             ret_val = self.value
-        self._lock.release()
+        #self._lock.release()
         return ret_val
 
     def put(self, val):
         if self.state != CA_OP_CONN_UP:
             raise Error('Channel %s not connected' % self.name)
         self.data = self.data_type(val)
+        #print "'%s' = '%s'" % (val, self.data.value)
         libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
         libca.ca_pend_io(1.0)
 
@@ -248,7 +249,7 @@ class PV(gobject.GObject):
             self._connection_callbacks = [cb_factory, cb_function]
             
     def _on_change(self, event):
-        self._lock.acquire()
+        #self._lock.acquire()
         if event.type == DBR_STRING:
             val_p = cast(event.dbr, c_char_p)
             self.value = val_p.value
@@ -258,7 +259,7 @@ class PV(gobject.GObject):
                 self.value = val_p.contents
             else:
                 self.value = val_p.contents.value
-        self._lock.release()
+        #self._lock.release()
         gobject.idle_add(self.emit,'changed', self.value)
         return 0
         
@@ -326,13 +327,11 @@ def ca_exception_handler(event):
     return 0
 
 def heart_beat(duration=0.01):
-    if time.time() - libca.last_heart_beat > duration:
-        libca.ca_pend_io(duration)
-        libca.last_heart_beat = time.time()
+    libca.ca_pend_event(duration)
     return True
 
 #Make sure you get the events on time.
-#gobject.timeout_add(50, heart_beat, 0.01)
+gobject.timeout_add(20, heart_beat, 0.01)
      
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])

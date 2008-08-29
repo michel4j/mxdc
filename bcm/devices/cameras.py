@@ -1,6 +1,7 @@
 from zope.interface import implements
 from bcm.interfaces.cameras import ICamera
 from bcm.protocols.ca import PV
+import time
 import gobject
 
 import numpy
@@ -51,7 +52,7 @@ class CameraSim(CameraBase):
         self._packet_size = 307200
         self.name = name
         self.update()
-        gobject.timeout_add(100, self.update)
+        #gobject.timeout_add(100, self.update)
     
     def __del__(self):
         self._fsource.close()
@@ -62,6 +63,11 @@ class CameraSim(CameraBase):
         self.size = self.frame.size
         return True
                    
+    def get_frame(self):
+        if self.update():
+            return self.frame
+        else:
+            return None
 
 class Camera(CameraBase):
     def __init__(self, pv_name, name='Video'):
@@ -71,7 +77,7 @@ class Camera(CameraBase):
         self._packet_size = 307200
         self.update()
         #self.cam.connect('changed', self.update)
-        gobject.timeout_add(100, self.update)
+        #gobject.timeout_add(100, self.update)
     
     def __del__(self):
         self._fsource.close()
@@ -88,6 +94,12 @@ class Camera(CameraBase):
         self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
         self.size = self.frame.size
         return True
+
+    def get_frame(self):
+        if self.update():
+            return self.frame
+        else:
+            return None
 
 
                                 
@@ -125,18 +137,31 @@ class AxisCamera(CameraBase):
         CameraBase.__init__(self,name)
         self.url = 'http://%s/jpg/image.jpg' % hostname
         self.controller = AxisController(hostname)
+        self.size = (704,480)
+        self._last_frame = time.time()
         self.update()
-        gobject.timeout_add(100, self.update)
+
+    def _get_image(self):
+            f = urllib.urlopen(self.url)
+            f_str = cStringIO.StringIO(f.read())
+            return Image.open(f_str)
 
     def update(self, obj=None):
+        if time.time() - self._last_frame < 0.1:
+            return True
         try:
-            img_file = urllib.urlopen(self.url)
-            img_str = cStringIO.StringIO(img_file.read())
-            self.frame = Image.open(img_str)
-            self.size = self.frame.size
+            self.frame = self._get_image()
+            self._last_frame = time.time()
         except:
             self._log('Error fetching frame')
+            return False
         return True
 
+
+    def get_frame(self):
+        if self.update():
+            return self.frame
+        else:
+            return None
         
 gobject.type_register(CameraBase)
