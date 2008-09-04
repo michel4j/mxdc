@@ -4,7 +4,7 @@
 import sys
 import re, os, time, gc, stat
 import gtk, gobject, pango
-import Image, ImageEnhance, ImageOps, ImageDraw, ImageFont
+import Image, ImageEnhance, ImageFilter, ImageOps, ImageDraw, ImageFont
 import numpy, re, struct
 from scipy.misc import toimage, fromimage
 import pickle
@@ -90,10 +90,8 @@ class ImgViewer(gtk.VBox):
         self.pack_start(self.toolbar, expand=False, fill=True)
         self.show_all()
         
-        self.contrast_level = 0.0
         self.brightness_factor = 1.0
-        self.shift_up = 0
-        self.shift_dn = 0
+        self.contrast_factor = 1.0
         self.image_size = self.disp_size
         self.x_center = self.y_center = self.image_size / 2
         self.follow_frames = False
@@ -291,10 +289,21 @@ class ImgViewer(gtk.VBox):
 
     def apply_filters(self, image):       
         #using auto_contrast
-        pc = self.shift_up / 5.0
-        new_img = ImageOps.autocontrast(image,cutoff=pc)
-        return new_img
+        #pc = self.contrast_factor / 5.0
+        #new_img = ImageOps.autocontrast(image,cutoff=pc)
+        
+        print self.contrast_factor
+        enhancer = ImageEnhance.Contrast(image)
+        return enhancer.enhance(self.contrast_factor)
+        
+        #f = (1.0 - self.contrast_factor) * 100
+        #print f
+        #return self.adjust_level(image, f)
+        
                         
+    def adjust_level(self, img, shift):     
+        return img.point(lambda x: x * 1 + shift)
+    
     def poll_for_file(self):
         if len(self.image_queue) == 0:
             if self.collecting_data == True:
@@ -344,7 +353,7 @@ class ImgViewer(gtk.VBox):
             self.log("%d images in queue" % len(self.image_queue) )
         return True     
         
-    def zooming_lens(self,Ox,Oy,src_size = 25, zoom_level = 5):
+    def zooming_lens(self,Ox,Oy,src_size = 20, zoom_level = 8):
         half_src = src_size / 2
         lens_size = src_size * zoom_level
         half_image = self.orig_size / 2
@@ -356,7 +365,9 @@ class ImgViewer(gtk.VBox):
             src_x = self.orig_size - src_size
         if src_y + src_size > self.orig_size:
             src_y = self.orig_size - src_size
-        tmp_image = self.img.crop((src_x,src_y,src_x+src_size,src_y+src_size)).convert('RGBA')
+        tmp_image = self.img.crop((src_x,src_y,src_x+src_size,src_y+src_size))
+        #tmp_image = self.apply_filters(tmp_image)
+        tmp_image = tmp_image.convert('RGBA')
         tmp_image = tmp_image.resize((lens_size,lens_size), self.os_interp)
         tmp_image = ImageOps.expand(tmp_image, border=1, fill=(255, 255, 255))
         tmp_image = ImageOps.expand(tmp_image, border=1, fill=(0, 0, 0))
@@ -418,8 +429,6 @@ class ImgViewer(gtk.VBox):
         offset = -lo * scale
         return img.point(lambda x: x * scale + offset)
 
-    def adjust_level(self, img, shift):     
-        return img.point(lambda x: x * 1 + shift)
     
     # callbacks
     def on_configure(self, obj, event):
@@ -440,31 +449,29 @@ class ImgViewer(gtk.VBox):
         self.banner_pl.set_font_description(pango.FontDescription("Monospace 7"))
         return True
 
-    def on_incr_brightness(self,widget):
-        self.brightness_factor += 0.1
-        self.display()
-        return True    
+    #def on_incr_brightness(self,widget):
+    #    self.brightness_factor += 0.1
+    #    self.display()
+    #    return True    
     
-    def on_decr_brightness(self,widget):
-        self.brightness_factor -= 0.1
-        self.display()
-        return True    
+    #def on_decr_brightness(self,widget):
+    #    self.brightness_factor -= 0.1
+    #    self.display()
+    #    return True    
     
     def on_incr_contrast(self,widget):
-        self.shift_up = max(0, min(100, self.shift_up + 10))
+        self.contrast_factor = min(10, self.contrast_factor + 0.1)
         self.display()
         return True    
 
     def on_decr_contrast(self,widget):
-        self.shift_up = min(100, max(0, self.shift_up - 10))
+        self.contrast_factor = max(0, self.contrast_factor - 0.1)
         self.display()
         return True    
     
     def on_reset_filters(self,widget):
-        self.contrast_level = 0.0
         self.brightness_factor = 1.0
-        self.shift_up = 0
-        self.shift_dn = 0
+        self.contrast_factor = 1.0
         self.image_size = self.disp_size
         self.work_img = self.img.resize((self.image_size,self.image_size),self.ds_interp)
         self.display()
@@ -709,7 +716,7 @@ def main():
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(6)
     win.set_title("Diffraction Image Viewer")
-    myview = ImgViewer(size=768)
+    myview = ImgViewer(size=840)
     hbox = gtk.HBox(False)
     hbox.pack_start(myview)
     win.add(hbox)
