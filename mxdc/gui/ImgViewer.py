@@ -140,6 +140,8 @@ class ImgViewer(gtk.VBox):
         else:
             self.cursor = None
             self.image_canvas.window.set_cursor( self.cursor )
+        while gtk.events_pending():
+            gtk.main_iteration()
 
     def log(self, msg):
         self.emit('log', 'ImageViewer: %s' % msg)
@@ -183,6 +185,9 @@ class ImgViewer(gtk.VBox):
         self.average_intensity = self.statistics_pars[5] / 1e3
         self.overloads = self.statistics_pars[8]
         self.saturated_value = self.header_pars[23]
+        
+        #print "min, max, avg = ", self.min_intensity, self.max_intensity, self.average_intensity
+        #print "statistics = ", self.statistics_pars
     
     def set_filename(self, filename):
         self.filename = filename
@@ -292,7 +297,7 @@ class ImgViewer(gtk.VBox):
         #pc = self.contrast_factor / 5.0
         #new_img = ImageOps.autocontrast(image,cutoff=pc)
         
-        print self.contrast_factor
+        #print self.contrast_factor
         enhancer = ImageEnhance.Contrast(image)
         return enhancer.enhance(self.contrast_factor)
         
@@ -305,6 +310,7 @@ class ImgViewer(gtk.VBox):
         return img.point(lambda x: x * 1 + shift)
     
     def poll_for_file(self):
+        self.__set_busy(True)
         if len(self.image_queue) == 0:
             if self.collecting_data == True:
                 return True
@@ -319,8 +325,10 @@ class ImgViewer(gtk.VBox):
             self.image_queue.pop(0) # delete loaded image from queue item
             self.load_image()
             self.display()
+            self.__set_busy(False)
             return True
         else:
+            self.__set_busy(False)
             return True     
 
     def auto_follow(self):
@@ -344,7 +352,6 @@ class ImgViewer(gtk.VBox):
             self.image_queue = []
             if self.follow_id is not None:
                 gobject.source_remove(self.follow_id)
-            self.__set_busy(True)
             gobject.timeout_add(500, self.poll_for_file)
 
     def show_detector_image(self, filename):
@@ -570,7 +577,6 @@ class ImgViewer(gtk.VBox):
             if not self.collecting_data:
                 self.follow_id = gobject.timeout_add(500, self.auto_follow)
         else:
-            self.__set_busy(False)
             if self.follow_id is not None:
                 gobject.source_remove(self.follow_id)
                 self.follow_id = None

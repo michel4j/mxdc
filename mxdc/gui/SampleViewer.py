@@ -148,12 +148,8 @@ class SampleViewer(gtk.HBox):
     def toggle_click_centering(self, widget=None):
         if self._click_centering == True:
             self._click_centering = False
-            if self._timeout_id:
-                gobject.source_remove(self._timeout_id)
-                self._timeout_id = None
         else:
             self._click_centering = True
-            self._timeout_id = gobject.timeout_add(300000, self.toggle_click_centering)
         return False
 
     def center_pixel(self, x, y):
@@ -451,9 +447,6 @@ class SampleViewer(gtk.HBox):
             if self._click_centering == False or self._gonio_is_moving():
                 return True
             self.center_pixel(event.x, event.y)
-            if self._timeout_id:
-                gobject.source_remove(self._timeout_id)
-            self._timeout_id = gobject.timeout_add(300000, self.toggle_click_centering)
         elif event.button == 3:
             self.measuring = True
             self.measure_x1, self.measure_y1 = event.x,event.y

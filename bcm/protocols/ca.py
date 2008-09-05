@@ -99,7 +99,7 @@ OP_messages = {
 
 TypeMap = {
     DBR_STRING: c_char_p,
-    DBR_CHAR: c_char,
+    DBR_CHAR: c_char_p,
     DBR_ENUM: c_ushort,
     DBR_INT: c_int,
     DBR_SHORT: c_int,
@@ -220,18 +220,21 @@ class PV(gobject.GObject):
             self._defer_connection()
 
     def _allocate_data_mem(self, value=None):
-        if self.count > 1:
-           self.data_type = TypeMap[self.element_type] * self.count
-        elif self.element_type == DBR_STRING:
+        if self.element_type in [DBR_STRING, DBR_CHAR]:
            self.data_type = create_string_buffer
+        elif self.count > 1:
+           self.data_type = TypeMap[self.element_type] * self.count
         else:
            self.data_type = TypeMap[self.element_type] 
         if value:
             self.data = self.data_type(value)
         elif self.element_type == DBR_STRING:
             self.data = self.data_type(256)
+        elif self.element_type == DBR_CHAR:
+            self.data = self.data_type(self.count)
         else:
             self.data = self.data_type()
+
 
     def _defer_connection(self):
         print 'Deferring Connection of %s' % self.name
@@ -250,7 +253,7 @@ class PV(gobject.GObject):
             
     def _on_change(self, event):
         #self._lock.acquire()
-        if event.type == DBR_STRING:
+        if event.type in [ DBR_STRING,  DBR_CHAR ]:
             val_p = cast(event.dbr, c_char_p)
             self.value = val_p.value
         else:
@@ -271,7 +274,6 @@ class PV(gobject.GObject):
             self.chid = event.chid
             self.count = libca.ca_element_count(self.chid)
             self.element_type = libca.ca_field_type(self.chid)
-
             self._allocate_data_mem()
             self._add_handler( self._on_change )
         self._lock.release()
