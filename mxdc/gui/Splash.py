@@ -2,7 +2,7 @@ import gtk, gobject
 import sys, os
 from ActiveWidgets import LinearProgress
 
-REVISION = '$Rev$'.split()[1]
+REVISION =  '$Rev$'.split()[1]
 
 class Splash(object):
     def __init__(self, image, startup_obj, icon=None, logo=None, color=None):
