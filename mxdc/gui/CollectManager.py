@@ -109,6 +109,9 @@ class CollectManager(gtk.HBox):
         self.collect_btn.connect('clicked',self.on_activate)
         self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
         self.run_manager.connect('saved', self.save_runs)
+
+        for w in [self.collect_btn, self.stop_btn]:
+            w.set_property('can-focus', False)
         
         self.collector.connect('done', self.on_stop)
         self.collector.connect('error', self.on_error)
