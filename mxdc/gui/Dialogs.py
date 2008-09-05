@@ -368,7 +368,7 @@ class DirectoryButton(gtk.Button):
         return True
         
     def ellipsize(self,text):
-        maxlen = 20
+        maxlen = 25
         if len(text) < maxlen:
             return text
         else:
