@@ -310,7 +310,6 @@ class ImgViewer(gtk.VBox):
         return img.point(lambda x: x * 1 + shift)
     
     def poll_for_file(self):
-        self.__set_busy(True)
         if len(self.image_queue) == 0:
             if self.collecting_data == True:
                 return True
@@ -320,6 +319,7 @@ class ImgViewer(gtk.VBox):
         else:
             next_filename = self.image_queue[0]
         
+        self.__set_busy(True)
         if os.path.isfile(next_filename) and (os.stat(next_filename)[stat.ST_SIZE] == 18878464):
             self.set_filename( next_filename )
             self.image_queue.pop(0) # delete loaded image from queue item
