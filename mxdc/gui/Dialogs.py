@@ -369,10 +369,12 @@ class DirectoryButton(gtk.Button):
         
     def ellipsize(self,text):
         maxlen = 25
+        l = maxlen/2 - 2
+        r = maxlen/2 - 1
         if len(text) < maxlen:
             return text
         else:
-            return text[:8] + '...' + text[-9:]
+            return text[:l] + '...' + text[-r:]
         
 
     def set_text(self,text):
