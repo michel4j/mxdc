@@ -345,16 +345,18 @@ class DirectoryButton(gtk.Button):
         self.add(hbox)
         self.path = os.environ['HOME']
         self.connect('clicked', self.on_select_dir)
+        self.tooltips = gtk.Tooltips()
+        self.tooltips.enable()
 
     def on_select_dir(self, widget):
         directory = select_folder(self.path)
         if directory:
-            if len(directory) > 39:
+            if len(directory) > 255:
                 msg1 = "Directory path too long!"
-                msg2 = "The path should be less than 40 characters. Yours '%s' is %d characters long. Please use shorter names, and/or fewer levels of subdirectories." % (directory, len(directory))
+                msg2 = "The path should be less than 256 characters. Yours '%s' is %d characters long. Please use shorter names, and/or fewer levels of subdirectories." % (directory, len(directory))
                 result = warning(msg1, msg2)
                 self.set_text(self.path)
-            elif re.compile('^[\w/]+$').match(directory):
+            elif not re.compile('^[\w/]+$').match(directory):
                 msg1 = "Directory name has special characters!"
                 msg2 = "The path name must be free from spaces and other special characters. Please select another directory."
                 result = warning(msg1, msg2)
@@ -366,17 +368,16 @@ class DirectoryButton(gtk.Button):
         return True
         
     def ellipsize(self,text):
-        base = os.path.basename(text)
-        root = os.path.dirname(text)
-        newtext = "%s/%s" % (os.path.basename(root), base)
-        if os.path.dirname( root ) == '/':
-            newtext = "/%s" % newtext
+        maxlen = 20
+        if len(text) < maxlen:
+            return text
         else:
-            newtext = ".../%s" % newtext
-        return newtext
+            return text[:8] + '...' + text[-9:]
+        
 
     def set_text(self,text):
         self.path = text
+        self.tooltips.set_tip(self.dir_label, text)
         self.dir_label.set_text( self.ellipsize(text) )
 
     def get_text(self):

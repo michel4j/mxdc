@@ -71,7 +71,6 @@ class HutchManager(gtk.VBox):
         control_box.set_border_width(6)
         self.front_end_btn = ShutterButton(self.beamline.psh1, 'Front End')
         self.shutter_btn = ShutterButton(self.beamline.shutter, 'Shutter')
-        self.shutter_btn.set_sensitive(False)
         self.optimize_btn = gtk.Button('Optimize Beam')
         self.mount_btn = gtk.Button('Mount Crystal')
         self.mount_btn.connect('clicked', self.prepare_mounting)
@@ -85,6 +84,9 @@ class HutchManager(gtk.VBox):
         control_box.pack_start(self.optimize_btn)
         control_box.pack_start(self.mount_btn)
         control_box.pack_start(self.reset_btn)
+
+        for w in [self.front_end_btn, self.shutter_btn, self.optimize_btn, self.mount_btn, self.reset_btn]:
+            w.set_property('can-focus', False)
         
         hbox1.pack_start(control_box, expand=False, fill=False)
         hbox1.pack_end(diag_frame, expand=False, fill=True)
