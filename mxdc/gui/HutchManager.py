@@ -85,7 +85,7 @@ class HutchManager(gtk.VBox):
         control_box.pack_start(self.mount_btn)
         control_box.pack_start(self.reset_btn)
 
-        for w in [self.shutter_btn, self.optimize_btn, self.mount_btn, self.reset_btn]:
+        for w in [self.front_end_btn, self.shutter_btn, self.optimize_btn, self.mount_btn, self.reset_btn]:
             w.set_property('can-focus', False)
         
         hbox1.pack_start(control_box, expand=False, fill=False)
