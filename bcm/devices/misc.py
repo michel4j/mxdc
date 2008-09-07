@@ -89,7 +89,7 @@ class Shutter(gobject.GObject):
         self.close_cmd.put(1)
 
     def _signal_change(self, obj, value):
-        if value != 0:
+        if value == 1:
             gobject.idle_add(self.emit,'changed', True)
         else:
             gobject.idle_add(self.emit,'changed', False)
