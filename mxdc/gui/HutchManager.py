@@ -76,7 +76,7 @@ class HutchManager(gtk.VBox):
         self.mount_btn.connect('clicked', self.prepare_mounting)
         self.reset_btn = gtk.Button('Finished Mounting')
         self.reset_btn.connect('clicked',self.restore_beamstop)
-        self.front_end_btn.set_sensitive(False)
+        #self.front_end_btn.set_sensitive(False)
         self.optimize_btn.set_sensitive(False)
         self.shutter_btn.set_sensitive(False)
         control_box.pack_start(self.front_end_btn)
