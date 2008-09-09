@@ -7,12 +7,19 @@
 
 import gtk
 import gtk.gdk
-import code
+import gobject, sys, os, code
 import sys
 import pango
-
 import __builtin__
 import __main__
+
+sys.path.append(os.environ['BCM_PATH'])
+from bcm.tools.scanning import scan, rscan
+from mxdc.gui.Plotter import Plotter
+from bcm.beamline import PX
+plotter = Plotter()
+scan.set_plotter(plotter)
+rscan.set_plotter(plotter)
 
 banner = """Interactive Beamline Console
 Using Python %s
@@ -143,7 +150,7 @@ class BeamlineConsole(gtk.ScrolledWindow):
     self.text.modify_font(pango_font)
 
 
-    self.interpreter = code.InteractiveInterpreter()
+    self.interpreter = code.InteractiveInterpreter(globals())
 
     self.completer = Completer(self.interpreter.locals)
     self.buffer = []
@@ -388,14 +395,21 @@ def run():
   w.set_icon (pixbuf)
   console = BeamlineConsole()
   console.set_size_request(640,400)
-  w.add(console)
+  vbox = gtk.VBox()
+  expander = gtk.Expander()
+  expander.add(plotter)
+  vbox.pack_start(expander)
+  vbox.pack_end(console)
+  w.add(vbox)
+  
+  
   w.set_title('Interactive Beamline Console')
   
   #initialize the gtk environment
-  console.interpreter.runsource("import gtk, gobject, sys, os\n", "<<console>>")
-  console.interpreter.runsource("sys.path.append(os.environ['BCM_PATH'])\n", "<<console>>")
-  console.execute_line('from bcm.tools.scanning import scan, rscan')
-  console.execute_line('from bcm.beamline import PX')
+  #console.interpreter.runsource("import gtk, gobject, sys, os\n", "<<console>>")
+  #console.interpreter.runsource("sys.path.append(os.environ['BCM_PATH'])\n", "<<console>>")
+  #console.execute_line('from bcm.tools.scanning import scan, rscan')
+  #console.execute_line('from bcm.beamline import PX')
   #console.execute_line("bl = PX('%s.conf' % os.environ['BCM_BEAMLINE'])")
   #console.execute_line('gobject.idle_add(bl.setup)')
 
