@@ -12,6 +12,7 @@ class DataCollector(gobject.GObject):
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,))
+    __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['stopped'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['log'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
@@ -61,10 +62,7 @@ class DataCollector(gobject.GObject):
         self.detector.initialize()
         self.pos = 0
         header = {}
-        _last_dist = 0.0
-        _last_energy = 0.0
-        _last_2theta = 0.0
-
+        
         while self.pos < len(self.run_list) :
             if not self.detector.is_healthy():
                 self.stopped = True
@@ -84,20 +82,23 @@ class DataCollector(gobject.GObject):
             if frame['saved'] and self.skip_collected:
                 self.log( 'Skipping %s' % frame['file_name'])
                 continue
-
+            _motion_flag = [False,False,False]
             # Check and prepare beamline
-            if abs(frame['distance'] - _last_dist) > 1e-2:
-                #print frame['distance'] - _last_dist
+            if abs(frame['distance'] - self.distance.get_position()) > 1e-2:
                 self.distance.move_to(frame['distance'])
-            if  abs(frame['energy'] - _last_energy) > 1e-5:
-                #print frame['energy'] - _last_energy
+                self.distance.wait(start=True, stop=False)
+                _motion_flag[0] = True     
+            if  abs(frame['energy'] - self.energy.get_position()) > 1e-5:
                 self.energy.move_to(frame['energy'])
-            if  abs(frame['two_theta'] - _last_2theta) > 1e-3:
-                #print frame['two_theta'] - _last_2theta
+                self.energy.wait(start=True, stop=False)
+                _motion_flag[1] = True     
+            if  abs(frame['two_theta'] - self.two_theta.get_position()) > 1e-3:
                 self.two_theta.move_to(frame['two_theta'])
-            self.distance.wait()
-            self.energy.wait()
-            self.two_theta.wait()
+                self.two_theta.wait(start=True, stop=False)
+                _motion_flag[2] = True
+
+            for m,f in zip ([self.distance, self.energy, self.two_theta], _motion_flag):
+                if f: m.wait(start=False, stop=True)
 
 
             velo = frame['delta'] / float(frame['time'])
@@ -136,12 +137,7 @@ class DataCollector(gobject.GObject):
             
             # Notify progress
             fraction = float(self.pos) / len(self.run_list)
-            gobject.idle_add(self.emit, 'progress', fraction)
-
-            _last_energy = frame['energy']
-            _last_2theta = frame['two_theta']
-            _last_dist = frame['distance']
-            
+            gobject.idle_add(self.emit, 'progress', fraction)            
             
         gobject.idle_add(self.emit, 'done')
         gobject.idle_add(self.emit, 'progress', 1.0)
