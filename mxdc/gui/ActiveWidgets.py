@@ -189,11 +189,12 @@ class ShutterButton(gtk.Button):
         gtk.Button.__init__(self)
         self.shutter = shutter
         container = gtk.HBox(False,0)
+        container.set_border_width(2)
         self.label_text = label
         self.image = gtk.Image()
         self.label = gtk.Label(label)
-        container.pack_start(self.image)
-        container.pack_start(self.label)
+        container.pack_start(self.image, expand=False, fill=False)
+        container.pack_start(self.label, expand=True, fill=True)
         self.add(container)
         
         self.shutter.connect('changed', self._on_state_change)
