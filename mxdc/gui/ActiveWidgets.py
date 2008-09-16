@@ -141,7 +141,7 @@ class MotorEntry(PositionerEntry):
         if motion:
             self.running = True
             self.act_btn.get_child().set_from_stock('gtk-stop',gtk.ICON_SIZE_MENU)
-            self.undo_btn.get_child().set_from_file(os.environ['BCM_PATH'] + '/mxdc/gui/images/throbber.gif')
+            self.undo_btn.get_child().set_from_file(os.environ['BCM_PATH'] + '/mxdc/gui/images/throbber_0.gif')
         else:
             self.running = False
             self.act_btn.get_child().set_from_stock('gtk-go-forward',gtk.ICON_SIZE_MENU)
