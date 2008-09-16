@@ -61,6 +61,10 @@ class MotorBase(gobject.GObject):
             nm = self.name
         msg = "%s: %s" % (nm, message)
         gobject.idle_add(self.emit, 'log', msg)
+        t = time.time()
+        dec = "%0.3f" % (t - int(t))
+        ttx = "%s%s" % (time.strftime('%H:%M:%S',time.localtime(t)), dec[1:])
+        #print ttx, msg
 
     def _on_log(self, obj, msg):
         self._log(msg)
@@ -73,6 +77,9 @@ class MotorBase(gobject.GObject):
         gobject.idle_add(self.emit, 'moving', self._move_active)
         if not self._move_active:
             self._log( "stopped at %g" % self.get_position() )
+        else:
+            self._log( "moving")
+            
 
     def _signal_request(self, obj, value):
         self._log( "move to %f requested" % (value) )
@@ -187,7 +194,7 @@ class Motor(MotorBase):
             self._log('Waiting to start moving')
             while not self._move_active and timeout > 0:
                 time.sleep(poll)
-                timeout -= poll                               
+                timeout -= poll                             
         if (stop):
             self._log('Waiting to stop moving')
             while self._move_active:

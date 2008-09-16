@@ -254,9 +254,10 @@ class CollectManager(gtk.HBox):
         
         
     def save_runs(self, obj=None):
+        self.clear_runs()
         for run in self.run_manager.runs:
             data = run.get_parameters()
-            if check_folder(data['directory']):
+            if check_folder(data['directory']) and run.is_enabled():
                 self.run_data[ data['number'] ] = data
             else:
                 return
@@ -470,12 +471,18 @@ class CollectManager(gtk.HBox):
         self.image_viewer.show_detector_image(filename)
       
 
-    def on_progress(self, widget, fraction):
+    def on_progress(self, obj, fraction, position):
+        if position == 1:
+            self.start_time = time.time()
         elapsed_time = time.time() - self.start_time
         time_unit = elapsed_time / fraction
         eta_time = time_unit * (1 - fraction)
         percent = fraction * 100
-        text = "ETA: %s" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)))
+        if position > 0:
+            frame_time = elapsed_time / position
+            text = "ETA %s [%0.1f s/frame]" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)), frame_time)
+        else:
+            text = "Total Time: %s " % (time.strftime('%H:%M:%S',time.gmtime(elapsed_time)))
         self.progress_bar.set_complete(fraction, text)
                 
     def on_energy_changed(self, obj, val):

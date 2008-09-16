@@ -9,7 +9,7 @@ from bcm import utils
 class DataCollector(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['new-image'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT,gobject.TYPE_STRING))
-    __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,))
+    __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,gobject.TYPE_INT))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,))
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
@@ -40,6 +40,7 @@ class DataCollector(gobject.GObject):
         
     def setup(self, run_list, skip_collected=True):
         self.run_list = run_list
+        self.total_frames = len(self.run_list)
         self.skip_collected = skip_collected
         return
     
@@ -51,7 +52,7 @@ class DataCollector(gobject.GObject):
             self._worker.start()
         else:
             gobject.idle_add(self.emit, 'stopped')
-            gobject.idle_add(self.emit, 'progress', 1.0)
+            gobject.idle_add(self.emit, 'progress', 1.0, 0)
 
     
     def _collect_data(self):
@@ -82,24 +83,30 @@ class DataCollector(gobject.GObject):
             if frame['saved'] and self.skip_collected:
                 self.log( 'Skipping %s' % frame['file_name'])
                 continue
+
             _motion_flag = [False,False,False]
             # Check and prepare beamline
-            if abs(frame['distance'] - self.distance.get_position()) > 1e-2:
+            if abs(frame['distance'] - self.distance.get_position()) > 0.1 and abs(frame['two_theta'] - self.two_theta.get_position()) > 0.5:
                 self.distance.move_to(frame['distance'])
-                self.distance.wait(start=True, stop=False)
-                _motion_flag[0] = True     
-            if  abs(frame['energy'] - self.energy.get_position()) > 1e-5:
-                self.energy.move_to(frame['energy'])
-                self.energy.wait(start=True, stop=False)
-                _motion_flag[1] = True     
-            if  abs(frame['two_theta'] - self.two_theta.get_position()) > 1e-3:
+                self.distance.wait(start=True, stop=True)
                 self.two_theta.move_to(frame['two_theta'])
                 self.two_theta.wait(start=True, stop=False)
-                _motion_flag[2] = True
+                _motion_flag[1] = True 
+            elif abs(frame['distance'] - self.distance.get_position()) > 0.1:
+                self.distance.move_to(frame['distance'])
+                self.distance.wait(start=True, stop=False)
+                _motion_flag[0] = True
+            elif  abs(frame['two_theta'] - self.two_theta.get_position()) > 0.5:
+                self.two_theta.move_to(frame['two_theta'])
+                self.two_theta.wait(start=True, stop=False)
+                _motion_flag[1] = True 
+            if  abs(frame['energy'] - self.energy.get_position()) > 5e-5:
+                self.energy.move_to(frame['energy'])
+                self.energy.wait(start=True, stop=False)
+                _motion_flag[2] = True     
 
-            for m,f in zip ([self.distance, self.energy, self.two_theta], _motion_flag):
+            for m,f in zip([self.distance, self.two_theta, self.energy], _motion_flag):
                 if f: m.wait(start=False, stop=True)
-
 
             velo = frame['delta'] / float(frame['time'])
             
@@ -137,10 +144,10 @@ class DataCollector(gobject.GObject):
             
             # Notify progress
             fraction = float(self.pos) / len(self.run_list)
-            gobject.idle_add(self.emit, 'progress', fraction)            
+            gobject.idle_add(self.emit, 'progress', fraction, self.pos)            
             
         gobject.idle_add(self.emit, 'done')
-        gobject.idle_add(self.emit, 'progress', 1.0)
+        gobject.idle_add(self.emit, 'progress', 1.0, 0)
 
     def set_position(self,pos):
         self.pos = pos

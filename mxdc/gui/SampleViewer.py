@@ -293,16 +293,15 @@ class SampleViewer(gtk.HBox):
         
         #Video Area
         vbox2 = gtk.VBox(False,2)
-        videoframe = gtk.AspectFrame( ratio=640.0/480.0, obey_child=True)
+        videoframe = gtk.AspectFrame( ratio=640.0/480.0, obey_child=False)
         videoframe.set_shadow_type(gtk.SHADOW_IN)
         self.video = VideoWidget(self.camera)
-        self.video.set_size_request(400, 300)
+        self.video.set_size_request(420, 315)
         videoframe.add(self.video)
         self.save_btn = gtk.Button(stock='sv-save')
         self.save_btn.connect('clicked', self.on_save)
         vbox2.pack_start(videoframe, expand=True, fill=True)
-        vbox2.pack_start(self.pos_label, expand=False, fill=False)
-        vbox2.pack_end(gtk.Label(), expand=True, fill=True)
+        vbox2.pack_end(self.pos_label, expand=False, fill=False)
         
         # Adjustment area         
         self.lighting_scale = gtk.HScale()

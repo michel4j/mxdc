@@ -34,13 +34,20 @@ class RunWidget(gtk.VBox):
         
         self.set_border_width(6)
         self.title = gtk.Label("")
-        
+        self.enable_btn = gtk.CheckButton(label="Enabled")
+        self.enable_btn.set_active(True)
+
+        #hseparator = gtk.HSeparator()
+        #hseparator.set_size_request(-1,2)
+        #self.pack_end(self.enable_btn, expand=False, fill=False)
+        #self.pack_end(hseparator, expand=False, fill=False, padding=2)
+
         bbox = gtk.HBox(True, 6)
         self.save_btn = gtk.Button(stock=gtk.STOCK_SAVE)
         self.undo_btn = gtk.Button(stock=gtk.STOCK_UNDO)
         self.undo_btn.set_sensitive(False) # initially disabled since stack is empty
         self.delete_btn = gtk.Button(stock=gtk.STOCK_DELETE)
-        self.pack_start(self.title, padding=6, expand=False, fill=False)
+        self.pack_start(self.title, padding=4, expand=False, fill=False)
         
         hseparator = gtk.HSeparator()
         hseparator.set_size_request(-1,2)
@@ -173,6 +180,7 @@ class RunWidget(gtk.VBox):
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
         column1 = gtk.TreeViewColumn('Label', renderer, text=COLUMN_LABEL, editable=COLUMN_EDITABLE)
         column1.set_fixed_width(20)
+
         #Energy column
         renderer = gtk.CellRendererText()
         renderer.set_data('column',COLUMN_ENERGY)
@@ -314,6 +322,9 @@ class RunWidget(gtk.VBox):
             run_data[key] = int(self.entry[key].get_text())
         return run_data.copy()
                 
+    def is_enabled(self):
+        return self.enable_btn.get_active()
+
     def set_number(self, num=0):
         self.number = num
         self.parameters['number'] = num
@@ -530,6 +541,7 @@ class RunWidget(gtk.VBox):
         return False        
 
     def on_save(self, widget):
+        self.enable_btn.set_active(True)
         self.parameters = self.get_parameters()
         self.undo_stack.append(self.parameters)
         self.check_changes()

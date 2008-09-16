@@ -78,7 +78,7 @@ class HutchManager(gtk.VBox):
         self.reset_btn.connect('clicked',self.restore_beamstop)
         #self.front_end_btn.set_sensitive(False)
         self.optimize_btn.set_sensitive(False)
-        self.shutter_btn.set_sensitive(False)
+        #self.shutter_btn.set_sensitive(False)
         control_box.pack_start(self.front_end_btn)
         control_box.pack_start(self.shutter_btn)
         control_box.pack_start(self.optimize_btn)
@@ -95,7 +95,7 @@ class HutchManager(gtk.VBox):
         
         hbox1.pack_end(self.device_box,expand=False,fill=True)
         
-        self.pack_start(hbox1)
+        self.pack_start(hbox1, expand=False, fill=False)
         hbox3.pack_start(videobook, expand=False,fill=False)
         hbox3.set_border_width(6)
         predictor_frame = gtk.Notebook()
@@ -106,7 +106,8 @@ class HutchManager(gtk.VBox):
         self.predictor.connect('realize',self.update_pred)
         hbox3.pack_start(predictor_frame, expand=True,fill=True)
         
-        self.pack_start(hbox3)
+        self.pack_start(hbox3, expand=False, fill=False)
+        self.pack_start(gtk.Label(), expand=True, fill=True)
         self.show_all()
 
     def update_pred(self, widget):

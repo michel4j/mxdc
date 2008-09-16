@@ -24,7 +24,7 @@ class AppWindow:
         self.hutch_manager = HutchManager(self.beamline)
         self.status_panel = StatusPanel(self.beamline)
         self.general_log = LogView(label='Log')
-        self.general_log.set_expanded(True)
+        self.general_log.set_expanded(False)
         self.beamline.connect('log', self.log_handler)
         self.collect_manager.image_viewer.connect('log', self.log_handler)
 
