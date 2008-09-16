@@ -158,7 +158,7 @@ class PositionerLabel(gtk.Label):
         self.positioner.connect('changed', self._on_value_change )
         
     def set_current(self, val):
-        self.set_text(self.format % (val))
+        self.set_markup("<tt>%s</tt>" % (self.format % (val)))
 
     def _on_value_change(self, widget, val):
         self.set_current(val)
