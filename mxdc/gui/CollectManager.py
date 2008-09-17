@@ -324,7 +324,10 @@ class CollectManager(gtk.HBox):
                         for j in range(current_slice):
                             angle = run['start_angle'] + (j * run['delta']) + (i * wedge) + offset
                             frame_number =  i * wedge_size + j + int(offset/run['delta']) + run['start_frame']
-                            frame_name = "%s_%d%s_%03d" % (run['prefix'], run['number'], energy_tag, frame_number)
+                            if len(run_keys) > 1:
+                                frame_name = "%s_%d%s_%03d" % (run['prefix'], run['number'], energy_tag, frame_number)
+                            else:
+                                frame_name = "%s%s_%03d" % (run['prefix'], energy_tag, frame_number)
                             file_name = "%s.img" % (frame_name)
                             list_item = {
                                 'index': index,
