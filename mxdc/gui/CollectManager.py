@@ -119,11 +119,21 @@ class CollectManager(gtk.HBox):
         self.collector.connect('new-image', self.on_new_image)
         self.collector.connect('stopped', self.on_stop)
         self.collector.connect('progress', self.on_progress)
+
+        if self.beamline is not None:
+            self.beamline.status.connect('changed', self._on_inject)
        
         
         self.set_border_width(6)
         self.__load_config()
         
+    def _on_inject(self, obj, value):
+        if value != 0 and  not self.collection.stopped:
+            self.collector.pause()
+            header = "Data Collection has been paused while the storage ring is re-filled!"
+            sub_header = "Please resume data collection when the beamline is ready for data collection."
+            response = warning(header, sub_header)
+        return False
 
     def __load_config(self):
 

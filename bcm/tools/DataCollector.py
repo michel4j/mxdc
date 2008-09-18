@@ -20,7 +20,7 @@ class DataCollector(gobject.GObject):
     def __init__(self, beamline):
         gobject.GObject.__init__(self)
         self.paused = False
-        self.stopped = False
+        self.stopped = True
         self.skip_collected = False
         self._initialized = False
         
@@ -148,6 +148,7 @@ class DataCollector(gobject.GObject):
             
         gobject.idle_add(self.emit, 'done')
         gobject.idle_add(self.emit, 'progress', 1.0, 0)
+        self.stopped = True
 
     def set_position(self,pos):
         self.pos = pos
