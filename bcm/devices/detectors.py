@@ -312,7 +312,7 @@ class MarCCDImager:
         self.state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
         self._bg_taken = False
         
-        #self.connection_state.connect('changed', self._update_background)
+        self.connection_state.connect('changed', self._update_background)
 
 
     def _update_background(self, obj, state):
