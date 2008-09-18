@@ -121,7 +121,7 @@ class CollectManager(gtk.HBox):
         self.collector.connect('progress', self.on_progress)
 
         if self.beamline is not None:
-            self.beamline.status.connect('changed', self._on_inject)
+            self.beamline.ring_status.connect('changed', self._on_inject)
        
         
         self.set_border_width(6)
