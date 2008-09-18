@@ -113,7 +113,7 @@ class CollectManager(gtk.HBox):
         for w in [self.collect_btn, self.stop_btn]:
             w.set_property('can-focus', False)
         
-        self.collector.connect('done', self.on_stop)
+        self.collector.connect('done', self.on_complete)
         self.collector.connect('error', self.on_error)
         self.collector.connect('paused',self.on_pause)
         self.collector.connect('new-image', self.on_new_image)
@@ -468,6 +468,18 @@ class CollectManager(gtk.HBox):
         self.image_viewer.set_collect_mode(False)
         self.progress_bar.idle_text("Stopped")
     
+    def on_complete(self, widget=None):
+        self.collect_state = COLLECT_STATE_IDLE
+        self.collect_btn.set_label('cm-collect')
+        self.stop_btn.set_sensitive(False)
+        self.run_manager.set_sensitive(True)
+        self.image_viewer.set_collect_mode(False)
+        self.progress_bar.idle_text("Stopped")
+        try:
+            os.spawnvpe(os.P_NOWAIT, "festival", "festival", ['--tts','/users/cmcfadmin/tts/data_done'], os.environ)
+        except:
+            pass
+
     def on_new_image(self, widget, index, filename):
         self.pos = index
         self.set_row_state(index, saved=True)
