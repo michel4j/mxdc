@@ -23,6 +23,7 @@ class DataCollector(gobject.GObject):
         self.stopped = True
         self.skip_collected = False
         self._initialized = False
+        self._background_taken = False
         
         #associate beamline devices
         try:
@@ -59,8 +60,10 @@ class DataCollector(gobject.GObject):
         ca.thread_init()
                 
         self.shutter.close()
-        time.sleep(0.1)  # small delay to make sure shutter is closed
-        self.detector.initialize()
+        if not self._background_taken:
+            time.sleep(0.1)  # small delay to make sure shutter is closed
+            self.detector.initialize()
+            self._background_taken = True
         self.pos = 0
         header = {}
         
@@ -144,8 +147,8 @@ class DataCollector(gobject.GObject):
             
             # Notify progress
             fraction = float(self.pos) / len(self.run_list)
-            gobject.idle_add(self.emit, 'progress', fraction, self.pos)            
-            
+            gobject.idle_add(self.emit, 'progress', fraction, self.pos)          
+        
         gobject.idle_add(self.emit, 'done')
         gobject.idle_add(self.emit, 'progress', 1.0, 0)
         self.stopped = True

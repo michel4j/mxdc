@@ -486,7 +486,7 @@ class CollectManager(gtk.HBox):
         self.image_viewer.set_collect_mode(False)
         self.progress_bar.idle_text("Stopped")
         try:
-            os.spawnvpe(os.P_NOWAIT, "festival", "festival", ['--tts','/users/cmcfadmin/tts/data_done'], os.environ)
+            os.spawnlp(os.P_NOWAIT, "festival", "festival", '--tts','/users/cmcfadmin/tts/data_done')
         except:
             pass
 
