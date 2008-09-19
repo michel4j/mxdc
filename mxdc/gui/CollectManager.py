@@ -123,26 +123,29 @@ class CollectManager(gtk.HBox):
         if self.beamline is not None:
             self.beamline.ring_status.connect('changed', self._on_inject)
             self.beamline.ring_current.connect('changed', self._on_dump)
+            self.beamline.ring_mode.connect('changed', self._on_dump)
        
         
         self.set_border_width(6)
         self.__load_config()
         
     def _on_inject(self, obj, value):
-        if value != 0 and (not self.collection.stopped) and (not self.collection.paused):
+        if value == 1 and (not self.collector.stopped) and (not self.collector.paused):
             self.collector.pause()
             header = "Data Collection has been paused while the storage ring is re-filled!"
             sub_header = "Please resume data collection when the beamline is ready for data collection."
             response = warning(header, sub_header)
-        return False
+        return True
 
     def _on_dump(self, obj, value):
-        if value < 0.01 and (not self.collection.stopped) and (not self.collection.paused):
+        if (self.beamline.ring_current.get() < 0.01 or self.beamline.ring_mode.get() != 0):
+            if  (self.collector.stopped) or (self.collector.paused):
+                return True
             self.collector.pause()
             header = "Data Collection has been paused due to beam dump!"
             sub_header = "Please resume data collection when the beamline is ready for data collection."
             response = warning(header, sub_header)
-        return False
+        return True
 
     def __load_config(self):
 
