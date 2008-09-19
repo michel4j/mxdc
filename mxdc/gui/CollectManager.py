@@ -138,7 +138,7 @@ class CollectManager(gtk.HBox):
         return True
 
     def _on_dump(self, obj, value):
-        if (self.beamline.ring_current.get() < 0.01 or self.beamline.ring_mode.get() != 0):
+        if (self.beamline.ring_current.get() < 0.01 or self.beamline.ring_mode.get() != 4):
             if  (self.collector.stopped) or (self.collector.paused):
                 return True
             self.collector.pause()
