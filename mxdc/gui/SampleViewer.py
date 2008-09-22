@@ -7,14 +7,16 @@ from bcm.tools.scripting import Script
 from bcm.scripts.misc import center_sample 
 from bcm.protocols import ca
 
-        
+COLOR_MAPS = [None, 'hsv','jet','hot']        
+
 class SampleViewer(gtk.HBox):
     def __init__(self, beamline):
         gtk.HBox.__init__(self,False,6)
         self.__register_icons()
         self._timeout_id = None
         self._click_centering  = False
-        
+        self._colormap = 0
+
         self.contrast = 0   
         self.beamline = beamline
 
@@ -434,7 +436,8 @@ class SampleViewer(gtk.HBox):
         im_x, im_y, xmm, ymm = self.calc_position(x,y)
         self.pos_label.set_text("<tt>%4d,%4d [%6.3f, %6.3f mm]</tt>" % (im_x, im_y, xmm, ymm))
         self.pos_label.set_use_markup(True)
-        if 'GDK_BUTTON3_MASK' in event.state.value_names:
+        #print event.state.value_names
+        if 'GDK_BUTTON2_MASK' in event.state.value_names:
             self.measure_x2, self.measure_y2, = event.x, event.y
         else:
             self.measuring = False
@@ -446,10 +449,13 @@ class SampleViewer(gtk.HBox):
             if self._click_centering == False or self._gonio_is_moving():
                 return True
             self.center_pixel(event.x, event.y)
-        elif event.button == 3:
+        elif event.button == 2:
             self.measuring = True
             self.measure_x1, self.measure_y1 = event.x,event.y
             self.measure_x2, self.measure_y2 = event.x,event.y
+        elif event.button == 3:
+            self._colormap = (self._colormap + 1) % len( COLOR_MAPS)
+            self.video.set_colormap(COLOR_MAPS[self._colormap])
 
         return True
     

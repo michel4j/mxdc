@@ -9,7 +9,11 @@ import threading, thread
 import Image, ImageOps, ImageDraw, ImageFont
 import bcm.utils
 from bcm.protocols import ca
+import pickle
 
+COLORMAPS = pickle.load(file(os.environ['BCM_PATH']+ '/mxdc/gui/images/colormaps.data'))
+
+    
 class VideoTransformer(gobject.GObject):
     __gsignals__ =  { 
                     "changed": (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
@@ -25,9 +29,21 @@ class VideoTransformer(gobject.GObject):
         self.pixbuf = None
         self._stopped = False
         self._paused = True
+        self._colorize = False
         self._lock = thread.allocate_lock()
         self.banner_text = "Video"
     
+    def set_colormap(self, name=None):
+        if name:
+            self._colormap = name
+            self._palette = COLORMAPS[self._colormap]
+            self._colorize = True
+        else:
+            self._colorize = False
+   
+    def colorize_frame(self, img):
+        img.putpalette(self._palette)
+
     def resize(self, w, h):
         self._lock.acquire()
         self.width, self.height = w, h
@@ -69,7 +85,10 @@ class VideoTransformer(gobject.GObject):
             self.source_w, self.source_h = img.size
             img = ImageOps.autocontrast(img, cutoff=self.contrast)
             self._lock.acquire()
-            img = img.resize((self.width,self.height),Image.ANTIALIAS).convert('RGB')
+            img = img.resize((self.width,self.height),Image.ANTIALIAS)
+            if self._colorize and img.mode == 'L':
+                self.colorize_frame(img)
+            img = img.convert('RGB')
             self._draw_banner(img)
             self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
                 False, 8, self.width, self.height, 3 * self.width )
@@ -118,6 +137,9 @@ class VideoWidget(gtk.DrawingArea):
         self.queue_draw()        
         return True
     
+    def set_colormap(self, colormap=None):
+        self.transformer.set_colormap(colormap)
+        
     def on_expose(self, widget, event):
         if self.transformer.pixbuf is not None:
             self.pixmap.draw_pixbuf(self.gc, self.transformer.pixbuf, 0, 0, 0, 0, self.width, self.height, 0,0,0)
