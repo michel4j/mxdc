@@ -320,7 +320,7 @@ class MarCCDImager:
             self._bg_taken = False
                       
     def start(self):
-        #self.initialize(True)
+        self.initialize(True)
         self._wait_in_state('acquire:queue')
         self._wait_in_state('acquire:exec')
         self.start_cmd.put(1)
