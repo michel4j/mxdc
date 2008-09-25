@@ -123,7 +123,8 @@ class CollectManager(gtk.HBox):
         if self.beamline is not None:
             self.beamline.ring_status.connect('changed', self._on_inject)
             self.beamline.ring_current.connect('changed', self._on_dump)
-            self.beamline.ring_mode.connect('changed', self._on_dump)
+            #self.beamline.ring_mode.connect('changed', self._on_dump)
+            self._last_current = self.beamline.ring_current.get()
        
         
         self.set_border_width(6)
@@ -138,13 +139,14 @@ class CollectManager(gtk.HBox):
         return True
 
     def _on_dump(self, obj, value):
-        if (self.beamline.ring_current.get() < 0.01 or self.beamline.ring_mode.get() != 4):
+        if (self._last_current - self.beamline.ring_current.get() > 10):
             if  (self.collector.stopped) or (self.collector.paused):
                 return True
             self.collector.pause()
             header = "Data Collection has been paused due to beam dump!"
             sub_header = "Please resume data collection when the beamline is ready for data collection."
             response = warning(header, sub_header)
+        self._last_current = self.beamline.ring_current.get()
         return True
 
     def __load_config(self):

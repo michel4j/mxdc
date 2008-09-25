@@ -317,10 +317,10 @@ class MarCCDImager:
 
     def _update_background(self, obj, state):
         if state == 1:
-            self.initialize(wait=True)
+            self._bg_taken = False
                       
     def start(self):
-        self.initialize(wait=True)
+        #self.initialize(True)
         self._wait_in_state('acquire:queue')
         self._wait_in_state('acquire:exec')
         self.start_cmd.put(1)
@@ -386,18 +386,17 @@ class MarCCDImager:
             return False
 
     def initialize(self, wait=True):
-        #self._log('initializing CCD detector')
-        if not self._is_in_state('idle'):
-            self.abort_cmd.put(1)
-            self._wait_for_state('idle')
         if not self._bg_taken:
-            #self._wait_in_state('acquire:queue')
-            #self._wait_in_state('acquire:exec')
+            if not self._is_in_state('idle'):
+                self.abort_cmd.put(1)
+                self._wait_for_state('idle')
+            self._wait_in_state('acquire:queue')
+            self._wait_in_state('acquire:exec')
             self.background_cmd.put(1)
-            self._bg_taken = True
             if wait:
                 self._wait_for_state('acquire:exec')
                 self._wait_for_state('idle')
+            self._bg_taken = True
                         
             
 
