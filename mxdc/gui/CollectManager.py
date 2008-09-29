@@ -186,7 +186,7 @@ class CollectManager(gtk.HBox):
                     assert(res == True)
                 except:
                     msg_title = 'Image Syncronization Server Error'
-                    msg_sub = 'MXDC could not successfully connect to the Image Synchronization Server. '
+                    msg_sub = 'MXDC could not setup directories for data collection. '
                     msg_sub += 'Data collection can not proceed reliably without the server up and running.'
                     warning(msg_title, msg_sub)
             config.write()
@@ -201,7 +201,7 @@ class CollectManager(gtk.HBox):
             return True
         except:
             msg_title = 'Image Syncronization Server Error'
-            msg_sub = 'MXDC could not successfully connect to the Image Synchronization Server. '
+            msg_sub = 'MXDC could not configure the server for the current user. '
             msg_sub += 'Data collection can not proceed reliably without the server up and running.'
             warning(msg_title, msg_sub)
             return False
