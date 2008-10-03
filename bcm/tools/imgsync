@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# imgsync:   Image Synchronization daemon
+#
+# chkconfig: 345 98 02
+# description:  This is a daemon for synchronizing diffraction images between the \
+#               detector data folder and user home directories.
+#
+servicename='imgsync'
+pidfile='/var/run/imgsync.pid'
+logfile='/var/log/imgsync.log'
+appfile='/home/marccd/bin/image-sync.py'
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Sanity checks.
+[ -x /usr/bin/twistd ] || exit 0
+[ -f $appfile ] || exit 0
+
+start() {
+    echo -n $"Starting ImgSync daemon: "
+    daemon /usr/bin/twistd -y $appfile --logfile=$logfile --pidfile=$pidfile
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch /var/lock/subsys/$servicename
+}
+
+stop() {
+    echo -n $"Stopping ImgSync daemon: "
+
+    killproc $servicename -TERM
+    RETVAL=$?
+    echo
+    if [ $RETVAL -eq 0 ]; then
+        rm -f /var/lock/subsys/$servicename
+        rm -f /var/run/$pidfile
+    fi
+}
+
+# See how we were called.
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status -p $pidfile $servicename
+        RETVAL=$?
+        ;;
+    restart)
+        stop
+	sleep 3
+        start
+        ;;
+    condrestart)
+        if [ -f /var/lock/subsys/$servicename ]; then
+            stop
+	    sleep 3
+            start
+        fi
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart}"
+        ;;
+esac
+exit $RETVAL
