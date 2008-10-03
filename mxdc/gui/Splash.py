@@ -2,7 +2,7 @@ import gtk, gobject
 import sys, os
 from ActiveWidgets import LinearProgress
 
-REVISION =  '$Rev$'.split()[1]
+REVISION =  '$Rev$'
 
 class Splash(object):
     def __init__(self, image, startup_obj, icon=None, logo=None, color=None):
@@ -39,7 +39,7 @@ class Splash(object):
         vbox.pack_start(hbox)
         vbox.pack_end(self.pbar, expand=False, fill=False)
         vbox.pack_end(self.log, expand=False, fill=False)
-        vers = gtk.Label('Version 2.0 | Revision: %s' % REVISION)
+        vers = gtk.Label('Version 2.0 | Revision: %s' % REVISION.split()[1])
         vers.set_alignment(0,0.5)
         vers.modify_fg( gtk.STATE_NORMAL, vers.get_colormap().alloc_color(color) )
         vbox.pack_end(vers, expand=False, fill=False)
