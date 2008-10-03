@@ -27,11 +27,21 @@ class ConfigXR(xmlrpc.XMLRPC):
         xmlrpc.XMLRPC.__init__(self)
         self.service = service
 
+    def render(self, request):
+        self.client = request.transport
+        return xmlrpc.XMLRPC.render(self, request)
+        
     def xmlrpc_set_user(self, user, uid, gid):
         return self.service.set_user(user, uid, gid)
 
     def xmlrpc_create_folder(self, folder):
         return self.service.create_folder(folder)
+
+    def xmlrpc_get_lock(self):
+        return self.service.get_lock(self.client.hostname)
+
+    def xmlrpc_release_lock(self, force=False):
+        return self.service.release_lock(self.client.hostname, force)
 
 class ImgSyncResource(resource.Resource):
     implements(resource.IResource)
@@ -42,13 +52,17 @@ class ImgSyncResource(resource.Resource):
 
 class ImgSyncService(service.Service):
     implements(IImgSyncService)
-    def __init__(self,config_file, log_file):
+    def __init__(self, config_file, log_file):
         self.settings = {}
         self.filename = config_file
         self._read_config()
         self.cons = ImgConsumer(self)
         self.prod = FileTailProducer(log_file)
         self.prod.addConsumer(self.cons, img_selector)
+
+        self._locktime = 0
+        self._lockholder = ""
+        self._exptime = 0
         
             
     def _read_config(self):
@@ -78,6 +92,7 @@ class ImgSyncService(service.Service):
         self.settings['uid'] = uid
         self.settings['gid'] = gid
         self.settings['server'] = 'ioc1608-301'
+        print self.transport
         return True
 
     def create_folder(self, folder):
@@ -105,6 +120,54 @@ class ImgSyncService(service.Service):
            return True
         else:
             return False
+
+    def get_lock(self, address):
+        """Get lock if expired."""
+        lockwanter = address
+        if (time.time() - self._locktime) > self._exptime and self._exptime > 0:
+            self._locktime = time.time()
+            self._lockholder = address
+            log.msg("Lock expired. Lock acquired by %s" % (self._lockholder))
+            _status = True
+        else:
+            if self._lockholder:
+                if lockwanter != self._lockholder:
+                    log.msg("Lock denied to %s.  Already held by %s since %s" % (lockwanter, self._lockholder, time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(self._locktime))))
+                    _status = False
+                else:
+                    log.msg("Lock renewed by %s" % lockwanter)
+                    self._locktime = time.time()
+                    _status = True
+            else:
+                self._lockholder = lockwanter
+                self._locktime = time.time()
+                log.msg("Lock acquired by %s" % self._lockholder)
+                _status = True
+        return _status
+
+    def release_lock(self, address, force=False):
+        """Release lock if possible.  Pass True to force release."""
+        lockwanter = address
+        if self._lockholder:
+            if force:
+                self._lockholder = ""
+                self._locktime = time.time()
+                log.msg("Lock forcibly released by %s" % lockwanter)
+                _status = True
+            else:
+                if lockwanter != self._lockholder:
+                    log.msg("Release denied to %s.  Lock held by %s at %s" % (lockwanter, self._lockholder, time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(self._locktime))))
+                    _status = False
+                else:
+                    self._locktime = time.time()
+                    log.msg("Lock released by %s" % lockwanter)
+                    self._lockholder = ""
+                    self._locktime = time.time()
+                    _status = True
+        else:
+            _status = True
+        return _status
+        
             
 components.registerAdapter(ImgSyncResource, IImgSyncService, resource.IResource)
 
