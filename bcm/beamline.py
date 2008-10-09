@@ -66,11 +66,14 @@ class PX(BeamlineBase):
         self.setup()
         
     def setup(self, idle_func=gtk_idle):
+        ca.thread_init()
         config = ConfigParser()
-        config.read(self.config_file)
-        sec_step = 1.0 / len(config.sections())
+        parsed = config.read(self.config_file)
+        assert parsed[0] == self.config_file
+        sections =config.sections()
+        sec_step = 1.0/len(sections)
         frac_complete = 0.0
-        for section in config.sections():
+        for section in sections:
             item_step = sec_step / (len(config.options(section)))
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
