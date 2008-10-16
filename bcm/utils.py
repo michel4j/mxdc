@@ -51,4 +51,27 @@ def read_periodic_table():
 def gtk_idle(sleep=None):
     while gtk.events_pending():
         gtk.main_iteration()
-            
+
+def dist_to_resol(*args, **kwargs):
+	pixel_size = kwargs['pixel_size']
+	detector_size = kwargs['detector_size']
+	detector_distance = kwargs['detector_distance']
+	energy = kwargs['energy']
+	#two_theta = kwargs['two_theta']
+	
+	theta = 0.5 * math.atan( 0.5 * pixel_size * detector_size / detector_distance)
+	#theta = theta+two_theta
+	return 0.5 * energy_to_wavelength(energy) / math.sin(theta)
+	
+def resol_to_dist(*args, **kwargs):
+	
+	pixel_size = kwargs['pixel_size']
+	detector_size = kwargs['detector_size']
+	resolution = kwargs['resolution']
+	energy = kwargs['energy']
+	#two_theta = kwargs['two_theta']
+	
+	theta = math.asin(0.5 * energy_to_wavelength(energy) / resolution)
+	#theta = max(0, (theta-two_theta))
+	return 0.5 * pixel_size * detector_size / math.tan( 2 * theta )
+	

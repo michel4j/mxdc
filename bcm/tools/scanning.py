@@ -205,33 +205,34 @@ class ExcitationScanner(ScannerBase):
         self.peaks = []
         self.beamline = beamline
     
-    def setup(self, energy, time=1.0, output=None):
+    def setup(self, time=1.0, output=None):
         self.time = time
-        self.edge_energy = energy
         self.filename = output
-        self.beamline.mca.set_cooling(True)
-                
+                        
     def run(self):
         ca.thread_init()
+        self.beamline.lock.acquire()
         gobject.idle_add(self.emit, 'started')
-        
-        self.beamline.energy.move_to(self.edge_energy, wait=True)
-        self.beamline.mca.set_channel_roi()
-        
-        self.beamline.shutter.open()
-        self.x_data_points, self.y_data_points = self.beamline.mca.acquire(t=self.time)
-        self.beamline.shutter.close()
-        self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
-        assign_peaks(self.peaks)
-        self.save()
+       
         try:
+            self.beamline.shutter.open()
+            if not self.beamline.mca.is_cool():
+                self.beamline.mca.set_cooling(True)
+            self.beamline.mca.set_channel_roi()
+            self.x_data_points, self.y_data_points = self.beamline.mca.acquire(t=self.time)
+            self.beamline.shutter.close()
+            #self.peaks = find_peaks(self.x_data_points, self.y_data_points, threshold=0.3,w=20)
+            #assign_peaks(self.peaks)
+            self.save()
             gobject.idle_add(self.emit, "done")
             gobject.idle_add(self.emit, "progress", 1.0 )
-
         except:
             self.beamline.shutter.close()
             gobject.idle_add(self.emit, "error")
             gobject.idle_add(self.emit, "progress", 1.0 )
+            self.beamline.lock.release()
+            raise
+        self.beamline.lock.release()    
             
 
     def save(self, filename = None):
@@ -244,12 +245,12 @@ class ExcitationScanner(ScannerBase):
         scan_data += "# Columns: (%s) \t (%s) \n" % (self.beamline.energy.get_name(), self.beamline.mca.get_name())
         for x,y in zip(self.x_data_points, self.y_data_points):
             scan_data += "%15.8g %15.8g \n" % (x, y)
-        scan_data += '# Peak Assignments'
-        for peak in self.peaks:
-            peak_log = "#Peak position: %8.3f keV  Height: %8.2f" % (peak[0],peak[1])
-            for ident in peak[2:]:
-                peak_log = "%s \n%s" % (peak_log, ident)
-            scan_data += peak_log
+        #scan_data += '# Peak Assignments'
+        #for peak in self.peaks:
+        #    peak_log = "#Peak position: %8.3f keV  Height: %8.2f" % (peak[0],peak[1])
+        #    for ident in peak[2:]:
+        #        peak_log = "%s \n%s" % (peak_log, ident)
+        #    scan_data += peak_log
 
         if self.filename != None:
             try:
@@ -267,13 +268,13 @@ class MADScanner(ScannerBase):
         ScannerBase.__init__(self)
         self.beamline = beamline
         self.factor = 1.0
+        self._energy_db = get_energy_database()
     
-    def setup(self, energy, emission, count_time, output):
-        self.energy = energy
+    def setup(self, edge, count_time, output):
+        en, em = self._energy_db[edge]
+        self.energy = en
         self.time = count_time
         self.filename = output
-        self.beamline.mca.set_energy(emission)
-        self.beamline.mca.set_cooling(True)
         
     def calc_targets(self):
         energy = self.energy
@@ -324,55 +325,69 @@ class MADScanner(ScannerBase):
 
     def run(self):
         ca.thread_init()
-        gobject.idle_add(self.emit, 'started')
         self.stopped = False
         self.aborted = False
         self.x_data_points = []
         self.y_data_points = []
         self.calc_targets()
-        if not self.beamline.mca.is_cool():
-            self.beamline.mca.set_cooling(True)
-        self.beamline.energy.move_to(self.energy, wait=True)   
-               
-        self.count = 0
-        self.beamline.shutter.open()
-        self.beamline.mca.erase()
-        for x in self.energy_targets:
-            if self.stopped or self.aborted:
-                self.log( "Scan stopped!" )
-                break
-                
-            self.count += 1
-            prev = self.beamline.bragg_energy.get_position()                
-            self.beamline.bragg_energy.move_to(x, wait=True)
-            if self.count == 1:
-                self.first_intensity = (self.beamline.i2.count(0.5) * 1e9)
-                self.factor = 1.0
-            else:
-                self.factor = self.first_intensity/(self.beamline.i2.count(0.5)*1e9)
-            y = self.beamline.mca.count(self.time)
-            print x, y, y*self.factor, self.factor
-                
-            y = y * self.factor
-            self.x_data_points.append( x )
-            self.y_data_points.append( y )
-            
-            fraction = float(self.count) / len(self.energy_targets)
-            self.log("%4d %15g %15g %15g" % (self.count, x, y, self.factor))
-            gobject.idle_add(self.emit, "new-point", x, y )
-            gobject.idle_add(self.emit, "progress", fraction )
-
-            gtk_idle()
-             
-        self.beamline.shutter.close()
         
-        if self.aborted:
+        self.beamline.lock.acquire()
+        gobject.idle_add(self.emit, 'started')
+
+        try:
+            self.beamline.mca.set_energy(self.energy)
+
+            if not self.beamline.mca.is_cool():
+                self.beamline.mca.set_cooling(True)
+            self.beamline.energy.move_to(self.energy, wait=True)   
+                   
+            self.count = 0
+            self.beamline.shutter.open()
+            self.beamline.mca.erase()
+            for x in self.energy_targets:
+                if self.stopped or self.aborted:
+                    self.log( "Scan stopped!" )
+                    break
+                    
+                self.count += 1
+                prev = self.beamline.bragg_energy.get_position()                
+                self.beamline.bragg_energy.move_to(x, wait=True)
+                if self.count == 1:
+                    self.first_intensity = (self.beamline.i2.count(0.5) * 1e9)
+                    self.factor = 1.0
+                else:
+                    self.factor = self.first_intensity/(self.beamline.i2.count(0.5)*1e9)
+                y = self.beamline.mca.count(self.time)
+                print x, y, y*self.factor, self.factor
+                    
+                y = y * self.factor
+                self.x_data_points.append( x )
+                self.y_data_points.append( y )
+                
+                fraction = float(self.count) / len(self.energy_targets)
+                self.log("%4d %15g %15g %15g" % (self.count, x, y, self.factor))
+                gobject.idle_add(self.emit, "new-point", x, y )
+                gobject.idle_add(self.emit, "progress", fraction )
+    
+                gtk_idle()
+                 
+            self.beamline.shutter.close()
+            
+            if self.aborted:
+                gobject.idle_add(self.emit, "aborted")
+                gobject.idle_add(self.emit, "progress", 0.0 )
+            else:
+                self.save()
+                gobject.idle_add(self.emit, "done")
+                gobject.idle_add(self.emit, "progress", 1.0 )
+        except:
+            self.beamline.shutter.close()
+            self.beamline.lock.release()
             gobject.idle_add(self.emit, "aborted")
             gobject.idle_add(self.emit, "progress", 0.0 )
-        else:
-            self.save()
-            gobject.idle_add(self.emit, "done")
-            gobject.idle_add(self.emit, "progress", 1.0 )
+            raise
+        self.beamline.lock.release()
+        
 
     def save(self, filename=None):
         if filename:
@@ -408,6 +423,22 @@ def emissions_list():
         for line in emissions.values():
             emissions_dict["%s-%s" % (key,line)] = float(table_data[key][line])
     return emissions_dict
+
+def get_energy_database():
+    table_data = read_periodic_table()
+    emissions = {
+            'K':  'Ka',
+            'L1': 'Lg2',
+            'L2': 'Lb2',
+            'L3': 'Lb1'
+    }
+    data_dict = {}
+    for key in table_data.keys():
+            for edge in emissions.keys():
+                val = float(table_data[key][edge])
+                e_val = float(table_data[key][ emissions[edge] ])
+                data_dict["%s-%s" % (key,edge)] = (val, e_val)
+    return data_dict
 
 def assign_peaks(peaks):
     stdev = 0.01 #kev

@@ -39,7 +39,13 @@ class DataCollector(gobject.GObject):
             self._initialized = False
         
         
-    def setup(self, run_list, skip_collected=True):
+    def setup_from_list(self, run_list, skip_collected=True):
+        self.run_list = run_list
+        self.total_frames = len(self.run_list)
+        self.skip_collected = skip_collected
+        return
+    
+    def setup(self, params):
         self.run_list = run_list
         self.total_frames = len(self.run_list)
         self.skip_collected = skip_collected
@@ -49,16 +55,15 @@ class DataCollector(gobject.GObject):
         if self._initialized:
             self.paused = False
             self.stopped = False
-            self._worker = threading.Thread(target=self._collect_data)
+            self._worker = threading.Thread(target=self.run)
             self._worker.start()
         else:
             gobject.idle_add(self.emit, 'stopped')
             gobject.idle_add(self.emit, 'progress', 1.0, 0)
 
     
-    def _collect_data(self):
-        ca.thread_init()
-                
+    def run(self):
+        ca.thread_init()              
         self.shutter.close()
         if not self._background_taken:
             time.sleep(0.1)  # small delay to make sure shutter is closed

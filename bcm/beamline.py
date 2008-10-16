@@ -4,6 +4,9 @@ from bcm.devices import positioners, detectors, cameras, misc
 from bcm.protocols import ca
 from bcm.utils import gtk_idle
 from ConfigParser import ConfigParser
+import thread
+from bcm.tools import *
+
 import string
 import xmlrpclib
 
@@ -61,6 +64,7 @@ class PX(BeamlineBase):
         self.config_file = os.environ['BCM_CONFIG_PATH'] + '/' + filename
         self.devices = {}
         self.config = {}
+        self.lock = thread.allocate_lock()  
         
     def __call__(self):
         self.setup()
@@ -96,10 +100,65 @@ class PX(BeamlineBase):
                     if item == 'energy_range':
                         args = config.get(section, item).split('-')
                         self.config['energy_range'] = map(float, args)
+                    if item in ['detector_size','pixel_size']:
+                        arg = config.get(section, item)
+                        self.config[item] = float(arg)
                     frac_complete += item_step
-                    gobject.idle_add(self.emit, 'progress', frac_complete)           
+                    gobject.idle_add(self.emit, 'progress', frac_complete)     
+                        
+    def configure(self, *args, **kwargs):
+        ca.thread_init()
+        _moved = []
+        for k,v in kwargs.items():
+            if k == 'energy':
+                self.energy.move_to(v)
+                _moved.append(self.energy)
+            if k == 'beam_size':
+                self.beam_w.move_to(v[0])
+                self.beam_h.move_to(v[1])
+                _moved.append(self.beam_w)
+                _moved.append(self.beam_h)
+            if k == 'attenuation':
+                self.attenuator.move_to(v)
+            if k == 'beamstop_distance':
+                self.bst_z.move_to(v)
+                _moved.append(self.bst_z)
+            if k == 'detector_distance':
+                self.det_d.move_to(v)
+                _moved.append(self.det_d)
+            if k == 'detector_twotheta':
+                self.det_2th.move_to(v)
+                _moved.append(self.det_2th)
                 
-    
+        for m in _moved:
+            #FIXME: What if the motor has moved and stopped already? It will timeout here.
+            m.wait(start=True,stop=False)
+        for m in _moved:
+            m.wait(start=False,stop=True)
+        
+        final_pos = {}
+        for k,v in kwargs.items():
+            if k == 'energy':
+                final_pos[k] = self.energy.get_position()
+            if k == 'beam_size':
+                final_pos[k] = ( self.beam_w.get_position(), self.beam_h.get_position() )
+            if k == 'attenuation':
+                final_pos[k] = self.attenuator.get_position()
+            if k == 'beamstop_distance':
+                final_pos[k] = self.bst_z.get_position()
+            if k == 'detector_distance':
+                final_pos[k] = self.det_d.get_position()
+            if k == 'detector_twotheta':
+                final_pos[k] = self.det_2th.get_position()            
+            
+        
+        return final_pos
+                
+
+
+        
+        
+        
 if __name__ == '__main__':
     bl = PX('vlinac.conf')
     bl()
