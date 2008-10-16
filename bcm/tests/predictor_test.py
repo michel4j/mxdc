@@ -15,7 +15,7 @@ def main():
     win.add(vbox)
     mypred = Predictor()
     vbox.pack_start(mypred)
-    mypred.set_all(1.33,150, 0, 1536, 1536)
+    mypred.set_all(1.0, 200, 0, 1536, 1536)
     win.show_all()
     mypred.tmp_tt = 0
     

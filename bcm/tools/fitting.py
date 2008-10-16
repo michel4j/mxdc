@@ -86,16 +86,12 @@ def histogram_fit(x,y):
     return (fwhm, xpeak, ymax, x_hpeak[0], x_hpeak[1])
 
 def smooth(y, w, iterates=1):
-    hw = 1 +  w/2
+    hw = w/2
     my = scipy.array(y)
     for count in range(iterates):
         ys = my.copy()
-        for i in range(0,hw):
-            ys[i] = my[0:hw].mean()
-        for i in range(len(y)-hw,len(y)):
-            ys[i] = my[len(y)-hw:len(y)].mean()
-        for i in range(hw,len(y)-hw):
-            val=my[i-hw:i+hw].mean()
+        for i in range(hw,len(y)-hw-1):
+            val=my[i-hw:i+hw+1].mean()
             ys[i] = val
         my = ys
     return ys
