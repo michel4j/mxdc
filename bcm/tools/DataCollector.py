@@ -45,8 +45,8 @@ class DataCollector(gobject.GObject):
         self.skip_collected = skip_collected
         return
     
-    def setup(self, params):
-        self.run_list = run_list
+    def setup(self, run_data, skip_collected=True):
+        self.run_list = utils.generate_run_list(run_data)
         self.total_frames = len(self.run_list)
         self.skip_collected = skip_collected
         return
