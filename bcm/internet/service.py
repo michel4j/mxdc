@@ -14,7 +14,7 @@ import os, sys, time
 import pprint
 sys.path.append(os.environ['BCM_PATH'])
 from bcm import beamline
-from bcm.tools.scanning import MADScanner, ExcitationScanner
+from bcm.tools import scanning, DataCollector
 
 class IBCMService(Interface):
     
@@ -94,9 +94,9 @@ class PerspectiveBCMFromService(pb.Root):
         """ Perform and excitation scan"""
         return self.service.scanSpectrum(*args, **kwargs)
     
-    def remote_acquireFrames(self, *args, **kwargs):
+    def remote_acquireFrames(self, run_info, skip_existing=False):
         """ Collect frames of Data """
-        return self.service.acquireFrames(**kwargs)
+        return self.service.acquireFrames(run_info, skip_existing)
         
     def remote_acquireSnapshots(self, *args, **kwargs):
         """ Save a set of images from the sample video"""
@@ -177,7 +177,7 @@ class BCMService(service.Service):
         exposure_time = kwargs['exposure_time']
         prefix = kwargs['prefix']
             
-        mad_scanner = MADScanner(self.beamline)
+        mad_scanner = scanning.MADScanner(self.beamline)
         output_path = '%s/%s-%s.mscan' % (directory, prefix, edge)
         mad_scanner.setup(edge, exposure_time, output_path)
         d = threads.deferToThread(mad_scanner.run)  
@@ -199,7 +199,7 @@ class BCMService(service.Service):
         exposure_time = kwargs['exposure_time']
         prefix = kwargs['prefix']
         
-        ex_scanner = ExcitationScanner(self.beamline)
+        ex_scanner = scanning.ExcitationScanner(self.beamline)
         energy = self.beamline.energy.get_position()
 
         output_path = '%s/%s-%0.3fkeV.escan' % (directory, prefix, energy)
@@ -207,20 +207,33 @@ class BCMService(service.Service):
         d = threads.deferToThread(ex_scanner.run)  
         return d
     
-    def acquireFrames(self, *args, **kwargs):
+    def acquireFrames(self, run_info, skip_existing=False):
         """
         Acquire a set of frames
-        Valid kwargs are:
-            - exposure_time: exposure time for each point
-            - directory: location to store output
+        @param run_info: a dictionary with the following arguments:
+             - directory: location to store output
             - prefix: output prefix
+            - resolution: float
+            - delta: float
+            - time : float (in sec)
+            - start_angle : float (deg)
+            - angle_range : float (deg)
+            - start_frame : integer
+            - num_frames : integer
+            - inverse_beam : boolean (default = False)
+            - wedge : float (default 180)
+            - energy : a list of energy values (floats)
+            - energy_label : a corresponding list of energy labels (strings) no spaces
+            - two_theta : a float, default ( 0.0)
         """
-        assert self.ready
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))
         print pprint.pformat(kwargs,4,20)
-        
-        return defer.succeed([])
-        
+        assert self.ready
+        collector = DataCollector.DataCollector(self.beamline)
+        threads.deferToThread(collector.setup)
+        d = threads.deferToThread(collector.run)        
+        return d
+            
     def acquireSnapshots(self, *args, **kwargs):
         assert self.ready
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))

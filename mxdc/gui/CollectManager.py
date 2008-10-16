@@ -5,6 +5,8 @@ from ActiveWidgets import PositionerLabel, ActiveProgressBar
 from RunManager import RunManager
 from ImgViewer import ImgViewer
 from bcm.tools.configobj import ConfigObj
+from bcm import utils
+
 from Dialogs import *
 (
     COLLECT_COLUMN_SAVED,
@@ -312,66 +314,14 @@ class CollectManager(gtk.HBox):
         run_data = self.run_data.copy()
         if run_num != 0 and 0 in run_data.keys():
             del run_data[0]
-            run_keys = run_data.keys()
         elif 0 in run_data.keys():
-            run_keys = [0,]
+            run_data = [run_data[0],]
             if self.beamline is not None:
                 run_data[0]['energy'] = [self.beamline.energy.get_position()]
             run_data[0]['energy_label'] = ['E0']
             
-        else:
-            run_keys = run_data.keys()
-            
-        self.run_list = []
-        index = 0
-        
-        for pos in run_keys:
-            run = run_data[pos]
-            offsets = run['inverse_beam'] and [0, 180] or [0,]
-            
-            angle_range = run['angle_range']
-            wedge = run['wedge'] < angle_range and run['wedge'] or angle_range
-            wedge_size = int( (wedge) / run['delta'])
-            total_size = run['num_frames']
-            passes = int ( round( 0.5 + (angle_range-run['delta']) / wedge) ) # take the roof (round_up) of the number
-            remaining_frames = total_size
-            current_slice = wedge_size
-            for i in range(passes):
-                if current_slice > remaining_frames:
-                    current_slice = remaining_frames
-                for (energy,energy_label) in zip(run['energy'],run['energy_label']):
-                    if len(run['energy']) > 1:
-                        energy_tag = "_%s" % energy_label
-                    else:
-                        energy_tag = ""
-                    for offset in offsets:                        
-                        for j in range(current_slice):
-                            angle = run['start_angle'] + (j * run['delta']) + (i * wedge) + offset
-                            frame_number =  i * wedge_size + j + int(offset/run['delta']) + run['start_frame']
-                            if len(run_keys) > 1:
-                                frame_name = "%s_%d%s_%03d" % (run['prefix'], run['number'], energy_tag, frame_number)
-                            else:
-                                frame_name = "%s%s_%03d" % (run['prefix'], energy_tag, frame_number)
-                            file_name = "%s.img" % (frame_name)
-                            list_item = {
-                                'index': index,
-                                'saved': False, 
-                                'frame_number': frame_number,
-                                'run_number': run['number'], 
-                                'frame_name': frame_name, 
-                                'file_name': file_name,
-                                'start_angle': angle,
-                                'delta': run['delta'],
-                                'time': run['time'],
-                                'energy': energy,
-                                'distance': run['distance'],
-                                'prefix': run['prefix'],
-                                'two_theta': run['two_theta'],
-                                'directory': run['directory']
-                            }
-                            self.run_list.append(list_item)
-                            index += 1
-                remaining_frames -= current_slice
+        self.run_list = utils.generate_run_list(run_data)
+
         self.pos = 0
         self.gen_sequence()
                                                                         
@@ -540,7 +490,7 @@ class CollectManager(gtk.HBox):
         if self.config_user():
             if self.check_runlist():
                 self.progress_bar.busy_text("Starting data collection...")
-                self.collector.setup(self.run_list, skip_collected=True)
+                self.collector.setup_from_list(self.run_list, skip_collected=True)
                 self.collector.start()
                 self.collect_state = COLLECT_STATE_RUNNING
                 self.collect_btn.set_label('cm-pause')
