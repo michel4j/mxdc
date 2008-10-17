@@ -16,6 +16,11 @@ sys.path.append(os.environ['BCM_PATH'])
 from bcm import beamline
 from bcm.tools import scanning, DataCollector
 
+if os.version_info[:2] == (2,5):
+    import uuid
+else:
+    from bcm.tools import uuid # for 2.3, 2.4
+
 class IBCMService(Interface):
     
     def mountSample(*args, **kwargs):
@@ -98,9 +103,9 @@ class PerspectiveBCMFromService(pb.Root):
         """ Collect frames of Data """
         return self.service.acquireFrames(run_info, skip_existing)
         
-    def remote_acquireSnapshots(self, *args, **kwargs):
+    def remote_acquireSnapshots(self, directory, prefix):
         """ Save a set of images from the sample video"""
-        return self.service.acquireSnapshots(**kwargs)
+        return self.service.acquireSnapshots(directory, prefix)
     
     def remote_optimizeBeamline(self, *args, **kwargs):
         """ Optimize the flux at the sample position for the given setup"""
@@ -230,23 +235,28 @@ class BCMService(service.Service):
         print pprint.pformat(kwargs,4,20)
         assert self.ready
         collector = DataCollector.DataCollector(self.beamline)
-        threads.deferToThread(collector.setup)
+        collector.setup(run_info)
         d = threads.deferToThread(collector.run)        
         return d
             
-    def acquireSnapshots(self, *args, **kwargs):
+    def acquireSnapshots(self, directory, prefix):
         assert self.ready
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))
-        return defer.succeed([])
+        unique_id = str( uuid.uuid4() ) 
+        output_file = '%s/%s-%s.png' % (directory, prefix, unique_id)
+        d = threads.deferToThread(self.beamline.sample_cam.save, output_file)
+        return d
     
     def optimizeBeamline(self, *args, **kwargs):
         assert self.ready
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))
+        
         return defer.succeed([])
     
     def shutdown(self):
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))
         reactor.stop()
+        #os.kill(os.getpid(), signal.SIGTERM)
 
 class BCMError(pb.Error):
     """An expected Exception in BCM"""

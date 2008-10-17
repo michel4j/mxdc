@@ -33,12 +33,16 @@ class CameraBase(gobject.GObject):
     def save(self, filename):
         if self.frame is None:
             self._log('No image available to save')
+            result = False
         else:
             try:
                 img = ImageOps.autocontrast(self.get_frame())
                 img.save(filename)
+                result = filename
             except:
                 self._log('Could not save image: %s' % filename)
+                result = False
+        return result
 
     def get_name(self):
         return self.name
