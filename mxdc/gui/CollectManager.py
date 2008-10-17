@@ -320,11 +320,11 @@ class CollectManager(gtk.HBox):
                 run_data[0]['energy'] = [self.beamline.energy.get_position()]
             run_data[0]['energy_label'] = ['E0']
         self.run_list = []
-        if len(run_data) > 1:
+        if len(run_data.keys()) > 1:
             show_number = True
         else:
             show_number = False
-        for run in run_data:
+        for key,run in run_data.items():
             self.run_list += utils.generate_run_list(run, show_number)
 
         self.pos = 0

@@ -176,7 +176,8 @@ class PV(gobject.GObject):
     
     def get(self):
         if self.state != CA_OP_CONN_UP:
-            raise Error('Channel %s not connected' % self.name)
+            #raise Error('Channel %s not connected' % self.name)
+            return 0
         #self._lock.acquire()
         if self.monitor == True and self.value is not None:
             ret_val = self.value
