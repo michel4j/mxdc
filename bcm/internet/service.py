@@ -16,7 +16,7 @@ sys.path.append(os.environ['BCM_PATH'])
 from bcm import beamline
 from bcm.tools import scanning, DataCollector
 
-if os.version_info[:2] == (2,5):
+if sys.version_info[:2] == (2,5):
     import uuid
 else:
     from bcm.tools import uuid # for 2.3, 2.4
