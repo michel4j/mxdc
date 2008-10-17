@@ -49,12 +49,11 @@ class DataCollector(gobject.GObject):
         self.run_list = utils.generate_run_list(run_data)
         self.total_frames = len(self.run_list)
         self.skip_collected = skip_collected
+        self.beamline.image_server.create_folder(run_data['directory'])
         return
     
     def start(self):
         if self._initialized:
-            self.paused = False
-            self.stopped = False
             self._worker = threading.Thread(target=self.run)
             self._worker.start()
         else:
@@ -63,7 +62,10 @@ class DataCollector(gobject.GObject):
 
     
     def run(self):
-        ca.thread_init()              
+        self.paused = False
+        self.stopped = False
+        ca.thread_init() 
+        self.beamline.lock.acquire()            
         self.shutter.close()
         if not self._background_taken:
             time.sleep(0.1)  # small delay to make sure shutter is closed
@@ -71,7 +73,7 @@ class DataCollector(gobject.GObject):
             self._background_taken = True
         self.pos = 0
         header = {}
-        
+
         while self.pos < len(self.run_list) :
             if not self.detector.is_healthy():
                 self.stopped = True
@@ -157,6 +159,7 @@ class DataCollector(gobject.GObject):
         gobject.idle_add(self.emit, 'done')
         gobject.idle_add(self.emit, 'progress', 1.0, 0)
         self.stopped = True
+        self.beamline.lock.release()
 
     def set_position(self,pos):
         self.pos = pos

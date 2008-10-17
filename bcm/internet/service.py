@@ -125,7 +125,7 @@ class BCMService(service.Service):
         self.ready = False
         d = threads.deferToThread(self.beamline.setup, None)
         d.addCallback(self._service_ready)
-        #d.addErrback(self._service_failed)
+        d.addErrback(self._service_failed)
     
     def _service_ready(self, result):
         log.msg('Beamline Ready')
@@ -175,7 +175,7 @@ class BCMService(service.Service):
         #FIXME: We need some way of setting who will own the output files 
         assert self.ready
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))
-        print pprint.pformat(kwargs,4,20)
+
         
         directory = kwargs['directory']
         edge = kwargs['edge']
@@ -198,7 +198,7 @@ class BCMService(service.Service):
         """
         assert self.ready
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))
-        print pprint.pformat(kwargs,4,20)
+
         
         directory = kwargs['directory']
         exposure_time = kwargs['exposure_time']
@@ -218,7 +218,7 @@ class BCMService(service.Service):
         @param run_info: a dictionary with the following arguments:
              - directory: location to store output
             - prefix: output prefix
-            - resolution: float
+            - distance: float
             - delta: float
             - time : float (in sec)
             - start_angle : float (deg)
@@ -232,10 +232,11 @@ class BCMService(service.Service):
             - two_theta : a float, default ( 0.0)
         """
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))
-        print pprint.pformat(kwargs,4,20)
+
         assert self.ready
         collector = DataCollector.DataCollector(self.beamline)
         collector.setup(run_info)
+
         d = threads.deferToThread(collector.run)        
         return d
             
