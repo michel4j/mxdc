@@ -312,19 +312,20 @@ class CollectManager(gtk.HBox):
     def create_runlist(self):
         run_num = self.run_manager.get_current_page()
         run_data = self.run_data.copy()
+
         if run_num != 0 and 0 in run_data.keys():
             del run_data[0]
         elif 0 in run_data.keys():
-            run_data = [run_data[0],]
+            run_data = {0: run_data[0],}
             if self.beamline is not None:
                 run_data[0]['energy'] = [self.beamline.energy.get_position()]
             run_data[0]['energy_label'] = ['E0']
         self.run_list = []
-        if len(run_data.keys()) > 1:
+        if len( run_data.keys() ) > 1:
             show_number = True
         else:
             show_number = False
-        for key,run in run_data.items():
+        for run in run_data.values():
             self.run_list += utils.generate_run_list(run, show_number)
 
         self.pos = 0
@@ -469,7 +470,11 @@ class CollectManager(gtk.HBox):
         if position == 1:
             self.start_time = time.time()
         elapsed_time = time.time() - self.start_time
-        time_unit = elapsed_time / fraction
+        if fraction > 0:
+            time_unit = elapsed_time / fraction
+        else:
+            time_unit = 0.0
+        
         eta_time = time_unit * (1 - fraction)
         percent = fraction * 100
         if position > 0:
