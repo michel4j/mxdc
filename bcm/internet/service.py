@@ -125,7 +125,7 @@ class BCMService(service.Service):
         self.ready = False
         d = threads.deferToThread(self.beamline.setup, None)
         d.addCallback(self._service_ready)
-        d.addErrback(self._service_failed)
+        #d.addErrback(self._service_failed)
     
     def _service_ready(self, result):
         log.msg('Beamline Ready')

@@ -72,8 +72,7 @@ class PX(BeamlineBase):
     def setup(self, idle_func=gtk_idle):
         ca.thread_init()
         config = ConfigParser()
-        parsed = config.read(self.config_file)
-        assert parsed[0] == self.config_file
+        config.read(self.config_file)
         sections =config.sections()
         sec_step = 1.0/len(sections)
         frac_complete = 0.0
@@ -104,8 +103,12 @@ class PX(BeamlineBase):
                         arg = config.get(section, item)
                         self.config[item] = float(arg)
                     frac_complete += item_step
-                    gobject.idle_add(self.emit, 'progress', frac_complete)     
-                        
+                    gobject.idle_add(self.emit, 'progress', frac_complete)
+ 
+        for attr in ['ccd', 'sample_cam','energy', 'bragg_energy', 'mca', 
+                     'config', 'gonio', 'i0','attenuator', 'shutter','det_d','det_2th','beam_w','beam_h','image_server']:
+            assert hasattr(self, attr)
+
     def configure(self, *args, **kwargs):
         ca.thread_init()
         _moved = []
