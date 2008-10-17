@@ -319,8 +319,13 @@ class CollectManager(gtk.HBox):
             if self.beamline is not None:
                 run_data[0]['energy'] = [self.beamline.energy.get_position()]
             run_data[0]['energy_label'] = ['E0']
-            
-        self.run_list = utils.generate_run_list(run_data)
+        self.run_list = []
+        if len(run_data) > 1:
+            show_number = True
+        else:
+            show_number = False
+        for run in run_data:
+            self.run_list += utils.generate_run_list(run, show_number)
 
         self.pos = 0
         self.gen_sequence()

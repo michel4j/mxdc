@@ -5,26 +5,50 @@ import sys, os
 
 log.FileLogObserver(sys.stdout).start()
 
+DIRECTORY = '/users/cmcfadmin/test_data/exotic_folder'
+
+run_info = {
+    'distance' : 455.0,
+    'two_theta' : 0.0,
+    'start_frame' : 1,
+    'start_angle' : 0.0,
+    'angle_range' : 5.0,
+    'energy' : [12.658],
+    'delta' : 1.0,
+    'number' : 1,
+    'energy_label' : ['E0'],
+    'wedge' : 180.0,
+    'prefix' : 'test-5',
+    'inverse_beam' : False,
+    'time' : 1.0,
+    'directory' : DIRECTORY,
+    'num_frames' : 5,
+}
+
+
 class App:
     def bcmConnected(self, perspective):
         log.msg('Connection to BCM Server Established')
         self.bcm = perspective
+        
         self.bcm.callRemote('scanSpectrum', 
-                            prefix='scan1', 
+                            prefix='scan1-5', 
                             exposure_time=1.0, 
-                            directory='/tmp/michel'
+                            directory=DIRECTORY
                             ).addCallback(gotData)
+        '''
         self.bcm.callRemote('scanSpectrum', 
                             prefix='scan2', 
                             exposure_time=5.0, 
-                            directory='/tmp/michel'
+                            directory=DIRECTORY
                             ).addCallback(gotData)
         self.bcm.callRemote('scanSpectrum', 
                             prefix='scan3', 
                             exposure_time=0.5, 
-                            directory='/tmp/michel'
+                            directory=DIRECTORY
                             ).addCallback(gotData)
-        #self.bcm.callRemote('scanEdge', exposure_time=0.5, edge='Se-K',  directory='/tmp/michel').addCallback(gotData)
+        '''
+        self.bcm.callRemote('acquireFrames', run_info).addCallback(gotData)
            
 def gotData(data):
     log.msg('Server sent: %s' % str(data))
