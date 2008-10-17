@@ -88,7 +88,6 @@ class DataCollector(gobject.GObject):
                 return
 
             frame = self.run_list[self.pos]
-            self.pos += 1
 
             if frame['saved'] and self.skip_collected:
                 self.log( 'Skipping %s' % frame['file_name'])
@@ -150,11 +149,12 @@ class DataCollector(gobject.GObject):
             self.detector.save()
 
             self.log("Image Collected: %s" % frame['file_name'])
-            gobject.idle_add(self.emit, 'new-image', frame['index'], "%s/%s" % (frame['directory'],frame['file_name']))
+            gobject.idle_add(self.emit, 'new-image', self.pos, "%s/%s" % (frame['directory'],frame['file_name']))
             
             # Notify progress
             fraction = float(self.pos) / len(self.run_list)
-            gobject.idle_add(self.emit, 'progress', fraction, self.pos)          
+            gobject.idle_add(self.emit, 'progress', fraction, self.pos+1)          
+            self.pos += 1
         
         gobject.idle_add(self.emit, 'done')
         gobject.idle_add(self.emit, 'progress', 1.0, 0)

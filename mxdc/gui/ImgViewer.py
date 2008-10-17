@@ -320,7 +320,7 @@ class ImgViewer(gtk.VBox):
             next_filename = self.image_queue[0]
         
         self.__set_busy(True)
-        if os.path.isfile(next_filename) and (os.stat(next_filename)[stat.ST_SIZE] == 18878464):
+        if os.path.isfile(next_filename) and (os.stat(next_filename)[stat.ST_SIZE] == 18878464) and os.access(next_filename, os.R_OK):
             self.set_filename( next_filename )
             self.image_queue.pop(0) # delete loaded image from queue item
             self.load_image()
