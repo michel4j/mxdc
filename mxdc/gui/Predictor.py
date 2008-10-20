@@ -15,6 +15,8 @@ from matplotlib.numerix import arange, sin, pi, arcsin, arctan, sqrt, cos
 from matplotlib.ticker import FormatStrFormatter
 from pylab import meshgrid
 from bcm import utils
+import logging
+pred_logger = logging.getLogger('mxdc.predictor')
 
 try:
     from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
@@ -39,7 +41,7 @@ class Predictor( gtk.AspectFrame ):
         self.two_theta = 0
         self.wavelength = 1.000
         self.last_updated = time.time()
-        self.visible = True
+        self._can_update = False
         self.canvas.set_events(gtk.gdk.EXPOSURE_MASK |
                 gtk.gdk.LEAVE_NOTIFY_MASK |
                 gtk.gdk.BUTTON_PRESS_MASK |
@@ -48,6 +50,7 @@ class Predictor( gtk.AspectFrame ):
                 gtk.gdk.VISIBILITY_NOTIFY_MASK)  
         self.canvas.connect('visibility-notify-event', self.on_visibility_notify)
         self.canvas.connect('unmap', self.on_unmap)
+        self.canvas.connect_after('map', self.on_map)
 
         
     def display(self, widget=None):
@@ -106,15 +109,21 @@ class Predictor( gtk.AspectFrame ):
         
     def on_visibility_notify(self, widget, event):
         if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
-            self.visible = False
+            self._can_update = False
         else:
-            self.visible = True
+            self._can_update = True
+            self.update()
         return True
 
     def on_unmap(self, widget):
-        self.visible = False
+        self._can_update = False
         return True
                 
+    def on_map(self, widget):
+        self._can_update = True
+        self.update()
+        return True
+    
     def _angle(self, resol):
         return arcsin( 0.5 * self.wavelength / resol )
         
@@ -160,15 +169,11 @@ class Predictor( gtk.AspectFrame ):
 
     def update(self, force=False):
         elapsed_time = time.time() - self.last_updated
-        if (elapsed_time < 1) and not force:
-            pass
-        elif (not self.visible):
-            pass
-        elif (self.wavelength*self.distance < 1.0):
-            pass
-        else:
-            self.last_updated = time.time()
-            calculator = threading.Thread(target=self._do_calc)
-            calculator.start()
+        if (elapsed_time > 2) or force and (self.wavelength*self.distance > 1.0):
+            if self._can_update and self.get_child_visible():
+                pred_logger.debug('Predictor Widget updating...')
+                self.last_updated = time.time()
+                calculator = threading.Thread(target=self._do_calc)
+                calculator.start()
         return True
     

@@ -5,6 +5,10 @@ import thread
 import atexit
 import gobject
 from ctypes import *
+import logging
+
+__log_section__ = 'bcm.epics'
+ca_logger = logging.getLogger(__log_section__)
 
 # Define EPICS constants
 (
@@ -165,6 +169,7 @@ class PV(gobject.GObject):
         self.monitor = monitor
         self._lock = thread.allocate_lock()
         self._create_connection()
+        self.__first_change__ = True
 
                    
     def __del__(self):
@@ -176,7 +181,7 @@ class PV(gobject.GObject):
     
     def get(self):
         if self.state != CA_OP_CONN_UP:
-            #raise Error('Channel %s not connected' % self.name)
+            ca_logger.error('(%s) PV not connected' % (self.name,))
             return 0
         #self._lock.acquire()
         if self.monitor == True and self.value is not None:
@@ -194,7 +199,8 @@ class PV(gobject.GObject):
 
     def put(self, val):
         if self.state != CA_OP_CONN_UP:
-            raise Error('Channel %s not connected' % self.name)
+            ca_logger.error('(%s) PV not connected' % (self.name,))
+            return
         self.data = self.data_type(val)
         #print "'%s' = '%s'" % (val, self.data.value)
         libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
@@ -238,7 +244,7 @@ class PV(gobject.GObject):
 
 
     def _defer_connection(self):
-        print 'Deferring Connection of %s' % self.name
+        ca_logger.info('(%s) Deferring Connection.' % (self.name,))
         if self.state != CA_OP_CONN_UP:
             cb_factory = CFUNCTYPE(c_int, ConnectionHandlerArgs)
             cb_function = cb_factory(self._on_connect)
@@ -264,11 +270,14 @@ class PV(gobject.GObject):
             else:
                 self.value = val_p.contents.value
         #self._lock.release()
+        if self.__first_change__:
+            self.__first_change__ = False
+            return 0
         gobject.idle_add(self.emit,'changed', self.value)
         return 0
         
     def _on_connect(self, event):
-        print self.name, 'connected'
+        ca_logger.info('(%s) Connection to PV established.' % (self.name,))
         self._lock.acquire()
         self.state = event.op
         if self.state == CA_OP_CONN_UP:
@@ -282,7 +291,8 @@ class PV(gobject.GObject):
         
     def _add_handler(self, callback):
         if self.state != CA_OP_CONN_UP:
-            raise Error('Channel %s not connected' % self.name)
+            ca_logger.error('(%s) PV not connected.' % (self.name,))
+            return
         event_id = c_ulong()
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
         cb_function = cb_factory(callback)
@@ -321,7 +331,7 @@ def thread_init():
 
 def ca_exception_handler(event):
     ctx = '\n    '.join(event.ctx.split(', '))
-    msg = """.......................................................
+    msg = """
     Warning: %s %s
     File: %s line %s
     Time: %s
@@ -340,7 +350,7 @@ try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
     libca = cdll.LoadLibrary(libca_file)
 except:
-    print "EPICS run-time libraries (%s) could not be loaded!" % libca_file
+    ca_logger.warning("EPICS run-time libraries (%s) could not be loaded!" % (libca_file,) )   
     sys.exit()
 
 libca.last_heart_beat = time.time()

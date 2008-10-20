@@ -5,7 +5,8 @@ from CollectManager import CollectManager
 from StatusPanel import StatusPanel
 from ScanManager import ScanManager
 from HutchManager import HutchManager
-from LogView import LogView
+from LogView import LogView, GUIHandler
+import logging
 
 class AppWindow:
     def __init__(self, beamline):
@@ -25,9 +26,13 @@ class AppWindow:
         self.status_panel = StatusPanel(self.beamline)
         self.general_log = LogView(label='Log')
         self.general_log.set_expanded(False)
-        self.beamline.connect('log', self.log_handler)
-        self.collect_manager.image_viewer.connect('log', self.log_handler)
+        self.log_handler = GUIHandler(self.general_log)
+        self.log_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s %(name)-15s: %(levelname)-8s %(message)s')
+        self.log_handler.setFormatter(formatter)
+        logging.getLogger('').addHandler(self.log_handler)
 
+        
         main_vbox = gtk.VBox(False,0)
         main_vbox.pack_end(self.status_panel, expand = False, fill = False)
         main_vbox.pack_end(self.general_log, expand=True, fill=True)
@@ -43,10 +48,7 @@ class AppWindow:
         
         self.win.connect('destroy', self.on_destroy)
         self.win.show_all()
-    
-    def log_handler(self, obj, txt):
-        self.general_log.log(txt)
-        
+            
     def on_destroy(self, obj=None):
         self.scan_manager.stop()
         self.collect_manager.stop()
