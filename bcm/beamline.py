@@ -89,8 +89,6 @@ class PX(BeamlineBase):
                     gobject.idle_add(self.emit, 'progress', frac_complete)
                     if idle_func is not None:
                         idle_func()
-                    if hasattr(self.devices[item], 'connect') and section not in ['variables', 'webservices']:
-                        self.devices[item].connect('log', self.on_log)
             elif section == 'config':
                 for item in config.options(section):
                     if item == 'diagram':

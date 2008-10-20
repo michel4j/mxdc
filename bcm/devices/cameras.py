@@ -2,27 +2,25 @@ from zope.interface import implements
 from bcm.interfaces.cameras import ICamera
 from bcm.protocols.ca import PV
 import time
-import gobject
+import logging
 
 import numpy
 from scipy.misc import toimage, fromimage
 import Image, ImageOps, urllib, cStringIO
 import httplib
 
+__log_section__ = 'bcm.video'
+camera_logger = logging.getLogger(__log_section__)
 
-class CameraBase(gobject.GObject):
-    __gsignals__ =  { 
-        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
-        }
+class CameraBase(object):
     def __init__(self, name='Video'):
-        gobject.GObject.__init__(self)
         self.frame = None
         self.camera_on = False
         self.controller = None
         self.name = name
             
     def _log(self, message):
-        gobject.idle_add(self.emit, 'log', message)
+        pass
 
     def get_frame(self):
         return self.frame
@@ -32,7 +30,7 @@ class CameraBase(gobject.GObject):
     
     def save(self, filename):
         if self.frame is None:
-            self._log('No image available to save')
+            camera_logger.error('(%s) No image available to save.' % (self.name,) )
             result = False
         else:
             try:
@@ -40,7 +38,7 @@ class CameraBase(gobject.GObject):
                 img.save(filename)
                 result = filename
             except:
-                self._log('Could not save image: %s' % filename)
+                camera_logger.error('(%s) Unable to save image "%s".' % (self.name, filename) )
                 result = False
         return result
 
@@ -56,7 +54,6 @@ class CameraSim(CameraBase):
         self._packet_size = 307200
         self.name = name
         self.update()
-        #gobject.timeout_add(100, self.update)
     
     def __del__(self):
         self._fsource.close()
@@ -155,7 +152,7 @@ class AxisCamera(CameraBase):
             self.frame = self._get_image()
             self._last_frame = time.time()
         except:
-            self._log('Error fetching frame')
+            camera_logger.error('(%s) Failed fetching frame.' % (self.name,) )
             return False
         return True
 
@@ -165,5 +162,3 @@ class AxisCamera(CameraBase):
             return self.frame
         else:
             return None
-        
-gobject.type_register(CameraBase)

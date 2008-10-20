@@ -9,12 +9,12 @@ import numpy, re, struct
 from scipy.misc import toimage, fromimage
 import pickle
 from Dialogs import select_image
+import logging
+
+__log_section__ = 'mxdc.imgview'
+img_logger = logging.getLogger(__log_section__)
 
 class ImgViewer(gtk.VBox):
-    __gsignals__ = {
-        'log': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                      (gobject.TYPE_STRING,))
-    }
     def __init__(self, size=600):
         self.__gobject_init__() 
         gtk.VBox.__init__(self,False)
@@ -144,7 +144,7 @@ class ImgViewer(gtk.VBox):
             gtk.main_iteration()
 
     def log(self, msg):
-        self.emit('log', 'ImageViewer: %s' % msg)
+        img_logger.info('(ImageViewer) %s' % msg)
        
     def read_header(self):
         # Read MarCCD header

@@ -6,6 +6,10 @@ import threading
 import sys
 import numpy
 import gobject
+import logging
+
+__log_section__ = 'bcm.counters'
+detector_logger = logging.getLogger(__log_section__)
 
 class DetectorException(Exception):
     def __init__(self, message):
@@ -17,7 +21,6 @@ class DetectorException(Exception):
 class DetectorBase(gobject.GObject):
     __gsignals__ =  { 
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
         }  
 
     def __init__(self):
@@ -32,7 +35,7 @@ class DetectorBase(gobject.GObject):
             self._last_changed = time.time()
     
     def _log(self, message):
-        gobject.idle_add(self.emit, 'log', message)
+        detector_logger.info(message)
 
     def get_name(self):
         return self.name
@@ -146,7 +149,7 @@ class MCA(DetectorBase):
             success = self._wait_count()
             self._read_state = True
         if i==retries and not success:
-            self._log('ERROR: MCA acquire failed after %s retries' % retries)
+            detector_logger.error('MCA acquire failed after %s retries' % retries)
                               
     def _collect(self, t=1.0):
         self._set_temp_monitor(False)
@@ -165,30 +168,33 @@ class MCA(DetectorBase):
     def _wait_count(self, start=True, stop=False,poll=0.05, timeout=2):
         if (start):
             time_left = timeout
+            detector_logger.debug('Waiting for MCA to start counting.')
             while self.ACQG.get() == 0 and time_left > 0:
                 time_left -= poll
                 time.sleep(poll)
             if time_left <= 0:
-                self._log('ERROR: Timed out waiting for acquire to start after %d sec' % timeout)
+                detector_logger.warning('Timed out waiting for acquire to start after %d sec' % timeout)
                 return False                
         if (stop):
             time_left = timeout
+            detector_logger.debug('Waiting for MCA to stop counting.')
             while self.ACQG.get() !=0 and time_left > 0:
                 test = self.ACQG.get()         
                 time_left -= poll
                 time.sleep(poll)
             if time_left <= 0:
-                self._log('ERROR: Timed out waiting for acquire to stop after %d sec' % timeout)
+                detector_logger.warning('Timed out waiting for acquire to stop after %d sec' % timeout)
                 return False
         return True        
                 
     def _wait_read(self, poll=0.05, timeout=5):       
         time_left = timeout
+        detector_logger.debug('Waiting for MCA to start reading.')
         while self._read_state and time_left > 0:
             time_left -= poll
             time.sleep(poll)
         if time_left <= 0:
-            self._log('ERROR: Timed out waiting for READ after %d sec' % timeout)
+            detector_logger.warning('Timed out waiting for READ after %d sec' % timeout)
             return False
         
 
@@ -262,7 +268,8 @@ class Counter(DetectorBase):
         self.pv = ca.PV(pv_name)
         self.pv.connect('changed', self._signal_change)
     
-    def count(self, t): 
+    def count(self, t):
+        detector_logger.info('Integrating detector (%s) for %0.2f sec.' % (self.name, t) )
         interval=0.001
         values = []
         time_to_finish = time.time() + t
@@ -313,7 +320,7 @@ class MarCCDImager:
         self._bg_taken = False
         
         self.connection_state.connect('changed', self._update_background)
-
+        self._logger = logging.getLogger('bcm.ccd')
 
     def _update_background(self, obj, state):
         if state == 1:
@@ -355,7 +362,8 @@ class MarCCDImager:
             states.append('idle')
         return states
 
-    def _wait_for_state(self,state, timeout=5.0):      
+    def _wait_for_state(self,state, timeout=5.0):
+        self._logger.debug('Waiting for state: %s' % (state,) ) 
         tf = time.time()
         tI = int(tf)
         st_time = time.time()
@@ -367,9 +375,11 @@ class MarCCDImager:
         if elapsed < timeout:
             return True
         else:
+            self._logger.warning('Timed out waiting for state: %s' % (state,) ) 
             return False
 
     def _wait_in_state(self, state):      
+        self._logger.debug('Waiting for state "%s" to expire.' % (state,) ) 
         tf = time.time()
         tI = int(tf)
         st_time = time.time()
@@ -383,10 +393,12 @@ class MarCCDImager:
         if key in self._get_states():
             return True
         else:
+            self._logger.warning('Timed out waiting for state "%s" to expire.' % (state,) ) 
             return False
 
     def initialize(self, wait=True):
         if not self._bg_taken:
+            self._logger.debug('Initializing CCD ...') 
             if not self._is_in_state('idle'):
                 self.abort_cmd.put(1)
                 self._wait_for_state('idle')
@@ -397,6 +409,7 @@ class MarCCDImager:
                 self._wait_for_state('acquire:exec')
                 self._wait_for_state('idle')
             self._bg_taken = True
+            self._logger.debug('CCD Initialization complete.') 
                         
             
 

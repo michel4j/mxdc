@@ -9,7 +9,10 @@ from bcm.utils import read_periodic_table, gtk_idle
 from bcm.protocols import ca
 from bcm.tools.fitting import *
 from bcm.devices.detectors import Normalizer
+import logging
 
+__log_section__ = 'bcm.scans'
+scan_logger = logging.getLogger(__log_section__)
 
 class Error(Exception):
     def __init__(self, message):
@@ -25,7 +28,6 @@ class ScannerBase(gobject.GObject):
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['aborted'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
-    __gsignals__['log'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['error'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
    
     def __init__(self):
@@ -48,9 +50,6 @@ class ScannerBase(gobject.GObject):
         if self.plotter is not None and self.plotting:
             self.plotter.clear()
         
-    def log(self, message):
-        gobject.idle_add(self.emit, 'log', message)
-
     def start(self):
         self.stopped = False
         self.aborded = False
@@ -115,7 +114,7 @@ class Scanner(ScannerBase):
     def run(self):
         ca.thread_init()
         gobject.idle_add(self.emit, 'started')
-        self.log("Scanning '%s' vs '%s' " % (self.positioner.name, self.counter.name))
+        scan_logger.info("Scanning '%s' vs '%s' " % (self.positioner.name, self.counter.name))
         if self.relative:
             self.range_start = self.start_pos + self.positioner.get_position()
             self.range_end = self.end_pos + self.positioner.get_position()
@@ -134,7 +133,7 @@ class Scanner(ScannerBase):
         self.count = 0
         for x in self.positioner_targets:
             if self.stopped or self.aborted:
-                self.log( "Scan stopped!" )
+                scan_logger.info( "Scan stopped!" )
                 break
                 
             self.count += 1
@@ -148,7 +147,7 @@ class Scanner(ScannerBase):
             self.y_data_points.append( y )          
             fraction = float(self.count) / len(self.positioner_targets)
             
-            self.log("%4d %15g %15g %15g" % (self.count, x, y, f))
+            scan_logger.info("%4d %15g %15g %15g" % (self.count, x, y, f))
             gobject.idle_add(self.emit, "new-point", x, y )
             gobject.idle_add(self.emit, "progress", fraction )
 
@@ -181,7 +180,7 @@ class Scanner(ScannerBase):
                 scan_file.flush()
                 scan_file.close()
             except:
-                self.log('Error saving Scan data')
+                scan_logger.error('Unable to saving Scan data to "%s".' % (self.filename,))
 
     def fit(self):
         x = numpy.array(self.x_data_points)
@@ -195,7 +194,7 @@ class Scanner(ScannerBase):
         if self.plotter:
             self.plotter.add_line(xi, yi, 'r.')
         
-        self.log("\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g \n" % (midp,fwhm, fwhm_h, ymax, xpeak)) 
+        scan_logger.info("\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g \n" % (midp,fwhm, fwhm_h, ymax, xpeak)) 
         self.midp_fit, self.fwhm_fit, self.fwhm_his, self.ymax, self.xpeak = (midp,fwhm, fwhm_h, ymax, xpeak)
         return [midp,fwhm,success]
 
@@ -211,7 +210,9 @@ class ExcitationScanner(ScannerBase):
                         
     def run(self):
         ca.thread_init()
+        scan_logger.debug('Exitation Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
+        scan_logger.debug('Exitation Scan started')
         gobject.idle_add(self.emit, 'started')
        
         try:
@@ -227,6 +228,7 @@ class ExcitationScanner(ScannerBase):
             gobject.idle_add(self.emit, "done")
             gobject.idle_add(self.emit, "progress", 1.0 )
         except:
+            scan_logger.error('There was an error running the Excitation Scan.')
             self.beamline.shutter.close()
             gobject.idle_add(self.emit, "error")
             gobject.idle_add(self.emit, "progress", 1.0 )
@@ -259,6 +261,7 @@ class ExcitationScanner(ScannerBase):
                 scan_file.flush()
                 scan_file.close()
             except:
+                scan_logger.error('Unable to saving Scan data to "%s".' % (self.filename,))
                 print scan_data
         else:
             print scan_data
@@ -275,6 +278,7 @@ class MADScanner(ScannerBase):
         self.energy = en
         self.time = count_time
         self.filename = output
+        scan_logger.info('Edge Scan setup for %s, %0.2f sec exposures, output file "%s".' % (edge, count_time, output))
         
     def calc_targets(self):
         energy = self.energy
@@ -331,7 +335,9 @@ class MADScanner(ScannerBase):
         self.y_data_points = []
         self.calc_targets()
         
+        scan_logger.info('Edge Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
+        scan_logger.info('Edge Scan started.')
         gobject.idle_add(self.emit, 'started')
 
         try:
@@ -344,9 +350,10 @@ class MADScanner(ScannerBase):
             self.count = 0
             self.beamline.shutter.open()
             self.beamline.mca.erase()
+            scan_logger.info("%4s %15s %15s %15s" % ('#', 'Energy', 'Counts', 'Scale Factor'))
             for x in self.energy_targets:
                 if self.stopped or self.aborted:
-                    self.log( "Scan stopped!" )
+                    scan_logger.info('Edge Scan stopped.')
                     break
                     
                 self.count += 1
@@ -358,22 +365,20 @@ class MADScanner(ScannerBase):
                 else:
                     self.factor = self.first_intensity/(self.beamline.i2.count(0.5)*1e9)
                 y = self.beamline.mca.count(self.time)
-                print x, y, y*self.factor, self.factor
                     
                 y = y * self.factor
                 self.x_data_points.append( x )
                 self.y_data_points.append( y )
                 
                 fraction = float(self.count) / len(self.energy_targets)
-                self.log("%4d %15g %15g %15g" % (self.count, x, y, self.factor))
+                scan_logger.info("%4d %15g %15g %15g" % (self.count, x, y, self.factor))
                 gobject.idle_add(self.emit, "new-point", x, y )
                 gobject.idle_add(self.emit, "progress", fraction )
-    
-                gtk_idle()
                  
             self.beamline.shutter.close()
             
             if self.aborted:
+                scan_logger.warning("Edge Scan aborted.")
                 gobject.idle_add(self.emit, "aborted")
                 gobject.idle_add(self.emit, "progress", 0.0 )
             else:
@@ -381,6 +386,7 @@ class MADScanner(ScannerBase):
                 gobject.idle_add(self.emit, "done")
                 gobject.idle_add(self.emit, "progress", 1.0 )
         except:
+            scan_logger.error("An error occurred during the scan. Edge Scan aborted.")
             self.beamline.shutter.close()
             self.beamline.lock.release()
             gobject.idle_add(self.emit, "aborted")
@@ -407,7 +413,7 @@ class MADScanner(ScannerBase):
                 scan_file.flush()
                 scan_file.close()
             except:
-                self.log('Error saving Scan data')
+                scan_logger.error('Unable to saving Scan data to "%s".' % (self.filename,))
       
 
 def emissions_list():

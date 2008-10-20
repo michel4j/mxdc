@@ -2,6 +2,15 @@ import gtk
 import gobject
 import pango
 import time
+import logging
+
+class GUIHandler(logging.Handler):
+    def __init__(self, view):
+        logging.Handler.__init__(self)
+        self.view = view
+    
+    def emit(self, record):
+        self.view.log(self.format(record), show_time=False)
 
 
 class LogView(gtk.Expander):
@@ -17,7 +26,7 @@ class LogView(gtk.Expander):
         sw.set_policy(gtk.POLICY_NEVER,gtk.POLICY_AUTOMATIC)
         sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         sw.add(self.view)
-        pango_font = pango.FontDescription('Monospace 9')
+        pango_font = pango.FontDescription('Monospace 8')
         self.view.modify_font(pango_font)
         self.add(sw)
         self.show_all()

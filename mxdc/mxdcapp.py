@@ -1,11 +1,31 @@
+#from twisted.internet import glib2reactor
+#glib2reactor.install()
+#from twisted.internet import reactor
+
 import gtk, gobject
 import sys, os
+import logging
 
 sys.path.append(os.environ['BCM_PATH'])
 
 from gui.Splash import Splash
 from gui.AppWindow import AppWindow
 from bcm.beamline import PX
+
+# set up logging to file
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s : %(message)s',
+                    datefmt='%a, %d %b %Y %H:%M:%S',
+                    filename='/tmp/mxdc.log',
+                    filemode='w')
+
+# define a Handler which writes INFO messages or higher to the sys.stderr
+console = logging.StreamHandler()
+console.setLevel(logging.NOTSET)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s : %(message)s')
+console.setFormatter(formatter)
+logging.getLogger('').addHandler(console)
+
 
 class AppClass(object):
     def __init__(self):
