@@ -21,7 +21,7 @@ class HutchManager(gtk.VBox):
         hbox2 = gtk.HBox(False,6)
         hbox3 = gtk.HBox(False,6)
         self.beamline = beamline
-        self.predictor = Predictor()
+        self.predictor = Predictor(self.beamline.config['pixel_size'], self.beamline.config['detector_size'])
         self.predictor.set_size_request(300,300)
 
         videobook = gtk.Notebook()

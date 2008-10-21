@@ -26,7 +26,7 @@ except:
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
             
 class Predictor( gtk.AspectFrame ):
-    def __init__( self, pixel_size=0.07234, detector_size=3072 ):
+    def __init__( self, pixel_size=0.07234, detector_size=3072):
         gtk.AspectFrame.__init__(self, obey_child=False, ratio=1.0)
         self.fig = Figure( figsize=(8,8), dpi=72, facecolor='w')
         self.axis = self.fig.add_axes([0.02,0.02,0.96,0.96], aspect='equal')

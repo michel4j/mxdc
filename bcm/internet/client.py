@@ -36,19 +36,20 @@ class App:
                             exposure_time=1.0, 
                             directory=DIRECTORY
                             ).addCallback(gotData)
-        '''
-        self.bcm.callRemote('scanSpectrum', 
-                            prefix='scan2', 
-                            exposure_time=5.0, 
-                            directory=DIRECTORY
+        
+        self.bcm.callRemote('acquireSnapshot', 
+                            prefix='sample1', 
+                            directory=DIRECTORY,
+                            show_decorations=True
                             ).addCallback(gotData)
+        '''
         self.bcm.callRemote('scanSpectrum', 
                             prefix='scan3', 
                             exposure_time=0.5, 
                             directory=DIRECTORY
                             ).addCallback(gotData)
         '''
-        self.bcm.callRemote('acquireFrames', run_info).addCallback(gotData)
+        #self.bcm.callRemote('acquireFrames', run_info).addCallback(gotData)
            
 def gotData(data):
     log.msg('Server sent: %s' % str(data))
