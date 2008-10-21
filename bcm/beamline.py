@@ -103,9 +103,9 @@ class PX(BeamlineBase):
                     frac_complete += item_step
                     gobject.idle_add(self.emit, 'progress', frac_complete)
  
-        for attr in ['ccd', 'sample_cam','energy', 'bragg_energy', 'mca', 
-                     'config', 'gonio', 'i0','attenuator', 'shutter','det_d','det_2th','beam_w','beam_h','image_server']:
-            assert hasattr(self, attr)
+        #for attr in ['ccd', 'sample_cam','energy', 'bragg_energy', 'mca', 
+        #             'config', 'gonio', 'i0','attenuator', 'shutter','det_d','det_2th','beam_w','beam_h','image_server']:
+        #    assert hasattr(self, attr)
 
     def configure(self, *args, **kwargs):
         ca.thread_init()

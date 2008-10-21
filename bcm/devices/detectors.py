@@ -389,8 +389,8 @@ class MarCCDImager:
             time.sleep(0.001)
         return True
         
-    def _is_in_state(self, key):
-        if key in self._get_states():
+    def _is_in_state(self, state):
+        if state in self._get_states():
             return True
         else:
             self._logger.warning('Timed out waiting for state "%s" to expire.' % (state,) ) 

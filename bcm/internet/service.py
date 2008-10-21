@@ -14,6 +14,7 @@ import os, sys, time
 import pprint
 sys.path.append(os.environ['BCM_PATH'])
 from bcm import beamline
+from bcm.devices.cameras import add_decorations
 from bcm.tools import scanning, DataCollector
 
 if sys.version_info[:2] == (2,5):
@@ -41,7 +42,7 @@ class IBCMService(Interface):
     def acquireFrames(*args, **kwargs):
         """ Collect frames of Data """
         
-    def acquireSnapshots(*args, **kwargs):
+    def acquireSnapshot(*args, **kwargs):
         """ Save a set of images from the sample video"""
     
     def optimizeBeamline(*args, **kwargs):
@@ -68,7 +69,7 @@ class IPerspectiveBCM(Interface):
     def remote_acquireFrames(*args, **kwargs):
         """ Collect frames of Data """
         
-    def remote_acquireSnapshots(*args, **kwargs):
+    def remote_acquireSnapshot(*args, **kwargs):
         """ Save a set of images from the sample video"""
     
     def remote_optimizeBeamline(*args, **kwargs):
@@ -103,9 +104,9 @@ class PerspectiveBCMFromService(pb.Root):
         """ Collect frames of Data """
         return self.service.acquireFrames(run_info, skip_existing)
         
-    def remote_acquireSnapshots(self, directory, prefix):
+    def remote_acquireSnapshot(self, directory, prefix, show_decorations=True):
         """ Save a set of images from the sample video"""
-        return self.service.acquireSnapshots(directory, prefix)
+        return self.service.acquireSnapshot(directory, prefix, show_decorations)
     
     def remote_optimizeBeamline(self, *args, **kwargs):
         """ Optimize the flux at the sample position for the given setup"""
@@ -239,13 +240,16 @@ class BCMService(service.Service):
 
         d = threads.deferToThread(collector.run)        
         return d
-            
-    def acquireSnapshots(self, directory, prefix):
+                
+    def acquireSnapshot(self, directory, prefix, show_decorations=True):
         assert self.ready
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))
         unique_id = str( uuid.uuid4() ) 
         output_file = '%s/%s-%s.png' % (directory, prefix, unique_id)
-        d = threads.deferToThread(self.beamline.sample_cam.save, output_file)
+        if show_decorations:
+            d = threads.deferToThread(self._save_decorated_snapshot, output_file)
+        else:
+            d = threads.deferToThread(self.beamline.sample_cam.save, output_file)
         return d
     
     def optimizeBeamline(self, *args, **kwargs):
@@ -258,12 +262,26 @@ class BCMService(service.Service):
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))
         reactor.stop()
         #os.kill(os.getpid(), signal.SIGTERM)
+    
+    def _save_decorated_snapshot(self, output_file):
+        try:
+            img = self.beamline.sample_cam.get_frame()
+            img = add_decorations(self.beamline, img)
+            img.save(output_file)
+            result = output_file
+        except:
+            log.error('Unable to save decorated sample snapshot')
+            result = False
+        return result
+        
+        
+        
 
 class BCMError(pb.Error):
     """An expected Exception in BCM"""
     pass
 
-    
+
 application = service.Application('BCM')
 f = BCMService('08id1.conf')
 tf = telnet.ShellFactory()
