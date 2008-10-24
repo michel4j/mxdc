@@ -3,6 +3,7 @@ import sys, os
 from Predictor import Predictor
 from SampleViewer import SampleViewer
 from HutchViewer import HutchViewer
+from SamplePicker import SamplePicker
 from LogView import LogView
 from ActiveWidgets import *
 from bcm.tools.scripting import Script
@@ -103,6 +104,7 @@ class HutchManager(gtk.VBox):
         pred_align.add(self.predictor)
         pred_align.set_border_width(6)
         predictor_frame.insert_page(pred_align,tab_label=gtk.Label('Resolution Predictor'))
+        predictor_frame.insert_page(SamplePicker(), tab_label=gtk.Label('Automatic Sample Mounting'))
         self.predictor.connect('realize',self.update_pred)
         hbox3.pack_start(predictor_frame, expand=True,fill=True)
         
