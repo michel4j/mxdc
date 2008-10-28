@@ -182,7 +182,7 @@ class ImgViewer(gtk.VBox):
         self.min_intensity = self.statistics_pars[3]
         self.max_intensity = self.statistics_pars[4]
         self.rms_intensity = self.statistics_pars[6] / 1e3
-        self.average_intensity = self.statistics_pars[5] / 1e3
+        self.average_intensity = max(80, self.statistics_pars[5] / 1e3)
         self.overloads = self.statistics_pars[8]
         self.saturated_value = self.header_pars[23]
         

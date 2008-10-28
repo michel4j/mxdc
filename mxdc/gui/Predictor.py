@@ -33,7 +33,7 @@ class Predictor( gtk.AspectFrame ):
         
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.add( self.canvas )
-        self.set_shadow_type(gtk.SHADOW_OUT)
+        self.set_shadow_type(gtk.SHADOW_NONE)
         self.show_all()
         self.pixel_size = pixel_size
         self.detector_size = detector_size
@@ -41,7 +41,7 @@ class Predictor( gtk.AspectFrame ):
         self.two_theta = 0
         self.wavelength = 1.000
         self.last_updated = time.time()
-        self._can_update = False
+        self._can_update = True
         self.canvas.set_events(gtk.gdk.EXPOSURE_MASK |
                 gtk.gdk.LEAVE_NOTIFY_MASK |
                 gtk.gdk.BUTTON_PRESS_MASK |
@@ -56,7 +56,7 @@ class Predictor( gtk.AspectFrame ):
     def display(self, widget=None):
         self.axis.clear()
         self.axis.set_axis_off()
-        normFunction = normalize(-3, 5)
+        normFunction = normalize(-3, 8)
         cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1, cmap=cm.hot_r, norm=normFunction)
         #cntr = self.axis.contour(self.xp, self.yp, self.Z, 16)
         self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)        

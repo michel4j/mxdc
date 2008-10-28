@@ -13,12 +13,15 @@ from gui.AppWindow import AppWindow
 from bcm.beamline import PX
 
 # set up logging to file
-logging.basicConfig(level=logging.DEBUG,
+try:
+    logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s : %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
                     filename='/tmp/mxdc.log',
                     filemode='w')
-
+except:
+    logging.basicConfig()
+    
 # define a Handler which writes INFO messages or higher to the sys.stderr
 console = logging.StreamHandler()
 console.setLevel(logging.NOTSET)

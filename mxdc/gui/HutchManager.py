@@ -103,8 +103,10 @@ class HutchManager(gtk.VBox):
         pred_align = gtk.Alignment(0.5,0.5, 0, 0)
         pred_align.add(self.predictor)
         pred_align.set_border_width(6)
+        self.sample_picker = SamplePicker()
+        self.sample_picker.set_border_width(6)
         predictor_frame.insert_page(pred_align,tab_label=gtk.Label('Resolution Predictor'))
-        predictor_frame.insert_page(SamplePicker(), tab_label=gtk.Label('Automatic Sample Mounting'))
+        predictor_frame.insert_page(self.sample_picker, tab_label=gtk.Label('Automatic Sample Mounting'))
         self.predictor.connect('realize',self.update_pred)
         hbox3.pack_start(predictor_frame, expand=True,fill=True)
         
