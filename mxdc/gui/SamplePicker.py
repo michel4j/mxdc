@@ -337,6 +337,8 @@ class SamplePicker(gtk.HBox):
         mnt_table.attach(self.mount_btn, 1,2,0,1, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
         mnt_table.attach(self.unmount_btn, 1,2,1,2, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
         mnt_table.attach(self.wash_btn, 1,2,2,3, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
+        mnt_table.set_col_spacings(6)
+        mnt_table.set_row_spacings(6)
         vbox = gtk.VBox(False,6)
         vbox.pack_start(mnt_table, expand=False, fill=False )
         vbox.pack_start(gtk.Label(''), expand=True, fill=True)
