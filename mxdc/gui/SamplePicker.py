@@ -13,7 +13,8 @@ class PuckWidget(gtk.DrawingArea):
     __gsignals__ = {
         'pin-clicked': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                       (gobject.TYPE_STRING,)),
-        'expose-event': 'override'
+        'expose-event': 'override',
+        'configure-event': 'override',
     }
     def __init__(self, position=''):
         gtk.DrawingArea.__init__(self)
