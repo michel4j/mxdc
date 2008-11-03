@@ -323,7 +323,7 @@ class SamplePicker(gtk.HBox):
         self.mounted = gtk.Entry()
         self.selected = gtk.Entry()
         self.mount_btn = gtk.Button('Mount')
-        self.unmount_btn = gtk.Button('Un-mount')
+        self.unmount_btn = gtk.Button('Dismount')
         self.wash_btn = gtk.Button('Wash Sample')
         
         self.mounted.set_editable(False)
