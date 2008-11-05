@@ -95,6 +95,12 @@ class DataCollector(gobject.GObject):
 
             _motion_flag = [False,False,False]
             # Check and prepare beamline
+            #self.beamline.configure(
+            #    detector_distance=frame['distance'],
+            #    energy=frame['energy'])             
+            #self.beamline.configure(detector_twotheta=frame['two_theta'])
+            
+            
             if abs(frame['distance'] - self.distance.get_position()) > 0.1 and abs(frame['two_theta'] - self.two_theta.get_position()) > 0.5:
                 self.distance.move_to(frame['distance'])
                 self.distance.wait(start=True, stop=True)
@@ -116,7 +122,8 @@ class DataCollector(gobject.GObject):
 
             for m,f in zip([self.distance, self.two_theta, self.energy], _motion_flag):
                 if f: m.wait(start=False, stop=True)
-
+            
+            
             velo = frame['delta'] / float(frame['time'])
             
             
