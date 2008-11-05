@@ -309,6 +309,5 @@ class LinearProgress(gtk.DrawingArea):
     def set_color(self, spec):
         self.color_spec = spec
         
-        
-        
+           
         

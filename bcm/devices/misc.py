@@ -97,8 +97,65 @@ class Shutter(gobject.GObject):
     def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
 
-
+class Cryo(gobject.GObject):
+    __gsignals__ =  { 
+                    "sample-flow": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
+                    "shield-flow": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
+                    "level": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
+                    "temperature": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
+                    }
+    
+    def __init__(self, cname, lname):
+        gobject.GObject.__init__(self)        
+        self.temp_fbk = PV('%s:sensorTemp:get' % cname)
+        self.temp = PV('%s:desiredTemp:set' % cname)
+        self.smpl_flow_fbk = PV('%s:sampleFlow:get' % cname)
+        self.smpl_flow = PV('%s:sampleFlow:set' % cname)
+        self.shld_flow_fbk = PV('%s:ShieldFlow:get' % cname)
+        self.shld_flow = PV('%s:ShieldFlow:set' % cname)
+        self.level_fbk = PV('%s:ch1LVL:get' % lname)
+        
+        self.level_fbk.connect('changed', self.on_level_changed)
+        self.shld_flow_fbk.connect('changed', self.on_shield_changed)
+        self.smpl_flow_fbk.connect('changed', self.on_sample_changed)
+        self.temp_fbk.connect('changed', self.on_temperature_changed)
+        
+    def on_level_changed(self, pv, val):
+        self.emit('level', val * 0.1)
+        return True
+    
+    def on_sample_changed(self, pv, val):
+        self.emit('sample-flow', val)
+        return True
+    
+    def on_temperature_changed(self, pv, val):
+        self.emit('temperature', val)
+        return True
+    
+    def on_shield_changed(self, pv, val):
+        self.emit('shield-flow', val)
+        return True
+        
+    def set_temperature(self, t=100):
+        self.temp.put(t)
+    
+    def set_sample_flow(self, f=6.0):
+        self.smpl_flow.put(f)
+    
+    def set_shield_flow(self, f=4.0):
+        self.shld_flow.put(f)
+    
+    def __restore_flow(self, f=6.0):
+        self.smpl_flow.put(f)
+        return False
+    
+    def stop_flow(self, duration=1.0):
+        duration = int(duration * 1000)
+        flow = self.smpl_flow_fbk.get()
+        self.smpl_flow.put(0.0)
+        gobject.timeout_add(duration, self.__restore_flow, flow)
+    
 # Register objects with signals
 gobject.type_register(Shutter)
 gobject.type_register(Gonio)
- 
+gobject.type_register(Cryo)
