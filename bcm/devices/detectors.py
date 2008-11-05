@@ -319,6 +319,8 @@ class MarCCDImager:
         self.state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
         self._bg_taken = False
         
+        self.state.connect('changed', self._on_state_change)
+        self.state_string = "%08x" % self.state.get()
         self.connection_state.connect('changed', self._update_background)
         self._logger = logging.getLogger('bcm.ccd')
 
@@ -349,9 +351,13 @@ class MarCCDImager:
         self.save_cmd.put(1)
         if wait:
             self._wait_for_state('read:exec')
-
+    
+    def _on_state_change(self, pv, val):
+        self.state_string = "%08x" % val
+        return True
+    
     def _get_states(self):
-        state_string = "%08x" % self.state.get()
+        state_string = self.state_string[:]
         states = []
         for i in range(8):
             state_val = int(state_string[i])
@@ -364,15 +370,10 @@ class MarCCDImager:
 
     def _wait_for_state(self,state, timeout=5.0):
         self._logger.debug('Waiting for state: %s' % (state,) ) 
-        tf = time.time()
-        tI = int(tf)
-        st_time = time.time()
-        elapsed = time.time() - st_time
-
-        while (not self._is_in_state(state)) and elapsed < timeout:
-            elapsed = time.time() - st_time
-            time.sleep(0.001)
-        if elapsed < timeout:
+        while (not self._is_in_state(state)) and timeout > 0:
+            timeout -= 0.05
+            time.sleep(0.05)
+        if timeout > 0: 
             return True
         else:
             self._logger.warning('Timed out waiting for state: %s' % (state,) ) 
@@ -380,20 +381,14 @@ class MarCCDImager:
 
     def _wait_in_state(self, state):      
         self._logger.debug('Waiting for state "%s" to expire.' % (state,) ) 
-        tf = time.time()
-        tI = int(tf)
-        st_time = time.time()
-        elapsed = time.time() - st_time
         while self._is_in_state(state):
-            elapsed = time.time() - st_time
-            time.sleep(0.001)
+            time.sleep(0.05)
         return True
         
     def _is_in_state(self, state):
         if state in self._get_states():
             return True
         else:
-            self._logger.warning('Timed out waiting for state "%s" to expire.' % (state,) ) 
             return False
 
     def initialize(self, wait=True):
