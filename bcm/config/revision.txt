@@ -1,0 +1,11 @@
+Path: .
+URL: svn+ssh://michel@opi1608b-002/home/michel/svn/mxdc/branches/bcm-branch
+Repository Root: svn+ssh://michel@opi1608b-002/home/michel/svn/mxdc
+Repository UUID: 5223631e-b783-4acc-b1a2-6de64d89f074
+Revision: 549
+Node Kind: directory
+Schedule: normal
+Last Changed Author: michel
+Last Changed Rev: 549
+Last Changed Date: 2008-11-11 15:12:39 -0600 (Tue, 11 Nov 2008)
+
