@@ -112,7 +112,7 @@ class PuckWidget(gtk.DrawingArea):
             self.window.draw_arc(self.lgc[ loc[-1] ], True, x-rad, y-rad, rad*2, rad*2, 0, 23040)
             self.window.draw_arc(self.black_gc, False, x-rad, y-rad, rad*2, rad*2, 0, 23040)
             pl = self.create_pango_layout("%s" % (key))
-            pl.set_font_description(pango.FontDescription('Sans 6'))
+            pl.set_font_description(pango.FontDescription('Sans 7'))
             iw, ih = pl.get_pixel_size()
             self.window.draw_layout(self.dark_grey_gc, x-iw/2, y-ih/2, pl)
 
@@ -224,7 +224,7 @@ class CassetteWidget(PuckWidget):
             self.window.draw_arc(self.lgc[ loc[-1] ], True, x-rad, y-rad, rad*2, rad*2, 0, 23040)
             self.window.draw_arc(self.black_gc, False, x-rad, y-rad, rad*2, rad*2, 0, 23040)
             pl = self.create_pango_layout("%s" % (key[1:]))
-            pl.set_font_description(pango.FontDescription('Sans 6'))
+            pl.set_font_description(pango.FontDescription('Sans 7'))
             iw, ih = pl.get_pixel_size()
             self.window.draw_layout(self.dark_grey_gc, x-iw/2, y-ih/2, pl)
 
