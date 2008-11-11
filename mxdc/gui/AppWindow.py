@@ -14,7 +14,7 @@ class AppWindow:
         self.win = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.win.set_position(gtk.WIN_POS_CENTER)
         icon_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/icon.png'
-        pixbuf = gtk.gdk.pixbuf_new_from_file(icon_file)
+        pixbuf = gtk.gdk.pixbuf_new_from_file(icon_file)        
         self.win.set_icon (pixbuf)
         
         self.beamline = beamline

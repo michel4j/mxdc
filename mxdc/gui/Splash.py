@@ -17,7 +17,9 @@ class Splash(object):
         self.win.resize(width, height)
         self.win.realize()
         self.win.window.set_back_pixmap(pixmap, False)
-
+        
+        self.version = 2.0
+        
         vbox = gtk.VBox(False,0)
         hbox = gtk.HBox(False, 0)
         hbox.set_border_width(50)
@@ -39,10 +41,10 @@ class Splash(object):
         vbox.pack_start(hbox)
         vbox.pack_end(self.pbar, expand=False, fill=False)
         vbox.pack_end(self.log, expand=False, fill=False)
-        vers = gtk.Label('Version 2.1 | %s' % __revision__.split('$')[1])
-        vers.set_alignment(0,0.5)
-        vers.modify_fg( gtk.STATE_NORMAL, vers.get_colormap().alloc_color(color) )
-        vbox.pack_end(vers, expand=False, fill=False)
+        self.vers = gtk.Label('Version %0.1f | %s' % (self.version, __revision__.split('$')[1]))
+        self.vers.set_alignment(0,0.5)
+        self.vers.modify_fg( gtk.STATE_NORMAL, self.vers.get_colormap().alloc_color(color) )
+        vbox.pack_end(self.vers, expand=False, fill=False)
         vbox.set_spacing(4)
         vbox.set_border_width(16)
         
@@ -54,6 +56,9 @@ class Splash(object):
         self.startup_obj = startup_obj
         self.startup_obj.connect('progress', self.on_progress)
         self.startup_obj.connect('log', self.on_log)
+        
+    def set_revision(self, rev, rev_date):
+        self.vers.set_text('Version %0.1f/r%s | %s' % (self.version, rev, rev_date))
         
     def hide(self):
         self.win.hide_all()
