@@ -171,7 +171,7 @@ class Predictor( gtk.AspectFrame ):
         elapsed_time = time.time() - self.last_updated
         if (elapsed_time > 2) or force and (self.wavelength*self.distance > 1.0):
             if self._can_update and self.get_child_visible():
-                pred_logger.debug('Predictor Widget updating...')
+                #pred_logger.debug('Predictor Widget updating...')
                 self.last_updated = time.time()
                 calculator = threading.Thread(target=self._do_calc)
                 calculator.start()
