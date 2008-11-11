@@ -18,9 +18,16 @@ try:
                     format='%(asctime)s %(levelname)s : %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
                     filename='/tmp/mxdc.log',
-                    filemode='w')
+                    filemode='a')
 except:
     logging.basicConfig()
+    lgr= logging.getLogger('')
+    lgr.setLevel(logging.DEBUG)
+    hdlr = logging.handlers.RotatingFileHandler('/tmp/mxdc', "a", 5000, 3)
+    fmt = logging.Formatter('%(asctime)s %(levelname)s : %(message)s', "%x %X")
+    hdlr.setFormatter(fmt)
+    lgr.addHandler(hdlr)
+
     
 # define a Handler which writes INFO messages or higher to the sys.stderr
 console = logging.StreamHandler()
