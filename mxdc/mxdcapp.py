@@ -43,8 +43,14 @@ class AppClass(object):
         logo_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/logo.png'
         icon_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/icon.png'
         self.beamline = PX('08id1.conf')
+        rev_file = os.environ['BCM_PATH'] + '/bcm/config/revision.txt'
+        _f = file(rev_file)
+        _raw = _f.readlines()
+        rev = _raw[8].split()[3]
+        rev_date = _raw[9].split()[3]
         self.splash = Splash(img_file, self.beamline,
             icon=icon_file, logo=logo_file, color='#ead3f4')
+        self.splash.set_revision(rev, rev_date)
         gobject.idle_add(self.run)
                  
     def run(self):
