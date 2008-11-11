@@ -140,7 +140,7 @@ class Motor(MotorBase):
     def move_to(self, target, wait=False):
         prec = self.PREC.get()
         prec = prec == 0 and 4 or prec    
-        if abs(self.get_position() - target) > 1*10*prec:
+        if abs(self.get_position() - target) > 1.0/(10*prec):
             motor_logger.info( "(%s) is already at %f" % (self.get_name(), target) )
             return
         motor_logger.info( "(%s) moving to %f" % (self.get_name(),target) )
@@ -260,7 +260,9 @@ class braggEnergyMotor(Motor):
         return utils.bragg_to_energy(self.RBV.get())
             
     def move_to(self, target, wait=False):
-        if abs(self.get_position() - target) > 1*10*self.PREC.get():
+        prec = self.PREC.get()
+        prec = prec == 0 and 4 or prec    
+        if abs(self.get_position() - target) > 1.0/(10*prec):
             motor_logger.info( "(%s) is already at %g" % (self.get_name(), target) )
             return
         motor_logger.info( "(%s) moving to %f" % (self.get_name(), target) )
