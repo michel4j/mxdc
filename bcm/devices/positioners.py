@@ -141,7 +141,7 @@ class Motor(MotorBase):
         prec = self.PREC.get()
         prec = prec == 0 and 4 or prec    
         motor_logger.debug( "(%s) current position differs from requested position by %g" % (self.get_name(), self.get_position() - target) )
-        motor_logger.debug( "(%s) precision is %g"% (self.get_name(), 1.0/(10*prec )
+        motor_logger.debug( "(%s) precision is %g"% (self.get_name(), 1.0/(10*prec )))
         if abs(self.get_position() - target) > 1.0/(10*prec):
             motor_logger.info( "(%s) is already at %f" % (self.get_name(), target) )
             return
@@ -265,7 +265,7 @@ class braggEnergyMotor(Motor):
         prec = self.PREC.get()
         prec = prec == 0 and 4 or prec
         motor_logger.debug( "(%s) current position differs from requested position by %g" % (self.get_name(), self.get_position() - target) )
-        motor_logger.debug( "(%s) precision is %g"% (self.get_name(), 1.0/(10*prec )
+        motor_logger.debug( "(%s) precision is %g"% (self.get_name(), 1.0/(10*prec )))
         if abs(self.get_position() - target) > 1.0/(10*prec):
             motor_logger.info( "(%s) is already at %g" % (self.get_name(), target) )
             return
