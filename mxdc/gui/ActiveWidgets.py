@@ -482,17 +482,18 @@ class CryojetWidget(gtk.Frame):
             self.duration_en.set_text('0')
             return
         msg1 = 'This procedure may damage your sample'
-        msg2  = 'Flow control annealing will turn of the cold stream for the specified'
+        msg2  = 'Flow control annealing will turn off the cold stream for the specified '
         msg2 += 'duration of <b>"%0.1f"</b> seconds. The outer dry nitrogen shroud remains on to protect the crystal ' % duration
         msg2 += 'from icing. However this procedure may damage the sample.\n\n'
         msg2 += 'Are you sure you want to continue?'
             
-        response = warning(msg1, msg2, buttons=(('Cancel', False), ('Anneal', True)))
-        if response==1:
+        response = warning(msg1, msg2, buttons=(('Cancel', gtk.BUTTONS_CANCEL), ('Anneal', gtk.BUTTONS_OK)))
+        if response == gtk.BUTTONS_OK:
             self.anneal_tools.set_sensitive(False)
             self.anneal_status.set_sensitive(True)
             self._annealed_time = 0
             self.cryojet.stop_flow()
+            dur = max(0.0, (duration-0.5*1000))
             self._restore_anneal_id = gobject.timeout_add(duration*1000, self._stop_anneal)
             self._progress_id = gobject.timeout_add(1000, self._update_progress, duration)
             

@@ -119,7 +119,7 @@ class HutchManager(gtk.VBox):
         
         self.cryo_controller = CryojetWidget(self.beamline.cryojet, self.beamline.cryo_x)
         cryo_align = gtk.Alignment(0.5,0.5, 0, 0)
-        cryo_align.set_border_width(12)
+        #cryo_align.set_border_width(12)
         cryo_align.add(self.cryo_controller)
         self.cryo_controller.set_border_width(6)
         
