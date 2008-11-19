@@ -89,6 +89,7 @@ class ScanManager(gtk.HBox):
         self.scan_control.start_btn.set_sensitive(True)
         self.run_auto_chooch()
         self.scanning = False
+        self.beamline.attenuator.move_to( 0.0 )
         return True
 
     def on_scan_aborted(self, widget):
@@ -96,6 +97,7 @@ class ScanManager(gtk.HBox):
         self.scan_control.stop_btn.set_sensitive(False)
         self.scan_control.abort_btn.set_sensitive(False)
         self.scanning = False
+        self.beamline.attenuator.move_to( 0.0 )
         self.scan_control.progress_bar.idle_text('Scan Aborted', 0.0)
         return True
     
@@ -163,7 +165,7 @@ class ScanManager(gtk.HBox):
         count_time = scan_parameters['time']
         scan_filename = "%s/%s_%s.raw" % (scan_parameters['directory'],    
             scan_parameters['prefix'], scan_parameters['edge'])
-        
+        self.beamline.attenuator.move_to( scan_parameters['attenuation'] )
         self.mad_scanner.setup(scan_parameters['edge'], count_time, scan_filename)
         
         self.scan_control.stop_btn.set_sensitive(True)

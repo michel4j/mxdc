@@ -102,7 +102,9 @@ class Motor(MotorBase):
             self.MOVN = PV("%s:moving" % self.name)
             self.STOP = PV("%s:stop" % self.name)
             self.SET  = PV("%s:%s:setPosn" % (self.name,self.units))
-            self.CALIB = PV("%s:calibDone" % (self.name))  
+            self.CALIB = PV("%s:calibDone" % (self.name))
+            self.CCW_LIM = PV("%s:ccw" % (self.name))
+            self.CW_LIM = PV("%s:cw" % (self.name))
         elif self.motor_type == 'cls':
             self.RBV  = PV("%s:%s:fbk" % (self.name,self.units))
             self.MOVN = PV("%s:state" % self.name)

@@ -123,7 +123,7 @@ class SampleList(gtk.ScrolledWindow):
             renderer = gtk.CellRendererText()
             column = gtk.TreeViewColumn(COLUMN_DICT[key], renderer, text=key)
             column.set_cell_data_func(renderer, self.__set_color)
-            column.set_sort_column_id(key)        
+            #column.set_sort_column_id(key)        
             self.listview.append_column(column)
         self.listview.set_search_column(SAMPLE_COLUMN_NAME)
         

@@ -58,7 +58,7 @@ class AppWindow:
         self.hutch_manager.stop()
         #self.sample_manager.stop()
         gtk.main_quit()
-        os.kill(os.getpid(),signal.SIGKILL)
+        #os.kill(os.getpid(),signal.SIGKILL)
 
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()

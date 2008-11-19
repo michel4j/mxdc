@@ -18,12 +18,16 @@ from bcm.scripts.misc import prepare_for_mounting, restore_beamstop
 class HutchManager(gtk.VBox):
     def __init__(self, beamline):
         gtk.VBox.__init__(self)
-        hbox1 = gtk.HBox(False,0)
+        hbox1 = gtk.HBox(False,6)
         hbox2 = gtk.HBox(False,6)
         hbox3 = gtk.HBox(False,6)
+        hbox1.set_border_width(6)
+        hbox2.set_border_width(6)
+        hbox3.set_border_width(6)
+        
         self.beamline = beamline
         self.predictor = Predictor(self.beamline.config['pixel_size'], self.beamline.config['detector_size'])
-        self.predictor.set_size_request(300,300)
+        self.predictor.set_size_request(180,180)
 
         videobook = gtk.Notebook()
         video_size = 0.7
@@ -50,6 +54,7 @@ class HutchManager(gtk.VBox):
         self.predictor.set_distance( self.beamline.det_d.get_position() )
         self.predictor.set_twotheta( self.beamline.det_2th.get_position() )
         self.predictor.update(force=True)           
+        self.predictor.connect('realize',self.update_pred)
 
         motor_vbox1 = gtk.VBox(False,0)
         for key in ['energy','attenuation','beam_width','beam_height']:
@@ -59,18 +64,18 @@ class HutchManager(gtk.VBox):
         for key in ['angle','beam_stop','distance','two_theta']:
             motor_vbox2.pack_start(self.entry[key], expand=True, fill=False)
         
-        self.device_box = gtk.HBox(True,6)
+        self.device_box = gtk.HBox(True,0)
            
         diagram = gtk.Image()
         diag_frame = gtk.Frame()
         diag_frame.set_shadow_type(gtk.SHADOW_IN)
-        diag_frame.set_border_width(6)
+        diag_frame.set_border_width(0)
         diag_frame.add(diagram)
         diagram.set_from_file(self.beamline.config['diagram'])
         
         control_box = gtk.VButtonBox()
-        control_box.set_border_width(6)
-        control_box.set_spacing(6)
+        control_box.set_border_width(0)
+        control_box.set_spacing(0)
         self.front_end_btn = ShutterButton(self.beamline.psh2, 'Front End')
         self.shutter_btn = ShutterButton(self.beamline.shutter, 'Shutter')
         self.optimize_btn = gtk.Button('Optimize Beam')
@@ -90,27 +95,38 @@ class HutchManager(gtk.VBox):
         for w in [self.front_end_btn, self.shutter_btn, self.optimize_btn, self.mount_btn, self.reset_btn]:
             w.set_property('can-focus', False)
         
-        hbox1.pack_start(control_box, expand=False, fill=False)
-        hbox1.pack_end(diag_frame, expand=False, fill=True)
-        self.device_box.pack_start(motor_vbox1,expand=False,fill=True)
-        self.device_box.pack_start(motor_vbox2,expand=False,fill=True)
+        self.device_box.pack_start(motor_vbox1,expand=True,fill=True)
+        self.device_box.pack_start(motor_vbox2,expand=True,fill=True)
         
-        hbox1.pack_end(self.device_box,expand=False,fill=True)
+        hbox1.pack_start(control_box, expand=False, fill=False)
+        hbox1.pack_start(diag_frame, expand=False, fill=False)
+        hbox1.pack_start(self.device_box,expand=True,fill=True)
         
         self.pack_start(hbox1, expand=False, fill=False)
         hbox3.pack_start(videobook, expand=False,fill=False)
-        hbox3.set_border_width(6)
-        predictor_frame = gtk.Notebook()
+        pred_frame = gtk.Frame('Detector Resolution')
         pred_align = gtk.Alignment(0.5,0.5, 0, 0)
         pred_align.add(self.predictor)
-        pred_align.set_border_width(6)
+        pred_align.set_border_width(3)
+        pred_frame.add(pred_align)
         self.sample_picker = SamplePicker()
         self.sample_picker.set_border_width(6)
-        predictor_frame.insert_page(pred_align,tab_label=gtk.Label('Resolution Predictor'))
-        #predictor_frame.insert_page(self.sample_picker, tab_label=gtk.Label('Automatic Sample Mounting'))
         self.sample_picker.set_sensitive(False)
-        self.predictor.connect('realize',self.update_pred)
-        hbox3.pack_start(predictor_frame, expand=True,fill=True)
+        
+        hbox1.pack_end(pred_frame, expand=False, fill=False)
+        
+        sample_frame = gtk.Notebook()
+        
+        self.cryo_controller = CryojetWidget(self.beamline.cryojet, self.beamline.cryo_x)
+        cryo_align = gtk.Alignment(0.5,0.5, 0, 0)
+        cryo_align.set_border_width(12)
+        cryo_align.add(self.cryo_controller)
+        self.cryo_controller.set_border_width(6)
+        
+        sample_frame.insert_page(cryo_align, tab_label=gtk.Label(' Cryojet Control '))
+        #sample_frame.insert_page(self.sample_picker, tab_label=gtk.Label(' Sample Auto-mounting '))
+ 
+        hbox3.pack_start(sample_frame, expand=True,fill=True)
         
         self.pack_start(hbox3, expand=False, fill=False)
         self.pack_start(gtk.Label(), expand=True, fill=True)
