@@ -29,7 +29,8 @@ _DEVICE_MAP = {
     'energymotor': positioners.energyMotor,
     'braggenergymotor': positioners.braggEnergyMotor,
     'variables': ca.PV,
-    'webservices': xmlrpclib.ServerProxy
+    'webservices': xmlrpclib.ServerProxy,
+    'cryojets': misc.Cryojet,
     }
 
 

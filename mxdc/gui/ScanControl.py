@@ -63,7 +63,7 @@ class ScanControl(gtk.VBox):
         param_frame.set_shadow_type(gtk.SHADOW_NONE)
         param_frame.get_label_widget().set_use_markup(True)
         param_align = gtk.Alignment()
-        param_box = gtk.Table(3,4,False)
+        param_box = gtk.Table(3,5,False)
         param_box.set_col_spacings(3)
         param_box.set_row_spacings(3)
         param_align.set(0.5,0.5,1,1)
@@ -74,7 +74,8 @@ class ScanControl(gtk.VBox):
             'prefix': ('Prefix:',0,'',2),
             'edge':    ('Edge:', 2, '',1),
             'energy': ('Energy:',3,'keV',1),
-            'time': ('Time:', 4, 'sec',1)
+            'time': ('Time:', 4, 'sec',1),
+            'attenuation': ('Attenuation:', 5,'%',1),
         }
         self.entry = {}
         for key in items.keys():
@@ -172,6 +173,7 @@ class ScanControl(gtk.VBox):
         params['edge'] =  'Se-K'
         params['time'] = 0.5
         params['emission'] = 11.2100
+        params['attenuation'] = 90.0
         self.set_parameters(params)
         self.show_all()
 
@@ -213,7 +215,7 @@ class ScanControl(gtk.VBox):
         return True
 
     def set_parameters(self, dict):
-        keys = ['prefix','directory','edge'] # Text
+        keys = ['prefix','directory','edge','attenuation'] # Text
         for key in keys:
             if key in dict.keys():
                 self.entry[key].set_text("%s" % dict[key])
@@ -231,6 +233,7 @@ class ScanControl(gtk.VBox):
         params['energy']  =    float( self.entry['energy'].get_text() )
         params['edge'] =  self.entry['edge'].get_text().strip()
         params['time'] = float( self.entry['time'].get_text() )
+        params['attenuation'] = float( self.entry['attenuation'].get_text() )
         if self.scan_option['MAD'].get_active():
             params['mode'] = 'MAD'
         else:

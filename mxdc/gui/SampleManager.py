@@ -38,8 +38,11 @@ class SampleManager(gtk.HBox):
         motor_box = gtk.VBox(False,0)
         for key in ['beam_width','beam_height']:
             motor_box.pack_start(self.entry[key], expand=True, fill=False)
-                        
-        vbox3.pack_start(motor_box, expand=False, fill=True)
+        _hbox = gtk.HBox(False, 6)
+        cryo = CryojetWidget(self.beamline.cryojet)
+        _hbox.pack_start(motor_box, expand=False, fill=True)
+        _hbox.pack_start(cryo, expand=False, fill=True)
+        vbox3.pack_start(_hbox, expand=False, fill=True)
         
         vbox3.pack_end(videobook, expand=False,fill=False)
         vbox3.set_border_width(6)
