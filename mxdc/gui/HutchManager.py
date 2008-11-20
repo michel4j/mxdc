@@ -7,7 +7,7 @@ from SamplePicker import SamplePicker
 from LogView import LogView
 from ActiveWidgets import *
 from bcm.tools.scripting import Script
-from bcm.scripts.misc import prepare_for_mounting, restore_beamstop
+from bcm.scripts.misc import prepare_for_mounting, restore_beamstop, optimize_energy
 
 (
   COLUMN_NAME,
@@ -27,7 +27,7 @@ class HutchManager(gtk.VBox):
         
         self.beamline = beamline
         self.predictor = Predictor(self.beamline.config['pixel_size'], self.beamline.config['detector_size'])
-        self.predictor.set_size_request(180,180)
+        self.predictor.set_size_request(170,170)
 
         videobook = gtk.Notebook()
         video_size = 0.7
@@ -79,13 +79,16 @@ class HutchManager(gtk.VBox):
         self.front_end_btn = ShutterButton(self.beamline.psh2, 'Front End')
         self.shutter_btn = ShutterButton(self.beamline.shutter, 'Shutter')
         self.optimize_btn = gtk.Button('Optimize Beam')
+        self.optimize_btn.connect('clicked', self.optimize_energy)
         self.mount_btn = gtk.Button('Mount Crystal')
         self.mount_btn.connect('clicked', self.prepare_mounting)
         self.reset_btn = gtk.Button('Finished Mounting')
         self.reset_btn.connect('clicked',self.restore_beamstop)
+        
         #self.front_end_btn.set_sensitive(False)
-        self.optimize_btn.set_sensitive(False)
+        #self.optimize_btn.set_sensitive(False)
         #self.shutter_btn.set_sensitive(False)
+        
         control_box.pack_start(self.front_end_btn)
         control_box.pack_start(self.shutter_btn)
         control_box.pack_start(self.optimize_btn)
@@ -141,10 +144,16 @@ class HutchManager(gtk.VBox):
         script = Script(prepare_for_mounting, self.beamline)
         script.start()
 
+    def optimize_energy(self, widget):
+        self.device_box.set_sensitive(False)
+        script = Script(optimize_energy, self.beamline)
+        script.connect('done', lambda x: self.device_box.set_sensitive(True))
+        script.start()
+
     def restore_beamstop(self, widget):
         script = Script(restore_beamstop, self.beamline)
-        script.start()
         script.connect('done', lambda x: self.device_box.set_sensitive(True))
+        script.start()
 
     def stop(self):
         self.sample_viewer.stop()
