@@ -13,7 +13,7 @@ class PositionerEntry(gtk.Frame):
         self.value_box.set_alignment(1, 0.5)
         self.entry_box = gtk.Entry()
         self.entry_box.set_has_frame(False)
-        self.entry_box.set_width_chars(width)
+        self.entry_box.set_width_chars(1)
         self.entry_box.set_alignment(1)
         self.act_btn = gtk.Button()
         self.undo_btn =  gtk.Button()
@@ -322,10 +322,11 @@ class CryojetWidget(gtk.Frame):
         self.cryojet.connect('status', self._on_status)
         
         #layout widgets
-        hbox1 = gtk.HBox(True, 6)
-        hbox2 = gtk.HBox(True, 6)
+        hbox1 = gtk.HBox(False, 6)
+        hbox2 = gtk.HBox(False, 6)
         hbox3 = gtk.HBox(False, 6)
         vbox  = gtk.VBox(False, 6)
+        
         vbox.pack_start(hbox1, expand=False, fill=False)
         
         hsep = gtk.HSeparator()
@@ -342,6 +343,7 @@ class CryojetWidget(gtk.Frame):
         lb.set_markup('N<sub>2</sub> Level')
         self.level_gauge = Gauge(0,100,5,3)
         self.level_gauge.set_property('units','%')
+        self.level_gauge.set_property('low', 20.0)
         self.level_gauge.value = self.cryojet.level
         gauge_box.pack_start(self.level_gauge, expand=True, fill=True)
         gauge_box.pack_start(lb, expand=True, fill=True)

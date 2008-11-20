@@ -31,6 +31,7 @@ _DEVICE_MAP = {
     'variables': ca.PV,
     'webservices': xmlrpclib.ServerProxy,
     'cryojets': misc.Cryojet,
+    'optimizers': misc.Optimizer,
     }
 
 

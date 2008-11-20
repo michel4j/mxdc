@@ -15,6 +15,11 @@ def restore_beamstop(bl):
     bl.det_z.move_to(distance, wait=True)
     return True
 
+def optimize_energy(bl):
+    bl.energy_optimizer.start()
+    bl.energy_optimizer.wait(start=True, stop=True)
+    return True
+    
 def center_sample(bl, crystal=False):
     tst = time.time()
     prefix = tempfile.mktemp()

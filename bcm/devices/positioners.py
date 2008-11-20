@@ -86,7 +86,7 @@ class Motor(MotorBase):
             raise MotorException("motor name must be of the format 'name:unit'")
         
         if motor_type not in ['vme', 'cls', 'pseudo']:
-            raise MotorException("motor_type must be one of 'vme', 'cls', 'pseudo','energy'")
+            raise MotorException("motor_type must be one of 'vme', 'cls', 'pseudo'")
           
         self.units = name_parts[-1]
         self.name = ':'.join(name_parts[:-1])

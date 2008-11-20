@@ -179,7 +179,31 @@ class Cryojet(gobject.GObject):
     shield_flow = property(get_shield_flow, set_shield_flow)
     level = property(get_level)
     status = property(get_status)
-       
+
+class Optimizer(object):
+    def __init__(self, command, status):
+        self.command = PV(command)
+        self.status = PV(status)
+        self._stat = 0
+        self.status.connect('changed', self._on_status)
+        
+    def _on_status(self,obj, val):
+        self._stat = val
+        
+    def start(self):
+        self.command.put(1)
+    
+    def wait(self, start=True, stop=True):
+        poll=0.05
+        timeout = 2.0
+        if (start):
+            while not self._stat and timeout > 0:
+                time.sleep(poll)
+                timeout -= poll                             
+        if (stop):
+            while self._stat:
+                time.sleep(poll)
+        
 # Register objects with signals
 gobject.type_register(Shutter)
 gobject.type_register(Gonio)
