@@ -4,7 +4,7 @@
 import warnings
 warnings.simplefilter("ignore")
 import gtk, gobject
-import sys, os
+import sys, os, signal
 import logging
 
 sys.path.append(os.environ['BCM_PATH'])
@@ -64,3 +64,4 @@ class AppClass(object):
 if __name__ == "__main__":
     app = AppClass()
     gtk.main()
+    os.kill(os.getpid(),signal.SIGKILL)

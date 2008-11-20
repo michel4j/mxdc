@@ -1,5 +1,5 @@
 import gtk, gobject
-import sys, os, signal
+import sys, os
 
 from CollectManager import CollectManager
 from StatusPanel import StatusPanel
@@ -58,7 +58,6 @@ class AppWindow:
         self.hutch_manager.stop()
         #self.sample_manager.stop()
         gtk.main_quit()
-        #os.kill(os.getpid(),signal.SIGKILL)
 
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
