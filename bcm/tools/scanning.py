@@ -276,6 +276,7 @@ class MADScanner(ScannerBase):
     def setup(self, edge, count_time, output):
         en, em = self._energy_db[edge]
         self.energy = en
+        self.emission = em
         self.time = count_time
         self.filename = output
         scan_logger.info('Edge Scan setup for %s, %0.2f sec exposures, output file "%s".' % (edge, count_time, output))
@@ -341,7 +342,7 @@ class MADScanner(ScannerBase):
         gobject.idle_add(self.emit, 'started')
 
         try:
-            self.beamline.mca.set_energy(self.energy)
+            self.beamline.mca.set_energy(self.emission)
 
             if not self.beamline.mca.is_cool():
                 self.beamline.mca.set_cooling(True)
