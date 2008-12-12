@@ -361,10 +361,10 @@ class MADScanner(ScannerBase):
                 prev = self.beamline.bragg_energy.get_position()                
                 self.beamline.bragg_energy.move_to(x, wait=True)
                 if self.count == 1:
-                    self.first_intensity = (self.beamline.i2.count(0.5) * 1e9)
+                    self.first_intensity = (self.beamline.i0.count(0.5) * 1e9)
                     self.factor = 1.0
                 else:
-                    self.factor = self.first_intensity/(self.beamline.i2.count(0.5)*1e9)
+                    self.factor = self.first_intensity/(self.beamline.i0.count(0.5)*1e9)
                 y = self.beamline.mca.count(self.time)
                     
                 y = y * self.factor
