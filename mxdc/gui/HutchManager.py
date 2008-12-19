@@ -127,7 +127,7 @@ class HutchManager(gtk.VBox):
         self.cryo_controller.set_border_width(6)
         
         sample_frame.insert_page(cryo_align, tab_label=gtk.Label(' Cryojet Control '))
-        #sample_frame.insert_page(self.sample_picker, tab_label=gtk.Label(' Sample Auto-mounting '))
+        sample_frame.insert_page(self.sample_picker, tab_label=gtk.Label(' Sample Auto-mounting '))
  
         hbox3.pack_start(sample_frame, expand=True,fill=True)
         

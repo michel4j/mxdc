@@ -8,8 +8,8 @@ from bcm.scripts.misc import center_sample
 from bcm.protocols import ca
 from bcm.devices.cameras import add_decorations
 
-#COLOR_MAPS = [None, 'Spectral','hsv','jet', 'RdYlGn','hot', 'PuBu']        
-COLOR_MAPS = [None, 'Spectral', 'summer', 'RdYlGn', 'PuBu', 'copper', 'spring', 'Accent', 'OrRd', 'autumn', 'Set1', 'Set2', 'Set3', 'pink', 'winter', 'jet', 'gist_earth', 'Dark2', 'RdBu', 'gist_yarg', 'BuGn', 'prism', 'PiYG', 'YlOrBr', 'YlGn', 'Pastel2', 'RdPu', 'Greens', 'PRGn', 'gist_heat', 'YlGnBu', 'BuPu', 'RdYlBu', 'Paired', 'flag', 'Oranges', 'hsv', 'BrBG', 'Purples', 'cool', 'Reds', 'gray', 'Pastel1', 'gist_stern', 'GnBu', 'gist_ncar', 'Greys', 'RdGy', 'hot', 'YlOrRd', 'PuOr', 'PuRd', 'gist_gray', 'Blues', 'PuBuGn', 'gist_rainbow', 'bone']
+COLOR_MAPS = [None, 'Spectral','hsv','jet', 'RdYlGn','hot', 'PuBu']        
+#COLOR_MAPS = [None, 'Spectral', 'summer', 'RdYlGn', 'PuBu', 'copper', 'spring', 'Accent', 'OrRd', 'autumn', 'Set1', 'Set2', 'Set3', 'pink', 'winter', 'jet', 'gist_earth', 'Dark2', 'RdBu', 'gist_yarg', 'BuGn', 'prism', 'PiYG', 'YlOrBr', 'YlGn', 'Pastel2', 'RdPu', 'Greens', 'PRGn', 'gist_heat', 'YlGnBu', 'BuPu', 'RdYlBu', 'Paired', 'flag', 'Oranges', 'hsv', 'BrBG', 'Purples', 'cool', 'Reds', 'gray', 'Pastel1', 'gist_stern', 'GnBu', 'gist_ncar', 'Greys', 'RdGy', 'hot', 'YlOrRd', 'PuOr', 'PuRd', 'gist_gray', 'Blues', 'PuBuGn', 'gist_rainbow', 'bone']
 
 class SampleViewer(gtk.HBox):
     def __init__(self, beamline):

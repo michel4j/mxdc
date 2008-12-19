@@ -427,7 +427,7 @@ class CryojetWidget(gtk.Frame):
         align.set(0.5,0.5,1,1)
         align.set_padding(0,0,12,0)
         noz_frame.add(align)
-        ctable = gtk.Table(2,3,True)
+        ctable = gtk.Table(2,3,False)
         ctable.set_col_spacings(3)
         ctable.set_row_spacings(3)
         ctable.attach(gtk.Label('Position (mm):'), 0,1,0,1, xoptions=gtk.EXPAND|gtk.FILL)
