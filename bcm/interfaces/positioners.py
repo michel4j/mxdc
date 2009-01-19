@@ -71,5 +71,13 @@ class IMotor(IPositioner):
     
     def set_calibrated():
         """Set the Motor to calibrated status"""
+
+    def set_position(position):
+        """
+        Set the current position of the positioner.  
+        :Parameters:
+            - `position` [float]
+            
+        """
         
         
