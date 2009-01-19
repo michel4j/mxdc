@@ -48,6 +48,7 @@ class CameraBase(object):
     
                  
 class CameraSim(CameraBase):
+    implements(ICamera)    
     def __init__(self,name='Video'):
         CameraBase.__init__(self,name)
         self._fsource = open('/dev/urandom','rb')
@@ -71,6 +72,7 @@ class CameraSim(CameraBase):
             return None
 
 class Camera(CameraBase):
+    implements(ICamera)    
     def __init__(self, pv_name, name='Video'):
         CameraBase.__init__(self,name)
         self._fsource = open('/dev/urandom','rb')
@@ -132,6 +134,7 @@ class AxisController:
         return
 
 class AxisCamera(CameraBase):
+    implements(ICamera)    
     def __init__(self,hostname, name='Video'):
         CameraBase.__init__(self,name)
         self.url = 'http://%s/jpg/image.jpg' % hostname
