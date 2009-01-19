@@ -1,3 +1,31 @@
+"""
+Overview
+========
+
+    This module provides an object oriented interface to EPICS Channel Access.
+    The main interface to EPICS in this module is the PV object,
+    which holds an EPICS Process Variable (aka a 'channel'). This module
+    makes use of the GObject system.
+ 
+    Here's a simple example of using a PV:
+      >>> from ca import PV     # import the PV class
+      >>> pv = PV('XXX:m1.VAL')      # connect to a pv with its name.
+ 
+      >>> print pv.get()             # get the current value of the pv.
+      >>> pv.put(3.0)                # set the pv's value.
+ 
+ 
+    beyond getting and setting a pv's value, a pv includes  these features: 
+      1. Automatic connection management. A PV will automatically reconnect
+         if the CA server restarts.
+      2. Each PV is a GObject and thus benefits from all its features
+         such as signals and callback connection.
+      3. For use in multi-threaded applications, the thread_init() method is
+         provided.
+ 
+    See the documentation for the PV class for a more complete description.
+"""
+
 import sys
 import os
 import time
@@ -152,6 +180,45 @@ class Closure:
         return 0
 
 class PV(gobject.GObject):
+    """The Process Variable
+    
+    A pv encapsulates an Epics Process Variable (aka a 'channel').
+    
+    The primary interface methods for a pv are to get() and put() its value:
+    
+      >>>p = PV(pv_name)    # create a pv object given a pv name
+      >>>p.get()            # get pv value
+      >>>p.put(val)         # set pv to specified value. 
+    
+    Additional important attributes include:
+    
+      >>>p.name             # name of pv
+      >>>p.value            # pv value 
+      >>>p.count            # number of elements in array pvs
+      >>>p.element_type     # EPICS data type
+ 
+    A pv uses Channel Access monitors to improve efficiency and minimize
+    network traffic, so that calls to get() fetches the cached value,
+    which is automatically updated.     
+
+    Note that GObject, derived features are available only when a gobject
+    or compatible main-loop is running.
+
+    In order to communicate with the corresponding channel on the IOC, a PV needs to
+    "connect".  This creates a dedicated connection to the IOC on which the PV lives,
+    and creates resources for the PV.   A Python PV object cannot actually do anything
+    to the PV on the IOC until it is connected.
+    
+    Connection is a two-step process.  First a local PV is "created" in local memory.
+    This happens very quickly, and happens automatically when a PV is initialized (and
+    has a pvname).
+  
+    Second, connection is completed with network communication to the IOC.  This is
+    necessary to determine the PV "type" (that is, integer, double, string, enum, etc)
+    and "count" (that is, whether it holds an array of values) that are needed to
+    allocate resources on the client machine.  Again, this connection must happen
+    before you can do anything useful with the PV.    """
+    
     __gsignals__ = {
         'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
                     (gobject.TYPE_PYOBJECT,)),
