@@ -235,8 +235,8 @@ class PV(gobject.GObject):
         self.state = CA_OP_CONN_DOWN
         self.monitor = monitor
         self._lock = thread.allocate_lock()
+        self._first_change = True
         self._create_connection()
-        self.__first_change__ = True
 
                    
     def __del__(self):
@@ -337,8 +337,8 @@ class PV(gobject.GObject):
             else:
                 self.value = val_p.contents.value
         #self._lock.release()
-        if self.__first_change__:
-            self.__first_change__ = False
+        if self._first_change:
+            self._first_change = False
             return 0
         gobject.idle_add(self.emit,'changed', self.value)
         return 0

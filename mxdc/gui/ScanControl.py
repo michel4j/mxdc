@@ -258,25 +258,3 @@ class ScanControl(gtk.VBox):
         run_data['two_theta'] = 0.0
         return run_data
                     
-def main():
-    win = gtk.Window()
-    win.connect("destroy", lambda x: gtk.main_quit())
-    win.set_border_width(6)
-    #win.set_size_request(250,400)
-    win.set_title("SCAN Demo")
-    
-    myscan = ScanControl()
-    win.add(myscan)
-
-    win.show_all()
-
-    try:
-        gtk.main()
-    except KeyboardInterrupt:
-        print "Quiting..."
-        sys.exit()
-
-
-if __name__ == '__main__':
-    main()
-    

@@ -1,6 +1,6 @@
-#from twisted.internet import glib2reactor
-#glib2reactor.install()
-#from twisted.internet import reactor
+from twisted.internet import glib2reactor
+glib2reactor.install()
+from twisted.internet import reactor
 import warnings
 warnings.simplefilter("ignore")
 import gtk, gobject
@@ -58,10 +58,15 @@ class AppClass(object):
         self.beamline.setup()
         self.splash.hide()
         self.main_window = AppWindow(self.beamline)
-        
+        self.main_window.connect('destroy',self.do_quit)
         return False
+    
+    def do_quit(self, obj):
+        logging.getLogger('').log(0,'Stopping...')
+        reactor.stop()
 
 if __name__ == "__main__":
     app = AppClass()
-    gtk.main()
-    os.kill(os.getpid(),signal.SIGKILL)
+    #gtk.main()
+    #os.kill(os.getpid(),signal.SIGKILL)
+    reactor.run()
