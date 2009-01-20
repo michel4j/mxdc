@@ -513,24 +513,4 @@ class CollectManager(gtk.HBox):
         if self.collector is not None:
             self.collector.stop()
     
-
-                                                                                                                                                                                    
-if __name__ == "__main__":
-   
-    win = gtk.Window()
-    win.connect("destroy", lambda x: gtk.main_quit())
-    win.set_default_size(300,400)
-    win.set_border_width(2)
-    win.set_title("CollectManager Widget Demo")
-
-    example = CollectManager()
-
-    win.add(example)
-    win.show_all()
-
-    try:
-        gtk.main()
-    except KeyboardInterrupt:
-        print "Quiting..."
-        sys.exit()
-        
+                                                                                                                                                                              

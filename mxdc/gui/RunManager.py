@@ -88,20 +88,4 @@ class RunManager(gtk.Notebook):
 
 gobject.type_register(RunManager)
                 
-                
-def main():    
-    win = gtk.Window()
-    win.connect("destroy", lambda x: gtk.main_quit())
-    win.set_title("Run Manager Demo")
-    man = RunManager()
-    
-    win.add(man)
-    win.show_all()
-    
-    try:
-        gtk.main()
-    except KeyboardInterrupt:
-        print "Quiting..."
-        sys.exit()
-if __name__ == '__main__':
-    main()
+            

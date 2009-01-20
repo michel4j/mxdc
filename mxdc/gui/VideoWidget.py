@@ -32,6 +32,7 @@ class VideoTransformer(gobject.GObject):
         self._colorize = False
         self._lock = thread.allocate_lock()
         self.banner_text = "Video"
+        #print 'Video Transformer setup'
     
     def set_colormap(self, name=None):
         if name:
@@ -182,35 +183,3 @@ class VideoWidget(gtk.DrawingArea):
 
     def start(self):
         self.transformer.start()
-
-if __name__ == '__main__':
-    import hotshot
-    import hotshot.stats
-    from bcm.devices import cameras
-    
-    def main():
-        win = gtk.Window()
-        fr = gtk.AspectFrame(obey_child=False, ratio=640.0/480.0)
-        win.set_size_request(320,240)
-        win.connect('destroy', lambda x: gtk.main_quit() )
-        cam = cameras.Camera('CAM1608-001:data')
-        vid = VideoWidget(cam)
-        win.add(fr)
-        fr.add(vid)
-        win.show_all()
-        gobject.timeout_add(30000, gtk.main_quit )
-            
-    
-    try:
-        main()
-        prof = hotshot.Profile("test.prof")
-        benchtime = prof.runcall(gtk.main)
-        prof.close()
-        stats = hotshot.stats.load("test.prof")
-        stats.strip_dirs()
-        stats.sort_stats('time','calls')
-        stats.print_stats(20)
-        sys.exit()
-    except KeyboardInterrupt:
-        print "Quiting..."
-        sys.exit()

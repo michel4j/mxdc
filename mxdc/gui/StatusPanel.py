@@ -50,21 +50,3 @@ class StatusPanel(gtk.VBox):
         self.clock.set_text(time_string)
         return True
         
-if __name__ == "__main__":
-    import bcm.beamline
-    
-    win = gtk.Window()
-    win.connect("destroy", lambda x: gtk.main_quit())
-    #win.set_default_size(300,400)
-    win.set_title("Status Panel")
-    bl = bcm.beamline.PX('vlinac.conf')
-    bl.setup()
-    example = StatusPanel(bl)
-    win.add(example)
-    win.show_all()
-    
-    try:
-        gtk.main()
-    except KeyboardInterrupt:
-        print "Quiting..."
-        sys.exit()
