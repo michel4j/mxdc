@@ -329,4 +329,5 @@ class Attenuator(PositionerBase):
         
 gobject.type_register(MotorBase)
 gobject.type_register(PositionerBase)
+
         
