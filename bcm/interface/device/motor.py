@@ -1,40 +1,6 @@
 from zope.interface import Interface
 
 
-class IPositioner(Interface):
-    """Positioner interface"""
-    
-    def move_to(target, wait=True):
-        """
-        Moves to a new absolute position specified.
-        :Parameters:        
-            - `target`:  [float]
-                target position to move to
-            - `wait`: [boolean] default True
-                Whether to wait for move to complete or not
-                
-        """
-                
-    def move_by(value, wait=True):
-        """
-        Moves a specified value relative to the current position.         
-        :Parameters:
-            - `value`:  [float]
-                relative position
-            - `wait`: [boolean] default True
-                Whether to wait for move to complete or not
-
-        """
-                    
-    def get_position():
-        """
-        Get the current position of the positioner.       
-        :Return:  
-            - position [float]
-            
-        """
-                
-
 class IMotor(IPositioner):
     """Motor interface"""
 
