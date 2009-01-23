@@ -1,11 +1,26 @@
 from zope.interface import Interface
 
 class IAutomounter(Interface):
-    """An interface for SAM automounters"""
+    """Inteface class automounters."""
     
-    def mountCrystal(self, address, wash):
+    
+    def mount(address, wash):
         """ Mount the crystal at address"""
     
-    def dismountCrystal(self, address):
+    def dismount(address):
         """ Dismount the crystal and place it at address"""
+    
+    def mount_next():
+        """Mount next crystal in sequence"""
+    
+    def probe(probestr):
+        """Probe Robot"""
+    
+    def abort():
+        """Terminates the current operation and returns to it's home 
+        position inside the heater.
+        """
+         
+    
+    
     
