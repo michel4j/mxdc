@@ -1,0 +1,5 @@
+# git-ls-files --others --exclude-from=.gitignore
+# Lines that start with '#' are comments.
+*.py[oc]
+*.{,pydev}project
+*~
