@@ -1,36 +1,31 @@
-from zope.interface import implements
-from bcm.interfaces.cameras import ICamera
-from bcm.protocols.ca import PV
-import time, math
+import time
+import math
 import logging
-
-import numpy
-from scipy.misc import toimage, fromimage
-import Image, ImageOps, ImageDraw, urllib, cStringIO
+import urllib
+import cStringIO
 import httplib
 
-__log_section__ = 'bcm.video'
-camera_logger = logging.getLogger(__log_section__)
+import Image
+import ImageDraw
+import numpy
+from scipy.misc import toimage, fromimage
+
+from zope.interface import implements
+from bcm.device.interfaces import ICamera, IPTZCameraController
+from bcm.protocol.ca import PV
+from bcm.utils.log import NullHandler
+
+_logger = logging.getLogger(__name__).addHandler( NullHandler() )
 
 class CameraBase(object):
-    def __init__(self, name='Video'):
-        self.frame = None
-        self.camera_on = False
-        self.controller = None
-        self.name = name
-            
-    def _log(self, message):
-        pass
 
-    def get_frame(self):
-        return self.frame
-    
-    def update(self, obj=None, force=None):
-        return True
-    
+    def __init__(self, name="Basic Camera"):
+        self.frame = None
+        self.name = name
+                        
     def save(self, filename):
         if self.frame is None:
-            camera_logger.error('(%s) No image available to save.' % (self.name,) )
+            _logger.error('(%s) No image available to save.' % (self.name,) )
             result = False
         else:
             try:
@@ -38,133 +33,120 @@ class CameraBase(object):
                 img.save(filename)
                 result = filename
             except:
-                camera_logger.error('(%s) Unable to save image "%s".' % (self.name, filename) )
+                _logger.error('(%s) Unable to save image "%s".' % (self.name, filename) )
                 result = False
         return result
-
-    def get_name(self):
-        return self.name
-    
     
                  
-class CameraSim(CameraBase):
+class SimCamera(CameraBase):
+
     implements(ICamera)    
-    def __init__(self,name='Video'):
-        CameraBase.__init__(self,name)
+    
+    def __init__(self, name="Camera Simulator"):
+        CameraBase.__init__(self, name)
+        self.resolution = (480, 640)
+        self._packet_size = self.resolution[0] * self.resolution[1]
         self._fsource = open('/dev/urandom','rb')
-        self._packet_size = 307200
-        self.name = name
-        self.update()
-    
-    def __del__(self):
-        self._fsource.close()
-    
-    def update(self, obj=None):
+        self._update()
+        
+    def _update(self):
         data = self._fsource.read(self._packet_size)
-        self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
-        self.size = self.frame.size
-        return True
-                   
+        self.frame = toimage(numpy.fromstring(data, 'B').reshape(
+                                                    self.resolution[1], 
+                                                    self.resolution[0]))
+                                                                                                )                   
     def get_frame(self):
-        if self.update():
-            return self.frame
-        else:
-            return None
-
-class Camera(CameraBase):
-    implements(ICamera)    
-    def __init__(self, pv_name, name='Video'):
-        CameraBase.__init__(self,name)
-        self._fsource = open('/dev/urandom','rb')
-        self.cam = PV(pv_name)
-        self._packet_size = 307200
         self.update()
+        return self.frame
+
+
+class CACamera(CameraBase):
+
+    implements(ICamera)   
+     
+    def __init__(self, pv_name, name='EPICS Camera'):
+        CameraBase.__init__(self,name)
+        self.resolution = (640, 480)
+        self._packet_size = self.resolution[0] * self.resolution[1]
+        self._cam = PV(pv_name)
+        self._update()
     
-    def __del__(self):
-        self._fsource.close()
 
-
-    def update(self, obj=None, arg=None):
-        if self.cam.is_connected():
-            data = self.cam.get()
+    def _update(self):
+        if self._cam.is_connected():
+            data = self._cam.get()
+            
+            # Make sure full frame is obtained otherwise iterate until we
+            # get a full frame. This is required because sometimes the frame
+            # data is incomplete.
             while len(data) != self._packet_size:
-                data = self.cam.get()
+                data = self._cam.get()
+                
+        self.frame = toimage(numpy.fromstring(data, 'B').reshape(
+                                                    self.resolution[1], 
+                                                    self.resolution[0]))
         else:
-            data = self._fsource.read(self._packet_size)
-
-        self.frame = toimage(numpy.fromstring(data, 'B').reshape(480,640))
-        self.size = self.frame.size
-        return True
-
+            _logger.error('(%s) Failed fetching frame.' % (self.name,) )
+            # FIXME: What should we do when PV can not connect?
+            
     def get_frame(self):
-        if self.update():
-            return self.frame
-        else:
-            return None
+        self.update()
+        return self.frame
 
 
                                 
-class AxisController:
-    def __init__(self,hostname):
-        self.server = httplib.HTTPConnection(hostname)
-        self.rzoom = 0
-        
-    def zoom(self,value):
-        self.server.connect()
-        command = "/axis-cgi/com/ptz.cgi?rzoom=%s" % value
-        result = self.server.request("GET", command)
-        self.rzoom -= value
-        self.server.close()
-        return
-
-    def center(self, x, y):
-        self.server.connect()
-        command = "/axis-cgi/com/ptz.cgi?center=%d,%d" % (x, y)
-        result = self.server.request("GET", command)
-        self.server.close()
-        return
-    
-    def goto(self, position):
-        self.server.connect()
-        position = urllib.quote_plus(position)
-        command = "/axis-cgi/com/ptz.cgi?gotoserverpresetname=%s" % position
-        result = self.server.request("GET", command)
-        self.rzoom = 0
-        self.server.close()
-        return
-
 class AxisCamera(CameraBase):
-    implements(ICamera)    
-    def __init__(self,hostname, name='Video'):
-        CameraBase.__init__(self,name)
-        self.url = 'http://%s/jpg/image.jpg' % hostname
-        self.controller = AxisController(hostname)
-        self.size = (704,480)
+
+    implements(ICamera, IPTZCameraController)  
+      
+    def __init__(self, hostname, name='Axis Camera'):
+        CameraBase.__init__(self, name)
+        self.resolution = (704, 480)
+        self._url = 'http://%s/jpg/image.jpg' % hostname
+        self._server = httplib.HTTPConnection(hostname)
         self._last_frame = time.time()
-        self.update()
+        self._rzoom = 0
+        self._update()
 
     def _get_image(self):
             f = urllib.urlopen(self.url)
             f_str = cStringIO.StringIO(f.read())
             return Image.open(f_str)
 
-    def update(self, obj=None):
+    def _update(self):
         if time.time() - self._last_frame < 0.1:
-            return True
+            return
         try:
             self.frame = self._get_image()
             self._last_frame = time.time()
         except:
-            camera_logger.error('(%s) Failed fetching frame.' % (self.name,) )
-            return False
-        return True
-
+            _logger.error('(%s) Failed fetching frame.' % (self.name,) )
 
     def get_frame(self):
-        if self.update():
-            return self.frame
-        else:
-            return None
+        self.update()
+       
+    def zoom(self, value):
+        self._server.connect()
+        command = "/axis-cgi/com/ptz.cgi?rzoom=%s" % value
+        result = self._server.request("GET", command)
+        self._rzoom -= value
+        self._server.close()
+
+    def center(self, x, y):
+        self._server.connect()
+        command = "/axis-cgi/com/ptz.cgi?center=%d,%d" % (x, y)
+        result = self._server.request("GET", command)
+        self._server.close()
+    
+    def goto(self, position):
+        self._server.connect()
+        position = urllib.quote_plus(position)
+        command = "/axis-cgi/com/ptz.cgi?gotoserverpresetname=%s" % position
+        result = self._server.request("GET", command)
+        self._rzoom = 0
+        self._server.close()
+
+
 
 def add_decorations(bl, img):
     _tick_size = 8
@@ -203,3 +185,4 @@ def add_decorations(bl, img):
     draw.line([x+hw, y-hh, x+hw-_tick_size, y-hh], fill=128)
 
     return img
+

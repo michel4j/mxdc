@@ -7,4 +7,4 @@ class IBeamline(Interface):
     
     """A beamline object."""
      
-
+    def 
