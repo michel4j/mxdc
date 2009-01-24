@@ -1,6 +1,6 @@
 """This module defines interfaces for Beamline Control Module."""
 
-from zope.interface import Interface, Attribute
+from zope.interface import Interface, Attribute, invariant
 
 
 class IAutomounter(Interface):
@@ -55,8 +55,8 @@ class ICollimator(Interface):
     
     """An X-ray beam collimator device object."""
     
-    width = Attribute("A motor controlling the horizontal gap.")
-    height = Attribute("A motor controlling the vertical gap.")
+    width = Attribute("""A motor controlling the horizontal gap.""")
+    height = Attribute("""A motor controlling the vertical gap.""")
     
     def set_width(width):
         """Set the horizontal gap of the collimator.
@@ -100,8 +100,8 @@ class IMonochromator(Interface):
 
     """A monochromator device object."""
     
-    energy = Attribute("Full monochromator energy motor")
-    bragg_energy = Attribute("Simple monochromator energy motor.")
+    energy = Attribute("""Full monochromator energy motor""")
+    bragg_energy = Attribute("""Simple monochromator energy motor.""")
     
     def optimize():
         """Start an optimization sequence."""
@@ -120,9 +120,9 @@ class IGoniometer(Interface):
 
     """A goniometer device object."""
     
-    phi = Attribute("Goniometer phi motor.")
-    kappa = Attribute("Goniometer kappa motor.")
-    omega = Attribute("Goniometer omega motor.")
+    phi = Attribute("""Goniometer phi motor.""")
+    kappa = Attribute("""Goniometer kappa motor.""")
+    omega = Attribute("""Goniometer omega motor.""")
     
     def configure(time=1.0, delta=1.0, angle=0.0):
         """Configure the goniometer scan parameters.
@@ -220,8 +220,8 @@ class IDiffractometer(Interface):
 
     """A diffractometer device object."""
     
-    distance = Attribute("Detector distance motor.")
-    two_theta = Attribute("Detector swing-out angle motor.")
+    distance = Attribute("""Detector distance motor.""")
+    two_theta = Attribute("""Detector swing-out angle motor.""")
 
     def wait():
         """Wait for diffractometer to become idle."""
@@ -318,6 +318,8 @@ class IMotor(Interface):
 class ICamera(Interface):
 
     """A camera device object providing a video source."""
+    
+    resolution = Attribute("""A 2-tuple for horizontal and vertical size.""")
             
     def get_frame():
         """Get current frame of video.
@@ -325,7 +327,7 @@ class ICamera(Interface):
         Returns an image of a frame of video data.
         
         """
-                  
+              
     def save(filename):
         """Save current frame to file.
         
@@ -333,3 +335,35 @@ class ICamera(Interface):
         filename    -- name of file to save image to.
 
         """
+
+
+class IPTZCameraController(Interface):
+
+    """A Pan-Tilt-Zoom Camera controller device object."""
+                
+    def zoom(value):
+        """Set the Camera Zoom level.
+        
+        Arguments:
+        value   -- zoom level of camera.
+        
+        """
+              
+    def center(x, y):
+        """Center the Camera view to the given position.
+        
+        Arguments:
+        x   -- horizontal position.
+        y   -- vertical position.   
+
+        """
+            
+    def goto(position):
+        """Move the Camera to a preset position.
+        
+        Arguments:
+        position    -- the name of the preset position.
+
+        """
+                
+        
