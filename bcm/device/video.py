@@ -4,18 +4,23 @@ import logging
 import urllib
 import cStringIO
 import httplib
-
 import Image
 import ImageDraw
 import numpy
 from scipy.misc import toimage, fromimage
-
 from zope.interface import implements
 from bcm.device.interfaces import ICamera, IPTZCameraController
 from bcm.protocol.ca import PV
 from bcm.utils.log import NullHandler
 
+# setup module logger and add default do-nothing handler
 _logger = logging.getLogger(__name__).addHandler( NullHandler() )
+
+
+class VideoError(Exception):
+
+    """Base class for errors in the video module."""
+    
 
 class CameraBase(object):
 
