@@ -1,92 +1,116 @@
-from zope.interface import implements
-from bcm.interfaces import misc
-from bcm.protocols.ca import PV
-from bcm import utils
-import gobject
 import time
 import math
+import gobject
+from zope.interface import implements
+from bcm.protocol.ca import PV
+from bcm.utils.log import NullHandler
+from bcm.utils import converter
+from bcm.device.interfaces import IPositioner, IShutter
 
-class Gonio(gobject.GObject):
-    implements(misc.IGoniometer)
+# setup module logger and add default do-nothing handler
+_logger = logging.getLogger(__name__).addHandler( NullHandler() )
+
+
+class MiscDeviceError(Exception):
+
+    """Base class for errors in the misc module."""
+
+
+class PositionerBase(gobject.GObject):
     __gsignals__ =  { 
-        "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
-        "log": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
+        "changed": ( gobject.SIGNAL_RUN_FIRST, 
+                     gobject.TYPE_NONE, 
+                     (gobject.TYPE_PYOBJECT,)),
         }  
 
-    def __init__(self, name):
+    def __init__(self):
         gobject.GObject.__init__(self)
 
-        # initialize process variables
-        self.scan_cmd = PV("%s:scanFrame.PROC" % name, monitor=False)
-        self.state = PV("%s:scanFrame:status" % name)
-        self.shutter_state = PV("%s:outp1:fbk" % name)
-        
-        #parameters
-        self.settings = {
-            'time' : PV("%s:expTime" % name, monitor=False),
-            'delta' : PV("%s:deltaOmega" % name, monitor=False),
-            'start_angle': PV("%s:openSHPos" % name, monitor=False),
-        }
-        
-        self.state.connect('changed', self._signal_change)
-
     def _signal_change(self, obj, value):
-        if value != 0:
-            gobject.idle_add(self.emit,'changed', True)
-        else:
-            gobject.idle_add(self.emit,'changed', False)
+        gobject.idle_add(self.emit,'changed', self.get_position() )
+            
         
-    
-    def _log(self, message):
-        gobject.idle_add(self.emit, 'log', message)
+        
+class Attenuator(PositionerBase):
 
-                
-    def set_parameters(self, params):
-        for key in params.keys():
-            self.settings[key].put(params[key])
+    implements(IPositioner)
     
-    def scan(self, wait=True):
-        self.scan_cmd.put('\x01')
-        if wait:
-            self.wait(start=True, stop=True)
-
-    def is_active(self):
-        return self.state.get() != 0        
-                        
-    def wait(self, start=True, stop=True, poll=0.01, timeout=20):
-        if (start):
-            time_left = 2
-            while not self.is_active() and time_left > 0:
-                time.sleep(poll)
-                time_left -= poll
-        if (stop):
-            time_left = timeout
-            while self.is_active() and time_left > 0:
-                time.sleep(poll)
-                time_left -= poll
+    def __init__(self, bit1, bit2, bit3, bit4, energy):
+        PositionerBase.__init__(self)
+        self._filters = [
+            PV(bit1),
+            PV(bit2),
+            PV(bit3),
+            PV(bit4) ]
+        self._energy = PV(energy)
+        self.units = '%'
+        self.name = 'Attenuator'
+        for f in self._filters:
+            f.connect('changed', self._signal_change)
+        self._energy.connect('changed', self._signal_change)
+        
+    def get_position(self):
+        e = self._energy.get()
+        bitmap = ''
+        for f in self._filters:
+            bitmap += '%d' % f.get()
+        thickness = int(bitmap, 2) / 10.0
+        attenuation = 1.0 - math.exp( -4.4189e12 * thickness / 
+                                        (e*1000+1e-6)**2.9554 )
+        if attenuation < 0:
+            attenuation = 0
+        elif attenuation > 1.0:
+            attenuation = 1.0
+        return attenuation*100.0
+    
+    def set_position(self, target):
+        e = self._energy.get()
+        if target > 99.9:
+            target = 99.9
+        elif target < 0.0:
+            target = 0.0
+        frac = target/100.0
+        
+        # calculate required aluminum thickness
+        thickness = math.log(1.0-frac) * (e*1000+1e-6)**2.9554 / -4.4189e12
+        thk = int(round(thickness * 10.0))
+        if thk > 15: thk = 15
+        
+        # bitmap of thickness is fillter pattern
+        bitmap = '%04d' % int(utils.dec_to_bin(thk))
+        for i in range(4):
+            self._filters[i].put( int(bitmap[i]) )
+        _logger.info('Attenuation of %f %s requested' % (target, self.units))
+        _logger.debug('Filters [8421] set to [%s] (0=off,1=on)' % bitmap)
+    
+    
 
 class Shutter(gobject.GObject):
+
     implements(misc.IShutter)
+    
     __gsignals__ =  { 
-                    "changed": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)  ),
-                    "log": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)  ),
-                    }  
+        "changed": ( gobject.SIGNAL_RUN_FIRST, 
+                     gobject.TYPE_NONE, 
+                     (gobject.TYPE_BOOLEAN,)  ),
+        }
+          
     def __init__(self, name):
         gobject.GObject.__init__(self)
         # initialize variables
-        self.open_cmd = PV("%s:opr:open" % name, monitor=False)
-        self.close_cmd = PV("%s:opr:close" % name, monitor=False)
-        self.state = PV("%s:state" % name)
-        self.state.connect('changed', self._signal_change)
+        self._open_cmd = PV("%s:opr:open" % name, monitor=False)
+        self._close_cmd = PV("%s:opr:close" % name, monitor=False)
+        self._state = PV("%s:state" % name)
+        self._state.connect('changed', self._signal_change)
 
-    def is_open(self):
-        return self.state.get() == 1
+    def get_state(self):
+        return self._state.get() == 1
     
     def open(self):
-        self.open_cmd.put(1)
+        self._open_cmd.put(1)
     
     def close(self):
-        self.close_cmd.put(1)
+        self._close_cmd.put(1)
 
     def _signal_change(self, obj, value):
         if value == 1:
@@ -97,14 +121,17 @@ class Shutter(gobject.GObject):
     def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
 
+
+
+
 class Cryojet(gobject.GObject):
     __gsignals__ =  { 
-                    "sample-flow": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
-                    "shield-flow": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
-                    "level": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
-                    "temperature": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
-                    "status": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)  ),
-                    }
+        "sample-flow": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
+        "shield-flow": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
+        "level": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
+        "temperature": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
+        "status": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)  ),
+        }
     
     def __init__(self, cname, lname):
         gobject.GObject.__init__(self)        
@@ -180,31 +207,8 @@ class Cryojet(gobject.GObject):
     level = property(get_level)
     status = property(get_status)
 
-class Optimizer(object):
-    def __init__(self, command, status):
-        self.command = PV(command)
-        self.status = PV(status)
-        self._stat = 0
-        self.status.connect('changed', self._on_status)
-        
-    def _on_status(self,obj, val):
-        self._stat = val
-        
-    def start(self):
-        self.command.put(1)
-    
-    def wait(self, start=True, stop=True):
-        poll=0.05
-        timeout = 2.0
-        if (start):
-            while not self._stat and timeout > 0:
-                time.sleep(poll)
-                timeout -= poll                             
-        if (stop):
-            while self._stat:
-                time.sleep(poll)
         
 # Register objects with signals
 gobject.type_register(Shutter)
-gobject.type_register(Gonio)
+gobject.type_register(PositionerBase)
 gobject.type_register(Cryojet)
