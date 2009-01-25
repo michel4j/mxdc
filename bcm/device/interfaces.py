@@ -58,19 +58,6 @@ class ICollimator(Interface):
     width = Attribute("""A motor controlling the horizontal gap.""")
     height = Attribute("""A motor controlling the vertical gap.""")
     
-    def set_width(width):
-        """Set the horizontal gap of the collimator.
-        
-        Arguments:
-        width -- horizontal gap of collimator
-        """
-   
-    def set_height(height):
-        """Set the vertical gap of the collimator.
-        
-        Arguments:
-        height -- vertical gap of collimator
-        """
 
     def wait():
         """Wait for collimator to become idle."""
@@ -120,8 +107,6 @@ class IGoniometer(Interface):
 
     """A goniometer device object."""
     
-    phi = Attribute("""Goniometer phi motor.""")
-    kappa = Attribute("""Goniometer kappa motor.""")
     omega = Attribute("""Goniometer omega motor.""")
     
     def configure(time=1.0, delta=1.0, angle=0.0):
@@ -203,7 +188,10 @@ class IPositioner(Interface):
 
     """A positioning device object.""" 
 
-    def set(pos):
+    name = Attribute("""Device name or description.""")
+    units = Attribute("""Engineering units.""")
+    
+    def set_position(pos):
         """Set the position of the device.
         
         Arguments:
@@ -211,7 +199,7 @@ class IPositioner(Interface):
         
         """
         
-    def get():
+    def get_position():
         """Return the current position of the device."""
 
 
@@ -274,6 +262,9 @@ class IMultiChannelAnalyzer(ICounter):
 class IMotor(Interface):
 
     """A Motor device object."""
+    
+    name = Attribute("""Motor name or description.""")
+    units = Attribute("""Engineering units.""")
 
     def configure(props):
         """Configure the properties of the device.
