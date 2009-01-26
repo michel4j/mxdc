@@ -8,20 +8,18 @@ import numpy
 import gobject
 import logging
 
-__log_section__ = 'bcm.counters'
-detector_logger = logging.getLogger(__log_section__)
+# setup module logger with a default do-nothing handler
+_logger = get_module_logger(__name__)
 
-class DetectorException(Exception):
-    def __init__(self, message):
-        self.message = message
-        
-    def __str__(self):
-        return 'Detector Exception %s' % self.message
+
+class DetectorError(Exception):
+
+    """Base class for errors in the detector module."""
             
 
     
         
-class MarCCDImager:
+class MarCCDImager(object):
     implements(IImagingDetector)
     def __init__(self, name):
         self.name = name
