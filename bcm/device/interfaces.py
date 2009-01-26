@@ -72,6 +72,8 @@ class ICollimator(Interface):
 class ICounter(Interface):
 
     """An integrating counter object."""
+    value = Attribute("""Process Variable.""")
+    name = Attribute("""Name or description of counter.""")
             
     def count(time):
         """
