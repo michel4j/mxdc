@@ -1,3 +1,7 @@
+# setup module logger with a default do-nothing handler
+_logger = get_module_logger(__name__)
+
+
 class DetectorBase(gobject.GObject):
     __gsignals__ =  { 
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),

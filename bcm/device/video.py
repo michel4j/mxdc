@@ -11,10 +11,10 @@ from scipy.misc import toimage, fromimage
 from zope.interface import implements
 from bcm.device.interfaces import ICamera, IPTZCameraController
 from bcm.protocol.ca import PV
-from bcm.utils.log import NullHandler
+from bcm.utils.log import get_module_logger
 
-# setup module logger and add default do-nothing handler
-_logger = logging.getLogger(__name__).addHandler( NullHandler() )
+# setup module logger with a default do-nothing handler
+_logger = get_module_logger(__name__)
 
 
 class VideoError(Exception):
