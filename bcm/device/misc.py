@@ -3,12 +3,12 @@ import math
 import gobject
 from zope.interface import implements
 from bcm.protocol.ca import PV
-from bcm.utils.log import NullHandler
+from bcm.utils.log import get_module_logger
 from bcm.utils import converter
 from bcm.device.interfaces import IPositioner, IShutter
 
-# setup module logger and add default do-nothing handler
-_logger = logging.getLogger(__name__).addHandler( NullHandler() )
+# setup module logger with a default do-nothing handler
+_logger = get_module_logger(__name__)
 
 
 class MiscDeviceError(Exception):
