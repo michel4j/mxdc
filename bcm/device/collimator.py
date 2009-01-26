@@ -20,8 +20,9 @@ class Collimator(object):
     
     def __init__(self, width, height):
         # initialize 
-        self.width  = IMotor(width)
-        self.height = IMotor(height)
+        
+        self.width  = width
+        self.height = height
                     
     def get_state(self):
         return self.width.get_state() | self.height.get_state()        

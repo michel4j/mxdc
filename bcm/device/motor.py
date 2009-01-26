@@ -31,7 +31,18 @@ class MotorBase(gobject.GObject):
     def __init__(self):
         gobject.GObject.__init__(self)
         self._move_active = False
+        self._motor_type = 'basic'
     
+    def __repr__(self):
+        s = "<%s:'%s', type:%s, state:%s>" % (self.__class__.__name__,
+                                               self.name,
+                                               self._motor_type,
+                                               self.get_state())
+        return s
+    
+    def get_state(self):
+        return self.STAT.get()
+        
     def _signal_change(self, obj, value):
         gobject.idle_add(self.emit,'changed', self.get_position() )
     
@@ -64,7 +75,7 @@ class Motor(MotorBase):
     def __init__(self, pv_name, motor_type):
         MotorBase.__init__(self)
         pv_parts = pv_name.split(':')
-        if len(name_parts)<2:
+        if len(pv_parts)<2:
             _logger.error("Unable to create motor '%s' of type '%s'." %
                              (pv_name, motor_type) )
             raise MotorError("Motor name must be of the format 'name:unit'.")
@@ -76,7 +87,7 @@ class Motor(MotorBase):
                 'vme', 'cls', 'pseudo'")
           
         self.units = pv_parts[-1]
-        pv_root = ':'.join(name_parts[:-1])
+        pv_root = ':'.join(pv_parts[:-1])
         self._motor_type = motor_type
         
         # initialize process variables based on motor type
@@ -150,7 +161,7 @@ class Motor(MotorBase):
             _logger.warning( "(%s) is not in a sane state. Move canceled!" % (self.name,) )
             return
 
-        self.VAL.put(target)
+        self.VAL.put(pos)
         _logger.info( "(%s) moving to %f" % (self.name, pos) )
         
         if wait:
@@ -242,6 +253,7 @@ class braggEnergyMotor(Motor):
         Motor.__init__(self, name, motor_type='vme' )
         del self.DESC
         self.name = 'Bragg Energy'
+        self._motor_type = 'vme'
                                    
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())

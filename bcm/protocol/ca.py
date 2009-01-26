@@ -32,11 +32,15 @@ import time
 import thread
 import atexit
 import gobject
-from ctypes import *
 import logging
+from ctypes import *
+import gobject
 
-__log_section__ = 'bcm.epics'
-ca_logger = logging.getLogger(__log_section__)
+from bcm.protocol.interfaces import IProcessVariable
+from bcm.utils.log import get_module_logger
+
+# setup module logger with a default do-nothing handler
+_logger = get_module_logger(__name__)
 
 # Define EPICS constants
 (
@@ -121,12 +125,12 @@ ECA_TIMEOUT = 10
 OP_messages = {
     CA_OP_GET: 'getting',
     CA_OP_PUT: 'putting',
-    CA_OP_CREATE_CHANNEL: 'creating channel',
+    CA_OP_CREATE_CHANNEL: 'connecting',
     CA_OP_ADD_EVENT: 'adding event',
     CA_OP_CLEAR_EVENT: 'clearing event',
     CA_OP_OTHER: 'executing task',
-    CA_OP_CONN_UP: 'connection up',
-    CA_OP_CONN_DOWN: 'connection down',
+    CA_OP_CONN_UP: 'active',
+    CA_OP_CONN_DOWN: 'inactive',
 }
 
 TypeMap = {
@@ -170,15 +174,6 @@ class ExceptionHandlerArgs(Structure):
         ('lineNo', c_uint),
    ]
 
-class Closure:
-    def __init__(self, func):
-        self.initialized = True
-        self.function = func
-        
-    def __call__(self, event ):
-        self.function()
-        return 0
-
 class PV(gobject.GObject):
     """The Process Variable
     
@@ -195,7 +190,7 @@ class PV(gobject.GObject):
       >>>p.name             # name of pv
       >>>p.value            # pv value 
       >>>p.count            # number of elements in array pvs
-      >>>p.element_type     # EPICS data type
+      >>>p.type     # EPICS data type
  
     A pv uses Channel Access monitors to improve efficiency and minimize
     network traffic, so that calls to get() fetches the cached value,
@@ -222,41 +217,52 @@ class PV(gobject.GObject):
     __gsignals__ = {
         'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
                     (gobject.TYPE_PYOBJECT,)),
+        'active' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+        'inactive' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
     }
     
     def __init__(self, name, monitor=True):
         gobject.GObject.__init__(self)
-        self.chid = c_ulong()
+
         self.name = name
         self.value = None
         self.count = None
-        self.element_type = None
-        self.callbacks = {}
+        self.type = None
         self.state = CA_OP_CONN_DOWN
-        self.monitor = monitor
+        
+        self._chid = c_ulong()
+        self._callbacks = {}
+        self._monitor = monitor
         self._lock = thread.allocate_lock()
         self._first_change = True
         self._create_connection()
 
-                   
+    def __repr__(self):
+        s = "<PV:%s, type:%s, elements:%d, state:%s>" % (
+                                                 self.name,
+                                                 self.type,
+                                                 self.count,
+                                                 OP_messages[self.state])
+        return s
+
     def __del__(self):
-        for key,val in self.callbacks:
+        for key,val in self._callbacks:
             self._del_handler(val[2])
-        libca.ca_clear_channel(self.chid)
+        libca.ca_clear_channel(self._chid)
         libca.ca_pend_event(0.1)
         libca.ca_pend_io(1.0)
     
     def get(self):
         if self.state != CA_OP_CONN_UP:
-            ca_logger.error('(%s) PV not connected' % (self.name,))
+            _logger.error('(%s) PV not connected' % (self.name,))
             return 0
         #self._lock.acquire()
-        if self.monitor == True and self.value is not None:
+        if self._monitor == True and self.value is not None:
             ret_val = self.value
         else:
-            libca.ca_array_get( self.element_type, self.count, self.chid, byref(self.data))
+            libca.ca_array_get( self.type, self.count, self._chid, byref(self.data))
             libca.ca_pend_io(1.0)
-            if self.count > 1 and TypeMap[self.element_type] in [c_int, c_float, c_double, c_long]:
+            if self.count > 1 and TypeMap[self.type] in [c_int, c_float, c_double, c_long]:
                 self.value = self.data
             else:
                 self.value = self.data.value
@@ -266,52 +272,46 @@ class PV(gobject.GObject):
 
     def put(self, val):
         if self.state != CA_OP_CONN_UP:
-            ca_logger.error('(%s) PV not connected' % (self.name,))
+            _logger.error('(%s) PV not connected' % (self.name,))
             return
         self.data = self.data_type(val)
         #print "'%s' = '%s'" % (val, self.data.value)
-        libca.ca_array_put(self.element_type, self.count, self.chid, byref(self.data))
+        libca.ca_array_put(self.type, self.count, self._chid, byref(self.data))
         libca.ca_pend_io(1.0)
-
-    def is_connected(self):
-        if self.state == CA_OP_CONN_UP:
-            return True
-        else:
-            return False
 
     def _create_connection(self):
-        libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
+        libca.ca_create_channel(self.name, None, None, 10, byref(self._chid))
         libca.ca_pend_io(1.0)
-        self.count = libca.ca_element_count(self.chid)
-        self.element_type = libca.ca_field_type(self.chid)
-        stat = libca.ca_state(self.chid)
+        self.count = libca.ca_element_count(self._chid)
+        self.type = libca.ca_field_type(self._chid)
+        stat = libca.ca_state(self._chid)
         if stat != NEVER_CONNECTED:
             self.state = CA_OP_CONN_UP
             self._allocate_data_mem()
-            if self.monitor == True:
+            if self._monitor == True:
                 self._add_handler( self._on_change )
         else:
             self._defer_connection()
 
     def _allocate_data_mem(self, value=None):
-        if self.element_type in [DBR_STRING, DBR_CHAR]:
+        if self.type in [DBR_STRING, DBR_CHAR]:
            self.data_type = create_string_buffer
         elif self.count > 1:
-           self.data_type = TypeMap[self.element_type] * self.count
+           self.data_type = TypeMap[self.type] * self.count
         else:
-           self.data_type = TypeMap[self.element_type] 
+           self.data_type = TypeMap[self.type] 
         if value:
             self.data = self.data_type(value)
-        elif self.element_type == DBR_STRING:
+        elif self.type == DBR_STRING:
             self.data = self.data_type(256)
-        elif self.element_type == DBR_CHAR:
+        elif self.type == DBR_CHAR:
             self.data = self.data_type(self.count)
         else:
             self.data = self.data_type()
 
 
     def _defer_connection(self):
-        ca_logger.info('(%s) Deferring Connection.' % (self.name,))
+        _logger.info('(%s) Deferring Connection.' % (self.name,))
         if self.state != CA_OP_CONN_UP:
             cb_factory = CFUNCTYPE(c_int, ConnectionHandlerArgs)
             cb_function = cb_factory(self._on_connect)
@@ -321,7 +321,7 @@ class PV(gobject.GObject):
                 cb_function, 
                 None, 
                 10, 
-                byref(self.chid)
+                byref(self._chid)
             )
             self._connection_callbacks = [cb_factory, cb_function]
             
@@ -344,21 +344,24 @@ class PV(gobject.GObject):
         return 0
         
     def _on_connect(self, event):
-        ca_logger.info('(%s) Connection to PV established.' % (self.name,))
+        _logger.info(self)
         self._lock.acquire()
         self.state = event.op
         if self.state == CA_OP_CONN_UP:
-            self.chid = event.chid
-            self.count = libca.ca_element_count(self.chid)
-            self.element_type = libca.ca_field_type(self.chid)
+            self._chid = event.chid
+            self.count = libca.ca_element_count(self._chid)
+            self.type = libca.ca_field_type(self._chid)
             self._allocate_data_mem()
             self._add_handler( self._on_change )
+            gobject.idle_add(self.emit, 'active')
+        else:
+            gobject.idle_add(self.emit, 'inactive')
         self._lock.release()
         return 0
         
     def _add_handler(self, callback):
         if self.state != CA_OP_CONN_UP:
-            ca_logger.error('(%s) PV not connected.' % (self.name,))
+            _logger.error('(%s) PV not connected.' % (self.name,))
             return
         event_id = c_ulong()
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
@@ -366,16 +369,16 @@ class PV(gobject.GObject):
         key = repr(callback)
         user_arg = c_void_p()
         libca.ca_create_subscription(
-            self.element_type,
+            self.type,
             self.count,
-            self.chid,
+            self._chid,
             DBE_VALUE | DBE_ALARM,
             cb_function,
             user_arg,
             event_id
         )
         libca.ca_pend_io(1.0)
-        self.callbacks[ key ] = [cb_factory, cb_function, event_id]
+        self._callbacks[ key ] = [cb_factory, cb_function, event_id]
         return event_id
                       
     def _del_handler(self, event_id):
@@ -397,13 +400,13 @@ def thread_init():
         libca.ca_attach_context(libca.context)
 
 def ca_exception_handler(event):
-    ctx = '\n    '.join(event.ctx.split(', '))
-    msg = """
-    Warning: %s %s
-    File: %s line %s
-    Time: %s
-    """ % (event.op, ctx, event.pFile, event.lineNo, time.strftime("%X %Z %a, %d %b %Y"))
-    raise Error(msg), None
+    msg = "Warning: %s %s File: %s line %s Time: %s" % (
+                                        event.op, 
+                                        event.ctx, 
+                                        event.pFile, 
+                                        event.lineNo, 
+                                        time.strftime("%X %Z %a, %d %b %Y"))
+    _logger.warning("%s" % (msg,) )   
     return 0
 
 def heart_beat(duration=0.01):
@@ -417,7 +420,7 @@ try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
     libca = cdll.LoadLibrary(libca_file)
 except:
-    ca_logger.warning("EPICS run-time libraries (%s) could not be loaded!" % (libca_file,) )   
+    _logger.warning("EPICS run-time libraries (%s) could not be loaded!" % (libca_file,) )   
     sys.exit()
 
 libca.last_heart_beat = time.time()
