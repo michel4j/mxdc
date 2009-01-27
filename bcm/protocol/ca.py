@@ -349,9 +349,9 @@ class PV(gobject.GObject):
             else:
                 self.value = val_p.contents.value
         #self._lock.release()
-        if self._first_change:
-            self._first_change = False
-            return 0
+        #if self._first_change:
+        #    self._first_change = False
+        #    return 0
         gobject.idle_add(self.emit,'changed', self.value)
         return 0
         
@@ -400,7 +400,7 @@ class PV(gobject.GObject):
 gobject.type_register(PV)
 
     
-def thread_init():
+def threads_init():
     thread_context = libca.ca_current_context()
     if thread_context == 0:
         libca.ca_attach_context(libca.context)

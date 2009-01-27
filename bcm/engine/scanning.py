@@ -111,7 +111,7 @@ class Scanner(ScannerBase):
  
      
     def run(self):
-        ca.thread_init()
+        ca.threads_init()
         gobject.idle_add(self.emit, 'started')
         scan_logger.info("Scanning '%s' vs '%s' " % (self.positioner.name, self.counter.name))
         if self.relative:
@@ -208,7 +208,7 @@ class ExcitationScanner(ScannerBase):
         self.filename = output
                         
     def run(self):
-        ca.thread_init()
+        ca.threads_init()
         scan_logger.debug('Exitation Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
         scan_logger.debug('Exitation Scan started')
@@ -328,7 +328,7 @@ class MADScanner(ScannerBase):
         self.energy_targets = targets
 
     def run(self):
-        ca.thread_init()
+        ca.threads_init()
         self.stopped = False
         self.aborted = False
         self.x_data_points = []
