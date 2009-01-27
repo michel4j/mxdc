@@ -13,10 +13,9 @@ import pango
 import __builtin__
 import __main__
 
-sys.path.append(os.environ['BCM_PATH'])
-from bcm.tools.scanning import scan, rscan
+from bcm.engine.scanning import scan, rscan
 from mxdc.gui.Plotter import Plotter
-from bcm.beamline import PX
+from bcm.beamline.mx import MX
 plotter = Plotter()
 scan.set_plotter(plotter)
 rscan.set_plotter(plotter)

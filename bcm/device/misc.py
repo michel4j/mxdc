@@ -87,7 +87,7 @@ class Attenuator(PositionerBase):
 
 class Shutter(gobject.GObject):
 
-    implements(misc.IShutter)
+    implements(IShutter)
     
     __gsignals__ =  { 
         "changed": ( gobject.SIGNAL_RUN_FIRST, 
