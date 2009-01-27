@@ -28,9 +28,11 @@ class MotorBase(gobject.GObject):
         "health": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
         }  
 
-    def __init__(self):
+    def __init__(self, name):
         gobject.GObject.__init__(self)
-        self._move_active = False
+        self.name = name
+        self._moving = False
+        self._command_sent = False
         self._motor_type = 'basic'
     
     def __repr__(self):
@@ -52,11 +54,12 @@ class MotorBase(gobject.GObject):
 
     def _signal_move(self, obj, state):
         if state == 1:
-            self._move_active = True           
+            self._moving = True           
+            self._command_sent = False
         else:
-            self._move_active = False
-        gobject.idle_add(self.emit, 'moving', self._move_active)
-        if not self._move_active:
+            self._moving = False
+        gobject.idle_add(self.emit, 'moving', self._moving)
+        if not self._moving:
             _logger.info( "(%s) stopped at %f" % (self.name, self.get_position()) )
             
            
@@ -73,7 +76,7 @@ class Motor(MotorBase):
     implements(IMotor) 
        
     def __init__(self, pv_name, motor_type):
-        MotorBase.__init__(self)
+        MotorBase.__init__(self, pv_name)
         pv_parts = pv_name.split(':')
         if len(pv_parts)<2:
             _logger.error("Unable to create motor '%s' of type '%s'." %
@@ -125,8 +128,12 @@ class Motor(MotorBase):
         self.RBV.connect('changed', self._signal_change)
         self.STAT.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
-        self.name = self.DESC.get()
-                            
+        self.DESC.connect('changed', self._on_desc_change)
+
+
+    def _on_desc_change(self, pv, val):
+        self.name = val
+                                        
     def get_position(self):
         return self.RBV.get()
 
@@ -160,12 +167,13 @@ class Motor(MotorBase):
         if not self.is_healthy():
             _logger.warning( "(%s) is not in a sane state. Move canceled!" % (self.name,) )
             return
-
+        
+        self._command_sent = True
         self.VAL.put(pos)
         _logger.info( "(%s) moving to %f" % (self.name, pos) )
         
         if wait:
-            self.wait(start=True, stop=True)
+            self.wait()
 
     def move_by(self,val, wait=False):
         if val == 0.0:
@@ -193,12 +201,15 @@ class Motor(MotorBase):
         timeout = 2.0
         if (start):
             _logger.debug('(%s) Waiting to start moving' % (self.name,))
-            while not self._move_active and timeout > 0:
+            while self._command_sent and not self._moving and timeout > 0:
+                timeout -= poll
                 time.sleep(poll)
-                timeout -= poll                             
+            if timeout <= 0:
+                _logger.warning('Timed out waiting for motor to start moving.')
+                return False                
         if (stop):
             _logger.debug('(%s) Waiting to stop moving' % (self.name,))
-            while self._move_active:
+            while self._moving:
                 time.sleep(poll)
         
 class vmeMotor(Motor):
@@ -222,9 +233,8 @@ class energyMotor(Motor):
     implements(IMotor)
     
     def __init__(self, name=None):
-        MotorBase.__init__(self)
+        MotorBase.__init__(self, 'Beamline Energy')
         self.units = 'keV'
-        self.name = 'Beamline Energy'
         
         # initialize process variables
         self.VAL  = PV("BL08ID1:energy")    
@@ -273,11 +283,12 @@ class braggEnergyMotor(Motor):
             return
 
         deg_target = converter.energy_to_bragg(pos)
+        self._command_sent = True
         self.VAL.put(deg_target)
         _logger.info( "(%s) moving to %f" % (self.name, pos) )
         
         if wait:
-            self.wait(start=True,stop=True)
+            self.wait()
        
 gobject.type_register(MotorBase)
 

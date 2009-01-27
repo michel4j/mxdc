@@ -60,6 +60,7 @@ class MXCCDImager(object):
         self._state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
         self._state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
         self._bg_taken = False
+        self._state_string = '00002020'
         
         self._state.connect('changed', self._on_state_change)
         self._connection_state.connect('changed', self._update_background)
