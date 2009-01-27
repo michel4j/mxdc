@@ -242,10 +242,10 @@ class IMultiChannelAnalyzer(ICounter):
 
     name = Attribute("""Name or description of device.""")
     
-    def configure(props):
+    def configure(**kwargs):
         """Configure the properties of the device.
         
-        Arguments: properties        
+        Keyword arguments: properties        
         props    -- a dictionary of property name, value pairs to set
         valid keys for props are:
             cooling     -- boolean value, whether to turn cooling on or off
