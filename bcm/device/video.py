@@ -59,7 +59,7 @@ class SimCamera(CameraBase):
         self.frame = toimage(numpy.fromstring(data, 'B').reshape(
                                                     self.resolution[1], 
                                                     self.resolution[0]))
-                                                                                                )                   
+
     def get_frame(self):
         self.update()
         return self.frame
@@ -87,7 +87,7 @@ class CACamera(CameraBase):
             while len(data) != self._packet_size:
                 data = self._cam.get()
                 
-        self.frame = toimage(numpy.fromstring(data, 'B').reshape(
+            self.frame = toimage(numpy.fromstring(data, 'B').reshape(
                                                     self.resolution[1], 
                                                     self.resolution[0]))
         else:
