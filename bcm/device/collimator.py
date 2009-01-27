@@ -1,5 +1,3 @@
-import time
-import math
 import logging
 from zope.interface import implements
 from bcm.device.interfaces import ICollimator, IMotor
@@ -18,9 +16,8 @@ class Collimator(object):
 
     implements(misc.IGoniometer)
     
-    def __init__(self, width, height):
-        # initialize 
-        
+    def __init__(self, name, width, height):
+        self.name = name
         self.width  = width
         self.height = height
                     

@@ -25,7 +25,7 @@ class MXCCDImager(object):
     def __init__(self, name, size, resolution):
         self.size = size
         self.resolution = resolution
-        self._name = name
+        self.name = name
         
         self._start_cmd = ca.PV("%s:start:cmd" % name, monitor=False)
         self._abort_cmd = ca.PV("%s:abort:cmd" % name, monitor=False)
@@ -62,15 +62,14 @@ class MXCCDImager(object):
         self._bg_taken = False
         
         self._state.connect('changed', self._on_state_change)
-        self._state_string = "%08x" % self._state.get()
         self._connection_state.connect('changed', self._update_background)
 
     def __repr__(self):
-        return "<%s:'%s', state:'%s'>" % (self.__class__.__name__, self._name, self.get_state() )
+        return "<%s:'%s', state:'%s'>" % (self.__class__.__name__, self.name, self.get_state() )
     
     def initialize(self, wait=True):
         if not self._bg_taken:
-            _logger.debug('(%s) Initializing CCD ...' % (self._name,)) 
+            _logger.debug('(%s) Initializing CCD ...' % (self.name,)) 
             if not self._is_in_state('idle'):
                 self.stop()
             self._wait_in_state('acquire:queue')
@@ -79,7 +78,7 @@ class MXCCDImager(object):
             if wait:
                 self.wait()
             self._bg_taken = True
-            _logger.debug('(%s) CCD Initialization complete.' % (self._name,)) 
+            _logger.debug('(%s) CCD Initialization complete.' % (self.name,)) 
                         
     def start(self):
         self.initialize(True)
@@ -89,7 +88,7 @@ class MXCCDImager(object):
         self._wait_for_state('acquire:exec')
 
     def stop(self):
-        _logger.debug('(%s) Stopping CCD ...' % (self._name,))
+        _logger.debug('(%s) Stopping CCD ...' % (self.name,))
         self._abort_cmd.put(1)
         self._wait_for_state('idle')
         
@@ -130,18 +129,18 @@ class MXCCDImager(object):
         return True
 
     def _wait_for_state(self, state, timeout=5.0):
-        _logger.debug('(%s) Waiting for state: %s' % (self._name, state,) ) 
+        _logger.debug('(%s) Waiting for state: %s' % (self.name, state,) ) 
         while (not self._is_in_state(state)) and timeout > 0:
             timeout -= 0.05
             time.sleep(0.05)
         if timeout > 0: 
             return True
         else:
-            _logger.warning('(%s) Timed out waiting for state: %s' % (self._name, state,) ) 
+            _logger.warning('(%s) Timed out waiting for state: %s' % (self.name, state,) ) 
             return False
 
     def _wait_in_state(self, state):      
-        _logger.debug('(%s) Waiting for state "%s" to expire.' % (self._name, state,) ) 
+        _logger.debug('(%s) Waiting for state "%s" to expire.' % (self.name, state,) ) 
         while self._is_in_state(state):
             time.sleep(0.05)
         return True

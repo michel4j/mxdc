@@ -6,6 +6,8 @@ from zope.interface import Interface, Attribute, invariant
 class IAutomounter(Interface):
     
     """A sample automounter device object."""
+    
+    name = Attribute("""Name or description of device.""")
      
     def mount(address, wash=False):
         """Pick up a sample and mount in on the goniometer.
@@ -57,6 +59,7 @@ class ICollimator(Interface):
     
     width = Attribute("""A motor controlling the horizontal gap.""")
     height = Attribute("""A motor controlling the vertical gap.""")
+    name = Attribute("""Name or description of device.""")
     
 
     def wait():
@@ -72,8 +75,9 @@ class ICollimator(Interface):
 class ICounter(Interface):
 
     """An integrating counter object."""
+    
     value = Attribute("""Process Variable.""")
-    name = Attribute("""Name or description of counter.""")
+    name = Attribute("""Name or description of device.""")
             
     def count(time):
         """
@@ -89,6 +93,7 @@ class IMonochromator(Interface):
 
     """A monochromator device object."""
     
+    name = Attribute("""Name or description of device.""")
     energy = Attribute("""Full monochromator energy motor""")
     bragg_energy = Attribute("""Simple monochromator energy motor.""")
     
@@ -109,6 +114,7 @@ class IGoniometer(Interface):
 
     """A goniometer device object."""
     
+    name = Attribute("""Name or description of device.""")
     omega = Attribute("""Goniometer omega motor.""")
     
     def configure(time=1.0, delta=1.0, angle=0.0):
@@ -136,6 +142,8 @@ class IGoniometer(Interface):
 class IShutter(Interface):
 
     """A shutter device object."""
+
+    name = Attribute("""Name or description of device.""")
     
     def open():
         """Open the shutter."""
@@ -151,6 +159,7 @@ class IImagingDetector(Interface):
 
     """An imaging detector device for aquiring image frames."""
     
+    name = Attribute("""Name or description of device.""")
     size = Attribute("""A size in pixels along x-axis.""")
     resolution = Attribute("""Pixel resolution in mm.""" )    
        
@@ -213,6 +222,7 @@ class IDiffractometer(Interface):
 
     """A diffractometer device object."""
     
+    name = Attribute("""Name or description of device.""")
     distance = Attribute("""Detector distance motor.""")
     two_theta = Attribute("""Detector swing-out angle motor.""")
 
@@ -229,6 +239,8 @@ class IDiffractometer(Interface):
 class IMultiChannelAnalyzer(ICounter):
 
     """A Multi Channel Analyzer device object"""
+
+    name = Attribute("""Name or description of device.""")
     
     def configure(props):
         """Configure the properties of the device.
@@ -237,7 +249,7 @@ class IMultiChannelAnalyzer(ICounter):
         props    -- a dictionary of property name, value pairs to set
         valid keys for props are:
             cooling     -- boolean value, whether to turn cooling on or off
-            energy      -- set the position of the regioin of interest. None 
+            energy      -- set the position of the region of interest. None 
                            resets to the full range.        
 
         """
@@ -315,6 +327,7 @@ class ICamera(Interface):
 
     """A camera device object providing a video source."""
     
+    name = Attribute("""Name or description of device.""")
     resolution = Attribute("""A 2-tuple for horizontal and vertical size.""")
             
     def get_frame():

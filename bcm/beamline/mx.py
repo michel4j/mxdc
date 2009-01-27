@@ -1,37 +1,32 @@
 import os
 import gobject
-from bcm.devices import positioners, detectors, cameras, misc
-from bcm.protocols import ca
-from bcm.utils import gtk_idle
-from ConfigParser import ConfigParser
 import thread
-from bcm.tools import *
-
-import string
 import xmlrpclib
+from ConfigParser import ConfigParser
+from bcm.device import motor, detector, counter, video, misc, goniometer, mca
+from bcm.protocol import ca
+from bcm.utils.utils import gtk_idle
+
 
 _DEVICE_MAP = {
-    'clsmotors': positioners.clsMotor,
-    'vmemotors': positioners.vmeMotor,
-    'pseudomotors': positioners.pseudoMotor,
-    'counters': detectors.Counter,
-    'positioners': positioners.Positioner,
-    'mcas': detectors.MCA,
-    'detectors': detectors.MarCCDImager,
-    'goniometers': misc.Gonio,
+    'clsmotors': motor.clsMotor,
+    'vmemotors': motor.vmeMotor,
+    'pseudomotors': motor.pseudoMotor,
+    'counters': counter.Counter,
+    'mcas': mca.MultiChannelAnalyzer,
+    'detectors': detector.MXCCDImager,
+    'goniometers': goniometer.Goniometer,
     'shutters': misc.Shutter,
-    'qbpms': detectors.QBPM,
-    'cameras': cameras.Camera,
-    'axiscameras': cameras.AxisCamera,
-    'fakecameras': cameras.CameraSim,
-    'energymotors': positioners.energyMotor,
-    'attenuators': positioners.Attenuator,
-    'energymotor': positioners.energyMotor,
-    'braggenergymotor': positioners.braggEnergyMotor,
+    'cameras': video.CACamera,
+    'axiscameras': video.AxisCamera,
+    'fakecameras': video.SimCamera,
+    'energymotors': motor.energyMotor,
+    'attenuators': misc.Attenuator,
+    'energymotor': motor.energyMotor,
+    'braggenergymotor': motor.braggEnergyMotor,
     'variables': ca.PV,
     'webservices': xmlrpclib.ServerProxy,
     'cryojets': misc.Cryojet,
-    'optimizers': misc.Optimizer,
     }
 
 
@@ -59,7 +54,7 @@ gobject.type_register(BeamlineBase)
     
     
 
-class PX(BeamlineBase):
+class MX(BeamlineBase):
     def __init__(self, filename):
         BeamlineBase.__init__(self)
         
@@ -163,6 +158,6 @@ class PX(BeamlineBase):
         
         
 if __name__ == '__main__':
-    bl = PX('vlinac.conf')
+    bl = MX('vlinac.conf')
     bl()
     
