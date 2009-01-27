@@ -1,12 +1,13 @@
-from bcm.interfaces.detectors import *
-from bcm.protocols import ca
-from zope.interface import implements
 import time
-import threading
 import sys
+import logging
 import numpy
 import gobject
-import logging
+
+from zope.interface import implements
+from bcm.device.interfaces import IImagingDetector
+from bcm.protocol import ca
+from bcm.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -16,26 +17,29 @@ class DetectorError(Exception):
 
     """Base class for errors in the detector module."""
             
-
+     
+class MXCCDImager(object):
     
-        
-class MarCCDImager(object):
     implements(IImagingDetector)
-    def __init__(self, name):
-        self.name = name
-        self.start_cmd = ca.PV("%s:start:cmd" % name, monitor=False)
-        self.abort_cmd = ca.PV("%s:abort:cmd" % name, monitor=False)
-        self.readout_cmd = ca.PV("%s:correct:cmd" % name, monitor=False)
-        self.writefile_cmd = ca.PV("%s:writefile:cmd" % name, monitor=False)
-        self.background_cmd = ca.PV("%s:dezFrm:cmd" % name, monitor=False)
-        self.save_cmd = ca.PV("%s:rdwrOut:cmd" % name, monitor=False)
-        self.collect_cmd = ca.PV("%s:frameCollect:cmd" % name, monitor=False)
-        self.header_cmd = ca.PV("%s:header:cmd" % name, monitor=False)
-        self.readout_flag = ca.PV("%s:readout:flag" % name, monitor=False)
-        self.connection_state = ca.PV('%s:sock:state'% name)
+    
+    def __init__(self, name, size, resolution):
+        self.size = size
+        self.resolution = resolution
+        self._name = name
+        
+        self._start_cmd = ca.PV("%s:start:cmd" % name, monitor=False)
+        self._abort_cmd = ca.PV("%s:abort:cmd" % name, monitor=False)
+        self._readout_cmd = ca.PV("%s:correct:cmd" % name, monitor=False)
+        self._writefile_cmd = ca.PV("%s:writefile:cmd" % name, monitor=False)
+        self._background_cmd = ca.PV("%s:dezFrm:cmd" % name, monitor=False)
+        self._save_cmd = ca.PV("%s:rdwrOut:cmd" % name, monitor=False)
+        self._collect_cmd = ca.PV("%s:frameCollect:cmd" % name, monitor=False)
+        self._header_cmd = ca.PV("%s:header:cmd" % name, monitor=False)
+        self._readout_flag = ca.PV("%s:readout:flag" % name, monitor=False)
+        self._connection_state = ca.PV('%s:sock:state'% name)
         
         #Header parameters
-        self.header = {
+        self._header = {
             'filename' : ca.PV("%s:img:filename" % name, monitor=False),
             'directory': ca.PV("%s:img:dirname" % name, monitor=False),
             'beam_x' : ca.PV("%s:beam:x" % name, monitor=False),
@@ -52,100 +56,99 @@ class MarCCDImager(object):
         }
                 
         #Status parameters
-        self.state = ca.PV("%s:rawState" % name)
-        self.state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
-        self.state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
+        self._state = ca.PV("%s:rawState" % name)
+        self._state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
+        self._state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
         self._bg_taken = False
         
-        self.state.connect('changed', self._on_state_change)
-        self.state_string = "%08x" % self.state.get()
-        self.connection_state.connect('changed', self._update_background)
-        self._logger = logging.getLogger('bcm.ccd')
+        self._state.connect('changed', self._on_state_change)
+        self._state_string = "%08x" % self._state.get()
+        self._connection_state.connect('changed', self._update_background)
 
-    def _update_background(self, obj, state):
-        if state == 1:
-            self._bg_taken = False
-                      
+    def __repr__(self):
+        return "<%s:'%s', state:'%s'>" % (self.__class__.__name__, self._name, self.get_state() )
+    
+    def initialize(self, wait=True):
+        if not self._bg_taken:
+            _logger.debug('(%s) Initializing CCD ...' % (self._name,)) 
+            if not self._is_in_state('idle'):
+                self.stop()
+            self._wait_in_state('acquire:queue')
+            self._wait_in_state('acquire:exec')
+            self._background_cmd.put(1)
+            if wait:
+                self.wait()
+            self._bg_taken = True
+            _logger.debug('(%s) CCD Initialization complete.' % (self._name,)) 
+                        
     def start(self):
         self.initialize(True)
         self._wait_in_state('acquire:queue')
         self._wait_in_state('acquire:exec')
-        self.start_cmd.put(1)
+        self._start_cmd.put(1)
         self._wait_for_state('acquire:exec')
 
-    def is_healthy(self):
-        if self.connection_state.get() == 1:
-            return True
-        else:
-            return False
-
-    def set_parameters(self, data):
-        for key in data.keys():
-            self.header[key].put(data[key])        
-        self.header_cmd.put(1)
-    
-    def save(self,wait=False):
-        self.readout_flag.put(0)
-        self.save_cmd.put(1)
+    def stop(self):
+        _logger.debug('(%s) Stopping CCD ...' % (self._name,))
+        self._abort_cmd.put(1)
+        self._wait_for_state('idle')
+        
+    def save(self, props, wait=False):
+        self._set_parameters(props)
+        ca.flush()  # make sure headers are set before starting readout
+        self._readout_flag.put(0)
+        self._save_cmd.put(1)
         if wait:
             self._wait_for_state('read:exec')
     
-    def _on_state_change(self, pv, val):
-        self.state_string = "%08x" % val
-        return True
-    
-    def _get_states(self):
-        state_string = self.state_string[:]
+    def get_state(self):
+        state_string = self._state_string[:]
         states = []
         for i in range(8):
             state_val = int(state_string[i])
             if state_val != 0:
-                state_unit = "%s:%s" % (self.state_names[i],self.state_bits[state_val])
+                state_unit = "%s:%s" % (self._state_names[i],self._state_bits[state_val])
                 states.append(state_unit)
         if len(states) == 0:
             states.append('idle')
         return states
+    
+    def wait(self, state='idle'):
+        self._wait_for_state(state,timeout=30.0)
+                
+    def _update_background(self, obj, state):
+        if state == 1:
+            self._bg_taken = False
+                      
+    def _set_parameters(self, data):
+        for key in data.keys():
+            self._header[key].put(data[key])        
+        self._header_cmd.put(1)
+    
+    def _on_state_change(self, pv, val):
+        self._state_string = "%08x" % val
+        return True
 
-    def _wait_for_state(self,state, timeout=5.0):
-        self._logger.debug('Waiting for state: %s' % (state,) ) 
+    def _wait_for_state(self, state, timeout=5.0):
+        _logger.debug('(%s) Waiting for state: %s' % (self._name, state,) ) 
         while (not self._is_in_state(state)) and timeout > 0:
             timeout -= 0.05
             time.sleep(0.05)
         if timeout > 0: 
             return True
         else:
-            self._logger.warning('Timed out waiting for state: %s' % (state,) ) 
+            _logger.warning('(%s) Timed out waiting for state: %s' % (self._name, state,) ) 
             return False
 
     def _wait_in_state(self, state):      
-        self._logger.debug('Waiting for state "%s" to expire.' % (state,) ) 
+        _logger.debug('(%s) Waiting for state "%s" to expire.' % (self._name, state,) ) 
         while self._is_in_state(state):
             time.sleep(0.05)
         return True
         
     def _is_in_state(self, state):
-        if state in self._get_states():
+        if state in self.get_state():
             return True
         else:
             return False
-
-    def initialize(self, wait=True):
-        if not self._bg_taken:
-            self._logger.debug('Initializing CCD ...') 
-            if not self._is_in_state('idle'):
-                self.abort_cmd.put(1)
-                self._wait_for_state('idle')
-            self._wait_in_state('acquire:queue')
-            self._wait_in_state('acquire:exec')
-            self.background_cmd.put(1)
-            if wait:
-                self._wait_for_state('acquire:exec')
-                self._wait_for_state('idle')
-            self._bg_taken = True
-            self._logger.debug('CCD Initialization complete.') 
-                        
-            
-
-
-gobject.type_register(DetectorBase)
     

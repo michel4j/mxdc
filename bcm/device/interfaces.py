@@ -150,6 +150,9 @@ class IShutter(Interface):
 class IImagingDetector(Interface):
 
     """An imaging detector device for aquiring image frames."""
+    
+    size = Attribute("""A size in pixels along x-axis.""")
+    resolution = Attribute("""Pixel resolution in mm.""" )    
        
     def initialize():
         """Reset and initialize the detector."""

@@ -36,6 +36,7 @@ import logging
 from ctypes import *
 import gobject
 
+from zope.interface import implements
 from bcm.protocol.interfaces import IProcessVariable
 from bcm.utils.log import get_module_logger
 
@@ -174,7 +175,14 @@ class ExceptionHandlerArgs(Structure):
         ('lineNo', c_uint),
    ]
 
+
+class ChannelAccessError(Exception):
+    
+    """Channel Access Exception."""
+
+
 class PV(gobject.GObject):
+    
     """The Process Variable
     
     A pv encapsulates an Epics Process Variable (aka a 'channel').
@@ -214,6 +222,7 @@ class PV(gobject.GObject):
     allocate resources on the client machine.  Again, this connection must happen
     before you can do anything useful with the PV.    """
     
+    implements(IProcessVariable)
     __gsignals__ = {
         'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
                     (gobject.TYPE_PYOBJECT,)),
@@ -221,7 +230,7 @@ class PV(gobject.GObject):
         'inactive' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
     }
     
-    def __init__(self, name, monitor=True):
+    def __init__(self, name, monitor=True, connect=False):
         gobject.GObject.__init__(self)
 
         self.name = name
@@ -235,10 +244,13 @@ class PV(gobject.GObject):
         self._monitor = monitor
         self._lock = thread.allocate_lock()
         self._first_change = True
-        self._create_connection()
+        if connect:
+            self._create_connection()
+        else:
+            self._defer_connection()
 
     def __repr__(self):
-        s = "<PV:%s, type:%s, elements:%d, state:%s>" % (
+        s = "<PV:%s, type:%s, elements:%s, state:%s>" % (
                                                  self.name,
                                                  self.type,
                                                  self.count,
@@ -255,7 +267,7 @@ class PV(gobject.GObject):
     def get(self):
         if self.state != CA_OP_CONN_UP:
             _logger.error('(%s) PV not connected' % (self.name,))
-            return 0
+            raise ChannelAccessError('PV not connected')
         #self._lock.acquire()
         if self._monitor == True and self.value is not None:
             ret_val = self.value
@@ -273,7 +285,7 @@ class PV(gobject.GObject):
     def put(self, val):
         if self.state != CA_OP_CONN_UP:
             _logger.error('(%s) PV not connected' % (self.name,))
-            return
+            raise ChannelAccessError('PV not connected')
         self.data = self.data_type(val)
         #print "'%s' = '%s'" % (val, self.data.value)
         libca.ca_array_put(self.type, self.count, self._chid, byref(self.data))
@@ -293,6 +305,21 @@ class PV(gobject.GObject):
         else:
             self._defer_connection()
 
+    def _defer_connection(self):
+        _logger.info('(%s) Deferring Connection.' % (self.name,))
+        if self.state != CA_OP_CONN_UP:
+            cb_factory = CFUNCTYPE(c_int, ConnectionHandlerArgs)
+            cb_function = cb_factory(self._on_connect)
+            self.connect_args = ConnectionHandlerArgs()
+            libca.ca_create_channel(
+                self.name, 
+                cb_function, 
+                None, 
+                10, 
+                byref(self._chid)
+            )
+            self._connection_callbacks = [cb_factory, cb_function]
+
     def _allocate_data_mem(self, value=None):
         if self.type in [DBR_STRING, DBR_CHAR]:
            self.data_type = create_string_buffer
@@ -310,21 +337,6 @@ class PV(gobject.GObject):
             self.data = self.data_type()
 
 
-    def _defer_connection(self):
-        _logger.info('(%s) Deferring Connection.' % (self.name,))
-        if self.state != CA_OP_CONN_UP:
-            cb_factory = CFUNCTYPE(c_int, ConnectionHandlerArgs)
-            cb_function = cb_factory(self._on_connect)
-            self.connect_args = ConnectionHandlerArgs()
-            libca.ca_create_channel(
-                self.name, 
-                cb_function, 
-                None, 
-                10, 
-                byref(self._chid)
-            )
-            self._connection_callbacks = [cb_factory, cb_function]
-            
     def _on_change(self, event):
         #self._lock.acquire()
         if event.type in [ DBR_STRING,  DBR_CHAR ]:
@@ -344,7 +356,6 @@ class PV(gobject.GObject):
         return 0
         
     def _on_connect(self, event):
-        _logger.info(self)
         self._lock.acquire()
         self.state = event.op
         if self.state == CA_OP_CONN_UP:
@@ -357,12 +368,13 @@ class PV(gobject.GObject):
         else:
             gobject.idle_add(self.emit, 'inactive')
         self._lock.release()
+        _logger.debug(self)
         return 0
         
     def _add_handler(self, callback):
         if self.state != CA_OP_CONN_UP:
             _logger.error('(%s) PV not connected.' % (self.name,))
-            return
+            raise ChannelAccessError('PV not connected')
         event_id = c_ulong()
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
         cb_function = cb_factory(callback)
@@ -387,34 +399,31 @@ class PV(gobject.GObject):
                   
 gobject.type_register(PV)
 
-class Error(Exception):
-    def __init__(self, message):
-        self.message = message
-
-    def __str__(self):
-        return self.message
-
+    
 def thread_init():
     thread_context = libca.ca_current_context()
     if thread_context == 0:
         libca.ca_attach_context(libca.context)
 
+def flush():
+    return libca.ca_flush_io()
+
 def ca_exception_handler(event):
-    msg = "Warning: %s %s File: %s line %s Time: %s" % (
+    msg = "%s %s File: %s line %s Time: %s" % (
                                         event.op, 
                                         event.ctx, 
                                         event.pFile, 
                                         event.lineNo, 
                                         time.strftime("%X %Z %a, %d %b %Y"))
-    _logger.warning("%s" % (msg,) )   
+    _logger.warning("Protocol error")   
     return 0
 
-def heart_beat(duration=0.01):
+def _heart_beat(duration=0.01):
     libca.ca_pend_event(duration)
     return True
 
 #Make sure you get the events on time.
-gobject.timeout_add(10, heart_beat, 0.005)
+gobject.timeout_add(10, _heart_beat, 0.005)
      
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
@@ -452,6 +461,7 @@ libca.ca_array_put.argtypes = [c_long, c_uint, c_ulong, c_void_p]
 
 libca.ca_pend_io.argtypes = [c_double]
 libca.ca_pend_event.argtypes = [c_double]
+libca.ca_flush_io.restype = c_uint
 
 libca.ca_context_create.argtypes = [c_ushort]
 
