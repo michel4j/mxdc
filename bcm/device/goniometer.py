@@ -1,15 +1,20 @@
 import time
-import math
 import logging
 
 from zope.interface import implements
-from bcm.device.interfaces import IGoniometer, IMotor
+from bcm.device.interfaces import IGoniometer
 from bcm.protocol.ca import PV
+from bcm.device.motor import vmeMotor
 from bcm.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
+# Goniometer state constants
+(
+    GONIO_IDLE,
+    GONIO_ACTIVE,
+) = range(2)
 
 class GoniometerError(Exception):
 
@@ -17,21 +22,23 @@ class GoniometerError(Exception):
 
 class Goniometer(object):
 
-    implements(misc.IGoniometer)
+    implements(IGoniometer)
 
-    def __init__(self, name, omega):
+    def __init__(self, name):
+        self.name = name
+        pv_root = name.split(':')[0]
         # initialize process variables
-        self._scan_cmd = PV("%s:scanFrame.PROC" % name, monitor=False)
-        self._state = PV("%s:scanFrame:status" % name)
-        self._shutter_state = PV("%s:outp1:fbk" % name)
+        self._scan_cmd = PV("%s:scanFrame.PROC" % pv_root, monitor=False)
+        self._state = PV("%s:scanFrame:status" % pv_root)
+        self._shutter_state = PV("%s:outp1:fbk" % pv_root)
         
-        self.omega = IMotor(omega)
+        self.omega = vmeMotor(name)
                 
         #parameters
         self._settings = {
-            'time' : PV("%s:expTime" % name, monitor=False),
-            'delta' : PV("%s:deltaOmega" % name, monitor=False),
-            'angle': PV("%s:openSHPos" % name, monitor=False),
+            'time' : PV("%s:expTime" % pv_root, monitor=False),
+            'delta' : PV("%s:deltaOmega" % pv_root, monitor=False),
+            'angle': PV("%s:openSHPos" % pv_root, monitor=False),
         }
         
                 
@@ -43,7 +50,7 @@ class Goniometer(object):
         self._scan_cmd.put('\x01')
 
     def get_state(self):
-        return self._state.get() != 0        
+        return self._state.get()    
                         
     def wait(self, start=True, stop=True, poll=0.01, timeout=20):
         if (start):
@@ -58,6 +65,6 @@ class Goniometer(object):
                 time_left -= poll
 
     def stop(self):
-        pass    # FIXME: We need a proper way to stop goniometer
+        pass    # FIXME: We need a proper way to stop goniometer scan
 
 
