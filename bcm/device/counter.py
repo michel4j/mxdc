@@ -23,6 +23,10 @@ class Counter(object):
         self.name = pv_name     
         self.value = PV(pv_name)
     
+    def __repr__(self):
+        s = "<%s:'%s'>" % (self.__class__.__name__, self.name)
+        return s
+    
     def count(self, t):
         if t <= 0.0:
             return self.value.get()
