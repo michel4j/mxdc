@@ -64,7 +64,7 @@ class DataCollector(gobject.GObject):
     def run(self):
         self.paused = False
         self.stopped = False
-        ca.thread_init() 
+        ca.threads_init() 
         self.beamline.lock.acquire()            
         self.shutter.close()
         if not self._background_taken:

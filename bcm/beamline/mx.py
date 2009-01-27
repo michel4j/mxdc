@@ -67,7 +67,7 @@ class MX(BeamlineBase):
         self.setup()
         
     def setup(self, idle_func=gtk_idle):
-        ca.thread_init()
+        ca.threads_init()
         config = ConfigParser()
         config.read(self.config_file)
         sections =config.sections()
@@ -105,7 +105,7 @@ class MX(BeamlineBase):
         #    assert hasattr(self, attr)
 
     def configure(self, *args, **kwargs):
-        ca.thread_init()
+        ca.threads_init()
         _moved = []
         for k,v in kwargs.items():
             if k == 'energy':
