@@ -10,7 +10,7 @@ class IProcessVariable(Interface):
     def get():
         """Get and return the value of the process variable."""
     
-    def put(val):
+    def set(val):
         """Set the value of the process variable.
         
         Arguments:
