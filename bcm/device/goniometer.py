@@ -47,7 +47,7 @@ class Goniometer(object):
             self._settings[key].put(kwargs[key])
     
     def scan(self):
-        self._scan_cmd.put('\x01')
+        self._scan_cmd.set('\x01')
 
     def get_state(self):
         return self._state.get()    

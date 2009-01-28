@@ -5,7 +5,7 @@ from zope.interface import implements
 from bcm.protocol.ca import PV
 from bcm.utils.log import get_module_logger
 from bcm.utils import converter
-from bcm.device.interfaces import IPositioner, IShutter
+from bcm.device.interfaces import IPositioner, IShutter, ICryojet
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -16,27 +16,42 @@ class MiscDeviceError(Exception):
     """Base class for errors in the misc module."""
 
 
-class PositionerBase(gobject.GObject):
+class Positioner(gobject.GObject):
     __gsignals__ =  { 
         "changed": ( gobject.SIGNAL_RUN_FIRST, 
                      gobject.TYPE_NONE, 
                      (gobject.TYPE_PYOBJECT,)),
         }  
 
-    def __init__(self):
+    def __init__(self, name, fbk_name, units=""):
         gobject.GObject.__init__(self)
-
+        self.set_pv = PV(name)
+        self.fbk_pv = PV(fbk_name)
+        self.units = units
+        self.fbk_pv.connect('changed', self._signal_change)
+    
+    def set(self, pos):
+        self.set_pv.set(pos)
+    
+    def get(self):
+        return self.fbk_pv.get()
+    
     def _signal_change(self, obj, value):
-        gobject.idle_add(self.emit,'changed', self.get_position() )
+        gobject.idle_add(self.emit,'changed', self.get())
             
         
         
-class Attenuator(PositionerBase):
+class Attenuator(gobject.GObject):
 
     implements(IPositioner)
+    __gsignals__ =  { 
+        "changed": ( gobject.SIGNAL_RUN_FIRST, 
+                     gobject.TYPE_NONE, 
+                     (gobject.TYPE_PYOBJECT,)),
+        }  
     
     def __init__(self, bit1, bit2, bit3, bit4, energy):
-        PositionerBase.__init__(self)
+        gobject.GObject.__init__(self)
         self._filters = [
             PV(bit1),
             PV(bit2),
@@ -49,7 +64,7 @@ class Attenuator(PositionerBase):
             f.connect('changed', self._signal_change)
         self._energy.connect('changed', self._signal_change)
         
-    def get_position(self):
+    def get(self):
         e = self._energy.get()
         bitmap = ''
         for f in self._filters:
@@ -63,7 +78,7 @@ class Attenuator(PositionerBase):
             attenuation = 1.0
         return attenuation*100.0
     
-    def set_position(self, target):
+    def set(self, target):
         e = self._energy.get()
         if target > 99.9:
             target = 99.9
@@ -83,6 +98,8 @@ class Attenuator(PositionerBase):
         _logger.info('Attenuation of %f %s requested' % (target, self.units))
         _logger.debug('Filters [8421] set to [%s] (0=off,1=on)' % bitmap)
     
+    def _signal_change(self, obj, value):
+        gobject.idle_add(self.emit,'changed', self.get())
     
 
 class Shutter(gobject.GObject):
@@ -107,10 +124,10 @@ class Shutter(gobject.GObject):
         return self._state.get() == 1
     
     def open(self):
-        self._open_cmd.put(1)
+        self._open_cmd.set(1)
     
     def close(self):
-        self._close_cmd.put(1)
+        self._close_cmd.set(1)
 
     def _signal_change(self, obj, value):
         if value == 1:
@@ -124,91 +141,36 @@ class Shutter(gobject.GObject):
 
 
 
-class Cryojet(gobject.GObject):
-    __gsignals__ =  { 
-        "sample-flow": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
-        "shield-flow": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
-        "level": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
-        "temperature": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)  ),
-        "status": ( gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)  ),
-        }
+class Cryojet(object):
+    
+    implements(ICryojet)
     
     def __init__(self, cname, lname):
-        gobject.GObject.__init__(self)        
-        self.temp_fbk = PV('%s:sensorTemp:get' % cname)
-        self.temp = PV('%s:desiredTemp:set' % cname)
-        self.smpl_flow_fbk = PV('%s:SampleFlow:get' % cname)
-        self.smpl_flow = PV('%s:sampleFlow:set' % cname)
-        self.shld_flow_fbk = PV('%s:ShieldFlow:get' % cname)
-        self.shld_flow = PV('%s:shieldFlow:set' % cname)
-        self.level_fbk = PV('%s:ch1LVL:get' % lname)
-        self.level_sts = PV('%s:status:ch1:N.SVAL' % lname)
-        
-        self.level_fbk.connect('changed', self.on_level_changed)
-        self.shld_flow_fbk.connect('changed', self.on_shield_changed)
-        self.smpl_flow_fbk.connect('changed', self.on_sample_changed)
-        self.temp_fbk.connect('changed', self.on_temperature_changed)
-        self.level_sts.connect('changed', self.on_status_changed)
-        self.previous_flow = 6.0
-        
-    def on_level_changed(self, pv, val):
-        gobject.idle_add(self.emit, 'level', val*0.1)
-        return True
-    
-    def on_sample_changed(self, pv, val):
-        gobject.idle_add(self.emit, 'sample-flow', val)
-        return True
-    
-    def on_temperature_changed(self, pv, val):
-        gobject.idle_add(self.emit, 'temperature', val)
-        return True
-    
-    def on_shield_changed(self, pv, val):
-        gobject.idle_add(self.emit, 'shield-flow', val)
-        return True
-    
-    def on_status_changed(self, pv, val):
-        gobject.idle_add(self.emit, 'status', val)
-        
-    def set_temperature(self, t=100):
-        self.temp.put(t)
-    
-    def get_temperature(self):
-        return self.temp_fbk.get()
-    
-    def set_sample_flow(self, f=8.0):
-        self.smpl_flow.put(f)
-    
-    def get_sample_flow(self):
-        return self.smpl_flow_fbk.get()
-    
-    def set_shield_flow(self, f=5.0):
-        self.shld_flow.put(f)
-    
-    def get_shield_flow(self):
-        return self.shld_flow.get()
-    
-    def get_level(self):
-        return 0.1 * self.level_fbk.get()
-    
-    def get_status(self):
-        return self.level_sts.get()
+        self.temperature = Positioner('%s:sensorTemp:get' % cname,
+                                      '%s:sensorTemp:get' % cname,
+                                      'K')
+        self.sample_flow = Positioner('%s:sampleFlow:set' % cname,
+                                      '%s:SampleFlow:get' % cname,
+                                      'L/min')
+        self.shield_flow = Positioner('%s:shieldFlow:set' % cname,
+                                      '%s:ShieldFlow:get' % cname,
+                                      'L/min')
+        self.level = PV('%s:ch1LVL:get' % lname)
+        self._level_status = PV('%s:status:ch1:N.SVAL' % lname)
+        self._previous_flow = 6.0
+            
+    def get_state(self):
+        return self._level_status.get()
     
     def resume_flow(self):
-        self.smpl_flow.put(self.previous_flow)
+        self.sample_flow.set(self._previous_flow)
     
     def stop_flow(self):
-        self.previous_flow = self.smpl_flow_fbk.get()
-        self.smpl_flow.put(0.0)
+        self._previous_flow = self.sample_flow.get()
+        self.sample_flow.set(0.0)
     
-    temperature = property(get_temperature, set_temperature)
-    sample_flow = property(get_sample_flow, set_sample_flow)
-    shield_flow = property(get_shield_flow, set_shield_flow)
-    level = property(get_level)
-    status = property(get_status)
-
         
 # Register objects with signals
 gobject.type_register(Shutter)
-gobject.type_register(PositionerBase)
-gobject.type_register(Cryojet)
+gobject.type_register(Positioner)
+gobject.type_register(Attenuator)
