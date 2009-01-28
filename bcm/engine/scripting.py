@@ -1,14 +1,12 @@
-import sys, time
+import sys
+import time
 import threading
-import gtk, gobject
-from bcm.protocols import ca
+import gobject
+from bcm.protocol import ca
 
-class Error(Exception):
-    def __init__(self, msg):
-        self.message = msg
-
-    def __str__(self):
-        return self.message
+class ScriptError(Exception):
+    """Exceptioins for Scripting Engine."""
+    
                 
 class Script(gobject.GObject):
     __gsignals__ = {}
@@ -23,13 +21,14 @@ class Script(gobject.GObject):
     
     def start(self, wait=False):
         if not wait:
-            self.worker_thread = threading.Thread(target=self._run)
-            self.worker_thread.start()
+            worker_thread = threading.Thread(target=self._run)
+            worker_thread.setDaemon(True)
+            worker_thread.start()
         else:
             self._run()
                  
     def _run(self):
-        ca.thread_init()
+        ca.threads_init()
 #        try:
         if self.func:
             self.func(*self.args, **self.kw)
