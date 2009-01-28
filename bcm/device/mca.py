@@ -68,9 +68,9 @@ class MultiChannelAnalyzer(object):
                                                midp + self.half_roi_width)
     def _set_temp(self, on):
         if on:
-            self.TMODE.put(2)
+            self.TMODE.set(2)
         else:
-            self.TMODE.put(0)         
+            self.TMODE.set(0)         
                 
     def _monitor_stop(self, obj, state):
         if state == 0:
@@ -99,7 +99,7 @@ class MultiChannelAnalyzer(object):
         return (self._x_axis, self._data)       
         
     def stop(self):
-        self._stop_cmd.put(1)
+        self._stop_cmd.set(1)
 
     def wait(self):
         self._wait_start()
@@ -117,13 +117,13 @@ class MultiChannelAnalyzer(object):
         while i < retries and not success:
             i += 1
             self._command_sent = True
-            self.START.put(1)
+            self.START.set(1)
             success = self._wait_start()
         if i==retries and not success:
             _logger.error('MCA acquire failed after %s retries' % retries)
                               
     def _acquire_data(self, t=1.0):
-        self._count_time.put(t)
+        self._count_time.set(t)
         self._start()
         self._wait_stop()
         self._data = self._spectrum.get()

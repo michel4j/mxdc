@@ -205,7 +205,7 @@ class IPositioner(Interface):
     name = Attribute("""Device name or description.""")
     units = Attribute("""Engineering units.""")
     
-    def set_position(pos):
+    def set(pos):
         """Set the position of the device.
         
         Arguments:
@@ -213,7 +213,7 @@ class IPositioner(Interface):
         
         """
         
-    def get_position():
+    def get():
         """Return the current position of the device."""
 
 
@@ -376,3 +376,21 @@ class IPTZCameraController(Interface):
         """
                 
         
+class ICryojet(Interface):
+
+    """A CryoJet device object."""
+    
+    name = Attribute("""Name or description of device.""")
+    sample_flow = Attribute("""Sample flow rate.""")
+    shield_flow = Attribute("""Shield flow rate.""")
+    temperature = Attribute("""Temperature.""")
+    level = Attribute("""Cryogen level.""")
+
+    def stop_sample_flow():
+        """Stop sample flow."""
+
+    def resume_sample_flow():
+        """Stop sample flow."""
+
+    def get_state():
+        """Return the current state of the device."""

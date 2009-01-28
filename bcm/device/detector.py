@@ -75,7 +75,7 @@ class MXCCDImager(object):
                 self.stop()
             self._wait_in_state('acquire:queue')
             self._wait_in_state('acquire:exec')
-            self._background_cmd.put(1)
+            self._background_cmd.set(1)
             if wait:
                 self.wait()
             self._bg_taken = True
@@ -85,19 +85,19 @@ class MXCCDImager(object):
         self.initialize(True)
         self._wait_in_state('acquire:queue')
         self._wait_in_state('acquire:exec')
-        self._start_cmd.put(1)
+        self._start_cmd.set(1)
         self._wait_for_state('acquire:exec')
 
     def stop(self):
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
-        self._abort_cmd.put(1)
+        self._abort_cmd.set(1)
         self._wait_for_state('idle')
         
     def save(self, props, wait=False):
         self._set_parameters(props)
         ca.flush()  # make sure headers are set before starting readout
-        self._readout_flag.put(0)
-        self._save_cmd.put(1)
+        self._readout_flag.set(0)
+        self._save_cmd.set(1)
         if wait:
             self._wait_for_state('read:exec')
     
@@ -123,7 +123,7 @@ class MXCCDImager(object):
     def _set_parameters(self, data):
         for key in data.keys():
             self._header[key].put(data[key])        
-        self._header_cmd.put(1)
+        self._header_cmd.set(1)
     
     def _on_state_change(self, pv, val):
         self._state_string = "%08x" % val

@@ -142,12 +142,12 @@ class Motor(MotorBase):
             # Set Calibration
             if key == 'calib':
                 if val:
-                    self.CALIB.put(1)
+                    self.CALIB.set(1)
                 else:
-                    self.CALIB.put(0)
+                    self.CALIB.set(0)
             if key == 'reset':
                 if self._motor_type in ['vme','vmeenc'] :
-                    self.SET.put(val)
+                    self.SET.set(val)
                     _logger.info( "(%s) reset to %f." % (self.name, val) )
                 else:
                     _logger.error( "(%s) can not reset %s Motors." %
@@ -169,7 +169,7 @@ class Motor(MotorBase):
             return
         
         self._command_sent = True
-        self.VAL.put(pos)
+        self.VAL.set(pos)
         _logger.info( "(%s) moving to %f" % (self.name, pos) )
         
         if wait:
@@ -194,7 +194,7 @@ class Motor(MotorBase):
         return (self.CALIB.get() == 1) #and (self.STAT.get() != 4)
                                  
     def stop(self):
-        self.STOP.put(1)
+        self.STOP.set(1)
     
     def wait(self, start=True, stop=True):
         poll=0.05
