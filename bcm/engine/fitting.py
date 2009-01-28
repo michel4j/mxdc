@@ -1,44 +1,59 @@
+import numpy
 import scipy
-from scipy import optimize, array, exp
-from matplotlib.mlab import slopes
 
-def _res(p, y, x):
-    vals = gaussian(x,p)
-    err=(y-vals)
-    return err
-
-def gaussian(x,p):
-    """
-    gaus(x, p=[A, x0, s, yoffset]) - with input x vector and parameter list p, this function returns a 
-    gaussian vector y
-    x - input independent variable
-    y - output dependent variable
-    A - input amplitude
-    x0 - input x value at the peak (mean)
-    s - input standard deviation, sigma
-    yoffset - input baseline y offset
-    """
-    return (p[0] * exp( -(x-p[1])**2 / (2.0*p[2]**2) ) + p[3])
+# Peak Function
+# 0 = H - Height of peak
+# 1 = L - FWHM of Voigt profile (Wertheim et al)
+# 2 = P - Position of peak
+# 3 = n - lorentzian fraction
 
 
-def gaussian_fit(x,y):
-    """
-    gauss_fit(x, y) - with input x, y vectors this function fits the data to a single gaussian and returns
-    the fitted parameters [A, x0, s, yoffset]
-    x - input independent variable
-    y - input dependent variable
-    A - output amplitude
-    x0 - output x value at the peak (mean)
-    s - standard deviation, sigma
-    yoffset - baseline y offset
-
-    The FWHM can be calulated as (s * 2.35)
+def step(x, coeffs):
+    H, L, P = coeffs[:3]
+    d = coeffs[3]
+    y = abs(H)*( 0.5 + (1.0/pi)*scipy.arctan( (x-P)/(0.5*L)))
+    def _mod_step(x):
+        return (x > P) and scipy.exp(-d * (x-P-L)) or (x <= P) and 1.0
+        
+    yexp = map(_mod_step, x)
+    y = y*yexp
+    return y-min(y)
     
-    """
-    pars = histogram_fit(x,y)
-    p0= [pars[2], pars[1],pars[0]/2.35,0.0]
-    p1,lsqres=optimize.leastsq(_res, p0, args=(y,x), maxfev=10000)
-    return p1, lsqres
+
+def voigt(x, coeffs):
+    H, L, P = coeffs[:3]
+    n = min(1.0, max(0.0, coeffs[3]))
+    lofr =  lorentz(x, coeffs[:3])
+    gafr = gauss(x, coeffs[:3])   
+    return n * lofr + (1.0-n)*gafr
+
+def gauss(x, coeffs):
+    H, L, P = coeffs[:3]
+    c = 2.35482
+    return abs(H) * scipy.exp(-0.5*(( x - P)/(L/c))**2 )
+
+def lorentz(x, coeffs):
+    H, L, P = coeffs[:3]
+    return abs(H) * ((L/2.0)**2 / ((x-P)**2 + (L/2.0)**2))
+
+TARGET_FUNC = {
+    'gaussian': gauss,
+    'lorentzian': lorentz,
+    'voigt': voigt,
+    'step': step,
+}
+
+def peak_fit(x,y,target='gaussian'):
+    coeffs = [1, 1, 0, 0.5]
+    
+    def _err(p, y, x):
+        vals = TARGET_FUNC[target](x,p)
+        err=(y-vals)
+        return err
+    
+    new_coeffs, results = scipy.optimize.leastsq(_err, coeffs[:], args=(x,y))
+    return new_coeffs
+
     
 def histogram_fit(x,y):
     """
@@ -83,28 +98,57 @@ def histogram_fit(x,y):
             jmax = i
             break
     xpeak = x[jmax]
-    return (fwhm, xpeak, ymax, x_hpeak[0], x_hpeak[1])
+    return [ymax, fwhm, xpeak, 0]
 
-def smooth(y, w, iterates=1):
-    hw = w/2
-    my = scipy.array(y)
-    for count in range(iterates):
-        ys = my.copy()
-        for i in range(hw,len(y)-hw-1):
-            val=my[i-hw:i+hw+1].mean()
-            ys[i] = val
-        my = ys
-    return ys
 
-def anti_slope(x, y):
-    ybl = y.copy()
-    ybl[0] = y[0]
-    for i in range(1,len(y)):
-        ybl[i] = y[i] + ybl[i-1]
-    return ybl
+def savitzky_golay(data, kernel = 11, order = 4):
+    """
+        applies a Savitzky-Golay filter
+        input parameters:
+        - data => data as a 1D numpy array
+        - kernel => a positiv integer > 2*order giving the kernel size
+        - order => order of the polynomal
+        returns smoothed data as a numpy array
 
-def get_baseline(x, y):
-    return y - anti_slope(x, slopes(x,y))
+        invoke like:
+        smoothed = savitzky_golay(<rough>, [kernel = value], [order = value]
+    """
+    try:
+            kernel = abs(int(kernel))
+            order = abs(int(order))
+    except ValueError, msg:
+        raise ValueError("kernel and order have to be of type int (floats will be converted).")
+    if kernel % 2 != 1 or kernel < 1:
+        raise TypeError("kernel size must be a positive odd number, was: %d" % kernel)
+    if kernel < order + 2:
+        raise TypeError("kernel is to small for the polynomals\nshould be > order + 2")
+
+    # a second order polynomal has 3 coefficients
+    order_range = range(order+1)
+    half_window = (kernel -1) // 2
+    b = numpy.mat([[k**i for i in order_range] for k in range(-half_window, half_window+1)])
+    # since we don't want the derivative, else choose [1] or [2], respectively
+    m = numpy.linalg.pinv(b).A[0]
+    window_size = len(m)
+    half_window = (window_size-1) // 2
+
+    # precompute the offset values for better performance
+    offsets = range(-half_window, half_window+1)
+    offset_data = zip(offsets, m)
+
+    smooth_data = list()
+
+    ## temporary data, with padded zeros (since we want the same length after smoothing)
+    #data = numpy.concatenate((numpy.zeros(half_window), data, numpy.zeros(half_window)))
     
-def correct_baseline(x, y):
-    return anti_slope(x, slopes(x,y))
+    # temporary data, with padded first/last values (since we want the same length after smoothing)
+    firstval=data[0]
+    lastval=data[len(data)-1]
+    data = numpy.concatenate((numpy.zeros(half_window)+firstval, data, numpy.zeros(half_window)+lastval))
+    
+    for i in range(half_window, len(data) - half_window):
+            value = 0.0
+            for offset, weight in offset_data:
+                value += weight * data[i + offset]
+            smooth_data.append(value)
+    return numpy.array(smooth_data)

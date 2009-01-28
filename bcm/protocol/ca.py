@@ -282,7 +282,7 @@ class PV(gobject.GObject):
         #self._lock.release()
         return ret_val
 
-    def put(self, val):
+    def set(self, val):
         if self.state != CA_OP_CONN_UP:
             _logger.error('(%s) PV not connected' % (self.name,))
             raise ChannelAccessError('PV not connected')
@@ -291,6 +291,11 @@ class PV(gobject.GObject):
         libca.ca_array_put(self.type, self.count, self._chid, byref(self.data))
         libca.ca_pend_io(1.0)
 
+    # provide a put method for those used to EPICS terminology even though
+    # set makes more sense
+    def put(self, val):
+        self.set(val)
+        
     def _create_connection(self):
         libca.ca_create_channel(self.name, None, None, 10, byref(self._chid))
         libca.ca_pend_io(1.0)
