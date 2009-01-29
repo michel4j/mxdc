@@ -13,28 +13,20 @@ class Script(gobject.GObject):
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     
-    def __init__(self, func=None, *args, **kw):
+    def __init__(self, script, *args, **kw):
         gobject.GObject.__init__(self)
-        self.func = func
-        self.args = args
-        self.kw = kw
+        self._script = script
+        self._args = args
+        self._kw = kw
     
-    def start(self, wait=False):
-        if not wait:
-            worker_thread = threading.Thread(target=self._run)
-            worker_thread.setDaemon(True)
-            worker_thread.start()
-        else:
-            self._run()
+    def start(self):
+        worker_thread = threading.Thread(target=self.run)
+        worker_thread.setDaemon(True)
+        worker_thread.start()
                  
-    def _run(self):
+    def run(self):
         ca.threads_init()
-#        try:
-        if self.func:
-            self.func(*self.args, **self.kw)
+        self._script(*self._args, **self._kw)
         gobject.idle_add(self.emit, "done")
-#        except:
-#            raise Error("Script failed!" )
-#            gobject.idle_add(self.emit, "error")
         
 gobject.type_register(Script)
