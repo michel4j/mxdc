@@ -1,205 +1,194 @@
 import threading
-import gobject
-import numpy, math           
-import scipy
-import scipy.optimize
-from matplotlib.mlab import slopes
-
-from bcm.utils.utils import read_periodic_table, gtk_idle
-from bcm.protocol import ca
-from bcm.engine.fitting import *
 import logging
+import gobject
 
-__log_section__ = 'bcm.scans'
-scan_logger = logging.getLogger(__log_section__)
+from zope.interface import Interface, Attribute
+from zope.interface import implements
+from bcm.protocol import ca
+from bcm.utils.log import get_module_logger
+from bcm.device.interfaces import IMotor, ICounter
+
+# setup module logger with a default do-nothing handler
+_logger = get_module_logger(__name__)
 
 class ScanError(Exception):
     """Scan Error."""
 
-class ScannerBase(gobject.GObject):
+class IScan(Interface):
+    """Scan object."""
+    
+    data = Attribute("""Scan Data.""")
+    
+    def start():
+        """Start the scan in asynchronous mode."""
+
+    def run():
+        """Run the scan in synchronous mode. Will block until complete"""
+                 
+    def stop():
+        """Stop the scan.
+        """
+
+class BasicScan(gobject.GObject):
+    
+    implements(IScan)
     __gsignals__ = {}
-    __gsignals__['new-point'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,gobject.TYPE_FLOAT))
+    __gsignals__['new-point'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
-    __gsignals__['aborted'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
    
+
     def __init__(self):
         gobject.GObject.__init__(self)
-        self.stopped = False
-        self.aborted = False
-        self.filename = None
-        self.relative = False
-        self.x_data_points = []
-        self.y_data_points = []
-        self.plotter = None
-        self.plotting = False
-        
-    def do_new_point(self, x, y):
-        if self.plotter is not None:
-            self.plotter.add_point(x, y,0)
-        return True
-
-    def do_started(self):
-        if self.plotter is not None and self.plotting:
-            self.plotter.clear()
-        
+        self._stopped = False
+        self.data = []
+                
     def start(self):
-        self.stopped = False
-        self.aborded = False
-        worker_thread = threading.Thread(target=self.run)
+        self._stopped = False
+        worker_thread = threading.Thread(target=self._thread_run)
+        worker_thread.setDaemon(True)
         worker_thread.start()
-
-    def stop(self):
-        self.stopped = True    
-
-    def abort(self):
-        self.aborted = True
     
-    def run(self):
-        gobject.idle_add(self.emit, "done")
-        gobject.idle_add(self.emit, "progress", 1.0 )
-           
-    def set_relative(self, rel):
-        self.relative = rel
-
-    def enable_plotting(self):
-        self.plotting = True
-    
-    def disable_plotting(self):
-        self.plotting = False
-
-    def set_plotter(self, plotter=None):
-        self.plotter = plotter
-        
-    def set_normalizer(self, normalizer=None):
-        if normalizer:
-            self.normalizer = Normalizer(normalizer)
-        else:
-            self.normalizer = Normalizer()
-    
-    def set_output(self, filename):
-        self.filename = filename
-       
-class Scanner(ScannerBase):
-    def __init__(self):
-        ScannerBase.__init__(self)
-
-    def setup(self, positioner, start, end, steps, counter, time, normalizer=None):
-        self.positioner = positioner
-        self.counter = counter
-        self.time = time
-        self.steps = steps
-        self.start_pos = start
-        self.end_pos = end
-        self.set_normalizer(normalizer)
-
-    def calc_targets(self):
-        assert self.steps > 0
-        self.positioner_targets = numpy.linspace(self.range_start,self.range_end,self.steps)
-          
-    def __call__(self, positioner, start, end, steps, counter, time=1.0, normalizer=None):
-        self.setup(positioner, start, end, steps, counter, time)
-        self.set_normalizer(normalizer)
+    def _thread_run(self):
+        ca.threads_init()
         self.run()
-        self.fit()
- 
+        
+    def stop(self):
+        self._stopped = True    
+
+    def run(self):
+        pass # derived classes should implement this
+    
+class AbsScan(BasicScan):
+    """An object which performs an absolute scan of a single motor."""
+
+    def __init__(self, mtr, start_pos, end_pos, steps, cntr, t, i0=None):
+        BasicScan.__init__(self)
+        self._motor = IMotor(mtr)
+        self._counter = ICounter(cntr)
+        if i0 is not None:
+            self._i0 = ICounter(i0)
+        else:
+            self._i0 = None
+        self._duration = t
+        self._steps = steps
+        self._start_pos = start_pos
+        self._end_pos = end_pos 
      
     def run(self):
-        ca.threads_init()
-        gobject.idle_add(self.emit, 'started')
-        scan_logger.info("Scanning '%s' vs '%s' " % (self.positioner.name, self.counter.name))
-        if self.relative:
-            self.range_start = self.start_pos + self.positioner.get_position()
-            self.range_end = self.end_pos + self.positioner.get_position()
-        else:
-            self.range_start = self.start_pos
-            self.range_end = self.end_pos
-        self.calc_targets()
-
-        self.normalizer.initialize()
-        self.normalizer.set_time(self.time)
-        self.normalizer.start()
-        
-        self.x_data_points = []
-        self.y_data_points = []
-        
-        self.count = 0
-        for x in self.positioner_targets:
-            if self.stopped or self.aborted:
-                scan_logger.info( "Scan stopped!" )
+        gobject.idle_add(self.emit, "started")
+        step_size = (self._end_pos - self._start_pos) / float( self._steps )
+        _logger.info("Scanning '%s' vs '%s' " % (self._motor.name, self._counter.name))
+        _logger.info("%4s '%13s' '%13s' '%13s' '%13s'_normalized" % ('#',
+                                                   self._motor.name,
+                                                   self._counter.name,
+                                                   self._i0.name,
+                                                   self._counter.name))
+        for i in xrange(self._steps+1):
+            if self._stopped:
+                _logger.info( "Scan stopped!" )
                 break
-                
-            self.count += 1
-            prev = self.positioner.get_position()                
-            self.positioner.move_to(x, wait=True)
-            
-            y = self.counter.count(self.time)         
-            f = self.normalizer.get_factor()         
-            y = y * f
-            self.x_data_points.append( x )
-            self.y_data_points.append( y )          
-            fraction = float(self.count) / len(self.positioner_targets)
-            
-            scan_logger.info("%4d %15g %15g %15g" % (self.count, x, y, f))
-            gobject.idle_add(self.emit, "new-point", x, y )
-            gobject.idle_add(self.emit, "progress", fraction )
-
-            gtk_idle()
+            x = self._start_pos + (i * step_size)
+            self._motor.move_to(x, wait=True)
+            y = self._counter.count(self._duration)         
+            i0 = self._i0.count(self._duration)
+            self.data.append( [i, x, y, i0, y / i0] )
+            _logger.info("%4d %15g %15g %15g %15g" % (i, x, y, i0, y / i0))
+            gobject.idle_add(self.emit, "new-point", (i, x, y, i0, y / i0) )
+            gobject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps + 1.0) )
              
-        self.normalizer.stop()
-        if self.aborted:
-            gobject.idle_add(self.emit, "aborted")
-            gobject.idle_add(self.emit, "progress", 0.0 )
+        gobject.idle_add(self.emit, "done")
+    
+
+class AbsScan2(BasicScan):
+    """An object which performs an absolute scan of two motors."""
+    
+    def __init__(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
+        BasicScan.__init__(self)
+        self._motor1 = IMotor(mtr1)
+        self._motor2 = IMotor(mtr2)
+        self._counter = ICounter(cntr)
+        if i0 is not None:
+            self._i0 = ICounter(i0)
         else:
-            self.save()
-            gobject.idle_add(self.emit, "done")
-            gobject.idle_add(self.emit, "progress", 1.0 )               
-        
-    def save(self, filename=None):
-        if filename:
-            self.set_output(filename)
-        scan_data  = "# Positioner: %s \n" % self.positioner.get_name()
-        scan_data += "# Detector: %s \n" % self.counter.get_name()
-        scan_data += "# Detector count time: %0.4f sec \n" % (self.time)
-        scan_data += "# \n" 
-        scan_data += "# Columns: (%s) \t (%s) \n" % (self.positioner.get_name(), self.counter.get_name())
-        for x,y in zip(self.x_data_points, self.y_data_points):
-            scan_data += "%15.8g %15.8g \n" % (x, y)
-
-        if self.filename != None:
-            try:
-                scan_file = open(self.filename,'w')        
-                scan_file.write(scan_data)
-                scan_file.flush()
-                scan_file.close()
-            except:
-                scan_logger.error('Unable to saving Scan data to "%s".' % (self.filename,))
-
-    def fit(self):
-        x = numpy.array(self.x_data_points)
-        y = numpy.array(self.y_data_points)
-        params, success = gaussian_fit(x,y)
-        [A, midp, s, yoffset] = params
-        (fwhm_h, xpeak, ymax, fwhm_x_left, fwhm_x_right) = histogram_fit(x, y)
-        fwhm = s*2.35
-        xi = numpy.linspace(min(x), max(x), 100)
-        yi = gaussian(xi, params)
-        if self.plotter:
-            self.plotter.add_line(xi, yi, 'r.')
-        
-        scan_logger.info("\nMIDP_FIT=%g \nFWHM_FIT=%g \nFWHM_HIS=%g \nYMAX=%g \nXPEAK=%g \n" % (midp,fwhm, fwhm_h, ymax, xpeak)) 
-        self.midp_fit, self.fwhm_fit, self.fwhm_his, self.ymax, self.xpeak = (midp,fwhm, fwhm_h, ymax, xpeak)
-        return [midp,fwhm,success]
-
+            self._i0 = None
+        self._duration = t
+        self._steps = steps
+        self._start_pos1 = start_pos1
+        self._end_pos1 = end_pos1 
+        self._start_pos2 = start_pos2
+        self._end_pos2 = end_pos2 
+     
+    def run(self):
+        step_size1 = (self._end_pos1 - self._start_pos1) / float( self._steps )
+        step_size2 = (self._end_pos2 - self._start_pos2) / float( self._steps )
+        _logger.info("Scanning '%s':'%s' vs '%s' " % (self._motor1.name,
+                                                      self._motor2.name,
+                                                      self._counter.name))
+        _logger.info("%4s '%13s' '%13s' '%13s' '%13s' '%13s'_normalized" % ('#',
+                                                   self._motor1.name,
+                                                   self._motor2.name,
+                                                   self._counter.name,
+                                                   self._i0.name,
+                                                   self._counter.name))
+        for i in xrange(self._steps+1):
+            if self._stopped:
+                _logger.info( "Scan stopped!" )
+                break
+            x1 = self._start_pos1 + (i * step_size1)
+            x2 = self._start_pos2 + (i * step_size2)
+            self._motor1.move_to(x1)
+            self._motor2.move_to(x2)
+            self._motor1.wait()
+            self._motor2.wait()
+            y = self._counter.count(self._duration)         
+            i0 = self._i0.count(self._duration)
+            self.data.append( [i, x1, x2, y, i0, y / i0] )
+            _logger.info("%4d %15g %15g %15g %15g %15g" % (i, x1, x2, y, i0, y / i0))
+            gobject.idle_add(self.emit, "new-point", (i, x1, x2, y, i0, y / i0) )
+            gobject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps + 1.0) )
+             
+        gobject.idle_add(self.emit, "done")
 
 
-gobject.type_register(ScannerBase)
+class RelScan(AbsScan):
+    """An object which performs a relative scan of a single motor."""
+    
+    def __init__(self, mtr, start_offset, end_offset, steps, cntr, t, i0=None):
+        BasicScan.__init__(self)
+        self._motor = IMotor(mtr)
+        self._counter = ICounter(cntr)
+        if i0 is not None:
+            self._i0 = ICounter(i0)
+        else:
+            self._i0 = None
+        self._duration = t
+        self._steps = steps
+        cur_pos = self._motor.get_position()
+        self._start_pos = cur_pos + start_offset
+        self._end_pos = cur_pos + end_offset
 
-scan = Scanner()
-scan.enable_plotting()
-rscan = Scanner()
-rscan.set_relative(True)
-rscan.enable_plotting()
+class RelScan2(AbsScan2):
+    """An object which performs a relative scan of a single motor."""
+    
+    def __init__(self, mtr1, start_offset1, end_offset1, mtr2, start_offset2, end_offset2, steps, cntr, t, i0=None):
+        BasicScan.__init__(self)
+        self._motor1 = IMotor(mtr1)
+        self._motor2 = IMotor(mtr2)
+        self._counter = ICounter(cntr)
+        if i0 is not None:
+            self._i0 = ICounter(i0)
+        else:
+            self._i0 = None
+        self._duration = t
+        self._steps = steps
+        cur_pos1 = self._motor1.get_position()
+        cur_pos2 = self._motor2.get_position()
+        self._start_pos1 = cur_pos1 + start_offset1
+        self._end_pos1 = cur_pos1 + end_offset1
+        self._start_pos2 = cur_pos2 + start_offset2
+        self._end_pos2 = cur_pos2 + end_offset2 
 
+gobject.type_register(BasicScan)

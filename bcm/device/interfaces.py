@@ -2,7 +2,6 @@
 
 from zope.interface import Interface, Attribute, invariant
 
-
 class IAutomounter(Interface):
     
     """A sample automounter device object."""

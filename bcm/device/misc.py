@@ -2,10 +2,12 @@ import time
 import math
 import gobject
 from zope.interface import implements
+from bcm import registry
 from bcm.protocol.ca import PV
+from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from bcm.utils import converter
-from bcm.device.interfaces import IPositioner, IShutter, ICryojet
+from bcm.device.interfaces import IPositioner, IShutter, ICryojet, IMotor
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -17,6 +19,8 @@ class MiscDeviceError(Exception):
 
 
 class Positioner(gobject.GObject):
+
+    implements(IPositioner)
     __gsignals__ =  { 
         "changed": ( gobject.SIGNAL_RUN_FIRST, 
                      gobject.TYPE_NONE, 
@@ -27,14 +31,16 @@ class Positioner(gobject.GObject):
         gobject.GObject.__init__(self)
         self.set_pv = PV(name)
         self.fbk_pv = PV(fbk_name)
+        self.name = name
         self.units = units
         self.fbk_pv.connect('changed', self._signal_change)
     
     def __repr__(self):
         return '<%s:%s, target:%s, feedback:%s>' %( self.__class__.__name__,
+                                                    self.name,
                                                     self.set_pv.name,
                                                     self.fbk_pv.name )
-        
+   
     def set(self, pos):
         self.set_pv.set(pos)
     
@@ -43,9 +49,40 @@ class Positioner(gobject.GObject):
     
     def _signal_change(self, obj, value):
         gobject.idle_add(self.emit,'changed', self.get())
-            
-        
-        
+
+           
+class PositionerMotor(object):
+    implements(IMotor)
+    __used_for__ = IPositioner
+    
+    def __init__(self, positioner):
+        self.positioner = positioner
+        self.name = positioner.name
+        self.units = positioner.units
+    
+    def configure(self, props):
+        pass
+    
+    def move_to(self, pos, wait=False):
+        self.positioner.set(pos)
+    
+    def move_by(self, val, wait=False):
+        self.positioner.set( self.positioner.get() + val )
+    
+    def stop(self):
+        pass
+    
+    def get_state(self):
+        return 0
+    
+    def get_position(self):
+        return self.positioner.get()
+    
+    def wait(self):
+        ca.flush()
+
+registry.register([IPositioner], IMotor, '', PositionerMotor)
+    
 class Attenuator(gobject.GObject):
 
     implements(IPositioner)
