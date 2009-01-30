@@ -16,7 +16,7 @@ Matplotlib support taken from interactive.py in the matplotlib distribution.
 
 Also borrows liberally from code.py in the Python standard library."""
 
-__author__ = "Fernando Perez <Fernando.Perez-UWkI3MzZw7X2fBVCVOL8/A@xxxxxxxxxxxxxxxx>"
+__author__ = "Fernando Perez"
 
 import sys
 import code
