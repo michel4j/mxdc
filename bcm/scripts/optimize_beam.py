@@ -1,10 +1,10 @@
 from bcm.engine.scripting import Script
 
-class myScript(Script):
+class beam_optimizer(Script):
     def run(self):
         print "optimizing beam"
         
-myScript()
+opt = beam_optimizer()
 
 
     
