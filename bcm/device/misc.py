@@ -30,6 +30,11 @@ class Positioner(gobject.GObject):
         self.units = units
         self.fbk_pv.connect('changed', self._signal_change)
     
+    def __repr__(self):
+        return '<%s:%s, target:%s, feedback:%s>' %( self.__class__.__name__,
+                                                    self.set_pv.name,
+                                                    self.fbk_pv.name )
+        
     def set(self, pos):
         self.set_pv.set(pos)
     
