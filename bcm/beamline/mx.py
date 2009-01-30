@@ -34,7 +34,7 @@ _DEVICE_MAP = {
 class MXBeamline(object):
     implements(IBeamline)
     def __init__(self, filename):
-        self.config_file = '/media/seagate/beamline-control-module/etc/' + filename
+        self.config_file = os.path.join(os.environ['BCM_CONFIG_PATH'] , filename)
         self.devices = {}
         self.config = {}
         self.lock = thread.allocate_lock()
@@ -60,7 +60,8 @@ class MXBeamline(object):
                 for item in config.options(section):
                     if item == 'diagram':
                         arg = config.get(section, item)
-                        self.config[item] = os.environ['BCM_CONFIG_PATH'] + '/' + arg
+                        self.config[item] = os.path.join(os.environ['BCM_CONFIG_PATH'],
+                                                         arg)
                     if item == 'energy_range':
                         args = config.get(section, item).split('-')
                         self.config['energy_range'] = map(float, args)

@@ -59,7 +59,7 @@ class MultiChannelAnalyzer(object):
         for k,v in kwargs.items():
             if k == 'cooling':
                 self._set_temp(v)
-            if k == 'energy':
+            if k == 'roi':
                 if v is None:
                     self.region_of_interest = (0, self.channels)
                 else:
