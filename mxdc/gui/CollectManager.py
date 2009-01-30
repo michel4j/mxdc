@@ -1,10 +1,10 @@
 import gtk, gobject
 import sys, os, time
-from bcm.tools.DataCollector import DataCollector
+from bcm.engine.diffraction import DataCollector
 from ActiveWidgets import PositionerLabel, ActiveProgressBar
 from RunManager import RunManager
 from ImgViewer import ImgViewer
-from bcm.tools.configobj import ConfigObj
+from bcm.utils.configobj import ConfigObj
 from bcm import utils
 
 from Dialogs import *

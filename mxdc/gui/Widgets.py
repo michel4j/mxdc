@@ -3,7 +3,6 @@ import gobject
 import math
 import pango
 import sys
-from bcm.utils import gtk_idle
 
 try:
     import cairo

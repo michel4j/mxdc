@@ -11,7 +11,7 @@ sys.path.append(os.environ['BCM_PATH'])
 
 from gui.Splash import Splash
 from gui.AppWindow import AppWindow
-from bcm.beamline import PX
+from bcm.beamline.mx import MXBeamline
 
 # set up logging to file
 try:
@@ -43,7 +43,7 @@ class AppClass(object):
         img_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/splash.png'
         logo_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/logo.png'
         icon_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/icon.png'
-        self.beamline = PX('08id1.conf')
+        self.beamline = MXBeamline('08id1.conf')
         rev_file = os.environ['BCM_PATH'] + '/bcm/config/revision.txt'
         _f = file(rev_file)
         _raw = _f.readlines()
