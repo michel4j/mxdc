@@ -5,9 +5,9 @@ from PeriodicTable import PeriodicTable
 from LogView import LogView
 from Plotter import Plotter
 from Dialogs import *
-from bcm.tools.scanning import MADScanner, ExcitationScanner
-from bcm.tools import fitting
-from bcm.tools.AutoChooch import AutoChooch
+from bcm.engine.scanning import MADScanner, ExcitationScanner
+from bcm.engine import fitting
+from bcm.engine.AutoChooch import AutoChooch
 
 class ScanManager(gtk.HBox):
     __gsignals__ = {

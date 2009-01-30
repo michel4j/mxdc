@@ -2,6 +2,7 @@ import sys
 import time
 import threading
 import gobject
+import logging
 
 from zope.interface import Interface, Attribute
 from zope.interface import implements
@@ -9,6 +10,11 @@ from zope.component import globalSiteManager as gsm
 from twisted.plugin import IPlugin
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
+from bcm.utils.log import get_module_logger
+
+# setup module logger with a default do-nothing handler
+_logger = get_module_logger(__name__)
+
 
 
 class ScriptError(Exception):
@@ -55,6 +61,7 @@ class Script(gobject.GObject):
         ca.threads_init()
         self.run()
         gobject.idle_add(self.emit, "done")
+        _logger.info('Script `%s` terminated successfully' %s (self.name) )
                 
     def run(self):
         raise ScriptError('`run()` not implemented!')
