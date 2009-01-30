@@ -3,10 +3,11 @@ import gobject
 import thread
 import xmlrpclib
 from ConfigParser import ConfigParser
+from zope.interface import implements
+from zope.component import globalSiteManager as gsm
 from bcm.device import motor, detector, counter, video, misc, goniometer, mca
 from bcm.protocol import ca
-from bcm.utils.utils import gtk_idle
-
+from bcm.beamline.interfaces import IBeamline
 
 _DEVICE_MAP = {
     'clsmotors': motor.clsMotor,
@@ -27,46 +28,19 @@ _DEVICE_MAP = {
     'variables': ca.PV,
     'webservices': xmlrpclib.ServerProxy,
     'cryojets': misc.Cryojet,
-    }
-
-
-class BeamlineBase(gobject.GObject):
-    __gsignals__ = {}
-    __gsignals__['log'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
-    __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,))
-
-    def __init__(self):
-        gobject.GObject.__init__(self)
-        
-    def log(self, text):
-        gobject.idle_add(self.emit, 'log', text)
-
-    def on_log(self, obj, text):
-        self.log(text)
-    
-    def __call__(self):
-        self.setup()
-    
-    def setup(self):
-        pass
-    
-gobject.type_register(BeamlineBase)
-    
+    }    
     
 
-class MX(BeamlineBase):
+class MXBeamline(object):
+    implements(IBeamline)
     def __init__(self, filename):
-        BeamlineBase.__init__(self)
-        
-        self.config_file = os.environ['BCM_CONFIG_PATH'] + '/' + filename
+        self.config_file = '/media/seagate/beamline-control-module/etc/' + filename
         self.devices = {}
         self.config = {}
-        self.lock = thread.allocate_lock()  
+        self.lock = thread.allocate_lock()
+        gsm.registerUtility(self, IBeamline, 'bcm.beamline') 
         
-    def __call__(self):
-        self.setup()
-        
-    def setup(self, idle_func=gtk_idle):
+    def setup(self):
         ca.threads_init()
         config = ConfigParser()
         config.read(self.config_file)
@@ -78,14 +52,10 @@ class MX(BeamlineBase):
             if _DEVICE_MAP.has_key(section):
                 dev_type = _DEVICE_MAP[section]
                 for item in config.options(section):
-                    self.log("Setting up %s: %s" % (section, item))
                     args = config.get(section, item).split('|')
                     self.devices[item] = dev_type(*args)
                     setattr(self, item, self.devices[item])
                     frac_complete += item_step
-                    gobject.idle_add(self.emit, 'progress', frac_complete)
-                    if idle_func is not None:
-                        idle_func()
             elif section == 'config':
                 for item in config.options(section):
                     if item == 'diagram':
@@ -98,7 +68,6 @@ class MX(BeamlineBase):
                         arg = config.get(section, item)
                         self.config[item] = float(arg)
                     frac_complete += item_step
-                    gobject.idle_add(self.emit, 'progress', frac_complete)
  
         #for attr in ['ccd', 'sample_cam','energy', 'bragg_energy', 'mca', 
         #             'config', 'gonio', 'i0','attenuator', 'shutter','det_d','det_2th','beam_w','beam_h','image_server']:
@@ -158,6 +127,6 @@ class MX(BeamlineBase):
         
         
 if __name__ == '__main__':
-    bl = MX('vlinac.conf')
-    bl()
+    bl = MXBeamline('vlinac.conf')
+    bl.setup()
     

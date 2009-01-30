@@ -5,8 +5,11 @@ import gobject
 
 from zope.interface import Interface, Attribute
 from zope.interface import implements
+from zope.component import globalSiteManager as gsm
 from twisted.plugin import IPlugin
 from bcm.protocol import ca
+from bcm.beamline.interfaces import IBeamline
+
 
 class ScriptError(Exception):
     """Exceptioins for Scripting Engine."""
@@ -34,7 +37,11 @@ class Script(gobject.GObject):
         self._args = args
         self._kw = kw
         self.name = self.__class__.__name__
+        self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
 
+    def __repr__(self):
+        return '<Script:%s>' % self.name
+    
     def _thread_run(self):
         ca.threads_init()
         self.run()
