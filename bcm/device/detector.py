@@ -23,8 +23,8 @@ class MXCCDImager(object):
     implements(IImagingDetector)
     
     def __init__(self, name, size, resolution):
-        self.size = size
-        self.resolution = resolution
+        self.size = int(size)
+        self.resolution = float(resolution)
         self.name = name
         
         self._start_cmd = ca.PV("%s:start:cmd" % name, monitor=False)

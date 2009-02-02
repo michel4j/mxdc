@@ -1,10 +1,12 @@
 import time
 import logging
+import warnings
+warnings.simplefilter("ignore")
 
 from zope.interface import implements
 from bcm.device.interfaces import IGoniometer
 from bcm.protocol.ca import PV
-from bcm.device.motor import vmeMotor
+from bcm.device.motor import VMEMotor
 from bcm.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -32,7 +34,7 @@ class Goniometer(object):
         self._state = PV("%s:scanFrame:status" % pv_root)
         self._shutter_state = PV("%s:outp1:fbk" % pv_root)
         
-        self.omega = vmeMotor(name)
+        self.omega = VMEMotor('%s:deg' % name)
                 
         #parameters
         self._settings = {
