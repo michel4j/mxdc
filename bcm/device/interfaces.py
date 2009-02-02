@@ -58,6 +58,8 @@ class ICollimator(Interface):
     
     width = Attribute("""A motor controlling the horizontal gap.""")
     height = Attribute("""A motor controlling the vertical gap.""")
+    x = Attribute("""A motor controlling the horizontal position.""")
+    y = Attribute("""A motor controlling the vertical position.""")
     name = Attribute("""Name or description of device.""")
     
 
@@ -95,10 +97,8 @@ class IMonochromator(Interface):
     name = Attribute("""Name or description of device.""")
     energy = Attribute("""Full monochromator energy motor""")
     bragg_energy = Attribute("""Simple monochromator energy motor.""")
-    
-    def optimize():
-        """Start an optimization sequence."""
-    
+    optimize = Attribute("""Monocromator optimizer.""")
+        
     def get_state():
         """Return the current state of the device."""
         
@@ -152,6 +152,7 @@ class IShutter(Interface):
 
     def get_state():
         """Return the current state of the device."""
+
 
 
 class IImagingDetector(Interface):
@@ -230,6 +231,25 @@ class IDiffractometer(Interface):
         
     def stop():
         """Terminate all diffractometer operations."""
+
+    def get_state():
+        """Return the current state of the device."""
+
+
+class IStage(Interface):
+
+    """An X,Y,Z stage device object."""
+    
+    name = Attribute("""Name or description of device.""")
+    x = Attribute("""Stage X motor.""")
+    y = Attribute("""Stage Y motor.""")
+    z = Attribute("""Stage Z motor.""")
+
+    def wait():
+        """Wait for stage become idle."""
+        
+    def stop():
+        """Terminate all operations."""
 
     def get_state():
         """Return the current state of the device."""
@@ -327,12 +347,21 @@ class ICamera(Interface):
     """A camera device object providing a video source."""
     
     name = Attribute("""Name or description of device.""")
-    resolution = Attribute("""A 2-tuple for horizontal and vertical size.""")
+    size = Attribute("""A 2-tuple for horizontal and vertical size.""")
+    resolution = Attribute("""Pixel size.""")
             
     def get_frame():
         """Get current frame of video.
         
         Returns an image of a frame of video data.
+        
+        """
+
+    def zoom(value):
+        """Set the Camera Zoom level.
+        
+        Arguments:
+        value   -- zoom level of camera.
         
         """
               
@@ -349,14 +378,6 @@ class IPTZCameraController(Interface):
 
     """A Pan-Tilt-Zoom Camera controller device object."""
                 
-    def zoom(value):
-        """Set the Camera Zoom level.
-        
-        Arguments:
-        value   -- zoom level of camera.
-        
-        """
-              
     def center(x, y):
         """Center the Camera view to the given position.
         
@@ -384,12 +405,31 @@ class ICryojet(Interface):
     shield_flow = Attribute("""Shield flow rate.""")
     temperature = Attribute("""Temperature.""")
     level = Attribute("""Cryogen level.""")
+    nozzle_gap = Attribute("""Device, controlling nozzle gap.""")
 
     def stop_sample_flow():
         """Stop sample flow."""
 
     def resume_sample_flow():
         """Stop sample flow."""
-
+    
     def get_state():
         """Return the current state of the device."""
+
+
+class IOptimizer(Interface):
+
+    """An optimizer object."""
+    
+    def start():
+        """Start optimizing."""
+                
+    def stop():
+        """Stop optimizing."""
+        
+    def wait():
+        """Wait for optimizer to become idle."""
+        
+    def get_state():
+        """Return the current state of the object."""
+

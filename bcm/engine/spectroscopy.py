@@ -22,7 +22,7 @@ class XRFScan(BasicScan):
         _logger.debug('Exitation Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
         _logger.debug('Exitation Scan started')
-        gobject.idle_add(self.emit, 'started')      
+        gobject.idle_add(self.emit, 'started')     
         self.beamline.mca.configure(cooling=True, roi=None)
         if self._energy is not None:
             self.beamline.energy.move_to(self._energy)
@@ -53,7 +53,7 @@ class XANESScan(BasicScan):
         try:
             self.beamline.mca.configure(cooling=True, roi=self._energy)
             self.beamline.energy.move_to(self._energy)
-            self.beamline.energy.wait()   
+            self.beamline.energy.wait(p)   
                    
             self.count = 0
             self.beamline.shutter.open()

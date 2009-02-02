@@ -6,10 +6,12 @@ import cStringIO
 import httplib
 import Image
 import ImageDraw
+import warnings
+warnings.simplefilter("ignore")
 import numpy
 from scipy.misc import toimage, fromimage
 from zope.interface import implements
-from bcm.device.interfaces import ICamera, IPTZCameraController
+from bcm.device.interfaces import ICamera, IPTZCameraController, IMotor
 from bcm.protocol.ca import PV
 from bcm.utils.log import get_module_logger
 
@@ -27,7 +29,11 @@ class CameraBase(object):
     def __init__(self, name="Basic Camera"):
         self.frame = None
         self.name = name
-                        
+        self.resolution = 1.0
+    
+    def zoom(self):
+        pass
+                       
     def save(self, filename):
         if self.frame is None:
             _logger.error('(%s) No image available to save.' % (self.name,) )
@@ -49,7 +55,8 @@ class SimCamera(CameraBase):
     
     def __init__(self, name="Camera Simulator"):
         CameraBase.__init__(self, name)
-        self.resolution = (480, 640)
+        self.size = (480, 640)
+        self.resolution = 1.0
         self._packet_size = self.resolution[0] * self.resolution[1]
         self._fsource = open('/dev/urandom','rb')
         self._update()
@@ -69,13 +76,14 @@ class CACamera(CameraBase):
 
     implements(ICamera)   
      
-    def __init__(self, pv_name, name='EPICS Camera'):
-        CameraBase.__init__(self,name)
-        self.resolution = (640, 480)
+    def __init__(self, pv_name, zoom_motor, name):
+        CameraBase.__init__(self, name)
+        self.size = (640, 480)
+        self.resolution = 1.0
         self._packet_size = self.resolution[0] * self.resolution[1]
         self._cam = PV(pv_name)
+        self._zoom = IMotor(zoom_motor)
         self._update()
-    
 
     def _update(self):
         if self._cam.is_connected():
@@ -93,6 +101,9 @@ class CACamera(CameraBase):
         else:
             _logger.error('(%s) Failed fetching frame.' % (self.name,) )
             # FIXME: What should we do when PV can not connect?
+
+    def zoom(self, val):
+        self._zoom.move_to(val)
             
     def get_frame(self):
         self.update()

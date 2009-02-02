@@ -15,7 +15,7 @@ import struct
 import os, stat, sys, re
 from array import array
     
-class IImgSyncService(Interface):
+class IImageSyncService(Interface):
     def set_user(user, uid, gid):
         """Return a deferred returning a boolean"""
     
@@ -51,7 +51,7 @@ class ImgSyncResource(resource.Resource):
         self.putChild('RPC2',ConfigXR(self.service))
 
 class ImgSyncService(service.Service):
-    implements(IImgSyncService)
+    implements(IImageSyncService)
     def __init__(self, config_file, log_file):
         self.settings = {}
         self.filename = config_file
@@ -169,7 +169,7 @@ class ImgSyncService(service.Service):
         return _status
         
             
-components.registerAdapter(ImgSyncResource, IImgSyncService, resource.IResource)
+components.registerAdapter(ImgSyncResource, IImageSyncService, resource.IResource)
 
 class FileTailProducer(object):
     """A pull producer that sends the tail contents of a file to a consumer.
@@ -341,9 +341,9 @@ def img_selector(chunk):
     new_images = img_patt.findall(chunk)
     return '\n'.join(new_images)
 
-
-application = service.Application('ImgConfig')
-f = ImgSyncService(config_file="/home/marccd/.imgsync.conf", log_file="/home/marccd/log/stdouterr.log")
-serviceCollection = service.IServiceCollection(application)
-internet.TCPServer(8888, server.Site(resource.IResource(f))).setServiceParent(serviceCollection)
+if __name__ == '__main__':
+    application = service.Application('ImgConfig')
+    f = ImgSyncService(config_file="/home/marccd/.imgsync.conf", log_file="/home/marccd/log/stdouterr.log")
+    serviceCollection = service.IServiceCollection(application)
+    internet.TCPServer(8888, server.Site(resource.IResource(f))).setServiceParent(serviceCollection)
 

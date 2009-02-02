@@ -12,9 +12,9 @@ class DiffractometerError(Exception):
 
     """Base class for errors in the diffractometer module."""
 
-class Collimator(object):
+class Diffractometer(object):
 
-    implements(misc.IDiffractometer)
+    implements(IDiffractometer)
     
     def __init__(self, name, distance, two_theta):
         self.name = name
