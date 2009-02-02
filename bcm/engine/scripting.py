@@ -16,7 +16,6 @@ from bcm.utils.log import get_module_logger
 _logger = get_module_logger(__name__)
 
 
-
 class ScriptError(Exception):
     """Exceptioins for Scripting Engine."""
 
@@ -67,3 +66,4 @@ class Script(gobject.GObject):
         raise ScriptError('`run()` not implemented!')
         
 gobject.type_register(Script)
+    
