@@ -7,7 +7,8 @@ from bcm.protocol.ca import PV
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from bcm.utils import converter
-from bcm.device.interfaces import IPositioner, IShutter, ICryojet, IMotor
+from bcm.device.interfaces import *
+
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -27,10 +28,13 @@ class Positioner(gobject.GObject):
                      (gobject.TYPE_PYOBJECT,)),
         }  
 
-    def __init__(self, name, fbk_name, units=""):
+    def __init__(self, name, fbk_name=None, units=""):
         gobject.GObject.__init__(self)
         self.set_pv = PV(name)
-        self.fbk_pv = PV(fbk_name)
+        if fbk_name is None:
+            self.fbk_pv = self.set_pv
+        else:
+            self.fbk_pv = PV(fbk_name)
         self.name = name
         self.units = units
         self.fbk_pv.connect('changed', self._signal_change)
@@ -92,13 +96,15 @@ class Attenuator(gobject.GObject):
                      (gobject.TYPE_PYOBJECT,)),
         }  
     
-    def __init__(self, bit1, bit2, bit3, bit4, energy):
+    def __init__(self, bitname, energy):
         gobject.GObject.__init__(self)
+        fname = bitname[:-1]
         self._filters = [
-            PV(bit1),
-            PV(bit2),
-            PV(bit3),
-            PV(bit4) ]
+            PV('%s4:bit' % fname),
+            PV('%s3:bit' % fname),
+            PV('%s2:bit' % fname),
+            PV('%s1:bit' % fname),
+            ]
         self._energy = PV(energy)
         self.units = '%'
         self.name = 'Attenuator'
@@ -187,7 +193,7 @@ class Cryojet(object):
     
     implements(ICryojet)
     
-    def __init__(self, cname, lname):
+    def __init__(self, cname, lname, nozzle_motor):
         self.temperature = Positioner('%s:sensorTemp:get' % cname,
                                       '%s:sensorTemp:get' % cname,
                                       'K')
@@ -198,6 +204,7 @@ class Cryojet(object):
                                       '%s:ShieldFlow:get' % cname,
                                       'L/min')
         self.level = PV('%s:ch1LVL:get' % lname)
+        self.nozzle_gap = IShutter(nozzle_motor)
         self._level_status = PV('%s:status:ch1:N.SVAL' % lname)
         self._previous_flow = 6.0
             
@@ -211,7 +218,98 @@ class Cryojet(object):
         self._previous_flow = self.sample_flow.get()
         self.sample_flow.set(0.0)
     
+class Stage(object):
+
+    implements(IStage)
+    
+    def __init__(self, x, y, z, name):
+        self.name = name
+        self.x  = x
+        self.y  = y
+        self.z  = z
+                    
+    def get_state(self):
+        return self.x.get_state() | self.y.get_state() | self.z.get_state() 
+                        
+    def wait(self):
+        self.x.wait()
+        self.y.wait()
+        self.z.wait()
+
+    def stop(self):
+        self.x.stop()
+        self.y.stop()
+        self.z.stop()
+
+
+class Collimator(object):
+
+    implements(ICollimator)
+    
+    def __init__(self, x, y, width, height, name):
+        self.name = name
+        self.x  = x
+        self.y = y
+        self.width  = width
+        self.height = height
+                    
+    def get_state(self):
+        return (self.width.get_state() | 
+                self.height.get_state() | 
+                self.x.get_state() |
+                self.y.get_state()) 
+                        
+    def wait(self):
+        self.width.wait()
+        self.height.wait()
+        self.x.wait()
+        self.y.wait()
+
+    def stop(self):
+        self.width.stop()
+        self.height.stop()
+        self.x.stop()
+        self.y.stop()
+
+
+class MostabOptimizer(object):
+    
+    implements(IOptimizer)
+    
+    def __init__(self, name):
+        self._start = ca.PV('%s:Mostab:opt:cmd' % name)
+        self._stop = ca.PV('%s:abortFlag' % name)
+        self._state1 = ca.PV('%s:optRun'% name)
+        self._state2 = ca.PV('%s:optDone'% name)
+        self._status = 0
+        self._command_active = False
+        self._state1.connect('changed', self._state_change)
+        self._state2.connect('changed', self._state_change)
         
+        
+    def _state_change(self, obj, val):
+        if self._state1.get() > 0:
+            self._status =  1
+            self._command_active = False
+        elif self._state2.get() >0:
+            self._status = 0
+        
+    def start(self):
+        self._command_active = True
+        self._start.put(1)
+        
+    
+    def stop(self):
+        self._stop.put(1)
+    
+    def get_state(self):
+        return self._status
+
+    def wait(self):
+        poll=0.05
+        while self._status == 1 or self._command_active:
+            time.sleep(poll)
+       
 # Register objects with signals
 gobject.type_register(Shutter)
 gobject.type_register(Positioner)

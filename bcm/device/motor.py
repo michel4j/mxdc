@@ -3,10 +3,11 @@ import math
 import logging
 import gobject
 from zope.interface import implements
-from bcm.device.interfaces import IMotor
+from bcm.device.interfaces import IMotor, IShutter
 from bcm.protocol.ca import PV
 from bcm.utils.log import get_module_logger
 from bcm.utils import converter
+from bcm import registry
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -212,38 +213,41 @@ class Motor(MotorBase):
             while self._moving:
                 time.sleep(poll)
         
-class vmeMotor(Motor):
+class VMEMotor(Motor):
     def __init__(self, name):
         Motor.__init__(self, name, motor_type = 'vme')
 
-class encMotor(Motor):
+class ENCMotor(Motor):
     def __init__(self, name):
         Motor.__init__(self, name, motor_type = 'vmeenc')
 
-class clsMotor(Motor):
+class CLSMotor(Motor):
     def __init__(self, name):
         Motor.__init__(self, name, motor_type = 'cls')
 
-class pseudoMotor(Motor):
+class PseudoMotor(Motor):
     def __init__(self, name):
         Motor.__init__(self, name, motor_type = 'pseudo')
     
-class energyMotor(Motor):
+class EnergyMotor(Motor):
 
     implements(IMotor)
     
-    def __init__(self, name=None):
-        MotorBase.__init__(self, 'Beamline Energy')
+    def __init__(self, pv1, pv2):
+        MotorBase.__init__(self, name)
         self.units = 'keV'
+        self.name='Beamline Energy'
         
+        pv1_root = ':'.join(pv1.split(':')[:-1])
+        pv2_root = ':'.join(pv2.split(':')[:-1])
         # initialize process variables
-        self.VAL  = PV("BL08ID1:energy")    
-        self.PREC = PV("SMTR16082I1005:deg.PREC")  
-        self.RBV  = PV("SMTR16082I1005:deg:sp")
-        self.MOVN = PV("BL08ID1:energy:moving" )
-        self.STOP = PV("BL08ID1:energy:stop")
-        self.CALIB =  PV("SMTR16082I1005:calibDone")
-        self.STAT =  PV("SMTR16082I1005:status")
+        self.VAL  = PV(pv1)    
+        self.PREC = PV("%s.PREC" % pv2)  
+        self.RBV  = PV("%s:sp" % pv2)
+        self.MOVN = PV("%s:moving" % pv1)
+        self.STOP = PV("%s:stop" % pv1)
+        self.CALIB =  PV("%s:calibDone" % pv2_root)
+        self.STAT =  PV("%s:status" % pv2_root)
         
         # connect monitors
         self.RBV.connect('changed', self._signal_change)
@@ -255,7 +259,7 @@ class energyMotor(Motor):
 
                 
 
-class braggEnergyMotor(Motor):
+class BraggEnergyMotor(Motor):
 
     implements(IMotor)
     
@@ -289,7 +293,29 @@ class braggEnergyMotor(Motor):
         
         if wait:
             self.wait()
-       
+
+class MotorShutter(object):
+    implements(IShutter)
+    __used_for__ = IShutter
+    
+    def __init__(self, motor, open_pos, close_pos):
+        self.motor = motor
+        self.name = motor.name
+        self._open_pos = open_pos
+        self._close_pos = close_pos
+    
+    def open(self):
+        self.motor.move_to(self._open_pos)
+
+    def close(self):
+        self.move_to(self._close_pos)
+            
+    def get_state(self):
+        return self.motor.get_state()
+
+registry.register([IMotor], IShutter, '', MotorShutter)
+        
+          
 gobject.type_register(MotorBase)
 
         
