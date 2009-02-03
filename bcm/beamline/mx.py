@@ -1,6 +1,10 @@
 import os
 import gobject
+<<<<<<< HEAD:bcm/beamline/mx.py
+import threading
+=======
 import thread
+>>>>>>> 27bcfd092cb5ea1bcba25ac16b050cae5679ee1c:bcm/beamline/mx.py
 import re
 import xmlrpclib
 from ConfigParser import ConfigParser
@@ -44,7 +48,7 @@ class MXBeamline(object):
         self.config_file = os.path.join(filename)
         self.registry = {}
         self.config = {}
-        self.lock = thread.allocate_lock()
+        self.lock = threading.RLock()
         self.setup()
         gsm.registerUtility(self, IBeamline, 'bcm.beamline')
         _logger.info('Beamline Registered.')

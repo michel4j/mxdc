@@ -5,7 +5,7 @@ from PeriodicTable import PeriodicTable
 from LogView import LogView
 from Plotter import Plotter
 from Dialogs import *
-from bcm.engine.scanning import MADScanner, ExcitationScanner
+from bcm.engine.spectroscopy import XRFScan, XANESScan
 from bcm.engine import fitting
 from bcm.engine.AutoChooch import AutoChooch
 

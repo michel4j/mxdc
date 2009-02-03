@@ -8,7 +8,7 @@ import time
 import threading, thread
 import Image, ImageOps, ImageDraw, ImageFont
 import bcm.utils
-from bcm.protocols import ca
+from bcm.protocol import ca
 import pickle
 
 COLORMAPS = pickle.load(file(os.environ['BCM_PATH']+ '/mxdc/gui/images/colormaps.data'))

@@ -3,7 +3,7 @@ import sys, time, os
 import math
 from Dialogs import save_selector
 from VideoWidget import VideoWidget
-from bcm.tools.scripting import Script
+from bcm.engine.scripting import Script
 from bcm.scripts.misc import center_sample 
 from bcm.protocols import ca
 from bcm.devices.cameras import add_decorations

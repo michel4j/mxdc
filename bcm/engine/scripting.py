@@ -7,8 +7,9 @@ import logging
 from zope.interface import Interface, Attribute
 from zope.interface import implements
 from zope.component import globalSiteManager as gsm
-from twisted.plugin import IPlugin
+from twisted.plugin import IPlugin, getPlugins
 from bcm.protocol import ca
+import bcm.scripts
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
 
@@ -64,6 +65,13 @@ class Script(gobject.GObject):
                 
     def run(self):
         raise ScriptError('`run()` not implemented!')
+
+
+def get_scripts():
+    scripts = {}
+    for script in list(getPlugins(IScript, bcm.scripts)):
+        print script.name, script
+    
         
 gobject.type_register(Script)
     

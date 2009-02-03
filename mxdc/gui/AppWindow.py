@@ -1,23 +1,29 @@
 import gtk, gobject
 import sys, os
+import logging
 
+from zope.component import globalSiteManager as gsm
 from CollectManager import CollectManager
 from StatusPanel import StatusPanel
 from ScanManager import ScanManager
 from HutchManager import HutchManager
 from SampleManager import SampleManager
 from LogView import LogView, GUIHandler
-import logging
+from bcm.utils.log import get_module_logger, log_to_console
+
+_logger = get_module_logger('mxdc')
 
 class AppWindow(gtk.Window):
-    def __init__(self, beamline):
+    def __init__(self):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         self.set_position(gtk.WIN_POS_CENTER)
         icon_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/icon.png'
         pixbuf = gtk.gdk.pixbuf_new_from_file(icon_file)        
         self.set_icon (pixbuf)
         
-        self.beamline = beamline
+        #associate beamline devices
+        self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+
         self.scan_manager = ScanManager(self.beamline)
         self.collect_manager = CollectManager(self.beamline)
         self.scan_manager.connect('create-run', self.on_create_run)
