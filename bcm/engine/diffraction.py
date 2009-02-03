@@ -1,10 +1,18 @@
-#!/usr/bin/env python
-
-import sys, time, os
-import gtk, gobject
 import threading
+import logging
+import gobject
+
+from zope.interface import Interface, Attribute
+from zope.interface import implements
+from zope.component import globalSiteManager as gsm
 from bcm.protocol import ca
-from bcm import utils
+from bcm.beamline.interfaces import IBeamline
+from bcm.utils.log import get_module_logger
+from bcm.utils.misc import generate_run_list
+from bcm.utils.converter import energy_to_wavelength
+
+# setup module logger with a default do-nothing handler
+_logger = get_module_logger(__name__)
 
 class DataCollector(gobject.GObject):
     __gsignals__ = {}
@@ -14,159 +22,108 @@ class DataCollector(gobject.GObject):
     __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,))
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['stopped'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
-    __gsignals__['log'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     
-    def __init__(self, beamline):
+    def __init__(self):
         gobject.GObject.__init__(self)
         self.paused = False
         self.stopped = True
         self.skip_collected = False
-        self._initialized = False
-        self._background_taken = False
         
         #associate beamline devices
-        try:
-            self.beamline = beamline
-            self.detector = beamline.ccd
-            self.gonio = beamline.gonio
-            self.shutter = beamline.shutter
-            self.two_theta = beamline.det_2th
-            self.distance = beamline.det_d
-            self.energy = beamline.energy
-            self._initialized = True
-        except AttributeError:
-            self._initialized = False
-        
-        
-    def setup_from_list(self, run_list, skip_collected=True):
-        self.run_list = run_list
+        self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+            
+    def configure(self, run_data=None, run_list=None, skip_collected=True):
+        if run_data is None and run_list is None:
+            self.run_list = []
+            _logger.warning('Run is empty')
+        elif run_data is not None:  # run_data supersedes run_list if specified
+            self.run_list = generate_run_list(run_data)
+            self.beamline.image_server.create_folder(run_data['directory'])
+        else: # run_list is not empty
+            self.run_list = run_list
         self.total_frames = len(self.run_list)
         self.skip_collected = skip_collected
         return
     
-    def setup(self, run_data, skip_collected=True):
-        self.run_list = utils.generate_run_list(run_data)
-        self.total_frames = len(self.run_list)
-        self.skip_collected = skip_collected
-        self.beamline.image_server.create_folder(run_data['directory'])
-        return
     
     def start(self):
-        if self._initialized:
-            self._worker = threading.Thread(target=self.run)
-            self._worker.start()
-        else:
-            gobject.idle_add(self.emit, 'stopped')
-            gobject.idle_add(self.emit, 'progress', 1.0, 0)
+        worker_thread = threading.Thread(target=self.run)
+        worker_thread.setDaemon(True)
+        worker_thread.start()
 
     
     def run(self):
         self.paused = False
         self.stopped = False
         ca.threads_init() 
-        self.beamline.lock.acquire()            
-        self.shutter.close()
-        if not self._background_taken:
-            time.sleep(0.1)  # small delay to make sure shutter is closed
-            self.detector.initialize()
-            self._background_taken = True
-        self.pos = 0
-        header = {}
-
-        while self.pos < len(self.run_list) :
-            if not self.detector.is_healthy():
-                self.stopped = True
-                gobject.idle_add(self.emit, 'error', 'Connection to Detector Lost!')
-            if self.paused:
-                gobject.idle_add(self.emit, 'paused', True)
-                while self.paused and not self.stopped:
-                    time.sleep(0.1)
-                gobject.idle_add(self.emit, 'paused', False)
-            if self.stopped:
-                gobject.idle_add(self.emit, 'stopped')
-                return
-
-            frame = self.run_list[self.pos]
-
-            if frame['saved'] and self.skip_collected:
-                self.log( 'Skipping %s' % frame['file_name'])
-                continue
-
-            _motion_flag = [False,False,False]
-            # Check and prepare beamline
-            #self.beamline.configure(
-            #    detector_distance=frame['distance'],
-            #    energy=frame['energy'])             
-            #self.beamline.configure(detector_twotheta=frame['two_theta'])
-            
-            
-            if abs(frame['distance'] - self.distance.get_position()) > 0.1 and abs(frame['two_theta'] - self.two_theta.get_position()) > 0.5:
+        self.beamline.lock.acquire()
+        try:          
+            self.beamline.exposure_shutter.close()
+            self.pos = 0
+            header = {}
+    
+            while self.pos < len(self.run_list) :
+                if self.paused:
+                    gobject.idle_add(self.emit, 'paused', True)
+                    while self.paused and not self.stopped:
+                        time.sleep(0.05)
+                    gobject.idle_add(self.emit, 'paused', False)
+                if self.stopped:
+                    gobject.idle_add(self.emit, 'stopped')
+                    break
+    
+                frame = self.run_list[self.pos]   
+                if frame['saved'] and self.skip_collected:
+                    self.log( 'Skipping %s' % frame['file_name'])
+                    continue                               
+                self.beamline.energy.move_to(frame['energy'])
                 self.distance.move_to(frame['distance'])
-                self.distance.wait(start=True, stop=True)
+                self.distance.wait()
                 self.two_theta.move_to(frame['two_theta'])
-                self.two_theta.wait(start=True, stop=False)
-                _motion_flag[1] = True 
-            elif abs(frame['distance'] - self.distance.get_position()) > 0.1:
-                self.distance.move_to(frame['distance'])
-                self.distance.wait(start=True, stop=False)
-                _motion_flag[0] = True
-            elif  abs(frame['two_theta'] - self.two_theta.get_position()) > 0.5:
-                self.two_theta.move_to(frame['two_theta'])
-                self.two_theta.wait(start=True, stop=False)
-                _motion_flag[1] = True 
-            if  abs(frame['energy'] - self.energy.get_position()) > 5e-5:
-                self.energy.move_to(frame['energy'])
-                self.energy.wait(start=True, stop=False)
-                _motion_flag[2] = True     
-
-            for m,f in zip([self.distance, self.two_theta, self.energy], _motion_flag):
-                if f: m.wait(start=False, stop=True)
+                self.two_theta.wait()
+                self.beamline.energy.wait()                
+                
+                # Prepare image header
+                header['delta'] = frame['delta']
+                header['filename'] = frame['file_name']
+                dir_parts = frame['directory'].split('/')
+                if dir_parts[1] == 'users':
+                    dir_parts[1] = 'data'
+                    header['directory'] = '/'.join(dir_parts)
+                else:
+                    header['directory'] = frame['directory']
+                header['distance'] = frame['distance'] 
+                header['time'] = frame['time']
+                header['frame_number'] = frame['frame_number']
+                header['wavelength'] = energy_to_wavelength(frame['energy'])
+                header['energy'] = frame['energy']
+                header['prefix'] = frame['prefix']
+                header['start_angle'] = frame['start_angle']            
+                
+                #prepare goniometer for scan   
+                self.beamline.goniometer.configure(time=frame['time'],
+                                                   delta=frame['delta'],
+                                                   angle=frame['start_angle'])
+                self.beamline.detector.start()            
+                self.beamline.goniometer.scan()
+                self.beamline.detector.save(header)
+    
+                _logger.info("Image Collected: %s" % frame['file_name'])
+                gobject.idle_add(self.emit, 'new-image', self.pos, "%s/%s" % (frame['directory'],frame['file_name']))
+                
+                # Notify progress
+                fraction = float(self.pos) / len(self.run_list)
+                gobject.idle_add(self.emit, 'progress', fraction, self.pos+1)          
+                self.pos += 1
             
-            
-            velo = frame['delta'] / float(frame['time'])
-            
-            
-            # Prepare image header
-            header['delta'] = frame['delta']
-            header['filename'] = frame['file_name']
-            dir_parts = frame['directory'].split('/')
-            if dir_parts[1] == 'users':
-                dir_parts[1] = 'data'
-                header['directory'] = '/'.join(dir_parts)
-            else:
-                header['directory'] = frame['directory']
-            header['distance'] = frame['distance'] 
-            header['time'] = frame['time']
-            header['frame_number'] = frame['frame_number']
-            header['wavelength'] = utils.energy_to_wavelength(frame['energy'])
-            header['energy'] = frame['energy']
-            header['prefix'] = frame['prefix']
-            header['start_angle'] = frame['start_angle']            
-               
-            gonio_data = {
-                'time': frame['time'],
-                'delta' : frame['delta'],
-                'start_angle': frame['start_angle'],                
-            }
-            self.gonio.set_parameters(gonio_data)
-            self.detector.start()            
-            self.detector.set_parameters(header)
-            self.gonio.scan()
-            self.detector.save()
-
-            self.log("Image Collected: %s" % frame['file_name'])
-            gobject.idle_add(self.emit, 'new-image', self.pos, "%s/%s" % (frame['directory'],frame['file_name']))
-            
-            # Notify progress
-            fraction = float(self.pos) / len(self.run_list)
-            gobject.idle_add(self.emit, 'progress', fraction, self.pos+1)          
-            self.pos += 1
-        
-        gobject.idle_add(self.emit, 'done')
-        gobject.idle_add(self.emit, 'progress', 1.0, 0)
-        self.stopped = True
-        self.beamline.lock.release()
+            gobject.idle_add(self.emit, 'done')
+            if not self.stopped:
+                gobject.idle_add(self.emit, 'progress', 1.0, 0)
+            self.stopped = True
+        finally:
+            self.beamline.exposure_shutter.close()
+            self.beamline.lock.release()
 
     def set_position(self,pos):
         self.pos = pos
@@ -180,7 +137,5 @@ class DataCollector(gobject.GObject):
     def stop(self):
         self.stopped = True
     
-    def log(self, message):
-        gobject.idle_add(self.emit, 'log', message)
                 
 gobject.type_register(DataCollector)
