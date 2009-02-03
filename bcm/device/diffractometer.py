@@ -16,7 +16,7 @@ class Diffractometer(object):
 
     implements(IDiffractometer)
     
-    def __init__(self, name, distance, two_theta):
+    def __init__(self, distance, two_theta, name='Diffractometer'):
         self.name = name
         self.distance  = distance
         self.two_theta = two_theta
