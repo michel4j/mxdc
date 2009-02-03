@@ -234,9 +234,8 @@ class EnergyMotor(Motor):
     implements(IMotor)
     
     def __init__(self, pv1, pv2):
-        MotorBase.__init__(self, name)
+        MotorBase.__init__(self, 'Beamline Energy')
         self.units = 'keV'
-        self.name='Beamline Energy'
         
         pv1_root = ':'.join(pv1.split(':')[:-1])
         pv2_root = ':'.join(pv2.split(':')[:-1])
@@ -298,11 +297,11 @@ class MotorShutter(object):
     implements(IShutter)
     __used_for__ = IShutter
     
-    def __init__(self, motor, open_pos, close_pos):
+    def __init__(self, motor):
         self.motor = motor
         self.name = motor.name
-        self._open_pos = open_pos
-        self._close_pos = close_pos
+        self._open_pos = 5.0
+        self._close_pos = 0.0
     
     def open(self):
         self.motor.move_to(self._open_pos)
