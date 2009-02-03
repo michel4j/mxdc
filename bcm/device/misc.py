@@ -222,7 +222,7 @@ class Stage(object):
 
     implements(IStage)
     
-    def __init__(self, x, y, z, name):
+    def __init__(self, x, y, z, name='XYZ Stage'):
         self.name = name
         self.x  = x
         self.y  = y
@@ -246,7 +246,7 @@ class Collimator(object):
 
     implements(ICollimator)
     
-    def __init__(self, x, y, width, height, name):
+    def __init__(self, x, y, width, height, name='Collimator'):
         self.name = name
         self.x  = x
         self.y = y
