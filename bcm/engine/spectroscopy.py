@@ -21,18 +21,20 @@ class XRFScan(BasicScan):
     def run(self):
         _logger.debug('Exitation Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
-        _logger.debug('Exitation Scan started')
-        gobject.idle_add(self.emit, 'started')     
-        self.beamline.mca.configure(cooling=True, roi=None)
-        if self._energy is not None:
-            self.beamline.energy.move_to(self._energy)
-            self.beamline.energy.wait()
-        self.beamline.shutter.open()
-        self.data = self.beamline.mca.acquire(t=self._duration)
-        self.beamline.shutter.close()
-        gobject.idle_add(self.emit, "done")
-        gobject.idle_add(self.emit, "progress", 1.0 )
-        self.beamline.lock.release()    
+        try:
+            _logger.debug('Exitation Scan started')
+            gobject.idle_add(self.emit, 'started')     
+            self.beamline.mca.configure(cooling=True, roi=None)
+            if self._energy is not None:
+                self.beamline.energy.move_to(self._energy)
+                self.beamline.energy.wait()
+            self.beamline.exposure_shutter.open()
+            self.data = self.beamline.mca.acquire(t=self._duration)
+            gobject.idle_add(self.emit, "done")
+            gobject.idle_add(self.emit, "progress", 1.0 )
+        finally:
+            self.beamline.exposure_shutter.close()
+            self.beamline.lock.release()
             
 
 class XANESScan(BasicScan):
@@ -47,18 +49,17 @@ class XANESScan(BasicScan):
     def run(self):       
         _logger.info('Edge Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
-        _logger.info('Edge Scan started.')
-        gobject.idle_add(self.emit, 'started')
-
         try:
+            gobject.idle_add(self.emit, 'started')
+            _logger.info('Edge Scan started.')
             self.beamline.mca.configure(cooling=True, roi=self._energy)
             self.beamline.energy.move_to(self._energy)
-            self.beamline.energy.wait(p)   
+            self.beamline.energy.wait()   
                    
             self.count = 0
-            self.beamline.shutter.open()
+            self.beamline.exposure_shutter.open()
             self.beamline.mca.erase()
-            scan_logger.info("%4s %15s %15s %15s" % ('#', 'Energy', 'Counts', 'Scale Factor'))
+            _logger.info("%4s %15s %15s %15s" % ('#', 'Energy', 'Counts', 'Scale Factor'))
             for x in self.energy_targets:
                 if self.stopped or self.aborted:
                     scan_logger.info('Edge Scan stopped.')
@@ -79,27 +80,20 @@ class XANESScan(BasicScan):
                 self.y_data_points.append( y )
                 
                 fraction = float(self.count) / len(self.energy_targets)
-                scan_logger.info("%4d %15g %15g %15g" % (self.count, x, y, self.factor))
+                _logger.info("%4d %15g %15g %15g" % (self.count, x, y, self.factor))
                 gobject.idle_add(self.emit, "new-point", x, y )
                 gobject.idle_add(self.emit, "progress", fraction )
-                 
-            self.beamline.shutter.close()
-            
+                             
             if self.aborted:
-                scan_logger.warning("Edge Scan aborted.")
+                _logger.warning("Edge Scan aborted.")
                 gobject.idle_add(self.emit, "aborted")
                 gobject.idle_add(self.emit, "progress", 0.0 )
             else:
-                self.save()
+                _logger.warning("Edge Scan completed.")
                 gobject.idle_add(self.emit, "done")
                 gobject.idle_add(self.emit, "progress", 1.0 )
-        except:
-            scan_logger.error("An error occurred during the scan. Edge Scan aborted.")
+        finally:
             self.beamline.shutter.close()
             self.beamline.lock.release()
-            gobject.idle_add(self.emit, "aborted")
-            gobject.idle_add(self.emit, "progress", 0.0 )
-            raise
-        self.beamline.lock.release()
               
 

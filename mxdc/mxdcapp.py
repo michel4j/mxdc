@@ -12,57 +12,30 @@ sys.path.append(os.environ['BCM_PATH'])
 from gui.Splash import Splash
 from gui.AppWindow import AppWindow
 from bcm.beamline.mx import MXBeamline
+from bcm.utils.log import get_module_logger, log_to_console
 
-# set up logging to file
-try:
-    logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s : %(message)s',
-                    datefmt='%a, %d %b %Y %H:%M:%S',
-                    filename='/tmp/mxdc.log',
-                    filemode='a')
-except:
-    logging.basicConfig()
-    lgr= logging.getLogger('')
-    lgr.setLevel(logging.DEBUG)
-    #hdlr = logging.RotatingFileHandler('/tmp/mxdc', "a", 5000, 3)
-    #fmt = logging.Formatter('%(asctime)s %(levelname)s : %(message)s', "%x %X")
-    #hdlr.setFormatter(fmt)
-    #lgr.addHandler(hdlr)
-
-    
-# define a Handler which writes INFO messages or higher to the sys.stderr
-console = logging.StreamHandler()
-console.setLevel(logging.NOTSET)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s : %(message)s')
-console.setFormatter(formatter)
-logging.getLogger('').addHandler(console)
-
+_logger = get_module_logger('mxdc')
 
 class AppClass(object):
     def __init__(self):
-        img_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/splash.png'
-        logo_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/logo.png'
-        icon_file = os.environ['BCM_PATH'] + '/mxdc/gui/images/icon.png'
-        self.beamline = MXBeamline('08id1.conf')
-        rev_file = os.environ['BCM_PATH'] + '/bcm/config/revision.txt'
-        _f = file(rev_file)
-        _raw = _f.readlines()
-        rev = _raw[8].split()[3]
-        rev_date = _raw[9].split()[3]
+        img_file = os.path.join(os.environ['BCM_PATH'], 'mxdc/gui/images/splash.png')
+        logo_file = os.path.join(os.environ['BCM_PATH'], 'mxdc/gui/images/logo.png')
+        icon_file = os.path.join(os.environ['BCM_PATH'], 'mxdc/gui/images/icon.png')
+        self._config_file = os.path.join(os.environ['BCM_CONFIG_PATH'], '08id1.conf')
         self.splash = Splash(img_file, self.beamline,
             icon=icon_file, logo=logo_file, color='#ead3f4')
-        self.splash.set_revision(rev, rev_date)
+        self.splash.set_revision('3.0', '20090203')
         gobject.idle_add(self.run)
                  
     def run(self):
-        self.beamline.setup()
+        self.beamline = MXBeamline(self._config_file)
         self.splash.hide()
-        self.main_window = AppWindow(self.beamline)
+        self.main_window = AppWindow()
         self.main_window.connect('destroy',self.do_quit)
         return False
     
     def do_quit(self, obj):
-        logging.getLogger('').log(0,'Stopping...')
+        _logger.info('Stopping...')
         reactor.stop()
 
 if __name__ == "__main__":
