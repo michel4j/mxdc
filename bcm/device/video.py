@@ -57,7 +57,7 @@ class SimCamera(CameraBase):
         CameraBase.__init__(self, name)
         self.size = (480, 640)
         self.resolution = 1.0
-        self._packet_size = self.resolution[0] * self.resolution[1]
+        self._packet_size = self.size[0] * self.size[1]
         self._fsource = open('/dev/urandom','rb')
         self._update()
         
@@ -76,17 +76,16 @@ class CACamera(CameraBase):
 
     implements(ICamera)   
      
-    def __init__(self, pv_name, zoom_motor, name):
+    def __init__(self, pv_name, zoom_motor, name='Camera'):
         CameraBase.__init__(self, name)
         self.size = (640, 480)
         self.resolution = 1.0
-        self._packet_size = self.resolution[0] * self.resolution[1]
+        self._packet_size = self.size[0] * self.size[1]
         self._cam = PV(pv_name)
         self._zoom = IMotor(zoom_motor)
-        self._update()
 
     def _update(self):
-        if self._cam.is_connected():
+        try:
             data = self._cam.get()
             
             # Make sure full frame is obtained otherwise iterate until we
@@ -98,7 +97,7 @@ class CACamera(CameraBase):
             self.frame = toimage(numpy.fromstring(data, 'B').reshape(
                                                     self.resolution[1], 
                                                     self.resolution[0]))
-        else:
+        except:
             _logger.error('(%s) Failed fetching frame.' % (self.name,) )
             # FIXME: What should we do when PV can not connect?
 
@@ -106,7 +105,7 @@ class CACamera(CameraBase):
         self._zoom.move_to(val)
             
     def get_frame(self):
-        self.update()
+        self._update()
         return self.frame
 
 
@@ -117,7 +116,7 @@ class AxisCamera(CameraBase):
       
     def __init__(self, hostname, name='Axis Camera'):
         CameraBase.__init__(self, name)
-        self.resolution = (704, 480)
+        self.size = (704, 480)
         self._url = 'http://%s/jpg/image.jpg' % hostname
         self._server = httplib.HTTPConnection(hostname)
         self._last_frame = time.time()
