@@ -1,10 +1,7 @@
 import os
 import gobject
-<<<<<<< HEAD:bcm/beamline/mx.py
 import threading
-=======
-import thread
->>>>>>> 27bcfd092cb5ea1bcba25ac16b050cae5679ee1c:bcm/beamline/mx.py
+
 import re
 import xmlrpclib
 from ConfigParser import ConfigParser
