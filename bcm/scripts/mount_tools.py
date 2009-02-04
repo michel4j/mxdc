@@ -7,7 +7,6 @@ class prepare_for_mounting(Script):
         self.beamline.devices['det_z'].move_to(safe_distance, wait=True)
         self.beamline.devices['bst_z'].move_to(safe_beamstop, wait=True)
         
-prepare = prepare_for_mounting()
 
 class restore_for_collecting(Script):
     def run(self):
@@ -18,5 +17,4 @@ class restore_for_collecting(Script):
         self.beamline.devices['bst_z'].move_to(safe_beamstop, wait=True)
         self.beamline.devices['det_z'].move_to(safe_distance, wait=True)
         
-restore = restore_for_collecting()
 
