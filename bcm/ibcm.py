@@ -9,5 +9,8 @@ class IScript(Interface):
         """Start the script in synchronous mode. It blocks.
         This is where the functionality of the script is defined.
         """
-
+    
+    def  wait():
+        """Wait for script to finish running."""
                 
+ 

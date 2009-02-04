@@ -6,35 +6,13 @@ import gtk, gobject
 import sys, os
 import logging
 
-sys.path.append(os.environ['BCM_PATH'])
-
-from bcm.beamline import PX
+from bcm.beamline.mx import MXBeamline
 from mxdc.gui.SampleViewer import SampleViewer
 from mxdc.gui.ActiveWidgets import CryojetWidget
+#from bcm.utils.log import log_to_console
+#log_to_console()
 
 # set up logging to file
-try:
-    logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s : %(message)s',
-                    datefmt='%a, %d %b %Y %H:%M:%S',
-                    filename='/tmp/mxdc_sample.log',
-                    filemode='a')
-except:
-    logging.basicConfig()
-    lgr= logging.getLogger('')
-    lgr.setLevel(logging.DEBUG)
-    #hdlr = logging.RotatingFileHandler('/tmp/mxdc', "a", 5000, 3)
-    #fmt = logging.Formatter('%(asctime)s %(levelname)s : %(message)s', "%x %X")
-    #hdlr.setFormatter(fmt)
-    #lgr.addHandler(hdlr)
-
-    
-# define a Handler which writes INFO messages or higher to the sys.stderr
-console = logging.StreamHandler()
-console.setLevel(logging.NOTSET)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s : %(message)s')
-console.setFormatter(formatter)
-logging.getLogger('').addHandler(console)
 
 def main():
 
@@ -44,8 +22,8 @@ def main():
     win.set_title("SampleViewer")
     book = gtk.Notebook()
     #win.add(book)
-    bl = PX('08id1-sample.conf')
-    bl.setup()
+    config_file = '/home/michel/Code/eclipse-ws/beamline-control-module/etc/08id1.conf'
+    bl = MXBeamline(config_file)
     
     myviewer = SampleViewer(bl)
     cryo_controller = CryojetWidget(bl.cryojet, bl.cryo_x)
