@@ -24,10 +24,19 @@ from bcm.device.video import CACamera, AxisCamera
 from bcm.service.imagesync_client import ImageSyncClient
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger, log_to_console
+from zope.interface.interface import adapter_hooks
+from zope.interface import providedBy
+from zope.interface.adapter import AdapterRegistry
+registry = AdapterRegistry()
 
-# setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
 log_to_console()
+
+def _hook(provided, object):
+    adapter = registry.lookup1(providedBy(object),
+                               provided, '')
+    return adapter(object)
+
+adapter_hooks.append(_hook)
 
 # compare function for sorting according to dependency
 def _cmp_arg(a, b):
@@ -48,10 +57,11 @@ class MXBeamline(object):
         self.lock = threading.RLock()
         self.setup()
         gsm.registerUtility(self, IBeamline, 'bcm.beamline')
-        _logger.info('Beamline Registered.')
+        self.logger.info('Beamline Registered.')
         
     def setup(self):
         ca.threads_init()
+        self.logger = get_module_logger(__name__)
         config = ConfigParser()
         config.read(self.config_file)
         sections = config.sections()
@@ -84,11 +94,11 @@ class MXBeamline(object):
         for section, name, cmd in _item_list:
             n_cmd = re.sub("'@([^- ,]+)'", "self.registry['\\1']", cmd)
             reg_cmd = "self.registry['%s'] = %s" % (name, n_cmd)
-            _logger.info('Setting up %s: %s' % (section, name))
+            self.logger.info('Setting up %s: %s' % (section, name))
             exec(reg_cmd)
             if section == 'utilities':
                 util_cmd = "self.%s = self.registry['%s']" % (name, name)
-                _logger.info('Registering %s: %s' % (section, name))
+                self.logger.info('Registering %s: %s' % (section, name))
                 exec(util_cmd)
                     
 if __name__ == '__main__':

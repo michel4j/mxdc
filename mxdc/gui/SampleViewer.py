@@ -3,13 +3,11 @@ import sys, time, os
 import math
 from Dialogs import save_selector
 from VideoWidget import VideoWidget
-from bcm.engine.scripting import Script
-from bcm.scripts.misc import center_sample 
-from bcm.protocols import ca
-from bcm.devices.cameras import add_decorations
+from bcm.engine.scripting import get_scripts 
+from bcm.protocol import ca
+from bcm.utils.video import add_decorations
 
 COLOR_MAPS = [None, 'Spectral','hsv','jet', 'RdYlGn','hot', 'PuBu']        
-#COLOR_MAPS = [None, 'Spectral', 'summer', 'RdYlGn', 'PuBu', 'copper', 'spring', 'Accent', 'OrRd', 'autumn', 'Set1', 'Set2', 'Set3', 'pink', 'winter', 'jet', 'gist_earth', 'Dark2', 'RdBu', 'gist_yarg', 'BuGn', 'prism', 'PiYG', 'YlOrBr', 'YlGn', 'Pastel2', 'RdPu', 'Greens', 'PRGn', 'gist_heat', 'YlGnBu', 'BuPu', 'RdYlBu', 'Paired', 'flag', 'Oranges', 'hsv', 'BrBG', 'Purples', 'cool', 'Reds', 'gray', 'Pastel1', 'gist_stern', 'GnBu', 'gist_ncar', 'Greys', 'RdGy', 'hot', 'YlOrRd', 'PuOr', 'PuRd', 'gist_gray', 'Blues', 'PuBuGn', 'gist_rainbow', 'bone']
 
 class SampleViewer(gtk.HBox):
     def __init__(self, beamline):
@@ -23,23 +21,23 @@ class SampleViewer(gtk.HBox):
         self.beamline = beamline
 
         # assign devices
-        self.omega = beamline.omega
-        self.sample_x = beamline.sample_x
-        self.sample_y1 = beamline.sample_y
-        self.sample_y2 = beamline.sample_z
-        self.beam_width = beamline.beam_w
-        self.beam_height = beamline.beam_h
-        self.beam_x = beamline.beam_x
-        self.beam_y = beamline.beam_y
-        self.zoom = beamline.sample_zoom
-        self.light = beamline.sample_light
-        self.cross_x = beamline.cross_x
-        self.cross_y = beamline.cross_y
-        self.camera = beamline.sample_cam
+        self.omega = self.beamline.goniometer.omega
+        self.sample_x = self.beamline.sample_stage.x
+        self.sample_y1 = self.beamline.sample_stage.y
+        self.sample_y2 = self.beamline.sample_stage.z
+        self.beam_width = self.beamline.collimator.width
+        self.beam_height = self.beamline.collimator.height
+        self.beam_x = self.beamline.collimator.x
+        self.beam_y = self.beamline.collimator.y
+        self.cross_x = self.beamline.registry['camera_center_x']
+        self.cross_y = self.beamline.registry['camera_center_y']
+        self.zoom = self.beamline.registry['sample_zoom']
+        self.camera = self.beamline.sample_video
         
-        self.lighting = self.light.get_position()
+        self.backlight = self.beamline.sample_backlight
+        self.sidelight = self.beamline.sample_sidelight
 
-        self.on_change() #initialize display variables
+        #self.on_change() #initialize display variables
         self.create_widgets()
         
         self._tick_size = 8
@@ -312,7 +310,7 @@ class SampleViewer(gtk.HBox):
         self.lighting_scale = gtk.HScale()
         self.lighting_scale.set_value_pos(gtk.POS_RIGHT)
         self.lighting_scale.set_digits(1)
-        self.lighting_scale.set_adjustment(gtk.Adjustment(self.lighting,0,5, 0.1,0,0))
+        self.lighting_scale.set_adjustment(gtk.Adjustment(0.0,0,5, 0.1,0,0))
         self.lighting_scale.set_update_policy(gtk.UPDATE_CONTINUOUS)
         
         self.contrast_scale = gtk.HScale()
@@ -333,6 +331,8 @@ class SampleViewer(gtk.HBox):
         self.side_panel.pack_end(self.save_btn, expand=False, fill=False)
         self.pack_end(vbox2, expand=True, fill=True)
         self.show_all()
+        
+        self._scripts = get_scripts()
 
     def _overlay_function(self, pixmap):
         self.draw_cross(pixmap)
@@ -359,19 +359,19 @@ class SampleViewer(gtk.HBox):
             self.save_image(img_filename)
     
     def on_center_loop(self,widget):
-        script = Script(center_sample, self.beamline)
+        script = self._scripts['CenterSample']
         self.side_panel.set_sensitive(False)
         script.connect('done', self.done_centering)
         script.connect('error', self.done_centering)
-        script.start()
+        script.start(crystal=False)
         return True
               
     def on_center_crystal(self, widget):
-        script = Script(center_sample, self.beamline, crystal=True)
+        script = self._scripts['CenterSample']
         self.side_panel.set_sensitive(False)
         script.connect('done', self.done_centering)
         script.connect('error', self.done_centering)
-        script.start()
+        script.start(crystal=True)
         return True
 
     def done_centering(self,obj):
