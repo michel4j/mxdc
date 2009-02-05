@@ -1,5 +1,7 @@
-import gtk, gobject
-import bcm.utils
+import gtk
+import gobject
+from bcm.utils import chemistry
+
 
 class PeriodicTable(gtk.Alignment):
     __gsignals__ = {
@@ -16,11 +18,15 @@ class PeriodicTable(gtk.Alignment):
         self.high_energy = hiE
         self.edge = 'Se-K'
         self.energy = 12.658
-        self.type_colors = ["#ff9999","#ff99ff","#9999ff","#cc99ff","#99ccff","#99ffff","#99ff99","#ccff99","#ffcc99","#ff6666", "#cccccc", "#ffff99"]
-        self.edge_colors = ["#de7878","#de78de","#7878de","#ab78de","#7899de","#78dede","#78de78","#abde78","#deab78","#de4545", "#ababab", "#dede78"]
+        self.type_colors = ["#ff9999","#ff99ff","#9999ff","#cc99ff",
+                            "#99ccff","#99ffff","#99ff99","#ccff99",
+                            "#ffcc99","#ff6666", "#cccccc", "#ffff99"]
+        self.edge_colors = ["#de7878","#de78de","#7878de","#ab78de",
+                            "#7899de","#78dede","#78de78","#abde78",
+                            "#deab78","#de4545", "#ababab", "#dede78"]
 
         self.table = gtk.Table(4,18,True)
-        self.table_data = bcm.utils.read_periodic_table()
+        self.table_data = chemistry.get_periodic_table()
                     
         # set the title
         self.title = gtk.Label('<big><big><b>Select an X-ray Absorption Edge</b></big></big>')
@@ -28,14 +34,14 @@ class PeriodicTable(gtk.Alignment):
         self.table.attach(self.title,3,14,0,1)
                 
         # populate table and display it
-        self.populate_table()
+        self._populate_table()
         self.table.set_row_spacings(1)
         self.table.set_col_spacings(1)
-        self.table.set_row_spacing(6,4)
+        self.table.set_row_spacing(6,2)
         self.add(self.table)
         self.show_all()
 
-    def populate_table(self):
+    def _populate_table(self):
         # parse data file and populate table
         self.tooltips = gtk.Tooltips()
         edge_names = ['K','L1','L2','L3']
@@ -59,7 +65,7 @@ class PeriodicTable(gtk.Alignment):
             # Element Symbol
             label2 = gtk.Label("<big>%s</big>" % (key) )
             label2.set_use_markup(True)
-            element_container.pack_start(label2,padding=1)
+            element_container.pack_start(label2,padding=0)
 
             # Edges
             edge_container = gtk.HBox(True,0)
@@ -72,7 +78,7 @@ class PeriodicTable(gtk.Alignment):
                 if val > self.low_energy and val < self.high_energy and e_val < self.high_energy:
                     event_data = "%s-%s:%s:%s" % (key,name,val,e_val)
                     edge_label = gtk.Label("<small><b><sub><span color='blue'>%s</span></sub></b></small>" % (name) )
-                    edge_label.set_padding(2,2)
+                    edge_label.set_padding(1,1)
                     edge_label.set_use_markup(True)
                     edge_bgbox = gtk.EventBox()
                     edge_bgbox.add(edge_label)
@@ -83,7 +89,7 @@ class PeriodicTable(gtk.Alignment):
                     self.tooltips.set_tip(edge_bgbox, "Edge: %s-%s\nAbsorption: %g keV\nEmission: %g keV" % (key, name, val,e_val) )
 
             
-            element_container.pack_start(edge_container,padding=1)
+            element_container.pack_start(edge_container,padding=0)
 
             # determine where to place in table from Group and Period fields
             ra = int(self.table_data[key]['Group']) # Group
