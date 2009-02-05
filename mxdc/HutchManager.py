@@ -1,11 +1,11 @@
 import gtk, gobject
 import sys, os
-from Predictor import Predictor
-from SampleViewer import SampleViewer
-from HutchViewer import HutchViewer
+from mxdc.widgets.predictor import Predictor
+from mxdc.widgets.sampleviewer import SampleViewer
+from mxdc.widgets.ptzviewer import AxisViewer
 from SamplePicker import SamplePicker
-from LogView import LogView
-from ActiveWidgets import *
+from mxdc.widgets.logview import LogView
+from mxdc.widgets.misc import *
 from bcm.tools.scripting import Script
 from bcm.scripts.misc import prepare_for_mounting, restore_beamstop, optimize_energy
 

@@ -1,17 +1,38 @@
 #!/usr/bin/env python
 
-from Motor import CLSMotor
-mfile = open('BL08ID_motors.txt')
-motordata = mfile.readlines()
-mfile.close()
+import gtk
+import gobject
 
-motors = {}
-for motor in motordata:
-	[name,key] = motor.split()
-	motors[key] = CLSMotor(name)
-	
-keys = motors.keys()
-keys.sort()
-for key in keys:
-	motors[key].show_all()
-	print "---------------"
+from bcm.device.motor import VMEMotor
+from bcm.beamline.mx import MXBeamline
+
+from mxdc.widgets.ActiveWidgets import MotorEntry, ActiveLabel
+
+def main():
+
+    win = gtk.Window()
+    win.connect("destroy", lambda x: gtk.main_quit())
+    win.set_border_width(0)
+    win.set_title("Motor Test")
+
+    config_file = '/home/michel/Code/eclipse-ws/beamline-control-module/etc/08id1.conf'
+    bl = MXBeamline(config_file)
+        
+    mtr = MotorEntry(bl.goniometer.omega, 'Omega')
+    lbl = ActiveLabel(bl.goniometer.omega)
+    
+    vbox = gtk.VBox()
+    
+    win.add(vbox)
+    vbox.pack_start(mtr)
+    vbox.pack_start(lbl)
+    win.show_all()
+
+    try:
+        gtk.main()
+    finally:
+        print 'Stopping'
+
+
+if __name__ == '__main__':
+    main()

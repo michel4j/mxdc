@@ -2,7 +2,7 @@ __revision__ =  '$Rev$'
 
 import gtk, gobject
 import sys, os
-from ActiveWidgets import LinearProgress
+from mxdc.widgets.misc import LinearProgress
 
 class Splash(object):
     def __init__(self, image, startup_obj, icon=None, logo=None, color=None):

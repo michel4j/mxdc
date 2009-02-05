@@ -30,23 +30,11 @@ class CameraBase(object):
         self.frame = None
         self.name = name
         self.resolution = 1.0
+        self.is_active = False
     
     def zoom(self):
         pass
                        
-    def save(self, filename):
-        if self.frame is None:
-            _logger.error('(%s) No image available to save.' % (self.name,) )
-            result = False
-        else:
-            try:
-                img = self.get_frame()
-                img.save(filename)
-                result = filename
-            except:
-                _logger.error('(%s) Unable to save image "%s".' % (self.name, filename) )
-                result = False
-        return result
     
                  
 class SimCamera(CameraBase):
@@ -59,16 +47,16 @@ class SimCamera(CameraBase):
         self.resolution = 1.0
         self._packet_size = self.size[0] * self.size[1]
         self._fsource = open('/dev/urandom','rb')
-        self._update()
+        self.is_active = True
         
     def _update(self):
         data = self._fsource.read(self._packet_size)
         self.frame = toimage(numpy.fromstring(data, 'B').reshape(
-                                                    self.resolution[1], 
-                                                    self.resolution[0]))
+                                                    self.size[1], 
+                                                    self.size[0]))
 
     def get_frame(self):
-        self.update()
+        self._update()
         return self.frame
 
 
@@ -83,9 +71,14 @@ class CACamera(CameraBase):
         self._packet_size = self.size[0] * self.size[1]
         self._cam = PV(pv_name)
         self._zoom = IMotor(zoom_motor)
-
+        self._cam.connect('active', self._activate)
+        self._sim_cam = SimCamera()
+    
+    def _activate(self, obj, val=None):
+        self.is_active = True
+        
     def _update(self):
-        try:
+        if self.is_active:
             data = self._cam.get()
             
             # Make sure full frame is obtained otherwise iterate until we
@@ -95,11 +88,10 @@ class CACamera(CameraBase):
                 data = self._cam.get()
                 
             self.frame = toimage(numpy.fromstring(data, 'B').reshape(
-                                                    self.resolution[1], 
-                                                    self.resolution[0]))
-        except:
-            _logger.error('(%s) Failed fetching frame.' % (self.name,) )
-            # FIXME: What should we do when PV can not connect?
+                                                    self.size[1], 
+                                                    self.size[0]))
+        else:
+            self.frame = self._sim_cam.get_frame()
 
     def zoom(self, val):
         self._zoom.move_to(val)

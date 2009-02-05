@@ -7,8 +7,8 @@ import sys, os
 import logging
 
 from bcm.beamline.mx import MXBeamline
-from mxdc.gui.SampleViewer import SampleViewer
-from mxdc.gui.ActiveWidgets import CryojetWidget
+from mxdc.widgets.sample_viewer import SampleViewer
+from mxdc.widgets.misc import CryojetWidget
 #from bcm.utils.log import log_to_console
 #log_to_console()
 
@@ -26,14 +26,14 @@ def main():
     bl = MXBeamline(config_file)
     
     myviewer = SampleViewer(bl)
-    cryo_controller = CryojetWidget(bl.cryojet, bl.cryo_x)
-    cryo_align = gtk.Alignment(0.5,0.5, 0, 0)
-    cryo_align.set_border_width(12)
-    cryo_align.add(cryo_controller)
-    cryo_controller.set_border_width(6)
+    #cryo_controller = CryojetWidget(bl.cryojet)
+    #cryo_align = gtk.Alignment(0.5,0.5, 0, 0)
+    #cryo_align.set_border_width(12)
+    #cryo_align.add(cryo_controller)
+    #cryo_controller.set_border_width(6)
 
     book.append_page(myviewer, tab_label=gtk.Label(' Sample Camera ') )
-    book.append_page(cryo_align, tab_label=gtk.Label(' Cryojet Control '))
+    #book.append_page(cryo_align, tab_label=gtk.Label(' Cryojet Control '))
     win.add(book)
     win.show_all()
 

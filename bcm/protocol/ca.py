@@ -311,7 +311,7 @@ class PV(gobject.GObject):
             self._defer_connection()
 
     def _defer_connection(self):
-        _logger.debug('(%s) Deferring Connection.' % (self.name,))
+        #_logger.debug('(%s) Deferring Connection.' % (self.name,))
         if self.state != CA_OP_CONN_UP:
             cb_factory = CFUNCTYPE(c_int, ConnectionHandlerArgs)
             cb_function = cb_factory(self._on_connect)
