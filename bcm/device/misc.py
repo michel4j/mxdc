@@ -204,7 +204,7 @@ class Cryojet(object):
                                       '%s:ShieldFlow:get' % cname,
                                       'L/min')
         self.level = PV('%s:ch1LVL:get' % lname)
-        self.nozzle_gap = IMotor(nozzle_motor)
+        self.nozzle = IMotor(nozzle_motor)
         self._level_status = PV('%s:status:ch1:N.SVAL' % lname)
         self._previous_flow = 6.0
             
@@ -217,7 +217,8 @@ class Cryojet(object):
     def stop_flow(self):
         self._previous_flow = self.sample_flow.get()
         self.sample_flow.set(0.0)
-    
+
+   
 class Stage(object):
 
     implements(IStage)

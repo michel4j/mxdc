@@ -1,8 +1,8 @@
 import gtk, gobject
 import sys, os
-from Predictor import Predictor
-from Dialogs import select_folder, check_folder, DirectoryButton, warning
-from bcm import utils
+from predictor import Predictor
+from dialogs import select_folder, check_folder, DirectoryButton, warning
+
 (
   COLUMN_LABEL,
   COLUMN_ENERGY,

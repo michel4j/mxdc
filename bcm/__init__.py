@@ -5,7 +5,7 @@ from zope.interface.interface import adapter_hooks
 registry = AdapterRegistry()
 
 def _hook(provided, object):
-    if provided.__name__ == 'IPathImportMapper':
+    if provided.__name__ in ['IPathImportMapper', 'IPlugin']:
         return None
     adapter = registry.lookup1(providedBy(object), provided, '')
     return adapter(object)

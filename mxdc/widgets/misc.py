@@ -1,136 +1,124 @@
-import gtk, gobject
-import os, sys, time
-from gauge import Gauge
-from Dialogs import warning
+import os
+import sys
+import time
+import gtk
+import gtk.glade
+import gobject
 
-class PositionerEntry(gtk.Frame):
-    def __init__( self, positioner, label="",  format="%g",  width=8):
-        gtk.Frame.__init__(self, label)
+from gauge import Gauge
+from dialogs import warning
+
+WIDGET_GLADE_DIR = os.path.join(os.path.dirname(__file__), 'glade')
+
+class ActiveLabel(gtk.Label):
+    def __init__( self, context, format="%s", show_units=True):
+        gtk.Label.__init__(self, '')
+        self.format = format
+        self.context = context
+        self.context.connect('changed', self._on_value_change )
+                  
+        if not hasattr(self.context, 'units') or not show_units:
+            self._units = ''
+        else :
+            self._units = self.context.units
+                            
+    def _on_value_change(self, obj, val):
+        self.set_markup("<tt>%s %s</tt>" % (self.format % (val), self._units))
+        return True
+  
+class ActiveEntry(gtk.VBox):
+    def __init__( self, device, label=None,  format="%g",  width=8):
+        gtk.VBox.__init__(self, label)
 
         # create gui layout
-        self.set_shadow_type(gtk.SHADOW_NONE)
-        self.value_box = gtk.Label()
-        self.value_box.set_alignment(1, 0.5)
-        self.entry_box = gtk.Entry()
-        self.entry_box.set_has_frame(False)
-        self.entry_box.set_width_chars(1)
-        self.entry_box.set_alignment(1)
-        self.act_btn = gtk.Button()
-        self.undo_btn =  gtk.Button()
-        self.act_btn.add(gtk.image_new_from_stock('gtk-go-forward',gtk.ICON_SIZE_MENU))
-        self.undo_btn.add(gtk.image_new_from_stock('gtk-undo',gtk.ICON_SIZE_MENU))
-        self.undo_btn.set_sensitive(False)
-        self.hbox1 = gtk.HBox(False,0)
-        self.hbox2 = gtk.HBox(True,0)
-        self.hbox2.pack_start(self.entry_box,expand=True,fill=True)
-        self.hbox2.pack_start(self.value_box,expand=True,fill=True)
-        self.frame = gtk.Frame()
-        self.frame.set_shadow_type(gtk.SHADOW_IN)
-        self.frame.add(self.hbox2)
-        self.hbox1.pack_start(self.frame)
-        self.hbox1.pack_start(self.act_btn,expand=False,fill=False)
-        self.hbox1.pack_start(self.undo_btn,expand=False,fill=False)
-        self.add(self.hbox1)
+        self._xml = gtk.glade.XML(os.path.join(WIDGET_GLADE_DIR, 'active_entry.glade'),
+                                  'active_entry')
+        
+        self._active_entry = self._xml.get_widget('active_entry')
+        self._fbk_label = self._xml.get_widget('fbk_label')
+        self._entry = self._xml.get_widget('entry')
+        self._action_btn = self._xml.get_widget('action_btn')
+        self._action_icon = self._xml.get_widget('action_icon')
+        self._label = self._xml.get_widget('label')
+                
+        self.pack_start(self._active_entry)
+        
+        self._fbk_label.set_alignment(1, 0.5)
+        self._entry.set_width_chars(1)
+        self._entry.set_alignment(1)
         
         # signals and parameters
-        self.positioner = positioner
-        self.positioner.connect('changed', self._on_value_change)
-        self.act_btn.connect('clicked', self._on_activate)
-        self.undo_btn.connect('clicked', self._on_undo)
-        self.entry_box.connect('activate', self._on_activate)
-        self.undo_stack = []
+        self.device = device
+        self.device.connect('changed', self._on_value_change)
+
+        self._action_btn.connect('clicked', self._on_activate)
+        self._entry.connect('activate', self._on_activate)
+        
         self.running = False
         self.width = width
         self.format = format
+        
+        if label is None:
+            label = self.device.name
+        
+        if self.device.units != "":
+            label = '%s (%s)' % (label, self.device.units)
+        self._label.set_markup("<small>%s</small>" % (label,))
 
-        if self.positioner.units != "":
-            label = '%s (%s)' % (label, self.positioner.units)
-        self.set_label(label)
-
-        # Set default values from device
-        self.set_current( self.positioner.get_position() )
-        self.set_target( self.positioner.get_position() )
     
-    def set_current(self, val):
+    def set_feedback(self, val):
         text = self.format % val
         if len(text) > self.width:
             text = "##.##"
-        self.value_box.set_text(text)
+        self._fbk_label.set_markup('<small><tt>%s</tt></small>' % (text,))
 
     def set_target(self,val):
         text = self.format % val
-        if len(text) > self.width:
-            text = "%s" % val
-        self.entry_box.set_text(text)
+        self._fbk_label.set_text('%s' % (text,))
     
     def stop(self):
         self.running = False
     
-    def move(self):
+    def apply(self):
         target = self._get_target()
-        self._save_undo()
-        self.positioner.move_to(target, wait=False)
+        if hasattr(self.device, 'move_to'):
+            self.device.move_to(target)
+        elif hasattr(self.device, 'set'):
+            self.device.set(target)
+        
 
     def _get_target(self):
-        current = float(self.value_box.get_text())
+        feedback = self._fbk_label.get_text()
         try:
-            target = float(self.entry_box.get_text())
+            target = float(self._entry.get_text())
         except ValueError:
-            target = current
-        self.set_target(target)
+            target = feedback
+            self.set_target(target)
         return target
     
     def _on_value_change(self, obj, val):
-        self.set_current(val)
+        self.set_feedback(val)
         return True
         
     def _on_activate(self, obj):
         if self.running:
             self.stop()
         else:
-            self.move()
+            self.apply()
         return True
                     
-    def _on_undo(self, obj):
-        if len(self.undo_stack)>0 and self.running == False:
-            target = self._get_undo()
-            self.set_target( target )
-            self.positioner.move_to(target, wait=False)
-        elif self.running:
-            self.undo_btn.set_sensitive(True)
-        else:
-            self.undo_btn.set_sensitive(False)
-        return True
- 
-    def _save_undo(self):
-        curr_value = float(self.value_box.get_text())
-        self.undo_stack.append(curr_value)
-        self.undo_btn.set_sensitive(True)
-
-    def _get_undo(self):
-        if len(self.undo_stack) > 1:
-            val = self.undo_stack.pop()
-        else:
-            self.undo_btn.set_sensitive(False)
-            val = self.undo_stack.pop()
-        return val              
-
     
             
-class MotorEntry(PositionerEntry):
-    def __init__(self, positioner, label="", format="%s", width=8):
-        PositionerEntry.__init__(self, positioner, label=label, format=format, width=width)
-        self.motor = self.positioner
-        if self.motor.units != "":
-            label = '%s (%s)' % (label, self.motor.units)
-        self.set_label(label)
-        self.motor.connect('moving', self._on_motion_change)
-        self.motor.connect('health', self._on_health_change)
-        self.set_sensitive( self.motor.is_healthy() )
+class MotorEntry(ActiveEntry):
+    def __init__(self, mtr, label=None, format="%0.3f", width=8):
+        ActiveEntry.__init__(self, mtr, label=label, format=format, width=width)
+
+        self.device.connect('moving', self._on_motion_change)
+        self.device.connect('health', self._on_health_change)
                
     def stop(self):
-        self.motor.stop()
-        self.act_btn.get_child().set_from_stock('gtk-go-forward',gtk.ICON_SIZE_MENU)
+        self.device.stop()
+        self._action_icon.set_from_stock('gtk-apply',    gtk.ICON_SIZE_MENU)
  
     def _on_health_change(self, obj, state):
         if state:
@@ -141,32 +129,13 @@ class MotorEntry(PositionerEntry):
     def _on_motion_change(self, obj, motion):
         if motion:
             self.running = True
-            self.act_btn.get_child().set_from_stock('gtk-stop',gtk.ICON_SIZE_MENU)
-            self.undo_btn.get_child().set_from_file(os.environ['BCM_PATH'] + '/mxdc/gui/images/throbber_0.gif')
+            self._action_icon.set_from_stock('gtk-stop',gtk.ICON_SIZE_MENU)
         else:
             self.running = False
-            self.act_btn.get_child().set_from_stock('gtk-go-forward',gtk.ICON_SIZE_MENU)
-            self.undo_btn.get_child().set_from_stock('gtk-undo',gtk.ICON_SIZE_MENU)
-        self.set_current(self.motor.get_position() )
+            self._action_icon.set_from_stock('gtk-apply',gtk.ICON_SIZE_MENU)
+        self.set_feedback(self.device.get_position())
         return True
     
-class ActiveLabel(gtk.Label):
-    def __init__( self, context,  format="%s", show_units=True):
-        gtk.Label.__init__(self, '')
-        self.format = format
-        self.context = context
-        self.context.connect('changed', self._on_value_change )
-        if not hasattr(self.context, 'get') and hasattr(self.variable, 'get_position'):
-            self._get = self.context.get_position
-                  
-        if not hasattr(self.context, 'units') or not show_units:
-            self._units = ''
-        else :
-            self._units = self.context.units
-                            
-    def _on_value_change(self, obj, val):
-        self.set_markup("<tt>%s %s</tt>" % (self.format % (val), self._units))
-        return True
 
 
 class ShutterButton(gtk.Button):
@@ -296,14 +265,12 @@ class LinearProgress(gtk.DrawingArea):
         
            
 class CryojetWidget(gtk.Frame):
-    def __init__( self, cryojet, cryo_x):
+    def __init__(self, cryojet):
         gtk.Frame.__init__(self, '')
         self.set_shadow_type(gtk.SHADOW_NONE)
         self.cryojet = cryojet
-        self.cryo_x = cryo_x
-        self.cryo_x.set_calibrated(True)
-        self.cryojet.connect('level', self._on_level)
-        self.cryojet.connect('status', self._on_status)
+        self.cryojet.nozzle.configure(calib=True)
+        self.cryojet.sample_flow.connect('changed', self._on_level)
         
         #layout widgets
         hbox1 = gtk.HBox(False, 6)

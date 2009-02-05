@@ -1,7 +1,7 @@
 import os
 import gobject
 import threading
-
+import time
 import re
 import xmlrpclib
 from ConfigParser import ConfigParser
@@ -24,19 +24,8 @@ from bcm.device.video import CACamera, AxisCamera
 from bcm.service.imagesync_client import ImageSyncClient
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger, log_to_console
-from zope.interface.interface import adapter_hooks
-from zope.interface import providedBy
-from zope.interface.adapter import AdapterRegistry
-registry = AdapterRegistry()
 
 log_to_console()
-
-def _hook(provided, object):
-    adapter = registry.lookup1(providedBy(object),
-                               provided, '')
-    return adapter(object)
-
-adapter_hooks.append(_hook)
 
 # compare function for sorting according to dependency
 def _cmp_arg(a, b):
@@ -57,11 +46,12 @@ class MXBeamline(object):
         self.lock = threading.RLock()
         self.setup()
         gsm.registerUtility(self, IBeamline, 'bcm.beamline')
+        ca.flush()
+        time.sleep(0.1)
         self.logger.info('Beamline Registered.')
         
     def setup(self):
         ca.threads_init()
-        self.logger = get_module_logger(__name__)
         config = ConfigParser()
         config.read(self.config_file)
         sections = config.sections()
@@ -77,6 +67,8 @@ class MXBeamline(object):
                 else:
                     self.config[item[0]] = item[1]
                     
+        self.logger = get_module_logger('%s:%s' % (self.__class__.__name__,
+                                                   self.name))
         # parse first time to make item list                   
         for section in ['devices', 'services', 'utilities']:
             for item in config.items(section):
@@ -102,6 +94,6 @@ class MXBeamline(object):
                 exec(util_cmd)
                     
 if __name__ == '__main__':
-    config_file = '/media/seagate/beamline-control-module/etc/08id1.conf'
+    config_file = '/home/michel/Code/eclipse-ws/beamline-control-module/etc/08id1.conf'
     bl = MXBeamline(config_file)
     

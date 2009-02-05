@@ -1,8 +1,8 @@
 import gtk, gobject, pango
 import sys, time, os
 import math
-from Dialogs import save_selector
-from VideoWidget import VideoWidget
+from mxdc.widgets.dialogs import save_selector
+from mxdc.widgets.video import VideoWidget
 from bcm.engine.scripting import get_scripts 
 from bcm.protocol import ca
 from bcm.utils.video import add_decorations
@@ -87,8 +87,8 @@ class SampleViewer(gtk.HBox):
         img.save(filename)
             
     def draw_cross(self, pixmap):
-        x = int(self.cross_x.get_position() * self.video.scale_factor)
-        y = int(self.cross_y.get_position() * self.video.scale_factor)
+        x = int(self.cross_x.get() * self.video.scale_factor)
+        y = int(self.cross_y.get() * self.video.scale_factor)
         pixmap.draw_line(self.video.ol_gc, x-self._tick_size, y, x+self._tick_size, y)
         pixmap.draw_line(self.video.ol_gc, x, y-self._tick_size, x, y+self._tick_size)
         return
@@ -99,8 +99,8 @@ class SampleViewer(gtk.HBox):
         beam_height = self.beam_height.get_position()
         slits_x = self.beam_x.get_position()
         slits_y = self.beam_y.get_position()
-        cross_x = self.cross_x.get_position()
-        cross_y = self.cross_y.get_position()
+        cross_x = self.cross_x.get()
+        cross_y = self.cross_y.get()
         
         self.slits_width  = beam_width / self.pixel_size
         self.slits_height = beam_height / self.pixel_size
@@ -142,8 +142,8 @@ class SampleViewer(gtk.HBox):
     def calc_position(self,x,y):
         im_x = int( float(x)/self.video.scale_factor)
         im_y = int( float(y)/self.video.scale_factor)
-        x_offset = self.cross_x.get_position() - im_x
-        y_offset = self.cross_y.get_position() - im_y
+        x_offset = self.cross_x.get() - im_x
+        y_offset = self.cross_y.get() - im_y
         xmm = x_offset * self.pixel_size
         ymm = y_offset * self.pixel_size
         return (im_x, im_y, xmm, ymm)
@@ -349,7 +349,6 @@ class SampleViewer(gtk.HBox):
     def on_change(self, obj=None, arg=None):
         self.zoom_factor = self.zoom.get_position()
         self.pixel_size = 5.34e-3 * math.exp( -0.18 * self.zoom_factor)
-        self.lighting = self.light.get_position()
 
     def on_save(self, obj=None, arg=None):
         img_filename = save_selector()

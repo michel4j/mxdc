@@ -8,7 +8,7 @@ import Image, ImageEnhance, ImageFilter, ImageOps, ImageDraw, ImageFont
 import numpy, re, struct
 from scipy.misc import toimage, fromimage
 import pickle
-from Dialogs import select_image
+from dialogs import select_image
 import logging
 
 __log_section__ = 'mxdc.imgview'
