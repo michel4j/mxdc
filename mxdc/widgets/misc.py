@@ -10,6 +10,32 @@ from dialogs import warning
 
 WIDGET_GLADE_DIR = os.path.join(os.path.dirname(__file__), 'glade')
 
+class ActiveHScale(gtk.HScale):
+    def __init__( self, context, min=0.0, max=1.0):
+        gtk.HScale.__init__(self)
+        self.context = context
+        self.set_value_pos(gtk.POS_RIGHT)
+        self.set_digits(1)
+        self.set_range(min, max)
+        self.set_adjustment(gtk.Adjustment(0.0,0,5, 0.1,0,0))
+        self.set_update_policy(gtk.UPDATE_CONTINUOUS)
+        self._handler_id = self.connect('value-changed', self._on_scale_changed)
+        self.context.connect('changed', self._on_feedback_changed)
+    
+    def _on_scale_changed(self, obj):
+        target = self.get_value()
+        if hasattr(self.context, 'move_to'):
+            self.context.move_to( target )
+        elif hasattr(self.context, 'set'):
+            self.context.set(target)
+        
+    def _on_feedback_changed(self, obj, val):
+        # we need to prevent an infinite loop by temporarily suspending
+        # the _on_scale_changed handler
+        self.context.handler_block(self._handler_id)
+        self.set_value(val)
+        self.context.handler_unblock(self._handler_id)
+        
 class ActiveLabel(gtk.Label):
     def __init__( self, context, format="%s", show_units=True):
         gtk.Label.__init__(self, '')
@@ -23,7 +49,7 @@ class ActiveLabel(gtk.Label):
             self._units = self.context.units
                             
     def _on_value_change(self, obj, val):
-        self.set_markup("<tt>%s %s</tt>" % (self.format % (val), self._units))
+        self.set_markup("%s %s" % (self.format % (val), self._units))
         return True
   
 class ActiveEntry(gtk.VBox):
@@ -63,14 +89,14 @@ class ActiveEntry(gtk.VBox):
         
         if self.device.units != "":
             label = '%s (%s)' % (label, self.device.units)
-        self._label.set_markup("<small>%s</small>" % (label,))
+        self._label.set_markup("%s" % (label,))
 
     
     def set_feedback(self, val):
         text = self.format % val
         if len(text) > self.width:
             text = "##.##"
-        self._fbk_label.set_markup('<small><tt>%s</tt></small>' % (text,))
+        self._fbk_label.set_markup('%s' % (text,))
 
     def set_target(self,val):
         text = self.format % val
