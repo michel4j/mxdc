@@ -5,8 +5,15 @@ from zope.interface.interface import adapter_hooks
 registry = AdapterRegistry()
 
 def _hook(provided, object):
-    adapter = registry.lookup1(providedBy(object),
-                               provided, '')
+    if provided.__name__ == 'IPathImportMapper':
+        return None
+    adapter = registry.lookup1(providedBy(object), provided, '')
     return adapter(object)
 
 adapter_hooks.append(_hook)
+
+def _del_hook():
+    adapter_hooks.remove(_hook)
+
+import atexit
+atexit.register(_del_hook)
