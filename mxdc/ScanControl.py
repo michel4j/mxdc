@@ -1,7 +1,7 @@
 import gtk, gobject
 import sys, os
-from Dialogs import select_folder, check_folder, DirectoryButton
-from ActiveWidgets import ActiveProgressBar
+from mxdc.widgets.dialogs import select_folder, check_folder, DirectoryButton
+from mxdc.widgets.misc import ActiveProgressBar
 
 (
   COLUMN_LABEL,

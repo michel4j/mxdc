@@ -1,13 +1,14 @@
 import gtk, gobject
 import sys, os, time
 from bcm.engine.diffraction import DataCollector
-from ActiveWidgets import PositionerLabel, ActiveProgressBar
-from RunManager import RunManager
-from ImgViewer import ImgViewer
 from bcm.utils.configobj import ConfigObj
-from bcm import utils
+from bcm.utils import misc
 
-from Dialogs import *
+from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
+from mxdc.RunManager import RunManager
+from mxdc.widgets.imageviewer import ImgViewer
+from mxdc.widgets.dialogs import *
+
 (
     COLLECT_COLUMN_SAVED,
     COLLECT_COLUMN_ANGLE,
@@ -326,7 +327,7 @@ class CollectManager(gtk.HBox):
         else:
             show_number = False
         for run in run_data.values():
-            self.run_list += utils.generate_run_list(run, show_number)
+            self.run_list += misc.generate_run_list(run, show_number)
 
         self.pos = 0
         self.gen_sequence()

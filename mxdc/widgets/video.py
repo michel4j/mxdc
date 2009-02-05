@@ -1,17 +1,17 @@
-import os, sys
-if __name__ == "__main__":
-    sys.path.append(os.environ['BCM_PATH'])
+import os
+import sys
 import gtk
 import gobject
 import pango
 import time
 import threading, thread
 import Image, ImageOps, ImageDraw, ImageFont
-import bcm.utils
-from bcm.protocol import ca
-import pickle
 
-COLORMAPS = pickle.load(file(os.joinos.environ['BCM_PATH']+ '/mxdc/gui/images/colormaps.data'))
+from bcm.protocol import ca
+
+import pickle
+BCM_PATH = '/home/michel/Code/eclipse-ws/beamline-control-module'
+COLORMAPS = pickle.load(file(os.path.join(BCM_PATH, 'mxdc/share/colormaps.data')))
 
     
 class VideoTransformer(gobject.GObject):
@@ -54,6 +54,7 @@ class VideoTransformer(gobject.GObject):
         
     def start(self):
         self.worker_thread = threading.Thread(target=self._run)
+        self.worker_thread.setDaemon(True)
         self.worker_thread.start()
                 
     def _draw_banner(self, img):
@@ -67,7 +68,7 @@ class VideoTransformer(gobject.GObject):
         draw.text( (4, 0), self.banner_text, font=font, fill= '#aaffaa')
         
     def _run(self):
-        ca.thread_init()
+        ca.threads_init()
         count = 0
         start_time = time.time()
         while not self._stopped:
@@ -80,7 +81,7 @@ class VideoTransformer(gobject.GObject):
                 count = 0
             self.fps = count/(time.time() - start_time + 0.0001)
             count += 1
-            self.banner_text = '%s: %s, %0.0f fps' % (self.camera.get_name(), time.strftime('%x %X'), self.fps)
+            self.banner_text = '%s: %s, %0.0f fps' % (self.camera.name, time.strftime('%x %X'), self.fps)
              
             img = self.camera.get_frame()
             self.source_w, self.source_h = img.size

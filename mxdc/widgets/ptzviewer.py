@@ -1,13 +1,11 @@
 import gtk, gobject
 import sys, time, os
-from Dialogs import save_selector
-from VideoWidget import VideoWidget
-from bcm.tools.scripting import Script
-from bcm.scripts.misc import center_sample 
-from bcm.protocols import ca
+from mxdc.widgets.dialogs import save_selector
+from mxdc.widgets.video import VideoWidget
+from bcm.protocol import ca
 
         
-class HutchViewer(gtk.HBox):
+class AxisViewer(gtk.HBox):
     def __init__(self, bl):
         gtk.HBox.__init__(self,False,6)
         

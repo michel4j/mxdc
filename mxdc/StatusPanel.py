@@ -1,7 +1,7 @@
 import gtk, gobject
 import sys, os, time
 
-from ActiveWidgets import *
+from mxdc.StatusPanel import *
 
 class StatusPanel(gtk.VBox):
     def __init__(self, beamline):
