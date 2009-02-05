@@ -1,10 +1,10 @@
 import gtk, gobject, numpy, sys
 
-from ScanControl import ScanControl
-from PeriodicTable import PeriodicTable
-from LogView import LogView
-from Plotter import Plotter
-from Dialogs import *
+from mxdc.ScanControl import ScanControl
+from mxdc.widgets.periodictable import PeriodicTable
+from mxdc.widgets.logview import LogView
+from mxdc.widgets.plotter import Plotter
+from mxdc.widgets.dialogs import *
 from bcm.engine.spectroscopy import XRFScan, XANESScan
 from bcm.engine import fitting
 from bcm.engine.AutoChooch import AutoChooch

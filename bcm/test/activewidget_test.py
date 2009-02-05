@@ -14,8 +14,8 @@ def main():
     win.set_border_width(2)
     win.set_title("ActiveWidget Test")
     my_p = Positioner('michel:H3:setCurrentC')
-    #my_p.units = 'mA'
-    my_e = ActiveLabel(my_p)
+    my_p.units = 'mA'
+    my_e = ActiveLabel(my_p, '%0.3f')
     win.add(my_e)
     win.show_all()
 

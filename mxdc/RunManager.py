@@ -1,6 +1,6 @@
 import gtk, gobject
 import sys, time
-from RunWidget import RunWidget
+from widgets.RunWidget import RunWidget
 
 class RunManager(gtk.Notebook):
     __gsignals__ = {

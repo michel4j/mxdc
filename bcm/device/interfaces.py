@@ -349,6 +349,7 @@ class ICamera(Interface):
     name = Attribute("""Name or description of device.""")
     size = Attribute("""A 2-tuple for horizontal and vertical size.""")
     resolution = Attribute("""Pixel size.""")
+    is_active = Attribute("""Boolean value indicating if Camera is active.""")
             
     def get_frame():
         """Get current frame of video.
@@ -363,14 +364,6 @@ class ICamera(Interface):
         Arguments:
         value   -- zoom level of camera.
         
-        """
-              
-    def save(filename):
-        """Save current frame to file.
-        
-        Arguments:
-        filename    -- name of file to save image to.
-
         """
 
 
@@ -405,7 +398,7 @@ class ICryojet(Interface):
     shield_flow = Attribute("""Shield flow rate.""")
     temperature = Attribute("""Temperature.""")
     level = Attribute("""Cryogen level.""")
-    nozzle_gap = Attribute("""Device, controlling nozzle gap.""")
+    nozzle = Attribute("""Device, controlling nozzle gap.""")
 
     def stop_sample_flow():
         """Stop sample flow."""

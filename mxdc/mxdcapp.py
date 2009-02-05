@@ -7,10 +7,10 @@ import gtk, gobject
 import sys, os, signal
 import logging
 
-sys.path.append(os.environ['BCM_PATH'])
+SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
 
-from gui.Splash import Splash
-from gui.AppWindow import AppWindow
+from widgets.splash import Splash
+from AppWindow import AppWindow
 from bcm.beamline.mx import MXBeamline
 from bcm.utils.log import get_module_logger, log_to_console
 
@@ -18,9 +18,9 @@ _logger = get_module_logger('mxdc')
 
 class AppClass(object):
     def __init__(self):
-        img_file = os.path.join(os.environ['BCM_PATH'], 'mxdc/gui/images/splash.png')
-        logo_file = os.path.join(os.environ['BCM_PATH'], 'mxdc/gui/images/logo.png')
-        icon_file = os.path.join(os.environ['BCM_PATH'], 'mxdc/gui/images/icon.png')
+        img_file = os.path.join(SHARE_DIR, 'splash.png')
+        logo_file = os.path.join(SHARE_DIR, 'logo.png')
+        icon_file = os.path.join(SHARE_DIR, 'icon.png')
         self._config_file = os.path.join(os.environ['BCM_CONFIG_PATH'], '08id1.conf')
         self.splash = Splash(img_file, self.beamline,
             icon=icon_file, logo=logo_file, color='#ead3f4')

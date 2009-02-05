@@ -117,7 +117,7 @@ class Motor(MotorBase):
             self.STOP = PV("%s:emergStop" % pv_root)
             self.CALIB = PV("%s:isCalib" % (pv_root))
         elif self._motor_type == 'pseudo':
-            self.RBV  = PV("%s:sp" % (pv_root))
+            self.RBV  = PV("%s:sp" % (pv_name))
             self.STAT = PV("%s:status" % pv_root)
             self.MOVN = PV("%s:moving" % pv_root)
             self.STOP = PV("%s:stop" % pv_root)
@@ -267,6 +267,9 @@ class BraggEnergyMotor(Motor):
         del self.DESC
         self.name = 'Bragg Energy'
         self._motor_type = 'vme'
+
+    def _on_desc_change(self, pv, val):
+        pass
                                    
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())
