@@ -11,7 +11,7 @@ import bcm.utils
 from bcm.protocol import ca
 import pickle
 
-COLORMAPS = pickle.load(file(os.environ['BCM_PATH']+ '/mxdc/gui/images/colormaps.data'))
+COLORMAPS = pickle.load(file(os.joinos.environ['BCM_PATH']+ '/mxdc/gui/images/colormaps.data'))
 
     
 class VideoTransformer(gobject.GObject):
