@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import gtk
-import sys, os
-from ImgViewer import ImgViewer
+import sys
+import os
+from mxdc.widgets.imageviewer import ImgViewer
 
 def main():
     win = gtk.Window()

@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
-import sys, os
+import sys
+import os
 import gtk
-
-sys.path.append(os.environ['BCM_PATH'])
-
-from mxdc.gui.ActiveWidgets import *
-from bcm.devices.positioners import Positioner
+from mxdc.widgets.ActiveWidgets import *
+from bcm.device.misc import Positioner
 
 
 
@@ -16,7 +14,8 @@ def main():
     win.set_border_width(2)
     win.set_title("ActiveWidget Test")
     my_p = Positioner('michel:H3:setCurrentC')
-    my_e = PositionerLabel(my_p)
+    #my_p.units = 'mA'
+    my_e = ActiveLabel(my_p)
     win.add(my_e)
     win.show_all()
 
