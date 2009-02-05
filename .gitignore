@@ -2,4 +2,6 @@
 # Lines that start with '#' are comments.
 *.py[oc]
 *~
+*.bak
+*.gladep
 *.cache
