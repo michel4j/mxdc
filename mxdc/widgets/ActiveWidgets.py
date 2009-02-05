@@ -1,6 +1,6 @@
 import gtk, gobject
 import os, sys, time
-from Widgets import Gauge
+from gauge import Gauge
 from Dialogs import warning
 
 class PositionerEntry(gtk.Frame):
@@ -150,40 +150,24 @@ class MotorEntry(PositionerEntry):
         self.set_current(self.motor.get_position() )
         return True
     
-class PositionerLabel(gtk.Label):
-    def __init__( self, positioner,  format="%s", width=8):
+class ActiveLabel(gtk.Label):
+    def __init__( self, context,  format="%s", show_units=True):
         gtk.Label.__init__(self, '')
         self.format = format
-        self.positioner = positioner
-        self.set_current( self.positioner.get_position() )
-        self.positioner.connect('changed', self._on_value_change )
-        
-    def set_current(self, val):
-        self.set_markup("<tt>%s</tt>" % (self.format % (val)))
-
-    def _on_value_change(self, widget, val):
-        self.set_current(val)
+        self.context = context
+        self.context.connect('changed', self._on_value_change )
+        if not hasattr(self.context, 'get') and hasattr(self.variable, 'get_position'):
+            self._get = self.context.get_position
+                  
+        if not hasattr(self.context, 'units') or not show_units:
+            self._units = ''
+        else :
+            self._units = self.context.units
+                            
+    def _on_value_change(self, obj, val):
+        self.set_markup("<tt>%s %s</tt>" % (self.format % (val), self._units))
         return True
 
-class VariableLabel(gtk.Label):
-    def __init__( self, variable,  format="%s", width=8):
-        gtk.Label.__init__(self, '')
-        self.format = format
-        self.variable = variable
-        
-        # enable using both PV's and detectors
-        if not hasattr(self.variable, 'get_value') and hasattr(self.variable, 'get'):
-            self.variable.get_value = self.variable.get
-            
-        self.set_current( self.variable.get_value() )
-        self.variable.connect('changed', self._on_value_change )
-
-    def set_current(self, val):
-        self.set_markup(self.format % (val))
-
-    def _on_value_change(self, widget, val):
-        self.set_current(val)
-        return True
 
 class ShutterButton(gtk.Button):
     def __init__(self, shutter, label):
