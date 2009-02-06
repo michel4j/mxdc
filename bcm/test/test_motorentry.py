@@ -19,13 +19,11 @@ def main():
     bl = MXBeamline(config_file)
         
     mtr = MotorEntry(bl.goniometer.omega, 'Omega')
-    lbl = ActiveLabel(bl.goniometer.omega)
     
     vbox = gtk.VBox()
     
     win.add(vbox)
     vbox.pack_start(mtr)
-    vbox.pack_start(lbl)
     win.show_all()
 
     try:
