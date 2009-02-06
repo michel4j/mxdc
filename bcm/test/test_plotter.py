@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from numpy import *
-from mxdc.gui.Plotter import Plotter
+from mxdc.widgets.plotter import Plotter
 import gobject, gtk
 import pylab
 

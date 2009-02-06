@@ -14,9 +14,10 @@ from  matplotlib.colors import normalize
 from matplotlib.numerix import arange, sin, pi, arcsin, arctan, sqrt, cos
 from matplotlib.ticker import FormatStrFormatter
 from pylab import meshgrid
-from bcm import utils
-import logging
-pred_logger = logging.getLogger('mxdc.predictor')
+from bcm.utils import converter
+from bcm.utils.log import get_module_logger
+
+_logger = get_module_logger(__name__)
 
 try:
     from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
@@ -40,6 +41,7 @@ class Predictor( gtk.AspectFrame ):
         self.beam_x, self.beam_y = self.detector_size /2, self.detector_size /2
         self.two_theta = 0
         self.wavelength = 1.000
+        self.distance = 250.0
         self.last_updated = time.time()
         self._can_update = True
         self.canvas.set_events(gtk.gdk.EXPOSURE_MASK |
@@ -63,49 +65,34 @@ class Predictor( gtk.AspectFrame ):
         self.canvas.draw()
         return False
         
-    def set_wavelength(self,wavelength):
-        self.wavelength = wavelength
-        return True
-        
-    def set_energy(self,energy):
-        self.wavelength = utils.energy_to_wavelength(energy)
-        return True
-        
-    def set_distance(self, distance):
-        self.distance = distance
+    def configure(self, **kwargs):
+        redraw_pending = False
+        for k, v in kwargs.items():
+            if k == 'wavelength':
+                redraw_pending |= (abs(v-self.wavelength) > 0.1)
+                self.wavelength = v
+            elif k == 'energy':
+                v_ = converter.energy_to_wavelength(v)
+                redraw_pending |= (abs(v_-self.wavelength) > 0.1)
+                self.wavelength = v_
+            elif k == 'distance':
+                redraw_pending |= (abs(v-self.distance) > 1.0)
+                self.distance = v
+            elif k == 'two_theta':
+                v_ = v * pi/ 180.0
+                redraw_pending |= (abs(v_-self.two_theta) > 0.02)
+                self.two_theta = v_
+            elif k == 'pixel_size':
+                redraw_pending |= (v == self.pixel_size)
+                self.pixel_size = v
+            elif k == 'detector_size':
+                redraw_pending |= (v == self.detector_size)
+                self.detector_size = v
+                self.beam_x = self.beam_y = self.detector_size/2
+        if redraw_pending:
+            self.update()
         return True
     
-    def set_twotheta(self,two_theta):
-        self.two_theta = two_theta * pi/ 180.0
-        return True
-        
-    def set_beam_center(self, beam_x, beam_y):
-        self.beam_x = beam_x
-        self.beam_y = beam_y
-        
-        
-    def set_all(self, wavelength, distance, two_theta, beam_x=1535, beam_y=1535):
-        self.wavelength = wavelength
-        self.distance = distance
-        self.two_theta = self.set_twotheta(two_theta)
-        self.beam_x = beam_x
-        self.beam_y = beam_y
-        return True
-        
-    def on_distance_changed(self, widget, distance):
-        self.set_distance(distance)
-        self.update()
-        return True
-        
-    def on_two_theta_changed(self, widget, ang):
-        self.set_twotheta(ang)
-        self.update()
-        return True
-        
-    def on_energy_changed(self, widget, val):
-        self.set_energy(val)
-        self.update()
-        return True
         
     def on_visibility_notify(self, widget, event):
         if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
@@ -171,9 +158,10 @@ class Predictor( gtk.AspectFrame ):
         elapsed_time = time.time() - self.last_updated
         if (elapsed_time > 2) or force and (self.wavelength*self.distance > 1.0):
             if self._can_update and self.get_child_visible():
-                #pred_logger.debug('Predictor Widget updating...')
+                _logger.debug('Predictor Widget updating...')
                 self.last_updated = time.time()
                 calculator = threading.Thread(target=self._do_calc)
+                calculator.setDaemon(True)
                 calculator.start()
         return True
     

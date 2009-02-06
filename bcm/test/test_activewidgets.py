@@ -3,7 +3,7 @@
 import sys
 import os
 import gtk
-from mxdc.widgets.ActiveWidgets import *
+from mxdc.widgets.misc import *
 from bcm.device.misc import Positioner
 
 
