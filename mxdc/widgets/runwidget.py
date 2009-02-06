@@ -12,9 +12,9 @@ from dialogs import select_folder, check_folder, DirectoryButton, warning
 DEFAULT_PARAMETERS = {
     'prefix': 'test',
     'directory': os.environ['HOME'],
-    'distance': 200.0,
+    'distance': 250.0,
     'delta': 1.0,
-    'time': 1,
+    'time': 1.0,
     'start_angle': 0,
     'angle_range': 1.0,
     'start_frame': 1,
@@ -356,15 +356,14 @@ class RunWidget(gtk.VBox):
                 self.predictor.set_size_request(220,220)
                 self.pack_end( self.predictor, expand=False, fill=False)
     
+        
     def check_changes(self):
         new_values = self.get_parameters()
+        if self.predictor is not None and self.number == 0:
+            self.predictor.configure(distance=new_values['distance'], 
+                                     energy=new_values['energy'][0],
+                                     two_theta=new_values['two_theta'])
         
-        if self.number == 0 and self.predictor:
-            self.predictor.set_energy(new_values['energy'][0])
-            self.predictor.set_distance(new_values['distance'])
-            self.predictor.set_twotheta(new_values['two_theta'])
-            self.predictor.update(force=True)
-            
         for key in new_values.keys():
             if key in ['energy', 'energy_label']:
                 widget = self.energy_list
@@ -376,6 +375,7 @@ class RunWidget(gtk.VBox):
                 widget = self.entry['directory'].dir_label
             else:
                 widget = self.entry[key]
+                
             if new_values[key] != self.parameters[key]:
                 widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
                 widget.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
@@ -384,6 +384,7 @@ class RunWidget(gtk.VBox):
                 widget.modify_text(gtk.STATE_NORMAL, None)
                 widget.modify_fg(gtk.STATE_NORMAL, None)
                 self._changes_pending = False
+        
 
     def on_prefix_changed(self, widget, event=None):
         prefix = self.entry['prefix'].get_text()
@@ -510,7 +511,7 @@ class RunWidget(gtk.VBox):
         try:
             distance = float(self.entry['distance'].get_text())
         except:
-            distance = 150.0
+            distance = 250.0
 
         if two_theta <= 20.0:
             d_min = 100.0

@@ -19,11 +19,16 @@ Also borrows liberally from code.py in the Python standard library."""
 __author__ = "Fernando Perez"
 
 import sys
+import os
 import code
 import threading
 
 import gtk
 import gobject
+
+BCM_PATH = os.path.join(os.path.dirname(__file__),'../..')
+sys.path[0] = os.path.abspath(BCM_PATH)
+print sys.path
 
 try:
     import readline

@@ -1,7 +1,9 @@
-from mxdc.gui.RunWidget import RunWidget
+from bcm.utils.log import log_to_console
+from mxdc.widgets.runwidget import RunWidget
 import gtk
 import sys
 
+log_to_console()
 
 def main():    
     win = gtk.Window()

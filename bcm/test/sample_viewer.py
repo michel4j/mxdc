@@ -7,7 +7,7 @@ import sys, os
 import logging
 
 from bcm.beamline.mx import MXBeamline
-from mxdc.widgets.sample_viewer import SampleViewer
+from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.misc import CryojetWidget
 #from bcm.utils.log import log_to_console
 #log_to_console()
