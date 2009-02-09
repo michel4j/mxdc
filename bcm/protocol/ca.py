@@ -12,7 +12,7 @@ Overview
       >>> pv = PV('XXX:m1.VAL')      # connect to a pv with its name.
  
       >>> print pv.get()             # get the current value of the pv.
-      >>> pv.put(3.0)                # set the pv's value.
+      >>> pv.set(3.0)                # set the pv's value.
  
  
     beyond getting and setting a pv's value, a pv includes  these features: 
@@ -20,7 +20,7 @@ Overview
          if the CA server restarts.
       2. Each PV is a GObject and thus benefits from all its features
          such as signals and callback connection.
-      3. For use in multi-threaded applications, the thread_init() method is
+      3. For use in multi-threaded applications, the threads_init() function is
          provided.
  
     See the documentation for the PV class for a more complete description.
@@ -191,7 +191,7 @@ class PV(gobject.GObject):
     
       >>>p = PV(pv_name)    # create a pv object given a pv name
       >>>p.get()            # get pv value
-      >>>p.put(val)         # set pv to specified value. 
+      >>>p.set(val)         # set pv to specified value. 
     
     Additional important attributes include:
     
@@ -481,3 +481,5 @@ libca.ca_add_exception_event(_cb_function, _cb_user_agg)
 
 # cleanup gracefully at termination
 atexit.register(libca.ca_context_destroy)
+
+__all__ = ['PV', 'threads_init', 'flush']

@@ -4,13 +4,14 @@ points can be added to each line and the plot is automatically updated.
 """
 import gtk, gobject
 import sys, time
+import pango
 
 from matplotlib.artist import Artist
 from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
 from matplotlib.numerix import arange, sin, pi
-from matplotlib.ticker import FormatStrFormatter
-from pylab import delaxes
+from matplotlib.ticker import FormatStrFormatter, MultipleLocator
+from matplotlib import rcParams
 
 try:
     from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
@@ -19,15 +20,22 @@ except:
     
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 
+
+rcParams['legend.loc'] = 'best'
+
 class Plotter( gtk.Frame ):
-    def __init__( self, loop=False, buffer_size=2500, xformat='%0.4g' ):
+    def __init__( self, loop=False, buffer_size=2500, xformat='%0.1f' ):
         gtk.Frame.__init__(self)
-        self.fig = Figure( figsize=( 10, 8 ), dpi=72, facecolor='w' )
+        _fd = self.get_pango_context().get_font_description()
+        rcParams['font.family'] = _fd.get_family()
+        rcParams['font.size'] = _fd.get_size()/pango.SCALE
+        self.fig = Figure( figsize=( 10, 8 ), dpi=96, facecolor='w' )
         self.axis = []
         self.axis.append( self.fig.add_subplot(111) )
         self.xformatter = FormatStrFormatter(xformat)
-        self.axis[0].xaxis.set_major_formatter(self.xformatter)        
-    
+        self.axis[0].xaxis.set_major_formatter(self.xformatter)
+        self.axis[0].yaxis.tick_left()
+
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.vbox = gtk.VBox()
         self.toolbar = NavigationToolbar( self.canvas, None )
@@ -48,7 +56,7 @@ class Plotter( gtk.Frame ):
         assert( len(xpoints) == len(ypoints) )
         assert( ax < len(self.axis) )
         
-        tmp_line, = self.axis[ax].plot( xpoints, ypoints, pattern, lw=1 )
+        tmp_line, = self.axis[ax].plot( xpoints, ypoints, pattern, lw=1)
         self.line.append( tmp_line )
 
         self.x_data.append( list(xpoints) )
@@ -88,7 +96,8 @@ class Plotter( gtk.Frame ):
         ax.yaxis.tick_right()
         ax.yaxis.set_label_position('right')
         ax.set_ylabel(label)
-        ax.xaxis.set_major_formatter(self.xformatter)    
+        for label in ax.get_xticklabels():
+            label.set_visible(False)
         self.axis.append( ax )
         return len(self.axis) - 1
     
@@ -98,8 +107,6 @@ class Plotter( gtk.Frame ):
         self.axis[0].set_ylabel(y1_label)
 
     def clear(self):
-        #self.axis[0].clear()
-        #    self.fig.delaxes(ax)
         self.fig.clear()
         self.axis = []    
         self.axis.append( self.fig.add_subplot(111) )
@@ -135,21 +142,21 @@ class Plotter( gtk.Frame ):
             curr_xmin, curr_xmax = self.line[lin].axes.get_xlim()
             ymin = (curr_ymin+ypadding < ymin) and curr_ymin  or (ymin - ypadding)
             ymax = (curr_ymax-ypadding > ymax) and curr_ymax  or (ymax + ypadding)
-            # when using ring buffer, always update x-limits
-            #if self.simulate_ring_buffer:
-            #    xmin = (curr_xmin < xmin) and curr_xmin  or xmin
-            #    xmax = curr_xmax > xmax and curr_xmax  or xmax
+
             if (xmax-xmin) > 1e-15:
                 self.line[lin].axes.set_xlim(xmin, xmax)
-                self.line[lin].axes.xaxis.set_major_formatter(self.xformatter)    
+                self.axis[0].xaxis.set_major_formatter(self.xformatter)    
             if (ymax -ymin)> 1e-15:
                 self.line[lin].axes.set_ylim(ymin, ymax )
         
             if redraw:
-                self.canvas.draw()
+                self.redraw()
         
         return True
 
     def redraw(self):
+        x_major = self.axis[0].xaxis.get_majorticklocs()
+        dx_minor =  (x_major[-1]-x_major[0])/(len(x_major)-1) /5.
+        self.axis[0].xaxis.set_minor_locator(MultipleLocator(dx_minor))         
         self.canvas.draw()    
 
