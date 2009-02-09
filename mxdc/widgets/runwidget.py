@@ -208,9 +208,15 @@ class RunWidget(gtk.Frame):
             
     def set_parameters(self, dict):
         for key in  ['distance','delta','start_angle','total_angle','wedge','time', 'two_theta']:
-            self.entry[key].set_text("%0.2f" % dict[key])
+            if dict.has_key(key):
+                self.entry[key].set_text("%0.2f" % dict[key])
+            else:
+                self.entry[key].set_text("%0.2f" % DEFAULT_PARAMETERS[key])
         for key in ['start_frame', 'total_frames']:
-            self.entry[key].set_text("%d" % dict[key])
+            if dict.has_key(key):
+                self.entry[key].set_text("%d" % dict[key])
+            else:
+                self.entry[key].set_text("%d" % DEFAULT_PARAMETERS[key])
         self.entry['prefix'].set_text("%s" % dict['prefix'])
         self.entry['directory'].set_current_folder("%s" % dict['directory'])
         self.set_number(dict['number'])
