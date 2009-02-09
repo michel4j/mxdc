@@ -8,7 +8,6 @@ import gobject
 from gauge import Gauge
 from dialogs import warning
 
-WIDGET_GLADE_DIR = os.path.join(os.path.dirname(__file__), 'glade')
 
 class ActiveHScale(gtk.HScale):
     def __init__( self, context, min=0.0, max=1.0):
@@ -57,7 +56,8 @@ class ActiveEntry(gtk.VBox):
         gtk.VBox.__init__(self, label)
 
         # create gui layout
-        self._xml = gtk.glade.XML(os.path.join(WIDGET_GLADE_DIR, 'active_entry.glade'),
+        
+        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/active_entry.glade'), 
                                   'active_entry')
         
         self._active_entry = self._xml.get_widget('active_entry')
@@ -141,7 +141,9 @@ class MotorEntry(ActiveEntry):
 
         self.device.connect('moving', self._on_motion_change)
         self.device.connect('health', self._on_health_change)
-               
+        self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+                                                               'data/active_stop.gif'))
+           
     def stop(self):
         self.device.stop()
         self._action_icon.set_from_stock('gtk-apply',    gtk.ICON_SIZE_MENU)
@@ -155,7 +157,7 @@ class MotorEntry(ActiveEntry):
     def _on_motion_change(self, obj, motion):
         if motion:
             self.running = True
-            self._action_icon.set_from_stock('gtk-stop',gtk.ICON_SIZE_MENU)
+            self._action_icon.set_from_animation(self._animation)
         else:
             self.running = False
             self._action_icon.set_from_stock('gtk-apply',gtk.ICON_SIZE_MENU)

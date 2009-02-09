@@ -2,7 +2,7 @@
 
 import gtk, gobject
 import sys, time
-from mxdc.gui.Predictor import Predictor
+from mxdc.widgets.predictor import Predictor
 
 def main():
    
@@ -15,13 +15,13 @@ def main():
     win.add(vbox)
     mypred = Predictor()
     vbox.pack_start(mypred)
-    mypred.set_all(1.0, 200, 0, 1536, 1536)
+    mypred.configure(wavelength=1.0, distance=200, two_theta=0, detector_size=4096)
     win.show_all()
     mypred.tmp_tt = 0
     
     def update():
-        mypred.update()
-        mypred.set_twotheta(mypred.two_theta + 1)
+        tt = mypred.two_theta + 5
+        mypred.configure(two_theta=tt)
         return True
         
     try:

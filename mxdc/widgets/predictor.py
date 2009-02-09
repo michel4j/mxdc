@@ -5,14 +5,16 @@ points can be added to each line and the plot is automatically updated.
 import gtk, gobject
 import threading
 import sys, time
+import pango
 
 from matplotlib.artist import Artist
 from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
 import matplotlib.cm as cm
-from  matplotlib.colors import normalize
+from matplotlib.colors import normalize
 from matplotlib.numerix import arange, sin, pi, arcsin, arctan, sqrt, cos
 from matplotlib.ticker import FormatStrFormatter
+from matplotlib import rcParams
 from pylab import meshgrid
 from bcm.utils import converter
 from bcm.utils.log import get_module_logger
@@ -28,9 +30,12 @@ from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationT
             
 class Predictor( gtk.AspectFrame ):
     def __init__( self, pixel_size=0.07234, detector_size=3072):
-        gtk.AspectFrame.__init__(self, obey_child=False, ratio=1.0)
-        self.fig = Figure( figsize=(8,8), dpi=72, facecolor='w')
+        gtk.AspectFrame.__init__(self, obey_child=True, ratio=1.0)
+        self.fig = Figure( figsize=(8,8), dpi=80, facecolor='w')
         self.axis = self.fig.add_axes([0.02,0.02,0.96,0.96], aspect='equal')
+        _fd = self.get_pango_context().get_font_description()
+        rcParams['font.family'] = _fd.get_family()
+        rcParams['font.size'] = _fd.get_size()/pango.SCALE
         
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.add( self.canvas )
@@ -42,7 +47,7 @@ class Predictor( gtk.AspectFrame ):
         self.two_theta = 0
         self.wavelength = 1.000
         self.distance = 250.0
-        self.last_updated = time.time()
+        self.last_updated = 0
         self._can_update = True
         self.canvas.set_events(gtk.gdk.EXPOSURE_MASK |
                 gtk.gdk.LEAVE_NOTIFY_MASK |
@@ -63,34 +68,42 @@ class Predictor( gtk.AspectFrame ):
         #cntr = self.axis.contour(self.xp, self.yp, self.Z, 16)
         self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)        
         self.canvas.draw()
+        _logger.debug('Predictor Widget updating...')
+        self.last_updated = time.time()
         return False
         
     def configure(self, **kwargs):
         redraw_pending = False
         for k, v in kwargs.items():
             if k == 'wavelength':
-                redraw_pending |= (abs(v-self.wavelength) > 0.1)
-                self.wavelength = v
+                if (abs(v-self.wavelength) > 0.1): 
+                    redraw_pending = True
+                    self.wavelength = v
             elif k == 'energy':
                 v_ = converter.energy_to_wavelength(v)
-                redraw_pending |= (abs(v_-self.wavelength) > 0.1)
-                self.wavelength = v_
+                if (abs(v_-self.wavelength) >= 0.1): 
+                    redraw_pending = True
+                    self.wavelength = v_
             elif k == 'distance':
-                redraw_pending |= (abs(v-self.distance) > 1.0)
+                if (abs(v-self.distance) >= 1.0): 
+                    redraw_pending = True
                 self.distance = v
             elif k == 'two_theta':
                 v_ = v * pi/ 180.0
-                redraw_pending |= (abs(v_-self.two_theta) > 0.02)
-                self.two_theta = v_
+                if (abs(v_-self.two_theta) >= 0.05):
+                    redraw_pending = True
+                    self.two_theta = v_
             elif k == 'pixel_size':
-                redraw_pending |= (v == self.pixel_size)
-                self.pixel_size = v
+                if (v != self.pixel_size): 
+                    redraw_pending = True
+                    self.pixel_size = v
             elif k == 'detector_size':
-                redraw_pending |= (v == self.detector_size)
-                self.detector_size = v
-                self.beam_x = self.beam_y = self.detector_size/2
+                if (v != self.detector_size): 
+                    redraw_pending = True
+                    self.detector_size = v
+                    self.beam_x = self.beam_y = self.detector_size/2
         if redraw_pending:
-            self.update()
+            self.update(force=True)
         return True
     
         
@@ -108,7 +121,7 @@ class Predictor( gtk.AspectFrame ):
                 
     def on_map(self, widget):
         self._can_update = True
-        self.update()
+        self.update(force=True)
         return True
     
     def _angle(self, resol):
@@ -140,7 +153,7 @@ class Predictor( gtk.AspectFrame ):
         return d
 
     def _do_calc(self):
-        grid_size = 100
+        grid_size = 50
         x = arange(0, self.detector_size, grid_size)
         y = x
         X,Y = meshgrid(x,y)
@@ -155,13 +168,13 @@ class Predictor( gtk.AspectFrame ):
         gobject.idle_add(self.display)
 
     def update(self, force=False):
-        elapsed_time = time.time() - self.last_updated
-        if (elapsed_time > 2) or force and (self.wavelength*self.distance > 1.0):
-            if self._can_update and self.get_child_visible():
-                _logger.debug('Predictor Widget updating...')
-                self.last_updated = time.time()
-                calculator = threading.Thread(target=self._do_calc)
-                calculator.setDaemon(True)
-                calculator.start()
-        return True
+        elapsed = time.time() - self.last_updated
+        if elapsed >= 2.0 and not force:
+            return
+        if self._can_update and self.get_child_visible():
+            self._do_calc()
+            #calculator = threading.Thread(target=self._do_calc)
+            #calculator.setDaemon(True)
+            #calculator.start()
+        return
     
