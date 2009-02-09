@@ -14,7 +14,8 @@ from bcm.protocol import ca
 
 import pickle
 
-COLORMAPS = pickle.load('data/colormaps.data')
+WIDGET_DIR = os.path.dirname(__file__)
+COLORMAPS = pickle.load(file(os.path.join(WIDGET_DIR, 'data/colormaps.data')))
 
     
 class VideoTransformer(gobject.GObject):
@@ -63,7 +64,7 @@ class VideoTransformer(gobject.GObject):
     def _draw_banner(self, img):
         draw = ImageDraw.Draw(img)
         try:
-            font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 10)
+            font = ImageFont.truetype(os.path.join(WIDGET_DIR, 'data/miso.otf'), 14)
         except:
             font = ImageFont.load_default()
         w,h = img.size

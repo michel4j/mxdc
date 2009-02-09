@@ -5,6 +5,7 @@ warnings.simplefilter("ignore")
 import gtk, gobject
 import sys, os
 import logging
+import time
 
 from bcm.beamline.mx import MXBeamline
 from mxdc.widgets.sampleviewer import SampleViewer
@@ -24,8 +25,10 @@ def main():
     #win.add(book)
     config_file = '/media/seagate/beamline-control-module/etc/08id1.conf'
     bl = MXBeamline(config_file)
+    time.sleep(2.0)
     
-    myviewer = SampleViewer(bl)
+    myviewer = SampleViewer()
+    myviewer.show_all()
     #cryo_controller = CryojetWidget(bl.cryojet)
     #cryo_align = gtk.Alignment(0.5,0.5, 0, 0)
     #cryo_align.set_border_width(12)

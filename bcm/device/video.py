@@ -32,7 +32,7 @@ class CameraBase(object):
         self.resolution = 1.0
         self.is_active = False
     
-    def zoom(self):
+    def zoom(self, val):
         pass
                        
     
@@ -72,11 +72,15 @@ class CACamera(CameraBase):
         self._cam = PV(pv_name)
         self._zoom = IMotor(zoom_motor)
         self._cam.connect('active', self._activate)
+        self._zoom.connect('changed', self._on_zoom_change)
         self._sim_cam = SimCamera()
     
     def _activate(self, obj, val=None):
         self.is_active = True
-        
+    
+    def _on_zoom_change(self, obj, val):
+           self.resolution = 5.34e-3 * numpy.exp( -0.18 * val)
+           
     def _update(self):
         if self.is_active:
             data = self._cam.get()
