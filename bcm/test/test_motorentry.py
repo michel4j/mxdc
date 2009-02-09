@@ -15,7 +15,7 @@ def main():
     win.set_border_width(0)
     win.set_title("Motor Test")
 
-    config_file = '/home/michel/Code/eclipse-ws/beamline-control-module/etc/08id1.conf'
+    config_file = '/media/seagate/beamline-control-module/etc/08id1.conf'
     bl = MXBeamline(config_file)
         
     mtr = MotorEntry(bl.goniometer.omega, 'Omega')

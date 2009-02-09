@@ -31,7 +31,11 @@ class DataCollector(gobject.GObject):
         self.skip_collected = False
         
         #associate beamline devices
-        self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+        try:
+            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+        except:
+            self.beamline = None
+            _logger.warning('No registered beamline found.')
             
     def configure(self, run_data=None, run_list=None, skip_collected=True):
         if run_data is None and run_list is None:
@@ -56,6 +60,9 @@ class DataCollector(gobject.GObject):
     def run(self):
         self.paused = False
         self.stopped = False
+        if self.beamline is None:
+            _logger.error('No Beamline found. Aborting data collection.')
+            return
         ca.threads_init() 
         self.beamline.lock.acquire()
         try:          
