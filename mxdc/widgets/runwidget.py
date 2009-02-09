@@ -1,7 +1,9 @@
-import gtk, gobject
+import gtk
+import gtk.glade
+import gobject
 import sys, os
-from predictor import Predictor
-from dialogs import select_folder, check_folder, DirectoryButton, warning
+from mxdc.widgets.predictor import Predictor
+from mxdc.widgets.dialogs import select_folder, check_folder, DirectoryButton, warning
 
 (
   COLUMN_LABEL,
@@ -16,125 +18,57 @@ DEFAULT_PARAMETERS = {
     'delta': 1.0,
     'time': 1.0,
     'start_angle': 0,
-    'angle_range': 1.0,
+    'total_angle': 1.0,
     'start_frame': 1,
-    'num_frames': 1,
+    'total_frames': 1,
     'inverse_beam': False,
     'wedge': 180.0,
     'energy': [ 12.658 ],
     'energy_label': ['E0'],
-    'number': 0,
+    'number': 1,
     'two_theta': 0.0,
 }
 
 
-class RunWidget(gtk.VBox):
+class RunWidget(gtk.Frame):
     def __init__(self, num=0):
-        gtk.VBox.__init__(self,spacing=6)
+        gtk.Frame.__init__(self)
+        self.set_shadow_type(gtk.SHADOW_NONE)
+        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/run_widget.glade'), 
+                                  'run_widget')
         
-        self.set_border_width(6)
-        self.title = gtk.Label("")
-        self.enable_btn = gtk.CheckButton(label="Enabled")
-        self.enable_btn.set_active(True)
+        self.title = self._xml.get_widget('run_title')
+        self.vbox = self._xml.get_widget('run_widget')
+        self.add(self.vbox)
 
-        #hseparator = gtk.HSeparator()
-        #hseparator.set_size_request(-1,2)
-        #self.pack_end(self.enable_btn, expand=False, fill=False)
-        #self.pack_end(hseparator, expand=False, fill=False, padding=2)
-
-        bbox = gtk.HBox(True, 6)
-        self.save_btn = gtk.Button(stock=gtk.STOCK_SAVE)
-        self.undo_btn = gtk.Button(stock=gtk.STOCK_UNDO)
-        self.undo_btn.set_sensitive(False) # initially disabled since stack is empty
-        self.delete_btn = gtk.Button(stock=gtk.STOCK_DELETE)
-        self.pack_start(self.title, padding=4, expand=False, fill=False)
-        
-        hseparator = gtk.HSeparator()
-        hseparator.set_size_request(-1,2)
-        self.pack_start(hseparator, expand=False, fill=False, padding=6)
-        
-        bbox.pack_start(self.save_btn)
-        bbox.pack_start(self.undo_btn)
-        bbox.pack_start(self.delete_btn)
-        self.pack_start(bbox, expand=False, fill=False)
-        
-        hseparator = gtk.HSeparator()
-        hseparator.set_size_request(-1,2)
-        self.pack_start(hseparator, expand=False, fill=False, padding=6)
-        
-        self.layout_table = gtk.Table(12,4, False)
-        self.layout_table.set_row_spacings(2)
-        self.layout_table.set_col_spacings(2)
+        self.save_btn = self._xml.get_widget('save_btn')
+        self.undo_btn = self._xml.get_widget('reset_btn')
+        self.enable_btn = self._xml.get_widget('activate_btn')
+        self.delete_btn = self._xml.get_widget('delete_btn')
+        self.layout_table = self._xml.get_widget('layout_table')
         
         self.entry = {}
-        self.units = {}
-        self.labels = {}
-        
-        # Data for labels (label: (col, row))
-        labels = {
-            'Prefix:':      (0, 0),
-            'Folder:':   (0, 1),
-            'Distance:':    (0, 2),
-            'Delta:':       (0, 3),
-            'Time:':        (0, 4),
-            'Frame':        (1, 5),
-            'Angle':        (2, 5),
-            'Start:':       (0, 6),
-            'Total:':       (0, 7),
-            'Wedge:':       (0, 8),
-            'TwoTheta:':  (0,9),
-        }
-        
+                
         # Data for entries (name: (col, row, length, [unit]))
-        entries = {
-            'prefix':       (1, 0, 3),
-            #'directory':    (1, 1, 3),
-            'distance':     (1, 2, 2, 'mm'),
-            'delta':        (1, 3, 2, 'deg'),
-            'time':         (1, 4, 2, 'sec'),
-            'start_frame':  (1, 6, 1),
-            'start_angle':  (2, 6, 1, 'deg'),
-            'num_frames':    (1, 7, 1),
-            'angle_range':    (2, 7, 1, 'deg'),
-            'wedge':        (1, 8, 2, 'deg'),
-            'two_theta':    (1, 9, 2, 'deg'),
-        }
+        entries = ['prefix', 'distance','delta','time','start_frame', 
+                   'start_angle','total_frames','total_angle','wedge',
+                   'two_theta','inverse_beam']
+        for e in entries:
+            self.entry[e] = self._xml.get_widget(e)
+            if isinstance(self.entry[e], gtk.Entry) and e not in ['prefix',]:
+                self.entry[e].set_alignment(1)
         
-        # Create labels from data
-        for (key,val) in zip(labels.keys(),labels.values()):
-            self.labels[key] = gtk.Label(key)
-            self.labels[key].set_alignment(1,0.5)
-            self.layout_table.attach( self.labels[key], val[0], val[0]+1, val[1], val[1]+1)
-        
-        # Create entries from data    
-        for (key,val) in zip(entries.keys(),entries.values()):
-            self.entry[key] = gtk.Entry()
-            
-            # center justify prefix and directory, right justify all others
-            if val[2] == 3:
-                self.entry[key].set_alignment(0.5)
-            else:
-                self.entry[key].set_alignment(1)               
-            self.entry[key].set_width_chars(val[2]*6)
-            self.layout_table.attach( self.entry[key], val[0], val[0]+val[2], val[1], val[1]+1, xoptions=gtk.FILL)
-            
-            # Add unit label if present
-            if len(val)>3:
-                self.units[key] = gtk.Label(val[3])
-                self.layout_table.attach(self.units[key], val[0]+val[2], val[0]+val[2]+1, val[1], val[1]+1, xoptions=gtk.EXPAND)
         
         # Set directory field non-editable, must use directory selector
-        self.entry['directory'] = DirectoryButton()
-        self.layout_table.attach(self.entry['directory'], 1, 4, 1, 2)
-        #self.entry['directory'].set_sensitive(False)
-    
+        self.entry['directory'] = self._xml.get_widget('folder_btn')
+
         # entry signals
         self.entry['prefix'].connect('focus-out-event', self.on_prefix_changed)
         self.entry['directory'].connect('focus-out-event', self.on_directory_changed)
         self.entry['start_angle'].connect('focus-out-event', self.on_start_angle_changed)
         self.entry['delta'].connect('focus-out-event', self.on_delta_changed)
-        self.entry['angle_range'].connect('focus-out-event', self.on_angle_range_changed)
-        self.entry['num_frames'].connect('focus-out-event', self.on_num_frames_changed)
+        self.entry['total_angle'].connect('focus-out-event', self.on_total_angle_changed)
+        self.entry['total_frames'].connect('focus-out-event', self.on_total_frames_changed)
         self.entry['start_frame'].connect('focus-out-event', self.on_start_frame_changed)
         self.entry['distance'].connect('focus-out-event', self.on_distance_changed)
         self.entry['time'].connect('focus-out-event', self.on_time_changed)
@@ -142,25 +76,18 @@ class RunWidget(gtk.VBox):
         self.entry['two_theta'].connect('focus-out-event', self.on_two_theta_changed)
         
         self.entry['prefix'].connect('activate', self.on_prefix_changed)
-        #self.entry['directory'].connect('activate', self.on_directory_changed)
         self.entry['start_angle'].connect('activate', self.on_start_angle_changed)
         self.entry['delta'].connect('activate', self.on_delta_changed)
-        self.entry['angle_range'].connect('activate', self.on_angle_range_changed)
-        self.entry['num_frames'].connect('activate', self.on_num_frames_changed)
+        self.entry['total_angle'].connect('activate', self.on_total_angle_changed)
+        self.entry['total_frames'].connect('activate', self.on_total_frames_changed)
         self.entry['start_frame'].connect('activate', self.on_start_frame_changed)
         self.entry['distance'].connect('activate', self.on_distance_changed)
         self.entry['time'].connect('activate', self.on_time_changed)
         self.entry['wedge'].connect('activate', self.on_wedge_changed)
         self.entry['two_theta'].connect('activate', self.on_two_theta_changed)
-       
-        # Inverse Beam
-        self.inverse_beam = gtk.CheckButton(label='Inverse beam')
-        self.layout_table.attach(self.inverse_beam, 1, 3, 10, 11, xoptions=gtk.FILL)
-        
-        # Select Directory Button
-        #self.entry['directory'].connect('clicked', self.on_select_dir)
-
+               
         # Energy
+        self.sw = self._xml.get_widget('energy_view')
         self.energy_store = gtk.ListStore(
             gobject.TYPE_STRING,
             gobject.TYPE_FLOAT,
@@ -168,9 +95,6 @@ class RunWidget(gtk.VBox):
         )
         self.energy_list = gtk.TreeView(model=self.energy_store)
         self.energy_list.set_rules_hint(True)
-        self.sw = gtk.ScrolledWindow()
-        self.sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
-        self.sw.set_policy(gtk.POLICY_NEVER, gtk.POLICY_NEVER)
         self.sw.add(self.energy_list)
         
         
@@ -179,22 +103,21 @@ class RunWidget(gtk.VBox):
         renderer.set_data('column',COLUMN_LABEL)
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
         column1 = gtk.TreeViewColumn('Label', renderer, text=COLUMN_LABEL, editable=COLUMN_EDITABLE)
-        column1.set_fixed_width(20)
+        column1.set_fixed_width(5)
 
         #Energy column
         renderer = gtk.CellRendererText()
         renderer.set_data('column',COLUMN_ENERGY)
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
-        column2 = gtk.TreeViewColumn('Energy (keV)', renderer, text=COLUMN_ENERGY, editable=COLUMN_EDITABLE)
-        column2.set_cell_data_func(renderer, self.__float_format, ('%8.4f', COLUMN_ENERGY))
-        column2.set_fixed_width(20)
+        column2 = gtk.TreeViewColumn('Energy', renderer, text=COLUMN_ENERGY, editable=COLUMN_EDITABLE)
+        column2.set_cell_data_func(renderer, self.__float_format, ('%7.4f', COLUMN_ENERGY))
+        column2.set_fixed_width(10)
         
         self.energy_list.append_column(column1)
         self.energy_list.append_column(column2)
-        self.layout_table.attach(self.sw, 1, 3, 11,12, xoptions=gtk.FILL)
-        self.pack_start(self.layout_table, expand=False, fill=False)
-            
-        self.energy_btn_box = gtk.VBox(False,6)
+        
+        # buttons for adding and removing energy
+        self.energy_btn_box = gtk.VBox(True,0)
         self.add_e_btn = gtk.ToolButton('gtk-add')
         self.add_e_btn.connect("clicked", self.on_add_energy_clicked)
         self.energy_btn_box.pack_start(self.add_e_btn, expand=False, fill=False)
@@ -207,17 +130,14 @@ class RunWidget(gtk.VBox):
 
         # connect signals
         self.save_btn.connect('clicked', self.on_save)
-        self.undo_btn.connect('clicked',self.on_undo)
         self.show_all()
         self.set_no_show_all(True)
         
         #initialize parameters
-        self.undo_stack = []
         self.parameters = DEFAULT_PARAMETERS
         self.set_number(num)
         self.set_parameters(self.parameters)
         self.parameters = self.get_parameters()
-        self.undo_stack.append(self.parameters)
 
         self._changes_pending = False
                 
@@ -287,16 +207,14 @@ class RunWidget(gtk.VBox):
         self.__reset_e_btn_states()
             
     def set_parameters(self, dict):
-        keys = ['distance','delta','start_angle','angle_range','wedge','time', 'two_theta'] # Floats
-        for key in keys:
+        for key in  ['distance','delta','start_angle','total_angle','wedge','time', 'two_theta']:
             self.entry[key].set_text("%0.2f" % dict[key])
-        keys = ['start_frame', 'num_frames']  # ints
-        for key in keys:
+        for key in ['start_frame', 'total_frames']:
             self.entry[key].set_text("%d" % dict[key])
         self.entry['prefix'].set_text("%s" % dict['prefix'])
-        self.entry['directory'].set_text("%s" % dict['directory'])
+        self.entry['directory'].set_current_folder("%s" % dict['directory'])
         self.set_number(dict['number'])
-        self.inverse_beam.set_active(dict['inverse_beam'])
+        self.entry['inverse_beam'].set_active(dict['inverse_beam'])
         self.energy_store.clear()
         self.energy = []
         self.energy_label = []
@@ -304,23 +222,22 @@ class RunWidget(gtk.VBox):
         for i in range(len(dict['energy'])):
             self.__add_energy([dict['energy_label'][i], dict['energy'][i], True] )
         self.__reset_e_btn_states()
-        self.check_changes()
         
     def get_parameters(self):
         run_data = {}
         run_data['prefix']      = self.entry['prefix'].get_text().strip()
-        run_data['directory']   = self.entry['directory'].get_text().strip()
+        run_data['directory']   = self.entry['directory'].get_current_folder()
         run_data['energy']  =    self.energy
         run_data['energy_label'] = self.energy_label
-        run_data['inverse_beam'] = self.inverse_beam.get_active()
+        run_data['inverse_beam'] = self.entry['inverse_beam'].get_active()
         run_data['number'] = self.number
-        keys = ['distance','delta','start_angle','angle_range','wedge','time', 'two_theta'] # Floats
-        for key in keys:
+
+        for key in ['distance','delta','start_angle','total_angle','wedge','time', 'two_theta']:
             run_data[key] = float(self.entry[key].get_text())
-        keys = ['start_frame','num_frames']  # Convert this to int
-        for key in keys:
+
+        for key in ['start_frame','total_frames']:
             run_data[key] = int(self.entry[key].get_text())
-        return run_data.copy()
+        return run_data
                 
     def is_enabled(self):
         return self.enable_btn.get_active()
@@ -332,29 +249,17 @@ class RunWidget(gtk.VBox):
         self.title.set_use_markup(True)
         # Hide controls for Run 0
         if num == 0:
-            keys = ['angle_range','num_frames','wedge']
-            for key in keys:
+            for key in ['total_angle','total_frames','wedge','inverse_beam']:
                 self.entry[key].set_sensitive(False)
-                #self.entry[key].hide()
-            keys = ['angle_range','wedge']
-            for key in keys:
-                self.units[key].set_sensitive(False)
-                #self.units[key].hide()
-            keys = ['Total:','Wedge:']
-            for key in keys:
-                self.labels[key].set_sensitive(False)
-                #self.labels[key].hide()
-            self.inverse_beam.hide()
             self.energy_btn_box.hide()
-            self.inverse_beam.set_sensitive(False)
             self.energy_list.set_sensitive(False)
             self.sw.hide()    
             self.delete_btn.set_sensitive(False)
             if self.predictor is None:    
                 #add Predictor
                 self.predictor = Predictor()
-                self.predictor.set_size_request(220,220)
-                self.pack_end( self.predictor, expand=False, fill=False)
+                self.predictor.set_size_request(180,180)
+                self.vbox.pack_end( self.predictor, expand=True, fill=True)
     
         
     def check_changes(self):
@@ -367,12 +272,10 @@ class RunWidget(gtk.VBox):
         for key in new_values.keys():
             if key in ['energy', 'energy_label']:
                 widget = self.energy_list
-            elif key == 'inverse_beam':
-                widget = self.inverse_beam
             elif key == 'number':
                 widget = self.title
             elif key == 'directory':
-                widget = self.entry['directory'].dir_label
+                widget = self.entry['directory']
             else:
                 widget = self.entry[key]
                 
@@ -405,19 +308,19 @@ class RunWidget(gtk.VBox):
         self.check_changes()
         return False
     
-    def on_angle_range_changed(self,widget,event=None):
+    def on_total_angle_changed(self,widget,event=None):
         start_angle = float(self.entry['start_angle'].get_text())    
         start_frame = int(self.entry['start_frame'].get_text())
         delta = float(self.entry['delta'].get_text())
         try:
-            angle_range = float(self.entry['angle_range'].get_text())
-            num_frames = int(angle_range / delta)
+            total_angle = float(self.entry['total_angle'].get_text())
+            total_frames = int(total_angle / delta)
         except:
-            num_frames = int(self.entry['num_frames'].get_text())
-            angle_range = num_frames * delta 
+            total_frames = int(self.entry['total_frames'].get_text())
+            total_angle = total_frames * delta 
 
-        self.entry['angle_range'].set_text('%0.2f' % angle_range)                       
-        self.entry['num_frames'].set_text('%d' % num_frames)
+        self.entry['total_angle'].set_text('%0.2f' % total_angle)                       
+        self.entry['total_frames'].set_text('%d' % total_frames)
         self.check_changes()
         return False
 
@@ -429,14 +332,14 @@ class RunWidget(gtk.VBox):
         delta = (delta > 0.1 and delta) or 0.1
 
         self.entry['delta'].set_text('%0.2f' % delta)
-        angle_range = float(self.entry['angle_range'].get_text())
-        num_frames = int(self.entry['num_frames'].get_text())
+        total_angle = float(self.entry['total_angle'].get_text())
+        total_frames = int(self.entry['total_frames'].get_text())
 
         if self.number == 0:
-            angle_range = delta
-            self.entry['angle_range'].set_text('%0.2f' % angle_range)
-        num_frames = int(angle_range/delta)
-        self.entry['num_frames'].set_text('%d' % num_frames)
+            total_angle = delta
+            self.entry['total_angle'].set_text('%0.2f' % total_angle)
+        total_frames = int(total_angle/delta)
+        self.entry['total_frames'].set_text('%d' % total_frames)
         self.check_changes()
         return False
 
@@ -463,17 +366,17 @@ class RunWidget(gtk.VBox):
         self.check_changes()
         return False
 
-    def on_num_frames_changed(self,widget,event=None):
+    def on_total_frames_changed(self,widget,event=None):
         delta = float(self.entry['delta'].get_text())
         try:
-            num_frames = float(self.entry['num_frames'].get_text() )
-            angle_range = num_frames * delta 
+            total_frames = float(self.entry['total_frames'].get_text() )
+            total_angle = total_frames * delta 
         except:
-            angle_range = float(self.entry['angle_range'].get_text())
-            num_frames = int(angle_range / delta)
+            total_angle = float(self.entry['total_angle'].get_text())
+            total_frames = int(total_angle / delta)
         
-        self.entry['num_frames'].set_text('%d' % num_frames)    
-        self.entry['angle_range'].set_text('%0.2f' % angle_range)
+        self.entry['total_frames'].set_text('%d' % total_frames)    
+        self.entry['total_angle'].set_text('%0.2f' % total_angle)
         self.check_changes()
         return False
 
@@ -507,6 +410,7 @@ class RunWidget(gtk.VBox):
         return False
 
     def on_distance_changed(self,widget,event=None):
+        print 'distance changed'
         two_theta = float(self.entry['two_theta'].get_text())    
         try:
             distance = float(self.entry['distance'].get_text())
@@ -544,19 +448,7 @@ class RunWidget(gtk.VBox):
     def on_save(self, widget):
         self.enable_btn.set_active(True)
         self.parameters = self.get_parameters()
-        self.undo_stack.append(self.parameters)
         self.check_changes()
         self.undo_btn.set_sensitive(True)
         return True
     
-    def on_undo(self,widget):
-        # when no changes are pending, it means current state is identical to last backup
-        # delete one backup before continuing
-        if not self._changes_pending:
-            self.undo_stack.pop()
-        if len(self.undo_stack) > 0:
-            run_data = self.undo_stack.pop()
-            self.set_parameters(run_data)
-        if len(self.undo_stack) == 0:
-            self.undo_btn.set_sensitive(False)
-        self.check_changes()

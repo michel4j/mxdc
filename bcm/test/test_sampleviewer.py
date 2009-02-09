@@ -22,7 +22,7 @@ def main():
     win.set_title("SampleViewer")
     book = gtk.Notebook()
     #win.add(book)
-    config_file = '/home/michel/Code/eclipse-ws/beamline-control-module/etc/08id1.conf'
+    config_file = '/media/seagate/beamline-control-module/etc/08id1.conf'
     bl = MXBeamline(config_file)
     
     myviewer = SampleViewer(bl)

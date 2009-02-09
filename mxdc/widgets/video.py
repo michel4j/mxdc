@@ -5,13 +5,16 @@ import gobject
 import pango
 import time
 import threading, thread
-import Image, ImageOps, ImageDraw, ImageFont
+import Image 
+import ImageOps
+import ImageDraw
+import ImageFont
 
 from bcm.protocol import ca
 
 import pickle
-BCM_PATH = '/home/michel/Code/eclipse-ws/beamline-control-module'
-COLORMAPS = pickle.load(file(os.path.join(BCM_PATH, 'mxdc/share/colormaps.data')))
+
+COLORMAPS = pickle.load('data/colormaps.data')
 
     
 class VideoTransformer(gobject.GObject):

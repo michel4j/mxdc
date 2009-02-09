@@ -5,7 +5,7 @@ from bcm.utils.configobj import ConfigObj
 from bcm.utils import misc
 
 from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
-from mxdc.RunManager import RunManager
+from mxdc.widgets.runmanager import RunManager
 from mxdc.widgets.imageviewer import ImgViewer
 from mxdc.widgets.dialogs import *
 
@@ -23,16 +23,15 @@ from mxdc.widgets.dialogs import *
 ) = range(3)
 
 class CollectManager(gtk.HBox):
-    def __init__(self, beamline=None):
+    def __init__(self):
         gtk.HBox.__init__(self,False,6)
         self.__register_icons()
         self.run_data = {}
         self.labels = {}
         self.run_list = []
-        self.beamline = beamline
         self.image_viewer = ImgViewer()
         self.run_manager = RunManager()
-        self.collector = DataCollector(beamline)
+        self.collector = DataCollector()
         self.collect_state = COLLECT_STATE_IDLE
         self.pos = None
         self.listmodel = gtk.ListStore(
@@ -94,8 +93,8 @@ class CollectManager(gtk.HBox):
             label.set_alignment(1,0.5)
             pos_table.attach( label, val[1], val[1]+1, val[2], val[2]+1)
             pos_table.attach(gtk.Label(val[3]), 2, 3, val[2], val[2]+1)
-            if self.beamline is not None:
-                pos_label = PositionerLabel( self.beamline.devices[key], format="%8.4f" )
+            if self.collector.beamline is not None:
+                pos_label = ActiveLabel( self.beamline.devices[key], format="%8.4f" )
                 pos_label.set_alignment(1,0.5)
                 pos_table.attach(pos_label,1, 2, val[2], val[2]+1)
         pos_table.set_border_width(3)
@@ -123,7 +122,7 @@ class CollectManager(gtk.HBox):
         self.collector.connect('stopped', self.on_stop)
         self.collector.connect('progress', self.on_progress)
 
-        if self.beamline is not None:
+        if self.collector.beamline is not None:
             self.beamline.ring_status.connect('changed', self._on_inject)
             self.beamline.ring_current.connect('changed', self._on_dump)
             #self.beamline.ring_mode.connect('changed', self._on_dump)
@@ -162,9 +161,9 @@ class CollectManager(gtk.HBox):
                 run = int(section)
                 data[run] = config[section]
                 self.add_run(data[run])
-        self.beamline.energy.connect('changed', self.on_energy_changed)
+        #self.beamline.energy.connect('changed', self.on_energy_changed)
         data = self.run_manager.runs[0].get_parameters()
-        data['energy'] = [ self.beamline.energy.get_position() ]
+        #data['energy'] = [ self.beamline.energy.get_position() ]
         self.run_manager.runs[0].set_parameters(data)
 
     def __save_config(self):

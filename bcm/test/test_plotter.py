@@ -20,6 +20,7 @@ def main():
     x = data[:,0]
     y = data[:,1]
     count = 1
+    myplot.add_axis(label='Hello')
     myplot.add_line(x[:count],y[:count])
     
     def addpoint():
@@ -30,7 +31,7 @@ def main():
         return True
     
     myplot.set_labels(title="Se-K absorption Edge", x_label="Energy (eV)", y1_label="Absorption")    
-    gobject.timeout_add(100, addpoint)
+    gobject.timeout_add(100,addpoint)
     addpoint.count = count
     win.show_all()
 
