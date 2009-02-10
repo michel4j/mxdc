@@ -1,14 +1,16 @@
 import os
 import sys
+import Queue
 import gtk
 import gobject
 import pango
 import time
-import threading, thread
+import threading
 import Image 
 import ImageOps
 import ImageDraw
 import ImageFont
+
 
 from bcm.protocol import ca
 
@@ -34,9 +36,8 @@ class VideoTransformer(gobject.GObject):
         self._stopped = False
         self._paused = True
         self._colorize = False
-        self._lock = thread.allocate_lock()
+        self.frame_queue = Queue.Queue() 
         self.banner_text = "Video"
-        #print 'Video Transformer setup'
     
     def set_colormap(self, name=None):
         if name:
@@ -50,10 +51,8 @@ class VideoTransformer(gobject.GObject):
         img.putpalette(self._palette)
 
     def resize(self, w, h):
-        self._lock.acquire()
         self.width, self.height = w, h
         self.scale_factor = float(self.width) / self.camera.size[0]
-        self._lock.release()
         
         
     def start(self):
@@ -76,7 +75,7 @@ class VideoTransformer(gobject.GObject):
         count = 0
         start_time = time.time()
         while not self._stopped:
-            if self.camera.get_frame() is None: continue
+            #if self.camera.get_frame() is None: continue
             while self._paused and not self._stopped:
                 time.sleep(0.1)
                 
@@ -85,22 +84,22 @@ class VideoTransformer(gobject.GObject):
                 count = 0
             self.fps = count/(time.time() - start_time + 0.0001)
             count += 1
+            
             self.banner_text = '%s: %s, %0.0f fps' % (self.camera.name, time.strftime('%x %X'), self.fps)
-             
             img = self.camera.get_frame()
             self.source_w, self.source_h = img.size
             img = ImageOps.autocontrast(img, cutoff=self.contrast)
-            self._lock.acquire()
             img = img.resize((self.width,self.height),Image.ANTIALIAS)
             if self._colorize and img.mode == 'L':
                 self.colorize_frame(img)
             img = img.convert('RGB')
             self._draw_banner(img)
-            self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
+            pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
                 False, 8, self.width, self.height, 3 * self.width )
-            gobject.idle_add(self.emit, "changed")
+            self.frame_queue.put(pixpuf)            
+            #gobject.idle_add(self.emit, "changed")
+            
             time.sleep(1.0/self.maxfps)
-            self._lock.release()
                  
     def stop(self):
         self._stopped = True
@@ -120,6 +119,7 @@ class VideoWidget(gtk.DrawingArea):
         self.camera = camera
         self.transformer = VideoTransformer(camera)
         self.pixmap = None
+        self.pixbuf = None
         self.overlay_func = None 
         self.set_events(gtk.gdk.EXPOSURE_MASK |
                 gtk.gdk.LEAVE_NOTIFY_MASK |
@@ -140,6 +140,7 @@ class VideoWidget(gtk.DrawingArea):
         self.overlay_func = func
         
     def display(self, obj):
+        self.pixbuf = self.transformer.get_nowait()
         self.queue_draw()        
         return True
     
@@ -147,8 +148,8 @@ class VideoWidget(gtk.DrawingArea):
         self.transformer.set_colormap(colormap)
         
     def on_expose(self, widget, event):
-        if self.transformer.pixbuf is not None:
-            self.pixmap.draw_pixbuf(self.gc, self.transformer.pixbuf, 0, 0, 0, 0, self.width, self.height, 0,0,0)
+        if self.pixbuf is not None:
+            self.pixmap.draw_pixbuf(self.gc, self.pixbuf, 0, 0, 0, 0, self.width, self.height, 0,0,0)
             if self.overlay_func is not None:
                     self.overlay_func(self.pixmap)
             self.window.draw_drawable(self.gc, self.pixmap, 0, 0, 0, 0, 
@@ -157,8 +158,8 @@ class VideoWidget(gtk.DrawingArea):
     def on_configure(self, obj, event):
         width, height = obj.window.get_size()
         self.pixmap = gtk.gdk.Pixmap(obj.window, width, height)
-        self.transformer.resize(width, height)
-        self.width, self.height = self.transformer.width, self.transformer.height
+        #self.transformer.resize(width, height)
+        #self.width, self.height = self.transformer.width, self.transformer.height
         self.scale_factor = self.transformer.scale_factor                    
         return True
     
