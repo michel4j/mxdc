@@ -25,7 +25,6 @@ def main():
     #win.add(book)
     config_file = '/media/seagate/beamline-control-module/etc/08id1.conf'
     bl = MXBeamline(config_file)
-    time.sleep(2.0)
     
     myviewer = SampleViewer()
     myviewer.show_all()
