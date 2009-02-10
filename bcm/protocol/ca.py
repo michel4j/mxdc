@@ -29,7 +29,7 @@ Overview
 import sys
 import os
 import time
-import thread
+import threading
 import atexit
 import gobject
 import logging
@@ -242,7 +242,7 @@ class PV(gobject.GObject):
         self._chid = c_ulong()
         self._callbacks = {}
         self._monitor = monitor
-        self._lock = thread.allocate_lock()
+        self._lock = threading.RLock()
         self._first_change = True
         if connect:
             self._create_connection()
@@ -268,7 +268,6 @@ class PV(gobject.GObject):
         if self.state != CA_OP_CONN_UP:
             _logger.error('(%s) PV not connected' % (self.name,))
             raise ChannelAccessError('PV not connected')
-        #self._lock.acquire()
         if self._monitor == True and self.value is not None:
             ret_val = self.value
         else:
@@ -279,7 +278,6 @@ class PV(gobject.GObject):
             else:
                 self.value = self.data.value
             ret_val = self.value
-        #self._lock.release()
         return ret_val
 
     def set(self, val):
@@ -343,7 +341,6 @@ class PV(gobject.GObject):
 
 
     def _on_change(self, event):
-        #self._lock.acquire()
         if event.type in [ DBR_STRING,  DBR_CHAR ]:
             val_p = cast(event.dbr, c_char_p)
             self.value = val_p.value
@@ -353,7 +350,6 @@ class PV(gobject.GObject):
                 self.value = val_p.contents
             else:
                 self.value = val_p.contents.value
-        #self._lock.release()
         #if self._first_change:
         #    self._first_change = False
         #    return 0
@@ -361,7 +357,6 @@ class PV(gobject.GObject):
         return 0
         
     def _on_connect(self, event):
-        self._lock.acquire()
         self.state = event.op
         if self.state == CA_OP_CONN_UP:
             self._chid = event.chid
@@ -372,7 +367,6 @@ class PV(gobject.GObject):
             gobject.idle_add(self.emit, 'active')
         else:
             gobject.idle_add(self.emit, 'inactive')
-        self._lock.release()
         _logger.debug(self)
         return 0
         
