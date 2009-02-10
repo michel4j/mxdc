@@ -49,7 +49,6 @@ class SampleViewer(gtk.Frame):
         self.video.set_overlay_func(self._overlay_function)
         self.video.connect('realize', self.on_realize)
         self.connect("destroy", lambda x: self.stop())
-        
 
     def _gonio_is_moving(self):
         return ( self.sample_x.is_moving() or self.sample_y1.is_moving() or self.sample_y2.is_moving() or self.omega.is_moving() )
