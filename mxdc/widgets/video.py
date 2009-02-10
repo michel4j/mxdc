@@ -38,6 +38,7 @@ class VideoTransformer(gobject.GObject):
         self._colorize = False
         self.frame_queue = Queue.Queue() 
         self.banner_text = "Video"
+        self.width, self.height = self.camera.size
     
     def set_colormap(self, name=None):
         if name:
@@ -96,7 +97,7 @@ class VideoTransformer(gobject.GObject):
             self._draw_banner(img)
             pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
                 False, 8, self.width, self.height, 3 * self.width )
-            self.frame_queue.put(pixpuf)            
+            self.frame_queue.put(pixbuf)            
             #gobject.idle_add(self.emit, "changed")
             
             time.sleep(1.0/self.maxfps)
