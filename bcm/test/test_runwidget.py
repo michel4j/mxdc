@@ -9,7 +9,6 @@ def main():
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_title("Run Widget Demo")
-    run = RunManager()
     c = CollectManager()
     win.add(c)
     win.show_all()
