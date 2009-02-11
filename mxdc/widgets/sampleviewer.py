@@ -89,8 +89,9 @@ class SampleViewer(gtk.Frame):
         
         # slit sizes in pixels
         sw = bw / pix_size 
-        sh = bh / pix_size    
-        if sw  >= self.video.width or sh >= self.video.height:
+        sh = bh / pix_size
+        w, h = self.video.get_size_request()  
+        if sw  >= w or sh >= h:
             return
         
         x = int((cx - (bx / pix_size)) * self.video.scale_factor)
