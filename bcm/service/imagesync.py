@@ -287,7 +287,6 @@ class ImgConsumer(object):
 
     def unregisterProducer(self):
         self.producer = None
-        self.fObj.close()
 
     def write(self, bytes):
         lines = bytes.split('\n')

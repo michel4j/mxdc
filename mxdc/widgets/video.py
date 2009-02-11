@@ -85,7 +85,6 @@ class VideoTransformer(gobject.GObject):
                 count = 0
             self.fps = count/(time.time() - start_time + 0.0001)
             count += 1
-            
             self.banner_text = '%s: %s, %0.0f fps' % (self.camera.name, time.strftime('%x %X'), self.fps)
             img = self.camera.get_frame()
             self.source_w, self.source_h = img.size
@@ -95,10 +94,12 @@ class VideoTransformer(gobject.GObject):
                 self.colorize_frame(img)
             img = img.convert('RGB')
             self._draw_banner(img)
+            gtk.gdk.threads_enter()
             pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
                 False, 8, self.width, self.height, 3 * self.width )
-            self.frame_queue.put(pixbuf)            
-            #gobject.idle_add(self.emit, "changed")
+            gtk.gdk.threads_leave()
+            self.frame_queue.put(pixbuf)  
+            gobject.idle_add(self.emit, "changed")
             
             time.sleep(1.0/self.maxfps)
                  
@@ -141,7 +142,7 @@ class VideoWidget(gtk.DrawingArea):
         self.overlay_func = func
         
     def display(self, obj):
-        self.pixbuf = self.transformer.get_nowait()
+        self.pixbuf = self.transformer.frame_queue.get_nowait()
         self.queue_draw()        
         return True
     
@@ -149,17 +150,18 @@ class VideoWidget(gtk.DrawingArea):
         self.transformer.set_colormap(colormap)
         
     def on_expose(self, widget, event):
+        w, h = self.get_size_request()
         if self.pixbuf is not None:
-            self.pixmap.draw_pixbuf(self.gc, self.pixbuf, 0, 0, 0, 0, self.width, self.height, 0,0,0)
+            self.pixmap.draw_pixbuf(self.gc, self.pixbuf, 0, 0, 0, 0, w, h, 0,0,0)
             if self.overlay_func is not None:
                     self.overlay_func(self.pixmap)
             self.window.draw_drawable(self.gc, self.pixmap, 0, 0, 0, 0, 
-                self.width, self.height)
+                w, h)
 
     def on_configure(self, obj, event):
         width, height = obj.window.get_size()
         self.pixmap = gtk.gdk.Pixmap(obj.window, width, height)
-        #self.transformer.resize(width, height)
+        self.transformer.resize(width, height)
         #self.width, self.height = self.transformer.width, self.transformer.height
         self.scale_factor = self.transformer.scale_factor                    
         return True
