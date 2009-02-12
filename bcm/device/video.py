@@ -1,4 +1,5 @@
 import time
+import threading
 import logging
 import urllib
 import cStringIO
@@ -13,6 +14,7 @@ from scipy.misc import toimage, fromimage
 from zope.interface import implements
 from bcm.device.interfaces import ICamera, IPTZCameraController, IMotor
 from bcm.protocol.ca import PV
+from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -24,48 +26,77 @@ class VideoError(Exception):
     """Base class for errors in the video module."""
     
 
-class CameraBase(object):
+class VideoSrc(object):
 
-    def __init__(self, name="Basic Camera"):
+    def __init__(self, name="Basic Camera", maxfps=10.0):
         self.frame = None
         self.name = name
+        self.maxfps = max(1.0, maxfps)
         self.resolution = 1.0
-        self.is_active = False
+        self.sinks = []
+        self._stopped = True
+        self._active = True
     
+    def add_sink(self, sink):
+        self.sinks.append( sink )
+        sink.set_src(self)
+
+    def del_sink(self, sink):
+        self.sinks.remove(sink)
+        
+    def start(self):
+        if self._stopped:
+            self._stopped = False
+            worker = threading.Thread(target=self._stream_video)
+            worker.setDaemon(True)
+            worker.start()
+    
+    def stop(self):
+        self._stopped = True
+            
+    def _stream_video(self):
+        ca.threads_init()
+        while not self._stopped:
+            if self._active:
+                img = self.get_frame()
+                for sink in self.sinks:
+                    sink.display(img.copy())
+            time.sleep(1.0/self.maxfps)
+        
     def zoom(self, val):
         pass
-                       
+    
+    def get_frame(self): 
+        pass                  
     
                  
-class SimCamera(CameraBase):
+class SimCamera(VideoSrc):
 
     implements(ICamera)    
     
     def __init__(self, name="Camera Simulator"):
-        CameraBase.__init__(self, name)
-        self.size = (480, 640)
+        VideoSrc.__init__(self, name)
+        self.size = (640, 480)
         self.resolution = 1.0
         self._packet_size = self.size[0] * self.size[1]
         self._fsource = open('/dev/urandom','rb')
-        self.is_active = True
         
-    def _update(self):
+    def get_frame(self):
         data = self._fsource.read(self._packet_size)
-        self.frame = toimage(numpy.fromstring(data, 'B').reshape(
+        frame = toimage(numpy.fromstring(data, 'B').reshape(
                                                     self.size[1], 
                                                     self.size[0]))
-
-    def get_frame(self):
-        self._update()
-        return self.frame
+        return frame
 
 
-class CACamera(CameraBase):
+
+class CACamera(VideoSrc):
 
     implements(ICamera)   
      
     def __init__(self, pv_name, zoom_motor, name='Camera'):
-        CameraBase.__init__(self, name)
+        VideoSrc.__init__(self, name)
+        self._active = False
         self.size = (640, 480)
         self.resolution = 1.0
         self._packet_size = self.size[0] * self.size[1]
@@ -73,68 +104,49 @@ class CACamera(CameraBase):
         self._zoom = IMotor(zoom_motor)
         self._cam.connect('active', self._activate)
         self._zoom.connect('changed', self._on_zoom_change)
-        self._sim_cam = SimCamera()
     
     def _activate(self, obj, val=None):
-        self.is_active = True
+        self._active = True
     
     def _on_zoom_change(self, obj, val):
            self.resolution = 5.34e-3 * numpy.exp( -0.18 * val)
            
-    def _update(self):
-        if self.is_active:
+    def get_frame(self):
+        data = self._cam.get()
+        
+        # Make sure full frame is obtained otherwise iterate until we
+        # get a full frame. This is required because sometimes the frame
+        # data is incomplete.
+        while len(data) != self._packet_size:
             data = self._cam.get()
             
-            # Make sure full frame is obtained otherwise iterate until we
-            # get a full frame. This is required because sometimes the frame
-            # data is incomplete.
-            while len(data) != self._packet_size:
-                data = self._cam.get()
-                
-            self.frame = toimage(numpy.fromstring(data, 'B').reshape(
-                                                    self.size[1], 
-                                                    self.size[0]))
-        else:
-            self.frame = self._sim_cam.get_frame()
+        frame = toimage(numpy.fromstring(data, 'B').reshape(
+                                                self.size[1], 
+                                                self.size[0]))
+        return frame
 
     def zoom(self, val):
         self._zoom.move_to(val)
             
-    def get_frame(self):
-        self._update()
-        return self.frame
 
 
                                 
-class AxisCamera(CameraBase):
+class AxisCamera(VideoSrc):
 
     implements(ICamera, IPTZCameraController)  
       
     def __init__(self, hostname, name='Axis Camera'):
-        CameraBase.__init__(self, name)
+        VideoSrc.__init__(self, name, maxfps=5.0)
         self.size = (704, 480)
         self._url = 'http://%s/jpg/image.jpg' % hostname
         self._server = httplib.HTTPConnection(hostname)
         self._last_frame = time.time()
         self._rzoom = 0
-        self._update()
-
-    def _get_image(self):
-            f = urllib.urlopen(self.url)
-            f_str = cStringIO.StringIO(f.read())
-            return Image.open(f_str)
-
-    def _update(self):
-        if time.time() - self._last_frame < 0.1:
-            return
-        try:
-            self.frame = self._get_image()
-            self._last_frame = time.time()
-        except:
-            _logger.error('(%s) Failed fetching frame.' % (self.name,) )
 
     def get_frame(self):
-        self.update()
+        f = urllib.urlopen(self.url)
+        f_str = cStringIO.StringIO(f.read())
+        return Image.open(f_str)
        
     def zoom(self, value):
         self._server.connect()

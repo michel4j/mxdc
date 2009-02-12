@@ -1,4 +1,4 @@
-from bcm.device.video import CACamera
+from bcm.device.video import SimCamera
 from bcm.device.motor import CLSMotor
 from twisted.internet import protocol, reactor, defer, utils, interfaces, error
 from zope.interface import implements
@@ -60,8 +60,8 @@ class VideoSink(object):
         print frame, 'received'
 
 if __name__ == '__main__':
-    sample_zoom = CLSMotor('SMTR16083I1021:mm')
-    video = CACamera('CAM1608-001:data', sample_zoom)
+    #sample_zoom = CLSMotor('SMTR16083I1021:mm')
+    video = SimCamera('CAM1608-001:data')
     cons = VideoSink()
     prod = VideoSource(video)
     prod.addConsumer(cons)
