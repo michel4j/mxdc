@@ -28,7 +28,7 @@ class SampleViewer(gtk.Frame):
         self._click_centering  = False
         self._colormap = 0
         self._tick_size = 5
-        
+                
         try:
             self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
         except:
@@ -49,26 +49,7 @@ class SampleViewer(gtk.Frame):
         self.video.set_overlay_func(self._overlay_function)
         self.video.connect('realize', self.on_realize)
         self.connect("destroy", lambda x: self.stop())
-
-    def _gonio_is_moving(self):
-        return ( self.sample_x.is_moving() or self.sample_y1.is_moving() or self.sample_y2.is_moving() or self.omega.is_moving() )
-    
-    def __register_icons(self):
-        items = [('sv-save', '_Save Snapshot', 0, 0, None),]
-
-        # We're too lazy to make our own icons, so we use regular stock icons.
-        aliases = [('sv-save', gtk.STOCK_SAVE),]
-
-        gtk.stock_add(items)
-        factory = gtk.IconFactory()
-        factory.add_default()
-        for new_stock, alias in aliases:
-            icon_set = gtk.icon_factory_lookup_default(alias)
-            factory.add(new_stock, icon_set)
                                         
-    def stop(self, win=None):
-        self.video.stop()
-                   
     def save_image(self, filename):
         ftype = filename.split('.')[-1]
         if ftype == 'jpg': 
@@ -94,10 +75,10 @@ class SampleViewer(gtk.Frame):
         if sw  >= w or sh >= h:
             return
         
-        x = int((cx - (bx / pix_size)) * self.video.scale_factor)
-        y = int((cy - (by / pix_size)) * self.video.scale_factor)
-        hw = int(0.5 * sw * self.video.scale_factor)
-        hh = int(0.5 * sh * self.video.scale_factor)
+        x = int((cx - (bx / pix_size)) * self.video._scale)
+        y = int((cy - (by / pix_size)) * self.video._scale)
+        hw = int(0.5 * sw * self.video._scale)
+        hh = int(0.5 * sh * self.video._scale)
         
         pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw, y-hh+self._tick_size)
         pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw+self._tick_size, y-hh)
@@ -120,7 +101,7 @@ class SampleViewer(gtk.Frame):
             y1 = self.measure_y1
             x2 = self.measure_x2
             y2 = self.measure_y2
-            dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale_factor
+            dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video._scale
             x1, x2, y1, y2 = int(x1), int(y1), int(x2), int(y2)
             pixmap.draw_line(self.video.ol_gc, x1, x2, y1, y2)
             self.pango_layout.set_text("%5.4f mm" % dist)
@@ -131,8 +112,8 @@ class SampleViewer(gtk.Frame):
         return True
 
     def _img_position(self,x,y):
-        im_x = int(float(x) / self.video.scale_factor)
-        im_y = int(float(y) / self.video.scale_factor)
+        im_x = int(float(x) / self.video._scale)
+        im_y = int(float(y) / self.video._scale)
         cx = self.beamline.registry['camera_center_x'].get()
         cy = self.beamline.registry['camera_center_y'].get()        
         xmm = (cx - im_x) * self.beamline.sample_video.resolution
@@ -219,8 +200,8 @@ class SampleViewer(gtk.Frame):
         #Video Area
         self.video_frame = self._xml.get_widget('video_frame')
         self.video = VideoWidget(self.beamline.sample_video)
-        self.video.set_size_request(420, 315)
-        self.video_frame.add(self.video)
+        self.video.set_size_request(416,312)
+        self.video_frame.pack_start(self.video, expand=True, fill=True)
         
         # Lighting
         self.lighting_box =   self._xml.get_widget('lighting_box')       

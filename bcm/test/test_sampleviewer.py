@@ -39,10 +39,7 @@ def main():
     win.add(book)
     win.show_all()
 
-    try:
-        gtk.main()
-    finally:
-        myviewer.video.stop()
+    gtk.main()
 
 
 if __name__ == '__main__':
