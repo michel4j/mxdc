@@ -24,6 +24,7 @@ class VideoWidget(gtk.DrawingArea):
         gtk.DrawingArea.__init__(self)
         self.camera = camera
         self.pixmap = None
+        self.video_src = None
         self.pixbuf = None
         self._colorize = False
         self._palette = None
@@ -40,7 +41,7 @@ class VideoWidget(gtk.DrawingArea):
         self.connect('expose_event',self.on_expose)
         self.connect('realize', self.on_realized)
         self.connect('configure-event', self.on_configure)        
-        self.connect("destroy", lambda x: self.vid_src.stop())
+        self.connect("destroy", lambda x: self.video_src.del_sink(self))
     
     def set_src(self, src):
         self.video_src = src
@@ -88,7 +89,6 @@ class VideoWidget(gtk.DrawingArea):
         self.ol_gc.foreground = self.get_colormap().alloc_color("green")
         self.ol_gc.set_function(gtk.gdk.XOR)
         self.ol_gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
-        gobject.idle_add(self.display)
         self.camera.add_sink(self)
         return True
 
