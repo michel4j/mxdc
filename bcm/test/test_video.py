@@ -16,10 +16,7 @@ def main():
     win.add(vid)
     win.show_all()
     
-    try:
-        gtk.main()
-    finally:
-        vid.stop()
+    gtk.main()
 
 
 if __name__ == '__main__':

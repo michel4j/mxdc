@@ -104,6 +104,7 @@ class CACamera(VideoSrc):
         self._zoom = IMotor(zoom_motor)
         self._cam.connect('active', self._activate)
         self._zoom.connect('changed', self._on_zoom_change)
+        self.start()
     
     def _activate(self, obj, val=None):
         self._active = True
