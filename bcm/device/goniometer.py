@@ -70,3 +70,52 @@ class Goniometer(object):
         pass    # FIXME: We need a proper way to stop goniometer scan
 
 
+class MD2Goniometer(object):
+
+    implements(IGoniometer)
+
+    def __init__(self, name):
+        self.name = name
+        pv_root = name
+        # initialize process variables
+        self._scan_cmd = PV("%s:S:StartScan" % pv_root, monitor=False)
+        self._abort_cmd = PV("%s:S:AbortScan" % pv_root, monitor=False)
+        self._state = PV("%s:G:MachAppState" % pv_root)
+        self._shutter_state = PV("%s:G:ShutterIsOpen" % pv_root)
+        self._log = PV('%s:G:StatusMsg' % pv_root)
+        
+        self.omega = VMEMotor('%s:G:OmegaPosn' % pv_root)
+                
+        #parameters
+        self._settings = {
+            'time' : PV("%s:S:ScanExposureTime" % pv_root, monitor=False),
+            'delta' : PV("%s:S:ScanRange" % pv_root, monitor=False),
+            'angle': PV("%s:S:ScanStartAngle" % pv_root, monitor=False),
+            'passes': PV("%s:S:ScanNumOfPasses" % pv_root, monitor=False),
+        }
+                       
+    def configure(self, **kwargs):
+        for key in kwargs.keys():
+            self._settings[key].put(kwargs[key])
+    
+    def scan(self):
+        self._scan_cmd.set(1)
+
+    def get_state(self):
+        return self._state.get() != 3  
+                        
+    def wait(self, start=True, stop=True, poll=0.01, timeout=20):
+        if (start):
+            time_left = 2
+            while not self.get_state() and time_left > 0:
+                time.sleep(poll)
+                time_left -= poll
+        if (stop):
+            time_left = timeout
+            while self.get_state() and time_left > 0:
+                time.sleep(poll)
+                time_left -= poll
+
+    def stop(self):
+        self._abort_cmd.set(1)
+
