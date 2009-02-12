@@ -24,7 +24,6 @@ class VideoWidget(gtk.DrawingArea):
         gtk.DrawingArea.__init__(self)
         self.camera = camera
         self.pixmap = None
-        self.video_src = None
         self.pixbuf = None
         self._colorize = False
         self._palette = None
@@ -41,15 +40,25 @@ class VideoWidget(gtk.DrawingArea):
         self.connect('expose_event',self.on_expose)
         self.connect('realize', self.on_realized)
         self.connect('configure-event', self.on_configure)        
-        self.connect("destroy", lambda x: self.video_src.del_sink(self))
+        self.connect("destroy", lambda x: self.camera.del_sink(self))
     
     def set_src(self, src):
-        self.video_src = src
-        self.video_src.start()
+        self.camera = src
+        self.camera.start()
         
     def on_configure(self, widget, event):
-        width, height = widget.window.get_size()
-        self.pixmap = gtk.gdk.Pixmap(widget.window, width,height)
+        width, height = event.width, event.height
+        ratio = float(self.camera.size[0])/self.camera.size[1]
+        if width < 50: width = 50
+        if height < 50: height = 50
+        if width < ratio * height:
+            height = int(width/ratio)
+        else:
+            width = int(ratio * height)
+        self._scale = float(width)/self.camera.size[1]
+        self._img_width, self._img_height = width, height
+        self.pixmap = gtk.gdk.Pixmap(widget.window, width, height)
+        self.set_size_request(-1,-1)
         return True
     
     def set_overlay_func(self, func):
@@ -58,7 +67,9 @@ class VideoWidget(gtk.DrawingArea):
     def display(self, img):
         if self._colorize and img.mode == 'L':
             img.putpalette(self._palette)
+        img = img.resize((self._img_width, self._img_height),Image.ANTIALIAS)
         img = img.convert('RGB')
+        #img = ImageOps.autocontrast(img, cutoff=0)
         w, h = img.size
         self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
             False, 8, w, h, 3 * w )
@@ -70,7 +81,6 @@ class VideoWidget(gtk.DrawingArea):
             self._palette = COLORMAPS[colormap]
         else:
             self._colorize = False
-        self.vid_src.set_colormap(colormap)
         
     def on_expose(self, widget, event):
         w, h = self.get_size_request()
@@ -94,10 +104,11 @@ class VideoWidget(gtk.DrawingArea):
 
     def on_visibility_notify(self, obj, event):
         if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
-            self._pause = True
+            self.camera.stop()
         else:
-            self._pause = False
+            self.camera.start()
         return True
 
     def on_unmap(self, obj):
+        self.camera.del_sink(self)
         self._pause = True

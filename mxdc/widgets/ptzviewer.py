@@ -75,7 +75,7 @@ class AxisViewer(gtk.HBox):
     def on_image_click(self, widget, event):
 
         if event.button == 1:
-            im_x, im_y = int(event.x/self.video.scale_factor), int(event.y/self.video.scale_factor)
+            im_x, im_y = int(event.x/self.video._scale), int(event.y/self.video._scale)
 
             if self.camera.controller:
                 self.camera.controller.center(im_x, im_y)

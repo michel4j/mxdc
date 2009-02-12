@@ -6,6 +6,9 @@ import cStringIO
 import httplib
 import Image
 import numpy
+import gtk
+import gobject
+
 # suppres scipy import warnings
 import warnings
 warnings.simplefilter("ignore")
@@ -45,23 +48,26 @@ class VideoSrc(object):
         self.sinks.remove(sink)
         
     def start(self):
-        if self._stopped:
+        if self._stopped == True:
             self._stopped = False
-            worker = threading.Thread(target=self._stream_video)
-            worker.setDaemon(True)
-            worker.start()
-    
+            self.cmd_id = gobject.idle_add(self._stream_video)
+        
+        
     def stop(self):
+        if self.cmd_id is not None:
+            gobject.source_remove(self.cmd_id)
         self._stopped = True
             
-    def _stream_video(self):
-        ca.threads_init()
-        while not self._stopped:
-            if self._active:
-                img = self.get_frame()
-                for sink in self.sinks:
-                    sink.display(img.copy())
-            time.sleep(1.0/self.maxfps)
+    def _stream_video(self, obj=None):
+        dur = int(1000.0/self.maxfps)
+        if self._active:
+            img = self.get_frame()
+            for sink in self.sinks:
+                sink.display(img.copy())
+        if not self._stopped:
+            self.cmd_id = gobject.timeout_add(dur, self._stream_video)
+        return False
+            
         
     def zoom(self, val):
         pass
@@ -104,7 +110,6 @@ class CACamera(VideoSrc):
         self._zoom = IMotor(zoom_motor)
         self._cam.connect('active', self._activate)
         self._zoom.connect('changed', self._on_zoom_change)
-        self.start()
     
     def _activate(self, obj, val=None):
         self._active = True
@@ -145,7 +150,7 @@ class AxisCamera(VideoSrc):
         self._rzoom = 0
 
     def get_frame(self):
-        f = urllib.urlopen(self.url)
+        f = urllib.urlopen(self._url)
         f_str = cStringIO.StringIO(f.read())
         return Image.open(f_str)
        
