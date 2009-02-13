@@ -1,11 +1,9 @@
-__revision__ =  '$Rev$'
-
 import gtk, gobject
 import sys, os
 from mxdc.widgets.misc import LinearProgress
 
 class Splash(object):
-    def __init__(self, image, startup_obj, icon=None, logo=None, color=None):
+    def __init__(self, image, duration=2.0, icon=None, logo=None, color=None):
         self.win = gtk.Window()
         self.win.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
         self.win.set_gravity(gtk.gdk.GRAVITY_CENTER)
@@ -18,7 +16,7 @@ class Splash(object):
         self.win.realize()
         self.win.window.set_back_pixmap(pixmap, False)
         
-        self.version = 2.0
+        self.version = '2.5.9'
         
         vbox = gtk.VBox(False,0)
         hbox = gtk.HBox(False, 0)
@@ -27,7 +25,7 @@ class Splash(object):
         self.pbar = LinearProgress()
         self.pbar.set_color(color)
         self.pbar.set_size_request(0,8)
-        self.log = gtk.Label()
+        self.log = gtk.Label('Initializing MXDC...')
         self.log.modify_fg( gtk.STATE_NORMAL, self.log.get_colormap().alloc_color(color) )
         self.log.set_alignment(0,0.5)
         self.icon = gtk.Image()
@@ -41,7 +39,7 @@ class Splash(object):
         vbox.pack_start(hbox)
         vbox.pack_end(self.pbar, expand=False, fill=False)
         vbox.pack_end(self.log, expand=False, fill=False)
-        self.vers = gtk.Label('Version %0.1f | %s' % (self.version, __revision__.split('$')[1]))
+        self.vers = gtk.Label('Version %s' % (self.version))
         self.vers.set_alignment(0,0.5)
         self.vers.modify_fg( gtk.STATE_NORMAL, self.vers.get_colormap().alloc_color(color) )
         vbox.pack_end(self.vers, expand=False, fill=False)
@@ -52,20 +50,18 @@ class Splash(object):
         self.win.set_position(gtk.WIN_POS_CENTER)                
         self.win.show_all()
         self.win.realize()
-
-        self.startup_obj = startup_obj
-        self.startup_obj.connect('progress', self.on_progress)
-        self.startup_obj.connect('log', self.on_log)
+        self._prog = 0
+        gobject.timeout_add(int(duration*1000/100.0), self._run_splash)
         
-    def set_revision(self, rev, rev_date):
-        self.vers.set_text('Version %0.1f/r%s | %s' % (self.version, rev, rev_date))
+    def set_version(self, version):
+        self.version = version
+        self.vers.set_text('Version %s' % (self.version))
         
-    def hide(self):
-        self.win.hide_all()
-        
-    def on_progress(self, obj, frac):
-        self.pbar.set_fraction(frac)
-    
-    def on_log(self, obj, text):
-        self.log.set_text(text)
-    
+    def _run_splash(self):
+        if self._prog < 100:
+            self._prog += 1
+            self.pbar.set_fraction(self._prog/100.0)
+            return True
+        else:
+            self.win.hide_all()
+            return False

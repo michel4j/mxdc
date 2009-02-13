@@ -2,7 +2,7 @@ import gtk
 import sys
 from bcm.utils.log import log_to_console
 from mxdc.widgets.runmanager import RunManager
-from mxdc.CollectManager import CollectManager
+from mxdc.widgets.collectmanager import CollectManager
 log_to_console()
 
 def main():    

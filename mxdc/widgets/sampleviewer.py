@@ -17,7 +17,7 @@ from zope.component import globalSiteManager as gsm
 _logger = get_module_logger('mxdc.sampleviewer')
 
 COLOR_MAPS = [None, 'Spectral','hsv','jet', 'RdYlGn','hot', 'PuBu']        
-_DATA_DIR = os.path.dirname(__file__)
+_DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class SampleViewer(gtk.Frame):
     def __init__(self):
@@ -27,7 +27,7 @@ class SampleViewer(gtk.Frame):
         self._timeout_id = None
         self._click_centering  = False
         self._colormap = 0
-        self._tick_size = 5
+        self._tick_size = 10
                 
         try:
             self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
@@ -54,66 +54,76 @@ class SampleViewer(gtk.Frame):
         ftype = filename.split('.')[-1]
         if ftype == 'jpg': 
             ftype = 'jpeg'
-        img = add_decorations(self.beamline, self.beamline.sample_video.get_frame())
-        img.save(filename)
-            
-    def draw_slits(self, pixmap):
-        
+        img = self.beamline.sample_video.get_frame()
         bw = self.beamline.collimator.width.get_position()
         bh = self.beamline.collimator.height.get_position()
         bx = self.beamline.collimator.x.get_position()
         by = self.beamline.collimator.y.get_position()
         pix_size = self.beamline.sample_video.resolution
+        cx = self.beamline.registry['camera_center_x'].get()
+        cy = self.beamline.registry['camera_center_y'].get()
         
+        # slit position and sizes in pixels
+        w = int(bw / pix_size) 
+        h = int(bh / pix_size)
+        x = int((cx - (bx / pix_size)))
+        y = int((cy - (by / pix_size)))
+        
+        img = add_decorations(img, x, y, w, h)
+        img.save(filename)
+            
+    def draw_slits(self, pixmap):       
+        bw = self.beamline.collimator.width.get_position()
+        bh = self.beamline.collimator.height.get_position()
+        bx = self.beamline.collimator.x.get_position()
+        by = self.beamline.collimator.y.get_position()
+        pix_size = self.beamline.sample_video.resolution      
         cx = self.beamline.registry['camera_center_x'].get()
         cy = self.beamline.registry['camera_center_y'].get()
         
         # slit sizes in pixels
         sw = bw / pix_size 
         sh = bh / pix_size
-        w, h = self.video.get_size_request()  
+        w, h = pixmap.get_size()
         if sw  >= w or sh >= h:
             return
+        x = int((cx - (bx / pix_size)) * self.video.scale)
+        y = int((cy - (by / pix_size)) * self.video.scale)
+        hw = int(0.5 * sw * self.video.scale)
+        hh = int(0.5 * sh * self.video.scale)
+        tick = int(self._tick_size * self.video.scale)
         
-        x = int((cx - (bx / pix_size)) * self.video._scale)
-        y = int((cy - (by / pix_size)) * self.video._scale)
-        hw = int(0.5 * sw * self.video._scale)
-        hh = int(0.5 * sh * self.video._scale)
-        
-        pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw, y-hh+self._tick_size)
-        pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw+self._tick_size, y-hh)
-        pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw, y+hh-self._tick_size)
-        pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw-self._tick_size, y+hh)
-
-        pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw, y+hh-self._tick_size)
-        pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw+self._tick_size, y+hh)
-        pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw, y-hh+self._tick_size)
-        pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw-self._tick_size, y-hh)
-
-        pixmap.draw_line(self.video.ol_gc, x-self._tick_size, y, x+self._tick_size, y)
-        pixmap.draw_line(self.video.ol_gc, x, y-self._tick_size, x, y+self._tick_size)
+        pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw, y-hh+tick)
+        pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw+tick, y-hh)
+        pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw, y+hh-tick)
+        pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw-tick, y+hh)
+        pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw, y+hh-tick)
+        pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw+tick, y+hh)
+        pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw, y-hh+tick)
+        pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw-tick, y-hh)
+        pixmap.draw_line(self.video.ol_gc, x-tick, y, x+tick, y)
+        pixmap.draw_line(self.video.ol_gc, x, y-tick, x, y+tick)
         return
         
     def draw_measurement(self, pixmap):
         pix_size = self.beamline.sample_video.resolution
+        w, h = pixmap.get_size()
         if self.measuring == True:
             x1 = self.measure_x1
             y1 = self.measure_y1
             x2 = self.measure_x2
             y2 = self.measure_y2
-            dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video._scale
+            dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale
             x1, x2, y1, y2 = int(x1), int(y1), int(x2), int(y2)
-            pixmap.draw_line(self.video.ol_gc, x1, x2, y1, y2)
-            self.pango_layout.set_text("%5.4f mm" % dist)
-            w,h = self.pango_layout.get_pixel_size()
-            pixmap.draw_layout(self.video.pl_gc, self.video.width -w-4, 0, self.pango_layout)      
+            pixmap.draw_line(self.video.ol_gc, x1, x2, y1, y2)            
+            self.meas_label.set_markup("<small><tt>Measurement: %5.4f mm</tt></small>" % dist)
         else:
-            self.pango_layout.set_text("")
+            self.meas_label.set_markup("<small><tt>FPS: %0.1f</tt></small>" % self.video.fps)
         return True
 
     def _img_position(self,x,y):
-        im_x = int(float(x) / self.video._scale)
-        im_y = int(float(y) / self.video._scale)
+        im_x = int(float(x) / self.video.scale)
+        im_y = int(float(y) / self.video.scale)
         cx = self.beamline.registry['camera_center_x'].get()
         cy = self.beamline.registry['camera_center_y'].get()        
         xmm = (cx - im_x) * self.beamline.sample_video.resolution
@@ -137,9 +147,9 @@ class SampleViewer(gtk.Frame):
         self.beamline.sample_stage.z.move_by(ymm * cos_w)
 
     def _create_widgets(self):
-        self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'data/sample_viewer.glade'), 
+        self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
                                   'sample_viewer')
-        self._xml_popup = gtk.glade.XML(os.path.join(_DATA_DIR, 'data/sample_viewer.glade'), 
+        self._xml_popup = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
                                   'colormap_popup')
         widget = self._xml.get_widget('sample_viewer')
         self.cmap_popup = self._xml_popup.get_widget('colormap_popup')
@@ -194,6 +204,7 @@ class SampleViewer(gtk.Frame):
 
         # status, save, etc
         self.pos_label = self._xml.get_widget('status_label')
+        self.meas_label = self._xml.get_widget('meas_label')
         self.save_btn = self._xml.get_widget('save_btn')
         self.save_btn.connect('clicked', self.on_save)
         
@@ -308,8 +319,7 @@ class SampleViewer(gtk.Frame):
         else:
             x = event.x; y = event.y
         im_x, im_y, xmm, ymm = self._img_position(x,y)
-        self.pos_label.set_text("<tt>%4d,%4d [%6.3f, %6.3f mm]</tt>" % (im_x, im_y, xmm, ymm))
-        self.pos_label.set_use_markup(True)
+        self.pos_label.set_markup("<small><tt>%4d,%4d [%6.3f, %6.3f mm]</tt></small>" % (im_x, im_y, xmm, ymm))
         #print event.state.value_names
         if 'GDK_BUTTON2_MASK' in event.state.value_names:
             self.measure_x2, self.measure_y2, = event.x, event.y

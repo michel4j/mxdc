@@ -2,32 +2,25 @@ import ImageDraw
 import Image
 import math
 
-def add_decorations(bl, img):
+def add_decorations(img, x, y, w, h):
     _tick_size = 8
     draw = ImageDraw.Draw(img)
-    cross_x = bl.cross_x.get_position()
-    cross_y = bl.cross_y.get_position()
-    img_w,img_h = img.size
-    scale_factor = 1.0
-    pixel_size = 5.34e-3 * math.exp( -0.18 * bl.sample_zoom.get_position())
+    
+    img_w, img_h = img.size
     
     #draw cross
-    draw.line([(cross_x-_tick_size, cross_y), (cross_x+_tick_size, cross_y)], fill=128)
-    draw.line([(cross_x, cross_y-_tick_size), (cross_x, cross_y+_tick_size)], fill=128)
+    draw.line([(x-_tick_size-1, y-1), (x+_tick_size-1, y-1)], fill=196)
+    draw.line([(x-1, y-_tick_size-1), (x-1, y+_tick_size-1)], fill=196)
+    draw.line([(x-_tick_size, y), (x+_tick_size, y)], fill=64)
+    draw.line([(x, y-_tick_size), (x, y+_tick_size)], fill=64)
+    
+    
+    if w  >= img_w or h  >= img_h:
+        return img
     
     #draw slits
-    slits_x = bl.beam_x.get_position()
-    slits_y = bl.beam_y.get_position()   
-    slits_width  = bl.beam_w.get_position() / pixel_size
-    slits_height = bl.beam_h.get_position() / pixel_size
-    
-    #if slits_width  >= img_w or slits_height  >= img_h:
-    #    return img
-    
-    x = int((cross_x - (slits_x / pixel_size)) * scale_factor)
-    y = int((cross_y - (slits_y / pixel_size)) * scale_factor)
-    hw = int(0.5 * slits_width * scale_factor)
-    hh = int(0.5 * slits_height * scale_factor)
+    hw = int(0.5 * w)
+    hh = int(0.5 * w)
     draw.line([x-hw, y-hh, x-hw, y-hh+_tick_size], fill=128)
     draw.line([x-hw, y-hh, x-hw+_tick_size, y-hh], fill=128)
     draw.line([x+hw, y+hh, x+hw, y+hh-_tick_size], fill=128)
