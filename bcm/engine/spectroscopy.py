@@ -11,8 +11,11 @@ from bcm.utils.log import get_module_logger
 _logger = get_module_logger(__name__)
 
 class XRFScan(BasicScan):    
-    def __init__(self, t, energy=None):
+    def __init__(self, t=0.5, energy=None):
         BasicScan.__init__(self)
+        self.configure(t, energy)
+        
+    def configure(self, t, energy):
         self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
         self._energy = energy
         self._duration = t
@@ -38,14 +41,17 @@ class XRFScan(BasicScan):
             
 
 class XANESScan(BasicScan):
-    def __init__(self, beamline):
-        ScannerBase.__init__(self, edge, t)
+    def __init__(self, edge='Se-K', t=0.5):
+        BasicScan.__init__(self)
+        self.configure(edge, t)
+        
+    def configure(self, edge, t):
         self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
         self._duration = t
         self._energy_db = get_energy_database()
         self._edge, self._energy = self._energy_db[edge]
         self._targets = xanes_targets(self._energy)
-        
+              
     def run(self):       
         _logger.info('Edge Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
@@ -61,9 +67,8 @@ class XANESScan(BasicScan):
             self.beamline.mca.erase()
             _logger.info("%4s %15s %15s %15s" % ('#', 'Energy', 'Counts', 'Scale Factor'))
             for x in self.energy_targets:
-                if self.stopped or self.aborted:
-                    scan_logger.info('Edge Scan stopped.')
-                    break
+                if self.stopped:
+                     break
                     
                 self.count += 1
                 prev = self.beamline.bragg_energy.get_position()                
@@ -84,12 +89,11 @@ class XANESScan(BasicScan):
                 gobject.idle_add(self.emit, "new-point", x, y )
                 gobject.idle_add(self.emit, "progress", fraction )
                              
-            if self.aborted:
-                _logger.warning("Edge Scan aborted.")
-                gobject.idle_add(self.emit, "aborted")
-                gobject.idle_add(self.emit, "progress", 0.0 )
+            if self.stopped:
+                _logger.warning("XANES Scan stopped.")
+                gobject.idle_add(self.emit, "stopped")
             else:
-                _logger.warning("Edge Scan completed.")
+                _logger.info("XANES Scan complete.")
                 gobject.idle_add(self.emit, "done")
                 gobject.idle_add(self.emit, "progress", 1.0 )
         finally:
