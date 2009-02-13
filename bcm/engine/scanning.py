@@ -19,6 +19,9 @@ class IScan(Interface):
     
     data = Attribute("""Scan Data.""")
     
+    def configure(**kw):
+        """Configure the scan parameters."""
+    
     def start():
         """Start the scan in asynchronous mode."""
 
@@ -38,6 +41,7 @@ class BasicScan(gobject.GObject):
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    __gsignals__['stopped'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
    
 
     def __init__(self):
@@ -45,6 +49,9 @@ class BasicScan(gobject.GObject):
         self._stopped = False
         self.data = []
                 
+    def configure(self, **kwargs):
+        self.data = []
+        
     def start(self):
         self._stopped = False
         worker_thread = threading.Thread(target=self._thread_run)
@@ -66,6 +73,9 @@ class AbsScan(BasicScan):
 
     def __init__(self, mtr, start_pos, end_pos, steps, cntr, t, i0=None):
         BasicScan.__init__(self)
+        self.configure(mtr, start_pos, end_pos, steps, cntr, t, i0)
+        
+    def configure(self, mtr, start_pos, end_pos, steps, cntr, t, i0=None):
         self._motor = IMotor(mtr)
         self._counter = ICounter(cntr)
         if i0 is not None:
@@ -75,7 +85,8 @@ class AbsScan(BasicScan):
         self._duration = t
         self._steps = steps
         self._start_pos = start_pos
-        self._end_pos = end_pos 
+        self._end_pos = end_pos
+        
      
     def run(self):
         gobject.idle_add(self.emit, "started")
@@ -107,6 +118,9 @@ class AbsScan2(BasicScan):
     
     def __init__(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
         BasicScan.__init__(self)
+        self.configure(mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0)
+        
+    def configure(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
         self._motor1 = IMotor(mtr1)
         self._motor2 = IMotor(mtr2)
         self._counter = ICounter(cntr)
@@ -120,6 +134,7 @@ class AbsScan2(BasicScan):
         self._end_pos1 = end_pos1 
         self._start_pos2 = start_pos2
         self._end_pos2 = end_pos2 
+        
      
     def run(self):
         step_size1 = (self._end_pos1 - self._start_pos1) / float( self._steps )
@@ -158,6 +173,9 @@ class RelScan(AbsScan):
     
     def __init__(self, mtr, start_offset, end_offset, steps, cntr, t, i0=None):
         BasicScan.__init__(self)
+        self.configure(mtr, start_offset, end_offset, steps, cntr, t, i0)
+
+    def configure(self, mtr, start_offset, end_offset, steps, cntr, t, i0=None):
         self._motor = IMotor(mtr)
         self._counter = ICounter(cntr)
         if i0 is not None:
@@ -175,6 +193,9 @@ class RelScan2(AbsScan2):
     
     def __init__(self, mtr1, start_offset1, end_offset1, mtr2, start_offset2, end_offset2, steps, cntr, t, i0=None):
         BasicScan.__init__(self)
+        self.configure(mtr1, start_offset1, end_offset1, mtr2, start_offset2, end_offset2, steps, cntr, t, i0)
+    
+    def configure(self, mtr1, start_offset1, end_offset1, mtr2, start_offset2, end_offset2, steps, cntr, t, i0=None):
         self._motor1 = IMotor(mtr1)
         self._motor2 = IMotor(mtr2)
         self._counter = ICounter(cntr)
@@ -190,5 +211,5 @@ class RelScan2(AbsScan2):
         self._end_pos1 = cur_pos1 + end_offset1
         self._start_pos2 = cur_pos2 + start_offset2
         self._end_pos2 = cur_pos2 + end_offset2 
-
+        
 gobject.type_register(BasicScan)

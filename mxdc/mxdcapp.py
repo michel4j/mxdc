@@ -22,16 +22,15 @@ class AppClass(object):
         logo_file = os.path.join(SHARE_DIR, 'logo.png')
         icon_file = os.path.join(SHARE_DIR, 'icon.png')
         self._config_file = os.path.join(os.environ['BCM_CONFIG_PATH'], '08id1.conf')
-        self.splash = Splash(img_file, self.beamline,
-            icon=icon_file, logo=logo_file, color='#ead3f4')
-        self.splash.set_revision('3.0', '20090203')
+        self.splash = Splash(img_file, duration=1.0, icon=icon_file, logo=logo_file, color='#ead3f4')
+        self.splash.set_version('2.5.9')
         gobject.idle_add(self.run)
                  
     def run(self):
         self.beamline = MXBeamline(self._config_file)
-        self.splash.hide()
         self.main_window = AppWindow()
         self.main_window.connect('destroy',self.do_quit)
+        self.main_window.show_all()
         return False
     
     def do_quit(self, obj):

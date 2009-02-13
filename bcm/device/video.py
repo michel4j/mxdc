@@ -8,6 +8,7 @@ import Image
 import numpy
 import gtk
 import gobject
+import re
 
 # suppres scipy import warnings
 import warnings
@@ -157,21 +158,35 @@ class AxisCamera(VideoSrc):
     def zoom(self, value):
         self._server.connect()
         command = "/axis-cgi/com/ptz.cgi?rzoom=%s" % value
-        result = self._server.request("GET", command)
+        self._server.request("GET", command)
         self._rzoom -= value
         self._server.close()
 
     def center(self, x, y):
         self._server.connect()
         command = "/axis-cgi/com/ptz.cgi?center=%d,%d" % (x, y)
-        result = self._server.request("GET", command)
+        self._server.request("GET", command)
         self._server.close()
     
     def goto(self, position):
         self._server.connect()
         position = urllib.quote_plus(position)
         command = "/axis-cgi/com/ptz.cgi?gotoserverpresetname=%s" % position
-        result = self._server.request("GET", command)
+        self._server.request("GET", command)
         self._rzoom = 0
         self._server.close()
 
+    def get_presets(self):
+        self._server.connect()
+        command = "/axis-cgi/com/ptz.cgi?query=presetposall"
+        self._server.request("GET", command)
+        result = self._server.getresponse().read()
+        pospatt = re.compile('presetposno.+=(?P<name>\w+)')
+        self._server.close()
+        presets = []
+        for line in result.split('\n'):
+            m = pospatt.match(line)
+            if m:
+                presets.append(m.group('name'))
+        return presets
+        
