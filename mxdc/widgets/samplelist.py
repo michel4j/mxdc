@@ -1,9 +1,8 @@
 import gtk, gobject
 import sys, os, time
-from bcm.tools.configobj import ConfigObj
-from bcm import utils
+from bcm.utils.configobj import ConfigObj
 
-from Dialogs import *
+from mxdc.widgets.dialogs import *
 
 (
     SAMPLE_COLUMN_STATE,

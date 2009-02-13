@@ -50,21 +50,21 @@ class ScanManager(gtk.HBox):
         self.show_all()
 
         self.auto_chooch = AutoChooch()
-        self.mad_scanner = MADScanner(self.beamline)
-        self.ex_scanner = ExcitationScanner(self.beamline)
+        self.mad_scanner = XANESScan()
+        self.ex_scanner = XRFScan()
         
         self.auto_chooch.connect('done', self.on_chooch_done)
         self.auto_chooch.connect('error', self.on_chooch_error)
         
         self.mad_scanner.connect('new-point', self.on_new_scan_point)
         self.mad_scanner.connect('done', self.on_scan_done)
-        self.mad_scanner.connect('aborted', self.on_scan_aborted)        
+        self.mad_scanner.connect('stopped', self.on_scan_stopped)        
         self.mad_scanner.connect('progress', self.on_progress)
         self.scan_control.stop_btn.connect('clicked', lambda x: self.mad_scanner.stop())
         self.scan_control.abort_btn.connect('clicked',lambda x: self.mad_scanner.abort())
        
         self.ex_scanner.connect('done', self.on_excitation_done)
-        self.ex_scanner.connect('error', self.on_scan_aborted)
+        self.ex_scanner.connect('error', self.on_scan_stopped)
 
         self.scanning = False
         self.progress_id = None
@@ -92,13 +92,13 @@ class ScanManager(gtk.HBox):
         self.beamline.attenuator.move_to( 0.0 )
         return True
 
-    def on_scan_aborted(self, widget):
+    def on_scan_stopped(self, widget):
         self.scan_control.start_btn.set_sensitive(True)
         self.scan_control.stop_btn.set_sensitive(False)
         self.scan_control.abort_btn.set_sensitive(False)
         self.scanning = False
         self.beamline.attenuator.move_to( 0.0 )
-        self.scan_control.progress_bar.idle_text('Scan Aborted', 0.0)
+        self.scan_control.progress_bar.idle_text('Scan Stopped', 0.0)
         return True
     
     def on_chooch_done(self,widget):

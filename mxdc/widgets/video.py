@@ -27,6 +27,8 @@ class VideoWidget(gtk.DrawingArea):
         self.pixbuf = None
         self._colorize = False
         self._palette = None
+        self.fps = 0
+        self._last_frame = 0
         self.overlay_func = None 
         self.set_events(gtk.gdk.EXPOSURE_MASK |
                 gtk.gdk.LEAVE_NOTIFY_MASK |
@@ -55,7 +57,7 @@ class VideoWidget(gtk.DrawingArea):
             height = int(width/ratio)
         else:
             width = int(ratio * height)
-        self._scale = float(width)/self.camera.size[1]
+        self.scale = float(width)/self.camera.size[0]
         self._img_width, self._img_height = width, height
         self.pixmap = gtk.gdk.Pixmap(widget.window, width, height)
         self.set_size_request(-1,-1)
@@ -69,11 +71,12 @@ class VideoWidget(gtk.DrawingArea):
             img.putpalette(self._palette)
         img = img.resize((self._img_width, self._img_height),Image.ANTIALIAS)
         img = img.convert('RGB')
-        #img = ImageOps.autocontrast(img, cutoff=0)
         w, h = img.size
         self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
             False, 8, w, h, 3 * w )
         gobject.idle_add(self.queue_draw)
+        self.fps = 1.0/(time.time() - self._last_frame)
+        self._last_frame = time.time()
     
     def set_colormap(self, colormap=None):
         if colormap is not None:

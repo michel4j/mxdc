@@ -3,11 +3,10 @@ import sys, os
 from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.ptzviewer import AxisViewer
-from SamplePicker import SamplePicker
+from mxdc.widgets.samplepicker import SamplePicker
 from mxdc.widgets.logview import LogView
 from mxdc.widgets.misc import *
-from bcm.tools.scripting import Script
-from bcm.scripts.misc import prepare_for_mounting, restore_beamstop, optimize_energy
+from bcm.engine.scripting import get_scripts
 
 (
   COLUMN_NAME,
@@ -26,36 +25,32 @@ class HutchManager(gtk.VBox):
         hbox3.set_border_width(6)
         
         self.beamline = beamline
-        self.predictor = Predictor(self.beamline.config['pixel_size'], self.beamline.config['detector_size'])
+        self.scripts = get_scripts()
+        self.predictor = Predictor(self.beamline.detector.resolution, 
+                                   self.beamline.detector.size)
         self.predictor.set_size_request(170,170)
 
         videobook = gtk.Notebook()
         video_size = 0.7
-        self.sample_viewer = SampleViewer(self.beamline)
-        self.hutch_viewer = HutchViewer(self.beamline)
+        self.sample_viewer = SampleViewer()
+        self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
         videobook.insert_page( self.sample_viewer, tab_label=gtk.Label('Sample Camera') )
         videobook.insert_page( self.hutch_viewer, tab_label=gtk.Label('Hutch Camera') )
         
         self.entry = {
-            'energy':       MotorEntry(self.beamline.energy, 'Energy', format="%0.4f"),
-            'attenuation':  PositionerEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
-            'angle':        MotorEntry(self.beamline.omega, 'Omega', format="%0.3f"),
-            'beam_width':   MotorEntry(self.beamline.beam_w, 'Beam width', format="%0.3f"),
-            'beam_height':  MotorEntry(self.beamline.beam_h, 'Beam height', format="%0.3f"),
-            'distance':     MotorEntry(self.beamline.det_d, 'Detector Distance', format="%0.2f"),
-            'beam_stop':    MotorEntry(self.beamline.bst_z, 'Beam-stop', format="%0.2f"),
-            'two_theta':    MotorEntry(self.beamline.det_2th, 'Detector TwoTheta', format="%0.2f")
+            'energy':       MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.4f"),
+            'attenuation':  ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
+            'angle':        MotorEntry(self.beamline.goniometer.omega, 'Omega', format="%0.3f"),
+            'beam_width':   MotorEntry(self.beamline.collimator.width, 'Beam width', format="%0.3f"),
+            'beam_height':  MotorEntry(self.beamline.collimator.height, 'Beam height', format="%0.3f"),
+            'distance':     MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.2f"),
+            'beam_stop':    MotorEntry(self.beamline.beam_stop.z, 'Beam-stop', format="%0.2f"),
+            'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector TwoTheta', format="%0.2f")
         }
-        self.beamline.det_d.connect('changed', self.predictor.on_distance_changed)
-        self.beamline.det_2th.connect('changed', self.predictor.on_two_theta_changed)
-        self.beamline.energy.connect('changed', self.predictor.on_energy_changed)
+        self.beamline.diffractometer.distance.connect('changed', self.update_predictor)
+        self.beamline.diffractometer.two_theta.connect('changed', self.update_predictor)
+        self.beamline.monochromator.energy.connect('changed', self.update_predictor)
         
-        self.predictor.set_energy( self.beamline.energy.get_position() )        
-        self.predictor.set_distance( self.beamline.det_d.get_position() )
-        self.predictor.set_twotheta( self.beamline.det_2th.get_position() )
-        self.predictor.update(force=True)           
-        self.predictor.connect('realize',self.update_pred)
-
         motor_vbox1 = gtk.VBox(False,0)
         for key in ['energy','attenuation','beam_width','beam_height']:
             motor_vbox1.pack_start(self.entry[key], expand=True, fill=False)
@@ -84,10 +79,6 @@ class HutchManager(gtk.VBox):
         self.mount_btn.connect('clicked', self.prepare_mounting)
         self.reset_btn = gtk.Button('Finished Mounting')
         self.reset_btn.connect('clicked',self.restore_beamstop)
-        
-        #self.front_end_btn.set_sensitive(False)
-        #self.optimize_btn.set_sensitive(False)
-        #self.shutter_btn.set_sensitive(False)
         
         control_box.pack_start(self.front_end_btn)
         control_box.pack_start(self.shutter_btn)
@@ -135,36 +126,33 @@ class HutchManager(gtk.VBox):
         self.pack_start(gtk.Label(), expand=True, fill=True)
         self.show_all()
 
-    def update_pred(self, widget):
-        self.predictor.update()
-        return True
+    def update_predictor(self, widget, val=None):
+        self.predictor.configure(energy=self.beamline.monochromator.energy.get_position(),
+                                 distance=self.beamline.diffractometer.distance.get_position(),
+                                 two_theta=self.beamline.diffractometer.two_theta.get_position())
         
     def prepare_mounting(self, widget):
         self.device_box.set_sensitive(False)
-        script = Script(prepare_for_mounting, self.beamline)
+        script = self.scripts['PrepareMounting']
         script.start()
 
     def optimize_energy(self, widget):
         self.device_box.set_sensitive(False)
-        script = Script(optimize_energy, self.beamline)
+        script = self.scripts['OptimizeBeam']
         script.connect('done', lambda x: self.device_box.set_sensitive(True))
         script.start()
 
     def restore_beamstop(self, widget):
-        script = Script(restore_beamstop, self.beamline)
+        script = self.scripts['FinishedMounting']
         script.connect('done', lambda x: self.device_box.set_sensitive(True))
         script.start()
-
-    def stop(self):
-        self.sample_viewer.stop()
-        self.hutch_viewer.stop()
                         
 def main():
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(0)
     win.set_title("Hutch Demo")
-    
+
     hutch = HutchManager()
     win.add(hutch)    
     win.show_all()
@@ -173,7 +161,6 @@ def main():
         gtk.main()
     finally: 
         print "Quiting..."
-        hutch.stop()
 
 if __name__ == '__main__':
     main()
