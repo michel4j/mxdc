@@ -138,8 +138,8 @@ class Motor(MotorBase):
     def get_position(self):
         return self.RBV.get()
 
-    def configure(self, props):
-        for key, val in props:
+    def configure(self, **kwargs):
+        for key, val in kwargs.items():
             # Set Calibration
             if key == 'calib':
                 if val:

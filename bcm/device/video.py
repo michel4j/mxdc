@@ -46,7 +46,8 @@ class VideoSrc(object):
         sink.set_src(self)
 
     def del_sink(self, sink):
-        self.sinks.remove(sink)
+        if sink in self.sinks:
+            self.sinks.remove(sink)
         
     def start(self):
         if self._stopped == True:
@@ -144,7 +145,7 @@ class AxisCamera(VideoSrc):
       
     def __init__(self, hostname, name='Axis Camera'):
         VideoSrc.__init__(self, name, maxfps=5.0)
-        self.size = (704, 480)
+        self.size = (640, 480)
         self._url = 'http://%s/jpg/image.jpg' % hostname
         self._server = httplib.HTTPConnection(hostname)
         self._last_frame = time.time()
