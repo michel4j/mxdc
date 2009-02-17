@@ -181,7 +181,6 @@ class ShutterButton(gtk.Button):
         
         self.shutter.connect('changed', self._on_state_change)
         self.connect('clicked', self._on_clicked)
-        self._on_state_change(None, self.shutter.is_open())
             
     def _on_clicked(self, widget):
         if self.shutter.is_open():
