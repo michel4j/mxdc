@@ -48,7 +48,7 @@ class SampleViewer(gtk.Frame):
         self.video.connect('button_press_event', self.on_image_click)
         self.video.set_overlay_func(self._overlay_function)
         self.video.connect('realize', self.on_realize)
-        self.connect("destroy", lambda x: self.stop())
+
                                         
     def save_image(self, filename):
         ftype = filename.split('.')[-1]
