@@ -16,7 +16,10 @@ class XRFScan(BasicScan):
         self.configure(t, energy)
         
     def configure(self, t, energy):
-        self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+        try:
+            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+        except:
+            _logger.error('Beamline unavailable')
         self._energy = energy
         self._duration = t
         self.data = []
@@ -46,7 +49,10 @@ class XANESScan(BasicScan):
         self.configure(edge, t)
         
     def configure(self, edge, t):
-        self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+        try:
+            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+        except:
+            _logger.error('Beamline unavailable')
         self._duration = t
         self._energy_db = get_energy_database()
         self._edge, self._energy = self._energy_db[edge]
