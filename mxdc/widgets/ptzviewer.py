@@ -29,7 +29,8 @@ class AxisViewer(gtk.Frame):
         ftype = filename.split('.')[-1]
         if ftype == 'jpg': 
             ftype = 'jpeg'
-        self.camera.save(filename)
+        img = self.camera.get_frame()
+        img.save(filename)
         
     # callbacks
     def on_save(self, obj=None, arg=None):
@@ -99,7 +100,7 @@ class AxisViewer(gtk.Frame):
         #Video Area
         self.video_frame = self._xml.get_widget('video_frame')
         self.video = VideoWidget(self.camera)
-        self.video.set_size_request(416,284)
+        self.video.set_size_request(416,312)
         self.video_frame.pack_start(self.video, expand=True, fill=True)
         self.show_all()
         

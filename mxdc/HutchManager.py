@@ -66,13 +66,13 @@ class HutchManager(gtk.VBox):
         diag_frame.set_shadow_type(gtk.SHADOW_IN)
         diag_frame.set_border_width(0)
         diag_frame.add(diagram)
-        diagram.set_from_file(self.beamline.config['diagram'])
+        diagram.set_from_file(self.beamline.config['beamline_diagram'])
         
         control_box = gtk.VButtonBox()
         control_box.set_border_width(0)
         control_box.set_spacing(0)
-        self.front_end_btn = ShutterButton(self.beamline.psh2, 'Front End')
-        self.shutter_btn = ShutterButton(self.beamline.shutter, 'Shutter')
+        self.front_end_btn = ShutterButton(self.beamline.photon_shutter, 'Front End')
+        self.shutter_btn = ShutterButton(self.beamline.exposure_shutter, 'Shutter')
         self.optimize_btn = gtk.Button('Optimize Beam')
         self.optimize_btn.connect('clicked', self.optimize_energy)
         self.mount_btn = gtk.Button('Mount Crystal')
@@ -111,14 +111,14 @@ class HutchManager(gtk.VBox):
         
         sample_frame = gtk.Notebook()
         
-        self.cryo_controller = CryojetWidget(self.beamline.cryojet, self.beamline.cryo_x)
-        cryo_align = gtk.Alignment(0.5,0.5, 0, 0)
+        #self.cryo_controller = CryojetWidget(self.beamline.cryojet)
+        #cryo_align = gtk.Alignment(0.5,0.5, 0, 0)
         #cryo_align.set_border_width(12)
-        cryo_align.add(self.cryo_controller)
-        self.cryo_controller.set_border_width(6)
+        #cryo_align.add(self.cryo_controller)
+        #self.cryo_controller.set_border_width(6)
         
-        sample_frame.insert_page(cryo_align, tab_label=gtk.Label(' Cryojet Control '))
-        sample_frame.insert_page(self.sample_picker, tab_label=gtk.Label(' Sample Auto-mounting '))
+        #sample_frame.insert_page(cryo_align, tab_label=gtk.Label(' Cryojet Control '))
+        #`sample_frame.insert_page(self.sample_picker, tab_label=gtk.Label(' Sample Auto-mounting '))
  
         hbox3.pack_start(sample_frame, expand=True,fill=True)
         
@@ -148,12 +148,14 @@ class HutchManager(gtk.VBox):
         script.start()
                         
 def main():
+    import bcm.beamline.mx
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(0)
     win.set_title("Hutch Demo")
-
-    hutch = HutchManager()
+    config_file = '/home/michel/Code/eclipse-ws/beamline-control-module/etc/08id1.conf'
+    bl = bcm.beamline.mx.MXBeamline(config_file)
+    hutch = HutchManager(bl)
     win.add(hutch)    
     win.show_all()
 
