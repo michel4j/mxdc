@@ -67,7 +67,7 @@ class VideoSrc(object):
             for sink in self.sinks:
                 sink.display(img.copy())
         if not self._stopped:
-            self.cmd_id = gobject.timeout_add(dur, self._stream_video)
+            self.cmd_id = gobject.idle_add(self._stream_video)
         return False
             
         
