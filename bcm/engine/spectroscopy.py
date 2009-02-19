@@ -20,7 +20,6 @@ class XRFScan(BasicScan):
             self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
         except:
             self.beamline = None
-            _logger.error('Beamline unavailable')
         self._energy = energy
         self._duration = t
         self._attenuation = attenuation
@@ -60,7 +59,6 @@ class XANESScan(BasicScan):
             self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
         except:
             self.beamline = None
-            _logger.error('Beamline unavailable')
         self._duration = t
         self._energy_db = get_energy_database()
         self._edge, self._energy = self._energy_db[edge]
@@ -69,10 +67,10 @@ class XANESScan(BasicScan):
         self.data = []
               
     def run(self):
+        _logger.info('Edge Scan waiting for beamline to become available.')
         if self.beamline is None:
             _logger.error('Beamline unavailable')
             return
-        _logger.info('Edge Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
         try:
             gobject.idle_add(self.emit, 'started')
