@@ -7,6 +7,8 @@ import gtk
 from bcm.utils import converter
 from mxdc.widgets.scanmanager import ScanManager
 
+gtk.threads_init()
+
 def main():
     win = gtk.Window()
     win.connect("destroy", lambda x: reactor.stop())
@@ -20,6 +22,6 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-        reactor.run()
+        gtk.main()
     finally:
         print "Quiting..."

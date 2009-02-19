@@ -24,6 +24,7 @@ class AxisViewer(gtk.Frame):
         
         self._create_widgets()                  
         self.video.connect('button_press_event', self.on_image_click)
+        self.video.set_overlay_func(self._overlay_function)
                                         
     def save_image(self, filename):
         ftype = filename.split('.')[-1]
@@ -103,6 +104,10 @@ class AxisViewer(gtk.Frame):
         self.video.set_size_request(416,312)
         self.video_frame.pack_start(self.video, expand=True, fill=True)
         self.show_all()
+
+    def _overlay_function(self, pixmap):
+        self.meas_label.set_markup("<small><tt>FPS: %0.1f</tt></small>" % self.video.fps)
+        return True     
         
 
 

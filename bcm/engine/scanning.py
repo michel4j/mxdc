@@ -1,5 +1,6 @@
 import threading
 import logging
+import gtk
 import gobject
 
 from zope.interface import Interface, Attribute
@@ -31,7 +32,16 @@ class IScan(Interface):
     def stop():
         """Stop the scan.
         """
-
+class MyThread(threading.Thread):
+    def __init__(self, func):
+        threading.Thread.__init__(self)
+        self.func = func
+        self.setDaemon(True)
+    
+    def run(self):
+        ca.threads_init()
+        self.func()
+                
 class BasicScan(gobject.GObject):
     
     implements(IScan)
