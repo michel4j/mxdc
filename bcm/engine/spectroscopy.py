@@ -3,7 +3,7 @@
 from zope.interface import Interface, Attribute, invariant
 from zope.component import globalSiteManager as gsm
 from bcm.beamline.interfaces import IBeamline
-from bcm.engine.scanning import BasicScan
+from bcm.engine.scanning import BasicScan, ScanError
 from bcm.utils.chemistry import get_energy_database, xanes_targets
 from bcm.utils.log import get_module_logger
 
@@ -29,6 +29,7 @@ class XRFScan(BasicScan):
         _logger.debug('Exitation Scan waiting for beamline to become available.')
         if self.beamline is None:
             _logger.error('Beamline unavailable')
+            #raise ScanError('Beamline unavailable')
             return
         self.beamline.lock.acquire()
         try:
@@ -70,6 +71,7 @@ class XANESScan(BasicScan):
         _logger.info('Edge Scan waiting for beamline to become available.')
         if self.beamline is None:
             _logger.error('Beamline unavailable')
+            #raise ScanError('Beamline unavailable')
             return
         self.beamline.lock.acquire()
         try:

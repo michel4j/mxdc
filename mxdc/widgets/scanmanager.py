@@ -83,6 +83,7 @@ class ScanManager(gtk.Frame):
         self._register_icons()
         self.scan_widget = self._xml.get_widget('scan_widget')
         self.scan_btn = self._xml.get_widget('scan_btn')
+        self.scan_btn.set_label('sm-scan')
         self.scan_pbar = self._xml.get_widget('scan_pbar')
         self.scan_btn.connect('clicked', self.on_scan_activated)
         
@@ -310,6 +311,7 @@ class ScanManager(gtk.Frame):
         if self.scanning:
             self.xanes_scanner.stop()
             self.xrf_scanner.stop()
+            self._set_scan_action(False)
         else:
             if pars['mode'] == 'XANES':
                 self.run_xanes()
