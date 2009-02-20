@@ -2,6 +2,7 @@ import threading
 import logging
 import gtk
 import gobject
+import gc
 
 from zope.interface import Interface, Attribute
 from zope.interface import implements
@@ -67,10 +68,11 @@ class BasicScan(gobject.GObject):
         worker_thread = threading.Thread(target=self._thread_run)
         worker_thread.setDaemon(True)
         worker_thread.start()
-    
+        
     def _thread_run(self):
         ca.threads_init()
         self.run()
+        pass
         
     def stop(self):
         self._stopped = True    
