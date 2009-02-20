@@ -400,9 +400,9 @@ gobject.type_register(PV)
 
     
 def threads_init():
-    thread_context = libca.ca_current_context()
-    if thread_context == 0:
-        libca.ca_attach_context(libca.context)
+    print '%08x, %s' % (libca.context, libca.context)
+    libca.ca_attach_context(libca.context)
+    libca.ca_client_status(3)
 
 def flush():
     return libca.ca_flush_io()
@@ -422,7 +422,7 @@ def _heart_beat(duration=0.01):
     return True
 
 #Make sure you get the events on time.
-gobject.timeout_add(10, _heart_beat, 0.005)
+gobject.timeout_add(20, _heart_beat, 0.005)
      
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
@@ -463,6 +463,12 @@ libca.ca_pend_event.argtypes = [c_double]
 libca.ca_flush_io.restype = c_uint
 
 libca.ca_context_create.argtypes = [c_ushort]
+libca.ca_context_create.restype = c_void_p
+
+libca.ca_attach_context.argtypes = [c_void_p]
+libca.ca_attach_context.restype = c_int
+
+libca.ca_client_status.argtypes = [c_uint]
 
 # initialize channel access
 libca.ca_context_create(ENABLE_PREEMPTIVE_CALLBACK)
@@ -476,4 +482,4 @@ libca.ca_add_exception_event(_cb_function, _cb_user_agg)
 # cleanup gracefully at termination
 atexit.register(libca.ca_context_destroy)
 
-__all__ = ['PV', 'threads_init', 'flush']
+#__all__ = ['PV', 'threads_init', 'flush']
