@@ -11,10 +11,11 @@ from bcm.beamline.mx import IBeamline
 from zope.component import globalSiteManager as gsm
 from bcm.engine.spectroscopy import XRFScan, XANESScan
 from bcm.engine import fitting
+from bcm.utils import science
 from bcm.engine.AutoChooch import AutoChooch
 from bcm.utils.log import get_module_logger
 
-_logger = get_module_logger('mxdc.ScanManager')
+_logger = get_module_logger('mxdc.scanmanager')
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 (
@@ -31,11 +32,7 @@ class ScanManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        try:
-            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
-        except:
-            self.beamline = None
-            _logger.warning('No registered beamline found. Beamline will be unavailable')
+
         self._create_widgets()
 
         self.auto_chooch = AutoChooch()
@@ -45,13 +42,14 @@ class ScanManager(gtk.Frame):
         self.auto_chooch.connect('done', self.on_chooch_done)
         self.auto_chooch.connect('error', self.on_chooch_error)
         
-        self.xanes_scanner.connect('new-point', self.on_new_scan_point)
+        self.xanes_scanner.connect('new-point', self.on_new_scan_point)    
         self.xanes_scanner.connect('done', self.on_xanes_done)
-        self.xanes_scanner.connect('stopped', self.on_scan_stopped)        
-        self.xanes_scanner.connect('progress', self.on_progress)
-       
-        self.xrf_scanner.connect('done', self.on_xrf_done)
-        self.xrf_scanner.connect('error', self.on_scan_stopped)
+        self.xanes_scanner.connect('stopped', self.on_scan_stopped)
+        self.xanes_scanner.connect('progress', self.on_progress)    
+        self.xanes_scanner.connect('error', self.on_scan_error)        
+        self.xrf_scanner.connect('done', self.on_xrf_done)   
+        self.xrf_scanner.connect('stopped', self.on_scan_stopped)
+        self.xrf_scanner.connect('error', self.on_scan_error)
 
         # initial variables
         self.scanning = False
@@ -110,13 +108,16 @@ class ScanManager(gtk.Frame):
         pt_frame = self._xml.get_widget('periodic_frame')
         plot_frame = self._xml.get_widget('plot_frame')
         self.output_log = self._xml.get_widget('output_text')
-        if self.beamline is not None:
+
+        try:
+            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
             loE, hiE = self.beamline.config['energy_range']
-        else:
+        except:
+            self.beamline = None
             loE, hiE = 4.0, 18.0
         self.periodic_table = PeriodicTable(loE, hiE)
         self.periodic_table.connect('edge-selected',self.on_edge_selected)
-        self.plotter = Plotter()
+        self.plotter = Plotter(xformat='%8g')
         pt_frame.add(self.periodic_table)
         plot_frame.add(self.plotter)
         self.add(self.scan_widget)
@@ -269,7 +270,7 @@ class ScanManager(gtk.Frame):
             
         title = scan_parameters['edge'] + " Edge Scan"
         self.plotter.set_labels(title=title, x_label="Energy (keV)", y1_label='Fluorescence Counts')      
-        scan_filename = "%s/%s_%s.raw" % (scan_parameters['directory'],    
+        self._scan_filename = "%s/%s_%s.raw" % (scan_parameters['directory'],    
             scan_parameters['prefix'], scan_parameters['edge'])
         self.xanes_scanner.configure(scan_parameters['edge'], scan_parameters['time'], scan_parameters['attenuation'])
         
@@ -281,11 +282,12 @@ class ScanManager(gtk.Frame):
         return True
         
     def run_xrf(self):
-        scan_parameters = self.scan_control.get_parameters() 
+        if self.scanning:
+            return True
+        scan_parameters = self.get_parameters() 
         self.plotter.clear()
-        self.scan_control.clear()
         
-        scan_filename = "%s/%s_excite_%s.raw" % (scan_parameters['directory'],    
+        self._scan_filename = "%s/%s_excite_%s.raw" % (scan_parameters['directory'],    
             scan_parameters['prefix'], scan_parameters['edge'])
         
         self.xrf_scanner.configure(scan_parameters['time'], scan_parameters['energy'], scan_parameters['attenuation'])
@@ -327,20 +329,24 @@ class ScanManager(gtk.Frame):
         self.set_parameters(params)
         return True        
         
-    def on_new_scan_point(self, widget, x, y):
-        self.plotter.add_point(x, y)
+    def on_new_scan_point(self, widget, point):
+        self.plotter.add_point(point[0], point[1])
         return True
     
     def on_xanes_done(self, widget):
+        self.xanes_scanner.save(self._scan_filename)
         self.run_auto_chooch()
         self._set_scan_action(False)
-        self.beamline.attenuator.set( 0.0 )
         return True
 
     def on_scan_stopped(self, widget):
         self._set_scan_action(False)
-        self.beamline.attenuator.set( 0.0 )
         self.scan_pbar.set_text('Scan Stopped')
+        return True
+    
+    def on_scan_error(self, widget, reason):
+        self._set_scan_action(False)
+        self.scan_pbar.set_text('Scan Error: %s' % (reason,))
         return True
     
     def on_chooch_done(self,widget):
@@ -358,6 +364,7 @@ class ScanManager(gtk.Frame):
                 self.plotter.axis[0].axvline( results['remo'][1], color='c', linestyle=':', linewidth=1)
         self.plotter.add_line(data[:,0],data[:,1], 'r', ax=new_axis)
         self.plotter.add_line(data[:,0],data[:,2], 'g', ax=new_axis)
+        self.plotter.redraw()
                 
         self.set_results(results)
         self.scan_pbar.set_fraction(1.0)
@@ -367,7 +374,7 @@ class ScanManager(gtk.Frame):
         
     def on_chooch_error(self,widget, error):
         self.scan_book.set_current_page( 1 )
-        self.scan_pbar.set_text("Scan Error:  Analysis failed!")
+        self.scan_pbar.set_text("Chooch Error:  Analysis failed!")
         #self.log_view.log( self.auto_chooch.output, False )
         return True
         
@@ -375,40 +382,45 @@ class ScanManager(gtk.Frame):
         self.emit('create-run')
 
     def on_progress(self, widget, fraction):
-        self.scan_control.progress_bar.set_fraction(fraction)
+        self.scan_pbar.set_fraction(fraction)
+        self.scan_pbar.set_text('%0.0f %%' % (fraction * 100))
         return True
                     
     def on_xrf_done(self, obj):
-        self.scan_control.start_btn.set_sensitive(True)
-        x = obj.data
-        y = fitting.smooth(obj.y_data_points, 20 , 1)
-        self.plotter.set_labels(title='Excitation Scan',x_label='Energy (keV)',y1_label='Fluorescence')
-        self.plotter.add_line(x,y,'r-')
-        self.scan_book.set_current_page( self.plotter_page )
-        maxy = max(y)
-        tick_size = maxy/30.0
-        peaks = obj.peaks
-        self.log_view.clear()
+        x = obj.data[:,0]
+        y = obj.data[:,1]
+        self.plotter.set_labels(title='X-Ray Fluorescence',x_label='Energy (keV)',y1_label='Fluorescence')
+        self.scan_book.set_current_page(1)
+        tick_size = max(y)/30.0
+        peaks = science.peak_search(x, y, threshold=0.01)
+        apeaks = science.assign_peaks(peaks)
+        sy = science.savitzky_golay(y)
+        self.plotter.add_line(x,y,'b-')
+        #self.log_view.clear()
         fontpar = {
             "family" :"monospace",
             "size"   : 8
         }
-        
-        for i in range(len(peaks)):
-            peak = peaks[i]
-            #self.plotter.axis[0].plot([peak[0], peak[0]], [maxy+tick_size*2,maxy+tick_size*3], 'g-')
-            self.plotter.axis[0].text(peak[0], peak[1]+tick_size*1.5,'%d' % (i+1), horizontalalignment='center', color='green', size=8)
-            peak_log = "Peak #%d: %8.3f keV  Height: %8.2f" % (i+1, peak[0],peak[1])
-            for ident in peak[2:]:
-                peak_log = "%s \n%s" % (peak_log, ident)
-            self.log_view.log( peak_log, False )
-        self.plotter.canvas.draw()
-        self.scan_control.progress_bar.idle_text("Scan complete.", 1.0)
+        for peak in apeaks:
+            self.plotter.axis[0].plot([peak[0], peak[0]], [peak[1]+tick_size,peak[1]+tick_size*2], 'g-')
+            self.plotter.axis[0].text(peak[0], 
+                                      peak[1]+tick_size*2.2,
+                                      '%s' % peak[4],
+                                      horizontalalignment='center', 
+                                      color='green', size=8)
+            #peak_log = "Peak #%d: %8.3f keV  Height: %8.2f" % (i+1, peak[0],peak[1])
+            #for ident in peak[2:]:
+            #    peak_log = "%s \n%s" % (peak_log, ident)
+            #self.log_view.log( peak_log, False )
+        self.plotter.redraw()
+        self.scan_pbar.set_text("Scan complete.")
+        self.scan_pbar.set_fraction(1.0)
+        self._set_scan_action(False)
         return True
                                     
     def run_auto_chooch(self):
-        self.auto_chooch.setup( self.scan_control.get_parameters() )
-        self.scan_control.progress_bar.busy_text("Analysing scan data ...")
+        self.auto_chooch.setup( self.get_parameters() )
+        self.scan_pbar.set_text("Analysing scan data ...")
         self.auto_chooch.start()
         return True
                         

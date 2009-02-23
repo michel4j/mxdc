@@ -33,15 +33,9 @@ class IScan(Interface):
     def stop():
         """Stop the scan.
         """
-class MyThread(threading.Thread):
-    def __init__(self, func):
-        threading.Thread.__init__(self)
-        self.func = func
-        self.setDaemon(True)
     
-    def run(self):
-        ca.threads_init()
-        self.func()
+    def save(filename):
+        """Save the scan data to the provided file name."""
                 
 class BasicScan(gobject.GObject):
     
@@ -51,7 +45,7 @@ class BasicScan(gobject.GObject):
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
-    __gsignals__['error'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    __gsignals__['error'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['stopped'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
    
 
@@ -59,6 +53,7 @@ class BasicScan(gobject.GObject):
         gobject.GObject.__init__(self)
         self._stopped = False
         self.data = []
+        self.data_names = []
                 
     def configure(self, **kwargs):
         self.data = []
@@ -79,6 +74,24 @@ class BasicScan(gobject.GObject):
 
     def run(self):
         pass # derived classes should implement this
+    
+    def save(self, filename):
+        try:
+            f = open(filename,'w')
+        except:
+            self._logger.error("Could not open file '%s' for writing" % filename)
+            return
+        f.write('# Scan Type: %s' % (self.__class__.__name__))
+        f.write('#')
+        for name in self.data_names:
+            f.write('%15s' % name)
+        f.write('\n')
+        for point in self.data:
+            for val in point:
+                f.write('%15g' % val)
+            f.write('\n')
+        f.close()
+        
     
 class AbsScan(BasicScan):
     """An object which performs an absolute scan of a single motor."""
@@ -103,8 +116,12 @@ class AbsScan(BasicScan):
     def run(self):
         gobject.idle_add(self.emit, "started")
         step_size = (self._end_pos - self._start_pos) / float( self._steps )
+        self.data_names = [self._motor.name, 
+                           self._counter.name+'_scaled', 
+                           self._i0.name+'(I_0)',
+                           self._counter.name]
         _logger.info("Scanning '%s' vs '%s' " % (self._motor.name, self._counter.name))
-        _logger.info("%4s '%13s' '%13s' '%13s' '%13s'_normalized" % ('#',
+        _logger.info("%4s '%13s' '%13s_normalized' '%13s' '%13s'" % ('#',
                                                    self._motor.name,
                                                    self._counter.name,
                                                    self._i0.name,
@@ -115,11 +132,14 @@ class AbsScan(BasicScan):
                 break
             x = self._start_pos + (i * step_size)
             self._motor.move_to(x, wait=True)
-            y = self._counter.count(self._duration)         
-            i0 = self._i0.count(self._duration)
-            self.data.append( [i, x, y, i0, y / i0] )
-            _logger.info("%4d %15g %15g %15g %15g" % (i, x, y, i0, y / i0))
-            gobject.idle_add(self.emit, "new-point", (i, x, y, i0, y / i0) )
+            y = self._counter.count(self._duration)
+            if self._i0 is not None:         
+                i0 = self._i0.count(self._duration)
+            else:
+                i0 = 1.0
+            self.data.append( [x, y/i0, i0, y] )
+            _logger.info("%4d %15g %15g %15g %15g" % (i, x, y/i0, i0, y))
+            gobject.idle_add(self.emit, "new-point", (x, y/i0, i0, y) )
             gobject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps + 1.0) )
              
         gobject.idle_add(self.emit, "done")
@@ -151,10 +171,15 @@ class AbsScan2(BasicScan):
     def run(self):
         step_size1 = (self._end_pos1 - self._start_pos1) / float( self._steps )
         step_size2 = (self._end_pos2 - self._start_pos2) / float( self._steps )
+        self.data_names = [self._motor1.name,
+                           self._motor2.name,
+                           self._counter.name+'_scaled', 
+                           self._i0.name+'(I_0)',
+                           self._counter.name]
         _logger.info("Scanning '%s':'%s' vs '%s' " % (self._motor1.name,
                                                       self._motor2.name,
                                                       self._counter.name))
-        _logger.info("%4s '%13s' '%13s' '%13s' '%13s' '%13s'_normalized" % ('#',
+        _logger.info("%4s '%13s' '%13s' '%13s_normalized' '%13s' '%13s'" % ('#',
                                                    self._motor1.name,
                                                    self._motor2.name,
                                                    self._counter.name,
@@ -171,10 +196,13 @@ class AbsScan2(BasicScan):
             self._motor1.wait()
             self._motor2.wait()
             y = self._counter.count(self._duration)         
-            i0 = self._i0.count(self._duration)
-            self.data.append( [i, x1, x2, y, i0, y / i0] )
-            _logger.info("%4d %15g %15g %15g %15g %15g" % (i, x1, x2, y, i0, y / i0))
-            gobject.idle_add(self.emit, "new-point", (i, x1, x2, y, i0, y / i0) )
+            if self._i0 is not None:         
+                i0 = self._i0.count(self._duration)
+            else:
+                i0 = 1.0
+            self.data.append( [x1, x2, y/i0, i0, y] )
+            _logger.info("%4d %15g %15g %15g %15g %15g" % (i, x1, x2, y/i0, i0, y))
+            gobject.idle_add(self.emit, "new-point", (x1, x2, y/i0, i0, y) )
             gobject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps + 1.0) )
              
         gobject.idle_add(self.emit, "done")

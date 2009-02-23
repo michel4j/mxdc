@@ -28,6 +28,7 @@ class AutoChooch(gobject.GObject):
         self.data = None
         self.results = {}
         worker = threading.Thread(target=self.run)
+        worker.setDaemon(True)
         worker.start()
         
     def run(self):    
@@ -62,13 +63,20 @@ class AutoChooch(gobject.GObject):
             return False
             
         # select remote energy, maximize fp, minimize fpp-fp
-        selected = [0, -999, -999]
-        for e, fp, fpp in zip(self.data[:,0], self.data[:,2], self.data[:,1]):
-           if e > self.results['peak'][1] + 50.0 and e < self.results['peak'][1] + 200.0:
-                if (fpp+fp) > (selected[1]+selected[2]):
-                    selected = [e, fpp, fp]
-        if selected[1] != -999:
-            self.results['remo'] = ['remo', selected[0], selected[1], selected[2]]
+        def fpp_fp(triplet):
+            return triplet[1]-triplet[2]
+        triplets =   zip(self.data[:,0], self.data[:,2], self.data[:,1])  
+        count = 0
+        while (triplets[count][0]  <  self.results['peak'][1] + 25.0) and count < len(triplets)-1:
+            count += 1
+        selected = triplets[count-1]
+        while (fpp_fp(selected) < fpp_fp(triplets[count]) 
+               and (selected[2]<triplets[count][1]) 
+               and count < len(triplets)-1):
+            count += 1
+        selected = triplets[count-1]
+        self.results['remo'] = ['remo', selected[0], selected[1], selected[2]]
+
         #convert eV to keV
         self.data[:,0] *= 1e-3 # convert x-axis to keV 
         for key in self.results.keys():

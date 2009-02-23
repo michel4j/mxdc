@@ -400,9 +400,7 @@ gobject.type_register(PV)
 
     
 def threads_init():
-    print '%08x, %s' % (libca.context, libca.context)
     libca.ca_attach_context(libca.context)
-    libca.ca_client_status(3)
 
 def flush():
     return libca.ca_flush_io()
@@ -463,9 +461,9 @@ libca.ca_pend_event.argtypes = [c_double]
 libca.ca_flush_io.restype = c_uint
 
 libca.ca_context_create.argtypes = [c_ushort]
-libca.ca_context_create.restype = c_void_p
-
-libca.ca_attach_context.argtypes = [c_void_p]
+libca.ca_context_create.restype = c_int
+libca.ca_current_context.restype = c_ulong
+libca.ca_attach_context.argtypes = [c_ulong]
 libca.ca_attach_context.restype = c_int
 
 libca.ca_client_status.argtypes = [c_uint]
@@ -482,4 +480,4 @@ libca.ca_add_exception_event(_cb_function, _cb_user_agg)
 # cleanup gracefully at termination
 atexit.register(libca.ca_context_destroy)
 
-#__all__ = ['PV', 'threads_init', 'flush']
+__all__ = ['PV', 'threads_init', 'flush', ]

@@ -1,6 +1,8 @@
+"""Science Utilities."""
+
 import os
 import sys
-
+import numpy
 
 def xanes_targets(energy):
     very_low_start = energy - 0.2
@@ -76,7 +78,7 @@ def get_energy_database():
     return data_dict
 
 def get_emission_database():
-    table_data = read_periodic_table()
+    table_data = get_periodic_table()
     emissions = {
             'K':  'Ka',
             'L1': 'Lg2',
@@ -89,39 +91,138 @@ def get_emission_database():
             emissions_dict["%s-%s" % (key,line)] = float(table_data[key][line])
     return emissions_dict
 
+def get_peak_database():
+    table_data = get_periodic_table()
+    peak_db = {}
+    for key in table_data.keys():
+        for em in ['Ka', 'Ka1', 'Ka2', 'Kb', 'Kb1','La1','Lb1','Lb2', 'Lg1','Lg2','Lg3','Lg4','Ll']:
+            v = float(table_data[key][em])
+            if v > 0.01:
+                peak_db["%s-%s" % (key,em)] = v
+    return peak_db
+    
+
+def get_signature(elements):
+    table_data = get_periodic_table()
+    signature = []
+    for key in elements:
+        for em in ['Ka', 'Ka1', 'Ka2', 'Kb', 'Kb1','La1','Lb1','Lb2', 'Lg1','Lg2','Lg3','Lg4','Ll']:
+            v = float(table_data[key][em])
+            if v > 0.01:
+                signature.append(v)
+    return signature
+
+
 def assign_peaks(peaks):
-    stdev = 0.01 #kev
-    data = emissions_list()
-    for peak in peaks:
+    mypeaks = peaks[:]
+    stdev = 0.005 #kev
+    data = get_peak_database()
+    for peak in mypeaks:
         hits = []
-        for key in data.keys():
-            value = data[key]
-            if value == 0.0:
-                continue
+        for key, value in data.items():
             score = abs(value - peak[0])/ (2.0 * stdev)
             if abs(value - peak[0]) < 2.0 * stdev:
                 hits.append( (score, key, value) )
             hits.sort()
         for score, key,value in hits:
-            peak.append("%8s : %8.4f (%8.5f)" % (key,value, score))
-    return peaks
+            peak.append("%8s" % (key,))
+    return mypeaks
 
-def find_peaks(x, y, w=10, threshold=0.1):
+def savitzky_golay(data, kernel = 9, order = 4, deriv=0):
+    """
+        applies a Savitzky-Golay filter
+        input parameters:
+        - data => data as a 1D numpy array
+        - kernel => a positiv integer > 2*order giving the kernel size
+        - order => order of the polynomal
+        - deriv => derivative to return default (smooth only)
+        returns smoothed data as a numpy array
+
+        invoke like:
+        smoothed = savitzky_golay(<rough>, [kernel = value], [order = value]
+    """
+    try:
+            kernel = abs(int(kernel))
+            order = abs(int(order))
+    except ValueError, msg:
+        raise ValueError("kernel and order have to be of type int (floats will be converted).")
+    if kernel % 2 != 1 or kernel < 1:
+        raise TypeError("kernel size must be a positive odd number, was: %d" % kernel)
+    if kernel < order + 2:
+        raise TypeError("kernel is to small for the polynomals\nshould be > order + 2")
+
+    # a second order polynomal has 3 coefficients
+    order_range = range(order+1)
+    half_window = (kernel -1) // 2
+    b = numpy.mat([[k**i for i in order_range] for k in range(-half_window, half_window+1)])
+    # since we don't want the derivative, else choose [1] or [2], respectively
+    assert deriv <= 2
+    m = numpy.linalg.pinv(b).A[deriv]
+    window_size = len(m)
+    half_window = (window_size-1) // 2
+
+    # precompute the offset values for better performance
+    offsets = range(-half_window, half_window+1)
+    offset_data = zip(offsets, m)
+
+    smooth_data = list()
+
+    # temporary data, extended with a mirror image to the left and right
+    firstval=data[0]
+    lastval=data[len(data)-1]
+    #left extension: f(x0-x) = f(x0)-(f(x)-f(x0)) = 2f(x0)-f(x)
+    #right extension: f(xl+x) = f(xl)+(f(xl)-f(xl-x)) = 2f(xl)-f(xl-x)
+    leftpad=numpy.zeros(half_window)+2*firstval
+    rightpad=numpy.zeros(half_window)+2*lastval
+    leftchunk=data[1:1+half_window]
+    leftpad=leftpad-leftchunk[::-1]
+    rightchunk=data[len(data)-half_window-1:len(data)-1]
+    rightpad=rightpad-rightchunk[::-1]
+    data = numpy.concatenate((leftpad, data))
+    data = numpy.concatenate((data, rightpad))
+
+    for i in range(half_window, len(data) - half_window):
+            value = 0.0
+            for offset, weight in offset_data:
+                value += weight * data[i + offset]
+            smooth_data.append(value)
+    return numpy.array(smooth_data)
+
+def peak_search(x, y, w=7, threshold=0.01, min_sep=0.01):
+    # make sure x is in ascending order
+    if x[0] > x[-1]:
+        x = x[::-1]
+        y = y[::-1]
     peaks = []
-    ys = smooth(y,w,1)
-    ny = correct_baseline(x,ys)
-    yp = slopes(x, ny)
-    ypp = slopes(x, yp)
-    yr = max(y) - min(y)
-    factor = threshold*get_baseline(x,y).std()
-    offset = 1+w/2
-    for i in range(offset+1, len(x)-offset):
-        p_sect = scipy.mean(yp[(i-offset):(i+offset)])
-        sect = scipy.mean(yp[(i+1-offset):(i+1+offset)])
-        #if scipy.sign(yp[i]) < scipy.sign(yp[i-1]):
-        if scipy.sign(sect) < scipy.sign(p_sect):
-            if ny[i] > factor:
-                peaks.append( [x[i], ys[i]] )
+    yp = savitzky_golay(y, kernel=w, order=(w-3), deriv=1)
+    ypp = savitzky_golay(y, kernel=w, order=(w-3), deriv=2)
+    i = 0
+    stdypp = numpy.std(-ypp)
+    while i < len(x):  
+        # find start of peak
+        while -ypp[i] <= 0.0 and i < len(x)-1:
+            i +=1
+        if i < len(x)-1:
+            lo = i
+            # lo found, now find hi
+            while -ypp[i] > 0.0 and i < (len(x)-1):
+                i +=1
+            if i < len(x)-1:
+                hi = i
+                # hi found
+                fwhm = x[hi] - x[lo]
+                if sum(-ypp[lo:hi]**4) == 0.0:
+                    continue
+                else:
+                    peak_pos = sum(x[lo:hi]*(-ypp[lo:hi]**4))/sum(-ypp[lo:hi]**4)
+                stdpk = numpy.std(y[lo:hi])
+                pk = lo
+                while x[pk] < peak_pos and pk < hi:
+                    pk += 1
+                peak_height = y[pk]
+                if fwhm >= threshold and fwhm <= 10*threshold and peak_height > 5.0 * stdpk:
+                    peaks.append([peak_pos, peak_height, fwhm,  stdpk])
+        i += 1
     return peaks
 
 
