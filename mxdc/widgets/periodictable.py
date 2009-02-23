@@ -1,6 +1,6 @@
 import gtk
 import gobject
-from bcm.utils import chemistry
+from bcm.utils import science
 
 
 class PeriodicTable(gtk.Alignment):
@@ -26,7 +26,7 @@ class PeriodicTable(gtk.Alignment):
                             "#deab78","#de4545", "#ababab", "#dede78"]
 
         self.table = gtk.Table(4,18,True)
-        self.table_data = chemistry.get_periodic_table()
+        self.table_data = science.get_periodic_table()
                     
         # set the title
         self.title = gtk.Label('<big><big><b>Select an X-ray Absorption Edge</b></big></big>')

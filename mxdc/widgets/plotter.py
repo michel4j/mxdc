@@ -24,7 +24,7 @@ from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationT
 rcParams['legend.loc'] = 'best'
 
 class Plotter( gtk.Frame ):
-    def __init__( self, loop=False, buffer_size=2500, xformat='%0.1f' ):
+    def __init__( self, loop=False, buffer_size=2500, xformat='%8g' ):
         gtk.Frame.__init__(self)
         _fd = self.get_pango_context().get_font_description()
         rcParams['font.family'] = _fd.get_family()
@@ -50,13 +50,14 @@ class Plotter( gtk.Frame ):
         self.set_shadow_type(gtk.SHADOW_NONE)
         self.show_all()
         
-
         
-    def add_line(self, xpoints, ypoints, pattern='', ax=0, redraw=True ):
+    def add_line(self, xpoints, ypoints, pattern='', label='', ax=0, redraw=True ):
         assert( len(xpoints) == len(ypoints) )
         assert( ax < len(self.axis) )
         
-        tmp_line, = self.axis[ax].plot( xpoints, ypoints, pattern, lw=1)
+        tmp_line, = self.axis[ax].plot( xpoints, ypoints, pattern, lw=1, 
+                                        markersize=3, markerfacecolor='w',
+                                        markeredgewidth=1, label=label)
         self.line.append( tmp_line )
 
         self.x_data.append( list(xpoints) )
@@ -105,6 +106,7 @@ class Plotter( gtk.Frame ):
         self.axis[0].set_title(title)
         self.axis[0].set_xlabel(x_label)
         self.axis[0].set_ylabel(y1_label)
+        
 
     def clear(self):
         self.fig.clear()
@@ -117,7 +119,7 @@ class Plotter( gtk.Frame ):
         
     def add_point(self, x, y, lin=0, redraw=True):
         if len(self.line) <= lin:
-            self.add_line([x],[y],'-+')
+            self.add_line([x],[y],'-x')
         else:                    
             # when using ring buffer, remove first element before adding if full
             if self.simulate_ring_buffer and len(self.x_data[lin]) == self.buffer_size:
@@ -157,6 +159,8 @@ class Plotter( gtk.Frame ):
     def redraw(self):
         x_major = self.axis[0].xaxis.get_majorticklocs()
         dx_minor =  (x_major[-1]-x_major[0])/(len(x_major)-1) /5.
-        self.axis[0].xaxis.set_minor_locator(MultipleLocator(dx_minor))         
-        self.canvas.draw()    
+        self.axis[0].xaxis.set_minor_locator(MultipleLocator(dx_minor))
+        self.axis[0].yaxis.tick_left()
+        #self.axis[0].legend()       
+        self.canvas.draw()
 
