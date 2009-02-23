@@ -2,6 +2,7 @@ import threading
 import time
 import gtk
 import gobject
+from bcm.protocol import ca
 
 class AppWindow(gtk.Window):
     def __init__(self):
@@ -11,6 +12,7 @@ class AppWindow(gtk.Window):
         self.add(self.btn)
         self.btn.connect('clicked', self.on_start_thread)
         self.connect('destroy', lambda x: gtk.main_quit())
+        gobject.timeout_add(1000, lambda: self.btn.clicked())
     
     def on_start_thread(self, obj):
         self.worker = threading.Thread(target=self.do_work)
@@ -18,9 +20,9 @@ class AppWindow(gtk.Window):
         self.worker.start()
     
     def do_work(self):
+        ca.threads_init()
         print 'Starting new thread'
-        for i in range(1000):
-            print 'Processing is %0.2f %% complete' % (i/10.0)
+        for i in range(100):
             time.sleep(0.01)
         print 'Thread done'
             

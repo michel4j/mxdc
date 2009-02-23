@@ -96,7 +96,7 @@ class MultiChannelAnalyzer(object):
 
     def acquire(self, t=1.0):
         self._acquire_data(t)
-        return (self._x_axis, self._data)       
+        return numpy.array(zip(self._x_axis, self._data))
         
     def stop(self):
         self._stop_cmd.set(1)

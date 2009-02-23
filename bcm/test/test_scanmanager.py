@@ -6,7 +6,7 @@
 import gtk
 import gobject
 from bcm.utils import converter
-from bcm.utils import gtkexcepthook
+#from bcm.utils import gtkexcepthook
 from mxdc.widgets.scanmanager import ScanManager
 
 def main():
