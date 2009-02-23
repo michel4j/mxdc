@@ -5,7 +5,7 @@ import gtk.glade
 import gobject
 
 from mxdc.widgets.periodictable import PeriodicTable
-from mxdc.widgets.logview import LogView
+from mxdc.widgets.textviewer import TextViewer
 from mxdc.widgets.plotter import Plotter
 from bcm.beamline.mx import IBeamline
 from zope.component import globalSiteManager as gsm
@@ -107,8 +107,9 @@ class ScanManager(gtk.Frame):
         self.scan_book = self._xml.get_widget('scan_book')
         pt_frame = self._xml.get_widget('periodic_frame')
         plot_frame = self._xml.get_widget('plot_frame')
-        self.output_log = self._xml.get_widget('output_text')
-
+        text_view = self._xml.get_widget('output_text')
+        self.output_log = TextViewer(text_view)
+        
         try:
             self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
             loE, hiE = self.beamline.config['energy_range']
@@ -117,7 +118,7 @@ class ScanManager(gtk.Frame):
             loE, hiE = 4.0, 18.0
         self.periodic_table = PeriodicTable(loE, hiE)
         self.periodic_table.connect('edge-selected',self.on_edge_selected)
-        self.plotter = Plotter(xformat='%8g')
+        self.plotter = Plotter(xformat='%g')
         pt_frame.add(self.periodic_table)
         plot_frame.add(self.plotter)
         self.add(self.scan_widget)
@@ -369,13 +370,13 @@ class ScanManager(gtk.Frame):
         self.set_results(results)
         self.scan_pbar.set_fraction(1.0)
         self.scan_pbar.set_text("Scan Complete")
-        #self.output_log.( self.auto_chooch.output, False )     
+        self.output_log.add_text(self.auto_chooch.output)     
         return True
         
     def on_chooch_error(self,widget, error):
-        self.scan_book.set_current_page( 1 )
+        self.scan_book.set_current_page(2)
         self.scan_pbar.set_text("Chooch Error:  Analysis failed!")
-        #self.log_view.log( self.auto_chooch.output, False )
+        self.output_log.add_text(self.auto_chooch.output)
         return True
         
     def on_create_run(self,widget):
@@ -387,31 +388,43 @@ class ScanManager(gtk.Frame):
         return True
                     
     def on_xrf_done(self, obj):
+        import pprint
         x = obj.data[:,0]
         y = obj.data[:,1]
         self.plotter.set_labels(title='X-Ray Fluorescence',x_label='Energy (keV)',y1_label='Fluorescence')
         self.scan_book.set_current_page(1)
         tick_size = max(y)/30.0
-        peaks = science.peak_search(x, y, threshold=0.01)
-        apeaks = science.assign_peaks(peaks)
+        peaks = science.peak_search(x, y, threshold=0.05, min_peak=50)
+        apeaks = science.assign_peaks(peaks, dev=0.01)
         sy = science.savitzky_golay(y)
-        self.plotter.add_line(x,y,'b-')
+        self.plotter.add_line(x,sy,'b-')
         #self.log_view.clear()
         fontpar = {
             "family" :"monospace",
             "size"   : 8
         }
+        peak_log = "#%9s %10s %10s    %s\n" % ('Position',
+                                            'Height',
+                                            'FWHM',
+                                            'Identity')
         for peak in apeaks:
-            self.plotter.axis[0].plot([peak[0], peak[0]], [peak[1]+tick_size,peak[1]+tick_size*2], 'g-')
+            if len(peak)> 4:
+                lbl = peak[4]
+                lbls = ', '.join(peak[4:])
+            else:
+                lbl = '?'
+                lbls = ''
+            self.plotter.axis[0].plot([peak[0], peak[0]], [peak[1]+tick_size,peak[1]+tick_size*2], 'r-')
             self.plotter.axis[0].text(peak[0], 
                                       peak[1]+tick_size*2.2,
-                                      '%s' % peak[4],
+                                      lbl,
                                       horizontalalignment='center', 
-                                      color='green', size=8)
-            #peak_log = "Peak #%d: %8.3f keV  Height: %8.2f" % (i+1, peak[0],peak[1])
-            #for ident in peak[2:]:
-            #    peak_log = "%s \n%s" % (peak_log, ident)
-            #self.log_view.log( peak_log, False )
+                                      color='black', size=9)
+            peak_log += "%10.3f %10.3f %10.3f    %s\n" % (peak[0],
+                                                        peak[1],
+                                                        peak[2],
+                                                        lbls)
+        self.output_log.add_text(peak_log)
         self.plotter.redraw()
         self.scan_pbar.set_text("Scan complete.")
         self.scan_pbar.set_fraction(1.0)

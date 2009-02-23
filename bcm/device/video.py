@@ -1,4 +1,5 @@
 import time
+import gc
 import threading
 import logging
 import urllib
@@ -52,24 +53,24 @@ class VideoSrc(object):
     def start(self):
         if self._stopped == True:
             self._stopped = False
-            self.cmd_id = gobject.idle_add(self._stream_video)
-        
+            worker = threading.Thread(target=self._stream_video)
+            worker.setDaemon(True)
+            worker.start()        
         
     def stop(self):
-        if self.cmd_id is not None:
-            gobject.source_remove(self.cmd_id)
         self._stopped = True
             
-    def _stream_video(self, obj=None):
-        dur = int(1000.0/self.maxfps)
-        if self._active:
-            img = self.get_frame()
-            for sink in self.sinks:
-                sink.display(img.copy())
-        if not self._stopped:
-            self.cmd_id = gobject.idle_add(self._stream_video)
-        return False
-            
+    def _stream_video(self):
+        ca.threads_init()
+        dur = 1.0/self.maxfps
+        while not self._stopped:
+            if self._active:
+                img = self.get_frame()
+                for sink in self.sinks:
+                    if not sink.stopped:
+                        sink.display(img)
+            time.sleep(dur)
+           
         
     def zoom(self, val):
         pass
@@ -103,25 +104,25 @@ class CACamera(VideoSrc):
     implements(ICamera)   
      
     def __init__(self, pv_name, zoom_motor, name='Camera'):
-        VideoSrc.__init__(self, name)
+        VideoSrc.__init__(self, name, maxfps=20.0)
         self._active = False
         self.size = (640, 480)
         self.resolution = 1.0
         self._packet_size = self.size[0] * self.size[1]
         self._cam = PV(pv_name)
         self._zoom = IMotor(zoom_motor)
-        self._cam.connect('active', self._activate)
+        self._cam.connect('active', self._activate, True)
+        self._cam.connect('inactive', self._activate, False)
         self._zoom.connect('changed', self._on_zoom_change)
     
-    def _activate(self, obj, val=None):
-        self._active = True
+    def _activate(self, obj, val):
+        self._active = val
     
     def _on_zoom_change(self, obj, val):
            self.resolution = 5.34e-3 * numpy.exp( -0.18 * val)
            
     def get_frame(self):
         data = self._cam.get()
-        
         # Make sure full frame is obtained otherwise iterate until we
         # get a full frame. This is required because sometimes the frame
         # data is incomplete.
@@ -144,7 +145,7 @@ class AxisCamera(VideoSrc):
     implements(ICamera, IPTZCameraController)  
       
     def __init__(self, hostname, name='Axis Camera'):
-        VideoSrc.__init__(self, name, maxfps=5.0)
+        VideoSrc.__init__(self, name, maxfps=20.0)
         self.size = (640, 480)
         self._url = 'http://%s/jpg/image.jpg' % hostname
         self._server = httplib.HTTPConnection(hostname)
