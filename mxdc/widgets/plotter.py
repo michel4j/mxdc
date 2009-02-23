@@ -10,7 +10,7 @@ from matplotlib.artist import Artist
 from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
 from matplotlib.numerix import arange, sin, pi
-from matplotlib.ticker import FormatStrFormatter, MultipleLocator
+from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
 from matplotlib import rcParams
 
 try:
@@ -24,7 +24,7 @@ from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationT
 rcParams['legend.loc'] = 'best'
 
 class Plotter( gtk.Frame ):
-    def __init__( self, loop=False, buffer_size=2500, xformat='%8g' ):
+    def __init__( self, loop=False, buffer_size=2500, xformat='%g' ):
         gtk.Frame.__init__(self)
         _fd = self.get_pango_context().get_font_description()
         rcParams['font.family'] = _fd.get_family()
@@ -157,10 +157,14 @@ class Plotter( gtk.Frame ):
         return True
 
     def redraw(self):
+        self.axis[0].xaxis.set_major_locator(MaxNLocator(10))
         x_major = self.axis[0].xaxis.get_majorticklocs()
         dx_minor =  (x_major[-1]-x_major[0])/(len(x_major)-1) /5.
         self.axis[0].xaxis.set_minor_locator(MultipleLocator(dx_minor))
         self.axis[0].yaxis.tick_left()
+        xmin, xmax = self.axis[0].xaxis.get_data_interval()
+        if (xmax - xmin) > 0.1:
+            self.axis[0].set_xlim(xmin, xmax)
         #self.axis[0].legend()       
         self.canvas.draw()
 

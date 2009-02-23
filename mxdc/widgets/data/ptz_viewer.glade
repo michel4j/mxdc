@@ -26,7 +26,7 @@
 
       <child>
 	<widget class="GtkVBox" id="side_panel">
-	  <property name="width_request">131</property>
+	  <property name="width_request">157</property>
 	  <property name="visible">True</property>
 	  <property name="homogeneous">False</property>
 	  <property name="spacing">3</property>

@@ -5,9 +5,9 @@ import logging
 from zope.component import globalSiteManager as gsm
 from mxdc.widgets.collectmanager import CollectManager
 from StatusPanel import StatusPanel
-from ScanManager import ScanManager
+from mxdc.widgets.scanmanager import ScanManager
 from HutchManager import HutchManager
-from mxdc.widgets.logview import LogView, GUIHandler
+from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from bcm.utils.log import get_module_logger, log_to_console
 from bcm.beamline.interfaces import IBeamline
 
@@ -32,17 +32,17 @@ class AppWindow(gtk.Window):
         self.hutch_manager = HutchManager(self.beamline)
         #self.sample_manager = SampleManager(self.beamline)
         self.status_panel = StatusPanel(self.beamline)
-        self.general_log = LogView(label='Log')
-        self.general_log.set_expanded(False)
-        self.log_handler = GUIHandler(self.general_log)
-        self.log_handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s %(name)-15s: %(levelname)-8s %(message)s')
-        self.log_handler.setFormatter(formatter)
-        logging.getLogger('').addHandler(self.log_handler)
+        #self.general_log = gtk.TextViewer()
+        #self.general_log.set_expanded(False)
+        #self.log_handler = GUIHandler(self.general_log)
+        #self.log_handler.setLevel(logging.INFO)
+        #formatter = logging.Formatter('%(asctime)s %(name)-15s: %(levelname)-8s %(message)s')
+        #self.log_handler.setFormatter(formatter)
+        #logging.getLogger('').addHandler(self.log_handler)
         
         main_vbox = gtk.VBox(False,0)
         main_vbox.pack_end(self.status_panel, expand = False, fill = False)
-        main_vbox.pack_end(self.general_log, expand=True, fill=True)
+        #main_vbox.pack_end(self.general_log, expand=True, fill=True)
         
         notebook = gtk.Notebook()
         notebook.append_page(self.hutch_manager, tab_label=gtk.Label('  Beamline Setup  '))

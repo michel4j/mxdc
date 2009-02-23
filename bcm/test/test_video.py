@@ -10,7 +10,7 @@ def main():
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(0)
-    #win.set_size_request(320,240)
+    win.set_size_request(320,240)
     win.set_title("Video Test")
     
     #cam = AxisCamera('10.52.4.102')
@@ -20,7 +20,7 @@ def main():
     win.show_all()
     
     try:
-
+        gtk.threads_init()
         gtk.main()
     finally:
         cam.stop()

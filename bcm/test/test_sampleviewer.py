@@ -10,6 +10,7 @@ import time
 from bcm.beamline.mx import MXBeamline
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.misc import CryojetWidget
+from bcm.utils import gtkexcepthook
 #from bcm.utils.log import log_to_console
 #log_to_console()
 
@@ -38,7 +39,7 @@ def main():
     #book.append_page(cryo_align, tab_label=gtk.Label(' Cryojet Control '))
     win.add(book)
     win.show_all()
-
+    gtk.threads_init()
     gtk.main()
 
 

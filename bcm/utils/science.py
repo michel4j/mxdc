@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Science Utilities."""
 
 import os
@@ -94,11 +95,13 @@ def get_emission_database():
 def get_peak_database():
     table_data = get_periodic_table()
     peak_db = {}
+    em_keys = ['Ka', 'Ka1', 'Ka2', 'Kb', 'Kb1','La1'] #,'Lb1','Lb2', 'Lg1','Lg2','Lg3','Lg4','Ll']
+    em_names = ['Kα', 'Kα₁', 'Kα₂', 'Kβ', 'Kβ₁','Lα₁'] #,'Lβ₁','Lβ₂', 'Lγ₁','Lγ₂','Lγ₃','Lγ₄','Lλ']
     for key in table_data.keys():
-        for em in ['Ka', 'Ka1', 'Ka2', 'Kb', 'Kb1','La1','Lb1','Lb2', 'Lg1','Lg2','Lg3','Lg4','Ll']:
+        for em, nm in zip(em_keys, em_names):
             v = float(table_data[key][em])
             if v > 0.01:
-                peak_db["%s-%s" % (key,em)] = v
+                peak_db["%s-%s" % (key,nm)] = v
     return peak_db
     
 
@@ -106,26 +109,25 @@ def get_signature(elements):
     table_data = get_periodic_table()
     signature = []
     for key in elements:
-        for em in ['Ka', 'Ka1', 'Ka2', 'Kb', 'Kb1','La1','Lb1','Lb2', 'Lg1','Lg2','Lg3','Lg4','Ll']:
+        for em in ['Ka', 'Ka1', 'Ka2', 'Kb', 'Kb1','La1']:
             v = float(table_data[key][em])
             if v > 0.01:
                 signature.append(v)
     return signature
 
 
-def assign_peaks(peaks):
+def assign_peaks(peaks, dev=0.01):
     mypeaks = peaks[:]
-    stdev = 0.005 #kev
     data = get_peak_database()
     for peak in mypeaks:
         hits = []
         for key, value in data.items():
-            score = abs(value - peak[0])/ (2.0 * stdev)
-            if abs(value - peak[0]) < 2.0 * stdev:
+            score = abs(value - peak[0])/ (2.0 * dev)
+            if abs(value - peak[0]) < 2.0 * dev:
                 hits.append( (score, key, value) )
             hits.sort()
         for score, key,value in hits:
-            peak.append("%8s" % (key,))
+            peak.append("%s" % (key,))
     return mypeaks
 
 def savitzky_golay(data, kernel = 9, order = 4, deriv=0):
@@ -188,7 +190,7 @@ def savitzky_golay(data, kernel = 9, order = 4, deriv=0):
             smooth_data.append(value)
     return numpy.array(smooth_data)
 
-def peak_search(x, y, w=7, threshold=0.01, min_sep=0.01):
+def peak_search(x, y, w=7, threshold=0.01, min_peak=0.01):
     # make sure x is in ascending order
     if x[0] > x[-1]:
         x = x[::-1]
@@ -220,7 +222,7 @@ def peak_search(x, y, w=7, threshold=0.01, min_sep=0.01):
                 while x[pk] < peak_pos and pk < hi:
                     pk += 1
                 peak_height = y[pk]
-                if fwhm >= threshold and fwhm <= 10*threshold and peak_height > 5.0 * stdpk:
+                if fwhm >= 0.8 * threshold and fwhm <= 10*threshold and peak_height > min_peak:
                     peaks.append([peak_pos, peak_height, fwhm,  stdpk])
         i += 1
     return peaks
