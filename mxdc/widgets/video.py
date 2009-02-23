@@ -25,6 +25,7 @@ class VideoWidget(gtk.DrawingArea):
         self.camera = camera
         self.pixmap = None
         self.pixbuf = None
+        self.stopped = False
         self._colorize = False
         self._palette = None
         self.fps = 0
@@ -67,16 +68,14 @@ class VideoWidget(gtk.DrawingArea):
         self.overlay_func = func
         
     def display(self, img):
+        img = img.resize((self._img_width, self._img_height),Image.ANTIALIAS)
         if self._colorize and img.mode == 'L':
             img.putpalette(self._palette)
-        img = img.resize((self._img_width, self._img_height),Image.ANTIALIAS)
         img = img.convert('RGB')
         w, h = img.size
         self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
             False, 8, w, h, 3 * w )
         gobject.idle_add(self.queue_draw)
-        self.fps = 1.0/(time.time() - self._last_frame)
-        self._last_frame = time.time()
     
     def set_colormap(self, colormap=None):
         if colormap is not None:
@@ -93,6 +92,8 @@ class VideoWidget(gtk.DrawingArea):
                     self.overlay_func(self.pixmap)
             self.window.draw_drawable(self.gc, self.pixmap, 0, 0, 0, 0, 
                 w, h)
+            self.fps = 1.0/(time.time() - self._last_frame)
+            self._last_frame = time.time()
     
     def on_realized(self, obj):
         self.gc = self.window.new_gc()
@@ -107,11 +108,11 @@ class VideoWidget(gtk.DrawingArea):
 
     def on_visibility_notify(self, obj, event):
         if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
-            self.camera.stop()
+            self.stopped = True
         else:
-            self.camera.start()
+            self.stopped = False
         return True
 
     def on_unmap(self, obj):
-        self.camera.del_sink(self)
-        self._pause = True
+        self.stopped = True
+        

@@ -80,6 +80,7 @@ class ActiveEntry(gtk.VBox):
         self._action_btn.connect('clicked', self._on_activate)
         self._entry.connect('activate', self._on_activate)
         
+        self._first_change = True
         self.running = False
         self.width = width
         self.format = format
@@ -100,7 +101,7 @@ class ActiveEntry(gtk.VBox):
 
     def set_target(self,val):
         text = self.format % val
-        self._fbk_label.set_text('%s' % (text,))
+        self._entry.set_text(text)
     
     def stop(self):
         self.running = False
@@ -160,6 +161,7 @@ class MotorEntry(ActiveEntry):
             self._action_icon.set_from_animation(self._animation)
         else:
             self.running = False
+            self.set_target(self.device.get_position())
             self._action_icon.set_from_stock('gtk-apply',gtk.ICON_SIZE_MENU)
         self.set_feedback(self.device.get_position())
         return True
