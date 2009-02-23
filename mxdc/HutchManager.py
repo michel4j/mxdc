@@ -4,7 +4,6 @@ from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.ptzviewer import AxisViewer
 from mxdc.widgets.samplepicker import SamplePicker
-from mxdc.widgets.logview import LogView
 from mxdc.widgets.misc import *
 from bcm.engine.scripting import get_scripts
 
@@ -13,6 +12,8 @@ from bcm.engine.scripting import get_scripts
   COLUMN_DESCRIPTION,
   COLUMN_AVAILABLE
 ) = range(3)
+
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'share')
 
 class HutchManager(gtk.VBox):
     def __init__(self, beamline):
@@ -66,7 +67,7 @@ class HutchManager(gtk.VBox):
         diag_frame.set_shadow_type(gtk.SHADOW_IN)
         diag_frame.set_border_width(0)
         diag_frame.add(diagram)
-        diagram.set_from_file(self.beamline.config['beamline_diagram'])
+        diagram.set_from_file(os.path.join(DATA_DIR, 'diagram.png'))
         
         control_box = gtk.VButtonBox()
         control_box.set_border_width(0)
@@ -97,7 +98,7 @@ class HutchManager(gtk.VBox):
         hbox1.pack_start(self.device_box,expand=True,fill=True)
         
         self.pack_start(hbox1, expand=False, fill=False)
-        hbox3.pack_start(videobook, expand=False,fill=False)
+        hbox3.pack_start(videobook, expand=True,fill=True)
         pred_frame = gtk.Frame('Detector Resolution')
         pred_align = gtk.Alignment(0.5,0.5, 0, 0)
         pred_align.add(self.predictor)
@@ -122,7 +123,7 @@ class HutchManager(gtk.VBox):
  
         hbox3.pack_start(sample_frame, expand=True,fill=True)
         
-        self.pack_start(hbox3, expand=False, fill=False)
+        self.pack_start(hbox3, expand=True, fill=True)
         self.pack_start(gtk.Label(), expand=True, fill=True)
         self.show_all()
 
