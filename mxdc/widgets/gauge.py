@@ -25,7 +25,7 @@ class Gauge(gtk.DrawingArea):
         plus one
         minticks: number of minor tick marks per major tick mark
         """
-        super(Gauge, self).__init__()
+        gtk.DrawingArea.__init__(self)
         self.set_app_paintable(True)
         self.connect("expose-event", self.on_expose)
         self.connect('realize', self.on_realize)
@@ -54,7 +54,7 @@ class Gauge(gtk.DrawingArea):
 
     def _on_property_change(self, widget, val):
         widget.queue_draw() 
-
+            
     def do_get_property(self, pspec):
         if pspec.name in ['percent','digits','low','high', 'units']:
             return self._properties.get(pspec.name, None)

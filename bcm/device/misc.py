@@ -140,7 +140,7 @@ class Attenuator(gobject.GObject):
         if thk > 15: thk = 15
         
         # bitmap of thickness is fillter pattern
-        bitmap = '%04d' % int(utils.dec_to_bin(thk))
+        bitmap = '%04d' % int(converter.dec_to_bin(thk))
         for i in range(4):
             self._filters[i].put( int(bitmap[i]) )
         _logger.info('Attenuation of %f %s requested' % (target, self.units))
@@ -205,7 +205,7 @@ class Cryojet(object):
                                       'L/min')
         self.level = PV('%s:ch1LVL:get' % lname)
         self.nozzle = IMotor(nozzle_motor)
-        self._level_status = PV('%s:status:ch1:N.SVAL' % lname)
+        self.level_status = PV('%s:status:ch1:N.SVAL' % lname)
         self._previous_flow = 6.0
             
     def get_state(self):

@@ -191,16 +191,20 @@ def yesno(header, sub_header=None, details=None, parent=None, default=gtk.RESPON
     return messagedialog(gtk.MESSAGE_WARNING, header, sub_header, details, parent,
                          buttons=buttons, default=default)
 
-def check_folder(directory, parent=None):
+def check_folder(directory, parent=None, warn=True):
+    if directory is None:
+        return False
     if not os.path.exists(directory):
         header = "The folder '%s' does not exist!" % directory
         sub_header = "Please select a valid folder and try again."
-        response = warning(header, sub_header)
+        if warn:
+            response = warning(header, sub_header)
         return False
     elif not os.access(directory,os.W_OK):
         header = "The folder %s can not be written to!" % directory
         sub_header = "Please select a valid folder and try again."
-        response = warning(header, sub_header)
+        if warn:
+            response = warning(header, sub_header)
         return False
     return True
     

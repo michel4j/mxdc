@@ -37,11 +37,6 @@ class ConfigXR(xmlrpc.XMLRPC):
     def xmlrpc_create_folder(self, folder):
         return self.service.create_folder(folder)
 
-    def xmlrpc_get_lock(self):
-        return self.service.get_lock(self.client.hostname)
-
-    def xmlrpc_release_lock(self, force=False):
-        return self.service.release_lock(self.client.hostname, force)
 
 class ImgSyncResource(resource.Resource):
     implements(resource.IResource)
@@ -59,10 +54,6 @@ class ImgSyncService(service.Service):
         self.cons = ImgConsumer(self)
         self.prod = FileTailProducer(log_file)
         self.prod.addConsumer(self.cons, img_selector)
-
-        self._locktime = 0
-        self._lockholder = ""
-        self._exptime = 0
         
             
     def _read_config(self):
@@ -74,6 +65,9 @@ class ImgSyncService(service.Service):
                 self.settings['uid'] = int(config.get('config','uid'))
                 self.settings['gid'] = int(config.get('config','gid'))
                 self.settings['server'] = config.get('config','server')
+                self.settings['base'] =   config.get('config','base')
+                self.settings['marccd_uid'] = int(config.get('config','marccd_uid'))
+                self.settings['marccd_gid'] = int(config.get('config','marccd_gid'))
             except:
                 log.err()
 
@@ -81,95 +75,82 @@ class ImgSyncService(service.Service):
     def set_user(self, user, uid, gid):
         config = ConfigParser()
         config.add_section('config')
-        config.set('config','user',user)
-        config.set('config','uid',uid)
-        config.set('config','gid',gid)
-        config.set('config','server','ioc1608-301')
-        f = open(self.filename,'w')
+        config.set('config', 'user', user)
+        config.set('config', 'uid', uid)
+        config.set('config', 'gid', gid)
+        config.set('config', 'base', 'users')
+        config.set('config', 'server', 'ioc1608-301')
+        config.set('config', 'marccd_uid', 500)
+        config.set('config', 'marccd_gid', 500)
+        f = open(self.filename, 'w')
         config.write(f)
         f.close()
-        self.settings['user'] = user
-        self.settings['uid'] = uid
-        self.settings['gid'] = gid
-        self.settings['server'] = 'ioc1608-301'
-        print self.transport
+        self._read_config()
         return True
 
     def create_folder(self, folder):
+        f_parts = os.path.abspath(folder.strip()).split('/')
         try:
-            # Create data and backup directories
-            f_parts = folder.split('/')
-            if f_parts[1] == 'users':
+            if f_parts[1] != '' and len(f_parts)>2:
+                self.settings['base'] = f_parts[1]
                 f_parts[1] = 'data'
-                raw_directory = '/'.join(f_parts)
-                f_parts[1] = '/backup'
-                bkup_directory = '/'.join(f_parts)
+                raw_dir = '/'.join(f_parts)
+                f_parts[1] = 'backup'
+                bkup_dir = '/'.join(f_parts)
             else:
-                raw_directory = folder
-                bkup_directory = '/backup' + raw_directory
-            command =  '/bin/mkdir -p %s' % raw_directory
-            command2 = '/bin/mkdir -p %s' % bkup_directory
-            chown_cmd = '/bin/chown -R marccd:marccd %s' % os.path.dirname(raw_directory)
-            results1 = commands.getstatusoutput(command)
-            results2 = commands.getstatusoutput(command2)
-            results3 = commands.getstatusoutput(chown_cmd)
+                return False
+            raw_out = run_command('/bin/mkdir',
+                                  ['-p', raw_dir],
+                                  '/data',
+                                  self.settings['marccd_uid'],
+                                  self.settings['marccd_gid'])
+            bkup_out = run_command('/bin/mkdir',
+                                  ['-p', bkup_dir])
         except:
             log.err()
-            return False
-        if results1[0] == 0 and results3[0] == 0:
-           return True
-        else:
-            return False
-
-    def get_lock(self, address):
-        """Get lock if expired."""
-        lockwanter = address
-        if (time.time() - self._locktime) > self._exptime and self._exptime > 0:
-            self._locktime = time.time()
-            self._lockholder = address
-            log.msg("Lock expired. Lock acquired by %s" % (self._lockholder))
-            _status = True
-        else:
-            if self._lockholder:
-                if lockwanter != self._lockholder:
-                    log.msg("Lock denied to %s.  Already held by %s since %s" % (lockwanter, self._lockholder, time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(self._locktime))))
-                    _status = False
-                else:
-                    log.msg("Lock renewed by %s" % lockwanter)
-                    self._locktime = time.time()
-                    _status = True
-            else:
-                self._lockholder = lockwanter
-                self._locktime = time.time()
-                log.msg("Lock acquired by %s" % self._lockholder)
-                _status = True
-        return _status
-
-    def release_lock(self, address, force=False):
-        """Release lock if possible.  Pass True to force release."""
-        lockwanter = address
-        if self._lockholder:
-            if force:
-                self._lockholder = ""
-                self._locktime = time.time()
-                log.msg("Lock forcibly released by %s" % lockwanter)
-                _status = True
-            else:
-                if lockwanter != self._lockholder:
-                    log.msg("Release denied to %s.  Lock held by %s at %s" % (lockwanter, self._lockholder, time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(self._locktime))))
-                    _status = False
-                else:
-                    self._locktime = time.time()
-                    log.msg("Lock released by %s" % lockwanter)
-                    self._lockholder = ""
-                    self._locktime = time.time()
-                    _status = True
-        else:
-            _status = True
-        return _status
-        
-            
+        return True
+    
 components.registerAdapter(ImgSyncResource, IImageSyncService, resource.IResource)
+
+class CommandProtocol(protocol.ProcessProtocol):
+    
+    def __init__(self, path):
+        self.output = ''
+        self.errors = ''
+        self.path = path
+    
+    def outReceived(self, output):
+        self.output += output
+    
+    def errReceived(self, error):
+        self.errors += error        
+
+    def outConnectionLost(self):
+        pass
+    
+    def errConnectionLost(self):
+        pass
+    
+    def processEnded(self, reason):
+        rc = reason.value.exitCode
+        if rc == 0:
+            self.deferred.callback(self.output)
+        else:
+            self.deferred.errback(rc)
+
+def run_command(command, args, path='/tmp', uid=0, gid=0):
+    prot = CommandProtocol(path)
+    prot.deferred = defer.Deferred()
+    args = [command,] + args
+    p = reactor.spawnProcess(
+        prot,
+        args[0],
+        args,
+        env=os.environ, path=path,
+        uid=uid, gid=gid, usePTY=True
+        )
+    return prot.deferred
+
 
 class FileTailProducer(object):
     """A pull producer that sends the tail contents of a file to a consumer.
@@ -295,42 +276,29 @@ class ImgConsumer(object):
             tm = my_match.match(line)
             try:
                 if tm:
-                    img_path = os.path.normpath(tm.group(1))
-                    directory, filename = os.path.split(img_path)
-
-                    #copy to user's directory and backup
-                    user_dir_parts = directory.split('/')
-                    if user_dir_parts[1] == 'data':
-                        user_dir_parts[1] = 'users'
-                        user_dir = '/'.join(user_dir_parts)
-                        user_dir_parts[1] = 'backup'
-                        bkup_dir = '/'.join(user_dir_parts)
+                    img_path = os.path.abspath(tm.group(1))
+                    f_parts = img_path.split('/')
+                    if f_parts[1] == 'data' and len(f_parts)>2:
+                        f_parts[1] = self.parent.settings['base']
+                        user_file = '/'.join(f_parts)
+                        f_parts[1] = 'backup'
+                        bkup_file = '/'.join(f_parts)
                     else:
-                        user_dir = directory
-                        bkup_dir = '/backup' + user_dir
+                        return
+                        
+                    def cb(res):
+                        return run_command('/bin/chown',
+                                           ['%d:%d' % (self.parent.settings['uid'], self.parent.settings['gid']),
+                                            user_file])
+                    user_res = run_command('/bin/cp',
+                                          [img_path, user_file])
+                    user_res.addCallback(cb)
+                    bkup_res = run_command('/bin/cp',
+                                          [img_path, bkup_file])
 
-                    log.msg("New Frame '%s/%s'" % (user_dir, filename))
-        
-                    user_file_command = "/bin/cp %s/%s %s/" % (directory, filename, user_dir)
-                    bkup_args = ['%s/%s' % (directory, filename), '%s/' % (bkup_dir) ]
-                    
-                    st_time = time.time()
-                    results = commands.getstatusoutput(user_file_command)
-                    if results[0] == 0:
-                        log.msg("... copied to user directory:   %0.1f sec" % (time.time() - st_time))
-                    else:
-                        log.msg("... ERROR: could not copy to user directory:\n %s" % results[1])
-                    pid = os.spawnlp(os.P_NOWAIT, '/bin/cp', 'cp', bkup_args[0], bkup_args[1])
-
-
-                    # set permissions on files:
-                    st_time = time.time()
-                    chown_cmd = "/bin/chown %s:%s %s/%s" % (self.parent.settings['uid'], self.parent.settings['gid'], user_dir, filename)
-                    results = commands.getstatusoutput(chown_cmd)
-                    if results[0] == 0:
-                        log.msg("... setting file ownership:      %0.1f sec" % (time.time() - st_time))
-                    else:
-                        log.msg("... ERROR: could not set permission on file\n %s" % results[1])
+                    log.msg("New Frame '%s" % (user_file))
+                    #log.msg("... %s" % user_out)
+                    #log.msg("... %s" % bkup_out)
             except:
                 log.err()
         
@@ -340,7 +308,9 @@ def img_selector(chunk):
     new_images = img_patt.findall(chunk)
     return '\n'.join(new_images)
 
-if __name__ == '__main__':
+# This section should be in-lined for use with twistd
+# FIXME: We need a separate tac file for deployment
+if __name__ == '__main__':  
     application = service.Application('ImgConfig')
     f = ImgSyncService(config_file="/home/marccd/.imgsync.conf", log_file="/home/marccd/log/stdouterr.log")
     serviceCollection = service.IServiceCollection(application)
