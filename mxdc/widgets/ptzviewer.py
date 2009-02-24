@@ -99,10 +99,10 @@ class AxisViewer(gtk.Frame):
         self.save_btn.connect('clicked', self.on_save)
         
         #Video Area
-        self.video_frame = self._xml.get_widget('video_frame')
+        self.video_frame = self._xml.get_widget('video_adjuster')
         self.video = VideoWidget(self.camera)
         self.video.set_size_request(416,312)
-        self.video_frame.pack_start(self.video, expand=True, fill=True)
+        self.video_frame.add(self.video)
         self.show_all()
 
     def _overlay_function(self, pixmap):

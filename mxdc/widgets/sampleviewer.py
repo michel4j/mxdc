@@ -209,10 +209,10 @@ class SampleViewer(gtk.Frame):
         self.save_btn.connect('clicked', self.on_save)
         
         #Video Area
-        self.video_frame = self._xml.get_widget('video_frame')
+        self.video_frame = self._xml.get_widget('video_adjuster')
         self.video = VideoWidget(self.beamline.sample_video)
         self.video.set_size_request(416,312)
-        self.video_frame.pack_start(self.video, expand=True, fill=True)
+        self.video_frame.add(self.video)
         
         # Lighting
         self.lighting_box =   self._xml.get_widget('lighting_box')       

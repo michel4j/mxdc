@@ -279,7 +279,27 @@
 	  <property name="spacing">0</property>
 
 	  <child>
-	    <placeholder/>
+	    <widget class="GtkAspectFrame" id="video_adjuster">
+	      <property name="width_request">320</property>
+	      <property name="height_request">240</property>
+	      <property name="visible">True</property>
+	      <property name="label_xalign">0</property>
+	      <property name="label_yalign">0.5</property>
+	      <property name="shadow_type">GTK_SHADOW_IN</property>
+	      <property name="xalign">0.5</property>
+	      <property name="yalign">0.5</property>
+	      <property name="ratio">1.33333337307</property>
+	      <property name="obey_child">False</property>
+
+	      <child>
+		<placeholder/>
+	      </child>
+	    </widget>
+	    <packing>
+	      <property name="padding">0</property>
+	      <property name="expand">True</property>
+	      <property name="fill">True</property>
+	    </packing>
 	  </child>
 
 	  <child>
