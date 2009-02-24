@@ -48,13 +48,13 @@ class Script(gobject.GObject):
         worker_thread.setDaemon(True)
         worker_thread.start()
         
-    def _thread_run(self):
+    def _thread_run(self, *args, **kwargs):
         try:
             ca.threads_init()
-            self.run(*self.args, **self.kwargs)
-            gobject.idle_add(self.emit, "done")
-            _logger.info('Script `%s` terminated successfully' %s (self.name) )
+            self.run(*args, **kwargs)
+            _logger.info('Script `%s` terminated successfully' % (self.name) )
         finally:
+            gobject.idle_add(self.emit, "done")
             self._active = False
                 
     def run(self, *args, **kwargs):

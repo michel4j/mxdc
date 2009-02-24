@@ -6,6 +6,8 @@ from mxdc.widgets.ptzviewer import AxisViewer
 from mxdc.widgets.samplepicker import SamplePicker
 from mxdc.widgets.misc import *
 from bcm.engine.scripting import get_scripts
+from bcm.utils.log import get_module_logger
+_logger = get_module_logger('mxdc.hutchmanager')
 
 (
   COLUMN_NAME,
@@ -119,13 +121,17 @@ class HutchManager(gtk.VBox):
         #self.cryo_controller.set_border_width(6)
         
         #sample_frame.insert_page(cryo_align, tab_label=gtk.Label(' Cryojet Control '))
-        #`sample_frame.insert_page(self.sample_picker, tab_label=gtk.Label(' Sample Auto-mounting '))
+        sample_frame.insert_page(self.sample_picker, tab_label=gtk.Label(' Sample Auto-mounting '))
  
         hbox3.pack_start(sample_frame, expand=True,fill=True)
         
         self.pack_start(hbox3, expand=True, fill=True)
         self.pack_start(gtk.Label(), expand=True, fill=True)
         self.show_all()
+        
+        #connect script actions
+        for sc in ['OptimizeBeam', 'FinishedMounting']:
+            self.scripts[sc].connect('done', lambda x: self.device_box.set_sensitive(True))
 
     def update_predictor(self, widget, val=None):
         self.predictor.configure(energy=self.beamline.monochromator.energy.get_position(),
@@ -140,12 +146,10 @@ class HutchManager(gtk.VBox):
     def optimize_energy(self, widget):
         self.device_box.set_sensitive(False)
         script = self.scripts['OptimizeBeam']
-        script.connect('done', lambda x: self.device_box.set_sensitive(True))
         script.start()
 
     def restore_beamstop(self, widget):
         script = self.scripts['FinishedMounting']
-        script.connect('done', lambda x: self.device_box.set_sensitive(True))
         script.start()
                         
 def main():
@@ -154,7 +158,7 @@ def main():
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(0)
     win.set_title("Hutch Demo")
-    config_file = '/media/seagate/beamline-control-module/etc/08id1.conf'
+    config_file = '/home/michel/Code/eclipse-ws/beamline-control-module/etc/08id1.conf'
     bl = bcm.beamline.mx.MXBeamline(config_file)
     hutch = HutchManager(bl)
     win.add(hutch)    
