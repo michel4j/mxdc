@@ -154,7 +154,7 @@ def main():
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(0)
     win.set_title("Hutch Demo")
-    config_file = '/home/michel/Code/eclipse-ws/beamline-control-module/etc/08id1.conf'
+    config_file = '/media/seagate/beamline-control-module/etc/08id1.conf'
     bl = bcm.beamline.mx.MXBeamline(config_file)
     hutch = HutchManager(bl)
     win.add(hutch)    
