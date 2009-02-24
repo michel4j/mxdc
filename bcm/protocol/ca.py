@@ -367,7 +367,7 @@ class PV(gobject.GObject):
             gobject.idle_add(self.emit, 'active')
         else:
             gobject.idle_add(self.emit, 'inactive')
-        _logger.debug(self)
+        #_logger.debug(self)
         return 0
         
     def _add_handler(self, callback):

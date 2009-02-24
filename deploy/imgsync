@@ -10,7 +10,7 @@ servicename='imgsync'
 pidfile='/var/run/imgsync.pid'
 logfile='/var/log/imgsync.log'
 appfile='/home/marccd/bin/image-sync.py'
-
+umask=022
 # Source function library.
 . /etc/rc.d/init.d/functions
 
@@ -20,7 +20,7 @@ appfile='/home/marccd/bin/image-sync.py'
 
 start() {
     echo -n $"Starting ImgSync daemon: "
-    daemon /usr/bin/twistd -y $appfile --logfile=$logfile --pidfile=$pidfile
+    daemon /usr/bin/twistd -y $appfile --logfile=$logfile --pidfile=$pidfile --umask=$umask
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && touch /var/lock/subsys/$servicename

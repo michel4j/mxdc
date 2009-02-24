@@ -80,10 +80,10 @@ class CollectManager(gtk.Frame):
         # Current Position
         pos_table = self._xml.get_widget('position_table')
         if self.beamline is not None:
-            pos_table.attach(ActiveLabel(self.beamline.goniometer.omega), 1,2,0,1)
-            pos_table.attach(ActiveLabel(self.beamline.diffractometer.two_theta), 1,2,1,2)
-            pos_table.attach(ActiveLabel(self.beamline.diffractometer.distance), 1,2,2,3)
-            pos_table.attach(ActiveLabel(self.beamline.monochromator.energy), 1,2,3,4)
+            pos_table.attach(ActiveLabel(self.beamline.goniometer.omega, format='%7.2f'), 1,2,0,1)
+            pos_table.attach(ActiveLabel(self.beamline.diffractometer.two_theta, format='%7.2f'), 1,2,1,2)
+            pos_table.attach(ActiveLabel(self.beamline.diffractometer.distance, format='%7.2f'), 1,2,2,3)
+            pos_table.attach(ActiveLabel(self.beamline.monochromator.energy, format='%7.4f'), 1,2,3,4)
         
         # Image Viewer
         img_frame = self._xml.get_widget('image_frame')
@@ -109,8 +109,7 @@ class CollectManager(gtk.Frame):
             self.beamline.registry['ring_status'].connect('changed', self._on_inject)
             self.beamline.registry['ring_current'].connect('changed', self._on_dump)
             self.beamline.registry['ring_mode'].connect('changed', self._on_dump)
-            self._last_current = self.beamline.registry['ring_current'].get()
-       
+            self._last_current = self.beamline.registry['ring_current'].get()   
         
         self._load_config()
         self.add(self.collect_widget)
@@ -145,9 +144,7 @@ class CollectManager(gtk.Frame):
                 run = int(section)
                 data[run] = config[section]
                 self.add_run(data[run])
-        #self.beamline.energy.connect('changed', self.on_energy_changed)
         data = self.run_manager.runs[0].get_parameters()
-        #data['energy'] = [ self.beamline.energy.get_position() ]
         self.run_manager.runs[0].set_parameters(data)
 
     def _save_config(self):
@@ -171,11 +168,17 @@ class CollectManager(gtk.Frame):
                 try:
                     assert(res == True)
                 except:
-                    msg_title = 'Image Syncronization Server Error'
+                    msg_title = 'Image Transfer Error'
                     msg_sub = 'MXDC could not setup directories for data collection. '
-                    msg_sub += 'Data collection can not proceed reliably without the server up and running.'
+                    msg_sub += 'Data collection will not proceed reliably.'
                     warning(msg_title, msg_sub)
             config.write()
+        else:
+            msg_title = 'Directory Error'
+            msg_sub = 'MXDC could not setup directories for data collection. '
+            msg_sub += 'Data collection will not proceed reliably.'
+            warning(msg_title, msg_sub)
+            
 
     def config_user(self):
         username = os.environ['USER']

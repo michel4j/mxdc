@@ -4,12 +4,12 @@ import logging
 
 from zope.component import globalSiteManager as gsm
 from mxdc.widgets.collectmanager import CollectManager
-from StatusPanel import StatusPanel
 from mxdc.widgets.scanmanager import ScanManager
-from HutchManager import HutchManager
+from mxdc.widgets.hutchmanager import HutchManager
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from bcm.utils.log import get_module_logger, log_to_console
 from bcm.beamline.interfaces import IBeamline
+from StatusPanel import StatusPanel
 
 _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
@@ -25,28 +25,18 @@ class AppWindow(gtk.Window):
         #associate beamline devices
         self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
 
-        self.scan_manager = ScanManager(self.beamline)
+        self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)
         
-        self.hutch_manager = HutchManager(self.beamline)
-        #self.sample_manager = SampleManager(self.beamline)
+        self.hutch_manager = HutchManager()
         self.status_panel = StatusPanel(self.beamline)
-        #self.general_log = gtk.TextViewer()
-        #self.general_log.set_expanded(False)
-        #self.log_handler = GUIHandler(self.general_log)
-        #self.log_handler.setLevel(logging.INFO)
-        #formatter = logging.Formatter('%(asctime)s %(name)-15s: %(levelname)-8s %(message)s')
-        #self.log_handler.setFormatter(formatter)
-        #logging.getLogger('').addHandler(self.log_handler)
         
         main_vbox = gtk.VBox(False,0)
         main_vbox.pack_end(self.status_panel, expand = False, fill = False)
-        #main_vbox.pack_end(self.general_log, expand=True, fill=True)
         
         notebook = gtk.Notebook()
         notebook.append_page(self.hutch_manager, tab_label=gtk.Label('  Beamline Setup  '))
-        #notebook.append_page(self.sample_manager, tab_label=gtk.Label('  Sample  '))
         notebook.append_page(self.collect_manager, tab_label=gtk.Label('  Collect Data '))
         notebook.append_page(self.scan_manager, tab_label=gtk.Label('  MAD Scan  '))
         notebook.set_border_width(6)
@@ -54,14 +44,8 @@ class AppWindow(gtk.Window):
         main_vbox.pack_start(notebook, expand=False, fill=True)
         self.add(main_vbox)
        
-        self.connect('destroy', self.on_destroy)
         self.show_all()
             
-    def on_destroy(self, obj=None):
-        self.scan_manager.stop()
-        self.collect_manager.stop()
-        self.hutch_manager.stop()
-
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
         self.collect_manager.add_run( run_data )
