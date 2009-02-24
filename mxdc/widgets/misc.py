@@ -52,7 +52,7 @@ class ActiveLabel(gtk.Label):
         return True
   
 class ActiveEntry(gtk.VBox):
-    def __init__( self, device, label=None,  format="%g",  width=8):
+    def __init__( self, device, label=None,  format="%g",  width=10):
         gtk.VBox.__init__(self, label)
 
         # create gui layout
@@ -299,7 +299,7 @@ class CryojetWidget(gtk.Frame):
         self.set_shadow_type(gtk.SHADOW_NONE)
         self.cryojet = cryojet
         self.cryojet.nozzle.configure(calib=True)
-        self.cryojet.sample_flow.connect('changed', self._on_level)
+        self.cryojet.level.connect('changed', self._on_level)
         
         #layout widgets
         hbox1 = gtk.HBox(False, 6)
@@ -324,7 +324,6 @@ class CryojetWidget(gtk.Frame):
         self.level_gauge = Gauge(0,100,5,3)
         self.level_gauge.set_property('units','%')
         self.level_gauge.set_property('low', 20.0)
-        self.level_gauge.value = self.cryojet.level
         gauge_box.pack_start(self.level_gauge, expand=True, fill=True)
         gauge_box.pack_start(lb, expand=True, fill=True)
         hbox1.pack_start(gauge_box, expand=True, fill=True)
@@ -342,15 +341,15 @@ class CryojetWidget(gtk.Frame):
             lb = gtk.Label(v[0])
             lb.set_alignment(1,0.5)
             status_tbl.attach(lb, 0, 1, v[1], v[1]+1)
-            lb = gtk.Label('%0.1f' % v[3] )
+            lb = gtk.Label('')
             lb.set_alignment(1,0.5)
-            self.cryojet.connect(v[4], self._on_val_changed, k)
+            v[3].connect('changed', self._on_val_changed, k)
             self.text_monitors[k] = lb
             status_tbl.attach(lb, 1,2,v[1], v[1]+1)
             status_tbl.attach(gtk.Label(v[2]), 2,3, v[1], v[1]+1)
 
-        self.sts_text = gtk.Label('filling')
-        self.sts_text.set_text('%s' % self.cryojet.status)
+        self.sts_text = gtk.Label('')
+        self.cryojet.level_status.connect('changed', lambda x, y: self.sts_text.set_markup(y))
         lb = gtk.Label('Status:')
         lb.set_alignment(1,0.5)
         status_tbl.attach(lb, 0,1,3,4)
@@ -411,7 +410,7 @@ class CryojetWidget(gtk.Frame):
         ctable.set_col_spacings(3)
         ctable.set_row_spacings(3)
         ctable.attach(gtk.Label('Position (mm):'), 0,1,0,1, xoptions=gtk.EXPAND|gtk.FILL)
-        ctable.attach(PositionerLabel(self.cryo_x, format='%0.1f'), 1, 2, 0,1, xoptions=gtk.EXPAND|gtk.FILL)
+        ctable.attach(ActiveLabel(self.cryojet.nozzle, format='%0.1f'), 1, 2, 0,1, xoptions=gtk.EXPAND|gtk.FILL)
         self.retract1_btn = gtk.Button('Retract 1 mm')
         self.retract5_btn = gtk.Button('Retract 5 mm')
         self.restore_btn = gtk.Button('Restore')
@@ -429,7 +428,7 @@ class CryojetWidget(gtk.Frame):
         self.restore_btn.connect('clicked', self._on_nozzle_move, -15)
         
         #autocalibration of nozzle motor
-        self.cryo_x.CCW_LIM.connect('changed', self._auto_calib_nozzle)
+        self.cryojet.nozzle.CCW_LIM.connect('changed', self._auto_calib_nozzle)
     
     def _blink_status(self):
         if self.sts_text.get_property('visible') == True:

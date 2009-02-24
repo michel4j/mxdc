@@ -1,6 +1,7 @@
 import math
 import os
 import time
+import tempfile
 from bcm.engine.scripting import Script
 
 
@@ -62,7 +63,7 @@ class CenterSample(Script):
             vals = line.split()
             results[vals[0]] = int(vals[1])
         if results['RELIABILITY'] >= 70:
-            self.beamline.logger.info('Loop centering reliability is %d%%.')
+            self.beamline.logger.info('Loop centering reliability is %d%%.' % results['RELIABILITY'])
     
         else:
             self.beamline.logger.info('Loop centering was not reliable enough.')
@@ -71,11 +72,11 @@ class CenterSample(Script):
         x = results['Y_CENTRE']
         y = results['X_CENTRE'] - results['RADIUS']
         tmp_omega = results['TARGET_ANGLE']
-        sin_w = math.sin(tmp_omega * numpy.pi / 180)
-        cos_w = math.cos(tmp_omega * numpy.pi / 180)
-        pixel_size = 5.34e-3 * math.exp( -0.18 * bl.sample_zoom.get_position())
-        x_offset = self.beamline.devices['camera_center_x'].get() - x
-        y_offset = self.beamline.devices['camera_center_y'].get() - y
+        sin_w = math.sin(tmp_omega * math.pi / 180)
+        cos_w = math.cos(tmp_omega * math.pi / 180)
+        pixel_size = self.beamline.sample_video.resolution
+        x_offset = self.beamline.registry['camera_center_x'].get() - x
+        y_offset = self.beamline.registry['camera_center_y'].get() - y
         xmm = x_offset * pixel_size
         ymm = y_offset * pixel_size
     

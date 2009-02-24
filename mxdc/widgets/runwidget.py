@@ -3,7 +3,7 @@ import gtk.glade
 import gobject
 import sys, os
 from mxdc.widgets.predictor import Predictor
-from mxdc.widgets.dialogs import select_folder, check_folder, DirectoryButton, warning
+from mxdc.widgets.dialogs import warning, check_folder
 
 (
   COLUMN_LABEL,
@@ -218,7 +218,8 @@ class RunWidget(gtk.Frame):
             else:
                 self.entry[key].set_text("%d" % DEFAULT_PARAMETERS[key])
         self.entry['prefix'].set_text("%s" % dict['prefix'])
-        self.entry['directory'].set_current_folder("%s" % dict['directory'])
+        if check_folder(dict['directory'], warn=False):
+            self.entry['directory'].set_current_folder("%s" % dict['directory'])
         self.set_number(dict['number'])
         self.entry['inverse_beam'].set_active(dict['inverse_beam'])
         self.energy_store.clear()
