@@ -1,13 +1,11 @@
 import gtk, gobject
 import sys, os
-from Predictor import Predictor
-from SampleViewer import SampleViewer
-from HutchViewer import HutchViewer
-from SamplePicker import SamplePicker
-from LogView import LogView
-from ActiveWidgets import *
-from bcm.tools.scripting import Script
-from bcm.scripts.misc import prepare_for_mounting, restore_beamstop
+from mxdc.widgets.predictor import Predictor
+from mxdc.widgets.sampleviewer import SampleViewer
+from mxdc.widgets.ptzviewer import AxisViewer
+from mxdc.widgets.samplepicker import SamplePicker
+from mxdc.widgets.textviewer import TextViewer
+from mxdc.widgets.misc import *
 
 (
   COLUMN_NAME,
@@ -81,7 +79,7 @@ def main():
     win.set_border_width(0)
     win.set_title("Hutch Demo")
     
-    hutch = SampleManager()
+    hutch = SampleManager(None)
     win.add(hutch)    
     win.show_all()
 
