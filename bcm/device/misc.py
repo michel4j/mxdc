@@ -205,11 +205,11 @@ class Cryojet(object):
                                       'L/min')
         self.level = PV('%s:ch1LVL:get' % lname)
         self.nozzle = IMotor(nozzle_motor)
-        self.level_status = PV('%s:status:ch1:N.SVAL' % lname)
+        self.fill_status = PV('%s:status:ch1:N.SVAL' % lname)
         self._previous_flow = 6.0
             
     def get_state(self):
-        return self._level_status.get()
+        return self.fill_status.get()
     
     def resume_flow(self):
         self.sample_flow.set(self._previous_flow)

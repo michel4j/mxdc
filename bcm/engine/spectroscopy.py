@@ -45,7 +45,7 @@ class XRFScan(BasicScan):
         try:
             _logger.debug('Exitation Scan started')
             gobject.idle_add(self.emit, 'started')     
-            self.beamline.mca.configure(cooling=True, roi=None)
+            self.beamline.mca.configure(cooling=True, energy=None)
             self.beamline.attenuator.set(self._attenuation)
             if self._energy is not None:
                 self.beamline.monochromator.energy.move_to(self._energy)
@@ -72,8 +72,8 @@ class XANESScan(BasicScan):
             self.beamline = None
         self._duration = t
         self._energy_db = get_energy_database()
-        self._edge, self._energy = self._energy_db[edge]
-        self._targets = xanes_targets(self._energy)
+        self._edge_energy, self._roi_energy = self._energy_db[edge]
+        self._targets = xanes_targets(self._edge_energy)
         self._attenuation = attenuation
         self.data = []
     
@@ -118,8 +118,8 @@ class XANESScan(BasicScan):
             gobject.idle_add(self.emit, 'started')
             _logger.info('Edge Scan started.')
             self.beamline.attenuator.set(self._attenuation)
-            self.beamline.mca.configure(cooling=True, roi=self._energy)
-            self.beamline.monochromator.energy.move_to(self._energy)
+            self.beamline.mca.configure(cooling=True, energy=self._roi_energy)
+            self.beamline.monochromator.energy.move_to(self._edge_energy)
             self.beamline.monochromator.energy.wait()   
                    
             self.count = 0
@@ -129,7 +129,7 @@ class XANESScan(BasicScan):
                                'Scaled Counts',
                                'I_0',
                                'Raw Counts']
-            for x in self.energy_targets:
+            for x in self._targets:
                 if self._stopped:
                     _logger.info("Scan stopped!")
                     break
@@ -137,15 +137,15 @@ class XANESScan(BasicScan):
                 self.count += 1
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
                 y = self.beamline.mca.count(self._duration)
-                i0 = self.beamline.i0.count(self._duration)
+                i0 = self.beamline.i_0.count(self._duration)
                 self.data.append( [self.count, x, y, i0, y / i0] )
                     
-                fraction = float(self.count) / len(self.energy_targets)
-                _logger.info("%4d %15g %15g %15g %15g" % (count, x, y/i0, i0, y))
+                fraction = float(self.count) / len(self._targets)
+                _logger.info("%4d %15g %15g %15g %15g" % (self.count, x, y/i0, i0, y))
                 gobject.idle_add(self.emit, "new-point", (x, y/i0, i0, y))
                 gobject.idle_add(self.emit, "progress", fraction )
                              
-            if self.stopped:
+            if self._stopped:
                 _logger.warning("XANES Scan stopped.")
                 gobject.idle_add(self.emit, "stopped")
             else:
@@ -153,6 +153,7 @@ class XANESScan(BasicScan):
                 gobject.idle_add(self.emit, "done")
                 gobject.idle_add(self.emit, "progress", 1.0 )
         finally:
+            self.beamline.monochromator.energy.move_to(self._edge_energy)
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(0.0)
             self.beamline.lock.release()
