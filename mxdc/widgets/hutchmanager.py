@@ -1,5 +1,6 @@
 import gtk, gobject
 import sys, os
+import logging
 from zope.component import globalSiteManager as gsm
 from bcm.beamline.mx import IBeamline
 from bcm.engine.scripting import get_scripts
@@ -9,6 +10,7 @@ from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.ptzviewer import AxisViewer
 from mxdc.widgets.samplepicker import SamplePicker
+from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.misc import *
 
 _logger = get_module_logger('mxdc.hutchmanager')
@@ -38,9 +40,10 @@ class HutchManager(gtk.Frame):
         self.hutch_widget = self._xml.get_widget('hutch_widget')
         self.commands_box = self._xml.get_widget('commands_box')
         self.settings_frame = self._xml.get_widget('settings_frame')
-        self.predictor_frame = self._xml.get_widget('predictor_frame')
+        self.predictor_frame = self._xml.get_widget('predictor_frame')       
+        self.lower_box = self._xml.get_widget('lower_box')
         self.video_book = self._xml.get_widget('video_book')
-        self.tool_book = self._xml.get_widget('tool_book')
+        self.tool_book = self._xml.get_widget('tool_book')        
         self.device_box = self._xml.get_widget('device_box')
         
         self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')      
@@ -49,19 +52,21 @@ class HutchManager(gtk.Frame):
         # video        
         self.sample_viewer = SampleViewer()
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
-        self.video_book.insert_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
-        self.video_book.insert_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))
+        self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
+        self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))
+        self.video_book.connect('map', lambda x: self.video_book.set_current_page(0))       
 
+        
         # create and pack devices into settings frame
         self.entries = {
             'energy':       MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.4f"),
             'attenuation':  ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
-            'angle':        MotorEntry(self.beamline.goniometer.omega, 'Omega', format="%0.3f"),
-            'beam_width':   MotorEntry(self.beamline.collimator.width, 'Beam width', format="%0.3f"),
-            'beam_height':  MotorEntry(self.beamline.collimator.height, 'Beam height', format="%0.3f"),
-            'distance':     MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.2f"),
-            'beam_stop':    MotorEntry(self.beamline.beam_stop.z, 'Beam-stop', format="%0.2f"),
-            'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.2f")
+            'angle':        MotorEntry(self.beamline.goniometer.omega, 'Omega', format="%0.2f"),
+            'beam_width':   MotorEntry(self.beamline.collimator.width, 'Beam width', format="%0.2f"),
+            'beam_height':  MotorEntry(self.beamline.collimator.height, 'Beam height', format="%0.2f"),
+            'distance':     MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.1f"),
+            'beam_stop':    MotorEntry(self.beamline.beam_stop.z, 'Beam-stop', format="%0.1f"),
+            'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f")
         }
         motor_box1 = gtk.VBox(False,0)
         for key in ['energy','attenuation','beam_width','beam_height']:
@@ -75,6 +80,7 @@ class HutchManager(gtk.Frame):
         # Predictor
         self.predictor = Predictor(self.beamline.detector.resolution, 
                                    self.beamline.detector.size)
+        self.predictor.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
         self.predictor_frame.add(self.predictor)
         self.beamline.diffractometer.distance.connect('changed', self.update_predictor)
         self.beamline.diffractometer.two_theta.connect('changed', self.update_predictor)
@@ -100,14 +106,22 @@ class HutchManager(gtk.Frame):
         # tool book, automounter, cryojet etc
         self.sample_picker = SamplePicker()
         #self.sample_picker.set_border_width(6)
-        self.sample_picker.set_sensitive(False)
-        self.tool_book.insert_page(self.sample_picker, tab_label=gtk.Label('Sample Auto-mounting'))
-        
         self.cryo_controller = CryojetWidget(self.beamline.cryojet)
-        #self.cryo_controller.set_border_width(6)
-        self.tool_book.insert_page(self.cryo_controller, tab_label=gtk.Label(' Cryojet Control '))
+        self.sample_picker.set_sensitive(False)
+        self.sample_picker.set_border_width(6)
+        self.tool_book.append_page(self.sample_picker, tab_label=gtk.Label('Sample Auto-mounting'))        
+        self.tool_book.append_page(self.cryo_controller, tab_label=gtk.Label(' Cryojet Control '))
+        self.tool_book.connect('map', lambda x: self.tool_book.set_current_page(1))       
         
-
+        #logging
+        self.log_viewer = TextViewer(self._xml.get_widget('log_view'))
+        log_handler = GUIHandler(self.log_viewer)
+        log_handler.setLevel(logging.NOTSET)
+        formatter = logging.Formatter('%(asctime)s %(levelname)-8s: %(message)s')
+        log_handler.setFormatter(formatter)
+        logging.getLogger('').addHandler(log_handler)
+        
+        
         self.add(self.hutch_widget)
         self.show_all()
 

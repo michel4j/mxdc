@@ -36,7 +36,7 @@
 	    <widget class="GtkVButtonBox" id="commands_box">
 	      <property name="visible">True</property>
 	      <property name="layout_style">GTK_BUTTONBOX_EDGE</property>
-	      <property name="spacing">0</property>
+	      <property name="spacing">3</property>
 	    </widget>
 	    <packing>
 	      <property name="padding">0</property>
@@ -47,6 +47,7 @@
 
 	  <child>
 	    <widget class="GtkFrame" id="frame3">
+	      <property name="border_width">2</property>
 	      <property name="visible">True</property>
 	      <property name="label_xalign">0</property>
 	      <property name="label_yalign">0.5</property>
@@ -71,7 +72,7 @@
 	  </child>
 
 	  <child>
-	    <widget class="GtkFrame" id="frame4">
+	    <widget class="GtkFrame" id="settings_frame">
 	      <property name="visible">True</property>
 	      <property name="label_xalign">0</property>
 	      <property name="label_yalign">0.5</property>
@@ -107,7 +108,7 @@
 	      <property name="visible">True</property>
 	      <property name="label_xalign">0.5</property>
 	      <property name="label_yalign">0.5</property>
-	      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+	      <property name="shadow_type">GTK_SHADOW_NONE</property>
 
 	      <child>
 		<placeholder/>
@@ -122,8 +123,8 @@
 	</widget>
 	<packing>
 	  <property name="padding">0</property>
-	  <property name="expand">True</property>
-	  <property name="fill">True</property>
+	  <property name="expand">False</property>
+	  <property name="fill">False</property>
 	</packing>
       </child>
 
@@ -140,7 +141,7 @@
 	      <property name="show_tabs">True</property>
 	      <property name="show_border">True</property>
 	      <property name="tab_pos">GTK_POS_TOP</property>
-	      <property name="scrollable">False</property>
+	      <property name="scrollable">True</property>
 	      <property name="enable_popup">False</property>
 
 	      <child>
@@ -219,6 +220,42 @@
 	      <property name="expand">True</property>
 	      <property name="fill">True</property>
 	    </packing>
+	  </child>
+	</widget>
+	<packing>
+	  <property name="padding">0</property>
+	  <property name="expand">True</property>
+	  <property name="fill">True</property>
+	</packing>
+      </child>
+
+      <child>
+	<widget class="GtkScrolledWindow" id="scrolledwindow1">
+	  <property name="visible">True</property>
+	  <property name="can_focus">True</property>
+	  <property name="hscrollbar_policy">GTK_POLICY_NEVER</property>
+	  <property name="vscrollbar_policy">GTK_POLICY_ALWAYS</property>
+	  <property name="shadow_type">GTK_SHADOW_IN</property>
+	  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
+
+	  <child>
+	    <widget class="GtkTextView" id="log_view">
+	      <property name="visible">True</property>
+	      <property name="can_focus">True</property>
+	      <property name="editable">False</property>
+	      <property name="overwrite">False</property>
+	      <property name="accepts_tab">False</property>
+	      <property name="justification">GTK_JUSTIFY_LEFT</property>
+	      <property name="wrap_mode">GTK_WRAP_NONE</property>
+	      <property name="cursor_visible">False</property>
+	      <property name="pixels_above_lines">0</property>
+	      <property name="pixels_below_lines">0</property>
+	      <property name="pixels_inside_wrap">0</property>
+	      <property name="left_margin">0</property>
+	      <property name="right_margin">0</property>
+	      <property name="indent">0</property>
+	      <property name="text" translatable="yes"></property>
+	    </widget>
 	  </child>
 	</widget>
 	<packing>

@@ -766,8 +766,8 @@
 
 	  <child>
 	    <widget class="GtkAspectFrame" id="video_adjuster">
-	      <property name="width_request">320</property>
-	      <property name="height_request">240</property>
+	      <property name="width_request">380</property>
+	      <property name="height_request">285</property>
 	      <property name="visible">True</property>
 	      <property name="label_xalign">0</property>
 	      <property name="label_yalign">0.5</property>
