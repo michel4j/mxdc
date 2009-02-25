@@ -244,6 +244,7 @@ class EnergyMotor(Motor):
         self.PREC = PV("%s.PREC" % pv2)  
         self.RBV  = PV("%s:sp" % pv2)
         self.MOVN = PV("%s:moving" % pv1)
+        self.MOVN2 = PV("%s:moving" % pv2)
         self.STOP = PV("%s:stop" % pv1)
         self.CALIB =  PV("%s:calibDone" % pv2_root)
         self.STAT =  PV("%s:status" % pv2_root)
@@ -251,6 +252,7 @@ class EnergyMotor(Motor):
         # connect monitors
         self.RBV.connect('changed', self._signal_change)
         self.MOVN.connect('changed', self._signal_move)
+        self.MOVN2.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
                             
     def get_position(self):
@@ -275,7 +277,7 @@ class BraggEnergyMotor(Motor):
         return converter.bragg_to_energy(self.RBV.get())
             
     def move_to(self, pos, wait=False):
-        # Do not move is requested position is within precision error
+        # Do not move if requested position is within precision error
         # from current position.
         prec = self.PREC.get()
         prec = prec == 0 and 4 or prec
@@ -303,14 +305,14 @@ class MotorShutter(object):
     def __init__(self, motor):
         self.motor = motor
         self.name = motor.name
-        self._open_pos = 5.0
-        self._close_pos = 0.0
+        self.open_pos = 5.0
+        self.close_pos = 0.0
     
     def open(self):
-        self.motor.move_to(self._open_pos)
+        self.motor.move_to(self.open_pos)
 
     def close(self):
-        self.move_to(self._close_pos)
+        self.move_to(self.close_pos)
             
     def get_state(self):
         return self.motor.get_state()

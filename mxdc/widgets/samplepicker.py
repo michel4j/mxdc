@@ -344,14 +344,15 @@ class SamplePicker(gtk.HBox):
         vbox.pack_start(gtk.Label(''), expand=True, fill=True)
         self.pack_end( vbox, expand=False, fill=True )
         notebk = gtk.Notebook()
-        notebk.set_size_request(320,320)
+        #notebk.set_size_request(320,320)
         self.adapters = {}
         for k in ['Left','Middle','Right']:
             if k=='Middle':
                 self.adapters[k] = CassetteAdapter(k)
             else:
                 self.adapters[k] = PuckAdapter(k)
-            self.adapters[k].set_border_width(6)
+            self.adapters[k].set_size_request(240,240)
+            self.adapters[k].set_border_width(3)
             tab_label = gtk.Label('%s' % k)
             tab_label.set_padding(12,0)
             notebk.insert_page( self.adapters[k], tab_label=tab_label )

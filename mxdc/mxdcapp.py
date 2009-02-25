@@ -13,6 +13,7 @@ from mxdc.widgets.splash import Splash
 from AppWindow import AppWindow
 from bcm.beamline.mx import MXBeamline
 from bcm.utils.log import get_module_logger, log_to_console
+from bcm.utils import gtkexcepthook
 
 _logger = get_module_logger('mxdc')
 

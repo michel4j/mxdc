@@ -63,7 +63,12 @@ class MultiChannelAnalyzer(object):
                 if v is None:
                     self.region_of_interest = (0, self.channels)
                 else:
-                    midp = self.energy_to_channel(energy)
+                    self.region_of_interest = v
+            if k == 'energy':
+                if v is None:
+                    self.region_of_interest = (0, self.channels)
+                else:
+                    midp = self.energy_to_channel(v)
                     self.region_of_interest = (midp - self.half_roi_width, 
                                                midp + self.half_roi_width)
     def _set_temp(self, on):

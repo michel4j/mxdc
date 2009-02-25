@@ -58,6 +58,12 @@ class Predictor( gtk.AspectFrame ):
         self.canvas.connect('visibility-notify-event', self.on_visibility_notify)
         self.canvas.connect('unmap', self.on_unmap)
         self.canvas.connect_after('map', self.on_map)
+        self._do_update = False
+
+        calculator = threading.Thread(target=self._do_calc)
+        calculator.setDaemon(True)
+        calculator.start()
+        
 
         
     def display(self, widget=None):
@@ -103,7 +109,7 @@ class Predictor( gtk.AspectFrame ):
                     self.detector_size = v
                     self.beam_x = self.beam_y = self.detector_size/2
         if redraw_pending:
-            self.update(force=True)
+            self.update()
         return True
     
         
@@ -117,10 +123,12 @@ class Predictor( gtk.AspectFrame ):
 
     def on_unmap(self, widget):
         self._can_update = False
+        self._do_update = False
         return True
                 
     def on_map(self, widget):
         self._can_update = True
+        self._do_update = False
         self.update(force=True)
         return True
     
@@ -153,28 +161,26 @@ class Predictor( gtk.AspectFrame ):
         return d
 
     def _do_calc(self):
-        grid_size = 50
-        x = arange(0, self.detector_size, grid_size)
-        y = x
-        X,Y = meshgrid(x,y)
-        Z = self._pix_resol(X,Y)
-        xp = self._mm(X, self.beam_x)
-        yp = self._mm(Y, self.beam_y)
-        lines = self._shells(num=16)
-        self.xp = xp
-        self.yp = yp
-        self.Z = Z
-        self.lines = lines
-        gobject.idle_add(self.display)
+        while 1:
+            while not self._do_update:
+                time.sleep(1.0)
+            self._do_update = False
+            grid_size = 50
+            x = arange(0, self.detector_size, grid_size)
+            y = x
+            X,Y = meshgrid(x,y)
+            Z = self._pix_resol(X,Y)
+            xp = self._mm(X, self.beam_x)
+            yp = self._mm(Y, self.beam_y)
+            lines = self._shells(num=16)
+            self.xp = xp
+            self.yp = yp
+            self.Z = Z
+            self.lines = lines
+            gobject.idle_add(self.display)
 
     def update(self, force=False):
-        elapsed = time.time() - self.last_updated
-        if elapsed >= 2.0 and not force:
-            return
         if self._can_update and self.get_child_visible():
-            self._do_calc()
-            #calculator = threading.Thread(target=self._do_calc)
-            #calculator.setDaemon(True)
-            #calculator.start()
+            self._do_update = True
         return
     

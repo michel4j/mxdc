@@ -4,10 +4,12 @@ import time
 import gtk
 import gtk.glade
 import gobject
+import pango
 
 from gauge import Gauge
 from dialogs import warning
 
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class ActiveHScale(gtk.HScale):
     def __init__( self, context, min=0.0, max=1.0):
@@ -66,7 +68,11 @@ class ActiveEntry(gtk.VBox):
         self._action_btn = self._xml.get_widget('action_btn')
         self._action_icon = self._xml.get_widget('action_icon')
         self._label = self._xml.get_widget('label')
-                
+        font_desc = pango.FontDescription()
+        #font_desc.set_family('#monospace')
+        #self._fbk_label.modify_font(font_desc)
+
+
         self.pack_start(self._active_entry)
         
         self._fbk_label.set_alignment(1, 0.5)
@@ -81,6 +87,7 @@ class ActiveEntry(gtk.VBox):
         self._entry.connect('activate', self._on_activate)
         
         self._first_change = True
+        self._last_signal = 0
         self.running = False
         self.width = width
         self.format = format
@@ -97,7 +104,7 @@ class ActiveEntry(gtk.VBox):
         text = self.format % val
         if len(text) > self.width:
             text = "##.##"
-        self._fbk_label.set_markup('%s' % (text,))
+        self._fbk_label.set_markup('%8s' % (text,))
 
     def set_target(self,val):
         text = self.format % val
@@ -120,11 +127,16 @@ class ActiveEntry(gtk.VBox):
             target = float(self._entry.get_text())
         except ValueError:
             target = feedback
-            self.set_target(target)
+        self.set_target(target)
         return target
     
     def _on_value_change(self, obj, val):
-        self.set_feedback(val)
+        if time.time() - self._last_signal > 0.1:
+            self.set_feedback(val)
+            self._last_signal = time.time()
+        if self._first_change:
+            self.set_target(val)
+            self._first_change = False
         return True
         
     def _on_activate(self, obj):
@@ -147,13 +159,15 @@ class MotorEntry(ActiveEntry):
            
     def stop(self):
         self.device.stop()
-        self._action_icon.set_from_stock('gtk-apply',    gtk.ICON_SIZE_MENU)
+        self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
  
     def _on_health_change(self, obj, state):
         if state:
-            self.set_sensitive(True)
+            #self.set_sensitive(True)
+            self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
         else:
-            self.set_sensitive(False)
+            #self.set_sensitive(False)
+            self._action_icon.set_from_stock('gtk-dialog-warning', gtk.ICON_SIZE_MENU)
     
     def _on_motion_change(self, obj, motion):
         if motion:
@@ -162,6 +176,7 @@ class MotorEntry(ActiveEntry):
         else:
             self.running = False
             self.set_target(self.device.get_position())
+            self.set_feedback(self.device.get_position())
             self._action_icon.set_from_stock('gtk-apply',gtk.ICON_SIZE_MENU)
         self.set_feedback(self.device.get_position())
         return True
@@ -185,7 +200,7 @@ class ShutterButton(gtk.Button):
         self.connect('clicked', self._on_clicked)
             
     def _on_clicked(self, widget):
-        if self.shutter.is_open():
+        if self.shutter.get_state():
             self.shutter.close()
         else:
             self.shutter.open()    
@@ -300,129 +315,53 @@ class CryojetWidget(gtk.Frame):
         self.cryojet = cryojet
         self.cryojet.nozzle.configure(calib=True)
         self.cryojet.level.connect('changed', self._on_level)
-        
-        #layout widgets
-        hbox1 = gtk.HBox(False, 6)
-        hbox2 = gtk.HBox(False, 6)
-        hbox3 = gtk.HBox(False, 6)
-        vbox  = gtk.VBox(False, 6)
-        
-        vbox.pack_start(hbox1, expand=False, fill=False)
-        
-        hsep = gtk.HSeparator()
-        hsep.set_size_request(-1,2)
-        vbox.pack_start(hsep, expand=False, fill=False)
-
-        vbox.pack_start(hbox2, expand=False, fill=False)
-        vbox.pack_start(hbox3)
-        self.add(vbox)
+        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'cryo_widget.glade'), 
+                                  'cryo_widget')
+        self.cryo_widget = self._xml.get_widget('cryo_widget')
+        self.add(self.cryo_widget)
+        self.anneal_prog = self._xml.get_widget('anneal_progress')
+        self.status_table = self._xml.get_widget('status_table')
+        self.status_box = self._xml.get_widget('status_box')
+        self.start_anneal_btn = self._xml.get_widget('start_anneal_btn')
+        self.stop_anneal_btn = self._xml.get_widget('stop_anneal_btn')
+        self.status_text = self._xml.get_widget('status_text')
+        self.duration_entry = self._xml.get_widget('duration_entry')
+        self.retract1_btn = self._xml.get_widget('retract1_btn')
+        self.retract5_btn = self._xml.get_widget('retract5_btn')
+        self.restore_btn = self._xml.get_widget('restore_btn')
+        self.anneal_table = self._xml.get_widget('anneal_table')
+        self.nozzle_table = self._xml.get_widget('nozzle_table')
+        self.level_frame = self._xml.get_widget('level_frame')
         
         # layout the gauge section
-        gauge_box = gtk.VBox(False, 3)
-        lb = gtk.Label('')
-        lb.set_markup('N<sub>2</sub> Level')
         self.level_gauge = Gauge(0,100,5,3)
         self.level_gauge.set_property('units','%')
         self.level_gauge.set_property('low', 20.0)
-        gauge_box.pack_start(self.level_gauge, expand=True, fill=True)
-        gauge_box.pack_start(lb, expand=True, fill=True)
-        hbox1.pack_start(gauge_box, expand=True, fill=True)
+        self.level_frame.add(self.level_gauge)
+        self.cryojet.level.connect('changed', self._on_level)
         
         # Status section
-        status_tbl = gtk.Table(4,3,False)
-        status_tbl.set_col_spacings(6)
         tbl_data = {
-            'temp': ('Temperature:', 0, 'Kelvin', self.cryojet.temperature, 'temperature'),
-            'smpl': ('Sample Flow:', 1, 'L/min', self.cryojet.sample_flow, 'sample-flow'),
-            'shld': ('Shield Flow:', 2, 'L/min', self.cryojet.shield_flow, 'shield-flow'),
+            'temp': (0, self.cryojet.temperature),
+            'smpl': (1, self.cryojet.sample_flow),
+            'shld': (2, self.cryojet.shield_flow),
+            'sts' : (3, self.cryojet.fill_status),
             }
-        self.text_monitors = {}
         for k,v in tbl_data.items():
-            lb = gtk.Label(v[0])
-            lb.set_alignment(1,0.5)
-            status_tbl.attach(lb, 0, 1, v[1], v[1]+1)
-            lb = gtk.Label('')
-            lb.set_alignment(1,0.5)
-            v[3].connect('changed', self._on_val_changed, k)
-            self.text_monitors[k] = lb
-            status_tbl.attach(lb, 1,2,v[1], v[1]+1)
-            status_tbl.attach(gtk.Label(v[2]), 2,3, v[1], v[1]+1)
+            lb = ActiveLabel(v[1])
+            lb.set_alignment(0.5, 0.5)
+            self.status_table.attach(lb, 1, 2, v[0], v[0]+1)
 
-        self.sts_text = gtk.Label('')
-        self.cryojet.level_status.connect('changed', lambda x, y: self.sts_text.set_markup(y))
-        lb = gtk.Label('Status:')
-        lb.set_alignment(1,0.5)
-        status_tbl.attach(lb, 0,1,3,4)
-        status_tbl.attach(self.sts_text, 1,3,3,4)     
-        hbox1.pack_end(status_tbl, expand=True, fill=True)
-        
-        
-        # Flow Annealing section
-        size_group = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
-        anneal_frame = gtk.Frame('<b>Flow Control Annealing:</b>')    
-        anneal_frame.set_shadow_type(gtk.SHADOW_NONE)
-        anneal_frame.get_label_widget().set_use_markup(True)
-        
-        align = gtk.Alignment()
-        align.set(0.5,0.5,1,1)
-        align.set_padding(0,0,12,0)
-        anneal_frame.add(align)
-        
-        self.start_anneal_btn = gtk.Button('Anneal')
-        self.stop_anneal_btn = gtk.Button('Stop')
-        size_group.add_widget( self.start_anneal_btn )
-        size_group.add_widget( self.stop_anneal_btn )
-        self.anneal_prog = gtk.ProgressBar()
-        
-        ahbox = gtk.HBox(False,6)
-        fvbox = gtk.VBox(True, 6)
-        self.anneal_tools = gtk.HBox(True, 6)
-        self.duration_en = gtk.Entry()
-        self.duration_en.set_alignment(1)
-        self.duration_en.set_width_chars(5)
-        self.duration_en.set_text('%0.1f' % 5.0)
-        self.anneal_tools.pack_start(gtk.Label('Duration (sec):'), expand=True, fill=True)
-        self.anneal_tools.pack_start(self.duration_en, expand=True, fill=True)
-        self.anneal_tools.pack_start(self.start_anneal_btn, expand=True, fill=True)
-        fvbox.pack_start(self.anneal_tools, expand=False, fill=False)
-        self.anneal_status = gtk.HBox(False, 6)
-        self.anneal_status.set_sensitive(False)
-        self.anneal_status.pack_start(self.anneal_prog,expand=True, fill=True)
-        self.anneal_status.pack_end(self.stop_anneal_btn, expand=True, fill=True)
-        fvbox.pack_start(self.anneal_status, expand=False, fill=False)
-        fvbox.pack_end(gtk.Label(''), expand=True, fill=True)
-        ahbox.pack_start(fvbox)
-        align.add(ahbox)
-        hbox2.pack_end(anneal_frame,expand=True, fill=True)
+        self.duration_entry.set_alignment(0.5)
         self.start_anneal_btn.connect('clicked', self._start_anneal)
         self.stop_anneal_btn.connect('clicked', self._stop_anneal)
-
-        # Cryo Nozzle section
-        noz_frame = gtk.Frame('<b>Nozzle Control:</b>')    
-        noz_frame.set_shadow_type(gtk.SHADOW_NONE)
-        noz_frame.get_label_widget().set_use_markup(True)
         
-        align = gtk.Alignment()
-        align.set(0.5,0.5,1,1)
-        align.set_padding(0,0,12,0)
-        noz_frame.add(align)
-        ctable = gtk.Table(2,3,False)
-        ctable.set_col_spacings(3)
-        ctable.set_row_spacings(3)
-        ctable.attach(gtk.Label('Position (mm):'), 0,1,0,1, xoptions=gtk.EXPAND|gtk.FILL)
-        ctable.attach(ActiveLabel(self.cryojet.nozzle, format='%0.1f'), 1, 2, 0,1, xoptions=gtk.EXPAND|gtk.FILL)
-        self.retract1_btn = gtk.Button('Retract 1 mm')
-        self.retract5_btn = gtk.Button('Retract 5 mm')
-        self.restore_btn = gtk.Button('Restore')
-        ctable.attach(self.retract1_btn, 0,1,1,2, xoptions=gtk.EXPAND|gtk.FILL)
-        ctable.attach(self.retract5_btn, 1,2,1,2, xoptions=gtk.EXPAND|gtk.FILL)
-        ctable.attach(self.restore_btn, 0,2,2,3, xoptions=gtk.EXPAND|gtk.FILL)
-        align.add(ctable)
-        hbox2.pack_start(noz_frame,expand=True, fill=True)
+        self.nozzle_table.attach(ActiveLabel(self.cryojet.nozzle, format='%0.1f'), 1,2,0,1)
         self._restore_anneal_id = None
         self._progress_id = None
         self._annealed_time = 0
         gobject.timeout_add(500, self._blink_status)
+        self.stop_anneal_btn.set_sensitive(False)
         self.retract1_btn.connect('clicked', self._on_nozzle_move, 1)
         self.retract5_btn.connect('clicked', self._on_nozzle_move, 5)
         self.restore_btn.connect('clicked', self._on_nozzle_move, -15)
@@ -431,36 +370,32 @@ class CryojetWidget(gtk.Frame):
         self.cryojet.nozzle.CCW_LIM.connect('changed', self._auto_calib_nozzle)
     
     def _blink_status(self):
-        if self.sts_text.get_property('visible') == True:
-            self.sts_text.hide()
+        if self.status_text.get_property('visible') == True:
+            self.status_text.hide()
         else:
-            self.sts_text.show()
+            self.status_text.show()
         return True
                 
     def _on_nozzle_move(self, obj, pos):
-        self.cryo_x.move_by(pos)
+        self.cryojet.nozzle.move_by(pos)
         
     def _auto_calib_nozzle(self, obj, val):
         if val == 1:
-            self.cryo_x.set_position(0.0)
+            self.cryojet.nozzle.configure(reset=0.0)
         
     def _on_level(self, obj, val):
-        self.level_gauge.value = val
+        self.level_gauge.value = val/10.0
         return False
 
     def _on_status(self, obj, val):
         self.status.set_text('%s' % val)
         return False
-
-    def _on_val_changed(self, obj, val, key):
-        self.text_monitors[key].set_text('%0.1f' % val)
-        return False
     
     def _start_anneal(self, obj=None):
         try:
-            duration = float( self.duration_en.get_text() )
+            duration = float( self.duration_entry.get_text() )
         except:
-            self.duration_en.set_text('0')
+            self.duration_entry.set_text('0.0')
             return
         msg1 = 'This procedure may damage your sample'
         msg2  = 'Flow control annealing will turn off the cold stream for the specified '
@@ -470,8 +405,7 @@ class CryojetWidget(gtk.Frame):
             
         response = warning(msg1, msg2, buttons=(('Cancel', gtk.BUTTONS_CANCEL), ('Anneal', gtk.BUTTONS_OK)))
         if response == gtk.BUTTONS_OK:
-            self.anneal_tools.set_sensitive(False)
-            self.anneal_status.set_sensitive(True)
+            self.anneal_table.set_sensitive(False)
             self._annealed_time = 0
             self.cryojet.stop_flow()
             dur = max(0.0, (duration-0.5*1000))
@@ -480,8 +414,7 @@ class CryojetWidget(gtk.Frame):
             
     def _stop_anneal(self, obj=None):
         self.cryojet.resume_flow()
-        self.anneal_tools.set_sensitive(True)
-        self.anneal_status.set_sensitive(False)
+        self.anneal_table.set_sensitive(True)
         self.anneal_prog.set_fraction(0.0)
         self.anneal_prog.set_text('')
         if self._restore_anneal_id:
