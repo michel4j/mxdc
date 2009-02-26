@@ -17,7 +17,7 @@ warnings.simplefilter("ignore")
 
 from scipy.misc import toimage, fromimage
 from zope.interface import implements
-from bcm.device.interfaces import ICamera, IPTZCameraController, IMotor
+from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
 from bcm.protocol.ca import PV
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
@@ -70,11 +70,7 @@ class VideoSrc(object):
                     if not sink.stopped:
                         sink.display(img)
             time.sleep(dur)
-           
-        
-    def zoom(self, val):
-        pass
-    
+               
     def get_frame(self): 
         pass                  
     
@@ -101,7 +97,7 @@ class SimCamera(VideoSrc):
 
 class CACamera(VideoSrc):
 
-    implements(ICamera)   
+    implements(IZoomableCamera)   
      
     def __init__(self, pv_name, zoom_motor, name='Camera'):
         VideoSrc.__init__(self, name, maxfps=20.0)
@@ -136,26 +132,35 @@ class CACamera(VideoSrc):
 
     def zoom(self, val):
         self._zoom.move_to(val)
+
             
-
-
-                                
 class AxisCamera(VideoSrc):
 
-    implements(ICamera, IPTZCameraController)  
+    implements(ICamera)  
       
-    def __init__(self, hostname, name='Axis Camera'):
+    def __init__(self, hostname,  id=None, name='Axis Camera'):
         VideoSrc.__init__(self, name, maxfps=20.0)
         self.size = (640, 480)
-        self._url = 'http://%s/jpg/image.jpg' % hostname
+        if id is None:
+            self._url = 'http://%s/jpg/image.jpg' % hostname
+        else:
+            self._url = 'http://%s/jpg/%s/image.jpg' % (hostname,id)
         self._server = httplib.HTTPConnection(hostname)
         self._last_frame = time.time()
-        self._rzoom = 0
 
     def get_frame(self):
         f = urllib.urlopen(self._url)
         f_str = cStringIO.StringIO(f.read())
         return Image.open(f_str)
+
+                                
+class AxisPTZCamera(AxisCamera):
+
+    implements(IPTZCameraController)  
+      
+    def __init__(self, hostname, id=None, name='Axis PTZ Camera'):
+        AxisCamera.__init__(self, hostname, id, name)
+        self._rzoom = 0
        
     def zoom(self, value):
         self._server.connect()
@@ -183,7 +188,7 @@ class AxisCamera(VideoSrc):
         command = "/axis-cgi/com/ptz.cgi?query=presetposall"
         self._server.request("GET", command)
         result = self._server.getresponse().read()
-        pospatt = re.compile('presetposno.+=(?P<name>\w+)')
+        pospatt = re.compile('presetposno.+=(?P<name>[\w ]+)')
         self._server.close()
         presets = []
         for line in result.split('\n'):
@@ -191,4 +196,4 @@ class AxisCamera(VideoSrc):
             if m:
                 presets.append(m.group('name'))
         return presets
-        
+     

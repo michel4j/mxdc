@@ -30,16 +30,16 @@ class AppClass(object):
     def run(self):
         self.beamline = MXBeamline(self._config_file)
         self.main_window = AppWindow()
-        self.main_window.connect('destroy',self.do_quit)
+        self.main_window.connect('destroy', self.do_quit)
         self.main_window.show_all()
         return False
     
     def do_quit(self, obj):
         _logger.info('Stopping...')
-        reactor.stop()
+        #reactor.stop()
+        gtk.main_quit()
 
 if __name__ == "__main__":
     app = AppClass()
-    #gtk.main()
-    #os.kill(os.getpid(),signal.SIGKILL)
-    reactor.run()
+    #reactor.run()
+    gtk.main()

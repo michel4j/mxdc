@@ -14,6 +14,8 @@ import logging
 __log_section__ = 'mxdc.imgview'
 img_logger = logging.getLogger(__log_section__)
 
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
+
 class ImgViewer(gtk.VBox):
     def __init__(self, size=600):
         self.__gobject_init__() 
@@ -399,7 +401,7 @@ class ImgViewer(gtk.VBox):
     def draw_info(self, img):
         draw = ImageDraw.Draw(img)
         try:
-            font = ImageFont.truetype(os.environ['BCM_PATH']+'/mxdc/gui/images/vera.ttf', 10)
+            font = ImageFont.truetype(os.path.join(DATA_DIR, 'Aller_Lt.ttf'), 10)
         except:
             font = ImageFont.load_default()
         lines = self.image_info_text.split(', ')

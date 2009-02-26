@@ -20,7 +20,7 @@ from bcm.device.goniometer import Goniometer
 from bcm.device.monochromator import Monochromator
 from bcm.device.mca import MultiChannelAnalyzer
 from bcm.device.diffractometer import Diffractometer
-from bcm.device.video import CACamera, AxisCamera
+from bcm.device.video import CACamera, AxisCamera, AxisPTZCamera
 from bcm.service.imagesync_client import ImageSyncClient
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger, log_to_console
