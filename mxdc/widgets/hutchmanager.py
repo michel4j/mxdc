@@ -144,7 +144,7 @@ class HutchManager(gtk.Frame):
         script = self.scripts['FinishedMounting']
         script.start()
                         
-def main():
+def junk():
     import bcm.beamline.mx
     win = gtk.Window()
     win.connect("destroy", lambda x: gtk.main_quit())
@@ -162,4 +162,4 @@ def main():
         print "Quiting..."
 
 if __name__ == '__main__':
-    main()
+    junk()

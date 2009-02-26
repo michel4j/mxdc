@@ -35,6 +35,8 @@ class AppWindow(gtk.Window):
         self._xml = gtk.glade.XML(os.path.join(SHARE_DIR, 'mxdc_main.glade'), 'mxdc_main')
         self.main_frame = self._xml.get_widget('main_frame')
         self.mxdc_main = self._xml.get_widget('mxdc_main')
+        self.quit_cmd = self._xml.get_widget('quit_command')
+        self.quit_cmd.connect('activate', lambda x: self._do_quit() )
         
         notebook = gtk.Notebook()
         notebook.append_page(self.hutch_manager, tab_label=gtk.Label('  Beamline Setup  '))
@@ -47,7 +49,11 @@ class AppWindow(gtk.Window):
         self.add(self.mxdc_main)
        
         self.show_all()
-            
+        
+    def _do_quit(self):
+        self.hide()
+        self.emit('destroy')
+             
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
         self.collect_manager.add_run( run_data )

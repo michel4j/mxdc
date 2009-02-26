@@ -8,6 +8,7 @@ from mxdc.widgets.dialogs import save_selector
 from mxdc.widgets.video import VideoWidget
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
+from bcm.device.interfaces import IPTZCameraController
 
 _logger = get_module_logger('mxdc.ptzviewer')
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -23,7 +24,6 @@ class AxisViewer(gtk.Frame):
         self.camera = ptz_camera
         
         self._create_widgets()                  
-        self.video.connect('button_press_event', self.on_image_click)
         self.video.set_overlay_func(self._overlay_function)
                                         
     def save_image(self, filename):
@@ -83,12 +83,24 @@ class AxisViewer(gtk.Frame):
         self.zoom_in_btn.connect('clicked', self.on_zoom_in)
         self.zoom_100_btn.connect('clicked', self.on_unzoom)
         
+        #Video Area
+        self.video_frame = self._xml.get_widget('video_adjuster')
+        self.video = VideoWidget(self.camera)
+        self.video.set_size_request(416,312)
+        self.video_frame.add(self.video)
+
         # presets
         presets_frame = self._xml.get_widget('presets_frame')
+        zoom_frame = self._xml.get_widget('zoom_frame')
         self.presets_btn = gtk.combo_box_new_text()
-        for val in self.camera.get_presets():
-            self.presets_btn.append_text(val)     
-        self.presets_btn.connect('changed', self.on_view_changed)
+        if IPTZCameraController.providedBy(self.camera):
+            self.video.connect('button_press_event', self.on_image_click)
+            for val in self.camera.get_presets():
+                self.presets_btn.append_text(val)
+            self.presets_btn.connect('changed', self.on_view_changed)
+        else:
+            self._xml.get_widget('preset_box').set_sensitive(False)
+            self._xml.get_widget('zoom_box').set_sensitive(False)
         presets_frame.pack_start(self.presets_btn, expand=False, fill=False)
                 
 
@@ -98,11 +110,6 @@ class AxisViewer(gtk.Frame):
         self.save_btn = self._xml.get_widget('save_btn')
         self.save_btn.connect('clicked', self.on_save)
         
-        #Video Area
-        self.video_frame = self._xml.get_widget('video_adjuster')
-        self.video = VideoWidget(self.camera)
-        self.video.set_size_request(416,312)
-        self.video_frame.add(self.video)
         self.show_all()
 
     def _overlay_function(self, pixmap):
@@ -121,7 +128,7 @@ def main():
     win.add(book)
     
     
-    cam = bcm.device.video.AxisCamera('10.52.4.102') #ccd1608-201
+    cam = bcm.device.video.AxisCamera('10.52.4.100', 4) #ccd1608-201,10.52.4.102
     
     myviewer = AxisViewer(cam)
     book.append_page(myviewer, tab_label=gtk.Label('Hutch Viewer') )

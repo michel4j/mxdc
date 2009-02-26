@@ -358,6 +358,9 @@ class ICamera(Interface):
         
         """
 
+class IZoomableCamera(ICamera):
+    """ A zoomable camera."""
+    
     def zoom(value):
         """Set the Camera Zoom level.
         
