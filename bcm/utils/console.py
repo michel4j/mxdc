@@ -27,8 +27,7 @@ import gtk
 import gobject
 
 BCM_PATH = os.path.join(os.path.dirname(__file__),'../..')
-sys.path[0] = os.path.abspath(BCM_PATH)
-print sys.path
+sys.path.append(os.path.abspath(BCM_PATH))
 
 try:
     import readline
