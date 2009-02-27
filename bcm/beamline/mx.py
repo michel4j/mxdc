@@ -88,7 +88,7 @@ class MXBeamline(object):
             reg_cmd = "self.registry['%s'] = %s" % (name, n_cmd)
             self.logger.info('Setting up %s: %s' % (section, name))
             exec(reg_cmd)
-            if section == 'utilities':
+            if section in ['utilities', 'services']:
                 util_cmd = "self.%s = self.registry['%s']" % (name, name)
                 self.logger.info('Registering %s: %s' % (section, name))
                 exec(util_cmd)

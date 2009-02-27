@@ -265,8 +265,8 @@ class RunWidget(gtk.Frame):
             if self.predictor is None:    
                 #add Predictor
                 self.predictor = Predictor()
-                self.predictor.set_size_request(180,180)
-                self.vbox.pack_end( self.predictor, expand=True, fill=True)
+                self.predictor.set_size_request(200,200)
+                self.vbox.pack_end( self.predictor, expand=False, fill=False)
     
         
     def check_changes(self):

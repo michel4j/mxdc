@@ -271,8 +271,9 @@ class LinearProgress(gtk.DrawingArea):
         self.fraction = 0.0
         self.bar_gc = None 
         self.connect('expose-event', self.on_expose)
-        self.queue_draw()
         self.color_spec = None
+        self.bg_spec = None
+        self.queue_draw()
            
     
     def on_expose(self, obj, event):
@@ -283,7 +284,11 @@ class LinearProgress(gtk.DrawingArea):
             if self.color_spec:
                 self.bar_gc.foreground = self.get_colormap().alloc_color(self.color_spec)
             else:
-                self.bar_gc.foreground = style.bg[gtk.STATE_PRELIGHT]
+                self.bar_gc.foreground = style.fg[gtk.STATE_PRELIGHT]
+            if self.bg_spec:
+                self.bar_gc.background = self.get_colormap().alloc_color(self.bg_spec)
+            else:
+                self.bar_gc.background = style.bg[gtk.STATE_PRELIGHT]
         
         self.draw_gdk()
         return False
@@ -304,8 +309,9 @@ class LinearProgress(gtk.DrawingArea):
     def get_fraction(self):
         return self.fraction
     
-    def set_color(self, spec):
+    def set_color(self, spec=None, bg_spec=None):
         self.color_spec = spec
+        self.bg_spec = bg_spec
         
            
 class CryojetWidget(gtk.Frame):
