@@ -39,7 +39,7 @@ class Predictor( gtk.AspectFrame ):
         
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.add( self.canvas )
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        self.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
         self.show_all()
         self.pixel_size = pixel_size
         self.detector_size = detector_size

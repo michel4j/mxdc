@@ -4,7 +4,6 @@
 <glade-interface>
 
 <widget class="GtkWindow" id="window1">
-  <property name="border_width">12</property>
   <property name="title" translatable="yes">window1</property>
   <property name="type">GTK_WINDOW_TOPLEVEL</property>
   <property name="window_position">GTK_WIN_POS_NONE</property>
@@ -128,6 +127,7 @@
 
       <child>
 	<widget class="GtkTable" id="layout_table">
+	  <property name="border_width">6</property>
 	  <property name="visible">True</property>
 	  <property name="n_rows">18</property>
 	  <property name="n_columns">4</property>
@@ -940,6 +940,10 @@
 	  <property name="expand">False</property>
 	  <property name="fill">False</property>
 	</packing>
+      </child>
+
+      <child>
+	<placeholder/>
       </child>
 
       <child>

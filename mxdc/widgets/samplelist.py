@@ -38,7 +38,7 @@ STATE_DICT = {
     SAMPLE_STATE_NEXT: '#33cc33',
 }
 
-test_data = \
+TEST_DATA = \
 [(0, False, 'LA1',  '60482','Normal', 'scrollable notebooks and hidden tabs'),
  (0, False, 'LA2', '60620', 'Critical','gdk_window_clear_area(gdkwindow-win32.c)'),
  (0, False, 'LA3', '50214', 'Major', 'Xft support does not clean up correctly'),
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     win.set_title("Sample Widget Demo")
 
     example = SampleList()
-    example.load_data(test_data)
+    example.load_data(TEST_DATA)
 
     win.add(example)
     win.show_all()
