@@ -184,13 +184,17 @@ class AxisPTZCamera(AxisCamera):
         self._server.close()
 
     def get_presets(self):
-        self._server.connect()
-        command = "/axis-cgi/com/ptz.cgi?query=presetposall"
-        self._server.request("GET", command)
-        result = self._server.getresponse().read()
-        pospatt = re.compile('presetposno.+=(?P<name>[\w ]+)')
-        self._server.close()
+        try:
+            self._server.connect()
+            command = "/axis-cgi/com/ptz.cgi?query=presetposall"
+            self._server.request("GET", command)
+            result = self._server.getresponse().read()
+            self._server.close()
+        except:
+            result = ''
+            _logger.error('Could not connect to video server')
         presets = []
+        pospatt = re.compile('presetposno.+=(?P<name>[\w ]+)')
         for line in result.split('\n'):
             m = pospatt.match(line)
             if m:
