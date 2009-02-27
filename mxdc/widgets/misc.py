@@ -313,7 +313,7 @@ class CryojetWidget(gtk.Frame):
         gtk.Frame.__init__(self, '')
         self.set_shadow_type(gtk.SHADOW_NONE)
         self.cryojet = cryojet
-        self.cryojet.nozzle.configure(calib=True)
+        #self.cryojet.nozzle.configure(calib=True)
         self.cryojet.level.connect('changed', self._on_level)
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'cryo_widget.glade'), 
                                   'cryo_widget')

@@ -1,11 +1,14 @@
 #!/bin/csh
 
-# Set BCM_PATH to the top-level directory containing the BCM module
+## ---- Beamline Configuration File ----
+setenv BCM_CONFIG_FILE 08id1.conf
 
+## ---- Top level directory of BCM installation ----
 setenv BCM_PATH /home/michel/Code/eclipse-ws/beamline-control-module
+
+
+## ---- Do not change below this line ----
 setenv BCM_CONFIG_PATH $BCM_PATH/etc
 setenv BCM_DATA_PATH  $BCM_PATH/etc
-setenv BCM_BEAMLINE 08id1
-
 set path=($path $BCM_PATH/bin)
-#alias mxdc 'python $BCM_PATH/mxdc/mxdcapp.py'
+setenv PYTHONPATH $PYTHONPATH:BCM_PATH
