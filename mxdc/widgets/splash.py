@@ -2,8 +2,13 @@ import gtk, gobject
 import sys, os
 from mxdc.widgets.misc import LinearProgress
 
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
 class Splash(object):
-    def __init__(self, image, duration=2.0, icon=None, logo=None, color=None):
+    def __init__(self, duration=2.0, color=None):
+        image = os.path.join(DATA_DIR, 'splash.png')
+        logo_file = os.path.join(DATA_DIR, 'logo.png')
+        icon = os.path.join(DATA_DIR, 'icon.png')
         self.win = gtk.Window()
         self.win.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
         self.win.set_gravity(gtk.gdk.GRAVITY_CENTER)
