@@ -7,10 +7,11 @@ from zope.component import globalSiteManager as gsm
 from mxdc.widgets.collectmanager import CollectManager
 from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.hutchmanager import HutchManager
+from mxdc.widgets.screeningmanager import ScreenManager
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from bcm.utils.log import get_module_logger, log_to_console
 from bcm.beamline.interfaces import IBeamline
-from StatusPanel import StatusPanel
+from mxdc.widgets.statuspanel import StatusPanel
 
 _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
@@ -30,6 +31,7 @@ class AppWindow(gtk.Window):
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)       
         self.hutch_manager = HutchManager()
+        self.screen_manager = ScreenManager()
         self.status_panel = StatusPanel(self.beamline)
         
         self._xml = gtk.glade.XML(os.path.join(SHARE_DIR, 'mxdc_main.glade'), 'mxdc_main')
@@ -42,6 +44,7 @@ class AppWindow(gtk.Window):
         notebook.append_page(self.hutch_manager, tab_label=gtk.Label('  Beamline Setup  '))
         notebook.append_page(self.collect_manager, tab_label=gtk.Label('  Collect Data '))
         notebook.append_page(self.scan_manager, tab_label=gtk.Label('  MAD Scan  '))
+        notebook.append_page(self.screen_manager, tab_label=gtk.Label('  Screening  '))
         notebook.set_border_width(6)
 
         self.main_frame.add(notebook)

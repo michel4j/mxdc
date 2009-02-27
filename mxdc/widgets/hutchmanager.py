@@ -80,7 +80,6 @@ class HutchManager(gtk.Frame):
         # Predictor
         self.predictor = Predictor(self.beamline.detector.resolution, 
                                    self.beamline.detector.size)
-        self.predictor.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
         self.predictor_frame.add(self.predictor)
         self.beamline.diffractometer.distance.connect('changed', self.update_predictor)
         self.beamline.diffractometer.two_theta.connect('changed', self.update_predictor)

@@ -1,5 +1,8 @@
 import gtk, gobject
 import sys, os, time
+
+from zope.component import globalSiteManager as gsm
+from bcm.beamline.mx import IBeamline
 from bcm.engine.diffraction import DataCollector
 from bcm.utils.configobj import ConfigObj
 from bcm.utils import misc
@@ -39,7 +42,7 @@ class CollectManager(gtk.Frame):
         self.image_viewer = ImgViewer()
         self.run_manager = RunManager()
         self.collector = DataCollector()
-        self.beamline = self.collector.beamline
+        self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')      
         
         self.collect_state = COLLECT_STATE_IDLE
         self.frame_pos = None
@@ -62,6 +65,8 @@ class CollectManager(gtk.Frame):
 
         self.collect_btn = self._xml.get_widget('collect_btn')
         self.stop_btn = self._xml.get_widget('stop_btn')
+        self.collect_btn.set_label('cm-collect')
+        self.stop_btn.set_label('cm-stop')
         self.stop_btn.set_sensitive(False)
         
         # Run progress
@@ -109,7 +114,7 @@ class CollectManager(gtk.Frame):
             self.beamline.registry['ring_status'].connect('changed', self._on_inject)
             self.beamline.registry['ring_current'].connect('changed', self._on_dump)
             self.beamline.registry['ring_mode'].connect('changed', self._on_dump)
-            self._last_current = self.beamline.registry['ring_current'].get()   
+            self._first_launch = False
         
         self._load_config()
         self.add(self.collect_widget)
@@ -124,6 +129,11 @@ class CollectManager(gtk.Frame):
         return True
 
     def _on_dump(self, obj, value):
+        if self._first_launch:
+            self._last_current = value
+        else:
+            self._first_launch = False  
+            
         if (self._last_current - self.beamline.registry['ring_current'].get() > 10):
             if  (self.collector.stopped) or (self.collector.paused):
                 return True
@@ -212,10 +222,10 @@ class CollectManager(gtk.Frame):
             ('cm-stop', '_Stop', 0, 0, None)]
 
         # We're too lazy to make our own icons, so we use regular stock icons.
-        aliases = [('cm-collect', gtk.STOCK_EXECUTE),
-            ('cm-resume', gtk.STOCK_EXECUTE),
-            ('cm-pause', gtk.STOCK_EXECUTE),
-            ('cm-stop', gtk.STOCK_STOP) ]
+        aliases = [('cm-collect', gtk.STOCK_MEDIA_PLAY),
+            ('cm-resume', gtk.STOCK_MEDIA_PLAY),
+            ('cm-pause', gtk.STOCK_MEDIA_PAUSE),
+            ('cm-stop', gtk.STOCK_MEDIA_STOP) ]
 
         gtk.stock_add(items)
         factory = gtk.IconFactory()
