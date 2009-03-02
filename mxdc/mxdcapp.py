@@ -12,7 +12,7 @@ from twisted.internet import reactor
 
 from bcm.beamline.mx import MXBeamline
 from bcm.utils.log import get_module_logger
-#from mxdc.utils import gtkexcepthook
+from mxdc.utils import gtkexcepthook
 from mxdc.widgets.splash import Splash
 from mxdc.AppWindow import AppWindow
 
@@ -25,9 +25,9 @@ class MXDCApp(object):
         self.splash = Splash(duration=splash_duration, color='#fffffe')
         self.splash.set_version('2.5.9')
         gobject.timeout_add(splash_duration * 1000, self.run)
-        self.beamline = MXBeamline(self._config_file)
                  
     def run(self):
+        self.beamline = MXBeamline(self._config_file)
         self.main_window = AppWindow()
         self.main_window.connect('destroy', self.do_quit)
         self.main_window.show_all()
@@ -48,6 +48,5 @@ if __name__ == "__main__":
         _logger.error('Please make sure MXDC is properly installed and configured.')
         sys.exit(1)
     app = MXDCApp(config)
-    gtk.threads_init()
     reactor.run()
     #gtk.main()

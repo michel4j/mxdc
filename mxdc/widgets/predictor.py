@@ -163,9 +163,9 @@ class Predictor( gtk.AspectFrame ):
     def _do_calc(self):
         while 1:
             while not self._do_update:
-                time.sleep(1.0)
+                time.sleep(0.5)
             self._do_update = False
-            grid_size = 50
+            grid_size = 100
             x = arange(0, self.detector_size, grid_size)
             y = x
             X,Y = meshgrid(x,y)

@@ -42,11 +42,12 @@ class RunWidget(gtk.Frame):
         self.add(self.vbox)
 
         self.save_btn = self._xml.get_widget('save_btn')
-        self.undo_btn = self._xml.get_widget('reset_btn')
+        self.reset_btn = self._xml.get_widget('reset_btn')
         self.enable_btn = self._xml.get_widget('activate_btn')
         self.delete_btn = self._xml.get_widget('delete_btn')
         self.layout_table = self._xml.get_widget('layout_table')
         
+        self.reset_btn.set_sensitive(False)
         self.entry = {}
                 
         # Data for entries (name: (col, row, length, [unit]))
@@ -218,8 +219,11 @@ class RunWidget(gtk.Frame):
             else:
                 self.entry[key].set_text("%d" % DEFAULT_PARAMETERS[key])
         self.entry['prefix'].set_text("%s" % dict['prefix'])
-        if check_folder(dict['directory'], warn=False):
-            self.entry['directory'].set_current_folder("%s" % dict['directory'])
+        if dict['directory'] is not None and os.path.exists(dict['directory']):
+            self.entry['directory'].set_filename("%s" % dict['directory'])
+        else:
+            self.entry['directory'].set_filename(os.environ['HOME'])
+    
         self.set_number(dict['number'])
         self.entry['inverse_beam'].set_active(dict['inverse_beam'])
         self.energy_store.clear()
@@ -233,7 +237,7 @@ class RunWidget(gtk.Frame):
     def get_parameters(self):
         run_data = {}
         run_data['prefix']      = self.entry['prefix'].get_text().strip()
-        run_data['directory']   = self.entry['directory'].get_current_folder()
+        run_data['directory']   = self.entry['directory'].get_filename()
         run_data['energy']  =    self.energy
         run_data['energy_label'] = self.energy_label
         run_data['inverse_beam'] = self.entry['inverse_beam'].get_active()
@@ -417,7 +421,6 @@ class RunWidget(gtk.Frame):
         return False
 
     def on_distance_changed(self,widget,event=None):
-        print 'distance changed'
         two_theta = float(self.entry['two_theta'].get_text())    
         try:
             distance = float(self.entry['distance'].get_text())
@@ -456,6 +459,5 @@ class RunWidget(gtk.Frame):
         self.enable_btn.set_active(True)
         self.parameters = self.get_parameters()
         self.check_changes()
-        self.undo_btn.set_sensitive(True)
         return True
     

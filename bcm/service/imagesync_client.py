@@ -9,8 +9,8 @@ class ImageSyncClient(object):
         self._server = xmlrpclib.ServerProxy(url)
     
     def set_user(self, user, uid, gid):
-        self._server.set_user(user, uid, gid)
+        return self._server.set_user(user, uid, gid)
     
     def create_folder(self, folder):
-        self._server.create_folder(folder)
+        return self._server.create_folder(folder)
         
