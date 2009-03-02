@@ -1,0 +1,15 @@
+container,port,code,name,comments
+unknown,LA1,60482,Normal,scrollable notebooks and hidden tabs
+unknown,LA2,60620,Critical,gdk_window_clear_area(gdkwindow-win32.c)
+unknown,LA3,50214,Major,Xft support does not clean up correctly
+unknown,LA4,52877,Major,GtkFileSelection needs a refresh method. 
+unknown,LA5,56070,Normal,Can't click button after setting in sensitive
+unknown,LA6,56355,Normal,GtkLabel - Not all changes propagate correctly
+unknown,LA7,50055,Normal,Rework width/height computations for TreeView
+unknown,LA8,58278,Normal,gtk_dialog_set_response_sensitive() doesn't work
+unknown,LA9,55767,Normal,Getters for all setters
+unknown,LA10,56925,Normal,Gtkcalender size
+unknown,LA11,56221,Normal,Selectable label needs right-click copy menu
+unknown,LA12,50939,Normal,Add shift clicking to GtkTextView
+unknown,LA13,6112,Enhancement,netscape-like collapsable toolbars
+unknown,LA14,00001,Normal,First bug :=)
