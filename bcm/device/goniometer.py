@@ -48,11 +48,13 @@ class Goniometer(object):
         for key in kwargs.keys():
             self._settings[key].put(kwargs[key])
     
-    def scan(self):
+    def scan(self, wait=True):
         self._scan_cmd.set('\x01')
+        if wait:
+            self.wait(start=True, stop=True)
 
     def get_state(self):
-        return self._state.get()    
+        return self._state.get() != 0   
                         
     def wait(self, start=True, stop=True, poll=0.01, timeout=20):
         if (start):

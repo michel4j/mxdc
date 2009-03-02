@@ -33,6 +33,7 @@ class CollectManager(gtk.Frame):
         self.run_list = []
         self.collect_state = COLLECT_STATE_IDLE
         self.frame_pos = None
+        self._first_launch = False
         self._create_widgets()
         
     def _create_widgets(self):
@@ -98,6 +99,7 @@ class CollectManager(gtk.Frame):
         self.collect_btn.connect('clicked',self.on_activate)
         self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
         self.run_manager.connect('saved', self.save_runs)
+        self.run_manager.connect('del-run', self.remove_run)
 
         for w in [self.collect_btn, self.stop_btn]:
             w.set_property('can-focus', False)
@@ -113,10 +115,10 @@ class CollectManager(gtk.Frame):
             self.beamline.registry['ring_status'].connect('changed', self._on_inject)
             self.beamline.registry['ring_current'].connect('changed', self._on_dump)
             self.beamline.registry['ring_mode'].connect('changed', self._on_dump)
-            self._first_launch = False
         
         self._load_config()
         self.add(self.collect_widget)
+        self.run_manager.set_current_page(0)
         self.show_all()
         
     def _on_inject(self, obj, value):
@@ -131,6 +133,7 @@ class CollectManager(gtk.Frame):
         if self._first_launch:
             self._last_current = value
         else:
+            self._last_current = 0
             self._first_launch = False  
             
         if (self._last_current - self.beamline.registry['ring_current'].get() > 10):
@@ -153,8 +156,6 @@ class CollectManager(gtk.Frame):
                 run = int(section)
                 data[run] = config[section]
                 self.add_run(data[run])
-        data = self.run_manager.runs[0].get_parameters()
-        self.run_manager.runs[0].set_parameters(data)
 
     def _save_config(self):
         config_dir = os.environ['HOME'] + '/.mxdc'
@@ -165,9 +166,9 @@ class CollectManager(gtk.Frame):
                 
         config = ConfigObj()
         config.unrepr = True
-        config_file = os.environ['HOME'] + '/.mxdc/run_config2.dat'
+        config_file = os.path.join(config_dir,'run_config2.dat')
 
-        if os.access(config_dir,os.W_OK):
+        if os.access(config_dir, os.W_OK):
             config.filename = config_file
             for key in self.run_data.keys():
                 data = self.run_data[key]
@@ -279,10 +280,7 @@ class CollectManager(gtk.Frame):
         self.clear_runs()
         for run in self.run_manager.runs:
             data = run.get_parameters()
-            if check_folder(data['directory']) and run.is_enabled():
-                self.run_data[ data['number'] ] = data
-            else:
-                return
+            self.run_data[ data['number'] ] = data
         self._save_config()
         self.create_runlist()
         
@@ -291,7 +289,7 @@ class CollectManager(gtk.Frame):
         self.create_runlist()
             
     
-    def remove_run(self, index):
+    def remove_run(self, obj, index):
         run_data = {}
         for key in self.run_data.keys():
             if key < index:
@@ -314,7 +312,7 @@ class CollectManager(gtk.Frame):
         elif 0 in run_data.keys():
             run_data = {0: run_data[0],}
             if self.beamline is not None:
-                run_data[0]['energy'] = [self.beamline.energy.get_position()]
+                run_data[0]['energy'] = [self.beamline.monochromator.energy.get_position()]
             run_data[0]['energy_label'] = ['E0']
         self.run_list = []
         if len( run_data.keys() ) > 1:
@@ -384,7 +382,6 @@ class CollectManager(gtk.Frame):
             iter = model.iter_next(iter)
             
         if self.collect_state == COLLECT_STATE_PAUSED:
-            print 'Resetting position to', self.frame_pos + 1
             self.collector.set_position( self.frame_pos )
         return True
     
@@ -451,15 +448,11 @@ class CollectManager(gtk.Frame):
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
         self.progress_bar.idle_text("Stopped")
-        try:
-            os.spawnlp(os.P_NOWAIT, "festival", "festival", '--tts','/users/cmcfadmin/tts/data_done')
-        except:
-            pass
 
     def on_new_image(self, widget, index, filename):
         self.frame_pos = index
         self.set_row_state(index, saved=True)
-        self.image_viewer.show_detector_image(filename)
+        #self.image_viewer.show_detector_image(filename)
       
 
     def on_progress(self, obj, fraction, position):
@@ -496,7 +489,7 @@ class CollectManager(gtk.Frame):
         if self.config_user():
             if self.check_runlist():
                 self.progress_bar.busy_text("Starting data collection...")
-                self.collector.setup_from_list(self.run_list, skip_collected=True)
+                self.collector.configure(run_list=self.run_list, skip_collected=True)
                 self.collector.start()
                 self.collect_state = COLLECT_STATE_RUNNING
                 self.collect_btn.set_label('cm-pause')

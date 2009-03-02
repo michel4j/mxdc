@@ -1,6 +1,7 @@
 import threading
 import logging
 import gobject
+import time
 
 from zope.interface import Interface, Attribute
 from zope.interface import implements
@@ -67,9 +68,9 @@ class DataCollector(gobject.GObject):
         self.beamline.lock.acquire()
         try:          
             self.beamline.exposure_shutter.close()
+            self.beamline.detector.initialize()
             self.pos = 0
             header = {}
-    
             while self.pos < len(self.run_list) :
                 if self.paused:
                     gobject.idle_add(self.emit, 'paused', True)
@@ -84,12 +85,12 @@ class DataCollector(gobject.GObject):
                 if frame['saved'] and self.skip_collected:
                     self.log( 'Skipping %s' % frame['file_name'])
                     continue                               
-                self.beamline.energy.move_to(frame['energy'])
-                self.distance.move_to(frame['distance'])
-                self.distance.wait()
-                self.two_theta.move_to(frame['two_theta'])
-                self.two_theta.wait()
-                self.beamline.energy.wait()                
+                self.beamline.monochromator.energy.move_to(frame['energy'])
+                self.beamline.diffractometer.distance.move_to(frame['distance'])
+                self.beamline.diffractometer.distance.wait()
+                self.beamline.diffractometer.two_theta.move_to(frame['two_theta'])
+                self.beamline.diffractometer.two_theta.wait()
+                self.beamline.monochromator.energy.wait()                
                 
                 # Prepare image header
                 header['delta'] = frame['delta']
