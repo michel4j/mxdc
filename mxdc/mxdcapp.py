@@ -20,13 +20,11 @@ _logger = get_module_logger('mxdc')
 
 class MXDCApp(object):
     def __init__(self, config):
-        splash_duration = 2
+        splash_duration = 1
         self._config_file = config
-        self.splash = Splash(duration=splash_duration, color='#fdbf01')
+        self.splash = Splash(duration=splash_duration, color='#fffffe')
         self.splash.set_version('2.5.9')
         gobject.timeout_add(splash_duration * 1000, self.run)
-        #while gtk.events_pending():
-        #     gtk.main_iteration()
         self.beamline = MXBeamline(self._config_file)
                  
     def run(self):

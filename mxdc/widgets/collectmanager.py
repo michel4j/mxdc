@@ -54,8 +54,7 @@ class CollectManager(gtk.Frame):
             gobject.TYPE_BOOLEAN,
             gobject.TYPE_FLOAT,
             gobject.TYPE_UINT,
-            gobject.TYPE_STRING
-            
+            gobject.TYPE_STRING           
         )
         self.listview = gtk.TreeView(self.listmodel)
         self.listview.set_rules_hint(True)
