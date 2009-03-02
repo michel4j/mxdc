@@ -12,11 +12,10 @@ def generate_run_list(run, show_number=False):
     run_list = []
     index = 0
     offsets = run['inverse_beam'] and [0, 180] or [0,]
-    
-    angle_range = run['angle_range']
+    angle_range = run['total_angle']
     wedge = run['wedge'] < angle_range and run['wedge'] or angle_range
     wedge_size = int( (wedge) / run['delta'])
-    total_size = run['num_frames']
+    total_size = run['total_frames']
     passes = int ( round( 0.5 + (angle_range-run['delta']) / wedge) ) # take the roof (round_up) of the number
     remaining_frames = total_size
     current_slice = wedge_size

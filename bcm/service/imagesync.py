@@ -73,6 +73,7 @@ class ImgSyncService(service.Service):
 
          
     def set_user(self, user, uid, gid):
+        log.msg('<%s(`%s`,%s,%s)>' % (sys._getframe().f_code.co_name, user, uid, gid))   
         config = ConfigParser()
         config.add_section('config')
         config.set('config', 'user', user)
@@ -89,6 +90,7 @@ class ImgSyncService(service.Service):
         return True
 
     def create_folder(self, folder):
+        log.msg('<%s(`%s`)>' % (sys._getframe().f_code.co_name, folder))   
         f_parts = os.path.abspath(folder.strip()).split('/')
         try:
             if f_parts[1] != '' and len(f_parts)>2:

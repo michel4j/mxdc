@@ -16,7 +16,7 @@ class LabelHandler(logging.Handler):
 
 class Splash(object):
     def __init__(self, duration=2.0, color=None, bg=None):
-        image_file = os.path.join(DATA_DIR, 'cool-splash1.png')
+        image_file = os.path.join(DATA_DIR, 'cool-splash.png')
         self.win = gtk.Window()
         self.win.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
         self.win.set_gravity(gtk.gdk.GRAVITY_CENTER)

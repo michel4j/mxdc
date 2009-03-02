@@ -56,11 +56,11 @@ class MXCCDImager(object):
         }
                 
         #Status parameters
+        self._state_string = '00000000'
         self._state = ca.PV("%s:rawState" % name)
         self._state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
         self._state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
         self._bg_taken = False
-        self._state_string = '00002020'
         
         self._state.connect('changed', self._on_state_change)
         self._connection_state.connect('changed', self._update_background)
@@ -102,7 +102,7 @@ class MXCCDImager(object):
             self._wait_for_state('read:exec')
     
     def get_state(self):
-        state_string = self._state_string[:]
+        state_string = self._state_string
         states = []
         for i in range(8):
             state_val = int(state_string[i])

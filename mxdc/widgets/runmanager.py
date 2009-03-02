@@ -5,6 +5,7 @@ from mxdc.widgets.runwidget import RunWidget
 class RunManager(gtk.Notebook):
     __gsignals__ = {
         'saved' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+        'del-run' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
     }
     def __init__(self):
         gtk.Notebook.__init__(self)       
@@ -71,8 +72,7 @@ class RunManager(gtk.Notebook):
     def on_delete_run(self, widget):
         num = self.get_current_page()
         self.del_run(num)
-        if self.parent:
-           self.parent.remove_run(num)
+        self.emit('del-run', num)
         
     
     def reset_parent(self):
@@ -82,7 +82,6 @@ class RunManager(gtk.Notebook):
                 self.parent.apply_run()
                           
     def update_parent(self, pos):
-        print self.runs
         if self.parent:
            self.parent.apply_run()
 
