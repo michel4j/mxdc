@@ -192,6 +192,7 @@ def yesno(header, sub_header=None, details=None, parent=None, default=gtk.RESPON
                          buttons=buttons, default=default)
 
 def check_folder(directory, parent=None, warn=True):
+    print directory
     if directory is None:
         return False
     if not os.path.exists(directory):
