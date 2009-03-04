@@ -266,7 +266,7 @@ class PV(gobject.GObject):
     
     def get(self):
         if self.state != CA_OP_CONN_UP:
-            _logger.error('(%s) PV not connected' % (self.name,))
+            #_logger.error('(%s) PV not connected' % (self.name,))
             raise ChannelAccessError('PV not connected')
         if self._monitor == True and self.value is not None:
             ret_val = self.value
@@ -419,9 +419,13 @@ def _heart_beat(duration=0.01):
     libca.ca_pend_event(duration)
     return True
 
-#Make sure you get the events on time.
-gobject.timeout_add(20, _heart_beat, 0.005)
-     
+def _heart_beat_loop():
+    threads_init()
+    while libca.active:
+        libca.ca_pend_event(0.02)
+        time.sleep(0.05)
+    
+             
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
     libca = cdll.LoadLibrary(libca_file)
@@ -476,8 +480,24 @@ _cb_factory = CFUNCTYPE(c_int, ExceptionHandlerArgs)
 _cb_function = _cb_factory(ca_exception_handler)
 _cb_user_agg = c_void_p()
 libca.ca_add_exception_event(_cb_function, _cb_user_agg)
+libca.active = True
+
 
 # cleanup gracefully at termination
-atexit.register(libca.ca_context_destroy)
+def _ca_cleanup():
+    libca.active = False
+    time.sleep(0.02)
+    libca.ca_context_destroy()
+
+atexit.register(_ca_cleanup)
 
 __all__ = ['PV', 'threads_init', 'flush', ]
+
+
+#Make sure you get the events on time.
+#gobject.timeout_add(20, _heart_beat, 0.005)
+_ca_heartbeat_thread = threading.Thread(target=_heart_beat_loop)
+_ca_heartbeat_thread.setDaemon(True)
+_ca_heartbeat_thread.setName('ca.heartbeat')
+_ca_heartbeat_thread.start()
+
