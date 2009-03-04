@@ -13,17 +13,18 @@ class StatusPanel(gtk.Statusbar):
         self.layout_table.set_border_width(1)
 
         self.layout_table.attach(self._frame_control('Beamline', gtk.Label('08ID-1'), gtk.SHADOW_IN), 7, 8 , 0, 1)
-
-        self.intensity = ActiveLabel(beamline.registry['ring_current'], format="%10.1f")
+        
+        beamline.registry['ring_current'].units = 'mA'
+        self.intensity = ActiveLabel(beamline.registry['ring_current'], format="<tt><small>%8.1f</small></tt>")
         self.layout_table.attach(self._frame_control('Ring', self.intensity, gtk.SHADOW_IN), 6, 7 , 0, 1)
         
-        self.intensity = ActiveLabel(beamline.registry['i_2'].value, format="%10.2g")
+        self.intensity = ActiveLabel(beamline.registry['i_2'].value, format="<tt><small>%8.2g</small></tt>")
         self.layout_table.attach(self._frame_control('I₂', self.intensity, gtk.SHADOW_IN), 5, 6 , 0, 1)
         
-        self.intensity = ActiveLabel(beamline.registry['i_1'].value, format="%10.2g")
+        self.intensity = ActiveLabel(beamline.registry['i_1'].value, format="<tt><small>%8.2g</small></tt>")
         self.layout_table.attach(self._frame_control('I₁', self.intensity, gtk.SHADOW_IN), 4, 5 , 0, 1)
         
-        self.intensity = ActiveLabel(beamline.i_0.value, format="%10.2g")
+        self.intensity = ActiveLabel(beamline.i_0.value, format="<tt><small>%8.2g</small></tt>")
         self.layout_table.attach(self._frame_control('I₀', self.intensity, gtk.SHADOW_IN), 3, 4 , 0, 1)
 
         hseparator = gtk.HSeparator()
