@@ -49,26 +49,30 @@ class VideoSrc(object):
     def del_sink(self, sink):
         if sink in self.sinks:
             self.sinks.remove(sink)
-        
+            
     def start(self):
         if self._stopped == True:
             self._stopped = False
             worker = threading.Thread(target=self._stream_video)
+            worker.setName('Video Thread: %s' % self.name)
             worker.setDaemon(True)
             worker.start()        
         
     def stop(self):
         self._stopped = True
-            
+    
     def _stream_video(self):
         ca.threads_init()
         dur = 1.0/self.maxfps
         while not self._stopped:
             if self._active:
-                img = self.get_frame()
-                for sink in self.sinks:
-                    if not sink.stopped:
-                        sink.display(img)
+                try:
+                    img = self.get_frame()
+                    for sink in self.sinks:
+                        if not sink.stopped:
+                            sink.display(img)
+                except:
+                    _logger.error('(%s) Error fetching frame' % self.name)
             time.sleep(dur)
                
     def get_frame(self): 
@@ -113,6 +117,8 @@ class CACamera(VideoSrc):
     
     def _activate(self, obj, val):
         self._active = val
+        if not val:
+            self._stopped = True
     
     def _on_zoom_change(self, obj, val):
            self.resolution = 5.34e-3 * numpy.exp( -0.18 * val)

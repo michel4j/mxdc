@@ -23,7 +23,6 @@ class VideoWidget(gtk.DrawingArea):
     def __init__(self, camera):
         gtk.DrawingArea.__init__(self)
         self.camera = camera
-        self.pixmap = None
         self.pixbuf = None
         self.stopped = False
         self._colorize = False
@@ -60,7 +59,6 @@ class VideoWidget(gtk.DrawingArea):
             width = int(ratio * height)
         self.scale = float(width)/self.camera.size[0]
         self._img_width, self._img_height = width, height
-        self.pixmap = gtk.gdk.Pixmap(widget.window, width, height)
         self.set_size_request(-1,-1)
         return True
     
@@ -87,11 +85,9 @@ class VideoWidget(gtk.DrawingArea):
     def on_expose(self, widget, event):
         w, h = self.get_size_request()
         if self.pixbuf is not None:
-            self.pixmap.draw_pixbuf(self.gc, self.pixbuf, 0, 0, 0, 0, w, h, 0,0,0)
+            self.window.draw_pixbuf(self.gc, self.pixbuf, 0, 0, 0, 0, w, h, 0,0,0)
             if self.overlay_func is not None:
-                    self.overlay_func(self.pixmap)
-            self.window.draw_drawable(self.gc, self.pixmap, 0, 0, 0, 0, 
-                w, h)
+                    self.overlay_func(self.window)
             self.fps = 1.0/(time.time() - self._last_frame)
             self._last_frame = time.time()
     

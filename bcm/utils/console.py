@@ -28,6 +28,7 @@ import gobject
 
 BCM_PATH = os.path.join(os.path.dirname(__file__),'../..')
 sys.path.append(os.path.abspath(BCM_PATH))
+sys.path.append(os.environ['BCM_PATH'])
 
 try:
     import readline
