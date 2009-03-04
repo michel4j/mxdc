@@ -122,7 +122,7 @@ class MXCCDImager(object):
                       
     def _set_parameters(self, data):
         for key in data.keys():
-            self._header[key].put(data[key])        
+            self._header[key].set(data[key])        
         self._header_cmd.set(1)
     
     def _on_state_change(self, pv, val):
