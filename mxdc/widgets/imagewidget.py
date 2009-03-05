@@ -1,8 +1,12 @@
 # -*- coding: UTF8 -*-
 import os
 import sys
-import Queue
+import math
+import re
+import struct
+import pickle
 import gtk
+import logging
 import gobject
 import pango
 import time
@@ -11,20 +15,13 @@ import Image
 import ImageOps
 import ImageDraw
 import ImageFont
+from scipy.misc import toimage, fromimage
+from dialogs import select_image
 try:
     import cairo
     USE_CAIRO = True
 except:
     USE_CAIRO = False
-import sys
-import re, os, time, gc, stat
-import gtk, gobject, pango
-import Image, ImageEnhance, ImageFilter, ImageOps, ImageDraw, ImageFont
-import numpy, re, struct
-from scipy.misc import toimage, fromimage
-import pickle
-from dialogs import select_image
-import logging
 
 __log_section__ = 'mxdc.imgview'
 img_logger = logging.getLogger(__log_section__)
@@ -36,16 +33,21 @@ COLORMAPS = pickle.load(file(os.path.join(DATA_DIR, 'colormaps.data')))
 class ImageWidget(gtk.DrawingArea):
     def __init__(self, size):
         gtk.DrawingArea.__init__(self)
-        self.img = None
         self.pixbuf = None
-        self.stopped = False
+        self._display = gtk.gdk.display_get_default()
+        self._grabbing_pixbuf = gtk.gdk.pixbuf_new_from_file(
+                                        os.path.join(DATA_DIR, 'grabbing_cursor.gif'))
+        self._rubber_band=False
+        self._shifting=False
         self._colorize = False
         self._palette = None
-        self._best_interp = gtk.gdk.INTERP_NEAREST
-        self.overlay_func = None
-        self.img_size = size
+        self.image_loaded = False
+        self._best_interp = gtk.gdk.INTERP_TILES
+
         self.extents_back = []
+        self.extents_forward = []
         self.extents = None
+        
         self.set_events(gtk.gdk.EXPOSURE_MASK |
                 gtk.gdk.LEAVE_NOTIFY_MASK |
                 gtk.gdk.BUTTON_PRESS_MASK |
@@ -63,7 +65,6 @@ class ImageWidget(gtk.DrawingArea):
         self.connect('button_press_event', self.on_mouse_press)
         self.connect('button_release_event', self.on_mouse_release)
         self.set_size_request(size, size)
-        self.rubber_band=False
         self.set_colormap('gist_yarg')
     
     def set_colormap(self, colormap=None):
@@ -115,14 +116,13 @@ class ImageWidget(gtk.DrawingArea):
         myfile.close()
 
     def load_frame(self, filename):
+        self._set_cursor_mode(gtk.gdk.WATCH)
         self._read_header(filename)
-        raw_img = Image.open(filename)        
+        raw_img = Image.open(filename)
+        self.pixel_data = raw_img.load()       
         self.gamma_factor = 80.0 / self.average_intensity     
         img = raw_img.point(lambda x: x * self.gamma_factor).convert('L')
         
-        # invert the image to get black spots on white background and resize
-        #img = img.point(lambda x: x * -1 + 255)
-
         if self._colorize and img.mode == 'L':
             img.putpalette(self._palette)
         self.image = img.convert('RGB')
@@ -136,6 +136,17 @@ class ImageWidget(gtk.DrawingArea):
                                                     self.image_height, 
                                                     3 * self.image_width )
         self.queue_draw()
+        self._set_cursor_mode()
+        self.image_loaded = True
+        self.image_info_text = u'Δt:%4.1f Δφ:%5.2f D:%5.1f φ:%6.2f λ:%6.4f Iavg:%0.1f Imax:%0.0f #Sat:%3.0f' % (
+            self.delta_time, 
+            self.delta, self.distance,
+            self.phi_start, 
+            self.wavelength,
+            self.average_intensity,self.max_intensity, self.overloads)
+    
+    def get_image_info(self):
+        pass
        
     def _calc_bounds(self, x0, y0, x1, y1):
         x = int(min(x0, x1))
@@ -147,7 +158,7 @@ class ImageWidget(gtk.DrawingArea):
     def draw_overlay(self):
         drawable = self.window
         gc = self.pl_gc        
-        if self.rubber_band:
+        if self._rubber_band:
             x, y, w, h = self._calc_bounds(self.rubber_x0,
                                       self.rubber_y0,
                                       self.rubber_x1,
@@ -166,7 +177,7 @@ class ImageWidget(gtk.DrawingArea):
         # rubberband
         cr.set_line_width(1.5)
         cr.set_source_rgb(0.0, 0.5, 1.0)
-        if self.rubber_band:
+        if self._rubber_band:
             x, y, w, h = self._calc_bounds(self.rubber_x0,
                                            self.rubber_y0,
                                            self.rubber_x1,
@@ -186,62 +197,116 @@ class ImageWidget(gtk.DrawingArea):
             cr.line_to(cx, cy+4)
             cr.stroke()
 
-    def unzoom(self, full=False):
+    def go_back(self, full=False):
         if len(self.extents_back)> 0 and not full:
             self.extents = self.extents_back.pop()
         else:
             self.extents = (0,0,self.image_width, self.image_height)
             self.extents_back = []
         self.queue_draw()
-        
-    
+        return len(self.extents_back) > 0
+
+    def set_brightness(self, value):
+        print value
+        print len(self._palette)
+       
+    def _res(self,x,y):
+        displacement = self.pixel_size * math.sqrt ( (x -self.beam_x)**2 + (y -self.beam_y)**2 )
+        angle = 0.5 * math.atan(displacement/self.distance)
+        if angle < 1e-3:
+            angle = 1e-3
+        return self.wavelength / (2.0 * math.sin(angle) )
+
+    def get_position(self, x, y):
+        if not self.image_loaded:
+            return 0, 0, 0.0, 0
+        ox,oy,ow,oh = self.extents
+        Ix = int(x/self.scale)+ox
+        Iy = int(y/self.scale)+oy
+        Res = self._res(Ix, Iy)
+        return Ix, Iy, Res, self.pixel_data[Ix, Iy]
+
+    def _set_cursor_mode(self, cursor=None ):
+        if cursor is None:
+            self.window.set_cursor(None)
+        elif cursor=='grabbing':
+            self.window.set_cursor(gtk.gdk.Cursor(self._display, 
+                                                  self._grabbing_pixbuf, 0,0))
+        else:
+            self.window.set_cursor(gtk.gdk.Cursor(cursor))            
+        while gtk.events_pending():
+            gtk.main_iteration()
+            
+    def _clear_extents(self):
+        self.extents_back = []
+        self.back_btn.set_sensitive(False)
+               
     def on_configure(self, widget, event):
         width, height = event.width, event.height
         if width > height:
             width = height
         else:
             height = width
-        self.queue_draw()
+        #self.queue_draw()
                
     def on_mouse_motion(self, widget, event):
+        if not self.image_loaded:
+            return False
         if event.is_hint:
             x, y, state = event.window.get_pointer()
         else:
             x = event.x; y = event.y
         #print event.state.value_names
-        if 'GDK_BUTTON1_MASK' in event.state.value_names:
-            wx, wy, w, h = widget.get_allocation()
+        wx, wy, w, h = widget.get_allocation()
+        if 'GDK_BUTTON1_MASK' in event.state.value_names and self._rubber_band:
             self.rubber_x1 = max(min(w-1, event.x), 0)
             self.rubber_y1 = max(min(h-1, event.y), 0)
             self.queue_draw()
-        #ix, iy = self._calc_position(x, y)
-        #print ix, iy, self.extents
-        return True
+        elif 'GDK_BUTTON2_MASK' in event.state.value_names and self._shifting:           
+            self.shift_x1 = event.x
+            self.shift_y1 = event.y
+            ox,oy,ow,oh = self.extents
+            nx = int((self.shift_x0-self.shift_x1)/self.scale)+ox
+            ny = int((self.shift_y0-self.shift_y1)/self.scale)+oy
+            nw = ow
+            nh = oh
+            nx = max(0, nx)
+            ny = max(0, ny)
+            if nx + nw > self.image_width:
+                nx = self.image_width - nw
+            if ny + nh > self.image_height:
+                ny = self.image_height - nh
+            if self.extents != (nx, ny, nw, nh):
+                self.extents = (nx, ny, nw, nh)
+                self.shift_x0 = self.shift_x1
+                self.shift_y0 = self.shift_y1
+                self.queue_draw()
+        return False
     
-    def _calc_position(self, x, y):
-        ox,oy,ow,oh = self.extents
-        Ix = int(x/self.scale)+ox
-        Iy = int(y/self.scale)+oy
-        return Ix, Iy
-        
-
     def on_mouse_press(self, widget, event):
+        if not self.image_loaded:
+            return False
+        wx, wy, w, h = widget.get_allocation()
         if event.button == 1:
-            self.rubber_band = True
-            wx, wy, w, h = widget.get_allocation()
             self.rubber_x0 = max(min(w, event.x), 0)
             self.rubber_y0 = max(min(h, event.y), 0)
             self.rubber_x1, self.rubber_y1 = self.rubber_x0, self.rubber_y0
+            self._rubber_band = True
+            self._set_cursor_mode(gtk.gdk.TCROSS)
         elif event.button == 2:
-            if len(self.extents_back)>1:
-                self.extents = self.extents_back.pop()
-            else:
-                self.extents = (0,0,self.image_width, self.image_height)
-            self.queue_draw()
-    
+            self._set_cursor_mode(gtk.gdk.FLEUR)
+            self.shift_x0 = max(min(w, event.x), 0)
+            self.shift_y0 = max(min(w, event.y), 0)
+            self.shift_x1, self.shift_y1 = self.shift_x0, self.shift_y0
+            self._shift_start_extents = self.extents
+            self._shifting = True
+            self._set_cursor_mode(gtk.gdk.FLEUR)
+            
     def on_mouse_release(self, widget, event):
-        if self.rubber_band:
-            self.rubber_band = False
+        if not self.image_loaded:
+            return False        
+        if self._rubber_band:
+            self._rubber_band = False
             x,y,w,h = self._calc_bounds(self.rubber_x0,
                                   self.rubber_y0,
                                   self.rubber_x1,
@@ -261,6 +326,12 @@ class ImageWidget(gtk.DrawingArea):
             self.extents_back.append(self.extents)
             self.extents = (nx, ny, nw, nh)
             self.queue_draw()
+        if self._shifting:
+            self._shifting = False
+            self.extents_back.append(self._shift_start_extents)
+
+        self._set_cursor_mode()
+            
   
     def on_expose(self, widget, event):
         if self.pixbuf is not None:
