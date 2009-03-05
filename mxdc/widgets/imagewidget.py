@@ -11,7 +11,11 @@ import Image
 import ImageOps
 import ImageDraw
 import ImageFont
-
+try:
+    import cairo
+    USE_CAIRO = True
+except:
+    USE_CAIRO = False
 import sys
 import re, os, time, gc, stat
 import gtk, gobject, pango
@@ -37,6 +41,7 @@ class ImageWidget(gtk.DrawingArea):
         self.stopped = False
         self._colorize = False
         self._palette = None
+        self._best_interp = gtk.gdk.INTERP_NEAREST
         self.overlay_func = None
         self.img_size = size
         self.extents_back = []
@@ -59,9 +64,19 @@ class ImageWidget(gtk.DrawingArea):
         self.connect('button_release_event', self.on_mouse_release)
         self.set_size_request(size, size)
         self.rubber_band=False
-        #self.set_colormap('Spectral')
+        self.set_colormap('gist_yarg')
     
-    def read_header(self, filename):
+    def set_colormap(self, colormap=None):
+        if colormap is not None:
+            self._colorize = True
+            self._palette = COLORMAPS[colormap]
+        else:
+            self._colorize = False
+            
+    def set_cross(self, x, y):
+        self.beam_x, self.beam_y = x, y
+        
+    def _read_header(self, filename):
         # Read MarCCD header
         header_format = 'I16s39I80x' # 256 bytes
         statistics_format = '3Q7I9I40x128H' #128 + 256 bytes
@@ -83,8 +98,6 @@ class ImageWidget(gtk.DrawingArea):
         self.source_pars = struct.unpack(source_format, myfile.read(128))
         self.file_pars = struct.unpack(file_format, myfile.read(1024))
         self.dataset_pars = struct.unpack(dataset_format, myfile.read(512))
-        myfile.close()
-
         # extract some values from the header
         self.beam_x, self.beam_y = self.goniostat_pars[1]/1e3, self.goniostat_pars[2]/1e3
         self.distance = self.goniostat_pars[0] / 1e3
@@ -99,45 +112,16 @@ class ImageWidget(gtk.DrawingArea):
         self.average_intensity = max(80, self.statistics_pars[5] / 1e3)
         self.overloads = self.statistics_pars[8]
         self.saturated_value = self.header_pars[23]
+        myfile.close()
 
-    def set_colormap(self, colormap=None):
-        if colormap is not None:
-            self._colorize = True
-            self._palette = COLORMAPS[colormap]
-        else:
-            self._colorize = False
-
-    def set_filename(self, filename):
-        self.filename = filename
-        # determine file template and frame_number
-        file_pattern = re.compile('^(.*)([_.])(\d+)(\..+)?$')
-        fm = file_pattern.search(self.filename)
-        parts = fm.groups()
-        if len(parts) == 4:
-            prefix = parts[0] + parts[1]
-            if parts[3]:
-                file_extension = parts[3]
-            else:
-                file_extension = ""
-            self.file_template = "%s%s0%dd%s" % (prefix, '%', len(parts[2]), file_extension)
-            self.frame_number = int (parts[2])
-        else:
-            self.file_template = None
-            self.frame_number = None
-
-    
     def load_frame(self, filename):
-        self.set_filename(filename)
-        self.display()
-            
-    def display(self):
-        self.read_header(self.filename)
-        raw_img = Image.open(self.filename)        
+        self._read_header(filename)
+        raw_img = Image.open(filename)        
         self.gamma_factor = 80.0 / self.average_intensity     
         img = raw_img.point(lambda x: x * self.gamma_factor).convert('L')
         
         # invert the image to get black spots on white background and resize
-        img = img.point(lambda x: x * -1 + 255)
+        #img = img.point(lambda x: x * -1 + 255)
 
         if self._colorize and img.mode == 'L':
             img.putpalette(self._palette)
@@ -160,28 +144,57 @@ class ImageWidget(gtk.DrawingArea):
         h = int(abs(y0 - y1))
         return (x,y,w,h)      
         
-    def draw_rubberband(self):
-        if not self.rubber_band:
-            return
+    def draw_overlay(self):
         drawable = self.window
         gc = self.pl_gc        
-        x, y, w, h = self._calc_bounds(self.rubber_x0,
-                                  self.rubber_y0,
-                                  self.rubber_x1,
-                                  self.rubber_y1)    
-        drawable.draw_rectangle(gc, False, x, y, w,  h)
-
-    def draw_cross(self):
-        drawable = self.window
-        gc = self.pl_gc        
+        if self.rubber_band:
+            x, y, w, h = self._calc_bounds(self.rubber_x0,
+                                      self.rubber_y0,
+                                      self.rubber_x1,
+                                      self.rubber_y1)    
+            drawable.draw_rectangle(gc, False, x, y, w, h)
+        
+        # cross
         x, y, w, h = self.extents
         if (0 < (self.beam_x-x) < x+w) and (0 < (self.beam_y-y) < y+h):
             cx = int((self.beam_x-x)*self.scale)
             cy = int((self.beam_y-y)*self.scale)
             drawable.draw_line(gc, cx-4, cy, cx+4, cy)
             drawable.draw_line(gc, cx, cy-4, cx, cy+4)
-        return
 
+    def draw_overlay_cairo(self, cr):
+        # rubberband
+        cr.set_line_width(1.5)
+        cr.set_source_rgb(0.0, 0.5, 1.0)
+        if self.rubber_band:
+            x, y, w, h = self._calc_bounds(self.rubber_x0,
+                                           self.rubber_y0,
+                                           self.rubber_x1,
+                                           self.rubber_y1)    
+            cr.rectangle(x, y, w, h)
+            cr.stroke()
+        
+        # cross
+        x, y, w, h = self.extents
+        if (0 < (self.beam_x-x) < x+w) and (0 < (self.beam_y-y) < y+h):
+            cx = int((self.beam_x-x)*self.scale)
+            cy = int((self.beam_y-y)*self.scale)
+            cr.move_to(cx-4, cy)
+            cr.line_to(cx+4, cy)
+            cr.stroke()
+            cr.move_to(cx, cy-4)
+            cr.line_to(cx, cy+4)
+            cr.stroke()
+
+    def unzoom(self, full=False):
+        if len(self.extents_back)> 0 and not full:
+            self.extents = self.extents_back.pop()
+        else:
+            self.extents = (0,0,self.image_width, self.image_height)
+            self.extents_back = []
+        self.queue_draw()
+        
+    
     def on_configure(self, widget, event):
         width, height = event.width, event.height
         if width > height:
@@ -225,8 +238,7 @@ class ImageWidget(gtk.DrawingArea):
             else:
                 self.extents = (0,0,self.image_width, self.image_height)
             self.queue_draw()
-        return True
-
+    
     def on_mouse_release(self, widget, event):
         if self.rubber_band:
             self.rubber_band = False
@@ -249,7 +261,6 @@ class ImageWidget(gtk.DrawingArea):
             self.extents_back.append(self.extents)
             self.extents = (nx, ny, nw, nh)
             self.queue_draw()
-        return True  
   
     def on_expose(self, widget, event):
         if self.pixbuf is not None:
@@ -258,20 +269,25 @@ class ImageWidget(gtk.DrawingArea):
                                      self.extents[2], self.extents[3])
             disp_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, w, h)
             self.scale = float(w)/self.extents[2]
-            if self.scale < 1.0:
-                interp = gtk.gdk.INTERP_HYPER
-            else:
+            if self.scale >= 1.0:
                 interp = gtk.gdk.INTERP_NEAREST
+            else:
+                interp = self._best_interp
             src_pixbuf.scale(disp_pixbuf, 0, 0, w, h, 0,
                               0, self.scale, self.scale, interp)
             self.window.draw_pixbuf(self.gc, disp_pixbuf, 0, 0, 0, 0)
-            self.draw_rubberband()
-            self.draw_cross()
+            if USE_CAIRO:
+                context = self.window.cairo_create()
+                context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
+                context.clip()
+                self.draw_overlay_cairo(context)
+            else:
+                self.draw_overlay()
                 
     def on_realized(self, obj):
         self.gc = self.window.new_gc()
         self.pl_gc = self.window.new_gc()
-        self.pl_gc.foreground = self.get_colormap().alloc_color("black")
+        self.pl_gc.foreground = self.get_colormap().alloc_color("#007fff")
         self.ol_gc = self.window.new_gc()
         self.ol_gc.foreground = self.get_colormap().alloc_color("green")
         self.ol_gc.set_function(gtk.gdk.XOR)
@@ -294,7 +310,7 @@ def main():
     win.set_border_width(6)
     win.set_title("Diffraction Image Viewer")
     myview = ImageWidget(512)
-    gobject.idle_add(myview.load_frame, '/home/michel/data/h14/h14_1_peak_0302.img')
+    gobject.idle_add(myview.load_frame, '/home/michel/data/insulin/insulin_1_E1_0001.img')
     
     hbox = gtk.AspectFrame(ratio=1.0)
     hbox.set_shadow_type(gtk.SHADOW_NONE)
