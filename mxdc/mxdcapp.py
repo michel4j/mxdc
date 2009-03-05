@@ -6,7 +6,8 @@ warnings.simplefilter("ignore")
 
 import gtk
 import gobject
-gobject.threads_init()
+gtk.gdk.threads_init()
+
 from twisted.internet import glib2reactor
 glib2reactor.install()
 from twisted.internet import reactor

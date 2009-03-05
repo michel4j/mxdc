@@ -26,48 +26,48 @@ class ImgViewer(gtk.Frame):
         self._contrast = 1.0
         self._follow = False
 
-#        # connect signals
-#        self.zoom_in_btn.connect('clicked', self.on_zoom_in)      
-#        self.zoom_100_btn.connect('clicked', self.on_zoom_100)
-#        self.incr_contrast_btn.connect('clicked', self.on_incr_contrast)
-#        self.decr_contrast_btn.connect('clicked', self.on_decr_contrast)
-#        #self.incr_brightness_btn.connect('clicked', self.on_incr_brightness)
-#        #self.decr_brightness_btn.connect('clicked', self.on_decr_brightness)
-#        self.undo_btn.connect('clicked', self.on_reset_filters)
-#        self.follow_toggle.connect('toggled', self.on_follow_toggled)
-#                                   
-#            
-#        self.toolbar.set_tooltips(True)
-#        self.is_first_image = True
-#        self.last_displayed = 0
-#        self.cursor = None
-#        self.image_queue = []
 #        #self.load_pck_image('FRAME.pck')
 #        #self.display()
 
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
                                   'image_viewer')
+        self._xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+                                  'adjuster_popup')
+        self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+                                  'info_dialog')
+        
         self._widget = self._xml.get_widget('image_viewer')
+        self.info_dialog = self._xml3.get_widget('info_dialog')
         self.image_frame = self._xml.get_widget('image_frame')
         self.image_canvas = ImageWidget(512)
         self.image_frame.add(self.image_canvas)
+        self.image_canvas.connect('motion_notify_event', self.on_mouse_motion)
+        
         self.open_btn = self._xml.get_widget('open_btn')
         self.next_btn = self._xml.get_widget('next_btn')
         self.prev_btn = self._xml.get_widget('prev_btn')
-        self.zoom_out_btn = self._xml.get_widget('zoom_out_btn')
+        self.back_btn = self._xml.get_widget('back_btn')
         self.zoom_fit_btn = self._xml.get_widget('zoom_fit_btn')
         self.follow_tbtn = self._xml.get_widget('follow_tbtn')
         self.contrast_tbtn = self._xml.get_widget('contrast_tbtn')
         self.brightness_tbtn = self._xml.get_widget('brightness_tbtn')
         self.reset_btn = self._xml.get_widget('reset_btn')
         
+        self.adjuster = self._xml2.get_widget('adjuster_popup')
+        self.adjuster_scale = self._xml2.get_widget('adjustment')
+        self.adjuster_scale.connect('value-changed', self.on_brightness_changed)
+        
+        self.info_label = self._xml.get_widget('info_label')
+        self.extra_label = self._xml.get_widget('extra_label')
+        
         # signals
         self.open_btn.connect('clicked',self.on_file_open)
         self.prev_btn.connect('clicked', self.on_prev_frame)
         self.next_btn.connect('clicked', self.on_next_frame)
-        self.zoom_out_btn.connect('clicked', lambda x: self.image_canvas.unzoom(False))      
-        self.zoom_fit_btn.connect('clicked', lambda x: self.image_canvas.unzoom(True))    
+        self.back_btn.connect('clicked', self.on_go_back, False)      
+        self.zoom_fit_btn.connect('clicked', self.on_go_back, True)
+        self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)  
       
         self.add(self._widget)         
 
@@ -119,31 +119,13 @@ class ImgViewer(gtk.Frame):
         
         self.log("Loading image %s" % (self.filename))
         self.image_canvas.load_frame(self.filename)
-        self.zoom_out_btn.set_sensitive(True)
+        self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
         self.contrast_tbtn.set_sensitive(True)
         self.brightness_tbtn.set_sensitive(True)
         self.reset_btn.set_sensitive(True)
-        
-
-    def delayed_init(self):
-        # activate toolbar 
-        self.zoom_in_btn.set_sensitive(True)
-        self.zoom_out_btn.set_sensitive(True)
-        self.zoom_fit_btn.set_sensitive(True)
-        self.zoom_100_btn.set_sensitive(True)
-        self.incr_contrast_btn.set_sensitive(True)
-        self.decr_contrast_btn.set_sensitive(True)
-        self.undo_btn.set_sensitive(True)
-        self.next_btn.set_sensitive(True)
-        self.prev_btn.set_sensitive(True)
-        self.follow_toggle.set_sensitive(True)
-        
-        # connect rest of events when first image is loaded
-        self.img_frame.connect('motion_notify_event', self.on_mouse_move)
-        self.img_frame.connect('button_press_event', self.on_shift_image)
-    
-    
+        self.follow_tbtn.set_sensitive(True)
+            
     def apply_filters(self, image):       
         #using auto_contrast
         #pc = self.contrast_factor / 5.0
@@ -212,13 +194,6 @@ class ImgViewer(gtk.Frame):
             self.log("%d images in queue" % len(self.image_queue) )
         return True     
         
-    def resolution(self,x,y):
-        displacement = self.image_canvas.pixel_size * math.sqrt ( (x -self.image_canvas.beam_x)**2 + (y -self.beam_y)**2 )
-        angle = 0.5 * numpy.arctan(displacement/self.distance)
-        if angle < 1e-3:
-            angle = 1e-3
-        return self.wavelength / (2.0 * numpy.sin(angle) )
-
     def zoom(self, size):
         old_size = self.image_size
         self.image_size = size
@@ -258,15 +233,8 @@ class ImgViewer(gtk.Frame):
         self.banner_pl.set_font_description(pango.FontDescription("Monospace 7"))
         return True
 
-    #def on_incr_brightness(self,widget):
-    #    self.brightness_factor += 0.1
-    #    self.display()
-    #    return True    
-    
-    #def on_decr_brightness(self,widget):
-    #    self.brightness_factor -= 0.1
-    #    self.display()
-    #    return True    
+    def on_brightness_changed(self, obj):
+        self.image_canvas.set_brightness(obj.get_value())
     
     def on_incr_contrast(self,widget):
         self.contrast_factor = min(10, self.contrast_factor + 0.1)
@@ -286,58 +254,13 @@ class ImgViewer(gtk.Frame):
         self.display()
         return True    
     
-    def on_zoom_in(self,widget):
-        size =    self.image_size * 2
-        self.zoom(size)
-        self.display()
-        return True
-
-
-    def on_zoom_out(self,widget):
-        size =    self.image_size / 2
-        self.zoom(size)
-        self.display()
-        return True 
-    
-    def on_zoom_100(self,widget):
-        old_size = self.image_size
-        self.image_size = self.orig_size
-        self.work_img = self.img.copy()       
-        scale = float(self.image_size) / old_size
-        self.x_center = int(scale * self.x_center) 
-        self.y_center = int(scale * self.y_center) 
-        self.display()
-        return True 
-     
-    def on_zoom_fit(self,widget):
-        self.image_size = self.disp_size
-        self.work_img = self.img.resize((self.image_size,self.image_size),self.ds_interp)        
-        self.display()
-        return True 
-        
-    def on_shift_image(self,widget,event):
-        if event.button != 1:
-            return True
-        half_size = self.disp_size / 2
-        self.x_center = int(event.x - half_size + self.x_center)
-        self.y_center = int(event.y - half_size + self.y_center)
-        self.display()
+    def on_go_back(self, widget, full):
+        b = self.image_canvas.go_back(full)
         return True
     
-    def on_mouse_move(self,widget,event):
-        half_size = self.disp_size / 2
-        scale = float(self.image_size)/self.orig_size
-        Ix = event.x - half_size + self.x_center
-        Iy = event.y - half_size + self.y_center
-        Ox = int(Ix/scale)
-        Oy = int(Iy/scale)
-        self.pointer.set_text("<tt>(%04d.%04d) %0.2f Å</tt>"% (Ox, Oy, self.resolution(Ox,Oy)))
-        self.pointer.set_use_markup(True)
-        if 'GDK_BUTTON2_MASK' in event.state.value_names:
-            self.zooming_lens(Ox, Oy)
-        else:
-            self.image_canvas.window.set_cursor(self.cursor)
-        return True
+    def on_mouse_motion(self,widget,event):
+        ix, iy, ires, ivalue = self.image_canvas.get_position(event.x, event.y)
+        self.info_label.set_markup("<small><tt>%5d %4d \n%5d %4.1f Å</tt></small>"% (ix, iy, ivalue, ires))
 
     def on_next_frame(self,widget):
         if os.access(self.next_filename, os.R_OK):
@@ -358,6 +281,13 @@ class ImgViewer(gtk.Frame):
         self.open_image(filename)
         return True
 
+    def on_brightness_toggled(self, widget):
+        if widget.get_active():
+            self.adjuster.show_all()
+        else:
+            self.adjuster.hide()
+        
+        
     def on_follow_toggled(self,widget):
         if widget.get_active():
             self.follow_frames = True
