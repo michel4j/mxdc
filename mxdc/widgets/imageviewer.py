@@ -178,7 +178,6 @@ class ImgViewer(gtk.Frame):
     
     def _file_loadable(self, filename):
         if not os.path.exists(filename):
-            print statinfo.st_mode
             return False
         statinfo = os.stat(filename)
         if (time.time() - statinfo.st_mtime) < 1.0:
