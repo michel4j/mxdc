@@ -34,11 +34,8 @@ class ImgViewer(gtk.Frame):
                                   'image_viewer')
         self._xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
                                   'adjuster_popup')
-        self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
-                                  'info_dialog')
         
         self._widget = self._xml.get_widget('image_viewer')
-        self.info_dialog = self._xml3.get_widget('info_dialog')
         self.image_frame = self._xml.get_widget('image_frame')
         self.image_canvas = ImageWidget(512)
         self.image_frame.add(self.image_canvas)
@@ -53,6 +50,8 @@ class ImgViewer(gtk.Frame):
         self.contrast_tbtn = self._xml.get_widget('contrast_tbtn')
         self.brightness_tbtn = self._xml.get_widget('brightness_tbtn')
         self.reset_btn = self._xml.get_widget('reset_btn')
+        self.info_btn = self._xml.get_widget('info_btn')
+        self.info_btn.connect('clicked', self.on_image_info)
         
         self.adjuster = self._xml2.get_widget('adjuster_popup')
         self.adjuster_scale = self._xml2.get_widget('adjustment')
@@ -67,7 +66,13 @@ class ImgViewer(gtk.Frame):
         self.next_btn.connect('clicked', self.on_next_frame)
         self.back_btn.connect('clicked', self.on_go_back, False)      
         self.zoom_fit_btn.connect('clicked', self.on_go_back, True)
-        self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)  
+        self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)
+        
+        self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+                                  'info_dialog')
+        self.info_dialog = self._xml3.get_widget('info_dialog')
+        self.info_close_btn = self._xml3.get_widget('info_close_btn')
+        self.info_close_btn.connect('clicked', lambda x: self.info_dialog.hide())
       
         self.add(self._widget)         
 
@@ -125,21 +130,9 @@ class ImgViewer(gtk.Frame):
         self.brightness_tbtn.set_sensitive(True)
         self.reset_btn.set_sensitive(True)
         self.follow_tbtn.set_sensitive(True)
+        self.info_btn.set_sensitive(True)
+        self._update_info()
             
-    def apply_filters(self, image):       
-        #using auto_contrast
-        #pc = self.contrast_factor / 5.0
-        #new_img = ImageOps.autocontrast(image,cutoff=pc)
-        
-        #print self.contrast_factor
-        enhancer = ImageEnhance.Contrast(image)
-        return enhancer.enhance(self.contrast_factor)
-        
-        #f = (1.0 - self.contrast_factor) * 100
-        #print f
-        #return self.adjust_level(image, f)
-        
-                        
     def adjust_level(self, img, shift):     
         return img.point(lambda x: x * 1 + shift)
     
@@ -194,55 +187,11 @@ class ImgViewer(gtk.Frame):
             self.log("%d images in queue" % len(self.image_queue) )
         return True     
         
-    def zoom(self, size):
-        old_size = self.image_size
-        self.image_size = size
-        if self.image_size < self.disp_size:
-            self.image_size = self.disp_size
-        if self.image_size > self.orig_size:
-            interpolation = self.os_interp
-        else:
-            interpolation = self.ds_interp
-        self.work_img = self.img.resize((self.image_size,self.image_size),interpolation)
-        scale = float(self.image_size) / old_size
-        self.x_center = int(scale * self.x_center) 
-        self.y_center = int(scale * self.y_center)
-
-    def autolevel(self, img, lo, hi):        
-        scale = 256.0/(hi - lo)
-        offset = -lo * scale
-        return img.point(lambda x: x * scale + offset)
-
-    
-    # callbacks
-    def on_configure(self, obj, event):
-        width, height = obj.window.get_size()
-        self.pixmap = gtk.gdk.Pixmap(self.image_canvas.window, width, height)
-        self.width, self.height = width, height
-        return True
-
-    def on_realize(self, obj):
-        self.gc = self.image_canvas.window.new_gc()
-        self.pl_gc = self.image_canvas.window.new_gc()
-        self.pl_gc.foreground = self.image_canvas.get_colormap().alloc_color("green")
-        self.ol_gc = self.image_canvas.window.new_gc()
-        self.ol_gc.foreground = self.image_canvas.get_colormap().alloc_color("green")
-        self.ol_gc.set_function(gtk.gdk.XOR)
-        self.ol_gc.set_line_attributes(2,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
-        self.banner_pl = self.image_canvas.create_pango_layout("")
-        self.banner_pl.set_font_description(pango.FontDescription("Monospace 7"))
-        return True
-
     def on_brightness_changed(self, obj):
         self.image_canvas.set_brightness(obj.get_value())
     
-    def on_incr_contrast(self,widget):
+    def on_contrast_changed(self, obj):
         self.contrast_factor = min(10, self.contrast_factor + 0.1)
-        self.display()
-        return True    
-
-    def on_decr_contrast(self,widget):
-        self.contrast_factor = max(0, self.contrast_factor - 0.1)
         self.display()
         return True    
     
@@ -269,6 +218,36 @@ class ImgViewer(gtk.Frame):
             self.log("File not found: %s" % (filename))
         return True
 
+    def _get_parent_window(self):
+        parent = self.get_parent()
+        while parent is not None:
+            last_p = parent
+            parent = parent.get_parent()
+        return last_p
+
+    def _update_info(self):
+        info = self.image_canvas.get_image_info()
+        for key, val in info.items():
+            w = self._xml3.get_widget('%s_lbl' % key)
+            if key in ['img_size', 'beam_center']:
+                txt = "%0.0f, %0.0f" % (val[0], val[1])
+            elif key in ['file']:
+                txt = os.path.basename(val)
+            else:
+                txt = "%g" % val
+            w.set_markup(txt)
+        
+    def on_image_info(self, obj):         
+        if self.info_dialog is None:              
+            self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+                                      'info_dialog')
+            self.info_dialog = self._xml3.get_widget('info_dialog')
+            self.info_close_btn = self._xml3.get_widget('info_close_btn')
+            self.info_close_btn.connect('clicked', lambda x: self.info_dialog.hide())
+        self._update_info()
+        self.info_dialog.set_transient_for(self._get_parent_window())
+        self.info_dialog.show()
+
     def on_prev_frame(self,widget):
         if os.access(self.prev_filename, os.R_OK):
             self.open_image(self.prev_filename)
@@ -284,6 +263,14 @@ class ImgViewer(gtk.Frame):
     def on_brightness_toggled(self, widget):
         if widget.get_active():
             self.adjuster.show_all()
+            self.adjuster.set_transient_for(self._get_parent_window())
+        else:
+            self.adjuster.hide()
+
+    def on_contrast_toggled(self, widget):
+        if widget.get_active():
+            self.adjuster.show_all()
+            self.adjuster.set_transient_for(self._get_parent_window())
         else:
             self.adjuster.hide()
         
