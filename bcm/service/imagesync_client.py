@@ -11,6 +11,6 @@ class ImageSyncClient(object):
     def set_user(self, user, uid, gid):
         return self._server.set_user(user, uid, gid)
     
-    def create_folder(self, folder):
-        return self._server.create_folder(folder)
+    def setup_folder(self, folder):
+        return self._server.setup_folder(folder)
         

@@ -19,7 +19,7 @@ class IImageSyncService(Interface):
     def set_user(user, uid, gid):
         """Return a deferred returning a boolean"""
     
-    def create_folder(folder):
+    def setup_folder(folder):
         """Return a deferred returning a boolean"""
 
 class ConfigXR(xmlrpc.XMLRPC):
@@ -34,8 +34,8 @@ class ConfigXR(xmlrpc.XMLRPC):
     def xmlrpc_set_user(self, user, uid, gid):
         return self.service.set_user(user, uid, gid)
 
-    def xmlrpc_create_folder(self, folder):
-        return self.service.create_folder(folder)
+    def xmlrpc_setup_folder(self, folder):
+        return self.service.setup_folder(folder)
 
 
 class ImgSyncResource(resource.Resource):
@@ -43,7 +43,7 @@ class ImgSyncResource(resource.Resource):
     def __init__(self, service):
         resource.Resource.__init__(self)
         self.service = service
-        self.putChild('RPC2',ConfigXR(self.service))
+        self.putChild('RPC2', ConfigXR(self.service))
 
 class ImgSyncService(service.Service):
     implements(IImageSyncService)
@@ -89,8 +89,11 @@ class ImgSyncService(service.Service):
         self._read_config()
         return True
 
-    def create_folder(self, folder):
-        log.msg('<%s(`%s`)>' % (sys._getframe().f_code.co_name, folder))   
+    def setup_folder(self, folder):
+        log.msg('<%s(`%s`)>' % (sys._getframe().f_code.co_name, folder))
+        if not os.access(folder, os.W_OK):
+            log.err('Directory does not exist.')
+            return False 
         f_parts = os.path.abspath(folder.strip()).split('/')
         try:
             if f_parts[1] != '' and len(f_parts)>2:
@@ -110,6 +113,7 @@ class ImgSyncService(service.Service):
                                   ['-p', bkup_dir])
         except:
             log.err()
+            return False
         return True
     
 components.registerAdapter(ImgSyncResource, IImageSyncService, resource.IResource)

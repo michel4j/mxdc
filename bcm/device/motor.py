@@ -97,7 +97,7 @@ class Motor(MotorBase):
         # initialize process variables based on motor type
         self.DESC = PV("%s:desc" % (pv_root))               
         self.VAL  = PV("%s" % (pv_name))
-        self.PREC =    PV("%s.PREC" % (pv_name))
+        self.PREC =    PV("%s:sp.PREC" % (pv_name))
         if self._motor_type in ['vme','vmeenc']:
             if self._motor_type == 'vme':
                 self.RBV  = PV("%s:sp" % (pv_name))
@@ -126,7 +126,7 @@ class Motor(MotorBase):
             self.LOG.connect('changed', self._on_log)
                      
         # connect monitors
-        self.RBV.connect('changed', self._signal_change)
+        self._rbid = self.RBV.connect('changed', self._signal_change)
         self.STAT.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
         self.DESC.connect('changed', self._on_desc_change)
@@ -159,10 +159,14 @@ class Motor(MotorBase):
         # Do not move is requested position is within precision error
         # from current position.
         prec = self.PREC.get()
-        prec = prec == 0 and 4 or prec
+        if prec == 0:
+            prec = 3
+        _pos_format = "%%0.%df" % prec
+        _pos_to = _pos_format % pos
         if abs(self.get_position() - pos) <  10**-prec :
-            _logger.info( "(%s) is already at %f" % (self.name, pos) )
+            _logger.info( "(%s) is already at %s" % (self.name, _pos_to) )
             return
+        
         
         # Do not move if motor state is not sane.
         if not self.is_healthy():
@@ -171,7 +175,8 @@ class Motor(MotorBase):
         
         self._command_sent = True
         self.VAL.set(pos)
-        _logger.info( "(%s) moving to %f" % (self.name, pos) )
+        _pos_from = _pos_format % self.get_position()
+        _logger.info( "(%s) moving from %s to %s" % (self.name, _pos_from, _pos_to) )
         
         if wait:
             self.wait()
@@ -200,15 +205,15 @@ class Motor(MotorBase):
     def wait(self, start=True, stop=True):
         poll=0.05
         timeout = 2.0
-        if (start):
+        if (start and self._command_sent and not self._moving):
             _logger.debug('(%s) Waiting to start moving' % (self.name,))
             while self._command_sent and not self._moving and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
             if timeout <= 0:
-                _logger.warning('Timed out waiting for motor to start moving.')
+                _logger.warning('Timed out waiting for (%s) to start moving.' % (self.name,))
                 return False                
-        if (stop):
+        if (stop and self._moving):
             _logger.debug('(%s) Waiting to stop moving' % (self.name,))
             while self._moving:
                 time.sleep(poll)
@@ -233,7 +238,7 @@ class EnergyMotor(Motor):
 
     implements(IMotor)
     
-    def __init__(self, pv1, pv2):
+    def __init__(self, pv1, pv2, enc=None):
         MotorBase.__init__(self, 'Beamline Energy')
         self.units = 'keV'
         
@@ -242,7 +247,12 @@ class EnergyMotor(Motor):
         # initialize process variables
         self.VAL  = PV(pv1)    
         self.PREC = PV("%s.PREC" % pv2)  
-        self.RBV  = PV("%s:sp" % pv2)
+        if enc is not None:
+            self.RBV = PV(enc)
+            self.PREC = PV("%s.PREC" % enc)  
+        else:
+            self.RBV  = PV("%s:sp" % pv2)
+            self.PREC = PV("%s:sp.PREC" % pv2)
         self.MOVN = PV("%s:moving" % pv1)
         self.MOVN2 = PV("%s:moving" % pv2)
         self.STOP = PV("%s:stop" % pv1)
@@ -250,9 +260,9 @@ class EnergyMotor(Motor):
         self.STAT =  PV("%s:status" % pv2_root)
         
         # connect monitors
-        self.RBV.connect('changed', self._signal_change)
+        self._rbid = self.RBV.connect('changed', self._signal_change)
         self.MOVN.connect('changed', self._signal_move)
-        self.MOVN2.connect('changed', self._signal_move)
+        #self.MOVN2.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
                             
     def get_position(self):
@@ -264,9 +274,14 @@ class BraggEnergyMotor(Motor):
 
     implements(IMotor)
     
-    def __init__(self, name=None):
+    def __init__(self, name, enc=None):
         Motor.__init__(self, name, motor_type='vme' )
         del self.DESC
+        if enc is not None:
+            del self.RBV          
+            self.RBV = PV(enc)
+            gobject.source_remove(self._rbid)
+            self.RBV.connect('changed', self._signal_change)
         self.name = 'Bragg Energy'
         self._motor_type = 'vme'
 
