@@ -177,7 +177,7 @@ class ImgViewer(gtk.Frame):
             self.collect_id = gobject.timeout_add(2000, self.follow_collect)
     
     def _file_loadable(self, filename):
-        if not os.exists(filename):
+        if not os.path.exists(filename):
             print statinfo.st_mode
             return False
         statinfo = os.stat(filename)
