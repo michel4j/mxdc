@@ -34,9 +34,6 @@ class ImageWidget(gtk.DrawingArea):
     def __init__(self, size):
         gtk.DrawingArea.__init__(self)
         self.pixbuf = None
-        self._display = gtk.gdk.display_get_default()
-        self._grabbing_pixbuf = gtk.gdk.pixbuf_new_from_file(
-                                        os.path.join(DATA_DIR, 'grabbing_cursor.gif'))
         self._rubber_band=False
         self._shifting=False
         self._colorize = False
@@ -105,7 +102,7 @@ class ImageWidget(gtk.DrawingArea):
         self.wavelength = self.source_pars[3] / 1e5
         self.pixel_size = self.detector_pars[1] / 1e6
         self.delta = self.goniostat_pars[24] / 1e3
-        self.phi_start =  self.goniostat_pars[(7 + self.goniostat_pars[23])] / 1e3
+        self.angle_start =  self.goniostat_pars[(7 + self.goniostat_pars[23])] / 1e3
         self.delta_time = self.goniostat_pars[4] / 1e3
         self.min_intensity = self.statistics_pars[3]
         self.max_intensity = self.statistics_pars[4]
@@ -113,6 +110,8 @@ class ImageWidget(gtk.DrawingArea):
         self.average_intensity = max(80, self.statistics_pars[5] / 1e3)
         self.overloads = self.statistics_pars[8]
         self.saturated_value = self.header_pars[23]
+        self.two_theta = (self.goniostat_pars[7] / 1e3) * math.pi / -180.0
+
         myfile.close()
 
     def load_frame(self, filename):
@@ -138,15 +137,25 @@ class ImageWidget(gtk.DrawingArea):
         self.queue_draw()
         self._set_cursor_mode()
         self.image_loaded = True
-        self.image_info_text = u'Δt:%4.1f Δφ:%5.2f D:%5.1f φ:%6.2f λ:%6.4f Iavg:%0.1f Imax:%0.0f #Sat:%3.0f' % (
-            self.delta_time, 
-            self.delta, self.distance,
-            self.phi_start, 
-            self.wavelength,
-            self.average_intensity,self.max_intensity, self.overloads)
+        self.filename = filename
     
     def get_image_info(self):
-        pass
+        info = {
+            'img_size': (self.image_width, self.image_height),
+            'pix_size': self.pixel_size,
+            'exp_time': self.delta_time,
+            'distance': self.distance,
+            'angle': self.angle_start,
+            'delta': self.delta,
+            'two_theta': self.two_theta,
+            'beam_center': (self.beam_x, self.beam_y),
+            'wavelength': self.wavelength,
+            'max_int': self.max_intensity,
+            'avg_int': self.average_intensity,
+            'overloads': self.overloads,
+            'file': self.filename
+            }
+        return info
        
     def _calc_bounds(self, x0, y0, x1, y1):
         x = int(min(x0, x1))
@@ -229,9 +238,6 @@ class ImageWidget(gtk.DrawingArea):
     def _set_cursor_mode(self, cursor=None ):
         if cursor is None:
             self.window.set_cursor(None)
-        elif cursor=='grabbing':
-            self.window.set_cursor(gtk.gdk.Cursor(self._display, 
-                                                  self._grabbing_pixbuf, 0,0))
         else:
             self.window.set_cursor(gtk.gdk.Cursor(cursor))            
         while gtk.events_pending():
