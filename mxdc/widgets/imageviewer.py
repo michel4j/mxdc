@@ -25,6 +25,9 @@ class ImgViewer(gtk.Frame):
         self._brightness = 1.0
         self._contrast = 1.0
         self._follow = False
+        self._collecting = False
+        self.follow_id = None
+        self.collect_id = None
 
 #        #self.load_pck_image('FRAME.pck')
 #        #self.display()
@@ -52,6 +55,7 @@ class ImgViewer(gtk.Frame):
         self.reset_btn = self._xml.get_widget('reset_btn')
         self.info_btn = self._xml.get_widget('info_btn')
         self.info_btn.connect('clicked', self.on_image_info)
+        self.follow_tbtn.connect('toggled', self.on_follow_toggled)
         
         self.adjuster = self._xml2.get_widget('adjuster_popup')
         self.adjuster_scale = self._xml2.get_widget('adjustment')
@@ -158,34 +162,55 @@ class ImgViewer(gtk.Frame):
             self.__set_busy(False)
             return True     
 
-    def auto_follow(self):
-        # prevent chainloading by only loading images 4 seconds appart
-        if time.time() - self.last_displayed < 3:
-            return True
-        if not (self.frame_number and self.file_template):
-            return False
-        self.frame_number = self.frame_number + 1
-        filename = self.file_template % (self.frame_number)
-        self.image_queue = []
-        self.image_queue.append(filename)
-        self.poll_for_file()
-        return True        
+    def follow_frames(self):
+        if os.access(self.next_filename, os.R_OK):
+            self.open_image(self.next_filename)                
+        return True
     
     def set_collect_mode(self, state=True):
-        self.collecting_data = state
-        if self.collecting_data:
-            self.follow_toggle.set_active(state)
-            self.follow_frames = True
-            self.image_queue = []
-            if self.follow_id is not None:
-                gobject.source_remove(self.follow_id)
-            gobject.timeout_add(500, self.poll_for_file)
+        self._collecting = state
+        if state:
+            self.follow_tbtn.set_active(True)
+            self.collect_queue = []
+            if self.collect_id is not None:
+                gobject.source_remove(self.collect_id)
+            self.collect_id = gobject.timeout_add(2000, self.follow_collect)
+    
+    def _file_loadable(self, filename):
+        if not os.exists(filename):
+            print statinfo.st_mode
+            return False
+        statinfo = os.stat(filename)
+        if (time.time() - statinfo.st_mtime) < 1.0:
+            print statinfo.st_mode
+            return False
+        print statinfo.st_mode
+        return True
+    
+    def follow_collect(self):
+        if len(self.collect_queue) == 0 and self._collecting:
+            return True
+        elif not self._collecting:
+            self.follow_tbtn.set_active(False)
+            return False
+        filename = self.collect_queue[0]
+        # only show image if it is readable and the follow button is active
+        
+        if self._file_loadable(filename) and self.follow_tbtn.get_active():
+            #self.open_image(filename)
+            print filename, 'Loading...'
+            self.collect_queue.remove(filename)
+        else:
+            print filename, os.access(filename, os.R_OK)
+        return True
+        
 
-    def show_detector_image(self, filename):
-        if self.collecting_data and self.follow_frames:
-            self.image_queue.append(filename)
-            self.log("%d images in queue" % len(self.image_queue) )
-        return True     
+    def add_frame(self, filename):
+        if self._collecting:
+            self.collect_queue.append(filename)
+            self.log("%d images in queue" % len(self.collect_queue) )
+        else:
+            self.open_image(filename)
         
     def on_brightness_changed(self, obj):
         self.image_canvas.set_brightness(obj.get_value())
@@ -210,13 +235,6 @@ class ImgViewer(gtk.Frame):
     def on_mouse_motion(self,widget,event):
         ix, iy, ires, ivalue = self.image_canvas.get_position(event.x, event.y)
         self.info_label.set_markup("<small><tt>%5d %4d \n%5d %4.1f Å</tt></small>"% (ix, iy, ivalue, ires))
-
-    def on_next_frame(self,widget):
-        if os.access(self.next_filename, os.R_OK):
-            self.open_image(self.next_filename)
-        else:
-            self.log("File not found: %s" % (filename))
-        return True
 
     def _get_parent_window(self):
         parent = self.get_parent()
@@ -248,6 +266,13 @@ class ImgViewer(gtk.Frame):
         self.info_dialog.set_transient_for(self._get_parent_window())
         self.info_dialog.show()
 
+    def on_next_frame(self,widget):
+        if os.access(self.next_filename, os.R_OK):
+            self.open_image(self.next_filename)
+        else:
+            self.log("File not found: %s" % (filename))
+        return True
+
     def on_prev_frame(self,widget):
         if os.access(self.prev_filename, os.R_OK):
             self.open_image(self.prev_filename)
@@ -277,14 +302,16 @@ class ImgViewer(gtk.Frame):
         
     def on_follow_toggled(self,widget):
         if widget.get_active():
-            self.follow_frames = True
-            if not self.collecting_data:
-                self.follow_id = gobject.timeout_add(500, self.auto_follow)
+            if not self._collecting:
+                self._frames = True
+                if self.follow_id is not None:
+                    gobject.source_remove(self.follow_id)
+                self.follow_id = gobject.timeout_add(3000, self.follow_frames)
         else:
             if self.follow_id is not None:
                 gobject.source_remove(self.follow_id)
                 self.follow_id = None
-            self.follow_frames = False
+            self._follow = False
         return True
 
 def main():

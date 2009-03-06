@@ -2,14 +2,17 @@ import gtk
 import gtk.glade
 import gobject
 import sys, os
+from zope.component import globalSiteManager as gsm
+from bcm.beamline.mx import IBeamline
 from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.dialogs import warning, check_folder
 
 (
   COLUMN_LABEL,
   COLUMN_ENERGY,
-  COLUMN_EDITABLE
-) = range(3)
+  COLUMN_EDITABLE,
+  COLUMN_CHANGED
+) = range(4)
 
 DEFAULT_PARAMETERS = {
     'prefix': 'test',
@@ -46,8 +49,7 @@ class RunWidget(gtk.Frame):
         self.enable_btn = self._xml.get_widget('activate_btn')
         self.delete_btn = self._xml.get_widget('delete_btn')
         self.layout_table = self._xml.get_widget('layout_table')
-        
-        self.reset_btn.set_sensitive(False)
+        self.reset_btn.connect('clicked', self.on_reset_parameters)
         self.entry = {}
                 
         # Data for entries (name: (col, row, length, [unit]))
@@ -92,9 +94,11 @@ class RunWidget(gtk.Frame):
         self.energy_store = gtk.ListStore(
             gobject.TYPE_STRING,
             gobject.TYPE_FLOAT,
+            gobject.TYPE_BOOLEAN,
             gobject.TYPE_BOOLEAN
         )
         self.energy_list = gtk.TreeView(model=self.energy_store)
+        self.energy_list.connect('focus-out-event', lambda x, y: self.check_changes())
         self.energy_list.set_rules_hint(True)
         self.sw.add(self.energy_list)
         
@@ -104,6 +108,7 @@ class RunWidget(gtk.Frame):
         renderer.set_data('column',COLUMN_LABEL)
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
         column1 = gtk.TreeViewColumn('Label', renderer, text=COLUMN_LABEL, editable=COLUMN_EDITABLE)
+        column1.set_cell_data_func(renderer, self._cell_format, COLUMN_LABEL)
         column1.set_fixed_width(5)
 
         #Energy column
@@ -111,7 +116,7 @@ class RunWidget(gtk.Frame):
         renderer.set_data('column',COLUMN_ENERGY)
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
         column2 = gtk.TreeViewColumn('Energy', renderer, text=COLUMN_ENERGY, editable=COLUMN_EDITABLE)
-        column2.set_cell_data_func(renderer, self.__float_format, ('%7.4f', COLUMN_ENERGY))
+        column2.set_cell_data_func(renderer, self._cell_format, COLUMN_ENERGY)
         column2.set_fixed_width(10)
         
         self.energy_list.append_column(column1)
@@ -143,43 +148,66 @@ class RunWidget(gtk.Frame):
         self._changes_pending = False
                 
     def __add_energy(self, item=None): 
-        iter = self.energy_store.append()        
+        iter = self.energy_store.append()
+        model = self.energy_store
+        iter = model.get_iter_first()
+        _e_names = []
         if item==None:
-            index = len(self.energy)
+            while iter:
+                _e_names.append(model.get_value(iter, COLUMN_LABEL))
+                iter = model.iter_next(iter)
+            index = len(_e_names)
             name = "E%d" % (index)
-            while name in self.energy_label:
+            while name in _e_names:
                 index += 1
                 name = "E%d" % (index)
-            item = [name, 12.6580, True]
+            #try to get value from beamline if one is registered
+            try:
+                beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+                _e_value = beamline.monochromator.energy.get_position()
+            except:
+                _e_value = 12.6580
+
+            item = [name, _e_value, True, True]
         
-        self.energy.append(item[1])
-        self.energy_label.append(item[0])    
         self.energy_store.set(iter, 
             COLUMN_LABEL, item[COLUMN_LABEL], 
             COLUMN_ENERGY, item[COLUMN_ENERGY],
-            COLUMN_EDITABLE, item[COLUMN_EDITABLE]
+            COLUMN_EDITABLE, item[COLUMN_EDITABLE],
+            COLUMN_CHANGED, item[COLUMN_CHANGED]
         )
         
-    def __float_format(self, cell, renderer, model, iter, data):
-        format, column = data
-        value = model.get_value(iter, column)
-        renderer.set_property('text', format % value)
+    def _cell_format(self, cell, renderer, model, iter, column):
+        if column == COLUMN_ENERGY:
+            value = model.get_value(iter, column)
+            renderer.set_property('text', '%0.4f' % value)
+        value2 = model.get_value(iter, COLUMN_CHANGED)
+        if value2:
+            renderer.set_property("foreground", '#cc0000')
+        else:
+            renderer.set_property("foreground", None)
         return
         
+    
+    def _set_energy_changed(self, state=False):
+        model = self.energy_list.get_model()
+        iter = model.get_iter_first()
+        while iter:
+            model.set(iter, COLUMN_CHANGED, state)
+            iter = model.iter_next(iter)
+            
     def on_energy_edited(self, cell, path_string, new_text, model):
         iter = model.get_iter_from_string(path_string)
         path = model.get_path(iter)[0]
         column = cell.get_data("column")
 
         if column == COLUMN_ENERGY:
-            self.energy[path] = float(new_text)
             model.set(iter, column, float(new_text))
         elif column == COLUMN_LABEL:
-            self.energy_label[path] = new_text
             model.set(iter, column, new_text)
             
     def __reset_e_btn_states(self):
-        size = len(self.energy)
+        size = len(self.energy_store)
         if size > 1:
             self.del_e_btn.set_sensitive(True)
             if size > 4:
@@ -229,17 +257,27 @@ class RunWidget(gtk.Frame):
         self.energy_store.clear()
         self.energy = []
         self.energy_label = []
-
+        
         for i in range(len(dict['energy'])):
-            self.__add_energy([dict['energy_label'][i], dict['energy'][i], True] )
+            self.__add_energy([dict['energy_label'][i], dict['energy'][i], True, False] )
         self.__reset_e_btn_states()
+        self.check_changes()
         
     def get_parameters(self):
         run_data = {}
         run_data['prefix']      = self.entry['prefix'].get_text().strip()
         run_data['directory']   = self.entry['directory'].get_filename()
-        run_data['energy']  =    self.energy
-        run_data['energy_label'] = self.energy_label
+        energy = []
+        energy_label = []
+        model = self.energy_list.get_model()
+        iter = model.get_iter_first()
+        while iter:
+            energy.append(model.get_value(iter, COLUMN_ENERGY))
+            energy_label.append(model.get_value(iter, COLUMN_LABEL))
+            iter = model.iter_next(iter)
+        
+        run_data['energy']  =    energy
+        run_data['energy_label'] = energy_label
         run_data['inverse_beam'] = self.entry['inverse_beam'].get_active()
         run_data['number'] = self.number
 
@@ -252,6 +290,12 @@ class RunWidget(gtk.Frame):
                 
     def is_enabled(self):
         return self.enable_btn.get_active()
+    
+    def disable_run(self):
+        self.enable_btn.set_active(False)
+    
+    def enable_run(self):
+        self.enable_btn.set_active(True)       
 
     def set_number(self, num=0):
         self.number = num
@@ -280,16 +324,31 @@ class RunWidget(gtk.Frame):
                                      energy=new_values['energy'][0],
                                      two_theta=new_values['two_theta'])
         
-        for key in new_values.keys():
-            if key in ['energy', 'energy_label']:
-                widget = self.energy_list
+        keys = new_values.keys()
+        keys.remove('energy_label')
+        for key in keys:
+            if key == 'energy':
+                widget = None
+                _energy_changed = False
+                if len(new_values['energy']) != len(self.parameters['energy']):
+                    _energy_changed = True
+                else:
+                    for i in range(len(new_values['energy'])):
+                        if ((abs(new_values['energy'][i] - self.parameters['energy'][i]) > 0.0001) or
+                            (new_values['energy_label'][i] != self.parameters['energy_label'][i])):
+                            _energy_changed = True
+                self._changes_pending = True
+                self._set_energy_changed(_energy_changed)
+                self.energy_list.get_selection().unselect_all()                                  
             elif key == 'number':
                 widget = self.title
             elif key == 'directory':
                 widget = self.entry['directory']
             else:
                 widget = self.entry[key]
-                
+            
+            if widget is None:
+                continue
             if new_values[key] != self.parameters[key]:
                 widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
                 widget.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
@@ -460,4 +519,19 @@ class RunWidget(gtk.Frame):
         self.parameters = self.get_parameters()
         self.check_changes()
         return True
-    
+
+    def on_reset_parameters(self, obj):
+        try:
+            beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+            params = self.get_parameters()
+            params['distance'] = beamline.diffractometer.distance.get_position()
+            params['two_theta'] = beamline.diffractometer.two_theta.get_position()
+            params['start_angle'] = beamline.goniometer.omega.get_position()
+            params['energy'] = [ beamline.monochromator.energy.get_position() ]
+            params['energy_label'] = ['E0']
+            self.set_parameters(params)
+            self.check_changes()
+        except:
+            self.reset_btn.set_sensitive(False)
+        return True  
+        

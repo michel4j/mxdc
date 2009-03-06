@@ -122,7 +122,7 @@ class Predictor( gtk.AspectFrame ):
                 
     def on_map(self, widget):
         self._can_update = True
-        self.update()
+        #self.update()
         return True
     
     def _angle(self, resol):
