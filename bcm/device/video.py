@@ -72,7 +72,8 @@ class VideoSrc(object):
                         if not sink.stopped:
                             sink.display(img)
                 except:
-                    _logger.error('(%s) Error fetching frame' % self.name)
+                    #_logger.error('(%s) Error fetching frame' % self.name)
+                    pass
             time.sleep(dur)
                
     def get_frame(self): 

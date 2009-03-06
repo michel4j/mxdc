@@ -11,8 +11,7 @@ class GUIHandler(logging.Handler):
         self.viewer = viewer
     
     def emit(self, record):
-        self.viewer.add_text(self.format(record), log=True)
-
+        gobject.idle_add(self.viewer.add_text, self.format(record), True)
 
 class TextViewer(object):
     def __init__(self, view, size=5000):  

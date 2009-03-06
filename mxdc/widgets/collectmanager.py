@@ -167,21 +167,16 @@ class CollectManager(gtk.Frame):
         config = ConfigObj()
         config.unrepr = True
         config_file = os.path.join(config_dir,'run_config2.dat')
-
+        save_data = {}
+        for run in self.run_manager.runs:
+            data = run.get_parameters()
+            save_data[ data['number'] ] = data
         if os.access(config_dir, os.W_OK):
             config.filename = config_file
-            for key in self.run_data.keys():
-                data = self.run_data[key]
+            for key in save_data.keys():
+                data = save_data[key]
                 keystr = "%s" % key
                 config[keystr] = data
-                res = self.beamline.image_server.create_folder(data['directory'])
-                try:
-                    assert(res == True)
-                except:
-                    msg_title = 'Image Transfer Error'
-                    msg_sub = 'MXDC could not setup directories for data collection. '
-                    msg_sub += 'Data collection will not proceed reliably.'
-                    warning(msg_title, msg_sub)
             config.write()
         else:
             msg_title = 'Directory Error'
@@ -279,8 +274,21 @@ class CollectManager(gtk.Frame):
     def save_runs(self, obj=None):
         self.clear_runs()
         for run in self.run_manager.runs:
-            data = run.get_parameters()
-            self.run_data[ data['number'] ] = data
+            if run.is_enabled():
+                data = run.get_parameters()
+                res = self.beamline.image_server.setup_folder(data['directory'])
+                try:
+                    assert(res == True)
+                    self.run_data[ data['number'] ] = data
+                except:
+                    run.disable_run()
+                    msg_title = 'Invalid Directory: "%s"' % data['directory']
+                    msg_sub = 'Could not setup directory for run <b>%d</b>.  ' % data['number']
+                    msg_sub += 'The run has been disabled.  To execute the run, '
+                    msg_sub += 'please select a valid directory and re-activate the run '
+                    msg_sub += 'manually before proceeding.'
+                    warning(msg_title, msg_sub)
+
         self._save_config()
         self.create_runlist()
         
@@ -452,7 +460,7 @@ class CollectManager(gtk.Frame):
     def on_new_image(self, widget, index, filename):
         self.frame_pos = index
         self.set_row_state(index, saved=True)
-        #self.image_viewer.show_detector_image(filename)
+        self.image_viewer.add_frame(filename)
       
 
     def on_progress(self, obj, fraction, position):

@@ -420,6 +420,7 @@ def _heart_beat(duration=0.01):
     return True
 
 def _heart_beat_loop():
+    _logger.info('Starting EPICS Heartbeat Thread')
     threads_init()
     while libca.active:
         libca.ca_pend_event(0.02)
