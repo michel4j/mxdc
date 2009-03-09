@@ -16,21 +16,20 @@ img_logger = logging.getLogger(__log_section__)
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
 
 class ImgViewer(gtk.Frame):
-    def __init__(self):
+    def __init__(self, size=512):
         gtk.Frame.__init__(self)
 
-        self._create_widgets()
-        self.show_all()
-        
+        self._canvas_size = size
         self._brightness = 1.0
         self._contrast = 1.0
         self._follow = False
         self._collecting = False
-        self.follow_id = None
-        self.collect_id = None
-        self.image_canvas.connect('configure-event', self.on_configure)
-#        #self.load_pck_image('FRAME.pck')
-
+        self._br_hide_id = None
+        self._co_hide_id = None
+        self._follow_id = None
+        self._collect_id = None
+        self._create_widgets()
+        
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
                                   'image_viewer')
@@ -41,11 +40,12 @@ class ImgViewer(gtk.Frame):
         
         self._widget = self._xml.get_widget('image_viewer')
         self.image_frame = self._xml.get_widget('image_frame')
-        self.image_canvas = ImageWidget(512)
+        self.image_canvas = ImageWidget(self._canvas_size)
         self.image_frame.add(self.image_canvas)
         self.image_canvas.connect('motion_notify_event', self.on_mouse_motion)
         
         self.open_btn = self._xml.get_widget('open_btn')
+        self.image_label = self._xml.get_widget('image_label')
         self.next_btn = self._xml.get_widget('next_btn')
         self.prev_btn = self._xml.get_widget('prev_btn')
         self.back_btn = self._xml.get_widget('back_btn')
@@ -66,8 +66,6 @@ class ImgViewer(gtk.Frame):
         self.contrast_tbtn.connect('toggled', self.on_contrast_toggled)     
         self.brightness.connect('value-changed', self.on_brightness_changed)
         self.contrast.connect('value-changed', self.on_contrast_changed)
-        self.contrast_popup.connect('leave-notify-event', self.on_focus_out, self.contrast_tbtn )
-        self.brightness_popup.connect('leave-notify-event', self.on_focus_out, self.brightness_tbtn )
         self.reset_btn.connect('clicked', self.on_reset_filters)
         
         self.info_label = self._xml.get_widget('info_label')
@@ -85,8 +83,10 @@ class ImgViewer(gtk.Frame):
         self.info_dialog = self._xml3.get_widget('info_dialog')
         self.info_close_btn = self._xml3.get_widget('info_close_btn')
         self.info_close_btn.connect('clicked', lambda x: self.info_dialog.hide())
-      
+        
+        self.image_canvas.connect('configure-event', self.on_configure)      
         self.add(self._widget)         
+        self.show_all()
 
     def __set_busy(self, busy ):
         if busy:
@@ -136,6 +136,7 @@ class ImgViewer(gtk.Frame):
         
         self.log("Loading image %s" % (self.filename))
         self.image_canvas.load_frame(self.filename)
+        self.image_label.set_markup('<small>%s</small>' % self.filename)
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
         self.contrast_tbtn.set_sensitive(True)
@@ -168,7 +169,7 @@ class ImgViewer(gtk.Frame):
             return True     
 
     def follow_frames(self):
-        if os.access(self.next_filename, os.R_OK):
+        if self._file_loadable(self.next_filename):
             self.open_image(self.next_filename)                
         return True
     
@@ -177,35 +178,30 @@ class ImgViewer(gtk.Frame):
         if state:
             self.follow_tbtn.set_active(True)
             self.collect_queue = []
-            if self.collect_id is not None:
-                gobject.source_remove(self.collect_id)
-            self.collect_id = gobject.timeout_add(2000, self.follow_collect)
+            if self._collect_id is not None:
+                gobject.source_remove(self._collect_id)
+            self._collect_id = gobject.timeout_add(1000, self.follow_collect)
     
     def _file_loadable(self, filename):
-        if not os.path.exists(filename):
+        if os.access(filename, os.R_OK):
+            return True
+        else:
             return False
-        statinfo = os.stat(filename)
-        if (time.time() - statinfo.st_mtime) < 1.0:
-            print statinfo.st_mode
-            return False
-        print statinfo.st_mode
-        return True
     
     def follow_collect(self):
         if len(self.collect_queue) == 0 and self._collecting:
             return True
-        elif not self._collecting:
+        elif not self._collecting and len(self.collect_queue) == 0:
             self.follow_tbtn.set_active(False)
             return False
         filename = self.collect_queue[0]
-        # only show image if it is readable and the follow button is active
         
+        # only show image if it is readable and the follow button is active        
         if self._file_loadable(filename) and self.follow_tbtn.get_active():
-            #self.open_image(filename)
-            print filename, 'Loading...'
+            self.open_image(filename)
             self.collect_queue.remove(filename)
-        else:
-            print filename, os.access(filename, os.R_OK)
+        elif not self.follow_tbtn.get_active():
+            self.collect_queue.remove(filename)
         return True
         
 
@@ -243,11 +239,19 @@ class ImgViewer(gtk.Frame):
 
     def on_brightness_changed(self, obj):
         self.image_canvas.set_brightness(obj.get_value())
+        if self._br_hide_id is not None:
+            gobject.source_remove(self._br_hide_id)
+            self._br_hide_id = gobject.timeout_add(6000, self._timed_hide, self.brightness_tbtn)
     
     def on_contrast_changed(self, obj):
         self.image_canvas.set_contrast(obj.get_value())
+        if self._co_hide_id is not None:
+            gobject.source_remove(self._co_hide_id)
+            self._co_hide_id = gobject.timeout_add(6000, self._timed_hide, self.contrast_tbtn)
     
     def on_reset_filters(self,widget):
+        self.contrast_tbtn.set_active(False)
+        self.brightness_tbtn.set_active(False)
         self.image_canvas.reset_filters()
         return True    
     
@@ -302,20 +306,35 @@ class ImgViewer(gtk.Frame):
         self.open_image(filename)
         return True
 
+    def _timed_hide(self, obj):
+        obj.set_active(False)
+        return False
+
     def on_brightness_toggled(self, widget):
-        if widget.get_active():
+        if self.brightness_tbtn.get_active():
+            self.contrast_tbtn.set_active(False)
             self._position_popups()
             self.brightness_popup.set_transient_for(self._get_parent_window())
             self.brightness_popup.show_all()
+            self._br_hide_id = gobject.timeout_add(5000, self._timed_hide, self.brightness_tbtn)
         else:
+            if self._br_hide_id is not None:
+                gobject.source_remove(self._br_hide_id)
+                self._br_hide_id = None
             self.brightness_popup.hide()
 
     def on_contrast_toggled(self, widget):
-        if widget.get_active():
+        if self.contrast_tbtn.get_active():
+            self.brightness_tbtn.set_active(False)
             self._position_popups()
             self.contrast_popup.set_transient_for(self._get_parent_window())
             self.contrast_popup.show_all()
+            self._co_hide_id = gobject.timeout_add(5000, self._timed_hide, self.contrast_tbtn)
+            
         else:
+            if self._co_hide_id is not None:
+                gobject.source_remove(self._co_hide_id)
+                self._co_hide_id = None
             self.contrast_popup.hide()
         
         
@@ -323,13 +342,13 @@ class ImgViewer(gtk.Frame):
         if widget.get_active():
             if not self._collecting:
                 self._frames = True
-                if self.follow_id is not None:
-                    gobject.source_remove(self.follow_id)
-                self.follow_id = gobject.timeout_add(3000, self.follow_frames)
+                if self._follow_id is not None:
+                    gobject.source_remove(self._follow_id)
+                self._follow_id = gobject.timeout_add(3000, self.follow_frames)
         else:
-            if self.follow_id is not None:
-                gobject.source_remove(self.follow_id)
-                self.follow_id = None
+            if self._follow_id is not None:
+                gobject.source_remove(self._follow_id)
+                self._follow_id = None
             self._follow = False
         return True
 

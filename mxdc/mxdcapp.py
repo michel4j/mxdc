@@ -6,14 +6,13 @@ warnings.simplefilter("ignore")
 
 import gtk
 import gobject
-gtk.gdk.threads_init()
 
 from twisted.internet import glib2reactor
 glib2reactor.install()
 from twisted.internet import reactor
 
 from bcm.utils.log import get_module_logger
-#from mxdc.utils import gtkexcepthook
+from mxdc.utils import gtkexcepthook
 from mxdc.AppWindow import AppWindow
 
 _logger = get_module_logger('mxdc')
@@ -31,8 +30,8 @@ class MXDCApp(object):
     
     def do_quit(self, obj):
         _logger.info('Stopping...')
-        #reactor.stop()
-        gtk.main_quit()
+        reactor.stop()
+        #gtk.main_quit()
 
 if __name__ == "__main__":
     try:
@@ -43,5 +42,5 @@ if __name__ == "__main__":
         _logger.error('Please make sure MXDC is properly installed and configured.')
         sys.exit(1)
     app = MXDCApp(config)
-    #reactor.run()
-    gtk.main()
+    reactor.run()
+    #gtk.main()
