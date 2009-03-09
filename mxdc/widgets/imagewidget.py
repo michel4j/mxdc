@@ -120,6 +120,10 @@ class ImageWidget(gtk.DrawingArea):
         self.saturated_value = self.header_pars[23]
         self.two_theta = (self.goniostat_pars[7] / 1e3) * math.pi / -180.0
 
+        if self.average_intensity < 0.1:
+            self.gamma_factor = 1.0
+        else:
+            self.gamma_factor = 4.82 * math.exp( -0.017 * self.average_intensity)
         myfile.close()
 
     def load_frame(self, filename):
@@ -135,10 +139,7 @@ class ImageWidget(gtk.DrawingArea):
     
     def _create_pixbuf(self):
         self.raw_img = self.orig_img.point(lambda x: x * self.gamma_factor).convert('L')
-        his = self.raw_img.histogram()[5:-5]
-        x = range(len(his))
-        dat = numpy.array(zip(x,his))
-        self._plot_histogram(dat)
+
         if self._colorize and self.raw_img.mode in ['L','P']:
             self.raw_img.putpalette(self._palette)
         self.image = self.raw_img.convert('RGB')
@@ -332,20 +333,23 @@ class ImageWidget(gtk.DrawingArea):
         self.queue_draw()
         return len(self.extents_back) > 0
 
-    def set_brightness(self, value):
+    def set_contrast(self, value):
         self._palette = self._calc_palette(value)
         self._colorize = True
         self._create_pixbuf()
         self.queue_draw()
 
-    def set_contrast(self, value):
+    def set_brightness(self, value):
         self.gamma_factor = value
         self._create_pixbuf()
         self.queue_draw()
 
     def reset_filters(self):
         self.set_colormap('gist_yarg')
-        self.gamma_factor = 1.0
+        if self.average_intensity < 0.1:
+            self.gamma_factor = 1.0
+        else:
+            self.gamma_factor = 4.82 * math.exp(-0.017 * self.average_intensity)
         self._create_pixbuf()
         self.queue_draw()
        
