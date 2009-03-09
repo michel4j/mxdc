@@ -175,11 +175,10 @@
       </widget>
     </child>
   </widget>
-  <widget class="GtkWindow" id="adjuster_popup">
+  <widget class="GtkWindow" id="brightness_popup">
     <property name="type">GTK_WINDOW_POPUP</property>
     <property name="resizable">False</property>
     <property name="destroy_with_parent">True</property>
-    <property name="type_hint">GDK_WINDOW_TYPE_HINT_DROPDOWN_MENU</property>
     <child>
       <widget class="GtkViewport" id="image_adjuster">
         <property name="visible">True</property>
@@ -187,7 +186,9 @@
         <property name="shadow_type">GTK_SHADOW_OUT</property>
         <child>
           <widget class="GtkHBox" id="hbox1">
+            <property name="width_request">200</property>
             <property name="visible">True</property>
+            <property name="spacing">6</property>
             <child>
               <widget class="GtkImage" id="adjust_icon">
                 <property name="visible">True</property>
@@ -196,20 +197,18 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
-                <property name="padding">6</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkHScale" id="adjustment">
-                <property name="width_request">100</property>
+              <widget class="GtkHScale" id="brightness">
                 <property name="can_focus">True</property>
-                <property name="adjustment">20.403726708074537 0 100 1 10 10</property>
+                <property name="update_policy">GTK_UPDATE_DELAYED</property>
+                <property name="adjustment">50 0 100 5 10 0</property>
                 <property name="restrict_to_fill_level">False</property>
                 <property name="fill_level">100</property>
                 <property name="draw_value">False</property>
               </widget>
               <packing>
-                <property name="padding">6</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -681,6 +680,49 @@
             <property name="expand">False</property>
             <property name="pack_type">GTK_PACK_END</property>
           </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="GtkWindow" id="contrast_popup">
+    <property name="type">GTK_WINDOW_POPUP</property>
+    <property name="resizable">False</property>
+    <property name="destroy_with_parent">True</property>
+    <property name="opacity">0.5</property>
+    <child>
+      <widget class="GtkViewport" id="image_adjuster1">
+        <property name="visible">True</property>
+        <property name="resize_mode">GTK_RESIZE_QUEUE</property>
+        <property name="shadow_type">GTK_SHADOW_OUT</property>
+        <child>
+          <widget class="GtkHBox" id="hbox2">
+            <property name="width_request">200</property>
+            <property name="visible">True</property>
+            <property name="spacing">6</property>
+            <child>
+              <widget class="GtkImage" id="adjust_icon1">
+                <property name="visible">True</property>
+                <property name="xpad">6</property>
+                <property name="icon_name">stock_contrast</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkHScale" id="contrast">
+                <property name="can_focus">True</property>
+                <property name="update_policy">GTK_UPDATE_DELAYED</property>
+                <property name="adjustment">1 0 10 0.5 1 0</property>
+                <property name="restrict_to_fill_level">False</property>
+                <property name="fill_level">100</property>
+                <property name="draw_value">False</property>
+              </widget>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </widget>
         </child>
       </widget>
     </child>
