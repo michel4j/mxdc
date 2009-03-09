@@ -255,6 +255,7 @@ class SampleList(gtk.ScrolledWindow):
             item = {'state': 0, 'selected': False}
             for i in range(len(header)):
                 item[header[i]] = row[i]
+                print row[i]
             self.__add_item(item)
         csvfile.close()
             
