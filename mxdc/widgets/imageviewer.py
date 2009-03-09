@@ -28,15 +28,16 @@ class ImgViewer(gtk.Frame):
         self._collecting = False
         self.follow_id = None
         self.collect_id = None
-
+        self.image_canvas.connect('configure-event', self.on_configure)
 #        #self.load_pck_image('FRAME.pck')
-#        #self.display()
 
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
                                   'image_viewer')
         self._xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
-                                  'adjuster_popup')
+                                  'brightness_popup')
+        self._xml4 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+                                  'contrast_popup')
         
         self._widget = self._xml.get_widget('image_viewer')
         self.image_frame = self._xml.get_widget('image_frame')
@@ -50,16 +51,24 @@ class ImgViewer(gtk.Frame):
         self.back_btn = self._xml.get_widget('back_btn')
         self.zoom_fit_btn = self._xml.get_widget('zoom_fit_btn')
         self.follow_tbtn = self._xml.get_widget('follow_tbtn')
-        self.contrast_tbtn = self._xml.get_widget('contrast_tbtn')
-        self.brightness_tbtn = self._xml.get_widget('brightness_tbtn')
         self.reset_btn = self._xml.get_widget('reset_btn')
         self.info_btn = self._xml.get_widget('info_btn')
         self.info_btn.connect('clicked', self.on_image_info)
         self.follow_tbtn.connect('toggled', self.on_follow_toggled)
         
-        self.adjuster = self._xml2.get_widget('adjuster_popup')
-        self.adjuster_scale = self._xml2.get_widget('adjustment')
-        self.adjuster_scale.connect('value-changed', self.on_brightness_changed)
+        self.contrast_tbtn = self._xml.get_widget('contrast_tbtn')
+        self.brightness_tbtn = self._xml.get_widget('brightness_tbtn')
+        self.brightness_popup = self._xml2.get_widget('brightness_popup')
+        self.contrast_popup = self._xml4.get_widget('contrast_popup')
+        self.brightness = self._xml2.get_widget('brightness')
+        self.contrast = self._xml4.get_widget('contrast')
+        self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)
+        self.contrast_tbtn.connect('toggled', self.on_contrast_toggled)     
+        self.brightness.connect('value-changed', self.on_brightness_changed)
+        self.contrast.connect('value-changed', self.on_contrast_changed)
+        self.contrast_popup.connect('leave-notify-event', self.on_focus_out, self.contrast_tbtn )
+        self.brightness_popup.connect('leave-notify-event', self.on_focus_out, self.brightness_tbtn )
+        self.reset_btn.connect('clicked', self.on_reset_filters)
         
         self.info_label = self._xml.get_widget('info_label')
         self.extra_label = self._xml.get_widget('extra_label')
@@ -70,7 +79,6 @@ class ImgViewer(gtk.Frame):
         self.next_btn.connect('clicked', self.on_next_frame)
         self.back_btn.connect('clicked', self.on_go_back, False)      
         self.zoom_fit_btn.connect('clicked', self.on_go_back, True)
-        self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)
         
         self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
                                   'info_dialog')
@@ -137,9 +145,6 @@ class ImgViewer(gtk.Frame):
         self.info_btn.set_sensitive(True)
         self._update_info()
             
-    def adjust_level(self, img, shift):     
-        return img.point(lambda x: x * 1 + shift)
-    
     def poll_for_file(self):
         if len(self.image_queue) == 0:
             if self.collecting_data == True:
@@ -210,21 +215,40 @@ class ImgViewer(gtk.Frame):
             self.log("%d images in queue" % len(self.collect_queue) )
         else:
             self.open_image(filename)
+
+    def _get_parent_window(self):
+        parent = self.get_parent()
+        last_parent = parent
+        while parent is not None:
+            last_parent = parent
+            parent = last_parent.get_parent()
+        return last_parent
+
+    def _position_popups(self):
+        ox, oy = self.window.get_origin()
+        ix,iy,iw,ih,ib = self.image_canvas.window.get_geometry()
+        cx = ox + ix + iw/2 - 100
+        cy = oy + iy + ih/2 + 50
+        self.contrast_popup.move(cx, cy)
+        self.brightness_popup.move(cx, cy)
         
+
+    # signal handlers
+    def on_focus_out(self, obj, event, btn):
+        btn.set_active(False)
+        
+    def on_configure(self, obj, event):
+        self._position_popups()
+        return False
+
     def on_brightness_changed(self, obj):
         self.image_canvas.set_brightness(obj.get_value())
     
     def on_contrast_changed(self, obj):
-        self.contrast_factor = min(10, self.contrast_factor + 0.1)
-        self.display()
-        return True    
+        self.image_canvas.set_contrast(obj.get_value())
     
     def on_reset_filters(self,widget):
-        self.brightness_factor = 1.0
-        self.contrast_factor = 1.0
-        self.image_size = self.disp_size
-        self.work_img = self.img.resize((self.image_size,self.image_size),self.ds_interp)
-        self.display()
+        self.image_canvas.reset_filters()
         return True    
     
     def on_go_back(self, widget, full):
@@ -235,12 +259,6 @@ class ImgViewer(gtk.Frame):
         ix, iy, ires, ivalue = self.image_canvas.get_position(event.x, event.y)
         self.info_label.set_markup("<small><tt>%5d %4d \n%5d %4.1f Å</tt></small>"% (ix, iy, ivalue, ires))
 
-    def _get_parent_window(self):
-        parent = self.get_parent()
-        while parent is not None:
-            last_p = parent
-            parent = parent.get_parent()
-        return last_p
 
     def _update_info(self):
         info = self.image_canvas.get_image_info()
@@ -286,17 +304,19 @@ class ImgViewer(gtk.Frame):
 
     def on_brightness_toggled(self, widget):
         if widget.get_active():
-            self.adjuster.show_all()
-            self.adjuster.set_transient_for(self._get_parent_window())
+            self._position_popups()
+            self.brightness_popup.set_transient_for(self._get_parent_window())
+            self.brightness_popup.show_all()
         else:
-            self.adjuster.hide()
+            self.brightness_popup.hide()
 
     def on_contrast_toggled(self, widget):
         if widget.get_active():
-            self.adjuster.show_all()
-            self.adjuster.set_transient_for(self._get_parent_window())
+            self._position_popups()
+            self.contrast_popup.set_transient_for(self._get_parent_window())
+            self.contrast_popup.show_all()
         else:
-            self.adjuster.hide()
+            self.contrast_popup.hide()
         
         
     def on_follow_toggled(self,widget):
