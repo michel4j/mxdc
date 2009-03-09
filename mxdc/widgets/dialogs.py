@@ -237,10 +237,11 @@ class ImageSelector:
         self.path = os.environ['HOME']+ os.sep
         #self.path = "/data" + os.sep
         self.filter = gtk.FileFilter()
-        self.filter.set_name("MARCCD Images")
+        self.filter.set_name("Diffraction Frames")
         self.filter.add_pattern("*.img")
         self.filter.add_pattern("*.marccd")
         self.filter.add_pattern("*.mccd")
+        self.filter.add_pattern("*.pck")
         self.filter.add_pattern("*.[0-9][0-9][0-9]")
         self.filter.add_pattern("*.[0-9][0-9][0-9][0-9]")
 
