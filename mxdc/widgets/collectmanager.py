@@ -40,7 +40,7 @@ class CollectManager(gtk.Frame):
         self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/collect_widget.glade'), 
                                   'collect_widget')            
         self._register_icons()
-        self.image_viewer = ImgViewer()
+        self.image_viewer = ImgViewer(size=560)
         self.run_manager = RunManager()
         self.collector = DataCollector()
         self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')      
@@ -476,9 +476,9 @@ class CollectManager(gtk.Frame):
         percent = fraction * 100
         if position > 0:
             frame_time = elapsed_time / position
-            text = "ETA %s [%0.1f s/frame]" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)), frame_time)
+            text = "ETA %s @ %0.1fs/frame" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)), frame_time)
         else:
-            text = "Total Time: %s " % (time.strftime('%H:%M:%S',time.gmtime(elapsed_time)))
+            text = "Total: %s sec" % (time.strftime('%H:%M:%S',time.gmtime(elapsed_time)))
         self.progress_bar.set_complete(fraction, text)
                 
     def on_energy_changed(self, obj, val):
