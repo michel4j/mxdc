@@ -15,8 +15,12 @@ import Image
 import ImageOps
 import ImageDraw
 import ImageFont
+import numpy
 from scipy.misc import toimage, fromimage
 from dialogs import select_image
+from matplotlib.colors import LinearSegmentedColormap
+import matplotlib, matplotlib.backends.backend_agg
+
 try:
     import cairo
     USE_CAIRO = True
@@ -36,10 +40,14 @@ class ImageWidget(gtk.DrawingArea):
         self.pixbuf = None
         self._rubber_band=False
         self._shifting=False
+        self._measuring=False
         self._colorize = False
         self._palette = None
         self.image_loaded = False
+        self._draw_histogram = False
         self._best_interp = gtk.gdk.INTERP_TILES
+        self._saturation_factor = 1.0
+        self.gamma_factor = 1.0
 
         self.extents_back = []
         self.extents_forward = []
@@ -107,7 +115,7 @@ class ImageWidget(gtk.DrawingArea):
         self.min_intensity = self.statistics_pars[3]
         self.max_intensity = self.statistics_pars[4]
         self.rms_intensity = self.statistics_pars[6] / 1e3
-        self.average_intensity = max(80, self.statistics_pars[5] / 1e3)
+        self.average_intensity = self.statistics_pars[5] / 1e3
         self.overloads = self.statistics_pars[8]
         self.saturated_value = self.header_pars[23]
         self.two_theta = (self.goniostat_pars[7] / 1e3) * math.pi / -180.0
@@ -117,27 +125,45 @@ class ImageWidget(gtk.DrawingArea):
     def load_frame(self, filename):
         self._set_cursor_mode(gtk.gdk.WATCH)
         self._read_header(filename)
-        raw_img = Image.open(filename)
-        self.pixel_data = raw_img.load()       
-        self.gamma_factor = 80.0 / self.average_intensity     
-        img = raw_img.point(lambda x: x * self.gamma_factor).convert('L')
-        
-        if self._colorize and img.mode == 'L':
-            img.putpalette(self._palette)
-        self.image = img.convert('RGB')
+        self.orig_img = Image.open(filename)
+        self.pixel_data = self.orig_img.load()
+        self._create_pixbuf()
+        self.queue_draw()
+        self._set_cursor_mode()
+        self.image_loaded = True
+        self.filename = filename
+    
+    def _create_pixbuf(self):
+        self.raw_img = self.orig_img.point(lambda x: x * self.gamma_factor).convert('L')
+        his = self.raw_img.histogram()[5:-5]
+        x = range(len(his))
+        dat = numpy.array(zip(x,his))
+        self._plot_histogram(dat)
+        if self._colorize and self.raw_img.mode in ['L','P']:
+            self.raw_img.putpalette(self._palette)
+        self.image = self.raw_img.convert('RGB')
         self.image_width, self.image_height = self.image.size
         if self.extents is None:
             self.extents = (0,0, self.image_width, self.image_height)
+        else:
+            ox, oy, ow, oh = self.extents
+            nx = min(ox, self.image_width)
+            ny = min(oy, self.image_height)
+            nw = ow
+            nh = oh
+            if nx + nw > self.image_width:
+                nw = self.image_width - nx
+            if ny + nh > self.image_height:
+                nh = self.image_height - nw
+            self.extents = (nx, ny, nw, nh)
+            
         self.pixbuf =  gtk.gdk.pixbuf_new_from_data(self.image.tostring(),
                                                     gtk.gdk.COLORSPACE_RGB, 
                                                     False, 8, 
                                                     self.image_width, 
                                                     self.image_height, 
-                                                    3 * self.image_width )
-        self.queue_draw()
-        self._set_cursor_mode()
-        self.image_loaded = True
-        self.filename = filename
+                                                    3 * self.image_width)
+        
     
     def get_image_info(self):
         info = {
@@ -162,8 +188,87 @@ class ImageWidget(gtk.DrawingArea):
         y = int(min(y0, y1))
         w = int(abs(x0 - x1))
         h = int(abs(y0 - y1))
-        return (x,y,w,h)      
+        return (x,y,w,h)
+          
+    def _get_intensity_line(self, x,y,x2,y2):
+        """Bresenham's line algorithm"""
         
+        x, y, res0, val0 = self.get_position(x, y)
+        x2, y2, res1, val1 = self.get_position(x2, y2)
+        
+        steep = 0
+        coords = []
+        dx = abs(x2 - x)
+        if (x2 - x) > 0: sx = 1
+        else: sx = -1
+        dy = abs(y2 - y)
+        if (y2 - y) > 0: sy = 1
+        else: sy = -1
+        if dy > dx:
+            steep = 1
+            x,y = y,x
+            dx,dy = dy,dx
+            sx,sy = sy,sx
+        d = (2 * dy) - dx
+        for i in range(0,dx):
+            if steep: coords.append((y,x))
+            else: coords.append((x,y))
+            while d >= 0:
+                y = y + sy
+                d = d - (2 * dx)
+            x = x + sx
+            d = d + (2 * dy)
+        coords.append((x2,y2))
+   
+        data = numpy.zeros((len(coords),2))
+        n = 0
+        for ix, iy in coords:
+            data[n][0] = n
+            data[n][1] = self.pixel_data[ix, iy]
+            n += 1
+        return data
+
+    def _plot_histogram(self, data):
+        figure = matplotlib.figure.Figure(frameon=False)
+        figure.set_dpi(72)
+        figure.set_size_inches((3,1.75))
+        plot = figure.add_subplot(111)
+        plot.axison = False
+        plot.plot(data[:,0], data[:,1])
+        
+        # Ask matplotlib to render the figure to a bitmap using the Agg backend
+        canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(figure)
+        canvas.draw()
+        
+        # Get the buffer from the bitmap
+        stringImage = canvas.tostring_rgb()
+        
+        # Convert the RGBA buffer to a pixbuf
+        try:
+            l,b,w,h = canvas.figure.bbox.get_bounds()
+        except:
+            l,b,w,h = canvas.figure.bbox.bounds
+        self.plot_pixbuf =  gtk.gdk.pixbuf_new_from_data(stringImage,
+                                                    gtk.gdk.COLORSPACE_RGB, 
+                                                    False, 8, 
+                                                    int(w), int(h), 3*int(w))
+        self._draw_histogram = True
+
+        
+        
+    def _calc_palette(self, percent):
+        frac = percent/100.0
+        cdict = {
+                 'red'  :  ((0., 1., 1.), (frac, 0.9, 0.9), (1., 0., 0.)),
+                 'green':  ((0., 1., 1.), (frac, 0.9, 0.9), (1., 0., 0.)),
+                 'blue' :  ((0., 1., 1.), (frac, 0.9, 0.9), (1., 0., 0.))
+                 }
+        cmap = LinearSegmentedColormap('_tmp_cmap', cdict)
+        a = numpy.arange(256)
+        tpal = cmap(a)[:,:-1].reshape((-1,1))
+        rpal = [int(round(v[0]*255)) for v in tpal]
+        return rpal
+
     def draw_overlay(self):
         drawable = self.window
         gc = self.pl_gc        
@@ -181,6 +286,13 @@ class ImageWidget(gtk.DrawingArea):
             cy = int((self.beam_y-y)*self.scale)
             drawable.draw_line(gc, cx-4, cy, cx+4, cy)
             drawable.draw_line(gc, cx, cy-4, cx, cy+4)
+                   
+        # measuring
+        if self._measuring:
+            drawable.draw_line(gc, False, self.meas_x0, self.meas_y0,
+                               self.meas_x1, self.meas_y1)
+        return True
+
 
     def draw_overlay_cairo(self, cr):
         # rubberband
@@ -205,7 +317,12 @@ class ImageWidget(gtk.DrawingArea):
             cr.move_to(cx, cy-4)
             cr.line_to(cx, cy+4)
             cr.stroke()
-
+        # measuring
+        if self._measuring:
+            cr.move_to(self.meas_x0, self.meas_y0)
+            cr.line_to(self.meas_x1, self.meas_y1)
+            cr.stroke()
+            
     def go_back(self, full=False):
         if len(self.extents_back)> 0 and not full:
             self.extents = self.extents_back.pop()
@@ -216,8 +333,21 @@ class ImageWidget(gtk.DrawingArea):
         return len(self.extents_back) > 0
 
     def set_brightness(self, value):
-        print value
-        print len(self._palette)
+        self._palette = self._calc_palette(value)
+        self._colorize = True
+        self._create_pixbuf()
+        self.queue_draw()
+
+    def set_contrast(self, value):
+        self.gamma_factor = value
+        self._create_pixbuf()
+        self.queue_draw()
+
+    def reset_filters(self):
+        self.set_colormap('gist_yarg')
+        self.gamma_factor = 1.0
+        self._create_pixbuf()
+        self.queue_draw()
        
     def _res(self,x,y):
         displacement = self.pixel_size * math.sqrt ( (x -self.beam_x)**2 + (y -self.beam_y)**2 )
@@ -225,6 +355,11 @@ class ImageWidget(gtk.DrawingArea):
         if angle < 1e-3:
             angle = 1e-3
         return self.wavelength / (2.0 * math.sin(angle) )
+    
+    def _rdist(self, x0, y0, x1, y1 ):
+        d = math.sqrt((x0 - x1)**2 + (y0 - y1)**2) * self.pixel_size
+        print d
+        return (self.wavelength * self.distance/d)
 
     def get_position(self, x, y):
         if not self.image_loaded:
@@ -232,6 +367,8 @@ class ImageWidget(gtk.DrawingArea):
         ox,oy,ow,oh = self.extents
         Ix = int(x/self.scale)+ox
         Iy = int(y/self.scale)+oy
+        Ix = max(0, min(Ix, self.image_width-1))
+        Iy = max(0, min(Iy, self.image_height-1))
         Res = self._res(Ix, Iy)
         return Ix, Iy, Res, self.pixel_data[Ix, Iy]
 
@@ -287,6 +424,11 @@ class ImageWidget(gtk.DrawingArea):
                 self.shift_x0 = self.shift_x1
                 self.shift_y0 = self.shift_y1
                 self.queue_draw()
+        elif 'GDK_BUTTON3_MASK' in event.state.value_names and self._measuring:
+            self.meas_x1 = int(max(min(w-1, event.x), 0))
+            self.meas_y1 = int(max(min(h-1, event.y), 0))
+            self.queue_draw()
+            
         return False
     
     def on_mouse_press(self, widget, event):
@@ -307,6 +449,13 @@ class ImageWidget(gtk.DrawingArea):
             self._shift_start_extents = self.extents
             self._shifting = True
             self._set_cursor_mode(gtk.gdk.FLEUR)
+        elif event.button == 3:
+            self.meas_x0 = int(max(min(w, event.x), 0))
+            self.meas_y0 = int(max(min(h, event.y), 0))
+            self.meas_x1, self.meas_y1 = self.meas_x0, self.meas_y0
+            self._measuring = True
+            self._set_cursor_mode(gtk.gdk.TCROSS)
+            
             
     def on_mouse_release(self, widget, event):
         if not self.image_loaded:
@@ -327,13 +476,21 @@ class ImageWidget(gtk.DrawingArea):
                 nw = self.image_width - nx
             if ny + nh > self.image_height:
                 nh = self.image_height - ny
-            nw = min(nw, nh)
+            
+            nw = max(16, max(nw, nh))
             nh = nw
             self.extents_back.append(self.extents)
             self.extents = (nx, ny, nw, nh)
             self.queue_draw()
-        if self._shifting:
+        elif self._measuring:
+            self._measuring = False
+            self._histogram_data = self._get_intensity_line(self.meas_x0, self.meas_y0, 
+                                           self.meas_x1, self.meas_y1)
+            self._plot_histogram(self._histogram_data)
+            self.queue_draw()
+        elif self._shifting:
             self._shifting = False
+            
             self.extents_back.append(self._shift_start_extents)
 
         self._set_cursor_mode()
@@ -352,6 +509,15 @@ class ImageWidget(gtk.DrawingArea):
                 interp = self._best_interp
             src_pixbuf.scale(disp_pixbuf, 0, 0, w, h, 0,
                               0, self.scale, self.scale, interp)
+            if self._draw_histogram:
+                hw = self.plot_pixbuf.get_width()
+                hh = self.plot_pixbuf.get_height()
+                self.plot_pixbuf.composite(disp_pixbuf,
+                                           (w-hw-24), (h-hh-24), hw, hh, 
+                                           (w-hw-24), (h-hh-24), 1.0, 1.0, self._best_interp,
+                                           125)
+                self._draw_histogram = False
+
             self.window.draw_pixbuf(self.gc, disp_pixbuf, 0, 0, 0, 0)
             if USE_CAIRO:
                 context = self.window.cairo_create()
