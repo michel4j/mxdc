@@ -107,35 +107,44 @@ class ImgViewer(gtk.Frame):
         # determine file template and frame_number
         file_pattern = re.compile('^(.*)([_.])(\d+)(\..+)?$')
         fm = file_pattern.search(self.filename)
-        parts = fm.groups()
-        if len(parts) == 4:
-            prefix = parts[0] + parts[1]
-            if parts[3]:
-                file_extension = parts[3]
+        if fm:
+            parts = fm.groups()
+            if len(parts) == 4:
+                prefix = parts[0] + parts[1]
+                if parts[3]:
+                    file_extension = parts[3]
+                else:
+                    file_extension = ""
+                self.file_template = "%s%s0%dd%s" % (prefix, '%', len(parts[2]), file_extension)
+                self.frame_number = int (parts[2])
             else:
-                file_extension = ""
-            self.file_template = "%s%s0%dd%s" % (prefix, '%', len(parts[2]), file_extension)
-            self.frame_number = int (parts[2])
+                self.file_template = None
+                self.frame_number = None
+            
+            self.next_filename = self.file_template % (self.frame_number + 1)
+            self.prev_filename = self.file_template % (self.frame_number - 1)
         else:
-            self.file_template = None
-            self.frame_number = None
-        
+            self.next_filename = ''
+            self.prev_filename = ''
+
         # test next
-        self.next_filename = self.file_template % (self.frame_number + 1)
-        if not os.access(self.next_filename, os.R_OK):
+        if not self._file_loadable(self.next_filename):
             self.next_btn.set_sensitive(False)
         else:
             self.next_btn.set_sensitive(True)
-
         # test prev
-        self.prev_filename = self.file_template % (self.frame_number - 1)
-        if not os.access(self.prev_filename, os.R_OK):
+        if not self._file_loadable(self.prev_filename):
             self.prev_btn.set_sensitive(False)
         else:
             self.prev_btn.set_sensitive(True)
         
-        self.log("Loading image %s" % (self.filename))
-        self.image_canvas.load_frame(self.filename)
+        file_extension = os.path.splitext(self.filename)[1].lower()
+        if file_extension in ['.pck']:
+            self.log("Loading packed image %s" % (self.filename))
+            self.image_canvas.load_pck(self.filename)
+        else:
+            self.log("Loading image %s" % (self.filename))
+            self.image_canvas.load_frame(self.filename)
         self.image_label.set_markup('<small>%s</small>' % self.filename)
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
@@ -303,7 +312,8 @@ class ImgViewer(gtk.Frame):
 
     def on_file_open(self,widget):
         filename = select_image()
-        self.open_image(filename)
+        if filename is not None:
+            self.open_image(filename)
         return True
 
     def _timed_hide(self, obj):

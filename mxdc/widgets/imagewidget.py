@@ -16,6 +16,7 @@ import ImageOps
 import ImageDraw
 import ImageFont
 import numpy
+import ctypes
 from scipy.misc import toimage, fromimage
 from dialogs import select_image
 from matplotlib.colors import LinearSegmentedColormap
@@ -126,6 +127,30 @@ class ImageWidget(gtk.DrawingArea):
             self.gamma_factor = 4.82 * math.exp( -0.017 * self.average_intensity)
         myfile.close()
 
+    def _read_pck_header(self, filename):
+        header_format = '70s' # 40 bytes
+        myfile = open(filename,'rb')
+        header = myfile.readline()
+        while header[0:17] != 'CCP4 packed image':
+            header = myfile.readline()
+        tokens = header.strip().split(',')
+        self.image_width = int((tokens[1].split(':'))[1])
+        self.image_height= int((tokens[2].split(':'))[1])
+        self.beam_x, self.beam_y = self.image_width/2, self.image_height/2
+        
+        myfile.close()
+        self.distance = 999.9
+        self.wavelength = 0.99
+        self.delta = 0.99
+        self.pixel_size = 0.99
+        self.angle_start = 99.9
+        self.delta_time = 9.9
+        self.min_intensity = 0
+        self.max_intensity = 999
+        self.overloads = 999
+        self.two_theta = 0
+        
+        
     def load_frame(self, filename):
         self._set_cursor_mode(gtk.gdk.WATCH)
         self._read_header(filename)
@@ -136,6 +161,31 @@ class ImageWidget(gtk.DrawingArea):
         self._set_cursor_mode()
         self.image_loaded = True
         self.filename = filename
+    
+    def load_pck(self, filename):
+        libpck = ctypes.cdll.LoadLibrary(os.path.join(DATA_DIR, 'libpck.so'))
+        libpck.openfile.argtypes = [ctypes.c_char_p, ctypes.c_void_p]
+        libpck.openfile.restype = ctypes.c_int
+        self._read_pck_header(filename)
+        size = self.image_width * self.image_height
+        data = ctypes.create_string_buffer( ctypes.sizeof(ctypes.c_ushort) * size )
+        libpck.openfile(filename, ctypes.byref(data))
+        self.pixel_data = numpy.fromstring(data, numpy.ushort)
+        self.pixel_data.resize((self.image_width, self.image_height))
+        self.orig_img = toimage(self.pixel_data)
+        self.average_intensity = numpy.mean(self.pixel_data)
+        if self.average_intensity < 0.1:
+            self.gamma_factor = 1.0
+        elif self.average_intensity < 2000.0:
+            self.gamma_factor = 4.82 * math.exp( -0.017 * self.average_intensity)
+        else:
+            self.gamma_factor = 5.0
+        self._create_pixbuf()
+        self.queue_draw()
+        self._set_cursor_mode()
+        self.image_loaded = True
+        self.filename = filename
+        
     
     def _create_pixbuf(self):
         self.raw_img = self.orig_img.point(lambda x: x * self.gamma_factor).convert('L')
@@ -362,7 +412,6 @@ class ImageWidget(gtk.DrawingArea):
     
     def _rdist(self, x0, y0, x1, y1 ):
         d = math.sqrt((x0 - x1)**2 + (y0 - y1)**2) * self.pixel_size
-        print d
         return (self.wavelength * self.distance/d)
 
     def get_position(self, x, y):
