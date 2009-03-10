@@ -25,17 +25,17 @@ from matplotlib.backends.backend_gtk import FileChooserDialog
 rcParams['legend.loc'] = 'best'
 
 class PlotterToolbar(NavigationToolbar):
-    toolitems = (
-        ('Home', 'Reset original view', gtk.STOCK_HOME, 'home'),
-        ('Back', 'Back to  previous view',gtk.STOCK_GO_BACK, 'back'),
-        ('Forward', 'Forward to next view',gtk.STOCK_GO_FORWARD, 'forward'),
-        ('Pan', 'Pan axes with left mouse, zoom with right', gtk.STOCK_FULLSCREEN,'pan'),
-        ('Zoom', 'Zoom to rectangle',gtk.STOCK_ZOOM_FIT, 'zoom'),
-        (None, None, None, None),
-        ('Save', 'Save the figure',gtk.STOCK_SAVE, 'save_figure'),
-        ('Print', 'Print the figure',gtk.STOCK_PRINT, 'save_figure'),
-        )
     def __init__(self, canvas):
+        self.toolitems = (
+            ('Home', 'Reset original view', gtk.STOCK_HOME, 'home'),
+            ('Back', 'Back to  previous view',gtk.STOCK_GO_BACK, 'back'),
+            ('Forward', 'Forward to next view',gtk.STOCK_GO_FORWARD, 'forward'),
+            ('Pan', 'Pan axes with left mouse, zoom with right', gtk.STOCK_FULLSCREEN,'pan'),
+            ('Zoom', 'Zoom to rectangle',gtk.STOCK_ZOOM_FIT, 'zoom'),
+            (None, None, None, None),
+            ('Save', 'Save the figure',gtk.STOCK_SAVE, 'save_figure'),
+            ('Print', 'Print the figure',gtk.STOCK_PRINT, 'save_figure'),
+            )
         NavigationToolbar.__init__(self, canvas, None)
     
     def _init_toolbar2_4(self):
@@ -89,7 +89,7 @@ class Plotter( gtk.Frame ):
 
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.vbox = gtk.VBox()
-        self.toolbar = PlotterToolbar(self.canvas)
+        self.toolbar = NavigationToolbar(self.canvas)
         self.vbox.pack_start( self.canvas )
         self.vbox.pack_start( self.toolbar, False, False )
         self.line = []
