@@ -8,7 +8,7 @@ from mxdc.widgets.periodictable import PeriodicTable
 from mxdc.widgets.textviewer import TextViewer
 from mxdc.widgets.plotter import Plotter
 from bcm.beamline.mx import IBeamline
-from zope.component import globalSiteManager as gsm
+from twisted.python.components import globalRegistry
 from bcm.engine.spectroscopy import XRFScan, XANESScan
 from bcm.engine import fitting
 from bcm.utils import science
@@ -111,7 +111,7 @@ class ScanManager(gtk.Frame):
         self.output_log = TextViewer(text_view)
         
         try:
-            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+            self.beamline = globalRegistry.lookup([], IBeamline)
             loE, hiE = self.beamline.config['energy_range']
         except:
             self.beamline = None
