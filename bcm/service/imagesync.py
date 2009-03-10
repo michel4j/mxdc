@@ -303,8 +303,6 @@ class ImgConsumer(object):
                                           [img_path, bkup_file])
 
                     log.msg("New Frame '%s" % (user_file))
-                    #log.msg("... %s" % user_out)
-                    #log.msg("... %s" % bkup_out)
             except:
                 log.err()
         
@@ -313,12 +311,4 @@ def img_selector(chunk):
     img_patt = re.compile('.*byte frame written to file:\s+(?P<file>[^ ]+\.img)\s+.*\n')
     new_images = img_patt.findall(chunk)
     return '\n'.join(new_images)
-
-# This section should be in-lined for use with twistd
-# FIXME: We need a separate tac file for deployment
-if __name__ == '__main__':  
-    application = service.Application('ImgConfig')
-    f = ImgSyncService(config_file="/home/marccd/.imgsync.conf", log_file="/home/marccd/log/stdouterr.log")
-    serviceCollection = service.IServiceCollection(application)
-    internet.TCPServer(8888, server.Site(resource.IResource(f))).setServiceParent(serviceCollection)
 
