@@ -8,7 +8,6 @@ from mxdc.widgets.collectmanager import CollectManager
 from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.hutchmanager import HutchManager
 from mxdc.widgets.screeningmanager import ScreenManager
-from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from bcm.utils.log import get_module_logger, log_to_console
 from bcm.beamline.interfaces import IBeamline
 from mxdc.widgets.splash import Splash
@@ -25,7 +24,7 @@ class AppWindow(gtk.Window):
         pixbuf = gtk.gdk.pixbuf_new_from_file(icon_file)        
         self.set_icon (pixbuf)
         
-        self.splash = Splash(version='2.5.9', color='#fffffe')
+        self.splash = Splash(version='3.0.0', color='#fffffe')
         self.splash.win.set_transient_for(self)
         while gtk.events_pending():
             gtk.main_iteration()
@@ -51,6 +50,7 @@ class AppWindow(gtk.Window):
         notebook.append_page(self.collect_manager, tab_label=gtk.Label('  Data Collection '))
         notebook.append_page(self.scan_manager, tab_label=gtk.Label('  Fluorescence Scans  '))
         notebook.append_page(self.screen_manager, tab_label=gtk.Label('  Screening  '))
+        self.screen_manager.set_sensitive(False)
         notebook.set_border_width(6)
 
         self.main_frame.add(notebook)
