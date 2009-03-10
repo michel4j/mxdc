@@ -1,6 +1,6 @@
 import xmlrpclib
 from zope.interface import implements
-from imagesync import IImageSyncService
+from bcm.service.imagesync import IImageSyncService
 
 class ImageSyncClient(object):
     implements(IImageSyncService)
