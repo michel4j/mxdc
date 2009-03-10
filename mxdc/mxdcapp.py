@@ -4,12 +4,12 @@ import logging
 import warnings
 warnings.simplefilter("ignore")
 
-import gtk
-import gobject
-
 from twisted.internet import glib2reactor
 glib2reactor.install()
 from twisted.internet import reactor
+
+import gtk
+import gobject
 
 from bcm.utils.log import get_module_logger
 from mxdc.utils import gtkexcepthook

@@ -2,7 +2,6 @@
 
 import warnings
 warnings.simplefilter("ignore")
-import gtk, gobject
 import sys, os
 import logging
 import time
@@ -10,6 +9,9 @@ import time
 from twisted.internet import glib2reactor
 glib2reactor.install()
 from twisted.internet import reactor
+
+import gtk
+import gobject
 
 from bcm.beamline.mx import MXBeamline
 from bcm.utils.log import get_module_logger
