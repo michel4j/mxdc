@@ -12,7 +12,7 @@ from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.video import add_decorations
 from bcm.utils.log import get_module_logger
-from zope.component import globalSiteManager as gsm
+from twisted.python.components import globalRegistry
 
 _logger = get_module_logger('mxdc.sampleviewer')
 
@@ -30,7 +30,7 @@ class SampleViewer(gtk.Frame):
         self._tick_size = 10
                 
         try:
-            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+            self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
             _logger.warning('No registered beamline found.')

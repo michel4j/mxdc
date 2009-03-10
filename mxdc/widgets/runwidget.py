@@ -2,7 +2,7 @@ import gtk
 import gtk.glade
 import gobject
 import sys, os
-from zope.component import globalSiteManager as gsm
+from twisted.python.components import globalRegistry
 from bcm.beamline.mx import IBeamline
 from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.dialogs import warning, check_folder
@@ -163,7 +163,7 @@ class RunWidget(gtk.Frame):
                 name = "E%d" % (index)
             #try to get value from beamline if one is registered
             try:
-                beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+                beamline = globalRegistry.lookup([], IBeamline)
                 _e_value = beamline.monochromator.energy.get_position()
             except:
                 _e_value = 12.6580
