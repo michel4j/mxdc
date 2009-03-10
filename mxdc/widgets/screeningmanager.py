@@ -3,7 +3,7 @@ import os
 import gtk
 import gtk.glade
 import gobject
-from zope.component import globalSiteManager as gsm
+from twisted.python.components import globalRegistry
 from mxdc.widgets.samplelist import SampleList, TEST_DATA
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.ptzviewer import AxisViewer
@@ -76,7 +76,7 @@ class ScreenManager(gtk.Frame):
         self.deselect_all_btn.connect('clicked', lambda x: self.sample_list.select_all(False) )
         self.edit_tbtn.connect('toggled', self.sample_list.on_edit_toggled)
         
-        self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')      
+        self.beamline = globalRegistry.lookup([], IBeamline)
 
         self.sample_box.pack_start(self.sample_list, expand=True, fill=True)
         self.sample_list.import_csv(os.path.join(DATA_DIR, 'test.csv')) 
