@@ -42,13 +42,6 @@ class App:
                             directory=DIRECTORY,
                             show_decorations=True
                             ).addCallback(gotData)
-        '''
-        self.bcm.callRemote('scanSpectrum', 
-                            prefix='scan3', 
-                            exposure_time=0.5, 
-                            directory=DIRECTORY
-                            ).addCallback(gotData)
-        '''
         #self.bcm.callRemote('acquireFrames', run_info).addCallback(gotData)
            
 def gotData(data):
