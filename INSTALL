@@ -1,0 +1,22 @@
+BCM and MXDC Installation
+
+Step by Step:
+- Install dependencies
+    - matplotlib 
+    - numpy
+    - scipy
+    - ctypes (for python 2.3 only)
+    - python-imaging >= 1.1.6
+    - python-zope-interface >= 3.3
+    - Twisted >= 8.2
+    - Others: (pygtk usually included with distribution)
+    NOTE: for installation at CMCF, prebuilt dependencies are available
+    in ~cmcfadmin/deps. Select rpm folder matching your installation and
+    install the packages.
+- Uncompress archive into target directory
+- Edit setup.csh under deploy directory to suite the installation
+- Edit the configuration file specifed in setup.csh to match your beamline 
+- Make sure setup.csh is sourced on login.
+- To run:
+    - `mxdc` will launch the application
+    - `sampleviewer` will launch the hutch sample video screen only
