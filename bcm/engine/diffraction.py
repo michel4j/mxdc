@@ -5,7 +5,7 @@ import time
 
 from zope.interface import Interface, Attribute
 from zope.interface import implements
-from zope.component import globalSiteManager as gsm
+from twisted.python.components import globalRegistry
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
@@ -35,7 +35,7 @@ class DataCollector(gobject.GObject):
     def configure(self, run_data=None, run_list=None, skip_collected=True):
         #associate beamline devices
         try:
-            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+            self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
             _logger.warning('No registered beamline found.')

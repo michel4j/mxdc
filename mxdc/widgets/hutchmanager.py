@@ -1,7 +1,7 @@
 import gtk, gobject
 import sys, os
 import logging
-from zope.component import globalSiteManager as gsm
+from twisted.python.components import globalRegistry
 from bcm.beamline.mx import IBeamline
 from bcm.engine.scripting import get_scripts
 from bcm.utils.log import get_module_logger
@@ -46,7 +46,7 @@ class HutchManager(gtk.Frame):
         self.tool_book = self._xml.get_widget('tool_book')        
         self.device_box = self._xml.get_widget('device_box')
         
-        self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')      
+        self.beamline = globalRegistry.lookup([], IBeamline)
         
         
         # video        

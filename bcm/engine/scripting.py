@@ -6,7 +6,7 @@ import logging
 
 from zope.interface import Interface, Attribute
 from zope.interface import implements, classProvides
-from zope.component import globalSiteManager as gsm
+from twisted.python.components import globalRegistry
 from twisted.plugin import IPlugin, getPlugins
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
@@ -34,7 +34,7 @@ class Script(gobject.GObject):
         self.name = self.__class__.__name__
         self._active = False
         try:
-            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+            self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
             _logger.warning('No registered beamline found. Beamline will be unavailable "%s"' % (self,))

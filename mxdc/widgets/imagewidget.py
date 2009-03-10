@@ -552,14 +552,14 @@ class ImageWidget(gtk.DrawingArea):
     def on_expose(self, widget, event):
         if self.pixbuf is not None:
             x, y, w, h = self.get_allocation()
-            src_pixbuf = self.pixbuf.subpixbuf(self.extents[0], self.extents[1],
-                                     self.extents[2], self.extents[3])
             disp_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, w, h)
             self.scale = float(w)/self.extents[2]
             if self.scale >= 1.0:
                 interp = gtk.gdk.INTERP_NEAREST
             else:
                 interp = self._best_interp
+            src_pixbuf = self.pixbuf.subpixbuf(self.extents[0], self.extents[1],
+                                     self.extents[2], self.extents[3])
             src_pixbuf.scale(disp_pixbuf, 0, 0, w, h, 0,
                               0, self.scale, self.scale, interp)
             if self._draw_histogram:

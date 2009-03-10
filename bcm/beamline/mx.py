@@ -6,7 +6,7 @@ import re
 import xmlrpclib
 from ConfigParser import ConfigParser
 from zope.interface import implements
-from zope.component import globalSiteManager as gsm
+from twisted.python.components import globalRegistry
 
 from bcm.protocol import ca
 from bcm.protocol.ca import PV
@@ -45,7 +45,7 @@ class MXBeamline(object):
         self.config = {}
         self.lock = threading.RLock()
         self.setup()
-        gsm.registerUtility(self, IBeamline, 'bcm.beamline')
+        globalRegistry.register([], IBeamline, '', self)
         ca.flush()
         time.sleep(0.1)
         self.logger.info('Beamline Registered.')

@@ -1,7 +1,7 @@
 """This module defines classes aid interfaces for X-Ray fluorescence."""
 import gobject
 from zope.interface import Interface, Attribute, invariant
-from zope.component import globalSiteManager as gsm
+from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.engine.scanning import BasicScan, ScanError
 from bcm.utils.science import get_energy_database, xanes_targets
@@ -17,7 +17,7 @@ class XRFScan(BasicScan):
         
     def configure(self, t, energy, attenuation):
         try:
-            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+            self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
         self._energy = energy

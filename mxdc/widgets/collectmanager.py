@@ -1,7 +1,7 @@
 import gtk, gobject
 import sys, os, time
 
-from zope.component import globalSiteManager as gsm
+from twisted.python.components import globalRegistry
 from bcm.beamline.mx import IBeamline
 from bcm.engine.diffraction import DataCollector
 from bcm.utils.configobj import ConfigObj
@@ -43,7 +43,7 @@ class CollectManager(gtk.Frame):
         self.image_viewer = ImgViewer(size=560)
         self.run_manager = RunManager()
         self.collector = DataCollector()
-        self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')      
+        self.beamline = globalRegistry.lookup([], IBeamline)      
         
         self.collect_state = COLLECT_STATE_IDLE
         self.frame_pos = None
