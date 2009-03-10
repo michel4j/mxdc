@@ -19,16 +19,17 @@ def _register_icons():
     for icon in icons:
         fn = 'stock_%s.png' % icon
         stock = 'gtk-%s'  % icon
+        stock_id = 'stock-%s' % icon
         pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR, fn))
         icon_set = gtk.IconSet(pixbuf)
         factory.add(stock, icon_set)
-        id_name = stock.upper().replace('-','_')
+        id_name = stock_id.upper().replace('-','_')
         try:
             id = getattr(gtk,id_name)
         except:
             setattr(gtk, id_name, stock)
 
-#try:
-#    id = gtk.STOCK_MEDIA_PLAY
-#except:
-_register_icons()
+try:
+    id = gtk.STOCK_MEDIA_PLAY
+except:
+    _register_icons()
