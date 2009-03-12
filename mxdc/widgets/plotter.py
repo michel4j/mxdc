@@ -89,7 +89,7 @@ class Plotter( gtk.Frame ):
 
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.vbox = gtk.VBox()
-        self.toolbar = NavigationToolbar(self.canvas)
+        self.toolbar = PlotterToolbar(self.canvas)
         self.vbox.pack_start( self.canvas )
         self.vbox.pack_start( self.toolbar, False, False )
         self.line = []
