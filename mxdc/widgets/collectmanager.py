@@ -9,7 +9,7 @@ from bcm.utils import misc
 
 from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
 from mxdc.widgets.runmanager import RunManager
-from mxdc.widgets.imageviewer import ImgViewer
+from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.dialogs import *
 
 (
@@ -40,7 +40,7 @@ class CollectManager(gtk.Frame):
         self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/collect_widget.glade'), 
                                   'collect_widget')            
         self._register_icons()
-        self.image_viewer = ImgViewer(size=560)
+        self.image_viewer = ImageViewer(size=560)
         self.run_manager = RunManager()
         self.collector = DataCollector()
         self.beamline = globalRegistry.lookup([], IBeamline)      
