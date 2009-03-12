@@ -15,7 +15,7 @@ img_logger = logging.getLogger(__log_section__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
 
-class ImgViewer(gtk.Frame):
+class ImageViewer(gtk.Frame):
     def __init__(self, size=512):
         gtk.Frame.__init__(self)
 
@@ -367,7 +367,7 @@ def main():
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(6)
     win.set_title("Diffraction Image Viewer")
-    myview = ImgViewer()
+    myview = ImageViewer()
     hbox = gtk.HBox(False)
     hbox.pack_start(myview)
     win.add(hbox)
