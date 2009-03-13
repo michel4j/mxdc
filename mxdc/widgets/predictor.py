@@ -35,7 +35,8 @@ class Predictor( gtk.AspectFrame ):
         self.fig = Figure( figsize=(8,8), dpi=80, facecolor='w')
         self.axis = self.fig.add_axes([0.02,0.02,0.96,0.96], aspect='equal')
         _fd = self.get_pango_context().get_font_description()
-        rcParams['font.family'] = _fd.get_family()
+        rcParams['font.family'] = 'sans-serif'
+        rcParams['font.sans-serif'] = _fd.get_family()
         rcParams['font.size'] = _fd.get_size()/pango.SCALE
         
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
