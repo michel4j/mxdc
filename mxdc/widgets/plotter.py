@@ -48,9 +48,11 @@ class PlotterToolbar(NavigationToolbar):
                  continue
             if text in ['Pan','Print']:
                 fname = os.path.join(DATA_DIR, image_file)
-                image = gtk.image_new_from_file(fname)
+                image = gtk.Image()
+                image.set_from_file(fname)
             else:
-                image = gtk.image_new_from_stock(image_file, gtk.ICON_SIZE_BUTTON)
+                image = gtk.Image()
+                image.set_from_stock(image_file, gtk.ICON_SIZE_BUTTON)
                 
             w = self.append_item(text,
                                  tooltip_text,
@@ -83,9 +85,11 @@ class PlotterToolbar(NavigationToolbar):
                 tbutton = gtk.ToolButton()
             if text in ['Pan', 'Print']:
                 fname = os.path.join(DATA_DIR, stock)
-                image = gtk.image_new_from_file(fname)
+                image = gtk.Image()
+                image.set_from_file(fname)
             else:
-                image = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
+                image = gtk.Image()
+                image.set_from_stock(stock, gtk.ICON_SIZE_BUTTON)
             tbutton.set_label_widget(image)
             self.insert(tbutton, -1)
             tbutton.connect('clicked', getattr(self, callback))
