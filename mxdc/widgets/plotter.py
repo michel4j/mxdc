@@ -113,7 +113,8 @@ class PlotterToolbar(NavigationToolbar):
             title='Save the figure',
             parent=self.win,
             filetypes=self.canvas.get_supported_filetypes(),
-            default_filetype=self.canvas.get_default_filetype())
+            default_filetype=self.canvas.get_default_filetype()
+            )
 
           
 class Plotter( gtk.Frame ):
@@ -132,7 +133,10 @@ class Plotter( gtk.Frame ):
 
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.vbox = gtk.VBox()
-        self.toolbar = PlotterToolbar(self.canvas)
+        if gtk.ver >= (2,8,0):
+            self.toolbar = PlotterToolbar(self.canvas)
+        else:
+            self.toolbar = NavigationToolbar(self.canvas, None)
         self.vbox.pack_start( self.canvas )
         self.vbox.pack_start( self.toolbar, False, False )
         self.line = []
