@@ -5,7 +5,8 @@ import sys, os
 from twisted.python.components import globalRegistry
 from bcm.beamline.mx import IBeamline
 from mxdc.widgets.predictor import Predictor
-from mxdc.widgets.dialogs import warning, check_folder
+from mxdc.widgets.dialogs import warning, check_folder, DirectoryButton
+
 
 (
   COLUMN_LABEL,
@@ -63,7 +64,8 @@ class RunWidget(gtk.Frame):
         
         
         # Set directory field non-editable, must use directory selector
-        self.entry['directory'] = self._xml.get_widget('folder_btn')
+        self.entry['directory'] = DirectoryButton()
+        self.layout_table.attach(self.entry['directory'], 1,4,1,2, xoptions=gtk.EXPAND|gtk.FILL)
 
         # entry signals
         self.entry['prefix'].connect('focus-out-event', self.on_prefix_changed)
@@ -510,7 +512,7 @@ class RunWidget(gtk.Frame):
         return False
         
     def on_directory_changed(self,widget=None, event=None):
-        directory = self.entry['directory'].get_text()
+        directory = self.entry['directory'].get_filename()
         self.check_changes()
         return False        
 
