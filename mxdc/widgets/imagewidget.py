@@ -24,7 +24,7 @@ import matplotlib, matplotlib.backends.backend_agg
 
 try:
     import cairo
-    USE_CAIRO = True
+    USE_CAIRO = False
 except:
     USE_CAIRO = False
 
@@ -338,7 +338,7 @@ class ImageWidget(gtk.DrawingArea):
                    
         # measuring
         if self._measuring:
-            drawable.draw_line(gc, False, self.meas_x0, self.meas_y0,
+            drawable.draw_line(gc, self.meas_x0, self.meas_y0,
                                self.meas_x1, self.meas_y1)
         return True
 
