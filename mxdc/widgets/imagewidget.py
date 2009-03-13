@@ -280,9 +280,7 @@ class ImageWidget(gtk.DrawingArea):
         return data
 
     def _plot_histogram(self, data):
-        figure = matplotlib.figure.Figure(frameon=False)
-        figure.set_dpi(72)
-        figure.set_size_inches((3,1.75))
+        figure = matplotlib.figure.Figure(frameon=False, figsize=( 3, 1.75), dpi=72, facecolor='w' )
         plot = figure.add_subplot(111)
         plot.axison = False
         plot.plot(data[:,0], data[:,1])
