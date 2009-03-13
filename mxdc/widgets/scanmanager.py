@@ -7,6 +7,7 @@ import gobject
 from mxdc.widgets.periodictable import PeriodicTable
 from mxdc.widgets.textviewer import TextViewer
 from mxdc.widgets.plotter import Plotter
+from mxdc.widgets.dialogs import DirectoryButton
 from bcm.beamline.mx import IBeamline
 from twisted.python.components import globalRegistry
 from bcm.engine.spectroscopy import XRFScan, XANESScan
@@ -90,14 +91,16 @@ class ScanManager(gtk.Frame):
         self.xrf_btn = self._xml.get_widget('xanes_btn')
         self.xanes_btn.connect('toggled', self.on_mode_change)
         self.scan_help = self._xml.get_widget('scan_help')
+        self.layout_table = self._xml.get_widget('layout_table')
         self.entries = {
             'prefix': self._xml.get_widget('prefix_entry'),
-            'directory': self._xml.get_widget('folder_chooser'),
+            'directory': DirectoryButton(),
             'edge': self._xml.get_widget('edge_entry'),
             'energy': self._xml.get_widget('energy_entry'),
             'time': self._xml.get_widget('time_entry'),
             'attenuation': self._xml.get_widget('attenuation_entry'),
         }
+        self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=gtk.EXPAND|gtk.FILL)
         for key in ['prefix','edge']:
             self.entries[key].set_alignment(0.5)
         for key in ['energy','time','attenuation']:
@@ -220,7 +223,7 @@ class ScanManager(gtk.Frame):
             self.entries[key].set_text(params[key])
         for key in ['time','attenuation']:
             self.entries[key].set_text("%0.1f" % params[key])
-        self.entries['directory'].set_current_folder(params['directory'])
+        self.entries['directory'].set_filename(params['directory'])
         self.entries['energy'].set_text("%0.4f" % params['energy'])
         self._emission = params['emission']
         if params['mode'] == 'XANES':
