@@ -133,9 +133,9 @@ class Plotter( gtk.Frame ):
 
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.vbox = gtk.VBox()
-        if gtk.ver >= (2,8,0):
+        try:
             self.toolbar = PlotterToolbar(self.canvas)
-        else:
+        except:
             self.toolbar = NavigationToolbar(self.canvas, None)
         self.vbox.pack_start( self.canvas )
         self.vbox.pack_start( self.toolbar, False, False )
