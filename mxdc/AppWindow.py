@@ -43,7 +43,9 @@ class AppWindow(gtk.Window):
         self.main_frame = self._xml.get_widget('main_frame')
         self.mxdc_main = self._xml.get_widget('mxdc_main')
         self.quit_cmd = self._xml.get_widget('quit_command')
+        self.about_cmd = self._xml.get_widget('about_cmd')
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
+        #self.about_cmd.connect('activate', lambda x:  self._do_about() )
         
         notebook = gtk.Notebook()
         notebook.append_page(self.hutch_manager, tab_label=gtk.Label('  Beamline Setup  '))
@@ -61,6 +63,18 @@ class AppWindow(gtk.Window):
         self.hide()
         self.emit('destroy')
              
+    def _do_about(self):
+        authors = [
+            "Michel Fodje ",
+            "Kevin Anderson (Guage Widget)",
+            ]
+        about = gobject.new(gtk.AboutDialog, name="MX Data Collector",
+                            version="3.0.0", copyright="(C) Canadian Light Source, Inc",
+                            comments="Program for macromolecular crystallography data acquisition.",
+                            authors=authors)
+        about.set_transient_for(self)
+        about.show()
+
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
         self.collect_manager.add_run( run_data )

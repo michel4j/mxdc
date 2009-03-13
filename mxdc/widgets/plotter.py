@@ -3,7 +3,7 @@ A Plotting widget using matplotlib - several lines can be added to multiple axes
 points can be added to each line and the plot is automatically updated.
 """
 import gtk, gobject
-import sys, time
+import sys, time, os
 import pango
 
 from matplotlib.artist import Artist
@@ -23,6 +23,7 @@ from matplotlib.backends.backend_gtk import FileChooserDialog
 
 
 rcParams['legend.loc'] = 'best'
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class PlotterToolbar(NavigationToolbar):
     def __init__(self, canvas):
@@ -30,14 +31,45 @@ class PlotterToolbar(NavigationToolbar):
             ('Home', 'Reset original view', gtk.STOCK_HOME, 'home'),
             ('Back', 'Back to  previous view',gtk.STOCK_GO_BACK, 'back'),
             ('Forward', 'Forward to next view',gtk.STOCK_GO_FORWARD, 'forward'),
-            ('Pan', 'Pan axes with left mouse, zoom with right', gtk.STOCK_FULLSCREEN,'pan'),
+            ('Pan', 'Pan axes with left mouse, zoom with right', 'stock_fullscreen.png','pan'),
             ('Zoom', 'Zoom to rectangle',gtk.STOCK_ZOOM_FIT, 'zoom'),
             (None, None, None, None),
             ('Save', 'Save the figure',gtk.STOCK_SAVE, 'save_figure'),
-            ('Print', 'Print the figure',gtk.STOCK_PRINT, 'save_figure'),
+            ('Print', 'Print the figure', 'stock_print.png', 'save_figure'),
             )
         NavigationToolbar.__init__(self, canvas, None)
     
+    def _init_toolbar2_2(self):
+        basedir = matplotlib.rcParams['datapath']
+
+        for text, tooltip_text, image_file, callback in self.toolitems:
+            if text is None:
+                 self.append_space()
+                 continue
+            if text in ['Pan','Print']:
+                fname = os.path.join(DATA_DIR, image_file)
+                image = gtk.image_new_from_file(fname)
+            else:
+                image = gtk.image_new_from_stock(image_file, gtk.ICON_SIZE_BUTTON)
+                
+            w = self.append_item(text,
+                                 tooltip_text,
+                                 'Private',
+                                 image,
+                                 getattr(self, callback)
+                                 )
+
+        self.append_space()
+
+        self.message = gtk.Label()
+        self.append_widget(self.message, None, None)
+        self.message.show()
+
+        self.fileselect = FileSelection(title='Save the figure',
+                                        parent=self.win,)
+
+
+
     def _init_toolbar2_4(self):
         self.tooltips = gtk.Tooltips()
 
@@ -46,9 +78,15 @@ class PlotterToolbar(NavigationToolbar):
                 self.insert( gtk.SeparatorToolItem(), -1 )
                 continue
             if text in ['Pan', 'Zoom']:
-                tbutton = gtk.ToggleToolButton(stock)
+                tbutton = gtk.ToggleToolButton()
             else:
-                tbutton = gtk.ToolButton(stock)
+                tbutton = gtk.ToolButton()
+            if text in ['Pan', 'Print']:
+                fname = os.path.join(DATA_DIR, stock)
+                image = gtk.image_new_from_file(fname)
+            else:
+                image = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
+            tbutton.set_label_widget(image)
             self.insert(tbutton, -1)
             tbutton.connect('clicked', getattr(self, callback))
             tbutton.set_tooltip(self.tooltips, tooltip_text, 'Private')
@@ -78,7 +116,8 @@ class Plotter( gtk.Frame ):
     def __init__( self, loop=False, buffer_size=2500, xformat='%g' ):
         gtk.Frame.__init__(self)
         _fd = self.get_pango_context().get_font_description()
-        rcParams['font.family'] = _fd.get_family()
+        rcParams['font.family'] = 'sans-serif'
+        rcParams['font.sans-serif'] = _fd.get_family()
         rcParams['font.size'] = _fd.get_size()/pango.SCALE
         self.fig = Figure( figsize=( 10, 8 ), dpi=96, facecolor='w' )
         self.axis = []
