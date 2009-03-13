@@ -209,7 +209,7 @@ def check_folder(directory, parent=None, warn=True):
         return False
     return True
     
-class FolderSelector:
+class FolderSelector(object):
     def __init__(self):
         self.path = os.environ['HOME']+ os.sep
         #self.path = "/data" + os.sep
@@ -232,7 +232,7 @@ class FolderSelector:
         file_open.destroy()    
         return result
 
-class ImageSelector:
+class ImageSelector(object):
     def __init__(self):
         self.path = os.environ['HOME']+ os.sep
         #self.path = "/data" + os.sep
@@ -342,11 +342,13 @@ class DirectoryButton(gtk.Button):
     def __init__(self):
         gtk.Button.__init__(self)
         self.dir_label = gtk.Label(os.environ['HOME'])
-        self.icon = gtk.image_new_from_stock('gtk-open', gtk.ICON_SIZE_MENU)
+        self.dir_label.set_alignment(0,0.5)
+        self.icon = gtk.image_new_from_stock('gtk-directory', gtk.ICON_SIZE_MENU)
         hbox = gtk.HBox(False,3)
-        hbox.pack_end(self.icon, expand=False, fill=False)
-        hbox.pack_end(gtk.VSeparator(), expand=False, fill=False)
+        hbox.pack_start(self.icon, expand=False, fill=False)
         hbox.pack_start(self.dir_label, expand=True, fill=True)
+        hbox.pack_start(gtk.VSeparator(), expand=False, fill=False)
+        hbox.pack_end(gtk.Label('...'), expand=False, fill=False)
         hbox.show_all()
         self.add(hbox)
         self.path = os.environ['HOME']
@@ -361,20 +363,20 @@ class DirectoryButton(gtk.Button):
                 msg1 = "Directory path too long!"
                 msg2 = "The path should be less than 256 characters. Yours '%s' is %d characters long. Please use shorter names, and/or fewer levels of subdirectories." % (directory, len(directory))
                 result = warning(msg1, msg2)
-                self.set_text(self.path)
+                self.set_filenamet(self.path)
             elif not re.compile('^[\w/]+$').match(directory):
                 msg1 = "Directory name has special characters!"
                 msg2 = "The path name must be free from spaces and other special characters. Please select another directory."
                 result = warning(msg1, msg2)
-                self.set_text(self.path)
+                self.set_filename(self.path)
             else:
-                self.set_text(directory)
+                self.set_filename(directory)
                 return True
 
         return True
         
     def ellipsize(self,text):
-        maxlen = 25
+        maxlen = 15
         l = maxlen/2 - 2
         r = maxlen/2 - 1
         if len(text) < maxlen:
@@ -383,12 +385,13 @@ class DirectoryButton(gtk.Button):
             return text[:l] + '...' + text[-r:]
         
 
-    def set_text(self,text):
+    def set_filename(self,text):
         self.path = text
         self.tooltips.set_tip(self.dir_label, text)
-        self.dir_label.set_text( self.ellipsize(text) )
+        dir_txt = os.path.basename(self.path)
+        self.dir_label.set_text(self.ellipsize(dir_txt))
 
-    def get_text(self):
+    def get_filename(self):
         text = self.path
         if text == '(None)':
             return None
