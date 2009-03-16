@@ -385,14 +385,37 @@
                       <placeholder/>
                     </child>
                     <child>
-                      <widget class="GtkLabel" id="label14">
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <widget class="GtkEntry" id="distance_entry">
                         <property name="visible">True</property>
-                        <property name="xalign">1</property>
-                        <property name="label" translatable="yes">Folder:</property>
+                        <property name="can_focus">True</property>
+                        <property name="width_chars">0</property>
                       </widget>
                       <packing>
-                        <property name="x_options">GTK_FILL</property>
+                        <property name="left_attach">1</property>
+                        <property name="right_attach">2</property>
+                        <property name="top_attach">1</property>
+                        <property name="bottom_attach">2</property>
                         <property name="y_options"></property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkFileChooserButton" id="folder_btn">
+                        <property name="width_request">100</property>
+                        <property name="visible">True</property>
+                        <property name="action">GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER</property>
+                        <property name="local_only">False</property>
+                        <property name="title" translatable="yes">Select A Folder</property>
+                      </widget>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="right_attach">2</property>
+                        <property name="y_options">GTK_FILL</property>
                       </packing>
                     </child>
                     <child>
@@ -409,30 +432,13 @@
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkFileChooserButton" id="folder_btn">
-                        <property name="width_request">100</property>
+                      <widget class="GtkLabel" id="label14">
                         <property name="visible">True</property>
-                        <property name="local_only">False</property>
-                        <property name="action">GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER</property>
-                        <property name="title" translatable="yes">Select A Folder</property>
+                        <property name="xalign">1</property>
+                        <property name="label" translatable="yes">Folder:</property>
                       </widget>
                       <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">3</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkEntry" id="distance_entry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">0</property>
-                      </widget>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">3</property>
-                        <property name="top_attach">1</property>
-                        <property name="bottom_attach">2</property>
+                        <property name="x_options">GTK_FILL</property>
                         <property name="y_options"></property>
                       </packing>
                     </child>
@@ -811,25 +817,14 @@
                                       <placeholder/>
                                     </child>
                                     <child>
-                                      <widget class="GtkLabel" id="label37">
+                                      <widget class="GtkLabel" id="label40">
                                         <property name="visible">True</property>
                                         <property name="xalign">1</property>
-                                        <property name="label" translatable="yes">Current:</property>
+                                        <property name="label" translatable="yes">Automounter:</property>
                                       </widget>
                                       <packing>
-                                        <property name="x_options">GTK_FILL</property>
-                                        <property name="y_options"></property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <widget class="GtkLabel" id="label38">
-                                        <property name="visible">True</property>
-                                        <property name="xalign">1</property>
-                                        <property name="label" translatable="yes">Next:</property>
-                                      </widget>
-                                      <packing>
-                                        <property name="top_attach">1</property>
-                                        <property name="bottom_attach">2</property>
+                                        <property name="top_attach">3</property>
+                                        <property name="bottom_attach">4</property>
                                         <property name="x_options">GTK_FILL</property>
                                         <property name="y_options"></property>
                                       </packing>
@@ -848,14 +843,25 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkLabel" id="label40">
+                                      <widget class="GtkLabel" id="label38">
                                         <property name="visible">True</property>
                                         <property name="xalign">1</property>
-                                        <property name="label" translatable="yes">Automounter:</property>
+                                        <property name="label" translatable="yes">Next:</property>
                                       </widget>
                                       <packing>
-                                        <property name="top_attach">3</property>
-                                        <property name="bottom_attach">4</property>
+                                        <property name="top_attach">1</property>
+                                        <property name="bottom_attach">2</property>
+                                        <property name="x_options">GTK_FILL</property>
+                                        <property name="y_options"></property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkLabel" id="label37">
+                                        <property name="visible">True</property>
+                                        <property name="xalign">1</property>
+                                        <property name="label" translatable="yes">Current:</property>
+                                      </widget>
+                                      <packing>
                                         <property name="x_options">GTK_FILL</property>
                                         <property name="y_options"></property>
                                       </packing>
@@ -932,32 +938,17 @@
               <placeholder/>
             </child>
             <child>
-              <widget class="GtkEntry" id="frames_entry">
+              <widget class="GtkEntry" id="angle_entry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="tooltip" translatable="yes">Number of frames</property>
+                <property name="tooltip" translatable="yes">Start Angle (deg)</property>
                 <property name="has_frame">False</property>
                 <property name="width_chars">5</property>
-                <property name="text" translatable="yes">1</property>
+                <property name="text" translatable="yes">0.0</property>
               </widget>
               <packing>
-                <property name="left_attach">5</property>
-                <property name="right_attach">6</property>
-                <property name="y_options"></property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkEntry" id="time_entry">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="tooltip" translatable="yes">Exposure Time (sec)</property>
-                <property name="has_frame">False</property>
-                <property name="width_chars">5</property>
-                <property name="text" translatable="yes">1.0</property>
-              </widget>
-              <packing>
-                <property name="left_attach">4</property>
-                <property name="right_attach">5</property>
+                <property name="left_attach">2</property>
+                <property name="right_attach">3</property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -977,17 +968,32 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkEntry" id="angle_entry">
+              <widget class="GtkEntry" id="time_entry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="tooltip" translatable="yes">Start Angle (deg)</property>
+                <property name="tooltip" translatable="yes">Exposure Time (sec)</property>
                 <property name="has_frame">False</property>
                 <property name="width_chars">5</property>
-                <property name="text" translatable="yes">0.0</property>
+                <property name="text" translatable="yes">1.0</property>
               </widget>
               <packing>
-                <property name="left_attach">2</property>
-                <property name="right_attach">3</property>
+                <property name="left_attach">4</property>
+                <property name="right_attach">5</property>
+                <property name="y_options"></property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkEntry" id="frames_entry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip" translatable="yes">Number of frames</property>
+                <property name="has_frame">False</property>
+                <property name="width_chars">5</property>
+                <property name="text" translatable="yes">1</property>
+              </widget>
+              <packing>
+                <property name="left_attach">5</property>
+                <property name="right_attach">6</property>
                 <property name="y_options"></property>
               </packing>
             </child>

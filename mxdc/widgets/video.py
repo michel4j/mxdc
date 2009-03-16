@@ -66,7 +66,8 @@ class VideoWidget(gtk.DrawingArea):
         self.overlay_func = func
         
     def display(self, img):
-        img = img.resize((self._img_width, self._img_height),Image.BICUBIC)
+        img = ImageOps.autocontrast(img, cutoff=0)
+        img = img.resize((self._img_width, self._img_height), Image.BICUBIC)
         if self._colorize and img.mode == 'L':
             img.putpalette(self._palette)
         img = img.convert('RGB')
