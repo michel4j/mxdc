@@ -64,6 +64,7 @@ class ScreenManager(gtk.Frame):
         self.apply_btn = self._xml.get_widget('apply_btn')
         self.reset_btn = self._xml.get_widget('reset_btn')
         self.clear_btn = self._xml.get_widget('clear_btn')
+        self.start_btn = self._xml.get_widget('start_btn')
         self.select_all_btn = self._xml.get_widget('select_all_btn')
         self.deselect_all_btn = self._xml.get_widget('deselect_all_btn')
         self.task_queue_window = self._xml.get_widget('task_queue_window')
@@ -75,6 +76,7 @@ class ScreenManager(gtk.Frame):
         self.select_all_btn.connect('clicked', lambda x: self.sample_list.select_all(True) )
         self.deselect_all_btn.connect('clicked', lambda x: self.sample_list.select_all(False) )
         self.edit_tbtn.connect('toggled', self.sample_list.on_edit_toggled)
+        self.start_btn.connect('clicked', self._on_start_screen)
         
         self.beamline = globalRegistry.lookup([], IBeamline)
 
@@ -127,6 +129,19 @@ class ScreenManager(gtk.Frame):
 
         self.add(self.screen_manager) 
         self.show_all()
+    
+    def get_task_list(self):
+        model = self.listview.get_model()
+        iter = model.get_iter_first()
+        items = []
+        while iter:
+            item = {}
+            item['id'] = model.get_value(iter, QUEUE_COLUMN_ID)
+            item['name'] = model.get_value(iter, QUEUE_COLUMN_NAME)
+            item['task'] = model.get_value(iter, QUEUE_COLUMN_TASK)
+            items.append(item)
+            iter = model.iter_next(iter)
+        return items
     
     def _get_collect_setup(self, task):
         _xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
@@ -209,5 +224,5 @@ class ScreenManager(gtk.Frame):
         model = self.listview.get_model()
         model.clear()
     
-    def _on_collect_setup(self, obj):
-        pass
+    def _on_start_screen(self, obj):
+        print self.get_task_list()

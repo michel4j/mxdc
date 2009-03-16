@@ -238,7 +238,7 @@ class ScanManager(gtk.Frame):
             params[key]  = self.entries[key].get_text().strip()
         for key in ['time','energy','attenuation']:
             params[key] = float(self.entries[key].get_text())
-        params['directory']   = self.entries['directory'].get_current_folder()
+        params['directory']   = self.entries['directory'].get_filename()
         if params['directory'] is None:
             params['directory'] = os.environ['HOME']
         if self.xanes_btn.get_active():
