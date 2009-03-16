@@ -85,7 +85,7 @@ class DataCollector(gobject.GObject):
     
                 frame = self.run_list[self.pos]   
                 if frame['saved'] and self.skip_collected:
-                    self.log( 'Skipping %s' % frame['file_name'])
+                    _logger.info('Skipping %s' % frame['file_name'])
                     continue                               
                 self.beamline.monochromator.energy.move_to(frame['energy'])
                 self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)
