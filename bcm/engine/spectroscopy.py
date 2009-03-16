@@ -67,7 +67,7 @@ class XANESScan(BasicScan):
         
     def configure(self, edge, t, attenuation):
         try:
-            self.beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+            self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
         self._duration = t

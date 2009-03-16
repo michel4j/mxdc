@@ -52,7 +52,7 @@ class AppWindow(gtk.Window):
         notebook.append_page(self.collect_manager, tab_label=gtk.Label('  Data Collection '))
         notebook.append_page(self.scan_manager, tab_label=gtk.Label('  Fluorescence Scans  '))
         notebook.append_page(self.screen_manager, tab_label=gtk.Label('  Screening  '))
-        self.screen_manager.set_sensitive(False)
+        #self.screen_manager.set_sensitive(False)
         notebook.set_border_width(6)
 
         self.main_frame.add(notebook)

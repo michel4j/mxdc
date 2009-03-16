@@ -97,12 +97,13 @@ class Motor(MotorBase):
         # initialize process variables based on motor type
         self.DESC = PV("%s:desc" % (pv_root))               
         self.VAL  = PV("%s" % (pv_name))
-        self.PREC =    PV("%s:sp.PREC" % (pv_name))
         if self._motor_type in ['vme','vmeenc']:
             if self._motor_type == 'vme':
                 self.RBV  = PV("%s:sp" % (pv_name))
+                self.PREC =    PV("%s:sp.PREC" % (pv_name))
             else:
                 self.RBV  = PV("%s:fbk" % (pv_name))
+                self.PREC =    PV("%s:fbk.PREC" % (pv_name))
             self.STAT = PV("%s:status" % pv_root)
             self.MOVN = PV("%s:moving" % pv_root)
             self.STOP = PV("%s:stop" % pv_root)
@@ -111,12 +112,14 @@ class Motor(MotorBase):
             self.CCW_LIM = PV("%s:ccw" % (pv_root))
             self.CW_LIM = PV("%s:cw" % (pv_root))
         elif self._motor_type == 'cls':
+            self.PREC =    PV("%s:fbk.PREC" % (pv_name))
             self.RBV  = PV("%s:fbk" % (pv_name))
             self.MOVN = PV("%s:state" % pv_root)
             self.STAT = self.MOVN
             self.STOP = PV("%s:emergStop" % pv_root)
             self.CALIB = PV("%s:isCalib" % (pv_root))
         elif self._motor_type == 'pseudo':
+            self.PREC =    PV("%s:sp.PREC" % (pv_name))
             self.RBV  = PV("%s:sp" % (pv_name))
             self.STAT = PV("%s:status" % pv_root)
             self.MOVN = PV("%s:moving" % pv_root)
