@@ -524,7 +524,7 @@ class RunWidget(gtk.Frame):
 
     def on_reset_parameters(self, obj):
         try:
-            beamline = gsm.getUtility(IBeamline, 'bcm.beamline')
+            beamline = = globalRegistry.lookup([], IBeamline)      
             params = self.get_parameters()
             params['distance'] = beamline.diffractometer.distance.get_position()
             params['two_theta'] = beamline.diffractometer.two_theta.get_position()
