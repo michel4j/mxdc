@@ -267,7 +267,7 @@ class PV(gobject.GObject):
     def get(self):
         if self.state != CA_OP_CONN_UP:
             #_logger.error('(%s) PV not connected' % (self.name,))
-            raise ChannelAccessError('PV not connected')
+            raise ChannelAccessError('(%s) PV not connected' % (self.name,))
         if self._monitor == True and self.value is not None:
             ret_val = self.value
         else:
@@ -283,7 +283,7 @@ class PV(gobject.GObject):
     def set(self, val):
         if self.state != CA_OP_CONN_UP:
             _logger.error('(%s) PV not connected' % (self.name,))
-            raise ChannelAccessError('PV not connected')
+            raise ChannelAccessError('(%s) PV not connected' % (self.name,))
         self.data = self.data_type(val)
         #print "'%s' = '%s'" % (val, self.data.value)
         libca.ca_array_put(self.type, self.count, self._chid, byref(self.data))
