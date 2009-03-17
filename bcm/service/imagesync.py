@@ -2,7 +2,6 @@ from __future__ import nested_scopes
 from twisted.application import internet, service
 from twisted.internet import protocol, reactor, defer, utils, interfaces, error
 from twisted.protocols import basic
-from twisted.words.protocols import irc
 from twisted.python import components
 from twisted.web import resource, server, static, xmlrpc
 from twisted.spread import pb

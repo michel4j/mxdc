@@ -6,28 +6,21 @@ import sys
 import numpy
 
 def xanes_targets(energy):
-    very_low_start = energy - 0.2
-    very_low_end = energy - 0.17
-    low_start = energy -0.15
+    low_start = energy -0.10
     low_end = energy -0.03
     mid_start = low_end
     mid_end = energy + 0.03
-    hi_start = mid_end + 0.0015
-    hi_end = energy + 0.16
-    very_hi_start = energy + 0.18
-    very_hi_end = energy + 0.21
+    hi_start = mid_end + 0.002
+    hi_end = energy + 0.10
 
     targets = []
-    # Add very low points
-    targets.append(very_low_start)
-    targets.append(very_low_end)
     
     # Decreasing step size for the beginning
-    step_size = 0.02
+    step_size = 0.03
     val = low_start
     while val < low_end:
         targets.append(val)
-        step_size -= 0.0015
+        step_size -= 0.002
         val += step_size
 
     # Fixed step_size for the middle
@@ -42,12 +35,9 @@ def xanes_targets(energy):
     val = hi_start
     while val < hi_end:
         targets.append(val)
-        step_size += 0.0015
+        step_size += 0.002
         val += step_size
         
-    # Add very hi points
-    targets.append(very_hi_start)
-    targets.append(very_hi_end)
         
     return targets
 
@@ -130,7 +120,7 @@ def assign_peaks(peaks, dev=0.01):
             peak.append("%s" % (key,))
     return mypeaks
 
-def savitzky_golay(data, kernel = 9, order = 4, deriv=0):
+def savitzky_golay(data, kernel = 9, order = 3, deriv=0):
     """
         applies a Savitzky-Golay filter
         input parameters:
@@ -196,10 +186,10 @@ def peak_search(x, y, w=7, threshold=0.01, min_peak=0.01):
         x = x[::-1]
         y = y[::-1]
     peaks = []
-    yp = savitzky_golay(y, kernel=w, order=(w-3), deriv=1)
-    ypp = savitzky_golay(y, kernel=w, order=(w-3), deriv=2)
+    t_peaks = []
+    yp = savitzky_golay(y, kernel=w, order=3, deriv=1)
+    ypp = savitzky_golay(y, kernel=w, order=3, deriv=2)
     i = 0
-    stdypp = numpy.std(-ypp)
     while i < len(x):  
         # find start of peak
         while -ypp[i] <= 0.0 and i < len(x)-1:
@@ -222,9 +212,15 @@ def peak_search(x, y, w=7, threshold=0.01, min_peak=0.01):
                 while x[pk] < peak_pos and pk < hi:
                     pk += 1
                 peak_height = y[pk]
-                if fwhm >= 0.8 * threshold and fwhm <= 10*threshold and peak_height > min_peak:
-                    peaks.append([peak_pos, peak_height, fwhm,  stdpk])
+                t_peaks.append([peak_pos, peak_height, fwhm,  stdpk])
         i += 1
+    pk_heights = numpy.array([v[1] for v in t_peaks])
+    max_y = numpy.max(pk_heights)
+    std_h = numpy.std(pk_heights)
+    std_y = numpy.std(y)
+    for peak in t_peaks:
+        if peak[2] >= 0.8 * threshold and peak[2] <= 10*threshold and peak[3] > abs(std_h-std_y)*min_peak and peak[1] > min_peak * max_y:
+            peaks.append(peak)
     return peaks
 
 

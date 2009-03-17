@@ -21,10 +21,11 @@ from scipy.misc import toimage, fromimage
 from dialogs import select_image
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib, matplotlib.backends.backend_agg
+from bcm.utils.science import peak_search
 
 try:
     import cairo
-    USE_CAIRO = False
+    USE_CAIRO = True
 except:
     USE_CAIRO = False
 
@@ -271,19 +272,38 @@ class ImageWidget(gtk.DrawingArea):
             d = d + (2 * dy)
         coords.append((x2,y2))
    
-        data = numpy.zeros((len(coords),2))
+        data = numpy.zeros((len(coords),3))
         n = 0
         for ix, iy in coords:
             data[n][0] = n
             data[n][1] = self.pixel_data[ix, iy]
+            data[n][2] = self._rdist(ix, iy, coords[0][0], coords[0][1])
             n += 1
         return data
 
     def _plot_histogram(self, data):
-        figure = matplotlib.figure.Figure(frameon=False, figsize=( 3, 1.75), dpi=72, facecolor='w' )
+        figure = matplotlib.figure.Figure(frameon=False, figsize=( 3.5, 2), dpi=80, facecolor='w' )
         plot = figure.add_subplot(111)
         plot.axison = False
-        plot.plot(data[:,0], data[:,1])
+        plot.plot(data[:,2], data[:,1])
+        peaks = peak_search(data[:,2], data[:,1], w=9, threshold=0.3, min_peak=0.1)
+
+        if len(peaks) > 1:
+            d1 = peaks[1][0] - peaks[0][0]
+            y1 = max(peaks[0][1], peaks[1][1])/2
+            r1 = (self.wavelength * self.distance/d1)
+            x1 = (peaks[1][0] + peaks[0][0])/2
+            plot.text((peaks[1][0]+peaks[0][0])/2, y1, '% 0.1f A' % r1,
+                      horizontalalignment='center', 
+                      color='black', rotation=90)        
+        
+        if len(peaks) > 2:
+            d2 = peaks[2][0] - peaks[1][0]
+            r2 = (self.wavelength * self.distance/d2)
+            x2 = (peaks[2][0] + peaks[1][0])/2
+            plot.text((peaks[2][0]+peaks[1][0])/2, y1, '% 0.1f' % r2,
+                      horizontalalignment='center', 
+                      color='black', rotation=90)
         
         # Ask matplotlib to render the figure to a bitmap using the Agg backend
         canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(figure)
@@ -302,9 +322,7 @@ class ImageWidget(gtk.DrawingArea):
                                                     False, 8, 
                                                     int(w), int(h), 3*int(w))
         self._draw_histogram = True
-
-        
-        
+            
     def _calc_palette(self, percent):
         frac = percent/100.0
         cdict = {
@@ -410,7 +428,7 @@ class ImageWidget(gtk.DrawingArea):
     
     def _rdist(self, x0, y0, x1, y1 ):
         d = math.sqrt((x0 - x1)**2 + (y0 - y1)**2) * self.pixel_size
-        return (self.wavelength * self.distance/d)
+        return d #(self.wavelength * self.distance/d)
 
     def get_position(self, x, y):
         if not self.image_loaded:
@@ -528,7 +546,7 @@ class ImageWidget(gtk.DrawingArea):
             if ny + nh > self.image_height:
                 nh = self.image_height - ny
             
-            nw = max(16, max(nw, nh))
+            nw = max(16, min(nw, nh))
             nh = nw
             self.extents_back.append(self.extents)
             self.extents = (nx, ny, nw, nh)
