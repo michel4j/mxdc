@@ -43,8 +43,8 @@ class MultiChannelAnalyzer(object):
         
         # Default parameters
         self.half_roi_width = 15 # in channel units 
-        self.offset = -0.45347
-        self.slope = 0.00498
+        self.offset = 3.4933 #-0.45347
+        self.slope =  0.003346     #0.00498
         self._monitor_id = None
         self._acquiring = False
         self._data_read = False
@@ -54,6 +54,7 @@ class MultiChannelAnalyzer(object):
         self.ACQG.connect('changed', self._monitor_start)
         
         self._x_axis = self.channel_to_energy( numpy.arange(0,4096,1) )
+        #self._x_axis = numpy.arange(0,4096,1)
 
     def configure(self, **kwargs):
         for k,v in kwargs.items():
