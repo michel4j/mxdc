@@ -2,8 +2,8 @@ from bcm.engine.scripting import Script
 
 class OptimizeBeam(Script):
     def run(self):
-        self.beamline.mostab.start()
-        self.beamline.mostab.wait()
+        self.beamline.registry['mostab'].start()
+        self.beamline.registry['mostab'].wait()
         return
 
 

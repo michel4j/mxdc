@@ -391,21 +391,16 @@ class ScanManager(gtk.Frame):
         return True
                     
     def on_xrf_done(self, obj):
-        import pprint
         x = obj.data[:,0]
         y = obj.data[:,1]
         self.plotter.set_labels(title='X-Ray Fluorescence',x_label='Energy (keV)',y1_label='Fluorescence')
         self.scan_book.set_current_page(1)
-        tick_size = max(y)/30.0
-        peaks = science.peak_search(x, y, threshold=0.05, min_peak=50)
-        apeaks = science.assign_peaks(peaks, dev=0.01)
-        sy = science.savitzky_golay(y)
-        self.plotter.add_line(x,sy,'b-')
-        #self.log_view.clear()
-        fontpar = {
-            "family" :"monospace",
-            "size"   : 8
-        }
+        tick_size = max(y)/50.0
+        peaks = science.peak_search(x, y, w=31, threshold=0.1, min_peak=0.05)
+        apeaks = science.assign_peaks(peaks,  dev=0.01)
+        sy = science.savitzky_golay(y, kernel=31)
+        self.plotter.add_line(x, sy,'b-')
+        self.output_log.clear()
         peak_log = "#%9s %10s %10s    %s\n" % ('Position',
                                             'Height',
                                             'FWHM',
