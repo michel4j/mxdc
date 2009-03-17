@@ -79,10 +79,7 @@ class PlotterToolbar(NavigationToolbar):
             if text is None:
                 self.insert( gtk.SeparatorToolItem(), -1 )
                 continue
-            if text in ['Pan', 'Zoom']:
-                tbutton = gtk.ToggleToolButton()
-            else:
-                tbutton = gtk.ToolButton()
+            tbutton = gtk.ToolButton()
             if text in ['Pan', 'Print']:
                 fname = os.path.join(DATA_DIR, stock)
                 image = gtk.Image()
@@ -260,7 +257,10 @@ class Plotter( gtk.Frame ):
         dx_minor =  (x_major[-1]-x_major[0])/(len(x_major)-1) /5.
         self.axis[0].xaxis.set_minor_locator(MultipleLocator(dx_minor))
         self.axis[0].yaxis.tick_left()
-        xmin, xmax = self.axis[0].xaxis.get_data_interval()
+        try:
+            xmin, xmax = self.axis[0].xaxis.get_data_interval()
+        except:
+            xmin, xmax = self.axis[0].xaxis.get_data_interval().get_bounds()
         if (xmax - xmin) > 0.1:
             self.axis[0].set_xlim(xmin, xmax)
         #self.axis[0].legend()       

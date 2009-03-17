@@ -60,6 +60,11 @@ class Predictor( gtk.AspectFrame ):
         self.canvas.connect('visibility-notify-event', self.on_visibility_notify)
         self.canvas.connect('unmap', self.on_unmap)
         self.canvas.connect_after('map', self.on_map)
+        self._do_update = False
+
+        self.calculator = threading.Thread(target=self._do_calc)
+        self.calculator.setDaemon(True)
+        self.calculator.start()
 
         
     def display(self, widget=None):
@@ -155,24 +160,26 @@ class Predictor( gtk.AspectFrame ):
         return d
 
     def _do_calc(self):
-        grid_size = 100
-        x = arange(0, self.detector_size, grid_size)
-        y = x
-        X,Y = meshgrid(x,y)
-        Z = self._pix_resol(X,Y)
-        xp = self._mm(X, self.beam_x)
-        yp = self._mm(Y, self.beam_y)
-        lines = self._shells(num=16)
-        self.xp = xp
-        self.yp = yp
-        self.Z = Z
-        self.lines = lines
-        gobject.idle_add(self.display)
-
+        while 1:
+            self._do_update = False
+            grid_size = 100
+            x = arange(0, self.detector_size, grid_size)
+            y = x
+            X,Y = meshgrid(x,y)
+            Z = self._pix_resol(X,Y)
+            xp = self._mm(X, self.beam_x)
+            yp = self._mm(Y, self.beam_y)
+            lines = self._shells(num=16)
+            self.xp = xp
+            self.yp = yp
+            self.Z = Z
+            self.lines = lines
+            gobject.idle_add(self.display)
+            while not self._do_update:
+                time.sleep(0.25)
+            time.sleep(0.25)
+            
     def update(self, force=False):
         if self._can_update and self.get_child_visible():
-            calculator = threading.Thread(target=self._do_calc)
-            calculator.setName('Predictor Thread')
-            calculator.setDaemon(True)
-            calculator.start()
-   
+            self._do_update = True
+        return   
