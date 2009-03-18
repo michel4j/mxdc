@@ -31,7 +31,7 @@ class PlotterToolbar(NavigationToolbar):
             ('Home', 'Reset original view', gtk.STOCK_HOME, 'home'),
             ('Back', 'Back to  previous view',gtk.STOCK_GO_BACK, 'back'),
             ('Forward', 'Forward to next view',gtk.STOCK_GO_FORWARD, 'forward'),
-            ('Pan', 'Pan axes with left mouse, zoom with right', 'stock_fullscreen.png','pan'),
+            ('Pan', 'Pan axes with left mouse, zoom with right', 'stock-tool-move.png','pan'),
             ('Zoom', 'Zoom to rectangle',gtk.STOCK_ZOOM_FIT, 'zoom'),
             (None, None, None, None),
             ('Save', 'Save the figure',gtk.STOCK_SAVE, 'save_figure'),

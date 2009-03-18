@@ -26,6 +26,7 @@ class ImageViewer(gtk.Frame):
         self._collecting = False
         self._br_hide_id = None
         self._co_hide_id = None
+        self._cl_hide_id = None
         self._follow_id = None
         self._collect_id = None
         self._create_widgets()
@@ -37,6 +38,8 @@ class ImageViewer(gtk.Frame):
                                   'brightness_popup')
         self._xml4 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
                                   'contrast_popup')
+        self._xml5 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+                                  'colorize_popup')
         
         self._widget = self._xml.get_widget('image_viewer')
         self.image_frame = self._xml.get_widget('image_frame')
@@ -57,15 +60,23 @@ class ImageViewer(gtk.Frame):
         self.follow_tbtn.connect('toggled', self.on_follow_toggled)
         
         self.contrast_tbtn = self._xml.get_widget('contrast_tbtn')
+        self.contrast_popup = self._xml4.get_widget('contrast_popup')
+        self.contrast = self._xml4.get_widget('contrast')
+        self.contrast_tbtn.connect('toggled', self.on_contrast_toggled)     
+        self.contrast.connect('value-changed', self.on_contrast_changed)
+        
         self.brightness_tbtn = self._xml.get_widget('brightness_tbtn')
         self.brightness_popup = self._xml2.get_widget('brightness_popup')
-        self.contrast_popup = self._xml4.get_widget('contrast_popup')
         self.brightness = self._xml2.get_widget('brightness')
-        self.contrast = self._xml4.get_widget('contrast')
         self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)
-        self.contrast_tbtn.connect('toggled', self.on_contrast_toggled)     
         self.brightness.connect('value-changed', self.on_brightness_changed)
-        self.contrast.connect('value-changed', self.on_contrast_changed)
+
+        self.colorize_tbtn = self._xml.get_widget('colorize_tbtn')
+        self.colorize_popup = self._xml5.get_widget('colorize_popup')
+        self.colormap = self._xml5.get_widget('colormap')
+        self.colorize_tbtn.connect('toggled', self.on_colorize_toggled)
+        self.colormap.connect('value-changed', self.on_colormap_changed)
+       
         self.reset_btn.connect('clicked', self.on_reset_filters)
         
         self.info_label = self._xml.get_widget('info_label')
@@ -150,6 +161,7 @@ class ImageViewer(gtk.Frame):
         self.zoom_fit_btn.set_sensitive(True)
         self.contrast_tbtn.set_sensitive(True)
         self.brightness_tbtn.set_sensitive(True)
+        self.colorize_tbtn.set_sensitive(True)
         self.reset_btn.set_sensitive(True)
         self.follow_tbtn.set_sensitive(True)
         self.info_btn.set_sensitive(True)
@@ -236,6 +248,7 @@ class ImageViewer(gtk.Frame):
         cy = oy + iy + ih/2 + 50
         self.contrast_popup.move(cx, cy)
         self.brightness_popup.move(cx, cy)
+        self.colorize_popup.move(cx, cy)
         
 
     # signal handlers
@@ -247,7 +260,7 @@ class ImageViewer(gtk.Frame):
         return False
 
     def on_brightness_changed(self, obj):
-        self.image_canvas.set_brightness(obj.get_value())
+        self.image_canvas.set_brightness(10.0 - obj.get_value())
         if self._br_hide_id is not None:
             gobject.source_remove(self._br_hide_id)
             self._br_hide_id = gobject.timeout_add(6000, self._timed_hide, self.brightness_tbtn)
@@ -257,10 +270,17 @@ class ImageViewer(gtk.Frame):
         if self._co_hide_id is not None:
             gobject.source_remove(self._co_hide_id)
             self._co_hide_id = gobject.timeout_add(6000, self._timed_hide, self.contrast_tbtn)
+
+    def on_colormap_changed(self, obj):
+        self.image_canvas.colorize(obj.get_value())
+        if self._cl_hide_id is not None:
+            gobject.source_remove(self._cl_hide_id)
+            self._cl_hide_id = gobject.timeout_add(6000, self._timed_hide, self.colorize_tbtn)
     
     def on_reset_filters(self,widget):
         self.contrast_tbtn.set_active(False)
         self.brightness_tbtn.set_active(False)
+        self.colorize_tbtn.set_active(False)
         self.image_canvas.reset_filters()
         return True    
     
@@ -286,12 +306,11 @@ class ImageViewer(gtk.Frame):
             w.set_markup(txt)
         
     def on_image_info(self, obj):         
-        if self.info_dialog is None:              
-            self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
-                                      'info_dialog')
-            self.info_dialog = self._xml3.get_widget('info_dialog')
-            self.info_close_btn = self._xml3.get_widget('info_close_btn')
-            self.info_close_btn.connect('clicked', lambda x: self.info_dialog.hide())
+        self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+                                  'info_dialog')
+        self.info_dialog = self._xml3.get_widget('info_dialog')
+        self.info_close_btn = self._xml3.get_widget('info_close_btn')
+        self.info_close_btn.connect('clicked', lambda x: self.info_dialog.hide())
         self._update_info()
         self.info_dialog.set_transient_for(self._get_parent_window())
         self.info_dialog.show()
@@ -323,8 +342,10 @@ class ImageViewer(gtk.Frame):
     def on_brightness_toggled(self, widget):
         if self.brightness_tbtn.get_active():
             self.contrast_tbtn.set_active(False)
+            self.colorize_tbtn.set_active(False)
             self._position_popups()
             self.brightness_popup.set_transient_for(self._get_parent_window())
+            self.brightness.set_value(10.0 - self.image_canvas.gamma_factor)
             self.brightness_popup.show_all()
             self._br_hide_id = gobject.timeout_add(5000, self._timed_hide, self.brightness_tbtn)
         else:
@@ -336,6 +357,7 @@ class ImageViewer(gtk.Frame):
     def on_contrast_toggled(self, widget):
         if self.contrast_tbtn.get_active():
             self.brightness_tbtn.set_active(False)
+            self.colorize_tbtn.set_active(False)
             self._position_popups()
             self.contrast_popup.set_transient_for(self._get_parent_window())
             self.contrast_popup.show_all()
@@ -347,6 +369,20 @@ class ImageViewer(gtk.Frame):
                 self._co_hide_id = None
             self.contrast_popup.hide()
         
+    def on_colorize_toggled(self, widget):
+        if self.colorize_tbtn.get_active():
+            self.brightness_tbtn.set_active(False)
+            self.contrast_tbtn.set_active(False)
+            self._position_popups()
+            self.colorize_popup.set_transient_for(self._get_parent_window())
+            self.colorize_popup.show_all()
+            self._cl_hide_id = gobject.timeout_add(5000, self._timed_hide, self.colorize_tbtn)
+            
+        else:
+            if self._cl_hide_id is not None:
+                gobject.source_remove(self._cl_hide_id)
+                self._cl_hide_id = None
+            self.colorize_popup.hide()
         
     def on_follow_toggled(self,widget):
         if widget.get_active():
