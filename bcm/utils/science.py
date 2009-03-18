@@ -215,7 +215,7 @@ def peak_search(x, y, w=7, threshold=0.01, min_peak=0.01):
                 t_peaks.append([peak_pos, peak_height, fwhm,  stdpk])
         i += 1
     pk_heights = numpy.array([v[1] for v in t_peaks])
-    max_y = numpy.max(pk_heights)
+    max_y = max(pk_heights)
     std_h = numpy.std(pk_heights)
     std_y = numpy.std(y)
     for peak in t_peaks:

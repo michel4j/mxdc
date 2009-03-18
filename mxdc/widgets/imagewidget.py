@@ -34,7 +34,8 @@ img_logger = logging.getLogger(__log_section__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
 COLORMAPS = pickle.load(file(os.path.join(DATA_DIR, 'colormaps.data')))
-
+_COLORNAMES = ['gist_yarg','gist_gray','hot','jet','hsv','Spectral',
+                     'Paired','gist_heat','PiYG','Set1','gist_ncar']
 
 class ImageWidget(gtk.DrawingArea):
     def __init__(self, size):
@@ -74,13 +75,18 @@ class ImageWidget(gtk.DrawingArea):
         self.set_size_request(size, size)
         self.set_colormap('gist_yarg')
     
-    def set_colormap(self, colormap=None):
+    def set_colormap(self, colormap=None, index=None):
         if colormap is not None:
             self._colorize = True
             self._palette = COLORMAPS[colormap]
+        elif index is not None:
+            index =  int(index)
+            self._colorize = True
+            self._palette = COLORMAPS[_COLORNAMES[(index % 11)]]
         else:
             self._colorize = False
-            
+
+    
     def set_cross(self, x, y):
         self.beam_x, self.beam_y = x, y
         
@@ -207,8 +213,10 @@ class ImageWidget(gtk.DrawingArea):
                 nw = self.image_width - nx
             if ny + nh > self.image_height:
                 nh = self.image_height - nw
+            nw = max(16, min(nh, nw))
+            nh = nw
             self.extents = (nx, ny, nw, nh)
-            
+        #print self.average_intensity, self.gamma_factor
         self.pixbuf =  gtk.gdk.pixbuf_new_from_data(self.image.tostring(),
                                                     gtk.gdk.COLORSPACE_RGB, 
                                                     False, 8, 
@@ -406,7 +414,13 @@ class ImageWidget(gtk.DrawingArea):
         self.queue_draw()
 
     def set_brightness(self, value):
-        self.gamma_factor = value
+        if self.gamma_factor != value:
+            self.gamma_factor = value
+            self._create_pixbuf()
+            self.queue_draw()
+
+    def colorize(self, value):
+        self.set_colormap(index=value)
         self._create_pixbuf()
         self.queue_draw()
 
