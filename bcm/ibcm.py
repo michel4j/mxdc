@@ -2,6 +2,9 @@ from zope.interface import Interface, Attribute
 
 class IScript(Interface):
     
+    description = Attribute("""Short description of the script.""")
+    progress = Attribute("""Progress Level of Script.""")
+    
     def start():
         """Start the script in asynchronous mode. It returns immediately."""
                  
