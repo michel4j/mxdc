@@ -28,6 +28,8 @@ class Script(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    description = 'A Script'
+    progress = None
     
     def __init__(self):
         gobject.GObject.__init__(self)
