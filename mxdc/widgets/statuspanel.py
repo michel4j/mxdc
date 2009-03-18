@@ -9,7 +9,7 @@ class StatusPanel(gtk.Statusbar):
         gtk.Statusbar.__init__(self)
         self.set_has_resize_grip(False)
         self.layout_table = gtk.Table(1,8,True)
-        self.layout_table.set_col_spacings(4)
+        self.layout_table.set_col_spacings(2)
         self.layout_table.set_border_width(1)
 
         self.layout_table.attach(self._frame_control('Beamline', gtk.Label('08ID-1'), gtk.SHADOW_IN), 7, 8 , 0, 1)
@@ -26,7 +26,11 @@ class StatusPanel(gtk.Statusbar):
         
         self.intensity = ActiveLabel(beamline.i_0.value, format="<tt><small>%8.2g</small></tt>")
         self.layout_table.attach(self._frame_control('I₀', self.intensity, gtk.SHADOW_IN), 3, 4 , 0, 1)
-
+        
+        #self.progress_bar = gtk.ProgressBar()
+       # self.progress_bar.set_size_request(50,-1)
+        #self.layout_table.attach(self.progress_bar, 2, 3, 0, 1, xoptions=gtk.FILL|gtk.EXPAND)
+        
         hseparator = gtk.HSeparator()
         hseparator.set_size_request(-1,3)
         #self.pack_start(hseparator, expand= False, fill=False, padding=0)
