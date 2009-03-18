@@ -25,7 +25,7 @@ from bcm.service.imagesync_client import ImageSyncClient
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger, log_to_console
 
-log_to_console()
+#log_to_console()
 
 # compare function for sorting according to dependency
 def _cmp_arg(a, b):

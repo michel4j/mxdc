@@ -13,12 +13,12 @@ import pango
 import __builtin__
 import __main__
 
-from bcm.engine.scanning import scan, rscan
-from mxdc.gui.Plotter import Plotter
-from bcm.beamline.mx import MX
+#from bcm.engine.scanning import *
+from mxdc.widgets.plotter import Plotter
+
 plotter = Plotter()
-scan.set_plotter(plotter)
-rscan.set_plotter(plotter)
+#scan.set_plotter(plotter)
+#rscan.set_plotter(plotter)
 
 banner = """Interactive Beamline Console
 Using Python %s
@@ -405,12 +405,10 @@ def run():
   w.set_title('Interactive Beamline Console')
   
   #initialize the gtk environment
-  #console.interpreter.runsource("import gtk, gobject, sys, os\n", "<<console>>")
-  #console.interpreter.runsource("sys.path.append(os.environ['BCM_PATH'])\n", "<<console>>")
-  #console.execute_line('from bcm.tools.scanning import scan, rscan')
-  #console.execute_line('from bcm.beamline import PX')
-  #console.execute_line("bl = PX('%s.conf' % os.environ['BCM_BEAMLINE'])")
-  #console.execute_line('gobject.idle_add(bl.setup)')
+  console.interpreter.runsource("import gtk, gobject, sys, os\n", "<<console>>")
+  console.execute_line('from bcm.engine.scanning import *')
+  console.execute_line('from bcm.beamline.mx import MXBeamline')
+  console.execute_line("beamline = MXBeamline(os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONFIG_FILE']))")
 
   def destroy(arg=None):
       gtk.main_quit()

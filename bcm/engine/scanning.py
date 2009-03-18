@@ -118,13 +118,13 @@ class AbsScan(BasicScan):
         step_size = (self._end_pos - self._start_pos) / float( self._steps )
         self.data_names = [self._motor.name, 
                            self._counter.name+'_scaled', 
-                           self._i0.name+'(I_0)',
+                           'I_0',
                            self._counter.name]
         _logger.info("Scanning '%s' vs '%s' " % (self._motor.name, self._counter.name))
         _logger.info("%4s '%13s' '%13s_normalized' '%13s' '%13s'" % ('#',
                                                    self._motor.name,
                                                    self._counter.name,
-                                                   self._i0.name,
+                                                   'I_0',
                                                    self._counter.name))
         for i in xrange(self._steps+1):
             if self._stopped:
@@ -174,7 +174,7 @@ class AbsScan2(BasicScan):
         self.data_names = [self._motor1.name,
                            self._motor2.name,
                            self._counter.name+'_scaled', 
-                           self._i0.name+'(I_0)',
+                           'I_0',
                            self._counter.name]
         _logger.info("Scanning '%s':'%s' vs '%s' " % (self._motor1.name,
                                                       self._motor2.name,
@@ -183,7 +183,7 @@ class AbsScan2(BasicScan):
                                                    self._motor1.name,
                                                    self._motor2.name,
                                                    self._counter.name,
-                                                   self._i0.name,
+                                                   'I_0',
                                                    self._counter.name))
         for i in xrange(self._steps+1):
             if self._stopped:
