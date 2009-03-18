@@ -1,12 +1,6 @@
 #!/usr/bin/env python
-"""Multithreaded interactive interpreter with GTK and Matplotlib support.
-
-Usage:
-
-  pyint-gtk.py -> starts shell with gtk thread running separately
-
-  pyint-gtk.py -mplot [filename] -> initializes matplotlib, optionally running
-  the named file.  The shell starts after the file is executed.
+"""Multithreaded interactive interpreter 
+Based on interactive interpreter by Fernando Perez
 
 Threading code inspired by:
 http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/65109, by Brian
@@ -16,7 +10,7 @@ Matplotlib support taken from interactive.py in the matplotlib distribution.
 
 Also borrows liberally from code.py in the Python standard library."""
 
-__author__ = "Fernando Perez"
+__author__ = "Fernando Perez, Michel Fodje"
 
 import sys
 import os
@@ -25,10 +19,6 @@ import threading
 
 import gtk
 import gobject
-
-BCM_PATH = os.path.join(os.path.dirname(__file__),'../..')
-sys.path.append(os.path.abspath(BCM_PATH))
-sys.path.append(os.environ['BCM_PATH'])
 
 try:
     import readline
@@ -62,7 +52,7 @@ class MTConsole(code.InteractiveConsole):
                 
             readline.set_completer(self.completer.complete)
             # Use tab for completions
-            readline.parse_and_bind('tab: complete')
+            #readline.parse_and_bind('tab: complete')
             # This forces readline to automatically print the above list when tab
             # completion is set to 'complete'.
             readline.parse_and_bind('set show-all-if-ambiguous on')
@@ -180,53 +170,33 @@ class GTKInterpreter(threading.Thread):
         
         pass
 
-class MatplotLibInterpreter(GTKInterpreter):
-    """Threaded interpreter with matplotlib support."""
-
-    def __init__(self,banner=None):
-        banner = """\nWelcome to matplotlib, a matlab-like python environment.
-    help(matlab)   -> help on matlab compatible commands from matplotlib.
-    help(plotting) -> help on plotting commands.
-    """
-        GTKInterpreter.__init__(self,banner)
-        
+class BeamlineConsole(GTKInterpreter):
+    def __init__(self, banner=None):
+        banner = """Interactive Beamline Console.
+        Python %s
+        Beamline Config: %s 
+        """ % (sys.version.split('\n')[0],
+               os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONFIG_FILE']))
+               
+        GTKInterpreter.__init__(self, banner)
+    
     def pre_interact(self):
-        """Initialize matplotlib before user interaction begins"""
-
-        import matplotlib.matlab
-
-        push = self.shell.push
         # Code to execute in user's namespace
-        lines = ["import matplotlib",
-                 "matplotlib.use('GTKAgg')",
-                 "matplotlib.interactive(1)",
-                 "import matplotlib.matlab as matlab",
-                 "from matplotlib.matlab import *"]
+        push = self.shell.push
+        lines = ["import os, sys",
+                 "from bcm.beamline.mx import MXBeamline",
+                 "from bcm.engine.scripting import *",
+                 "from bcm.engine.scanning import *",
+                 "from bcm.engine.fitting import *",
+                 "beamline = MXBeamline(os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONFIG_FILE']))",
+                 ]
         map(push,lines)
+        
 
-        # turn off rendering until end of script
-        matplotlib.matlab.interactive = 0
-        # Execute file if given.
-        if len(sys.argv)>1:
-            fname = sys.argv[1]
-            try:
-                inFile = file(fname, 'r')
-            except IOError:
-                print '*** ERROR *** Could not read file <%s>' % fname
-            else:
-                print '*** Executing file <%s>:' % fname
-                for line in inFile:
-                    if line.lstrip().find('show()')==0: continue
-                    print '>>', line,
-                    push(line)
-                inFile.close()
 
 if __name__ == '__main__':
-    # Quick sys.argv hack to extract the option and leave filenames in sys.argv.
-    # For real option handling, use optparse or getopt.
-    if len(sys.argv) > 1 and sys.argv[1]=='-mplot':
-        sys.argv = [sys.argv[0]]+sys.argv[2:]
-        MatplotLibInterpreter().mainloop()
-    else:
-        GTKInterpreter().mainloop()
+    try:
+        BeamlineConsole().mainloop()
+    finally:
+        print 'Quiting...'
 
