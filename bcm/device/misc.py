@@ -64,7 +64,7 @@ class Positioner(gobject.GObject):
         if self.scale is None:
             return self.fbk_pv.get()
         else:
-            val = 100.0 * (self.get()/self.scale)
+            val = 100.0 * (self.fbk_pv.get()/self.scale)
             return  val
     
     def _signal_change(self, obj, value):

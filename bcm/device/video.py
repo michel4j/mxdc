@@ -164,7 +164,6 @@ class AxisCamera(VideoSrc):
         f_str = cStringIO.StringIO(f.read())
         img = Image.open(f_str)
         self.size = img.size
-        print self.size
         return img
 
 class ZoomableAxisCamera(AxisCamera):
