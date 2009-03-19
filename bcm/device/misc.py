@@ -180,8 +180,8 @@ class BasicShutter(gobject.GObject):
     def __init__(self, open_name, close_name, state_name):
         gobject.GObject.__init__(self)
         # initialize variables
-        self._open_cmd = PV(open_name, monitor=False)
-        self._close_cmd = PV(close_name, monitor=False)
+        self._open_cmd = PV(open_name)
+        self._close_cmd = PV(close_name)
         self._state = PV(state_name)
         self._state.connect('changed', self._signal_change)
 
@@ -189,9 +189,11 @@ class BasicShutter(gobject.GObject):
         return self._state.get() == 1
     
     def open(self):
+        _logger.debug('Openning shutter')
         self._open_cmd.set(1)
     
     def close(self):
+        _logger.debug('Closing shutter')
         self._close_cmd.set(1)
 
     def _signal_change(self, obj, value):
@@ -200,9 +202,6 @@ class BasicShutter(gobject.GObject):
         else:
             gobject.idle_add(self.emit,'changed', False)
         
-    def _log(self, message):
-        gobject.idle_add(self.emit, 'log', message)
-
 
 class Shutter(BasicShutter):
     def __init__(self, name):
@@ -210,12 +209,6 @@ class Shutter(BasicShutter):
         close_name = "%s:opr:close" % name
         state_name = "%s:state" % name
         BasicShutter.__init__(self, open_name, close_name, state_name)
-
-
-
-
-
-
 
 class Cryojet(object):
     
