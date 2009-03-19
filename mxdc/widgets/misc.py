@@ -12,13 +12,13 @@ from dialogs import warning
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class ActiveHScale(gtk.HScale):
-    def __init__( self, context, min=0.0, max=1.0):
+    def __init__( self, context, min=0.0, max=100.0):
         gtk.HScale.__init__(self)
         self.context = context
         self.set_value_pos(gtk.POS_RIGHT)
         self.set_digits(1)
         self.set_range(min, max)
-        self.set_adjustment(gtk.Adjustment(0.0,0,5, 0.1,0,0))
+        self.set_adjustment(gtk.Adjustment(0.0, min, max, (max-min)/100.0, 0, 0))
         self.set_update_policy(gtk.UPDATE_CONTINUOUS)
         self._handler_id = self.connect('value-changed', self._on_scale_changed)
         self.context.connect('changed', self._on_feedback_changed)
