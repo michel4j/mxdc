@@ -225,6 +225,8 @@ class SampleViewer(gtk.Frame):
         self.lighting_box =   self._xml.get_widget('lighting_box')       
         self.side_light = ActiveHScale(self.beamline.sample_sidelight)
         self.back_light = ActiveHScale(self.beamline.sample_backlight)
+        self.side_light.set_update_policy(gtk.UPDATE_DELAYED)
+        self.back_light.set_update_policy(gtk.UPDATE_DELAYED)
         self.lighting_box.attach(self.side_light, 1,2,0,1)
         self.lighting_box.attach(self.back_light, 1,2,1,2)
         
