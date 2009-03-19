@@ -180,7 +180,7 @@ class ZoomableAxisCamera(AxisCamera):
         self._zoom.move_to(value)
     
     def _on_zoom_change(self, obj, val):
-        self.resolution = 3.6875132 * numpy.exp( -0.2527 * val)
+        self.resolution = 3.6875e-3 * numpy.exp( -0.2527 * val)
 
 
                                 
