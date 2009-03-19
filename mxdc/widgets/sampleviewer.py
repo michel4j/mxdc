@@ -179,10 +179,17 @@ class SampleViewer(gtk.Frame):
         self.left_btn = self._xml.get_widget('left_btn')
         self.right_btn = self._xml.get_widget('right_btn')
         self.home_btn = self._xml.get_widget('home_btn')
-        self.up_btn.connect('clicked', self.on_fine_up)
-        self.dn_btn.connect('clicked', self.on_fine_down)
-        self.left_btn.connect('clicked', self.on_fine_left)
-        self.right_btn.connect('clicked', self.on_fine_right)
+        if self.beamline.config['orientation'] == 0:
+            self.up_btn.connect('clicked', self.on_fine_up)
+            self.dn_btn.connect('clicked', self.on_fine_down)
+            self.left_btn.connect('clicked', self.on_fine_left)
+            self.right_btn.connect('clicked', self.on_fine_right)
+        elif self.beamline.config['orientation'] == 1:
+            self.up_btn.connect('clicked', self.on_fine_down)
+            self.dn_btn.connect('clicked', self.on_fine_up)
+            self.left_btn.connect('clicked', self.on_fine_right)
+            self.right_btn.connect('clicked', self.on_fine_left)
+        
         self.home_btn.connect('clicked', self.on_home)
         
         # rotate sample

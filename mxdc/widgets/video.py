@@ -57,7 +57,6 @@ class VideoWidget(gtk.DrawingArea):
             height = int(width/ratio)
         else:
             width = int(ratio * height)
-        self.scale = float(width)/self.camera.size[0]
         self._img_width, self._img_height = width, height
         self.set_size_request(-1,-1)
         return True
@@ -72,6 +71,7 @@ class VideoWidget(gtk.DrawingArea):
             img.putpalette(self._palette)
         img = img.convert('RGB')
         w, h = img.size
+        self.scale = float(self._img_width)/w
         self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
             False, 8, w, h, 3 * w )
         gobject.idle_add(self.queue_draw)
