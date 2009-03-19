@@ -164,6 +164,22 @@ class AxisCamera(VideoSrc):
         f_str = cStringIO.StringIO(f.read())
         return Image.open(f_str)
 
+class ZoomableAxisCamera(AxisCamera):
+    
+    implements(IZoomableCamera)
+    
+    def __init__(self, hostname, zoom_motor, id=None, name="Zoomable Axis Camera"):
+        AxisCamera.__init__(self, hostname, id=id, name=name)
+        self._zoom = IMotor(zoom_motor)
+        self.resolution = 1.0
+        self._zoom.connect('changed', self._on_zoom_change)
+    
+    def zoom(self, value):
+        self._zoom.move_to(value)
+    
+    def _on_zoom_change(self, obj, val):
+        self.resolution = val
+
                                 
 class AxisPTZCamera(AxisCamera):
 

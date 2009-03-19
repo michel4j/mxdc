@@ -12,7 +12,7 @@ class StatusPanel(gtk.Statusbar):
         self.layout_table.set_col_spacings(2)
         self.layout_table.set_border_width(1)
 
-        self.layout_table.attach(self._frame_control('Beamline', gtk.Label('08ID-1'), gtk.SHADOW_IN), 7, 8 , 0, 1)
+        self.layout_table.attach(self._frame_control('Beamline', gtk.Label(beamline.name), gtk.SHADOW_IN), 7, 8 , 0, 1)
         
         beamline.registry['ring_current'].units = 'mA'
         self.intensity = ActiveLabel(beamline.registry['ring_current'], format="<tt><small>%8.1f</small></tt>")

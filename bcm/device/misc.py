@@ -8,6 +8,7 @@ from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from bcm.utils import converter
 from bcm.device.interfaces import *
+from bcm.device.motor import MotorBase
 
 
 # setup module logger with a default do-nothing handler
@@ -55,14 +56,16 @@ class Positioner(gobject.GObject):
         gobject.idle_add(self.emit,'changed', self.get())
 
            
-class PositionerMotor(object):
+class PositionerMotor(MotorBase):
     implements(IMotor)
     __used_for__ = IPositioner
     
     def __init__(self, positioner):
+        MotorBase.__init__(self, 'Positioner Motor')
         self.positioner = positioner
         self.name = positioner.name
         self.units = positioner.units
+        self.positioner.connect('changed', self._signal_change)
     
     def configure(self, props):
         pass
@@ -150,7 +153,7 @@ class Attenuator(gobject.GObject):
         gobject.idle_add(self.emit,'changed', self.get())
     
 
-class Shutter(gobject.GObject):
+class BasicShutter(gobject.GObject):
 
     implements(IShutter)
     
@@ -160,12 +163,12 @@ class Shutter(gobject.GObject):
                      (gobject.TYPE_BOOLEAN,)  ),
         }
           
-    def __init__(self, name):
+    def __init__(self, open_name, close_name, state_name):
         gobject.GObject.__init__(self)
         # initialize variables
-        self._open_cmd = PV("%s:opr:open" % name, monitor=False)
-        self._close_cmd = PV("%s:opr:close" % name, monitor=False)
-        self._state = PV("%s:state" % name)
+        self._open_cmd = PV(open_name, monitor=False)
+        self._close_cmd = PV(close_name, monitor=False)
+        self._state = PV(state_name)
         self._state.connect('changed', self._signal_change)
 
     def get_state(self):
@@ -185,6 +188,17 @@ class Shutter(gobject.GObject):
         
     def _log(self, message):
         gobject.idle_add(self.emit, 'log', message)
+
+
+class Shutter(BasicShutter):
+    def __init__(self, name):
+        open_name = "%s:opr:open" % name
+        close_name = "%s:opr:close" % name
+        state_name = "%s:state" % name
+        BasicShutter.__init__(self, open_name, close_name, state_name)
+
+
+
 
 
 

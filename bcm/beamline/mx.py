@@ -10,17 +10,15 @@ from twisted.python.components import globalRegistry
 
 from bcm.protocol import ca
 from bcm.protocol.ca import PV
-from bcm.device.motor import VMEMotor, EnergyMotor, BraggEnergyMotor
-from bcm.device.motor import PseudoMotor, CLSMotor
+from bcm.device.motor import *
 from bcm.device.counter import Counter
-from bcm.device.misc import Positioner, Attenuator, Shutter, Cryojet, Stage
-from bcm.device.misc import Collimator, MostabOptimizer
-from bcm.device.detector import MXCCDImager
-from bcm.device.goniometer import Goniometer
+from bcm.device.misc import *
+from bcm.device.detector import *
+from bcm.device.goniometer import *
 from bcm.device.monochromator import Monochromator
 from bcm.device.mca import MultiChannelAnalyzer
 from bcm.device.diffractometer import Diffractometer
-from bcm.device.video import CACamera, AxisCamera, AxisPTZCamera
+from bcm.device.video import *
 from bcm.service.imagesync_client import ImageSyncClient
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger, log_to_console
@@ -92,6 +90,8 @@ class MXBeamline(object):
                 util_cmd = "self.%s = self.registry['%s']" % (name, name)
                 self.logger.info('Registering %s: %s' % (section, name))
                 exec(util_cmd)
+
+__all__ = ['MXBeamline']
                     
 if __name__ == '__main__':
     config_file = '/home/michel/Code/eclipse-ws/beamline-control-module/etc/08id1.conf'
