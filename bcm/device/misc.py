@@ -326,6 +326,6 @@ class MostabOptimizer(object):
             time.sleep(poll)
        
 # Register objects with signals
-gobject.type_register(Shutter)
+gobject.type_register(BasicShutter)
 gobject.type_register(Positioner)
 gobject.type_register(Attenuator)
