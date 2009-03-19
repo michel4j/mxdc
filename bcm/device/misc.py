@@ -29,15 +29,22 @@ class Positioner(gobject.GObject):
                      (gobject.TYPE_PYOBJECT,)),
         }  
 
-    def __init__(self, name, fbk_name=None, units=""):
+    def __init__(self, name, fbk_name=None, scale=None, units=""):
         gobject.GObject.__init__(self)
         self.set_pv = PV(name)
+        try:
+            self.scale = float(scale)
+        except:
+            self.scale = None
         if fbk_name is None:
             self.fbk_pv = self.set_pv
         else:
             self.fbk_pv = PV(fbk_name)
         self.name = name
-        self.units = units
+        if scale is None:
+            self.units = units
+        else:
+            self.units = '%'
         self.fbk_pv.connect('changed', self._signal_change)
     
     def __repr__(self):
@@ -47,14 +54,21 @@ class Positioner(gobject.GObject):
                                                     self.fbk_pv.name )
    
     def set(self, pos):
-        self.set_pv.set(pos)
-    
+        if self.scale is None:
+            self.set_pv.set(pos)
+        else:
+            val = self.scale * pos/100.0
+            self.set_pv.set(val)
+          
     def get(self):
-        return self.fbk_pv.get()
+        if self.scale is None:
+            return self.fbk_pv.get()
+        else:
+            val = 100.0 * (self.get()/self.scale)
+            return  val
     
     def _signal_change(self, obj, value):
-        gobject.idle_add(self.emit,'changed', self.get())
-
+        gobject.idle_add(self.emit, 'changed', self.get())
            
 class PositionerMotor(MotorBase):
     implements(IMotor)
