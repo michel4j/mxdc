@@ -16,7 +16,7 @@ import gobject
 from bcm.beamline.mx import MXBeamline
 from bcm.utils.log import get_module_logger
 from mxdc.widgets.imageviewer import ImageViewer
-from mxdc.utils import gtkexcepthook
+#from mxdc.utils import gtkexcepthook
 
 _logger = get_module_logger('ImageViewer')
 
