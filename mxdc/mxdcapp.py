@@ -12,7 +12,7 @@ import gtk
 import gobject
 
 from bcm.utils.log import get_module_logger
-#from mxdc.utils import gtkexcepthook
+#tfrom mxdc.utils import gtkexcepthook
 from mxdc.AppWindow import AppWindow
 
 _logger = get_module_logger('mxdc')
