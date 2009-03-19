@@ -12,12 +12,14 @@ _S111_a_ln2  = 5.4297575 # A at LN2
 
 def energy_to_wavelength(energy): 
     """Convert energy in keV to wavelength in angstroms."""
-    
+    if energy == 0.0:
+        return 0.0
     return (_h*_c)/(energy*1000.0)
 
 def wavelength_to_energy(wavelength): 
     """Convert wavelength in angstroms to energy in keV."""
-    
+    if wavelength == 0.0:
+        return 0.0
     return (_h*_c)/(wavelength*1000.0)
 
 def radians(angle):
