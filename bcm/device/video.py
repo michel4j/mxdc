@@ -162,7 +162,10 @@ class AxisCamera(VideoSrc):
     def get_frame(self):
         f = urllib.urlopen(self._url)
         f_str = cStringIO.StringIO(f.read())
-        return Image.open(f_str)
+        img = Image.open(f_str)
+        self.size = img.size
+        print self.size
+        return img
 
 class ZoomableAxisCamera(AxisCamera):
     
