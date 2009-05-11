@@ -15,6 +15,7 @@ from bcm.device.counter import Counter
 from bcm.device.misc import *
 from bcm.device.detector import *
 from bcm.device.goniometer import *
+from bcm.device.automounter import *
 from bcm.device.monochromator import Monochromator
 from bcm.device.mca import MultiChannelAnalyzer
 from bcm.device.diffractometer import Diffractometer

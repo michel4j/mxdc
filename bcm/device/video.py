@@ -151,7 +151,7 @@ class AxisCamera(VideoSrc):
       
     def __init__(self, hostname,  id=None, name='Axis Camera'):
         VideoSrc.__init__(self, name, maxfps=20.0)
-        self.size = (640, 480)
+        self.size = (768, 576)
         if id is None:
             self._url = 'http://%s/jpg/image.jpg' % hostname
         else:

@@ -21,7 +21,7 @@ _BUTTON_TYPES = {
     gtk.BUTTONS_YES_NO: (gtk.STOCK_NO, gtk.RESPONSE_NO,
                          gtk.STOCK_YES, gtk.RESPONSE_YES),
     gtk.BUTTONS_OK_CANCEL: (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                            gtk.STOCK_OK, gtk.RESPONSE_OK)
+                            gtk.STOCK_OK, gtk.RESPONSE_OK),
     }
     
 class AlertDialog(gtk.Dialog):
@@ -186,6 +186,10 @@ def warning(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTT
     return _simple(gtk.MESSAGE_WARNING, header, sub_header, details, parent=parent,
                    buttons=buttons, default=default)
 
+def question(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1):
+    return _simple(gtk.MESSAGE_QUESTION, header, sub_header, details, parent=parent,
+                   buttons=buttons, default=default)
+
 def yesno(header, sub_header=None, details=None, parent=None, default=gtk.RESPONSE_YES,
           buttons=gtk.BUTTONS_YES_NO):
     return messagedialog(gtk.MESSAGE_WARNING, header, sub_header, details, parent,
@@ -264,6 +268,45 @@ class ImageSelector(object):
             self.path = os.path.split(result)[0] + os.sep
         file_open.destroy()   
         return result
+
+class FileSelector(object):
+    path = os.environ['HOME']
+    
+    def __init__(self, title, action, filters):
+        if action == gtk.FILE_CHOOSER_ACTION_OPEN:
+            resp_stock = gtk.STOCK_OPEN        
+        else:
+            resp_stock = gtk.STOCK_SAVE
+        self.file_open = gtk.FileChooserDialog(title=title, 
+                action=action,
+                buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                         resp_stock,   gtk.RESPONSE_OK))
+        for name, patterns in filters:
+            fil = gtk.FileFilter()
+            fil.set_name(name)
+            for pat in patterns:
+                fil.add_pattern(pat)
+            self.file_open.add_filter(fil)
+            self.file_open.set_current_folder(self.path)
+        self.file_open.set_do_overwrite_confirmation(True)    
+
+    def run(self):
+        if self.file_open.run() == gtk.RESPONSE_OK:
+            self.filename = self.file_open.get_filename()
+            self.filter = self.file_open.get_filter()
+            self.__class__.path = os.path.dirname(self.filename)
+        else:
+            self.filename = None
+            self.filter = None
+        self.file_open.destroy()
+        return self.filename
+    
+    def get_filename(self):
+        return self.filename
+    
+    def get_filter(self):
+        return self.filter
+
 
 class FileChooserDialog(gtk.FileChooserDialog):
     def __init__ (self,
