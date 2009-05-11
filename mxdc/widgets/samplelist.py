@@ -4,8 +4,7 @@ from bcm.utils.configobj import ConfigObj
 
 from mxdc.widgets.dialogs import *
 
-(
-    SAMPLE_COLUMN_CONTAINER,
+(   SAMPLE_COLUMN_CONTAINER,
     SAMPLE_COLUMN_STATE,
     SAMPLE_COLUMN_SELECTED,
     SAMPLE_COLUMN_PORT,
@@ -16,14 +15,20 @@ from mxdc.widgets.dialogs import *
 ) = range(8)
 
 COLUMN_DICT = {
-    SAMPLE_COLUMN_CONTAINER: 'container',
+    SAMPLE_COLUMN_CONTAINER: 'Container',
     SAMPLE_COLUMN_STATE: 'State', 
     SAMPLE_COLUMN_SELECTED: 'Selected',
     SAMPLE_COLUMN_PORT: 'Port',
-    SAMPLE_COLUMN_CODE: 'Code',
+    SAMPLE_COLUMN_CODE: 'ID',
     SAMPLE_COLUMN_NAME: 'Name',
     SAMPLE_COLUMN_COMMENTS: 'Comments',  
 }
+
+MIN_COLUMN_SET = set([COLUMN_DICT[SAMPLE_COLUMN_CONTAINER].lower(), 
+                      COLUMN_DICT[SAMPLE_COLUMN_PORT].lower(),
+                      COLUMN_DICT[SAMPLE_COLUMN_CODE].lower(),
+                      COLUMN_DICT[SAMPLE_COLUMN_NAME].lower(),
+                      COLUMN_DICT[SAMPLE_COLUMN_COMMENTS].lower()])
 
 (
     SAMPLE_STATE_NONE,
@@ -101,13 +106,13 @@ class SampleList(gtk.ScrolledWindow):
     def __add_item(self, item):
         iter = self.listmodel.append()        
         self.listmodel.set(iter,
-            SAMPLE_COLUMN_CONTAINER, item['container'],
-            SAMPLE_COLUMN_STATE, item['state'], 
-            SAMPLE_COLUMN_SELECTED, item['selected'],
-            SAMPLE_COLUMN_PORT, item['port'],
-            SAMPLE_COLUMN_CODE, item['code'],
-            SAMPLE_COLUMN_NAME, item['name'],
-            SAMPLE_COLUMN_COMMENTS, item['comments'],
+            SAMPLE_COLUMN_CONTAINER, item.get(COLUMN_DICT[SAMPLE_COLUMN_CONTAINER].lower(),''),
+            SAMPLE_COLUMN_STATE, item[COLUMN_DICT[SAMPLE_COLUMN_STATE].lower()], 
+            SAMPLE_COLUMN_SELECTED, item[COLUMN_DICT[SAMPLE_COLUMN_SELECTED].lower()],
+            SAMPLE_COLUMN_PORT, item.get(COLUMN_DICT[SAMPLE_COLUMN_PORT].lower(),''),
+            SAMPLE_COLUMN_CODE, item.get(COLUMN_DICT[SAMPLE_COLUMN_CODE].lower(),''),
+            SAMPLE_COLUMN_NAME, item.get(COLUMN_DICT[SAMPLE_COLUMN_NAME].lower(),'unknown'),
+            SAMPLE_COLUMN_COMMENTS, item.get(COLUMN_DICT[SAMPLE_COLUMN_COMMENTS].lower(),''),
             SAMPLE_COLUMN_EDITABLE, False,
         )
     
@@ -184,9 +189,9 @@ class SampleList(gtk.ScrolledWindow):
             item = {}
             sel = model.get_value(iter, SAMPLE_COLUMN_SELECTED)
             if sel:
-                item['id'] = model.get_value(iter, SAMPLE_COLUMN_CODE)
-                item['name'] = model.get_value(iter, SAMPLE_COLUMN_NAME)
-                item['port'] = model.get_value(iter, SAMPLE_COLUMN_PORT)
+                item[COLUMN_DICT[SAMPLE_COLUMN_CODE].lower()] = model.get_value(iter, SAMPLE_COLUMN_CODE)
+                item[COLUMN_DICT[SAMPLE_COLUMN_NAME].lower()] = model.get_value(iter, SAMPLE_COLUMN_NAME)
+                item[COLUMN_DICT[SAMPLE_COLUMN_PORT].lower()] = model.get_value(iter, SAMPLE_COLUMN_PORT)
                 items.append(item)
             iter = model.iter_next(iter)
         return items
@@ -204,12 +209,16 @@ class SampleList(gtk.ScrolledWindow):
         model = self.listview.get_model()
         model.clear()
     
-    def export_excel(self, filename):
+    def export_xls(self, filename):
         model = self.listview.get_model()
         from pyExcelerator import Workbook
         wb = Workbook()
         wso = wb.add_sheet('0')
-        columns = ['container','port','id','name','comments']
+        columns = [COLUMN_DICT[SAMPLE_COLUMN_CONTAINER], 
+                   COLUMN_DICT[SAMPLE_COLUMN_PORT],
+                   COLUMN_DICT[SAMPLE_COLUMN_CODE],
+                   COLUMN_DICT[SAMPLE_COLUMN_NAME],
+                   COLUMN_DICT[SAMPLE_COLUMN_COMMENTS],]                  
         for i in range(len(columns)):
             wso.write(0, i, columns[i])
         col = 1
@@ -230,7 +239,11 @@ class SampleList(gtk.ScrolledWindow):
         model = self.listview.get_model()
         import csv
         w = csv.writer(open(filename,'w'))
-        columns = ['container','port','id','name','comments']
+        columns = [COLUMN_DICT[SAMPLE_COLUMN_CONTAINER], 
+                   COLUMN_DICT[SAMPLE_COLUMN_PORT],
+                   COLUMN_DICT[SAMPLE_COLUMN_CODE],
+                   COLUMN_DICT[SAMPLE_COLUMN_NAME],
+                   COLUMN_DICT[SAMPLE_COLUMN_COMMENTS],]                  
         w.writerow( columns)
         iter = model.get_iter_first()
         while iter:      
@@ -245,20 +258,63 @@ class SampleList(gtk.ScrolledWindow):
     def import_csv(self, filename):
         import csv
         model = self.listview.get_model()
-        model.clear()
         csvfile = open(filename)
         dialect = csv.Sniffer().sniff(csvfile.read(1024))
         csvfile.seek(0)
         reader = csv.reader(csvfile, dialect)
         header = reader.next()
+        hset = set([x.lower() for x in header])
+        try:
+            assert(hset.issuperset(MIN_COLUMN_SET))
+        except:
+            missing = ', '.join(MIN_COLUMN_SET.difference(hset))
+            header = 'Missing Columns in "%s"' % os.path.basename(filename)
+            subhead = 'The following required columns "%s" were not found' % missing
+            error(header, subhead)
+            csvfile.close()
+            return
+            
+        self.clear()
         for row in reader:
-            item = {'state': 0, 'selected': False}
+            item = {COLUMN_DICT[SAMPLE_COLUMN_STATE].lower(): 0, 
+                    COLUMN_DICT[SAMPLE_COLUMN_SELECTED].lower(): False}
             for i in range(len(header)):
-                item[header[i]] = row[i]
+                item[header[i].lower()] = row[i]
             self.__add_item(item)
         csvfile.close()
             
-            
+
+    def import_xls(self, filename):
+        import pyExcelerator as xls
+        sheet, values = xls.parse_xls(filename)[0]
+        rid = set([k[0] for k in values.keys()])
+        cid = set([k[1] for k in values.keys()])
+        rows = []
+        for r in rid:
+            row = []
+            for c in cid:
+                row.append( values.get((r,c), '') )
+            rows.append(row)
+        header = rows[0]
+        hset = set([x.lower() for x in header])
+        try:
+            assert(hset.issuperset(MIN_COLUMN_SET))
+        except:
+            missing = ', '.join(MIN_COLUMN_SET.difference(hset))
+            header = 'Missing Columns in "%s"' % os.path.basename(filename)
+            subhead = 'The following required columns "%s" were not found' % missing
+            error(header, subhead)
+            csvfile.close()
+            return
+        
+        self.clear()
+        for row in rows[1:]:
+            item = {COLUMN_DICT[SAMPLE_COLUMN_STATE].lower(): 0, 
+                    COLUMN_DICT[SAMPLE_COLUMN_SELECTED].lower(): False}
+            for i in range(len(header)):
+                item[header[i].lower()] = row[i]
+            self.__add_item(item)
+         
         
 if __name__ == "__main__":
    
