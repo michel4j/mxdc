@@ -1,7 +1,8 @@
 #!/bin/csh
 
 ## ---- Beamline Configuration File ----
-setenv BCM_CONFIG_FILE 08id1.conf
+#setenv BCM_CONFIG_FILE 08id1.conf
+setenv BCM_CONFIG_FILE 08b1.conf
 
 ## ---- Top level directory of BCM installation ----
 setenv BCM_PATH /home/michel/Code/eclipse-ws/beamline-control-module

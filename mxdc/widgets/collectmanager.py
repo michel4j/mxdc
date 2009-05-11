@@ -39,7 +39,6 @@ class CollectManager(gtk.Frame):
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/collect_widget.glade'), 
                                   'collect_widget')            
-        self._register_icons()
         self.image_viewer = ImageViewer(size=560)
         self.run_manager = RunManager()
         self.collector = DataCollector()
@@ -65,8 +64,8 @@ class CollectManager(gtk.Frame):
 
         self.collect_btn = self._xml.get_widget('collect_btn')
         self.stop_btn = self._xml.get_widget('stop_btn')
-        self.collect_btn.set_label('cm-collect')
-        self.stop_btn.set_label('cm-stop')
+        self.collect_btn.set_label('mxdc-collect')
+        self.stop_btn.set_label('mxdc-stop')
         self.stop_btn.set_sensitive(False)
         
         # Run progress
@@ -209,26 +208,7 @@ class CollectManager(gtk.Frame):
             COLLECT_COLUMN_RUN, item['run_number'],
             COLLECT_COLUMN_NAME, item['frame_name']
         )
-    
-    def _register_icons(self):
-        items = [('cm-collect', '_Collect', 0, 0, None),
-            ('cm-resume', '_Resume', 0, 0, None),
-            ('cm-pause', '_Pause', 0, 0, None),
-            ('cm-stop', '_Stop', 0, 0, None)]
-
-        # We're too lazy to make our own icons, so we use regular stock icons.
-        aliases = [('cm-collect', gtk.STOCK_MEDIA_PLAY),
-            ('cm-resume', gtk.STOCK_MEDIA_PLAY),
-            ('cm-pause', gtk.STOCK_MEDIA_PAUSE),
-            ('cm-stop', gtk.STOCK_MEDIA_STOP) ]
-
-        gtk.stock_add(items)
-        factory = gtk.IconFactory()
-        factory.add_default()
-        for new_stock, alias in aliases:
-            icon_set = gtk.icon_factory_lookup_default(alias)
-            factory.add(new_stock, icon_set)
-        
+            
     def _float_format(self, column, renderer, model, iter, format):
         value = model.get_value(iter, COLLECT_COLUMN_ANGLE)
         saved = model.get_value(iter, COLLECT_COLUMN_SAVED)
@@ -410,12 +390,12 @@ class CollectManager(gtk.Frame):
 
     def on_pause(self,widget, paused):
         if paused:
-            self.collect_btn.set_label('cm-resume')
+            self.collect_btn.set_label('mxdc-resume')
             self.collect_state = COLLECT_STATE_PAUSED
             self.progress_bar.idle_text("Paused")
             self.collect_btn.set_sensitive(True)
         else:
-            self.collect_btn.set_label('cm-pause')   
+            self.collect_btn.set_label('mxdc-pause')   
             self.collect_state = COLLECT_STATE_RUNNING
     def on_error(self, widget, msg):
         msg_title = msg
@@ -443,7 +423,7 @@ class CollectManager(gtk.Frame):
         
     def on_stop(self, widget=None):
         self.collect_state = COLLECT_STATE_IDLE
-        self.collect_btn.set_label('cm-collect')
+        self.collect_btn.set_label('mxdc-collect')
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
@@ -451,7 +431,7 @@ class CollectManager(gtk.Frame):
     
     def on_complete(self, widget=None):
         self.collect_state = COLLECT_STATE_IDLE
-        self.collect_btn.set_label('cm-collect')
+        self.collect_btn.set_label('mxdc-collect')
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
@@ -500,7 +480,7 @@ class CollectManager(gtk.Frame):
                 self.collector.configure(run_list=self.run_list, skip_collected=True)
                 self.collector.start()
                 self.collect_state = COLLECT_STATE_RUNNING
-                self.collect_btn.set_label('cm-pause')
+                self.collect_btn.set_label('mxdc-pause')
                 self.stop_btn.set_sensitive(True)
                 self.run_manager.set_sensitive(False)
                 self.image_viewer.set_collect_mode(True)

@@ -61,28 +61,12 @@ class ScanManager(gtk.Frame):
         self.energies = []
         self.names = []
 
-    def _register_icons(self):
-        items = [('sm-scan', '_Start Scan', 0, 0, None),
-                 ('sm-stop', 'S_top Scan', 0, 0, None)]
-
-        # We're too lazy to make our own icons, so we use regular stock icons.
-        aliases = [('sm-scan', gtk.STOCK_MEDIA_PLAY),
-                   ('sm-stop', gtk.STOCK_STOP) ]
-
-        gtk.stock_add(items)
-        factory = gtk.IconFactory()
-        factory.add_default()
-        for new_stock, alias in aliases:
-            icon_set = gtk.icon_factory_lookup_default(alias)
-            factory.add(new_stock, icon_set)
-
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'scan_manager.glade'), 
                                   'scan_widget')            
-        self._register_icons()
         self.scan_widget = self._xml.get_widget('scan_widget')
         self.scan_btn = self._xml.get_widget('scan_btn')
-        self.scan_btn.set_label('sm-scan')
+        self.scan_btn.set_label('mxdc-scan')
         self.scan_pbar = self._xml.get_widget('scan_pbar')
         self.scan_btn.connect('clicked', self.on_scan_activated)
         
@@ -188,9 +172,9 @@ class ScanManager(gtk.Frame):
     def _set_scan_action(self, state):
         self.scanning = state
         if self.scanning:
-            self.scan_btn.set_label('sm-stop')
+            self.scan_btn.set_label('mxdc-stop-scan')
         else:
-            self.scan_btn.set_label('sm-scan')
+            self.scan_btn.set_label('mxdc-scan')
 
     def clear_xanes_results(self):
         self.energy_store.clear()

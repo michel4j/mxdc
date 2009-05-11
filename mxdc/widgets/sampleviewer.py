@@ -142,8 +142,8 @@ class SampleViewer(gtk.Frame):
         sin_w = math.sin(tmp_omega * math.pi / 180)
         cos_w = math.cos(tmp_omega * math.pi / 180)
         im_x, im_y, xmm, ymm = self._img_position(x,y)
-        self.beamline.sample_stage.x.move_by(-xmm)
-        self.beamline.sample_stage.y.move_by(-ymm * sin_w)
+        self.beamline.sample_stage.x.move_by(-xmm, wait=True)
+        self.beamline.sample_stage.y.move_by(-ymm * sin_w, wait=True)
         self.beamline.sample_stage.z.move_by(ymm * cos_w)
 
     def _create_widgets(self):
@@ -179,17 +179,10 @@ class SampleViewer(gtk.Frame):
         self.left_btn = self._xml.get_widget('left_btn')
         self.right_btn = self._xml.get_widget('right_btn')
         self.home_btn = self._xml.get_widget('home_btn')
-        if self.beamline.config['orientation'] == 0:
-            self.up_btn.connect('clicked', self.on_fine_up)
-            self.dn_btn.connect('clicked', self.on_fine_down)
-            self.left_btn.connect('clicked', self.on_fine_left)
-            self.right_btn.connect('clicked', self.on_fine_right)
-        elif self.beamline.config['orientation'] == 1:
-            self.up_btn.connect('clicked', self.on_fine_down)
-            self.dn_btn.connect('clicked', self.on_fine_up)
-            self.left_btn.connect('clicked', self.on_fine_right)
-            self.right_btn.connect('clicked', self.on_fine_left)
-        
+        self.up_btn.connect('clicked', self.on_fine_up)
+        self.dn_btn.connect('clicked', self.on_fine_down)
+        self.left_btn.connect('clicked', self.on_fine_left)
+        self.right_btn.connect('clicked', self.on_fine_right)        
         self.home_btn.connect('clicked', self.on_home)
         
         # rotate sample
@@ -354,7 +347,7 @@ class SampleViewer(gtk.Frame):
         sin_w = math.sin(tmp_omega * math.pi / 180)
         cos_w = math.cos(tmp_omega * math.pi / 180)
         step_size = self.beamline.sample_video.resolution * 10.0
-        self.beamline.sample_stage.y.move_by( step_size * sin_w * 0.5 )
+        self.beamline.sample_stage.y.move_by( step_size * sin_w * 0.5, wait=True )
         self.beamline.sample_stage.z.move_by( -step_size * cos_w * 0.5 )   
         return True
         
@@ -363,8 +356,8 @@ class SampleViewer(gtk.Frame):
         sin_w = math.sin(tmp_omega * math.pi / 180)
         cos_w = math.cos(tmp_omega * math.pi / 180)
         step_size = self.beamline.sample_video.resolution * 10.0
-        self.beamline.sample_stage.y.move_by( -step_size * sin_w * 0.5 )
-        self.beamline.sample_stage.z.move_by( step_size * cos_w * 0.5 )   
+        self.beamline.sample_stage.y.move_by( -step_size * sin_w * 0.5, wait=True)
+        self.beamline.sample_stage.z.move_by( step_size * cos_w * 0.5)   
         return True
         
     def on_fine_left(self,widget):

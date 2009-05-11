@@ -35,7 +35,7 @@ class CenterSample(Script):
         infile_name = '%s_data.inp' % prefix
         outfile_name = '%s_result.out' % prefix
         infile = open(infile_name, 'w')
-        in_data = 'LOOP_POSITION  3 \n'
+        in_data = 'LOOP_POSITION  %s\n' % self.beamline.config['orientation']
         in_data+= 'NUMBER_OF_IMAGES 6 \n'
         if not crystal:
             in_data+= 'PREALIGN\n'
@@ -80,9 +80,9 @@ class CenterSample(Script):
         xmm = x_offset * pixel_size
         ymm = y_offset * pixel_size
     
-        self.beamline.sample_stage.x.move_by( -xmm )
-        self.beamline.sample_stage.y.move_by( -ymm * sin_w  )
-        self.beamline.sample_stage.z.move_by( ymm * cos_w  )
+        self.beamline.sample_stage.x.move_by( -xmm, wait=True)
+        self.beamline.sample_stage.y.move_by( -ymm * sin_w, wait=True)
+        self.beamline.sample_stage.z.move_by( ymm * cos_w)
             
         self.beamline.logger.info('Loop centering cleaning up ...')
         for angle,img in imglist:

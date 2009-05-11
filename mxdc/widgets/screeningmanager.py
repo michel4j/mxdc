@@ -6,6 +6,7 @@ import gobject
 from twisted.python.components import globalRegistry
 from mxdc.widgets.samplelist import SampleList, TEST_DATA
 from mxdc.widgets.sampleviewer import SampleViewer
+from mxdc.widgets import dialogs
 from mxdc.widgets.ptzviewer import AxisViewer
 from bcm.beamline.mx import IBeamline
 from bcm.engine.scripting import get_scripts
@@ -69,7 +70,11 @@ class ScreenManager(gtk.Frame):
         self.deselect_all_btn = self._xml.get_widget('deselect_all_btn')
         self.task_queue_window = self._xml.get_widget('task_queue_window')
         self.edit_tbtn = self._xml.get_widget('edit_tbtn')
-        
+        self.export_btn = self._xml.get_widget('export_btn')
+        self.import_btn = self._xml.get_widget('import_btn')
+        self.export_btn.connect('clicked', self._on_export)
+        self.import_btn.connect('clicked', self._on_import)
+
         self.clear_btn.connect('clicked', self._on_queue_clear)
         self.apply_btn.connect('clicked', self._on_sequence_apply)
         self.reset_btn.connect('clicked', self._on_sequence_reset)
@@ -93,27 +98,39 @@ class ScreenManager(gtk.Frame):
         
         # Task Configuration
         self.TaskList = []
-        self.default_tasks = [ (TASK_MOUNT, True, True),
-                  (TASK_ALIGN, True, True),
-                  (TASK_PAUSE, False, False),
-                  (TASK_COLLECT, True, True),
-                  (TASK_COLLECT, True, False),
-                  (TASK_COLLECT, False, False),
-                  (TASK_ANALYSE, False, False),
-                  (TASK_PAUSE, False, False), ]
-        for key, sel, sen in self.default_tasks:
+        self.default_tasks = [ (TASK_MOUNT, True, True, False),
+                  (TASK_ALIGN, True, True, False),
+                  (TASK_PAUSE, False, False, True),
+                  (TASK_COLLECT, True, True, False),
+                  (TASK_COLLECT, True, False, False),
+                  (TASK_COLLECT, False, False, False),
+                  (TASK_ANALYSE, False, False, False),
+                  (TASK_PAUSE, False, False, False), ]
+        self._settings_sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        for key, sel, sen, lab in self.default_tasks:
             t = Tasklet(key, default=sel)
             tbtn = gtk.CheckButton(t.name)
             tbtn.set_active(sel)
             tbtn.connect('toggled', self._on_task_toggle, t)
             tbtn.set_sensitive(not(sen))
+            #self._settings_sg.add_widget(tbtn)
             if key == TASK_COLLECT:
                 ctable = self._get_collect_setup(t)
-                ctable.attach(tbtn, 0,2,0,1)
+                ctable.attach(tbtn, 0, 3, 0, 1)
+                self.task_config_box.pack_start(ctable, expand=True, fill=True)
+                
+            elif lab:
+                ctable = self._get_collect_labels()
+                ctable.attach(tbtn, 0, 3, 0, 1)
                 self.task_config_box.pack_start(ctable, expand=True, fill=True)
             else:
-                self.task_config_box.pack_start(tbtn, expand=True, fill=True)
-            self.TaskList.append( (t, tbtn) )
+                ctable = gtk.Table(1, 7, True)
+                ctable.attach(tbtn, 0, 3, 0, 1)
+                ctable.attach(gtk.Label(''), 4, 6, 0, 1)
+                self.task_config_box.pack_start(ctable, expand=True, fill=True)
+                
+            self._settings_sg.add_widget(tbtn)
+            self.TaskList.append((t, tbtn))
         
         # Run List
         self.listmodel = gtk.ListStore(
@@ -157,6 +174,12 @@ class ScreenManager(gtk.Frame):
             en.connect('activate', self._on_settings_changed, None, task, key)
             en.connect('focus-out-event', self._on_settings_changed, task, key)
             en.set_alignment(1)
+        return tbl
+
+    def _get_collect_labels(self):
+        _xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
+                          'collect_labels')
+        tbl = _xml2.get_widget('collect_labels')
         return tbl
     
     def _on_settings_changed(self, obj, event, task, key):
@@ -214,7 +237,72 @@ class ScreenManager(gtk.Frame):
                     item['done'] = False
                     item['name'] = t.name
                     item['task'] = t
-                    self._add_item(item)
+                    self._add_item(item)         
+
+    def _on_export(self, obj):
+        _CSV = 'Comma Separated Values'
+        _XLS = 'Excel 97-2003'
+        filters = [
+            (_XLS, ['*.xls']),
+            (_CSV, ['*.csv']),
+        ]
+        export_selector = dialogs.FileSelector('Export Spreadsheet',
+                                       gtk.FILE_CHOOSER_ACTION_SAVE,
+                                       filters=filters)
+        filename = export_selector.run()
+        filter = export_selector.get_filter()
+        if filename is None:
+            return
+        ext = os.path.splitext(filename)[1].lower()
+        if ext == '.csv':
+            self.sample_list.export_csv(filename)
+        elif ext == '.xls':
+            self.sample_list.export_xls(filename)
+        else:
+            format = filter.get_name()
+            if format == _CSV:
+                self.sample_list.export_csv(filename)
+            elif format == _XLS:
+                self.sample_list.export_xls(filename)
+            
+    def _on_import(self, obj):
+        _ALL = 'All Files'
+        _CSV = 'Comma Separated Values'
+        _XLS = 'Excel 97-2003'
+        filters = [
+            (_XLS, ['*.xls']),
+            (_CSV, ['*.csv']),
+            (_ALL, ['*']),
+        ]
+        export_selector = dialogs.FileSelector('Import Spreadsheet',
+                                       gtk.FILE_CHOOSER_ACTION_OPEN,
+                                       filters=filters)
+        filename = export_selector.run()
+        filter = export_selector.get_filter()
+        if filename is None:
+            return
+        ext = os.path.splitext(filename)[1].lower()
+        if ext == '.csv':
+            self.sample_list.import_csv(filename)
+        elif ext == '.xls':
+            self.sample_list.import_xls(filename)
+        else:
+            format = filter.get_name()
+            if format == _CSV:
+                self.sample_list.import_csv(filename)
+            elif format == _XLS:
+                self.sample_list.import_xls(filename)
+            elif format == _ALL:
+                try:
+                   self.sample_list.import_csv(filename)
+                except:
+                    try:
+                        self.sample_list.import_xls(filename)
+                    except:
+                        header = 'Unknown file format'
+                        subhead = 'The file "%s" could not be opened' % filename
+                        dialogs.error(header, subhead)
+
     
     def _on_sequence_reset(self, obj):
         for t,b in self.TaskList:
