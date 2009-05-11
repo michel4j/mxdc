@@ -15,7 +15,7 @@ class StatusPanel(gtk.Statusbar):
         self.layout_table.attach(self._frame_control('Beamline', gtk.Label(beamline.name), gtk.SHADOW_IN), 7, 8 , 0, 1)
         
         beamline.registry['ring_current'].units = 'mA'
-        self.intensity = ActiveLabel(beamline.registry['ring_current'], format="<tt><small>%8.1f</small></tt>")
+        self.intensity = ActiveLabel(beamline.registry['ring_current'], format="<tt><small>%8.1g</small></tt>")
         self.layout_table.attach(self._frame_control('Ring', self.intensity, gtk.SHADOW_IN), 6, 7 , 0, 1)
         
         self.intensity = ActiveLabel(beamline.registry['i_2'].value, format="<tt><small>%8.2g</small></tt>")

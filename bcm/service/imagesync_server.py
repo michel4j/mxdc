@@ -1,5 +1,9 @@
+import os, sys
 from twisted.application import internet, service
-from bcm.service.imagesync import ImgSyncService
+from twisted.web import resource, server, static
+sys.path.append(os.path.dirname(__file__))
+
+from imagesync import ImgSyncService
 
 IMGSYNC_CONFIG = "/home/marccd/.imgsync.conf"
 IMGSYNC_SOURCE_LOG = "/home/marccd/log/stdouterr.log"

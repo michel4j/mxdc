@@ -67,7 +67,9 @@ class VideoWidget(gtk.DrawingArea):
         
     def display(self, img):
         img = img.resize((self._img_width, self._img_height), Image.BICUBIC)
-        if self._colorize and img.mode == 'L':
+        if self._colorize:
+            if img.mode != 'L':
+                img = img.convert('L')
             img.putpalette(self._palette)
         img = img.convert('RGB')
         w, h = img.size
