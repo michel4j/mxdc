@@ -375,7 +375,7 @@
                 <property name="visible">True</property>
                 <property name="spacing">6</property>
                 <child>
-                  <widget class="GtkFrame" id="frame3">
+                  <widget class="GtkFrame" id="action_frame">
                     <property name="visible">True</property>
                     <property name="label_xalign">0</property>
                     <property name="shadow_type">GTK_SHADOW_NONE</property>
@@ -716,7 +716,7 @@
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkProgressBar" id="progressbar1">
+                  <widget class="GtkProgressBar" id="scan_pbar">
                     <property name="visible">True</property>
                     <property name="pulse_step">0.10000000149</property>
                     <property name="text" translatable="yes">0.0 %</property>

@@ -1,5 +1,7 @@
 import sys
 import os
+import time
+import copy
 import gtk
 import gtk.glade
 import gobject
@@ -10,27 +12,23 @@ from mxdc.widgets import dialogs
 from mxdc.widgets.ptzviewer import AxisViewer
 from bcm.beamline.mx import IBeamline
 from bcm.engine.scripting import get_scripts
+from bcm.engine.diffraction import Screener
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-( TASK_MOUNT,
-  TASK_ALIGN,
-  TASK_PAUSE,
-  TASK_COLLECT,
-  TASK_ANALYSE ) = range(5)
 
 TASKLET_NAME_MAP = {
-    TASK_MOUNT : 'Mount Crystal',
-    TASK_ALIGN : 'Align Crystal',
-    TASK_PAUSE : 'Pause',
-    TASK_COLLECT : 'Collect',
-    TASK_ANALYSE : 'Analyse',
+    Screener.TASK_MOUNT : 'Mount Crystal',
+    Screener.TASK_ALIGN : 'Align Crystal',
+    Screener.TASK_PAUSE : 'Pause',
+    Screener.TASK_COLLECT : 'Collect',
+    Screener.TASK_ANALYSE : 'Analyse',
 }
 
 (
     QUEUE_COLUMN_DONE,
     QUEUE_COLUMN_ID,
     QUEUE_COLUMN_NAME,
-    QUEUE_COLUMN_TASK
+    QUEUE_COLUMN_TASK,
 ) = range(4)
 
 class Tasklet(object):
@@ -38,20 +36,28 @@ class Tasklet(object):
         self.name = TASKLET_NAME_MAP[task_type]
         self.options = {'enabled': default, 'default': default}      
         self.task_type = task_type
-        
     
     def configure(self, **kwargs):
         for k,v in kwargs.items():
             self.options[k] = v
 
     def __repr__(self):
-        return '<Tasklet: %s>' % self.name
+        return '<Tasklet: %s>' % (self.name,)
 
 class ScreenManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
         self._create_widgets()
+        self.screen_runner = Screener()
+        self._screening = False
+        self._screening_paused = False
+        self.screen_runner.connect('progress', self._on_progress)
+        self.screen_runner.connect('stopped', self._on_stop)
+        self.screen_runner.connect('paused', self._on_pause)
+        self.screen_runner.connect('started', self._on_start)
+        self.screen_runner.connect('done', self._on_complete)
+
         
     def _create_widgets(self):        
         self.sample_list = SampleList()
@@ -62,10 +68,14 @@ class ScreenManager(gtk.Frame):
         self.sample_box = self._xml.get_widget('sample_box')
         self.video_book = self._xml.get_widget('video_book')
         self.task_config_box = self._xml.get_widget('task_config_box')
+        self.action_frame = self._xml.get_widget('action_frame')
         self.apply_btn = self._xml.get_widget('apply_btn')
         self.reset_btn = self._xml.get_widget('reset_btn')
         self.clear_btn = self._xml.get_widget('clear_btn')
+        self.unmount_btn = self._xml.get_widget('unmount_btn')
         self.start_btn = self._xml.get_widget('start_btn')
+        self.stop_btn = self._xml.get_widget('stop_btn')
+        self.scan_pbar = self._xml.get_widget('scan_pbar')
         self.select_all_btn = self._xml.get_widget('select_all_btn')
         self.deselect_all_btn = self._xml.get_widget('deselect_all_btn')
         self.task_queue_window = self._xml.get_widget('task_queue_window')
@@ -81,7 +91,8 @@ class ScreenManager(gtk.Frame):
         self.select_all_btn.connect('clicked', lambda x: self.sample_list.select_all(True) )
         self.deselect_all_btn.connect('clicked', lambda x: self.sample_list.select_all(False) )
         self.edit_tbtn.connect('toggled', self.sample_list.on_edit_toggled)
-        self.start_btn.connect('clicked', self._on_start_screen)
+        self.start_btn.connect('clicked', self._on_activate)
+        self.stop_btn.connect('clicked', self._on_stop_btn_clicked)
         
         self.beamline = globalRegistry.lookup([], IBeamline)
 
@@ -98,14 +109,14 @@ class ScreenManager(gtk.Frame):
         
         # Task Configuration
         self.TaskList = []
-        self.default_tasks = [ (TASK_MOUNT, True, True, False),
-                  (TASK_ALIGN, True, True, False),
-                  (TASK_PAUSE, False, False, True),
-                  (TASK_COLLECT, True, True, False),
-                  (TASK_COLLECT, True, False, False),
-                  (TASK_COLLECT, False, False, False),
-                  (TASK_ANALYSE, False, False, False),
-                  (TASK_PAUSE, False, False, False), ]
+        self.default_tasks = [ (Screener.TASK_MOUNT, True, True, False),
+                  (Screener.TASK_ALIGN, True, True, False),
+                  (Screener.TASK_PAUSE, False, False, True),
+                  (Screener.TASK_COLLECT, True, True, False),
+                  (Screener.TASK_COLLECT, True, False, False),
+                  (Screener.TASK_COLLECT, False, False, False),
+                  (Screener.TASK_ANALYSE, False, False, False),
+                  (Screener.TASK_PAUSE, False, False, False), ]
         self._settings_sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
         for key, sel, sen, lab in self.default_tasks:
             t = Tasklet(key, default=sel)
@@ -114,7 +125,7 @@ class ScreenManager(gtk.Frame):
             tbtn.connect('toggled', self._on_task_toggle, t)
             tbtn.set_sensitive(not(sen))
             #self._settings_sg.add_widget(tbtn)
-            if key == TASK_COLLECT:
+            if key == Screener.TASK_COLLECT:
                 ctable = self._get_collect_setup(t)
                 ctable.attach(tbtn, 0, 3, 0, 1)
                 self.task_config_box.pack_start(ctable, expand=True, fill=True)
@@ -152,10 +163,12 @@ class ScreenManager(gtk.Frame):
         iter = model.get_iter_first()
         items = []
         while iter:
+            tsk = model.get_value(iter, QUEUE_COLUMN_TASK)
             item = {}
-            item['id'] = model.get_value(iter, QUEUE_COLUMN_ID)
-            item['name'] = model.get_value(iter, QUEUE_COLUMN_NAME)
-            item['task'] = model.get_value(iter, QUEUE_COLUMN_TASK)
+            item['task_name'] = tsk.name
+            item['task_id'] = tsk.task_type
+            item['sample'] = tsk.options['sample']
+            item['done'] = False
             items.append(item)
             iter = model.iter_next(iter)
         return items
@@ -197,8 +210,8 @@ class ScreenManager(gtk.Frame):
         iter = self.listmodel.append()
         self.listmodel.set(iter, 
             QUEUE_COLUMN_DONE, item['done'], 
-            QUEUE_COLUMN_ID, item['id'],
-            QUEUE_COLUMN_NAME, item['name'],
+            QUEUE_COLUMN_ID, item['task'].options['sample']['id'],
+            QUEUE_COLUMN_NAME, item['task'].name,
             QUEUE_COLUMN_TASK, item['task'],
         )
         
@@ -222,6 +235,7 @@ class ScreenManager(gtk.Frame):
         # Task Column
         renderer = gtk.CellRendererText()
         column = gtk.TreeViewColumn('Task', renderer, text=QUEUE_COLUMN_NAME)
+        column.set_cell_data_func(renderer, self._done_color)
         self.listview.append_column(column)
     
     def _on_task_toggle(self, obj, tasklet):
@@ -233,11 +247,14 @@ class ScreenManager(gtk.Frame):
         items = self.sample_list.get_selected()
         for item in items:
             for t,b in self.TaskList:
-                if t.options['enabled']:
-                    item['done'] = False
-                    item['name'] = t.name
-                    item['task'] = t
-                    self._add_item(item)         
+                tsk = Tasklet(t.task_type)
+                tsk.configure(**t.options)
+                if tsk.options['enabled']:
+                    tsk.options['sample'] = item
+                    q_item = {}
+                    q_item['done'] = False
+                    q_item['task'] = tsk
+                    self._add_item(q_item)      
 
     def _on_export(self, obj):
         _CSV = 'Comma Separated Values'
@@ -312,5 +329,92 @@ class ScreenManager(gtk.Frame):
         model = self.listview.get_model()
         model.clear()
     
-    def _on_start_screen(self, obj):
-        print self.get_task_list()
+    def _on_activate(self, obj):
+        if not self._screening:
+                self.start_time = time.time()
+                task_list = self.get_task_list()       
+                #FIXME: must configure user here before continuing
+                self.screen_runner.configure(task_list)
+                self.screen_runner.start()
+        else:
+            if self._screening_paused:
+                self.screen_runner.resume()
+            else:
+                self.screen_runner.pause()
+                
+    def _on_stop_btn_clicked(self,widget):
+        self.screen_runner.stop()
+                          
+    def _on_progress(self, obj, fraction, position):
+        if position == 1:
+            self.start_time = time.time()
+        elapsed_time = time.time() - self.start_time
+        if fraction > 0:
+            time_unit = elapsed_time / fraction
+        else:
+            time_unit = 0.0
+        
+        eta_time = time_unit * (1 - fraction)
+        percent = fraction * 100
+        if position > 0:
+            frame_time = elapsed_time / position
+            text = "%0.0f %%, ETA %s" % (percent, time.strftime('%H:%M:%S',time.gmtime(eta_time)))
+        else:
+            text = "Total: %s sec" % (time.strftime('%H:%M:%S',time.gmtime(elapsed_time)))
+        self.scan_pbar.set_fraction(fraction)
+        self.scan_pbar.set_text(text)
+
+        # Update Queue state
+        path = (position,)
+        model = self.listview.get_model()
+        iter = model.get_iter(path)
+        model.set(iter, QUEUE_COLUMN_DONE, True)
+        self.listview.scroll_to_cell(path, use_align=True,row_align=0.9)
+
+        
+    def _on_stop(self, obj):
+        self._screening = False
+        self._screening_paused = False
+        self.start_btn.set_label('mxdc-collect')
+        self.stop_btn.set_sensitive(False)
+        self.scan_pbar.set_text("Stopped")
+        self.action_frame.set_sensitive(True)
+
+    def _on_pause(self, obj, state, msg):
+        if state:
+            self._screening_paused = True
+            self.start_btn.set_label('mxdc-resume')
+        else:
+            self._screening_paused = False
+            self.start_btn.set_label('mxdc-pause')           
+        self.stop_btn.set_sensitive(True)
+        self.scan_pbar.set_text("Paused")
+        if msg:
+            title = 'Attention Required'
+            resp = dialogs.messagedialog(gtk.MESSAGE_WARNING, 
+                                         title, msg,
+                                         buttons=( ('Intervene', gtk.RESPONSE_ACCEPT), 
+                                                   ('mxdc-resume', gtk.RESPONSE_CANCEL)) )
+            if resp == gtk.RESPONSE_ACCEPT:
+                return
+            elif resp == gtk.RESPONSE_CANCEL:
+                self.screen_runner.resume()
+
+    def _on_start(self, obj):
+        self._screening = True
+        self._screening_paused = False
+        self.start_btn.set_label('mxdc-pause')
+        self.stop_btn.set_sensitive(True)
+        self.action_frame.set_sensitive(False)
+        self.clear_btn.set_sensitive(False)
+        self.unmount_btn.set_sensitive(False)
+    
+    def _on_complete(self, obj):
+        self._screening = False
+        self._screening_paused = False
+        self.start_btn.set_label('mxdc-collect')
+        self.stop_btn.set_sensitive(False)
+        self.action_frame.set_sensitive(True)
+        self.clear_btn.set_sensitive(True)
+        self.unmount_btn.set_sensitive(True)
+
