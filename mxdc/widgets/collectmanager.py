@@ -388,7 +388,7 @@ class CollectManager(gtk.Frame):
             self.run_list[i]['saved'] = True
         return True
 
-    def on_pause(self,widget, paused):
+    def on_pause(self,widget, paused, msg=''):
         if paused:
             self.collect_btn.set_label('mxdc-resume')
             self.collect_state = COLLECT_STATE_PAUSED
@@ -397,6 +397,7 @@ class CollectManager(gtk.Frame):
         else:
             self.collect_btn.set_label('mxdc-pause')   
             self.collect_state = COLLECT_STATE_RUNNING
+            
     def on_error(self, widget, msg):
         msg_title = msg
         msg_sub = 'Connection to detector was lost. '
