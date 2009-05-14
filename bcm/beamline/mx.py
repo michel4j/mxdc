@@ -48,6 +48,15 @@ class MXBeamline(object):
         ca.flush()
         time.sleep(0.1)
         self.logger.info('Beamline Registered.')
+
+    def __getitem__(self, key):
+        return self.registry[key]
+    
+    def __getattr__(self, key):
+        try:
+            return Super(MXBeamline).__getattr__(self, key)
+        except AttributeError:
+            return self.registry[key]
         
     def setup(self):
         ca.threads_init()

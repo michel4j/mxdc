@@ -38,7 +38,7 @@ if __name__ == "__main__":
         config = os.path.join(os.environ['BCM_CONFIG_PATH'],
                               os.environ['BCM_CONFIG_FILE'])
     except:
-        _logger.error('Could not fine Beamline Control Module environment variables.')
+        _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')
         sys.exit(1)
     app = MXDCApp(config)
