@@ -56,6 +56,13 @@ class ImgSyncService(service.Service):
         
             
     def _read_config(self):
+        self.settings['user'] = 500
+        self.settings['uid'] = 500
+        self.settings['gid'] = 500
+        self.settings['server'] = 'ioc1608-301'
+        self.settings['base'] =   'users'
+        self.settings['marccd_uid'] = 500
+        self.settings['marccd_gid'] = 500
         config = ConfigParser()
         if os.path.exists(self.filename):
             try:
@@ -68,7 +75,8 @@ class ImgSyncService(service.Service):
                 self.settings['marccd_uid'] = int(config.get('config','marccd_uid'))
                 self.settings['marccd_gid'] = int(config.get('config','marccd_gid'))
             except:
-                log.err()
+                  log.err()
+       
 
          
     def set_user(self, user, uid, gid):
