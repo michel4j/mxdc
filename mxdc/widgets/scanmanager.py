@@ -357,7 +357,8 @@ class ScanManager(gtk.Frame):
         self.set_results(results)
         self.scan_pbar.set_fraction(1.0)
         self.scan_pbar.set_text("Scan Complete")
-        self.output_log.add_text(self.auto_chooch.output)     
+        self.output_log.add_text(self.auto_chooch.output)   
+        self.create_run_btn.set_sensitive(True) 
         return True
         
     def on_chooch_error(self,widget, error):

@@ -61,6 +61,7 @@ class Predictor( gtk.AspectFrame ):
         self.canvas.connect('unmap', self.on_unmap)
         self.canvas.connect_after('map', self.on_map)
         self._do_update = False
+        self.lines = self._shells(num=16)
 
         self.calculator = threading.Thread(target=self._do_calc)
         self.calculator.setDaemon(True)
@@ -169,11 +170,9 @@ class Predictor( gtk.AspectFrame ):
             Z = self._pix_resol(X,Y)
             xp = self._mm(X, self.beam_x)
             yp = self._mm(Y, self.beam_y)
-            lines = self._shells(num=16)
             self.xp = xp
             self.yp = yp
             self.Z = Z
-            self.lines = lines
             gobject.idle_add(self.display)
             while not self._do_update:
                 time.sleep(0.25)
