@@ -217,13 +217,13 @@ class Cryojet(object):
     def __init__(self, cname, lname, nozzle_motor):
         self.temperature = Positioner('%s:sensorTemp:get' % cname,
                                       '%s:sensorTemp:get' % cname,
-                                      'K')
+                                      units='Kelvin')
         self.sample_flow = Positioner('%s:sampleFlow:set' % cname,
                                       '%s:SampleFlow:get' % cname,
-                                      'L/min')
+                                      units='L/min')
         self.shield_flow = Positioner('%s:shieldFlow:set' % cname,
                                       '%s:ShieldFlow:get' % cname,
-                                      'L/min')
+                                      units='L/min')
         self.level = PV('%s:ch1LVL:get' % lname)
         self.nozzle = IMotor(nozzle_motor)
         self.fill_status = PV('%s:status:ch1:N.SVAL' % lname)
