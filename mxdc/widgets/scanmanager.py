@@ -124,6 +124,7 @@ class ScanManager(gtk.Frame):
         self.create_run_btn = self._xml.get_widget('create_run_btn')
         self.xanes_results = self._xml.get_widget('xanes_vbox')
         self.xanes_results.set_sensitive(False)
+        self.create_run_btn.connect('clicked', self.on_create_run)
 
         #Label column
         renderer = gtk.CellRendererText()
@@ -238,9 +239,9 @@ class ScanManager(gtk.Frame):
         run_data['delta'] = 1
         run_data['time'] = 1
         run_data['start_angle'] = 0
-        run_data['angle_range']= 180
+        run_data['total_angle']= 180
         run_data['start_frame']= 1
-        run_data['num_frames']= 180
+        run_data['total_frames']= 180
         run_data['inverse_beam']= False
         run_data['wedge']=180
         run_data['energy'] = self.energies
