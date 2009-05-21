@@ -19,8 +19,9 @@ class Counter(object):
 
     implements(ICounter)
     
-    def __init__(self, pv_name):
-        self.name = pv_name     
+    def __init__(self, pv_name, zero=0):
+        self.name = pv_name
+        self.zero = float(zero)
         self.value = PV(pv_name)
     
     def __repr__(self):
@@ -29,7 +30,7 @@ class Counter(object):
     
     def count(self, t):
         if t <= 0.0:
-            return self.value.get()
+            return self.value.get() - self.zero
             
         _logger.debug('Averaging detector (%s) for %0.2f sec.' % (self.name, t) )
         interval=0.01
@@ -39,7 +40,7 @@ class Counter(object):
             values.append( self.value.get() )
             time.sleep(interval)
             time_left -= interval
-        total = sum(values, 0.0)/len(values)
+        total = (sum(values, 0.0)/len(values)) - self.zero
         _logger.debug('(%s) Returning average of %d values for %0.2f sec.' % (self.name, len(values), t) )
         return total
                         
