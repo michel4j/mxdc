@@ -201,11 +201,16 @@ class ImageViewer(gtk.Frame):
             self.collect_queue = []
             if self._collect_id is not None:
                 gobject.source_remove(self._collect_id)
-            self._collect_id = gobject.timeout_add(1000, self.follow_collect)
+            self._collect_id = gobject.timeout_add(2400, self.follow_collect)
     
     def _file_loadable(self, filename):
-        if os.access(filename, os.R_OK):
-            return True
+        filelist = os.listdir(os.path.dirname(filename))
+        if os.path.exists(filename):
+            statinfo = os.stat(filename)
+            if os.access(filename, os.R_OK) and statinfo.st_size == 33558528:
+                return True
+            else:
+                return False
         else:
             return False
     
@@ -220,9 +225,11 @@ class ImageViewer(gtk.Frame):
         # only show image if it is readable and the follow button is active        
         if self._file_loadable(filename) and self.follow_tbtn.get_active():
             self.open_image(filename)
-            self.collect_queue.remove(filename)
+            if filename in self.collect_queue:
+                self.collect_queue.remove(filename)
         elif not self.follow_tbtn.get_active():
-            self.collect_queue.remove(filename)
+            if filename in self.collect_queue:
+                self.collect_queue.remove(filename)
         return True
         
 
@@ -297,6 +304,8 @@ class ImageViewer(gtk.Frame):
         info = self.image_canvas.get_image_info()
         for key, val in info.items():
             w = self._xml3.get_widget('%s_lbl' % key)
+            if not w:
+                break
             if key in ['img_size', 'beam_center']:
                 txt = "%0.0f, %0.0f" % (val[0], val[1])
             elif key in ['file']:
@@ -410,9 +419,7 @@ def main():
     win.show_all()
 
     if len(sys.argv) == 2:
-        myview.set_filename(sys.argv[1])
-        myview.load_image()
-        myview.display()
+        myview.open_image(sys.argv[1])
     
     try:
         gtk.main()
