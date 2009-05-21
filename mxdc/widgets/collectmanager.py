@@ -321,10 +321,10 @@ class CollectManager(gtk.Frame):
     def check_runlist(self):
         existlist = []
         details = ""
-        for frame in self.run_list:
+        for i, frame in enumerate(self.run_list):
             path_to_frame = "%s/%s" % (frame['directory'],frame['file_name'])
             if os.path.exists(path_to_frame):
-                existlist.append( frame['index'] )
+                existlist.append( i )
                 details += frame['file_name'] + "\n"
         if len(existlist) > 0:
             header = 'Frames from this sequence already exist! Do you want to skip or replace them?'
