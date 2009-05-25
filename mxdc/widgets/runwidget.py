@@ -26,7 +26,7 @@ DEFAULT_PARAMETERS = {
     'start_frame': 1,
     'total_frames': 1,
     'inverse_beam': False,
-    'wedge': 180.0,
+    'wedge': 360.0,
     'energy': [ 12.658 ],
     'energy_label': ['E0'],
     'number': 1,
@@ -150,7 +150,6 @@ class RunWidget(gtk.Frame):
         self._changes_pending = False
                 
     def __add_energy(self, item=None): 
-        iter = self.energy_store.append()
         model = self.energy_store
         iter = model.get_iter_first()
         _e_names = []
@@ -171,7 +170,8 @@ class RunWidget(gtk.Frame):
                 _e_value = 12.6580
 
             item = [name, _e_value, True, True]
-        
+            
+        iter = self.energy_store.append()
         self.energy_store.set(iter, 
             COLUMN_LABEL, item[COLUMN_LABEL], 
             COLUMN_ENERGY, item[COLUMN_ENERGY],
@@ -222,18 +222,16 @@ class RunWidget(gtk.Frame):
                        
 
     def on_add_energy_clicked(self, button):
-        if len(self.energy) < 5:
+        if len(self.energy_list.get_model()) < 5:
             self.__add_energy()
         self.__reset_e_btn_states()
 
     def on_remove_energy_clicked(self, button):
-        if len(self.energy) > 1:
+        if len(self.energy_list.get_model()) > 1:
             selection = self.energy_list.get_selection()
             model, iter = selection.get_selected()
             if iter:
                 path = model.get_path(iter)[0]
-                del self.energy[path]
-                del self.energy_label[path]
                 model.remove(iter)
         self.__reset_e_btn_states()
             
@@ -257,8 +255,6 @@ class RunWidget(gtk.Frame):
         self.set_number(dict['number'])
         self.entry['inverse_beam'].set_active(dict['inverse_beam'])
         self.energy_store.clear()
-        self.energy = []
-        self.energy_label = []
         
         for i in range(len(dict['energy'])):
             self.__add_energy([dict['energy_label'][i], dict['energy'][i], True, False] )
@@ -422,7 +418,7 @@ class RunWidget(gtk.Frame):
         except:
             time = 1.0
         time = (abs(time) > 0.1 and abs(time)) or 0.1
-        self.entry['time'].set_text('%0.2f' % time)
+        self.entry['time'].set_text('%0.1f' % time)
         self.check_changes()
         return False
 
@@ -456,7 +452,7 @@ class RunWidget(gtk.Frame):
         try:
             wedge = float(self.entry['wedge'].get_text())    
         except:
-            wedge = 180.0
+            wedge = 360.0
 
         self.entry['wedge'].set_text('%0.2f' % wedge) 
         self.check_changes()
@@ -507,7 +503,7 @@ class RunWidget(gtk.Frame):
         if distance < d_min:  distance = d_min
         if distance > d_max:  distance = d_max
           
-        self.entry['distance'].set_text('%0.2f' % distance)
+        self.entry['distance'].set_text('%0.1f' % distance)
         self.check_changes()
         return False
         
