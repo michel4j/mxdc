@@ -138,12 +138,15 @@ class XANESScan(BasicScan):
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
                 y = self.beamline.mca.count(self._duration)
                 i0 = self.beamline.i_0.count(self._duration)
-                scale = (self.datta[0][2]/i0)
+                if self.count == 1:
+                    scale = 1.0
+                else:
+                    scale = (self.data[0][2]/i0)
                 self.data.append( [x, y*scale, i0, y] )
                     
                 fraction = float(self.count) / len(self._targets)
                 _logger.info("%4d %15g %15g %15g %15g" % (self.count, x, y*scale, i0, y))
-                gobject.idle_add(self.emit, "new-point", (x, y/i0, i0, y))
+                gobject.idle_add(self.emit, "new-point", (x, y*scale, i0, y))
                 gobject.idle_add(self.emit, "progress", fraction )
                              
             if self._stopped:
