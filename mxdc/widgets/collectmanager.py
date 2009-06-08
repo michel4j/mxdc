@@ -25,6 +25,8 @@ from mxdc.widgets.dialogs import *
     COLLECT_STATE_PAUSED
 ) = range(3)
 
+RUN_CONFIG_FILE = 'run_config3.dat'
+
 class CollectManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
@@ -146,8 +148,8 @@ class CollectManager(gtk.Frame):
         return True
 
     def _load_config(self):
-
-        config_file = os.environ['HOME'] + '/.mxdc/run_config2.dat'
+        config_dir = os.path.join(os.environ['HOME'], '.mxdc')
+        config_file = os.path.join(config_dir, RUN_CONFIG_FILE)
         if os.access(config_file, os.R_OK):
             data = {}
             config = ConfigObj(config_file, options={'unrepr':True})
@@ -157,7 +159,7 @@ class CollectManager(gtk.Frame):
                 self.add_run(data[run])
 
     def _save_config(self):
-        config_dir = os.environ['HOME'] + '/.mxdc'
+        config_dir = os.path.join(os.environ['HOME'], '.mxdc')
         # create configuration directory if none exists
         if not os.access( config_dir , os.R_OK):
             if os.access( os.environ['HOME'], os.W_OK):
@@ -165,7 +167,7 @@ class CollectManager(gtk.Frame):
                 
         config = ConfigObj()
         config.unrepr = True
-        config_file = os.path.join(config_dir,'run_config2.dat')
+        config_file = os.path.join(config_dir, RUN_CONFIG_FILE)
         save_data = {}
         for run in self.run_manager.runs:
             data = run.get_parameters()
@@ -177,11 +179,6 @@ class CollectManager(gtk.Frame):
                 keystr = "%s" % key
                 config[keystr] = data
             config.write()
-        else:
-            msg_title = 'Directory Error'
-            msg_sub = 'MXDC could not setup directories for data collection. '
-            msg_sub += 'Data collection will not proceed reliably.'
-            warning(msg_title, msg_sub)
             
 
     def config_user(self):

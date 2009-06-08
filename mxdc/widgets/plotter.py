@@ -13,6 +13,9 @@ from matplotlib.numerix import arange, sin, pi
 from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
 from matplotlib import rcParams
 
+from zope.interface import implements
+from twisted.python.components import globalRegistry
+from bcm.engine.scanning import IScanPlotter
 try:
     from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
 except:
@@ -21,6 +24,7 @@ except:
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 from matplotlib.backends.backend_gtk import FileChooserDialog
 
+from misc import ActiveProgressBar
 
 rcParams['legend.loc'] = 'best'
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -265,4 +269,79 @@ class Plotter( gtk.Frame ):
             self.axis[0].set_xlim(xmin, xmax)
         #self.axis[0].legend()       
         self.canvas.draw()
+
+
+class ScanPlotter(gtk.Window):
+    implements(IScanPlotter)
+
+ 
+    def __init__(self):
+        gtk.Window.__init(self)
+        self.plotter = Plotter(self)
+        vbox=gtk.VBox(2, False)
+        vbox.pack_start(self.plotter, expand=True, fill=True)
+        self.prog_bar = ActiveProgressBar()
+        self.prog_bar.set_fraction(0.0)
+        self.prog_bar.idle_text('0%')
+
+        vbox.pack_end(self.prog_bar, expand=False, fill=True)
+        globalRegistry.register([], IScanPlotter, '', self)
+        self._sig_handlers = {}
+        self.add(vbox)
+        self.show_all()
+        
+    def connect_scanner(self, scan):
+        _sig_map = {
+            'started' : self.on_start, 
+            'progress': self.on_progress, 
+            'new-point': self.on_new_point, 
+            'error': self.on_error, 
+            'done': self.on_done, 
+            'stopped': self.on_stop
+        }
+        
+        # connect signals. Disconnect existing handlers in the process. Only
+        # one scan should be plotting at a time even though multiple scans can be 
+        # running simultaneously
+        for sig in ['started', 'progress', 'new-point', 'error', 'done', 'stopped']:
+            _handler = self._sig_handlers.get(sig, None)
+            if _handler is not None:
+                scan.disconnect(_handler)
+            self._sig_handlers[sig] = scan.connect('started', _sig_map[sig])
+                    
+    
+    def on_start(self, scan, data=None):
+        """Clear Scan and setup based on contents of data dictionary."""
+        self.plotter.clear()
+        self._start_time = time.time()
+             
+    
+    def on_progress(self, scan, fraction):
+        """Progress handler."""
+        elapsed_time = time.time() - self._start_time
+        if fraction > 0:
+            time_unit = elapsed_time / fraction
+        else:
+            time_unit = 0.0
+        
+        eta_time = time_unit * (1 - fraction)
+        percent = fraction * 100
+        text = "ETA %s" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)))
+        self.prog_bar.set_complete(fraction, text)
+
+    def on_new_point(selfscan, data):
+        """New point handler."""
+        self.plotter.add_point(point[0], point[1])
+        
+    def on_stop(self, scan):
+        """Stop handler."""
+        self.prog_bar.set_text('Scan Stopped!')
+    
+    def on_error(self, scan,reason):
+        """Error handler."""
+        self.prog_bar.set_text('Scan Error: %s' % (reason,))
+ 
+    def on_done(self, scan):
+        """Done handler."""
+        scan.save(time.strftime('Scan_%b%d%y_%H%M.dat'))
 

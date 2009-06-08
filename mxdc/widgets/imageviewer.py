@@ -167,28 +167,6 @@ class ImageViewer(gtk.Frame):
         self.info_btn.set_sensitive(True)
         self._update_info()
             
-    def poll_for_file(self):
-        if len(self.image_queue) == 0:
-            if self.collecting_data == True:
-                return True
-            else:
-                self.follow_toggle.set_active(False)
-                return False
-        else:
-            next_filename = self.image_queue[0]
-        
-        self.__set_busy(True)
-        if os.path.isfile(next_filename) and (os.stat(next_filename)[stat.ST_SIZE] == 18878464) and os.access(next_filename, os.R_OK):
-            self.set_filename( next_filename )
-            self.image_queue.pop(0) # delete loaded image from queue item
-            self.load_image()
-            self.display()
-            self.__set_busy(False)
-            return True
-        else:
-            self.__set_busy(False)
-            return True     
-
     def follow_frames(self):
         if self._file_loadable(self.next_filename):
             self.open_image(self.next_filename)                
