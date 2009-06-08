@@ -207,7 +207,7 @@ class Plotter( gtk.Frame ):
         self.axis[0].set_ylabel(y1_label)
         
 
-    def clear(self):
+    def clear(self, grid=False):
         self.fig.clear()
         self.axis = []    
         self.axis.append( self.fig.add_subplot(111) )
