@@ -219,6 +219,33 @@ class ShutterButton(gtk.Button):
     def _set_off(self):
         self.label.set_text("Open %s" % self.label_text)
         self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_SMALL_TOOLBAR)
+
+class ShutterStatus(gtk.HBox):
+    def __init__(self, shutter):
+        gtk.HBox.__init__(self, False, 0)
+        self.shutter = shutter
+        self.set_border_width(2)
+        self.image = gtk.Image()
+        self.label = gtk.Label('')
+        self.pack_start(self.label)
+        self.pack_start(self.image)
+        
+        self.shutter.connect('changed', self._on_state_change)
+                    
+    def _on_state_change(self, obj, state):
+        if state:
+            self._set_on()
+        else:
+            self._set_off()
+        return True
+            
+    def _set_on(self):
+        self.label.set_text("OPEN")
+        self.image.set_from_stock('gtk-yes', gtk.ICON_SIZE_MENU)
+    
+    def _set_off(self):
+        self.label.set_text("CLOSED")
+        self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_MENU)
     
     
 class ActiveProgressBar(gtk.ProgressBar):
