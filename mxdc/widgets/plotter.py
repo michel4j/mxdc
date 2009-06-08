@@ -276,15 +276,16 @@ class ScanPlotter(gtk.Window):
 
  
     def __init__(self):
-        gtk.Window.__init(self)
+        gtk.Window.__init__(self)
         self.plotter = Plotter(self)
-        vbox=gtk.VBox(2, False)
+        self.plotter.set_size_request(640,480)
+        vbox=gtk.VBox(False)
         vbox.pack_start(self.plotter, expand=True, fill=True)
         self.prog_bar = ActiveProgressBar()
         self.prog_bar.set_fraction(0.0)
         self.prog_bar.idle_text('0%')
 
-        vbox.pack_end(self.prog_bar, expand=False, fill=True)
+        vbox.pack_start(self.prog_bar, expand=False, fill=False)
         globalRegistry.register([], IScanPlotter, '', self)
         self._sig_handlers = {}
         self.add(vbox)
@@ -307,12 +308,20 @@ class ScanPlotter(gtk.Window):
             _handler = self._sig_handlers.get(sig, None)
             if _handler is not None:
                 scan.disconnect(_handler)
-            self._sig_handlers[sig] = scan.connect('started', _sig_map[sig])
+        self._sig_handlers['started'] = scan.connect('started', self.on_start)
+        self._sig_handlers['new-point'] = scan.connect('new-point', self.on_new_point)
+        self._sig_handlers['progress'] = scan.connect('progress', self.on_progress)
+        self._sig_handlers['done'] = scan.connect('done', self.on_done)
+        self._sig_handlers['error'] = scan.connect('error', self.on_error)
+        self._sig_handlers['stopped'] = scan.connect('error', self.on_stop)
                     
     
     def on_start(self, scan, data=None):
         """Clear Scan and setup based on contents of data dictionary."""
         self.plotter.clear()
+        self.plotter.set_labels(title=scan.__doc__,
+                                x_label=scan.data_names[0],
+                                y1_label=scan.data_names[-1])
         self._start_time = time.time()
              
     
@@ -329,15 +338,16 @@ class ScanPlotter(gtk.Window):
         text = "ETA %s" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)))
         self.prog_bar.set_complete(fraction, text)
 
-    def on_new_point(selfscan, data):
+    def on_new_point(self, scan, data):
         """New point handler."""
-        self.plotter.add_point(point[0], point[1])
+        self.plotter.add_point(data[0], data[1])
+        
         
     def on_stop(self, scan):
         """Stop handler."""
         self.prog_bar.set_text('Scan Stopped!')
     
-    def on_error(self, scan,reason):
+    def on_error(self, scan, reason):
         """Error handler."""
         self.prog_bar.set_text('Scan Error: %s' % (reason,))
  

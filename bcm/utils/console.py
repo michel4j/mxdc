@@ -188,6 +188,7 @@ class BeamlineConsole(GTKInterpreter):
                  "from bcm.engine.scripting import *",
                  "from bcm.engine.scanning import *",
                  "from bcm.engine.fitting import *",
+                 "from mxdc.widgets.plotter import ScanPlotter",
                  "beamline = MXBeamline(os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONFIG_FILE']))",
                  ]
         map(push,lines)

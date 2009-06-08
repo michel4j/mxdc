@@ -113,11 +113,13 @@ class BasicScan(gobject.GObject):
         except:
             self._logger.error("Could not open file '%s' for writing" % filename)
             return
-        f.write('# Scan Type: %s\n' % (self.__class__.__name__))
-        f.write('#')
-        for name in self.data_names:
-            f.write('%15s' % name)
-        f.write('\n')
+        f.write('# Scan Type: %s -- %s\n' % (self.__class__.__name__, self.__class__.__doc__))
+        f.write('# Column descriptions:\n')
+        header = "#"
+        for i , name in enumerate(self.data_names):
+            f.write('#  Column %d: %s \n' % (i, name))
+            header = "%s %14s" % (header, ('Column %d' % i) )  
+        f.write('%s \n' % header)
         for point in self.data:
             for val in point:
                 f.write('%15g' % val)
@@ -126,7 +128,7 @@ class BasicScan(gobject.GObject):
         
     
 class AbsScan(BasicScan):
-    """An object which performs an absolute scan of a single motor."""
+    """An absolute scan of a single motor."""
 
     def __init__(self, mtr, start_pos, end_pos, steps, cntr, t, i0=None):
         BasicScan.__init__(self)
@@ -178,7 +180,7 @@ class AbsScan(BasicScan):
     
 
 class AbsScan2(BasicScan):
-    """An object which performs an absolute scan of two motors."""
+    """An Absolute scan of two motors."""
     
     def __init__(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
         BasicScan.__init__(self)
@@ -241,7 +243,7 @@ class AbsScan2(BasicScan):
 
 
 class RelScan(AbsScan):
-    """An object which performs a relative scan of a single motor."""
+    """A relative scan of a single motor."""
     
     def __init__(self, mtr, start_offset, end_offset, steps, cntr, t, i0=None):
         BasicScan.__init__(self)
@@ -261,7 +263,7 @@ class RelScan(AbsScan):
         self._end_pos = cur_pos + end_offset
 
 class RelScan2(AbsScan2):
-    """An object which performs a relative scan of a single motor."""
+    """A relative scan of a two motors."""
     
     def __init__(self, mtr1, start_offset1, end_offset1, mtr2, start_offset2, end_offset2, steps, cntr, t, i0=None):
         BasicScan.__init__(self)
@@ -285,7 +287,7 @@ class RelScan2(AbsScan2):
         self._end_pos2 = cur_pos2 + end_offset2 
         
 class GridScan(BasicScan):
-    """An object which performs an absolute scan of two motors in a grid."""
+    """A absolute scan of two motors in a grid."""
     
     def __init__(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
         BasicScan.__init__(self)

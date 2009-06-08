@@ -54,7 +54,7 @@ class MXBeamline(object):
     
     def __getattr__(self, key):
         try:
-            return Super(MXBeamline).__getattr__(self, key)
+            return super(MXBeamline).__getattr__(self, key)
         except AttributeError:
             return self.registry[key]
         
