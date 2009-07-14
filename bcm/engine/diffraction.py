@@ -201,7 +201,7 @@ class DataCollector(gobject.GObject):
                 self.beamline.monochromator.simple_energy.move_to(frame['energy'])
                 self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)
                 #self.beamline.diffractometer.two_theta.move_to(frame['two_theta'], wait=True)
-                self.beamline.monochromator.energy.wait()                
+                self.beamline.monochromator.simple_energy.wait()                
                 
                 # Prepare image header
                 header['delta'] = frame['delta']

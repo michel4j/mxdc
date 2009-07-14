@@ -220,14 +220,54 @@ class ShutterButton(gtk.Button):
         self.label.set_text("Open %s" % self.label_text)
         self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_SMALL_TOOLBAR)
 
+class ScriptButton(gtk.Button):
+    def __init__(self, script, label):
+        gtk.Button.__init__(self)
+        self.script = script
+        container = gtk.HBox(False,0)
+        container.set_border_width(2)
+        self.label_text = label
+        self.image = gtk.Image()
+        self.label = gtk.Label(label)
+        container.pack_start(self.image, expand=False, fill=False)
+        container.pack_start(self.label, expand=True, fill=True)
+        self.add(container)
+        self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+                                                               'data/active_stop.gif'))
+        self.tooltip = gtk.Tooltips()
+        self.tooltip.set_tip(self, self.script.description)
+        self._set_off()
+     
+        self.script.connect('done', self._on_state_change)
+        self.script.connect('error', self._on_state_change)
+        self.connect('clicked', self._on_clicked)
+            
+    def _on_clicked(self, widget):
+        if not self.script.is_active():
+            self.script.start()
+            self._set_on()  
+        
+    def _on_state_change(self, obj):
+        self._set_off()
+        return True
+            
+    def _set_on(self):
+        self.image.set_from_animation(self._animation)
+        self.label.set_sensitive(False)
+        #self.set_relief(gtk.RELIEF_NONE)
+    
+    def _set_off(self):
+        self.image.set_from_stock('gtk-execute', gtk.ICON_SIZE_SMALL_TOOLBAR)
+        self.label.set_sensitive(True)
+        #self.set_relief(gtk.RELIEF_NORMAL)
+
+
 class ShutterStatus(gtk.HBox):
     def __init__(self, shutter):
         gtk.HBox.__init__(self, False, 0)
         self.shutter = shutter
         self.set_border_width(2)
         self.image = gtk.Image()
-        self.label = gtk.Label('')
-        self.pack_start(self.label)
         self.pack_start(self.image)
         
         self.shutter.connect('changed', self._on_state_change)
@@ -240,11 +280,9 @@ class ShutterStatus(gtk.HBox):
         return True
             
     def _set_on(self):
-        self.label.set_text("OPEN")
         self.image.set_from_stock('gtk-yes', gtk.ICON_SIZE_MENU)
     
     def _set_off(self):
-        self.label.set_text("CLOSED")
         self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_MENU)
     
     
