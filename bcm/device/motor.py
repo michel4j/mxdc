@@ -119,8 +119,8 @@ class Motor(MotorBase):
             self.STOP = PV("%s:emergStop" % pv_root)
             self.CALIB = PV("%s:isCalib" % (pv_root))
         elif self._motor_type == 'pseudo':
-            self.PREC =    PV("%s:fbk.PREC" % (pv_name))
-            self.RBV  = PV("%s:fbk" % (pv_name))
+            self.PREC =    PV("%s:sp.PREC" % (pv_name))
+            self.RBV  = PV("%s:sp" % (pv_name))
             self.STAT = PV("%s:status" % pv_root)
             self.MOVN = PV("%s:moving" % pv_root)
             self.STOP = PV("%s:stop" % pv_root)

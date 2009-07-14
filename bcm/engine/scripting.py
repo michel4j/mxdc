@@ -65,6 +65,9 @@ class Script(gobject.GObject):
     def wait(self):
         while self._active:
             time.sleep(0.05)
+    
+    def is_active(self):
+        return self._active
 
 def get_scripts():
     import bcm.scripts

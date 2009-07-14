@@ -14,22 +14,23 @@ class StatusPanel(gtk.Statusbar):
 
         self.layout_table.attach(self._frame_control('Beamline', gtk.Label(beamline.name), gtk.SHADOW_IN), 8, 9 , 0, 1)
         
-        self.sh_stat = ShutterStatus(beamline.registry['exposure_shutter'])
-        self.layout_table.attach(self._frame_control('Shutter', self.sh_stat, gtk.SHADOW_IN), 6, 7 , 0, 1)
         
         beamline.registry['ring_current'].units = 'mA'
         self.intensity = ActiveLabel(beamline.registry['ring_current'], format="<tt><small>%5.1f</small></tt>")
         self.layout_table.attach(self._frame_control('Ring', self.intensity, gtk.SHADOW_IN), 7, 8 , 0, 1)
         
         self.intensity = ActiveLabel(beamline.registry['i_2'].value, format="<tt><small>%8.1e</small></tt>")
-        self.layout_table.attach(self._frame_control('I₂', self.intensity, gtk.SHADOW_IN), 5, 6 , 0, 1)
+        self.layout_table.attach(self._frame_control('I₂', self.intensity, gtk.SHADOW_IN), 6, 7 , 0, 1)
         
         self.intensity = ActiveLabel(beamline.registry['i_1'].value, format="<tt><small>%8.1e</small></tt>")
-        self.layout_table.attach(self._frame_control('I₁', self.intensity, gtk.SHADOW_IN), 4, 5 , 0, 1)
+        self.layout_table.attach(self._frame_control('I₁', self.intensity, gtk.SHADOW_IN), 5, 6 , 0, 1)
         
         self.intensity = ActiveLabel(beamline.i_0.value, format="<tt><small>%8.1e</small></tt>")
-        self.layout_table.attach(self._frame_control('I₀', self.intensity, gtk.SHADOW_IN), 3, 4 , 0, 1)
+        self.layout_table.attach(self._frame_control('I₀', self.intensity, gtk.SHADOW_IN), 4, 5 , 0, 1)
         
+        self.sh_stat = ShutterStatus(beamline.registry['exposure_shutter'])
+        self.layout_table.attach(self._frame_control('Shutter', self.sh_stat, gtk.SHADOW_IN), 3, 4 , 0, 1)
+
         #self.progress_bar = gtk.ProgressBar()
        # self.progress_bar.set_size_request(50,-1)
         #self.layout_table.attach(self.progress_bar, 2, 3, 0, 1, xoptions=gtk.FILL|gtk.EXPAND)

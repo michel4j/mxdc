@@ -1,6 +1,7 @@
 from bcm.engine.scripting import Script
 
 class PrepareMounting(Script):
+    description = "Move endstation to sample mounting position."
     def run(self):
         safe_distance = 700
         safe_beamstop = 45      
@@ -9,6 +10,7 @@ class PrepareMounting(Script):
         
 
 class FinishedMounting(Script):
+    description = "Move endstation to data collection position."
     def run(self):
         safe_distance = 300
         safe_beamstop = 30

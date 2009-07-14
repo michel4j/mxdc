@@ -185,7 +185,7 @@ class ImageViewer(gtk.Frame):
         filelist = os.listdir(os.path.dirname(filename))
         if os.path.exists(filename):
             statinfo = os.stat(filename)
-            if os.access(filename, os.R_OK) and statinfo.st_size == 33558528:
+            if os.access(filename, os.R_OK) and (time.time() - statinfo.st_mtime) > 0.1:
                 return True
             else:
                 return False

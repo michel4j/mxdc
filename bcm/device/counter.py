@@ -2,6 +2,7 @@ import time
 import math
 import logging
 
+
 from zope.interface import implements
 from bcm.device.interfaces import ICounter
 from bcm.protocol.ca import PV
@@ -23,10 +24,16 @@ class Counter(object):
         self.name = pv_name
         self.zero = float(zero)
         self.value = PV(pv_name)
+        self.DESC = PV('%s.DESC' % pv_name)
+        self.DESC.connect('changed', self._on_name_change)
     
     def __repr__(self):
         s = "<%s:'%s'>" % (self.__class__.__name__, self.name)
         return s
+
+    def _on_name_change(self, pv, val):
+        if val != '':
+            self.name = val
     
     def count(self, t):
         if t <= 0.0:
