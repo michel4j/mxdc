@@ -40,12 +40,18 @@ class Positioner(gobject.GObject):
             self.fbk_pv = self.set_pv
         else:
             self.fbk_pv = PV(fbk_name)
+        self.DESC = PV('%s.DESC' % name)
         self.name = name
         if scale is None:
             self.units = units
         else:
             self.units = '%'
         self.fbk_pv.connect('changed', self._signal_change)
+        self.DESC.connect('changed', self._on_name_change)
+    
+    def _on_name_change(self, pv, val):
+        if val != '':
+            self.name = val
     
     def __repr__(self):
         return '<%s:%s, target:%s, feedback:%s>' %( self.__class__.__name__,
@@ -240,7 +246,7 @@ class Cryojet(object):
         self.sample_flow.set(0.0)
 
    
-class Stage(object):
+class XYZStage(object):
 
     implements(IStage)
     
@@ -263,6 +269,26 @@ class Stage(object):
         self.y.stop()
         self.z.stop()
 
+class XYStage(object):
+
+    implements(IStage)
+    
+    def __init__(self, x, y, name='XY Stage'):
+        self.name = name
+        self.x  = x
+        self.y  = y
+                    
+    def get_state(self):
+        return self.x.get_state() | self.y.get_state() 
+                        
+    def wait(self):
+        self.x.wait()
+        self.y.wait()
+
+    def stop(self):
+        self.x.stop()
+        self.y.stop()
+ 
 
 class Collimator(object):
 

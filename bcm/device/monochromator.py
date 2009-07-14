@@ -34,14 +34,10 @@ class Monochromator(object):
                 )
                         
     def wait(self):
-        self.width.wait()
-        self.height.wait()
-        self.x.wait()
-        self.y.wait()
+        self.energy.wait()
+        self.mostab.wait()
 
     def stop(self):
-        self.width.stop()
-        self.height.stop()
-        self.x.stop()
-        self.y.stop()
+        self.energy.stop()
+        self.mostab.stop()
         

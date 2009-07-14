@@ -325,7 +325,7 @@ class CollectManager(gtk.Frame):
                 details += frame['file_name'] + "\n"
         if len(existlist) > 0:
             header = 'Frames from this sequence already exist! Do you want to skip or replace them?'
-            sub_header = 'Replacing them will overwrite their contents. Skipped frames will not be re-acquired.'
+            sub_header = '<b>Replacing them will overwrite their contents permanently!</b> Skipped frames will not be re-acquired.'
             buttons = ( ('gtk-cancel',gtk.RESPONSE_CANCEL), ('Skip', gtk.RESPONSE_YES), ('Replace', gtk.RESPONSE_NO))
             response = warning(header, sub_header, details, buttons=buttons)
             if response == gtk.RESPONSE_YES:
@@ -334,10 +334,10 @@ class CollectManager(gtk.Frame):
                     self.set_row_state(index, saved=True)
                 return True
             elif response == gtk.RESPONSE_NO:
-                for index in existlist:
-                    old_name = "%s/%s" % (self.run_list[index]['directory'], self.run_list[index]['file_name']) 
-                    new_name = old_name + '.bk'
-                    os.rename(old_name, new_name)
+                #for index in existlist:
+                #    old_name = "%s/%s" % (self.run_list[index]['directory'], self.run_list[index]['file_name']) 
+                #    new_name = old_name + '.bk'
+                #    os.rename(old_name, new_name)
                 return True
             else:
                 return False

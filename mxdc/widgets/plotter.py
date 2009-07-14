@@ -301,28 +301,22 @@ class ScanPlotter(gtk.Window):
             'stopped': self.on_stop
         }
         
-        # connect signals. Disconnect existing handlers in the process. Only
-        # one scan should be plotting at a time even though multiple scans can be 
-        # running simultaneously
-        for sig in ['started', 'progress', 'new-point', 'error', 'done', 'stopped']:
-            _handler = self._sig_handlers.get(sig, None)
-            if _handler is not None:
-                scan.disconnect(_handler)
-        self._sig_handlers['started'] = scan.connect('started', self.on_start)
-        self._sig_handlers['new-point'] = scan.connect('new-point', self.on_new_point)
-        self._sig_handlers['progress'] = scan.connect('progress', self.on_progress)
-        self._sig_handlers['done'] = scan.connect('done', self.on_done)
-        self._sig_handlers['error'] = scan.connect('error', self.on_error)
-        self._sig_handlers['stopped'] = scan.connect('error', self.on_stop)
+        # connect signals.
+        scan.connect('started', self.on_start)
+        scan.connect('new-point', self.on_new_point)
+        scan.connect('progress', self.on_progress)
+        scan.connect('done', self.on_done)
+        scan.connect('error', self.on_error)
+        scan.connect('error', self.on_stop)
                     
     
     def on_start(self, scan, data=None):
         """Clear Scan and setup based on contents of data dictionary."""
         self.plotter.clear()
+        self._start_time = time.time()
         self.plotter.set_labels(title=scan.__doc__,
                                 x_label=scan.data_names[0],
-                                y1_label=scan.data_names[-1])
-        self._start_time = time.time()
+                                y1_label=scan.data_names[1])
              
     
     def on_progress(self, scan, fraction):
@@ -353,5 +347,5 @@ class ScanPlotter(gtk.Window):
  
     def on_done(self, scan):
         """Done handler."""
-        scan.save(time.strftime('Scan_%b%d%y_%H%M.dat'))
+        scan.save()
 

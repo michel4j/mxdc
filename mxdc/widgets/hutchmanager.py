@@ -88,12 +88,9 @@ class HutchManager(gtk.Frame):
         # Button commands
         self.front_end_btn = ShutterButton(self.beamline.photon_shutter, 'Front End')
         self.shutter_btn = ShutterButton(self.beamline.exposure_shutter, 'Shutter')
-        self.optimize_btn = gtk.Button('Optimize Beam')
-        self.optimize_btn.connect('clicked', self.optimize_energy)
-        self.mount_btn = gtk.Button('Mount Crystal')
-        self.mount_btn.connect('clicked', self.prepare_mounting)
-        self.reset_btn = gtk.Button('Finished Mounting')
-        self.reset_btn.connect('clicked',self.restore_beamstop)
+        self.optimize_btn = ScriptButton(self.scripts['OptimizeBeam'], 'Optimize Beam')
+        self.mount_btn = ScriptButton(self.scripts['PrepareMounting'], 'Mount Mode')
+        self.reset_btn = ScriptButton(self.scripts['FinishedMounting'], 'Collect Mode')
         self.commands_box.pack_start(self.front_end_btn)
         self.commands_box.pack_start(self.shutter_btn)
         self.commands_box.pack_start(self.optimize_btn)
@@ -129,19 +126,6 @@ class HutchManager(gtk.Frame):
                                  distance=self.beamline.diffractometer.distance.get_position(),
                                  two_theta=self.beamline.diffractometer.two_theta.get_position())
         
-    def prepare_mounting(self, widget):
-        self.settings_frame.set_sensitive(False)
-        script = self.scripts['PrepareMounting']
-        script.start()
-
-    def optimize_energy(self, widget):
-        self.settings_frame.set_sensitive(False)
-        script = self.scripts['OptimizeBeam']
-        script.start()
-
-    def restore_beamstop(self, widget):
-        script = self.scripts['FinishedMounting']
-        script.start()
                         
 def junk():
     import bcm.beamline.mx
