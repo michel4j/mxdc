@@ -131,7 +131,7 @@ class ImageWidget(gtk.DrawingArea):
         if self.average_intensity < 0.1:
             self.gamma_factor = 1.0
         else:
-            self.gamma_factor = 4.82 * math.exp( -0.017 * self.average_intensity)
+            self.gamma_factor = 29.378 * self.average_intensity**-0.86
         myfile.close()
 
     def _read_pck_header(self, filename):
@@ -184,7 +184,7 @@ class ImageWidget(gtk.DrawingArea):
         if self.average_intensity < 0.1:
             self.gamma_factor = 1.0
         elif self.average_intensity < 2000.0:
-            self.gamma_factor = 4.82 * math.exp( -0.017 * self.average_intensity)
+            self.gamma_factor = 29.378 * self.average_intensity**-0.86
         else:
             self.gamma_factor = 5.0
         self._create_pixbuf()
@@ -429,7 +429,7 @@ class ImageWidget(gtk.DrawingArea):
         if self.average_intensity < 0.1:
             self.gamma_factor = 1.0
         else:
-            self.gamma_factor = 4.82 * math.exp(-0.017 * self.average_intensity)
+            self.gamma_factor = 29.378 * self.average_intensity**-0.86
         self._create_pixbuf()
         self.queue_draw()
        

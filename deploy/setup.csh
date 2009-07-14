@@ -11,7 +11,7 @@ setenv BCM_PATH /home/michel/Code/eclipse-ws/beamline-control-module
 
 ## ---- Do not change below this line ----
 setenv BCM_CONFIG_PATH $BCM_PATH/etc
-setenv BCM_DATA_PATH  $BCM_PATH/etc
+setenv BCM_DATA_PATH  $HOME/scans
 set path=($path $BCM_PATH/bin)
 if ($?PYTHONPATH) then
 	setenv PYTHONPATH ${PYTHONPATH}:${BCM_PATH}

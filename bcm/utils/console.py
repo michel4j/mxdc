@@ -176,7 +176,7 @@ class BeamlineConsole(GTKInterpreter):
         Python %s
         Beamline Config: %s 
         """ % (sys.version.split('\n')[0],
-               os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONFIG_FILE']))
+               os.environ['BCM_CONFIG_FILE'])
                
         GTKInterpreter.__init__(self, banner)
     
@@ -190,6 +190,8 @@ class BeamlineConsole(GTKInterpreter):
                  "from bcm.engine.fitting import *",
                  "from mxdc.widgets.plotter import ScanPlotter",
                  "beamline = MXBeamline(os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONFIG_FILE']))",
+                 "bl = beamline",
+                 "plot = ScanPlotter()",
                  ]
         map(push,lines)
         
