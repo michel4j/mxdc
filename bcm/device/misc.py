@@ -171,7 +171,26 @@ class Attenuator(gobject.GObject):
     
     def _signal_change(self, obj, value):
         gobject.idle_add(self.emit,'changed', self.get())
-    
+
+
+
+class Attenuator2(Attenuator):  
+    def __init__(self, bitname, energy):
+        gobject.GObject.__init__(self)
+        fname = bitname[:-1]
+        self._filters = [
+            PV('%s4:ctl' % fname),
+            PV('%s3:ctl' % fname),
+            PV('%s2:ctl' % fname),
+            PV('%s1:ctl' % fname),
+            ]
+        self._energy = PV(energy)
+        self.units = '%'
+        self.name = 'Attenuator'
+        for f in self._filters:
+            f.connect('changed', self._signal_change)
+        self._energy.connect('changed', self._signal_change)
+        
 
 class BasicShutter(gobject.GObject):
 
