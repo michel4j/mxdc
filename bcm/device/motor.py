@@ -71,7 +71,38 @@ class MotorBase(gobject.GObject):
             is_healthy = True
         gobject.idle_add(self.emit, 'health', is_healthy)
 
+class DummyMotor(MotorBase):
+    implements(IMotor)
+     
+    def __init__(self, name):
+        self._position = 0.0
+     
+    def get_state(self):
+        return 0
+     
+    def get_position(self):
+        return self._position
+   
+    def move_to(self, pos, wait=False):
+        self._position = pos
     
+    def move_by(self, pos, wait=False):
+        self.move_to(self._position+pos, wait)
+    
+    def is_moving(self):
+        return False
+    
+    def is_healthy(self):
+        return True
+    
+    def wait(self, start=True, stop=True):
+        pass
+    
+    def stop(self):
+        pass
+    
+    
+         
 class Motor(MotorBase):
 
     implements(IMotor) 
@@ -84,7 +115,7 @@ class Motor(MotorBase):
                              (pv_name, motor_type) )
             raise MotorError("Motor name must be of the format 'name:unit'.")
         
-        if motor_type not in ['vme', 'cls', 'pseudo', 'vmeenc']:
+        if motor_type not in ['vme', 'cls', 'pseudo', 'oldpseudo', 'vmeenc']:
             _logger.error("Unable to create motor '%s' of type '%s'." %
                              (pv_name, motor_type) )
             raise MotorError("Motor type must be one of 'vmeenc', \
@@ -119,6 +150,15 @@ class Motor(MotorBase):
             self.STOP = PV("%s:emergStop" % pv_root)
             self.CALIB = PV("%s:isCalib" % (pv_root))
         elif self._motor_type == 'pseudo':
+            self.PREC =    PV("%s:fbk.PREC" % (pv_name))
+            self.RBV  = PV("%s:fbk" % (pv_name))
+            self.STAT = PV("%s:status" % pv_root)
+            self.MOVN = PV("%s:moving" % pv_root)
+            self.STOP = PV("%s:stop" % pv_root)
+            self.CALIB = PV("%s:calibDone" % pv_root)
+            self.LOG = PV("%s:log" % pv_root)
+            self.LOG.connect('changed', self._on_log)
+        elif self._motor_type == 'oldpseudo':
             self.PREC =    PV("%s:sp.PREC" % (pv_name))
             self.RBV  = PV("%s:sp" % (pv_name))
             self.STAT = PV("%s:status" % pv_root)
@@ -236,7 +276,11 @@ class CLSMotor(Motor):
 class PseudoMotor(Motor):
     def __init__(self, name):
         Motor.__init__(self, name, motor_type = 'pseudo')
-    
+
+class PseudoMotor2(Motor):
+    def __init__(self, name):
+        Motor.__init__(self, name, motor_type = 'oldpseudo')
+   
 class EnergyMotor(Motor):
 
     implements(IMotor)
