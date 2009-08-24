@@ -55,12 +55,12 @@ TARGET_FUNC = {
 def peak_fit(x,y,target='gaussian'):
     coeffs = [1, 1, 0, 0.5]
     
-    def _err(p, y, x):
+    def _err(p, x, y):
         vals = TARGET_FUNC[target](x,p)
         err=(y-vals)
         return err
     
-    new_coeffs, results = scipy.optimize.leastsq(_err, coeffs[:], args=(x,y))
+    new_coeffs, results = scipy.optimize.leastsq(_err, coeffs[:], args=(x,y), maxfev=10000)
     return new_coeffs
 
     
@@ -71,8 +71,8 @@ def histogram_fit(x,y):
     x - input independent variable
     y - input dependent variable
     fwhm - return full width half maximum
-    xpeak - return x value at y = ymax
-    
+    xpeak - return x value at midpoint
+    cema - center of mass
     """
     
     ymin,ymax = min(y),max(y)
@@ -106,5 +106,8 @@ def histogram_fit(x,y):
         if y[i] == ymax: 
             jmax = i
             break
-    xpeak = x[jmax]
-    return [ymax, fwhm, xpeak, 0]
+    #xpeak = x[jmax]
+    xpeak = (x_hpeak_r + x_hpeak_l)/2.0
+    cema = sum(x*y)/sum(y)
+    return [ymax, fwhm, xpeak, cema]
+
