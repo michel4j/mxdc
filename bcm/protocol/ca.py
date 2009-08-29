@@ -497,8 +497,8 @@ __all__ = ['PV', 'threads_init', 'flush', ]
 
 #Make sure you get the events on time.
 #gobject.timeout_add(20, _heart_beat, 0.005)
-_ca_heartbeat_thread = threading.Thread(target=_heart_beat_loop)
-_ca_heartbeat_thread.setDaemon(True)
-_ca_heartbeat_thread.setName('ca.heartbeat')
-_ca_heartbeat_thread.start()
+#_ca_heartbeat_thread = threading.Thread(target=_heart_beat_loop)
+#_ca_heartbeat_thread.setDaemon(True)
+#_ca_heartbeat_thread.setName('ca.heartbeat')
+#_ca_heartbeat_thread.start()
 

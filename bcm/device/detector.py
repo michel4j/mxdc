@@ -30,6 +30,7 @@ class MXCCDImager(object):
         self._start_cmd = ca.PV("%s:start:cmd" % name, monitor=False)
         self._abort_cmd = ca.PV("%s:abort:cmd" % name, monitor=False)
         self._readout_cmd = ca.PV("%s:correct:cmd" % name, monitor=False)
+        self._reset_cmd = ca.PV("%s:resetStates:cmd" % name, monitor=False)
         self._writefile_cmd = ca.PV("%s:writefile:cmd" % name, monitor=False)
         self._background_cmd = ca.PV("%s:dezFrm:cmd" % name, monitor=False)
         self._save_cmd = ca.PV("%s:rdwrOut:cmd" % name, monitor=False)
@@ -71,20 +72,22 @@ class MXCCDImager(object):
     def initialize(self, wait=True):
         if not self._bg_taken:
             _logger.debug('(%s) Initializing CCD ...' % (self.name,)) 
-            if not self._is_in_state('idle'):
-                self.stop()
-            self._wait_in_state('acquire:queue')
-            self._wait_in_state('acquire:exec')
+            #if not self._is_in_state('idle'):
+            #    self.stop()
+            #self._wait_for_state('idle')
             self._background_cmd.set(1)
+            ca.flush()
+            self._wait_for_state('read:exec')
+            self._wait_for_state('idle')
             if wait:
                 self.wait()
             self._bg_taken = True
-            _logger.debug('(%s) CCD Initialization complete.' % (self.name,)) 
+            _logger.debug('(%s) CCD Initialization complete.' % (self.name,))
                         
     def start(self):
-        self.initialize(True)
         self._wait_in_state('acquire:queue')
         self._wait_in_state('acquire:exec')
+        self._wait_in_state('read:exec')
         self._start_cmd.set(1)
         self._wait_for_state('acquire:exec')
 
@@ -114,7 +117,7 @@ class MXCCDImager(object):
         return states
     
     def wait(self, state='idle'):
-        self._wait_for_state(state,timeout=30.0)
+        self._wait_for_state(state,timeout=10.0)
                 
     def _update_background(self, obj, state):
         if state == 1:
