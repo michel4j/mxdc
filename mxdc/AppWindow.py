@@ -36,7 +36,7 @@ class AppWindow(gtk.Window):
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)       
         self.hutch_manager = HutchManager()
-        self.screen_manager = ScreenManager()
+        #self.screen_manager = ScreenManager()
         self.status_panel = StatusPanel(self.beamline)
         
         self._xml = gtk.glade.XML(os.path.join(SHARE_DIR, 'mxdc_main.glade'), 'mxdc_main')
@@ -51,7 +51,7 @@ class AppWindow(gtk.Window):
         notebook.append_page(self.hutch_manager, tab_label=gtk.Label('  Beamline Setup  '))
         notebook.append_page(self.collect_manager, tab_label=gtk.Label('  Data Collection '))
         notebook.append_page(self.scan_manager, tab_label=gtk.Label('  Fluorescence Scans  '))
-        notebook.append_page(self.screen_manager, tab_label=gtk.Label('  Screening  '))
+        #notebook.append_page(self.screen_manager, tab_label=gtk.Label('  Screening  '))
         #self.screen_manager.set_sensitive(False)
         notebook.set_border_width(6)
 
