@@ -80,8 +80,8 @@ class CenterSample(Script):
         xmm = x_offset * pixel_size
         ymm = y_offset * pixel_size
     
-        self.beamline.sample_stage.x.move_by( -xmm, wait=True)
-        self.beamline.sample_stage.y.move_by( -ymm * sin_w, wait=True)
+        self.beamline.sample_stage.x.move_by( -xmm)
+        self.beamline.sample_stage.y.move_by( -ymm * sin_w)
         self.beamline.sample_stage.z.move_by( ymm * cos_w)
             
         self.beamline.logger.info('Loop centering cleaning up ...')
