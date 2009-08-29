@@ -142,8 +142,8 @@ class SampleViewer(gtk.Frame):
         sin_w = math.sin(tmp_omega * math.pi / 180)
         cos_w = math.cos(tmp_omega * math.pi / 180)
         im_x, im_y, xmm, ymm = self._img_position(x,y)
-        self.beamline.sample_stage.x.move_by(-xmm, wait=True)
-        self.beamline.sample_stage.y.move_by(-ymm * sin_w, wait=True)
+        self.beamline.sample_stage.x.move_by(-xmm)
+        self.beamline.sample_stage.y.move_by(-ymm * sin_w)
         self.beamline.sample_stage.z.move_by(ymm * cos_w)
 
     def _create_widgets(self):

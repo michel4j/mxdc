@@ -3,6 +3,7 @@ import os
 import sys
 import math
 import re
+import gc
 import struct
 import pickle
 import gtk
@@ -36,6 +37,8 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 COLORMAPS = pickle.load(file(os.path.join(DATA_DIR, 'colormaps.data')))
 _COLORNAMES = ['gist_yarg','gist_gray','hot','jet','hsv','Spectral',
                      'Paired','gist_heat','PiYG','Set1','gist_ncar']
+        
+        
 
 class ImageWidget(gtk.DrawingArea):
     def __init__(self, size):
@@ -74,7 +77,7 @@ class ImageWidget(gtk.DrawingArea):
         self.connect('button_release_event', self.on_mouse_release)
         self.set_size_request(size, size)
         self.set_colormap('gist_yarg')
-    
+
     def set_colormap(self, colormap=None, index=None):
         if colormap is not None:
             self._colorize = True
@@ -195,6 +198,7 @@ class ImageWidget(gtk.DrawingArea):
         
     
     def _create_pixbuf(self):
+        gc.collect()
         self.raw_img = self.orig_img.point(lambda x: x * self.gamma_factor).convert('L')
 
         if self._colorize and self.raw_img.mode in ['L','P']:

@@ -4,15 +4,15 @@ import logging
 import warnings
 warnings.simplefilter("ignore")
 
-from twisted.internet import glib2reactor
-glib2reactor.install()
+from twisted.internet import gtk2reactor
+gtk2reactor.install()
 from twisted.internet import reactor
 
 import gtk
 import gobject
 
 from bcm.utils.log import get_module_logger
-#tfrom mxdc.utils import gtkexcepthook
+#from mxdc.utils import gtkexcepthook
 from mxdc.AppWindow import AppWindow
 
 _logger = get_module_logger('mxdc')
