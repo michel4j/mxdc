@@ -87,7 +87,7 @@ class MXCCDImager(object):
     def start(self):
         self._wait_in_state('acquire:queue')
         self._wait_in_state('acquire:exec')
-        self._wait_in_state('read:exec')
+        #self._wait_in_state('read:exec')
         self._start_cmd.set(1)
         self._wait_for_state('acquire:exec')
 
