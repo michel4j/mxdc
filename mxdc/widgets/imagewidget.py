@@ -227,7 +227,6 @@ class ImageWidget(gtk.DrawingArea):
                                                     self.image_width, 
                                                     self.image_height, 
                                                     3 * self.image_width)
-        
     
     def get_image_info(self):
         info = {
