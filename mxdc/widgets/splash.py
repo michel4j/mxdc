@@ -26,13 +26,13 @@ class Splash(object):
         self.win.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
         self.win.set_gravity(gtk.gdk.GRAVITY_CENTER)
 
-        pixbuf = gtk.gdk.pixbuf_new_from_file(image_file)
-        pixmap, mask = pixbuf.render_pixmap_and_mask()
-        width, height = pixmap.get_size()
+        self.win.realize()
+        self.pixbuf = gtk.gdk.pixbuf_new_from_file(image_file)
+        self.pixmap, mask = self.pixbuf.render_pixmap_and_mask()
+        width, height = self.pixmap.get_size()
         self.win.set_app_paintable(True)
         self.win.resize(width, height)
-        self.win.realize()
-        self.win.window.set_back_pixmap(pixmap, False)
+        self.win.connect('expose-event', self._paint)
         
         vbox = gtk.VBox(False,0)
         hbox = gtk.HBox(False, 0)
@@ -48,7 +48,7 @@ class Splash(object):
         self.log = gtk.Label('Initializing MXDC...')
         self.log.set_alignment(0,0.5)
         self.log.modify_fg( gtk.STATE_NORMAL, self.log.get_colormap().alloc_color(color) )
-        self.vers = gtk.Label('Version %s' % (self.version))
+        self.vers = gtk.Label('Version %s RC3' % (self.version))
         self.vers.set_alignment(0.0, 0.5)
         self.vers.modify_fg(gtk.STATE_NORMAL, self.vers.get_colormap().alloc_color(color))
         vbox.set_spacing(6)
@@ -65,7 +65,12 @@ class Splash(object):
 #        formatter = logging.Formatter('%(message)s')
 #        log_handler.setFormatter(formatter)
 #        logging.getLogger('').addHandler(log_handler)
-        
-        self.win.realize()
+
+        self._paint()        
         self.win.show_all()
+
+    def _paint(self, obj=None, event=None):
+        self.win.window.set_back_pixmap(self.pixmap, False)
         
+
+
