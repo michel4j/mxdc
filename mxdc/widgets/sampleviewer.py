@@ -347,7 +347,7 @@ class SampleViewer(gtk.Frame):
         sin_w = math.sin(tmp_omega * math.pi / 180)
         cos_w = math.cos(tmp_omega * math.pi / 180)
         step_size = self.beamline.sample_video.resolution * 10.0
-        self.beamline.sample_stage.y.move_by( step_size * sin_w * 0.5, wait=True )
+        self.beamline.sample_stage.y.move_by( step_size * sin_w * 0.5 )
         self.beamline.sample_stage.z.move_by( -step_size * cos_w * 0.5 )   
         return True
         
@@ -356,7 +356,7 @@ class SampleViewer(gtk.Frame):
         sin_w = math.sin(tmp_omega * math.pi / 180)
         cos_w = math.cos(tmp_omega * math.pi / 180)
         step_size = self.beamline.sample_video.resolution * 10.0
-        self.beamline.sample_stage.y.move_by( -step_size * sin_w * 0.5, wait=True)
+        self.beamline.sample_stage.y.move_by( -step_size * sin_w * 0.5)
         self.beamline.sample_stage.z.move_by( step_size * cos_w * 0.5)   
         return True
         
@@ -371,7 +371,7 @@ class SampleViewer(gtk.Frame):
         return True
         
     def on_home(self,widget):
-        self.beamline.sample_stage.x.move_to( 0.0 )
+        self.beamline.sample_stage.x.move_to( 22.0 )
         return True
                 
                         
