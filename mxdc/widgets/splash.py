@@ -1,6 +1,7 @@
 import sys, os
 import time
 import logging
+import pango
 import gtk, gobject
 
 from mxdc.widgets.misc import LinearProgress
@@ -25,39 +26,22 @@ class Splash(object):
         self.win = gtk.Window()
         self.win.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
         self.win.set_gravity(gtk.gdk.GRAVITY_CENTER)
+    
+        self.canvas = gtk.DrawingArea()
 
         self.win.realize()
         self.pixbuf = gtk.gdk.pixbuf_new_from_file(image_file)
-        self.pixmap, mask = self.pixbuf.render_pixmap_and_mask()
-        width, height = self.pixmap.get_size()
-        self.win.set_app_paintable(True)
-        self.win.resize(width, height)
-        self.win.connect('expose-event', self._paint)
+        self.width, self.height = self.pixbuf.get_width(), self.pixbuf.get_height()
+        self.win.resize(self.width, self.height)
+        self.canvas.set_size_request(self.width, self.height)
+        self.win.add(self.canvas)
+        self.canvas.connect('expose-event', self._paint)
         
-        vbox = gtk.VBox(False,0)
-        hbox = gtk.HBox(False, 0)
-
-        #self.pbar = LinearProgress()
-        #self.pbar.set_color(color, bg)
-        #self.pbar.set_size_request(0,8)
-        self.title = gtk.Label('<big><b>MX Data Collector</b></big>')
-        self.title.set_use_markup(True)
-        self.title.set_alignment(0,0.5)
-        self.title.modify_fg( gtk.STATE_NORMAL, self.title.get_colormap().alloc_color(color) )
-        
-        self.log = gtk.Label('Initializing MXDC...')
-        self.log.set_alignment(0,0.5)
-        self.log.modify_fg( gtk.STATE_NORMAL, self.log.get_colormap().alloc_color(color) )
-        self.vers = gtk.Label('Version %s RC3' % (self.version))
-        self.vers.set_alignment(0.0, 0.5)
-        self.vers.modify_fg(gtk.STATE_NORMAL, self.vers.get_colormap().alloc_color(color))
-        vbox.set_spacing(6)
-        vbox.set_border_width(12)
-        vbox.pack_end(self.log, expand=False, fill=False)
-        vbox.pack_end(self.vers, expand=False, fill=False)
-        vbox.pack_end(self.title, expand=False, fill=False)
+        self.title = self.canvas.create_pango_layout('')
+        self.title.set_markup('<big><b>MX Data Collector</b></big>')
+        self.log = self.canvas.create_pango_layout('Initializing MXDC...')
+        self.vers = self.canvas.create_pango_layout('Version %s RC3' % (self.version))
        
-        self.win.add(vbox)
         self.win.set_position(gtk.WIN_POS_CENTER)                
         
 #        log_handler = LabelHandler(self.log)
@@ -70,7 +54,11 @@ class Splash(object):
         self.win.show_all()
 
     def _paint(self, obj=None, event=None):
-        self.win.window.set_back_pixmap(self.pixmap, False)
+        self.style = self.canvas.get_style()
+        self.canvas.window.draw_pixbuf(self.style.fg_gc[gtk.STATE_NORMAL], self.pixbuf, 0, 0, 0, 0)
+        self.canvas.window.draw_layout(self.style.bg_gc[gtk.STATE_NORMAL], 20, self.height/2, self.title)
+        self.canvas.window.draw_layout(self.style.bg_gc[gtk.STATE_NORMAL], 20, self.height/2 + 20, self.vers)
+        self.canvas.window.draw_layout(self.style.bg_gc[gtk.STATE_NORMAL], 20, self.height/2 + 40, self.log)
         
 
 

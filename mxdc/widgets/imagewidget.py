@@ -9,7 +9,6 @@ import pickle
 import gtk
 import logging
 import gobject
-import pango
 import time
 import threading
 import Image 
