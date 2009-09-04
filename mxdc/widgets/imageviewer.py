@@ -390,7 +390,7 @@ def main():
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(6)
     win.set_title("Diffraction Image Viewer")
-    myview = ImageViewer()
+    myview = ImageViewer(800)
     hbox = gtk.HBox(False)
     hbox.pack_start(myview)
     win.add(hbox)
