@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 import matplotlib.cm as cm
 from matplotlib.colors import normalize
 from matplotlib.numerix import arange, sin, pi, arcsin, arctan, sqrt, cos
-from matplotlib.ticker import FormatStrFormatter
+from matplotlib.ticker import FormatStrFormatter, NullLocator
 from matplotlib import rcParams
 from pylab import meshgrid
 from bcm.utils import converter
@@ -33,7 +33,7 @@ class Predictor( gtk.AspectFrame ):
     def __init__( self, pixel_size=0.07234, detector_size=3072):
         gtk.AspectFrame.__init__(self, obey_child=True, ratio=1.0)
         self.fig = Figure( figsize=(8,8), dpi=80, facecolor='w')
-        self.axis = self.fig.add_axes([0.02,0.02,0.96,0.96], aspect='equal')
+        self.axis = self.fig.add_axes([0.02,0.02,0.96,0.96], aspect='equal', frameon=False)
         _fd = self.get_pango_context().get_font_description()
         rcParams['font.family'] = 'sans-serif'
         rcParams['font.sans-serif'] = _fd.get_family()
@@ -71,6 +71,8 @@ class Predictor( gtk.AspectFrame ):
     def display(self, widget=None):
         self.axis.clear()
         self.axis.set_axis_off()
+        self.axis.xaxis.set_major_locator(NullLocator())
+        self.axis.yaxis.set_major_locator(NullLocator())
         normFunction = normalize(-3, 8)
         cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1, cmap=cm.hot_r, norm=normFunction)
         #cntr = self.axis.contour(self.xp, self.yp, self.Z, 16)
@@ -95,7 +97,7 @@ class Predictor( gtk.AspectFrame ):
             elif k == 'distance':
                 if (abs(v-self.distance) >= 1.0): 
                     redraw_pending = True
-                self.distance = v
+                    self.distance = v
             elif k == 'two_theta':
                 v_ = v * pi/ 180.0
                 if (abs(v_-self.two_theta) >= 0.05):
