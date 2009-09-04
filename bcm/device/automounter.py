@@ -26,7 +26,10 @@ class AutomounterContainer(gobject.GObject):
     
     def configure(self, status_str=None):
         if status_str is not None:
-            self.container_type = int(status_str[0])
+            if status_str[0] == 'u':
+                self.container_type = CONTAINER_UNKNOWN
+            else:
+                self.container_type = int(status_str[0])
         else:
             self.container_type = CONTAINER_NONE
             
@@ -85,7 +88,7 @@ class Automounter(object):
         self.name = 'Sample Automounter'
         self._pv_name = pv_name
         
-        self.port_states = ca.PV('%s:casette:fbk' % pv_name)
+        self.port_states = ca.PV('%s:cassette:fbk' % pv_name)
         self.nitrogen_level = ca.PV('%s:level' % pv_name)
         self.heater_temperature = ca.PV('%s:temp' % pv_name)
         self.status = ca.PV('%s:level' % pv_name)

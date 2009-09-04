@@ -29,6 +29,8 @@ def main():
     myviewer = ImageViewer(800)
     win.add(myviewer)
     win.show_all()
+    if len(sys.argv) >= 2:
+        myviewer.open_image(os.path.abspath(sys.argv[1]))  
     gtk.main()
 
 
