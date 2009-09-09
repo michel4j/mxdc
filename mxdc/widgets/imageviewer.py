@@ -8,6 +8,7 @@ import gobject, pango
 import math, re, struct
 from dialogs import select_image
 from mxdc.widgets.imagewidget import ImageWidget
+from matplotlib.pylab import loadtxt
 import logging
 
 __log_section__ = 'mxdc.imgview'
@@ -29,7 +30,10 @@ class ImageViewer(gtk.Frame):
         self._cl_hide_id = None
         self._follow_id = None
         self._collect_id = None
+        self.all_spots = None
+        self.display_spots = None
         self._create_widgets()
+        self._load_spots('/home/michel/data/processing/process-2/SPOT.XDS', True)
         
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
@@ -112,6 +116,28 @@ class ImageViewer(gtk.Frame):
     def log(self, msg):
         img_logger.info('(ImageViewer) %s' % msg)
        
+    def _load_spots(self, filename, indexed=False):
+        self.all_spots = loadtxt(filename)
+        self.display_spots = self._select_spots(indexed)
+    
+    def _select_spots(self, indexed=False):
+        display_spots = []
+        for sp in self.all_spots:
+            x,y,z,intensity,h,k,l = sp
+            if not indexed:
+                if max(sp[4:]) < 0.9:
+                    display_spots.append(sp)
+            else:
+                if max(sp[4:]) > 0.5:
+                    display_spots.append(sp)
+        return display_spots
+                    
+    def _select_image_spots(self, spots):
+        image_spots = []
+        for sp in spots:
+            if abs(self.frame_number - sp[2]) <= 0.5:
+                image_spots.append(sp)
+        return image_spots
     
     def open_image(self, filename):
         self.filename = filename
@@ -150,6 +176,12 @@ class ImageViewer(gtk.Frame):
             self.prev_btn.set_sensitive(True)
         
         file_extension = os.path.splitext(self.filename)[1].lower()
+        
+        # if spot information is available prepare it
+        if self.display_spots is not None:
+            image_spots = self._select_image_spots(self.display_spots)
+            self.image_canvas.set_spots(image_spots)
+        
         if file_extension in ['.pck']:
             self.log("Loading packed image %s" % (self.filename))
             self.image_canvas.load_pck(self.filename)
@@ -166,6 +198,7 @@ class ImageViewer(gtk.Frame):
         self.follow_tbtn.set_sensitive(True)
         self.info_btn.set_sensitive(True)
         self._update_info()
+        
             
     def follow_frames(self):
         if self._file_loadable(self.next_filename):
