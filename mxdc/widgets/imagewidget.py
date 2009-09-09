@@ -21,6 +21,7 @@ from scipy.misc import toimage, fromimage
 from dialogs import select_image
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib, matplotlib.backends.backend_agg
+from matplotlib.pylab import loadtxt
 from bcm.utils.science import peak_search
 
 try:
@@ -57,6 +58,7 @@ class ImageWidget(gtk.DrawingArea):
         self.extents_back = []
         self.extents_forward = []
         self.extents = None
+        self.spots = []
         
         self.set_events(gtk.gdk.EXPOSURE_MASK |
                 gtk.gdk.LEAVE_NOTIFY_MASK |
@@ -91,6 +93,9 @@ class ImageWidget(gtk.DrawingArea):
     
     def set_cross(self, x, y):
         self.beam_x, self.beam_y = x, y
+    
+    def set_spots(self, spots):
+        self.spots = spots
         
     def _read_header(self, filename):
         # Read MarCCD header
@@ -399,6 +404,24 @@ class ImageWidget(gtk.DrawingArea):
             cr.move_to(self.meas_x0, self.meas_y0)
             cr.line_to(self.meas_x1, self.meas_y1)
             cr.stroke()
+
+    def draw_spots(self, cr):
+        # draw spots
+        x, y, w, h = self.extents
+        cr.set_line_width(0.5)
+        cr.set_source_rgb(1.0, 0.0, 0.0)
+        for spot in self.spots:
+            sx, sy = spot[:2]
+            if (0 < (sx-x) < x+w) and (0 < (sy-y) < y+h):
+                cx = int((sx-x)*self.scale)
+                cy = int((sy-y)*self.scale)
+                cr.move_to(cx-4, cy)
+                cr.line_to(cx+4, cy)
+                cr.stroke()
+                cr.move_to(cx, cy-4)
+                cr.line_to(cx, cy+4)
+                cr.stroke()
+            
             
     def go_back(self, full=False):
         if len(self.extents_back)> 0 and not full:
@@ -609,6 +632,7 @@ class ImageWidget(gtk.DrawingArea):
                 context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
                 context.clip()
                 self.draw_overlay_cairo(context)
+                self.draw_spots(context)
             else:
                 self.draw_overlay()
                 
