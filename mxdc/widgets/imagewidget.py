@@ -58,7 +58,7 @@ class ImageWidget(gtk.DrawingArea):
         self.extents_back = []
         self.extents_forward = []
         self.extents = None
-        self.spots = []
+        self.set_spots()
         
         self.set_events(gtk.gdk.EXPOSURE_MASK |
                 gtk.gdk.LEAVE_NOTIFY_MASK |
@@ -94,8 +94,9 @@ class ImageWidget(gtk.DrawingArea):
     def set_cross(self, x, y):
         self.beam_x, self.beam_y = x, y
     
-    def set_spots(self, spots):
-        self.spots = spots
+    def set_spots(self, indexed=[], unindexed=[]):
+        self.indexed_spots = indexed
+        self.unindexed_spots = unindexed
         
     def _read_header(self, filename):
         # Read MarCCD header
@@ -408,19 +409,24 @@ class ImageWidget(gtk.DrawingArea):
     def draw_spots(self, cr):
         # draw spots
         x, y, w, h = self.extents
-        cr.set_line_width(0.5)
-        cr.set_source_rgb(1.0, 0.0, 0.0)
-        for spot in self.spots:
-            sx, sy = spot[:2]
-            if (0 < (sx-x) < x+w) and (0 < (sy-y) < y+h):
-                cx = int((sx-x)*self.scale)
-                cy = int((sy-y)*self.scale)
-                cr.move_to(cx-4, cy)
-                cr.line_to(cx+4, cy)
-                cr.stroke()
-                cr.move_to(cx, cy-4)
-                cr.line_to(cx, cy+4)
-                cr.stroke()
+        cr.set_line_width(1.0)
+        cr.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+        for i, spots in enumerate([self.indexed_spots, self.unindexed_spots]):
+            if i == 0:
+                cr.set_source_rgb(0.0, 1.0, 0.0)
+            else:
+                cr.set_source_rgb(1.0, 0.0, 0.0)
+            for spot in spots:
+                sx, sy = spot[:2]
+                if (0 < (sx-x) < x+w) and (0 < (sy-y) < y+h):
+                    cx = int((sx-x)*self.scale)
+                    cy = int((sy-y)*self.scale)
+                    cr.move_to(cx-4, cy)
+                    cr.line_to(cx+4, cy)
+                    cr.stroke()
+                    cr.move_to(cx, cy-4)
+                    cr.line_to(cx, cy+4)
+                    cr.stroke()
             
             
     def go_back(self, full=False):
