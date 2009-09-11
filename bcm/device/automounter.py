@@ -26,6 +26,7 @@ class AutomounterContainer(gobject.GObject):
     
     def configure(self, status_str=None):
         if status_str is not None:
+            print status_str
             if status_str[0] == 'u':
                 self.container_type = CONTAINER_UNKNOWN
             else:
