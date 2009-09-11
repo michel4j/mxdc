@@ -12,6 +12,7 @@ from bcm.utils.log import get_module_logger
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
+WAIT_DELAY = 0.02
 
 class DetectorError(Exception):
 
@@ -62,6 +63,7 @@ class MXCCDImager(object):
         self._state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
         self._state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
         self._bg_taken = False
+        self._state_list = []
         
         self._state.connect('changed', self._on_state_change)
         self._connection_state.connect('changed', self._update_background)
@@ -72,22 +74,24 @@ class MXCCDImager(object):
     def initialize(self, wait=True):
         if not self._bg_taken:
             _logger.debug('(%s) Initializing CCD ...' % (self.name,)) 
-            #if not self._is_in_state('idle'):
-            #    self.stop()
-            #self._wait_for_state('idle')
+            if not self._is_in_state('idle'):
+                self.stop()
+            self._wait_in_state('acquire:queue')
+            self._wait_in_state('acquire:exec')
             self._background_cmd.set(1)
-            ca.flush()
-            self._wait_for_state('read:exec')
-            self._wait_for_state('idle')
+            self._wait_for_state('acquire:exec')
             if wait:
                 self.wait()
             self._bg_taken = True
             _logger.debug('(%s) CCD Initialization complete.' % (self.name,))
                         
-    def start(self):
-        self._wait_in_state('acquire:queue')
-        self._wait_in_state('acquire:exec')
-        #self._wait_in_state('read:exec')
+    def start(self, first=False):
+        if not first:
+            self._wait_in_state('acquire:queue')
+            self._wait_in_state('acquire:exec')
+            #self._wait_for_state('correct:exec')
+        else:
+            self._wait_for_state('idle')
         self._start_cmd.set(1)
         self._wait_for_state('acquire:exec')
 
@@ -96,25 +100,14 @@ class MXCCDImager(object):
         self._abort_cmd.set(1)
         self._wait_for_state('idle')
         
-    def save(self, props, wait=False):
-        self._set_parameters(props)
-        ca.flush()  # make sure headers are set before starting readout
+    def save(self, wait=False):
         self._readout_flag.set(0)
         self._save_cmd.set(1)
         if wait:
             self._wait_for_state('read:exec')
     
     def get_state(self):
-        state_string = self._state_string
-        states = []
-        for i in range(8):
-            state_val = int(state_string[i])
-            if state_val != 0:
-                state_unit = "%s:%s" % (self._state_names[i],self._state_bits[state_val])
-                states.append(state_unit)
-        if len(states) == 0:
-            states.append('idle')
-        return states
+        return self._state_list
     
     def wait(self, state='idle'):
         self._wait_for_state(state,timeout=10.0)
@@ -123,13 +116,22 @@ class MXCCDImager(object):
         if state == 1:
             self._bg_taken = False
                       
-    def _set_parameters(self, data):
+    def set_parameters(self, data):
         for key in data.keys():
             self._header[key].set(data[key])        
         self._header_cmd.set(1)
     
     def _on_state_change(self, pv, val):
         self._state_string = "%08x" % val
+        states = []
+        for i in range(8):
+            state_val = int(self._state_string[i])
+            if state_val != 0:
+                state_unit = "%s:%s" % (self._state_names[i],self._state_bits[state_val])
+                states.append(state_unit)
+        if len(states) == 0:
+            states.append('idle')
+        self._state_list = states
         return True
 
     def _wait_for_state(self, state, timeout=5.0):

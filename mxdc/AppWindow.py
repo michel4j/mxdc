@@ -65,11 +65,11 @@ class AppWindow(gtk.Window):
              
     def _do_about(self):
         authors = [
-            "Michel Fodje ",
-            "Kevin Anderson (Guage Widget)",
+            "Michel Fodje (maintainer)",
+            "Kevin Anderson",
             ]
         about = gobject.new(gtk.AboutDialog, name="MX Data Collector",
-                            version="3.0.0", copyright="(C) Canadian Light Source, Inc",
+                            version="3.0.0 RC3", copyright="(C) Canadian Light Source, Inc",
                             comments="Program for macromolecular crystallography data acquisition.",
                             authors=authors)
         about.set_transient_for(self)

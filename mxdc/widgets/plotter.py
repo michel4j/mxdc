@@ -278,7 +278,7 @@ class ScanPlotter(gtk.Window):
     def __init__(self):
         gtk.Window.__init__(self)
         self.plotter = Plotter(self)
-        self.plotter.set_size_request(640,480)
+        self.plotter.set_size_request(577,400)
         vbox=gtk.VBox(False)
         vbox.pack_start(self.plotter, expand=True, fill=True)
         self.prog_bar = ActiveProgressBar()

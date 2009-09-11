@@ -32,8 +32,8 @@ from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationT
 class Predictor( gtk.AspectFrame ):
     def __init__( self, pixel_size=0.07234, detector_size=3072):
         gtk.AspectFrame.__init__(self, obey_child=True, ratio=1.0)
-        self.fig = Figure( figsize=(8,8), dpi=80, facecolor='w')
-        self.axis = self.fig.add_axes([0.02,0.02,0.96,0.96], aspect='equal', frameon=False)
+        self.fig = Figure(facecolor='w')
+        self.axis = self.fig.add_axes([0.0,0.0,1,1], aspect='equal', frameon=False)
         _fd = self.get_pango_context().get_font_description()
         rcParams['font.family'] = 'sans-serif'
         rcParams['font.sans-serif'] = _fd.get_family()

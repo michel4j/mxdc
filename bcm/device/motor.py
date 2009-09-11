@@ -379,9 +379,63 @@ class MotorShutter(object):
     def get_state(self):
         return self.motor.get_state()
 
-registry.register([IMotor], IShutter, '', MotorShutter)
+class FixedLine2Motor(MotorBase):
+    implements(IMotor)
+    
+    def __init__(self, x, y, slope, intercept, linked=False):
+        MotorBase.__init__(self, 'FixedOffset')        
+        self.y = y
+        self.x = x
+        self.linked = bool(linked)
+        self.slope = float(slope)
+        self.intercept = float(intercept)
+        self.y.connect('changed', self._signal_change)
+            
+    def get_state(self):
+        return self.m1.get_state()
+    
+    def __repr__(self):
+        return '<FixedLine2Motor: \n\t%s,\n\t%s,\n\tslope=%0.2f, intercept=%0.2f\n>' % (self.x, self.y, self.slope, self.intercept)
         
-          
+    def get_position(self):
+        return self.y.get_position()
+        
+    def configure(self, **kwargs):
+        pass
+                                            
+    def move_to(self, pos, wait=False):
+        px = pos
+        self.x.move_to(px)
+        if self.linked:
+            self.x.wait(start=True, stop=True)
+        py = self.intercept + self.slope * px
+        self.y.move_to(py)
+        if wait:
+            self.wait()
+
+    def move_by(self, val, wait=False):
+        if val == 0.0:
+            return
+        cur_pos = self.get_position()
+        self.move_to(cur_pos + val, wait)
+                
+    def is_moving(self):
+        return self.y.is_moving() or self.x.is_moving()
+    
+    def is_healthy(self):
+        return self.x.is_healthy() and self.y.is_healthy()
+                                 
+    def stop(self):
+        self.x.stop()
+        self.y.stop()
+    
+    def wait(self, start=True, stop=True):
+        self.x.wait(start=start, stop=False)
+        self.y.wait(start=start, stop=False)
+        self.x.wait(start=False, stop=stop)
+        self.y.wait(start=False, stop=stop)
+        
+registry.register([IMotor], IShutter, '', MotorShutter)  
 gobject.type_register(MotorBase)
 
         
