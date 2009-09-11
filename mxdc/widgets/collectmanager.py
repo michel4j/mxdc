@@ -334,10 +334,9 @@ class CollectManager(gtk.Frame):
                     self.set_row_state(index, saved=True)
                 return True
             elif response == gtk.RESPONSE_NO:
-                #for index in existlist:
-                #    old_name = "%s/%s" % (self.run_list[index]['directory'], self.run_list[index]['file_name']) 
-                #    new_name = old_name + '.bk'
-                #    os.rename(old_name, new_name)
+                for index in existlist:
+                    old_name = "%s/%s" % (self.run_list[index]['directory'], self.run_list[index]['file_name']) 
+                    os.remove(old_name)
                 return True
             else:
                 return False

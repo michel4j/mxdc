@@ -90,7 +90,6 @@ class ImageWidget(gtk.DrawingArea):
         else:
             self._colorize = False
 
-    
     def set_cross(self, x, y):
         self.beam_x, self.beam_y = x, y
     

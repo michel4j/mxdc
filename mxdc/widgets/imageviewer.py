@@ -32,7 +32,6 @@ class ImageViewer(gtk.Frame):
         self._collect_id = None
         self.all_spots = []
         self._create_widgets()
-        self._load_spots('/home/michel/data/insulin/process-0/SPOT.XDS')
         
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
@@ -116,8 +115,11 @@ class ImageViewer(gtk.Frame):
         img_logger.info('(ImageViewer) %s' % msg)
        
     def _load_spots(self, filename):
-        self.all_spots = loadtxt(filename)
-    
+        try:
+            self.all_spots = loadtxt(filename)
+        except:
+            img_logger.error('Could not load spots from %s' % filename)
+   
     def _select_spots(self, spots):
         def _zeros(a):
             for v in a:
@@ -168,13 +170,12 @@ class ImageViewer(gtk.Frame):
         else:
             self.prev_btn.set_sensitive(True)
         
-        file_extension = os.path.splitext(self.filename)[1].lower()
-        
-        # if spot information is available prepare it
+        # select spots and display for current image
         image_spots = self._select_image_spots(self.all_spots)
         indexed, unindexed = self._select_spots(image_spots)
         self.image_canvas.set_spots(indexed, unindexed)
-        
+
+        file_extension = os.path.splitext(self.filename)[1].lower()                
         if file_extension in ['.pck']:
             self.log("Loading packed image %s" % (self.filename))
             self.image_canvas.load_pck(self.filename)
@@ -344,8 +345,17 @@ class ImageViewer(gtk.Frame):
 
     def on_file_open(self,widget):
         filename = select_image()
-        if filename is not None:
-            self.open_image(filename)
+        if filename is not None and os.path.isfile(filename):
+            if os.path.basename(filename) == 'SPOT.XDS':
+                self._load_spots(filename)
+                # if spot information is available  and an image is loaded display it
+                if self.image_canvas.image_loaded:
+                    image_spots = self._select_image_spots(self.all_spots)
+                    indexed, unindexed = self._select_spots(image_spots)
+                    self.image_canvas.set_spots(indexed, unindexed)
+                    self.image_canvas.queue_draw()
+            else:
+                self.open_image(filename)
         return True
 
     def _timed_hide(self, obj):
