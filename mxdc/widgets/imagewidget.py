@@ -121,6 +121,10 @@ class ImageWidget(gtk.DrawingArea):
         self.dataset_pars = struct.unpack(dataset_format, myfile.read(512))
         # extract some values from the header
         self.beam_x, self.beam_y = self.goniostat_pars[1]/1e3, self.goniostat_pars[2]/1e3
+        # use image center if detector origin is (0,0)
+        if self.beam_x + self.beam_y < 0.1:
+            self.beam_x, self.beam_y = (self.header_pars[17]/2, self.header_pars[18]/2)
+
         self.distance = self.goniostat_pars[0] / 1e3
         self.wavelength = self.source_pars[3] / 1e5
         self.pixel_size = self.detector_pars[1] / 1e6
