@@ -131,7 +131,7 @@ class ImageViewer(gtk.Frame):
         return indexed, unindexed
                     
     def _select_image_spots(self, spots):
-        image_spots = [sp for sp in spots if abs(self.frame_number - sp[2]) <= 0.5]
+        image_spots = [sp for sp in spots if abs(self.frame_number - sp[2]) <= 1]
         return image_spots
     
     def open_image(self, filename):
