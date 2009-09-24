@@ -10,6 +10,7 @@ from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.ptzviewer import AxisViewer
 from mxdc.widgets.samplepicker import SamplePicker
+from mxdc.widgets.simplevideo import SimpleVideo
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.misc import *
 
@@ -54,7 +55,10 @@ class HutchManager(gtk.Frame):
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
         self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
         self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))
-        self.video_book.connect('map', lambda x: self.video_book.set_current_page(0))       
+        self.video_book.connect('map', lambda x: self.video_book.set_current_page(0))
+        if self.beamline.registry.get('beam_video'):
+            self.beam_viewer = SimpleVideo(self.beamline.registry['beam_video'])
+            self.video_book.append_page(self.beam_viewer, tab_label=gtk.Label('Beam Camera'))  
 
         
         # create and pack devices into settings frame

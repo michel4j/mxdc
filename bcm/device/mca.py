@@ -43,8 +43,8 @@ class MultiChannelAnalyzer(object):
         
         # Default parameters
         self.half_roi_width = 15 # in channel units 
-        self.offset = 9600 # 3.4933 #-0.45347
-        self.gain =  50000 # 0.003346     #0.00498
+        self.slope = 17.0/3298 #50000     #0.00498
+        self.offset = -96.0 * self.slope #9600 #-0.45347
         self._monitor_id = None
         self._acquiring = False
         self._data_read = False
@@ -90,10 +90,10 @@ class MultiChannelAnalyzer(object):
             self._acquiring = False
 
     def channel_to_energy(self, x):
-         return 1e-7 * ( x - 0.01 * self.offset) * self.gain
+        return self.slope*x + self.offset
     
     def energy_to_channel(self, y):
-        return   int((y/(self.gain*1e-7)) + 0.01*self.offset)
+        return   int((y-self.offset)/self.slope)
                                    
     def count(self, t):
         self._acquire_data(t)
