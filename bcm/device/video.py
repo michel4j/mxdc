@@ -10,6 +10,8 @@ import numpy
 import gtk
 import gobject
 import re
+import socket
+import zlib
 
 # suppres scipy import warnings
 import warnings
@@ -166,6 +168,8 @@ class AxisCamera(VideoSrc):
         self.size = img.size
         return img
 
+
+
 class ZoomableAxisCamera(AxisCamera):
     
     implements(IZoomableCamera)
@@ -231,3 +235,45 @@ class AxisPTZCamera(AxisCamera):
                 presets.append(m.group('name'))
         return presets
      
+class FDICamera(VideoSrc):
+
+    implements(ICamera)
+      
+    def __init__(self, hostname, name='FDI Camera'): 
+        VideoSrc.__init__(self, name)
+        self._hostname = hostname
+        self._name = name
+        self.size = (1388, 1040)
+        self.resolution = 1.0
+        self._open_socket()
+
+    def _open_socket(self):
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        
+        self._sock.connect((self._hostname,50000))
+
+    def get_frame(self):
+        self._sock.send('GetImage\n')
+        camdata = self._sock.recv(1024).split(';',2)
+        while not camdata[0]:
+            self._sock.close()
+            self._open_socket()
+            self._sock.send('GetImage\n')
+            camdata = self._sock.recv(1024).split(';',2)
+
+        if len(camdata[2]) != 6:
+            data = camdata[2][6:]
+            camdata = int(camdata[2][:6])
+        else:
+            data = ''
+            camdata = int(camdata[2])
+        timeout = 100000
+        while (len(data) < camdata) and timeout:
+            data = data + self._sock.recv(camdata)
+            timeout = timeout - 1
+        frame = toimage(numpy.fromstring(zlib.decompress(data), 'H').reshape(self.size[1],
+                                                                             self.size[0]))
+        return frame
+
+    def stop(self):
+        self._sock.close()
+        self._stopped = True
