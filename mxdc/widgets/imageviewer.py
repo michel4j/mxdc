@@ -344,9 +344,9 @@ class ImageViewer(gtk.Frame):
         return True
 
     def on_file_open(self,widget):
-        filename = select_image()
+        filter, filename = select_image()
         if filename is not None and os.path.isfile(filename):
-            if os.path.basename(filename) == 'SPOT.XDS':
+            if filter.get_name() == 'XDS SPOT Files':
                 self._load_spots(filename)
                 # if spot information is available  and an image is loaded display it
                 if self.image_canvas.image_loaded:
