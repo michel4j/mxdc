@@ -9,65 +9,6 @@
         <property name="visible">True</property>
         <property name="spacing">3</property>
         <child>
-          <widget class="GtkVBox" id="side_panel">
-            <property name="visible">True</property>
-            <property name="spacing">3</property>
-            <child>
-              <widget class="GtkLabel" id="label">
-                <property name="visible">True</property>
-              </widget>
-              <packing>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <widget class="GtkButton" id="save_btn">
-                <property name="label">gtk-save</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="use_stock">True</property>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="pack_type">end</property>
-                <property name="position">6</property>
-              </packing>
-            </child>
-          </widget>
-          <packing>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkVSeparator" id="vseparator1">
-            <property name="width_request">3</property>
-            <property name="visible">True</property>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="padding">3</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
           <widget class="GtkVBox" id="video_frame">
             <property name="visible">True</property>
             <child>
@@ -124,6 +65,21 @@
                     <property name="position">1</property>
                   </packing>
                 </child>
+                <child>
+                  <widget class="GtkButton" id="save_btn">
+                    <property name="label">gtk-save</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="use_stock">True</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="pack_type">end</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -134,7 +90,7 @@
             </child>
           </widget>
           <packing>
-            <property name="position">2</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </widget>
