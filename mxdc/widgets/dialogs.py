@@ -237,17 +237,24 @@ class FolderSelector(object):
         return result
 
 class ImageSelector(object):
-    def __init__(self):
-        self.path = os.environ['HOME']+ os.sep
+    def __init__(self, path=None):
+        if path is None or not os.path.exists(path):
+            self.path = os.environ['HOME']
+        else:
+            self.path = path
         #self.path = "/data" + os.sep
-        self.filter = gtk.FileFilter()
-        self.filter.set_name("Diffraction Frames")
-        self.filter.add_pattern("*.img")
-        self.filter.add_pattern("*.marccd")
-        self.filter.add_pattern("*.mccd")
-        self.filter.add_pattern("*.pck")
-        self.filter.add_pattern("*.[0-9][0-9][0-9]")
-        self.filter.add_pattern("*.[0-9][0-9][0-9][0-9]")
+        self.img_filter = gtk.FileFilter()
+        self.img_filter.set_name("Diffraction Frames")
+        self.img_filter.add_pattern("*.img")
+        self.img_filter.add_pattern("*.marccd")
+        self.img_filter.add_pattern("*.mccd")
+        self.img_filter.add_pattern("*.pck")
+        self.img_filter.add_pattern("*.[0-9][0-9][0-9]")
+        self.img_filter.add_pattern("*.[0-9][0-9][0-9][0-9]")
+        
+        self.spot_filter = gtk.FileFilter()
+        self.spot_filter.set_name("XDS SPOT Files")
+        self.spot_filter.add_pattern("SPOT.XDS*")
 
     def __call__(self,path=None):
         file_open = gtk.FileChooserDialog(title="Select Image"
@@ -257,15 +264,16 @@ class ImageSelector(object):
                             , gtk.STOCK_OPEN
                             , gtk.RESPONSE_OK))
    
-        file_open.add_filter(self.filter)
+        file_open.add_filter(self.img_filter)
+        file_open.add_filter(self.spot_filter)
         if path: 
             self.path = path
         file_open.set_current_folder (self.path)
-        #file_open.set_uri('file:/%s' % self.path)
-        result = None
+
+        result = (None, None)
         if file_open.run() == gtk.RESPONSE_OK:
-            result = file_open.get_filename()
-            self.path = os.path.split(result)[0] + os.sep
+            result = (file_open.get_filter(), file_open.get_filename())
+            self.path = os.path.dirname(result[1])
         file_open.destroy()   
         return result
 
@@ -442,7 +450,7 @@ class DirectoryButton(gtk.Button):
             return text
     
 select_folder = FolderSelector()
-select_image = ImageSelector()
+select_image = ImageSelector(os.getcwd())
 save_selector = FileChooserDialog()
 ImageSelector = None
 FolderSelector = None
