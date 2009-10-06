@@ -214,10 +214,15 @@ def check_folder(directory, parent=None, warn=True):
     return True
     
 class FolderSelector(object):
-    def __init__(self):
-        self.path = os.environ['HOME']+ os.sep
-        #self.path = "/data" + os.sep
-
+    def __init__(self, path=None):
+        self.set_path(path)
+        
+    def set_path(self, path):
+        if path is None or not os.path.exists(path):
+            self.path = os.environ['HOME']
+        else:
+            self.path = path
+            
     def __call__(self,path=None):
         file_open = gtk.FileChooserDialog(title="Select Folder"
             , action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER
@@ -232,7 +237,7 @@ class FolderSelector(object):
         result = None
         if file_open.run() == gtk.RESPONSE_OK:
             result = file_open.get_filename()
-            self.path = result + os.sep
+            self.path = result
         file_open.destroy()    
         return result
 
@@ -255,7 +260,14 @@ class ImageSelector(object):
         self.spot_filter = gtk.FileFilter()
         self.spot_filter.set_name("XDS SPOT Files")
         self.spot_filter.add_pattern("SPOT.XDS*")
-
+    
+    def set_path(self, path):
+        if path is None or not os.path.exists(path):
+            self.path = os.environ['HOME']
+        else:
+            self.path = path
+        
+    
     def __call__(self,path=None):
         file_open = gtk.FileChooserDialog(title="Select Image"
                 , action=gtk.FILE_CHOOSER_ACTION_OPEN
@@ -281,6 +293,7 @@ class FileSelector(object):
     path = os.environ['HOME']
     
     def __init__(self, title, action, filters):
+        self.set_path(os.environ['HOME'])
         if action == gtk.FILE_CHOOSER_ACTION_OPEN:
             resp_stock = gtk.STOCK_OPEN        
         else:
@@ -298,11 +311,17 @@ class FileSelector(object):
             self.file_open.set_current_folder(self.path)
         self.file_open.set_do_overwrite_confirmation(True)    
 
+    def set_path(self, path):
+        if path is None or not os.path.exists(path):
+           self.__class__.path = os.environ['HOME'] 
+        else:
+            self.__class__.path = os.path.dirname(self.filename)
+            
     def run(self):
         if self.file_open.run() == gtk.RESPONSE_OK:
             self.filename = self.file_open.get_filename()
             self.filter = self.file_open.get_filter()
-            self.__class__.path = os.path.dirname(self.filename)
+            self.set_path(os.path.dirname(self.filename))
         else:
             self.filename = None
             self.filter = None
@@ -330,7 +349,7 @@ class FileChooserDialog(gtk.FileChooserDialog):
         self.set_default_response (gtk.RESPONSE_OK)
         if path: self.path = path
         else:    
-            self.path = os.environ['HOME']+ os.sep
+            self.path = os.environ['HOME']
             #self.path = "/data" + os.sep
         # create an extra widget to list supported image formats
         self.set_current_folder (self.path)
@@ -449,7 +468,7 @@ class DirectoryButton(gtk.Button):
         else:
             return text
     
-select_folder = FolderSelector()
+select_folder = FolderSelector(os.getcwd())
 select_image = ImageSelector(os.getcwd())
 save_selector = FileChooserDialog()
 ImageSelector = None
