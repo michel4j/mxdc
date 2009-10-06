@@ -11,6 +11,7 @@ import logging
 import gobject
 import time
 import threading
+import Queue
 import Image 
 import ImageOps
 import ImageDraw
@@ -39,8 +40,140 @@ _COLORNAMES = ['gist_yarg','gist_gray','hot','jet','hsv','Spectral',
                      'Paired','gist_heat','PiYG','Set1','gist_ncar']
         
         
+def _read_marccd_header(filename):
+    header = {}
+    
+    # Read MarCCD header
+    header_format = 'I16s39I80x' # 256 bytes
+    statistics_format = '3Q7I9I40x128H' #128 + 256 bytes
+    goniostat_format = '28i16x' #128 bytes
+    detector_format = '5i9i9i9i' #128 bytes
+    source_format = '10i16x10i32x' #128 bytes
+    file_format = '128s128s64s32s32s32s512s96x' # 1024 bytes
+    dataset_format = '512s' # 512 bytes
+    image_format = '9437184H'
+    
+    marccd_header_format = header_format + statistics_format 
+    marccd_header_format +=  goniostat_format + detector_format + source_format 
+    marccd_header_format +=  file_format + dataset_format + '512x'
+    myfile = open(filename,'rb')
+    
+    tiff_header = myfile.read(1024)
+    header_pars = struct.unpack(header_format,myfile.read(256))
+    statistics_pars = struct.unpack(statistics_format,myfile.read(128+256))
+    goniostat_pars  = struct.unpack(goniostat_format,myfile.read(128))
+    detector_pars = struct.unpack(detector_format, myfile.read(128))
+    source_pars = struct.unpack(source_format, myfile.read(128))
+    file_pars = struct.unpack(file_format, myfile.read(1024))
+    dataset_pars = struct.unpack(dataset_format, myfile.read(512))
+    
+    # extract some values from the header
+    # use image center if detector origin is (0,0)
+    if goniostat_pars[1]/1e3 + goniostat_pars[2]/1e3 < 0.1:
+        header['beam_center'] = (header_pars[17]/2, header_pars[18]/2)
+    else:
+        header['beam_center'] = goniostat_pars[1]/1e3, goniostat_pars[2]/1e3
 
+    header['distance'] = goniostat_pars[0] / 1e3
+    header['wavelength'] = source_pars[3] / 1e5
+    header['pixel_size'] = detector_pars[1] / 1e6
+    header['delta'] = goniostat_pars[24] / 1e3
+    header['angle_start'] =  goniostat_pars[(7 + goniostat_pars[23])] / 1e3
+    header['delta_time'] = goniostat_pars[4] / 1e3
+    header['min_intensity'] = statistics_pars[3]
+    header['max_intensity'] = statistics_pars[4]
+    header['rms_intensity'] = statistics_pars[6] / 1e3
+    header['average_intensity'] = statistics_pars[5] / 1e3
+    header['overloads'] = statistics_pars[8]
+    header['saturated_value'] = header_pars[23]
+    header['two_theta'] = (goniostat_pars[7] / 1e3) * math.pi / -180.0
+
+    if header['average_intensity'] < 0.1:
+        header['gamma_factor'] = 1.0
+    else:
+        header['gamma_factor'] = 29.378 * header['average_intensity']**-0.86
+    header['filename'] = filename
+    myfile.close()
+    return header
+
+def _read_marccd_image(filename):
+    image_info = {}
+    image_info['header'] = _read_marccd_header(filename)
+    raw_img = Image.open(filename)
+    image_info['data'] = raw_img.load()
+    image_info['image'] = raw_img.point(lambda x: x * image_info['header']['gamma_factor']).convert('L')
+    return image_info
+
+def _image_loadable(filename):
+    if os.path.basename(filename) in os.listdir(os.path.dirname(filename)):
+        statinfo = os.stat(filename)
+        if os.access(filename, os.R_OK) and (time.time() - statinfo.st_mtime) > 0.5:
+            return True
+        else:
+            return False
+    
+class FileLoader(gobject.GObject):
+    __gsignals__ =  { 
+        "new-image": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
+    }
+    def __init__(self):
+        gobject.GObject.__init__(self)
+        self.inbox = Queue.Queue(10000)
+        self.outbox = Queue.Queue(10000)
+        self._stopped = False
+        self._paused = False
+        
+    def queue_file(self, filename):
+        if not self._paused and not self._stopped:
+            self.inbox.put(filename)
+        else:
+            self.load_file(filename)
+    
+    def load_file(self, filename):
+        if _image_loadable(filename):
+            self.outbox.put( _read_marccd_image(filename))
+            gobject.idle_add(self.emit, 'new-image')
+        
+    def reset(self):
+        while not self.inbox.empty():
+            _junk = self.inbox.get()
+    
+    def start(self):
+        self._stopped = False
+        worker_thread = threading.Thread(target=self._run)
+        worker_thread.setDaemon(True)
+        worker_thread.start()
+    
+    def stop(self):
+        self._stopped = True
+    
+    def pause(self):
+        self._paused = True
+    
+    def resume(self):
+        self._paused = False
+    
+    def _run(self):
+        filename = None
+        while not self._stopped:
+            time.sleep(0.5)
+            if self._paused:
+                continue
+            elif filename is None:
+                filename = self.inbox.get(block=True)
+                _search_t = time.time()
+            elif _image_loadable(filename):
+                self.outbox.put( _read_marccd_image(filename))
+                gobject.idle_add(self.emit, 'new-image')
+                filename = None
+            elif (time.time()-_search_t > 5.0) and self.inbox.qsize() > 1:
+                filename = None
+                
+        
 class ImageWidget(gtk.DrawingArea):
+    __gsignals__ =  { 
+        "image-loaded": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
+    }
     def __init__(self, size):
         gtk.DrawingArea.__init__(self)
         self.pixbuf = None
@@ -78,6 +211,9 @@ class ImageWidget(gtk.DrawingArea):
         self.connect('button_release_event', self.on_mouse_release)
         self.set_size_request(size, size)
         self.set_colormap('gist_yarg')
+        self.file_loader = FileLoader()
+        self.file_loader.connect('new-image', self.on_image_loaded)
+        self.file_loader.start()
 
     def set_colormap(self, colormap=None, index=None):
         if colormap is not None:
@@ -97,53 +233,6 @@ class ImageWidget(gtk.DrawingArea):
         self.indexed_spots = indexed
         self.unindexed_spots = unindexed
         
-    def _read_header(self, filename):
-        # Read MarCCD header
-        header_format = 'I16s39I80x' # 256 bytes
-        statistics_format = '3Q7I9I40x128H' #128 + 256 bytes
-        goniostat_format = '28i16x' #128 bytes
-        detector_format = '5i9i9i9i' #128 bytes
-        source_format = '10i16x10i32x' #128 bytes
-        file_format = '128s128s64s32s32s32s512s96x' # 1024 bytes
-        dataset_format = '512s' # 512 bytes
-        image_format = '9437184H'
-        marccd_header_format = header_format + statistics_format 
-        marccd_header_format +=  goniostat_format + detector_format + source_format 
-        marccd_header_format +=  file_format + dataset_format + '512x'
-        myfile = open(filename,'rb')
-        self.tiff_header = myfile.read(1024)
-        self.header_pars = struct.unpack(header_format,myfile.read(256))
-        self.statistics_pars = struct.unpack(statistics_format,myfile.read(128+256))
-        self.goniostat_pars  = struct.unpack(goniostat_format,myfile.read(128))
-        self.detector_pars = struct.unpack(detector_format, myfile.read(128))
-        self.source_pars = struct.unpack(source_format, myfile.read(128))
-        self.file_pars = struct.unpack(file_format, myfile.read(1024))
-        self.dataset_pars = struct.unpack(dataset_format, myfile.read(512))
-        # extract some values from the header
-        self.beam_x, self.beam_y = self.goniostat_pars[1]/1e3, self.goniostat_pars[2]/1e3
-        # use image center if detector origin is (0,0)
-        if self.beam_x + self.beam_y < 0.1:
-            self.beam_x, self.beam_y = (self.header_pars[17]/2, self.header_pars[18]/2)
-
-        self.distance = self.goniostat_pars[0] / 1e3
-        self.wavelength = self.source_pars[3] / 1e5
-        self.pixel_size = self.detector_pars[1] / 1e6
-        self.delta = self.goniostat_pars[24] / 1e3
-        self.angle_start =  self.goniostat_pars[(7 + self.goniostat_pars[23])] / 1e3
-        self.delta_time = self.goniostat_pars[4] / 1e3
-        self.min_intensity = self.statistics_pars[3]
-        self.max_intensity = self.statistics_pars[4]
-        self.rms_intensity = self.statistics_pars[6] / 1e3
-        self.average_intensity = self.statistics_pars[5] / 1e3
-        self.overloads = self.statistics_pars[8]
-        self.saturated_value = self.header_pars[23]
-        self.two_theta = (self.goniostat_pars[7] / 1e3) * math.pi / -180.0
-
-        if self.average_intensity < 0.1:
-            self.gamma_factor = 1.0
-        else:
-            self.gamma_factor = 29.378 * self.average_intensity**-0.86
-        myfile.close()
 
     def _read_pck_header(self, filename):
         header_format = '70s' # 40 bytes
@@ -167,23 +256,27 @@ class ImageWidget(gtk.DrawingArea):
         self.max_intensity = 999
         self.overloads = 999
         self.two_theta = 0
+            
+    def load_frame(self, filename):        
+        self.file_loader.load_file(filename)
+
+    def queue_frame(self, filename):        
+        self.file_loader.queue_file(filename)
         
-        
-    def load_frame(self, filename):
-        if not (os.access(filename, os.R_OK) and os.path.isfile(filename)):
-            img_logger.error("File '%s' not readable!" % filename)
-            return
+    def on_image_loaded(self, obj):
         self._set_cursor_mode(gtk.gdk.WATCH)
-        self._read_header(filename)
-        self.orig_img = Image.open(filename)
-        self.pixel_data = self.orig_img.load()
+        img_info = obj.outbox.get(block=True)
+        for k,v in img_info['header'].items():
+            setattr(self,k,v)
+        self.beam_x, self.beam_y = self.beam_center
+        self.pixel_data = img_info['data']
+        self.raw_img = img_info['image']
         self._create_pixbuf()
+        self.image_loaded = True
+        select_image.set_path(os.path.dirname(self.filename))
         self.queue_draw()
         self._set_cursor_mode()
-        self.image_loaded = True
-        self.filename = filename
-        select_image.set_path(os.path.dirname(self.filename))
-    
+        
     def load_pck(self, filename):
         if not (os.access(filename, os.R_OK) and os.path.isfile(filename)):
             img_logger.error("File '%s' not readable!")
@@ -215,8 +308,6 @@ class ImageWidget(gtk.DrawingArea):
     
     def _create_pixbuf(self):
         gc.collect()
-        self.raw_img = self.orig_img.point(lambda x: x * self.gamma_factor).convert('L')
-
         if self._colorize and self.raw_img.mode in ['L','P']:
             self.raw_img.putpalette(self._palette)
         self.image = self.raw_img.convert('RGB')
@@ -245,6 +336,8 @@ class ImageWidget(gtk.DrawingArea):
                                                     3 * self.image_width)
     
     def get_image_info(self):
+        if not self.image_loaded:
+            return {}
         info = {
             'img_size': (self.image_width, self.image_height),
             'pix_size': self.pixel_size,
@@ -674,6 +767,8 @@ class ImageWidget(gtk.DrawingArea):
     def on_unmap(self, obj):
         self.stopped = True
         
+gobject.type_register(FileLoader)
+gobject.type_register(ImageWidget)
 
       
 def main():
@@ -682,7 +777,7 @@ def main():
     win.set_border_width(6)
     win.set_title("Diffraction Image Viewer")
     myview = ImageWidget(512)
-    gobject.idle_add(myview.load_frame, '/home/michel/data/insulin/insulin_1_E1_0001.img')
+    gobject.idle_add(myview.load_frame, '/backup/decode/2009sep16_clsi/005/005_1/005_1_001.img')
     
     hbox = gtk.AspectFrame(ratio=1.0)
     hbox.set_shadow_type(gtk.SHADOW_NONE)

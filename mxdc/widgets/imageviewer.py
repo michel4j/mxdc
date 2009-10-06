@@ -2,16 +2,17 @@
 
 import sys
 import re, os, time, gc, stat
+import threading
 import gtk
 import gtk.glade
 import gobject, pango
 import math, re, struct
 from dialogs import select_image
-from mxdc.widgets.imagewidget import ImageWidget
+from mxdc.widgets.imgwidget import ImageWidget
 from matplotlib.pylab import loadtxt
 import logging
 
-__log_section__ = 'mxdc.imgview'
+__log_section__ = 'mxdc.imageviewer'
 img_logger = logging.getLogger(__log_section__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
@@ -23,13 +24,12 @@ class ImageViewer(gtk.Frame):
         self._canvas_size = size
         self._brightness = 1.0
         self._contrast = 1.0
-        self._follow = False
+        self._following = False
         self._collecting = False
         self._br_hide_id = None
         self._co_hide_id = None
         self._cl_hide_id = None
         self._follow_id = None
-        self._collect_id = None
         self.all_spots = []
         self._create_widgets()
         
@@ -46,6 +46,7 @@ class ImageViewer(gtk.Frame):
         self._widget = self._xml.get_widget('image_viewer')
         self.image_frame = self._xml.get_widget('image_frame')
         self.image_canvas = ImageWidget(self._canvas_size)
+        self.image_canvas.connect('image-loaded', self._update_info)
         self.image_frame.add(self.image_canvas)
         self.image_canvas.connect('motion_notify_event', self.on_mouse_motion)
         
@@ -112,7 +113,7 @@ class ImageViewer(gtk.Frame):
             gtk.main_iteration()
 
     def log(self, msg):
-        img_logger.info('(ImageViewer) %s' % msg)
+        img_logger.info(msg)
        
     def _load_spots(self, filename):
         try:
@@ -133,8 +134,8 @@ class ImageViewer(gtk.Frame):
     def _select_image_spots(self, spots):
         image_spots = [sp for sp in spots if abs(self.frame_number - sp[2]) <= 1]
         return image_spots
-    
-    def open_image(self, filename):
+
+    def _set_file_specs(self, filename):
         self.filename = filename
         # determine file template and frame_number
         file_pattern = re.compile('^(.*)([_.])(\d+)(\..+)?$')
@@ -158,7 +159,6 @@ class ImageViewer(gtk.Frame):
         else:
             self.next_filename = ''
             self.prev_filename = ''
-
         # test next
         if not self._file_loadable(self.next_filename):
             self.next_btn.set_sensitive(False)
@@ -169,19 +169,6 @@ class ImageViewer(gtk.Frame):
             self.prev_btn.set_sensitive(False)
         else:
             self.prev_btn.set_sensitive(True)
-        
-        # select spots and display for current image
-        image_spots = self._select_image_spots(self.all_spots)
-        indexed, unindexed = self._select_spots(image_spots)
-        self.image_canvas.set_spots(indexed, unindexed)
-
-        file_extension = os.path.splitext(self.filename)[1].lower()                
-        if file_extension in ['.pck']:
-            self.log("Loading packed image %s" % (self.filename))
-            self.image_canvas.load_pck(self.filename)
-        else:
-            self.log("Loading image %s" % (self.filename))
-            self.image_canvas.load_frame(self.filename)
         self.image_label.set_markup('<small>%s</small>' % self.filename)
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
@@ -191,57 +178,43 @@ class ImageViewer(gtk.Frame):
         self.reset_btn.set_sensitive(True)
         self.follow_tbtn.set_sensitive(True)
         self.info_btn.set_sensitive(True)
-        self._update_info()
-        
-            
-    def follow_frames(self):
-        if self._file_loadable(self.next_filename):
-            self.open_image(self.next_filename)                
-        return True
+        print self.filename
     
+    def open_image(self, filename):
+        if not self._file_loadable(filename):
+            img_logger.error("File '%s' not readable!" % filename)
+            return
+                
+        # select spots and display for current image
+        image_spots = self._select_image_spots(self.all_spots)
+        indexed, unindexed = self._select_spots(image_spots)
+        self.image_canvas.set_spots(indexed, unindexed)
+
+        file_extension = os.path.splitext(filename)[1].lower()                
+        if file_extension in ['.pck']:
+            img_logger.info("Loading packed image %s" % (filename))
+            self.image_canvas.load_pck(self.filename)
+        else:
+            img_logger.info("Loading image %s" % (filename))
+            self.image_canvas.load_frame(filename)
+        self._set_file_specs(filename)
+        
     def set_collect_mode(self, state=True):
         self._collecting = state
-        if state:
-            self.follow_tbtn.set_active(True)
-            self.collect_queue = []
-            if self._collect_id is not None:
-                gobject.source_remove(self._collect_id)
-            self._collect_id = gobject.timeout_add(2400, self.follow_collect)
     
     def _file_loadable(self, filename):
-        filelist = os.listdir(os.path.dirname(filename))
-        if os.path.exists(filename):
+        if os.path.basename(filename) in os.listdir(os.path.dirname(filename)):
             statinfo = os.stat(filename)
-            if os.access(filename, os.R_OK) and (time.time() - statinfo.st_mtime) > 0.1:
+            if os.access(filename, os.R_OK) and (time.time() - statinfo.st_mtime) > 0.5:
                 return True
             else:
                 return False
         else:
-            return False
-    
-    def follow_collect(self):
-        if len(self.collect_queue) == 0 and self._collecting:
-            return True
-        elif not self._collecting and len(self.collect_queue) == 0:
-            self.follow_tbtn.set_active(False)
-            return False
-        filename = self.collect_queue[0]
-        
-        # only show image if it is readable and the follow button is active        
-        if self._file_loadable(filename) and self.follow_tbtn.get_active():
-            self.open_image(filename)
-            if filename in self.collect_queue:
-                self.collect_queue.remove(filename)
-        elif not self.follow_tbtn.get_active():
-            if filename in self.collect_queue:
-                self.collect_queue.remove(filename)
-        return True
-        
+            return False        
 
     def add_frame(self, filename):
-        if self._collecting:
-            self.collect_queue.append(filename)
-            self.log("%d images in queue" % len(self.collect_queue) )
+        if self._collecting and self._following:
+            self.image_canvas.queue_frame(filename)
         else:
             self.open_image(filename)
 
@@ -305,8 +278,9 @@ class ImageViewer(gtk.Frame):
         self.info_label.set_markup("<small><tt>%5d %4d \n%5d %4.1f Å</tt></small>"% (ix, iy, ivalue, ires))
 
 
-    def _update_info(self):
+    def _update_info(self, obj=None):
         info = self.image_canvas.get_image_info()
+        self._set_file_specs(info['file'])
         for key, val in info.items():
             w = self._xml3.get_widget('%s_lbl' % key)
             if not w:
@@ -318,7 +292,12 @@ class ImageViewer(gtk.Frame):
             else:
                 txt = "%g" % val
             w.set_markup(txt)
-        
+            
+    def _follow_frames(self):
+        if self._file_loadable(self.next_filename):
+            self.add_image(self.next_filename)
+        return False
+          
     def on_image_info(self, obj):         
         self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
                                   'info_dialog')
@@ -333,14 +312,14 @@ class ImageViewer(gtk.Frame):
         if os.access(self.next_filename, os.R_OK):
             self.open_image(self.next_filename)
         else:
-            self.log("File not found: %s" % (filename))
+            img_logger.warning("File not found: %s" % (filename))
         return True
 
     def on_prev_frame(self,widget):
         if os.access(self.prev_filename, os.R_OK):
             self.open_image(self.prev_filename)
         else:
-            self.log("File not found: %s" % (filename))
+            img_logger.warning("File not found: %s" % (filename))
         return True
 
     def on_file_open(self,widget):
@@ -408,17 +387,9 @@ class ImageViewer(gtk.Frame):
             self.colorize_popup.hide()
         
     def on_follow_toggled(self,widget):
-        if widget.get_active():
-            if not self._collecting:
-                self._frames = True
-                if self._follow_id is not None:
-                    gobject.source_remove(self._follow_id)
-                self._follow_id = gobject.timeout_add(3000, self.follow_frames)
-        else:
-            if self._follow_id is not None:
-                gobject.source_remove(self._follow_id)
-                self._follow_id = None
-            self._follow = False
+        self._following = widget.get_active()
+        if not self._collecting:
+            gobject.timeout_add(3000, self._follow_frames)
         return True
 
 def main():
