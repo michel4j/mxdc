@@ -14,7 +14,7 @@ import gtk
 import gobject
 
 from bcm.beamline.mx import MXBeamline
-from bcm.utils.log import get_module_logger
+from bcm.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.imageviewer import ImageViewer
 #from mxdc.utils import gtkexcepthook
 
@@ -36,6 +36,7 @@ def main():
 
 if __name__ == '__main__':
     try:
+        log_to_console()
         main()
     finally:
         _logger.info('Stopping...')
