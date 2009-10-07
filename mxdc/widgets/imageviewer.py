@@ -8,7 +8,7 @@ import gtk.glade
 import gobject, pango
 import math, re, struct
 from dialogs import select_image
-from mxdc.widgets.imgwidget import ImageWidget
+from mxdc.widgets.imagewidget import ImageWidget
 from matplotlib.pylab import loadtxt
 import logging
 
@@ -178,7 +178,6 @@ class ImageViewer(gtk.Frame):
         self.reset_btn.set_sensitive(True)
         self.follow_tbtn.set_sensitive(True)
         self.info_btn.set_sensitive(True)
-        print self.filename
     
     def open_image(self, filename):
         if not self._file_loadable(filename):
@@ -197,26 +196,11 @@ class ImageViewer(gtk.Frame):
         else:
             img_logger.info("Loading image %s" % (filename))
             self.image_canvas.load_frame(filename)
-        self._set_file_specs(filename)
+        #self._set_file_specs(filename)
         
     def set_collect_mode(self, state=True):
         self._collecting = state
     
-    def _file_loadable(self, filename):
-        if os.path.basename(filename) in os.listdir(os.path.dirname(filename)):
-            statinfo = os.stat(filename)
-            if os.access(filename, os.R_OK) and (time.time() - statinfo.st_mtime) > 0.5:
-                return True
-            else:
-                return False
-        else:
-            return False        
-
-    def add_frame(self, filename):
-        if self._collecting and self._following:
-            self.image_canvas.queue_frame(filename)
-        else:
-            self.open_image(filename)
 
     def _get_parent_window(self):
         parent = self.get_parent()
@@ -245,7 +229,7 @@ class ImageViewer(gtk.Frame):
         return False
 
     def on_brightness_changed(self, obj):
-        self.image_canvas.set_brightness(10.0 - obj.get_value())
+        self.image_canvas.set_brightness(obj.get_value())
         if self._br_hide_id is not None:
             gobject.source_remove(self._br_hide_id)
             self._br_hide_id = gobject.timeout_add(6000, self._timed_hide, self.brightness_tbtn)
@@ -293,9 +277,26 @@ class ImageViewer(gtk.Frame):
                 txt = "%g" % val
             w.set_markup(txt)
             
+    def _file_loadable(self, filename):
+        if os.path.basename(filename) in os.listdir(os.path.dirname(filename)):
+            statinfo = os.stat(filename)
+            if os.access(filename, os.R_OK) and (time.time() - statinfo.st_mtime) > 0.5:
+                return True
+            else:
+                return False
+        else:
+            return False        
+
+    def add_frame(self, filename):
+        if self._collecting and self._following:
+            self.image_canvas.queue_frame(filename)
+        else:
+            self.open_image(filename)
+
     def _follow_frames(self):
-        if self._file_loadable(self.next_filename):
-            self.add_image(self.next_filename)
+        if self._file_loadable(self.next_filename) and self._following:
+            self.image_canvas.queue_frame(self.next_filename)
+            gobject.timeout_add(3000, self._follow_frames)
         return False
           
     def on_image_info(self, obj):         
@@ -347,7 +348,6 @@ class ImageViewer(gtk.Frame):
             self.colorize_tbtn.set_active(False)
             self._position_popups()
             self.brightness_popup.set_transient_for(self._get_parent_window())
-            self.brightness.set_value(10.0 - self.image_canvas.gamma_factor)
             self.brightness_popup.show_all()
             self._br_hide_id = gobject.timeout_add(5000, self._timed_hide, self.brightness_tbtn)
         else:
