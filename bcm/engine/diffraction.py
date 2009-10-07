@@ -227,9 +227,7 @@ class DataCollector(gobject.GObject):
                                                    angle=frame['start_angle'])
                 self.beamline.detector.start(first=_first)
                 self.beamline.detector.set_parameters(header)
-                self.beamline.goniometer.scan(wait=False)
-                time.sleep(frame['time'])
-                self.beamline.goniometer.wait(start=False, stop=True)
+                self.beamline.goniometer.scan()
                 self.beamline.detector.save()
                 _first = False
                     

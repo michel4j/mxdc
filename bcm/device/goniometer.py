@@ -56,7 +56,7 @@ class Goniometer(object):
     def get_state(self):
         return self._state.get() != 0   
                         
-    def wait(self, start=True, stop=True, poll=0.01, timeout=20):
+    def wait(self, start=True, stop=True, poll=0.05, timeout=20):
         if (start):
             time_left = 2
             while not self.get_state() and time_left > 0:

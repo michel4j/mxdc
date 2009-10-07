@@ -436,8 +436,8 @@ class CollectManager(gtk.Frame):
 
     def on_new_image(self, widget, index, filename):
         self.frame_pos = index
-        self.set_row_state(index, saved=True)
         self.image_viewer.add_frame(filename)
+        self.set_row_state(index, saved=True)
       
 
     def on_progress(self, obj, fraction, position):
