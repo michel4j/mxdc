@@ -26,10 +26,7 @@ class ColoredConsoleHandler(logging.StreamHandler):
             if not hasattr(types, "UnicodeType"): #if no unicode support...
                 self.stream.write("%s\n" % msg)
             else:
-                try:
-                    self.stream.write("%s\n" % msg)
-                except UnicodeError:
-                    self.stream.write("%s\n" % msg.encode("UTF-8"))
+                self.stream.write("%s\n" % msg)
             self.flush()
         except:
             self.handleError(record)
@@ -44,7 +41,7 @@ def get_module_logger(name):
 
 
 
-def log_to_console(level=logging.DEBUG):
+def log_to_console(level=LOG_LEVEL):
     """Add a log handler which logs to the console."""
     
     console = ColoredConsoleHandler()
