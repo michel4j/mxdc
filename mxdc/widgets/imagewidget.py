@@ -38,7 +38,8 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 COLORMAPS = pickle.load(file(os.path.join(DATA_DIR, 'colormaps.data')))
 _COLORNAMES = ['gist_yarg','gist_gray','hot','jet','hsv','Spectral',
                      'Paired','gist_heat','PiYG','Set1','gist_ncar']
-        
+
+_GAMMA_SHIFT = 3.5        
         
 def _read_marccd_header(filename):
     header = {}
@@ -107,26 +108,30 @@ def _read_marccd_image(filename, gamma_offset = 0.0):
         image_info['header']['average_intensity'] = numpy.mean( numpy.fromstring(raw_img.tostring(), 'H') )
         image_info['header']['gamma'] = 29.378 * image_info['header']['average_intensity']**-0.86
         
-    disp_gamma = image_info['header']['gamma'] + gamma_offset
+    disp_gamma = image_info['header']['gamma'] * numpy.exp(gamma_offset + _GAMMA_SHIFT)/30.0
     image_info['image'] = raw_img.point(lambda x: x * disp_gamma).convert('L')
     return image_info
 
-def _image_loadable(filename):
+def image_loadable(filename):
     if os.path.basename(filename) in os.listdir(os.path.dirname(filename)):
         statinfo = os.stat(filename)
-        if os.access(filename, os.R_OK) and (time.time() - statinfo.st_mtime) > 0.5:
-            return True
+        if (time.time() - statinfo.st_mtime) > 0:
+            if os.access(filename, os.R_OK):
+                return True
+            else:
+                return False
         else:
             return False
-    
+    return False
+
 class FileLoader(gobject.GObject):
     __gsignals__ =  { 
         "new-image": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
     }
     def __init__(self):
         gobject.GObject.__init__(self)
-        self.inbox = Queue.Queue(10000)
-        self.outbox = Queue.Queue(10000)
+        self.inbox = Queue.Queue(1000)
+        self.outbox = Queue.Queue(1000)
         self._stopped = False
         self._paused = False
         self.gamma_offset = 0.0
@@ -134,11 +139,12 @@ class FileLoader(gobject.GObject):
     def queue_file(self, filename):
         if not self._paused and not self._stopped:
             self.inbox.put(filename)
+            img_logger.debug('Queuing for display: %s' % filename)
         else:
             self.load_file(filename)
     
     def load_file(self, filename):
-        if _image_loadable(filename):
+        if image_loadable(filename):
             self.outbox.put( _read_marccd_image(filename, self.gamma_offset))
             gobject.idle_add(self.emit, 'new-image')
         
@@ -164,19 +170,26 @@ class FileLoader(gobject.GObject):
     def _run(self):
         filename = None
         while not self._stopped:
-            time.sleep(0.5)
+            time.sleep(0.25)
             if self._paused:
                 continue
             elif filename is None:
                 filename = self.inbox.get(block=True)
                 _search_t = time.time()
-            elif _image_loadable(filename):
-                self.outbox.put( _read_marccd_image(filename))
-                gobject.idle_add(self.emit, 'new-image')
+            elif image_loadable(filename):
+                try:
+                    img_info = _read_marccd_image(filename, self.gamma_offset)
+                except:
+                    img_logger.debug('Error loading image: %s' % filename)
+                else:
+                    self.outbox.put( _read_marccd_image(filename, self.gamma_offset))
+                    img_logger.debug('Loading image: %s' % filename)
+                    gobject.idle_add(self.emit, 'new-image')
+                    filename = None
+            elif (time.time()-_search_t > 5.0) and self.inbox.qsize() > 0:
                 filename = None
-            elif (time.time()-_search_t > 5.0) and self.inbox.qsize() > 1:
-                filename = None
-                
+            #else:
+            #    img_logger.debug('Waiting for image: %s' % filename)         
         
 class ImageWidget(gtk.DrawingArea):
     __gsignals__ =  { 
@@ -195,7 +208,6 @@ class ImageWidget(gtk.DrawingArea):
         self._best_interp = gtk.gdk.INTERP_TILES
         self._saturation_factor = 1.0
         self.display_gamma = 1.0
-        self.gamma_offset = 0.0
         self.scale = 1.0
 
         self.extents_back = []
@@ -209,7 +221,8 @@ class ImageWidget(gtk.DrawingArea):
                 gtk.gdk.BUTTON_RELEASE_MASK |
                 gtk.gdk.POINTER_MOTION_MASK |
                 gtk.gdk.POINTER_MOTION_HINT_MASK|
-                gtk.gdk.VISIBILITY_NOTIFY_MASK)  
+                gtk.gdk.VISIBILITY_NOTIFY_MASK|
+                gtk.gdk.SCROLL_MASK)  
 
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
@@ -218,6 +231,7 @@ class ImageWidget(gtk.DrawingArea):
         self.connect('configure-event', self.on_configure)        
         self.connect('motion_notify_event', self.on_mouse_motion)
         self.connect('button_press_event', self.on_mouse_press)
+        self.connect('scroll-event', self.on_mouse_scroll)
         self.connect('button_release_event', self.on_mouse_release)
         self.set_size_request(size, size)
         self.set_colormap('gist_yarg')
@@ -561,14 +575,9 @@ class ImageWidget(gtk.DrawingArea):
         self.queue_draw()
 
     def set_brightness(self, value):
-        if value >= 0:
-            self.gamma_offset = value
-        else:
-            self.gamma_offset = value * self.gamma/5     
-
         # new images need to respect this so file_loader should be informed
-        self.file_loader.gamma_offset = self.gamma_offset
-        gamma = self.gamma + self.file_loader.gamma_offset
+        self.file_loader.gamma_offset = value
+        gamma = self.gamma * numpy.exp(self.file_loader.gamma_offset+_GAMMA_SHIFT)/30.0
         if gamma != self.display_gamma:
             self.raw_img = self.src_image.point(lambda x: x * gamma).convert('L')
             self._create_pixbuf()
@@ -583,6 +592,7 @@ class ImageWidget(gtk.DrawingArea):
     def reset_filters(self):
         self.set_colormap('gist_yarg')
         self.display_gamma = self.gamma
+        self.file_loader.gamma_offset = 0.0
         self.raw_img = self.src_image.point(lambda x: x * self.display_gamma).convert('L')
         self._create_pixbuf()
         self.queue_draw()
@@ -668,6 +678,14 @@ class ImageWidget(gtk.DrawingArea):
             
         return False
     
+    def on_mouse_scroll(self, widget, event):
+        if not self.image_loaded:
+            return False
+        if event.direction == gtk.gdk.SCROLL_UP:
+            self.set_brightness(min(5, self.file_loader.gamma_offset + 0.2))
+        elif event.direction == gtk.gdk.SCROLL_DOWN:
+            self.set_brightness(max(-5, self.file_loader.gamma_offset - 0.2))
+ 
     def on_mouse_press(self, widget, event):
         if not self.image_loaded:
             return False
@@ -692,6 +710,7 @@ class ImageWidget(gtk.DrawingArea):
             self.meas_x1, self.meas_y1 = self.meas_x0, self.meas_y0
             self._measuring = True
             self._set_cursor_mode(gtk.gdk.TCROSS)
+            
             
             
     def on_mouse_release(self, widget, event):

@@ -11,7 +11,7 @@ from twisted.internet import reactor
 import gtk
 import gobject
 
-from bcm.utils.log import get_module_logger
+from bcm.utils.log import get_module_logger, log_to_console
 #from mxdc.utils import gtkexcepthook
 from mxdc.AppWindow import AppWindow
 
@@ -42,5 +42,6 @@ if __name__ == "__main__":
         _logger.error('Please make sure MXDC is properly installed and configured.')
         sys.exit(1)
     app = MXDCApp(config)
+    log_to_console()
     reactor.run()
     #gtk.main()
