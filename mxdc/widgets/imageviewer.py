@@ -8,7 +8,7 @@ import gtk.glade
 import gobject, pango
 import math, re, struct
 from dialogs import select_image
-from mxdc.widgets.imagewidget import ImageWidget
+from mxdc.widgets.imagewidget import ImageWidget, image_loadable
 from matplotlib.pylab import loadtxt
 import logging
 
@@ -160,12 +160,12 @@ class ImageViewer(gtk.Frame):
             self.next_filename = ''
             self.prev_filename = ''
         # test next
-        if not self._file_loadable(self.next_filename):
+        if not image_loadable(self.next_filename):
             self.next_btn.set_sensitive(False)
         else:
             self.next_btn.set_sensitive(True)
         # test prev
-        if not self._file_loadable(self.prev_filename):
+        if not image_loadable(self.prev_filename):
             self.prev_btn.set_sensitive(False)
         else:
             self.prev_btn.set_sensitive(True)
@@ -180,14 +180,15 @@ class ImageViewer(gtk.Frame):
         self.info_btn.set_sensitive(True)
     
     def open_image(self, filename):
-        if not self._file_loadable(filename):
+        if not image_loadable(filename):
             img_logger.error("File '%s' not readable!" % filename)
             return
                 
         # select spots and display for current image
-        image_spots = self._select_image_spots(self.all_spots)
-        indexed, unindexed = self._select_spots(image_spots)
-        self.image_canvas.set_spots(indexed, unindexed)
+        if len(self.all_spots) > 0:
+            image_spots = self._select_image_spots(self.all_spots)
+            indexed, unindexed = self._select_spots(image_spots)
+            self.image_canvas.set_spots(indexed, unindexed)
 
         file_extension = os.path.splitext(filename)[1].lower()                
         if file_extension in ['.pck']:
@@ -200,6 +201,7 @@ class ImageViewer(gtk.Frame):
         
     def set_collect_mode(self, state=True):
         self._collecting = state
+        self.follow_tbtn.set_active(state)
     
 
     def _get_parent_window(self):
@@ -277,26 +279,14 @@ class ImageViewer(gtk.Frame):
                 txt = "%g" % val
             w.set_markup(txt)
             
-    def _file_loadable(self, filename):
-        if os.path.basename(filename) in os.listdir(os.path.dirname(filename)):
-            statinfo = os.stat(filename)
-            if os.access(filename, os.R_OK) and (time.time() - statinfo.st_mtime) > 0.5:
-                return True
-            else:
-                return False
-        else:
-            return False        
-
     def add_frame(self, filename):
         if self._collecting and self._following:
             self.image_canvas.queue_frame(filename)
-        else:
-            self.open_image(filename)
 
     def _follow_frames(self):
-        if self._file_loadable(self.next_filename) and self._following:
+        if image_loadable(self.next_filename) and self._following:
             self.image_canvas.queue_frame(self.next_filename)
-            gobject.timeout_add(3000, self._follow_frames)
+            gobject.timeout_add(1000, self._follow_frames)
         return False
           
     def on_image_info(self, obj):         
@@ -389,7 +379,7 @@ class ImageViewer(gtk.Frame):
     def on_follow_toggled(self,widget):
         self._following = widget.get_active()
         if not self._collecting:
-            gobject.timeout_add(3000, self._follow_frames)
+            gobject.timeout_add(1000, self._follow_frames)
         return True
 
 def main():
