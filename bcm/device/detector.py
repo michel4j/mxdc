@@ -134,7 +134,7 @@ class MXCCDImager(object):
         self._state_list = states
         return True
 
-    def _wait_for_state(self, state, timeout=5.0):
+    def _wait_for_state(self, state, timeout=10.0):
         _logger.debug('(%s) Waiting for state: %s' % (self.name, state,) ) 
         while (not self._is_in_state(state)) and timeout > 0:
             timeout -= 0.05
