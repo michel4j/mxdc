@@ -22,7 +22,9 @@ from scipy.misc import toimage, fromimage
 from dialogs import select_image
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib, matplotlib.backends.backend_agg
+from mpl_toolkits.axes_grid.axislines import SubplotZero
 from matplotlib.pylab import loadtxt
+from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
 from bcm.utils.science import peak_search
 
 try:
@@ -103,6 +105,7 @@ def _read_marccd_image(filename, gamma_offset = 0.0):
     raw_img = Image.open(filename)
     image_info['data'] = raw_img.load()
     image_info['src-image'] = raw_img
+    hist = raw_img.histogram()
     # recalculate average intensity if not present within file
     if image_info['header']['average_intensity'] < 0.1:
         image_info['header']['average_intensity'] = numpy.mean( numpy.fromstring(raw_img.tostring(), 'H') )
@@ -110,6 +113,11 @@ def _read_marccd_image(filename, gamma_offset = 0.0):
         
     disp_gamma = image_info['header']['gamma'] * numpy.exp(gamma_offset + _GAMMA_SHIFT)/30.0
     image_info['image'] = raw_img.point(lambda x: x * disp_gamma).convert('L')
+    idx = range(len(hist))
+    x = numpy.linspace(0, 65535, len(hist))
+    l = 2
+    r = len(hist)-1
+    image_info['histogram'] = numpy.array(zip(idx[l:r],x[l:r],hist[l:r]))
     return image_info
 
 def image_loadable(filename):
@@ -301,6 +309,8 @@ class ImageWidget(gtk.DrawingArea):
         self.image_loaded = True
         self.emit('image-loaded')
         self.src_image = img_info['src-image']
+        self.histogram = img_info['histogram']
+        self._plot_histogram(self.histogram, show_axis=['xzero',], distance=False)
         self._set_cursor_mode()
         
     def load_pck(self, filename):
@@ -420,37 +430,57 @@ class ImageWidget(gtk.DrawingArea):
         data = numpy.zeros((len(coords),3))
         n = 0
         for ix, iy in coords:
+            ix = max(1, ix)
+            iy = max(1, iy)
             data[n][0] = n
-            data[n][1] = self.pixel_data[ix, iy]
-            data[n][2] = self._rdist(ix, iy, coords[0][0], coords[0][1])
+            data[n][2] = (self.pixel_data[ix, iy] + self.pixel_data[ix-1, iy] +
+                          self.pixel_data[ix+1, iy] + self.pixel_data[ix, iy-1]+
+                          self.pixel_data[ix, iy+1])
+            data[n][1] = self._rdist(ix, iy, coords[0][0], coords[0][1])
             n += 1
         return data
 
 
-    def _plot_histogram(self, data):
-        figure = matplotlib.figure.Figure(frameon=False, figsize=( 3.5, 2), dpi=80, facecolor='w' )
-        plot = figure.add_subplot(111)
-        plot.axison = False
-        plot.plot(data[:,2], data[:,1])
-        peaks = peak_search(data[:,2], data[:,1], w=9, threshold=0.3, min_peak=0.1)
-
-        if len(peaks) > 1:
-            d1 = peaks[1][0] - peaks[0][0]
-            y1 = max(peaks[0][1], peaks[1][1])/2
-            r1 = (self.wavelength * self.distance/d1)
-            x1 = (peaks[1][0] + peaks[0][0])/2
-            plot.text((peaks[1][0]+peaks[0][0])/2, y1, '% 0.1f A' % r1,
-                      horizontalalignment='center', 
-                      color='black', rotation=90)        
+    def _plot_histogram(self, data, show_axis=None, distance=True):
+        figure = matplotlib.figure.Figure(frameon=False,figsize=(3.5, 2.6), dpi=72, facecolor='w' )
+        plot = SubplotZero(figure,1,1,1)
+        figure.add_subplot(plot)
+        formatter = FormatStrFormatter('%g')
+        plot.xaxis.set_major_formatter(formatter)
+        plot.yaxis.set_major_formatter(formatter)
+        plot.xaxis.set_major_locator(MaxNLocator(5, prune='upper'))
+        plot.yaxis.set_major_locator(MaxNLocator(5))
+        for n in ['xzero','yzero','bottom','top','right','left']:
+            plot.axis[n].set_visible(False)
+        if show_axis is not None:
+            for n in show_axis:
+                plot.axis[n].set_visible(True)
         
-        if len(peaks) > 2:
-            d2 = peaks[2][0] - peaks[1][0]
-            r2 = (self.wavelength * self.distance/d2)
-            x2 = (peaks[2][0] + peaks[1][0])/2
-            plot.text((peaks[2][0]+peaks[1][0])/2, y1, '% 0.1f' % r2,
-                      horizontalalignment='center', 
-                      color='black', rotation=90)
+        if distance:
+            plot.plot(data[:,1], data[:,2])
+        else:
+            plot.vlines(data[:,1], 0, data[:,2])
         
+        if distance:
+            peaks = peak_search(data[:,1], data[:,2], w=9, threshold=0.2, min_peak=0.1)
+    
+            if len(peaks) > 1:
+                d1 = peaks[1][0] - peaks[0][0]
+                y1 = max(peaks[0][1], peaks[1][1])/2
+                r1 = (self.wavelength * self.distance/d1)
+                x1 = (peaks[1][0] + peaks[0][0])/2
+                plot.text((peaks[1][0]+peaks[0][0])/2, y1, '% 0.1f A' % r1,
+                          horizontalalignment='center', 
+                          color='black', rotation=90)        
+            
+            if len(peaks) > 2:
+                d2 = peaks[2][0] - peaks[1][0]
+                r2 = (self.wavelength * self.distance/d2)
+                x2 = (peaks[2][0] + peaks[1][0])/2
+                plot.text((peaks[2][0]+peaks[1][0])/2, y1, '% 0.1f' % r2,
+                          horizontalalignment='center', 
+                          color='black', rotation=90)
+            
         # Ask matplotlib to render the figure to a bitmap using the Agg backend
         canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(figure)
         canvas.draw()
@@ -687,6 +717,7 @@ class ImageWidget(gtk.DrawingArea):
             self.set_brightness(max(-5, self.file_loader.gamma_offset - 0.2))
  
     def on_mouse_press(self, widget, event):
+        self._draw_histogram = False
         if not self.image_loaded:
             return False
         wx, wy, w, h = widget.get_allocation()
@@ -741,11 +772,10 @@ class ImageWidget(gtk.DrawingArea):
         elif self._measuring:
             self._measuring = False
             # prevent zero-length lines
-            _dist = ((self.meas_x0 - self.meas_x1)**2 + (self.meas_y0 - self.meas_y1)**2)**0.5
-            if _dist > 4:
-                self._histogram_data = self._get_intensity_line(self.meas_x0, self.meas_y0, 
+            self._histogram_data = self._get_intensity_line(self.meas_x0, self.meas_y0, 
                                            self.meas_x1, self.meas_y1)
-                self._plot_histogram(self._histogram_data)
+            if len(self._histogram_data) > 4:
+                self._plot_histogram(self._histogram_data, show_axis=['left',])
                 self.queue_draw()
         elif self._shifting:
             self._shifting = False
@@ -772,10 +802,9 @@ class ImageWidget(gtk.DrawingArea):
                 hw = self.plot_pixbuf.get_width()
                 hh = self.plot_pixbuf.get_height()
                 self.plot_pixbuf.composite(disp_pixbuf,
-                                           (w-hw-24), (h-hh-24), hw, hh, 
-                                           (w-hw-24), (h-hh-24), 1.0, 1.0, self._best_interp,
-                                           125)
-                self._draw_histogram = False
+                                           (w-hw-6), (h-hh-6), hw, hh, 
+                                           (w-hw-6), (h-hh-6), 1.0, 1.0, self._best_interp,
+                                           150)
 
             self.window.draw_pixbuf(self.gc, disp_pixbuf, 0, 0, 0, 0)
             if USE_CAIRO:
