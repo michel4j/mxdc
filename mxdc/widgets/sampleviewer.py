@@ -55,36 +55,45 @@ class SampleViewer(gtk.Frame):
         if ftype == 'jpg': 
             ftype = 'jpeg'
         img = self.beamline.sample_video.get_frame()
-        bw = self.beamline.collimator.width.get_position()
-        bh = self.beamline.collimator.height.get_position()
-        bx = self.beamline.collimator.x.get_position()
-        by = self.beamline.collimator.y.get_position()
-        pix_size = self.beamline.sample_video.resolution
-        cx = self.beamline.registry['camera_center_x'].get()
-        cy = self.beamline.registry['camera_center_y'].get()
+        try:
+            bw = self.beamline.collimator.width.get_position()
+            bh = self.beamline.collimator.height.get_position()
+            bx = self.beamline.collimator.x.get_position()
+            by = self.beamline.collimator.y.get_position()
+            pix_size = self.beamline.sample_video.resolution
+            cx = self.beamline.registry['camera_center_x'].get()
+            cy = self.beamline.registry['camera_center_y'].get()
+        except ca.ChannelAccessError:
+            pass
+        else:
+            # slit position and sizes in pixels
+            w = int(bw / pix_size) 
+            h = int(bh / pix_size)
+            x = int((cx - (bx / pix_size)))
+            y = int((cy - (by / pix_size)))
         
-        # slit position and sizes in pixels
-        w = int(bw / pix_size) 
-        h = int(bh / pix_size)
-        x = int((cx - (bx / pix_size)))
-        y = int((cy - (by / pix_size)))
-        
-        img = add_decorations(img, x, y, w, h)
+            img = add_decorations(img, x, y, w, h)
         img.save(filename)
             
-    def draw_slits(self, pixmap):       
-        bw = self.beamline.collimator.width.get_position()
-        bh = self.beamline.collimator.height.get_position()
-        bx = self.beamline.collimator.x.get_position()
-        by = self.beamline.collimator.y.get_position()
+    def draw_slits(self, pixmap):
+        w, h = pixmap.get_size()
         pix_size = self.beamline.sample_video.resolution      
-        cx = self.beamline.registry['camera_center_x'].get()
-        cy = self.beamline.registry['camera_center_y'].get()
+        try:      
+            bw = self.beamline.collimator.width.get_position()
+            bh = self.beamline.collimator.height.get_position()
+            bx = self.beamline.collimator.x.get_position()
+            by = self.beamline.collimator.y.get_position()
+            cx = self.beamline.registry['camera_center_x'].get()
+            cy = self.beamline.registry['camera_center_y'].get()
+        except ca.ChannelAccessError:
+            cx = w//2
+            bw = bh = 1.0
+            bx = by = 0
+            cy = h//2
         
         # slit sizes in pixels
         sw = bw / pix_size 
         sh = bh / pix_size
-        w, h = pixmap.get_size()
         if sw  >= w or sh >= h:
             return
         x = int((cx - (bx / pix_size)) * self.video.scale)
@@ -124,8 +133,13 @@ class SampleViewer(gtk.Frame):
     def _img_position(self,x,y):
         im_x = int(float(x) / self.video.scale)
         im_y = int(float(y) / self.video.scale)
-        cx = self.beamline.registry['camera_center_x'].get()
-        cy = self.beamline.registry['camera_center_y'].get()        
+        try:
+            cx = self.beamline.registry['camera_center_x'].get()
+            cy = self.beamline.registry['camera_center_y'].get()
+        except  ca.ChannelAccessError:
+            cx, cy = self.beamline.sample_video.size
+            cx //=2
+            cy //=2
         xmm = (cx - im_x) * self.beamline.sample_video.resolution
         ymm = (cy - im_y) * self.beamline.sample_video.resolution
         return (im_x, im_y, xmm, ymm)
