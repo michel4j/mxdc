@@ -83,9 +83,9 @@ class MD2Goniometer(object):
         self._scan_cmd = PV("%s:S:StartScan" % pv_root, monitor=False)
         self._abort_cmd = PV("%s:S:AbortScan" % pv_root, monitor=False)
         self._state = PV("%s:G:MachAppState" % pv_root)
+        self._enabled_state = PV("%s:enabled" % pv_root)
         self._shutter_state = PV("%s:G:ShutterIsOpen" % pv_root)
         self._log = PV('%s:G:StatusMsg' % pv_root)
-        
         self.omega = omega_motor
                 
         #parameters

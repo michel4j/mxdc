@@ -136,10 +136,16 @@ class Attenuator(gobject.GObject):
         self._energy.connect('changed', self._signal_change)
         
     def get(self):
-        e = self._energy.get()
+        if self._energy.connected():
+            e = self._energy.get()
+        else:
+            return 999.0
         bitmap = ''
         for f in self._filters:
-            bitmap += '%d' % f.get()
+            if f.connected():
+                bitmap += '%d' % f.get()
+            else:
+                return 999.0
         thickness = int(bitmap, 2) / 10.0
         attenuation = 1.0 - math.exp( -4.4189e12 * thickness / 
                                         (e*1000+1e-6)**2.9554 )
