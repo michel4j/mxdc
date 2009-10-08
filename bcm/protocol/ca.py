@@ -177,9 +177,8 @@ class ExceptionHandlerArgs(Structure):
 
 
 class ChannelAccessError(Exception):
-    
     """Channel Access Exception."""
-
+    pass
 
 class PV(gobject.GObject):
     
@@ -289,6 +288,9 @@ class PV(gobject.GObject):
         libca.ca_array_put(self.type, self.count, self._chid, byref(self.data))
         libca.ca_pend_io(1.0)
 
+    def connected(self):
+        return self.state == CA_OP_CONN_UP
+    
     # provide a put method for those used to EPICS terminology even though
     # set makes more sense
     def put(self, val):

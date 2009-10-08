@@ -91,9 +91,12 @@ class Automounter(object):
         self.port_states = ca.PV('%s:cassette:fbk' % pv_name)
         self.nitrogen_level = ca.PV('%s:level' % pv_name)
         self.heater_temperature = ca.PV('%s:temp' % pv_name)
-        self.status = ca.PV('%s:level' % pv_name)
+        self.status = ca.PV('%s:status:state' % pv_name)
         self.status_description = ca.PV('%s:level' % pv_name)
-        
+        self._mount_cmd = ca.PV('%s:mntX:opr' % pv_name)
+        self._mount_param = ca.PV('%s:mntX:param' % pv_name)
+        self._dismount_cmd = ca.PV('%s:dismntX:opr' % pv_name)
+        self._dismount_param = ca.PV('%s:dismntX:param' % pv_name)
         self.containers = {'L': AutomounterContainer('L'),
                           'M': AutomounterContainer('M'),
                           'R': AutomounterContainer('R') }
