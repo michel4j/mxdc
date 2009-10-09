@@ -12,6 +12,10 @@ _TEST_STATE = '31uuuuuuuuuujuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
 -----------------------------01uuuuuuuuuuuumuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu\
 uuuuuuuuuuuuuuuu0uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu20------uu------uu------\
 uu------uu------uu------uu------uu------uu------uu------uu------uu------u'
+_TEST_STATE2 = '31uuu00000uuj11u1uuuuuuuuuuuuuuuu111111uuuuuuuuuuuuuuuuuuuuuuuuuu---\
+-----------------------------41uuuuuuuuuuuumuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu\
+uuuuuuuuuuuuuuuu0uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu20------uu------uu------\
+uu------uu------uu------uu------uu------uu------uu------uu------uu------u'
 
 
 class AutomounterContainer(gobject.GObject):
@@ -49,16 +53,19 @@ class AutomounterContainer(gobject.GObject):
                 id_str = '%s%d' % (key, index)
                 if status_str is not None:
                     
-                    self.samples[id_str] = (PORT_STATE_TABLE[status_str[count]], '')
+                    self.samples[id_str] = [PORT_STATE_TABLE[status_str[count]], '']
                 else:
-                    self.samples[id_str] = (PORT_NONE, '')
+                    self.samples[id_str] = [PORT_NONE, '']
                 count +=1
         self.emit('changed')
+    
+    def __getitem__(self, key):
+        return self.samples.get(key, None)
                     
 class DummyAutomounter(object):        
     implements(IAutomounter)
     
-    def __init__(self, states=_TEST_STATE):
+    def __init__(self, states=_TEST_STATE2):
         self.name = 'Sim Automounter'
         self.containers = {'L': AutomounterContainer('L'),
                           'M': AutomounterContainer('M'),
@@ -69,6 +76,17 @@ class DummyAutomounter(object):
         self._states = states
         self._parse_states()
         
+    def mount(self, port, wash=False):
+        param = port[0] + ' ' + port[2:] + ' ' + port[1] + ' '
+        if wash:
+            param += '1'
+        else:
+            param += '0'
+        print param
+    
+    def dismount(self, port=None):
+        pass
+
     def probe(self):
         pass
         
@@ -107,11 +125,19 @@ class Automounter(object):
         pass
     
     def mount(self, port, wash=False):
-        pass
+        param = port[0] + ' ' + port[2:] + ' ' + port[1] + ' '
+        if wash:
+            param += '1'
+        else:
+            param += '0'
+        self._mount_param.put(param)
+        #self._mount_cmd.put(1)
+        
     
     def dismount(self, port=None):
+        #self._dismount_cmd.put(1)
         pass
-       
+    
     def _parse_states(self, obj, val):
         fbstr = ''.join(val.split())
         info = {
@@ -156,7 +182,7 @@ gobject.type_register(AutomounterContainer)
 if __name__ == '__main__':
     auto = Automounter('ROB1608-5-B10-01')
     auto._parse_states(None, _TEST_STATE)
-    print auto.containers['L'].samples['A1']
+    print auto.containers['L']['A1']
     print auto.containers['R'].samples['L8']
-    print auto.containers['M'].samples['A1']
-    
+    print auto.containers['M'].samples['A8']
+

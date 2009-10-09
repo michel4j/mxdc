@@ -20,6 +20,8 @@ class ContainerWidget(gtk.DrawingArea):
     __gsignals__ = {
         'pin-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                       (gobject.TYPE_STRING,)),
+        'probe-select': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                      (gobject.TYPE_STRING,)),
         'expose-event': 'override',
         'configure-event': 'override',
         'motion-notify-event': 'override',
@@ -186,7 +188,10 @@ class ContainerWidget(gtk.DrawingArea):
             d2 = ((x - xl)**2 + (y - yl)**2)
             if d2 < self.sq_rad:
                 ekey = '%s%s' % (self.container.location, label)
-                self.emit('pin-selected', ekey)
+                if self.container.samples.get(label) is not None and self.container.samples[label][0] == PORT_GOOD:
+                    self.emit('pin-selected', ekey)
+                elif self.container[label][0] == PORT_UNKNOWN:
+                    self.emit('probe-select', ekey)
         self.queue_draw()
         return True
 
@@ -200,7 +205,8 @@ class ContainerWidget(gtk.DrawingArea):
             xl, yl = coord
             d2 = ((x - xl)**2 + (y - yl)**2)
             if d2 < self.sq_rad:
-                inside = True
+                if self.container.samples.get(label) is not None and self.container.samples[label][0] == PORT_GOOD:
+                    inside = True
                 break  
         if inside:
             event.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
@@ -234,7 +240,7 @@ class ContainerWidget(gtk.DrawingArea):
         for label, coord in self.coordinates.items():
             x, y = coord
             r = int(self.radius)
-            port_state, port_descr = self.container.samples.get(label, (PORT_NONE,''))
+            port_state, port_descr = self.container.samples.get(label, [PORT_NONE,''])
             self.window.draw_arc(self.state_gc[port_state], True, x-r+1, y-r+1, r*2-1, r*2-1, 0, 23040)
             self.window.draw_arc(context, False, x-r+1, y-r+1, r*2-1, r*2-1, 0, 23040)
             pl = self.create_pango_layout(label)
@@ -288,7 +294,7 @@ class SamplePicker(gtk.HBox):
         self.mounted = gtk.Entry()
         self.selected = gtk.Entry()
         self.mount_btn = gtk.Button('Mount')
-        self.unmount_btn = gtk.Button('Dismount')
+        self.dismount_btn = gtk.Button('Dismount')
         self.wash_btn = gtk.CheckButton('Washing Enabled')
         self.automounter = automounter
         
@@ -301,7 +307,7 @@ class SamplePicker(gtk.HBox):
         mnt_table.attach(self.selected, 0,1,2,3, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
         mnt_table.attach(self.mounted, 0,1,3,4, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
         mnt_table.attach(self.mount_btn, 1,2,2,3, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
-        mnt_table.attach(self.unmount_btn, 1,2,3,4, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
+        mnt_table.attach(self.dismount_btn, 1,2,3,4, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
         mnt_table.attach(self.wash_btn, 0,2,1,2, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
         mnt_table.set_col_spacings(6)
         mnt_table.set_row_spacings(6)
@@ -320,10 +326,20 @@ class SamplePicker(gtk.HBox):
             notebk.insert_page( self.containers[key], tab_label=tab_label )
             self.containers[key].connect('pin-selected', self.on_pick)
         self.pack_start( notebk, expand=True, fill=True )
+        self.mount_btn.connect('clicked', self.on_mount)
+        self.dismount_btn.connect('clicked', self.on_dismount)
         
     
     def on_pick(self,obj, sel):
         self.selected.set_text(sel)
+    
+    def on_mount(self, obj):
+        wash = self.wash_btn.get_active()
+        port = self.selected.get_text()
+        self.automounter.mount(port, wash)
+
+    def on_dismount(self, obj):
+        self.automounter.dismount()
         
 
 gobject.type_register(ContainerWidget)
