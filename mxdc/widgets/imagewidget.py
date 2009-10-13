@@ -111,7 +111,7 @@ def _read_marccd_image(filename, gamma_offset = 0.0):
         image_info['header']['average_intensity'] = numpy.mean( numpy.fromstring(raw_img.tostring(), 'H') )
         image_info['header']['gamma'] = 29.378 * image_info['header']['average_intensity']**-0.86
         
-    disp_gamma = image_info['header']['gamma'] * numpy.exp(gamma_offset + _GAMMA_SHIFT)/30.0
+    disp_gamma = image_info['header']['gamma'] * numpy.exp(-gamma_offset + _GAMMA_SHIFT)/30.0
     image_info['image'] = raw_img.point(lambda x: x * disp_gamma).convert('L')
     idx = range(len(hist))
     x = numpy.linspace(0, 65535, len(hist))
@@ -607,7 +607,7 @@ class ImageWidget(gtk.DrawingArea):
     def set_brightness(self, value):
         # new images need to respect this so file_loader should be informed
         self.file_loader.gamma_offset = value
-        gamma = self.gamma * numpy.exp(self.file_loader.gamma_offset+_GAMMA_SHIFT)/30.0
+        gamma = self.gamma * numpy.exp(-self.file_loader.gamma_offset+_GAMMA_SHIFT)/30.0
         if gamma != self.display_gamma:
             self.raw_img = self.src_image.point(lambda x: x * gamma).convert('L')
             self._create_pixbuf()

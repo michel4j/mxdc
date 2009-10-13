@@ -78,36 +78,37 @@ class MXCCDImager(object):
                 self.stop()
             self._wait_in_state('acquire:queue')
             self._wait_in_state('acquire:exec')
-            self._background_cmd.set(1)
-            self._wait_for_state('acquire:exec')
+            self._background_cmd.put(1)
             if wait:
-                self.wait()
+                self._wait_for_state('acquire:exec')
+                self._wait_for_state('idle')
             self._bg_taken = True
             _logger.debug('(%s) CCD Initialization complete.' % (self.name,))
                         
     def start(self, first=False):
+        self.initialize(True)
         if not first:
             self._wait_in_state('acquire:queue')
             self._wait_in_state('acquire:exec')
             #self._wait_for_state('correct:exec')
         else:
             self._wait_for_state('idle')
-        self._start_cmd.set(1)
+        self._start_cmd.put(1)
         self._wait_for_state('acquire:exec')
 
     def stop(self):
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
-        self._abort_cmd.set(1)
+        self._abort_cmd.put(1)
         self._wait_for_state('idle')
         
     def save(self, wait=False):
-        self._readout_flag.set(0)
-        self._save_cmd.set(1)
+        self._readout_flag.put(0)
+        self._save_cmd.put(1)
         if wait:
             self._wait_for_state('read:exec')
     
     def get_state(self):
-        return self._state_list
+        return self._state_list[:]
     
     def wait(self, state='idle'):
         self._wait_for_state(state,timeout=10.0)
