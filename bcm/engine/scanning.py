@@ -153,6 +153,7 @@ class BasicScan(gobject.GObject):
                 f.write(' %12.4e' % val)
             f.write('\n')
         f.close()
+        return filename
         
     
 class AbsScan(BasicScan):
