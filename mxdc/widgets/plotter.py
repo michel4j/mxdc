@@ -5,11 +5,10 @@ points can be added to each line and the plot is automatically updated.
 import gtk, gobject
 import sys, time, os
 import pango
-
 from matplotlib.artist import Artist
 from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
-from matplotlib.numerix import arange, sin, pi
+import numpy
 from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
 from matplotlib import rcParams
 
@@ -23,8 +22,13 @@ except:
     
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 from matplotlib.backends.backend_gtk import FileChooserDialog
+try:
+    from matplotlib import axes3d
+except:
+    from mpl_toolkits.mplot3d import axes3d
 
 from misc import ActiveProgressBar
+from bcm.engine import fitting
 
 rcParams['legend.loc'] = 'best'
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -347,5 +351,115 @@ class ScanPlotter(gtk.Window):
  
     def on_done(self, scan):
         """Done handler."""
-        scan.save()
+        filename = scan.save()
+    
+    def plot_file(self, filename):
+        """Do fitting and plot Fits"""
+        image_filename = "%s.ps" % filename
+        info = self._get_scan_data(filename)
+        if info['scan_type'] == 'GridScan':
+            data = info['data']
+    
+            xd = data[:,0]
+            yd = data[:,1]
+            zd = data[:,4]
+    
+            xlo = xd[0]
+            xhi = xd[-1]
+            ylo = yd[0]
+            yhi = yd[-1]
+    
+            xmin = min(xd)
+            xmax = max(xd)
+            ymin = min(yd)
+            ymax = max(yd)
+    
+            if info['dim'] != 0:
+                szx = info['dim']
+                szy = len(xd)/szx
+            else:
+                szx = int(numpy.sqrt(len(xd)))
+                szy = szx
+    
+            x = numpy.linspace(xmin, xmax, szx)
+            y = numpy.linspace(ymin, ymax, szy)
+            z = zd.reshape(szy, szx)
+            X,Y = numpy.meshgrid(x,y)
+    
+            if xlo > xhi:
+                z = z[:,::-1]
+            if ylo > yhi:
+                    z = z[::-1,:]
 
+            self.plotter.clear()
+            ax = axes3d.Axes3D(self.plotter.fig)
+            ax.set_title('%s\n%s' % (info['title'], info['subtitle']))
+            ax.set_xlabel(info['x_label'])
+            ax.set_ylabel(info['y_label'])
+            ax.contour3D(X, Y, z, 50)
+            self.plotter.canvas.draw()
+            
+        else:
+            data = info['data']
+            image_filename = "%s.ps" % filename
+            xo = data[:,0]
+            yo = data[:,-1]
+    
+            params = fitting.peak_fit(xo, yo, 'gaussian')
+            yc = fitting.gauss(xo, params)
+    
+            fwhm = params[2] * 2.3548
+            fwxl = [params[1]-0.5*fwhm, params[1]+0.5*fwhm]
+            fwyl = [0.5 * params[0] + params[3], 0.5 * params[0] + params[3]]
+            pkyl = [params[3],params[0]+params[3]]
+            pkxl = [params[1],params[1]]
+            
+            #[ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema]            
+            histo_pars = fitting.histogram_fit(xo, yo)
+            
+            self.plotter.clear()
+            ax = self.plotter.axis[0]
+            ax.set_title('%s\n%s' % (info['title'], info['subtitle']))
+            ax.set_xlabel(info['x_label'])
+            ax.set_ylabel(info['y_label'])
+            ax.plot(xo,yo,'b-+')
+            ax.plot(xo,yc,'r--')
+            hh = 0.5 * (max(yo) - min(yo)) + min(yo)
+            ax.plot([histo_pars[2], histo_pars[2]], [min(yo), max(yo)], 'b:')
+            ax.plot([histo_pars[3], histo_pars[4]], [hh, hh], 'b:')
+            
+            # set font parameters for the ouput table
+            fontpar = {}
+            fontpar["family"]="monospace"
+            fontpar["size"]=8
+            info = "YMAX-fit = %11.4e\n" % params[0]
+            info += "MIDP-fit = %11.4e\n" % params[1] 
+            info += "FWHM-fit = %11.4e\n" % fwhm 
+            self.plotter.fig.text(0.65,0.75, info,fontdict=fontpar, color='r')
+            info = "YMAX-his = %11.4e\n" % histo_pars[0]
+            info += "MIDP-his = %11.4e\n" % histo_pars[2] 
+            info += "FWHM-his = %11.4e\n" % histo_pars[1]
+            info += "CEMA-his = %11.4e\n" % histo_pars[5]
+            self.plotter.fig.text(0.65,0.60, info,fontdict=fontpar, color='b')
+            self.plotter.canvas.draw()
+        
+        def _get_scan_data(self, filename):
+            lines = file(filename).readlines()
+            title = lines[0].split(': ')[1][:-1]
+            x_title = lines[2].split(': ')[1][:-1]
+            y_title = lines[3].split(': ')[1][:-1]
+            scan_type = title.split(' -- ')[0]
+            data = numpy.loadtxt(filename, comments='#')
+            t = os.stat(filename).st_ctime
+            timestr = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime(t))
+            if scan_type == 'GridScan':
+                #dim = int(lines[6].split(': ')[1][:-1])
+                dim = 0
+            else:
+                dim = 0
+            return {'scan_type': scan_type, 'x_label': x_title, 'y_label': y_title, 
+                'title': title, 'data': data, 'subtitle': timestr, 'dim': dim}
+
+
+
+    
