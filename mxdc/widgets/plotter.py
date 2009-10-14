@@ -443,22 +443,22 @@ class ScanPlotter(gtk.Window):
             self.plotter.fig.text(0.65,0.60, info,fontdict=fontpar, color='b')
             self.plotter.canvas.draw()
         
-        def _get_scan_data(self, filename):
-            lines = file(filename).readlines()
-            title = lines[0].split(': ')[1][:-1]
-            x_title = lines[2].split(': ')[1][:-1]
-            y_title = lines[3].split(': ')[1][:-1]
-            scan_type = title.split(' -- ')[0]
-            data = numpy.loadtxt(filename, comments='#')
-            t = os.stat(filename).st_ctime
-            timestr = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime(t))
-            if scan_type == 'GridScan':
-                #dim = int(lines[6].split(': ')[1][:-1])
-                dim = 0
-            else:
-                dim = 0
-            return {'scan_type': scan_type, 'x_label': x_title, 'y_label': y_title, 
-                'title': title, 'data': data, 'subtitle': timestr, 'dim': dim}
+    def _get_scan_data(self, filename):
+        lines = file(filename).readlines()
+        title = lines[0].split(': ')[1][:-1]
+        x_title = lines[2].split(': ')[1][:-1]
+        y_title = lines[3].split(': ')[1][:-1]
+        scan_type = title.split(' -- ')[0]
+        data = numpy.loadtxt(filename, comments='#')
+        t = os.stat(filename).st_ctime
+        timestr = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime(t))
+        if scan_type == 'GridScan':
+            #dim = int(lines[6].split(': ')[1][:-1])
+            dim = 0
+        else:
+            dim = 0
+        return {'scan_type': scan_type, 'x_label': x_title, 'y_label': y_title, 
+            'title': title, 'data': data, 'subtitle': timestr, 'dim': dim}
 
 
 
