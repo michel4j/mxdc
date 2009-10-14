@@ -408,7 +408,7 @@ class ScanPlotter(gtk.Window):
             params = fitting.peak_fit(xo, yo, 'gaussian')
             yc = fitting.gauss(xo, params)
     
-            fwhm = params[2] * 2.3548
+            fwhm = params[1]
             fwxl = [params[1]-0.5*fwhm, params[1]+0.5*fwhm]
             fwyl = [0.5 * params[0] + params[3], 0.5 * params[0] + params[3]]
             pkyl = [params[3],params[0]+params[3]]
