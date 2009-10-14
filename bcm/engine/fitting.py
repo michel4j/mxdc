@@ -1,5 +1,6 @@
 import numpy
 import scipy
+import scipy.optimize
 
 # Peak Function
 # 0 = H - Height of peak
@@ -70,9 +71,8 @@ def histogram_fit(x,y):
     (fwhm,xpeak,ymax, fwhm_x_left, fwhm_x_right)
     x - input independent variable
     y - input dependent variable
-    fwhm - return full width half maximum
-    xpeak - return x value at midpoint
-    cema - center of mass
+    return ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema
+    cema is center of mass
     """
     
     ymin,ymax = min(y),max(y)
@@ -109,5 +109,5 @@ def histogram_fit(x,y):
     #xpeak = x[jmax]
     xpeak = (x_hpeak_r + x_hpeak_l)/2.0
     cema = sum(x*y)/sum(y)
-    return [ymax, fwhm, xpeak, cema]
+    return [ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema]
 
