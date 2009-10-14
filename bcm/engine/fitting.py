@@ -54,11 +54,12 @@ TARGET_FUNC = {
 }
 
 def peak_fit(x,y,target='gaussian'):
-    coeffs = [1, 1, 0, 0.5, 0]
+    pars = histogram_fit(x,y)
+    coeffs = [pars[0], pars[1], pars[2], 0, 0]
     
     def _err(p, x, y):
         vals = TARGET_FUNC[target](x,p)
-        err=(y-vals)
+        err=(vals-y)
         return err
     
     new_coeffs, results = scipy.optimize.leastsq(_err, coeffs[:], args=(x,y), maxfev=10000)
