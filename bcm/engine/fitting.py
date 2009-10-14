@@ -6,7 +6,7 @@ import scipy.optimize
 # 0 = H - Height of peak
 # 1 = L - FWHM of Voigt profile (Wertheim et al)
 # 2 = P - Position of peak
-# 3 = n - lorentzian fraction
+# 3 = n - lorentzian fraction, gaussian offset
 
 
 def step(x, coeffs):
@@ -24,27 +24,27 @@ def multi_peak(x, coeffs, target='gaussian'):
     y = numpy.zeros(len(x))
     npeaks = len(coeffs)//3
     for i in range(npeaks):
-        a, fwhm, pos = coeffs[i*3:(i+1)*3]
+        a, fwhm, pos, off = coeffs[i*4:(i+1)*4]
         n = 0.5
-        pars = [a, fwhm, pos, n]
+        pars = [a, fwhm, pos, off, n]
         y += TARGET_FUNC[target](x,pars)
     return y
         
 def voigt(x, coeffs):
-    H, L, P = coeffs[:3]
-    n = min(1.0, max(0.0, coeffs[3]))
-    lofr =  lorentz(x, coeffs[:3])
-    gafr = gauss(x, coeffs[:3])   
-    return n * lofr + (1.0-n)*gafr
+    H, L, P, O = coeffs[:4]
+    n = min(1.0, max(0.0, coeffs[4]))
+    lofr =  lorentz(x, coeffs[:4])
+    gafr = gauss(x, coeffs[:4])   
+    return n * lofr + (1.0-n)*gafr + O
 
 def gauss(x, coeffs):
-    H, L, P = coeffs[:3]
+    H, L, P, O = coeffs[:4]
     c = 2.35482
-    return abs(H) * scipy.exp(-0.5*(( x - P)/(L/c))**2 )
+    return abs(H) * scipy.exp(-0.5*(( x - P)/(L/c))**2 ) + O
 
 def lorentz(x, coeffs):
-    H, L, P = coeffs[:3]
-    return abs(H) * ((L/2.0)**2 / ((x-P)**2 + (L/2.0)**2))
+    H, L, P, O = coeffs[:4]
+    return abs(H) * ((L/2.0)**2 / ((x-P)**2 + (L/2.0)**2)) + O
 
 TARGET_FUNC = {
     'gaussian': gauss,
@@ -54,7 +54,7 @@ TARGET_FUNC = {
 }
 
 def peak_fit(x,y,target='gaussian'):
-    coeffs = [1, 1, 0, 0.5]
+    coeffs = [1, 1, 0, 0.5, 0]
     
     def _err(p, x, y):
         vals = TARGET_FUNC[target](x,p)
