@@ -1,6 +1,8 @@
+import os
 import math
 import numpy
 import gtk
+import gtk.glade
 import gobject
 import pango
 try:
@@ -40,7 +42,7 @@ class ContainerWidget(gtk.DrawingArea):
                 gtk.gdk.POINTER_MOTION_MASK |
                 gtk.gdk.POINTER_MOTION_HINT_MASK|
                 gtk.gdk.VISIBILITY_NOTIFY_MASK)
-        self.set_size_request(246,214)
+        self.set_size_request(290,290)
         self.container.connect('changed', self.on_container_changed)
     
     def on_container_changed(self, obj):
@@ -288,47 +290,35 @@ class ContainerWidget(gtk.DrawingArea):
 
                 
 
-class SamplePicker(gtk.HBox):
+class SamplePicker(gtk.Frame):
     def __init__(self, automounter):
-        gtk.HBox.__init__(self, homogeneous=False, spacing=6)       
-        self.mounted = gtk.Entry()
-        self.selected = gtk.Entry()
-        self.mount_btn = gtk.Button('Mount')
-        self.dismount_btn = gtk.Button('Dismount')
-        self.wash_btn = gtk.CheckButton('Washing Enabled')
+        gtk.Frame.__init__(self)
+        self.set_shadow_type(gtk.SHADOW_NONE)
+        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/sample_picker.glade'), 
+                                  'sample_picker')
+        self.add(self.sample_picker)
         self.automounter = automounter
         
-        self.mounted.set_editable(False)
-        self.selected.set_editable(False)
-        self.mounted.set_width_chars(5)
-        self.selected.set_width_chars(5)
-        mnt_table = gtk.Table(4, 2, True)
-
-        mnt_table.attach(self.selected, 0,1,2,3, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
-        mnt_table.attach(self.mounted, 0,1,3,4, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
-        mnt_table.attach(self.mount_btn, 1,2,2,3, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
-        mnt_table.attach(self.dismount_btn, 1,2,3,4, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
-        mnt_table.attach(self.wash_btn, 0,2,1,2, xoptions=gtk.EXPAND|gtk.FILL,yoptions=gtk.EXPAND|gtk.FILL)
-        mnt_table.set_col_spacings(6)
-        mnt_table.set_row_spacings(6)
-        vbox = gtk.VBox(False,6)
-        vbox.pack_start(mnt_table, expand=False, fill=False )
-        vbox.pack_start(gtk.Label(''), expand=True, fill=True)
-        self.pack_end( vbox, expand=False, fill=True )
-        notebk = gtk.Notebook()
         self.containers = {}
-        import random
         for k in ['Left','Middle','Right']:
             key = k[0]
             self.containers[key] = ContainerWidget(self.automounter.containers[key])
             tab_label = gtk.Label('%s' % k)
             tab_label.set_padding(12,0)
-            notebk.insert_page( self.containers[key], tab_label=tab_label )
+            self.notebk.insert_page( self.containers[key], tab_label=tab_label )
             self.containers[key].connect('pin-selected', self.on_pick)
-        self.pack_start( notebk, expand=True, fill=True )
         self.mount_btn.connect('clicked', self.on_mount)
         self.dismount_btn.connect('clicked', self.on_dismount)
+        self.automounter.connect('progress', self.on_progress)
+        self.automounter.connect('message', self.on_message)
+        self.automounter.connect('state', self.on_state)
+        self.automounter.connect('mounted', self.on_sample_mounted)
         
+    def __getattr__(self, key):
+        try:
+            return super(SamplePicker).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
     
     def on_pick(self,obj, sel):
         self.selected.set_text(sel)
@@ -340,6 +330,30 @@ class SamplePicker(gtk.HBox):
 
     def on_dismount(self, obj):
         self.automounter.dismount()
+    
+    def on_progress(self, obj, val):
+        self.pbar.set_fraction(val)
+    
+    def on_message(self, obj, str):
+        self.pbar.set_text(str)
+    
+    def on_state(self, obj, state):
+        needstxt = ''
+        statustxt = ''
+        if state['healthy']:
+            statustxt += '- Normal\n'
+        if state['busy']:
+            statustxt += '- Busy\n'
+        else:
+            statustxt += '- Idle\n'
+        
+        self.status_lbl.set_markup(statustxt)
+    
+    def on_sample_mounted(self, obj, port):
+        if port is not None:
+            self.mounted.set_text(port)
+        else:
+            self.mounted.set_text('')
         
 
 gobject.type_register(ContainerWidget)

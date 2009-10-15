@@ -39,7 +39,7 @@ class AutomounterContainer(gobject.GObject):
             
         if self.container_type in [CONTAINER_NONE, CONTAINER_UNKNOWN, CONTAINER_EMPTY]:
             self.samples = {}
-            self.emit('changed')
+            gobject.idle_add(self.emit, 'changed')
             return
         elif self.container_type == CONTAINER_PUCK_ADAPTER:
             self.keys = 'ABCD'
@@ -57,15 +57,28 @@ class AutomounterContainer(gobject.GObject):
                 else:
                     self.samples[id_str] = [PORT_NONE, '']
                 count +=1
-        self.emit('changed')
+        gobject.idle_add(self.emit, 'changed')
     
     def __getitem__(self, key):
         return self.samples.get(key, None)
                     
-class DummyAutomounter(object):        
+
+class BasicAutomounter(gobject.GObject):
+    __gsignals__ = {
+        'state': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'message': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'mounted': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'progress':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)),
+    }
+    
+    def __init__(self):
+        gobject.GObject.__init__(self)
+       
+class DummyAutomounter(BasicAutomounter):        
     implements(IAutomounter)
     
     def __init__(self, states=_TEST_STATE2):
+        BasicAutomounter.__init__(self)
         self.name = 'Sim Automounter'
         self.containers = {'L': AutomounterContainer('L'),
                           'M': AutomounterContainer('M'),
@@ -99,44 +112,66 @@ class DummyAutomounter(object):
         for k,s in info.items():
             self.containers[k].configure(s)
        
-class Automounter(object):
+class Automounter(BasicAutomounter):
     implements(IAutomounter)
-    
+
     def __init__(self, pv_name):
+        BasicAutomounter.__init__(self)
         self.name = 'Sample Automounter'
         self._pv_name = pv_name
+        
+        #initialize housekeeping vars
+        self._busy = False
+        self._state_dict = {'busy': self._busy, 'healthy': True, 'needs':[], 'diagnosis':[]}
+        self._mounted_port = None
+        self._tool_pos = None
+        self._total_steps = 0
+        self._step_count = 0
         
         self.port_states = ca.PV('%s:cassette:fbk' % pv_name)
         self.nitrogen_level = ca.PV('%s:level' % pv_name)
         self.heater_temperature = ca.PV('%s:temp' % pv_name)
-        self.status = ca.PV('%s:status:state' % pv_name)
-        self.status_description = ca.PV('%s:level' % pv_name)
+        self.status_msg = ca.PV('%s:status:state' % pv_name)
+        self.status_val = ca.PV('%s:status:val' % pv_name)
         self._mount_cmd = ca.PV('%s:mntX:opr' % pv_name)
         self._mount_param = ca.PV('%s:mntX:param' % pv_name)
         self._dismount_cmd = ca.PV('%s:dismntX:opr' % pv_name)
         self._dismount_param = ca.PV('%s:dismntX:param' % pv_name)
+        self._wash_param = ca.PV('%s:washX:param' % pv_name)
         self.containers = {'L': AutomounterContainer('L'),
                           'M': AutomounterContainer('M'),
                           'R': AutomounterContainer('R') }
         self.port_states.connect('changed', self._parse_states)
-        self.status.connect('changed', self._on_status_changed)
-    
+        self.status_msg.connect('changed', self._on_status_message)
+        self.status_val.connect('changed', self._on_status_changed)
+        
+        #Detailed Status
+        self._mounted =  ca.PV('%s:status:mounted' % pv_name)
+        self._position = ca.PV('%s:state:curPnt' % pv_name)
+        self._mounted.connect('changed', self._on_mount_changed)
+        self._position.connect('changed', self._on_pos_changed)
+        
     def probe(self):
         pass
     
     def mount(self, port, wash=False):
-        param = port[0] + ' ' + port[2:] + ' ' + port[1] + ' '
+        param = port[0].lower() + ' ' + port[2:] + ' ' + port[1] + ' '
         if wash:
-            param += '1'
+            self._wash_param.put('1')
         else:
-            param += '0'
+            self._wash_param.put('0')
         self._mount_param.put(param)
-        #self._mount_cmd.put(1)
+        self._mount_cmd.put(1)
+        self._mount_cmd.put(0)
+        self._total_steps = 26
+        self._step_count = 0
         
     
     def dismount(self, port=None):
-        #self._dismount_cmd.put(1)
-        pass
+        self._dismount_cmd.put(1)
+        self._dismount_cmd.put(0)
+        self._total_steps = 25
+        self._step_count = 0
     
     def _parse_states(self, obj, val):
         fbstr = ''.join(val.split())
@@ -149,9 +184,51 @@ class Automounter(object):
 
     def wait(self, state='idle'):
         self._wait_for_state(state,timeout=30.0)
-                    
+    
+    def _report_progress(self):
+        if self._total_steps > 0:
+            gobject.idle_add(self.emit, 'progress', float(self._step_count)/self._total_steps)
+
+    def _on_mount_changed(self, pv, val):
+        if val == " ":
+            port = None
+        else:
+            vl = val.split()
+            port = vl[0].upper() + vl[2] + vl[1]
+        if port != self._mounted_port:
+            gobject.idle_add(self.emit, 'mounted', port)
+            self._mounted_port = port
+            _logger.debug('Mounted: %s' % port)
+        
     def _on_status_changed(self, pv, val):
-        pass
+        self._state_dict = {'busy': self._busy, 'healthy': True, 'needs':[], 'diagnosis':[]}
+        _st = long(val)
+        for k, txt in STATE_NEED_STRINGS.items():
+            if k|_st == _st:
+                self._state_dict['needs'].append(txt)
+        for k, txt in STATE_REASON_STRINGS.items():
+            if k|_st == _st:
+                self._state_dict['diagnosis'].append(txt)
+        self._state_dict['healthy'] = (_st == 0)
+        gobject.idle_add(self.emit, 'state', self._state_dict)  
+        _logger.debug(self._state_dict)
+        
+        
+    def _on_status_message(self, pv, val):
+        self._busy = not (val == 'idle')
+        if self._busy != self._state_dict['busy']:
+            self._state_dict['busy'] = self._busy
+            gobject.idle_add(self.emit, 'state', self._state_dict)
+            _logger.debug(self._state_dict)
+        gobject.idle_add(self.emit, 'message', val)
+        _logger.debug('%s' % val)
+
+    def _on_pos_changed(self, pv, val):
+        if val != self._tool_pos:
+            self._step_count += 1
+            self._report_progress()
+            #_logger.debug('Current Position: %s %0.1f %%' % (val,100.0*self._step_count/self._total_steps))
+            self._tool_pos = val
 
     def _wait_for_state(self, state, timeout=5.0):
         _logger.debug('(%s) Waiting for state: %s' % (self.name, state,) ) 
@@ -178,6 +255,7 @@ class Automounter(object):
 
             
 gobject.type_register(AutomounterContainer)
+gobject.type_register(BasicAutomounter)
 
 if __name__ == '__main__':
     auto = Automounter('ROB1608-5-B10-01')
