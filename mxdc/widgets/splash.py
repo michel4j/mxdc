@@ -40,7 +40,7 @@ class Splash(object):
         self.title = self.canvas.create_pango_layout('')
         self.title.set_markup('<big><b>MX Data Collector</b></big>')
         self.log = self.canvas.create_pango_layout('Initializing MXDC...')
-        self.vers = self.canvas.create_pango_layout('Version %s RC3' % (self.version))
+        self.vers = self.canvas.create_pango_layout('Version %s RC4' % (self.version))
        
         self.win.set_position(gtk.WIN_POS_CENTER)                
         
