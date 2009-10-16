@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <glade-interface>
-  <!-- interface-requires gtk+ 2.16 -->
+  <!-- interface-requires gtk+ 2.10 -->
   <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkWindow" id="window1">
     <property name="visible">True</property>
@@ -231,7 +231,6 @@
     <property name="type">popup</property>
     <property name="resizable">False</property>
     <property name="destroy_with_parent">True</property>
-    <property name="opacity">0.69999999999999996</property>
     <child>
       <widget class="GtkViewport" id="image_adjuster">
         <property name="visible">True</property>
@@ -258,8 +257,6 @@
                 <property name="can_focus">True</property>
                 <property name="update_policy">delayed</property>
                 <property name="adjustment">0 -5 5 0.10000000000000001 0 0</property>
-                <property name="restrict_to_fill_level">False</property>
-                <property name="fill_level">100</property>
                 <property name="draw_value">False</property>
               </widget>
               <packing>
@@ -744,10 +741,6 @@
     </child>
   </widget>
   <widget class="GtkWindow" id="contrast_popup">
-    <property name="type">popup</property>
-    <property name="resizable">False</property>
-    <property name="destroy_with_parent">True</property>
-    <property name="opacity">0.69999999999999996</property>
     <child>
       <widget class="GtkViewport" id="image_adjuster1">
         <property name="visible">True</property>
@@ -774,8 +767,6 @@
                 <property name="can_focus">True</property>
                 <property name="update_policy">delayed</property>
                 <property name="adjustment">0 0 100 1 0 0</property>
-                <property name="restrict_to_fill_level">False</property>
-                <property name="fill_level">100</property>
                 <property name="draw_value">False</property>
               </widget>
               <packing>
@@ -791,7 +782,6 @@
     <property name="type">popup</property>
     <property name="resizable">False</property>
     <property name="destroy_with_parent">True</property>
-    <property name="opacity">0.69999999999999996</property>
     <child>
       <widget class="GtkViewport" id="image_adjuster2">
         <property name="visible">True</property>
@@ -818,8 +808,6 @@
                 <property name="can_focus">True</property>
                 <property name="update_policy">delayed</property>
                 <property name="adjustment">0 0 10 0.5 0 0</property>
-                <property name="restrict_to_fill_level">False</property>
-                <property name="fill_level">100</property>
                 <property name="draw_value">False</property>
               </widget>
               <packing>
