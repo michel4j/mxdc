@@ -127,6 +127,7 @@ class Automounter(BasicAutomounter):
         self._tool_pos = None
         self._total_steps = 0
         self._step_count = 0
+        self._last_warn = ''
         
         self.port_states = ca.PV('%s:cassette:fbk' % pv_name)
         self.nitrogen_level = ca.PV('%s:level' % pv_name)
@@ -150,12 +151,14 @@ class Automounter(BasicAutomounter):
         self._position = ca.PV('%s:state:curPnt' % pv_name)
         self._mounted.connect('changed', self._on_mount_changed)
         self._position.connect('changed', self._on_pos_changed)
+        self._warning = ca.PV('%s:status:warning' % pv_name)
+        self._warning.connect('changed', self._on_status_warning)
         
     def probe(self):
         pass
     
     def mount(self, port, wash=False):
-        param = port[0].lower() + ' ' + port[2:] + ' ' + port[1] + ' '
+        param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
         if wash:
             self._wash_param.put('1')
         else:
@@ -168,6 +171,11 @@ class Automounter(BasicAutomounter):
         
     
     def dismount(self, port=None):
+        if port is not None:
+            param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
+            # we need to be consistent here
+            self._dismount_param.put(param)    
+            self._mount_param.put(param)           
         self._dismount_cmd.put(1)
         self._dismount_cmd.put(0)
         self._total_steps = 25
@@ -220,8 +228,15 @@ class Automounter(BasicAutomounter):
             self._state_dict['busy'] = self._busy
             gobject.idle_add(self.emit, 'state', self._state_dict)
             _logger.debug(self._state_dict)
-        gobject.idle_add(self.emit, 'message', val)
+        msg_key = val.split()[0]
+        gobject.idle_add(self.emit, 'message', msg_key)
         _logger.debug('%s' % val)
+
+    def _on_status_warning(self, pv, val):
+        if val.strip() != '' and val != self._last_warn:
+            gobject.idle_add(self.emit, 'message', val)
+            _logger.warn('%s' % val)
+            self._last_warn = val
 
     def _on_pos_changed(self, pv, val):
         if val != self._tool_pos:
