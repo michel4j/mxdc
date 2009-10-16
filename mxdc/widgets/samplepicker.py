@@ -298,6 +298,8 @@ class SamplePicker(gtk.Frame):
                                   'sample_picker')
         self.add(self.sample_picker)
         self.automounter = automounter
+        pango_font = pango.FontDescription('Monospace 7')
+        self.msg_view.modify_font(pango_font)
         
         self.containers = {}
         for k in ['Left','Middle','Right']:
@@ -329,19 +331,23 @@ class SamplePicker(gtk.Frame):
         self.automounter.mount(port, wash)
 
     def on_dismount(self, obj):
-        self.automounter.dismount()
+        port = self.mounted.get_text()
+        if port == '': port = None
+        self.automounter.dismount(port)
     
     def on_progress(self, obj, val):
         self.pbar.set_fraction(val)
     
     def on_message(self, obj, str):
-        self.pbar.set_text(str)
+        self.msg_view.get_buffer().set_text(str)
     
     def on_state(self, obj, state):
         needstxt = ''
         statustxt = ''
         if state['healthy']:
             statustxt += '- Normal\n'
+        else:
+            statustxt += '- Not Normal\n'
         if state['busy']:
             statustxt += '- Busy\n'
         else:
