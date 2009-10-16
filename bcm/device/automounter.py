@@ -138,6 +138,7 @@ class Automounter(BasicAutomounter):
         self._mount_param = ca.PV('%s:mntX:param' % pv_name)
         self._dismount_cmd = ca.PV('%s:dismntX:opr' % pv_name)
         self._dismount_param = ca.PV('%s:dismntX:param' % pv_name)
+        self._mount_next_cmd = ca.PV('%s:mntNextX:opr' % pv_name)
         self._wash_param = ca.PV('%s:washX:param' % pv_name)
         self.containers = {'L': AutomounterContainer('L'),
                           'M': AutomounterContainer('M'),
@@ -163,11 +164,20 @@ class Automounter(BasicAutomounter):
             self._wash_param.put('1')
         else:
             self._wash_param.put('0')
-        self._mount_param.put(param)
-        self._mount_cmd.put(1)
-        self._mount_cmd.put(0)
-        self._total_steps = 26
-        self._step_count = 0
+        
+        #use mount_next if something already mounted
+        if self._mounted.get().strip() != '':
+            dis_param = self._mounted.get()
+            self._dismount_param.put(dis_param)
+            self._mount_param.put(param)
+            self._mount_next_cmd.put(1)
+            self._mount_next_cmd.put(0)
+        else:        
+            self._mount_param.put(param)
+            self._mount_cmd.put(1)
+            self._mount_cmd.put(0)
+            self._total_steps = 26
+            self._step_count = 0
         
     
     def dismount(self, port=None):
@@ -175,7 +185,6 @@ class Automounter(BasicAutomounter):
             param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
             # we need to be consistent here
             self._dismount_param.put(param)    
-            self._mount_param.put(param)           
         self._dismount_cmd.put(1)
         self._dismount_cmd.put(0)
         self._total_steps = 25
