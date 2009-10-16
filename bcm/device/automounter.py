@@ -172,6 +172,8 @@ class Automounter(BasicAutomounter):
             self._mount_param.put(param)
             self._mount_next_cmd.put(1)
             self._mount_next_cmd.put(0)
+            self._total_steps = 40
+            self._step_count = 0
         else:        
             self._mount_param.put(param)
             self._mount_cmd.put(1)
@@ -181,10 +183,16 @@ class Automounter(BasicAutomounter):
         
     
     def dismount(self, port=None):
-        if port is not None:
+        if port is None:
+            port = self._mounted.get().strip()
+        else:
             param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
-            # we need to be consistent here
-            self._dismount_param.put(param)    
+        if port == '':
+            msg = 'No mounted sample to dismount!'
+            _logger.warning(msg)
+            gobject.idle_add(self.emit, 'message', msg)
+            return 
+        self._dismount_param.put(param)
         self._dismount_cmd.put(1)
         self._dismount_cmd.put(0)
         self._total_steps = 25
@@ -228,7 +236,6 @@ class Automounter(BasicAutomounter):
                 self._state_dict['diagnosis'].append(txt)
         self._state_dict['healthy'] = (_st == 0)
         gobject.idle_add(self.emit, 'state', self._state_dict)  
-        _logger.debug(self._state_dict)
         
         
     def _on_status_message(self, pv, val):
@@ -236,10 +243,8 @@ class Automounter(BasicAutomounter):
         if self._busy != self._state_dict['busy']:
             self._state_dict['busy'] = self._busy
             gobject.idle_add(self.emit, 'state', self._state_dict)
-            _logger.debug(self._state_dict)
-        msg_key = val.split()[0]
+        msg_key = val.split()[0].replace('_', ' ')
         gobject.idle_add(self.emit, 'message', msg_key)
-        _logger.debug('%s' % val)
 
     def _on_status_warning(self, pv, val):
         if val.strip() != '' and val != self._last_warn:
@@ -251,7 +256,7 @@ class Automounter(BasicAutomounter):
         if val != self._tool_pos:
             self._step_count += 1
             self._report_progress()
-            #_logger.debug('Current Position: %s %0.1f %%' % (val,100.0*self._step_count/self._total_steps))
+            _logger.debug('Current Position: %s %d' % (val,self._step_count))
             self._tool_pos = val
 
     def _wait_for_state(self, state, timeout=5.0):
