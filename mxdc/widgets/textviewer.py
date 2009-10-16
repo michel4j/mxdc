@@ -21,6 +21,7 @@ class TextViewer(object):
         self.view.set_editable(False)
         pango_font = pango.FontDescription('Monospace 8')
         self.view.modify_font(pango_font)
+        self.wrap_mode = gtk.WRAP_WORD
         color_chart = {'INFO': 'Blue',
                'ERROR': 'Red',
                'DEBUG': 'Gray',

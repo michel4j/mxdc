@@ -22,7 +22,7 @@ PORT_STATE_TABLE = {
     '-': PORT_NONE }
 
 STATE_NEED_STRINGS = {
-1: 'action:staff',
+1: 'inspect:staff',
 2: 'reset',
 4: 'calib:toolset',
 8: 'calib:cassette',
@@ -33,7 +33,7 @@ STATE_NEED_STRINGS = {
 
 STATE_REASON_STRINGS = {
 256: 'emergency stop',
-512: 'safeguard set',
+512: 'safeguard latched',
 1024: 'not at home',
 4096: 'lid jam',
 8192: 'gripper jam',
