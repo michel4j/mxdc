@@ -22,7 +22,7 @@ PORT_STATE_TABLE = {
     '-': PORT_NONE }
 
 STATE_NEED_STRINGS = {
-1: 'inspect:staff',
+1: 'action:staff',
 2: 'reset',
 4: 'calib:toolset',
 8: 'calib:cassette',
