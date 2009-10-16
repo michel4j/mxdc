@@ -13,6 +13,7 @@ except:
 
 from bcm.utils.automounter import *
 from bcm.device.automounter import Automounter, DummyAutomounter
+from mxdc.widgets.gauge import Gauge
 
 class _DummyEvent(object):
     width = 0
@@ -190,7 +191,7 @@ class ContainerWidget(gtk.DrawingArea):
             d2 = ((x - xl)**2 + (y - yl)**2)
             if d2 < self.sq_rad:
                 ekey = '%s%s' % (self.container.location, label)
-                if self.container.samples.get(label) is not None and self.container.samples[label][0] == PORT_GOOD:
+                if self.container.samples.get(label) is not None and self.container.samples[label][0] in [PORT_GOOD, PORT_UNKNOWN]:
                     self.emit('pin-selected', ekey)
                 elif self.container[label][0] == PORT_UNKNOWN:
                     self.emit('probe-select', ekey)
@@ -207,7 +208,7 @@ class ContainerWidget(gtk.DrawingArea):
             xl, yl = coord
             d2 = ((x - xl)**2 + (y - yl)**2)
             if d2 < self.sq_rad:
-                if self.container.samples.get(label) is not None and self.container.samples[label][0] == PORT_GOOD:
+                if self.container.samples.get(label) is not None and self.container.samples[label][0] in [PORT_GOOD, PORT_UNKNOWN]:
                     inside = True
                 break  
         if inside:
@@ -288,7 +289,31 @@ class ContainerWidget(gtk.DrawingArea):
             cr.show_text(label)
             cr.stroke()
 
-                
+
+def _format_error_string(state):
+    nd_dict = {
+        'calib': 'calibration',
+        'inspect': 'inspection',
+        'action': 'action'
+    }
+    needs = []
+    if not state['healthy']:
+        needs_txt = 'Not normal'
+    else:
+        needs_txt = ''
+    for t in state['needs']:
+        ts = t.split(':') 
+        if len(ts)>1:
+            needs.append(ts[1] +' '+ nd_dict[ts[0]])
+        else:
+            needs.append(t)
+    if len(needs) > 0:
+        needs_txt = 'Needs ' + ', '.join(needs)
+    if len(state['diagnosis']) > 0:
+        needs_txt += ' because: ' + ', '.join(state['diagnosis'])
+    
+    return needs_txt
+                      
 
 class SamplePicker(gtk.Frame):
     def __init__(self, automounter):
@@ -316,6 +341,14 @@ class SamplePicker(gtk.Frame):
         self.automounter.connect('state', self.on_state)
         self.automounter.connect('mounted', self.on_sample_mounted)
         
+        # layout the gauge section
+        self.ln2_gauge = Gauge(0,100,5,3)
+        self.ln2_gauge.set_property('units','% LN2')
+        self.ln2_gauge.set_property('low', 20.0)
+        self.level_frame.add(self.ln2_gauge)
+        #self.cryojet.level.connect('changed', self._on_level)
+        
+        
     def __getattr__(self, key):
         try:
             return super(SamplePicker).__getattr__(self, key)
@@ -324,15 +357,20 @@ class SamplePicker(gtk.Frame):
     
     def on_pick(self,obj, sel):
         self.selected.set_text(sel)
+        self.mount_btn.set_sensitive(True)
     
     def on_mount(self, obj):
         wash = self.wash_btn.get_active()
         port = self.selected.get_text()
+        if port.strip() == '':
+            self.mount_btn.set_sensitive(False)
+            return
         self.automounter.mount(port, wash)
+        self.selected.set_text('')
+        self.mount_btn.set_sensitive(False)
 
     def on_dismount(self, obj):
-        port = self.mounted.get_text()
-        if port == '': port = None
+        port = self.mounted.get_text().strip()
         self.automounter.dismount(port)
     
     def on_progress(self, obj, val):
@@ -340,9 +378,10 @@ class SamplePicker(gtk.Frame):
     
     def on_message(self, obj, str):
         self.msg_view.get_buffer().set_text(str)
-    
+            
     def on_state(self, obj, state):
-        needstxt = ''
+        needstxt = _format_error_string(state)
+        self.msg_view.get_buffer().set_text(needstxt)
         statustxt = ''
         if state['healthy']:
             statustxt += '- Normal\n'
@@ -350,17 +389,24 @@ class SamplePicker(gtk.Frame):
             statustxt += '- Not Normal\n'
         if state['busy']:
             statustxt += '- Busy\n'
+            self.command_tbl.set_sensitive(False)
         else:
             statustxt += '- Idle\n'
+            self.command_tbl.set_sensitive(True)
+            
         
         self.status_lbl.set_markup(statustxt)
     
     def on_sample_mounted(self, obj, port):
         if port is not None:
             self.mounted.set_text(port)
+            self.dismount_btn.set_sensitive(True)
+            if self.selected.get_text().strip() == port:
+                self.selected.set_text('')
+                self.mount_btn.set_sensitive(False)
         else:
             self.mounted.set_text('')
-        
+            self.dismount_btn.set_sensitive(False)
 
 gobject.type_register(ContainerWidget)
 _TEST_STATE2 = '31uuu00000uujuuuuuuuuuuuuuuuuuuuu111111uuuuuuuuuuuuuuuuuuuuuuuuuu---\
