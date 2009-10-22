@@ -239,7 +239,7 @@ class Automounter(BasicAutomounter):
         
         
     def _on_status_message(self, pv, val):
-        self._busy = not (val == 'idle')
+        self._busy = not (val == 'idle' or val.strip() == '')
         if self._busy != self._state_dict['busy']:
             self._state_dict['busy'] = self._busy
             gobject.idle_add(self.emit, 'state', self._state_dict)
