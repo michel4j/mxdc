@@ -101,14 +101,14 @@ class ImgSyncService(service.Service):
         if not os.access(folder, os.W_OK):
             log.err('Directory does not exist.')
             return False 
-        f_parts = os.path.abspath(folder.strip()).split('/')
+        f_parts = os.path.abspath(folder.strip()).split(os.path.sep)
         try:
             if f_parts[1] != '' and len(f_parts)>2:
                 self.settings['base'] = f_parts[1]
                 f_parts[1] = 'data'
-                raw_dir = '/'.join(f_parts)
-                f_parts[1] = 'backup'
-                bkup_dir = '/'.join(f_parts)
+                raw_dir = os.path.sep.join(f_parts)
+                f_path = os.path.abspath(folder.strip())
+                bkup_dir = os.path.join(os.path.sep, 'backup', *(f_path.split(os.path.sep)[1:]))
             else:
                 return False
             raw_out = run_command('/bin/mkdir',
@@ -290,12 +290,12 @@ class ImgConsumer(object):
             try:
                 if tm:
                     img_path = os.path.abspath(tm.group(1))
-                    f_parts = img_path.split('/')
+                    f_parts = img_path.split(os.path.sep)
                     if f_parts[1] == 'data' and len(f_parts)>2:
                         f_parts[1] = self.parent.settings['base']
-                        user_file = '/'.join(f_parts)
-                        f_parts[1] = 'backup'
-                        bkup_file = '/'.join(f_parts)
+                        user_file = os.path.sep.join(f_parts)
+                        bkup_file = os.path.join(os.path.sep, 'backup', *(img_path.split(os.path.sep)[1:]))
+
                     else:
                         return
                         
