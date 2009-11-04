@@ -2,7 +2,7 @@ import sys, os, re
 import gobject
 import threading
 import commands
-from pylab import load
+from numpy import loadtxt
 
 class AutoChooch(gobject.GObject):
     __gsignals__ = {}
@@ -46,7 +46,7 @@ class AutoChooch(gobject.GObject):
             gobject.idle_add(self.emit, 'error','Premature termination')
         
     def read_output(self):
-        self.data = load(self.efs_file)
+        self.data = loadtxt(self.efs_file, comments="#")
         output = open(self.out_file, 'r')
         pattern = re.compile('\|\s+([a-z]+)\s+\|\s+(.+)\s+\|\s+(.+)\s+\|\s+(.+)\s+\|')
         found_results = False
