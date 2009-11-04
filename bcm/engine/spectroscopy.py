@@ -27,9 +27,9 @@ class XRFScan(BasicScan):
         self.data_names = ['Energy',
                            'Counts']
     def __simulate(self):
-        import pylab
+        import numpy
         import time
-        raw = pylab.load('XRFTest.raw')
+        raw = numpy.loadtxt('XRFTest.raw', comments="#")
         self.data = raw
         gobject.idle_add(self.emit, "done")
         gobject.idle_add(self.emit, "progress", 1.0)
@@ -78,9 +78,9 @@ class XANESScan(BasicScan):
         self.data = []
     
     def __simulate(self):
-        import pylab
+        import numpy
         import time
-        raw = pylab.load('SeMet.raw')
+        raw = numpy.loadtxt('SeMet.raw', comments="#")
         _logger.info("%4s %15s %15s %15s %15s" % ('#', 'Energy', 'Scaled Counts', 'Reference Count','Unscaled Counts'))
         for i in range(len(raw[:,0])):
             if self._stopped:
