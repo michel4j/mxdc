@@ -199,10 +199,10 @@ class DataCollector(gobject.GObject):
                     _logger.info('Skipping %s' % frame['file_name'])
                     self.pos += 1
                     continue                               
-                self.beamline.monochromator.simple_energy.move_to(frame['energy'])
+                self.beamline.monochromator.energy.move_to(frame['energy'])
                 self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)
                 #self.beamline.diffractometer.two_theta.move_to(frame['two_theta'], wait=True)
-                self.beamline.monochromator.simple_energy.wait()                
+                self.beamline.monochromator.energy.wait()                
                 
                 # Prepare image header
                 header['delta'] = frame['delta']
