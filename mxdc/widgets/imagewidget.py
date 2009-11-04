@@ -180,7 +180,7 @@ class FileLoader(gobject.GObject):
     def _run(self):
         filename = None
         while not self._stopped:
-            time.sleep(0.25)
+            time.sleep(0.2)
             if self._paused:
                 continue
             elif filename is None:
@@ -196,7 +196,7 @@ class FileLoader(gobject.GObject):
                     img_logger.debug('Loading image: %s' % filename)
                     gobject.idle_add(self.emit, 'new-image')
                     filename = None
-            elif (time.time()-_search_t > 5.0) and self.inbox.qsize() > 0:
+            elif (time.time()-_search_t > 10.0) and self.inbox.qsize() > 0:
                 filename = None
             #else:
             #    img_logger.debug('Waiting for image: %s' % filename)         
@@ -312,7 +312,7 @@ class ImageWidget(gtk.DrawingArea):
         self.emit('image-loaded')
         self.src_image = img_info['src-image']
         self.histogram = img_info['histogram']
-        self._plot_histogram(self.histogram, show_axis=['xzero',], distance=False)
+        #self._plot_histogram(self.histogram, show_axis=['xzero',], distance=False)
         self._set_cursor_mode()
         
     def load_pck(self, filename):
