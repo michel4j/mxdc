@@ -90,16 +90,20 @@ class HutchManager(gtk.Frame):
         self.beamline.monochromator.energy.connect('changed', self.update_predictor)
         
         # Button commands
-        self.front_end_btn = ShutterButton(self.beamline.photon_shutter, 'Front End', open_only=True)
+        self.front_end_btn = ShutterButton(self.beamline.photon_shutter, 'Restore Beam', open_only=True)
+        self.front_end_btn.connect('clicked', self.on_restore_beam)
+        
+        #self.front_end_btn = ScriptButton(self.scripts['RestoreBeam'], 'Restore Beam')
         self.shutter_btn = ShutterButton(self.beamline.exposure_shutter, 'Shutter')
         self.optimize_btn = ScriptButton(self.scripts['OptimizeBeam'], 'Optimize Beam')
         self.mount_btn = ScriptButton(self.scripts['PrepareMounting'], 'Mount Mode')
         self.reset_btn = ScriptButton(self.scripts['FinishedMounting'], 'Collect Mode')
         self.commands_box.pack_start(self.front_end_btn)
-        self.commands_box.pack_start(self.shutter_btn)
-        self.commands_box.pack_start(self.optimize_btn)
-        self.commands_box.pack_start(self.mount_btn)
-        self.commands_box.pack_start(self.reset_btn)
+        #self.commands_box.pack_start(self.shutter_btn)
+        self.commands_box.pack_start(gtk.Label(''))
+        self.commands_box.pack_end(self.optimize_btn)
+        self.commands_box.pack_end(self.mount_btn)
+        self.commands_box.pack_end(self.reset_btn)
         for w in [self.front_end_btn, self.shutter_btn, self.optimize_btn, self.mount_btn, self.reset_btn]:
             w.set_property('can-focus', False)
         
@@ -124,7 +128,11 @@ class HutchManager(gtk.Frame):
         
         self.add(self.hutch_widget)
         self.show_all()
-
+        
+    def on_restore_beam(self,obj):
+        script = self.scripts['RestoreBeam']
+        script.start()
+        
     def update_predictor(self, widget, val=None):
         self.predictor.configure(energy=self.beamline.monochromator.energy.get_position(),
                                  distance=self.beamline.diffractometer.distance.get_position(),
