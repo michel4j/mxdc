@@ -741,6 +741,9 @@
     </child>
   </widget>
   <widget class="GtkWindow" id="contrast_popup">
+    <property name="type">popup</property>
+    <property name="resizable">False</property>
+    <property name="destroy_with_parent">True</property>
     <child>
       <widget class="GtkViewport" id="image_adjuster1">
         <property name="visible">True</property>
