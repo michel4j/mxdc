@@ -183,9 +183,9 @@ class MotorEntry(ActiveEntry):
     
 
 
-class ShutterButton(gtk.Button):
+class ShutterButton(gtk.ToggleButton):
     def __init__(self, shutter, label, open_only=False):
-        gtk.Button.__init__(self)
+        gtk.ToggleButton.__init__(self)
         self.shutter = shutter
         self.open_only = open_only
         container = gtk.HBox(False,0)
@@ -196,7 +196,7 @@ class ShutterButton(gtk.Button):
         container.pack_start(self.image, expand=False, fill=False)
         container.pack_start(self.label, expand=True, fill=True)
         self.add(container)
-        
+        self._set_off()
         self.shutter.connect('changed', self._on_state_change)
         self.connect('clicked', self._on_clicked)
             
@@ -217,12 +217,12 @@ class ShutterButton(gtk.Button):
         if self.open_only:
             self.set_sensitive(False)
         else:
-            self.label.set_text("Close %s" % self.label_text)
+            self.label.set_text(self.label_text)
         self.image.set_from_stock('gtk-yes', gtk.ICON_SIZE_SMALL_TOOLBAR)
     
     def _set_off(self):
         self.set_sensitive(True)
-        self.label.set_text("Open %s" % self.label_text)
+        self.label.set_text(self.label_text)
         self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_SMALL_TOOLBAR)
 
 class ScriptButton(gtk.Button):
