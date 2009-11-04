@@ -90,7 +90,7 @@ class HutchManager(gtk.Frame):
         self.beamline.monochromator.energy.connect('changed', self.update_predictor)
         
         # Button commands
-        self.front_end_btn = ShutterButton(self.beamline.photon_shutter, 'Front End')
+        self.front_end_btn = ShutterButton(self.beamline.photon_shutter, 'Front End', open_only=True)
         self.shutter_btn = ShutterButton(self.beamline.exposure_shutter, 'Shutter')
         self.optimize_btn = ScriptButton(self.scripts['OptimizeBeam'], 'Optimize Beam')
         self.mount_btn = ScriptButton(self.scripts['PrepareMounting'], 'Mount Mode')
