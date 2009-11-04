@@ -83,7 +83,7 @@ class DummyMotor(MotorBase):
     def get_position(self):
         return self._position
    
-    def move_to(self, pos, wait=False):
+    def move_to(self, pos, wait=False, force=False):
         self._position = pos
     
     def move_by(self, pos, wait=False):
@@ -197,7 +197,7 @@ class Motor(MotorBase):
                     _logger.error( "(%s) can not reset %s Motors." %
                         (self._motor_type) )
                                     
-    def move_to(self, pos, wait=False):
+    def move_to(self, pos, wait=False, force=False):
 
         # Do not move is requested position is within precision error
         # from current position.
@@ -206,7 +206,7 @@ class Motor(MotorBase):
             prec = 3
         _pos_format = "%%0.%df" % prec
         _pos_to = _pos_format % pos
-        if abs(self.get_position() - pos) <  10**-prec :
+        if abs(self.get_position() - pos) <  10**-prec and not force:
             _logger.info( "(%s) is already at %s" % (self.name, _pos_to) )
             return
         
@@ -224,11 +224,11 @@ class Motor(MotorBase):
         if wait:
             self.wait()
 
-    def move_by(self,val, wait=False):
+    def move_by(self,val, wait=False, force=False):
         if val == 0.0:
             return
         cur_pos = self.get_position()
-        self.move_to(cur_pos + val, wait)
+        self.move_to(cur_pos + val, wait, force)
                 
     def is_moving(self):
         if self.STAT.get() == 1:
@@ -338,12 +338,12 @@ class BraggEnergyMotor(Motor):
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())
             
-    def move_to(self, pos, wait=False):
+    def move_to(self, pos, wait=False, force=False):
         # Do not move if requested position is within precision error
         # from current position.
         prec = self.PREC.get()
         prec = prec == 0 and 4 or prec
-        if abs(self.get_position() - pos) <  10**-prec :
+        if abs(self.get_position() - pos) <  10**-prec and not force:
             _logger.info( "(%s) is already at %f" % (self.name, pos) )
             return
         
@@ -403,21 +403,21 @@ class FixedLine2Motor(MotorBase):
     def configure(self, **kwargs):
         pass
                                             
-    def move_to(self, pos, wait=False):
+    def move_to(self, pos, wait=False, force=False):
         px = pos
-        self.x.move_to(px)
+        self.x.move_to(px, force=force)
         if self.linked:
             self.x.wait(start=True, stop=True)
         py = self.intercept + self.slope * px
-        self.y.move_to(py)
+        self.y.move_to(py, force=force)
         if wait:
             self.wait()
 
-    def move_by(self, val, wait=False):
+    def move_by(self, val, wait=False, force=False):
         if val == 0.0:
             return
         cur_pos = self.get_position()
-        self.move_to(cur_pos + val, wait)
+        self.move_to(cur_pos + val, wait, force)
                 
     def is_moving(self):
         return self.y.is_moving() or self.x.is_moving()
