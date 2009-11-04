@@ -343,8 +343,6 @@ class ScanManager(gtk.Frame):
         self.scan_book.set_current_page(1)
         data = self.auto_chooch.get_data()
         results = self.auto_chooch.get_results()
-        _logger.info('Chooch completed')
-        print results
         if results is None:
             return True
         new_axis = self.plotter.add_axis(label="Anomalous scattering factors (f', f'')")
