@@ -10,6 +10,7 @@ from twisted.internet import reactor
 
 import gtk
 import gobject
+gobject.threads_init()
 
 from bcm.utils.log import get_module_logger, log_to_console
 #from mxdc.utils import gtkexcepthook
