@@ -30,6 +30,8 @@ class ImageViewer(gtk.Frame):
         self._co_hide_id = None
         self._cl_hide_id = None
         self._follow_id = None
+        self.next_filename = ''
+        self.prev_filename = ''
         self.all_spots = []
         self._create_widgets()
         
@@ -323,7 +325,7 @@ class ImageViewer(gtk.Frame):
                     image_spots = self._select_image_spots(self.all_spots)
                     indexed, unindexed = self._select_spots(image_spots)
                     self.image_canvas.set_spots(indexed, unindexed)
-                    self.image_canvas.queue_draw()
+                    gobject.idle_add(self.image_canvas.queue_draw)
             else:
                 self.open_image(filename)
         return True

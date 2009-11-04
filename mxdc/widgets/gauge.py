@@ -53,7 +53,7 @@ class Gauge(gtk.DrawingArea):
     value = property(get_value, set_value)
 
     def _on_property_change(self, widget, val):
-        widget.queue_draw() 
+        gobject.idle_add(widget.queue_draw) 
             
     def do_get_property(self, pspec):
         if pspec.name in ['percent','digits','low','high', 'units']:
