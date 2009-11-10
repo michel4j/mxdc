@@ -8,7 +8,10 @@ def _hook(provided, object):
     if provided.__name__ in ['IPathImportMapper', 'IPlugin']:
         return None
     adapter = registry.lookup1(providedBy(object), provided, '')
-    return adapter(object)
+    if adapter is not None:
+        return adapter(object)
+    else:
+        return None
 
 adapter_hooks.append(_hook)
 
