@@ -29,7 +29,7 @@ class AutomounterContainer(gobject.GObject):
         self.configure(status_str)
     
     def configure(self, status_str=None):
-        if status_str is not None:
+        if status_str is not None and len(status_str)>0:
             if status_str[0] == 'u':
                 self.container_type = CONTAINER_UNKNOWN
             else:
@@ -215,15 +215,15 @@ class Automounter(BasicAutomounter):
             gobject.idle_add(self.emit, 'progress', float(self._step_count)/self._total_steps)
 
     def _on_mount_changed(self, pv, val):
+        vl = val.split()
         if val == " ":
             port = None
-        else:
-            vl = val.split()
+        elif len(vl) >= 3:
             port = vl[0].upper() + vl[2] + vl[1]
-        if port != self._mounted_port:
-            gobject.idle_add(self.emit, 'mounted', port)
-            self._mounted_port = port
-            _logger.debug('Mounted: %s' % port)
+            if port != self._mounted_port:
+                gobject.idle_add(self.emit, 'mounted', port)
+                self._mounted_port = port
+                _logger.debug('Mounted: %s' % port)
         
     def _on_status_changed(self, pv, val):
         self._state_dict = {'busy': self._busy, 'healthy': True, 'needs':[], 'diagnosis':[]}
@@ -243,8 +243,9 @@ class Automounter(BasicAutomounter):
         if self._busy != self._state_dict['busy']:
             self._state_dict['busy'] = self._busy
             gobject.idle_add(self.emit, 'state', self._state_dict)
-        msg_key = val.split()[0].replace('_', ' ')
-        gobject.idle_add(self.emit, 'message', msg_key)
+        if len(val) > 0:
+            msg_key = val.split()[0].replace('_', ' ')
+            gobject.idle_add(self.emit, 'message', msg_key)
 
     def _on_status_warning(self, pv, val):
         if val.strip() != '' and val != self._last_warn:

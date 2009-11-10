@@ -3,6 +3,7 @@ import math
 import logging
 import gobject
 from zope.interface import implements
+from twisted.spread import pb
 from bcm.device.interfaces import IMotor, IShutter
 from bcm.protocol.ca import PV
 from bcm.utils.log import get_module_logger
@@ -37,22 +38,14 @@ class MotorBase(gobject.GObject):
         self._motor_type = 'basic'
     
     def __repr__(self):
-        s = "<%s:'%s', type:%s, state:%s>" % (self.__class__.__name__,
+        s = "<%s:'%s', type:%s>" % (self.__class__.__name__,
                                                self.name,
-                                               self._motor_type,
-                                               self.get_state())
+                                               self._motor_type)
         return s
     
-    def get_state(self):
-        return self.STAT.get()
-        
     def _signal_change(self, obj, value):
         gobject.idle_add(self.emit,'changed', self.get_position() )
     
-    def _on_log(self, obj, message):
-        msg = "(%s) %s" % (self.name, message)
-        _logger.info(msg)
-
     def _signal_move(self, obj, state):
         if state == 1:
             self._moving = True           
@@ -177,7 +170,14 @@ class Motor(MotorBase):
 
     def _on_desc_change(self, pv, val):
         self.name = val
+
+    def _on_log(self, obj, message):
+        msg = "(%s) %s" % (self.name, message)
+        _logger.info(msg)
                                         
+    def get_state(self):
+        return self.STAT.get()
+    
     def get_position(self):
         return self.RBV.get()
 
@@ -434,8 +434,59 @@ class FixedLine2Motor(MotorBase):
         self.y.wait(start=start, stop=False)
         self.x.wait(start=False, stop=stop)
         self.y.wait(start=False, stop=stop)
-        
+
 registry.register([IMotor], IShutter, '', MotorShutter)  
+from bcm.service.remote_device import *
+
+class MotorServer(MasterDevice):
+    def setup(self, device):
+        device.connect('changed', self.on_change)
+        device.connect('health', self.on_health)
+        device.connect('moving', self.on_moving)
+                            
+    # route signals to remote
+    def on_change(self, obj, pos):
+        for o in self.observers: o.callRemote('changed', pos)
+    
+    def on_health(self, obj, state):
+        for o in self.observers: o.callRemote('health', stat)
+    
+    def on_moving(self, obj, state):
+        for o in self.observers: o.callRemote('moving', stat)
+    
+    # convey commands to device
+    def remote_move_to(self, *args, **kwargs):
+        self.device.move_to(*args, **kwargs)
+    
+    def remote_move_by(self):
+        self.device.move_by(*args, **kwargs)
+    
+    def remote_get_state(self):
+        return self.device.get_state()
+    
+    def remote_get_position(self):
+        return self.device.get_position()
+        
+            
+class MotorClient(SlaveDevice, MotorBase):
+    __used_for__ = IMotor
+    def setup(self):
+        MotorBase.__init__(self, uuid.uuid4())
+            
+    #implement methods here for clients to be able to control server
+    def move_to(self, pos, wait=False, force=False):
+        return self.device.callRemote('move_to', pos, wait=False, force=False)
+    
+    def move_by(self, pos, wait=False, force=False):
+        return self.device.callRemote('move_by', pos, wait=False, force=False)
+   
+    def get_position(self):
+        return self.device.callRemote('get_position')
+    
+    def get_state(self):
+        return self.device.callRemote('get_state')
+       
+
 gobject.type_register(MotorBase)
 
         
