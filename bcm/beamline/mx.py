@@ -50,7 +50,14 @@ class MXBeamline(object):
         self.logger.info('Beamline Registered.')
 
     def __getitem__(self, key):
-        return self.registry[key]
+        try:
+            return self.registry[key]
+        except:
+            keys = k.split('.')
+            v = getattr(self, keys[0])
+            for key in keys[1:]:
+                v = getattr(v, key)
+            return v        
     
     def __getattr__(self, key):
         try:
@@ -100,6 +107,7 @@ class MXBeamline(object):
                 util_cmd = "self.%s = self.registry['%s']" % (name, name)
                 self.logger.info('Registering %s: %s' % (section, name))
                 exec(util_cmd)
+        self.device_config = _item_list
 
 __all__ = ['MXBeamline']
                     
