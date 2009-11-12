@@ -439,6 +439,7 @@ registry.register([IMotor], IShutter, '', MotorShutter)
 from bcm.service.remote_device import *
 
 class MotorServer(MasterDevice):
+    __used_for__ = IMotor
     def setup(self, device):
         device.connect('changed', self.on_change)
         device.connect('health', self.on_health)
@@ -469,7 +470,7 @@ class MotorServer(MasterDevice):
         
             
 class MotorClient(SlaveDevice, MotorBase):
-    __used_for__ = IMotor
+    __used_for__ = interfaces.IJellyable
     def setup(self):
         MotorBase.__init__(self, uuid.uuid4())
             
