@@ -3,11 +3,11 @@ Created on Nov 10, 2009
 
 @author: michel
 '''
+import exceptions
 from twisted.spread import pb, interfaces
 
 import gobject
 import random
-from twisted.python.components import getRegistry
 from zope.interface import Interface, implements
 from twisted.python import log
 
@@ -47,25 +47,22 @@ class MasterDevice(pb.Referenceable):
 
     def setup(self, device):
         #implement how to setup server here, eg connect signals
-        pass
+        raise exceptions.NotImplementedError
                             
     # implement extra methods for wrapping control of local server device
 
 class SlaveDevice(pb.Referenceable):
     implements(IDeviceClient)
     def __init__(self, device):
-        self.device = device
-        self.device.callRemote('subscribe', self).addCallbacks(self._setupcb, log.err)
-    
-    def _setupcb(self, _):
         self.setup()
-        
+        self.device = device
+        self.device.callRemote('subscribe', self).addErrback(log.err)
+    
     def setup(self):
         # implement how to setup client here
-        pass
+        raise exceptions.NotImplementedError
     
     #implement methods here for clients to be able to control server
     
-remote_registry = getRegistry()
 # Add one entry for each remote device type
 # eg:  registry.register([interfaces.IJellyable], IDeviceClient, 'MasterDevice', SlaveDevice)

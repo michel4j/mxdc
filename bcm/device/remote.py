@@ -7,6 +7,13 @@ from motor import *
 from misc import *
 from counter import *
 from bcm.service.remote_device import *
+from bcm import registry
+from twisted.spread import interfaces
 
-remote_registry.register([IMotor], IDeviceServer, '', MotorServer)
-remote_registry.register([interfaces.IJellyable], IDeviceClient, 'MotorServer', MotorClient)
+# Motors
+registry.register([IMotor], IDeviceServer, '', MotorServer)
+registry.register([interfaces.IJellyable], IDeviceClient, 'MotorServer', MotorClient)
+
+# Positioners
+registry.register([IPositioner], IDeviceServer, '', PositionerServer)
+registry.register([interfaces.IJellyable], IDeviceClient, 'PositionerServer', PositionerClient)
