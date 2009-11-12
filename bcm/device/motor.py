@@ -472,7 +472,7 @@ class MotorServer(MasterDevice):
 class MotorClient(SlaveDevice, MotorBase):
     __used_for__ = interfaces.IJellyable
     def setup(self):
-        MotorBase.__init__(self, uuid.uuid4())
+        MotorBase.__init__(self, 'Motor Client')
             
     #implement methods here for clients to be able to control server
     def move_to(self, pos, wait=False, force=False):
