@@ -5,7 +5,9 @@ from twisted.internet import protocol, reactor, threads, defer
 from twisted.application import internet, service
 from twisted.spread import pb
 from twisted.python import components
-from twisted.manhole import telnet
+#from twisted.manhole import telnet
+from twisted.conch import manhole, manhole_ssh
+from twisted.cred import portal, checkers
 from twisted.python import log
 from zope.interface import Interface, implements
 
@@ -22,9 +24,12 @@ else:
     from bcm.utils import uuid # for 2.3, 2.4
 
 def log_call(f):
-    def new_f(*args,**kwargs):
-        f(*args,**kwargs)
-        log.msg('<%s()>' % (f.__name__))
+    def new_f(*args, **kwargs):
+        params = ['%s' % repr(a) for a in args[1:] ]
+        params.extend(['%s=%s' % (p[0], repr(p[1])) for p in kwargs.items()])
+        params = ', '.join(params)
+        log.msg('<%s(%s)>' % (f.__name__, params))
+        return f(*args,**kwargs)
     new_f.__name__ = f.__name__
     return new_f
  
@@ -51,6 +56,7 @@ class IPerspectiveBCM(Interface):
 class PerspectiveBCMFromService(pb.Root):
     implements(IPerspectiveBCM)
     def __init__(self, service):
+        self.device_cache = {}
         self.service = service
         
     def remote_getConfig(self):
@@ -59,7 +65,7 @@ class PerspectiveBCMFromService(pb.Root):
         
     def remote_getDevice(self, id):
         """Get a beamline device"""
-        return IDeviceServer(self.service.getDevice(id))
+        return self.service.getDevice(id)
     
     def remote_getEngine(self, id):
         """Get a beamline device"""
@@ -75,6 +81,7 @@ class BCMService(service.Service):
     
     def __init__(self):
         self.settings = {}
+        self.device_server_cache = {}
         try:
             config_file = os.path.join(os.environ['BCM_CONFIG_PATH'],
                               os.environ['BCM_CONFIG_FILE'])
@@ -103,12 +110,20 @@ class BCMService(service.Service):
 
     @log_call
     def getDevice(self, id):
-        return self.beamline[id]
+        if self.device_server_cache.get(id, None) is not None:
+            print 'Returning cached device server', id
+            return self.device_server_cache[id]
+        else:
+            print 'Returning new device server', id
+            dev = IDeviceServer(self.beamline[id])
+            self.device_server_cache[id] = (dev.__class__.__name__, dev)
+            return self.device_server_cache[id]
     
     @log_call
     def getEngine(self, id):
         return deffer.succeed([])
     
+    @log_call
     def shutdown(self):
         reactor.stop()
            
@@ -116,11 +131,27 @@ class BCMError(pb.Error):
     """An expected Exception in BCM"""
     pass
 
+# generate ssh factory which points to a given service
+def getShellFactory(service, **passwords):
+    realm = manhole_ssh.TerminalRealm()
+    def getManhole(_):
+        namespace = {'service': service, '_': None }
+        fac = manhole.Manhole(namespace)
+        fac.namespace['factory'] = fac
+        return fac
+    realm.chainedProtocolFactory.protocolFactory = getManhole
+    p = portal.Portal(realm)
+    p.registerChecker(
+        checkers.InMemoryUsernamePasswordDatabaseDontUse(**passwords))
+    f = manhole_ssh.ConchFactory(p)
+    return f
 
 application = service.Application('BCM')
 f = BCMService()
-tf = telnet.ShellFactory()
-tf.setService(f)
+#tf = telnet.ShellFactory()
+sf = getShellFactory(f, admin='motor2bil')
+#tf.setService(f)
 serviceCollection = service.IServiceCollection(application)
 internet.TCPServer(8880, pb.PBServerFactory(IPerspectiveBCM(f))).setServiceParent(serviceCollection)
-internet.TCPServer(4440, tf).setServiceParent(serviceCollection)        
+#internet.TCPServer(4440, tf).setServiceParent(serviceCollection)        
+internet.TCPServer(2220, sf).setServiceParent(serviceCollection)

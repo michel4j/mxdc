@@ -1,5 +1,7 @@
 import time
 import math
+import exceptions
+
 import gobject
 from zope.interface import implements
 from bcm import registry
@@ -19,9 +21,7 @@ class MiscDeviceError(Exception):
 
     """Base class for errors in the misc module."""
 
-
-class Positioner(gobject.GObject):
-
+class PositionerBase(gobject.GObject):
     implements(IPositioner)
     __gsignals__ =  { 
         "changed": ( gobject.SIGNAL_RUN_FIRST, 
@@ -29,8 +29,22 @@ class Positioner(gobject.GObject):
                      (gobject.TYPE_PYOBJECT,)),
         }  
 
-    def __init__(self, name, fbk_name=None, scale=None, units=""):
+    def __init__(self):
         gobject.GObject.__init__(self)
+        self.name = 'Basic Positioner'
+               
+    def _signal_change(self, obj, value):
+        gobject.idle_add(self.emit, 'changed', self.get())
+    
+    def set(self, pos):
+        raise exceptions.NotImplementedError
+    
+    def get(self):
+        raise exceptions.NotImplementedError
+    
+class Positioner(PositionerBase):
+    def __init__(self, name, fbk_name=None, scale=None, units=""):
+        PositionerBase.__init__(self)
         self.set_pv = PV(name)
         try:
             self.scale = float(scale)
@@ -48,17 +62,16 @@ class Positioner(gobject.GObject):
             self.units = '%'
         self.fbk_pv.connect('changed', self._signal_change)
         self.DESC.connect('changed', self._on_name_change)
-    
+
     def _on_name_change(self, pv, val):
         if val != '':
             self.name = val
-    
+            
     def __repr__(self):
         return '<%s:%s, target:%s, feedback:%s>' %( self.__class__.__name__,
                                                     self.name,
                                                     self.set_pv.name,
                                                     self.fbk_pv.name )
-   
     def set(self, pos):
         if self.scale is None:
             self.set_pv.set(pos)
@@ -73,9 +86,7 @@ class Positioner(gobject.GObject):
             val = 100.0 * (self.fbk_pv.get()/self.scale)
             return  val
     
-    def _signal_change(self, obj, value):
-        gobject.idle_add(self.emit, 'changed', self.get())
-           
+         
 class PositionerMotor(MotorBase):
     implements(IMotor)
     __used_for__ = IPositioner
@@ -382,6 +393,43 @@ class MostabOptimizer(object):
         poll=0.05
         while self._status == 1 or self._command_active:
             time.sleep(poll)
+       
+       
+from bcm.service.remote_device import *
+
+class PositionerServer(MasterDevice):
+    __used_for__ = IPositioner
+    
+    def setup(self, device):
+        device.connect('changed', self.on_change)
+                            
+    # route signals to remote
+    def on_change(self, obj, pos):
+        for o in self.observers: o.callRemote('changed', pos)
+      
+    def remote_set(self, *args, **kwargs):
+        self.device.set(*args, **kwargs)
+    
+    def remote_get(self):
+        return self.device.get()
+    
+        
+            
+class PositionerClient(SlaveDevice, PositionerBase):
+    __used_for__ = interfaces.IJellyable
+    
+    def setup(self):
+        PositionerBase.__init__(self)
+            
+    def set(self, pos):
+        return self.device.callRemote('set', pos)
+    
+    def get(self):
+        return self.device.callRemote('get')
+    
+    def remote_changed(self, value):
+        gobject.idle_add(self.emit,'changed', value)    
+    
        
 # Register objects with signals
 gobject.type_register(BasicShutter)
