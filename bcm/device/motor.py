@@ -3,7 +3,7 @@ import math
 import logging
 import gobject
 from zope.interface import implements
-from twisted.spread import pb
+from twisted.spread import pb, interfaces
 from bcm.device.interfaces import IMotor, IShutter
 from bcm.protocol.ca import PV
 from bcm.utils.log import get_module_logger
@@ -450,10 +450,10 @@ class MotorServer(MasterDevice):
         for o in self.observers: o.callRemote('changed', pos)
     
     def on_health(self, obj, state):
-        for o in self.observers: o.callRemote('health', stat)
+        for o in self.observers: o.callRemote('health', state)
     
     def on_moving(self, obj, state):
-        for o in self.observers: o.callRemote('moving', stat)
+        for o in self.observers: o.callRemote('moving', state)
     
     # convey commands to device
     def remote_move_to(self, *args, **kwargs):
@@ -487,6 +487,9 @@ class MotorClient(SlaveDevice, MotorBase):
     def get_state(self):
         return self.device.callRemote('get_state')
        
+# Motors
+registry.register([IMotor], IDeviceServer, '', MotorServer)
+registry.register([interfaces.IJellyable], IDeviceClient, 'MotorServer', MotorClient)
 
 gobject.type_register(MotorBase)
 

@@ -22,8 +22,11 @@ class ActiveHScale(gtk.HScale):
         self.set_update_policy(gtk.UPDATE_CONTINUOUS)
         self._handler_id = self.connect('value-changed', self._on_scale_changed)
         self.context.connect('changed', self._on_feedback_changed)
-    
+        self._feedback = False
+        
     def _on_scale_changed(self, obj):
+        if self._feedback:
+            return
         target = self.get_value()
         if hasattr(self.context, 'move_to'):
             self.context.move_to( target )
@@ -33,9 +36,11 @@ class ActiveHScale(gtk.HScale):
     def _on_feedback_changed(self, obj, val):
         # we need to prevent an infinite loop by temporarily suspending
         # the _on_scale_changed handler
-        self.context.handler_block(self._handler_id)
+        #self.context.handler_block(self._handler_id)
+        self._feedback = True
         self.set_value(val)
-        self.context.handler_unblock(self._handler_id)
+        self._feedback = False
+        #self.context.handler_unblock(self._handler_id)
         
 class ActiveLabel(gtk.Label):
     def __init__( self, context, format="%s", show_units=True):
