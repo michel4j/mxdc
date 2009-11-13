@@ -35,15 +35,17 @@ class MXDCApp(object):
         #gtk.main_quit()
 
 if __name__ == "__main__":
+    log_to_console()
+    log_to_file(os.path.join(os.environ['HOME'],'mxdc.log'))
     try:
         config = os.path.join(os.environ['BCM_CONFIG_PATH'],
                               os.environ['BCM_CONFIG_FILE'])
+        _logger.info('Starting MXDC ... ')
+        _logger.info('Local configuration: "%s"' % os.environ['BCM_CONFIG_FILE'])
     except:
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')
         sys.exit(1)
     app = MXDCApp(config)
-    log_to_console()
-    log_to_file(os.path.join(os.environ['HOME'],'mxdc.log'))
     reactor.run()
     #gtk.main()
