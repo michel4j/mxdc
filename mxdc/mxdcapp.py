@@ -44,5 +44,6 @@ if __name__ == "__main__":
         sys.exit(1)
     app = MXDCApp(config)
     log_to_console()
+    log_to_file(os.path.join(os.environ['HOME'],'mxdc.log'))
     reactor.run()
     #gtk.main()
