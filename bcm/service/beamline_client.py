@@ -1,36 +1,51 @@
 from twisted.internet import glib2reactor
 glib2reactor.install()
 
-from zope.interface import providedBy
+from zope.interface import providedBy, implements
 from twisted.spread import pb, interfaces
 from twisted.internet import reactor
 from twisted.python import log
+from twisted.python.components import globalRegistry
 from bcm.device.remote import *
+from bcm.beamline.interfaces import IBeamline
 import sys, os
 import re
 
-class BeamlineClient:
+class BeamlineClient(object):
+    implements(IBeamline)
+    
     def __init__(self):
         self.registry = {}
+        self._dev_count = 0
+        self.ready = False
 
     def setup(self, remote):
         self.remote = remote
-        remote.callRemote("getConfig").addCallbacks(self.got_config, log.err)
+        remote.callRemote("getConfig").addCallbacks(self._got_config, log.err)
         
-    def got_device(self, response, name):
+    def _got_device(self, response, name):
         device = registry.queryAdapter(response[1], IDeviceClient, response[0])
         print 'Got', device
         self.registry[name] = device
-        import pprint        
-        pprint.pprint(self.registry)
-        #self.device.connect('changed', on_change)
+        self._devs += 1
+        print 'Setting up %d of %d devices' % (self._devs, self._dev_count)
+        if self._devs == self._dev_count:
+            globalRegistry.register([], IBeamline, '', self)
+            print 'Beamline Registered'
+            self.ready = True
+
     
-    def got_config(self, response):
+    def _got_config(self, response):
+        self._devs =0
+        import pprint        
+        pprint.pprint(response)
+        
         for section, dev_name, cmd in response:
             dev_type = cmd.split('(')[0]
             if dev_type in ['PseudoMotor','VMEMotor','BraggEnergyMotor','Positioner','Attenuator']:
+                self._dev_count += 1
                 d = self.remote.callRemote('getDevice', dev_name)
-                d.addCallback(self.got_device, dev_name).addErrback(log.err)
+                d.addCallback(self._got_device, dev_name).addErrback(log.err)
 #            else:
 #                n_cmd = re.sub("'@([^- ,]+)'", "self.registry['\\1']", cmd)
 #                reg_cmd = "self.registry['%s'] = %s" % (dev_name, n_cmd)
@@ -38,6 +53,7 @@ class BeamlineClient:
 #                if section in ['utilities', 'services']:
 #                    util_cmd = "self.%s = self.registry['%s']" % (dev_name, dev_name)
 #                    exec(util_cmd)
+        
 
     def __getitem__(self, key):
         try:
