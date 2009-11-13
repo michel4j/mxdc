@@ -395,6 +395,7 @@ class MostabOptimizer(object):
             time.sleep(poll)
        
        
+from twisted.spread import interfaces, pb
 from bcm.service.remote_device import *
 
 class PositionerServer(MasterDevice):
@@ -412,8 +413,7 @@ class PositionerServer(MasterDevice):
     
     def remote_get(self):
         return self.device.get()
-    
-        
+            
             
 class PositionerClient(SlaveDevice, PositionerBase):
     __used_for__ = interfaces.IJellyable
@@ -430,6 +430,9 @@ class PositionerClient(SlaveDevice, PositionerBase):
     def remote_changed(self, value):
         gobject.idle_add(self.emit,'changed', value)    
     
+# Positioners
+registry.register([IPositioner], IDeviceServer, '', PositionerServer)
+registry.register([interfaces.IJellyable], IDeviceClient, 'PositionerServer', PositionerClient)
        
 # Register objects with signals
 gobject.type_register(BasicShutter)
