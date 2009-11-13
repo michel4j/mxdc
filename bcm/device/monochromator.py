@@ -15,7 +15,7 @@ _logger = get_module_logger(__name__)
 
 class MonochromatorError(Exception):
 
-    """Base class for errors in the detector module."""
+    """Base class for errors."""
             
      
 class Monochromator(object):
