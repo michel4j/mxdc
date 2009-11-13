@@ -12,7 +12,7 @@ import gtk
 import gobject
 gobject.threads_init()
 
-from bcm.utils.log import get_module_logger, log_to_console
+from bcm.utils.log import get_module_logger, log_to_console, log_to_file
 #from mxdc.utils import gtkexcepthook
 from mxdc.AppWindow import AppWindow
 

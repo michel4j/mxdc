@@ -291,11 +291,11 @@ class ImgConsumer(object):
                 if tm:
                     img_path = os.path.abspath(tm.group(1))
                     f_parts = img_path.split(os.path.sep)
-                    if f_parts[1] == 'data' and len(f_parts)>2:
+                    if f_parts[1] == 'data' and len(f_parts) > 2:
                         f_parts[1] = self.parent.settings['base']
                         user_file = os.path.sep.join(f_parts)
                         #bkup_file = os.path.join(os.path.sep, 'backup', *(img_path.split(os.path.sep)[1:]))
-                        bkup_file = '/backup'+user_file
+                        bkup_file = '/backup' + user_file
 
                     else:
                         return

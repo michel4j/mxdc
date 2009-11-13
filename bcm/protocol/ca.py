@@ -414,7 +414,7 @@ def ca_exception_handler(event):
                                         event.pFile, 
                                         event.lineNo, 
                                         time.strftime("%X %Z %a, %d %b %Y"))
-    _logger.warning("Protocol error")   
+    _logger.warning("Protocol error: %s" % msg)
     return 0
 
 def _heart_beat(duration=0.01):
