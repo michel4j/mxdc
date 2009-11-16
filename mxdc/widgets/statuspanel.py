@@ -2,16 +2,21 @@
 import gtk, gobject
 import sys, os, time
 
+from twisted.python.components import globalRegistry
+from bcm.beamline.interfaces import IBeamline
 from mxdc.widgets.misc import ActiveLabel, ShutterStatus
 
 class StatusPanel(gtk.Statusbar):
-    def __init__(self, beamline):
+    def __init__(self):
         gtk.Statusbar.__init__(self)
         self.set_has_resize_grip(False)
         self.layout_table = gtk.Table(1, 9, True)
         self.layout_table.set_col_spacings(2)
         self.layout_table.set_border_width(1)
 
+        beamline = globalRegistry.lookup([], IBeamline)      
+        if beamline is None:
+            return
         self.layout_table.attach(self._frame_control('Beamline', gtk.Label(beamline.name), gtk.SHADOW_IN), 8, 9 , 0, 1)
         
         
