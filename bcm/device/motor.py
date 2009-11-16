@@ -22,7 +22,8 @@ class MotorError(Exception):
 class MotorBase(gobject.GObject):
 
     """Base class for motors."""
-    
+    implements(IMotor)
+
     # Motor signals
     __gsignals__ =  { 
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
@@ -36,6 +37,7 @@ class MotorBase(gobject.GObject):
         self._moving = False
         self._command_sent = False
         self._motor_type = 'basic'
+        self.units = ''
     
     def __repr__(self):
         s = "<%s:'%s', type:%s>" % (self.__class__.__name__,
@@ -68,6 +70,7 @@ class DummyMotor(MotorBase):
     implements(IMotor)
      
     def __init__(self, name):
+        MotorBase.__init__(self,name)
         self._position = 0.0
      
     def get_state(self):
@@ -436,7 +439,8 @@ class FixedLine2Motor(MotorBase):
         self.y.wait(start=False, stop=stop)
 
 registry.register([IMotor], IShutter, '', MotorShutter)  
-from bcm.service.remote_device import *
+from bcm.service.utils import *
+from twisted.internet import defer
 
 class MotorServer(MasterDevice):
     __used_for__ = IMotor
@@ -444,7 +448,10 @@ class MotorServer(MasterDevice):
         device.connect('changed', self.on_change)
         device.connect('health', self.on_health)
         device.connect('moving', self.on_moving)
-                            
+    
+    def getStateForClient(self):
+        return {'units': self.device.units, 'name': self.device.name}
+                      
     # route signals to remote
     def on_change(self, obj, pos):
         for o in self.observers: o.callRemote('changed', pos)
@@ -459,20 +466,24 @@ class MotorServer(MasterDevice):
     def remote_move_to(self, *args, **kwargs):
         self.device.move_to(*args, **kwargs)
     
-    def remote_move_by(self):
+    def remote_move_by(self, *args, **kwargs):
         self.device.move_by(*args, **kwargs)
-    
+
     def remote_get_state(self):
         return self.device.get_state()
     
     def remote_get_position(self):
         return self.device.get_position()
+    
+    def remote_wait(self, **kwargs):
+        self.device.wait(**kwargs)
         
             
 class MotorClient(SlaveDevice, MotorBase):
     __used_for__ = interfaces.IJellyable
     def setup(self):
         MotorBase.__init__(self, 'Motor Client')
+        self._motor_type = 'remote'
             
     #implement methods here for clients to be able to control server
     def move_to(self, pos, wait=False, force=False):
@@ -486,6 +497,18 @@ class MotorClient(SlaveDevice, MotorBase):
     
     def get_state(self):
         return self.device.callRemote('get_state')
+    
+    def wait(self, start=True, stop=True):
+        return self.device.callRemote('wait', start=start, stop=stop)
+    
+    def remote_changed(self, state):
+        gobject.idle_add(self.emit, 'changed', state)
+
+    def remote_health(self, state):
+        gobject.idle_add(self.emit, 'health', state)
+
+    def remote_moving(self, state):
+        gobject.idle_add(self.emit, 'moving', state)
        
 # Motors
 registry.register([IMotor], IDeviceServer, '', MotorServer)

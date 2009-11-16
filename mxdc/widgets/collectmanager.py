@@ -2,7 +2,7 @@ import gtk, gobject
 import sys, os, time
 
 from twisted.python.components import globalRegistry
-from bcm.beamline.mx import IBeamline
+from bcm.beamline.interfaces import IBeamline
 from bcm.engine.diffraction import DataCollector
 from bcm.utils.configobj import ConfigObj
 from bcm.utils import misc

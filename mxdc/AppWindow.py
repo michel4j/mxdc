@@ -3,13 +3,13 @@ import gtk.glade
 import sys, os
 import logging
 
-from bcm.beamline.mx import MXBeamline
+from twisted.python.components import globalRegistry
+from bcm.beamline.interfaces import IBeamline
 from mxdc.widgets.collectmanager import CollectManager
 from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.hutchmanager import HutchManager
 from mxdc.widgets.screeningmanager import ScreenManager
 from bcm.utils.log import get_module_logger, log_to_console
-from bcm.beamline.interfaces import IBeamline
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
 
@@ -17,7 +17,7 @@ _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
 
 class AppWindow(gtk.Window):
-    def __init__(self, config_file):
+    def __init__(self):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         self.set_position(gtk.WIN_POS_CENTER)
         icon_file = os.path.join(SHARE_DIR, 'icon.png')
@@ -28,16 +28,15 @@ class AppWindow(gtk.Window):
         self.splash.win.set_transient_for(self)
         while gtk.events_pending():
             gtk.main_iteration()
-        gobject.timeout_add(3000, lambda: self.splash.win.hide())
         
-        self.beamline = MXBeamline(config_file)
-
+    def run(self):
+        gobject.timeout_add(1000, lambda: self.splash.win.hide())         
         self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)       
         self.hutch_manager = HutchManager()
         #self.screen_manager = ScreenManager()
-        self.status_panel = StatusPanel(self.beamline)
+        self.status_panel = StatusPanel()
         
         self._xml = gtk.glade.XML(os.path.join(SHARE_DIR, 'mxdc_main.glade'), 'mxdc_main')
         self.main_frame = self._xml.get_widget('main_frame')
@@ -45,7 +44,7 @@ class AppWindow(gtk.Window):
         self.quit_cmd = self._xml.get_widget('quit_command')
         self.about_cmd = self._xml.get_widget('about_cmd')
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
-        #self.about_cmd.connect('activate', lambda x:  self._do_about() )
+        self.about_cmd.connect('activate', lambda x:  self._do_about() )
         
         notebook = gtk.Notebook()
         notebook.append_page(self.hutch_manager, tab_label=gtk.Label('  Beamline Setup  '))
@@ -58,6 +57,7 @@ class AppWindow(gtk.Window):
         self.main_frame.add(notebook)
         self.mxdc_main.pack_start(self.status_panel, expand = False, fill = False)
         self.add(self.mxdc_main)
+        self.show_all()
         
     def _do_quit(self):
         self.hide()
@@ -72,6 +72,7 @@ class AppWindow(gtk.Window):
                             version="3.0.0 RC3", copyright="(C) Canadian Light Source, Inc",
                             comments="Program for macromolecular crystallography data acquisition.",
                             authors=authors)
+        about.connect('destroy', lambda x: about.destroy())
         about.set_transient_for(self)
         about.show()
 

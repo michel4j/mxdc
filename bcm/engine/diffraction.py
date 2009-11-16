@@ -137,6 +137,7 @@ class DataCollector(gobject.GObject):
         self.paused = False
         self.stopped = True
         self.skip_collected = False
+        self.run_list = []
         
             
     def configure(self, run_data=None, run_list=None, skip_collected=True):
@@ -159,6 +160,14 @@ class DataCollector(gobject.GObject):
         self.skip_collected = skip_collected
         return
     
+    def get_state(self):
+        state = {
+            'paused': self.paused,
+            'stopped': self.stopped,
+            'skip_collected': self.skip_collected,
+            'run_list': self.run_list,
+            'pos': self.pos }
+        return state
     
     def start(self):
         worker_thread = threading.Thread(target=self.run)
@@ -229,6 +238,7 @@ class DataCollector(gobject.GObject):
                 self.beamline.detector.set_parameters(header)
                 self.beamline.goniometer.scan()
                 self.beamline.detector.save()
+                frame['saved'] = True
                 _first = False
                     
     
@@ -246,7 +256,6 @@ class DataCollector(gobject.GObject):
             self.stopped = True
         finally:
             self.beamline.exposure_shutter.close()
-            #self.beamline.detector.save(header)
             self.beamline.lock.release()
 
     def set_position(self, pos):
@@ -260,6 +269,9 @@ class DataCollector(gobject.GObject):
     
     def stop(self):
         self.stopped = True
+
+
+from bcm.service.utils import *
     
 gobject.type_register(DataCollector)
 gobject.type_register(Screener)

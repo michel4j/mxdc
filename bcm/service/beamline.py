@@ -106,7 +106,10 @@ class BCMService(service.Service):
     
     @log_call
     def getConfig(self):
-        return self.beamline.device_config
+        config = {'devices': self.beamline.device_config,
+                  'name': self.beamline.name,
+                  'config': self.beamline.config }
+        return config
 
     @log_call
     def getDevice(self, id):

@@ -32,6 +32,7 @@ class PositionerBase(gobject.GObject):
     def __init__(self):
         gobject.GObject.__init__(self)
         self.name = 'Basic Positioner'
+        self.units = ''
                
     def _signal_change(self, obj, value):
         gobject.idle_add(self.emit, 'changed', self.get())
@@ -396,14 +397,16 @@ class MostabOptimizer(object):
        
        
 from twisted.spread import interfaces, pb
-from bcm.service.remote_device import *
+from bcm.service.utils import *
 
 class PositionerServer(MasterDevice):
     __used_for__ = IPositioner
     
     def setup(self, device):
         device.connect('changed', self.on_change)
-                            
+    
+    def getStateForClient(self):
+        return {'units': self.device.units}                   
     # route signals to remote
     def on_change(self, obj, pos):
         for o in self.observers: o.callRemote('changed', pos)
@@ -420,14 +423,17 @@ class PositionerClient(SlaveDevice, PositionerBase):
     
     def setup(self):
         PositionerBase.__init__(self)
+        self.value = 0
             
     def set(self, pos):
         return self.device.callRemote('set', pos)
     
     def get(self):
-        return self.device.callRemote('get')
+        return self.value
+        #return self.device.callRemote('get')
     
     def remote_changed(self, value):
+        self.value = value
         gobject.idle_add(self.emit,'changed', value)    
     
 # Positioners
