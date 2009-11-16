@@ -34,12 +34,15 @@ class MasterDevice(pb.Referenceable):
         self.observers = []
         self.device = device
         self.setup(self.device) 
-        
+    
+    def getStateForClient(self):
+        return {}
+    
     def remote_subscribe(self, client):
         self.observers.append(client)
         notifier = Notifier(self.remote_unsubscribe, client)
         client.broker.notifyOnDisconnect(notifier)
-        #log.msg('New client connected. Total : %d' % (len(self.observers)))
+        client.callRemote('setState', self.getStateForClient())
     
     def remote_unsubscribe(self, client):
         self.observers.remove(client)
@@ -57,7 +60,11 @@ class SlaveDevice(pb.Referenceable):
         self.setup()
         self.device = device
         self.device.callRemote('subscribe', self).addErrback(log.err)
-    
+        
+    def remote_setState(self, state):
+        for k,v in state.items():
+            setattr(self, k, v)
+            
     def setup(self):
         # implement how to setup client here
         raise exceptions.NotImplementedError
