@@ -64,6 +64,7 @@ class AutomounterContainer(gobject.GObject):
                     
 
 class BasicAutomounter(gobject.GObject):
+    implements(IAutomounter)
     __gsignals__ = {
         'state': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'message': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
@@ -73,22 +74,26 @@ class BasicAutomounter(gobject.GObject):
     
     def __init__(self):
         gobject.GObject.__init__(self)
-       
-class DummyAutomounter(BasicAutomounter):        
-    implements(IAutomounter)
-    
-    def __init__(self, states=_TEST_STATE2):
-        BasicAutomounter.__init__(self)
-        self.name = 'Sim Automounter'
         self.containers = {'L': AutomounterContainer('L'),
                           'M': AutomounterContainer('M'),
                           'R': AutomounterContainer('R') }
-        self.set_state(states)
+
+    def parse_states(self, stat):
+        fbstr = ''.join(state.split())
+        info = {
+        'L': fbstr[:97],
+        'M': fbstr[97:-97],
+        'R': fbstr[-97:]}
+        for k,s in info.items():
+            self.containers[k].configure(s)
+
+       
+class DummyAutomounter(BasicAutomounter):        
+    def __init__(self, states=_TEST_STATE2):
+        BasicAutomounter.__init__(self)
+        self.name = 'Sim Automounter'
+        self.parse_states(states)
     
-    def set_state(self, states):
-        self._states = states
-        self._parse_states()
-        
     def mount(self, port, wash=False):
         param = port[0] + ' ' + port[2:] + ' ' + port[1] + ' '
         if wash:
@@ -103,18 +108,8 @@ class DummyAutomounter(BasicAutomounter):
     def probe(self):
         pass
         
-    def _parse_states(self):
-        fbstr = ''.join(self._states.split())
-        info = {
-        'L': fbstr[:97],
-        'M': fbstr[97:-97],
-        'R': fbstr[-97:]}
-        for k,s in info.items():
-            self.containers[k].configure(s)
        
 class Automounter(BasicAutomounter):
-    implements(IAutomounter)
-
     def __init__(self, pv_name):
         BasicAutomounter.__init__(self)
         self.name = 'Sample Automounter'
@@ -140,10 +135,7 @@ class Automounter(BasicAutomounter):
         self._dismount_param = ca.PV('%s:dismntX:param' % pv_name)
         self._mount_next_cmd = ca.PV('%s:mntNextX:opr' % pv_name)
         self._wash_param = ca.PV('%s:washX:param' % pv_name)
-        self.containers = {'L': AutomounterContainer('L'),
-                          'M': AutomounterContainer('M'),
-                          'R': AutomounterContainer('R') }
-        self.port_states.connect('changed', self._parse_states)
+        self.port_states.connect('changed', lambda x, y: self.parse_states(y))
         self.status_msg.connect('changed', self._on_status_message)
         self.status_val.connect('changed', self._on_status_changed)
         
@@ -198,15 +190,6 @@ class Automounter(BasicAutomounter):
         self._total_steps = 25
         self._step_count = 0
     
-    def _parse_states(self, obj, val):
-        fbstr = ''.join(val.split())
-        info = {
-        'L': fbstr[:97],
-        'M': fbstr[97:-97],
-        'R': fbstr[-97:]}
-        for k,s in info.items():
-            self.containers[k].configure(s)
-
     def wait(self, state='idle'):
         self._wait_for_state(state,timeout=30.0)
     
@@ -283,14 +266,91 @@ class Automounter(BasicAutomounter):
         else:
             return False
 
+# remote server anc client classes
+from bcm.service.utils import *
+from twisted.internet import defer
+from bcm import registry
+
+class AutomounterServer(MasterDevice):
+    __used_for__ = IAutomounter
+    def setup(self, device):
+        device.connect('state', self.on_state)
+        device.connect('message', self.on_message)
+        device.connect('mounted', self.on_mounted)
+        device.connect('progress', self.on_progress)
+        device.port_states.connect('changed', self.on_update)
+    
+    # route signals to remote
+    def on_update(self, obj, state):
+        for o in self.observers: o.callRemote('state', state)
+                              
+    def on_state(self, obj, state):
+        for o in self.observers: o.callRemote('state', state)
+    
+    def on_message(self, obj, msg):
+        for o in self.observers: o.callRemote('message', msg)
+    
+    def on_mounted(self, obj, state):
+        for o in self.observers: o.callRemote('mounted', state)
+    
+    def on_progress(self, obj, state):
+        for o in self.observers: o.callRemote('progress', state)
+
+    # convey commands to device
+    def remote_mount(self, *args, **kwargs):
+        self.device.mount(*args, **kwargs)
+    
+    def remote_dismount(self, *args, **kwargs):
+        self.device.dismount(*args, **kwargs)
+    
+    def remote_probe(self):
+        return self.device.probe()
+        
+    def remote_wait(self, **kwargs):
+        self.device.wait(**kwargs)
+        
+            
+class AutomounterClient(SlaveDevice, BasicAutomounter):
+    __used_for__ = interfaces.IJellyable
+    implements(IAutomounter)
+    def setup(self):
+        BasicAutomounter.__init__(self)
+        self.containers = {'L': AutomounterContainer('L'),
+                          'M': AutomounterContainer('M'),
+                          'R': AutomounterContainer('R') }
+            
+    #implement methods here for clients to be able to control server
+    def mount(self, port, wash=False):
+        return self.device.callRemote('mount', port, wash=False)
+    
+    def dismount(self, port=None):
+        return self.device.callRemote('dismount', port=port)
+   
+    def probe(self):
+        return self.device.callRemote('get_position')
+        
+    def wait(self, state='idle'):
+        return self.device.callRemote('wait', state=state)
+    
+    def remote_state(self, state):
+        gobject.idle_add(self.emit, 'state', state)
+
+    def remote_message(self, msg):
+        gobject.idle_add(self.emit, 'message', msg)
+
+    def remote_mounted(self, state):
+        gobject.idle_add(self.emit, 'mounted', state)
+    
+    def remote_progress(self, state):
+        gobject.idle_add(self.emit, 'progress', state)
+    
+    def remote_update(self, state):
+        self.parse_states(state)
+       
+# Motors
+registry.register([IAutomounter], IDeviceServer, '', AutomounterServer)
+registry.register([interfaces.IJellyable], IDeviceClient, 'AutomounterServer', AutomounterClient)
             
 gobject.type_register(AutomounterContainer)
 gobject.type_register(BasicAutomounter)
-
-if __name__ == '__main__':
-    auto = Automounter('ROB1608-5-B10-01')
-    auto._parse_states(None, _TEST_STATE)
-    print auto.containers['L']['A1']
-    print auto.containers['R'].samples['L8']
-    print auto.containers['M'].samples['A8']
 

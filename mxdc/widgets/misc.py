@@ -448,7 +448,7 @@ class CryojetWidget(gtk.Frame):
         self.restore_btn.connect('clicked', self._on_nozzle_move, -15)
         
         #autocalibration of nozzle motor
-        self.cryojet.nozzle.CCW_LIM.connect('changed', self._auto_calib_nozzle)
+        self.auto_calib_id = None
     
     def _blink_status(self):
         if self.status_text.get_property('visible') == True:
@@ -458,6 +458,9 @@ class CryojetWidget(gtk.Frame):
         return True
                 
     def _on_nozzle_move(self, obj, pos):
+        if self.auto_calib_id is None:
+            #FIXME: this is ugly
+            self.cryojet.nozzle.CCW_LIM.connect('changed', self._auto_calib_nozzle)
         self.cryojet.nozzle.move_by(pos)
         
     def _auto_calib_nozzle(self, obj, val):

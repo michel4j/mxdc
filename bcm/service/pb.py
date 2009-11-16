@@ -17,7 +17,7 @@ from bcm import beamline
 from bcm.devices.cameras import add_decorations
 from bcm.tools import scanning, DataCollector
 
-if sys.version_info[:2] == (2,5):
+if sys.version_info[:2] >= (2,5):
     import uuid
 else:
     from bcm.tools import uuid # for 2.3, 2.4
