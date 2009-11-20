@@ -56,10 +56,10 @@ class SampleViewer(gtk.Frame):
             ftype = 'jpeg'
         img = self.beamline.sample_video.get_frame()
         try:
-            bw = self.beamline.collimator.width.get_position()
-            bh = self.beamline.collimator.height.get_position()
-            bx = self.beamline.collimator.x.get_position()
-            by = self.beamline.collimator.y.get_position()
+            bw = self.beamline.beam_w.get_position()
+            bh = self.beamline.beam_h.get_position()
+            bx = self.beamline.beam_x.get_position()
+            by = self.beamline.beam_y.get_position()
             pix_size = self.beamline.sample_video.resolution
             cx = self.beamline.registry['camera_center_x'].get()
             cy = self.beamline.registry['camera_center_y'].get()
@@ -79,13 +79,13 @@ class SampleViewer(gtk.Frame):
         w, h = pixmap.get_size()
         pix_size = self.beamline.sample_video.resolution      
         try:      
-            bw = self.beamline.collimator.width.get_position()
-            bh = self.beamline.collimator.height.get_position()
-            bx = self.beamline.collimator.x.get_position()
-            by = self.beamline.collimator.y.get_position()
+            bw = self.beamline.beam_w.get_position()
+            bh = self.beamline.beam_h.get_position()
+            bx = self.beamline.beam_x.get_position()
+            by = self.beamline.beam_y.get_position()
             cx = self.beamline.registry['camera_center_x'].get()
             cy = self.beamline.registry['camera_center_y'].get()
-        except ca.ChannelAccessError:
+        except:
             cx = w//2
             bw = bh = 1.0
             bx = by = 0

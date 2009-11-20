@@ -50,14 +50,14 @@ def main():
                               os.environ['BCM_CONFIG_FILE'])
         _logger.info('Starting MXDC ... ')
         _logger.info('Local configuration: "%s"' % os.environ['BCM_CONFIG_FILE'])
-        beamline = MXBeamline(config)
+        #beamline = MXBeamline(config)
     except:
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')
         reactor.stop()
     app = MXDCApp()
-    app.run_local(config)
-    #app.run_remote()
+    #app.run_local(config)
+    app.run_remote()
 
 if __name__ == "__main__":
     log_to_console()
