@@ -33,17 +33,25 @@ class MasterDevice(pb.Referenceable):
     def __init__(self, device):
         self.observers = []
         self.device = device
-        self.setup(self.device) 
+        self.setup(device) 
     
     def getStateForClient(self):
         return {}
+    
+    def notify_clients(self, *args):
+        for o in self.observers: o.callRemote('notify', *args)
     
     def remote_subscribe(self, client):
         self.observers.append(client)
         notifier = Notifier(self.remote_unsubscribe, client)
         client.broker.notifyOnDisconnect(notifier)
         client.callRemote('setState', self.getStateForClient())
-    
+        self.setup_client(client)
+        
+    def setup_client(self, client):
+        # Override this method to perform certain actions when a client connects
+       pass
+        
     def remote_unsubscribe(self, client):
         self.observers.remove(client)
         #log.msg('Client disconnected. Total : %d' % (len(self.observers)))
@@ -60,6 +68,9 @@ class SlaveDevice(pb.Referenceable):
         self.setup()
         self.device = device
         self.device.callRemote('subscribe', self).addErrback(log.err)
+    
+    def remote_notify(self, *args):
+        gobject.idle_add(self.emit, *args)
         
     def remote_setState(self, state):
         for k,v in state.items():

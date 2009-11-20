@@ -445,23 +445,17 @@ from twisted.internet import defer
 class MotorServer(MasterDevice):
     __used_for__ = IMotor
     def setup(self, device):
-        device.connect('changed', self.on_change)
-        device.connect('health', self.on_health)
-        device.connect('moving', self.on_moving)
+        device.connect('changed', lambda x,y: self.notify_clients('changed', y))
+        device.connect('health', lambda x,y: self.notify_clients('health', y))
+        device.connect('moving', lambda x,y: self.notify_clients('moving', y))
+        self.device = device
     
     def getStateForClient(self):
         return {'units': self.device.units, 'name': self.device.name}
-                      
-    # route signals to remote
-    def on_change(self, obj, pos):
-        for o in self.observers: o.callRemote('changed', pos)
     
-    def on_health(self, obj, state):
-        for o in self.observers: o.callRemote('health', state)
-    
-    def on_moving(self, obj, state):
-        for o in self.observers: o.callRemote('moving', state)
-    
+    def setup_client(self, client):
+        self.notify_clients('changed', self.device.get_position())
+                          
     # convey commands to device
     def remote_move_to(self, *args, **kwargs):
         self.device.move_to(*args, **kwargs)
@@ -475,6 +469,9 @@ class MotorServer(MasterDevice):
     def remote_get_position(self):
         return self.device.get_position()
     
+    def remote_stop(self):
+        return self.device.stop()
+    
     def remote_wait(self, **kwargs):
         self.device.wait(**kwargs)
         
@@ -484,31 +481,32 @@ class MotorClient(SlaveDevice, MotorBase):
     def setup(self):
         MotorBase.__init__(self, 'Motor Client')
         self._motor_type = 'remote'
+        self.connect('changed', self._set_position)
+    
+    def _set_position(self, obj, val):
+        self.position = val
             
     #implement methods here for clients to be able to control server
+    #do not implement methods you don't want to expose to clients
     def move_to(self, pos, wait=False, force=False):
         return self.device.callRemote('move_to', pos, wait=False, force=False)
     
     def move_by(self, pos, wait=False, force=False):
         return self.device.callRemote('move_by', pos, wait=False, force=False)
-   
-    def get_position(self):
-        return self.device.callRemote('get_position')
     
+    def stop(self):
+        return self.device.stop()
+    
+    def get_position(self):
+        #return self.device.callRemote('get_position')
+        return self.position
+        
     def get_state(self):
         return self.device.callRemote('get_state')
-    
+      
     def wait(self, start=True, stop=True):
         return self.device.callRemote('wait', start=start, stop=stop)
     
-    def remote_changed(self, state):
-        gobject.idle_add(self.emit, 'changed', state)
-
-    def remote_health(self, state):
-        gobject.idle_add(self.emit, 'health', state)
-
-    def remote_moving(self, state):
-        gobject.idle_add(self.emit, 'moving', state)
        
 # Motors
 registry.register([IMotor], IDeviceServer, '', MotorServer)
