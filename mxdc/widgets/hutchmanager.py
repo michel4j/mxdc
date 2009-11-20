@@ -66,8 +66,8 @@ class HutchManager(gtk.Frame):
             'energy':       MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.4f"),
             'attenuation':  ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
             'angle':        MotorEntry(self.beamline.goniometer.omega, 'Omega', format="%0.2f"),
-            'beam_width':   MotorEntry(self.beamline.collimator.width, 'Beam width', format="%0.2f"),
-            'beam_height':  MotorEntry(self.beamline.collimator.height, 'Beam height', format="%0.2f"),
+            'beam_width':   MotorEntry(self.beamline.beam_w, 'Beam width', format="%0.2f"),
+            'beam_height':  MotorEntry(self.beamline.beam_h, 'Beam height', format="%0.2f"),
             'distance':     MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.1f"),
             'beam_stop':    MotorEntry(self.beamline.beam_stop.z, 'Beam-stop', format="%0.1f"),
             'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f")

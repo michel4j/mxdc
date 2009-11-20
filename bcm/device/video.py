@@ -244,7 +244,7 @@ class FDICamera(VideoSrc):
         self._hostname = hostname
         self._name = name
         self.size = (1388, 1040)
-        self.resolution = 1.0
+        self.resolution = 0.0064
         self._open_socket()
 
     def _open_socket(self):

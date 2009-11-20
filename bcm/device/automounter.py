@@ -78,7 +78,7 @@ class BasicAutomounter(gobject.GObject):
                           'M': AutomounterContainer('M'),
                           'R': AutomounterContainer('R') }
 
-    def parse_states(self, stat):
+    def parse_states(self, state):
         fbstr = ''.join(state.split())
         info = {
         'L': fbstr[:97],
