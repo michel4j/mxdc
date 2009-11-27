@@ -325,7 +325,7 @@ class BraggEnergyMotor(Motor):
     implements(IMotor)
     
     def __init__(self, name, enc=None):
-        Motor.__init__(self, name, motor_type='vme' )
+        Motor.__init__(self, name, motor_type='vmeenc' )
         del self.DESC
         if enc is not None:
             del self.RBV          
@@ -333,7 +333,7 @@ class BraggEnergyMotor(Motor):
             gobject.source_remove(self._rbid)
             self.RBV.connect('changed', self._signal_change)
         self.name = 'Bragg Energy'
-        self._motor_type = 'vme'
+        self._motor_type = 'vmeenc'
 
     def _on_desc_change(self, pv, val):
         pass
@@ -401,7 +401,7 @@ class FixedLine2Motor(MotorBase):
         return '<FixedLine2Motor: \n\t%s,\n\t%s,\n\tslope=%0.2f, intercept=%0.2f\n>' % (self.x, self.y, self.slope, self.intercept)
         
     def get_position(self):
-        return self.y.get_position()
+        return self.x.get_position()
         
     def configure(self, **kwargs):
         pass

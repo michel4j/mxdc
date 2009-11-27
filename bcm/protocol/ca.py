@@ -125,7 +125,7 @@ ECA_TIMEOUT = 10
 
 OP_messages = {
     CA_OP_GET: 'getting',
-    CA_OP_PUT: 'putting',
+    CA_OP_PUT: 'setting',
     CA_OP_CREATE_CHANNEL: 'connecting',
     CA_OP_ADD_EVENT: 'adding event',
     CA_OP_CLEAR_EVENT: 'clearing event',
@@ -503,4 +503,3 @@ __all__ = ['PV', 'threads_init', 'flush', ]
 #_ca_heartbeat_thread.setDaemon(True)
 #_ca_heartbeat_thread.setName('ca.heartbeat')
 #_ca_heartbeat_thread.start()
-
