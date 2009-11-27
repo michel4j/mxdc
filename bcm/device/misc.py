@@ -357,6 +357,23 @@ class Collimator(object):
         self.y.stop()
 
 
+class Optimizer(object):
+    implements(IOptimizer)
+    def __init__(self, name):
+        pass
+    
+    def start(self):
+        pass
+    
+    def stop(self):
+        pass
+    
+    def get_state(self):
+        return True
+    
+    def wait(self):
+        return
+    
 class MostabOptimizer(object):
     
     implements(IOptimizer)

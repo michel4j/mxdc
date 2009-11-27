@@ -56,8 +56,8 @@ def main():
         _logger.error('Please make sure MXDC is properly installed and configured.')
         reactor.stop()
     app = MXDCApp()
-    #app.run_local(config)
-    app.run_remote()
+    app.run_local(config)
+    #app.run_remote()
 
 if __name__ == "__main__":
     log_to_console()
