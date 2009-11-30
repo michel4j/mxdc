@@ -352,6 +352,7 @@ class PV(gobject.GObject):
         self.set(val)
 
     def _on_change(self, event):
+        self._lock.acquire()
         dbr = cast(event.dbr, POINTER(self._dtype))
         self._event = event
         self._dbr = dbr
@@ -359,22 +360,27 @@ class PV(gobject.GObject):
             self._val = (cast(dbr.contents.value, c_char_p)).value
         else:
             if self._count > 1:
-                self._val = numpy.array(dbr.contents.value)
+                try:
+                    self._val = numpy.array(dbr.contents.value)
+                except:
+                    print self
+                    raise
             else:
                 self._val = dbr.contents.value
+                
+                #print type(self._val)
         
         self._time     = epics_to_posixtime(dbr.contents.stamp)
-        
         gobject.idle_add(self.emit,'changed', self._val)
         gobject.idle_add(self.emit,'timed-change', TimedValueEvent(self._time, self._val))
         _alm, _sev = dbr.contents.status, dbr.contents.severity
         if (_alm, _sev) != (self._alarm, self._severity):
             self._alarm, self._severity = _alm, _sev
             gobject.idle_add(self.emit, 'alarm', AlarmEvent(self._alarm, self._severity))
-        
+        self._lock.release()
         return 0
 
-    def is_connected(self):
+    def connected(self):
         """Returns True if the channel is active"""
         return self._connected == CA_OP_CONN_UP
             
@@ -473,7 +479,6 @@ class PV(gobject.GObject):
             #elif attr == 'value':  return self._val
             elif attr == 'count':   return self._count
             elif attr == 'severity':  return self._severity
-            elif attr == 'connected': return self._connected
             elif attr == 'host':  return self._host
             elif attr == 'access': return self._access
             elif attr == 'type': return TypeMap[self._type][1]
@@ -521,8 +526,8 @@ def _heart_beat_loop():
     _logger.info('Starting EPICS Heartbeat Thread')
     threads_init()
     while libca.active:
-        libca.ca_pend_event(0.005)
-        time.sleep(0.05)
+        libca.ca_pend_event(0.001)
+        time.sleep(0.02)
     
              
 try:
