@@ -116,14 +116,14 @@ record(waveform,"$(user):testIntA") {
         field(DTYP,"Soft Channel")
         field(DESC,"test int array")
         field(FTVL,"SHORT")
-        field(NELM,"10")
+        field(NELM,"5000")
 }
 
 record(waveform,"$(user):testLongA") {
         field(DTYP,"Soft Channel")
         field(DESC,"test long array")
         field(FTVL,"LONG")
-        field(NELM,"10")
+        field(NELM,"4096")
 }
 
 record(waveform,"$(user):testCharA") {
