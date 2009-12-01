@@ -169,13 +169,13 @@ TypeMap = {
 }
    
 _PV_REPR_FMT = """<ProcessVariable
-    Name:       %s,
-    Data type:  %s,
-    Elements:   %s,
-    Server:     %s,
-    Access:     %s,
-    Alarm:      %s (%s),
-    Time-stamp: %s,
+    Name:       %s
+    Data type:  %s
+    Elements:   %s
+    Server:     %s
+    Access:     %s
+    Alarm:      %s (%s)
+    Time-stamp: %s
     Connection: %s
 >"""
 
@@ -295,15 +295,16 @@ class PV(gobject.GObject):
         This method raises an exception if the channel is not active.
         """
         if self._connected != CA_OP_CONN_UP:
-            #_logger.error('(%s) PV not connected' % (self._name,))
             raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         if self._monitor == True and self._val is not None:
             return self._val
         else:
             libca.ca_array_get( self._type, self._count, self._chid, byref(self.data))
             libca.ca_pend_io(1.0)
-            if self._type in [DBR_STRING, DBR_CHAR]:
+            if self._type == DBR_STRING:
                 self._val = c_char_p(self.data.raw).value
+            elif self._type == DBR_CHAR:
+                self._val = self.data.value
             else:
                 if self._count > 1:
                     self._val = numpy.array(self.data.value)
@@ -359,15 +360,15 @@ class PV(gobject.GObject):
         dbr = cast(event.dbr, POINTER(self._dtype))
         self._event = event
         self._dbr = dbr
-        if event.type in [ DBR_TIME_STRING,  DBR_TIME_CHAR ]:
+        if event.type == DBR_TIME_STRING:
             self._val = (cast(dbr.contents.value, c_char_p)).value
+        elif event.type == DBR_TIME_CHAR:
+            self._val = dbr.contents.value
         else:
             if self._count > 1:
                 self._val = numpy.array(dbr.contents.value)
             else:
                 self._val = dbr.contents.value
-                
-                #print type(self._val)
         
         self._time     = epics_to_posixtime(dbr.contents.stamp)
         gobject.idle_add(self.emit,'changed', self._val)
