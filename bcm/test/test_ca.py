@@ -26,7 +26,7 @@ class PVTest(unittest.TestCase):
 
     def setUp(self):
         os.chdir(os.path.join(os.environ['BCM_PATH'], 'bcm','test'))
-        self.ioc = subprocess.Popen(['softIoc','st.cmd'])
+        #self.ioc = subprocess.Popen(['softIoc','st.cmd'])
         # wait for ioc to run
         time.sleep(5)
         self._pv = {}
@@ -35,7 +35,8 @@ class PVTest(unittest.TestCase):
         time.sleep(1)
 
     def tearDown(self):
-        self.ioc.terminate()
+        #self.ioc.terminate()
+        pass
 
 
     def test_all(self):

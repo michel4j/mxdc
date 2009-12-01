@@ -107,7 +107,7 @@ class EpicsTimeStamp(Structure):
     _fields_ = [('secs', c_uint32), ('nsec', c_uint32)]
 
 class EventHandlerArgs(Structure):
-    _fields_ = [('usr',c_void_p), ('chid', c_ulong), ('type', c_long), ('count', c_long),
+    _fields_ = [('usr', c_void_p), ('chid', c_ulong), ('type', c_long), ('count', c_long),
         ('dbr',c_void_p), ('status', c_int)]
 
 class ConnectionHandlerArgs(Structure):
@@ -305,7 +305,10 @@ class PV(gobject.GObject):
             if self._type in [DBR_STRING, DBR_CHAR]:
                 self._val = c_char_p(self.data.raw).value
             else:
-                self._val = self.data.value
+                if self._count > 1:
+                    self._val = numpy.array(self.data.value)
+                else:
+                    self._val = self.data.value
             return self._val
 
     def set(self, val):
@@ -352,7 +355,7 @@ class PV(gobject.GObject):
         self.set(val)
 
     def _on_change(self, event):
-        self._lock.acquire()
+        #self._lock.acquire()
         dbr = cast(event.dbr, POINTER(self._dtype))
         self._event = event
         self._dbr = dbr
@@ -360,11 +363,7 @@ class PV(gobject.GObject):
             self._val = (cast(dbr.contents.value, c_char_p)).value
         else:
             if self._count > 1:
-                try:
-                    self._val = numpy.array(dbr.contents.value)
-                except:
-                    print self
-                    raise
+                self._val = numpy.array(dbr.contents.value)
             else:
                 self._val = dbr.contents.value
                 
@@ -377,7 +376,7 @@ class PV(gobject.GObject):
         if (_alm, _sev) != (self._alarm, self._severity):
             self._alarm, self._severity = _alm, _sev
             gobject.idle_add(self.emit, 'alarm', AlarmEvent(self._alarm, self._severity))
-        self._lock.release()
+        #self._lock.release()
         return 0
 
     def connected(self):
