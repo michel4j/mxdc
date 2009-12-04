@@ -7,6 +7,7 @@ from twisted.web import resource, server, static, xmlrpc
 from twisted.spread import pb
 from twisted.python import log
 from zope.interface import Interface, implements
+from bcm.service.utils import log_call
 
 from ConfigParser import ConfigParser
 import time, commands
@@ -78,9 +79,8 @@ class ImgSyncService(service.Service):
                   log.err()
        
 
-         
+    @log_call   
     def set_user(self, user, uid, gid):
-        log.msg('<%s(`%s`,%s,%s)>' % (sys._getframe().f_code.co_name, user, uid, gid))   
         config = ConfigParser()
         config.add_section('config')
         config.set('config', 'user', user)
@@ -96,10 +96,10 @@ class ImgSyncService(service.Service):
         self._read_config()
         return True
 
+    @log_call   
     def setup_folder(self, folder):
-        log.msg('<%s(`%s`)>' % (sys._getframe().f_code.co_name, folder))
         if not os.access(folder, os.W_OK):
-            log.err('Directory does not exist.')
+            log.err('Directory does not exist or cannot be written to.')
             return False 
         f_parts = os.path.abspath(folder.strip()).split(os.path.sep)
         try:

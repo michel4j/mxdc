@@ -125,6 +125,9 @@ class IGoniometer(Interface):
         angle   -- starting angle position for scan in degrees (default 0.0)
         """
     
+    def set_mode(mode):
+        """Set the goniometer mode"""
+    
     def scan():
         """Start the scan operation."""
     
