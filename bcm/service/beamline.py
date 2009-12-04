@@ -17,21 +17,13 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.device.remote import *
 from bcm.engine import diffraction
 from bcm.engine import spectroscopy
+from bcm.service.utils import log_call
 
 if sys.version_info[:2] == (2,5):
     import uuid
 else:
     from bcm.utils import uuid # for 2.3, 2.4
 
-def log_call(f):
-    def new_f(*args, **kwargs):
-        params = ['%s' % repr(a) for a in args[1:] ]
-        params.extend(['%s=%s' % (p[0], repr(p[1])) for p in kwargs.items()])
-        params = ', '.join(params)
-        log.msg('<%s(%s)>' % (f.__name__, params))
-        return f(*args,**kwargs)
-    new_f.__name__ = f.__name__
-    return new_f
  
 class IBCMService(Interface):    
     def getConfig():

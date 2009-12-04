@@ -13,11 +13,9 @@ from bcm.utils.log import get_module_logger
 _logger = get_module_logger(__name__)
 
 # Goniometer state constants
-(
-    GONIO_IDLE,
-    GONIO_ACTIVE,
-) = range(2)
-
+(GONIO_IDLE, GONIO_ACTIVE) = range(2)
+(GONIO_MODE_MOUNT, GONIO_MODE_BEAM, GONIO_MODE_COLLECT) = range(3)
+_MODE_MAP = {'mount':GONIO_MODE_MOUNT, 'beam': GONIO_MODE_BEAM,'collect': GONIO_MODE_COLLECT}
 class GoniometerError(Exception):
 
     """Base class for errors in the goniometer module."""
@@ -47,6 +45,9 @@ class Goniometer(object):
     def configure(self, **kwargs):
         for key in kwargs.keys():
             self._settings[key].put(kwargs[key])
+    
+    def set_mode(self, mode):
+        pass
     
     def scan(self, wait=True):
         self._scan_cmd.set('\x01')
@@ -100,8 +101,18 @@ class MD2Goniometer(object):
         for key in kwargs.keys():
             self._settings[key].put(kwargs[key])
     
-    def scan(self):
+    def set_mode(self, mode):
+        if isinstance(mode, int):
+            self.mode = mode
+        elif isinstance(mode, str):
+            self.mode = _MODE_MAP.get(mode, 0)
+        # FIXME move the goniometer to the appropriate mode
+            
+    def scan(self, wait=True):
         self._scan_cmd.set(1)
+        self._scan_cmd.set(0)
+        if wait:
+            self.wait(start=True, stop=True)
 
     def get_state(self):
         return self._state.get() != 3  
@@ -120,3 +131,5 @@ class MD2Goniometer(object):
 
     def stop(self):
         self._abort_cmd.set(1)
+        self._about_cmd.set(0)
+
