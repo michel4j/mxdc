@@ -11,6 +11,18 @@ import random
 from zope.interface import Interface, implements
 from twisted.python import log
 
+
+def log_call(f):
+    def new_f(*args, **kwargs):
+        params = ['%s' % repr(a) for a in args[1:] ]
+        params.extend(['%s=%s' % (p[0], repr(p[1])) for p in kwargs.items()])
+        params = ', '.join(params)
+        log.msg('<%s(%s)>' % (f.__name__, params))
+        return f(*args,**kwargs)
+    new_f.__name__ = f.__name__
+    return new_f
+
+
 class IDeviceClient(Interface):
     pass
 

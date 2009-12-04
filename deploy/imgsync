@@ -9,7 +9,7 @@
 servicename='imgsync'
 pidfile='/var/run/imgsync.pid'
 logfile='/var/log/imgsync.log'
-appfile='/opt/cmcf_apps/beamline-control-module-3.0.0/bcm/service/imagesync_server.py'
+appfile='/opt/cmcf_apps/bcm-3.0.0-RC4/bcm/service/imagesync_server.py'
 umask=022
 # Source function library.
 . /etc/rc.d/init.d/functions
