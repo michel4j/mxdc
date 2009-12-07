@@ -172,11 +172,14 @@ class GTKInterpreter(threading.Thread):
 
 class BeamlineConsole(GTKInterpreter):
     def __init__(self, banner=None):
-        banner = """Interactive Beamline Console.
-        Python %s
-        Beamline Config: %s 
-        """ % (sys.version.split('\n')[0],
-               os.environ['BCM_CONFIG_FILE'])
+        banner = """
+
+%s Interactive Beamline Console.
+Python %s
+Beamline Config: %s 
+        """ % (os.environ['BCM_BEAMLINE'].upper(),
+               sys.version.split('\n')[0],
+               os.environ['BCM_CONSOLE_CONFIG_FILE'])
                
         GTKInterpreter.__init__(self, banner)
     

@@ -1,15 +1,18 @@
 #!/bin/csh
 
-## ---- Beamline Configuration File ----
-#setenv BCM_CONFIG_FILE 08id1.conf
-setenv BCM_CONFIG_FILE 08b1.conf
-
-## ---- Top level directory of BCM installation ----
+## ---- Setup Top level directory of BCM installation ----
 setenv BCM_PATH /home/michel/Code/eclipse-ws/beamline-control-module
-#setenv BCM_PATH /media/seagate/beamline-control-module
 
+
+## ---- Setup Beamline Configuration by network ----
+setenv BCM_BEAMLINE 08b1  # default beamline
+set domain=`netstat -rn | grep '255.255.252.0' | awk '{print $1}'`
+if ($domain == '10.52.28.0') setenv BCM_BEAMLINE 08id1
+if ($domain == '10.52.4.0') setenv BCM_BEAMLINE 08b1
 
 ## ---- Do not change below this line ----
+setenv BCM_CONFIG_FILE ${BCM_BEAMLINE}.conf
+setenv BCM_CONSOLE_CONFIG_FILE ${BCM_BEAMLINE}-console.conf
 setenv BCM_CONFIG_PATH $BCM_PATH/etc
 setenv BCM_DATA_PATH  $HOME/scans
 set path=($path $BCM_PATH/bin)
