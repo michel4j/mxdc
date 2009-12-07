@@ -144,8 +144,7 @@ BaseFieldMap = {
     DBR_TIME_SHORT: _16offset_fields,
     DBR_TIME_LONG: _base_fields,
     DBR_TIME_FLOAT: _base_fields,
-    DBR_TIME_DOUBLE: _32offset_fields,
-}
+    DBR_TIME_DOUBLE: _32offset_fields,}
 
 OP_messages = {
     CA_OP_GET: 'getting',
@@ -155,8 +154,7 @@ OP_messages = {
     CA_OP_CLEAR_EVENT: 'clearing event',
     CA_OP_OTHER: 'executing task',
     CA_OP_CONN_UP: 'active',
-    CA_OP_CONN_DOWN: 'inactive',
-}
+    CA_OP_CONN_DOWN: 'inactive',}
 
 TypeMap = {
     DBR_STRING: (c_char * MAX_STRING_SIZE, 'DBR_STRING'),
@@ -165,8 +163,7 @@ TypeMap = {
     DBR_SHORT: (c_int16, 'DBR_SHORT'),
     DBR_LONG: (c_int32, 'DBR_LONG'),
     DBR_FLOAT: (c_float, 'DBR_FLOAT'),
-    DBR_DOUBLE: (c_double, 'DBR_DOUBLE'),
-}
+    DBR_DOUBLE: (c_double, 'DBR_DOUBLE'),}
    
 _PV_REPR_FMT = """<ProcessVariable
     Name:       %s
@@ -232,11 +229,12 @@ class PV(gobject.GObject):
                   (gobject.TYPE_PYOBJECT,))
     }
     
-    def __init__(self, name, monitor=True, connect=False):
+    def __init__(self, name, monitor=True, connect=False, timed=False):
         gobject.GObject.__init__(self)
 
         self._name = name
         self._monitor = monitor
+        self._time_changes = timed
         self._connected = CA_OP_CONN_DOWN
         self._val       = None
         self._time      = None
@@ -278,9 +276,6 @@ class PV(gobject.GObject):
     def __del__(self):
         for key,val in self._callbacks:
             self._del_handler(val[2])
-        libca.ca_clear_channel(self._chid)
-        libca.ca_pend_event(0.1)
-        libca.ca_pend_io(1.0)
     
     def get(self):
         """Get the value of a Process Variable.
@@ -356,6 +351,8 @@ class PV(gobject.GObject):
         self.set(val)
 
     def _on_change(self, event):
+        if self._chid != event.chid or event.type != self._ttype:
+            return 0
         #self._lock.acquire()
         dbr = cast(event.dbr, POINTER(self._dtype))
         self._event = event
@@ -372,7 +369,8 @@ class PV(gobject.GObject):
         
         self._time     = epics_to_posixtime(dbr.contents.stamp)
         gobject.idle_add(self.emit,'changed', self._val)
-        gobject.idle_add(self.emit,'timed-change', TimedValueEvent(self._time, self._val))
+        if self._time_changes:
+            gobject.idle_add(self.emit,'timed-change', TimedValueEvent(self._time, self._val))
         _alm, _sev = dbr.contents.status, dbr.contents.severity
         if (_alm, _sev) != (self._alarm, self._severity):
             self._alarm, self._severity = _alm, _sev
@@ -391,6 +389,7 @@ class PV(gobject.GObject):
         if stat != NEVER_CONNECTED:
             self._set_properties()
             self._connected = CA_OP_CONN_UP
+            libca.channel_registry.append(self._chid)
             if self._monitor == True:
                 self._add_handler( self._on_change )
         else:
@@ -405,7 +404,7 @@ class PV(gobject.GObject):
                 self._name, 
                 cb_function, 
                 None, 
-                10, 
+                50, 
                 byref(self._chid)
             )
             self._connection_callbacks = [cb_factory, cb_function]
@@ -437,9 +436,11 @@ class PV(gobject.GObject):
         self._connected = event.op
         if self._connected == CA_OP_CONN_UP:
             self._chid = event.chid
-            self._set_properties()
-            if self._monitor == True:
-                self._add_handler( self._on_change )
+            if self._chid not in libca.channel_registry:
+                libca.channel_registry.append(self._chid)
+                self._set_properties()
+                if self._monitor == True:
+                    self._add_handler( self._on_change )
             gobject.idle_add(self.emit, 'active')
         else:
             gobject.idle_add(self.emit, 'inactive')
@@ -594,15 +595,17 @@ _cb_function = _cb_factory(ca_exception_handler)
 _cb_user_agg = c_void_p()
 libca.ca_add_exception_event(_cb_function, _cb_user_agg)
 libca.active = True
+libca.channel_registry = []
 
 
 # cleanup gracefully at termination
-def _ca_cleanup():
+@atexit.register
+def ca_cleanup():
+    print 'Cleaning up ...'
     libca.active = False
-    time.sleep(0.02)
+    for cid in libca.channel_registry:
+        libca.ca_clear_channel(cid)
     libca.ca_context_destroy()
-
-atexit.register(_ca_cleanup)
 
 __all__ = ['PV', 'threads_init', 'flush', ]
 
