@@ -3,6 +3,7 @@ import gobject
 import threading
 import commands
 from numpy import loadtxt
+from bcm.utils import converter
 
 class AutoChooch(gobject.GObject):
     __gsignals__ = {}
@@ -11,6 +12,7 @@ class AutoChooch(gobject.GObject):
     
     def __init__(self):
         gobject.GObject.__init__(self)
+        self._results_text = ""
 
     def setup(self, params):
         self.parameters = params
@@ -37,8 +39,10 @@ class AutoChooch(gobject.GObject):
         self.raw_file = "%s.raw" % (file_root)
         self.efs_file = "%s.efs" % (file_root)
         self.out_file = "%s.out" % (file_root)
-        chooch_command = "chooch -e %s -a %s %s -o %s | tee %s " % (element, edge, self.raw_file, self.efs_file, self.out_file)
-        self.return_code, self.output = commands.getstatusoutput(chooch_command)
+        self.log_file = "%s.log" % (file_root)
+        chooch_command = "chooch -e %s -a %s %s -o %s | tee %s " % (element, edge, self.raw_file, self.efs_file, self.log_file)
+        self.return_code, self.log = commands.getstatusoutput(chooch_command)
+        self.log = '\n----------------- %s ----------------------\n\n' % (self.log_file) + self.log
         success = self.read_output()
         if success:
             gobject.idle_add(self.emit, 'done')
@@ -47,42 +51,53 @@ class AutoChooch(gobject.GObject):
         
     def read_output(self):
         self.data = loadtxt(self.efs_file, comments="#")
-        output = open(self.out_file, 'r')
+        self.data[:, 0] *= 1e-3 # convert to keV
+        ifile = open(self.log_file, 'r')
+        output = ifile.readlines()
         pattern = re.compile('\|\s+([a-z]+)\s+\|\s+(.+)\s+\|\s+(.+)\s+\|\s+(.+)\s+\|')
         found_results = False
-        for line in output:
+        for i, line in enumerate(output):
             lm = pattern.search(line)
             if lm:
                 found_results = True
-                self.results[lm.group(1)] = [ lm.group(1), float(lm.group(2)), float(lm.group(3)), float(lm.group(4)) ]
-        output.close()
+                # energy converted to keV
+                self.results[lm.group(1)] =  [lm.group(1), float(lm.group(2))*1e-3, float(lm.group(3)), float(lm.group(4))]
+        ifile.close()
         
         if not found_results:
             self.results = None
             gobject.idle_add(self.emit, 'error','AutoChooch Failed')
             return False
             
-        # select remote energy, maximize fp, minimize fpp-fp
-        def fpp_fp(triplet):
-            return triplet[1]-triplet[2]
-        triplets =   zip(self.data[:,0], self.data[:,2], self.data[:,1])  
-        count = 0
-        while (triplets[count][0]  <  self.results['peak'][1] + 25.0) and count < len(triplets)-1:
-            count += 1
-        selected = triplets[count-1]
-        while (fpp_fp(selected) < fpp_fp(triplets[count]) 
-               and (selected[2]<triplets[count][1]) 
-               and count < len(triplets)-1):
-            count += 1
-        selected = triplets[count-1]
-        self.results['remo'] = ['remo', selected[0], selected[1], selected[2]]
-
-        #convert eV to keV
-        self.data[:,0] *= 1e-3 # convert x-axis to keV 
-        for key in self.results.keys():
-            self.results[key][1] *= 1e-3
+        # select remote energy, maximize f" x delta-f'
+        fpp = self.data[:,1]
+        fp = self.data[:,2]
+        energy = self.data[:,0]
+        opt = fpp * (fp - self.results['infl'][3])
+        opt_i = opt.argmax()
+        
+        self.results['remo'] = ['remo', energy[opt_i], fpp[opt_i], fp[opt_i]]
+        new_output = "Selected Energies for 3-Wavelength MAD data \n"
+        new_output +="and corresponding anomalous scattering factors.\n"
+        
+        new_output += "+------+------------+----------+-------+-------+\n"
+        new_output += "|      | wavelength |  energy  |   f'' |   f'  |\n"
+        for k in ['peak','infl','remo']:
+            new_output += '| %4s | %10.5f | %8.5f | %5.2f | %5.2f |\n' % (k, converter.energy_to_wavelength(self.results[k][1]),
+                                                                self.results[k][1],
+                                                                self.results[k][2],
+                                                                self.results[k][3]
+                                                                )
+        new_output += "+------+------------+----------+-------+-------+\n"
+        ofile = open(self.out_file, 'w')
+        ofile.write(new_output)
+        ofile.close()
+        self._results_text = new_output
         return True
-            
+
+    def get_results_text(self):
+        return self._results_text
+    
 gobject.type_register(AutoChooch)
 
 

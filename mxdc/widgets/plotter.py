@@ -19,6 +19,8 @@ try:
     from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
 except:
     from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
+#FIXME GTKCairo crashes sometimes on SL5.3 when that is sorted out, replace the following line with commented ones above
+#from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
     
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 from matplotlib.backends.backend_gtk import FileChooserDialog
@@ -43,7 +45,7 @@ class PlotterToolbar(NavigationToolbar):
             ('Zoom', 'Zoom to rectangle',gtk.STOCK_ZOOM_FIT, 'zoom'),
             (None, None, None, None),
             ('Save', 'Save the figure',gtk.STOCK_SAVE, 'save_figure'),
-            ('Print', 'Print the figure', 'stock_print.png', 'save_figure'),
+            ('Print', 'Print the figure', 'stock_print.png', 'print_figure'),
             )
         NavigationToolbar.__init__(self, canvas, None)
     
@@ -120,7 +122,9 @@ class PlotterToolbar(NavigationToolbar):
             filetypes=self.canvas.get_supported_filetypes(),
             default_filetype=self.canvas.get_default_filetype()
             )
-
+    
+    def print_figure(self, obj):
+        print 'No printing implemented'
           
 class Plotter( gtk.Frame ):
     def __init__( self, loop=False, buffer_size=2500, xformat='%g' ):
@@ -222,7 +226,7 @@ class Plotter( gtk.Frame ):
         
     def add_point(self, x, y, lin=0, redraw=True):
         if len(self.line) <= lin:
-            self.add_line([x],[y],'-x')
+            self.add_line([x],[y],'-')
         else:                    
             # when using ring buffer, remove first element before adding if full
             if self.simulate_ring_buffer and len(self.x_data[lin]) == self.buffer_size:
@@ -352,6 +356,7 @@ class ScanPlotter(gtk.Window):
     def on_done(self, scan):
         """Done handler."""
         filename = scan.save()
+        self.plot_file(filename)
     
     def plot_file(self, filename):
         """Do fitting and plot Fits"""
@@ -422,8 +427,10 @@ class ScanPlotter(gtk.Window):
             ax.set_title('%s\n%s' % (info['title'], info['subtitle']))
             ax.set_xlabel(info['x_label'])
             ax.set_ylabel(info['y_label'])
-            ax.plot(xo,yo,'b-+')
-            ax.plot(xo,yc,'r--')
+            #ax.plot(xo,yo,'b-+')
+            #ax.plot(xo,yc,'r--')
+            self.plotter.add_line(xo, yo, pattern='b-+', redraw=False)
+            self.plotter.add_line(xo, yc, pattern='r--', redraw=False)
             hh = 0.5 * (max(yo) - min(yo)) + min(yo)
             ax.plot([histo_pars[2], histo_pars[2]], [min(yo), max(yo)], 'b:')
             ax.plot([histo_pars[3], histo_pars[4]], [hh, hh], 'b:')

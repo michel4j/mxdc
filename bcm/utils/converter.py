@@ -3,11 +3,16 @@ import math
 import time
 
 
+
 # Physical Constats
 _h = 4.13566733e-15 # eV.s
 _c = 299792458e10   # A/s
-_S111_a_rt   = 5.4310209 # A at RT
-_S111_a_ln2  = 5.4297575 # A at LN2 
+
+_S111_A_DICT = {
+    'RT': 5.4310209,
+    'LN2': 5.4297575,
+}
+
 
 
 def energy_to_wavelength(energy): 
@@ -33,37 +38,27 @@ def degrees(angle):
     return 180 * angle / math.pi
     
 
-def bragg_to_energy(bragg, room_temp=False):
+def bragg_to_energy(bragg):
     """Convert bragg angle in degrees to energy in keV.
     
     Arguments:
     bragg       --  bragg angle in degrees to convert to energy
-    room_temp   --  boolean value specifying whether the crystal is at room
-                    temperature (default False)
     """
     
-    if room_temp:
-        _S111_a = _S111_a_rt
-    else:
-        _S111_a = _S111_a_ln2
+    _S111_a = _S111_A_DICT[os.environ.get('BCM_S111_TEMP', 'LN2')]
         
     d = _S111_a / math.sqrt(3.0)
     wavelength = 2.0 * d * math.sin( radians(bragg) )
     return wavelength_to_energy(wavelength)
 
-def energy_to_bragg(energy, room_temp=False):
+def energy_to_bragg(energy):
     """Convert energy in keV to bragg angle in degrees.
     
     Arguments:
     energy      --  energy value to convert to bragg angle
-    room_temp   --  boolean value specifying whether the crystal is at room
-                    temperature (default False)
     """
     
-    if room_temp:
-        _S111_a = _S111_a_rt
-    else:
-        _S111_a = _S111_a_ln2
+    _S111_a = _S111_A_DICT[os.environ.get('BCM_S111_TEMP', 'LN2')]
     d = _S111_a / math.sqrt(3.0)
     bragg = math.asin( energy_to_wavelength(energy)/(2.0*d) )
     return degrees(bragg)

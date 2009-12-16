@@ -121,6 +121,7 @@ def _read_marccd_image(filename, gamma_offset = 0.0):
     return image_info
 
 def image_loadable(filename):
+    filename = os.path.abspath(filename)
     if os.path.basename(filename) in os.listdir(os.path.dirname(filename)):
         statinfo = os.stat(filename)
         if (time.time() - statinfo.st_mtime) > 0:

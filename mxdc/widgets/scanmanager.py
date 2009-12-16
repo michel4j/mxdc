@@ -347,26 +347,33 @@ class ScanManager(gtk.Frame):
             return True
         new_axis = self.plotter.add_axis(label="Anomalous scattering factors (f', f'')")
         if 'infl' in results.keys():
-                self.plotter.axis[0].axvline( results['infl'][1], color='c', linestyle=':', linewidth=1)
+                self.plotter.axis[0].axvline( results['infl'][1], color='m', linestyle=':', linewidth=1)
         if 'peak' in results.keys():
-                self.plotter.axis[0].axvline( results['peak'][1], color='c', linestyle=':', linewidth=1)
+                self.plotter.axis[0].axvline( results['peak'][1], color='m', linestyle=':', linewidth=1)
         if 'remo' in results.keys():
-                self.plotter.axis[0].axvline( results['remo'][1], color='c', linestyle=':', linewidth=1)
+                self.plotter.axis[0].axvline( results['remo'][1], color='m', linestyle=':', linewidth=1)
+        fontpar = {}
+        fontpar["family"]="monospace"
+        fontpar["size"]=7.5
+        info = self.auto_chooch.get_results_text()
+        self.plotter.fig.text(0.14,0.7, info,fontdict=fontpar, color='b')
+
         self.plotter.add_line(data[:,0],data[:,1], 'r', ax=new_axis)
-        self.plotter.add_line(data[:,0],data[:,2], 'g', ax=new_axis)
-        self.plotter.redraw()
+        self.plotter.add_line(data[:,0],data[:,2], 'g', ax=new_axis, redraw=True)
                 
         self.set_results(results)
         self.scan_pbar.set_fraction(1.0)
         self.scan_pbar.set_text("Scan Complete")
-        self.output_log.add_text(self.auto_chooch.output)   
+        self.output_log.add_text(self.auto_chooch.log)
+        info_log = '\n----------------- %s ----------------------\n\n' % (self.auto_chooch.out_file) + info
+        self.output_log.add_text(info_log)
         self.create_run_btn.set_sensitive(True) 
         return True
         
     def on_chooch_error(self,widget, error):
         self.scan_book.set_current_page(2)
         self.scan_pbar.set_text("Chooch Error:  Analysis failed!")
-        self.output_log.add_text(self.auto_chooch.output)
+        self.output_log.add_text(self.auto_chooch.log)
         return True
         
     def on_create_run(self,widget):
@@ -378,13 +385,20 @@ class ScanManager(gtk.Frame):
         return True
                     
     def on_xrf_done(self, obj):
+        obj.save(self._scan_filename)
+        em_names = {'Ka': r'K$\alpha$', 
+                    'Ka1': r'K$\alpha_1$',
+                    'Ka2': r'K$\alpha_2$',
+                    'Kb': r'K$\beta$',
+                    'Kb1': r'K$\beta_1$',
+                    'La1': r'L$\alpha 1$'}
         x = obj.data[:,0]
         y = obj.data[:,1]
         self.plotter.set_labels(title='X-Ray Fluorescence',x_label='Energy (keV)',y1_label='Fluorescence')
         self.scan_book.set_current_page(1)
         tick_size = max(y)/50.0
         peaks = science.peak_search(x, y, w=31, threshold=0.1, min_peak=0.05)
-        apeaks = science.assign_peaks(peaks,  dev=0.01)
+        apeaks = science.assign_peaks(peaks,  dev=0.04)
         sy = science.savitzky_golay(y, kernel=31)
         self.plotter.add_line(x, sy,'b-')
         self.output_log.clear()
@@ -394,12 +408,13 @@ class ScanManager(gtk.Frame):
                                             'Identity')
         for peak in apeaks:
             if len(peak)> 4:
-                lbl = peak[4]
+                el, pk = peak[4].split('-')
+                lbl = '%s-%s' % (el, em_names[pk])
                 lbls = ', '.join(peak[4:])
             else:
                 lbl = '?'
                 lbls = ''
-            self.plotter.axis[0].plot([peak[0], peak[0]], [peak[1]+tick_size,peak[1]+tick_size*2], 'r-')
+            self.plotter.axis[0].plot([peak[0], peak[0]], [peak[1]+tick_size,peak[1]+tick_size*2], 'm-')
             self.plotter.axis[0].text(peak[0], 
                                       peak[1]+tick_size*2.2,
                                       lbl,
