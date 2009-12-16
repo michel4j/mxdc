@@ -308,9 +308,9 @@ def _format_error_string(state):
         else:
             needs.append(t)
     if len(needs) > 0:
-        needs_txt = 'Needs ' + ', '.join(needs)
+        needs_txt = 'Needs ' + '; '.join(needs)
     if len(state['diagnosis']) > 0:
-        needs_txt += ' because: ' + ', '.join(state['diagnosis'])
+        needs_txt += ' because: ' + '; '.join(state['diagnosis'])
     
     return needs_txt
                       
@@ -344,9 +344,9 @@ class SamplePicker(gtk.Frame):
         # layout the gauge section
         self.ln2_gauge = Gauge(0,100,5,3)
         self.ln2_gauge.set_property('units','% LN2')
-        self.ln2_gauge.set_property('low', 20.0)
+        self.ln2_gauge.set_property('low', 70.0)
         self.level_frame.add(self.ln2_gauge)
-        #self.cryojet.level.connect('changed', self._on_level)
+        self.automounter.nitrogen_level.connect('changed', self._on_level)
         
         
     def __getattr__(self, key):
@@ -355,6 +355,10 @@ class SamplePicker(gtk.Frame):
         except AttributeError:
             return self._xml.get_widget(key)
     
+    def _on_level(self, obj, val):
+        self.ln2_gauge.value = val
+        return False
+
     def on_pick(self,obj, sel):
         self.selected.set_text(sel)
         self.mount_btn.set_sensitive(True)

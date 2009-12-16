@@ -371,7 +371,8 @@ class RunWidget(gtk.Frame):
             start_angle = float(self.entry['start_angle'].get_text())
         except:
             start_angle = 0
-            
+        
+        start_angle = min(360.0, max(-360.0, start_angle))    
         self.entry['start_angle'].set_text('%0.2f' % start_angle)            
         self.check_changes()
         return False
@@ -397,7 +398,7 @@ class RunWidget(gtk.Frame):
             delta = float(self.entry['delta'].get_text())
         except:
             delta = 1.0
-        delta = (delta > 0.1 and delta) or 0.1
+        delta = min(10.0, max(delta, 0.1))
 
         self.entry['delta'].set_text('%0.2f' % delta)
         total_angle = float(self.entry['total_angle'].get_text())
@@ -417,7 +418,7 @@ class RunWidget(gtk.Frame):
             time = float(self.entry['time'].get_text())
         except:
             time = 1.0
-        time = (abs(time) > 0.1 and abs(time)) or 0.1
+        time = max(0.5, time)
         self.entry['time'].set_text('%0.1f' % time)
         self.check_changes()
         return False
@@ -429,7 +430,7 @@ class RunWidget(gtk.Frame):
         except:
             start_frame = 1
         
-        start_frame = (start_frame > 1 and start_frame) or 1
+        start_frame = max(start_frame, 1)
         self.entry['start_frame'].set_text('%d' % start_frame)
         self.check_changes()
         return False
@@ -453,7 +454,7 @@ class RunWidget(gtk.Frame):
             wedge = float(self.entry['wedge'].get_text())    
         except:
             wedge = 360.0
-
+        wedge = min(max(1, wedge), 360.0)
         self.entry['wedge'].set_text('%0.2f' % wedge) 
         self.check_changes()
         return False
@@ -472,7 +473,7 @@ class RunWidget(gtk.Frame):
         else:
             tt_max = 0.0
 
-        if two_theta > tt_max: two_theta = tt_max
+        two_theta = max(0.0, min(tt_max, two_theta))
         self.entry['two_theta'].set_text('%0.2f' % two_theta) 
         self.check_changes()
         return False
@@ -500,8 +501,7 @@ class RunWidget(gtk.Frame):
         else:
             d_max = 1000.0
 
-        if distance < d_min:  distance = d_min
-        if distance > d_max:  distance = d_max
+        distance = max(d_min, min(distance, d_max))
           
         self.entry['distance'].set_text('%0.1f' % distance)
         self.check_changes()

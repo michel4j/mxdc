@@ -6,6 +6,8 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.engine.scanning import BasicScan, ScanError
 from bcm.utils.science import get_energy_database, xanes_targets
 from bcm.utils.log import get_module_logger
+import os
+import time
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -29,7 +31,7 @@ class XRFScan(BasicScan):
     def __simulate(self):
         import numpy
         import time
-        raw = numpy.loadtxt('XRFTest.raw', comments="#")
+        raw = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'bcm/test/XRFTest.raw'), comments="#")
         self.data = raw
         gobject.idle_add(self.emit, "done")
         gobject.idle_add(self.emit, "progress", 1.0)
@@ -38,13 +40,13 @@ class XRFScan(BasicScan):
         _logger.debug('Exitation Scan waiting for beamline to become available.')
         if self.beamline is None:
             _logger.error('Beamline unavailable')
-            #gobject.idle_add(self.emit, "error", 'Beamline unavailable')
             self.__simulate()               
             return
         self.beamline.lock.acquire()
         try:
             _logger.debug('Exitation Scan started')
             gobject.idle_add(self.emit, 'started')     
+            # wait for detector to cool down
             self.beamline.mca.configure(cooling=True, energy=None)
             self.beamline.attenuator.set(self._attenuation)
             if self._energy is not None:
@@ -80,14 +82,14 @@ class XANESScan(BasicScan):
     def __simulate(self):
         import numpy
         import time
-        raw = numpy.loadtxt('SeMet.raw', comments="#")
+        raw = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'bcm/test/SeMet.raw'), comments="#")
         _logger.info("%4s %15s %15s %15s %15s" % ('#', 'Energy', 'Scaled Counts', 'Reference Count','Unscaled Counts'))
         for i in range(len(raw[:,0])):
             if self._stopped:
                 _logger.info("Scan stopped!")
                 break
             y = raw[i,1]
-            x = raw[i,0]/1000.0
+            x = raw[i,0]
             i0 = 1.0
             self.data.append( [x, y/i0, i0, y] )
             fraction = float(i+1)/len(raw[:,0])
@@ -102,7 +104,7 @@ class XANESScan(BasicScan):
         else:
             _logger.info("XANES Scan complete.")
             gobject.idle_add(self.emit, "done")
-            gobject.idle_add(self.emit, "progress", 1.0)
+            gobject.idle_add(self.emit, "progress", 1.0 )
                 
                 
         
@@ -110,7 +112,6 @@ class XANESScan(BasicScan):
         _logger.info('Edge Scan waiting for beamline to become available.')
         if self.beamline is None:
             _logger.error('Beamline unavailable')
-            #gobject.idle_add(self.emit, "error", 'Beamline unavailable')
             self.__simulate()               
             return
         self.beamline.lock.acquire()

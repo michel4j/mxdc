@@ -61,8 +61,8 @@ class SampleViewer(gtk.Frame):
             bx = self.beamline.beam_x.get_position()
             by = self.beamline.beam_y.get_position()
             pix_size = self.beamline.sample_video.resolution
-            cx = self.beamline.registry['camera_center_x'].get()
-            cy = self.beamline.registry['camera_center_y'].get()
+            cx = self.beamline.camera_center_x.get()
+            cy = self.beamline.camera_center_y.get()
         except ca.ChannelAccessError:
             pass
         else:
@@ -83,8 +83,8 @@ class SampleViewer(gtk.Frame):
             bh = self.beamline.beam_h.get_position()
             bx = self.beamline.beam_x.get_position()
             by = self.beamline.beam_y.get_position()
-            cx = self.beamline.registry['camera_center_x'].get()
-            cy = self.beamline.registry['camera_center_y'].get()
+            cx = self.beamline.camera_center_x.get()
+            cy = self.beamline.camera_center_y.get()
         except:
             cx = w//2
             bw = bh = 1.0
@@ -94,13 +94,15 @@ class SampleViewer(gtk.Frame):
         # slit sizes in pixels
         sw = bw / pix_size 
         sh = bh / pix_size
-        if sw  >= w or sh >= h:
-            return
         x = int((cx - (bx / pix_size)) * self.video.scale)
         y = int((cy - (by / pix_size)) * self.video.scale)
+        #if sw  >= w or sh >= h:
+        #    return
         hw = int(0.5 * sw * self.video.scale)
         hh = int(0.5 * sh * self.video.scale)
         tick = int(self._tick_size * self.video.scale)
+        pixmap.draw_line(self.video.ol_gc, x-tick, y, x+tick, y)
+        pixmap.draw_line(self.video.ol_gc, x, y-tick, x, y+tick)
         
         pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw, y-hh+tick)
         pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw+tick, y-hh)
@@ -110,8 +112,6 @@ class SampleViewer(gtk.Frame):
         pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw+tick, y+hh)
         pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw, y-hh+tick)
         pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw-tick, y-hh)
-        pixmap.draw_line(self.video.ol_gc, x-tick, y, x+tick, y)
-        pixmap.draw_line(self.video.ol_gc, x, y-tick, x, y+tick)
         return
         
     def draw_measurement(self, pixmap):
@@ -134,8 +134,8 @@ class SampleViewer(gtk.Frame):
         im_x = int(float(x) / self.video.scale)
         im_y = int(float(y) / self.video.scale)
         try:
-            cx = self.beamline.registry['camera_center_x'].get()
-            cy = self.beamline.registry['camera_center_y'].get()
+            cx = self.beamline.camera_center_x.get()
+            cy = self.beamline.camera_center_y.get()
         except  ca.ChannelAccessError:
             cx, cy = self.beamline.sample_video.size
             cx //=2
@@ -152,13 +152,14 @@ class SampleViewer(gtk.Frame):
         return False
 
     def center_pixel(self, x, y):
-        tmp_omega = int(self.beamline.goniometer.omega.get_position() )
-        sin_w = math.sin(tmp_omega * math.pi / 180)
-        cos_w = math.cos(tmp_omega * math.pi / 180)
+        #tmp_omega = int(self.beamline.goniometer.omega.get_position() )
+        #sin_w = math.sin(tmp_omega * math.pi / 180)
+        #cos_w = math.cos(tmp_omega * math.pi / 180)
         im_x, im_y, xmm, ymm = self._img_position(x,y)
-        self.beamline.sample_stage.x.move_by(-xmm)
-        self.beamline.sample_stage.y.move_by(-ymm * sin_w)
-        self.beamline.sample_stage.z.move_by(ymm * cos_w)
+        self.beamline.sample_stage.x.move_by(-xmm, wait=True)
+        self.beamline.sample_stage.y.move_by(-ymm)
+        #self.beamline.sample_stage.y.move_by(-ymm * sin_w)
+        #self.beamline.sample_stage.z.move_by(ymm * cos_w)
 
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
@@ -357,21 +358,13 @@ class SampleViewer(gtk.Frame):
         return True  
                 
     def on_fine_up(self,widget):
-        tmp_omega = int(round(self.beamline.goniometer.omega.get_position()))
-        sin_w = math.sin(tmp_omega * math.pi / 180)
-        cos_w = math.cos(tmp_omega * math.pi / 180)
         step_size = self.beamline.sample_video.resolution * 10.0
-        self.beamline.sample_stage.y.move_by( step_size * sin_w * 0.5 )
-        self.beamline.sample_stage.z.move_by( -step_size * cos_w * 0.5 )   
+        self.beamline.sample_stage.y.move_by( step_size * 0.5 )
         return True
         
     def on_fine_down(self,widget):
-        tmp_omega = int(round(self.beamline.goniometer.omega.get_position()))
-        sin_w = math.sin(tmp_omega * math.pi / 180)
-        cos_w = math.cos(tmp_omega * math.pi / 180)
         step_size = self.beamline.sample_video.resolution * 10.0
-        self.beamline.sample_stage.y.move_by( -step_size * sin_w * 0.5)
-        self.beamline.sample_stage.z.move_by( step_size * cos_w * 0.5)   
+        self.beamline.sample_stage.y.move_by( -step_size * 0.5)
         return True
         
     def on_fine_left(self,widget):
@@ -385,7 +378,7 @@ class SampleViewer(gtk.Frame):
         return True
         
     def on_home(self,widget):
-        self.beamline.sample_stage.x.move_to( 22.0 )
+        #self.beamline.sample_stage.x.move_to( 22.0 )
         return True
                 
                         

@@ -71,18 +71,15 @@ class CenterSample(Script):
         # calculate motor positions and move
         x = results['Y_CENTRE']
         y = results['X_CENTRE'] - results['RADIUS']
-        tmp_omega = results['TARGET_ANGLE']
-        sin_w = math.sin(tmp_omega * math.pi / 180)
-        cos_w = math.cos(tmp_omega * math.pi / 180)
+        self.beamline.goniometer.omega.move_to(results['TARGET_ANGLE'], wait=True)
         pixel_size = self.beamline.sample_video.resolution
         x_offset = self.beamline.registry['camera_center_x'].get() - x
         y_offset = self.beamline.registry['camera_center_y'].get() - y
         xmm = x_offset * pixel_size
         ymm = y_offset * pixel_size
     
-        self.beamline.sample_stage.x.move_by( -xmm)
-        self.beamline.sample_stage.y.move_by( -ymm * sin_w)
-        self.beamline.sample_stage.z.move_by( ymm * cos_w)
+        self.beamline.sample_stage.x.move_by(-xmm, wait=True)
+        self.beamline.sample_stage.y.move_by(ymm)
             
         self.beamline.logger.info('Loop centering cleaning up ...')
         for angle,img in imglist:
