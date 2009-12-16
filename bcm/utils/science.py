@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Science Utilities."""
 
 import os
@@ -86,12 +85,11 @@ def get_peak_database():
     table_data = get_periodic_table()
     peak_db = {}
     em_keys = ['Ka', 'Ka1', 'Ka2', 'Kb', 'Kb1','La1'] #,'Lb1','Lb2', 'Lg1','Lg2','Lg3','Lg4','Ll']
-    em_names = ['Kα', 'Kα₁', 'Kα₂', 'Kβ', 'Kβ₁','Lα₁'] #,'Lβ₁','Lβ₂', 'Lγ₁','Lγ₂','Lγ₃','Lγ₄','Lλ']
     for key in table_data.keys():
-        for em, nm in zip(em_keys, em_names):
+        for em in em_keys:
             v = float(table_data[key][em])
             if v > 0.01:
-                peak_db["%s-%s" % (key,nm)] = v
+                peak_db["%s-%s" % (key,em)] = v
     return peak_db
     
 
@@ -106,7 +104,7 @@ def get_signature(elements):
     return signature
 
 
-def assign_peaks(peaks, dev=0.01):
+def assign_peaks(peaks, dev=0.02):
     mypeaks = peaks[:]
     data = get_peak_database()
     for peak in mypeaks:

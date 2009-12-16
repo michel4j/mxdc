@@ -383,7 +383,6 @@ class MotorShutter(object):
         return self.motor.get_state()
 
 class FixedLine2Motor(MotorBase):
-    implements(IMotor)
     
     def __init__(self, x, y, slope, intercept, linked=False):
         MotorBase.__init__(self, 'FixedOffset')        
@@ -395,7 +394,7 @@ class FixedLine2Motor(MotorBase):
         self.y.connect('changed', self._signal_change)
             
     def get_state(self):
-        return self.m1.get_state()
+        return self.y.get_state()
     
     def __repr__(self):
         return '<FixedLine2Motor: \n\t%s,\n\t%s,\n\tslope=%0.2f, intercept=%0.2f\n>' % (self.x, self.y, self.slope, self.intercept)
@@ -437,6 +436,56 @@ class FixedLine2Motor(MotorBase):
         self.y.wait(start=start, stop=False)
         self.x.wait(start=False, stop=stop)
         self.y.wait(start=False, stop=stop)
+
+
+class RelVerticalMotor(MotorBase):
+
+    def __init__(self, y1, y2, omega):
+        MotorBase.__init__(self, 'Relative Vertical')        
+        self.y1 = y1
+        self.y2 = y2
+        self.omega = omega
+            
+    def get_state(self):
+        return self.y1.get_state() | self.y2.get_state()
+    
+    def __repr__(self):
+        return '<RelVerticalMotor: %s, %s >' % (self.y1, self.y2)
+        
+    def get_position(self):
+        return 0
+        
+    def configure(self, **kwargs):
+        pass
+                                                    
+    def move_to(self, val, wait=False, force=False):
+        if val == 0.0:
+            return
+        tmp_omega = int(self.omega.get_position() )
+        sin_w = math.sin(tmp_omega * math.pi / 180)
+        cos_w = math.cos(tmp_omega * math.pi / 180)
+        self.y1.move_by(val * sin_w)
+        self.y2.move_by(-val * cos_w)
+        if wait:
+            self.wait()
+    move_by = move_to
+                
+    def is_moving(self):
+        return self.y1.is_moving() or self.y2.is_moving()
+    
+    def is_healthy(self):
+        return self.y2.is_healthy() and self.y1.is_healthy()
+                                 
+    def stop(self):
+        self.y2.stop()
+        self.y1.stop()
+    
+    def wait(self, start=True, stop=True):
+        self.y2.wait(start=start, stop=False)
+        self.y1.wait(start=start, stop=False)
+        self.y2.wait(start=False, stop=stop)
+        self.y1.wait(start=False, stop=stop)
+
 
 registry.register([IMotor], IShutter, '', MotorShutter)  
 from bcm.service.utils import *

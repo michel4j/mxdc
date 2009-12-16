@@ -99,7 +99,7 @@ class VideoWidget(gtk.DrawingArea):
         self.pl_gc.foreground = self.get_colormap().alloc_color("#ffaaff")
         self.ol_gc = self.window.new_gc()
         self.ol_gc.foreground = self.get_colormap().alloc_color("green")
-        self.ol_gc.set_function(gtk.gdk.XOR)
+        #self.ol_gc.set_function(gtk.gdk.XOR)
         self.ol_gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
         self.camera.add_sink(self)
         return True
