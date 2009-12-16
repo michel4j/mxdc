@@ -29,14 +29,15 @@ class MultiChannelAnalyzer(object):
         self.READ = ca.PV("%s.READ" % name, monitor=False)
         self.RDNG = ca.PV("%s.RDNG" % name)
         self.START = ca.PV("%s.ERST" % name, monitor=False)
+        self.TMP = ca.PV("%s:Rontec1Temperature" % name_parts[0])
 
         self.ERASE = ca.PV("%s.ERAS" % name, monitor=False)
         self.IDTIM = ca.PV("%s.IDTIM" % name, monitor=False)
         self.TMODE = ca.PV("%s:Rontec1SetMode" % name_parts[0], monitor=False)
-        #self.SCAN = ca.PV("%s.SCAN" % name)
+        self._temp_scan = ca.PV("%s:Rontec1ReadTemperature.SCAN" % name_parts[0], monitor=False)
         self.ACQG = ca.PV("%s.ACQG" % name)
-        #self._status_scan = ca.PV("%s:mca1Status.SCAN" % name_parts[0], monitor=False)
-        #self._read_scan = ca.PV("%s:mca1Read.SCAN" % name_parts[0], monitor=False)
+        self._status_scan = ca.PV("%s:mca1Status.SCAN" % name_parts[0], monitor=False)
+        self._read_scan = ca.PV("%s:mca1Read.SCAN" % name_parts[0], monitor=False)
         self._stop_cmd = ca.PV("%s:mca1Stop" % name_parts[0], monitor=False)
         self.channels = channels
         self.region_of_interest = (0, self.channels)
@@ -57,9 +58,20 @@ class MultiChannelAnalyzer(object):
         #self._x_axis = numpy.arange(0,4096,1)
 
     def configure(self, **kwargs):
+        # configure the mcarecord scan parameters
+        self._temp_scan.put(5) # 2 seconds
+        self._status_scan.put(9) # 0.1 second
+        self._read_scan.put(0) # Passive
+        
         for k,v in kwargs.items():
             if k == 'cooling':
-                self._set_temp(v)
+                if self.TMP.get() >= -25.0 and v:
+                    self._set_temp(v)
+                    while self.TMP.get() > -25:
+                        time.sleep(1)
+                else:
+                    self._set_temp(v)
+                
             if k == 'roi':
                 if v is None:
                     self.region_of_interest = (0, self.channels)
@@ -71,7 +83,7 @@ class MultiChannelAnalyzer(object):
                 else:
                     midp = self.energy_to_channel(v)
                     self.region_of_interest = (midp - self.half_roi_width, 
-                                               midp + self.half_roi_width)
+                                               midp + self.half_roi_width)        
     def _set_temp(self, on):
         if on:
             self.TMODE.set(2)

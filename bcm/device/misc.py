@@ -306,10 +306,30 @@ class XYZStage(object):
         self.y.stop()
         self.z.stop()
 
-class XYStage(object):
+class SampleStage(object):
 
     implements(IStage)
     
+    def __init__(self, x, y1, y2, omega, name='Sample Stage'):
+        from bcm.device.motor import RelVerticalMotor
+        self.name = name
+        self.x  = x
+        self.y  = RelVerticalMotor(y1, y2, omega)
+                    
+    def get_state(self):
+        return self.x.get_state() | self.y.get_state() 
+                        
+    def wait(self):
+        self.x.wait()
+        self.y.wait()
+
+    def stop(self):
+        self.x.stop()
+        self.y.stop()
+ 
+
+class XYStage(object):
+    implements(IStage)
     def __init__(self, x, y, name='XY Stage'):
         self.name = name
         self.x  = x
@@ -325,7 +345,7 @@ class XYStage(object):
     def stop(self):
         self.x.stop()
         self.y.stop()
- 
+
 
 class Collimator(object):
 

@@ -93,6 +93,7 @@ class DummyAutomounter(BasicAutomounter):
         BasicAutomounter.__init__(self)
         self.name = 'Sim Automounter'
         self.parse_states(states)
+        self.nitrogen_level = ca.PV('junk')
     
     def mount(self, port, wash=False):
         param = port[0] + ' ' + port[2:] + ' ' + port[1] + ' '
@@ -110,7 +111,7 @@ class DummyAutomounter(BasicAutomounter):
         
        
 class Automounter(BasicAutomounter):
-    def __init__(self, pv_name):
+    def __init__(self, pv_name, pv_name2=None):
         BasicAutomounter.__init__(self)
         self.name = 'Sample Automounter'
         self._pv_name = pv_name
@@ -125,7 +126,7 @@ class Automounter(BasicAutomounter):
         self._last_warn = ''
         
         self.port_states = ca.PV('%s:cassette:fbk' % pv_name)
-        self.nitrogen_level = ca.PV('%s:level' % pv_name)
+        self.nitrogen_level = ca.PV('%s:LN2Fill:lvl:fbk' % pv_name2)
         self.heater_temperature = ca.PV('%s:temp' % pv_name)
         self.status_msg = ca.PV('%s:status:state' % pv_name)
         self.status_val = ca.PV('%s:status:val' % pv_name)
