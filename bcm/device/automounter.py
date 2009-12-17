@@ -118,7 +118,7 @@ class Automounter(BasicAutomounter):
         
         #initialize housekeeping vars
         self._busy = False
-        self._state_dict = {'busy': self._busy, 'healthy': True, 'needs':[], 'diagnosis':[]}
+        self._state_dict = {'busy': self._busy, 'healthy': True, 'barcode': '', 'needs':[], 'diagnosis':[]}
         self._mounted_port = None
         self._tool_pos = None
         self._total_steps = 0
@@ -140,6 +140,7 @@ class Automounter(BasicAutomounter):
         self._wash_param = ca.PV('%s:washX:param' % pv_name)
         self._bar_code = ca.PV('%s:bcode:barcode' % pv_name)
         self._barcode_reset = ca.PV('%s:bcode:clear' % pv_name)
+        self._enabled = ca.PV('%s:mntEn' % pv_name)
         
         
         self.port_states.connect('changed', lambda x, y: self.parse_states(y))
