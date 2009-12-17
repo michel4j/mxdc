@@ -69,7 +69,7 @@
               <widget class="GtkToolButton" id="delete_btn">
                 <property name="visible">True</property>
                 <property name="tooltip" translatable="yes">Delete Run</property>
-                <property name="stock_id">gtk-delete</property>
+                <property name="stock_id">gtk-remove</property>
               </widget>
               <packing>
                 <property name="expand">False</property>
