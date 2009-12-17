@@ -14,6 +14,7 @@ except:
 from bcm.utils.automounter import *
 from bcm.device.automounter import Automounter, DummyAutomounter
 from mxdc.widgets.gauge import Gauge
+from mxdc.widgets.misc import StatusDisplay
 
 class _DummyEvent(object):
     width = 0
@@ -323,8 +324,9 @@ class SamplePicker(gtk.Frame):
                                   'sample_picker')
         self.add(self.sample_picker)
         self.automounter = automounter
-        pango_font = pango.FontDescription('Monospace 7')
+        pango_font = pango.FontDescription('Sans 7')
         self.msg_view.modify_font(pango_font)
+        self.pbar.modify_font(pango_font)
         
         self.containers = {}
         for k in ['Left','Middle','Right']:
@@ -347,6 +349,11 @@ class SamplePicker(gtk.Frame):
         self.ln2_gauge.set_property('low', 70.0)
         self.level_frame.add(self.ln2_gauge)
         self.automounter.nitrogen_level.connect('changed', self._on_level)
+        self.throbber = gtk.Image()
+        self.throbber_box.pack_end(self.throbber, expand=False, fill=False)
+        self.throbber.show_all()
+        self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+                                                               'data/busy.gif'))        
         
         
     def __getattr__(self, key):
@@ -377,29 +384,32 @@ class SamplePicker(gtk.Frame):
         port = self.mounted.get_text().strip()
         self.automounter.dismount(port)
     
-    def on_progress(self, obj, val):
+    def on_progress(self, obj, state):
+        val, msg = state
         self.pbar.set_fraction(val)
+        self.pbar.set_text(msg)
     
     def on_message(self, obj, str):
-        self.msg_view.get_buffer().set_text(str)
+        buf = self.msg_view.get_buffer()
+        iter = buf.get_start_iter()
+        buf.insert(iter, '- %s \n' % (str))
             
     def on_state(self, obj, state):
         needstxt = _format_error_string(state)
-        self.msg_view.get_buffer().set_text(needstxt)
+        self.on_message(None, needstxt)
         statustxt = ''
         if state['healthy']:
             statustxt += '- Normal\n'
         else:
             statustxt += '- Not Normal\n'
         if state['busy']:
-            statustxt += '- Busy\n'
+            self.throbber.set_from_animation(self._animation)
             self.command_tbl.set_sensitive(False)
         else:
-            statustxt += '- Idle\n'
+            self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_MENU)
             self.command_tbl.set_sensitive(True)
             
         
-        self.status_lbl.set_markup(statustxt)
     
     def on_sample_mounted(self, obj, port):
         if port is not None:

@@ -69,7 +69,7 @@ class BasicAutomounter(gobject.GObject):
         'state': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'message': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'mounted': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'progress':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)),
+        'progress':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
     }
     
     def __init__(self):
@@ -128,25 +128,32 @@ class Automounter(BasicAutomounter):
         self.port_states = ca.PV('%s:cassette:fbk' % pv_name)
         self.nitrogen_level = ca.PV('%s:LN2Fill:lvl:fbk' % pv_name2)
         self.heater_temperature = ca.PV('%s:temp' % pv_name)
-        self.status_msg = ca.PV('%s:status:state' % pv_name)
+        self.status_opr = ca.PV('%s:status:state' % pv_name)
+        self.status_msg = ca.PV('%s:sample:msg' % pv_name)
         self.status_val = ca.PV('%s:status:val' % pv_name)
+        self._warning = ca.PV('%s:status:warning' % pv_name)
         self._mount_cmd = ca.PV('%s:mntX:opr' % pv_name)
         self._mount_param = ca.PV('%s:mntX:param' % pv_name)
         self._dismount_cmd = ca.PV('%s:dismntX:opr' % pv_name)
         self._dismount_param = ca.PV('%s:dismntX:param' % pv_name)
         self._mount_next_cmd = ca.PV('%s:mntNextX:opr' % pv_name)
         self._wash_param = ca.PV('%s:washX:param' % pv_name)
+        self._bar_code = ca.PV('%s:bcode:barcode' % pv_name)
+        self._barcode_reset = ca.PV('%s:bcode:clear' % pv_name)
+        
+        
         self.port_states.connect('changed', lambda x, y: self.parse_states(y))
-        self.status_msg.connect('changed', self._on_status_message)
-        self.status_val.connect('changed', self._on_status_changed)
         
         #Detailed Status
         self._mounted =  ca.PV('%s:status:mounted' % pv_name)
         self._position = ca.PV('%s:state:curPnt' % pv_name)
         self._mounted.connect('changed', self._on_mount_changed)
         self._position.connect('changed', self._on_pos_changed)
-        self._warning = ca.PV('%s:status:warning' % pv_name)
         self._warning.connect('changed', self._on_status_warning)
+        self.status_opr.connect('changed', self._on_status_operation)
+        self.status_msg.connect('changed', self._on_status_message)
+        self.status_val.connect('changed', self._on_status_changed)
+        #self._bar_code.connect('changed', self._on_barcode)
         
     def probe(self):
         pass
@@ -194,9 +201,11 @@ class Automounter(BasicAutomounter):
     def wait(self, state='idle'):
         self._wait_for_state(state,timeout=30.0)
     
-    def _report_progress(self):
+    def _report_progress(self, msg=""):
+        prog = 0.0
         if self._total_steps > 0:
-            gobject.idle_add(self.emit, 'progress', float(self._step_count)/self._total_steps)
+            prog = float(self._step_count)/self._total_steps
+        gobject.idle_add(self.emit, 'progress', (prog, msg))
 
     def _on_mount_changed(self, pv, val):
         vl = val.split()
@@ -222,14 +231,16 @@ class Automounter(BasicAutomounter):
         gobject.idle_add(self.emit, 'state', self._state_dict)  
         
         
-    def _on_status_message(self, pv, val):
+    def _on_status_operation(self, pv, val):
         self._busy = not (val == 'idle' or val.strip() == '')
         if self._busy != self._state_dict['busy']:
             self._state_dict['busy'] = self._busy
             gobject.idle_add(self.emit, 'state', self._state_dict)
-        if len(val) > 0:
-            msg_key = val.split()[0].replace('_', ' ')
-            gobject.idle_add(self.emit, 'message', msg_key)
+            
+
+    def _on_status_message(self, pv, msg):
+        if len(msg) > 0:
+            gobject.idle_add(self.emit, 'message', msg)
 
     def _on_status_warning(self, pv, val):
         if val.strip() != '' and val != self._last_warn:
@@ -240,8 +251,8 @@ class Automounter(BasicAutomounter):
     def _on_pos_changed(self, pv, val):
         if val != self._tool_pos:
             self._step_count += 1
-            self._report_progress()
-            _logger.debug('Current Position: %s %d' % (val,self._step_count))
+            self._report_progress(val)
+            _logger.debug('Current Position: %s' % (val))
             self._tool_pos = val
 
     def _wait_for_state(self, state, timeout=5.0):
