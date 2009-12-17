@@ -65,12 +65,7 @@
               <widget class="GtkHBox" id="throbber_box">
                 <property name="visible">True</property>
                 <child>
-                  <widget class="GtkLabel" id="state_lbl">
-                    <property name="visible">True</property>
-                  </widget>
-                  <packing>
-                    <property name="position">0</property>
-                  </packing>
+                  <placeholder/>
                 </child>
                 <child>
                   <placeholder/>
@@ -251,6 +246,7 @@
             <child>
               <widget class="GtkHBox" id="pbar_box">
                 <property name="visible">True</property>
+                <property name="spacing">3</property>
                 <child>
                   <widget class="GtkProgressBar" id="pbar">
                     <property name="height_request">10</property>
@@ -260,8 +256,12 @@
                     <property name="position">0</property>
                   </packing>
                 </child>
+                <child>
+                  <placeholder/>
+                </child>
               </widget>
               <packing>
+                <property name="padding">2</property>
                 <property name="position">6</property>
               </packing>
             </child>
