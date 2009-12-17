@@ -30,6 +30,7 @@ def _register_icons():
             setattr(gtk, id_name, stock)
 
 def _register_icon_reuse():
+    extra_icons =  ['idle','good','bad']
 
     # We're too lazy to make our own icons, so we use regular stock icons.
     icons = [
@@ -58,11 +59,19 @@ def _register_icon_reuse():
     for new_stock, alias in icons:
         icon_set = gtk.icon_factory_lookup_default(alias)
         factory.add(new_stock, icon_set)
+    
+    for icon in extra_icons:
+        fn = 'stock_%s.png' % icon
+        stock_id = 'mxdc-%s' % icon
+        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR, fn))
+        icon_set = gtk.IconSet(pixbuf)
+        factory.add(stock_id, icon_set)
+    
 
 
 try:
     id = gtk.STOCK_MEDIA_PLAY
 except:
     _register_icons()
-
+    
 _register_icon_reuse()
