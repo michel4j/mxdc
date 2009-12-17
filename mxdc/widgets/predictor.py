@@ -78,7 +78,7 @@ class Predictor( gtk.AspectFrame ):
         #cntr = self.axis.contour(self.xp, self.yp, self.Z, 16)
         self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)        
         self.canvas.draw()
-        _logger.debug('Predictor Widget updating...')
+        #_logger.debug('Predictor Widget updating...')
         self.last_updated = time.time()
         return False
         

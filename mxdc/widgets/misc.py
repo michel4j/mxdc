@@ -295,7 +295,27 @@ class ShutterStatus(gtk.HBox):
     def _set_off(self):
         self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_MENU)
     
-    
+
+class StatusDisplay(gtk.HBox):
+    def __init__(self, icon_list, message):
+        gtk.HBox.__init__(self, False, 0)
+        self.message = message
+        self.icon_list = icon_list
+        self.image = gtk.Image()
+        self.label = gtk.Label()
+        self.pack_start(self.image, expand=False, fill=False)
+        self.pack_start(self.label, expand=True, fill=True)
+                                        
+    def set_state(self, val=None, message=None):
+        if val is not None:
+            if len(self.icon_list) > val > 0:
+                self.image.set_from_stock(self.icon_list[val], gtk.ICON_SIZE_MENU)
+        if message is not None:
+            self.message = message
+            self.label.set_markup(message)
+        
+        
+        
 class ActiveProgressBar(gtk.ProgressBar):
     def __init__(self):
         gtk.ProgressBar.__init__(self)    
