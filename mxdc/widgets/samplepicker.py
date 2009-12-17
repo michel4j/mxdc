@@ -349,11 +349,14 @@ class SamplePicker(gtk.Frame):
         self.ln2_gauge.set_property('low', 70.0)
         self.level_frame.add(self.ln2_gauge)
         self.automounter.nitrogen_level.connect('changed', self._on_level)
+        
+        # extra widgets
         self.throbber = gtk.Image()
         self.throbber_box.pack_end(self.throbber, expand=False, fill=False)
         self.throbber.show_all()
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
-                                                               'data/busy.gif'))        
+                                                               'data/busy.gif'))
+           
         
         
     def __getattr__(self, key):
@@ -398,15 +401,14 @@ class SamplePicker(gtk.Frame):
         needstxt = _format_error_string(state)
         self.on_message(None, needstxt)
         statustxt = ''
-        if state['healthy']:
-            statustxt += '- Normal\n'
-        else:
-            statustxt += '- Not Normal\n'
-        if state['busy']:
+        if not state['healthy']:
+            self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_MENU)
+        elif state['busy']:
             self.throbber.set_from_animation(self._animation)
             self.command_tbl.set_sensitive(False)
         else:
             self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_MENU)
+            self.pbar.set_text('idle')
             self.command_tbl.set_sensitive(True)
             
         
