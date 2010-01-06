@@ -60,6 +60,7 @@
         <child>
           <widget class="GtkVBox" id="vbox1">
             <property name="visible">True</property>
+            <property name="orientation">vertical</property>
             <property name="spacing">3</property>
             <child>
               <widget class="GtkHBox" id="throbber_box">
@@ -182,7 +183,14 @@
                     <property name="visible">True</property>
                     <property name="orientation">vertical</property>
                     <child>
-                      <placeholder/>
+                      <widget class="GtkLabel" id="lbl_barcode">
+                        <property name="visible">True</property>
+                        <property name="xalign">0.10000000149011612</property>
+                        <property name="ypad">2</property>
+                      </widget>
+                      <packing>
+                        <property name="position">0</property>
+                      </packing>
                     </child>
                     <child>
                       <placeholder/>
@@ -196,7 +204,7 @@
                   <widget class="GtkLabel" id="label5">
                     <property name="visible">True</property>
                     <property name="xalign">0</property>
-                    <property name="label" translatable="yes">&lt;b&gt;Status:&lt;/b&gt;</property>
+                    <property name="label" translatable="yes">&lt;b&gt;Sample BarCode:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
                   <packing>
