@@ -154,7 +154,8 @@ class Automounter(BasicAutomounter):
         self.status_opr.connect('changed', self._on_status_operation)
         self.status_msg.connect('changed', self._on_status_message)
         self.status_val.connect('changed', self._on_status_changed)
-        #self._bar_code.connect('changed', self._on_barcode)
+        self._enabled.connect('changed', self._on_enabled)
+        self._bar_code.connect('changed', self._on_barcode)
         
     def probe(self):
         pass
@@ -165,7 +166,7 @@ class Automounter(BasicAutomounter):
             self._wash_param.put('1')
         else:
             self._wash_param.put('0')
-        
+        self._barcode_reset.put(1)
         #use mount_next if something already mounted
         if self._mounted.get().strip() != '':
             dis_param = self._mounted.get()
@@ -207,7 +208,15 @@ class Automounter(BasicAutomounter):
         if self._total_steps > 0:
             prog = float(self._step_count)/self._total_steps
         gobject.idle_add(self.emit, 'progress', (prog, msg))
-
+    
+    def _on_enabled(self, pv, st):
+        self._state_dict.update({'healthy': (st==1)})
+        gobject.idle_add(self.emit, 'state', self._state_dict)
+    
+    def _on_barcode(self, pv, code):
+        self._state_dict.update({'barcode': code})
+        gobject.idle_add(self.emit, 'state', self._state_dict)
+                                        
     def _on_mount_changed(self, pv, val):
         vl = val.split()
         if val == " ":
