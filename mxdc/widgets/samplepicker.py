@@ -410,6 +410,7 @@ class SamplePicker(gtk.Frame):
             self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_MENU)
             self.pbar.set_text('idle')
             self.command_tbl.set_sensitive(True)
+        self.lbl_barcode.set_text(state.get('barcode',''))
             
         
     
