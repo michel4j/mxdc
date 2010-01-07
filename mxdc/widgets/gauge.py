@@ -38,7 +38,7 @@ class Gauge(gtk.DrawingArea):
         }
         self.minimum, self.maximum, self.majticks, self.minticks = minimum, maximum, majticks, minticks
 
-        self.set_size_request(125,75)
+        self.set_size_request(120,70)
 
     def on_realize(self, obj):
         self.connect('notify', self._on_property_change)

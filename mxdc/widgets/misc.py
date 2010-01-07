@@ -168,11 +168,12 @@ class MotorEntry(ActiveEntry):
  
     def _on_health_change(self, obj, state):
         if state:
-            #self.set_sensitive(True)
+            self._entry.set_sensitive(True)
             self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
         else:
-            #self.set_sensitive(False)
+            self._entry.set_sensitive(False)
             self._action_icon.set_from_stock('gtk-dialog-warning', gtk.ICON_SIZE_MENU)
+            
     
     def _on_motion_change(self, obj, motion):
         if motion:

@@ -55,7 +55,7 @@ class HutchManager(gtk.Frame):
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
         self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
         self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))
-        self.video_book.connect('map', lambda x: self.video_book.set_current_page(0))
+        self.video_book.connect('realize', lambda x: self.video_book.set_current_page(0))
         if self.beamline.registry.get('beam_video'):
             self.beam_viewer = SimpleVideo(self.beamline.registry['beam_video'])
             self.video_book.append_page(self.beam_viewer, tab_label=gtk.Label('Beam Camera'))  
@@ -115,7 +115,7 @@ class HutchManager(gtk.Frame):
         self.sample_picker.set_border_width(6)
         self.tool_book.append_page(self.sample_picker, tab_label=gtk.Label('Sample Auto-mounting'))        
         self.tool_book.append_page(self.cryo_controller, tab_label=gtk.Label(' Cryojet Control '))
-        self.tool_book.connect('map', lambda x: self.tool_book.set_current_page(1))       
+        self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(1))       
         
         #logging
         self.log_viewer = TextViewer(self._xml.get_widget('log_view'))
