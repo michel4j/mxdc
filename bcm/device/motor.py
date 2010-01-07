@@ -202,6 +202,11 @@ class Motor(MotorBase):
                                     
     def move_to(self, pos, wait=False, force=False):
 
+        # Do not move if motor state is not sane.
+        if not self.is_healthy():
+            _logger.warning( "(%s) is not in a sane state. Move canceled!" % (self.name,) )
+            return
+        
         # Do not move is requested position is within precision error
         # from current position.
         prec = self.PREC.get()
@@ -213,12 +218,7 @@ class Motor(MotorBase):
             _logger.info( "(%s) is already at %s" % (self.name, _pos_to) )
             return
         
-        
-        # Do not move if motor state is not sane.
-        if not self.is_healthy():
-            _logger.warning( "(%s) is not in a sane state. Move canceled!" % (self.name,) )
-            return
-        
+                
         self._command_sent = True
         self.VAL.set(pos)
         _pos_from = _pos_format % self.get_position()
@@ -342,6 +342,11 @@ class BraggEnergyMotor(Motor):
         return converter.bragg_to_energy(self.RBV.get())
             
     def move_to(self, pos, wait=False, force=False):
+        # Do not move if motor state is not sane.
+        if not self.is_healthy():
+            _logger.warning( "(%s) is not in a sane state. Move canceled!" % (self.name,) )
+            return
+
         # Do not move if requested position is within precision error
         # from current position.
         prec = self.PREC.get()
@@ -350,11 +355,6 @@ class BraggEnergyMotor(Motor):
             _logger.info( "(%s) is already at %f" % (self.name, pos) )
             return
         
-        # Do not move if motor state is not sane.
-        if not self.is_healthy():
-            _logger.warning( "(%s) is not in a sane state. Move canceled!" % (self.name,) )
-            return
-
         deg_target = converter.energy_to_bragg(pos)
         self._command_sent = True
         self.VAL.put(deg_target)

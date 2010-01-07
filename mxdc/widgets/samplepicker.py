@@ -298,10 +298,6 @@ def _format_error_string(state):
         'action': 'action'
     }
     needs = []
-    if not state['healthy']:
-        needs_txt = 'Not normal'
-    else:
-        needs_txt = ''
     for t in state['needs']:
         ts = t.split(':') 
         if len(ts)>1:
@@ -309,11 +305,11 @@ def _format_error_string(state):
         else:
             needs.append(t)
     if len(needs) > 0:
-        needs_txt = 'Needs ' + '; '.join(needs)
-    if len(state['diagnosis']) > 0:
-        needs_txt += ' because: ' + '; '.join(state['diagnosis'])
-    
+        needs_txt = 'Needs ' + ', '.join(needs)
+    else:
+        needs_txt = ''
     return needs_txt
+    
                       
 
 class SamplePicker(gtk.Frame):
@@ -325,7 +321,7 @@ class SamplePicker(gtk.Frame):
         self.add(self.sample_picker)
         self.automounter = automounter
         pango_font = pango.FontDescription('Sans 7')
-        self.msg_view.modify_font(pango_font)
+        self.status_lbl.modify_font(pango_font)
         self.pbar.modify_font(pango_font)
         
         self.containers = {}
@@ -348,10 +344,10 @@ class SamplePicker(gtk.Frame):
         self.ln2_gauge.set_property('units','% LN2')
         self.ln2_gauge.set_property('low', 70.0)
         self.level_frame.add(self.ln2_gauge)
+
         self.automounter.nitrogen_level.connect('changed', self._on_level)
         
         # extra widgets
-        self.throbber = gtk.Image()
         self.throbber_box.pack_end(self.throbber, expand=False, fill=False)
         self.throbber.show_all()
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
@@ -393,30 +389,32 @@ class SamplePicker(gtk.Frame):
         self.pbar.set_text(msg)
     
     def on_message(self, obj, str):
-        buf = self.msg_view.get_buffer()
-        iter = buf.get_start_iter()
-        buf.insert(iter, '- %s \n' % (str))
-            
+        self.status_lbl.set_markup('%s' % str)
+        self.status_lbl.set_alignment(1.0, 0.5)
+        
     def on_state(self, obj, state):
-        needstxt = _format_error_string(state)
-        self.on_message(None, needstxt)
-        statustxt = ''
-        if not state['healthy']:
-            self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_MENU)
-        elif state['busy']:
+        needstxt = _format_error_string(state)            
+        if state['busy']:
             self.throbber.set_from_animation(self._animation)
             self.command_tbl.set_sensitive(False)
+        elif not state['enabled']:
+            self.command_tbl.set_sensitive(False)
+            self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            if needstxt != '':
+                self.on_message(None, needstxt)
         else:
-            self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_MENU)
-            self.pbar.set_text('idle')
+            self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.pbar.set_text('')
             self.command_tbl.set_sensitive(True)
-        self.lbl_barcode.set_text(state.get('barcode',''))
             
         
     
-    def on_sample_mounted(self, obj, port):
+    def on_sample_mounted(self, obj, info):
+        port, barcode = info
         if port is not None:
             self.mounted.set_text(port)
+            self.lbl_port.set_markup('<i>Port:</i> %s' % port)
+            self.lbl_barcode.set_markup('<i>Code:</i> %s ' % barcode)
             self.dismount_btn.set_sensitive(True)
             if self.selected.get_text().strip() == port:
                 self.selected.set_text('')
