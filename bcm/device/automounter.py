@@ -118,7 +118,7 @@ class Automounter(BasicAutomounter):
         
         #initialize housekeeping vars
         self._busy = False
-        self._state_dict = {'busy': self._busy, 'healthy': True, 'barcode': '', 'needs':[], 'diagnosis':[]}
+        self._state_dict = {'busy': self._busy, 'enabled': True, 'needs':[]}
         self._mounted_port = None
         self._tool_pos = None
         self._total_steps = 0
@@ -128,9 +128,8 @@ class Automounter(BasicAutomounter):
         self.port_states = ca.PV('%s:cassette:fbk' % pv_name)
         self.nitrogen_level = ca.PV('%s:LN2Fill:lvl:fbk' % pv_name2)
         self.heater_temperature = ca.PV('%s:temp' % pv_name)
-        self.status_opr = ca.PV('%s:status:state' % pv_name)
         self.status_msg = ca.PV('%s:sample:msg' % pv_name)
-        self.status_val = ca.PV('%s:status:val' % pv_name)
+        self.needs_val = ca.PV('%s:status:val' % pv_name)
         self._warning = ca.PV('%s:status:warning' % pv_name)
         self._mount_cmd = ca.PV('%s:mntX:opr' % pv_name)
         self._mount_param = ca.PV('%s:mntX:param' % pv_name)
@@ -141,6 +140,7 @@ class Automounter(BasicAutomounter):
         self._bar_code = ca.PV('%s:bcode:barcode' % pv_name)
         self._barcode_reset = ca.PV('%s:bcode:clear' % pv_name)
         self._enabled = ca.PV('%s:mntEn' % pv_name)
+        self._state = ca.PV('%s:sample:sts' % pv_name)
         
         
         self.port_states.connect('changed', lambda x, y: self.parse_states(y))
@@ -151,11 +151,10 @@ class Automounter(BasicAutomounter):
         self._mounted.connect('changed', self._on_mount_changed)
         self._position.connect('changed', self._on_pos_changed)
         self._warning.connect('changed', self._on_status_warning)
-        self.status_opr.connect('changed', self._on_status_operation)
-        self.status_msg.connect('changed', self._on_status_message)
-        self.status_val.connect('changed', self._on_status_changed)
-        self._enabled.connect('changed', self._on_enabled)
-        self._bar_code.connect('changed', self._on_barcode)
+        self.status_msg.connect('changed', self._send_message)
+        self.needs_val.connect('changed', self._on_needs_changed)
+        self._enabled.connect('changed', self._on_enabled_changed)
+        self._state.connect('changed', self._on_state_changed)
         
     def probe(self):
         pass
@@ -209,52 +208,44 @@ class Automounter(BasicAutomounter):
             prog = float(self._step_count)/self._total_steps
         gobject.idle_add(self.emit, 'progress', (prog, msg))
     
-    def _on_enabled(self, pv, st):
-        self._state_dict.update({'healthy': (st==1)})
+    def _on_enabled_changed(self, pv, st):
+        self._state_dict.update({'enabled': (st==1)})
         gobject.idle_add(self.emit, 'state', self._state_dict)
-    
-    def _on_barcode(self, pv, code):
-        self._state_dict.update({'barcode': code})
+
+    def _on_state_changed(self, pv, st):
+        self._state_dict.update({'busy': (st==1)})
         gobject.idle_add(self.emit, 'state', self._state_dict)
-                                        
+                                            
     def _on_mount_changed(self, pv, val):
         vl = val.split()
         if val == " ":
             port = None
         elif len(vl) >= 3:
             port = vl[0].upper() + vl[2] + vl[1]
+            try:
+                barcode = self._barcode.get()
+            except:
+                barcode = '[NONE]'   
             if port != self._mounted_port:
-                gobject.idle_add(self.emit, 'mounted', port)
+                gobject.idle_add(self.emit, 'mounted', (port, barcode))
                 self._mounted_port = port
-                _logger.debug('Mounted: %s' % port)
+                _logger.debug('Mounted:  port=%s barcode=%s' % (port, barcode))
         
-    def _on_status_changed(self, pv, val):
-        self._state_dict = {'busy': self._busy, 'healthy': True, 'needs':[], 'diagnosis':[]}
+    def _on_needs_changed(self, pv, val):
         _st = long(val)
+        self._state_dict['needs'] = []
         for k, txt in STATE_NEED_STRINGS.items():
             if k|_st == _st:
                 self._state_dict['needs'].append(txt)
-        for k, txt in STATE_REASON_STRINGS.items():
-            if k|_st == _st:
-                self._state_dict['diagnosis'].append(txt)
-        self._state_dict['healthy'] = (_st == 0)
         gobject.idle_add(self.emit, 'state', self._state_dict)  
         
-        
-    def _on_status_operation(self, pv, val):
-        self._busy = not (val == 'idle' or val.strip() == '')
-        if self._busy != self._state_dict['busy']:
-            self._state_dict['busy'] = self._busy
-            gobject.idle_add(self.emit, 'state', self._state_dict)
-            
+                    
 
-    def _on_status_message(self, pv, msg):
-        if len(msg) > 0:
-            gobject.idle_add(self.emit, 'message', msg)
+    def _send_message(self, pv, msg):
+        gobject.idle_add(self.emit, 'message', msg.strip())
 
     def _on_status_warning(self, pv, val):
         if val.strip() != '' and val != self._last_warn:
-            gobject.idle_add(self.emit, 'message', val)
             _logger.warn('%s' % val)
             self._last_warn = val
 
