@@ -100,8 +100,9 @@ class HutchManager(gtk.Frame):
         self.reset_btn = ScriptButton(self.scripts['FinishedMounting'], 'Collect Mode')
         self.commands_box.pack_start(self.front_end_btn)
         #self.commands_box.pack_start(self.shutter_btn)
+        self.commands_box.pack_start(self.optimize_btn)
         self.commands_box.pack_start(gtk.Label(''))
-        self.commands_box.pack_end(self.optimize_btn)
+        
         self.commands_box.pack_end(self.mount_btn)
         self.commands_box.pack_end(self.reset_btn)
         for w in [self.front_end_btn, self.shutter_btn, self.optimize_btn, self.mount_btn, self.reset_btn]:
