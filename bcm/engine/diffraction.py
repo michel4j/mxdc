@@ -2,6 +2,7 @@ import threading
 import logging
 import gobject
 import time
+import os
 
 from zope.interface import Interface, Attribute
 from zope.interface import implements
@@ -16,9 +17,28 @@ from bcm.utils.converter import energy_to_wavelength
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
+
+DEFAULT_PARAMETERS = {
+    'prefix': 'test',
+    'directory': os.environ['HOME'],
+    'distance': 250.0,
+    'delta': 1.0,
+    'time': 1.0,
+    'start_angle': 0,
+    'total_angle': 1.0,
+    'start_frame': 1,
+    'total_frames': 1,
+    'inverse_beam': False,
+    'wedge': 360.0,
+    'energy': [ 12.658 ],
+    'energy_label': ['E0'],
+    'number': 1,
+    'two_theta': 0.0,
+}
+
 class Screener(gobject.GObject):
     __gsignals__ = {}
-    __gsignals__['new-image'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT, gobject.TYPE_STRING))
+    __gsignals__['message'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_INT))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
@@ -78,22 +98,42 @@ class Screener(gobject.GObject):
     
                 # Perform the screening task here
                 task = self.run_list[self.pos]
-                print task
-                if task['task_id'] == Screener.TASK_PAUSE:
+                _logger.debug('-----------------------------------------------------')
+                if task.task_type == Screener.TASK_PAUSE:
                     self.pause()
                     pause_msg = 'Screening paused automatically, as requested, after completing '
-                    pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1]['task_name']
+                    pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
                     pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'], 
                                                                 self.run_list[self.pos]['sample']['id'])
                     
                     
-                elif task['task_id'] == Screener.TASK_MOUNT:
+                elif task.task_type == Screener.TASK_MOUNT:
+                    _logger.debug('Mount "%s"' % task['sample']['port'])
                     time.sleep(1.0)
-                elif task['task_id'] == Screener.TASK_ALIGN:
+                elif task.task_type == Screener.TASK_ALIGN:
+                    _logger.debug('Align sample "%s"' % task['sample']['id'])
                     time.sleep(1.0)
-                elif task['task_id'] == Screener.TASK_COLLECT:
+                elif task.task_type == Screener.TASK_COLLECT:
+                    run_params = DEFAULT_PARAMETERS
+                    run_params['distance'] = self.beamline.diffractometer.distance.get_position()
+                    run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
+                    run_params['energy'] = [ self.beamline.monochromator.energy.get_position() ]
+                    run_params['energy_label'] = ['E0']
+                    run_params.update({'prefix': task['sample']['id'],
+                                  'directory': os.path.join(task['directory'], task['sample']['id']),
+                                  'total_frames': task['frames'],
+                                  'start_angle': task['angle'],
+                                  'start_frame': 1,
+                                  'number': 0,
+                                  'total_angle': task['delta'] * task['frames'],
+                                  'delta': task['delta'],
+                                  'time': task['time'],})
+                    run_list = generate_run_list(run_params, show_number=True)
+                    _logger.debug('Collect frames for "%s"' % task['sample']['id'])
+                    import pprint
+                    pprint.pprint(run_list)
                     time.sleep(1.0)
-                elif task['task_id'] == Screener.TASK_ANALYSE:
+                elif task.task_type == Screener.TASK_ANALYSE:
                     time.sleep(1.0)
                            
                 # Notify progress
@@ -106,7 +146,7 @@ class Screener(gobject.GObject):
                 gobject.idle_add(self.emit, 'progress', 1.0, 0)
             self.stopped = True
         finally:
-            self.beamline.exposure_shutter.close()
+            #self.beamline.exposure_shutter.close()
             self.beamline.lock.release()
 
     def set_position(self, pos):
