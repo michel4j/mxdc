@@ -4,6 +4,7 @@ from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from bcm.utils.automounter import *
 import gobject
+import time
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -199,8 +200,13 @@ class Automounter(BasicAutomounter):
         self._total_steps = 25
         self._step_count = 0
     
-    def wait(self, state='idle'):
-        self._wait_for_state(state,timeout=30.0)
+    def wait(self, timeout=60.0):
+        while self._state.get() != 0 and timeout > 0:
+            time.sleep(0.02)
+            timeout -= 0.02
+        
+        if timeout <= 0:
+            _logger.warning('Timed out after waiting for 60 seconds.')
     
     def _report_progress(self, msg=""):
         prog = 0.0
@@ -256,28 +262,6 @@ class Automounter(BasicAutomounter):
             _logger.debug('Current Position: %s' % (val))
             self._tool_pos = val
 
-    def _wait_for_state(self, state, timeout=5.0):
-        _logger.debug('(%s) Waiting for state: %s' % (self.name, state,) ) 
-        while (not self._is_in_state(state)) and timeout > 0:
-            timeout -= 0.05
-            time.sleep(0.05)
-        if timeout > 0: 
-            return True
-        else:
-            _logger.warning('(%s) Timed out waiting for state: %s' % (self.name, state,) ) 
-            return False
-
-    def _wait_in_state(self, state):      
-        _logger.debug('(%s) Waiting for state "%s" to expire.' % (self.name, state,) ) 
-        while self._is_in_state(state):
-            time.sleep(0.05)
-        return True
-        
-    def _is_in_state(self, state):
-        if state in self.state_list:
-            return True
-        else:
-            return False
 
 # remote server anc client classes
 from bcm.service.utils import *

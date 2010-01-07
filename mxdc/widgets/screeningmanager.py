@@ -32,17 +32,20 @@ TASKLET_NAME_MAP = {
 ) = range(4)
 
 class Tasklet(object):
-    def __init__(self, task_type, default=False):
+    def __init__(self, task_type, **kwargs):
+        self.options = {}
         self.name = TASKLET_NAME_MAP[task_type]
-        self.options = {'enabled': default, 'default': default}      
         self.task_type = task_type
+        self.configure(**kwargs)
     
     def configure(self, **kwargs):
-        for k,v in kwargs.items():
-            self.options[k] = v
+            self.options.update(kwargs)
 
     def __repr__(self):
-        return '<Tasklet: %s>' % (self.name,)
+        return '<Tasklet: %s, %s>' % (self.name, self.options)
+    
+    def __getitem__(self, key):
+        return self.options[key]
 
 class ScreenManager(gtk.Frame):
     def __init__(self):
@@ -59,29 +62,18 @@ class ScreenManager(gtk.Frame):
         self.screen_runner.connect('done', self._on_complete)
 
         
+    def __getattr__(self, key):
+        try:
+            return super(ScreenManager).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
+
     def _create_widgets(self):        
         self.sample_list = SampleList()
 
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
                                   'screening_widget')
         self.screen_manager = self._xml.get_widget('screening_widget')
-        self.sample_box = self._xml.get_widget('sample_box')
-        self.video_book = self._xml.get_widget('video_book')
-        self.task_config_box = self._xml.get_widget('task_config_box')
-        self.action_frame = self._xml.get_widget('action_frame')
-        self.apply_btn = self._xml.get_widget('apply_btn')
-        self.reset_btn = self._xml.get_widget('reset_btn')
-        self.clear_btn = self._xml.get_widget('clear_btn')
-        self.unmount_btn = self._xml.get_widget('unmount_btn')
-        self.start_btn = self._xml.get_widget('start_btn')
-        self.stop_btn = self._xml.get_widget('stop_btn')
-        self.scan_pbar = self._xml.get_widget('scan_pbar')
-        self.select_all_btn = self._xml.get_widget('select_all_btn')
-        self.deselect_all_btn = self._xml.get_widget('deselect_all_btn')
-        self.task_queue_window = self._xml.get_widget('task_queue_window')
-        self.edit_tbtn = self._xml.get_widget('edit_tbtn')
-        self.export_btn = self._xml.get_widget('export_btn')
-        self.import_btn = self._xml.get_widget('import_btn')
         self.export_btn.connect('clicked', self._on_export)
         self.import_btn.connect('clicked', self._on_import)
 
@@ -98,39 +90,42 @@ class ScreenManager(gtk.Frame):
 
         self.sample_box.pack_start(self.sample_list, expand=True, fill=True)
         self.sample_list.import_csv(os.path.join(DATA_DIR, 'test.csv')) 
-        #self.sample_list.load_data(TEST_DATA)
 
         # video        
         self.sample_viewer = SampleViewer()
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
         self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
         self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))
-        self.video_book.connect('map', lambda x: self.video_book.set_current_page(0))       
+        self.video_book.connect('realize', lambda x: self.video_book.set_current_page(0))       
         
         # Task Configuration
         self.TaskList = []
-        self.default_tasks = [ (Screener.TASK_MOUNT, True, True, False),
-                  (Screener.TASK_ALIGN, True, True, False),
-                  (Screener.TASK_PAUSE, False, False, True),
-                  (Screener.TASK_COLLECT, True, True, False),
-                  (Screener.TASK_COLLECT, True, False, False),
-                  (Screener.TASK_COLLECT, False, False, False),
-                  (Screener.TASK_ANALYSE, False, False, False),
-                  (Screener.TASK_PAUSE, False, False, False), ]
+        self.default_tasks = [ 
+                  (Screener.TASK_MOUNT, {'default': True}),
+                  (Screener.TASK_ALIGN, {'default': True}),
+                  (Screener.TASK_PAUSE, {'default': False}), # use this line for collect labels
+                  (Screener.TASK_COLLECT, {'angle': 0.0, 'default': True}),
+                  (Screener.TASK_COLLECT, {'angle': 45.0, 'default': False}),
+                  (Screener.TASK_COLLECT, {'angle': 90.0, 'default': False}),
+                  (Screener.TASK_ANALYSE, {'default': False}),
+                  (Screener.TASK_PAUSE, {'default': False}), ]
         self._settings_sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
-        for key, sel, sen, lab in self.default_tasks:
-            t = Tasklet(key, default=sel)
+        
+        for pos, tasklet in enumerate(self.default_tasks):
+            key, options = tasklet
+            options.update({'enabled': options['default']})
+            t = Tasklet(key, **options)
             tbtn = gtk.CheckButton(t.name)
-            tbtn.set_active(sel)
+            tbtn.set_active(options['default'])
             tbtn.connect('toggled', self._on_task_toggle, t)
-            tbtn.set_sensitive(not(sen))
-            #self._settings_sg.add_widget(tbtn)
+            tbtn.set_sensitive(not(options['default']))
+
             if key == Screener.TASK_COLLECT:
                 ctable = self._get_collect_setup(t)
                 ctable.attach(tbtn, 0, 3, 0, 1)
                 self.task_config_box.pack_start(ctable, expand=True, fill=True)
                 
-            elif lab:
+            elif pos == 2:
                 ctable = self._get_collect_labels()
                 ctable.attach(tbtn, 0, 3, 0, 1)
                 self.task_config_box.pack_start(ctable, expand=True, fill=True)
@@ -164,12 +159,7 @@ class ScreenManager(gtk.Frame):
         items = []
         while iter:
             tsk = model.get_value(iter, QUEUE_COLUMN_TASK)
-            item = {}
-            item['task_name'] = tsk.name
-            item['task_id'] = tsk.task_type
-            item['sample'] = tsk.options['sample']
-            item['done'] = False
-            items.append(item)
+            items.append(tsk)
             iter = model.iter_next(iter)
         return items
     
@@ -179,6 +169,9 @@ class ScreenManager(gtk.Frame):
         tbl = _xml2.get_widget('collect_settings')
         for key in ['angle','delta','time','frames']:
             en = _xml2.get_widget('%s_entry' % key)
+            if task.options.get(key,None):
+                en.set_text('%s' % task.options.get(key))
+              
             if key == 'frames':
                 en.default_value = int(en.get_text())
             else:
@@ -247,14 +240,13 @@ class ScreenManager(gtk.Frame):
         items = self.sample_list.get_selected()
         for item in items:
             for t,b in self.TaskList:
-                tsk = Tasklet(t.task_type)
-                tsk.configure(**t.options)
-                if tsk.options['enabled']:
+                if t.options['enabled']:
+                    tsk = Tasklet(t.task_type, **t.options)
+                    if t.task_type == Screener.TASK_COLLECT:
+                        tsk.options['directory'] = self.folder_btn.get_current_folder()
                     tsk.options['sample'] = item
-                    q_item = {}
-                    q_item['done'] = False
-                    q_item['task'] = tsk
-                    self._add_item(q_item)      
+                    q_item = {'done': False, 'task': tsk} 
+                    self._add_item(q_item)     
 
     def _on_export(self, obj):
         _CSV = 'Comma Separated Values'
