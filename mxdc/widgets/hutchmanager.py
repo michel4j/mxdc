@@ -32,7 +32,7 @@ class HutchManager(gtk.Frame):
         self.scripts = get_scripts()
         self._create_widgets()
         # Some scripts need to reactivate settings frame on completion
-        for sc in ['OptimizeBeam', 'FinishedMounting']:
+        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode']:
             self.scripts[sc].connect('done', lambda x: self.settings_frame.set_sensitive(True))
     
     def _create_widgets(self):
@@ -96,16 +96,19 @@ class HutchManager(gtk.Frame):
         #self.front_end_btn = ScriptButton(self.scripts['RestoreBeam'], 'Restore Beam')
         self.shutter_btn = ShutterButton(self.beamline.exposure_shutter, 'Shutter')
         self.optimize_btn = ScriptButton(self.scripts['OptimizeBeam'], 'Optimize Beam')
-        self.mount_btn = ScriptButton(self.scripts['PrepareMounting'], 'Mount Mode')
-        self.reset_btn = ScriptButton(self.scripts['FinishedMounting'], 'Collect Mode')
+        self.mount_btn = ScriptButton(self.scripts['SetMountMode'], 'Mounting Mode')
+        self.cent_btn = ScriptButton(self.scripts['SetCenteringMode'], 'Centering Mode')
+        self.collect_btn = ScriptButton(self.scripts['SetCollectMode'], 'Collect Mode')
+        
         self.commands_box.pack_start(self.front_end_btn)
         #self.commands_box.pack_start(self.shutter_btn)
         self.commands_box.pack_start(self.optimize_btn)
         self.commands_box.pack_start(gtk.Label(''))
         
-        self.commands_box.pack_end(self.mount_btn)
-        self.commands_box.pack_end(self.reset_btn)
-        for w in [self.front_end_btn, self.shutter_btn, self.optimize_btn, self.mount_btn, self.reset_btn]:
+        for btn in [self.mount_btn, self.cent_btn, self.collect_btn]:
+            self.commands_box.pack_end(btn)
+            
+        for w in [self.front_end_btn, self.shutter_btn, self.optimize_btn, self.mount_btn, self.cent_btn, self.collect_btn]:
             w.set_property('can-focus', False)
         
         # tool book, automounter, cryojet etc
