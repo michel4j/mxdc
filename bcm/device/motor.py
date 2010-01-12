@@ -324,8 +324,9 @@ class BraggEnergyMotor(Motor):
 
     implements(IMotor)
     
-    def __init__(self, name, enc=None):
+    def __init__(self, name, offset=0.4343, enc=None):
         Motor.__init__(self, name, motor_type='vmeenc' )
+        self.offset = float(offset)
         del self.DESC
         if enc is not None:
             del self.RBV          
@@ -339,9 +340,10 @@ class BraggEnergyMotor(Motor):
         pass
                                    
     def get_position(self):
-        return converter.bragg_to_energy(self.RBV.get())
+        return converter.bragg_to_energy(self.RBV.get()-self.offset)
             
     def move_to(self, pos, wait=False, force=False):
+        pos += self.offset
         # Do not move if motor state is not sane.
         if not self.is_healthy():
             _logger.warning( "(%s) is not in a sane state. Move canceled!" % (self.name,) )

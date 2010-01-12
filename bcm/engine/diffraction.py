@@ -146,7 +146,7 @@ class Screener(gobject.GObject):
                 gobject.idle_add(self.emit, 'progress', 1.0, 0)
             self.stopped = True
         finally:
-            #self.beamline.exposure_shutter.close()
+            self.beamline.exposure_shutter.close()
             self.beamline.lock.release()
 
     def set_position(self, pos):
@@ -224,6 +224,7 @@ class DataCollector(gobject.GObject):
             return
         ca.threads_init() 
         self.beamline.lock.acquire()
+        self.beamline.goniometer.set_mode('collect', wait=True) # move goniometer to collect mode
         gobject.idle_add(self.emit, 'started')
         try:          
             self.beamline.exposure_shutter.close()
@@ -296,6 +297,7 @@ class DataCollector(gobject.GObject):
             self.stopped = True
         finally:
             self.beamline.exposure_shutter.close()
+            self.beamline.goniometer.set_mode('mount') # return goniometer to mount position
             self.beamline.lock.release()
 
     def set_position(self, pos):
