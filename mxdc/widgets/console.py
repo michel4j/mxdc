@@ -370,62 +370,65 @@ class BeamlineConsole(gtk.ScrolledWindow):
 
 
 def run():
-  w = gtk.Window()
-  logo = ["16 16 4 1",
-        "     c None", ".    c #476F90", "+    c #FFE35E", "@    c #F3F6F3",
-        "     @@@@@      ",
-        "    @@...@@     ",
-        "    @.@...@     ",
-        "    @.....@     ",
-        " @@@@@@...@@@@  ",
-        "@@........@++@@ ",
-        "@.........@+++@ ",
-        "@....@@@@@++++@ ",
-        "@...@+++++++++@ ",
-        "@@..@++++++++@@ ",
-        " @@@@+++@@@@@@  ",
-        "    @+++++@     ",
-        "    @+++@+@     ",
-        "    @@++++@     ",
-        "     @@@@@      ",
-        "                "]
- 
-  pixbuf = gtk.gdk.pixbuf_new_from_xpm_data(logo)
-  w.set_icon (pixbuf)
-  console = BeamlineConsole()
-  console.set_size_request(640,400)
-  vbox = gtk.VBox()
-  expander = gtk.Expander()
-  expander.add(plotter)
-  vbox.pack_start(expander)
-  vbox.pack_end(console)
-  w.add(vbox)
-  
-  
-  w.set_title('Interactive Beamline Console')
-  
-  #initialize the gtk environment
-  console.interpreter.runsource("import gtk, gobject, sys, os\n", "<<console>>")
-  console.execute_line('from bcm.engine.scanning import *')
-  console.execute_line('from bcm.beamline.mx import MXBeamline')
-  console.execute_line("beamline = MXBeamline(os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONFIG_FILE']))")
-
-  def destroy(arg=None):
-      gtk.main_quit()
-  
-  def key_event(widget,event):
-      if gtk.gdk.keyval_name(event.keyval) == 'd' and event.state & gtk.gdk.CONTROL_MASK:
-          destroy()
-      return False
-
-  w.connect("destroy", destroy)
-
-  w.add_events( gtk.gdk.KEY_PRESS_MASK )
-  w.connect( 'key_press_event', key_event)
-  w.show_all()
-
-
-  gtk.main()
+    w = gtk.Window()
+    logo = ["16 16 4 1",
+          "     c None", ".    c #476F90", "+    c #FFE35E", "@    c #F3F6F3",
+          "     @@@@@      ",
+          "    @@...@@     ",
+          "    @.@...@     ",
+          "    @.....@     ",
+          " @@@@@@...@@@@  ",
+          "@@........@++@@ ",
+          "@.........@+++@ ",
+          "@....@@@@@++++@ ",
+          "@...@+++++++++@ ",
+          "@@..@++++++++@@ ",
+          " @@@@+++@@@@@@  ",
+          "    @+++++@     ",
+          "    @+++@+@     ",
+          "    @@++++@     ",
+          "     @@@@@      ",
+          "                "]
+    
+    pixbuf = gtk.gdk.pixbuf_new_from_xpm_data(logo)
+    w.set_icon (pixbuf)
+    console = BeamlineConsole()
+    console.set_size_request(640,400)
+    w.add(console)
+    
+    
+    w.set_title('Interactive Beamline Console')
+    
+    #initialize the gtk environment
+    lines = ["import os, sys",
+           "from bcm.beamline.mx import MXBeamline",
+           "from bcm.engine.scripting import *",
+           "from bcm.engine.scanning import *",
+           "from bcm.engine.fitting import *",
+           "from mxdc.widgets.plotter import ScanPlotter",
+           "beamline = MXBeamline(os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONSOLE_CONFIG_FILE']))",
+           "bl = beamline",
+           "plot = ScanPlotter()",
+           ]
+    
+    map(console.execute_line, lines)
+    
+    def destroy(arg=None):
+        gtk.main_quit()
+    
+    def key_event(widget,event):
+        if gtk.gdk.keyval_name(event.keyval) == 'd' and event.state & gtk.gdk.CONTROL_MASK:
+            destroy()
+        return False
+    
+    w.connect("destroy", destroy)
+    
+    w.add_events( gtk.gdk.KEY_PRESS_MASK )
+    w.connect( 'key_press_event', key_event)
+    w.show_all()
+    
+    
+    gtk.main()
 
 if __name__ == '__main__':
   run()
