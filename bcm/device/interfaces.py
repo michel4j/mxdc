@@ -412,9 +412,6 @@ class ICryojet(Interface):
     def resume_sample_flow():
         """Stop sample flow."""
     
-    def get_state():
-        """Return the current state of the device."""
-
 
 class IOptimizer(Interface):
 

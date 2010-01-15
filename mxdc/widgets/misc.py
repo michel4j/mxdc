@@ -419,19 +419,7 @@ class CryojetWidget(gtk.Frame):
                                   'cryo_widget')
         self.cryo_widget = self._xml.get_widget('cryo_widget')
         self.add(self.cryo_widget)
-        self.anneal_prog = self._xml.get_widget('anneal_progress')
-        self.status_table = self._xml.get_widget('status_table')
-        self.status_box = self._xml.get_widget('status_box')
-        self.start_anneal_btn = self._xml.get_widget('start_anneal_btn')
-        self.stop_anneal_btn = self._xml.get_widget('stop_anneal_btn')
-        self.status_text = self._xml.get_widget('status_text')
-        self.duration_entry = self._xml.get_widget('duration_entry')
-        self.retract1_btn = self._xml.get_widget('retract1_btn')
-        self.retract5_btn = self._xml.get_widget('retract5_btn')
-        self.restore_btn = self._xml.get_widget('restore_btn')
-        self.anneal_table = self._xml.get_widget('anneal_table')
-        self.nozzle_table = self._xml.get_widget('nozzle_table')
-        self.level_frame = self._xml.get_widget('level_frame')
+        self.noz_img.set_from_file(os.path.join(DATA_DIR, 'icons', 'cryojet_out.png'))
         
         # layout the gauge section
         self.level_gauge = Gauge(0,100,5,3)
@@ -455,41 +443,31 @@ class CryojetWidget(gtk.Frame):
         self.duration_entry.set_alignment(0.5)
         self.start_anneal_btn.connect('clicked', self._start_anneal)
         self.stop_anneal_btn.connect('clicked', self._stop_anneal)
-        
-        self.nozzle_table.attach(ActiveLabel(self.cryojet.nozzle, format='%0.1f'), 1,2,0,1)
         self._restore_anneal_id = None
         self._progress_id = None
         self._annealed_time = 0
-        gobject.timeout_add(500, self._blink_status)
         self.stop_anneal_btn.set_sensitive(False)
-        self.retract1_btn.connect('clicked', self._on_nozzle_move, 1)
-        self.retract5_btn.connect('clicked', self._on_nozzle_move, 5)
-        self.restore_btn.connect('clicked', self._on_nozzle_move, -15)
+        self.retract_btn.connect('clicked', lambda x: self.cryojet.nozzle.open())
+        self.restore_btn.connect('clicked', lambda x: self.cryojet.nozzle.close())
+        self.cryojet.nozzle.connect('changed', self._on_nozzle_change)
         
-        #autocalibration of nozzle motor
-        self.auto_calib_id = None
     
-    def _blink_status(self):
-        if self.status_text.get_property('visible') == True:
-            self.status_text.hide()
-        else:
-            self.status_text.show()
-        return True
+    def __getattr__(self, key):
+        try:
+            return super(CryojetWidget).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
                 
-    def _on_nozzle_move(self, obj, pos):
-        if self.auto_calib_id is None:
-            #FIXME: this is ugly
-            self.cryojet.nozzle.CCW_LIM.connect('changed', self._auto_calib_nozzle)
-        self.cryojet.nozzle.move_by(pos)
-        
-    def _auto_calib_nozzle(self, obj, val):
-        if val == 1:
-            self.cryojet.nozzle.configure(reset=0.0)
-        
     def _on_level(self, obj, val):
         self.level_gauge.value = val/10.0
         return False
-
+    
+    def _on_nozzle_change(self, obj, state):
+        if state:
+            self.noz_img.set_from_file(os.path.join(DATA_DIR, 'icons', 'cryojet_in.png'))
+        else:
+            self.noz_img.set_from_file(os.path.join(DATA_DIR, 'icons', 'cryojet_out.png'))
+            
     def _on_status(self, obj, val):
         self.status.set_text('%s' % val)
         return False
@@ -508,7 +486,8 @@ class CryojetWidget(gtk.Frame):
             
         response = warning(msg1, msg2, buttons=(('Cancel', gtk.BUTTONS_CANCEL), ('Anneal', gtk.BUTTONS_OK)))
         if response == gtk.BUTTONS_OK:
-            self.anneal_table.set_sensitive(False)
+            self.start_anneal_btn.set_sensitive(False)
+            self.stop_anneal_btn.set_sensitive(True)
             self._annealed_time = 0
             self.cryojet.stop_flow()
             dur = max(0.0, (duration-0.5*1000))
@@ -517,7 +496,8 @@ class CryojetWidget(gtk.Frame):
             
     def _stop_anneal(self, obj=None):
         self.cryojet.resume_flow()
-        self.anneal_table.set_sensitive(True)
+        self.start_anneal_btn.set_sensitive(True)
+        self.stop_anneal_btn.set_sensitive(False)
         self.anneal_prog.set_fraction(0.0)
         self.anneal_prog.set_text('')
         if self._restore_anneal_id:

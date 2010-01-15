@@ -60,6 +60,7 @@ class XRFScan(BasicScan):
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(0.0)
             self.beamline.lock.release()
+        return self.data
             
 
 class XANESScan(BasicScan):
@@ -161,6 +162,6 @@ class XANESScan(BasicScan):
             self.beamline.monochromator.energy.move_to(self._edge_energy)
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(0.0)
-            self.beamline.lock.release()
-              
+            self.beamline.lock.release()           
+        return self.data
 
