@@ -11,7 +11,6 @@ Matplotlib support taken from interactive.py in the matplotlib distribution.
 Also borrows liberally from code.py in the Python standard library."""
 
 __author__ = "Fernando Perez, Michel Fodje"
-
 import warnings
 warnings.simplefilter("ignore")
 
@@ -90,7 +89,6 @@ class MTConsole(code.InteractiveConsole):
         """
         try:
             code = self.compile(source, filename, symbol)
-            print source
         except (OverflowError, SyntaxError, ValueError):
             # Case 1
             self.showsyntaxerror(filename)
@@ -114,7 +112,7 @@ class MTConsole(code.InteractiveConsole):
 
         When an exception occurs, self.showtraceback() is called to display a
         traceback."""
-        
+
         self.ready.acquire()
         if self._kill:
             print 'Closing threads...',
@@ -122,14 +120,12 @@ class MTConsole(code.InteractiveConsole):
             for tokill in self.on_kill:
                 tokill()
             print 'Done.'
-            self.ready.release()
-        
-        if self.code_to_run is not None:
-            code.InteractiveConsole.runcode(self,self.code_to_run)
-            self.code_to_run = None
-        else:
-            self.ready.notify()
 
+        if self.code_to_run is not None:
+            self.ready.notify()
+            code.InteractiveConsole.runcode(self,self.code_to_run)
+
+        self.code_to_run = None
         self.ready.release()
         return True
 
@@ -162,7 +158,9 @@ class GTKInterpreter(threading.Thread):
         gobject.timeout_add(self.TIMEOUT, self.shell.runcode)
         try:
             if gtk.gtk_version[0] >= 2:
-                gtk.gdk.threads_init()
+                gtk.gdk.threads_init()          
+            if gtk.gtk_version >= (2, 18):
+                gtk.set_interactive(False)
         except AttributeError:
             pass
         gtk.main()
@@ -204,13 +202,11 @@ Beamline Config: %s
                  ]
         map(push,lines)
         
-def main():
-    console = BeamlineConsole()
-    console.mainloop()
-    
+
+
 if __name__ == '__main__':
     try:
-        main()
+        BeamlineConsole().mainloop()
     finally:
         print 'Quiting...'
 

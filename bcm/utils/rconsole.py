@@ -11,15 +11,17 @@ Matplotlib support taken from interactive.py in the matplotlib distribution.
 Also borrows liberally from code.py in the Python standard library."""
 
 __author__ = "Fernando Perez, Michel Fodje"
+import warnings
+warnings.simplefilter("ignore")
 
 import sys
 import os
 import code
 import threading
-
+import time
 import gtk
 import gobject
-
+import Queue
 try:
     import readline
 except ImportError:
@@ -32,8 +34,7 @@ class MTConsole(code.InteractiveConsole):
 
     def __init__(self,on_kill=None,*args,**kw):
         code.InteractiveConsole.__init__(self,*args,**kw)
-        self.code_to_run = None
-        self.ready = threading.Condition()
+        self.code_queue = Queue.Queue(1)
         self._kill = False
         if on_kill is None:
             on_kill = []
@@ -98,11 +99,9 @@ class MTConsole(code.InteractiveConsole):
 
         # Case 3
         # Store code in self, so the execution thread can handle it
-        self.ready.acquire()
-        self.code_to_run = code
-        self.ready.wait()  # Wait until processed in timeout interval
-        self.ready.release()
-
+        self.code_queue.put(code, block=True)
+        while not self.code_queue.empty():
+            time.sleep(0.001)
         return False
 
     def runcode(self):
@@ -111,27 +110,20 @@ class MTConsole(code.InteractiveConsole):
         When an exception occurs, self.showtraceback() is called to display a
         traceback."""
 
-        self.ready.acquire()
         if self._kill:
             print 'Closing threads...',
             sys.stdout.flush()
             for tokill in self.on_kill:
                 tokill()
             print 'Done.'
-
-        if self.code_to_run is not None:
-            self.ready.notify()
-            code.InteractiveConsole.runcode(self,self.code_to_run)
-
-        self.code_to_run = None
-        self.ready.release()
+        if not self.code_queue.empty():
+            ccode = self.code_queue.get()
+            code.InteractiveConsole.runcode(self, ccode )
         return True
 
     def kill (self):
         """Kill the thread, returning when it has been shut down."""
-        self.ready.acquire()
         self._kill = True
-        self.ready.release()
 
 class GTKInterpreter(threading.Thread):
     """Run a gtk mainloop() in a separate thread.
@@ -156,7 +148,9 @@ class GTKInterpreter(threading.Thread):
         gobject.timeout_add(self.TIMEOUT, self.shell.runcode)
         try:
             if gtk.gtk_version[0] >= 2:
-                gtk.gdk.threads_init()
+                gtk.gdk.threads_init()          
+            if gtk.gtk_version >= (2, 18):
+                gtk.set_interactive(False)
         except AttributeError:
             pass
         gtk.main()
@@ -172,11 +166,14 @@ class GTKInterpreter(threading.Thread):
 
 class BeamlineConsole(GTKInterpreter):
     def __init__(self, banner=None):
-        banner = """Interactive Beamline Console.
-        Python %s
-        Beamline Config: %s 
-        """ % (sys.version.split('\n')[0],
-               os.environ['BCM_CONFIG_FILE'])
+        banner = """
+
+%s Interactive Beamline Console.
+Python %s
+Beamline Config: %s 
+        """ % (os.environ['BCM_BEAMLINE'].upper(),
+               sys.version.split('\n')[0],
+               os.environ['BCM_CONSOLE_CONFIG_FILE'])
                
         GTKInterpreter.__init__(self, banner)
     
@@ -189,7 +186,7 @@ class BeamlineConsole(GTKInterpreter):
                  "from bcm.engine.scanning import *",
                  "from bcm.engine.fitting import *",
                  "from mxdc.widgets.plotter import ScanPlotter",
-                 "beamline = MXBeamline(os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONFIG_FILE']))",
+                 "beamline = MXBeamline(os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONSOLE_CONFIG_FILE']))",
                  "bl = beamline",
                  "plot = ScanPlotter()",
                  ]
