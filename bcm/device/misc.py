@@ -227,16 +227,18 @@ class BasicShutter(gobject.GObject):
         self._close_cmd = PV(close_name)
         self._state = PV(state_name)
         self._state.connect('changed', self._signal_change)
-
+        self._messages = ['Opening', 'Closing']
+        self._name  = 'Shutter'
+        
     def get_state(self):
         return self._state.get() == 1
     
     def open(self):
-        _logger.debug('Openning shutter')
+        _logger.debug(' '.join([self._messages[0], self._name]))
         self._open_cmd.set(1)
     
     def close(self):
-        _logger.debug('Closing shutter')
+        _logger.debug(' '.join([self._messages[1], self._name]))
         self._close_cmd.set(1)
 
     def _signal_change(self, obj, value):
@@ -253,11 +255,22 @@ class Shutter(BasicShutter):
         state_name = "%s:state" % name
         BasicShutter.__init__(self, open_name, close_name, state_name)
 
+
+class CryojetNozzle(BasicShutter):
+    def __init__(self, name):
+        open_name = "%s:opr:open" % name
+        close_name = "%s:opr:close" % name
+        state_name = "%s:in" % name
+        BasicShutter.__init__(self, open_name, close_name, state_name)
+        self._messages = ['Retracting', 'Restoring']
+        self._name = 'Cryojet Nozzle'
+    
+
 class Cryojet(object):
     
     implements(ICryojet)
     
-    def __init__(self, cname, lname, nozzle_motor):
+    def __init__(self, cname, lname, nozzle_motor=None):
         self.temperature = Positioner('%s:sensorTemp:get' % cname,
                                       '%s:sensorTemp:get' % cname,
                                       units='Kelvin')
@@ -268,13 +281,13 @@ class Cryojet(object):
                                       '%s:ShieldFlow:get' % cname,
                                       units='L/min')
         self.level = PV('%s:ch1LVL:get' % lname)
-        self.nozzle = IMotor(nozzle_motor)
+        if nozzle_motor is not None:
+            self.nozzle = IMotor(nozzle_motor)
+        else:
+            self.nozzle = CryojetNozzle('CSC1608-5-B10-01')
         self.fill_status = PV('%s:status:ch1:N.SVAL' % lname)
-        self._previous_flow = 6.0
-            
-    def get_state(self):
-        return self.fill_status.get()
-    
+        self._previous_flow = 8.0
+                
     def resume_flow(self):
         self.sample_flow.set(self._previous_flow)
     

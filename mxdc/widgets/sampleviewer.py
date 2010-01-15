@@ -12,6 +12,8 @@ from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.video import add_decorations
 from bcm.utils.log import get_module_logger
+from bcm.utils.decorators import async
+
 from twisted.python.components import globalRegistry
 
 _logger = get_module_logger('mxdc.sampleviewer')
@@ -150,7 +152,8 @@ class SampleViewer(gtk.Frame):
         else:
             self._click_centering = True
         return False
-
+    
+    @async
     def center_pixel(self, x, y):
         #tmp_omega = int(self.beamline.goniometer.omega.get_position() )
         #sin_w = math.sin(tmp_omega * math.pi / 180)
