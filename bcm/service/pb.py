@@ -12,10 +12,14 @@ from zope.interface import Interface, implements
 
 import os, sys, time
 import pprint
-sys.path.append(os.environ['BCM_PATH'])
-from bcm import beamline
-from bcm.devices.cameras import add_decorations
-from bcm.tools import scanning, DataCollector
+
+from bcm.beamline.mx import MXBeamline
+from bcm.beamline.interfaces import IBeamline
+from bcm.device.remote import *
+from bcm.engine import diffraction
+from bcm.engine import spectroscopy
+from bcm.service.utils import log_call
+from bcm.utils.video import add_decorations
 
 if sys.version_info[:2] >= (2,5):
     import uuid
@@ -29,9 +33,6 @@ class IBCMService(Interface):
         
     def unmountSample(*args, **kwargs):
         """unmount a sample from the Robot"""
-        
-    def setupBeamline(*args, **kwargs):
-        """Configure the beamline"""
         
     def scanEdge(*args, **kwargs):
         """Perform and Edge scan """
@@ -56,10 +57,7 @@ class IPerspectiveBCM(Interface):
         
     def remote_unmountSample(*args, **kwargs):
         """Mount a sample on the Robot and align it"""
-        
-    def remote_setupBeamline(*args, **kwargs):
-        """Configure the beamline"""
-        
+                
     def remote_scanEdge(*args, **kwargs):
         """Perform and Edge scan """
         
@@ -88,10 +86,6 @@ class PerspectiveBCMFromService(pb.Root):
         """Mount a sample on the Robot and align it"""
         return self.service.umountSample(**kwargs)
         
-    def remote_setupBeamline(self, *args, **kwargs):
-        """Configure the beamline"""
-        return self.service.setupBeamline(**kwargs)
-        
     def remote_scanEdge(self, *args, **kwargs):
         """Perform and Edge scan """
         return self.service.scanEdge(**kwargs)
@@ -119,51 +113,43 @@ components.registerAdapter(PerspectiveBCMFromService,
 class BCMService(service.Service):
     implements(IBCMService)
     
-    def __init__(self, config_file):
+    def __init__(self):
         self.settings = {}
-        self.settings['config_file'] = config_file
-        self.beamline = beamline.PX(config_file)
-        self.ready = False
-        d = threads.deferToThread(self.beamline.setup, None)
-        d.addCallback(self._service_ready)
-        d.addErrback(self._service_failed)
+        try:
+            config_file = os.path.join(os.environ['BCM_CONFIG_PATH'],
+                              os.environ['BCM_CONFIG_FILE'])
+            self.settings['config_file'] = config_file
+        except:
+            log.err('Could not find Beamline Configuration')
+            self.shutdown()
+        d = threads.deferToThread(self._init_beamline)
+        d.addCallbacks(self._service_ready, self._service_failed)
     
+    def _init_beamline(self):
+        self.beamline = MXBeamline(self.settings['config_file'])
+        
     def _service_ready(self, result):
-        log.msg('Beamline Ready')
+        self.data_collector = diffraction.DataCollector()
+        self.xanes_scanner = spectroscopy.XANESScan()
+        self.xrf_scanner = spectroscopy.XRFScan()
+        log.msg('BCM Ready')
         self.ready = True
     
     def _service_failed(self, result):
         log.msg('Could not initialize beamline. Shutting down!')
-        reactor.stop()
+        self.shutdown()
         
+    @log_call
     def mountSample(self, *args, **kwargs):
         assert self.ready
-        log.msg('<%s()>' % (sys._getframe().f_code.co_name))
         return defer.succeed([])
 
+    @log_call
     def unmountSample(self, *args, **kwargs):
         assert self.ready
-        log.msg('<%s()>' % (sys._getframe().f_code.co_name))
         return defer.succeed([])
-        
-    def setupBeamline(self, *args, **kwargs):
-        """
-        Setup the beamline.
-        Valid kwargs are:
-            - resolution: float
-            - beam_size: 2-tuple of floats
-            - attenuation: float,
-            - energy: float, valid range 
-            - beamstop_distance:  float
-            - detector_distance: float
-            - detector_twotheta: float
-        """
-        assert self.ready
-        log.msg('<%s()>' % (sys._getframe().f_code.co_name))
-        
-        d = threads.deferToThread(self.beamline.configure, **kwargs)
-        return d
-        
+                
+    @log_call
     def scanEdge(self, *args, **kwargs):
         """
         Perform a MAD scan around an absorption edge
@@ -172,47 +158,46 @@ class BCMService(service.Service):
             - exposure_time: exposure time for each point
             - directory: location to store output
             - prefix: output prefix
+            - attenuation
         """
         #FIXME: We need some way of setting who will own the output files 
         assert self.ready
-        log.msg('<%s()>' % (sys._getframe().f_code.co_name))
-
-        
         directory = kwargs['directory']
         edge = kwargs['edge']
         exposure_time = kwargs['exposure_time']
         prefix = kwargs['prefix']
+        attenuation = kwargs['attenuation']
             
-        mad_scanner = scanning.MADScanner(self.beamline)
         output_path = '%s/%s-%s.mscan' % (directory, prefix, edge)
-        mad_scanner.setup(edge, exposure_time, output_path)
-        d = threads.deferToThread(mad_scanner.run)  
+        self.xanes_scanner.configure(edge=edge, t=exposure_time, attenuation=attenuation)
+        d = threads.deferToThread(self.xanes_scanner.run)
         return d
         
+    @log_call
     def scanSpectrum(self, *args, **kwargs):
         """
         Perform an excitation scan around of the current energy
         Valid kwargs are:
+            - energy
             - exposure_time: exposure time for each point
             - directory: location to store output
             - prefix: output prefix
+            - attenuation
         """
         assert self.ready
-        log.msg('<%s()>' % (sys._getframe().f_code.co_name))
-
-        
         directory = kwargs['directory']
         exposure_time = kwargs['exposure_time']
         prefix = kwargs['prefix']
+        energy = kwargs['energy']
+        attenuation = kwargs['attenuation']
         
-        ex_scanner = scanning.ExcitationScanner(self.beamline)
-        energy = self.beamline.energy.get_position()
-
+        
         output_path = '%s/%s-%0.3fkeV.escan' % (directory, prefix, energy)
-        ex_scanner.setup(exposure_time, output_path)
-        d = threads.deferToThread(ex_scanner.run)  
+        self.xrf_scanner.configure(energy=energy, t=exposure_time, attenuation=attenuation)
+        d = threads.deferToThread(self.xrf_scanner.run)  
         return d
     
+    @log_call
     def acquireFrames(self, run_info, skip_existing=False):
         """
         Acquire a set of frames
@@ -232,8 +217,6 @@ class BCMService(service.Service):
             - energy_label : a corresponding list of energy labels (strings) no spaces
             - two_theta : a float, default ( 0.0)
         """
-        log.msg('<%s()>' % (sys._getframe().f_code.co_name))
-
         assert self.ready
         collector = DataCollector.DataCollector(self.beamline)
         collector.setup(run_info)
@@ -241,9 +224,9 @@ class BCMService(service.Service):
         d = threads.deferToThread(collector.run)        
         return d
                 
+    @log_call
     def acquireSnapshot(self, directory, prefix, show_decorations=True):
         assert self.ready
-        log.msg('<%s()>' % (sys._getframe().f_code.co_name))
         unique_id = str( uuid.uuid4() ) 
         output_file = '%s/%s-%s.png' % (directory, prefix, unique_id)
         if show_decorations:
