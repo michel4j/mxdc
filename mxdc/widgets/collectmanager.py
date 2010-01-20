@@ -11,7 +11,7 @@ from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
 from mxdc.widgets.runmanager import RunManager
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.dialogs import *
-
+from mxdc.widgets.rundiagnostics import DiagnosticsWidget 
 (
     COLLECT_COLUMN_SAVED,
     COLLECT_COLUMN_ANGLE,
@@ -38,6 +38,12 @@ class CollectManager(gtk.Frame):
         self._first_launch = False
         self._create_widgets()
         
+    def __getattr__(self, key):
+        try:
+            return super(CollectManager).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
+
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/collect_widget.glade'), 
                                   'collect_widget')            
@@ -48,8 +54,6 @@ class CollectManager(gtk.Frame):
         
         self.collect_state = COLLECT_STATE_IDLE
         self.frame_pos = None
-        self.control_box = self._xml.get_widget('control_box')
-        self.collect_widget = self._xml.get_widget('collect_widget')
         
         # Run List
         self.listmodel = gtk.ListStore(
@@ -64,8 +68,6 @@ class CollectManager(gtk.Frame):
         sw = self._xml.get_widget('run_list_window')
         sw.add(self.listview)
 
-        self.collect_btn = self._xml.get_widget('collect_btn')
-        self.stop_btn = self._xml.get_widget('stop_btn')
         self.collect_btn.set_label('mxdc-collect')
         self.stop_btn.set_label('mxdc-stop')
         self.stop_btn.set_sensitive(False)
@@ -77,11 +79,7 @@ class CollectManager(gtk.Frame):
         self.control_box.pack_start(self.progress_bar, expand=False, fill=True)
         
         # Dose Control
-        dose_frame = self._xml.get_widget('dose_frame')
-        dose_frame.set_sensitive(False)
-        self.dose_enable_btn = self._xml.get_widget('dose_enable_btn')
-        self.dose_factor_label = self._xml.get_widget('dose_factor_label')
-        self.dose_norm_btn = self._xml.get_widget('dose_norm_label')
+        self.dose_frame.set_sensitive(False)
         
         # Current Position
         pos_table = self._xml.get_widget('position_table')
@@ -92,9 +90,14 @@ class CollectManager(gtk.Frame):
             pos_table.attach(ActiveLabel(self.beamline.monochromator.energy, format='%7.4f'), 1,2,3,4)
         
         # Image Viewer
-        img_frame = self._xml.get_widget('image_frame')
-        img_frame.add(self.image_viewer)
-        self.collect_widget.pack_end(self.run_manager, expand = False, fill = True)
+        self.collect_widget.pack_start(self.image_viewer)
+        self.setup_box.pack_end(self.run_manager, expand = False, fill = True)
+        
+        #diagnostics
+        self.diagnostics = DiagnosticsWidget()
+        self.tool_book.append_page(self.diagnostics, tab_label=gtk.Label('Run Diagnostics'))
+        self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(0))
+        #self.diagnostics.set_sensitive(False)
         
         self.listview.connect('row-activated',self.on_row_activated)
         self.collect_btn.connect('clicked',self.on_activate)

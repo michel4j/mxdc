@@ -7,6 +7,7 @@
     <child>
       <widget class="GtkVBox" id="run_widget">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <child>
           <widget class="GtkLabel" id="run_title">
             <property name="visible">True</property>

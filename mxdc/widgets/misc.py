@@ -43,11 +43,18 @@ class ActiveHScale(gtk.HScale):
         #self.context.handler_unblock(self._handler_id)
         
 class ActiveLabel(gtk.Label):
-    def __init__( self, context, format="%s", show_units=True):
+    def __init__( self, context, format="%s", show_units=True, range=None):
         gtk.Label.__init__(self, '')
+        self.set_alignment(0.5,0.5)
         self.format = format
         self.context = context
         self.context.connect('changed', self._on_value_change )
+        self.range = range
+        try:
+            self.context.connect('alarm', self._on_alarm )
+        except:
+            #No alarm signal present
+            pass
                   
         if not hasattr(self.context, 'units') or not show_units:
             self._units = ''
@@ -55,10 +62,18 @@ class ActiveLabel(gtk.Label):
             self._units = self.context.units
                             
     def _on_value_change(self, obj, val):
+        if self.range is not None:
+            if not (self.range[0] >= val <= self.range[1]):
+                self.format = '<span color="red">%s</span>' % format
         self.set_markup("%s %s" % (self.format % (val), self._units))
         return True
-  
+
+    def _on_alarm(self, obj, alrm):
+        alarm, severity = alrm
+        print alarm, severity
+        
 class ActiveEntry(gtk.VBox):
+    _border = gtk.Border(3,3,4,4)
     def __init__( self, device, label=None,  format="%g",  width=10):
         gtk.VBox.__init__(self, label)
 
@@ -81,6 +96,8 @@ class ActiveEntry(gtk.VBox):
         self.pack_start(self._active_entry)
         
         self._fbk_label.set_alignment(1, 0.5)
+        self._entry.set_inner_border(self._border)
+        
         self._entry.set_width_chars(1)
         self._entry.set_alignment(1)
         
@@ -95,24 +112,25 @@ class ActiveEntry(gtk.VBox):
         self._last_signal = 0
         self.running = False
         self.width = width
-        self.format = format
+        self.number_format = format
+        self.format = self.number_format
         
         if label is None:
             label = self.device.name
         
         if self.device.units != "":
             label = '%s (%s)' % (label, self.device.units)
-        self._label.set_markup("%s" % (label,))
+        self._label.set_markup("<small><b>%s</b></small>" % (label,))
 
     
     def set_feedback(self, val):
-        text = self.format % val
+        text = self.number_format % val
         if len(text) > self.width:
             text = "##.##"
         self._fbk_label.set_markup('%8s' % (text,))
 
     def set_target(self,val):
-        text = self.format % val
+        text = self.number_format % val
         self._entry.set_text(text)
     
     def stop(self):
@@ -168,9 +186,13 @@ class MotorEntry(ActiveEntry):
  
     def _on_health_change(self, obj, state):
         if state:
+            #self._fbk_label.modify_text(gtk.STATE_NORMAL, None)
+            self._fbk_label.modify_fg(gtk.STATE_NORMAL, None)
             self._entry.set_sensitive(True)
             self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
         else:
+            #self._fbk_label.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
+            self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
             self._entry.set_sensitive(False)
             self._action_icon.set_from_stock('gtk-dialog-warning', gtk.ICON_SIZE_MENU)
             
@@ -195,7 +217,7 @@ class ShutterButton(gtk.ToggleButton):
         self.shutter = shutter
         self.open_only = open_only
         container = gtk.HBox(False,0)
-        container.set_border_width(2)
+        #container.set_border_width(2)
         self.label_text = label
         self.image = gtk.Image()
         self.label = gtk.Label(label)
@@ -236,7 +258,7 @@ class ScriptButton(gtk.Button):
         gtk.Button.__init__(self)
         self.script = script
         container = gtk.HBox(False,0)
-        container.set_border_width(2)
+        #container.set_border_width(2)
         self.label_text = label
         self.image = gtk.Image()
         self.label = gtk.Label(label)
@@ -273,28 +295,18 @@ class ScriptButton(gtk.Button):
         #self.set_relief(gtk.RELIEF_NORMAL)
 
 
-class ShutterStatus(gtk.HBox):
-    def __init__(self, shutter):
-        gtk.HBox.__init__(self, False, 0)
-        self.shutter = shutter
-        self.set_border_width(2)
-        self.image = gtk.Image()
-        self.pack_start(self.image)
-        
-        self.shutter.connect('changed', self._on_state_change)
+class TextStatusDisplay(gtk.Label):
+    def __init__(self, device, text_map={}, sig='changed'):
+        self.text_map = text_map
+        gtk.Label.__init__(self,'')
+        self.device = device
+        self.set_use_markup(True)
+        self.device.connect(sig, self._on_signal)
                     
-    def _on_state_change(self, obj, state):
-        if state:
-            self._set_on()
-        else:
-            self._set_off()
+    def _on_signal(self, obj, state):
+        self.set_markup(self.text_map.get(state, state))
         return True
-            
-    def _set_on(self):
-        self.image.set_from_stock('gtk-yes', gtk.ICON_SIZE_MENU)
-    
-    def _set_off(self):
-        self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_MENU)
+
     
 
 class StatusDisplay(gtk.HBox):

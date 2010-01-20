@@ -157,8 +157,16 @@ class Automounter(BasicAutomounter):
         self._enabled.connect('changed', self._on_enabled_changed)
         self._state.connect('changed', self._on_state_changed)
         
+        #detect external changes
+        #self._dismount_cmd.connect('changed', lambda x,y: self._set_steps(25))
+        #self._mount_cmd.connect('changed', lambda x,y: self._set_steps(26))
+        #self._mount_next_cmd.connect('changed', lambda x,y: self._set_steps(40))
+        
     def probe(self):
         pass
+    
+    def _set_steps(self, steps):
+        self._total_steps = steps
     
     def mount(self, port, wash=False):
         param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
@@ -224,12 +232,13 @@ class Automounter(BasicAutomounter):
                                             
     def _on_mount_changed(self, pv, val):
         vl = val.split()
-        if val == " ":
+        if val.strip() == "":
             port = None
+            gobject.idle_add(self.emit, 'mounted', (None, ''))
         elif len(vl) >= 3:
             port = vl[0].upper() + vl[2] + vl[1]
             try:
-                barcode = self._barcode.get()
+                barcode = self._bar_code.get()
             except:
                 barcode = '[NONE]'   
             if port != self._mounted_port:
@@ -259,7 +268,7 @@ class Automounter(BasicAutomounter):
         if val != self._tool_pos:
             self._step_count += 1
             self._report_progress(val)
-            _logger.debug('Current Position: %s' % (val))
+            _logger.debug('Current Position: %s : %d' % (val, self._step_count))
             self._tool_pos = val
 
 

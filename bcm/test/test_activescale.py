@@ -21,7 +21,7 @@ def main():
     mtr = MotorEntry(bl.goniometer.omega, 'Omega')
     #lbl = ActiveLabel(bl.goniometer.omega)
     sc1 = ActiveHScale(bl.sample_backlight)
-    sc2 = ActiveHScale(bl.sample_sidelight)
+    sc2 = ActiveHScale(bl.sample_frontlight)
     vbox = gtk.VBox()
     
     win.add(vbox)

@@ -38,6 +38,7 @@ class MotorBase(gobject.GObject):
         self._command_sent = False
         self._motor_type = 'basic'
         self.units = ''
+        self._signal_health(None, False)
     
     def __repr__(self):
         s = "<%s:'%s', type:%s>" % (self.__class__.__name__,
@@ -56,7 +57,7 @@ class MotorBase(gobject.GObject):
             self._moving = False
         gobject.idle_add(self.emit, 'moving', self._moving)
         if not self._moving:
-            _logger.info( "(%s) stopped at %f" % (self.name, self.get_position()) )
+            _logger.debug( "(%s) stopped at %f" % (self.name, self.get_position()) )
             
            
     def _signal_health(self, obj, state):
@@ -176,7 +177,7 @@ class Motor(MotorBase):
 
     def _on_log(self, obj, message):
         msg = "(%s) %s" % (self.name, message)
-        _logger.info(msg)
+        _logger.debug(msg)
                                         
     def get_state(self):
         return self.STAT.get()
@@ -215,14 +216,14 @@ class Motor(MotorBase):
         _pos_format = "%%0.%df" % prec
         _pos_to = _pos_format % pos
         if abs(self.get_position() - pos) <  10**-prec and not force:
-            _logger.info( "(%s) is already at %s" % (self.name, _pos_to) )
+            _logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
             return
         
                 
         self._command_sent = True
         self.VAL.set(pos)
         _pos_from = _pos_format % self.get_position()
-        _logger.info( "(%s) moving from %s to %s" % (self.name, _pos_from, _pos_to) )
+        _logger.debug( "(%s) moving from %s to %s" % (self.name, _pos_from, _pos_to) )
         
         if wait:
             self.wait()
@@ -389,10 +390,10 @@ class MotorShutter(gobject.GObject):
             self.motor.configure(reset=0.0)
             
     def open(self):
-        self.motor.move_by(self.out_pos)
+        self.motor.move_to(self.out_pos)
 
     def close(self):
-        self.move_to(self.in_pos)
+        self.motor.move_to(self.in_pos-0.1)
             
     def get_state(self):
         return abs(self.motor.get_position() - self.in_pos) < 1

@@ -122,10 +122,10 @@ class HutchManager(gtk.Frame):
         self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(1))       
         
         #logging
-        self.log_viewer = TextViewer(self._xml.get_widget('log_view'))
+        self.log_viewer = TextViewer(self._xml.get_widget('log_view'), 'Candara 7')
         log_handler = GUIHandler(self.log_viewer)
         log_handler.setLevel(logging.NOTSET)
-        formatter = logging.Formatter('%(asctime)s %(levelname)-8s: %(message)s')
+        formatter = logging.Formatter('%(asctime)s %(levelname)-8s: %(message)s', '%b-%d %H:%M:%S')
         log_handler.setFormatter(formatter)
         logging.getLogger('').addHandler(log_handler)
         

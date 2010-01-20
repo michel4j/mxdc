@@ -421,6 +421,8 @@ class SamplePicker(gtk.Frame):
                 self.mount_btn.set_sensitive(False)
         else:
             self.mounted.set_text('')
+            self.lbl_port.set_markup('<i>Port:</i> %s' % '')
+            self.lbl_barcode.set_markup('<i>Code:</i> %s ' % '')
             self.dismount_btn.set_sensitive(False)
 
 gobject.type_register(ContainerWidget)
