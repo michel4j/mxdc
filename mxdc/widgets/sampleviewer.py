@@ -83,8 +83,8 @@ class SampleViewer(gtk.Frame):
         try:      
             bw = self.beamline.beam_w.get_position()
             bh = self.beamline.beam_h.get_position()
-            bx = self.beamline.beam_x.get_position()
-            by = self.beamline.beam_y.get_position()
+            bx = 0 #self.beamline.beam_x.get_position()
+            by = 0 #self.beamline.beam_y.get_position()
             cx = self.beamline.camera_center_x.get()
             cy = self.beamline.camera_center_y.get()
         except:
@@ -234,7 +234,7 @@ class SampleViewer(gtk.Frame):
         
         # Lighting
         self.lighting_box =   self._xml.get_widget('lighting_box')       
-        self.side_light = ActiveHScale(self.beamline.sample_sidelight)
+        self.side_light = ActiveHScale(self.beamline.sample_frontlight)
         self.back_light = ActiveHScale(self.beamline.sample_backlight)
         self.side_light.set_update_policy(gtk.UPDATE_DELAYED)
         self.back_light.set_update_policy(gtk.UPDATE_DELAYED)

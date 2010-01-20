@@ -20,7 +20,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 class ImageViewer(gtk.Frame):
     def __init__(self, size=512):
         gtk.Frame.__init__(self)
-
+        self.set_shadow_type(gtk.SHADOW_OUT)
         self._canvas_size = size
         self._brightness = 1.0
         self._contrast = 1.0

@@ -282,7 +282,7 @@ class Cryojet(object):
                                       units='L/min')
         self.level = PV('%s:ch1LVL:get' % lname)
         if nozzle_motor is not None:
-            self.nozzle = IMotor(nozzle_motor)
+            self.nozzle = IShutter(nozzle_motor)
         else:
             self.nozzle = CryojetNozzle('CSC1608-5-B10-01')
         self.fill_status = PV('%s:status:ch1:N.SVAL' % lname)

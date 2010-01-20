@@ -56,6 +56,7 @@ class AppWindow(gtk.Window):
 
         self.main_frame.add(notebook)
         self.mxdc_main.pack_start(self.status_panel, expand = False, fill = False)
+        #self.status_bar.pack_end(gtk.Label('Beamline'))
         self.add(self.mxdc_main)
         self.show_all()
         
