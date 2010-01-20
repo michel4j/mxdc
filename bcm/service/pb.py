@@ -1,12 +1,13 @@
 from twisted.internet import glib2reactor
 glib2reactor.install()
 
-
 from twisted.internet import protocol, reactor, threads, defer
 from twisted.application import internet, service
 from twisted.spread import pb
 from twisted.python import components
-from twisted.manhole import telnet
+#from twisted.manhole import telnet
+from twisted.conch import manhole, manhole_ssh
+from twisted.cred import portal, checkers
 from twisted.python import log
 from zope.interface import Interface, implements
 
@@ -258,6 +259,20 @@ class BCMService(service.Service):
         return result
         
         
+# generate ssh factory which points to a given service
+def getShellFactory(service, **passwords):
+    realm = manhole_ssh.TerminalRealm()
+    def getManhole(_):
+        namespace = {'service': service, '_': None }
+        fac = manhole.Manhole(namespace)
+        fac.namespace['factory'] = fac
+        return fac
+    realm.chainedProtocolFactory.protocolFactory = getManhole
+    p = portal.Portal(realm)
+    p.registerChecker(
+        checkers.InMemoryUsernamePasswordDatabaseDontUse(**passwords))
+    f = manhole_ssh.ConchFactory(p)
+    return f
         
 
 class BCMError(pb.Error):
@@ -266,9 +281,8 @@ class BCMError(pb.Error):
 
 
 application = service.Application('BCM')
-f = BCMService('08id1.conf')
-tf = telnet.ShellFactory()
-tf.setService(f)
+f = BCMService()
+sf = getShellFactory(f, admin='appl4Str')
 serviceCollection = service.IServiceCollection(application)
 internet.TCPServer(8880, pb.PBServerFactory(IPerspectiveBCM(f))).setServiceParent(serviceCollection)
-internet.TCPServer(4440, tf).setServiceParent(serviceCollection)        
+internet.TCPServer(2220, sf).setServiceParent(serviceCollection)

@@ -348,8 +348,8 @@ class RunWidget(gtk.Frame):
             if widget is None:
                 continue
             if new_values[key] != self.parameters[key]:
-                widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
-                widget.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
+                widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("magenta"))
+                widget.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("magenta"))
                 self._changes_pending = True
             else:
                 widget.modify_text(gtk.STATE_NORMAL, None)
@@ -519,17 +519,19 @@ class RunWidget(gtk.Frame):
         return True
 
     def on_reset_parameters(self, obj):
+        params = self.get_parameters()
         try:
             beamline = globalRegistry.lookup([], IBeamline)      
-            params = self.get_parameters()
-            params['distance'] = beamline.diffractometer.distance.get_position()
-            params['two_theta'] = beamline.diffractometer.two_theta.get_position()
-            params['start_angle'] = beamline.goniometer.omega.get_position()
-            params['energy'] = [ beamline.monochromator.energy.get_position() ]
+            params['distance'] = beamline.distance.get_position()
+            params['two_theta'] = beamline.two_theta.get_position()
+            params['energy'] = [ beamline.energy.get_position() ]
             params['energy_label'] = ['E0']
+            params['start_angle'] = beamline.goniometer.omega.get_position()
             self.set_parameters(params)
             self.check_changes()
         except:
             self.reset_btn.set_sensitive(False)
+        self.set_parameters(params)
+        self.check_changes()
         return True  
         

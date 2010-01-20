@@ -66,7 +66,7 @@ class CenterSample(Script):
             self.beamline.logger.info('Loop centering reliability is %d%%.' % results['RELIABILITY'])
     
         else:
-            self.beamline.logger.info('Loop centering was not reliable enough.')
+            self.beamline.logger.info('Loop centering was not reliable enough. [%d%%.]' % results['RELIABILITY'])
             
         # calculate motor positions and move
         x = results['Y_CENTRE']
@@ -84,8 +84,8 @@ class CenterSample(Script):
         self.beamline.logger.info('Loop centering cleaning up ...')
         for angle,img in imglist:
             os.remove(img)
-        os.remove(outfile_name)
-        os.remove(infile_name)
+        #os.remove(outfile_name)
+        #os.remove(infile_name)
         self.beamline.logger.info('Loop centering complete in %d seconds.' % (time.time() - tst))
         return True
 

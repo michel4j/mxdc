@@ -14,12 +14,12 @@ class GUIHandler(logging.Handler):
         gobject.idle_add(self.viewer.add_text, self.format(record), True)
 
 class TextViewer(object):
-    def __init__(self, view, size=5000):  
+    def __init__(self, view, size=5000, font='Monospace 8'):  
         self.buffer_size = size    
         self.view = view
         self.text_buffer = self.view.get_buffer()
         self.view.set_editable(False)
-        pango_font = pango.FontDescription('Monospace 8')
+        pango_font = pango.FontDescription(font)
         self.view.modify_font(pango_font)
         self.wrap_mode = gtk.WRAP_WORD
         color_chart = {'INFO': 'Blue',
