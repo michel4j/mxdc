@@ -8,6 +8,7 @@
     <child>
       <widget class="GtkVBox" id="image_viewer">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <child>
           <widget class="GtkAspectFrame" id="image_frame">
             <property name="visible">True</property>
@@ -278,6 +279,7 @@
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
           <widget class="GtkTable" id="info_table">
@@ -718,7 +720,7 @@
             <property name="layout_style">end</property>
             <child>
               <widget class="GtkButton" id="info_close_btn">
-                <property name="label" translatable="yes">gtk-close</property>
+                <property name="label">gtk-close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>

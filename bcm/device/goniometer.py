@@ -19,22 +19,28 @@ _logger = get_module_logger(__name__)
 (GONIO_IDLE, GONIO_ACTIVE) = range(2)
 
 GONIO_MODE_INVALID = -1
-GONIO_MODE_MOUNT = 0
-GONIO_MODE_CENTER = 1
-GONIO_MODE_BEAM = 2
-GONIO_MODE_COLLECT = 4
+GONIO_MODE_INIT  = 0
+GONIO_MODE_MOUNT = 1
+GONIO_MODE_CENTER = 2
+GONIO_MODE_BEAM = 3
+GONIO_MODE_ALIGN = 4
+GONIO_MODE_COLLECT = 5
+GONIO_MODE_UNKNOWN = 6
 
-_MODE_MAP = { 
+_MODE_MAP = {
              'MOUNTING':GONIO_MODE_MOUNT, 
              'CENTERING': GONIO_MODE_CENTER,
              'COLLECT': GONIO_MODE_COLLECT,
              'BEAM': GONIO_MODE_BEAM,
 }
-_MODE_MAP_REV = { 
+_MODE_MAP_REV = {
+             GONIO_MODE_INIT: 'INIT',
+             GONIO_MODE_ALIGN: 'ALIGN',
              GONIO_MODE_MOUNT: 'MOUNTING', 
              GONIO_MODE_CENTER: 'CENTERING',
              GONIO_MODE_COLLECT: 'COLLECT',
              GONIO_MODE_BEAM: 'BEAM',
+             GONIO_MODE_UNKNOWN: 'UNKNOWN',
 }
 
 _STATE_PATTERNS = {
@@ -136,6 +142,12 @@ class MD2Goniometer(GoniometerBase):
         self._abort_cmd = PV("%s:S:AbortScan" % pv_root, monitor=False)
         self._state = PV("%s:G:MachAppState" % pv_root)
         self._mode_cmd = PV("%s:S:MDPhasePosition" % pv_root, monitor=False)
+        
+        self._mode_mounting_cmd = PV("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
+        self._mode_centering_cmd = PV("%s:S:centering:phase.PROC" % pv_root, monitor=False)
+        self._mode_collect_cmd = PV("%s:S:scan:phase.PROC" % pv_root, monitor=False)
+        self._mode_beam_cmd = PV("%s:S:locate:phase.PROC" % pv_root, monitor=False)
+
         self._mode_fbk = PV("%s:G:MDPhasePosition" % pv_root)
         self._cntr_cmd_start = PV("%s:S:StartManSampleCent" % pv_root)
         self._cntr_cmd_stop = PV("%s:S:ManCentCmpltd" % pv_root)
@@ -155,7 +167,7 @@ class MD2Goniometer(GoniometerBase):
         
         #signal handlers
         self._mode_fbk.connect('changed', self.on_mode_changed)
-        self._log.connect('changed', self.on_log_status)
+        #self._log.connect('changed', self.on_log_status)
         
                        
     def configure(self, **kwargs):
@@ -164,21 +176,22 @@ class MD2Goniometer(GoniometerBase):
     
     def set_mode(self, mode, wait=False):
         if isinstance(mode, int):
-            _mode_val = mode
-        elif isinstance(mode, str):
-            _mode_val = _MODE_MAP.get(mode, 0)
-            
-        if _mode_val == 1:
-            self._cntr_cmd_start.set(1)
-            self._cntr_cmd_start.set(0)
-        elif _mode_val == 4:
-            self._cntr_cmd_stop.set(1)
-            self._cntr_cmd_stop.set(0)
-        self._mode_cmd.set(_mode_val)
-        
+            mode = _MODE_MAP_REV.get(mode, 'UNKNOWN')
+
+        mode = mode.strip().upper()
+
+        if mode == 'CENTERING':
+            self._mode_centering_cmd.put('\x01')
+        elif mode == 'MOUNTING':
+            self._mode_mounting_cmd.put('\x01')
+        elif mode == 'COLLECT':
+            self._mode_collect_cmd.put('\x01')
+        elif mode == 'BEAM':
+            self._mode_beam_cmd.put('\x01')
+                    
         if wait:
             timeout = 30
-            while self.mode != _mode_val  and timeout > 0:
+            while _MODE_MAP_REV.get(self.mode) != mode  and timeout > 0:
                 time.sleep(0.05)
                 timeout -= 0.05
             if timeout <= 0:
@@ -186,9 +199,7 @@ class MD2Goniometer(GoniometerBase):
              
 
     def on_mode_changed(self, pv, val):
-        #self._gonio_mode = -2*(val // 6) + val%5
-        #_logger.debug('MD2 Current Mode: %d' % self._gonio_mode )
-        pass
+        self._set_and_notify_mode(val)
     
     def on_log_status(self, pv, txt):
         for k,v in _STATE_PATTERNS.items():

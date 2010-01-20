@@ -272,8 +272,8 @@
                             </child>
                             <child>
                               <widget class="GtkImage" id="noz_img">
-                                <property name="width_request">82</property>
-                                <property name="height_request">24</property>
+                                <property name="width_request">110</property>
+                                <property name="height_request">32</property>
                                 <property name="visible">True</property>
                                 <property name="stock">gtk-missing-image</property>
                               </widget>
