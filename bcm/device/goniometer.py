@@ -181,13 +181,17 @@ class MD2Goniometer(GoniometerBase):
         mode = mode.strip().upper()
 
         if mode == 'CENTERING':
-            self._mode_centering_cmd.put('\x01')
+            self._mode_cmd.put(2)
+            #self._mode_centering_cmd.put('\x01')
         elif mode == 'MOUNTING':
-            self._mode_mounting_cmd.put('\x01')
+            self._mode_cmd.put(1)
+            #self._mode_mounting_cmd.put('\x01')
         elif mode == 'COLLECT':
-            self._mode_collect_cmd.put('\x01')
+            self._mode_cmd.put(5)
+            #self._mode_collect_cmd.put('\x01')
         elif mode == 'BEAM':
-            self._mode_beam_cmd.put('\x01')
+            self._mode_cmd.put(3)
+            #self._mode_beam_cmd.put('\x01')
                     
         if wait:
             timeout = 30
