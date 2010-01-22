@@ -19,6 +19,7 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.device.remote import *
 from bcm.engine import diffraction
 from bcm.engine import spectroscopy
+from bcm.utils import science
 from bcm.service.utils import log_call
 from bcm.utils.video import add_decorations
 
@@ -191,11 +192,10 @@ class BCMService(service.Service):
         prefix = kwargs['prefix']
         energy = kwargs['energy']
         attenuation = kwargs['attenuation']
-        
-        
+             
         output_path = '%s/%s-%0.3fkeV.escan' % (directory, prefix, energy)
         self.xrf_scanner.configure(energy=energy, t=exposure_time, attenuation=attenuation)
-        d = threads.deferToThread(self.xrf_scanner.run)  
+        d = threads.deferToThread(self.xrf_scanner.run)
         return d
     
     @log_call
@@ -216,13 +216,12 @@ class BCMService(service.Service):
             - wedge : float (default 180)
             - energy : a list of energy values (floats)
             - energy_label : a corresponding list of energy labels (strings) no spaces
-            - two_theta : a float, default ( 0.0)
+            - two_theta : a float, default (0.0)
+            - attenuation: a flot, default (0.0)
         """
         assert self.ready
-        collector = DataCollector.DataCollector(self.beamline)
-        collector.setup(run_info)
-
-        d = threads.deferToThread(collector.run)        
+        self.data_collector.configure(run_data=run_info, skip_collected=skip_existing)
+        d = threads.deferToThread(self.data_collector.run)     
         return d
                 
     @log_call
@@ -230,27 +229,23 @@ class BCMService(service.Service):
         assert self.ready
         unique_id = str( uuid.uuid4() ) 
         output_file = '%s/%s-%s.png' % (directory, prefix, unique_id)
-        if show_decorations:
-            d = threads.deferToThread(self._save_decorated_snapshot, output_file)
-        else:
-            d = threads.deferToThread(self.beamline.sample_cam.save, output_file)
+        d = threads.deferToThread(self._save_snapshot, output_file, decorate=show_decorations)
         return d
     
     def optimizeBeamline(self, *args, **kwargs):
         assert self.ready
-        log.msg('<%s()>' % (sys._getframe().f_code.co_name))
-        
+        log.msg('<%s()>' % (sys._getframe().f_code.co_name))       
         return defer.succeed([])
     
     def shutdown(self):
         log.msg('<%s()>' % (sys._getframe().f_code.co_name))
         reactor.stop()
-        #os.kill(os.getpid(), signal.SIGTERM)
     
-    def _save_decorated_snapshot(self, output_file):
+    def _save_snapshot(self, output_file, decorate=False):
         try:
             img = self.beamline.sample_cam.get_frame()
-            img = add_decorations(self.beamline, img)
+            if decorate:
+                img = add_decorations(self.beamline, img)
             img.save(output_file)
             result = output_file
         except:

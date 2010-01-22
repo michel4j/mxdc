@@ -4,7 +4,7 @@ from zope.interface import Interface, Attribute, invariant
 from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.engine.scanning import BasicScan, ScanError
-from bcm.utils.science import get_energy_database, xanes_targets
+from bcm.utils.science import *
 from bcm.utils.log import get_module_logger
 import os
 import time
@@ -165,3 +165,11 @@ class XANESScan(BasicScan):
             self.beamline.lock.release()           
         return self.data
 
+def assign_xrf_peaks(data):
+        x = data[:,0]
+        y = data[:,1]
+        peaks = peak_search(x, y, w=31, threshold=0.1, min_peak=0.05)
+        apeaks = assign_peaks(peaks,  dev=0.04)
+        return (apeaks, data)
+        
+    

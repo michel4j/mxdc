@@ -148,6 +148,7 @@ class Screener(gobject.GObject):
         finally:
             self.beamline.exposure_shutter.close()
             self.beamline.lock.release()
+        
 
     def set_position(self, pos):
         self.pos = pos
@@ -298,7 +299,9 @@ class DataCollector(gobject.GObject):
         finally:
             self.beamline.exposure_shutter.close()
             self.beamline.goniometer.set_mode('mount') # return goniometer to mount position
-            self.beamline.lock.release()
+            self.beamline.lock.release()        
+        #FIXME: return information about everything that was collected this session
+        return []
 
     def set_position(self, pos):
         self.pos = pos

@@ -12,7 +12,7 @@ class StatusPanel(gtk.Statusbar):
         self.set_has_resize_grip(False)
         self.layout_table = gtk.Table(1, 9, True)
         self.layout_table.set_col_spacings(2)
-        self.layout_table.set_border_width(1)
+        self.layout_table.set_border_width(3)
 
         beamline = globalRegistry.lookup([], IBeamline)      
         if beamline is None:
@@ -33,8 +33,8 @@ class StatusPanel(gtk.Statusbar):
         self.intensity = ActiveLabel(beamline.i_0.value, format="<tt><small>%8.2e</small></tt>")
         self.layout_table.attach(self._frame_control('I0', self.intensity, gtk.SHADOW_IN), 4, 5 , 0, 1)
         
-        _map = {True:'<span color="#006600"><small>OPEN</small></span>',
-                False:'span color="#660000"><small>CLOSED</small></span>'}
+        _map = {True:'<span color="#009900"><small>OPEN</small></span>',
+                False:'<span color="#990000"><small>CLOSED</small></span>'}
         self.sh_stat = TextStatusDisplay(beamline.registry['exposure_shutter'], text_map=_map)
         self.layout_table.attach(self._frame_control('Shutter', self.sh_stat, gtk.SHADOW_IN), 3, 4 , 0, 1)
       
@@ -68,8 +68,8 @@ class StatusPanel(gtk.Statusbar):
         self.gonio_mode.set_markup('<small>%s</small>' % val)
         
     def _frame_control(self, label, widget, shadow):
-        hbox = gtk.HBox(False,0)
-        hbox.pack_end(widget, expand=True, fill=True)
+        hbox = gtk.HBox(False,2)
+        hbox.pack_end(widget)
         if label is not None:
             descr = gtk.Label('<span color="#333333"><i>%s:</i></span>' % label)
             descr.set_sensitive(False)

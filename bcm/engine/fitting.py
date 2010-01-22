@@ -6,19 +6,14 @@ import scipy.optimize
 # 0 = H - Height of peak
 # 1 = L - FWHM of Voigt profile (Wertheim et al)
 # 2 = P - Position of peak
-# 3 = n - lorentzian fraction, gaussian offset
+# 3 = n - lorentzian fraction, gaussian/step offset
 
 
-def step(x, coeffs):
+def step_func(x, coeffs):
     H, L, P = coeffs[:3]
     d = coeffs[3]
-    y = abs(H)*( 0.5 + (1.0/pi)*scipy.arctan( (x-P)/(0.5*L)))
-    def _mod_step(x):
-        return (x > P) and scipy.exp(-d * (x-P-L)) or (x <= P) and 1.0
-        
-    yexp = map(_mod_step, x)
-    y = y*yexp
-    return y-min(y)
+    y = abs(H)*( 0.5 + (1.0/numpy.pi)*scipy.arctan( (x-P)/(0.5*L))) + d
+    return y
 
 def multi_peak(x, coeffs, target='gaussian'):
     y = numpy.zeros(len(x))
@@ -50,12 +45,22 @@ TARGET_FUNC = {
     'gaussian': gauss,
     'lorentzian': lorentz,
     'voigt': voigt,
-    'step': step,
+    'step': step_func,
 }
 
 def peak_fit(x,y,target='gaussian'):
-    pars = histogram_fit(x,y)
-    coeffs = [pars[0], pars[1], pars[2], 0, 0]
+    """
+    Returns the coefficients for the target function
+     0 = H - Height of peak
+     1 = L - FWHM of Voigt profile (Wertheim et al)
+     2 = P - Position of peak
+     3 = n - lorentzian fraction, gaussian offset
+    """
+    if target != 'step':
+        pars = histogram_fit(x,y)
+        coeffs = [pars[0], pars[1], pars[2], 0, 0]
+    else:
+        coeffs = [1,1,0,0]
     
     def _err(p, x, y):
         vals = TARGET_FUNC[target](x,p)

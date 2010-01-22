@@ -340,6 +340,8 @@ class PV(gobject.GObject):
                 data = self._vtype(*val)
             else:
                 data = self._vtype(val)
+        elif self._type == DBR_CHAR and isinstance(val, int):
+            data = self._vtype(chr(val))
         else:
             data = self._vtype(val)           
         libca.ca_array_put(self._type, self._count, self._chid, byref(data))
@@ -510,13 +512,29 @@ def flush():
 
 
 def ca_exception_handler(event):
-    msg = "%s %s File: %s line %s Time: %s" % (
-                                        event.op, 
-                                        event.ctx, 
-                                        event.pFile, 
-                                        event.lineNo, 
-                                        time.strftime("%X %Z %a, %d %b %Y"))
-    _logger.warning("Protocol error: %s" % msg)
+    
+    if event.chid != 0:
+        name = libca.ca_name(event.chid)
+    else:
+        name = '?'
+    msg = """Channel Access Exception:
+    MESSAGE: %s
+    CHANNEL: %s
+    TYPE:    %s
+    WHILE:   %s
+    FILE:    %s 
+    LINE:    %s
+    TIME:    %s
+    CONTEXT: %s""" % (
+        libca.ca_message(event.stat),
+        name,
+        event.type,
+        OP_messages.get(event.op, 'UNKNOWN'),
+        event.pFile, 
+        event.lineNo, 
+        time.strftime("%X %Z %a, %d %b %Y"),
+        event.ctx,)
+    _logger.error(msg)
     return 0
 
 def _heart_beat(duration=0.001):
@@ -549,6 +567,9 @@ libca.ca_element_count.argtypes = [c_ulong]
 
 libca.ca_state.restype = c_ushort
 libca.ca_state.argtypes = [c_ulong]
+
+libca.ca_message.restype = c_char_p
+libca.ca_message.argtypes = [c_ulong]
 
 libca.ca_field_type.restype = c_long
 libca.ca_field_type.argtypes = [c_ulong]
