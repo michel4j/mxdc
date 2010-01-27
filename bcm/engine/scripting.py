@@ -26,7 +26,7 @@ class Script(gobject.GObject):
     
     implements(IPlugin, ibcm.IScript)
     __gsignals__ = {}
-    __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     description = 'A Script'
     progress = None
@@ -43,20 +43,21 @@ class Script(gobject.GObject):
 
     def __repr__(self):
         return '<Script:%s>' % self.name
-        
+    
     def start(self, *args, **kwargs):
         self._active = True
         worker_thread = threading.Thread(target=self._thread_run, args=args, kwargs=kwargs)
         worker_thread.setDaemon(True)
+        self.output = None
         worker_thread.start()
         
     def _thread_run(self, *args, **kwargs):
         try:
             ca.threads_init()
-            self.run(*args, **kwargs)
+            self.output = self.run(*args, **kwargs)
             _logger.info('Script `%s` terminated successfully' % (self.name) )
         finally:
-            gobject.idle_add(self.emit, "done")
+            gobject.idle_add(self.emit, "done", self.output)
             self._active = False
                 
     def run(self, *args, **kwargs):
@@ -75,7 +76,4 @@ def get_scripts():
     for script in list(getPlugins(ibcm.IScript, bcm.scripts)):
         scripts[script.name] = script
     return scripts
-    
         
-gobject.type_register(Script)
-    
