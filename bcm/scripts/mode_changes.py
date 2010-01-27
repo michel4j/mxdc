@@ -5,9 +5,11 @@ class SetMountMode(Script):
     def run(self):
         safe_distance = 700
         safe_beamstop = 45
-        self.beamline.registry['detector_z'].move_to(safe_distance)
-        self.beamline.registry['beamstop_z'].move_to(safe_beamstop)
+        self.beamline.detector_z.move_to(safe_distance)
+        self.beamline.beamstop_z.move_to(safe_beamstop)
         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+        self.beamline.beamstop_z.wait()
+        self.beamline.detector_z.wait()
         
         
 class SetCenteringMode(Script):
