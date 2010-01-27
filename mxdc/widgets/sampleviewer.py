@@ -4,7 +4,7 @@ import gtk
 import gobject
 import pango
 import gtk.glade
-from mxdc.widgets.dialogs import save_selector
+from mxdc.widgets.dialogs import save_selector, warning, error
 from mxdc.widgets.video import VideoWidget
 from mxdc.widgets.misc import ActiveHScale
 from bcm.engine.scripting import get_scripts 
@@ -50,6 +50,10 @@ class SampleViewer(gtk.Frame):
         self.video.connect('button_press_event', self.on_image_click)
         self.video.set_overlay_func(self._overlay_function)
         self.video.connect('realize', self.on_realize)
+        
+        script = self._scripts['CenterSample']
+        script.connect('done', self.done_centering)
+        script.connect('error', self.error_centering)
 
                                         
     def save_image(self, filename):
@@ -60,8 +64,6 @@ class SampleViewer(gtk.Frame):
         try:
             bw = self.beamline.beam_w.get_position()
             bh = self.beamline.beam_h.get_position()
-            bx = self.beamline.beam_x.get_position()
-            by = self.beamline.beam_y.get_position()
             pix_size = self.beamline.sample_video.resolution
             cx = self.beamline.camera_center_x.get()
             cy = self.beamline.camera_center_y.get()
@@ -71,8 +73,8 @@ class SampleViewer(gtk.Frame):
             # slit position and sizes in pixels
             w = int(bw / pix_size) 
             h = int(bh / pix_size)
-            x = int((cx - (bx / pix_size)))
-            y = int((cy - (by / pix_size)))
+            x = cx
+            y = cy
         
             img = add_decorations(img, x, y, w, h)
         img.save(filename)
@@ -155,14 +157,9 @@ class SampleViewer(gtk.Frame):
     
     @async
     def center_pixel(self, x, y):
-        #tmp_omega = int(self.beamline.goniometer.omega.get_position() )
-        #sin_w = math.sin(tmp_omega * math.pi / 180)
-        #cos_w = math.cos(tmp_omega * math.pi / 180)
         im_x, im_y, xmm, ymm = self._img_position(x,y)
         self.beamline.sample_stage.x.move_by(-xmm, wait=True)
         self.beamline.sample_stage.y.move_by(-ymm)
-        #self.beamline.sample_stage.y.move_by(-ymm * sin_w)
-        #self.beamline.sample_stage.z.move_by(ymm * cos_w)
 
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
@@ -267,71 +264,70 @@ class SampleViewer(gtk.Frame):
     def on_center_loop(self,widget):
         script = self._scripts['CenterSample']
         self.side_panel.set_sensitive(False)
-        script.connect('done', self.done_centering)
-        script.connect('error', self.done_centering)
         script.start(crystal=False)
         return True
               
     def on_center_crystal(self, widget):
         script = self._scripts['CenterSample']
         self.side_panel.set_sensitive(False)
-        script.connect('done', self.done_centering)
-        script.connect('error', self.done_centering)
         script.start(crystal=True)
         return True
 
-    def done_centering(self,obj):
+    def done_centering(self, obj, result):
+        #make signal is handled only once
+        obj.emit_stop_by_name('done')
+        
+        if result['RELIABILITY'] < 70:
+            msg = 'Automatic centering was not reliable enough [reliability=%d%%], please repeat.' % result['RELIABILITY']
+            warning('Poor Centering', msg)            
         self.side_panel.set_sensitive(True)
-        return True
-            
+    
+    def error_centering(self, obj):
+        #make signal is handled only once
+        obj.emit_stop_by_name('error')
+        if result is None: # error:
+            msg = 'There was an error centering automatically. Please try centering manually.'
+            error('Automatic Centering Failed', msg)
+                
     def on_unmap(self, widget):
         self.videothread.pause()
-        return True
 
     def on_no_expose(self, widget, event):
         return True
         
     def on_delete(self,widget):
         self.videothread.stop()
-        return True
         
     def on_expose(self, videoarea, event):        
         videoarea.window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
             self.width, self.height)
-        return True
     
     def on_zoom_in(self,widget):
         self.beamline.sample_video.zoom(10)
-        return True
 
     def on_zoom_out(self,widget):
         self.beamline.sample_video.zoom(1)
-        return True
 
     def on_unzoom(self,widget):
         self.beamline.sample_video.zoom(6)
-        return True
 
     def on_incr_omega(self,widget):
         cur_omega = int(self.beamline.goniometer.omega.get_position() )
         target = (cur_omega + 90)
         target = (target > 360) and (target % 360) or target
         self.beamline.goniometer.omega.move_to(target)
-        return True
 
     def on_decr_omega(self,widget):
         cur_omega = int(self.beamline.goniometer.omega.get_position() )
         target = (cur_omega - 90)
         target = (target < -180) and (target % 360) or target
         self.beamline.goniometer.omega.move_to(target)
-        return True
-
+ 
     def on_double_incr_omega(self,widget):
         cur_omega = int(self.beamline.goniometer.omega.get_position() )
         target = (cur_omega + 180)
         target = (target > 360) and (target % 360) or target
         self.beamline.goniometer.omega.move_to(target)
-        return True
                 
     def on_mouse_motion(self, widget, event):
         if event.is_hint:
@@ -345,7 +341,6 @@ class SampleViewer(gtk.Frame):
             self.measure_x2, self.measure_y2, = event.x, event.y
         else:
             self.measuring = False
-        return True
 
     def on_image_click(self, widget, event):
         if event.button == 1:
@@ -358,27 +353,22 @@ class SampleViewer(gtk.Frame):
             self.measure_x2, self.measure_y2 = event.x,event.y
         elif event.button == 3:
             self.cmap_popup.popup(None, None, None, event.button,event.time)
-        return True  
                 
     def on_fine_up(self,widget):
         step_size = self.beamline.sample_video.resolution * 10.0
         self.beamline.sample_stage.y.move_by( step_size * 0.5 )
-        return True
         
     def on_fine_down(self,widget):
         step_size = self.beamline.sample_video.resolution * 10.0
         self.beamline.sample_stage.y.move_by( -step_size * 0.5)
-        return True
         
     def on_fine_left(self,widget):
         step_size = self.beamline.sample_video.resolution * 10.0
         self.beamline.sample_stage.x.move_by( step_size * 0.5 )
-        return True
         
     def on_fine_right(self,widget):
         step_size = self.beamline.sample_video.resolution * 10.0
         self.beamline.sample_stage.x.move_by( -step_size * 0.5 )
-        return True
         
     def on_home(self,widget):
         #self.beamline.sample_stage.x.move_to( 22.0 )

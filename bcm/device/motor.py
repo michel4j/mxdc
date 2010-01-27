@@ -473,6 +473,7 @@ class RelVerticalMotor(MotorBase):
         return '<RelVerticalMotor: %s, %s >' % (self.y1, self.y2)
         
     def get_position(self):
+        # make sure all moves are relative by fixing current position at 0 always
         return 0
         
     def configure(self, **kwargs):

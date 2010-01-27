@@ -1,17 +1,14 @@
-import sys
 import os
 import time
-import copy
 import gtk
 import gtk.glade
 import gobject
 from twisted.python.components import globalRegistry
-from mxdc.widgets.samplelist import SampleList, TEST_DATA
+from mxdc.widgets.samplelist import SampleList
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets import dialogs
 from mxdc.widgets.ptzviewer import AxisViewer
 from bcm.beamline.mx import IBeamline
-from bcm.engine.scripting import get_scripts
 from bcm.engine.diffraction import Screener
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')

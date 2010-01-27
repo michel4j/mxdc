@@ -21,60 +21,10 @@ from bcm.engine import diffraction
 from bcm.engine import spectroscopy
 from bcm.utils import science
 from bcm.service.utils import log_call
-from bcm.utils.video import add_decorations
+from bcm.service.interfaces import IPerspectiveBCM, IBCMService
+from bcm.engine.snapshot import take_sample_snapshots
 
-if sys.version_info[:2] >= (2,5):
-    import uuid
-else:
-    from bcm.tools import uuid # for 2.3, 2.4
-
-class IBCMService(Interface):
     
-    def mountSample(*args, **kwargs):
-        """Mount a sample on the Robot and align it"""
-        
-    def unmountSample(*args, **kwargs):
-        """unmount a sample from the Robot"""
-        
-    def scanEdge(*args, **kwargs):
-        """Perform and Edge scan """
-        
-    def scanSpectrum(*args, **kwargs):
-        """ Perform and excitation scan"""
-    
-    def acquireFrames(*args, **kwargs):
-        """ Collect frames of Data """
-        
-    def acquireSnapshot(*args, **kwargs):
-        """ Save a set of images from the sample video"""
-    
-    def optimizeBeamline(*args, **kwargs):
-        """ Optimize the flux at the sample position for the given setup"""
-        
-
-class IPerspectiveBCM(Interface):
-    
-    def remote_mountSample(*args, **kwargs):
-        """Mount a sample on the Robot and align it"""
-        
-    def remote_unmountSample(*args, **kwargs):
-        """Mount a sample on the Robot and align it"""
-                
-    def remote_scanEdge(*args, **kwargs):
-        """Perform and Edge scan """
-        
-    def remote_scanSpectrum(*args, **kwargs):
-        """ Perform and excitation scan"""
-    
-    def remote_acquireFrames(*args, **kwargs):
-        """ Collect frames of Data """
-        
-    def remote_acquireSnapshot(*args, **kwargs):
-        """ Save a set of images from the sample video"""
-    
-    def remote_optimizeBeamline(*args, **kwargs):
-        """ Optimize the flux at the sample position for the given setup"""
-
 class PerspectiveBCMFromService(pb.Root):
     implements(IPerspectiveBCM)
     def __init__(self, service):
@@ -100,13 +50,14 @@ class PerspectiveBCMFromService(pb.Root):
         """ Collect frames of Data """
         return self.service.acquireFrames(run_info, skip_existing)
         
-    def remote_acquireSnapshot(self, directory, prefix, show_decorations=True):
+    def remote_takeSnapshots(self, directory, prefix, show_decorations=True):
         """ Save a set of images from the sample video"""
-        return self.service.acquireSnapshot(directory, prefix, show_decorations)
+        return self.service.takeSnapshots(directory, prefix, show_decorations)
+
+    def remote_setUser(self, name, uid, gid, directory):
+        """ Set the current user"""
+        return self.service.setUser(name, uid, gid, directory)
     
-    def remote_optimizeBeamline(self, *args, **kwargs):
-        """ Optimize the flux at the sample position for the given setup"""
-        return self.service.optimizeBeamline(**kwargs)
 
 components.registerAdapter(PerspectiveBCMFromService,
     IBCMService,
@@ -140,7 +91,17 @@ class BCMService(service.Service):
     def _service_failed(self, result):
         log.msg('Could not initialize beamline. Shutting down!')
         self.shutdown()
-        
+    
+    @log_call
+    def setUser(self, name, uid, gid, directory):
+        user_info = {
+            'name': name,
+            'uid': uid,
+            'gid': gid,
+            'directory': directory,
+            }
+        self.settings['user'] = user_info
+      
     @log_call
     def mountSample(self, *args, **kwargs):
         assert self.ready
@@ -223,35 +184,17 @@ class BCMService(service.Service):
         self.data_collector.configure(run_data=run_info, skip_collected=skip_existing)
         d = threads.deferToThread(self.data_collector.run)     
         return d
-                
+                   
     @log_call
-    def acquireSnapshot(self, directory, prefix, show_decorations=True):
-        assert self.ready
-        unique_id = str( uuid.uuid4() ) 
-        output_file = '%s/%s-%s.png' % (directory, prefix, unique_id)
-        d = threads.deferToThread(self._save_snapshot, output_file, decorate=show_decorations)
+    def takeSnapshots(self, prefix, directory, angles=[None], decorate=True):
+        assert self.ready        
+        d = threads.deferToThread(take_sample_snapshots, prefix, directory, angles, decorate=decorate)
         return d
     
-    def optimizeBeamline(self, *args, **kwargs):
-        assert self.ready
-        log.msg('<%s()>' % (sys._getframe().f_code.co_name))       
-        return defer.succeed([])
-    
+    @log_call
     def shutdown(self):
-        log.msg('<%s()>' % (sys._getframe().f_code.co_name))
         reactor.stop()
     
-    def _save_snapshot(self, output_file, decorate=False):
-        try:
-            img = self.beamline.sample_cam.get_frame()
-            if decorate:
-                img = add_decorations(self.beamline, img)
-            img.save(output_file)
-            result = output_file
-        except:
-            log.error('Unable to save decorated sample snapshot')
-            result = False
-        return result
         
         
 # generate ssh factory which points to a given service

@@ -99,6 +99,7 @@ class Goniometer(GoniometerBase):
             'delta' : PV("%s:deltaOmega" % pv_root, monitor=False),
             'angle': PV("%s:openSHPos" % pv_root, monitor=False),
         }
+        gobject.idle_add(self.emit, 'mode', 'UNKNOWN')
         
                 
     def configure(self, **kwargs):
@@ -106,7 +107,9 @@ class Goniometer(GoniometerBase):
             self._settings[key].put(kwargs[key])
     
     def set_mode(self, mode, wait=False):
-        self._set_and_notify_mode(mode)
+        if isinstance(mode, int):
+            mode = _MODE_MAP_REV.get(mode, 'UNKNOWN')
+        self._set_and_notify_mode(_MODE_MAP.get(mode))
     
     def scan(self, wait=True):
         self._scan_cmd.set('\x01')
