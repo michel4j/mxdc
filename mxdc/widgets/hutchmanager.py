@@ -33,7 +33,7 @@ class HutchManager(gtk.Frame):
         self._create_widgets()
         # Some scripts need to reactivate settings frame on completion
         for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode']:
-            self.scripts[sc].connect('done', lambda x: self.settings_frame.set_sensitive(True))
+            self.scripts[sc].connect('done', lambda x, y: self.settings_frame.set_sensitive(True))
     
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'hutch_widget.glade'), 

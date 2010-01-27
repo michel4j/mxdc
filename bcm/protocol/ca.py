@@ -503,7 +503,14 @@ def epics_to_posixtime(time_stamp):
            (float(time_stamp.nsec) * 1e-9)
 
 def threads_init():
-    libca.ca_attach_context(libca.context)
+    if libca.ca_current_context() != libca.context:
+        libca.ca_attach_context(libca.context)
+        _logger.debug('New Thread joined CA context.')
+    else:
+        _logger.debug('CA context is already current.')
+
+
+
 
 def flush():
     ret = libca.ca_flush_io()

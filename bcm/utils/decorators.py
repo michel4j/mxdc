@@ -18,4 +18,12 @@ def async(f):
     _f.__name__ = f.__name__
     return _f
 
-        
+
+def ca_thread_enable(f):
+    """ Make sure an active EPICS CA context is available or join one before running"""
+    def _f(*args, **kwargs):
+        threads_init() 
+        return f(*args,**kwargs)
+        _f.__name__ = f.__name__
+    return _f
+    

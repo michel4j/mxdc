@@ -280,7 +280,7 @@ class ScriptButton(gtk.Button):
             self.script.start()
             self._set_on()  
         
-    def _on_state_change(self, obj):
+    def _on_state_change(self, obj, value=None):
         self._set_off()
         return True
             
