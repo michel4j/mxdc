@@ -298,12 +298,18 @@ def _format_error_string(state):
         'action': 'action'
     }
     needs = []
+    calib = []
     for t in state['needs']:
         ts = t.split(':') 
         if len(ts)>1:
-            needs.append(ts[1] +' '+ nd_dict[ts[0]])
+            if ts[0] == 'calib':
+                calib.append(ts[1])
+            else:
+                needs.append(ts[1] +' '+ nd_dict[ts[0]])
         else:
             needs.append(t)
+    if len(calib) > 0:
+        needs.append('calibration')
     if len(needs) > 0:
         needs_txt = 'Needs ' + ', '.join(needs)
     else:
