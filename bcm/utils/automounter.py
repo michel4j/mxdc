@@ -25,8 +25,8 @@ STATE_NEED_STRINGS = {
 1: 'inspect:staff',
 2: 'reset',
 4: 'calib:toolset',
-8: 'calib:cassette',
-16: 'calib:goniometer',
+8: 'calib:ports',
+16: 'calib:gonio',
 32: 'calib:initial',
 64: 'action:user',
 }
