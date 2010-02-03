@@ -39,6 +39,7 @@ def _register_icon_reuse():
         ('mxdc-pause', gtk.STOCK_MEDIA_PAUSE),
         ('mxdc-stop', gtk.STOCK_MEDIA_STOP),
         ('mxdc-collect', gtk.STOCK_MEDIA_PLAY),
+        ('mxdc-start', gtk.STOCK_MEDIA_PLAY),
         ('mxdc-scan', gtk.STOCK_MEDIA_PLAY),
         ('mxdc-stop-scan', gtk.STOCK_MEDIA_STOP),
     ]
@@ -47,6 +48,7 @@ def _register_icon_reuse():
         ('mxdc-replace','_Replace', 0, 0, None),
         ('mxdc-resume', '_Resume', 0, 0, None),
         ('mxdc-collect', '_Collect', 0, 0, None),
+        ('mxdc-start', '_Start', 0, 0, None),
         ('mxdc-pause', '_Pause', 0, 0, None),
         ('mxdc-stop', 'S_top', 0, 0, None),
         ('mxdc-scan', '_Start Scan', 0, 0, None),

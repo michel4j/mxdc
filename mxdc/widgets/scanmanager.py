@@ -1,5 +1,4 @@
 
-import sys
 import os
 import gtk
 import gtk.glade
@@ -8,13 +7,11 @@ import gobject
 from mxdc.widgets.periodictable import PeriodicTable
 from mxdc.widgets.textviewer import TextViewer
 from mxdc.widgets.plotter import Plotter
-from mxdc.widgets.dialogs import DirectoryButton
+from mxdc.widgets.dialogs import DirectoryButton, warning, error
 from bcm.beamline.mx import IBeamline
 from twisted.python.components import globalRegistry
 from bcm.engine.spectroscopy import XRFScan, XANESScan
-from bcm.engine import fitting
 from bcm.utils import science
-from bcm.engine.AutoChooch import AutoChooch
 from bcm.utils.log import get_module_logger
 
 _logger = get_module_logger('mxdc.scanmanager')
@@ -37,18 +34,14 @@ class ScanManager(gtk.Frame):
 
         self._create_widgets()
 
-        self.auto_chooch = AutoChooch()
         self.xanes_scanner = XANESScan()
         self.xrf_scanner = XRFScan()
-        
-        self.auto_chooch.connect('done', self.on_chooch_done)
-        self.auto_chooch.connect('error', self.on_chooch_error)
-        
+                
         self.xanes_scanner.connect('new-point', self.on_new_scan_point)    
         self.xanes_scanner.connect('done', self.on_xanes_done)
-        self.xanes_scanner.connect('stopped', self.on_scan_stopped)
+        self.xanes_scanner.connect('stopped', self.on_xanes_done)
         self.xanes_scanner.connect('progress', self.on_progress)    
-        self.xanes_scanner.connect('error', self.on_scan_error)        
+        self.xanes_scanner.connect('error', self.on_xanes_error)        
         self.xrf_scanner.connect('done', self.on_xrf_done)   
         self.xrf_scanner.connect('stopped', self.on_scan_stopped)
         self.xrf_scanner.connect('error', self.on_scan_error)
@@ -260,9 +253,9 @@ class ScanManager(gtk.Frame):
             
         title = scan_parameters['edge'] + " Edge Scan"
         self.plotter.set_labels(title=title, x_label="Energy (keV)", y1_label='Fluorescence Counts')      
-        self._scan_filename = "%s/%s_%s.raw" % (scan_parameters['directory'],    
-            scan_parameters['prefix'], scan_parameters['edge'])
-        self.xanes_scanner.configure(scan_parameters['edge'], scan_parameters['time'], scan_parameters['attenuation'])
+        self.xanes_scanner.configure(scan_parameters['edge'], scan_parameters['time'], 
+                                     scan_parameters['attenuation'], scan_parameters['directory'],
+                                     scan_parameters['prefix'])
         
         self._set_scan_action(True)
         self.scan_book.set_current_page(1)
@@ -277,10 +270,9 @@ class ScanManager(gtk.Frame):
         scan_parameters = self.get_parameters() 
         self.plotter.clear()
         
-        self._scan_filename = "%s/%s_excite_%s.raw" % (scan_parameters['directory'],    
-            scan_parameters['prefix'], scan_parameters['edge'])
-        
-        self.xrf_scanner.configure(scan_parameters['time'], scan_parameters['energy'], scan_parameters['attenuation'])
+        self.xrf_scanner.configure(scan_parameters['energy'], scan_parameters['time'],  
+                                   scan_parameters['attenuation'], scan_parameters['directory'],
+                                   scan_parameters['prefix'])
         
         self._set_scan_action(True)
         self.scan_book.set_current_page(1)
@@ -323,12 +315,6 @@ class ScanManager(gtk.Frame):
         self.plotter.add_point(point[0], point[1])
         return True
     
-    def on_xanes_done(self, widget):
-        self.xanes_scanner.save(self._scan_filename)
-        self.run_auto_chooch()
-        self._set_scan_action(False)
-        return True
-
     def on_scan_stopped(self, widget):
         self._set_scan_action(False)
         self.scan_pbar.set_text('Scan Stopped')
@@ -339,11 +325,19 @@ class ScanManager(gtk.Frame):
         self.scan_pbar.set_text('Scan Error: %s' % (reason,))
         return True
     
-    def on_chooch_done(self,widget):
+    def on_xanes_error(self, obj, reason):
+        self._set_scan_action(False)
+        self.scan_pbar.set_text('Scan Error: %s' % (reason,))
+        self.output_log.add_text(obj.results.get('log'))
+        return True
+    
+    def on_xanes_done(self, obj):
+        self._set_scan_action(False)
         self.scan_book.set_current_page(1)
-        data = self.auto_chooch.get_data()
-        results = self.auto_chooch.get_results()
+        data = obj.data
+        results = obj.results.get('energies')
         if results is None:
+            warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed')
             return True
         new_axis = self.plotter.add_axis(label="Anomalous scattering factors (f', f'')")
         if 'infl' in results.keys():
@@ -355,7 +349,7 @@ class ScanManager(gtk.Frame):
         fontpar = {}
         fontpar["family"]="monospace"
         fontpar["size"]=7.5
-        info = self.auto_chooch.get_results_text()
+        info = obj.results.get('text')
         self.plotter.fig.text(0.14,0.7, info,fontdict=fontpar, color='b')
 
         self.plotter.add_line(data[:,0],data[:,1], 'r', ax=new_axis)
@@ -364,18 +358,12 @@ class ScanManager(gtk.Frame):
         self.set_results(results)
         self.scan_pbar.set_fraction(1.0)
         self.scan_pbar.set_text("Scan Complete")
-        self.output_log.add_text(self.auto_chooch.log)
-        info_log = '\n----------------- %s ----------------------\n\n' % (self.auto_chooch.out_file) + info
+        self.output_log.add_text(obj.results.get('log'))
+        info_log = '\n---------------------------------------\n\n'
         self.output_log.add_text(info_log)
         self.create_run_btn.set_sensitive(True) 
         return True
-        
-    def on_chooch_error(self,widget, error):
-        self.scan_book.set_current_page(2)
-        self.scan_pbar.set_text("Chooch Error:  Analysis failed!")
-        self.output_log.add_text(self.auto_chooch.log)
-        return True
-        
+                
     def on_create_run(self,widget):
         self.emit('create-run')
 
@@ -385,7 +373,6 @@ class ScanManager(gtk.Frame):
         return True
                     
     def on_xrf_done(self, obj):
-        obj.save(self._scan_filename)
         em_names = {'Ka': r'K$\alpha$', 
                     'Ka1': r'K$\alpha_1$',
                     'Ka2': r'K$\alpha_2$',
@@ -396,9 +383,6 @@ class ScanManager(gtk.Frame):
         y = obj.data[:,1]
         self.plotter.set_labels(title='X-Ray Fluorescence',x_label='Energy (keV)',y1_label='Fluorescence')
         self.scan_book.set_current_page(1)
-        tick_size = max(y)/50.0
-        peaks = science.peak_search(x, y, w=31, threshold=0.1, min_peak=0.05)
-        apeaks = science.assign_peaks(peaks,  dev=0.04)
         sy = science.savitzky_golay(y, kernel=31)
         self.plotter.add_line(x, sy,'b-')
         self.output_log.clear()
@@ -406,10 +390,16 @@ class ScanManager(gtk.Frame):
                                             'Height',
                                             'FWHM',
                                             'Identity')
-        for peak in apeaks:
+        peaks = obj.results.get('peaks')
+        if peaks is None:
+            return
+        tick_size = max(y)/50.0
+        for peak in peaks:
             if len(peak)> 4:
                 el, pk = peak[4].split('-')
-                lbl = '%s-%s' % (el, em_names[pk])
+                #lbl = '%s-%s' % (el, em_names[pk])
+                lbl = '%s-%s' % (el, pk)
+
                 lbls = ', '.join(peak[4:])
             else:
                 lbl = '?'
@@ -430,11 +420,4 @@ class ScanManager(gtk.Frame):
         self.scan_pbar.set_fraction(1.0)
         self._set_scan_action(False)
         return True
-                                    
-    def run_auto_chooch(self):
-        self.auto_chooch.setup( self.get_parameters() )
-        self.scan_pbar.set_text("Analysing scan data ...")
-        self.auto_chooch.start()
-        return True
-                        
-gobject.type_register(ScanManager)
+                                                            

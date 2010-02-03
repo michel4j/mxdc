@@ -28,7 +28,13 @@ class IBCMService(Interface):
     
     def setUser(*args, **kwargs):
         """ Set the current user"""
-    
+
+    def getConfig():
+        """Get a Configuration of all beamline devices"""
+        
+    def getDevice(id):
+        """Get a beamline device"""
+
         
 
 class IPerspectiveBCM(Interface):
@@ -54,3 +60,9 @@ class IPerspectiveBCM(Interface):
     def remote_setUsers(*args, **kwargs):
         """ Set the current user"""
 
+    def remote_getConfig():
+        """Get a Configuration of all beamline devices"""
+        
+    def remote_getDevice():
+        """Get a beamline device"""
+    

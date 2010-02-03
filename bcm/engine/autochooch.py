@@ -1,8 +1,8 @@
-import sys, os, re
+import os, re
 import gobject
 import threading
 import commands
-from numpy import loadtxt
+from numpy import loadtxt, savetxt
 from bcm.utils import converter
 
 class AutoChooch(gobject.GObject):
@@ -14,8 +14,11 @@ class AutoChooch(gobject.GObject):
         gobject.GObject.__init__(self)
         self._results_text = ""
 
-    def setup(self, params):
-        self.parameters = params
+    def configure(self, edge, directory, prefix, suffix):
+        self.directory = directory
+        self._edge = edge
+        self._prefix = prefix
+        self._suffix = suffix
         
     def get_results(self):
         return self.results
@@ -33,30 +36,48 @@ class AutoChooch(gobject.GObject):
         worker.setDaemon(True)
         worker.start()
         
-    def run(self):    
-        file_root = "%s/%s_%s" % (self.parameters['directory'],    self.parameters['prefix'], self.parameters['edge'])
-        element, edge = self.parameters['edge'].split('-')
+    def prepare_input_data(self, raw_file, dat_file):
+        dat = loadtxt(raw_file)
+        f = open(dat_file,'w')
+        f.write('#CHOOCH INPUT DATA\n%d\n' % len(dat[:,0]))
+        dat[:,0] *= 1000    #converting to eV
+        savetxt(f, dat[:,0:2])
+        f.close()
+        return
+        
+        
+    def run(self):
+        file_root = os.path.join(self.directory, "%s_%s_%s" % (self._prefix, self._edge, self._suffix))    
         self.raw_file = "%s.raw" % (file_root)
+        self.dat_file = "%s.dat" % (file_root)
         self.efs_file = "%s.efs" % (file_root)
         self.out_file = "%s.out" % (file_root)
         self.log_file = "%s.log" % (file_root)
-        chooch_command = "chooch -e %s -a %s %s -o %s | tee %s " % (element, edge, self.raw_file, self.efs_file, self.log_file)
+        element, edge = self._edge.split('-')
+        self.prepare_input_data(self.raw_file, self.dat_file)
+        chooch_command = "chooch -e %s -a %s %s -o %s | tee %s " % (element, edge, self.dat_file, self.efs_file, self.log_file)
         self.return_code, self.log = commands.getstatusoutput(chooch_command)
         self.log = '\n----------------- %s ----------------------\n\n' % (self.log_file) + self.log
         success = self.read_output()
         if success:
             gobject.idle_add(self.emit, 'done')
+            return success
         else:
             gobject.idle_add(self.emit, 'error','Premature termination')
+            return False
         
     def read_output(self):
-        self.data = loadtxt(self.efs_file, comments="#")
+        try:
+            self.data = loadtxt(self.efs_file, comments="#")
+        except IOError:
+            return False
+        
         self.data[:, 0] *= 1e-3 # convert to keV
         ifile = open(self.log_file, 'r')
         output = ifile.readlines()
         pattern = re.compile('\|\s+([a-z]+)\s+\|\s+(.+)\s+\|\s+(.+)\s+\|\s+(.+)\s+\|')
         found_results = False
-        for i, line in enumerate(output):
+        for line in output:
             lm = pattern.search(line)
             if lm:
                 found_results = True
@@ -98,7 +119,5 @@ class AutoChooch(gobject.GObject):
     def get_results_text(self):
         return self._results_text
     
-gobject.type_register(AutoChooch)
-
 
 

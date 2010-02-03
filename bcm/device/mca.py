@@ -67,6 +67,7 @@ class MultiChannelAnalyzer(object):
             if k == 'cooling':
                 if self.TMP.get() >= -25.0 and v:
                     self._set_temp(v)
+                    _logger.debug('(%s) Waiting for MCA to cool down' % (self.name,))
                     while self.TMP.get() > -25:
                         time.sleep(1)
                 else:
