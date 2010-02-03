@@ -10,8 +10,9 @@ from twisted.python.components import globalRegistry
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
-from bcm.utils.misc import generate_run_list
+from bcm.utils.misc import generate_run_list, wait_for_signal
 from bcm.utils.converter import energy_to_wavelength
+from bcm.engine import centering, snapshot
 
 
 # setup module logger with a default do-nothing handler
@@ -53,7 +54,8 @@ class Screener(gobject.GObject):
         self.paused = False
         self.stopped = True
         self.skip_collected = False
-
+        self.data_collector = DataCollector()
+        
     def configure(self, run_list):
         #associate beamline devices
         try:
@@ -98,22 +100,49 @@ class Screener(gobject.GObject):
     
                 # Perform the screening task here
                 task = self.run_list[self.pos]
-                _logger.debug('-----------------------------------------------------')
                 if task.task_type == Screener.TASK_PAUSE:
                     self.pause()
                     pause_msg = 'Screening paused automatically, as requested, after completing '
                     pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
                     pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'], 
                                                                 self.run_list[self.pos]['sample']['id'])
-                    
-                    
+                      
                 elif task.task_type == Screener.TASK_MOUNT:
-                    _logger.debug('Mount "%s"' % task['sample']['port'])
-                    time.sleep(1.0)
+                    _logger.debug('TASK: Mount "%s"' % task['sample']['port'])
+                    self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+                    self.beamline.automounter.mount(task['sample']['port'])
+                    
+                    #FIXME: Correct value for timeout
+                    _out = wait_for_signal(self.beamline.automounter, 'mounted', 120)
+                    if _out is None:
+                        _logger.error('Timed-out attempting to mount "%s"' % task['sample']['port'])
+                        gobject.idle_add(self.emit, 'error', 'Timed-out attempting to mount "%s"' % task['sample']['port'])
+                    #    break
                 elif task.task_type == Screener.TASK_ALIGN:
-                    _logger.debug('Align sample "%s"' % task['sample']['id'])
-                    time.sleep(1.0)
+                    _logger.debug('TASK: Align sample "%s"' % task['sample']['id'])
+                    self.beamline.goniometer.set_mode('CENTERING', wait=True)
+                    _out = centering.auto_center_loop()
+                    if _out is None:
+                        _logger.error('Error attempting auto loop centering "%s"' % task['sample']['id'])
+                        pause_msg = 'Screening paused automatically, due to centering error '
+                        pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
+                        pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'], 
+                                                                self.run_list[self.pos]['sample']['id'])
+                        self.pause()
+                    elif _out.get('RELIABILITY') < 70:
+                        pause_msg = 'Screening paused automatically, due to unreliable auto-centering '
+                        pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
+                        pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'], 
+                                                                self.run_list[self.pos]['sample']['id'])
+                        self.pause()
+                    else:
+                        directory = os.path.join(task['directory'], task['sample']['id'])
+                        if not os.path.exists(directory):
+                            os.makedirs(directory) # make sure directories exist
+                        snapshot.take_sample_snapshots('snapshot', directory, [0,90,180], True)
+                        
                 elif task.task_type == Screener.TASK_COLLECT:
+                    _logger.debug('TASK: Collect frames for "%s"' % task['sample']['id'])
                     run_params = DEFAULT_PARAMETERS
                     run_params['distance'] = self.beamline.diffractometer.distance.get_position()
                     run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
@@ -128,11 +157,10 @@ class Screener(gobject.GObject):
                                   'total_angle': task['delta'] * task['frames'],
                                   'delta': task['delta'],
                                   'time': task['time'],})
-                    run_list = generate_run_list(run_params, show_number=True)
-                    _logger.debug('Collect frames for "%s"' % task['sample']['id'])
-                    import pprint
-                    pprint.pprint(run_list)
-                    time.sleep(1.0)
+                    if not os.path.exists(run_params['directory']):
+                        os.makedirs(run_params['directory']) # make sure directories exist
+                    self.data_collector.configure(run_params)
+                    self.data_collector.run()
                 elif task.task_type == Screener.TASK_ANALYSE:
                     time.sleep(1.0)
                            
@@ -194,7 +222,7 @@ class DataCollector(gobject.GObject):
             _logger.warning('Run is empty')
         elif run_data is not None:  # run_data supersedes run_list if specified
             self.run_list = generate_run_list(run_data)
-            self.beamline.image_server.create_folder(run_data['directory'])
+            self.beamline.image_server.setup_folder(run_data['directory'])
         else: # run_list is not empty
             self.run_list = run_list
         self.total_frames = len(self.run_list)

@@ -41,15 +41,7 @@ class RunWidget(gtk.Frame):
         self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/run_widget.glade'), 
                                   'run_widget')
         
-        self.title = self._xml.get_widget('run_title')
-        self.vbox = self._xml.get_widget('run_widget')
-        self.add(self.vbox)
-
-        self.save_btn = self._xml.get_widget('save_btn')
-        self.reset_btn = self._xml.get_widget('reset_btn')
-        self.enable_btn = self._xml.get_widget('activate_btn')
-        self.delete_btn = self._xml.get_widget('delete_btn')
-        self.layout_table = self._xml.get_widget('layout_table')
+        self.add(self.run_widget)
         self.reset_btn.connect('clicked', self.on_reset_parameters)
         self.entry = {}
                 
@@ -125,15 +117,8 @@ class RunWidget(gtk.Frame):
         self.energy_list.append_column(column2)
         
         # buttons for adding and removing energy
-        self.energy_btn_box = gtk.VBox(True,0)
-        self.add_e_btn = gtk.ToolButton('gtk-add')
         self.add_e_btn.connect("clicked", self.on_add_energy_clicked)
-        self.energy_btn_box.pack_start(self.add_e_btn, expand=False, fill=False)
-
-        self.del_e_btn = gtk.ToolButton('gtk-remove')
         self.del_e_btn.connect("clicked", self.on_remove_energy_clicked)
-        self.energy_btn_box.pack_start(self.del_e_btn, expand=False, fill=False)
-        self.layout_table.attach(self.energy_btn_box, 3, 4, 11,12)
         self.predictor = None
 
         # connect signals
@@ -149,6 +134,12 @@ class RunWidget(gtk.Frame):
 
         self._changes_pending = False
                 
+    def __getattr__(self, key):
+        try:
+            return super(RunWidget).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
+
     def __add_energy(self, item=None): 
         model = self.energy_store
         iter = model.get_iter_first()
@@ -298,8 +289,8 @@ class RunWidget(gtk.Frame):
     def set_number(self, num=0):
         self.number = num
         self.parameters['number'] = num
-        self.title.set_text('<big><b>Run %d</b></big>' % self.number)
-        self.title.set_use_markup(True)
+        self.run_title.set_text('<big><b>Run %d</b></big>' % self.number)
+        self.run_title.set_use_markup(True)
         # Hide controls for Run 0
         if num == 0:
             for key in ['total_angle','total_frames','wedge','inverse_beam']:
@@ -312,7 +303,7 @@ class RunWidget(gtk.Frame):
                 #add Predictor
                 self.predictor = Predictor()
                 self.predictor.set_size_request(200,200)
-                self.vbox.pack_end( self.predictor, expand=False, fill=False)
+                self.run_widget.pack_end( self.predictor, expand=False, fill=False)
     
         
     def check_changes(self):
@@ -339,7 +330,7 @@ class RunWidget(gtk.Frame):
                 self._set_energy_changed(_energy_changed)
                 self.energy_list.get_selection().unselect_all()                                  
             elif key == 'number':
-                widget = self.title
+                widget = self.run_title
             elif key == 'directory':
                 widget = self.entry['directory']
             else:
