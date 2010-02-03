@@ -8,10 +8,12 @@
     <child>
       <widget class="GtkHBox" id="scan_widget">
         <property name="visible">True</property>
+        <property name="border_width">6</property>
         <property name="spacing">6</property>
         <child>
           <widget class="GtkVBox" id="vbox1">
             <property name="visible">True</property>
+            <property name="orientation">vertical</property>
             <property name="spacing">6</property>
             <child>
               <widget class="GtkFrame" id="frame1">
@@ -25,6 +27,7 @@
                     <child>
                       <widget class="GtkVBox" id="vbox2">
                         <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
                         <child>
                           <widget class="GtkRadioButton" id="xanes_btn">
                             <property name="label" translatable="yes">MAD Scan</property>
@@ -347,6 +350,7 @@
             </child>
             <child>
               <widget class="GtkVBox" id="xanes_vbox">
+                <property name="orientation">vertical</property>
                 <property name="spacing">3</property>
                 <child>
                   <widget class="GtkScrolledWindow" id="xanes_sw">
@@ -429,6 +433,7 @@
             <child>
               <widget class="GtkVBox" id="vbox3">
                 <property name="visible">True</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">3</property>
                 <child>
                   <widget class="GtkButton" id="scan_btn">

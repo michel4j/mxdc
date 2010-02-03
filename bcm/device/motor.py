@@ -315,8 +315,9 @@ class EnergyMotor(Motor):
         self.MOVN.connect('changed', self._signal_move)
         #self.MOVN2.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
-                            
+                          
     def get_position(self):
+        
         return converter.bragg_to_energy(self.RBV.get())           
 
                 
@@ -325,7 +326,7 @@ class BraggEnergyMotor(Motor):
 
     implements(IMotor)
     
-    def __init__(self, name, offset=0.4343, enc=None):
+    def __init__(self, name, offset=0.0, enc=None):
         Motor.__init__(self, name, motor_type='vmeenc' )
         self.offset = float(offset)
         del self.DESC

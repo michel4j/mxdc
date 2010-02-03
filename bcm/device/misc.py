@@ -159,6 +159,10 @@ class Attenuator(gobject.GObject):
             else:
                 return 999.0
         thickness = int(bitmap, 2) / 10.0
+        if e < .1:
+            e = 0.1
+        if e > 100:
+            e = 100.0
         attenuation = 1.0 - math.exp( -4.4189e12 * thickness / 
                                         (e*1000+1e-6)**2.9554 )
         if attenuation < 0:
@@ -167,6 +171,10 @@ class Attenuator(gobject.GObject):
             attenuation = 1.0
         return attenuation*100.0
     
+    def _set_bits(self, bitmap):
+        for i in range(4):
+            self._filters[i].put( int(bitmap[i]) )
+        
     def set(self, target):
         e = self._energy.get()
         if target > 99.9:
@@ -182,8 +190,7 @@ class Attenuator(gobject.GObject):
         
         # bitmap of thickness is fillter pattern
         bitmap = '%04d' % int(converter.dec_to_bin(thk))
-        for i in range(4):
-            self._filters[i].put( int(bitmap[i]) )
+        self._set_bits(bitmap)
         _logger.info('Attenuation of %f %s requested' % (target, self.units))
         _logger.debug('Filters [8421] set to [%s] (0=off,1=on)' % bitmap)
     
@@ -202,13 +209,35 @@ class Attenuator2(Attenuator):
             PV('%s2:ctl' % fname),
             PV('%s1:ctl' % fname),
             ]
+        self._open = [
+            PV('%s4:opr:open' % fname),
+            PV('%s3:opr:open' % fname),
+            PV('%s2:opr:open' % fname),
+            PV('%s1:opr:open' % fname),
+            ]
+        self._close = [
+            PV('%s4:opr:close' % fname),
+            PV('%s3:opr:close' % fname),
+            PV('%s2:opr:close' % fname),
+            PV('%s1:opr:close' % fname),
+            ]
         self._energy = PV(energy)
         self.units = '%'
         self.name = 'Attenuator'
         for f in self._filters:
             f.connect('changed', self._signal_change)
         self._energy.connect('changed', self._signal_change)
-        
+
+    def _set_bits(self, bitmap):
+        for i in range(4):
+            val = int(bitmap[i])
+            if self._filters[i].get() == val:
+                continue
+            if val == 1:
+                self._close[i].put(1)
+            else:
+                self._open[i].put(1)
+                   
 
 class BasicShutter(gobject.GObject):
 
