@@ -14,6 +14,12 @@ from bcm.utils.video import add_decorations
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 
+try:
+    import cairo
+    using_cairo = True
+except:
+    using_cairo = False
+
 from twisted.python.components import globalRegistry
 
 _logger = get_module_logger('mxdc.sampleviewer')
@@ -79,10 +85,11 @@ class SampleViewer(gtk.Frame):
             img = add_decorations(img, x, y, w, h)
         img.save(filename)
             
-    def draw_slits(self, pixmap):
+    def draw_beam_overlay(self, pixmap):
         w, h = pixmap.get_size()
         pix_size = self.beamline.sample_video.resolution      
-        try:      
+        try:
+             
             bw = self.beamline.beam_w.get_position()
             bh = self.beamline.beam_h.get_position()
             bx = 0 #self.beamline.beam_x.get_position()
@@ -100,25 +107,59 @@ class SampleViewer(gtk.Frame):
         sh = bh / pix_size
         x = int((cx - (bx / pix_size)) * self.video.scale)
         y = int((cy - (by / pix_size)) * self.video.scale)
-        #if sw  >= w or sh >= h:
-        #    return
+
         hw = int(0.5 * sw * self.video.scale)
         hh = int(0.5 * sh * self.video.scale)
-        tick = int(self._tick_size * self.video.scale)
-        pixmap.draw_line(self.video.ol_gc, x-tick, y, x+tick, y)
-        pixmap.draw_line(self.video.ol_gc, x, y-tick, x, y+tick)
+        tick = int(self._tick_size * self.video.scale*1.5)
         
-        pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw, y-hh+tick)
-        pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw+tick, y-hh)
-        pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw, y+hh-tick)
-        pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw-tick, y+hh)
-        pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw, y+hh-tick)
-        pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw+tick, y+hh)
-        pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw, y-hh+tick)
-        pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw-tick, y-hh)
+        if using_cairo:
+            cr = pixmap.cairo_create()
+            cr.set_source_rgba(1, 0.1, 1.0, 1.0)
+            cr.set_line_width(max(cr.device_to_user_distance(1, 1)))
+
+            # cross center
+            cr.move_to(x-tick, y)
+            cr.line_to(x+tick, y)
+            cr.stroke()
+            cr.move_to(x, y+tick)
+            cr.line_to(x, y-tick)
+            cr.stroke()
+            
+            cr.move_to(x-hw, y-hh+tick)
+            cr.line_to(x-hw, y-hh)
+            cr.line_to(x-hw+tick, y-hh)
+            cr.stroke()
+            
+            # beam size
+            cr.move_to(x+hw, y+hh-tick)
+            cr.line_to(x+hw, y+hh)
+            cr.line_to(x+hw-tick, y+hh)
+            cr.stroke()
+            
+            cr.move_to(x-hw, y+hh-tick)
+            cr.line_to(x-hw, y+hh)
+            cr.line_to(x-hw+tick, y+hh)
+            cr.stroke()
+
+            cr.move_to(x+hw, y-hh+tick)
+            cr.line_to(x+hw, y-hh)
+            cr.line_to(x+hw-tick, y-hh)
+            cr.stroke()
+        else:        
+            pixmap.draw_line(self.video.ol_gc, x-tick, y, x+tick, y)
+            pixmap.draw_line(self.video.ol_gc, x, y-tick, x, y+tick)
+            
+            pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw, y-hh+tick)
+            pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw+tick, y-hh)
+            pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw, y+hh-tick)
+            pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw-tick, y+hh)
+            pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw, y+hh-tick)
+            pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw+tick, y+hh)
+            pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw, y-hh+tick)
+            pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw-tick, y-hh)
         return
         
-    def draw_measurement(self, pixmap):
+    def draw_meas_overlay(self, pixmap):
         pix_size = self.beamline.sample_video.resolution
         w, h = pixmap.get_size()
         if self.measuring == True:
@@ -127,11 +168,19 @@ class SampleViewer(gtk.Frame):
             x2 = self.measure_x2
             y2 = self.measure_y2
             dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale
-            x1, x2, y1, y2 = int(x1), int(y1), int(x2), int(y2)
-            pixmap.draw_line(self.video.ol_gc, x1, x2, y1, y2)            
-            self.meas_label.set_markup("<small><tt>Measurement: %5.4f mm</tt></small>" % dist)
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+            if using_cairo:
+                cr = pixmap.cairo_create()
+                cr.set_source_rgba(1, 0.1, 0.1, 1.0)
+                cr.set_line_width(max(cr.device_to_user_distance(1, 1)))
+                cr.move_to(x1, y1)
+                cr.line_to(x2, y2)
+                cr.stroke()
+            else:
+                pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y2)            
+            self.meas_label.set_markup("Length: %0.2g mm" % dist)
         else:
-            self.meas_label.set_markup("<small><tt>FPS: %0.1f</tt></small>" % self.video.fps)
+            self.meas_label.set_markup("FPS: %0.1f" % self.video.fps)
         return True
 
     def _img_position(self,x,y):
@@ -239,10 +288,14 @@ class SampleViewer(gtk.Frame):
         self.lighting_box.attach(self.back_light, 1,2,1,2)
         
         self._scripts = get_scripts()
+        pango_font = pango.FontDescription('Monospace 8')
+        self.pos_label.modify_font(pango_font)
+        self.meas_label.modify_font(pango_font)
+
 
     def _overlay_function(self, pixmap):
-        self.draw_slits(pixmap)
-        self.draw_measurement(pixmap)
+        self.draw_beam_overlay(pixmap)
+        self.draw_meas_overlay(pixmap)
         return True     
         
     
@@ -335,7 +388,7 @@ class SampleViewer(gtk.Frame):
         else:
             x = event.x; y = event.y
         im_x, im_y, xmm, ymm = self._img_position(x,y)
-        self.pos_label.set_markup("<small><tt>%4d,%4d [%6.3f, %6.3f mm]</tt></small>" % (im_x, im_y, xmm, ymm))
+        self.pos_label.set_markup("%4d,%4d [%6.3f, %6.3f mm]" % (im_x, im_y, xmm, ymm))
         #print event.state.value_names
         if 'GDK_BUTTON2_MASK' in event.state.value_names:
             self.measure_x2, self.measure_y2, = event.x, event.y
@@ -349,8 +402,8 @@ class SampleViewer(gtk.Frame):
             self.center_pixel(event.x, event.y)
         elif event.button == 2:
             self.measuring = True
-            self.measure_x1, self.measure_y1 = event.x,event.y
-            self.measure_x2, self.measure_y2 = event.x,event.y
+            self.measure_x1, self.measure_y1 = event.x, event.y
+            self.measure_x2, self.measure_y2 = event.x, event.y
         elif event.button == 3:
             self.cmap_popup.popup(None, None, None, event.button,event.time)
                 

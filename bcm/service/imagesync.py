@@ -76,7 +76,7 @@ class ImgSyncService(service.Service):
                 self.settings['marccd_uid'] = int(config.get('config','marccd_uid'))
                 self.settings['marccd_gid'] = int(config.get('config','marccd_gid'))
             except:
-                  log.err()
+                log.err()
        
 
     @log_call   

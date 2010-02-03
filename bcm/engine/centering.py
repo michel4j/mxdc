@@ -13,6 +13,7 @@ from twisted.python.components import globalRegistry
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
+from bcm.utils.misc import get_short_uuid
 import commands
 import shutil
 
@@ -42,7 +43,7 @@ def auto_center(pre_align=True):
         direction = 1.0
 
     # get images
-    prefix = str(uuid.uuid1()).split('-')[0]
+    prefix = get_short_uuid()
     directory = tempfile.mkdtemp(prefix='centering')
     angles = [angle]
     count = 1

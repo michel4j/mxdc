@@ -82,6 +82,8 @@ class ScreenManager(gtk.Frame):
         self.edit_tbtn.connect('toggled', self.sample_list.on_edit_toggled)
         self.start_btn.connect('clicked', self._on_activate)
         self.stop_btn.connect('clicked', self._on_stop_btn_clicked)
+        self.start_btn.set_label('mxdc-start')
+        self.stop_btn.set_label('mxdc-stop')
         
         self.beamline = globalRegistry.lookup([], IBeamline)
 
@@ -239,8 +241,7 @@ class ScreenManager(gtk.Frame):
             for t,b in self.TaskList:
                 if t.options['enabled']:
                     tsk = Tasklet(t.task_type, **t.options)
-                    if t.task_type == Screener.TASK_COLLECT:
-                        tsk.options['directory'] = self.folder_btn.get_current_folder()
+                    tsk.options['directory'] = self.folder_btn.get_current_folder()
                     tsk.options['sample'] = item
                     q_item = {'done': False, 'task': tsk} 
                     self._add_item(q_item)     
@@ -300,7 +301,7 @@ class ScreenManager(gtk.Frame):
                 self.sample_list.import_xls(filename)
             elif format == _ALL:
                 try:
-                   self.sample_list.import_csv(filename)
+                    self.sample_list.import_csv(filename)
                 except:
                     try:
                         self.sample_list.import_xls(filename)

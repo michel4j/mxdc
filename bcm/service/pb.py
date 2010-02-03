@@ -23,7 +23,6 @@ from bcm.utils import science
 from bcm.service.utils import log_call
 from bcm.service.interfaces import IPerspectiveBCM, IBCMService
 from bcm.engine.snapshot import take_sample_snapshots
-
     
 class PerspectiveBCMFromService(pb.Root):
     implements(IPerspectiveBCM)
@@ -57,6 +56,14 @@ class PerspectiveBCMFromService(pb.Root):
     def remote_setUser(self, name, uid, gid, directory):
         """ Set the current user"""
         return self.service.setUser(name, uid, gid, directory)
+
+    def remote_getConfig(self):
+        """Get a Configuration of all beamline devices"""
+        return self.service.getConfig()
+        
+    def remote_getDevice(self, id):
+        """Get a beamline device"""
+        return self.service.getDevice(id)
     
 
 components.registerAdapter(PerspectiveBCMFromService,
@@ -93,6 +100,24 @@ class BCMService(service.Service):
         self.shutdown()
     
     @log_call
+    def getConfig(self):
+        config = {'devices': self.beamline.device_config,
+                  'name': self.beamline.name,
+                  'config': self.beamline.config }
+        return config
+
+    @log_call
+    def getDevice(self, id):
+        if self.device_server_cache.get(id, None) is not None:
+            log.msg('Returning cached device server `%s`' % id)
+            return self.device_server_cache[id]
+        else:
+            log.msg('Returning cached device server `%s`' % id)
+            dev = IDeviceServer(self.beamline[id])
+            self.device_server_cache[id] = (dev.__class__.__name__, dev)
+            return self.device_server_cache[id]
+        
+    @log_call
     def setUser(self, name, uid, gid, directory):
         user_info = {
             'name': name,
@@ -101,7 +126,11 @@ class BCMService(service.Service):
             'directory': directory,
             }
         self.settings['user'] = user_info
-      
+        os.setegid(gid)
+        os.seteuid(uid)
+        log.msg('Effective User changed to `%s`, (uid=%s,gid=%s), home=`%s`' % (name, uid, gid, directory))
+        return defer.succeed([])
+    
     @log_call
     def mountSample(self, *args, **kwargs):
         assert self.ready
@@ -131,8 +160,7 @@ class BCMService(service.Service):
         prefix = kwargs['prefix']
         attenuation = kwargs['attenuation']
             
-        output_path = '%s/%s-%s.mscan' % (directory, prefix, edge)
-        self.xanes_scanner.configure(edge=edge, t=exposure_time, attenuation=attenuation)
+        self.xanes_scanner.configure(edge, exposure_time, attenuation, directory, prefix)
         d = threads.deferToThread(self.xanes_scanner.run)
         return d
         
@@ -154,8 +182,7 @@ class BCMService(service.Service):
         energy = kwargs['energy']
         attenuation = kwargs['attenuation']
              
-        output_path = '%s/%s-%0.3fkeV.escan' % (directory, prefix, energy)
-        self.xrf_scanner.configure(energy=energy, t=exposure_time, attenuation=attenuation)
+        self.xrf_scanner.configure(energy,  exposure_time,  attenuation, directory, prefix)
         d = threads.deferToThread(self.xrf_scanner.run)
         return d
     
@@ -178,7 +205,7 @@ class BCMService(service.Service):
             - energy : a list of energy values (floats)
             - energy_label : a corresponding list of energy labels (strings) no spaces
             - two_theta : a float, default (0.0)
-            - attenuation: a flot, default (0.0)
+            - attenuation: a float, default (0.0)
         """
         assert self.ready
         self.data_collector.configure(run_data=run_info, skip_collected=skip_existing)
@@ -195,8 +222,7 @@ class BCMService(service.Service):
     def shutdown(self):
         reactor.stop()
     
-        
-        
+               
 # generate ssh factory which points to a given service
 def getShellFactory(service, **passwords):
     realm = manhole_ssh.TerminalRealm()
