@@ -342,9 +342,4 @@ class DataCollector(gobject.GObject):
     
     def stop(self):
         self.stopped = True
-
-
-from bcm.service.utils import *
     
-gobject.type_register(DataCollector)
-gobject.type_register(Screener)
