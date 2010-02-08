@@ -2,6 +2,8 @@ import sys
 import os
 import logging
 import warnings
+import time
+
 warnings.simplefilter("ignore")
 
 from twisted.internet import gtk2reactor
@@ -16,6 +18,9 @@ from bcm.beamline.mx import MXBeamline
 from twisted.spread import pb
 from bcm.beamline.remote import BeamlineClient
 from bcm.utils.log import get_module_logger, log_to_console, log_to_file
+from mxdc.widgets.dialogs import error
+from bcm.utils import mdns
+
 #from mxdc.utils import gtkexcepthook
 from mxdc.AppWindow import AppWindow
 
@@ -24,9 +29,20 @@ _logger = get_module_logger('mxdc')
 class MXDCApp(object):
     def run_local(self, config):
         self.main_window = AppWindow()
-        beamline = MXBeamline(config)
-        self.main_window.connect('destroy', self.do_quit)
-        self.main_window.run()
+        _service_data = {'user': os.getlogin(), 
+                         'uid': os.getuid(), 
+                         'gid': os.getgid(), 
+                         'started': time.asctime(time.localtime())}
+        try:
+            self.provider = mdns.Provider('MXDC Client', '_mxdc._tcp', 9999, _service_data, unique=True)
+        except mdns.mDNSError:
+            _logger.error('An instance of MXDC is already running on the local network. Only one instance permitted.')
+            error('MXDC Already Running', 'An instance of MXDC is already running on the local network. Only one instance permitted.')
+            self.do_quit()
+        else:
+            beamline = MXBeamline(config)
+            self.main_window.connect('destroy', self.do_quit)
+            self.main_window.run()
         return False
     
     def run_remote(self):
@@ -39,7 +55,7 @@ class MXDCApp(object):
         deferred = factory.getRootObject()
         deferred.addCallback(beamline.setup)
     
-    def do_quit(self, obj):
+    def do_quit(self, obj=None):
         _logger.info('Stopping...')
         reactor.stop()
         #gtk.main_quit()
