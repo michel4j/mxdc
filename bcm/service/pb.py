@@ -19,7 +19,7 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.device.remote import *
 from bcm.engine import diffraction
 from bcm.engine import spectroscopy
-from bcm.utils import science
+from bcm.utils import science, mdns
 from bcm.service.utils import log_call
 from bcm.service.interfaces import IPerspectiveBCM, IBCMService
 from bcm.engine.snapshot import take_sample_snapshots
@@ -247,6 +247,13 @@ class BCMError(pb.Error):
 application = service.Application('BCM')
 f = BCMService()
 sf = getShellFactory(f, admin='appl4Str')
+try:
+    bcm_provider = mdns.Provider('Beamline Control Module', '_cmcf_bcm_ssh._tcp', 8880, {}, unique=True)
+    bcm_ssh_provider = mdns.Provider('Beamline Control Module Console', '_cmcf_bcm_ssh._tcp', 2220, {}, unique=True)
+except mdns.mDNSError:
+    _logger.error('An instance of the BCM is already running on the local network. Only one instance permitted.')
+    reactor.stop()
+    
 serviceCollection = service.IServiceCollection(application)
 internet.TCPServer(8880, pb.PBServerFactory(IPerspectiveBCM(f))).setServiceParent(serviceCollection)
 internet.TCPServer(2220, sf).setServiceParent(serviceCollection)
