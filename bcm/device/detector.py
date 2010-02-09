@@ -175,89 +175,27 @@ class SimCCDImager(object):
         return "<%s:'%s', state:'%s'>" % (self.__class__.__name__, self.name, self.get_state() )
     
     def initialize(self, wait=True):
-        if not self._bg_taken:
-            _logger.debug('(%s) Initializing CCD ...' % (self.name,)) 
-            if not self._is_in_state('idle'):
-                self.stop()
-            self._wait_in_state('acquire:queue')
-            self._wait_in_state('acquire:exec')
-            self._background_cmd.put(1)
-            if wait:
-                self._wait_for_state('acquire:exec')
-                self._wait_for_state('idle')
-            self._bg_taken = True
-            _logger.debug('(%s) CCD Initialization complete.' % (self.name,))
+        _logger.debug('(%s) Initializing CCD ...' % (self.name,)) 
+        time.sleep(1)
+        _logger.debug('(%s) CCD Initialization complete.' % (self.name,))
                         
     def start(self, first=False):
         self.initialize(True)
-        if not first:
-            self._wait_in_state('acquire:queue')
-            self._wait_in_state('acquire:exec')
-            #self._wait_for_state('correct:exec')
-        else:
-            self._wait_for_state('idle')
-        self._start_cmd.put(1)
-        self._wait_for_state('acquire:exec')
-
+        time.sleep(1)
+        
     def stop(self):
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
-        self._abort_cmd.put(1)
-        self._wait_for_state('idle')
+        time.sleep(1)
         
     def save(self, wait=False):
-        self._readout_flag.put(0)
-        self._save_cmd.put(1)
-        if wait:
-            self._wait_for_state('read:exec')
-    
+        time.sleep(1)
+        
     def get_state(self):
-        return self._state_list[:]
+        return ['idle']
     
     def wait(self, state='idle'):
-        self._wait_for_state(state,timeout=10.0)
-                
-    def _update_background(self, obj, state):
-        if state == 1:
-            self._bg_taken = False
-                      
+        time.sleep(3)
+                                      
     def set_parameters(self, data):
-        for key in data.keys():
-            self._header[key].set(data[key])        
-        self._header_cmd.set(1)
-    
-    def _on_state_change(self, pv, val):
-        self._state_string = "%08x" % val
-        states = []
-        for i in range(8):
-            state_val = int(self._state_string[i])
-            if state_val != 0:
-                state_unit = "%s:%s" % (self._state_names[i],self._state_bits[state_val])
-                states.append(state_unit)
-        if len(states) == 0:
-            states.append('idle')
-        self._state_list = states
-        return True
-
-    def _wait_for_state(self, state, timeout=10.0):
-        _logger.debug('(%s) Waiting for state: %s' % (self.name, state,) ) 
-        while (not self._is_in_state(state)) and timeout > 0:
-            timeout -= 0.05
-            time.sleep(0.05)
-        if timeout > 0: 
-            return True
-        else:
-            _logger.warning('(%s) Timed out waiting for state: %s' % (self.name, state,) ) 
-            return False
-
-    def _wait_in_state(self, state):      
-        _logger.debug('(%s) Waiting for state "%s" to expire.' % (self.name, state,) ) 
-        while self._is_in_state(state):
-            time.sleep(0.05)
-        return True
-        
-    def _is_in_state(self, state):
-        if state in self.get_state():
-            return True
-        else:
-            return False
+        pass
     
