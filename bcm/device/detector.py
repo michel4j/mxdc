@@ -1,5 +1,6 @@
 import time
 import sys
+import os
 import logging
 import numpy
 import gobject
@@ -7,6 +8,7 @@ import gobject
 from zope.interface import implements
 from bcm.device.interfaces import IImagingDetector
 from bcm.protocol import ca
+from bcm.utils.decorators import async
 from bcm.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -170,6 +172,7 @@ class SimCCDImager(object):
         self.name = name
         self._state = 'idle'
         self._bg_taken = False
+        self._src_dir = os.path.join(os.environ['BCM_PATH'], 'test','images')
     
     def __repr__(self):
         return "<%s:'%s', state:'%s'>" % (self.__class__.__name__, self.name, self.get_state() )
@@ -186,9 +189,19 @@ class SimCCDImager(object):
     def stop(self):
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
         time.sleep(1)
+    
+    @async
+    def _copy_frame(self):
+        num = 1 + self.parameters['frame_number'] % 9
+        src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
+        dst_img = os.path.join(self.parameters['directory'], 
+                               '%s.gz' % self.parameters['directory'])
+        os.system('/bin/cp %s %s' % (src_img, dst_img))
+        os.system('/usr/bin/gunzip %s' % dst_img)
         
     def save(self, wait=False):
-        time.sleep(1)
+        self._copy_frame()
+        time.sleep(0.1)
         
     def get_state(self):
         return ['idle']
@@ -197,5 +210,6 @@ class SimCCDImager(object):
         time.sleep(3)
                                       
     def set_parameters(self, data):
-        pass
-    
+        self.parameters = data
+
+__all__ = ['MXCCDImager', 'SimCCDImager']  

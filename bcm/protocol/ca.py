@@ -560,8 +560,8 @@ try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
     libca = cdll.LoadLibrary(libca_file)
 except:
-    _logger.warning("EPICS run-time libraries (%s) could not be loaded!" % (libca_file,) )   
-    sys.exit()
+    _logger.error("EPICS run-time libraries (%s) could not be loaded!" % (libca_file,) )   
+    sys.exit(1)
 
 libca.last_heart_beat = time.time()
 

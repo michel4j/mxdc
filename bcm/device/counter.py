@@ -58,8 +58,11 @@ class SimCounter(object):
     
     implements(ICounter)
     
-    def __init__(self, mean=0):
-        self._mean = mean
+    def __init__(self, name, mean=0):
+        from bcm.device.misc import SimPositioner
+        self._mean = float(mean)
+        self.name = name
+        self.value = SimPositioner('PV', 1.5e-8, '')
         
     def __repr__(self):
         s = "<%s:'%s'>" % (self.__class__.__name__, self.name)
@@ -70,4 +73,4 @@ class SimCounter(object):
         return random.uniform(self._mean-0.5, self._mean+0.5)
 
 
-__all__ = ['Counter', 'SimCounter']     
+__all__ = ['Counter', 'SimCounter']

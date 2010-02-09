@@ -1,14 +1,10 @@
 import time
-import gc
 import threading
-import logging
 import urllib
 import cStringIO
 import httplib
 import Image
 import numpy
-import gtk
-import gobject
 import re
 import socket
 import zlib
@@ -17,12 +13,13 @@ import zlib
 import warnings
 warnings.simplefilter("ignore")
 
-from scipy.misc import toimage, fromimage
+from scipy.misc import toimage
 from zope.interface import implements
 from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
 from bcm.protocol.ca import PV
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
+from bcm import registry
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -105,6 +102,18 @@ class SimCamera(VideoSrc):
         return frame
 
 
+class SimZoomableCamera(SimCamera):
+    implements(IZoomableCamera)
+    def __init__(self, name, motor):
+        SimCamera.__init__(self, name)
+        self._zoom = IMotor(motor)
+        self._zoom.connect('changed', self._on_zoom_change)
+            
+    def zoom(self, value):
+        self._zoom.move_to(value)
+
+    def _on_zoom_change(self, obj, val):
+        self.resolution = 5.34e-3 * numpy.exp( -0.18 * val)
 
 class CACamera(VideoSrc):
 
@@ -128,7 +137,7 @@ class CACamera(VideoSrc):
             self._stopped = True
     
     def _on_zoom_change(self, obj, val):
-           self.resolution = 5.34e-3 * numpy.exp( -0.18 * val)
+        self.resolution = 5.34e-3 * numpy.exp( -0.18 * val)
            
     def get_frame(self):
         data = self._cam.get()
@@ -168,8 +177,6 @@ class AxisCamera(VideoSrc):
         self.size = img.size
         return img
 
-
-
 class ZoomableAxisCamera(AxisCamera):
     
     implements(IZoomableCamera)
@@ -187,7 +194,7 @@ class ZoomableAxisCamera(AxisCamera):
         self.resolution = 3.6875e-3 * numpy.exp( -0.2527 * val)
 
 
-                                
+                                        
 class AxisPTZCamera(AxisCamera):
 
     implements(IPTZCameraController)  

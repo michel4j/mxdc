@@ -7,6 +7,7 @@ from twisted.spread import pb, interfaces
 from bcm.device.interfaces import IMotor, IShutter
 from bcm.protocol.ca import PV
 from bcm.utils.log import get_module_logger
+from bcm.utils.decorators import async
 from bcm.utils import converter
 from bcm import registry
 
@@ -67,36 +68,73 @@ class MotorBase(gobject.GObject):
             is_healthy = True
         gobject.idle_add(self.emit, 'health', is_healthy)
 
-class DummyMotor(MotorBase):
+class SimMotor(MotorBase):
     implements(IMotor)
      
-    def __init__(self, name):
+    def __init__(self, name, pos=0, units='mm'):
         MotorBase.__init__(self,name)
-        self._position = 0.0
+        self._position = float(pos)
+        self._speed = 100
+        self.units = units
+        self._state = 0
+        self._stopped = False
+        self._healthy = True
+        self._signal_change(None, self._position)
+        self._signal_health(None, self._healthy)
      
     def get_state(self):
-        return 0
+        return self._state
      
     def get_position(self):
         return self._position
-   
+    
+    @async
+    def _move_action(self, target):
+        self._stopped = False
+        self._command_sent = True
+        import numpy
+        targets = numpy.linspace(self._position, target, 20)
+        self._signal_move(self, True)
+        for pos in targets:
+            time.sleep(5.0/self._speed)
+            self._position = pos
+            self._signal_change(self, self._position)
+            if self._stopped:
+                break
+        self._signal_move(self, False)
+            
     def move_to(self, pos, wait=False, force=False):
-        self._position = pos
+        self._move_action(pos)
+        if wait:
+            self.wait()
     
     def move_by(self, pos, wait=False):
         self.move_to(self._position+pos, wait)
     
     def is_moving(self):
-        return False
+        return self._moving
     
     def is_healthy(self):
         return True
     
     def wait(self, start=True, stop=True):
-        pass
+        poll=0.05
+        timeout = 2.0
+        if (start and self._command_sent and not self._moving):
+            _logger.debug('(%s) Waiting to start moving' % (self.name,))
+            while self._command_sent and not self._moving and timeout > 0:
+                timeout -= poll
+                time.sleep(poll)
+            if timeout <= 0:
+                _logger.warning('Timed out waiting for (%s) to start moving.' % (self.name,))
+                return False                
+        if (stop and self._moving):
+            _logger.debug('(%s) Waiting to stop moving' % (self.name,))
+            while self._moving:
+                time.sleep(poll)
     
     def stop(self):
-        pass
+        self._stopped = True
     
     
          

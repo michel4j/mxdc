@@ -42,6 +42,21 @@ class PositionerBase(gobject.GObject):
     
     def get(self):
         raise exceptions.NotImplementedError
+
+class SimPositioner(PositionerBase):
+    def __init__(self, name, pos=0, units=""):
+        PositionerBase.__init__(self)
+        self.name = name
+        self._pos = float(pos)
+        self.units = units
+        self._signal_change(None, self._pos)
+        
+    def set(self, pos):
+        self._pos = pos
+        self._signal_change(self, pos)
+
+    def get(self):
+        return self._pos
     
 class Positioner(PositionerBase):
     def __init__(self, name, fbk_name=None, scale=None, units=""):
@@ -276,7 +291,32 @@ class BasicShutter(gobject.GObject):
         else:
             gobject.idle_add(self.emit,'changed', False)
         
+class SimShutter(gobject.GObject):
+    
+    implements(IShutter)
+    
+    __gsignals__ =  { 
+        "changed": ( gobject.SIGNAL_RUN_FIRST, 
+                     gobject.TYPE_NONE, 
+                     (gobject.TYPE_PYOBJECT,)),
+        }
 
+    def __init__(self,name):
+        self.name = name
+        self._state = False
+        gobject.GObject.__init__(self)
+
+    def open(self):
+        self._state = True
+        gobject.idle_add(self.emit,'changed', True )
+
+    def close(self):
+        self._state = False
+        gobject.idle_add(self.emit,'changed', False )
+
+    def get_state(self):
+        return self._state
+    
 class Shutter(BasicShutter):
     def __init__(self, name):
         open_name = "%s:opr:open" % name
@@ -324,6 +364,28 @@ class Cryojet(object):
         self._previous_flow = self.sample_flow.get()
         self.sample_flow.set(0.0)
 
+class SimCryojet(object):
+    implements(ICryojet)
+    def __init__(self, name):
+        self.name = name
+        self.temperature = SimPositioner('Cryojet Temperature',
+                                        pos=101.2, units='Kelvin')
+        self.sample_flow = SimPositioner('Cryojet Sample Flow',
+                                         pos=8.0,  units='L/min')
+        self.shield_flow = SimPositioner('Cryojet Shield Flow',
+                                         pos=5.0,  units='L/min')
+        self.level = SimPositioner('Cryogen Level', pos=90.34, units='%')
+        self.fill_status = SimPositioner('Fill Status', pos=1)
+        self.nozzle = SimShutter('Cryojet Nozzle Actuator')
+
+    def get_state(self):
+        return False
+
+    def stop_flow(self):
+        self.sample_flow.set(0.0)
+
+    def resume_flow(self):
+        self.sample_flow.set(8.0)
    
 class XYZStage(object):
 
@@ -435,7 +497,9 @@ class Optimizer(object):
     
     def wait(self):
         return
-    
+
+SimOptimizer = Optimizer
+  
 class MostabOptimizer(object):
     
     implements(IOptimizer)
@@ -519,7 +583,3 @@ class PositionerClient(SlaveDevice, PositionerBase):
 registry.register([IPositioner], IDeviceServer, '', PositionerServer)
 registry.register([interfaces.IJellyable], IDeviceClient, 'PositionerServer', PositionerClient)
        
-# Register objects with signals
-gobject.type_register(BasicShutter)
-gobject.type_register(Positioner)
-gobject.type_register(Attenuator)
