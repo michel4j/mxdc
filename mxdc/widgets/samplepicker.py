@@ -12,7 +12,6 @@ except:
     using_cairo = False
 
 from bcm.utils.automounter import *
-from bcm.device.automounter import Automounter, DummyAutomounter
 from mxdc.widgets.gauge import Gauge
 from mxdc.widgets.misc import StatusDisplay
 
