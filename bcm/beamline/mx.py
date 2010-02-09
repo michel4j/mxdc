@@ -11,16 +11,16 @@ from twisted.python.components import globalRegistry
 from bcm.protocol import ca
 from bcm.protocol.ca import PV
 from bcm.device.motor import *
-from bcm.device.counter import Counter
+from bcm.device.counter import *
 from bcm.device.misc import *
 from bcm.device.detector import *
 from bcm.device.goniometer import *
 from bcm.device.automounter import *
 from bcm.device.monochromator import Monochromator
-from bcm.device.mca import MultiChannelAnalyzer
+from bcm.device.mca import *
 from bcm.device.diffractometer import Diffractometer
 from bcm.device.video import *
-from bcm.service.imagesync_client import ImageSyncClient
+from bcm.service.imagesync_client import *
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger, log_to_console
 
@@ -53,7 +53,7 @@ class MXBeamline(object):
         try:
             return self.registry[key]
         except:
-            keys = k.split('.')
+            keys = key.split('.')
             v = getattr(self, keys[0])
             for key in keys[1:]:
                 v = getattr(v, key)
@@ -69,7 +69,6 @@ class MXBeamline(object):
         ca.threads_init()
         config = ConfigParser()
         config.read(self.config_file)
-        sections = config.sections()
         _item_list = []
         
         # read config section
@@ -110,8 +109,4 @@ class MXBeamline(object):
         self.device_config = _item_list
 
 __all__ = ['MXBeamline']
-                    
-if __name__ == '__main__':
-    config_file = '/home/michel/Code/eclipse-ws/beamline-control-module/etc/08id1.conf'
-    bl = MXBeamline(config_file)
     

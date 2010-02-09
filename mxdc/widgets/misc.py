@@ -73,7 +73,7 @@ class ActiveLabel(gtk.Label):
         print alarm, severity
         
 class ActiveEntry(gtk.VBox):
-    _border = gtk.Border(3,3,4,4)
+    #_border = gtk.Border(3,3,4,4)
     def __init__( self, device, label=None,  format="%g",  width=10):
         gtk.VBox.__init__(self, label)
 
@@ -96,7 +96,7 @@ class ActiveEntry(gtk.VBox):
         self.pack_start(self._active_entry)
         
         self._fbk_label.set_alignment(1, 0.5)
-        self._entry.set_inner_border(self._border)
+        #self._entry.set_inner_border(self._border)
         
         self._entry.set_width_chars(1)
         self._entry.set_alignment(1)

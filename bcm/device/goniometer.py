@@ -9,8 +9,9 @@ warnings.simplefilter("ignore")
 from zope.interface import implements
 from bcm.device.interfaces import IGoniometer
 from bcm.protocol.ca import PV
-from bcm.device.motor import VMEMotor
+from bcm.device.motor import VMEMotor, SimMotor
 from bcm.utils.log import get_module_logger
+from bcm.utils.decorators import async
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -74,6 +75,9 @@ class GoniometerBase(gobject.GObject):
                                                self.name, self.mode)
         return s
 
+    def get_state(self):
+        return True
+    
     def _set_and_notify_mode(self, mode):
         if mode != self.mode:
             self.mode = mode
@@ -81,6 +85,20 @@ class GoniometerBase(gobject.GObject):
             gobject.idle_add(self.emit, 'mode', _mode_str)
             _logger.info( "(%s) mode changed to `%s`" % (self.name, _mode_str))
 
+    def wait(self, start=True, stop=True, poll=0.05, timeout=20):
+        if (start):
+            time_left = 2
+            while not self.get_state() and time_left > 0:
+                time.sleep(poll)
+                time_left -= poll
+        if (stop):
+            time_left = timeout
+            while self.get_state() and time_left > 0:
+                time.sleep(poll)
+                time_left -= poll
+    
+    def stop(self):
+        pass
     
 class Goniometer(GoniometerBase):
     def __init__(self, name):
@@ -119,21 +137,6 @@ class Goniometer(GoniometerBase):
     def get_state(self):
         return self._state.get() != 0   
                         
-    def wait(self, start=True, stop=True, poll=0.05, timeout=20):
-        if (start):
-            time_left = 2
-            while not self.get_state() and time_left > 0:
-                time.sleep(poll)
-                time_left -= poll
-        if (stop):
-            time_left = timeout
-            while self.get_state() and time_left > 0:
-                time.sleep(poll)
-                time_left -= poll
-
-    def stop(self):
-        pass    # FIXME: We need a proper way to stop goniometer scan
-
 
 class MD2Goniometer(GoniometerBase):
 
@@ -222,19 +225,45 @@ class MD2Goniometer(GoniometerBase):
     def get_state(self):
         return self._state.get() != 3  
                         
-    def wait(self, start=True, stop=True, poll=0.01, timeout=20):
-        if (start):
-            time_left = 2
-            while not self.get_state() and time_left > 0:
-                time.sleep(poll)
-                time_left -= poll
-        if (stop):
-            time_left = timeout
-            while self.get_state() and time_left > 0:
-                time.sleep(poll)
-                time_left -= poll
 
     def stop(self):
         self._abort_cmd.set(1)
         self._abort_cmd.set(0)
 
+
+class SimGoniometer(GoniometerBase):
+    def __init__(self):
+        
+        GoniometerBase.__init__(self, 'Simulated Goniometer')
+        self.omega = SimMotor('Omega Motor', pos=0, units='deg')
+        gobject.idle_add(self.emit, 'mode', 'UNKNOWN')
+        self._scanning = False
+                
+    def configure(self, **kwargs):
+        self.settings = kwargs
+        
+    def set_mode(self, mode, wait=False):
+        if isinstance(mode, int):
+            mode = _MODE_MAP_REV.get(mode, 'UNKNOWN')
+        self._set_and_notify_mode(_MODE_MAP.get(mode))
+    
+    @async
+    def _start_scan(self):
+        self._scanning = True
+        time.sleep(2)
+        self._scanning = False
+        
+    def scan(self, wait=True):
+        self._start_scan()
+        if wait:
+            self.wait(start=True, stop=True)
+
+    def get_state(self):
+        return self._scanning
+                        
+
+    def stop(self):
+        self._scanning = False
+   
+
+__all__ = ['Goniometer', 'MD2Goniometer', 'SimGoniometer']

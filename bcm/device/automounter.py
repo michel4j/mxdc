@@ -97,11 +97,14 @@ class BasicAutomounter(gobject.GObject):
 
        
 class SimAutomounter(BasicAutomounter):        
-    def __init__(self):
+    def __init__(self, name='Sim Automounter'):
         BasicAutomounter.__init__(self)
-        self.name = 'Sim Automounter'
+        self.name = 'name'
         self.parse_states(_TEST_STATE2)
-        self.nitrogen_level = ca.PV('junk')
+        from bcm.device.misc import SimPositioner
+        self.nitrogen_level = SimPositioner('Automounter Cryogen Level', 80.0, '%')
+
+        gobject.idle_add(self.emit, 'state', self._state_dict)
     
     def _sim_mount_done(self, port=None):
         self._busy = False

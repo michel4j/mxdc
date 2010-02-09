@@ -1,6 +1,6 @@
 import time
-import logging
 import numpy
+import os
 import gobject
 from zope.interface import implements
 from bcm.device.interfaces import IMultiChannelAnalyzer
@@ -174,3 +174,85 @@ class MultiChannelAnalyzer(object):
             return False                
         return True        
 
+
+class SimMultiChannelAnalyzer(object):
+    
+    implements(IMultiChannelAnalyzer)
+    
+    def __init__(self, name, channels=4096):
+        self.name = name
+        self.channels = channels
+        self.region_of_interest = (0, self.channels)
+        
+        # Default parameters
+        self.half_roi_width = 15 # in channel units 
+        self.slope = 17.0/3298 #50000     #0.00498
+        self.offset = -96.0 * self.slope #9600 #-0.45347
+        self._monitor_id = None
+        self._acquiring = False
+        self._data_read = False
+        self._command_sent = False
+                
+        self._x_axis = self.channel_to_energy( numpy.arange(0,4096,1) )
+        self._counts_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'bcm/test/SeMet.raw'), comments="#")
+        self._raw_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'bcm/test/XRFTest.raw'), comments="#")
+        self._last_t = time.time()
+        self._last_pos = 0
+        
+
+    def configure(self, **kwargs):
+        # configure the mcarecord scan parameters        
+        for k,v in kwargs.items():
+            if k == 'cooling':
+                _logger.debug('(%s) Waiting for MCA to cool down' % (self.name,))
+                
+            if k == 'roi':
+                if v is None:
+                    self.region_of_interest = (0, self.channels)
+                else:
+                    self.region_of_interest = v
+            if k == 'energy':
+                if v is None:
+                    self.region_of_interest = (0, self.channels)
+                else:
+                    midp = self.energy_to_channel(v)
+                    self.region_of_interest = (midp - self.half_roi_width, 
+                                               midp + self.half_roi_width)
+        self._last_pos = 0
+        self._last_t = time.time()     
+                
+
+    def channel_to_energy(self, x):
+        return self.slope*x + self.offset
+    
+    def energy_to_channel(self, y):
+        return   int((y-self.offset)/self.slope)
+                                   
+    def count(self, t):
+        self._aquiring = True
+        time.sleep(t)
+        self._acquiring = False
+        val = self._counts_data[self._last_pos]
+        if self._last_pos < len(self._counts_data[:,1])-1:
+            self._last_pos += 1
+        return val
+
+    def acquire(self, t=1.0):
+        self._aquiring = True
+        time.sleep(t)
+        self._acquiring = False
+        return numpy.array(zip(self._x_axis, self._raw_data[:,1]))
+        
+    def stop(self):
+        pass
+
+    def wait(self):
+        time.sleep(0.5)
+    
+    def get_state(self):
+        if self._acquiring:
+            return ['acquiring']
+        else:
+            return ['idle']
+
+__all__ = ['MultiChannelAnalyzer', 'SimMultiChannelAnalyzer']
