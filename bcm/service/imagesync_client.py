@@ -13,4 +13,18 @@ class ImageSyncClient(object):
     
     def setup_folder(self, folder):
         return self._server.setup_folder(folder)
-        
+
+
+class SimImageSyncClient(object):
+    implements(IImageSyncService)
+
+    def __init__(self):
+        pass
+    
+    def set_user(self, user, uid, gid):
+        return True
+    
+    def setup_folder(self, folder):
+        return True
+
+__all__ = ['ImageSyncClient','SimImageSyncClient']
