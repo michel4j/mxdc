@@ -83,7 +83,7 @@ class Provider(object):
         Handle event when dbus command is finished.
         """
         if error:
-            log.error(error)
+            #log.error(error)
             pass
 
 class Browser(gobject.GObject):
@@ -163,6 +163,7 @@ class Browser(gobject.GObject):
         Handle event when dbus command is finished.
         """
         if error:
-            log.error(error)
+            #log.error(error)
+            pass
 
 __all__ = ['Browser', 'Provider']
