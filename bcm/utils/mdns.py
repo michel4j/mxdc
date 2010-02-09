@@ -62,7 +62,7 @@ class Provider(object):
             try:
                 self._entrygroup.AddService(*self._params)
                 self._entrygroup.Commit(reply_handler=self._on_complete, error_handler=self._on_complete)
-            except dbus.exceptions.DBusException as error:
+            except dbus.exceptions.DBusException,  error:
                 if str(error) == 'org.freedesktop.Avahi.CollisionError: Local name collision' and unique:
                     log.error('Service Name Collision')
                     retry = False
