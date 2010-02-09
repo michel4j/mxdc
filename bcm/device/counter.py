@@ -1,6 +1,7 @@
 import time
 import math
 import logging
+import random
 
 
 from zope.interface import implements
@@ -52,3 +53,21 @@ class Counter(object):
         return total
                         
 
+
+class SimCounter(object):
+    
+    implements(ICounter)
+    
+    def __init__(self, mean=0):
+        self._mean = mean
+        
+    def __repr__(self):
+        s = "<%s:'%s'>" % (self.__class__.__name__, self.name)
+        return s
+    
+    def count(self, t):
+        time.sleep(t)
+        return random.uniform(self._mean-0.5, self._mean+0.5)
+
+
+__all__ = ['Counter', 'SimCounter']     

@@ -77,7 +77,14 @@ class BasicAutomounter(gobject.GObject):
         gobject.GObject.__init__(self)
         self.containers = {'L': AutomounterContainer('L'),
                           'M': AutomounterContainer('M'),
-                          'R': AutomounterContainer('R') }
+                          'R': AutomounterContainer('R')}
+        self._busy = False
+        self._state_dict = {'busy': self._busy, 'enabled': True, 'needs':[]}
+        self._mounted_port = None
+        self._tool_pos = None
+        self._total_steps = 0
+        self._step_count = 0
+        self._last_warn = ''
 
     def parse_states(self, state):
         fbstr = ''.join(state.split())
@@ -89,26 +96,60 @@ class BasicAutomounter(gobject.GObject):
             self.containers[k].configure(s)
 
        
-class DummyAutomounter(BasicAutomounter):        
-    def __init__(self, states=_TEST_STATE2):
+class SimAutomounter(BasicAutomounter):        
+    def __init__(self):
         BasicAutomounter.__init__(self)
         self.name = 'Sim Automounter'
-        self.parse_states(states)
+        self.parse_states(_TEST_STATE2)
         self.nitrogen_level = ca.PV('junk')
     
-    def mount(self, port, wash=False):
-        param = port[0] + ' ' + port[2:] + ' ' + port[1] + ' '
-        if wash:
-            param += '1'
+    def _sim_mount_done(self, port=None):
+        self._busy = False
+        self._state_dict = {'busy': self._busy, 'enabled': True, 'needs':[]}
+        gobject.idle_add(self.emit, 'mounted', (port,'') )
+        gobject.idle_add(self.emit, 'state', self._state_dict )
+        gobject.idle_add(self.emit, 'message', 'Sample Successfully mounted')
+        self._mounted_port = port
+        if port is None:
+            gobject.idle_add(self.emit, 'message', 'Sample Successfully dismounted.')
         else:
-            param += '0'
-        print param
+            gobject.idle_add(self.emit, 'message', 'Sample Successfully mounted.')
+
+    def _sim_mount_start(self, port=None):
+        self._busy = True
+        self._state_dict = {'busy': self._busy, 'enabled': True, 'needs':[]}
+        gobject.idle_add(self.emit, 'state', self._state_dict )
+        if port is None:
+            gobject.idle_add(self.emit, 'message', 'Dismounting crystal.')
+        else:
+            gobject.idle_add(self.emit, 'message', 'Mounting sample at %s.' % port)
+                         
+    def mount(self, port, wash=False):
+        if self._busy:
+            return
+        if self._mounted_port is not None:
+            self._sim_mount_start(port)
+            gobject.timeout_add(5000, self._sim_mount_done, port)
+        else:
+            self._sim_mount_start(port)
+            gobject.timeout_add(10000, self._sim_mount_done, port)
     
     def dismount(self, port=None):
-        pass
+        if self._busy:
+            return
+        if self._mounted_port is not None:
+            self._sim_mount_start(None)
+            gobject.timeout_add(60000, self._sim_mount_done, None)
 
     def probe(self):
         pass
+
+    def wait(self, timeout=60.0):
+        while self._busy:
+            time.sleep(0.02)
+            timeout -= 0.02
+        if timeout <= 0:
+            _logger.warning('Timed out after waiting for 60 seconds.')
         
        
 class Automounter(BasicAutomounter):
@@ -118,13 +159,6 @@ class Automounter(BasicAutomounter):
         self._pv_name = pv_name
         
         #initialize housekeeping vars
-        self._busy = False
-        self._state_dict = {'busy': self._busy, 'enabled': True, 'needs':[]}
-        self._mounted_port = None
-        self._tool_pos = None
-        self._total_steps = 0
-        self._step_count = 0
-        self._last_warn = ''
         
         self.port_states = ca.PV('%s:cassette:fbk' % pv_name)
         self.nitrogen_level = ca.PV('%s:LN2Fill:lvl:fbk' % pv_name2)
@@ -356,7 +390,3 @@ class AutomounterClient(SlaveDevice, BasicAutomounter):
 # Motors
 registry.register([IAutomounter], IDeviceServer, '', AutomounterServer)
 registry.register([interfaces.IJellyable], IDeviceClient, 'AutomounterServer', AutomounterClient)
-            
-gobject.type_register(AutomounterContainer)
-gobject.type_register(BasicAutomounter)
-
