@@ -92,7 +92,7 @@ class BCMService(service.Service):
         self.data_collector = diffraction.DataCollector()
         self.xanes_scanner = spectroscopy.XANESScan()
         self.xrf_scanner = spectroscopy.XRFScan()
-        log.msg('BCM Ready')
+        log.msg('BCM (%s) Ready' % self.beamline.name)
         self.ready = True
     
     def _service_failed(self, result):
@@ -248,12 +248,12 @@ application = service.Application('BCM')
 f = BCMService()
 sf = getShellFactory(f, admin='appl4Str')
 try:
-    bcm_provider = mdns.Provider('Beamline Control Module', '_cmcf_bcm_ssh._tcp', 8880, {}, unique=True)
-    bcm_ssh_provider = mdns.Provider('Beamline Control Module Console', '_cmcf_bcm_ssh._tcp', 2220, {}, unique=True)
+    bcm_provider = mdns.Provider('Beamline Control Module', '_cmcf_bcm._tcp', 8888, {}, unique=True)
+    bcm_ssh_provider = mdns.Provider('Beamline Control Module Console', '_cmcf_bcm_ssh._tcp', 2222, {}, unique=True)
 except mdns.mDNSError:
     _logger.error('An instance of the BCM is already running on the local network. Only one instance permitted.')
     reactor.stop()
     
 serviceCollection = service.IServiceCollection(application)
-internet.TCPServer(8880, pb.PBServerFactory(IPerspectiveBCM(f))).setServiceParent(serviceCollection)
-internet.TCPServer(2220, sf).setServiceParent(serviceCollection)
+internet.TCPServer(8888, pb.PBServerFactory(IPerspectiveBCM(f))).setServiceParent(serviceCollection)
+internet.TCPServer(2222, sf).setServiceParent(serviceCollection)
