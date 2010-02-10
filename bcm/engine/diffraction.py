@@ -253,7 +253,7 @@ class DataCollector(gobject.GObject):
             return
         ca.threads_init() 
         self.beamline.lock.acquire()
-        self.beamline.goniometer.set_mode('collect', wait=True) # move goniometer to collect mode
+        self.beamline.goniometer.set_mode('COLLECT', wait=True) # move goniometer to collect mode
         gobject.idle_add(self.emit, 'started')
         try:          
             self.beamline.exposure_shutter.close()
