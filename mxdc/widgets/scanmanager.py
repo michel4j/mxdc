@@ -3,6 +3,7 @@ import os
 import gtk
 import gtk.glade
 import gobject
+import numpy
 
 from mxdc.widgets.periodictable import PeriodicTable
 from mxdc.widgets.textviewer import TextViewer
@@ -334,8 +335,8 @@ class ScanManager(gtk.Frame):
     def on_xanes_done(self, obj):
         self._set_scan_action(False)
         self.scan_book.set_current_page(1)
-        data = obj.data
         results = obj.results.get('energies')
+        data = numpy.array(obj.results.get('efs'))
         if results is None:
             warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed')
             return True

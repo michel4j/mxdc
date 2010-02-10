@@ -172,7 +172,7 @@ class SimCCDImager(object):
         self.name = name
         self._state = 'idle'
         self._bg_taken = False
-        self._src_dir = os.path.join(os.environ['BCM_PATH'], 'test','images')
+        self._src_dir = os.path.join(os.environ['BCM_PATH'], 'bcm', 'test','images')
     
     def __repr__(self):
         return "<%s:'%s', state:'%s'>" % (self.__class__.__name__, self.name, self.get_state() )
@@ -195,7 +195,7 @@ class SimCCDImager(object):
         num = 1 + self.parameters['frame_number'] % 9
         src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
         dst_img = os.path.join(self.parameters['directory'], 
-                               '%s.gz' % self.parameters['directory'])
+                               '%s.gz' % self.parameters['filename'])
         os.system('/bin/cp %s %s' % (src_img, dst_img))
         os.system('/usr/bin/gunzip %s' % dst_img)
         
