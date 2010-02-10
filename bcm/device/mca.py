@@ -195,6 +195,7 @@ class SimMultiChannelAnalyzer(object):
                 
         self._x_axis = self.channel_to_energy( numpy.arange(0,4096,1) )
         self._counts_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'bcm/test/SeMet.raw'), comments="#")
+        self._counts_data = self._counts_data[:,1]
         self._raw_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'bcm/test/XRFTest.raw'), comments="#")
         self._last_t = time.time()
         self._last_pos = 0
@@ -233,7 +234,7 @@ class SimMultiChannelAnalyzer(object):
         time.sleep(t)
         self._acquiring = False
         val = self._counts_data[self._last_pos]
-        if self._last_pos < len(self._counts_data[:,1])-1:
+        if self._last_pos < len(self._counts_data)-1:
             self._last_pos += 1
         return val
 

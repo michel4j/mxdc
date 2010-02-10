@@ -2,6 +2,8 @@ import os, re
 import gobject
 import threading
 import commands
+import numpy
+
 from numpy import loadtxt, savetxt
 from bcm.utils import converter
 
@@ -19,6 +21,7 @@ class AutoChooch(gobject.GObject):
         self._edge = edge
         self._prefix = prefix
         self._suffix = suffix
+        self.results = {}
         
     def get_results(self):
         return self.results
@@ -31,7 +34,6 @@ class AutoChooch(gobject.GObject):
         self.efs_file = None
         self.out_file = None
         self.data = None
-        self.results = {}
         worker = threading.Thread(target=self.run)
         worker.setDaemon(True)
         worker.start()
@@ -47,6 +49,7 @@ class AutoChooch(gobject.GObject):
         
         
     def run(self):
+        self.results = {}
         file_root = os.path.join(self.directory, "%s_%s_%s" % (self._prefix, self._edge, self._suffix))    
         self.raw_file = "%s.raw" % (file_root)
         self.dat_file = "%s.dat" % (file_root)
