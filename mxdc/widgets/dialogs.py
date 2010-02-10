@@ -313,9 +313,9 @@ class FileSelector(object):
 
     def set_path(self, path):
         if path is None or not os.path.exists(path):
-           self.__class__.path = os.environ['HOME'] 
+            self.__class__.path = os.environ['HOME'] 
         else:
-            self.__class__.path = os.path.dirname(self.filename)
+            self.__class__.path = os.path.abspath(path)
             
     def run(self):
         if self.file_open.run() == gtk.RESPONSE_OK:
