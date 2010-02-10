@@ -2,13 +2,15 @@ BCM and MXDC Installation
 
 Step by Step:
 - Install dependencies
-    - matplotlib 
-    - numpy
-    - scipy
-    - ctypes (for python 2.3 only)
+    - matplotlib >= 0.99
+    - numpy >= 1.2
+    - scipy > = 0.6
+    - python-ctypes (for python < 2.5  only)
     - python-imaging >= 1.1.6
     - python-zope-interface >= 3.3
     - Twisted >= 8.2
+    - avahi-tools (provides python avahi module needed by mdns module)
+    - dbus-python
     - Others: (pygtk usually included with distribution)
     NOTE: for installation at CMCF, prebuilt dependencies are available
     in ~cmcfadmin/deps. Select rpm folder matching your installation and
@@ -19,4 +21,7 @@ Step by Step:
 - Make sure setup.csh is sourced on login.
 - To run:
     - `mxdc` will launch the application
+    - `sim-mxdc` will lauch the application with simulated devices
     - `sampleviewer` will launch the hutch sample video screen only
+    - `blconsole` will lauch a beamline python console for interactive scanning
+    	etc.
