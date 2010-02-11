@@ -207,9 +207,13 @@ class DataCollector(gobject.GObject):
         self.stopped = True
         self.skip_collected = False
         self.run_list = []
+        self.run_data = {}
+        self.collected_frames = []
         
             
     def configure(self, run_data=None, run_list=None, skip_collected=True):
+        self.run_data = {}
+        self.collected_frames = []
         #associate beamline devices
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
@@ -219,10 +223,12 @@ class DataCollector(gobject.GObject):
             raise
         if run_data is None and run_list is None:
             self.run_list = []
+            
             _logger.warning('Run is empty')
         elif run_data is not None:  # run_data supersedes run_list if specified
             self.run_list = generate_run_list(run_data)
             self.beamline.image_server.setup_folder(run_data['directory'])
+            self.run_data = run_data
         else: # run_list is not empty
             self.run_list = run_list
         self.total_frames = len(self.run_list)
@@ -314,6 +320,7 @@ class DataCollector(gobject.GObject):
     
                 _logger.info("Image Collected: %s" % frame['file_name'])
                 gobject.idle_add(self.emit, 'new-image', self.pos, "%s/%s" % (frame['directory'], frame['file_name']))
+                self.collected_frames.append((frame['file_name'], frame['start_angle']))
                 
                 # Notify progress
                 fraction = float(self.pos) / len(self.run_list)
@@ -328,8 +335,8 @@ class DataCollector(gobject.GObject):
             self.beamline.exposure_shutter.close()
             self.beamline.goniometer.set_mode('mount') # return goniometer to mount position
             self.beamline.lock.release()        
-        #FIXME: return information about everything that was collected this session
-        return []
+
+        return {'parameters': self.run_data, 'frame_list': self.collected_frames}
 
     def set_position(self, pos):
         self.pos = pos

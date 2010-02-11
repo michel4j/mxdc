@@ -16,21 +16,22 @@ run_info = {
     'two_theta' : 0.0,
     'start_frame' : 1,
     'start_angle' : 0.0,
-    'angle_range' : 5.0,
+    'total_angle' : 5.0,
     'energy' : [12.658],
     'delta' : 1.0,
     'number' : 1,
     'energy_label' : ['E0'],
-    'wedge' : 180.0,
+    'wedge' : 360.0,
     'prefix' : 'test-5',
     'inverse_beam' : False,
     'time' : 1.0,
     'directory' : DIRECTORY,
-    'num_frames' : 5,
+    'total_frames' : 5,
+    'attenuation': 0.0,
 }
 
 
-class App:
+class App(object):
     def __init__(self):
         self._service_found = False
     
@@ -42,7 +43,7 @@ class App:
         log.msg('BCM Server found on local network at %s:%s' % (self._service_data['host'], 
                                                                 self._service_data['port']))
         self.factory = pb.PBClientFactory()
-        self.factory.getRootObject().addCallbacks(self.bcmConnected, gotNoObject)
+        self.factory.getRootObject().addCallbacks(self.on_bcm_connected, self.on_connection_failed)
         reactor.connectTCP(self._service_data['address'],
                            self._service_data['port'], self.factory)
         
@@ -52,12 +53,11 @@ class App:
         self._service_found = False
         log.msg('BCM Service no longer available on local network at %s:%s' % (self._service_data['host'], 
                                                                 self._service_data['port']))
-        self.factory = pb.PBClientFactory()
-        self.factory.getRootObject().addCallbacks(self.bcmConnected, gotNoObject)
-        reactor.connectTCP(self._service_data['address'],
-                           self._service_data['port'], self.factory)
         
     def setup(self):
+        """Make sure no other bcm client is running on the local network, 
+        find out the connection details of the BCM Server using mdns
+        and initiate a connection"""
         import time
         try:
             _service_data = {#'user': os.getlogin(), 
@@ -72,34 +72,33 @@ class App:
             log.msg('A BCM Client is already running on the local network. Only one instance permitted.')
             reactor.stop()
         
-    def bcmConnected(self, perspective):
+    def on_bcm_connected(self, perspective):
+        """ I am called when a connection to the BCM Server has been established.
+        I expect to receive a remote perspective which will be used to call remote methods
+        on the BCM server."""
         log.msg('Connection to BCM Server Established')
         self.bcm = perspective
         
-        self.bcm.callRemote('scanSpectrum', 
+
+        # Test a few functions
+        self.bcm.callRemote('scanSpectrum',
                             prefix='scan1-5', 
                             exposure_time=1.0,
                             attenuation=50.0,
                             energy=18.0,
                             directory=DIRECTORY,
-                            ).addCallback(gotData)
+                            ).addCallback(self.dump_results)
         
-        self.bcm.callRemote('acquireFrames', run_info).addCallback(gotData)
-           
-def gotData(data):
-    log.msg('Server sent: %s' % str(data))
-    #reactor.stop()
+        self.bcm.callRemote('acquireFrames', run_info).addCallback(self.dump_results)
 
-def printResults(data):
-    import pickle
-    results = pickle.loads(data)
-    print results
+    def on_connection_failed(self, reason):
+        log.msg('Could not connect to BCM Server: %', reason)
+          
 
-def printResults2(data):
-    print data
-        
-def gotNoObject(reason):
-    log.msg('no object: %', reason)
+    def dump_results(self, data):
+        """pretty print the data received from the server"""
+        log.msg('Server sent: %s' % str(data))
+
 
 app = App()    
 reactor.callWhenRunning(app.setup)
