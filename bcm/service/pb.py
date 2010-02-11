@@ -45,17 +45,17 @@ class PerspectiveBCMFromService(pb.Root):
         """ Perform and excitation scan"""
         return self.service.scanSpectrum(*args, **kwargs)
     
-    def remote_acquireFrames(self, run_info, skip_existing=False):
+    def remote_acquireFrames(self, *args, **kwargs):
         """ Collect frames of Data """
-        return self.service.acquireFrames(run_info, skip_existing)
+        return self.service.acquireFrames(*args, **kwargs)
         
-    def remote_takeSnapshots(self, directory, prefix, show_decorations=True):
+    def remote_takeSnapshots(self, *args, **kwargs):
         """ Save a set of images from the sample video"""
-        return self.service.takeSnapshots(directory, prefix, show_decorations)
+        return self.service.takeSnapshots(*args, **kwargs)
 
-    def remote_setUser(self, name, uid, gid, directory):
+    def remote_setUser(self, *args, **kwargs):
         """ Set the current user"""
-        return self.service.setUser(name, uid, gid, directory)
+        return self.service.setUser( *args, **kwargs)
 
     def remote_getConfig(self):
         """Get a Configuration of all beamline devices"""
@@ -197,11 +197,11 @@ class BCMService(service.Service):
             - delta: float
             - time : float (in sec)
             - start_angle : float (deg)
-            - angle_range : float (deg)
+            - total_angle : float (deg)
             - start_frame : integer
-            - num_frames : integer
+            - total_frames : integer
             - inverse_beam : boolean (default = False)
-            - wedge : float (default 180)
+            - wedge : float (default 360)
             - energy : a list of energy values (floats)
             - energy_label : a corresponding list of energy labels (strings) no spaces
             - two_theta : a float, default (0.0)
@@ -246,7 +246,7 @@ class BCMError(pb.Error):
 
 application = service.Application('BCM')
 f = BCMService()
-sf = getShellFactory(f, admin='appl4Str')
+sf = getShellFactory(f, admin='admin')
 try:
     bcm_provider = mdns.Provider('Beamline Control Module', '_cmcf_bcm._tcp', 8888, {}, unique=True)
     bcm_ssh_provider = mdns.Provider('Beamline Control Module Console', '_cmcf_bcm_ssh._tcp', 2222, {}, unique=True)
