@@ -10,6 +10,7 @@ import gobject
 import random
 from zope.interface import Interface, implements
 from twisted.python import log
+import numpy
 
 
 def log_call(f):
@@ -22,6 +23,15 @@ def log_call(f):
     new_f.__name__ = f.__name__
     return new_f
 
+def send_array(arr):
+    if arr is None:
+        return None
+    return [arr.tostring(), arr.dtype.char, arr.shape]
+
+def recv_array(arr_list):
+    if arr_list is None:
+        return None
+    return numpy.fromstring(arr_list[0], arr_list[1]).reshape(arr_list[2])
 
 class IDeviceClient(Interface):
     pass

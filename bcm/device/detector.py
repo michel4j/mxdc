@@ -197,7 +197,7 @@ class SimCCDImager(object):
         dst_img = os.path.join(self.parameters['directory'], 
                                '%s.gz' % self.parameters['filename'])
         os.system('/bin/cp %s %s' % (src_img, dst_img))
-        os.system('/usr/bin/gunzip %s' % dst_img)
+        os.system('/usr/bin/gunzip -f %s' % dst_img)
         
     def save(self, wait=False):
         self._copy_frame()

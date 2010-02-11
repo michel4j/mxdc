@@ -11,6 +11,7 @@ from bcm.utils.log import get_module_logger
 from bcm.utils import science
 from bcm.engine.autochooch import AutoChooch
 from bcm.utils.misc import get_short_uuid
+from bcm.service.utils import  send_array
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -45,6 +46,14 @@ class XRFScan(BasicScan):
         y = self.data[:,1]
         peaks = science.peak_search(x, y, w=31, threshold=0.1, min_peak=0.05)
         self.results['peaks'] = science.assign_peaks(peaks,  dev=0.04)
+        self.results = {
+            'data': send_array(self.data),
+            'peaks': science.assign_peaks(peaks,  dev=0.04),
+            'parameters ': {'directory': self._directory,
+                            'energy': self._energy,
+                            'exposure_time': self._duration,
+                            'output_file': self._filename}
+            }
         
         
     def run(self):
@@ -69,7 +78,7 @@ class XRFScan(BasicScan):
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(0.0)
             self.beamline.lock.release()
-        return self.data
+        return self.results
             
 
 class XANESScan(BasicScan):
