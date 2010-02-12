@@ -1,6 +1,6 @@
 BCM and MXDC Installation
 
-Step by Step:
+STEP BY STEP:
 - Install dependencies
     - matplotlib >= 0.99
     - numpy >= 1.2
@@ -9,12 +9,10 @@ Step by Step:
     - python-imaging >= 1.1.6
     - python-zope-interface >= 3.3
     - Twisted >= 8.2
+    	NOTE: if using Twisted 9.0, pyasn1, and python-crypto are also required 
     - avahi-tools (provides python avahi module needed by mdns module)
     - dbus-python
     - Others: (pygtk usually included with distribution)
-    NOTE: for installation at CMCF, prebuilt dependencies are available
-    in ~cmcfadmin/deps. Select rpm folder matching your installation and
-    install the packages.
 - Uncompress archive into target directory
 - Edit setup.csh under deploy directory to suite the installation
 - Edit the configuration file specifed in setup.csh to match your beamline 
@@ -25,3 +23,21 @@ Step by Step:
     - `sampleviewer` will launch the hutch sample video screen only
     - `blconsole` will lauch a beamline python console for interactive scanning
     	etc.
+    	
+GOOD TO KNOW
+------------
+- Always prefer packages already available for your distribution. Only build where necessary.
+- For installation at CMCF, prebuilt dependencies are available
+    in ~cmcfadmin/deps. Select rpm folder matching your installation and
+    install the packages.
+- On Scientific Linux/RHEL/CENTOS 5+, most of the packages are available from 
+	distribution repositories. Make sure you have EPEL and RPMFusion repositories
+	enabled from the start. That way, doing yum install <package-name> should get
+	you most of the above packages "for free"
+- A few of the packages may need to be built. It is recommended to build rpm's and
+	and then install those, so you can easily uninstall them or update them, and it is easy to 
+	tell what versions are installed.  Therefore, it is not recommended to do 
+	"python setup.py install", instead, do
+	"python setup.py bdist_rpm" and then install the resulting rpm package.
+	
+	
