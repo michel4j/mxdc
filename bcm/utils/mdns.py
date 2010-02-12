@@ -5,6 +5,7 @@
 
 import logging
 import sys
+import re
 
 import gobject
 import dbus
@@ -63,14 +64,15 @@ class Provider(object):
                 self._entrygroup.AddService(*self._params)
                 self._entrygroup.Commit(reply_handler=self._on_complete, error_handler=self._on_complete)
             except dbus.exceptions.DBusException,  error:
-                if str(error) == 'org.freedesktop.Avahi.CollisionError: Local name collision' and unique:
-                    log.error('Service Name Collision')
-                    retry = False
-                    raise mDNSError('Service Name Collision')
-                elif str(error) == 'org.freedesktop.Avahi.CollisionError: Local name collision':
-                    self._params[3] = '%s #%d' % (base_name, retries)
-                    log.warning('Service Name Collision. Renaming to %s' % (self._params[3]))
-                    retry = True
+                if re.search('Local name collision', str(error)):
+                    if unique:
+                        log.error('Service Name Collision')
+                        retry = False
+                        raise mDNSError('Service Name Collision')
+                    else:
+                        self._params[3] = '%s #%d' % (base_name, retries)
+                        log.warning('Service Name Collision. Renaming to %s' % (self._params[3]))
+                        retry = True
                 else:
                     retry = False
 

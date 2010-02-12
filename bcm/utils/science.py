@@ -210,7 +210,7 @@ def peak_search(x, y, w=7, threshold=0.01, min_peak=0.01):
                 while x[pk] < peak_pos and pk < hi:
                     pk += 1
                 peak_height = y[pk]
-                t_peaks.append([peak_pos, peak_height, fwhm,  stdpk])
+                t_peaks.append([float(peak_pos), float(peak_height), float(fwhm),  float(stdpk)])
         i += 1
 
     if len(t_peaks) == 0:
