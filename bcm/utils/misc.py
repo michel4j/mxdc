@@ -41,26 +41,26 @@ def wait_for_signal(obj, signal, timeout=10):
 def generate_run_list(run, show_number=True):
     run_list = []
     index = 0
-    offsets = run['inverse_beam'] and [0, 180] or [0,]
+    offsets = run['inverse_beam'] and [0, 180] or [0, ]
     angle_range = run['total_angle']
     wedge = run['wedge'] < angle_range and run['wedge'] or angle_range
-    wedge_size = int( (wedge) / run['delta'])
+    wedge_size = int((wedge) / run['delta'])
     total_size = run['total_frames']
-    passes = int ( round( 0.5 + (angle_range-run['delta']) / wedge) ) # take the roof (round_up) of the number
+    passes = int (round(0.5 + (angle_range - run['delta']) / wedge)) # take the roof (round_up) of the number
     remaining_frames = total_size
     current_slice = wedge_size
     for i in range(passes):
         if current_slice > remaining_frames:
             current_slice = remaining_frames
-        for (energy,energy_label) in zip(run['energy'],run['energy_label']):
+        for (energy, energy_label) in zip(run['energy'], run['energy_label']):
             if len(run['energy']) > 1:
                 energy_tag = "_%s" % energy_label
             else:
                 energy_tag = ""
-            for offset in offsets:                        
+            for offset in offsets:
                 for j in range(current_slice):
                     angle = run['start_angle'] + (j * run['delta']) + (i * wedge) + offset
-                    frame_number =  i * wedge_size + j + int(offset/run['delta']) + run['start_frame']
+                    frame_number = i * wedge_size + j + int(offset / run['delta']) + run['start_frame']
                     if show_number:
                         frame_name = "%s_%d%s_%03d" % (run['prefix'], run['number'], energy_tag, frame_number)
                     else:
@@ -68,10 +68,10 @@ def generate_run_list(run, show_number=True):
                     file_name = "%s.img" % (frame_name)
                     list_item = {
                         'index': index,
-                        'saved': False, 
+                        'saved': False,
                         'frame_number': frame_number,
-                        'run_number': run['number'], 
-                        'frame_name': frame_name, 
+                        'run_number': run['number'],
+                        'frame_name': frame_name,
                         'file_name': file_name,
                         'start_angle': angle,
                         'delta': run['delta'],
@@ -86,4 +86,3 @@ def generate_run_list(run, show_number=True):
                     index += 1
         remaining_frames -= current_slice
     return run_list
-
