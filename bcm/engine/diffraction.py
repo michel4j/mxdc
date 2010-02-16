@@ -152,7 +152,7 @@ class Screener(gobject.GObject):
                                   'directory': os.path.join(task['directory'], task['sample']['id']),
                                   'total_frames': task['frames'],
                                   'start_angle': task['angle'],
-                                  'start_frame': 1,
+                                  'start_frame': task['start_frame'],
                                   'number': 0,
                                   'total_angle': task['delta'] * task['frames'],
                                   'delta': task['delta'],
@@ -333,7 +333,7 @@ class DataCollector(gobject.GObject):
             self.stopped = True
         finally:
             self.beamline.exposure_shutter.close()
-            self.beamline.goniometer.set_mode('mount') # return goniometer to mount position
+            self.beamline.goniometer.set_mode('MOUNTING') # return goniometer to mount position
             self.beamline.lock.release()        
 
         return {'parameters': self.run_data, 'frame_list': self.collected_frames}

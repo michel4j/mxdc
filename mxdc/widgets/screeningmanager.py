@@ -48,6 +48,9 @@ class ScreenManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
+        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
+                                  'screening_widget')
+
         self._create_widgets()
         self.screen_runner = Screener()
         self._screening = False
@@ -68,8 +71,6 @@ class ScreenManager(gtk.Frame):
     def _create_widgets(self):        
         self.sample_list = SampleList()
 
-        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
-                                  'screening_widget')
         self.screen_manager = self._xml.get_widget('screening_widget')
         self.export_btn.connect('clicked', self._on_export)
         self.import_btn.connect('clicked', self._on_import)
@@ -105,10 +106,16 @@ class ScreenManager(gtk.Frame):
                   (Screener.TASK_PAUSE, {'default': False}), # use this line for collect labels
                   (Screener.TASK_COLLECT, {'angle': 0.0, 'default': True}),
                   (Screener.TASK_COLLECT, {'angle': 45.0, 'default': False}),
-                  (Screener.TASK_COLLECT, {'angle': 90.0, 'default': False}),
+                  (Screener.TASK_COLLECT, {'angle': 90.0, 'default': True}),
                   (Screener.TASK_ANALYSE, {'default': False}),
                   (Screener.TASK_PAUSE, {'default': False}), ]
         self._settings_sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        
+        # connect signals for collect parameters
+        self.delta_entry.connect('activate', self._on_entry_changed, None)
+        self.delta_entry.connect('focus-out-event', self._on_entry_changed)
+        self.time_entry.connect('activate', self._on_entry_changed, None)
+        self.time_entry.connect('focus-out-event', self._on_entry_changed)
         
         for pos, tasklet in enumerate(self.default_tasks):
             key, options = tasklet
@@ -166,7 +173,7 @@ class ScreenManager(gtk.Frame):
         _xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
                           'collect_settings')
         tbl = _xml2.get_widget('collect_settings')
-        for key in ['angle','delta','time','frames']:
+        for key in ['angle','frames']:
             en = _xml2.get_widget('%s_entry' % key)
             if task.options.get(key,None):
                 en.set_text('%s' % task.options.get(key))
@@ -178,7 +185,6 @@ class ScreenManager(gtk.Frame):
             task.options[key] = en.default_value
             en.connect('activate', self._on_settings_changed, None, task, key)
             en.connect('focus-out-event', self._on_settings_changed, task, key)
-            en.set_alignment(1)
         return tbl
 
     def _get_collect_labels(self):
@@ -197,7 +203,18 @@ class ScreenManager(gtk.Frame):
                 obj.set_text( '%0.1f' % obj.default_value )
             val = obj.default_value
         task.options[key] = val
+    
+    def _on_entry_changed(self, obj, event):
+        try:
+            val = float( obj.get_text() )
+            val = max(0.2, val)
+            obj.set_text( '%0.1f' % val )
+        except:
+            val = obj.default_value
+            obj.set_text( '%0.1f' % val )
+            
         
+       
     def _add_item(self, item):
         iter = self.listmodel.append()
         self.listmodel.set(iter, 
@@ -241,8 +258,15 @@ class ScreenManager(gtk.Frame):
             for t,b in self.TaskList:
                 if t.options['enabled']:
                     tsk = Tasklet(t.task_type, **t.options)
-                    tsk.options['directory'] = self.folder_btn.get_current_folder()
-                    tsk.options['sample'] = item
+                    tsk.options.update({
+                        'directory' : self.folder_btn.get_current_folder(),
+                        'sample':  item})
+                    if tsk.task_type == Screener.TASK_COLLECT:
+                        st_fr = 1 + tsk.options['angle']//float(self.delta_entry.get_text())
+                        tsk.options.update({
+                            'delta': float(self.delta_entry.get_text()),
+                            'time': float(self.time_entry.get_text()),
+                            'start_frame':st_fr})
                     q_item = {'done': False, 'task': tsk} 
                     self._add_item(q_item)     
 
@@ -397,7 +421,6 @@ class ScreenManager(gtk.Frame):
         self.stop_btn.set_sensitive(True)
         self.action_frame.set_sensitive(False)
         self.clear_btn.set_sensitive(False)
-        self.unmount_btn.set_sensitive(False)
     
     def _on_complete(self, obj):
         self._screening = False
@@ -406,5 +429,4 @@ class ScreenManager(gtk.Frame):
         self.stop_btn.set_sensitive(False)
         self.action_frame.set_sensitive(True)
         self.clear_btn.set_sensitive(True)
-        self.unmount_btn.set_sensitive(True)
 
