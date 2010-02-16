@@ -61,8 +61,9 @@ class XRFScan(BasicScan):
         self.beamline.lock.acquire()
         try:
             _logger.debug('Exitation Scan started')
-            gobject.idle_add(self.emit, 'started')     
-            # wait for detector to cool down
+            gobject.idle_add(self.emit, 'started')   
+            # prepare environment for scannning
+            self.beamline.goniometer.set_mode('COLLECT')
             self.beamline.mca.configure(cooling=True, energy=None)
             self.beamline.attenuator.set(self._attenuation)
             if self._energy is not None:
@@ -132,6 +133,7 @@ class XANESScan(BasicScan):
         try:
             gobject.idle_add(self.emit, 'started')
             _logger.info('Edge Scan started.')
+            self.beamline.goniometer.set_mode('COLLECT')
             self.beamline.attenuator.set(self._attenuation)
             self.beamline.mca.configure(cooling=True, energy=self._roi_energy)
             self.beamline.monochromator.energy.move_to(self._edge_energy)
