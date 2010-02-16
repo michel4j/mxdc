@@ -41,12 +41,13 @@ def wait_for_signal(obj, signal, timeout=10):
 def generate_run_list(run, show_number=True):
     run_list = []
     index = 0
-    offsets = run['inverse_beam'] and [0, 180] or [0, ]
-    angle_range = run['total_angle']
-    wedge = run['wedge'] < angle_range and run['wedge'] or angle_range
-    wedge_size = int((wedge) / run['delta'])
+    offsets = [0.0,]
+    if run['inverse_beam']:
+        offsets.append(180.0)
+    wedge = min(run['wedge'], run['total_angle'])
+    wedge_size = int(wedge // run['delta'])
     total_size = run['total_frames']
-    passes = int (round(0.5 + (angle_range - run['delta']) / wedge)) # take the roof (round_up) of the number
+    passes = int (round(0.5 + (run['total_angle'] - run['delta']) / wedge)) 
     remaining_frames = total_size
     current_slice = wedge_size
     for i in range(passes):

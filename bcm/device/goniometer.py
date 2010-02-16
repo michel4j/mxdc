@@ -147,12 +147,13 @@ class MD2Goniometer(GoniometerBase):
         self._scan_cmd = PV("%s:S:StartScan" % pv_root, monitor=False)
         self._abort_cmd = PV("%s:S:AbortScan" % pv_root, monitor=False)
         self._state = PV("%s:G:MachAppState" % pv_root)
-        self._mode_cmd = PV("%s:S:MDPhasePosition" % pv_root, monitor=False)
+        self._mode_cmd = PV("%s:S:MDPhasePosition:asyn.AOUT" % pv_root, monitor=False)
         
-        self._mode_mounting_cmd = PV("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
-        self._mode_centering_cmd = PV("%s:S:centering:phase.PROC" % pv_root, monitor=False)
-        self._mode_collect_cmd = PV("%s:S:scan:phase.PROC" % pv_root, monitor=False)
-        self._mode_beam_cmd = PV("%s:S:locate:phase.PROC" % pv_root, monitor=False)
+        # Does not work reliably yet
+        #self._mode_mounting_cmd = PV("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
+        #self._mode_centering_cmd = PV("%s:S:centering:phase.PROC" % pv_root, monitor=False)
+        #self._mode_collect_cmd = PV("%s:S:scan:phase.PROC" % pv_root, monitor=False)
+        #self._mode_beam_cmd = PV("%s:S:locate:phase.PROC" % pv_root, monitor=False)
 
         self._mode_fbk = PV("%s:G:MDPhasePosition" % pv_root)
         self._cntr_cmd_start = PV("%s:S:StartManSampleCent" % pv_root)
@@ -183,20 +184,20 @@ class MD2Goniometer(GoniometerBase):
     def set_mode(self, mode, wait=False):
         if isinstance(mode, int):
             mode = _MODE_MAP_REV.get(mode, 'UNKNOWN')
-
+        cmd_template = "SET_CLSMDPhasePosition=%d"
         mode = mode.strip().upper()
 
         if mode == 'CENTERING':
-            self._mode_cmd.put(2)
+            self._mode_cmd.put(cmd_template % (2,))
             #self._mode_centering_cmd.put('\x01')
         elif mode == 'MOUNTING':
-            self._mode_cmd.put(1)
+            self._mode_cmd.put(cmd_template % (1,))
             #self._mode_mounting_cmd.put('\x01')
         elif mode == 'COLLECT':
-            self._mode_cmd.put(5)
+            self._mode_cmd.put(cmd_template % (5,))
             #self._mode_collect_cmd.put('\x01')
         elif mode == 'BEAM':
-            self._mode_cmd.put(3)
+            self._mode_cmd.put(cmd_template % (3,))
             #self._mode_beam_cmd.put('\x01')
                     
         if wait:

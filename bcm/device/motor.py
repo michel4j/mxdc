@@ -163,6 +163,7 @@ class Motor(MotorBase):
         # initialize process variables based on motor type
         self.DESC = PV("%s:desc" % (pv_root))               
         self.VAL  = PV("%s" % (pv_name))
+        self.ENAB = PV("%s:enabled" % (pv_root))
         if self._motor_type in ['vme','vmeenc']:
             if self._motor_type == 'vme':
                 self.RBV  = PV("%s:sp" % (pv_name))
@@ -206,7 +207,7 @@ class Motor(MotorBase):
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
         self.STAT.connect('changed', self._signal_move)
-        self.CALIB.connect('changed', self._signal_health)
+        self.ENAB.connect('changed', self._signal_health)
         self.DESC.connect('changed', self._on_desc_change)
 
 
@@ -282,7 +283,7 @@ class Motor(MotorBase):
                 return False
     
     def is_healthy(self):
-        return (self.CALIB.get() == 1) #and (self.STAT.get() != 4)
+        return (self.ENAB.get() == 1) #and (self.STAT.get() != 4)
                                  
     def stop(self):
         self.STOP.set(1)
