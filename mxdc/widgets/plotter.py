@@ -440,7 +440,7 @@ class ScanPlotter(gtk.Window):
             fontpar["family"]="monospace"
             fontpar["size"]=8
             info = "YMAX-fit = %11.4e\n" % params[0]
-            info += "MIDP-fit = %11.4e\n" % params[1] 
+            info += "MIDP-fit = %11.4e\n" % params[2] 
             info += "FWHM-fit = %11.4e\n" % fwhm 
             self.plotter.fig.text(0.65,0.75, info,fontdict=fontpar, color='r')
             info = "YMAX-his = %11.4e\n" % histo_pars[0]
