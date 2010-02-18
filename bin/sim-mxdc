@@ -1,5 +1,4 @@
 #!/bin/csh
-unlimit
 setenv BCM_CONFIG_FILE sim.conf
 setenv BCM_BEAMLINE sim
 /usr/bin/env python $BCM_PATH/mxdc/mxdcapp.py

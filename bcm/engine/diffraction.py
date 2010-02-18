@@ -13,6 +13,7 @@ from bcm.utils.log import get_module_logger
 from bcm.utils.misc import generate_run_list, wait_for_signal
 from bcm.utils.converter import energy_to_wavelength
 from bcm.engine import centering, snapshot
+from bcm.engine.interfaces import IDataCollector
 
 
 # setup module logger with a default do-nothing handler
@@ -54,7 +55,7 @@ class Screener(gobject.GObject):
         self.paused = False
         self.stopped = True
         self.skip_collected = False
-        self.data_collector = DataCollector()
+        self.data_collector = None
         
     def configure(self, run_list):
         #associate beamline devices
@@ -64,6 +65,11 @@ class Screener(gobject.GObject):
             self.beamline = None
             _logger.warning('No registered beamline found.')
             raise
+        try: 
+            self.data_collector = globalRegistry.lookup([], IDataCollector, 'mxdc.screening')
+        except:
+            if self.data_collector is None:
+                self.data_collector = DataCollector()
         self.run_list = run_list
         self.total_items = len(self.run_list)
         return
@@ -192,6 +198,7 @@ class Screener(gobject.GObject):
 
 
 class DataCollector(gobject.GObject):
+    implements(IDataCollector)
     __gsignals__ = {}
     __gsignals__['new-image'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT, gobject.TYPE_STRING))
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_INT))
@@ -209,7 +216,7 @@ class DataCollector(gobject.GObject):
         self.run_list = []
         self.run_data = {}
         self.collected_frames = []
-        
+        self.results = {}        
             
     def configure(self, run_data=None, run_list=None, skip_collected=True):
         self.run_data = {}
@@ -335,8 +342,8 @@ class DataCollector(gobject.GObject):
             self.beamline.exposure_shutter.close()
             self.beamline.goniometer.set_mode('MOUNTING') # return goniometer to mount position
             self.beamline.lock.release()        
-
-        return {'parameters': self.run_data, 'frame_list': self.collected_frames}
+        self.results = {'parameters': self.run_data, 'frame_list': self.collected_frames}
+        return self.results
 
     def set_position(self, pos):
         self.pos = pos
