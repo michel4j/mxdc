@@ -737,6 +737,7 @@
                                   <widget class="GtkButton" id="start_btn">
                                     <property name="label">gtk-media-play</property>
                                     <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
                                     <property name="use_stock">True</property>
@@ -751,6 +752,7 @@
                                   <widget class="GtkButton" id="stop_btn">
                                     <property name="label">gtk-media-stop</property>
                                     <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
                                     <property name="use_stock">True</property>

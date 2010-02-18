@@ -6,10 +6,12 @@ import gobject
 from twisted.python.components import globalRegistry
 from mxdc.widgets.samplelist import SampleList
 from mxdc.widgets.sampleviewer import SampleViewer
+from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets import dialogs
 from mxdc.widgets.ptzviewer import AxisViewer
 from bcm.beamline.mx import IBeamline
-from bcm.engine.diffraction import Screener
+from bcm.engine.interfaces import IDataCollector
+from bcm.engine.diffraction import Screener, DataCollector
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -93,10 +95,17 @@ class ScreenManager(gtk.Frame):
 
         # video        
         self.sample_viewer = SampleViewer()
+        self.image_viewer = ImageViewer()
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
         self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
         self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))
+        self.video_book.append_page(self.image_viewer, tab_label=gtk.Label('Diffraction Viewer'))
         self.video_book.connect('realize', lambda x: self.video_book.set_current_page(0))       
+        
+        #create a data collector and attach it to diffraction viewer
+        self.data_collector = DataCollector()
+        self.data_collector.connect('new-image', self.on_diffraction_image)
+        globalRegistry.register([], IDataCollector, 'mxdc.screening', self.data_collector)
         
         # Task Configuration
         self.TaskList = []
@@ -223,6 +232,7 @@ class ScreenManager(gtk.Frame):
             QUEUE_COLUMN_NAME, item['task'].name,
             QUEUE_COLUMN_TASK, item['task'],
         )
+        self.start_btn.set_sensitive(True)
         
     def _done_color(self, column, renderer, model, iter):
         value = model.get_value(iter, QUEUE_COLUMN_DONE)
@@ -268,7 +278,8 @@ class ScreenManager(gtk.Frame):
                             'time': float(self.time_entry.get_text()),
                             'start_frame':st_fr})
                     q_item = {'done': False, 'task': tsk} 
-                    self._add_item(q_item)     
+                    self._add_item(q_item)
+  
 
     def _on_export(self, obj):
         _CSV = 'Comma Separated Values'
@@ -342,6 +353,8 @@ class ScreenManager(gtk.Frame):
     def _on_queue_clear(self, obj):
         model = self.listview.get_model()
         model.clear()
+        self.start_btn.set_sensitive(False)
+        self.stop_btn.set_sensitive(False)
     
     def _on_activate(self, obj):
         if not self._screening:
@@ -355,9 +368,11 @@ class ScreenManager(gtk.Frame):
                 self.screen_runner.resume()
             else:
                 self.screen_runner.pause()
+        self.stop_btn.set_sensitive(True)
                 
     def _on_stop_btn_clicked(self,widget):
         self.screen_runner.stop()
+        self.stop_btn.set_sensitive(False)
                           
     def _on_progress(self, obj, fraction, position):
         if position == 1:
@@ -421,6 +436,7 @@ class ScreenManager(gtk.Frame):
         self.stop_btn.set_sensitive(True)
         self.action_frame.set_sensitive(False)
         self.clear_btn.set_sensitive(False)
+        self.image_viewer.set_collect_mode(True)
     
     def _on_complete(self, obj):
         self._screening = False
@@ -430,3 +446,6 @@ class ScreenManager(gtk.Frame):
         self.action_frame.set_sensitive(True)
         self.clear_btn.set_sensitive(True)
 
+    def on_diffraction_image(self, obj, pos, filename):
+        self.image_viewer.add_frame(filename)
+    
