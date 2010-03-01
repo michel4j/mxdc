@@ -39,6 +39,8 @@ class MultiChannelAnalyzer(object):
         self._status_scan = ca.PV("%s:mca1Status.SCAN" % name_parts[0], monitor=False)
         self._read_scan = ca.PV("%s:mca1Read.SCAN" % name_parts[0], monitor=False)
         self._stop_cmd = ca.PV("%s:mca1Stop" % name_parts[0], monitor=False)
+        self._slope = ca.PV("%s.CALS" % name)
+        self._offset = ca.PV("%s.CALO" % name)
         self.channels = channels
         self.region_of_interest = (0, self.channels)
         
@@ -54,7 +56,6 @@ class MultiChannelAnalyzer(object):
         self.RDNG.connect('changed', self._monitor_stop)
         self.ACQG.connect('changed', self._monitor_start)
         
-        self._x_axis = self.channel_to_energy( numpy.arange(0,4096,1) )
         #self._x_axis = numpy.arange(0,4096,1)
 
     def configure(self, **kwargs):
@@ -103,9 +104,13 @@ class MultiChannelAnalyzer(object):
             self._acquiring = False
 
     def channel_to_energy(self, x):
+        self.slope = self._slope.get()
+        self.offset = self._offset.get()
         return self.slope*x + self.offset
     
     def energy_to_channel(self, y):
+        self.slope = self._slope.get()
+        self.offset = self._offset.get()
         return   int((y-self.offset)/self.slope)
                                    
     def count(self, t):
@@ -114,6 +119,7 @@ class MultiChannelAnalyzer(object):
         return sum(values)
 
     def acquire(self, t=1.0):
+        self._x_axis = self.channel_to_energy( numpy.arange(0,4096,1) )
         self._acquire_data(t)
         return numpy.array(zip(self._x_axis, self._data))
         
