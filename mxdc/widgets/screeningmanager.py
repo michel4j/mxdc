@@ -91,7 +91,7 @@ class ScreenManager(gtk.Frame):
         self.beamline = globalRegistry.lookup([], IBeamline)
 
         self.sample_box.pack_start(self.sample_list, expand=True, fill=True)
-        self.sample_list.import_csv(os.path.join(DATA_DIR, 'test.csv')) 
+        #self.sample_list.import_csv(os.path.join(DATA_DIR, 'test.csv')) 
 
         # video        
         self.sample_viewer = SampleViewer()
