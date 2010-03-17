@@ -15,12 +15,12 @@ from matplotlib import rcParams
 from zope.interface import implements
 from twisted.python.components import globalRegistry
 from bcm.engine.scanning import IScanPlotter
-try:
-    from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
-except:
-    from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
+#try:
+#    from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
+#except:
+#    from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 #FIXME GTKCairo crashes sometimes on SL5.3 when that is sorted out, replace the following line with commented ones above
-#from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
+from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
     
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 from matplotlib.backends.backend_gtk import FileChooserDialog
