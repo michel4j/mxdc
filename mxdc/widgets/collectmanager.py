@@ -443,7 +443,7 @@ class CollectManager(gtk.Frame):
         self.set_row_state(index, saved=True)
       
 
-    def on_progress(self, obj, fraction, position):
+    def on_progress1(self, obj, fraction, position):
         if fraction > 0.0:
             total_frames = position/fraction
             if self.last_time is None:
@@ -458,7 +458,7 @@ class CollectManager(gtk.Frame):
                 text = "ETA %s @ %0.1fs/frame" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)), time_unit)
                 self.progress_bar.set_complete(fraction, text)
 
-    def on_progress1(self, obj, fraction, position):
+    def on_progress(self, obj, fraction, position):
         if position == 1:
             self.start_time = time.time()
         elapsed_time = time.time() - self.start_time
