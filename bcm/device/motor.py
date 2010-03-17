@@ -30,6 +30,7 @@ class MotorBase(gobject.GObject):
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         "moving": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
         "health": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
+        "enable": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
         }  
 
     def __init__(self, name):
@@ -40,6 +41,7 @@ class MotorBase(gobject.GObject):
         self._motor_type = 'basic'
         self.units = ''
         self._signal_health(None, False)
+        self._signal_enable(None, False)
     
     def __repr__(self):
         s = "<%s:'%s', type:%s>" % (self.__class__.__name__,
@@ -51,7 +53,7 @@ class MotorBase(gobject.GObject):
         gobject.idle_add(self.emit,'changed', self.get_position() )
     
     def _signal_move(self, obj, state):
-        if state == 1:
+        if state != 0:
             self._moving = True           
             self._command_sent = False
         else:
@@ -67,6 +69,13 @@ class MotorBase(gobject.GObject):
         else:
             is_healthy = True
         gobject.idle_add(self.emit, 'health', is_healthy)
+
+    def _signal_enable(self, obj, state):
+        if state == 0:
+            is_enabled = False
+        else:
+            is_enabled = True
+        gobject.idle_add(self.emit, 'enable', is_enabled)
 
 class SimMotor(MotorBase):
     implements(IMotor)
@@ -94,14 +103,14 @@ class SimMotor(MotorBase):
         self._command_sent = True
         import numpy
         targets = numpy.linspace(self._position, target, 20)
-        self._signal_move(self, True)
+        self._signal_move(self, 1)
         for pos in targets:
             time.sleep(5.0/self._speed)
             self._position = pos
             self._signal_change(self, self._position)
             if self._stopped:
                 break
-        self._signal_move(self, False)
+        self._signal_move(self, 0)
             
     def move_to(self, pos, wait=False, force=False):
         self._move_action(pos)
@@ -117,6 +126,9 @@ class SimMotor(MotorBase):
     def is_healthy(self):
         return True
     
+    def is_enabled(self):
+        return True
+
     def wait(self, start=True, stop=True):
         poll=0.05
         timeout = 2.0
@@ -207,7 +219,8 @@ class Motor(MotorBase):
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
         self.STAT.connect('changed', self._signal_move)
-        self.ENAB.connect('changed', self._signal_health)
+        self.CALIB.connect('changed', self._signal_health)
+        self.ENAB.connect('changed', self._signal_enable)
         self.DESC.connect('changed', self._on_desc_change)
 
 
@@ -283,7 +296,10 @@ class Motor(MotorBase):
                 return False
     
     def is_healthy(self):
-        return (self.ENAB.get() == 1) #and (self.STAT.get() != 4)
+        return (self.CALIB.get() == 1)
+
+    def is_enabled(self):
+        return (self.ENAB.get() == 1) 
                                  
     def stop(self):
         self.STOP.set(1)
@@ -486,6 +502,9 @@ class FixedLine2Motor(MotorBase):
     
     def is_healthy(self):
         return self.x.is_healthy() and self.y.is_healthy()
+
+    def is_enabled(self):
+        return self.x.is_enabled() and self.y.is_enabled()
                                  
     def stop(self):
         self.x.stop()
@@ -537,6 +556,9 @@ class RelVerticalMotor(MotorBase):
     def is_healthy(self):
         return self.y2.is_healthy() and self.y1.is_healthy()
                                  
+    def is_enabled(self):
+        return self.y2.is_enabled() and self.y1.is_enabled()
+
     def stop(self):
         self.y2.stop()
         self.y1.stop()

@@ -8,7 +8,7 @@ warnings.simplefilter("ignore")
 
 from zope.interface import implements
 from bcm.device.interfaces import IGoniometer
-from bcm.protocol.ca import PV
+from bcm.protocol.ca import PV, flush
 from bcm.device.motor import VMEMotor, SimMotor
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
@@ -88,14 +88,20 @@ class GoniometerBase(gobject.GObject):
     def wait(self, start=True, stop=True, poll=0.05, timeout=20):
         if (start):
             time_left = 2
+            _logger.debug('Waiting for goniometer to start scanning')
             while not self.get_state() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
+            if time_left <= 0:
+                _logger.warn('Timed out waiting for goniometer to start scanning')
         if (stop):
             time_left = timeout
+            _logger.debug('Waiting for goniometer to finish scanning')
             while self.get_state() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
+            if time_left <= 0:
+                _logger.warn('Timed out waiting for goniometer to stop scanning')
     
     def stop(self):
         pass
@@ -174,8 +180,6 @@ class MD2Goniometer(GoniometerBase):
         
         #signal handlers
         self._mode_fbk.connect('changed', self.on_mode_changed)
-        #self._log.connect('changed', self.on_log_status)
-        
                        
     def configure(self, **kwargs):
         for key in kwargs.keys():
@@ -216,12 +220,14 @@ class MD2Goniometer(GoniometerBase):
         for k,v in _STATE_PATTERNS.items():
             if v.match(txt):
                 self._set_and_notify_mode(k)
-            
+                   
     def scan(self, wait=True):
         self._scan_cmd.set(1)
         self._scan_cmd.set(0)
         if wait:
             self.wait(start=True, stop=True)
+            #while self._shutter_state.get() != 0:
+            #    time.sleep(0.05)
 
     def get_state(self):
         return self._state.get() != 3  
