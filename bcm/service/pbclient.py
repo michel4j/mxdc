@@ -12,11 +12,11 @@ log.FileLogObserver(sys.stdout).start()
 DIRECTORY = os.path.join(os.environ['HOME'],'bcm_testing')
 
 run_info = {
-    'distance' : 455.0,
+    'distance' : 210.0,
     'two_theta' : 0.0,
     'start_frame' : 1,
     'start_angle' : 0.0,
-    'total_angle' : 5.0,
+    'total_angle' : 20.0,
     'energy' : [12.658],
     'delta' : 1.0,
     'number' : 1,
@@ -81,13 +81,13 @@ class App(object):
         
 
         # Test a few functions
-        self.bcm.callRemote('scanSpectrum',
-                            prefix='scan1-5', 
-                            exposure_time=1.0,
-                            attenuation=50.0,
-                            energy=18.0,
-                            directory=DIRECTORY,
-                            ).addCallback(self.dump_results)
+        #self.bcm.callRemote('scanSpectrum',
+        #                    prefix='scan1-5', 
+        #                    exposure_time=1.0,
+        #                    attenuation=50.0,
+        #                    energy=18.0,
+        #                    directory=DIRECTORY,
+        #                    ).addCallback(self.dump_results)
         
         self.bcm.callRemote('acquireFrames', run_info).addCallback(self.dump_results)
 
