@@ -213,7 +213,7 @@ class SimCCDImager(object):
     
     @async
     def _copy_frame(self):
-        num = 1 + self.parameters['frame_number'] % 9
+        num = 1 + self.parameters['frame_number'] % 2
         src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
         dst_img = os.path.join(self.parameters['directory'], 
                                '%s.gz' % self.parameters['filename'])
