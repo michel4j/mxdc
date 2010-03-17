@@ -177,6 +177,7 @@ class MotorEntry(ActiveEntry):
 
         self.device.connect('moving', self._on_motion_change)
         self.device.connect('health', self._on_health_change)
+        self.device.connect('enable', self._on_enable_change)
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                                                'data/active_stop.gif'))
            
@@ -186,16 +187,17 @@ class MotorEntry(ActiveEntry):
  
     def _on_health_change(self, obj, state):
         if state:
-            #self._fbk_label.modify_text(gtk.STATE_NORMAL, None)
             self._fbk_label.modify_fg(gtk.STATE_NORMAL, None)
-            self._entry.set_sensitive(True)
             self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
         else:
-            #self._fbk_label.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
             self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
-            self._entry.set_sensitive(False)
             self._action_icon.set_from_stock('gtk-dialog-warning', gtk.ICON_SIZE_MENU)
             
+    def _on_enable_change(self, obj, state):
+        if state:
+            self._entry.set_sensitive(True)
+        else:
+            self._entry.set_sensitive(False)
     
     def _on_motion_change(self, obj, motion):
         if motion:
@@ -204,7 +206,6 @@ class MotorEntry(ActiveEntry):
         else:
             self.running = False
             self.set_target(self.device.get_position())
-            self.set_feedback(self.device.get_position())
             self._action_icon.set_from_stock('gtk-apply',gtk.ICON_SIZE_MENU)
         self.set_feedback(self.device.get_position())
         return True

@@ -217,6 +217,7 @@ class DataCollector(gobject.GObject):
         self.run_data = {}
         self.collected_frames = []
         self.results = {}        
+        self._last_initialized = 0
             
     def configure(self, run_data=None, run_list=None, skip_collected=True):
         self.run_data = {}
@@ -268,9 +269,13 @@ class DataCollector(gobject.GObject):
         self.beamline.lock.acquire()
         self.beamline.goniometer.set_mode('COLLECT', wait=True) # move goniometer to collect mode
         gobject.idle_add(self.emit, 'started')
-        try:          
+        try:
+                   
             self.beamline.exposure_shutter.close()
-            self.beamline.detector.initialize()
+#            # take bias background ever 30 minutes
+#            if time.time() - self._last_initialized > 1800:
+#                self.beamline.detector.initialize()
+#                self._last_initialized = time.time()
             self.pos = 0
             header = {}
             pause_msg = ''
@@ -317,10 +322,12 @@ class DataCollector(gobject.GObject):
                 self.beamline.goniometer.configure(time=frame['time'],
                                                    delta=frame['delta'],
                                                    angle=frame['start_angle'])
+
                 self.beamline.detector.start(first=_first)
                 self.beamline.detector.set_parameters(header)
                 self.beamline.goniometer.scan()
                 self.beamline.detector.save()
+                
                 frame['saved'] = True
                 _first = False
                     
@@ -340,7 +347,7 @@ class DataCollector(gobject.GObject):
             self.stopped = True
         finally:
             self.beamline.exposure_shutter.close()
-            self.beamline.goniometer.set_mode('MOUNTING') # return goniometer to mount position
+            #self.beamline.goniometer.set_mode('MOUNTING') # return goniometer to mount position
             self.beamline.lock.release()        
         self.results = {'parameters': self.run_data, 'frame_list': self.collected_frames}
         return self.results

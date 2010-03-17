@@ -21,18 +21,19 @@ class DetectorError(Exception):
     """Base class for errors in the detector module."""
             
      
-class MXCCDImager(object):
+class MXCCDImager(gobject.GObject):
     
     implements(IImagingDetector)
     
     def __init__(self, name, size, resolution):
+        gobject.GObject.__init__(self)
         self.size = int(size)
         self.resolution = float(resolution)
         self.name = name
         
         self._start_cmd = ca.PV("%s:start:cmd" % name, monitor=False)
         self._abort_cmd = ca.PV("%s:abort:cmd" % name, monitor=False)
-        self._readout_cmd = ca.PV("%s:correct:cmd" % name, monitor=False)
+        self._readout_cmd = ca.PV("%s:readout:cmd" % name, monitor=False)
         self._reset_cmd = ca.PV("%s:resetStates:cmd" % name, monitor=False)
         self._writefile_cmd = ca.PV("%s:writefile:cmd" % name, monitor=False)
         self._background_cmd = ca.PV("%s:dezFrm:cmd" % name, monitor=False)
@@ -40,6 +41,8 @@ class MXCCDImager(object):
         self._collect_cmd = ca.PV("%s:frameCollect:cmd" % name, monitor=False)
         self._header_cmd = ca.PV("%s:header:cmd" % name, monitor=False)
         self._readout_flag = ca.PV("%s:readout:flag" % name, monitor=False)
+        self._dezinger_flag = ca.PV("%s:dez:flag" % name, monitor=False)
+        self._dezinger_cmd = ca.PV("%s:dezinger:cmd" % name, monitor=False)
         self._connection_state = ca.PV('%s:sock:state'% name)
         
         #Header parameters
@@ -62,7 +65,7 @@ class MXCCDImager(object):
         #Status parameters
         self._state_string = '00000000'
         self._state = ca.PV("%s:rawState" % name)
-        self._state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','busy']
+        self._state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','unused']
         self._state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
         self._bg_taken = False
         self._state_list = []
@@ -75,35 +78,49 @@ class MXCCDImager(object):
     
     def initialize(self, wait=True):
         if not self._bg_taken:
-            _logger.debug('(%s) Initializing CCD ...' % (self.name,)) 
-            if not self._is_in_state('idle'):
-                self.stop()
-            self._wait_in_state('acquire:queue')
-            self._wait_in_state('acquire:exec')
-            self._background_cmd.put(1)
-            if wait:
-                self._wait_for_state('acquire:exec')
-                self._wait_for_state('idle')
+            _logger.debug('(%s) Initializing CCD ...' % (self.name,))
+            self.take_background()
             self._bg_taken = True
-            _logger.debug('(%s) CCD Initialization complete.' % (self.name,))
-                        
+    
+    def take_background(self):
+        _logger.debug('(%s) Taking a dezingered bias frame ...' % (self.name,)) 
+        self.stop()
+        self._start_cmd.put(1)     
+        self._readout_flag.put(2)
+        time.sleep(1.0)
+        self._readout_cmd.put(1)
+        self._wait_for_state('read:exec')
+        self._wait_in_state('read:exec')
+        self._start_cmd.put(1)
+        self._readout_flag.put(1)
+        time.sleep(1.0)
+        self._readout_cmd.put(1)
+        self._dezinger_flag.put(1)
+        self._wait_for_state('read:exec')
+        self._wait_in_state('read:exec')
+        self._dezinger_cmd.put(1)
+        self._wait_for_state('dezinger:queue')
+             
     def start(self, first=False):
-        self.initialize(True)
+        #self.initialize(True)
         if not first:
             self._wait_in_state('acquire:queue')
             self._wait_in_state('acquire:exec')
             #self._wait_for_state('correct:exec')
         else:
-            self._wait_for_state('idle')
+            self.take_background()
+        _logger.debug('(%s) Starting CCD acquire ...' % (self.name,))
         self._start_cmd.put(1)
         self._wait_for_state('acquire:exec')
 
     def stop(self):
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
         self._abort_cmd.put(1)
+        ca.flush()
         self._wait_for_state('idle')
         
     def save(self, wait=False):
+        _logger.debug('(%s) Starting CCD readout ...' % (self.name,))
         self._readout_flag.put(0)
         self._save_cmd.put(1)
         if wait:
@@ -122,19 +139,20 @@ class MXCCDImager(object):
     def set_parameters(self, data):
         for key in data.keys():
             self._header[key].set(data[key])        
-        self._header_cmd.set(1)
+        self._header_cmd.put(1)
     
     def _on_state_change(self, pv, val):
-        self._state_string = "%08x" % val
+        _state_string = "%08x" % val
         states = []
         for i in range(8):
-            state_val = int(self._state_string[i])
+            state_val = int(_state_string[i])
             if state_val != 0:
                 state_unit = "%s:%s" % (self._state_names[i],self._state_bits[state_val])
                 states.append(state_unit)
         if len(states) == 0:
             states.append('idle')
         self._state_list = states
+        _logger.debug('(%s) state changed to: %s' % (self.name, states,) ) 
         return True
 
     def _wait_for_state(self, state, timeout=10.0):
@@ -143,15 +161,18 @@ class MXCCDImager(object):
             timeout -= 0.05
             time.sleep(0.05)
         if timeout > 0: 
+            _logger.debug('(%s) state %s attained after: %0.1f sec' % (self.name, state, 10-timeout) ) 
             return True
         else:
             _logger.warning('(%s) Timed out waiting for state: %s' % (self.name, state,) ) 
             return False
 
     def _wait_in_state(self, state):      
-        _logger.debug('(%s) Waiting for state "%s" to expire.' % (self.name, state,) ) 
+        _logger.debug('(%s) Waiting for state "%s" to expire.' % (self.name, state,) )
+        t = time.time() 
         while self._is_in_state(state):
             time.sleep(0.05)
+        _logger.debug('(%s) state %s expired after: %0.1f sec' % (self.name, state, time.time()-t) ) 
         return True
         
     def _is_in_state(self, state):
