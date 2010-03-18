@@ -280,10 +280,12 @@ class BasicShutter(gobject.GObject):
     def open(self):
         _logger.debug(' '.join([self._messages[0], self._name]))
         self._open_cmd.set(1)
+        self._open_cmd.set(0)
     
     def close(self):
         _logger.debug(' '.join([self._messages[1], self._name]))
         self._close_cmd.set(1)
+        self._open_cmd.set(0)
 
     def _signal_change(self, obj, value):
         if value == 1:

@@ -301,7 +301,12 @@ class RunWidget(gtk.Frame):
             self.delete_btn.set_sensitive(False)
             if self.predictor is None:    
                 #add Predictor
-                self.predictor = Predictor()
+                try:
+                    beamline = globalRegistry.lookup([], IBeamline)      
+                    self.predictor = Predictor(beamline.detector.resolution, 
+                                   beamline.detector.size)
+                except:
+                    self.predictor = Predictor()
                 self.predictor.set_size_request(200,200)
                 self.run_widget.pack_end( self.predictor, expand=False, fill=False)
     

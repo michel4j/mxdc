@@ -449,6 +449,7 @@ class ScanPlotter(gtk.Window):
             info += "CEMA-his = %11.4e\n" % histo_pars[5]
             self.plotter.fig.text(0.65,0.60, info,fontdict=fontpar, color='b')
             self.plotter.canvas.draw()
+            print info
         
     def _get_scan_data(self, filename):
         lines = file(filename).readlines()
