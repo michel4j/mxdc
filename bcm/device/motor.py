@@ -40,6 +40,7 @@ class MotorBase(gobject.GObject):
         self._command_sent = False
         self._motor_type = 'basic'
         self.units = ''
+        self._move_active_value = 1
         self._signal_health(None, False)
         self._signal_enable(None, False)
     
@@ -53,7 +54,7 @@ class MotorBase(gobject.GObject):
         gobject.idle_add(self.emit,'changed', self.get_position() )
     
     def _signal_move(self, obj, state):
-        if state != 0:
+        if state == self._move_active_value:
             self._moving = True           
             self._command_sent = False
         else:
@@ -184,7 +185,8 @@ class Motor(MotorBase):
                 self.RBV  = PV("%s:fbk" % (pv_name))
                 self.PREC =    PV("%s:fbk.PREC" % (pv_name))
             self.STAT = PV("%s:status" % pv_root)
-            self.MOVN = PV("%s:moving" % pv_root)
+            self._move_active_value = 1
+            self.MOVN = self.STAT #PV("%s:moving" % pv_root)
             self.STOP = PV("%s:stop" % pv_root)
             self.SET  = PV("%s:setPosn" % (pv_name))
             self.CALIB = PV("%s:calibDone" % (pv_root))
@@ -198,19 +200,21 @@ class Motor(MotorBase):
             self.STOP = PV("%s:emergStop" % pv_root)
             self.CALIB = PV("%s:isCalib" % (pv_root))
         elif self._motor_type == 'pseudo':
+            self._move_active_value = 0
             self.PREC =    PV("%s:fbk.PREC" % (pv_name))
             self.RBV  = PV("%s:fbk" % (pv_name))
             self.STAT = PV("%s:status" % pv_root)
-            self.MOVN = PV("%s:moving" % pv_root)
+            self.MOVN = PV("%s:stopped" % pv_root)
             self.STOP = PV("%s:stop" % pv_root)
             self.CALIB = PV("%s:calibDone" % pv_root)
             self.LOG = PV("%s:log" % pv_root)
             self.LOG.connect('changed', self._on_log)
         elif self._motor_type == 'oldpseudo':
+            self._move_active_value = 0
             self.PREC =    PV("%s:sp.PREC" % (pv_name))
             self.RBV  = PV("%s:sp" % (pv_name))
             self.STAT = PV("%s:status" % pv_root)
-            self.MOVN = PV("%s:moving" % pv_root)
+            self.MOVN = PV("%s:stopped" % pv_root)
             self.STOP = PV("%s:stop" % pv_root)
             self.CALIB = PV("%s:calibDone" % pv_root)
             self.LOG = PV("%s:log" % pv_root)
@@ -218,7 +222,7 @@ class Motor(MotorBase):
                      
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
-        self.STAT.connect('changed', self._signal_move)
+        self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
         self.ENAB.connect('changed', self._signal_enable)
         self.DESC.connect('changed', self._on_desc_change)
@@ -287,13 +291,10 @@ class Motor(MotorBase):
         self.move_to(cur_pos + val, wait, force)
                 
     def is_moving(self):
-        if self.STAT.get() == 1:
+        if self.MOVN.get() == self._move_active_value :
             return True
         else:
-            if self.MOVN.get() == 1:
-                return True
-            else:
-                return False
+            return False
     
     def is_healthy(self):
         return (self.CALIB.get() == 1)
