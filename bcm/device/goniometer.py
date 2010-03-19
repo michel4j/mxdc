@@ -138,7 +138,8 @@ class Goniometer(GoniometerBase):
     def scan(self, wait=True):
         self._scan_cmd.set('\x01')
         if wait:
-            self.wait(start=True, stop=True)
+            t = self.settings['time'].get() * 2
+            self.wait(start=True, stop=True, timeout=t)
 
     def get_state(self):
         return self._state.get() != 0   
@@ -225,7 +226,7 @@ class MD2Goniometer(GoniometerBase):
         self._scan_cmd.set(1)
         self._scan_cmd.set(0)
         if wait:
-            self.wait(start=True, stop=True)
+            self.wait(start=True, stop=True, timeout=180)
             #while self._shutter_state.get() != 0:
             #    time.sleep(0.05)
 
