@@ -122,6 +122,7 @@ class MXCCDImager(gobject.GObject):
     def save(self, wait=False):
         _logger.debug('(%s) Starting CCD readout ...' % (self.name,))
         self._readout_flag.put(0)
+        ca.flush()
         self._save_cmd.put(1)
         if wait:
             self._wait_for_state('read:exec')
