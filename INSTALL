@@ -4,14 +4,14 @@ STEP BY STEP:
 - Install dependencies
     - matplotlib >= 0.99
     - numpy >= 1.2
-    - scipy > = 0.6
+    - scipy >= 0.6
     - python-ctypes (for python < 2.5  only)
     - python-imaging >= 1.1.6
     - python-zope-interface >= 3.3
     - Twisted >= 8.2
     	NOTE: if using Twisted 9.0, pyasn1, and python-crypto are also required 
     - avahi-tools (provides python avahi module needed by mdns module)
-    - dbus-python
+    - dbus-python, usually installed by default on most recent distributions
     - Others: (pygtk usually included with distribution)
 - Uncompress archive into target directory
 - Edit setup.csh under deploy directory to suite the installation
@@ -28,7 +28,7 @@ GOOD TO KNOW
 ------------
 - Always prefer packages already available for your distribution. Only build where necessary.
 - For installation at CMCF, prebuilt dependencies are available
-    in ~cmcfadmin/deps. Select rpm folder matching your installation and
+    in /cmcf_apps/deps. Select rpm folder matching your installation and
     install the packages.
 - On Scientific Linux/RHEL/CENTOS 5+, most of the packages are available from 
 	distribution repositories. Make sure you have EPEL and RPMFusion repositories
@@ -38,6 +38,6 @@ GOOD TO KNOW
 	and then install those, so you can easily uninstall them or update them, and it is easy to 
 	tell what versions are installed.  Therefore, it is not recommended to do 
 	"python setup.py install", instead, do
-	"python setup.py bdist_rpm" and then install the resulting rpm package.
+	"python setup.py bdist_rpm" and then "rpm -Uvh" the resulting rpm package.
 	
 	
