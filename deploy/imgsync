@@ -6,13 +6,16 @@
 # description:  This is a daemon for synchronizing diffraction images between the \
 #               detector data folder and user home directories.
 #
+# Source BCM parameters
+. /cmcf_apps/profile.d/bcm.sh
+# Source function library.
+. /etc/rc.d/init.d/functions
+
 servicename='imgsync'
 pidfile='/var/run/imgsync.pid'
 logfile='/var/log/imgsync.log'
-appfile='/opt/cmcf_apps/bcm-3.0.0-RC4/bcm/service/imagesync_server.py'
+appfile='$BCM_PATH/bcm/service/imagesync_server.py'
 umask=022
-# Source function library.
-. /etc/rc.d/init.d/functions
 
 # Sanity checks.
 [ -x /usr/bin/twistd ] || exit 0
