@@ -60,10 +60,14 @@ class ImgSyncService(service.Service):
         self.settings['user'] = 500
         self.settings['uid'] = 500
         self.settings['gid'] = 500
-        self.settings['server'] = 'ioc1608-301'
         self.settings['base'] =   'users'
         self.settings['marccd_uid'] = 500
         self.settings['marccd_gid'] = 500
+        try:
+            self.settings['backup'] = os.path.join('/archive', os.environ['BCM_BEAMLINE'].upper())
+        except:
+            self.settings['backup'] = os.path.join('/archive', 'UNDEF')
+        
         config = ConfigParser()
         if os.path.exists(self.filename):
             try:
@@ -71,7 +75,6 @@ class ImgSyncService(service.Service):
                 self.settings['user'] = config.get('config','user')
                 self.settings['uid'] = int(config.get('config','uid'))
                 self.settings['gid'] = int(config.get('config','gid'))
-                self.settings['server'] = config.get('config','server')
                 self.settings['base'] =   config.get('config','base')
                 self.settings['marccd_uid'] = int(config.get('config','marccd_uid'))
                 self.settings['marccd_gid'] = int(config.get('config','marccd_gid'))
@@ -87,7 +90,6 @@ class ImgSyncService(service.Service):
         config.set('config', 'uid', uid)
         config.set('config', 'gid', gid)
         config.set('config', 'base', 'users')
-        config.set('config', 'server', 'ioc1608-301')
         config.set('config', 'marccd_uid', 500)
         config.set('config', 'marccd_gid', 500)
         f = open(self.filename, 'w')
@@ -108,7 +110,7 @@ class ImgSyncService(service.Service):
                 f_parts[1] = 'data'
                 raw_dir = os.path.sep.join(f_parts)
                 f_path = os.path.abspath(folder.strip())
-                bkup_dir = os.path.join(os.path.sep, 'backup', *(f_path.split(os.path.sep)[1:]))
+                bkup_dir = os.path.join(os.path.sep, self.settings['backup'], *(f_path.split(os.path.sep)[1:]))
             else:
                 return False
             raw_out = run_command('/bin/mkdir',
@@ -295,7 +297,7 @@ class ImgConsumer(object):
                         f_parts[1] = self.parent.settings['base']
                         user_file = os.path.sep.join(f_parts)
                         #bkup_file = os.path.join(os.path.sep, 'backup', *(img_path.split(os.path.sep)[1:]))
-                        bkup_file = '/backup' + user_file
+                        bkup_file = self.parent.settings['backup'] + user_file
 
                     else:
                         return
