@@ -36,12 +36,12 @@ _MODE_MAP = {
 }
 _MODE_MAP_REV = {
              GONIO_MODE_INIT: 'INIT',
-             GONIO_MODE_ALIGN: 'ALIGN',
+             GONIO_MODE_ALIGN: 'ALIGNMENT',
              GONIO_MODE_MOUNT: 'MOUNTING', 
              GONIO_MODE_CENTER: 'CENTERING',
              GONIO_MODE_COLLECT: 'COLLECT',
              GONIO_MODE_BEAM: 'BEAM',
-             GONIO_MODE_UNKNOWN: 'UNKNOWN',
+             GONIO_MODE_UNKNOWN: 'MOVING',
 }
 
 _STATE_PATTERNS = {
@@ -81,9 +81,10 @@ class GoniometerBase(gobject.GObject):
     def _set_and_notify_mode(self, mode):
         if mode != self.mode:
             self.mode = mode
-            _mode_str = _MODE_MAP_REV.get(mode, 'UNKNOWN')
+            _mode_str = _MODE_MAP_REV.get(mode, 'MOVING')
             gobject.idle_add(self.emit, 'mode', _mode_str)
-            _logger.info( "(%s) mode changed to `%s`" % (self.name, _mode_str))
+            if _mode_str not in ['MOVING', 'UNKNOWN']:
+                _logger.info( "(%s) mode changed to `%s`" % (self.name, _mode_str))
 
     def wait(self, start=True, stop=True, poll=0.05, timeout=20):
         if (start):
@@ -123,7 +124,7 @@ class Goniometer(GoniometerBase):
             'delta' : PV("%s:deltaOmega" % pv_root, monitor=False),
             'angle': PV("%s:openSHPos" % pv_root, monitor=False),
         }
-        gobject.idle_add(self.emit, 'mode', 'UNKNOWN')
+        gobject.idle_add(self.emit, 'mode', 'MOVING')
         
                 
     def configure(self, **kwargs):
@@ -132,13 +133,13 @@ class Goniometer(GoniometerBase):
     
     def set_mode(self, mode, wait=False):
         if isinstance(mode, int):
-            mode = _MODE_MAP_REV.get(mode, 'UNKNOWN')
+            mode = _MODE_MAP_REV.get(mode, 'MOVING')
         self._set_and_notify_mode(_MODE_MAP.get(mode))
     
     def scan(self, wait=True):
         self._scan_cmd.set('\x01')
         if wait:
-            t = self.settings['time'].get() * 2
+            t = 180
             self.wait(start=True, stop=True, timeout=t)
 
     def get_state(self):
@@ -188,7 +189,7 @@ class MD2Goniometer(GoniometerBase):
     
     def set_mode(self, mode, wait=False):
         if isinstance(mode, int):
-            mode = _MODE_MAP_REV.get(mode, 'UNKNOWN')
+            mode = _MODE_MAP_REV.get(mode, 'MOVING')
         cmd_template = "SET_CLSMDPhasePosition=%d"
         mode = mode.strip().upper()
 
@@ -244,15 +245,15 @@ class SimGoniometer(GoniometerBase):
         
         GoniometerBase.__init__(self, 'Simulated Goniometer')
         self.omega = SimMotor('Omega Motor', pos=0, units='deg')
-        gobject.idle_add(self.emit, 'mode', 'UNKNOWN')
+        gobject.idle_add(self.emit, 'mode', 'MOVING')
         self._scanning = False
                 
     def configure(self, **kwargs):
-        self.settings = kwargs
+        self._settings = kwargs
         
     def set_mode(self, mode, wait=False):
         if isinstance(mode, int):
-            mode = _MODE_MAP_REV.get(mode, 'UNKNOWN')
+            mode = _MODE_MAP_REV.get(mode, 'MOVING')
         self._set_and_notify_mode(_MODE_MAP.get(mode))
     
     @async

@@ -63,7 +63,7 @@ class HutchManager(gtk.Frame):
         
         # create and pack devices into settings frame
         self.entries = {
-            'energy':       MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.4f"),
+            'energy':       MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.3f"),
             'attenuation':  ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
             'angle':        MotorEntry(self.beamline.goniometer.omega, 'Omega', format="%0.2f"),
             'beam_width':   MotorEntry(self.beamline.beam_w, 'Beam width', format="%0.2f"),
