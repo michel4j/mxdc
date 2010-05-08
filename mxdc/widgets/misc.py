@@ -76,7 +76,8 @@ class ActiveEntry(gtk.VBox):
     #_border = gtk.Border(3,3,4,4)
     def __init__( self, device, label=None,  format="%g",  width=10):
         gtk.VBox.__init__(self, label)
-
+        self._sizegroup_h = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        self._sizegroup_v = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
         # create gui layout
         
         self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/active_entry.glade'), 
@@ -84,11 +85,19 @@ class ActiveEntry(gtk.VBox):
         
         self._active_entry = self._xml.get_widget('active_entry')
         self._fbk_label = self._xml.get_widget('fbk_label')
+        
         self._entry = self._xml.get_widget('entry')
         self._action_btn = self._xml.get_widget('action_btn')
         self._action_icon = self._xml.get_widget('action_icon')
         self._label = self._xml.get_widget('label')
         font_desc = pango.FontDescription()
+
+        self._sizegroup_h.add_widget(self._entry)
+        self._sizegroup_h.add_widget(self._fbk_label)
+        self._sizegroup_v.add_widget(self._entry)
+        self._sizegroup_v.add_widget(self._fbk_label)
+        #self._sizegroup_v.add_widget(self._action_btn)
+
         #font_desc.set_family('#monospace')
         #self._fbk_label.modify_font(font_desc)
 

@@ -2,7 +2,7 @@ import os, sys
 from twisted.application import internet, service
 from twisted.web import resource, server, static
 
-from imagesync import ImgSyncService
+from bcm.service.imagesync import ImgSyncService
 
 IMGSYNC_CONFIG = "/home/marccd/.imgsync.conf"
 IMGSYNC_SOURCE_LOG = "/home/marccd/log/stdouterr.log"

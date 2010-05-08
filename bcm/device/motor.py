@@ -163,11 +163,11 @@ class Motor(MotorBase):
                              (pv_name, motor_type) )
             raise MotorError("Motor name must be of the format 'name:unit'.")
         
-        if motor_type not in ['vme', 'cls', 'pseudo', 'oldpseudo', 'vmeenc']:
+        if motor_type not in ['vme', 'cls', 'pseudo', 'oldpseudo', 'vmeenc', 'maxv']:
             _logger.error("Unable to create motor '%s' of type '%s'." %
                              (pv_name, motor_type) )
             raise MotorError("Motor type must be one of 'vmeenc', \
-                'vme', 'cls', 'pseudo'")
+                'vme', 'cls', 'pseudo', 'maxv'")
           
         self.units = pv_parts[-1]
         pv_root = ':'.join(pv_parts[:-1])
@@ -176,7 +176,7 @@ class Motor(MotorBase):
         # initialize process variables based on motor type
         self.DESC = PV("%s:desc" % (pv_root))               
         self.VAL  = PV("%s" % (pv_name))
-        self.ENAB = PV("%s:enabled" % (pv_root))
+        #self.ENAB = PV("%s:enabled" % (pv_root))
         if self._motor_type in ['vme','vmeenc']:
             if self._motor_type == 'vme':
                 self.RBV  = PV("%s:sp" % (pv_name))
@@ -190,6 +190,7 @@ class Motor(MotorBase):
             self.STOP = PV("%s:stop" % pv_root)
             self.SET  = PV("%s:setPosn" % (pv_name))
             self.CALIB = PV("%s:calibDone" % (pv_root))
+            self.ENAB = self.CALIB
             self.CCW_LIM = PV("%s:ccw" % (pv_root))
             self.CW_LIM = PV("%s:cw" % (pv_root))
         elif self._motor_type == 'cls':
@@ -199,6 +200,7 @@ class Motor(MotorBase):
             self.STAT = self.MOVN
             self.STOP = PV("%s:emergStop" % pv_root)
             self.CALIB = PV("%s:isCalib" % (pv_root))
+            self.ENAB = self.CALIB
         elif self._motor_type == 'pseudo':
             self._move_active_value = 0
             self.PREC =    PV("%s:fbk.PREC" % (pv_name))
@@ -209,6 +211,7 @@ class Motor(MotorBase):
             self.CALIB = PV("%s:calibDone" % pv_root)
             self.LOG = PV("%s:log" % pv_root)
             self.LOG.connect('changed', self._on_log)
+            self.ENAB = PV("%s:enabled" % (pv_root))
         elif self._motor_type == 'oldpseudo':
             self._move_active_value = 0
             self.PREC =    PV("%s:sp.PREC" % (pv_name))
@@ -219,6 +222,7 @@ class Motor(MotorBase):
             self.CALIB = PV("%s:calibDone" % pv_root)
             self.LOG = PV("%s:log" % pv_root)
             self.LOG.connect('changed', self._on_log)
+            self.ENAB = PV("%s:enabled" % (pv_root))
                      
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
@@ -373,7 +377,6 @@ class EnergyMotor(Motor):
         self.CALIB.connect('changed', self._signal_health)
                           
     def get_position(self):
-        
         return converter.bragg_to_energy(self.RBV.get())           
 
                 
@@ -382,9 +385,8 @@ class BraggEnergyMotor(Motor):
 
     implements(IMotor)
     
-    def __init__(self, name, offset=0.0, enc=None):
-        Motor.__init__(self, name, motor_type='vmeenc' )
-        self.offset = float(offset)
+    def __init__(self, name, enc=None):
+        Motor.__init__(self, name, motor_type='vme' )
         del self.DESC
         if enc is not None:
             del self.RBV          
@@ -398,10 +400,9 @@ class BraggEnergyMotor(Motor):
         pass
                                    
     def get_position(self):
-        return converter.bragg_to_energy(self.RBV.get()-self.offset)
+        return converter.bragg_to_energy(self.RBV.get())
             
     def move_to(self, pos, wait=False, force=False):
-        pos += self.offset
         # Do not move if motor state is not sane.
         if not self.is_healthy():
             _logger.warning( "(%s) is not in a sane state. Move canceled!" % (self.name,) )
