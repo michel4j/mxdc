@@ -21,30 +21,30 @@ class StatusPanel(gtk.Statusbar):
         
         
         beamline.registry['ring_current'].units = 'mA'
-        self.intensity = ActiveLabel(beamline.registry['ring_current'], format="<tt><small>%5.2f</small></tt>")
+        self.intensity = ActiveLabel(beamline.registry['ring_current'], format="<tt>%5.1f</tt>")
         self.layout_table.attach(self._frame_control('Ring', self.intensity, gtk.SHADOW_IN), 7, 8 , 0, 1)
         
-        self.intensity = ActiveLabel(beamline.registry['i_2'].value, format="<tt><small>%8.2e</small></tt>")
+        self.intensity = ActiveLabel(beamline.registry['i_2'].value, format="<tt>%8.1e</tt>")
         self.layout_table.attach(self._frame_control('I2', self.intensity, gtk.SHADOW_IN), 6, 7 , 0, 1)
         
-        self.intensity = ActiveLabel(beamline.registry['i_1'].value, format="<tt><small>%8.2e</small></tt>")
+        self.intensity = ActiveLabel(beamline.registry['i_1'].value, format="<tt>%8.1e</tt>")
         self.layout_table.attach(self._frame_control('I1', self.intensity, gtk.SHADOW_IN), 5, 6 , 0, 1)
         
-        self.intensity = ActiveLabel(beamline.i_0.value, format="<tt><small>%8.2e</small></tt>")
+        self.intensity = ActiveLabel(beamline.i_0.value, format="<tt>%8.1e</tt>")
         self.layout_table.attach(self._frame_control('I0', self.intensity, gtk.SHADOW_IN), 4, 5 , 0, 1)
         
-        _map = {True:'<span color="#009900"><small>OPEN</small></span>',
-                False:'<span color="#990000"><small>CLOSED</small></span>'}
+        _map = {True:'<span color="#009900">OPEN</span>',
+                False:'<span color="#990000">CLOSED</span>'}
         self.sh_stat = TextStatusDisplay(beamline.registry['exposure_shutter'], text_map=_map)
         self.layout_table.attach(self._frame_control('Shutter', self.sh_stat, gtk.SHADOW_IN), 3, 4 , 0, 1)
       
-        _map = {'MOUNTING':'<span color="#009999"><small>MOUNTING</small></span>',
-                'CENTERING':'<span color="#999900"><small>CENTERING</small></span>',
-                'COLLECT': '<span color="#009900"><small>COLLECT</small></span>',
-                'BEAM': '<span color="#990000"><small>BEAM</small></span>',
-                'UNKNOWN': '<span color="#000099"><small>UNKNOWN</small></span>',
-                'INIT':'<span color="#000099"><small>INIT</small></span>',
-                'ALIGN': '<span color="#000099"><small>ALIGN</small></span>',
+        _map = {'MOUNTING':'<span color="#009999">MOUNTING</span>',
+                'CENTERING':'<span color="#999900">CENTERING</span>',
+                'COLLECT': '<span color="#009900">COLLECT</span>',
+                'BEAM': '<span color="#990000">BEAM</span>',
+                'MOVING': '<span color="#000099">MOVING</span>',
+                'INIT':'<span color="#000099">INIT</span>',
+                'ALIGN': '<span color="#000099">ALIGN</span>',
                 }
         self.gonio_mode = TextStatusDisplay(beamline.registry['goniometer'], sig='mode', text_map=_map)
         self.layout_table.attach(self._frame_control('Mode', self.gonio_mode, gtk.SHADOW_IN), 2, 3 , 0, 1)
@@ -65,7 +65,7 @@ class StatusPanel(gtk.Statusbar):
         self.show_all()    
     
     def _update_mode(self, obj, val):
-        self.gonio_mode.set_markup('<small>%s</small>' % val)
+        self.gonio_mode.set_markup('%s' % val)
         
     def _frame_control(self, label, widget, shadow):
         hbox = gtk.HBox(False,2)

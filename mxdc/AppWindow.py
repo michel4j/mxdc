@@ -24,7 +24,7 @@ class AppWindow(gtk.Window):
         pixbuf = gtk.gdk.pixbuf_new_from_file(icon_file)        
         self.set_icon (pixbuf)
         
-        self.splash = Splash(version='3.0.0', color='#fffffe')
+        self.splash = Splash(version='3.1.0', color='#fffffe')
         self.splash.win.set_transient_for(self)
         while gtk.events_pending():
             gtk.main_iteration()
@@ -70,7 +70,7 @@ class AppWindow(gtk.Window):
             "Kevin Anderson",
             ]
         about = gobject.new(gtk.AboutDialog, name="MX Data Collector",
-                            version="3.0.0 RC3", copyright="(C) Canadian Light Source, Inc",
+                            version="3.1.0", copyright="(C) Canadian Light Source, Inc",
                             comments="Program for macromolecular crystallography data acquisition.",
                             authors=authors)
         about.connect('destroy', lambda x: about.destroy())
