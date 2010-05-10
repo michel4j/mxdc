@@ -369,12 +369,14 @@ class EnergyMotor(Motor):
         self.STOP = PV("%s:stop" % pv1)
         self.CALIB =  PV("%s:calibDone" % pv2_root)
         self.STAT =  PV("%s:status" % pv2_root)
+        self.ENAB = self.CALIB
         
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
         self.MOVN.connect('changed', self._signal_move)
         #self.MOVN2.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._signal_health)
+        self.ENAB.connect('changed', self._signal_enable)
                           
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())           

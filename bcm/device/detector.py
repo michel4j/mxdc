@@ -102,13 +102,14 @@ class MXCCDImager(gobject.GObject):
         self._wait_for_state('dezinger:queue')
              
     def start(self, first=False):
-        #self.initialize(True)
+        self.initialize(True)
         if not first:
             self._wait_in_state('acquire:queue')
             self._wait_in_state('acquire:exec')
             #self._wait_for_state('correct:exec')
         else:
-            self.take_background()
+            pass
+            #self.take_background()
         _logger.debug('(%s) Starting CCD acquire ...' % (self.name,))
         self._start_cmd.put(1)
         self._wait_for_state('acquire:exec')
