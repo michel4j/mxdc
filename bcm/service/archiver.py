@@ -45,7 +45,7 @@ class RsyncProtocol(protocol.ProcessProtocol):
 def run_rsync(src, dest):
     prot = RsyncProtocol()
     prot.deferred = defer.Deferred()
-    args = ['rsync','-rtzi', '--modify-window=2' , '--safe-links', '--progress', src, dest]
+    args = ['rsync','-rtW', '--modify-window=2' , '--safe-links', '--progress', src, dest]
     #args = ['ls','-ltr', src]
     p = reactor.spawnProcess(
         prot,

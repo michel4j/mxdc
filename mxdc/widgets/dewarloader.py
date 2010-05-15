@@ -1,0 +1,419 @@
+'''
+Created on May 14, 2010
+
+@author: michel
+'''
+import gobject
+import gtk
+import time
+
+try:
+    import json
+except:
+    import simplejson as json
+
+
+#Dewar Columns
+(
+    STALL_NAME_COLUMN,
+    AVAILABLE_COLUMN,
+    COMPATIBLE_COLUMN,
+    CONTAINER_COLUMN,
+    CONTAINER_DATA,
+) = range(5)
+
+#Container Columns
+(
+    ID_COLUMN,
+    TYPE_COLUMN,
+    COMMENTS_COLUMN,
+) = range(3)
+    
+
+# Container test data
+TEST_DATA = [
+    {'name':'CLS0001', 'type':'UNI-PUCK', 'comments':'First container'},
+    {'name':'CLS0002', 'type':'UNI-PUCK', 'comments':'Second container'},
+    {'name':'CLS0034', 'type':'CASSETTE', 'comments':'A special cassette..'},
+    {'name':'CLS0035', 'type':'CASSETTE', 'comments':'A special cassette..'},
+    {'name':'CLS0036', 'type':'CASSETTE', 'comments':'A special cassette..'},
+    {'name':'CLS0037', 'type':'UNI-PUCK', 'comments':'A special puck..'},
+    {'name':'CLS0038', 'type':'UNI-PUCK', 'comments':'A special puck..'},
+    {'name':'CLS0039', 'type':'CASSETTE', 'comments':'A special cassette..'},
+    {'name':'CLS0012', 'type':'CASSETTE', 'comments':'A special cassette..'},
+    {'name':'CLS0013', 'type':'UNI-PUCK', 'comments':'A special puck..'},
+]
+
+#drag targets,
+(
+    DEWAR_DRAG_LOC,
+    INVENTORY_DRAG_LOC,    
+) = range(2)
+
+
+class DewarStore(gtk.TreeStore):
+    (
+        STALL_NAME,
+        AVAILABLE,
+        COMPATIBLE,
+        CONTAINER,
+        DATA,
+    ) = range(5)
+    
+    def __init__(self):
+        gtk.TreeStore.__init__(self, 
+            gobject.TYPE_STRING,
+            gobject.TYPE_BOOLEAN,
+            gobject.TYPE_BOOLEAN,
+            gobject.TYPE_STRING,
+            gobject.TYPE_PYOBJECT)
+        self.__init_stalls()
+        
+
+    def __init_stalls(self):
+
+        self.clear()        
+        
+        # add data to the tree store
+        for name in ['L','M','R']:
+            iter = self.append(None)
+            self.set(iter,
+                self.STALL_NAME, name,
+                self.COMPATIBLE, True,
+                self.AVAILABLE, True,
+                self.CONTAINER, None,
+                self.DATA, {},)
+            path = self.get_path(iter)
+            self.__init_children(path)
+
+    def __init_children(self, stall_path):
+        # add children
+        iter = self.get_iter(stall_path)
+        stall = self.get_value(iter, self.STALL_NAME)
+        if iter is not None and len(stall_path) == 1:
+            for slot in ['A','B','C','D']:
+                child_iter = self.append(iter);
+                self.set(child_iter,
+                    self.STALL_NAME, '%s%s' % (stall, slot),
+                    self.COMPATIBLE, True,
+                    self.AVAILABLE, True,
+                    self.CONTAINER, None,
+                    self.DATA, {},)
+
+    def __clear_children(self, stall_path):
+        # remove children
+        iter = self.get_iter(stall_path)
+        if iter is not None and len(stall_path) == 1:
+            it = self.iter_children(iter)
+            while it is not None:
+                old_it = it
+                it = self.iter_next(it)
+                self.remove(old_it)
+              
+
+    def stall_is_empty(self, path):
+        iter = self.get_iter(path)
+        if iter is None:
+            return False
+        else:
+            return self.get_value(iter, self.AVAILABLE)
+
+
+    def stall_is_compatible(self, path, container_type):
+        if (len(path), container_type) in [(1,'CASSETTE'), (2, 'UNI-PUCK')]:
+            return True
+        else:
+            return False
+    
+    def child_is_occupied(self, iter):
+        occ = False
+        parent_path = self.get_path(iter)
+        if iter is not None and len(parent_path) == 1:
+            it = self.iter_children(iter)
+            while it is not None:
+                if self.get_value(iter, self.AVAILABLE):
+                    occ = True
+                    break
+                it = self.iter_next(it)
+        return occ
+        
+    def load(self, path, data):
+        iter = self.get_iter(path)
+        if iter is not  None:            
+            if self.stall_is_compatible(path, data['type']) and self.stall_is_empty(path):
+                self.set_value(iter, self.CONTAINER, data['name'])
+                self.set_value(iter, self.DATA, data)
+                self.set_value(iter, self.AVAILABLE, False)
+                parent = self.iter_parent(iter)
+                if parent is not None:
+                    self.set_value(parent, self.AVAILABLE, False)
+                elif self.iter_has_child(iter):
+                    self.__clear_children(path)
+                return True
+        return False
+                    
+    def unload(self, path):
+        if not self.stall_is_empty(path):
+            iter = self.get_iter(path)
+            self.set_value(iter, self.CONTAINER, None)
+            self.set_value(iter, self.DATA, {})
+            self.set_value(iter, self.AVAILABLE, True)
+            if len(path) == 2:
+                parent = self.iter_parent(iter)            
+                if not self.child_is_occupied(parent):
+                    self.set_value(parent, self.AVAILABLE, True)
+            elif len(path) == 1:
+                if not self.child_is_occupied(iter):
+                    self.__init_children(path)
+
+    def get_containers(self):
+        containers = []
+        def get_cnt(model, path, iter, containers):
+            if iter is not None and model.get_value(iter, model.CONTAINER) is not None:
+                cnt = {'stall': model.get_value(iter, model.STALL_NAME)}
+                cnt.update(model.get_value(iter, model.DATA))
+                containers.append(cnt)
+        self.foreach(get_cnt, containers)
+        return containers
+        
+class ContainerStore(gtk.ListStore):
+    (
+        ID,
+        TYPE,
+        COMMENTS,
+    ) = range(3)
+    
+    def __init__(self):
+        gtk.ListStore.__init__(self,
+            gobject.TYPE_STRING, 
+            gobject.TYPE_STRING, 
+            gobject.TYPE_STRING)
+    
+    def load_containers(self, data):
+        for item in data:
+            self.add_container(item)
+    
+    def remove_container(self, path):
+        iter = self.get_iter(path)
+        if iter is not None:
+            self.remove(iter)
+            
+
+    def add_container(self, item):
+        iter = self.append()
+        self.set(iter, 
+            self.ID, item['name'],
+            self.TYPE, item['type'],
+            self.COMMENTS, item['comments'])
+    
+
+class DewarLoader(gtk.HBox):
+    def __init__(self):
+        gtk.HBox.__init__(self, True, 6)
+        
+        #inventory pane
+        i_sw = gtk.ScrolledWindow()
+        i_sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        i_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.pack_start(i_sw)
+        self.inventory_view = self.__create_inventory_view()
+        i_sw.add(self.inventory_view)
+
+        #dewar pane
+        d_sw = gtk.ScrolledWindow()
+        d_sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        d_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.pack_start(d_sw)
+        self.dewar_view = self.__create_dewar_view()
+        d_sw.add(self.dewar_view)
+        
+        #inventory Signals
+        self.inventory_view.connect('drag-data-received', self.on_unload)
+        self.inventory_view.connect_after('drag-begin', self.on_inventory_drag_begin)
+        self.inventory_view.connect('drag-data-get', self.on_inventory_data_get)
+        #self.inventory_view.connect('drag-motion', self.on_inventory_drag_motion)
+
+        #dewar Signals
+        self.dewar_view.connect('drag-data-received', self.on_load)
+        self.dewar_view.connect_after('drag-begin', self.on_dewar_drag_begin)
+        self.dewar_view.connect('drag-data-get', self.on_dewar_data_get)
+        self.dewar_view.connect('drag-motion', self.on_dewar_drag_motion)
+        
+        #housekeeping
+        self._drag_container_type = None
+        self._puck_icon = gtk.gdk.pixbuf_new_from_file('uni-puck.png')
+        self._cassette_icon = gtk.gdk.pixbuf_new_from_file('cassette.png')
+    
+    def add_to_inventory(self, data):
+        self.inventory.load_containers(data)  
+
+    def get_loaded_containers(self):        
+        return self.dewar.get_containers()
+        
+    def __create_inventory_view(self):
+        self.inventory = ContainerStore()
+        model = self.inventory
+        treeview = gtk.TreeView(self.inventory)
+        treeview.set_rules_hint(True)
+        treeview.enable_model_drag_source(
+            gtk.gdk.BUTTON1_MASK | gtk.gdk.BUTTON3_MASK,
+            [('container/inventory',0, INVENTORY_DRAG_LOC)], gtk.gdk.ACTION_MOVE)
+        treeview.enable_model_drag_dest([('robot/dewar',0,DEWAR_DRAG_LOC)], gtk.gdk.ACTION_MOVE)
+
+        # column for container id
+        column = gtk.TreeViewColumn('Container', gtk.CellRendererText(),
+                                    text=model.ID)
+        column.set_sort_column_id(model.ID)
+        treeview.append_column(column)
+
+        # columns for container type
+        column = gtk.TreeViewColumn('Type', gtk.CellRendererText(),
+                                    text=model.TYPE)
+        column.set_sort_column_id(model.TYPE)
+        treeview.append_column(column)
+
+        # column for comments
+        column = gtk.TreeViewColumn('Comments', gtk.CellRendererText(),
+                                     text=model.COMMENTS)
+        column.set_sort_column_id(model.COMMENTS)
+        treeview.append_column(column)
+        return treeview
+        
+        
+    def __create_dewar_view(self):
+        self.dewar = DewarStore()
+        model = self.dewar
+        treeview = gtk.TreeView(self.dewar)
+        treeview.set_rules_hint(True)
+        treeview.enable_model_drag_source(
+            gtk.gdk.BUTTON1_MASK | gtk.gdk.BUTTON3_MASK,
+            [('robot/dewar',0,DEWAR_DRAG_LOC)], gtk.gdk.ACTION_MOVE)
+        treeview.enable_model_drag_dest(
+            [('container/inventory',0,INVENTORY_DRAG_LOC)], 
+            gtk.gdk.ACTION_MOVE)
+                    
+        # column for slot names
+        renderer = gtk.CellRendererText()
+        renderer.set_property("xalign", 0.0)
+
+        column = gtk.TreeViewColumn("Dewar Stall", renderer, text=model.STALL_NAME)
+        column.set_clickable(True)
+        treeview.append_column(column)
+
+        # container column */
+        renderer = gtk.CellRendererText()
+        renderer.set_property("xalign", 0.0)
+        renderer.set_data("column", model.CONTAINER)
+        column = gtk.TreeViewColumn("Loaded Container", renderer, text=model.CONTAINER)
+        treeview.append_column(column)
+        treeview.connect('realize', lambda tv: tv.expand_all())
+        
+        # empty column
+        renderer = gtk.CellRendererToggle()
+        renderer.set_property("xalign", 0.0)
+        renderer.set_data("column", model.AVAILABLE)
+        column = gtk.TreeViewColumn("Empty", renderer, active=model.AVAILABLE)
+        treeview.append_column(column)
+                
+        return treeview
+
+    def on_load(self, treeview, ctx, x, y, selection, info, timestamp):
+        drop_info = treeview.get_dest_row_at_pos(x, y)
+        if drop_info:
+            model = treeview.get_model()
+            path, position = drop_info
+            data = json.loads(selection.data)
+            if self.dewar.load(path, data):   
+                ctx.finish(True, True)
+            else:
+                ctx.finish(False, False)
+                
+        print self.get_loaded_containers()
+        
+    def on_unload(self, treeview, ctx, x, y, selection, info, timestamp):
+        data = json.loads(selection.data)
+        if data:
+            self.inventory.add_container(data)
+            if ctx.get_source_widget() is self.dewar_view:
+                treeselection = self.dewar_view.get_selection()
+                model, iter = treeselection.get_selected()
+                path = model.get_path(iter)
+                if self.dewar.unload(path):
+                    ctx.finish(True, False)
+                else:
+                    ctx.finish(False, False)
+                self.dewar_view.expand_all()
+
+    
+    def on_inventory_data_get(self, treeview, ctx, selection, info, timestamp):
+        treeselection = treeview.get_selection()
+        model, iter = treeselection.get_selected()
+        path = model.get_path(iter)
+        data = {
+            'name': model.get_value(iter, model.ID),
+            'type': model.get_value(iter, model.TYPE),
+            'comments': model.get_value(iter, model.COMMENTS),}
+        selection.set(selection.target, 8, json.dumps(data))
+
+    def on_dewar_data_get(self, treeview, ctx, selection, info, timestamp):
+        treeselection = treeview.get_selection()
+        model, iter = treeselection.get_selected()
+        path = model.get_path(iter)
+        data = model.get_value(iter, model.DATA)
+        selection.set(selection.target, 8, json.dumps(data))
+
+    def on_dewar_drag_motion(self, treeview, ctx, x, y, timestamp):
+        if ctx.get_source_widget() == self.inventory_view:
+            drop_info = treeview.get_dest_row_at_pos(x, y)
+            if drop_info is None:
+                # do not permitted"
+                print "not permitted"
+                return
+            path, position = drop_info
+            model, iter = self.inventory_view.get_selection().get_selected()
+            cnt_type = model.get_value(iter, model.TYPE)
+            if self.dewar.stall_is_compatible(path, cnt_type) and self.dewar.stall_is_empty(path):
+                # do permitted
+                print 'permitted'
+            else:
+                # do not permitted
+                #ctx.set_icon_stock('gtk-delete', -10, -10)
+                pass
+            
+    def on_inventory_drag_begin(self, treeview, ctx):
+        if treeview is self.inventory_view:
+            treeselection = treeview.get_selection()
+            model, iter = treeselection.get_selected()
+            path = model.get_path(iter)
+            cnt_type = model.get_value(iter, model.TYPE)
+            if cnt_type == 'CASSETTE':
+                ctx.set_icon_pixbuf(self._cassette_icon, -16, -16)
+            elif cnt_type == 'UNI-PUCK':
+                ctx.set_icon_pixbuf(self._puck_icon, -16, -16)
+            
+    def on_dewar_drag_begin(self, treeview, ctx):
+        if treeview is self.dewar_view:
+            treeselection = treeview.get_selection()
+            model, iter = treeselection.get_selected()
+            path = model.get_path(iter)
+            cnt = model.get_value(iter, model.CONTAINER)
+            if cnt is not None:
+                ctx.set_icon_stock('gtk-clear', -16, -16)
+            else:
+                ctx.drag_abort(0)
+            
+
+
+def main():
+    w = gtk.Window()
+    w.set_default_size(640, 400)
+    w.connect('destroy', lambda *w: gtk.main_quit())
+    rd = DewarLoader()
+    rd.add_to_inventory(TEST_DATA)
+    w.add(rd)
+    w.show_all()
+    gtk.main()
+          
+
+if __name__ == '__main__':
+    main()
