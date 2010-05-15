@@ -176,7 +176,7 @@ class RunWidget(gtk.Frame):
             renderer.set_property('text', '%0.4f' % value)
         value2 = model.get_value(iter, COLUMN_CHANGED)
         if value2:
-            renderer.set_property("foreground", '#cc0000')
+            renderer.set_property("foreground", '#cc00cc')
         else:
             renderer.set_property("foreground", None)
         return
@@ -191,7 +191,6 @@ class RunWidget(gtk.Frame):
             
     def on_energy_edited(self, cell, path_string, new_text, model):
         iter = model.get_iter_from_string(path_string)
-        path = model.get_path(iter)[0]
         column = cell.get_data("column")
 
         if column == COLUMN_ENERGY:
@@ -222,7 +221,6 @@ class RunWidget(gtk.Frame):
             selection = self.energy_list.get_selection()
             model, iter = selection.get_selected()
             if iter:
-                path = model.get_path(iter)[0]
                 model.remove(iter)
         self.__reset_e_btn_states()
             
@@ -333,7 +331,7 @@ class RunWidget(gtk.Frame):
                             _energy_changed = True
                 self._changes_pending = True
                 self._set_energy_changed(_energy_changed)
-                self.energy_list.get_selection().unselect_all()                                  
+                #self.energy_list.get_selection().unselect_all()                                  
             elif key == 'number':
                 widget = self.run_title
             elif key == 'directory':

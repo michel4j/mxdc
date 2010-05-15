@@ -74,15 +74,15 @@ class ScreenManager(gtk.Frame):
         self.sample_list = SampleList()
 
         self.screen_manager = self._xml.get_widget('screening_widget')
-        self.export_btn.connect('clicked', self._on_export)
-        self.import_btn.connect('clicked', self._on_import)
+        #self.export_btn.connect('clicked', self._on_export)
+        #self.import_btn.connect('clicked', self._on_import)
 
         self.clear_btn.connect('clicked', self._on_queue_clear)
         self.apply_btn.connect('clicked', self._on_sequence_apply)
         self.reset_btn.connect('clicked', self._on_sequence_reset)
         self.select_all_btn.connect('clicked', lambda x: self.sample_list.select_all(True) )
         self.deselect_all_btn.connect('clicked', lambda x: self.sample_list.select_all(False) )
-        self.edit_tbtn.connect('toggled', self.sample_list.on_edit_toggled)
+        #self.edit_tbtn.connect('toggled', self.sample_list.on_edit_toggled)
         self.start_btn.connect('clicked', self._on_activate)
         self.stop_btn.connect('clicked', self._on_stop_btn_clicked)
         self.start_btn.set_label('mxdc-start')
