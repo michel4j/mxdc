@@ -3,9 +3,13 @@ Created on May 14, 2010
 
 @author: michel
 '''
+
+import os
 import gobject
 import gtk
+import gtk.glade
 import time
+
 
 try:
     import json
@@ -175,6 +179,8 @@ class DewarStore(gtk.TreeStore):
                 containers.append(cnt)
         self.foreach(get_cnt, containers)
         return containers
+
+        
         
 class ContainerStore(gtk.ListStore):
     (
@@ -205,27 +211,24 @@ class ContainerStore(gtk.ListStore):
             self.ID, item['name'],
             self.TYPE, item['type'],
             self.COMMENTS, item['comments'])
-    
-
-class DewarLoader(gtk.HBox):
+         
+class DewarLoader(gtk.Frame):
     def __init__(self):
-        gtk.HBox.__init__(self, True, 6)
-        
+        gtk.Frame.__init__(self)
+        self.set_shadow_type(gtk.SHADOW_NONE)
+        self._xml = gtk.glade.XML(
+            os.path.join(os.path.dirname(__file__), 'data', 'dewar_loader.glade'),
+            'dewar_loader')
+
+        self.add(self.dewar_loader)
+
         #inventory pane
-        i_sw = gtk.ScrolledWindow()
-        i_sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
-        i_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.pack_start(i_sw)
         self.inventory_view = self.__create_inventory_view()
-        i_sw.add(self.inventory_view)
+        self.inventory_sw.add(self.inventory_view)
 
         #dewar pane
-        d_sw = gtk.ScrolledWindow()
-        d_sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
-        d_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.pack_start(d_sw)
         self.dewar_view = self.__create_dewar_view()
-        d_sw.add(self.dewar_view)
+        self.dewar_sw.add(self.dewar_view)
         
         #inventory Signals
         self.inventory_view.connect('drag-data-received', self.on_unload)
@@ -239,11 +242,52 @@ class DewarLoader(gtk.HBox):
         self.dewar_view.connect('drag-data-get', self.on_dewar_data_get)
         self.dewar_view.connect('drag-motion', self.on_dewar_drag_motion)
         
+        #btn commands
+        self.clear_btn.connect('clicked', self.on_clear_inventory)
+        self.unload_btn.connect('clicked', self.on_unload_all)
+
         #housekeeping
         self._drag_container_type = None
-        self._puck_icon = gtk.gdk.pixbuf_new_from_file('uni-puck.png')
-        self._cassette_icon = gtk.gdk.pixbuf_new_from_file('cassette.png')
+        self._puck_icon = gtk.gdk.pixbuf_new_from_file(
+            os.path.join(os.path.dirname(__file__), 'data', 'icons', 'drag_puck_template.png'))
+        self._cassette_icon = gtk.gdk.pixbuf_new_from_file(
+            os.path.join(os.path.dirname(__file__), 'data', 'icons', 'drag_cassette_template.png'))
+
+        #btn signals
+        self.lims_btn.connect('clicked', self.on_import_lims)
+        self.file_btn.connect('clicked', self.on_import_file)
     
+    def __getattr__(self, key):
+        try:
+            return super(DewarLoader).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
+
+    def __gen_icon_info(self, data):
+        if data['type'] == 'UNI-PUCK':
+            pixmap, mask = self._puck_icon.render_pixmap_and_mask()
+        else:
+            pixmap, mask = self._cassette_icon.render_pixmap_and_mask()
+        cr = pixmap.cairo_create()
+        cr.set_font_size(13)
+
+        txts = [
+            'ID: %s' % ('xxx'),
+            '%s' % (data['name']),
+            data['type'].lower()
+            ]
+        sx, sy = 60, 24
+        for txt in txts:
+            x_b, y_b, w, h = cr.text_extents(txt)[:4]
+            cr.move_to(sx, sy)
+            cr.show_text(txt)
+            sy += 15
+        pw, ph = pixmap.get_size()
+        pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8,  pw, ph)
+        pixbuf.get_from_drawable(pixmap, pixmap.get_colormap(), 0, 0, 0, 0, pw, ph)
+        return pixbuf
+         
+
     def add_to_inventory(self, data):
         self.inventory.load_containers(data)  
 
@@ -253,12 +297,16 @@ class DewarLoader(gtk.HBox):
     def __create_inventory_view(self):
         self.inventory = ContainerStore()
         model = self.inventory
+
         treeview = gtk.TreeView(self.inventory)
+   
         treeview.set_rules_hint(True)
         treeview.enable_model_drag_source(
             gtk.gdk.BUTTON1_MASK | gtk.gdk.BUTTON3_MASK,
-            [('container/inventory',0, INVENTORY_DRAG_LOC)], gtk.gdk.ACTION_MOVE)
-        treeview.enable_model_drag_dest([('robot/dewar',0,DEWAR_DRAG_LOC)], gtk.gdk.ACTION_MOVE)
+            [('container/inventory',0, INVENTORY_DRAG_LOC)], 
+            gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
+        treeview.enable_model_drag_dest([('robot/dewar',0,DEWAR_DRAG_LOC)],
+            gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
 
         # column for container id
         column = gtk.TreeViewColumn('Container', gtk.CellRendererText(),
@@ -287,10 +335,11 @@ class DewarLoader(gtk.HBox):
         treeview.set_rules_hint(True)
         treeview.enable_model_drag_source(
             gtk.gdk.BUTTON1_MASK | gtk.gdk.BUTTON3_MASK,
-            [('robot/dewar',0,DEWAR_DRAG_LOC)], gtk.gdk.ACTION_MOVE)
+            [('robot/dewar',0,DEWAR_DRAG_LOC)], 
+            gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
         treeview.enable_model_drag_dest(
             [('container/inventory',0,INVENTORY_DRAG_LOC)], 
-            gtk.gdk.ACTION_MOVE)
+            gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
                     
         # column for slot names
         renderer = gtk.CellRendererText()
@@ -307,14 +356,7 @@ class DewarLoader(gtk.HBox):
         column = gtk.TreeViewColumn("Loaded Container", renderer, text=model.CONTAINER)
         treeview.append_column(column)
         treeview.connect('realize', lambda tv: tv.expand_all())
-        
-        # empty column
-        renderer = gtk.CellRendererToggle()
-        renderer.set_property("xalign", 0.0)
-        renderer.set_data("column", model.AVAILABLE)
-        column = gtk.TreeViewColumn("Empty", renderer, active=model.AVAILABLE)
-        treeview.append_column(column)
-                
+                        
         return treeview
 
     def on_load(self, treeview, ctx, x, y, selection, info, timestamp):
@@ -328,7 +370,6 @@ class DewarLoader(gtk.HBox):
             else:
                 ctx.finish(False, False)
                 
-        print self.get_loaded_containers()
         
     def on_unload(self, treeview, ctx, x, y, selection, info, timestamp):
         data = json.loads(selection.data)
@@ -343,8 +384,23 @@ class DewarLoader(gtk.HBox):
                 else:
                     ctx.finish(False, False)
                 self.dewar_view.expand_all()
+            
 
+    def on_unload_all(self, obj):
+        containers = []
+        def get_cnt(model, path, iter, containers):
+            if iter is not None and model.get_value(iter, model.CONTAINER) is not None:
+                cnt =  model.get_value(iter, model.DATA)
+                path = model.get_path(iter)
+                model.unload(path)
+                containers.append(cnt)
+        self.dewar.foreach(get_cnt, containers)
+        self.inventory.load_containers(containers)
+
+    def on_clear_inventory(self, obj):
+        self.inventory.clear()
     
+
     def on_inventory_data_get(self, treeview, ctx, selection, info, timestamp):
         treeselection = treeview.get_selection()
         model, iter = treeselection.get_selected()
@@ -367,29 +423,32 @@ class DewarLoader(gtk.HBox):
             drop_info = treeview.get_dest_row_at_pos(x, y)
             if drop_info is None:
                 # do not permitted"
-                print "not permitted"
                 return
             path, position = drop_info
             model, iter = self.inventory_view.get_selection().get_selected()
             cnt_type = model.get_value(iter, model.TYPE)
             if self.dewar.stall_is_compatible(path, cnt_type) and self.dewar.stall_is_empty(path):
                 # do permitted
-                print 'permitted'
+                pass
+                
             else:
                 # do not permitted
-                #ctx.set_icon_stock('gtk-delete', -10, -10)
                 pass
+                
             
     def on_inventory_drag_begin(self, treeview, ctx):
         if treeview is self.inventory_view:
             treeselection = treeview.get_selection()
             model, iter = treeselection.get_selected()
-            path = model.get_path(iter)
-            cnt_type = model.get_value(iter, model.TYPE)
-            if cnt_type == 'CASSETTE':
-                ctx.set_icon_pixbuf(self._cassette_icon, -16, -16)
-            elif cnt_type == 'UNI-PUCK':
-                ctx.set_icon_pixbuf(self._puck_icon, -16, -16)
+            data = {
+                'name': model.get_value(iter, model.ID),
+                'type': model.get_value(iter, model.TYPE),
+                'comments': model.get_value(iter, model.COMMENTS),}
+
+            descr_icon = self.__gen_icon_info(data)
+            ctx.set_icon_pixbuf(descr_icon, -10, -10)
+            self._dctx = ctx
+            
             
     def on_dewar_drag_begin(self, treeview, ctx):
         if treeview is self.dewar_view:
@@ -398,11 +457,15 @@ class DewarLoader(gtk.HBox):
             path = model.get_path(iter)
             cnt = model.get_value(iter, model.CONTAINER)
             if cnt is not None:
-                ctx.set_icon_stock('gtk-clear', -16, -16)
-            else:
-                ctx.drag_abort(0)
+                ctx.set_icon_stock('gtk-undo', -10, -10)
             
+    def on_import_lims(self, obj):
+        #FIXME
+        self.inventory.load_containers(TEST_DATA)
 
+    def on_import_file(self, obj):
+        #FIXME
+        self.inventory.load_containers(TEST_DATA)
 
 def main():
     w = gtk.Window()
