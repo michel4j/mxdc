@@ -24,13 +24,14 @@ class AppWindow(gtk.Window):
         pixbuf = gtk.gdk.pixbuf_new_from_file(icon_file)        
         self.set_icon (pixbuf)
         
-        self.splash = Splash(version='3.1.0', color='#fffffe')
-        self.splash.win.set_transient_for(self)
+        self.splash = Splash(version='3.1.0')
+        self.splash.set_transient_for(self)
+        self.splash.show_all()
         while gtk.events_pending():
             gtk.main_iteration()
         
     def run(self):
-        gobject.timeout_add(1000, lambda: self.splash.win.hide())         
+        gobject.timeout_add(2000, lambda: self.splash.hide())         
         self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)       
