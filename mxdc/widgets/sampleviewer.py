@@ -275,7 +275,6 @@ class SampleViewer(gtk.Frame):
         #Video Area
         self.video_frame = self._xml.get_widget('video_adjuster')
         self.video = VideoWidget(self.beamline.sample_video)
-        self.video.set_size_request(480,360)
         self.video_frame.add(self.video)
         
         # Lighting
