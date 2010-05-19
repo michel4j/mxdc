@@ -4,7 +4,7 @@ import gtk
 import gtk.glade
 import gobject
 from twisted.python.components import globalRegistry
-from mxdc.widgets.samplelist import SampleList
+from mxdc.widgets.samplelist import SampleList, TEST_DATA
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets import dialogs
@@ -74,15 +74,12 @@ class ScreenManager(gtk.Frame):
         self.sample_list = SampleList()
 
         self.screen_manager = self._xml.get_widget('screening_widget')
-        #self.export_btn.connect('clicked', self._on_export)
-        #self.import_btn.connect('clicked', self._on_import)
 
         self.clear_btn.connect('clicked', self._on_queue_clear)
         self.apply_btn.connect('clicked', self._on_sequence_apply)
         self.reset_btn.connect('clicked', self._on_sequence_reset)
         self.select_all_btn.connect('clicked', lambda x: self.sample_list.select_all(True) )
         self.deselect_all_btn.connect('clicked', lambda x: self.sample_list.select_all(False) )
-        #self.edit_tbtn.connect('toggled', self.sample_list.on_edit_toggled)
         self.start_btn.connect('clicked', self._on_activate)
         self.stop_btn.connect('clicked', self._on_stop_btn_clicked)
         self.start_btn.set_label('mxdc-start')
@@ -91,7 +88,6 @@ class ScreenManager(gtk.Frame):
         self.beamline = globalRegistry.lookup([], IBeamline)
 
         self.sample_box.pack_start(self.sample_list, expand=True, fill=True)
-        #self.sample_list.import_csv(os.path.join(DATA_DIR, 'test.csv')) 
 
         # video        
         self.sample_viewer = SampleViewer()
@@ -99,13 +95,15 @@ class ScreenManager(gtk.Frame):
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
         self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
         self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))
-        self.video_book.append_page(self.image_viewer, tab_label=gtk.Label('Diffraction Viewer'))
+        
         self.video_book.connect('realize', lambda x: self.video_book.set_current_page(0))       
+        
         
         #create a data collector and attach it to diffraction viewer
         self.data_collector = DataCollector()
         self.data_collector.connect('new-image', self.on_diffraction_image)
         globalRegistry.register([], IDataCollector, 'mxdc.screening', self.data_collector)
+        self.screen_ntbk.append_page(self.image_viewer, tab_label=gtk.Label('Diffraction Viewer'))
         
         # Task Configuration
         self.TaskList = []
@@ -168,6 +166,11 @@ class ScreenManager(gtk.Frame):
         self.add(self.screen_manager) 
         self.show_all()
     
+    def add_containers(self, containers):
+        #FIXME       
+        self.sample_list.import_csv(os.path.join(DATA_DIR, 'test.csv')) 
+        #self.sample_list.load_data(TEST_DATA)
+        
     def get_task_list(self):
         model = self.listview.get_model()
         iter = model.get_iter_first()
