@@ -91,7 +91,7 @@ class CollectManager(gtk.Frame):
         
         # Image Viewer
         self.collect_widget.pack_start(self.image_viewer)
-        self.setup_box.pack_end(self.run_manager, expand = False, fill = True)
+        self.setup_box.pack_end(self.run_manager, expand = True, fill = True)
         
         #diagnostics
         self.diagnostics = DiagnosticsWidget()

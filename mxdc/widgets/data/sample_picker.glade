@@ -6,6 +6,7 @@
     <child>
       <widget class="GtkHBox" id="sample_picker">
         <property name="visible">True</property>
+        <property name="border_width">6</property>
         <property name="spacing">6</property>
         <child>
           <widget class="GtkNotebook" id="notebk">
@@ -110,6 +111,7 @@
                 <property name="visible">True</property>
               </widget>
               <packing>
+                <property name="expand">False</property>
                 <property name="padding">2</property>
                 <property name="position">1</property>
               </packing>
@@ -204,6 +206,7 @@
                 <property name="visible">True</property>
               </widget>
               <packing>
+                <property name="expand">False</property>
                 <property name="padding">3</property>
                 <property name="position">3</property>
               </packing>

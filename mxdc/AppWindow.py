@@ -9,6 +9,7 @@ from mxdc.widgets.collectmanager import CollectManager
 from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.hutchmanager import HutchManager
 from mxdc.widgets.screeningmanager import ScreenManager
+from mxdc.widgets.samplemanager import SampleManager
 from bcm.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
@@ -36,6 +37,8 @@ class AppWindow(gtk.Window):
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)       
         self.hutch_manager = HutchManager()
+        self.sample_manager = SampleManager()
+        self.sample_manager.connect('samples-changed', self.on_samples_changed)
         self.screen_manager = ScreenManager()
         self.status_panel = StatusPanel()
         
@@ -49,6 +52,7 @@ class AppWindow(gtk.Window):
         
         notebook = gtk.Notebook()
         notebook.append_page(self.hutch_manager, tab_label=gtk.Label('  Beamline Setup  '))
+        notebook.append_page(self.sample_manager, tab_label=gtk.Label('  Samples  '))
         notebook.append_page(self.collect_manager, tab_label=gtk.Label('  Data Collection '))
         notebook.append_page(self.scan_manager, tab_label=gtk.Label('  Fluorescence Scans  '))
         notebook.append_page(self.screen_manager, tab_label=gtk.Label('  Screening  '))
@@ -82,3 +86,6 @@ class AppWindow(gtk.Window):
         run_data = self.scan_manager.get_run_data()
         self.collect_manager.add_run( run_data )
         
+    def on_samples_changed(self, obj, ctx):
+        containers = ctx.get_loaded_containers()
+        self.screen_manager.add_containers(containers)
