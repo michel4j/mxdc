@@ -272,7 +272,6 @@
                     </child>
                   </widget>
                   <packing>
-                    <property name="expand">False</property>
                     <property name="position">0</property>
                   </packing>
                 </child>

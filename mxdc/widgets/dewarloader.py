@@ -213,6 +213,10 @@ class ContainerStore(gtk.ListStore):
             self.COMMENTS, item['comments'])
          
 class DewarLoader(gtk.Frame):
+    __gsignals__ = {
+            'samples-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    }
+    
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
@@ -259,11 +263,11 @@ class DewarLoader(gtk.Frame):
     
     def __getattr__(self, key):
         try:
-            return super(DewarLoader).__getattr__(self, key)
+            return gtk.Frame.__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
 
-    def __gen_icon_info(self, data):
+    def generate_icon_info(self, data):
         if data['type'] == 'UNI-PUCK':
             pixmap, mask = self._puck_icon.render_pixmap_and_mask()
         else:
@@ -367,6 +371,7 @@ class DewarLoader(gtk.Frame):
             data = json.loads(selection.data)
             if self.dewar.load(path, data):   
                 ctx.finish(True, True)
+                self.emit('samples-changed')
             else:
                 ctx.finish(False, False)
                 
@@ -381,6 +386,7 @@ class DewarLoader(gtk.Frame):
                 path = model.get_path(iter)
                 if self.dewar.unload(path):
                     ctx.finish(True, False)
+                    self.emit('samples-changed')
                 else:
                     ctx.finish(False, False)
                 self.dewar_view.expand_all()
@@ -396,6 +402,7 @@ class DewarLoader(gtk.Frame):
                 containers.append(cnt)
         self.dewar.foreach(get_cnt, containers)
         self.inventory.load_containers(containers)
+        self.emit('samples-changed')
 
     def on_clear_inventory(self, obj):
         self.inventory.clear()
@@ -445,7 +452,7 @@ class DewarLoader(gtk.Frame):
                 'type': model.get_value(iter, model.TYPE),
                 'comments': model.get_value(iter, model.COMMENTS),}
 
-            descr_icon = self.__gen_icon_info(data)
+            descr_icon = self.generate_icon_info(data)
             ctx.set_icon_pixbuf(descr_icon, -10, -10)
             self._dctx = ctx
             
@@ -466,6 +473,7 @@ class DewarLoader(gtk.Frame):
     def on_import_file(self, obj):
         #FIXME
         self.inventory.load_containers(TEST_DATA)
+
 
 def main():
     w = gtk.Window()

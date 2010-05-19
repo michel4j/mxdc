@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <glade-interface>
-  <!-- interface-requires gtk+ 2.16 -->
+  <!-- interface-requires gtk+ 2.10 -->
   <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkWindow" id="window1">
     <property name="title" translatable="yes">window1</property>
@@ -11,6 +11,7 @@
         <child>
           <widget class="GtkVBox" id="video_frame">
             <property name="visible">True</property>
+            <property name="orientation">vertical</property>
             <child>
               <widget class="GtkAspectFrame" id="video_adjuster">
                 <property name="width_request">380</property>
