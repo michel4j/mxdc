@@ -9,7 +9,8 @@ import gobject
 import gtk
 import gtk.glade
 import time
-
+from mxdc.widgets import dialogs
+from mxdc.utils.xlsimport import SamplesDatabase
 
 try:
     import json
@@ -171,16 +172,14 @@ class DewarStore(gtk.TreeStore):
                     self.__init_children(path)
 
     def get_containers(self):
-        containers = []
+        containers = {}
         def get_cnt(model, path, iter, containers):
             if iter is not None and model.get_value(iter, model.CONTAINER) is not None:
                 cnt = {'stall': model.get_value(iter, model.STALL_NAME)}
                 cnt.update(model.get_value(iter, model.DATA))
-                containers.append(cnt)
+                containers[cnt['name']] = cnt
         self.foreach(get_cnt, containers)
         return containers
-
-        
         
 class ContainerStore(gtk.ListStore):
     (
@@ -260,6 +259,7 @@ class DewarLoader(gtk.Frame):
         #btn signals
         self.lims_btn.connect('clicked', self.on_import_lims)
         self.file_btn.connect('clicked', self.on_import_file)
+        self.samples_database = None
     
     def __getattr__(self, key):
         try:
@@ -276,7 +276,7 @@ class DewarLoader(gtk.Frame):
         cr.set_font_size(13)
 
         txts = [
-            'ID: %s' % ('xxx'),
+            #'ID: %s' % ('xxx'),
             '%s' % (data['name']),
             data['type'].lower()
             ]
@@ -295,8 +295,18 @@ class DewarLoader(gtk.Frame):
     def add_to_inventory(self, data):
         self.inventory.load_containers(data)  
 
-    def get_loaded_containers(self):        
-        return self.dewar.get_containers()
+    def get_loaded_samples(self):
+        samples = []
+        loaded_containers = self.dewar.get_containers()
+        if self.samples_database is not None:
+            for cryst in self.samples_database.crystals.values():
+                if cryst['container'] in loaded_containers.keys():
+                    _cnt = loaded_containers[cryst['container']]
+                    _cr = {}
+                    _cr.update(cryst)
+                    _cr['port'] = '%s%s' % (_cnt['stall'], _cr['port'])
+                    samples.append(_cr)
+        return samples
         
     def __create_inventory_view(self):
         self.inventory = ContainerStore()
@@ -472,8 +482,38 @@ class DewarLoader(gtk.Frame):
 
     def on_import_file(self, obj):
         #FIXME
-        self.inventory.load_containers(TEST_DATA)
-
+        _ALL = 'All Files'
+        _XLS = 'Excel 97-2003'
+        filters = [
+            (_XLS, ['*.xls']),
+            (_ALL, ['*']),
+        ]
+        import_selector = dialogs.FileSelector('Import Spreadsheet',
+                                       gtk.FILE_CHOOSER_ACTION_OPEN,
+                                       filters=filters)
+        filename = import_selector.run()
+        filter = import_selector.get_filter()
+        if filename is None:
+            return
+        self.samples_database = SamplesDatabase(filename)
+        
+        if len(self.samples_database.errors) > 0:
+            header = 'Error Importing Spreadsheet'
+            subhead = 'The file "%s" could not be opened.\n\nSee detailed errors below.' % filename
+            details = '\n'.join(self.samples_database.errors)
+            dialogs.error(header, subhead, details=details)
+        else:
+            header = 'Import Successful'
+            subhead = 'Loaded %d containers, with a total of %d samples.' % (
+                                len(self.samples_database.containers),
+                                len(self.samples_database.crystals))
+            details = None
+            if len(self.samples_database.warnings) > 0:
+                subhead += '\n\nSee detailed warnings below.'
+                details = '\n'.join(self.samples_database.warnings)
+            self.inventory.load_containers(self.samples_database.containers.values())
+            dialogs.info(header, subhead, details=details)
+        
 
 def main():
     w = gtk.Window()
