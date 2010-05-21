@@ -4,7 +4,12 @@ import sys, os, time
 from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.engine.diffraction import DataCollector
-from bcm.utils.configobj import ConfigObj
+
+try:
+    import json
+except:
+    import simplejson as json
+    
 from bcm.utils import misc
 
 from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
@@ -25,7 +30,7 @@ from mxdc.widgets.rundiagnostics import DiagnosticsWidget
     COLLECT_STATE_PAUSED
 ) = range(3)
 
-RUN_CONFIG_FILE = 'run_config3.dat'
+RUN_CONFIG_FILE = 'run_config.json'
 
 class CollectManager(gtk.Frame):
     def __init__(self):
@@ -155,7 +160,7 @@ class CollectManager(gtk.Frame):
         config_file = os.path.join(config_dir, RUN_CONFIG_FILE)
         if os.access(config_file, os.R_OK):
             data = {}
-            config = ConfigObj(config_file, options={'unrepr':True})
+            config = json.loads(file(config_file).read())
             for section in config.keys():
                 run = int(section)
                 data[run] = config[section]
@@ -168,21 +173,15 @@ class CollectManager(gtk.Frame):
             if os.access( os.environ['HOME'], os.W_OK):
                 os.mkdir( config_dir )
                 
-        config = ConfigObj()
-        config.unrepr = True
         config_file = os.path.join(config_dir, RUN_CONFIG_FILE)
         save_data = {}
         for run in self.run_manager.runs:
             data = run.get_parameters()
             save_data[ data['number'] ] = data
         if os.access(config_dir, os.W_OK):
-            config.filename = config_file
-            for key in save_data.keys():
-                data = save_data[key]
-                keystr = "%s" % key
-                config[keystr] = data
-            config.write()
-            
+            f = open(config_file,'w')
+            json.dump(save_data, f)
+            f.close()
 
     def config_user(self):
         username = os.environ['USER']

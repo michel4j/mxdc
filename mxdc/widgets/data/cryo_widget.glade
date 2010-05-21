@@ -8,8 +8,6 @@
     <child>
       <widget class="GtkAlignment" id="cryo_widget">
         <property name="visible">True</property>
-        <property name="xscale">0.5</property>
-        <property name="yscale">0.5</property>
         <property name="top_padding">6</property>
         <property name="bottom_padding">6</property>
         <property name="left_padding">6</property>
@@ -181,7 +179,6 @@
                   <widget class="GtkFrame" id="frame2">
                     <property name="visible">True</property>
                     <property name="label_xalign">0.5</property>
-                    <property name="shadow_type">out</property>
                     <child>
                       <widget class="GtkAlignment" id="alignment1">
                         <property name="visible">True</property>
@@ -308,7 +305,6 @@
                   <widget class="GtkFrame" id="frame3">
                     <property name="visible">True</property>
                     <property name="label_xalign">0.5</property>
-                    <property name="shadow_type">out</property>
                     <child>
                       <widget class="GtkAlignment" id="alignment2">
                         <property name="visible">True</property>

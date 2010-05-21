@@ -87,5 +87,5 @@ class AppWindow(gtk.Window):
         self.collect_manager.add_run( run_data )
         
     def on_samples_changed(self, obj, ctx):
-        containers = ctx.get_loaded_containers()
-        self.screen_manager.add_containers(containers)
+        samples = ctx.get_loaded_samples()
+        self.screen_manager.add_samples(samples)

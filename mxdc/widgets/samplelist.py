@@ -4,7 +4,8 @@ from bcm.utils.configobj import ConfigObj
 
 from mxdc.widgets.dialogs import *
 
-(   SAMPLE_COLUMN_CONTAINER,
+(   
+    SAMPLE_COLUMN_CONTAINER,
     SAMPLE_COLUMN_STATE,
     SAMPLE_COLUMN_SELECTED,
     SAMPLE_COLUMN_PORT,
@@ -19,7 +20,7 @@ COLUMN_DICT = {
     SAMPLE_COLUMN_STATE: 'State', 
     SAMPLE_COLUMN_SELECTED: 'Selected',
     SAMPLE_COLUMN_PORT: 'Port',
-    SAMPLE_COLUMN_CODE: 'ID',
+    SAMPLE_COLUMN_CODE: 'BarCode',
     SAMPLE_COLUMN_NAME: 'Name',
     SAMPLE_COLUMN_COMMENTS: 'Comments',  
 }
@@ -45,23 +46,6 @@ STATE_DICT = {
     SAMPLE_STATE_PROCESSED: '#cc0000',
     SAMPLE_STATE_NEXT: '#33cc33',
 }
-
-TEST_DATA = \
-[('unknown', 0, False, 'LA1',  '60482','Normal', 'scrollable notebooks and hidden tabs'),
- ('unknown', 0, False, 'LA2', '60620', 'Critical','gdk_window_clear_area(gdkwindow-win32.c)'),
- ('unknown', 0, False, 'LA3', '50214', 'Major', 'Xft support does not clean up correctly'),
- ('unknown', 0, True, 'LA4',  '52877', 'Major', 'GtkFileSelection needs a refresh method. '),
- ('unknown', 0, False, 'LA5', '56070', 'Normal', "Can't click button after setting in sensitive"),
- ('unknown', 0, True, 'LA6',  '56355', 'Normal', 'GtkLabel - Not all changes propagate correctly'),
- ('unknown', 0, False, 'LA7', '50055', 'Normal', 'Rework width/height computations for TreeView'),
- ('unknown', 0, False, 'LA8', '58278', 'Normal', "gtk_dialog_set_response_sensitive() doesn't work"),
- ('unknown', 0, False, 'LA9', '55767', 'Normal', 'Getters for all setters'),
- ('unknown', 0, False, 'LA10', '56925', 'Normal', 'Gtkcalender size'),
- ('unknown', 0, False, 'LA11', '56221', 'Normal', 'Selectable label needs right-click copy menu'),
- ('unknown', 0, True, 'LA12',  '50939', 'Normal', 'Add shift clicking to GtkTextView'),
- ('unknown', 0, False, 'LA13', '6112',  'Enhancement', 'netscape-like collapsable toolbars'),
- ('unknown', 0, False, 'LA14', '00001',    'Normal', 'First bug :=)')]
-
 
 class SampleList(gtk.ScrolledWindow):
     def __init__(self):
@@ -92,13 +76,13 @@ class SampleList(gtk.ScrolledWindow):
         for item in data:
             iter = self.listmodel.append()        
             self.listmodel.set(iter,
-                SAMPLE_COLUMN_CONTAINER, item[SAMPLE_COLUMN_CONTAINER],
-                SAMPLE_COLUMN_STATE, item[SAMPLE_COLUMN_STATE], 
-                SAMPLE_COLUMN_SELECTED, item[SAMPLE_COLUMN_SELECTED],
-                SAMPLE_COLUMN_PORT, item[SAMPLE_COLUMN_PORT],
-                SAMPLE_COLUMN_CODE, item[SAMPLE_COLUMN_CODE],
-                SAMPLE_COLUMN_NAME, item[SAMPLE_COLUMN_NAME],
-                SAMPLE_COLUMN_COMMENTS, item[SAMPLE_COLUMN_COMMENTS],
+                SAMPLE_COLUMN_CONTAINER, item['container'],
+                SAMPLE_COLUMN_STATE, 0, 
+                SAMPLE_COLUMN_SELECTED, False,
+                SAMPLE_COLUMN_PORT, item['port'],
+                SAMPLE_COLUMN_CODE, item['barcode'],
+                SAMPLE_COLUMN_NAME, item['name'],
+                SAMPLE_COLUMN_COMMENTS, item['comments'],
                 SAMPLE_COLUMN_EDITABLE, False
             )
             
@@ -133,7 +117,7 @@ class SampleList(gtk.ScrolledWindow):
         column.set_fixed_width(50)
         self.listview.append_column(column)
         
-        for key in [SAMPLE_COLUMN_PORT, SAMPLE_COLUMN_CODE, SAMPLE_COLUMN_NAME,SAMPLE_COLUMN_COMMENTS]:
+        for key in [SAMPLE_COLUMN_NAME, SAMPLE_COLUMN_CONTAINER, SAMPLE_COLUMN_PORT, SAMPLE_COLUMN_CODE, SAMPLE_COLUMN_COMMENTS]:
             renderer = gtk.CellRendererText()
             renderer.connect("edited", self._on_cell_edited, model, key)
             column = gtk.TreeViewColumn(COLUMN_DICT[key], renderer, text=key, editable=SAMPLE_COLUMN_EDITABLE)
