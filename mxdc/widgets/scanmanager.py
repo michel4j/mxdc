@@ -8,12 +8,16 @@ import numpy
 from mxdc.widgets.periodictable import PeriodicTable
 from mxdc.widgets.textviewer import TextViewer
 from mxdc.widgets.plotter import Plotter
-from mxdc.widgets.dialogs import DirectoryButton, warning, error
+from mxdc.widgets.dialogs import  warning, error
 from bcm.beamline.mx import IBeamline
 from twisted.python.components import globalRegistry
 from bcm.engine.spectroscopy import XRFScan, XANESScan
 from bcm.utils import science
 from bcm.utils.log import get_module_logger
+try:
+    import json
+except:
+    import simplejson as json
 
 _logger = get_module_logger('mxdc.scanmanager')
 
@@ -24,6 +28,8 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
   COLUMN_FPP,
   COLUMN_FP,
 ) = range(4)
+
+SCAN_CONFIG_FILE = 'scan_config.json'
 
 class ScanManager(gtk.Frame):
     __gsignals__ = {
@@ -55,6 +61,7 @@ class ScanManager(gtk.Frame):
         # lists to hold results data
         self.energies = []
         self.names = []
+        self._load_config()
 
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'scan_manager.glade'), 
@@ -73,7 +80,7 @@ class ScanManager(gtk.Frame):
         self.layout_table = self._xml.get_widget('layout_table')
         self.entries = {
             'prefix': self._xml.get_widget('prefix_entry'),
-            'directory': DirectoryButton(),
+            'directory': self._xml.get_widget('directory_btn'),
             'edge': self._xml.get_widget('edge_entry'),
             'energy': self._xml.get_widget('energy_entry'),
             'time': self._xml.get_widget('time_entry'),
@@ -244,6 +251,27 @@ class ScanManager(gtk.Frame):
         run_data['number'] = -1
         run_data['two_theta'] = 0.0
         return run_data
+
+    def _load_config(self):
+        config_dir = os.path.join(os.environ['HOME'], '.mxdc')
+        config_file = os.path.join(config_dir, SCAN_CONFIG_FILE)
+        if os.access(config_file, os.R_OK):
+            config = json.loads(file(config_file).read())
+            self.set_parameters(config)
+
+    def _save_config(self, parameters):
+        config_dir = os.path.join(os.environ['HOME'], '.mxdc')
+        # create configuration directory if none exists
+        if not os.access( config_dir , os.R_OK):
+            if os.access( os.environ['HOME'], os.W_OK):
+                os.mkdir( config_dir )
+                
+        config_file = os.path.join(config_dir, SCAN_CONFIG_FILE)
+        if os.access(config_dir, os.W_OK):
+            f = open(config_file,'w')
+            json.dump(parameters, f)
+            f.close()
+
     
     def run_xanes(self):
         if self.scanning:
@@ -251,6 +279,7 @@ class ScanManager(gtk.Frame):
         self.plotter.clear()
         self.clear_xanes_results()
         scan_parameters = self.get_parameters()
+        self._save_config(scan_parameters)
             
         title = scan_parameters['edge'] + " Edge Scan"
         self.plotter.set_labels(title=title, x_label="Energy (keV)", y1_label='Fluorescence Counts')      
@@ -269,6 +298,7 @@ class ScanManager(gtk.Frame):
         if self.scanning:
             return True
         scan_parameters = self.get_parameters() 
+        self._save_config(scan_parameters)
         self.plotter.clear()
         
         self.xrf_scanner.configure(scan_parameters['energy'], scan_parameters['time'],  
