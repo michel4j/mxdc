@@ -56,8 +56,10 @@ class RunWidget(gtk.Frame):
         
         
         # Set directory field non-editable, must use directory selector
-        self.entry['directory'] = DirectoryButton()
-        self.layout_table.attach(self.entry['directory'], 1,4,1,2, xoptions=gtk.EXPAND|gtk.FILL)
+        self.entry['directory'] = self.directory_btn 
+        
+        #self.entry['directory'] = DirectoryButton()
+        #self.layout_table.attach(self.entry['directory'], 1,4,1,2, xoptions=gtk.EXPAND|gtk.FILL)
 
         # entry signals
         self.entry['prefix'].connect('focus-out-event', self.on_prefix_changed)

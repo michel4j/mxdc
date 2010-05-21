@@ -4,7 +4,7 @@ import gtk
 import gtk.glade
 import gobject
 from twisted.python.components import globalRegistry
-from mxdc.widgets.samplelist import SampleList, TEST_DATA
+from mxdc.widgets.samplelist import SampleList
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets import dialogs
@@ -166,10 +166,8 @@ class ScreenManager(gtk.Frame):
         self.add(self.screen_manager) 
         self.show_all()
     
-    def add_containers(self, containers):
-        #FIXME       
-        self.sample_list.import_csv(os.path.join(DATA_DIR, 'test.csv')) 
-        #self.sample_list.load_data(TEST_DATA)
+    def add_samples(self, samples):
+        self.sample_list.load_data(samples)
         
     def get_task_list(self):
         model = self.listview.get_model()
