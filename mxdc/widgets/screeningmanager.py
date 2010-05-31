@@ -229,7 +229,7 @@ class ScreenManager(gtk.Frame):
         iter = self.listmodel.append()
         self.listmodel.set(iter, 
             QUEUE_COLUMN_DONE, item['done'], 
-            QUEUE_COLUMN_ID, item['task'].options['sample']['id'],
+            QUEUE_COLUMN_ID, item['task'].options['sample']['name'],
             QUEUE_COLUMN_NAME, item['task'].name,
             QUEUE_COLUMN_TASK, item['task'],
         )

@@ -29,20 +29,22 @@ CRYSTAL_SHEET_NUM = 0
 CRYSTAL_SHEET_NAME = 'Crystals'
 CRYSTAL_NAME = 0
 CRYSTAL_NAME_ERROR = 'Invalid Crystal name "%s" in cell Crystals!$A$%d.'
-CRYSTAL_EXPERIMENT = 1
+CRYSTAL_CODE = 1
+
+CRYSTAL_EXPERIMENT = 2
 CRYSTAL_EXPERIMENT_ERROR = 'Invalid Group/Experiment name "%s" in cell Crystals!$B$%d.'
-CRYSTAL_CONTAINER = 2
+CRYSTAL_CONTAINER = 3
 CRYSTAL_CONTAINER_ERROR = 'Invalid Container name "%s" in cell Crystals!$C$%d.'
-CRYSTAL_CONTAINER_KIND = 3
+CRYSTAL_CONTAINER_KIND = 4
 CRYSTAL_CONTAINER_KIND_ERROR = 'Invalid Container kind "%s" in cell Crystals!$D$%d.'
-CRYSTAL_CONTAINER_LOCATION = 4
+CRYSTAL_CONTAINER_LOCATION = 5
 CRYSTAL_CONTAINER_LOCATION_ERROR = 'Invalid Container location "%s" in cell Crystals!$E$%d.'
 
 IGNORE_CONTAINER_WARNING = 'Ignoring incompatible container "%s" of type "%s".'
 
-CRYSTAL_PRIORITY = 5
-CRYSTAL_COCKTAIL = 6
-CRYSTAL_COMMENTS = 7
+CRYSTAL_PRIORITY = 6
+CRYSTAL_COCKTAIL = 7
+CRYSTAL_COMMENTS = 8
 
 PLAN_SHEET_NUM = 2
 PLAN_SHEET_NAME = 'Plans'
@@ -63,7 +65,7 @@ def port_is_valid(container, loc):
     return loc in all_positions
     
     
-class SamplesDatabase(object):
+class XLSLoader(object):
     """ A wrapper for an Excel shipment/experiment spreadsheet """
     
     def __init__(self, xls):
@@ -234,9 +236,21 @@ class SamplesDatabase(object):
                 crystal['comments'] = row_values[CRYSTAL_COMMENTS]
             else:
                 crystal['comments'] = ''
-            crystal['barcode'] = ''    
+                
+            if row_values[CRYSTAL_CODE]:
+                crystal['barcode'] = row_values[CRYSTAL_CODE]
+            else:
+                crystal['barcode'] = ''
+                
             crystals[crystal['name']] = crystal
         return crystals
+    
+    def get_database(self):
+        db = {}
+        db['containers'] = self.containers
+        db['crystals'] = self.crystals
+        db['experiments'] = self.experiments
+        return db
     
     def is_valid(self):
         """ Returns True if the spreadsheet has no validation errors, and False otherwise 
