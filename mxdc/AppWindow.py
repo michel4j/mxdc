@@ -53,9 +53,9 @@ class AppWindow(gtk.Window):
         notebook = gtk.Notebook()
         notebook.append_page(self.hutch_manager, tab_label=gtk.Label('  Beamline Setup  '))
         notebook.append_page(self.sample_manager, tab_label=gtk.Label('  Samples  '))
+        notebook.append_page(self.screen_manager, tab_label=gtk.Label('  Screening  '))
         notebook.append_page(self.collect_manager, tab_label=gtk.Label('  Data Collection '))
         notebook.append_page(self.scan_manager, tab_label=gtk.Label('  Fluorescence Scans  '))
-        notebook.append_page(self.screen_manager, tab_label=gtk.Label('  Screening  '))
         #self.screen_manager.set_sensitive(False)
         notebook.set_border_width(6)
 

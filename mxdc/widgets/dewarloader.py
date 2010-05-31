@@ -10,13 +10,12 @@ import gtk
 import gtk.glade
 import time
 from mxdc.widgets import dialogs
-from mxdc.utils.xlsimport import SamplesDatabase
-
+from mxdc.utils.xlsimport import XLSLoader
+from mxdc.utils.config import load_config, save_config
 try:
     import json
 except:
     import simplejson as json
-
 
 #Dewar Columns
 (
@@ -54,6 +53,10 @@ TEST_DATA = [
     DEWAR_DRAG_LOC,
     INVENTORY_DRAG_LOC,    
 ) = range(2)
+
+SAMPLES_DB_CONFIG = 'samples_db.json'
+CONTAINERS_INV_CONFIG = 'containers_inv.json'
+CONTAINERS_DEW_CONFIG = 'containers_dew.json'
 
 
 class DewarStore(gtk.TreeStore):
@@ -115,7 +118,16 @@ class DewarStore(gtk.TreeStore):
                 it = self.iter_next(it)
                 self.remove(old_it)
               
-
+    def load_saved_config(self):
+        containers = load_config(CONTAINERS_DEW_CONFIG)
+        if not isinstance(containers,dict):
+            return
+        for cnt in containers.values():
+            data = {'name': cnt['name'],
+                    'type': cnt['type'],
+                    'comments': cnt['comments'],}
+            self.load(tuple(cnt['path']), data)
+            
     def stall_is_empty(self, path):
         iter = self.get_iter(path)
         if iter is None:
@@ -175,10 +187,11 @@ class DewarStore(gtk.TreeStore):
         containers = {}
         def get_cnt(model, path, iter, containers):
             if iter is not None and model.get_value(iter, model.CONTAINER) is not None:
-                cnt = {'stall': model.get_value(iter, model.STALL_NAME)}
+                cnt = {'stall': model.get_value(iter, model.STALL_NAME), 'path': model.get_path(iter)}                
                 cnt.update(model.get_value(iter, model.DATA))
                 containers[cnt['name']] = cnt
         self.foreach(get_cnt, containers)
+        save_config(CONTAINERS_DEW_CONFIG, containers)
         return containers
         
 class ContainerStore(gtk.ListStore):
@@ -193,11 +206,16 @@ class ContainerStore(gtk.ListStore):
             gobject.TYPE_STRING, 
             gobject.TYPE_STRING, 
             gobject.TYPE_STRING)
-    
+            
     def load_containers(self, data):
+        if data is None:
+            return
         for item in data:
             self.add_container(item)
     
+    def load_saved_config(self):
+        self.load_containers(load_config(CONTAINERS_INV_CONFIG))
+        
     def remove_container(self, path):
         iter = self.get_iter(path)
         if iter is not None:
@@ -210,10 +228,21 @@ class ContainerStore(gtk.ListStore):
             self.ID, item['name'],
             self.TYPE, item['type'],
             self.COMMENTS, item['comments'])
+    
+    def save_containers(self):
+        containers = []
+        def get_cnt(model, path, iter, containers):
+                cnt = {'name': model.get_value(iter, model.ID), 
+                       'type': model.get_value(iter, model.TYPE),
+                       'comments': model.get_value(iter, model.COMMENTS)}            
+                containers.append(cnt)
+        self.foreach(get_cnt, containers)
+        save_config(CONTAINERS_INV_CONFIG, containers)
+        
          
 class DewarLoader(gtk.Frame):
     __gsignals__ = {
-            'samples-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+            'samples-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
     }
     
     def __init__(self):
@@ -260,13 +289,27 @@ class DewarLoader(gtk.Frame):
         self.lims_btn.connect('clicked', self.on_import_lims)
         self.file_btn.connect('clicked', self.on_import_file)
         self.samples_database = None
-    
+        
+        # load previously saved configuration
+        self.load_saved_config()
+        
     def __getattr__(self, key):
         try:
             return gtk.Frame.__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
 
+    
+    def load_saved_config(self):
+        #load samples database
+        self.samples_database  = load_config(SAMPLES_DB_CONFIG)
+
+        #load inventory and dewar
+        self.inventory.load_saved_config()
+        self.dewar.load_saved_config()
+        gobject.idle_add(self.emit, 'samples-changed')
+        
+    
     def generate_icon_info(self, data):
         if data['type'] == 'UNI-PUCK':
             pixmap, mask = self._puck_icon.render_pixmap_and_mask()
@@ -293,13 +336,14 @@ class DewarLoader(gtk.Frame):
          
 
     def add_to_inventory(self, data):
-        self.inventory.load_containers(data)  
+        self.inventory.load_containers(data)
+        self.inventory.save_containers()
 
     def get_loaded_samples(self):
         samples = []
         loaded_containers = self.dewar.get_containers()
         if self.samples_database is not None:
-            for cryst in self.samples_database.crystals.values():
+            for cryst in self.samples_database['crystals'].values():
                 if cryst['container'] in loaded_containers.keys():
                     _cnt = loaded_containers[cryst['container']]
                     _cr = {}
@@ -381,7 +425,8 @@ class DewarLoader(gtk.Frame):
             data = json.loads(selection.data)
             if self.dewar.load(path, data):   
                 ctx.finish(True, True)
-                self.emit('samples-changed')
+                gobject.idle_add(self.emit, 'samples-changed')
+                self.inventory.save_containers()
             else:
                 ctx.finish(False, False)
                 
@@ -396,10 +441,11 @@ class DewarLoader(gtk.Frame):
                 path = model.get_path(iter)
                 if self.dewar.unload(path):
                     ctx.finish(True, False)
-                    self.emit('samples-changed')
                 else:
                     ctx.finish(False, False)
                 self.dewar_view.expand_all()
+                gobject.idle_add(self.emit, 'samples-changed')
+                self.inventory.save_containers()
             
 
     def on_unload_all(self, obj):
@@ -412,10 +458,12 @@ class DewarLoader(gtk.Frame):
                 containers.append(cnt)
         self.dewar.foreach(get_cnt, containers)
         self.inventory.load_containers(containers)
-        self.emit('samples-changed')
+        self.inventory.save_containers()
+        gobject.idle_add(self.emit, 'samples-changed')
 
     def on_clear_inventory(self, obj):
         self.inventory.clear()
+        self.inventory.save_containers()
     
 
     def on_inventory_data_get(self, treeview, ctx, selection, info, timestamp):
@@ -495,25 +543,32 @@ class DewarLoader(gtk.Frame):
         filter = import_selector.get_filter()
         if filename is None:
             return
-        self.samples_database = SamplesDatabase(filename)
+        xls_loader = XLSLoader(filename)
+        self.samples_database = xls_loader.get_database()
         
-        if len(self.samples_database.errors) > 0:
+        # make sure sample list is stored to file for restore
+        save_config(SAMPLES_DB_CONFIG, self.samples_database)
+        
+        if len(xls_loader.errors) > 0:
             header = 'Error Importing Spreadsheet'
             subhead = 'The file "%s" could not be opened.\n\nSee detailed errors below.' % filename
-            details = '\n'.join(self.samples_database.errors)
+            details = '\n'.join(xls_loader.errors)
             dialogs.error(header, subhead, details=details)
         else:
             header = 'Import Successful'
             subhead = 'Loaded %d containers, with a total of %d samples.' % (
-                                len(self.samples_database.containers),
-                                len(self.samples_database.crystals))
-            details = None
-            if len(self.samples_database.warnings) > 0:
+                                len(self.samples_database['containers']),
+                                len(self.samples_database['crystals']))
+            if len(xls_loader.warnings) > 0:
+                header = 'Imported with warnings.'
                 subhead += '\n\nSee detailed warnings below.'
-                details = '\n'.join(self.samples_database.warnings)
-            self.inventory.load_containers(self.samples_database.containers.values())
-            dialogs.info(header, subhead, details=details)
-        
+                details = '\n'.join(xls_loader.warnings)
+                self.inventory.load_containers(self.samples_database['containers'].values())
+                dialogs.warning(header, subhead, details=details)
+            else:
+                self.inventory.load_containers(self.samples_database['containers'].values())
+                dialogs.info(header, subhead)
+            self.inventory.save_containers()
 
 def main():
     w = gtk.Window()
