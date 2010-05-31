@@ -25,7 +25,7 @@ class AppWindow(gtk.Window):
         pixbuf = gtk.gdk.pixbuf_new_from_file(icon_file)        
         self.set_icon (pixbuf)
         
-        self.splash = Splash(version='3.1.0')
+        self.splash = Splash(version='3.2.0')
         self.splash.set_transient_for(self)
         self.splash.show_all()
         while gtk.events_pending():
