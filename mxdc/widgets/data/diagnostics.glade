@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<glade-interface>
+  <!-- interface-requires gtk+ 2.10 -->
+  <!-- interface-naming-policy project-wide -->
+  <widget class="GtkWindow" id="window1">
+    <child>
+      <widget class="GtkHBox" id="status_widget">
+        <property name="visible">True</property>
+        <child>
+          <widget class="GtkLabel" id="label">
+            <property name="visible">True</property>
+            <property name="xalign">0</property>
+            <property name="label" translatable="yes">label</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkArrow" id="arrow1">
+            <property name="visible">True</property>
+            <property name="xpad">4</property>
+            <property name="shadow_type">in</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkLabel" id="info">
+            <property name="visible">True</property>
+            <property name="xalign">1</property>
+          </widget>
+          <packing>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkImage" id="icon">
+            <property name="visible">True</property>
+            <property name="xpad">4</property>
+            <property name="ypad">4</property>
+            <property name="icon_name">emblem-default</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+</glade-interface>
