@@ -59,6 +59,7 @@ class XRFScan(BasicScan):
     def run(self):
         _logger.debug('Exitation Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
+        _saved_attenuation = self.beamline.attenuator.get()
         try:
             _logger.debug('Exitation Scan started')
             gobject.idle_add(self.emit, 'started')   
@@ -77,7 +78,7 @@ class XRFScan(BasicScan):
             gobject.idle_add(self.emit, "progress", 1.0)
         finally:
             self.beamline.exposure_shutter.close()
-            self.beamline.attenuator.set(0.0)
+            self.beamline.attenuator.set(_saved_attenuation)
             self.beamline.lock.release()
         return self.results
             
@@ -130,6 +131,7 @@ class XANESScan(BasicScan):
     def run(self):
         _logger.info('Edge Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
+        _saved_attenuation = self.beamline.attenuator.get()
         try:
             gobject.idle_add(self.emit, 'started')
             _logger.info('Edge Scan started.')
@@ -180,7 +182,7 @@ class XANESScan(BasicScan):
         finally:
             self.beamline.monochromator.energy.move_to(self._edge_energy)
             self.beamline.exposure_shutter.close()
-            self.beamline.attenuator.set(0.0)
+            self.beamline.attenuator.set(_saved_attenuation)
             self.beamline.lock.release()           
         return self.results
     

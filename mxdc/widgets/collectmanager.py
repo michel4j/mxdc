@@ -404,6 +404,12 @@ class CollectManager(gtk.Frame):
 
 
     def on_activate(self, widget):
+        if not self.run_list:
+            msg1 = 'Run list is empty!'
+            msg2 = 'Please define and save a run before collecting.'
+            warning(msg1, msg2)
+            return
+            
         if self.collect_state == COLLECT_STATE_IDLE:
             self.start_collection()
             self.progress_bar.set_fraction(0)

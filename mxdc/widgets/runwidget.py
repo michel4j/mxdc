@@ -308,7 +308,7 @@ class RunWidget(gtk.Frame):
                 except:
                     self.predictor = Predictor()
                 self.predictor.set_size_request(200,200)
-                self.run_widget.pack_end( self.predictor, expand=False, fill=False)
+                self.run_widget.pack_end( self.predictor, expand=True, fill=True)
     
         
     def check_changes(self):

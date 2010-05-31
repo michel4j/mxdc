@@ -413,7 +413,8 @@ class BraggEnergyMotor(Motor):
         # Do not move if requested position is within precision error
         # from current position.
         prec = self.PREC.get()
-        prec = prec == 0 and 4 or prec
+        if prec == 0:
+            prec = 3
         if abs(self.get_position() - pos) <  10**-prec and not force:
             _logger.info( "(%s) is already at %f" % (self.name, pos) )
             return
