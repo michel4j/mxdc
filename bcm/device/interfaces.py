@@ -429,3 +429,30 @@ class IOptimizer(Interface):
     def get_state():
         """Return the current state of the object."""
 
+
+class ICryojet(Interface):
+
+    """A CryoJet device object."""
+    
+    name = Attribute("""Name or description of device.""")
+    sample_flow = Attribute("""Sample flow rate.""")
+    shield_flow = Attribute("""Shield flow rate.""")
+    temperature = Attribute("""Temperature.""")
+    level = Attribute("""Cryogen level.""")
+    nozzle = Attribute("""Device, controlling nozzle gap.""")
+
+    def stop_sample_flow():
+        """Stop sample flow."""
+
+    def resume_sample_flow():
+        """Stop sample flow."""
+    
+
+class IDiagnostic(Interface):
+
+    """A diagnostic object."""
+    description = Attribute("""Name or description of device.""")
+            
+    def get_state():
+        """Return the current state of the object."""
+
