@@ -273,7 +273,7 @@ class BasicShutter(gobject.GObject):
         self._state.connect('changed', self._signal_change)
         self._messages = ['Opening', 'Closing']
         self._name  = 'Shutter'
-        
+    
     def get_state(self):
         return self._state.get() == 1
     
