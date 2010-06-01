@@ -142,6 +142,7 @@
             </child>
             <child>
               <widget class="GtkNotebook" id="tool_book">
+                <property name="width_request">450</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <child>
@@ -159,6 +160,7 @@
                 </child>
               </widget>
               <packing>
+                <property name="expand">False</property>
                 <property name="position">1</property>
               </packing>
             </child>

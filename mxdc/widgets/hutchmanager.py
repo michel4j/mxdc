@@ -10,6 +10,7 @@ from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.ptzviewer import AxisViewer
 from mxdc.widgets.simplevideo import SimpleVideo
+from mxdc.widgets.diagnostics import DiagnosticsViewer
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.misc import *
 
@@ -110,9 +111,9 @@ class HutchManager(gtk.Frame):
         for w in [self.front_end_btn, self.shutter_btn, self.optimize_btn, self.mount_btn, self.cent_btn, self.collect_btn]:
             w.set_property('can-focus', False)
         
-        # tool book, automounter, cryojet etc
-        self.cryo_controller = CryojetWidget(self.beamline.cryojet)
-        self.tool_book.append_page(self.cryo_controller, tab_label=gtk.Label(' Cryojet Control '))
+        # tool book, diagnostics  etc
+        self.diagnostics = DiagnosticsViewer()
+        self.tool_book.append_page(self.diagnostics, tab_label=gtk.Label(' Beamline Status Checks'))
         self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(0))       
         
         #logging
