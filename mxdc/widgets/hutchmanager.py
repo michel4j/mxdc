@@ -113,8 +113,12 @@ class HutchManager(gtk.Frame):
         
         # tool book, diagnostics  etc
         self.diagnostics = DiagnosticsViewer()
-        self.tool_book.append_page(self.diagnostics, tab_label=gtk.Label(' Beamline Status Checks'))
+        self.tool_book.append_page(self.diagnostics, tab_label=gtk.Label(' Beamline Status Checks '))
         self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(0))       
+        
+        self.cryo_controller = CryojetWidget(self.beamline.cryojet)
+        self.tool_book.append_page(self.cryo_controller, tab_label=gtk.Label(' Cryojet Stream '))
+
         
         #logging
         self.log_viewer = TextViewer(self._xml.get_widget('log_view'), 'Candara 7')
