@@ -44,7 +44,7 @@ class DiagnosticDisplay(gtk.Frame):
         if data['status'] == diagnostics.DIAG_STATUS_BAD:
             self.icon.set_from_stock('gtk-dialog-error', gtk.ICON_SIZE_MENU)
         elif data['status'] == diagnostics.DIAG_STATUS_GOOD:
-            self.icon.set_from_stock('gtk-ok', gtk.ICON_SIZE_MENU)
+            self.icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
         elif data['status'] == diagnostics.DIAG_STATUS_WARN:
             self.icon.set_from_stock('gtk-dialog-warning', gtk.ICON_SIZE_MENU)
         else:
