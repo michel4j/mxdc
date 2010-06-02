@@ -1,3 +1,8 @@
+'''
+Created on Jun 2, 2010
+
+@author: michel
+'''
 #!/usr/bin/env python
 
 import warnings
@@ -15,22 +20,21 @@ import gobject
 
 from bcm.beamline.mx import MXBeamline
 from bcm.utils.log import get_module_logger
-from mxdc.widgets.sampleviewer import SampleViewer
+from mxdc.widgets.hutchmanager import HutchManager
 from mxdc.widgets.misc import CryojetWidget
 #from mxdc.utils import gtkexcepthook
 
-_logger = get_module_logger('sampleviewer')
-    
+_logger = get_module_logger('hutchviewer')
+
 def main():
 
     win = gtk.Window()
     win.connect("destroy", lambda x: reactor.stop())
     win.set_border_width(6)
-    win.set_size_request(800,540)
+    win.set_size_request(1167,815)
     
-    win.set_title("SampleViewer")
-    book = gtk.Notebook()
-    #win.add(book)
+    win.set_title("HutchViewer")
+ 
     try:
         config = os.path.join(os.environ['BCM_CONFIG_PATH'],
                               os.environ['BCM_CONFIG_FILE'])
@@ -40,17 +44,10 @@ def main():
         sys.exit(1)
     bl = MXBeamline(config)
     
-    myviewer = SampleViewer()
+    myviewer = HutchManager()
     myviewer.show_all()
-    cryo_controller = CryojetWidget(bl.cryojet)
-    cryo_align = gtk.Alignment(0.5,0.5, 0, 0)
-    cryo_align.set_border_width(12)
-    cryo_align.add(cryo_controller)
-    cryo_controller.set_border_width(6)
 
-    book.append_page(myviewer, tab_label=gtk.Label(' Sample Camera ') )
-    book.append_page(cryo_align, tab_label=gtk.Label(' Cryojet Control '))
-    win.add(book)
+    win.add(myviewer)
     win.show_all()
 
 
