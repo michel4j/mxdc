@@ -30,7 +30,7 @@ def main():
 
     win = gtk.Window()
     win.connect("destroy", lambda x: reactor.stop())
-    win.set_border_width(6)
+    win.set_border_width(3)
     win.set_size_request(1167,815)
     
     win.set_title("HutchViewer")
@@ -45,6 +45,8 @@ def main():
     bl = MXBeamline(config)
     
     myviewer = HutchManager()
+    myviewer.video_book.connect('realize', lambda x: myviewer.video_book.set_page(1))
+    myviewer.tool_book.connect('realize', lambda x: myviewer.tool_book.set_page(1))
     myviewer.show_all()
 
     win.add(myviewer)

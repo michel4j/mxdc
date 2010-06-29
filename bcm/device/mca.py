@@ -20,7 +20,7 @@ class MultiChannelAnalyzer(object):
     
     implements(IMultiChannelAnalyzer)
     
-    def __init__(self, name, channels=4096):
+    def __init__(self, name, nozzle=None, channels=4096):
         self.name = name
         name_parts = name.split(':')
         self._spectrum = ca.PV(name)
@@ -41,7 +41,7 @@ class MultiChannelAnalyzer(object):
         self._stop_cmd = ca.PV("%s:mca1Stop" % name_parts[0], monitor=False)
         self._slope = ca.PV("%s.CALS" % name)
         self._offset = ca.PV("%s.CALO" % name)
-        self.channels = channels
+        self.channels = int(channels)
         self.region_of_interest = (0, self.channels)
         
         # Default parameters
@@ -57,6 +57,7 @@ class MultiChannelAnalyzer(object):
         self.ACQG.connect('changed', self._monitor_start)
         
         #self._x_axis = numpy.arange(0,4096,1)
+        self.nozzle = nozzle
 
     def configure(self, **kwargs):
         # configure the mcarecord scan parameters
@@ -64,15 +65,19 @@ class MultiChannelAnalyzer(object):
         self._status_scan.put(9) # 0.1 second
         self._read_scan.put(0) # Passive
         
-        for k,v in kwargs.items():
+        if 'retract' in kwargs.keys():
+            self._set_nozzle(kwargs['retract'])
+            
+        for k,v in kwargs.items():        
             if k == 'cooling':
                 if self.TMP.get() >= -25.0 and v:
                     self._set_temp(v)
                     _logger.debug('(%s) Waiting for MCA to cool down' % (self.name,))
                     while self.TMP.get() > -25:
-                        time.sleep(1)
+                        time.sleep(0.2)
                 else:
                     self._set_temp(v)
+                    
                 
             if k == 'roi':
                 if v is None:
@@ -90,7 +95,19 @@ class MultiChannelAnalyzer(object):
         if on:
             self.TMODE.set(2)
         else:
-            self.TMODE.set(0)         
+            self.TMODE.set(0)
+            
+    def _set_nozzle(self, out):
+        if self.nozzle is None:
+            return
+        if out:
+            _logger.debug('(%s) Moving nozzle closer to sample' % (self.name,))
+            self.nozzle.put(0)
+        else:
+            _logger.debug('(%s) Moving nozzle away from sample' % (self.name,))
+            self.nozzle.put(1)
+        ca.flush()
+        time.sleep(2)
                 
     def _monitor_stop(self, obj, state):
         if state == 0:

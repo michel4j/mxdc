@@ -49,9 +49,9 @@ class DiagnosticBase(gobject.GObject):
         if status == DIAG_STATUS_GOOD:
             _logger.debug("%s OK." % self.description )
         elif status == DIAG_STATUS_WARN:
-            _logger.warning("%s warning: %s." % (self.description, msg))
+            _logger.warning("%s: %s." % (self.description, msg))
         elif status == DIAG_STATUS_BAD:
-            _logger.error("%s error: %s." % (self.description, msg))
+            _logger.warning("%s: %s." % (self.description, msg))
         else:
             _logger.debug("%s status changed." % self.description )
         self._status = data
