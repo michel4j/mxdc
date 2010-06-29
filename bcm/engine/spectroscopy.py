@@ -65,7 +65,7 @@ class XRFScan(BasicScan):
             gobject.idle_add(self.emit, 'started')   
             # prepare environment for scannning
             self.beamline.goniometer.set_mode('COLLECT')
-            self.beamline.mca.configure(cooling=True, energy=None)
+            self.beamline.mca.configure(retract=True, cooling=True, energy=None)
             self.beamline.attenuator.set(self._attenuation)
             if self._energy is not None:
                 self.beamline.monochromator.energy.move_to(self._energy)
@@ -79,6 +79,7 @@ class XRFScan(BasicScan):
         finally:
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(_saved_attenuation)
+            self.beamline.mca.configure(retract=False)
             self.beamline.lock.release()
         return self.results
             
@@ -137,7 +138,7 @@ class XANESScan(BasicScan):
             _logger.info('Edge Scan started.')
             self.beamline.goniometer.set_mode('COLLECT')
             self.beamline.attenuator.set(self._attenuation)
-            self.beamline.mca.configure(cooling=True, energy=self._roi_energy)
+            self.beamline.mca.configure(retract=True, cooling=True, energy=self._roi_energy)
             self.beamline.monochromator.energy.move_to(self._edge_energy)
             self.beamline.monochromator.energy.wait()   
                    
@@ -183,6 +184,7 @@ class XANESScan(BasicScan):
             self.beamline.monochromator.energy.move_to(self._edge_energy)
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(_saved_attenuation)
+            self.beamline.mca.configure(retract=False)
             self.beamline.lock.release()           
         return self.results
     

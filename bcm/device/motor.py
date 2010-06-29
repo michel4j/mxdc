@@ -89,8 +89,10 @@ class SimMotor(MotorBase):
         self._state = 0
         self._stopped = False
         self._healthy = True
+        self._enabled = True
         self._signal_change(None, self._position)
         self._signal_health(None, self._healthy)
+        self._signal_enable(None, self._enabled)
      
     def get_state(self):
         return self._state

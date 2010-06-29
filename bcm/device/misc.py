@@ -335,7 +335,6 @@ class CryojetNozzle(BasicShutter):
         BasicShutter.__init__(self, open_name, close_name, state_name)
         self._messages = ['Retracting', 'Restoring']
         self._name = 'Cryojet Nozzle'
-    
 
 class Cryojet(object):
     
@@ -352,6 +351,7 @@ class Cryojet(object):
                                       '%s:ShieldFlow:get' % cname,
                                       units='L/min')
         self.level = PV('%s:ch1LVL:get' % lname)
+        #FIXME: This is ugly, should not hardcode pv name in class definition
         if nozzle_motor is not None:
             self.nozzle = IShutter(nozzle_motor)
         else:
