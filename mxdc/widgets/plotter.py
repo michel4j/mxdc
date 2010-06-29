@@ -298,6 +298,7 @@ class ScanPlotter(gtk.Window):
         self._sig_handlers = {}
         self.add(vbox)
         self.show_all()
+        self.fit = {}
         
     def connect_scanner(self, scan):
         _sig_map = {
@@ -442,6 +443,7 @@ class ScanPlotter(gtk.Window):
             info = "YMAX-fit = %11.4e\n" % params[0]
             info += "MIDP-fit = %11.4e\n" % params[2] 
             info += "FWHM-fit = %11.4e\n" % fwhm 
+            print info
             self.plotter.fig.text(0.65,0.75, info,fontdict=fontpar, color='r')
             info = "YMAX-his = %11.4e\n" % histo_pars[0]
             info += "MIDP-his = %11.4e\n" % histo_pars[2] 
@@ -450,6 +452,9 @@ class ScanPlotter(gtk.Window):
             self.plotter.fig.text(0.65,0.60, info,fontdict=fontpar, color='b')
             self.plotter.canvas.draw()
             print info
+            self.fit['midp'] = params[2]
+            self.fit['fwhm'] =  fwhm
+            self.fit['ymax'] = params[0]
         
     def _get_scan_data(self, filename):
         lines = file(filename).readlines()

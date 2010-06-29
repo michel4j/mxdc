@@ -40,7 +40,7 @@ class MXDCApp(object):
             error('MXDC Already Running', 'An instance of MXDC is already running on the local network. Only one instance permitted.')
             self.do_quit()
         else:
-            beamline = MXBeamline(config)
+            _ = MXBeamline(config)
             self.main_window.connect('destroy', self.do_quit)
             self.main_window.run()
         return False
