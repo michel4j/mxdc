@@ -539,8 +539,8 @@ class MostabOptimizer(object):
         poll=0.05
         while self._status == 1 or self._command_active:
             time.sleep(poll)
-       
-       
+
+      
 from twisted.spread import interfaces, pb
 from bcm.service.utils import *
 
