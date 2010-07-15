@@ -37,6 +37,7 @@ def _cmp_arg(a, b):
         return 0
      
 class MXBeamline(object):
+    """An MX Beamline"""
     implements(IBeamline)
     
     def __init__(self, filename):
@@ -67,6 +68,7 @@ class MXBeamline(object):
             return self.registry[key]
         
     def setup(self):
+        """Set up and register the beamline devices."""
         ca.threads_init()
         config = ConfigParser()
         config.read(self.config_file)
