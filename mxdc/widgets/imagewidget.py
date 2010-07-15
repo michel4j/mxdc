@@ -191,16 +191,16 @@ class FileLoader(gobject.GObject):
                 try:
                     img_info = _read_marccd_image(filename, self.gamma_offset)
                 except:
-                    img_logger.debug('Error loading image: %s' % filename)
+                    pass
                 else:
-                    self.outbox.put( _read_marccd_image(filename, self.gamma_offset))
+                    #self.outbox.put( _read_marccd_image(filename, self.gamma_offset))
+                    self.outbox.put(img_info)
                     img_logger.debug('Loading image: %s' % filename)
                     gobject.idle_add(self.emit, 'new-image')
                     filename = None
             elif (time.time()-_search_t > 10.0) and self.inbox.qsize() > 0:
+                img_logger.debug('Error loading image: %s' % filename)
                 filename = None
-            #else:
-            #    img_logger.debug('Waiting for image: %s' % filename)         
         
 class ImageWidget(gtk.DrawingArea):
     __gsignals__ =  { 
