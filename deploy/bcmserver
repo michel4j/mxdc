@@ -1,9 +1,9 @@
 #!/bin/sh
 #
-# dpmserver:   Beamline Control Module Server
+# bcmserver:   Beamline Control Module Server
 #
 # chkconfig: 345 98 02
-# description:  This is a daemon listens for data processing commands and executes them \
+# description:  This is a daemon listens for beamline control commands and executes them \
 #               with the priviledges of the user requesting the action.
 
 # Source function library.
@@ -18,10 +18,10 @@ done
 unset i
 
 # Service parameters
-servicename='dpmserver'
+servicename='bcmserver'
 pidfile='/var/run/bcmserver.pid'
 logfile='/var/log/bcmserver.log'
-appfile='$BCM_PATH/bcm/service/bcm_server.py'
+appfile=$BCM_PATH/bcm/service/bcm_server.py
 umask=022
 
 # Sanity checks.
