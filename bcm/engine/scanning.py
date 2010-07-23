@@ -1,6 +1,5 @@
 import threading
 import logging
-import gtk
 import gobject
 import gc
 import time
