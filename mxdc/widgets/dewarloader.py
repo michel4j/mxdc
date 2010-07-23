@@ -12,6 +12,7 @@ import time
 from mxdc.widgets import dialogs
 from mxdc.utils.xlsimport import XLSLoader
 from mxdc.utils.config import load_config, save_config
+
 try:
     import json
 except:
@@ -137,7 +138,7 @@ class DewarStore(gtk.TreeStore):
 
 
     def stall_is_compatible(self, path, container_type):
-        if (len(path), container_type) in [(1,'CASSETTE'), (2, 'UNI-PUCK')]:
+        if (len(path), container_type.upper()) in [(1,'CASSETTE'), (2, 'UNI-PUCK')]:
             return True
         else:
             return False
@@ -311,7 +312,7 @@ class DewarLoader(gtk.Frame):
         
     
     def generate_icon_info(self, data):
-        if data['type'] == 'UNI-PUCK':
+        if data['type'].upper() == 'UNI-PUCK':
             pixmap, mask = self._puck_icon.render_pixmap_and_mask()
         else:
             pixmap, mask = self._cassette_icon.render_pixmap_and_mask()
@@ -526,7 +527,41 @@ class DewarLoader(gtk.Frame):
             
     def on_import_lims(self, obj):
         #FIXME
-        self.inventory.load_containers(TEST_DATA)
+        current_user = os.getlogin()
+        cred_user = 'cmcfuser'
+        cred_pass = '08id-1'
+        lims_url = 'http://localhost:8000/json/'
+        
+        try:
+            from jsonrpc.proxy import ServiceProxy
+            server = ServiceProxy(lims_url)
+            lims_loader =   server.lims.get_user_samples(cred_user, cred_pass, {'user': current_user})  
+        except:
+            header = 'Error Connecting to LIMS'
+            subhead = 'Containers and Samples could not be imported.'
+            dialogs.error(header, subhead)
+            return
+        
+        self.samples_database = lims_loader['result']
+            
+        if lims_loader['error']:
+            header = 'Error Importing from LIMS'
+            subhead = 'Containers and Samples could not be imported.\n\nSee detailed errors below.'
+            details = lims_loader['error']
+            dialogs.error(header, subhead, details=details)
+        elif len(self.samples_database['containers'].keys()) > 0:
+            header = 'Import Successful'
+            subhead = 'Loaded %d containers, with a total of %d samples.' % (
+                                len(self.samples_database['containers']),
+                                len(self.samples_database['crystals']))
+            self.inventory.load_containers(self.samples_database['containers'].values())
+            dialogs.info(header, subhead)
+            self.inventory.save_containers()
+        else:
+            header = 'No Containers Available'
+            subhead = 'Could not find any valid containers to import.'
+            dialogs.warning(header, subhead)
+            
 
     def on_import_file(self, obj):
         #FIXME

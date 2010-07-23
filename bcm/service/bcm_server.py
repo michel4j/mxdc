@@ -251,8 +251,8 @@ try:
     bcm_provider = mdns.Provider('Beamline Control Module', '_cmcf_bcm._tcp', 8880, {}, unique=True)
     bcm_ssh_provider = mdns.Provider('Beamline Control Module Console', '_cmcf_bcm_ssh._tcp', 2220, {}, unique=True)
 except mdns.mDNSError:
-    _logger.error('An instance of the BCM is already running on the local network. Only one instance permitted.')
-    reactor.stop()
+    log.err('An instance of the BCM is already running on the local network. Only one instance permitted.')
+    sys.exit()
     
 serviceCollection = service.IServiceCollection(application)
 internet.TCPServer(8880, pb.PBServerFactory(IPerspectiveBCM(f))).setServiceParent(serviceCollection)

@@ -1,7 +1,7 @@
 import os
 import sys
 import math, time
-import gtk
+#import gtk
 import gobject
 
 if sys.version_info[:2] == (2,5):
@@ -14,9 +14,9 @@ def get_short_uuid():
     return str(uuid.uuid1()).split('-')[0]
 
     
-def gtk_idle(sleep=None):
-    while gtk.events_pending():
-        gtk.main_iteration()
+#def gtk_idle(sleep=None):
+#    while gtk.events_pending():
+#        gtk.main_iteration()
 
 class SignalWatcher(object):
     def __init__(self):
