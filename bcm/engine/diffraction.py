@@ -22,7 +22,7 @@ _logger = get_module_logger(__name__)
 
 DEFAULT_PARAMETERS = {
     'prefix': 'test',
-    'directory': os.environ['HOME'],
+    'directory': '/tmp',
     'distance': 250.0,
     'delta': 1.0,
     'time': 1.0,
