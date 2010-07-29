@@ -11,8 +11,7 @@ Interfaces
 
 MX Beamline
 -----------
-
-.. autoclass:: bcm.beamline.mx.MXBeamline
+.. automodule:: bcm.beamline.mx
    :members:
    :undoc-members:
    :noindex:

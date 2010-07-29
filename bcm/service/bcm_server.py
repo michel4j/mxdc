@@ -1,11 +1,11 @@
 from twisted.internet import glib2reactor
 glib2reactor.install()
 
-from twisted.internet import protocol, reactor, threads, defer
+from twisted.internet import reactor, threads, defer
 from twisted.application import internet, service
 from twisted.spread import pb
 from twisted.python import components
-#from twisted.manhole import telnet
+
 from twisted.conch import manhole, manhole_ssh
 from twisted.cred import portal, checkers
 from twisted.python import log
@@ -23,19 +23,28 @@ from bcm.utils import science, mdns
 from bcm.service.utils import log_call
 from bcm.service.interfaces import IPerspectiveBCM, IBCMService
 from bcm.engine.snapshot import take_sample_snapshots
-    
+
+class MountError(pb.Error):
+    """ Unable to Mount """
+    pass
+
 class PerspectiveBCMFromService(pb.Root):
     implements(IPerspectiveBCM)
     def __init__(self, service):
         self.service = service
+        self.client = None
+    
+    def remote_getStates(self):
+        """Obtain the state-map of the interface"""
+        return self.service.getStates()
         
     def remote_mountSample(self, *args, **kwargs):
         """Mount a sample on the Robot and align it"""
         return self.service.mountSample(**kwargs)
     
-    def remote_umountSample(self, *args, **kwargs):
+    def remote_unmountSample(self, *args, **kwargs):
         """Mount a sample on the Robot and align it"""
-        return self.service.umountSample(**kwargs)
+        return self.service.unmountSample(**kwargs)
         
     def remote_scanEdge(self, *args, **kwargs):
         """Perform and Edge scan """
@@ -64,7 +73,22 @@ class PerspectiveBCMFromService(pb.Root):
     def remote_getDevice(self, id):
         """Get a beamline device"""
         return self.service.getDevice(id)
+
+    def rootObject(self, broker):
+        if self.client is not None:
+            return None
+            log.msg('A BCM Client is already connected: %s ' % (self.client))
+            log.msg('New connection refused.')
+        else:
+            self.client = broker
+            broker.notifyOnDisconnect(self._client_disconnected)
+            log.msg('BCM Client Connected: %s' % (self.client))
+        return self
     
+    def _client_disconnected(self):
+        self.client.dontNotifyOnDisconnect(self._client_disconnected)
+        log.msg('BCM Client disonnected: %s' % (self.client))
+        self.client = None
 
 components.registerAdapter(PerspectiveBCMFromService,
     IBCMService,
@@ -98,6 +122,15 @@ class BCMService(service.Service):
     def _service_failed(self, result):
         log.msg('Could not initialize beamline. Shutting down!')
         self.shutdown()
+    
+    @log_call
+    def getStates(self):
+        import random
+        for method in ['mountSample', 'unmountSample', 'scanEdge', 
+                       'scanSpectrum', 'acquireFrames', 'takeSnapshots' ,'setUser', 'getConfig', 'getDevice']:
+            self.states[method] = random.choice([True, False])
+        return self.states
+    
     
     @log_call
     def getConfig(self):

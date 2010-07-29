@@ -42,9 +42,9 @@ def generate_run_list(run, show_number=True):
     run_list = []
     index = 0
     offsets = [0.0,]
-    if run['inverse_beam']:
+    if run.get('inverse_beam', False):
         offsets.append(180.0)
-    wedge = min(run['wedge'], run['total_angle'])
+    wedge = min(run.get('wedge', 360.0), run['total_angle'])
     wedge_size = int(wedge // run['delta'])
     total_size = run['total_frames']
     passes = int (round(0.5 + (run['total_angle'] - run['delta']) / wedge)) 
@@ -63,7 +63,7 @@ def generate_run_list(run, show_number=True):
                     angle = run['start_angle'] + (j * run['delta']) + (i * wedge) + offset
                     frame_number = i * wedge_size + j + int(offset / run['delta']) + run['start_frame']
                     if show_number:
-                        frame_name = "%s_%d%s_%03d" % (run['prefix'], run['number'], energy_tag, frame_number)
+                        frame_name = "%s_%d%s_%03d" % (run['prefix'], run.get('number',1), energy_tag, frame_number)
                     else:
                         frame_name = "%s%s_%03d" % (run['prefix'], energy_tag, frame_number)
                     file_name = "%s.img" % (frame_name)
@@ -71,7 +71,7 @@ def generate_run_list(run, show_number=True):
                         'index': index,
                         'saved': False,
                         'frame_number': frame_number,
-                        'run_number': run['number'],
+                        'run_number': run.get('number', 1),
                         'frame_name': frame_name,
                         'file_name': file_name,
                         'start_angle': angle,
@@ -80,10 +80,11 @@ def generate_run_list(run, show_number=True):
                         'energy': energy,
                         'distance': run['distance'],
                         'prefix': run['prefix'],
-                        'two_theta': run['two_theta'],
+                        'two_theta': run.get('two_theta', 0.0),
                         'directory': run['directory']
                     }
                     run_list.append(list_item)
                     index += 1
         remaining_frames -= current_slice
     return run_list
+

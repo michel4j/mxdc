@@ -74,10 +74,13 @@ class BeamlineClient(gobject.GObject):
         yield waitress
         res = waitress.getResult()
         
-        for dev_name, cmd in delayed_devices:
+        for name, cmd in delayed_devices:
             n_cmd = re.sub("'@([^- ,]+)'", "self.registry['\\1']", cmd)
-            reg_cmd = "self.registry['%s'] = %s" % (dev_name, n_cmd)
+            reg_cmd = "self.registry['%s'] = %s" % (name, n_cmd)
             exec(reg_cmd)
+            util_cmd = "self.%s = self.registry['%s']" % (name, name)
+            print 'Registering %s: %s' % (section, name)
+            exec(util_cmd)
 
         # now register beamline
         globalRegistry.register([], IBeamline, '', self)
@@ -114,6 +117,9 @@ def waitForResult(d):
     
     
 def main():
+    def test(obj):
+        print obj
+        
     beamline = BeamlineClient()
     beamline.connect('ready', test)
     factory = pb.PBClientFactory()
