@@ -8,10 +8,11 @@ warnings.simplefilter("ignore")
 
 from zope.interface import implements
 from bcm.device.interfaces import IGoniometer
-from bcm.protocol.ca import PV, flush
+from bcm.protocol.ca import flush
 from bcm.device.motor import VMEMotor, SimMotor
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
+from bcm.device.base import BaseDevice
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -56,7 +57,7 @@ class GoniometerError(Exception):
     """Base class for errors in the goniometer module."""
 
 
-class GoniometerBase(gobject.GObject):
+class GoniometerBase(BaseDevice):
     """Base class for goniometer."""
     implements(IGoniometer)
 
@@ -66,7 +67,7 @@ class GoniometerBase(gobject.GObject):
         }  
 
     def __init__(self, name):
-        gobject.GObject.__init__(self)
+        BaseDevice.__init__(self)
         self.name = name
         self.mode = -1
     
@@ -74,7 +75,7 @@ class GoniometerBase(gobject.GObject):
         s = "<%s:'%s', mode:%s>" % (self.__class__.__name__,
                                                self.name, self.mode)
         return s
-
+        
     def get_state(self):
         return True
     
@@ -112,17 +113,17 @@ class Goniometer(GoniometerBase):
         GoniometerBase.__init__(self, name)
         pv_root = name.split(':')[0]
         # initialize process variables
-        self._scan_cmd = PV("%s:scanFrame.PROC" % pv_root, monitor=False)
-        self._state = PV("%s:scanFrame:status" % pv_root)
-        self._shutter_state = PV("%s:outp1:fbk" % pv_root)
+        self._scan_cmd = self.add_pv("%s:scanFrame.PROC" % pv_root, monitor=False)
+        self._state = self.add_pv("%s:scanFrame:status" % pv_root)
+        self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
         
         self.omega = VMEMotor('%s:deg' % name)
                 
         #parameters
         self._settings = {
-            'time' : PV("%s:expTime" % pv_root, monitor=False),
-            'delta' : PV("%s:deltaOmega" % pv_root, monitor=False),
-            'angle': PV("%s:openSHPos" % pv_root, monitor=False),
+            'time' : self.add_pv("%s:expTime" % pv_root, monitor=False),
+            'delta' : self.add_pv("%s:deltaOmega" % pv_root, monitor=False),
+            'angle': self.add_pv("%s:openSHPos" % pv_root, monitor=False),
         }
         gobject.idle_add(self.emit, 'mode', 'MOVING')
         
@@ -152,32 +153,32 @@ class MD2Goniometer(GoniometerBase):
         GoniometerBase.__init__(self, name)
         pv_root = name
         # initialize process variables
-        self._scan_cmd = PV("%s:S:StartScan" % pv_root, monitor=False)
-        self._abort_cmd = PV("%s:S:AbortScan" % pv_root, monitor=False)
-        self._state = PV("%s:G:MachAppState" % pv_root)
-        self._mode_cmd = PV("%s:S:MDPhasePosition:asyn.AOUT" % pv_root, monitor=False)
+        self._scan_cmd = self.add_pv("%s:S:StartScan" % pv_root, monitor=False)
+        self._abort_cmd = self.add_pv("%s:S:AbortScan" % pv_root, monitor=False)
+        self._state = self.add_pv("%s:G:MachAppState" % pv_root)
+        self._mode_cmd = self.add_pv("%s:S:MDPhasePosition:asyn.AOUT" % pv_root, monitor=False)
         
         # Does not work reliably yet
-        #self._mode_mounting_cmd = PV("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
-        #self._mode_centering_cmd = PV("%s:S:centering:phase.PROC" % pv_root, monitor=False)
-        #self._mode_collect_cmd = PV("%s:S:scan:phase.PROC" % pv_root, monitor=False)
-        #self._mode_beam_cmd = PV("%s:S:locate:phase.PROC" % pv_root, monitor=False)
+        #self._mode_mounting_cmd = self.add_pv("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
+        #self._mode_centering_cmd = self.add_pv("%s:S:centering:phase.PROC" % pv_root, monitor=False)
+        #self._mode_collect_cmd = self.add_pv("%s:S:scan:phase.PROC" % pv_root, monitor=False)
+        #self._mode_beam_cmd = self.add_pv("%s:S:locate:phase.PROC" % pv_root, monitor=False)
 
-        self._mode_fbk = PV("%s:G:MDPhasePosition" % pv_root)
-        self._cntr_cmd_start = PV("%s:S:StartManSampleCent" % pv_root)
-        self._cntr_cmd_stop = PV("%s:S:ManCentCmpltd" % pv_root)
-        self._enabled_state = PV("%s:enabled" % pv_root)
-        self._shutter_state = PV("%s:G:ShutterIsOpen" % pv_root)
-        self._log = PV('%s:G:StatusMsg' % pv_root)
+        self._mode_fbk = self.add_pv("%s:G:MDPhasePosition" % pv_root)
+        self._cntr_cmd_start = self.add_pv("%s:S:StartManSampleCent" % pv_root)
+        self._cntr_cmd_stop = self.add_pv("%s:S:ManCentCmpltd" % pv_root)
+        self._enabled_state = self.add_pv("%s:enabled" % pv_root)
+        self._shutter_state = self.add_pv("%s:G:ShutterIsOpen" % pv_root)
+        self._log = self.add_pv('%s:G:StatusMsg' % pv_root)
         
         self.omega = omega_motor
                 
         #parameters
         self._settings = {
-            'time' : PV("%s:S:ScanExposureTime" % pv_root, monitor=False),
-            'delta' : PV("%s:S:ScanRange" % pv_root, monitor=False),
-            'angle': PV("%s:S:ScanStartAngle" % pv_root, monitor=False),
-            'passes': PV("%s:S:ScanNumOfPasses" % pv_root, monitor=False),
+            'time' : self.add_pv("%s:S:ScanExposureTime" % pv_root, monitor=False),
+            'delta' : self.add_pv("%s:S:ScanRange" % pv_root, monitor=False),
+            'angle': self.add_pv("%s:S:ScanStartAngle" % pv_root, monitor=False),
+            'passes': self.add_pv("%s:S:ScanNumOfPasses" % pv_root, monitor=False),
         }
         
         #signal handlers

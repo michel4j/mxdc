@@ -223,8 +223,8 @@ class PV(gobject.GObject):
                     (gobject.TYPE_PYOBJECT,)),
         'timed-change' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
                     (gobject.TYPE_PYOBJECT,)),
-        'active' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
-        'inactive' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+        'active' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, 
+                    (gobject.TYPE_BOOLEAN,)),
         'alarm' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
                   (gobject.TYPE_PYOBJECT,))
     }
@@ -443,9 +443,9 @@ class PV(gobject.GObject):
                 self._set_properties()
                 if self._monitor == True:
                     self._add_handler( self._on_change )
-            gobject.idle_add(self.emit, 'active')
+            gobject.idle_add(self.emit, 'active', True)
         else:
-            gobject.idle_add(self.emit, 'inactive')
+            gobject.idle_add(self.emit, 'active', False)
         return 0
         
     def _add_handler(self, callback):

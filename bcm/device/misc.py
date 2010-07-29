@@ -7,6 +7,7 @@ from zope.interface import implements
 from bcm import registry
 from bcm.protocol.ca import PV
 from bcm.protocol import ca
+from bcm.device.base import BaseDevice, BaseDeviceGroup
 from bcm.utils.log import get_module_logger
 from bcm.utils import converter
 from bcm.device.interfaces import *
@@ -21,7 +22,7 @@ class MiscDeviceError(Exception):
 
     """Base class for errors in the misc module."""
 
-class PositionerBase(gobject.GObject):
+class PositionerBase(BaseDevice):
     implements(IPositioner)
     __gsignals__ =  { 
         "changed": ( gobject.SIGNAL_RUN_FIRST, 
@@ -30,7 +31,7 @@ class PositionerBase(gobject.GObject):
         }  
 
     def __init__(self):
-        gobject.GObject.__init__(self)
+        BaseDevice.__init__(self)
         self.name = 'Basic Positioner'
         self.units = ''
                
@@ -61,7 +62,7 @@ class SimPositioner(PositionerBase):
 class Positioner(PositionerBase):
     def __init__(self, name, fbk_name=None, scale=None, units=""):
         PositionerBase.__init__(self)
-        self.set_pv = PV(name)
+        self.set_pv = self.add_pv(name)
         try:
             self.scale = float(scale)
         except:
@@ -69,8 +70,8 @@ class Positioner(PositionerBase):
         if fbk_name is None:
             self.fbk_pv = self.set_pv
         else:
-            self.fbk_pv = PV(fbk_name)
-        self.DESC = PV('%s.DESC' % name)
+            self.fbk_pv = self.add_pv(fbk_name)
+        self.DESC = PV('%s.DESC' % name) # device should work without desc pv so not using add_pv
         self.name = name
         if scale is None:
             self.units = units
@@ -137,7 +138,7 @@ class PositionerMotor(MotorBase):
 
 registry.register([IPositioner], IMotor, '', PositionerMotor)
     
-class Attenuator(gobject.GObject):
+class Attenuator(BaseDevice):
 
     implements(IPositioner)
     __gsignals__ =  { 
@@ -147,7 +148,7 @@ class Attenuator(gobject.GObject):
         }  
     
     def __init__(self, bitname, energy):
-        gobject.GObject.__init__(self)
+        BaseDevice.__init__(self)
         fname = bitname[:-1]
         self._filters = [
             PV('%s4:bit' % fname),
@@ -216,7 +217,7 @@ class Attenuator(gobject.GObject):
 
 class Attenuator2(Attenuator):  
     def __init__(self, bitname, energy):
-        gobject.GObject.__init__(self)
+        BaseDevice.__init__(self)
         fname = bitname[:-1]
         self._filters = [
             PV('%s4:ctl' % fname),
@@ -254,7 +255,7 @@ class Attenuator2(Attenuator):
                 self._open[i].put(1)
                    
 
-class BasicShutter(gobject.GObject):
+class BasicShutter(BaseDevice):
 
     implements(IShutter)
     
@@ -265,7 +266,7 @@ class BasicShutter(gobject.GObject):
         }
           
     def __init__(self, open_name, close_name, state_name):
-        gobject.GObject.__init__(self)
+        BaseDevice.__init__(self)
         # initialize variables
         self._open_cmd = PV(open_name)
         self._close_cmd = PV(close_name)
@@ -293,7 +294,7 @@ class BasicShutter(gobject.GObject):
         else:
             gobject.idle_add(self.emit,'changed', False)
         
-class SimShutter(gobject.GObject):
+class SimShutter(BaseDevice):
     
     implements(IShutter)
     
@@ -304,9 +305,9 @@ class SimShutter(gobject.GObject):
         }
 
     def __init__(self,name):
+        BaseDevice.__init__(self)
         self.name = name
         self._state = False
-        gobject.GObject.__init__(self)
 
     def open(self):
         self._state = True
@@ -336,11 +337,12 @@ class CryojetNozzle(BasicShutter):
         self._messages = ['Retracting', 'Restoring']
         self._name = 'Cryojet Nozzle'
 
-class Cryojet(object):
+class Cryojet(BaseDevice):
     
     implements(ICryojet)
     
     def __init__(self, cname, lname, nozzle_motor=None):
+        BaseDevice.__init__(self)
         self.temperature = Positioner('%s:sensorTemp:get' % cname,
                                       '%s:sensorTemp:get' % cname,
                                       units='Kelvin')
@@ -366,9 +368,10 @@ class Cryojet(object):
         self._previous_flow = self.sample_flow.get()
         self.sample_flow.set(0.0)
 
-class SimCryojet(object):
+class SimCryojet(BaseDevice):
     implements(ICryojet)
     def __init__(self, name):
+        BaseDevice.__init__(self)
         self.name = name
         self.temperature = SimPositioner('Cryojet Temperature',
                                         pos=101.2, units='Kelvin')
@@ -389,19 +392,18 @@ class SimCryojet(object):
     def resume_flow(self):
         self.sample_flow.set(8.0)
    
-class XYZStage(object):
+class XYZStage(BaseDeviceGroup):
 
     implements(IStage)
     
     def __init__(self, x, y, z, name='XYZ Stage'):
+        BaseDeviceGroup.__init__(self)
         self.name = name
         self.x  = x
         self.y  = y
         self.z  = z
-                    
-    def get_state(self):
-        return self.x.get_state() | self.y.get_state() | self.z.get_state() 
-                        
+        self.add_devices(x, y, z)
+                                
     def wait(self):
         self.x.wait()
         self.y.wait()
@@ -412,19 +414,18 @@ class XYZStage(object):
         self.y.stop()
         self.z.stop()
 
-class SampleStage(object):
+class SampleStage(BaseDeviceGroup):
 
     implements(IStage)
     
     def __init__(self, x, y1, y2, omega, name='Sample Stage'):
+        BaseDeviceGroup.__init__(self)
         from bcm.device.motor import RelVerticalMotor
         self.name = name
         self.x  = x
         self.y  = RelVerticalMotor(y1, y2, omega)
-                    
-    def get_state(self):
-        return self.x.get_state() | self.y.get_state() 
-                        
+        self.add_devices(x, y1, y2)
+                                            
     def wait(self):
         self.x.wait()
         self.y.wait()
@@ -434,16 +435,15 @@ class SampleStage(object):
         self.y.stop()
  
 
-class XYStage(object):
+class XYStage(BaseDeviceGroup):
     implements(IStage)
     def __init__(self, x, y, name='XY Stage'):
+        BaseDeviceGroup.__init__(self)
         self.name = name
         self.x  = x
         self.y  = y
-                    
-    def get_state(self):
-        return self.x.get_state() | self.y.get_state() 
-                        
+        self.add_devices(x, y)
+                                            
     def wait(self):
         self.x.wait()
         self.y.wait()
@@ -453,23 +453,19 @@ class XYStage(object):
         self.y.stop()
 
 
-class Collimator(object):
+class Collimator(BaseDeviceGroup):
 
     implements(ICollimator)
     
     def __init__(self, x, y, width, height, name='Collimator'):
+        BaseDeviceGroup.__init__(self)
         self.name = name
         self.x  = x
         self.y = y
         self.width  = width
         self.height = height
-                    
-    def get_state(self):
-        return (self.width.get_state() | 
-                self.height.get_state() | 
-                self.x.get_state() |
-                self.y.get_state()) 
-                        
+        self.add_devices(x, y, width, height)
+                                            
     def wait(self):
         self.width.wait()
         self.height.wait()
@@ -483,10 +479,12 @@ class Collimator(object):
         self.y.stop()
 
 
-class Optimizer(object):
+class Optimizer(BaseDevice):
     implements(IOptimizer)
+    
     def __init__(self, name):
-        pass
+        BaseDevice.__init__(self)
+        self.set_state(active=True)
     
     def start(self):
         pass
@@ -502,15 +500,16 @@ class Optimizer(object):
 
 SimOptimizer = Optimizer
   
-class MostabOptimizer(object):
+class MostabOptimizer(BaseDevice):
     
     implements(IOptimizer)
     
     def __init__(self, name):
-        self._start = ca.PV('%s:Mostab:opt:cmd' % name)
-        self._stop = ca.PV('%s:abortFlag' % name)
-        self._state1 = ca.PV('%s:optRun'% name)
-        self._state2 = ca.PV('%s:optDone'% name)
+        BaseDevice.__init__(self)
+        self._start = self.add_pv('%s:Mostab:opt:cmd' % name)
+        self._stop = self.add_pv('%s:abortFlag' % name)
+        self._state1 = self.add_pv('%s:optRun'% name)
+        self._state2 = self.add_pv('%s:optDone'% name)
         self._status = 0
         self._command_active = False
         self._state1.connect('changed', self._state_change)

@@ -1,3 +1,17 @@
+r""" Counter Device objects
+
+A counter device enables counting and averaging over given time periods.
+
+Each Counter device obeys the following interface:
+
+    methods:
+    
+    count(time)
+        count for the specified amount of time and return the numeric value
+        corresponding to the average count. This method blocks for the specified 
+        time.
+    
+"""
 import time
 import math
 import logging
@@ -7,6 +21,7 @@ import random
 from zope.interface import implements
 from bcm.device.interfaces import ICounter
 from bcm.protocol.ca import PV
+from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -17,15 +32,16 @@ class CounterError(Exception):
     """Base class for errors in the counter module."""
 
 
-class Counter(object):
+class Counter(BaseDevice):
 
     implements(ICounter)
     
     def __init__(self, pv_name, zero=0):
+        BaseDevice.__init__(self)
         self.name = pv_name
         self.zero = float(zero)
-        self.value = PV(pv_name)
-        self.DESC = PV('%s.DESC' % pv_name)
+        self.value = self.add_pv(pv_name)
+        self.DESC = self.add_pv('%s.DESC' % pv_name)
         self.DESC.connect('changed', self._on_name_change)
     
     def __repr__(self):
@@ -54,11 +70,12 @@ class Counter(object):
                         
 
 
-class SimCounter(object):
+class SimCounter(BaseDevice):
     
     implements(ICounter)
     
     def __init__(self, name, zero=0):
+        BaseDevice.__init__(self)
         from bcm.device.misc import SimPositioner
         self.zero = float(zero)
         self.name = name

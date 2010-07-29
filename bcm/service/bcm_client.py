@@ -22,7 +22,7 @@ run_info = {
     'number' : 1,
     'energy_label' : ['E0'],
     'wedge' : 360.0,
-    'prefix' : 'test-5',
+    'prefix' : 'test-6',
     'inverse_beam' : False,
     'time' : 1.0,
     'directory' : DIRECTORY,

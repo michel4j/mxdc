@@ -63,8 +63,63 @@
 </dd></dl>
 
 </div>
-<div class="section" id="mx-beamline">
-<h2>3.1.2. MX Beamline<a class="headerlink" href="#mx-beamline" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-bcm.beamline.mx">
+<span id="mx-beamline"></span><h2>3.1.2. MX Beamline<a class="headerlink" href="#module-bcm.beamline.mx" title="Permalink to this headline">¶</a></h2>
+<p>MX Beamline(Macromolecular Crystallography Beamline) objects</p>
+<p>This module creates MXBeamline objects (class MXBeamline) from a configuration
+file. The configuration file format follows the conventions defined within the 
+<tt class="docutils literal"><span class="pre">ConfigParser</span></tt> module of the Python standard library.</p>
+<p>The following additional assumptions are applied when interpreting the files: 
+values can be a comma separated list such as: <tt class="docutils literal"><span class="pre">values</span> <span class="pre">=</span> <span class="pre">element1,</span> <span class="pre">element2,</span> <span class="pre">element3,...</span></tt>
+The list of elements are interpreted as follows:</p>
+<blockquote>
+<ul class="simple">
+<li>1st element:  device type</li>
+<li>2nd, 3rd etc: device instantiation parameters which may be strings
+or other devices. Prefixing &#64; as the first character
+indicates the element is the name of another device.
+Elements prefixed with &#8216;&#64;&#8217; must exist independently.</li>
+</ul>
+</blockquote>
+<p>The following sections and corresponding required parameters must be present within the 
+configuration file:</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">beamline</span></tt></dt>
+<dd><p class="first">Defines beamline configuration parameters</p>
+<blockquote class="last">
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">name</span></tt> : The name of the beamline given as a string.</li>
+<li><tt class="docutils literal"><span class="pre">energy_range</span></tt>: The energy range available, given as a comma separated pair of floats.</li>
+<li><tt class="docutils literal"><span class="pre">beamline_diagram</span></tt>: The file name of a graphic depicting the beamline arrangement.</li>
+<li><tt class="docutils literal"><span class="pre">beamline_type</span></tt>: The type of beamline. For example &#8220;MX&#8221;</li>
+<li><tt class="docutils literal"><span class="pre">orientation</span></tt>: an integer identifying the orientation of the beamline, as derined by XREC.</li>
+</ul>
+</blockquote>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">utilities</span></tt></dt>
+<dd><p class="first">Specifies devices and utilities to be registered for the specific type of beamline being configured.
+Each type of beamline expects somf device types and utilities to be available. The following list shows 
+what is expected for an &#8220;MX&#8221; Beamline.</p>
+<ul class="last simple">
+<li><tt class="docutils literal"><span class="pre">monochromator</span></tt>: A monochromator device</li>
+<li><tt class="docutils literal"><span class="pre">goniometer</span></tt>: A goniometer device</li>
+<li><tt class="docutils literal"><span class="pre">diffractometer</span></tt>: A diffractometer device</li>
+<li><tt class="docutils literal"><span class="pre">detector</span></tt>: An imaging detector device</li>
+<li><tt class="docutils literal"><span class="pre">i_0</span></tt>: A counter device</li>
+<li><tt class="docutils literal"><span class="pre">cryojet</span></tt>: A cryojet device</li>
+<li><tt class="docutils literal"><span class="pre">sample_video</span></tt>: A sample video source</li>
+<li><tt class="docutils literal"><span class="pre">beam_stop</span></tt>: A beam-stop device</li>
+<li><tt class="docutils literal"><span class="pre">exposure_shutter</span></tt>: A shutter for exposures</li>
+<li><tt class="docutils literal"><span class="pre">attenuator</span></tt>: An attenuator device</li>
+<li><tt class="docutils literal"><span class="pre">mca</span></tt>: A multichannel analyzer</li>
+<li>etc.</li>
+</ul>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">devices</span></tt></dt>
+<dd>Additional devices</dd>
+<dt><tt class="docutils literal"><span class="pre">services</span></tt></dt>
+<dd>Web services</dd>
+</dl>
 <dl class="class">
 <dt>
 <em class="property">class </em><tt class="descclassname">bcm.beamline.mx.</tt><tt class="descname">MXBeamline</tt><big>(</big><em>filename</em><big>)</big></dt>
@@ -103,7 +158,7 @@
   <ul>
 <li><a class="reference internal" href="#">3.1. Beamline</a><ul>
 <li><a class="reference internal" href="#interfaces">3.1.1. Interfaces</a></li>
-<li><a class="reference internal" href="#mx-beamline">3.1.2. MX Beamline</a></li>
+<li><a class="reference internal" href="#module-bcm.beamline.mx">3.1.2. MX Beamline</a></li>
 <li><a class="reference internal" href="#remote-client">3.1.3. Remote Client</a></li>
 </ul>
 </li>

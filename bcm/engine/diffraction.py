@@ -257,7 +257,6 @@ class DataCollector(gobject.GObject):
         worker_thread.setDaemon(True)
         worker_thread.setName('Data Collector')
         worker_thread.start()
-
     
     def run(self):
         self.paused = False
