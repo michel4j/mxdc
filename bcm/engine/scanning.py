@@ -92,7 +92,7 @@ class BasicScan(gobject.GObject):
             self.plotter.connect_scanner(self)
         except:
             self.plotter = None
-            _logger.info('No Plotter found.')
+            _logger.debug('No Plotter found.')
                 
     def configure(self, **kwargs):
         self.data = []

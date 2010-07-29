@@ -1,6 +1,45 @@
+r""" Automounter Device objects
+
+An automounter object is an event driven ``GObject`` which contains a number of Automounter Containers.
+
+Each Automounter device obeys the following interface:
+    signals:
+    
+    `state`:
+        a signal which transmits changes in automounter states. The 
+        The signal data is a dictionary with three entries as follows:
+        {'busy': <boolean>, 'enabled': <boolean>, 'needs':[<str1>,<str2>,...]}
+    `message`: 
+        a signal which emits messages from the Automounter
+    `mounted`: 
+        a signal emitted when a sample is mounted or dismounted. The data transmitted
+        is a tuple of the form (<port no.>, <barcode>) when mounting and ``None`` when dismounting.
+    `progress`:
+        notifies listeners of automounter progress. Transmitted data is a tuple of the form
+        (<% complete>, <description>)
+    
+    methods:
+    
+    parse_states(state_string)
+        configure all the containers and their respective states from the DCSS compatible state
+        string provided.
+    
+    probe(probe_string)
+        command the automounter the probe for containers and port states as specified by the DCSS compatible
+        probe string provided.
+    
+    mount(port, wash=False)
+        mount the sample at the specified port, optionally washing the sample in the process.
+    
+    dismount(port=None)
+        dismount the sample into the specified port if provided, otherwise dismount 
+        it to the original port from which it was mounted. 
+    
+"""
 from zope.interface import implements
 from bcm.device.interfaces import IAutomounter
 from bcm.protocol import ca
+from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
 from bcm.utils.automounter import *
 import gobject
@@ -20,16 +59,32 @@ uu------uu------uu------uu------uu------uu------uu------uu------uu------u'
 
 
 class AutomounterContainer(gobject.GObject):
+    """An event driven object for representing an automounter container.
+    
+    Signals:
+         `changed`: Emits the `changed` GObject signal when the state of the container changes.
+    """
     __gsignals__ = {
         'changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
     }
     def __init__(self, location, status_str=None):
+        """ Create a container at the specified `location` in the Automounter, where
+        the location is a single character string from the set ('L', 'R', 'M') corresponding
+        to 'Left', 'Right', 'Middle'.
+        
+        Optionally also takes in a status string which is a BLU-Ice compatible string specifying
+        the type and complete state of the container.
+        """
+        
         gobject.GObject.__init__(self)
         self.location = location
         self.samples = {}
         self.configure(status_str)
     
     def configure(self, status_str=None):
+        """This method sets up the container type and state from a status string.
+        If no status string is provided, it resets the container to the 'unknown' state.
+        """
         if status_str is not None and len(status_str)>0:
             if status_str[0] == 'u':
                 self.container_type = CONTAINER_UNKNOWN
@@ -64,17 +119,27 @@ class AutomounterContainer(gobject.GObject):
         return self.samples.get(key, None)
                     
 
-class BasicAutomounter(gobject.GObject):
+class BasicAutomounter(BaseDevice):
+    """Basic Automounter objects. Contains a number of Automounter Containers.
+    
+    Signals:
+        `state`:
+            a signal which transmits changes in automounter states. The 
+            The signal data is a dictionary with three entries as follows:
+            {'busy': <boolean>, 'enabled': <boolean>, 'needs':[<str1>,<str2>,...]}
+        `mounted`: 
+            a signal emitted when a sample is mounted or dismounted. The data transmitted
+            is a tuple of the form (<port no.>, <barcode>) when mounting and ``None`` when dismounting. 
+    """
     implements(IAutomounter)
     __gsignals__ = {
         'state': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'message': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'mounted': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'progress':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
     }
     
     def __init__(self):
-        gobject.GObject.__init__(self)
+        BaseDevice.__init__(self)
         self.containers = {'L': AutomounterContainer('L'),
                           'M': AutomounterContainer('M'),
                           'R': AutomounterContainer('R')}
@@ -87,6 +152,9 @@ class BasicAutomounter(gobject.GObject):
         self._last_warn = ''
 
     def parse_states(self, state):
+        """This method sets up all the container types and states from a DCSS type status string.
+        If no status string.
+        """        
         fbstr = ''.join(state.split())
         info = {
         'L': fbstr[:97],
@@ -95,11 +163,22 @@ class BasicAutomounter(gobject.GObject):
         for k,s in info.items():
             self.containers[k].configure(s)
 
+    def probe(self):
+        pass
+    
+    def mount(self):
+        pass
+    
+    def dismount(self):
+        pass
+    
+    def wait(self, timeout=60):
+        pass
        
 class SimAutomounter(BasicAutomounter):        
     def __init__(self, name='Sim Automounter'):
         BasicAutomounter.__init__(self)
-        self.name = 'name'
+        self.name = name
         self.parse_states(_TEST_STATE2)
         from bcm.device.misc import SimPositioner
         self.nitrogen_level = SimPositioner('Automounter Cryogen Level', 80.0, '%')
@@ -163,29 +242,27 @@ class Automounter(BasicAutomounter):
         
         #initialize housekeeping vars
         
-        self.port_states = ca.PV('%s:cassette:fbk' % pv_name)
-        self.nitrogen_level = ca.PV('%s:LN2Fill:lvl:fbk' % pv_name2)
-        self.heater_temperature = ca.PV('%s:temp' % pv_name)
-        self.status_msg = ca.PV('%s:sample:msg' % pv_name)
-        self.needs_val = ca.PV('%s:status:val' % pv_name)
-        self._warning = ca.PV('%s:status:warning' % pv_name)
-        self._mount_cmd = ca.PV('%s:mntX:opr' % pv_name)
-        self._mount_param = ca.PV('%s:mntX:param' % pv_name)
-        self._dismount_cmd = ca.PV('%s:dismntX:opr' % pv_name)
-        self._dismount_param = ca.PV('%s:dismntX:param' % pv_name)
-        self._mount_next_cmd = ca.PV('%s:mntNextX:opr' % pv_name)
-        self._wash_param = ca.PV('%s:washX:param' % pv_name)
-        self._bar_code = ca.PV('%s:bcode:barcode' % pv_name)
-        self._barcode_reset = ca.PV('%s:bcode:clear' % pv_name)
-        self._enabled = ca.PV('%s:mntEn' % pv_name)
-        self._state = ca.PV('%s:sample:sts' % pv_name)
-        
+        self.port_states = self.add_pv('%s:cassette:fbk' % pv_name)
+        self.nitrogen_level = self.add_pv('%s:LN2Fill:lvl:fbk' % pv_name2)
+        self.status_msg = self.add_pv('%s:sample:msg' % pv_name)
+        self.needs_val = self.add_pv('%s:status:val' % pv_name)
+        self._warning = self.add_pv('%s:status:warning' % pv_name)
+        self._mount_cmd = self.add_pv('%s:mntX:opr' % pv_name)
+        self._mount_param = self.add_pv('%s:mntX:param' % pv_name)
+        self._dismount_cmd = self.add_pv('%s:dismntX:opr' % pv_name)
+        self._dismount_param = self.add_pv('%s:dismntX:param' % pv_name)
+        self._mount_next_cmd = self.add_pv('%s:mntNextX:opr' % pv_name)
+        self._wash_param = self.add_pv('%s:washX:param' % pv_name)
+        self._bar_code = self.add_pv('%s:bcode:barcode' % pv_name)
+        self._barcode_reset = self.add_pv('%s:bcode:clear' % pv_name)
+        self._enabled = self.add_pv('%s:mntEn' % pv_name)
+        self._state = self.add_pv('%s:sample:sts' % pv_name)
         
         self.port_states.connect('changed', lambda x, y: self.parse_states(y))
         
         #Detailed Status
-        self._mounted =  ca.PV('%s:status:mounted' % pv_name)
-        self._position = ca.PV('%s:state:curPnt' % pv_name)
+        self._mounted =  self.add_pv('%s:status:mounted' % pv_name)
+        self._position = self.add_pv('%s:state:curPnt' % pv_name)
         self._mounted.connect('changed', self._on_mount_changed)
         self._position.connect('changed', self._on_pos_changed)
         self._warning.connect('changed', self._on_status_warning)
@@ -198,6 +275,7 @@ class Automounter(BasicAutomounter):
         #self._dismount_cmd.connect('changed', lambda x,y: self._set_steps(25))
         #self._mount_cmd.connect('changed', lambda x,y: self._set_steps(26))
         #self._mount_next_cmd.connect('changed', lambda x,y: self._set_steps(40))
+        
         
     def probe(self):
         pass

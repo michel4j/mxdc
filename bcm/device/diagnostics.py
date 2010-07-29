@@ -27,7 +27,7 @@ class DiagnosticBase(gobject.GObject):
     # Motor signals
     __gsignals__ =  { 
         "status": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        }  
+        } 
 
     def __init__(self, descr):
         gobject.GObject.__init__(self)

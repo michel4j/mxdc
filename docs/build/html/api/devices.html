@@ -60,6 +60,41 @@
 </div>
 <div class="section" id="module-bcm.device.automounter">
 <span id="automounter"></span><h2>3.2.2. Automounter<a class="headerlink" href="#module-bcm.device.automounter" title="Permalink to this headline">¶</a></h2>
+<p>Automounter Device objects</p>
+<p>An automounter object is an event driven <tt class="docutils literal"><span class="pre">GObject</span></tt> which contains a number of Automounter Containers.</p>
+<dl class="docutils">
+<dt>Each Automounter device obeys the following interface:</dt>
+<dd><p class="first">signals:</p>
+<dl class="docutils">
+<dt><cite>state</cite>:</dt>
+<dd>a signal which transmits changes in automounter states. The 
+The signal data is a dictionary with three entries as follows:
+{&#8216;busy&#8217;: &lt;boolean&gt;, &#8216;enabled&#8217;: &lt;boolean&gt;, &#8216;needs&#8217;:[&lt;str1&gt;,&lt;str2&gt;,...]}</dd>
+<dt><cite>message</cite>: </dt>
+<dd>a signal which emits messages from the Automounter</dd>
+<dt><cite>mounted</cite>: </dt>
+<dd>a signal emitted when a sample is mounted or dismounted. The data transmitted
+is a tuple of the form (&lt;port no.&gt;, &lt;barcode&gt;) when mounting and <tt class="xref docutils literal"><span class="pre">None</span></tt> when dismounting.</dd>
+<dt><cite>progress</cite>:</dt>
+<dd>notifies listeners of automounter progress. Transmitted data is a tuple of the form
+(&lt;% complete&gt;, &lt;description&gt;)</dd>
+</dl>
+<p>methods:</p>
+<dl class="last docutils">
+<dt>parse_states(state_string)</dt>
+<dd>configure all the containers and their respective states from the DCSS compatible state
+string provided.</dd>
+<dt>probe(probe_string)</dt>
+<dd>command the automounter the probe for containers and port states as specified by the DCSS compatible
+probe string provided.</dd>
+<dt>mount(port, wash=False)</dt>
+<dd>mount the sample at the specified port, optionally washing the sample in the process.</dd>
+<dt>dismount(port=None)</dt>
+<dd>dismount the sample into the specified port if provided, otherwise dismount 
+it to the original port from which it was mounted.</dd>
+</dl>
+</dd>
+</dl>
 <dl class="class">
 <dt>
 <em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">Automounter</tt><big>(</big><em>pv_name</em>, <em>pv_name2=None</em><big>)</big></dt>
@@ -143,10 +178,17 @@
 <dl class="class">
 <dt>
 <em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">AutomounterContainer</tt><big>(</big><em>location</em>, <em>status_str=None</em><big>)</big></dt>
-<dd><dl class="method">
+<dd><p>An event driven object for representing an automounter container.</p>
+<dl class="docutils">
+<dt>Signals:</dt>
+<dd><cite>changed</cite>: Emits the <cite>changed</cite> GObject signal when the state of the container changes.</dd>
+</dl>
+<dl class="method">
 <dt>
 <tt class="descclassname">AutomounterContainer.</tt><tt class="descname">configure</tt><big>(</big><em>status_str=None</em><big>)</big></dt>
-<dd></dd></dl>
+<dd><p>This method sets up the container type and state from a status string.
+If no status string is provided, it resets the container to the &#8216;unknown&#8217; state.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -208,9 +250,47 @@
 <dl class="class">
 <dt>
 <em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">BasicAutomounter</tt></dt>
-<dd><dl class="method">
+<dd><p>Basic Automounter objects. Contains a number of Automounter Containers.</p>
+<dl class="docutils">
+<dt>Signals:</dt>
+<dd><dl class="first last docutils">
+<dt><cite>state</cite>:</dt>
+<dd>a signal which transmits changes in automounter states. The 
+The signal data is a dictionary with three entries as follows:
+{&#8216;busy&#8217;: &lt;boolean&gt;, &#8216;enabled&#8217;: &lt;boolean&gt;, &#8216;needs&#8217;:[&lt;str1&gt;,&lt;str2&gt;,...]}</dd>
+<dt><cite>message</cite>: </dt>
+<dd>a signal which emits messages from the Automounter</dd>
+<dt><cite>mounted</cite>: </dt>
+<dd>a signal emitted when a sample is mounted or dismounted. The data transmitted
+is a tuple of the form (&lt;port no.&gt;, &lt;barcode&gt;) when mounting and <tt class="xref docutils literal"><span class="pre">None</span></tt> when dismounting.</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">dismount</tt><big>(</big><big>)</big></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">mount</tt><big>(</big><big>)</big></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt>
 <tt class="descclassname">BasicAutomounter.</tt><tt class="descname">parse_states</tt><big>(</big><em>state</em><big>)</big></dt>
+<dd><p>This method sets up all the container types and states from a DCSS type status string.
+If no status string.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">probe</tt><big>(</big><big>)</big></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">wait</tt><big>(</big><em>timeout=60</em><big>)</big></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -243,6 +323,18 @@
 </div>
 <div class="section" id="module-bcm.device.counter">
 <span id="counters"></span><h2>3.2.3. Counters<a class="headerlink" href="#module-bcm.device.counter" title="Permalink to this headline">¶</a></h2>
+<p>Counter Device objects</p>
+<p>A counter device enables counting and averaging over given time periods.</p>
+<p>Each Counter device obeys the following interface:</p>
+<blockquote>
+<p>methods:</p>
+<dl class="docutils">
+<dt>count(time)</dt>
+<dd>count for the specified amount of time and return the numeric value
+corresponding to the average count. This method blocks for the specified 
+time.</dd>
+</dl>
+</blockquote>
 <dl class="class">
 <dt>
 <em class="property">class </em><tt class="descclassname">bcm.device.counter.</tt><tt class="descname">Counter</tt><big>(</big><em>pv_name</em>, <em>zero=0</em><big>)</big></dt>
