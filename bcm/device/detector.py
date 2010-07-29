@@ -8,6 +8,7 @@ import gobject
 from zope.interface import implements
 from bcm.device.interfaces import IImagingDetector
 from bcm.protocol import ca
+from bcm.device.base import BaseDevice
 from bcm.utils.decorators import async
 from bcm.utils.log import get_module_logger
 
@@ -21,50 +22,50 @@ class DetectorError(Exception):
     """Base class for errors in the detector module."""
             
      
-class MXCCDImager(gobject.GObject):
+class MXCCDImager(BaseDevice):
     
     implements(IImagingDetector)
     
     def __init__(self, name, size, resolution):
-        gobject.GObject.__init__(self)
+        BaseDevice.__init__(self)
         self.size = int(size)
         self.resolution = float(resolution)
         self.name = name
         
-        self._start_cmd = ca.PV("%s:start:cmd" % name, monitor=False)
-        self._abort_cmd = ca.PV("%s:abort:cmd" % name, monitor=False)
-        self._readout_cmd = ca.PV("%s:readout:cmd" % name, monitor=False)
-        self._reset_cmd = ca.PV("%s:resetStates:cmd" % name, monitor=False)
-        self._writefile_cmd = ca.PV("%s:writefile:cmd" % name, monitor=False)
-        self._background_cmd = ca.PV("%s:dezFrm:cmd" % name, monitor=False)
-        self._save_cmd = ca.PV("%s:rdwrOut:cmd" % name, monitor=False)
-        self._collect_cmd = ca.PV("%s:frameCollect:cmd" % name, monitor=False)
-        self._header_cmd = ca.PV("%s:header:cmd" % name, monitor=False)
-        self._readout_flag = ca.PV("%s:readout:flag" % name, monitor=False)
-        self._dezinger_flag = ca.PV("%s:dez:flag" % name, monitor=False)
-        self._dezinger_cmd = ca.PV("%s:dezinger:cmd" % name, monitor=False)
-        self._connection_state = ca.PV('%s:sock:state'% name)
+        self._start_cmd = self.add_pv("%s:start:cmd" % name, monitor=False)
+        self._abort_cmd = self.add_pv("%s:abort:cmd" % name, monitor=False)
+        self._readout_cmd = self.add_pv("%s:readout:cmd" % name, monitor=False)
+        self._reset_cmd = self.add_pv("%s:resetStates:cmd" % name, monitor=False)
+        self._writefile_cmd = self.add_pv("%s:writefile:cmd" % name, monitor=False)
+        self._background_cmd = self.add_pv("%s:dezFrm:cmd" % name, monitor=False)
+        self._save_cmd = self.add_pv("%s:rdwrOut:cmd" % name, monitor=False)
+        self._collect_cmd = self.add_pv("%s:frameCollect:cmd" % name, monitor=False)
+        self._header_cmd = self.add_pv("%s:header:cmd" % name, monitor=False)
+        self._readout_flag = self.add_pv("%s:readout:flag" % name, monitor=False)
+        self._dezinger_flag = self.add_pv("%s:dez:flag" % name, monitor=False)
+        self._dezinger_cmd = self.add_pv("%s:dezinger:cmd" % name, monitor=False)
+        self._connection_state = self.add_pv('%s:sock:state'% name)
         
         #Header parameters
         self._header = {
-            'filename' : ca.PV("%s:img:filename" % name, monitor=False),
-            'directory': ca.PV("%s:img:dirname" % name, monitor=False),
-            'beam_x' : ca.PV("%s:beam:x" % name, monitor=False),
-            'beam_y' : ca.PV("%s:beam:y" % name, monitor=False),
-            'distance' : ca.PV("%s:distance" % name, monitor=False),
-            'time' : ca.PV("%s:exposureTime" % name, monitor=False),
-            'axis' : ca.PV("%s:rot:axis" % name, monitor=False),
-            'wavelength':  ca.PV("%s:src:wavelgth" % name, monitor=False),
-            'delta' : ca.PV("%s:omega:incr" % name, monitor=False),
-            'frame_number': ca.PV("%s:startFrame" % name, monitor=False),
-            'prefix' : ca.PV("%s:img:prefix" % name, monitor=False),
-            'start_angle': ca.PV("%s:start:omega" % name, monitor=False),
-            'energy': ca.PV("%s:runEnergy" % name, monitor=False),            
+            'filename' : self.add_pv("%s:img:filename" % name, monitor=False),
+            'directory': self.add_pv("%s:img:dirname" % name, monitor=False),
+            'beam_x' : self.add_pv("%s:beam:x" % name, monitor=False),
+            'beam_y' : self.add_pv("%s:beam:y" % name, monitor=False),
+            'distance' : self.add_pv("%s:distance" % name, monitor=False),
+            'time' : self.add_pv("%s:exposureTime" % name, monitor=False),
+            'axis' : self.add_pv("%s:rot:axis" % name, monitor=False),
+            'wavelength':  self.add_pv("%s:src:wavelgth" % name, monitor=False),
+            'delta' : self.add_pv("%s:omega:incr" % name, monitor=False),
+            'frame_number': self.add_pv("%s:startFrame" % name, monitor=False),
+            'prefix' : self.add_pv("%s:img:prefix" % name, monitor=False),
+            'start_angle': self.add_pv("%s:start:omega" % name, monitor=False),
+            'energy': self.add_pv("%s:runEnergy" % name, monitor=False),            
         }
                 
         #Status parameters
         self._state_string = '00000000'
-        self._state = ca.PV("%s:rawState" % name)
+        self._state = self.add_pv("%s:rawState" % name)
         self._state_bits = ['None','queue','exec','queue+exec','err','queue+err','exec+err','queue+exec+err','unused']
         self._state_names = ['unused','unused','dezinger','write','correct','read','acquire','state']
         self._bg_taken = False

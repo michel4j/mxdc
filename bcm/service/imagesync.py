@@ -1,19 +1,14 @@
 from __future__ import nested_scopes
-from twisted.application import internet, service
-from twisted.internet import protocol, reactor, defer, utils, interfaces, error
-from twisted.protocols import basic
-from twisted.python import components
-from twisted.web import resource, server, static, xmlrpc
+from twisted.application import service
+from twisted.internet import protocol, reactor, defer, interfaces
+from twisted.web import resource, xmlrpc
 from twisted.spread import pb
-from twisted.python import log
+from twisted.python import log, components
 from zope.interface import Interface, implements
 from bcm.service.utils import log_call
 
 from ConfigParser import ConfigParser
-import time, commands
-import struct
-import os, stat, sys, re
-from array import array
+import os, stat, re
     
 class IImageSyncService(Interface):
     def set_user(user, uid, gid):
@@ -22,11 +17,36 @@ class IImageSyncService(Interface):
     def setup_folder(folder):
         """Return a deferred returning a boolean"""
 
+class IPptvISync(Interface):
+    
+    def remote_set_user(*args, **kwargs):
+        """Set the active user"""
+        
+    def remote_setup_folder(*args, **kwargs):
+        """Setup the folder"""
+                
+
+class PptvISyncFromService(pb.Root):
+    implements(IPptvISync)
+    def __init__(self, service):
+        self.service = service
+    
+    def remote_set_user(self, user, uid, gid):
+        self.service.set_user(user, uid, gid)
+    
+    def remote_setup_folder(self, folder):
+        self.service.setup_folder(folder)
+
+components.registerAdapter(PptvISyncFromService,
+    IImageSyncService,
+    IPptvISync)
+        
+    
 class ConfigXR(xmlrpc.XMLRPC):
     def __init__(self, service):
         xmlrpc.XMLRPC.__init__(self)
         self.service = service
-
+    
     def render(self, request):
         self.client = request.transport
         return xmlrpc.XMLRPC.render(self, request)
@@ -113,12 +133,12 @@ class ImgSyncService(service.Service):
                 bkup_dir = os.path.join(os.path.sep, self.settings['backup'], *(f_path.split(os.path.sep)[1:]))
             else:
                 return False
-            raw_out = run_command('/bin/mkdir',
+            _ = run_command('/bin/mkdir',
                                   ['-p', raw_dir],
                                   '/data',
                                   self.settings['marccd_uid'],
                                   self.settings['marccd_gid'])
-            bkup_out = run_command('/bin/mkdir',
+            _ = run_command('/bin/mkdir',
                                   ['-p', bkup_dir])
         except:
             log.err()

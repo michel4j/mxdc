@@ -5,6 +5,7 @@ import gobject
 from zope.interface import implements
 from bcm.device.interfaces import IMultiChannelAnalyzer
 from bcm.protocol import ca
+from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -16,31 +17,32 @@ class MCAError(Exception):
     """MCA Exception."""
 
        
-class MultiChannelAnalyzer(object):
+class MultiChannelAnalyzer(BaseDevice):
     
     implements(IMultiChannelAnalyzer)
     
     def __init__(self, name, nozzle=None, channels=4096):
+        BaseDevice.__init__(self)
         self.name = name
         name_parts = name.split(':')
-        self._spectrum = ca.PV(name)
-        self._count_time = ca.PV("%s.PRTM" % name)
-        self._time_left = ca.PV("%s:timeRem" % name_parts[0])
-        self.READ = ca.PV("%s.READ" % name, monitor=False)
-        self.RDNG = ca.PV("%s.RDNG" % name)
-        self.START = ca.PV("%s.ERST" % name, monitor=False)
-        self.TMP = ca.PV("%s:Rontec1Temperature" % name_parts[0])
+        self._spectrum = self.add_pv(name)
+        self._count_time = self.add_pv("%s.PRTM" % name)
+        self._time_left = self.add_pv("%s:timeRem" % name_parts[0])
+        self.READ = self.add_pv("%s.READ" % name, monitor=False)
+        self.RDNG = self.add_pv("%s.RDNG" % name)
+        self.START = self.add_pv("%s.ERST" % name, monitor=False)
+        self.TMP = self.add_pv("%s:Rontec1Temperature" % name_parts[0])
 
-        self.ERASE = ca.PV("%s.ERAS" % name, monitor=False)
-        self.IDTIM = ca.PV("%s.IDTIM" % name, monitor=False)
-        self.TMODE = ca.PV("%s:Rontec1SetMode" % name_parts[0], monitor=False)
-        self._temp_scan = ca.PV("%s:Rontec1ReadTemperature.SCAN" % name_parts[0], monitor=False)
-        self.ACQG = ca.PV("%s.ACQG" % name)
-        self._status_scan = ca.PV("%s:mca1Status.SCAN" % name_parts[0], monitor=False)
-        self._read_scan = ca.PV("%s:mca1Read.SCAN" % name_parts[0], monitor=False)
-        self._stop_cmd = ca.PV("%s:mca1Stop" % name_parts[0], monitor=False)
-        self._slope = ca.PV("%s.CALS" % name)
-        self._offset = ca.PV("%s.CALO" % name)
+        self.ERASE = self.add_pv("%s.ERAS" % name, monitor=False)
+        self.IDTIM = self.add_pv("%s.IDTIM" % name, monitor=False)
+        self.TMODE = self.add_pv("%s:Rontec1SetMode" % name_parts[0], monitor=False)
+        self._temp_scan = self.add_pv("%s:Rontec1ReadTemperature.SCAN" % name_parts[0], monitor=False)
+        self.ACQG = self.add_pv("%s.ACQG" % name)
+        self._status_scan = self.add_pv("%s:mca1Status.SCAN" % name_parts[0], monitor=False)
+        self._read_scan = self.add_pv("%s:mca1Read.SCAN" % name_parts[0], monitor=False)
+        self._stop_cmd = self.add_pv("%s:mca1Stop" % name_parts[0], monitor=False)
+        self._slope = self.add_pv("%s.CALS" % name)
+        self._offset = self.add_pv("%s.CALO" % name)
         self.channels = int(channels)
         self.region_of_interest = (0, self.channels)
         

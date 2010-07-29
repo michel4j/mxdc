@@ -8,6 +8,9 @@ from zope.interface import Interface
 
 class IBCMService(Interface):
     
+    def getStates(*args, **kwargs):
+        """Obtain the state-map of the interface"""
+        
     def mountSample(*args, **kwargs):
         """Mount a sample on the Robot and align it"""
         
@@ -38,6 +41,9 @@ class IBCMService(Interface):
         
 
 class IPerspectiveBCM(Interface):
+    
+    def remote_getStates(*args, **kwargs):
+        """Obtain the state-map of the interface"""
     
     def remote_mountSample(*args, **kwargs):
         """Mount a sample on the Robot and align it"""

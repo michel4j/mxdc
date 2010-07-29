@@ -4,7 +4,7 @@ import logging
 import termcolor
 import types
 
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.INFO
 
 class NullHandler(logging.Handler):
 

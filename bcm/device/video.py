@@ -18,6 +18,7 @@ from zope.interface import implements
 from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
 from bcm.protocol.ca import PV
 from bcm.protocol import ca
+from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
 from bcm import registry
 
@@ -30,9 +31,10 @@ class VideoError(Exception):
     """Base class for errors in the video module."""
     
 
-class VideoSrc(object):
+class VideoSrc(BaseDevice):
 
     def __init__(self, name="Basic Camera", maxfps=10.0):
+        BaseDevice.__init__(self)
         self.frame = None
         self.name = name
         self.maxfps = max(1.0, maxfps)
@@ -93,6 +95,7 @@ class SimCamera(VideoSrc):
         self.resolution = 1.0
         self._packet_size = self.size[0] * self.size[1]
         self._fsource = open('/dev/urandom','rb')
+        self.set_state(active=True)
         
     def get_frame(self):
         data = self._fsource.read(self._packet_size)
@@ -125,10 +128,9 @@ class CACamera(VideoSrc):
         self.size = (640, 480)
         self.resolution = 1.0
         self._packet_size = self.size[0] * self.size[1]
-        self._cam = PV(pv_name)
+        self._cam = self.add_pv(pv_name)
         self._zoom = IMotor(zoom_motor)
-        self._cam.connect('active', self._activate, True)
-        self._cam.connect('inactive', self._activate, False)
+        self._cam.connect('active', self._activate)
         self._zoom.connect('changed', self._on_zoom_change)
     
     def _activate(self, obj, val):
@@ -169,12 +171,17 @@ class AxisCamera(VideoSrc):
             self._url = 'http://%s/jpg/%s/image.jpg' % (hostname,id)
         self._server = httplib.HTTPConnection(hostname)
         self._last_frame = time.time()
+        self.set_state(active=True)
 
     def get_frame(self):
-        f = urllib.urlopen(self._url)
-        f_str = cStringIO.StringIO(f.read())
-        img = Image.open(f_str)
-        self.size = img.size
+        try:
+            f = urllib.urlopen(self._url)
+            f_str = cStringIO.StringIO(f.read())
+            img = Image.open(f_str)
+            self.size = img.size
+        except:
+            self.set_state(active=False, message='Unable to connect!')
+            img = None
         return img
 
 class ZoomableAxisCamera(AxisCamera):

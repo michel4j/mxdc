@@ -1,3 +1,55 @@
+r"""MX Beamline(Macromolecular Crystallography Beamline) objects
+
+This module creates MXBeamline objects (class MXBeamline) from a configuration
+file. The configuration file format follows the conventions defined within the 
+``ConfigParser`` module of the Python standard library.
+
+The following additional assumptions are applied when interpreting the files: 
+values can be a comma separated list such as: ``values = element1, element2, element3,...``
+The list of elements are interpreted as follows:
+    - 1st element:  device type
+    - 2nd, 3rd etc: device instantiation parameters which may be strings
+      or other devices. Prefixing @ as the first character
+      indicates the element is the name of another device.
+      Elements prefixed with '@' must exist independently.
+    
+The following sections and corresponding required parameters must be present within the 
+configuration file:
+
+``beamline``
+    Defines beamline configuration parameters 
+    
+        - ``name`` : The name of the beamline given as a string.
+        - ``energy_range``: The energy range available, given as a comma separated pair of floats.
+        - ``beamline_diagram``: The file name of a graphic depicting the beamline arrangement.
+        - ``beamline_type``: The type of beamline. For example "MX" 
+        - ``orientation``: an integer identifying the orientation of the beamline, as derined by XREC.
+       
+``devices``
+    Specifies devices and utilities to be registered for the specific type of beamline being configured.
+    Each type of beamline expects somf device types and utilities to be available. The following list shows 
+    what is expected for an "MX" Beamline.
+    
+    - ``monochromator``: A monochromator device
+    - ``goniometer``: A goniometer device
+    - ``diffractometer``: A diffractometer device
+    - ``detector``: An imaging detector device
+    - ``i_0``: A counter device
+    - ``cryojet``: A cryojet device
+    - ``sample_video``: A sample video source
+    - ``beam_stop``: A beam-stop device
+    - ``exposure_shutter``: A shutter for exposures
+    - ``attenuator``: An attenuator device
+    - ``mca``: A multichannel analyzer
+    - etc.
+        
+``services``
+    Web services
+
+"""
+
+
+
 import os
 import gobject
 import threading
@@ -87,7 +139,7 @@ class MXBeamline(object):
         self.logger = get_module_logger('%s:%s' % (self.__class__.__name__,
                                                    self.name))
         # parse first time to make item list                   
-        for section in ['devices', 'services', 'utilities']:
+        for section in ['devices', 'services','utilities']:
             for item in config.items(section):
                 name = item[0]
                 vals = item[1].split(',')
@@ -105,10 +157,6 @@ class MXBeamline(object):
             reg_cmd = "self.registry['%s'] = %s" % (name, n_cmd)
             #self.logger.debug('Setting up %s: %s' % (section, name))
             exec(reg_cmd)
-            if section in ['utilities', 'services']:
-                util_cmd = "self.%s = self.registry['%s']" % (name, name)
-                self.logger.debug('Registering %s: %s' % (section, name))
-                exec(util_cmd)
         self.device_config = _item_list
 
 __all__ = ['MXBeamline']

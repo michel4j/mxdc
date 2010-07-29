@@ -5,11 +5,11 @@ import gobject
 from zope.interface import implements
 from twisted.spread import pb, interfaces
 from bcm.device.interfaces import IMotor, IShutter
-from bcm.protocol.ca import PV
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.utils import converter
 from bcm import registry
+from bcm.device.base import BaseDevice
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -20,7 +20,7 @@ class MotorError(Exception):
     """Base class for errors in the motor module."""
 
 
-class MotorBase(gobject.GObject):
+class MotorBase(BaseDevice):
 
     """Base class for motors."""
     implements(IMotor)
@@ -34,7 +34,7 @@ class MotorBase(gobject.GObject):
         }  
 
     def __init__(self, name):
-        gobject.GObject.__init__(self)
+        BaseDevice.__init__(self)
         self.name = name
         self._moving = False
         self._command_sent = False
@@ -42,7 +42,11 @@ class MotorBase(gobject.GObject):
         self.units = ''
         self._move_active_value = 1
         self._signal_health(None, False)
-        self._signal_enable(None, False)
+
+        self.connect('active', self.on_active)
+    
+    def on_active(self, dev, st):
+        self._signal_enable(None, st)
     
     def __repr__(self):
         s = "<%s:'%s', type:%s>" % (self.__class__.__name__,
@@ -176,55 +180,55 @@ class Motor(MotorBase):
         self._motor_type = motor_type
         
         # initialize process variables based on motor type
-        self.DESC = PV("%s:desc" % (pv_root))               
-        self.VAL  = PV("%s" % (pv_name))
-        #self.ENAB = PV("%s:enabled" % (pv_root))
+        self.DESC = self.add_pv("%s:desc" % (pv_root))               
+        self.VAL  = self.add_pv("%s" % (pv_name))
+        #self.ENAB = self.add_pv("%s:enabled" % (pv_root))
         if self._motor_type in ['vme','vmeenc']:
             if self._motor_type == 'vme':
-                self.RBV  = PV("%s:sp" % (pv_name))
-                self.PREC =    PV("%s:sp.PREC" % (pv_name))
+                self.RBV  = self.add_pv("%s:sp" % (pv_name))
+                self.PREC =    self.add_pv("%s:sp.PREC" % (pv_name))
             else:
-                self.RBV  = PV("%s:fbk" % (pv_name))
-                self.PREC =    PV("%s:fbk.PREC" % (pv_name))
-            self.STAT = PV("%s:status" % pv_root)
+                self.RBV  = self.add_pv("%s:fbk" % (pv_name))
+                self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
+            self.STAT = self.add_pv("%s:status" % pv_root)
             self._move_active_value = 1
-            self.MOVN = self.STAT #PV("%s:moving" % pv_root)
-            self.STOP = PV("%s:stop" % pv_root)
-            self.SET  = PV("%s:setPosn" % (pv_name))
-            self.CALIB = PV("%s:calibDone" % (pv_root))
+            self.MOVN = self.STAT #self.add_pv("%s:moving" % pv_root)
+            self.STOP = self.add_pv("%s:stop" % pv_root)
+            self.SET  = self.add_pv("%s:setPosn" % (pv_name))
+            self.CALIB = self.add_pv("%s:calibDone" % (pv_root))
             self.ENAB = self.CALIB
-            self.CCW_LIM = PV("%s:ccw" % (pv_root))
-            self.CW_LIM = PV("%s:cw" % (pv_root))
+            self.CCW_LIM = self.add_pv("%s:ccw" % (pv_root))
+            self.CW_LIM = self.add_pv("%s:cw" % (pv_root))
         elif self._motor_type == 'cls':
-            self.PREC =    PV("%s:fbk.PREC" % (pv_name))
-            self.RBV  = PV("%s:fbk" % (pv_name))
-            self.MOVN = PV("%s:state" % pv_root)
+            self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
+            self.RBV  = self.add_pv("%s:fbk" % (pv_name))
+            self.MOVN = self.add_pv("%s:state" % pv_root)
             self.STAT = self.MOVN
-            self.STOP = PV("%s:emergStop" % pv_root)
-            self.CALIB = PV("%s:isCalib" % (pv_root))
+            self.STOP = self.add_pv("%s:emergStop" % pv_root)
+            self.CALIB = self.add_pv("%s:isCalib" % (pv_root))
             self.ENAB = self.CALIB
         elif self._motor_type == 'pseudo':
             self._move_active_value = 0
-            self.PREC =    PV("%s:fbk.PREC" % (pv_name))
-            self.RBV  = PV("%s:fbk" % (pv_name))
-            self.STAT = PV("%s:status" % pv_root)
-            self.MOVN = PV("%s:stopped" % pv_root)
-            self.STOP = PV("%s:stop" % pv_root)
-            self.CALIB = PV("%s:calibDone" % pv_root)
-            self.LOG = PV("%s:log" % pv_root)
+            self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
+            self.RBV  = self.add_pv("%s:fbk" % (pv_name))
+            self.STAT = self.add_pv("%s:status" % pv_root)
+            self.MOVN = self.add_pv("%s:stopped" % pv_root)
+            self.STOP = self.add_pv("%s:stop" % pv_root)
+            self.CALIB = self.add_pv("%s:calibDone" % pv_root)
+            self.LOG = self.add_pv("%s:log" % pv_root)
             self.LOG.connect('changed', self._on_log)
-            self.ENAB = PV("%s:enabled" % (pv_root))
+            self.ENAB = self.add_pv("%s:enabled" % (pv_root))
         elif self._motor_type == 'oldpseudo':
             self._move_active_value = 0
-            self.PREC =    PV("%s:sp.PREC" % (pv_name))
-            self.RBV  = PV("%s:sp" % (pv_name))
-            self.STAT = PV("%s:status" % pv_root)
-            self.MOVN = PV("%s:stopped" % pv_root)
-            self.STOP = PV("%s:stop" % pv_root)
-            self.CALIB = PV("%s:calibDone" % pv_root)
-            self.LOG = PV("%s:log" % pv_root)
+            self.PREC =    self.add_pv("%s:sp.PREC" % (pv_name))
+            self.RBV  = self.add_pv("%s:sp" % (pv_name))
+            self.STAT = self.add_pv("%s:status" % pv_root)
+            self.MOVN = self.add_pv("%s:stopped" % pv_root)
+            self.STOP = self.add_pv("%s:stop" % pv_root)
+            self.CALIB = self.add_pv("%s:calibDone" % pv_root)
+            self.LOG = self.add_pv("%s:log" % pv_root)
             self.LOG.connect('changed', self._on_log)
-            self.ENAB = PV("%s:enabled" % (pv_root))
+            self.ENAB = self.add_pv("%s:enabled" % (pv_root))
                      
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
@@ -358,19 +362,19 @@ class EnergyMotor(Motor):
         pv1_root = ':'.join(pv1.split(':')[:-1])
         pv2_root = ':'.join(pv2.split(':')[:-1])
         # initialize process variables
-        self.VAL  = PV(pv1)    
-        self.PREC = PV("%s.PREC" % pv2)  
+        self.VAL  = self.add_pv(pv1)    
+        self.PREC = self.add_pv("%s.PREC" % pv2)  
         if enc is not None:
-            self.RBV = PV(enc)
-            self.PREC = PV("%s.PREC" % enc)  
+            self.RBV = self.add_pv(enc)
+            self.PREC = self.add_pv("%s.PREC" % enc)  
         else:
-            self.RBV  = PV("%s:sp" % pv2)
-            self.PREC = PV("%s:sp.PREC" % pv2)
-        self.MOVN = PV("%s:moving" % pv1)
-        self.MOVN2 = PV("%s:moving" % pv2)
-        self.STOP = PV("%s:stop" % pv1)
-        self.CALIB =  PV("%s:calibDone" % pv2_root)
-        self.STAT =  PV("%s:status" % pv2_root)
+            self.RBV  = self.add_pv("%s:sp" % pv2)
+            self.PREC = self.add_pv("%s:sp.PREC" % pv2)
+        self.MOVN = self.add_pv("%s:moving" % pv1)
+        self.MOVN2 = self.add_pv("%s:moving" % pv2)
+        self.STOP = self.add_pv("%s:stop" % pv1)
+        self.CALIB =  self.add_pv("%s:calibDone" % pv2_root)
+        self.STAT =  self.add_pv("%s:status" % pv2_root)
         self.ENAB = self.CALIB
         
         # connect monitors
@@ -394,7 +398,7 @@ class BraggEnergyMotor(Motor):
         del self.DESC
         if enc is not None:
             del self.RBV          
-            self.RBV = PV(enc)
+            self.RBV = self.add_pv(enc)
             gobject.source_remove(self._rbid)
             self.RBV.connect('changed', self._signal_change)
         self.name = 'Bragg Energy'
@@ -651,7 +655,4 @@ class MotorClient(SlaveDevice, MotorBase):
 # Motors
 registry.register([IMotor], IDeviceServer, '', MotorServer)
 registry.register([interfaces.IJellyable], IDeviceClient, 'MotorServer', MotorClient)
-
-gobject.type_register(MotorBase)
-
         

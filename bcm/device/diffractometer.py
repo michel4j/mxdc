@@ -2,6 +2,7 @@ import logging
 from zope.interface import implements
 from bcm.device.interfaces import IDiffractometer, IMotor
 from bcm.protocol.ca import PV
+from bcm.device.base import BaseDeviceGroup
 from bcm.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -12,18 +13,17 @@ class DiffractometerError(Exception):
 
     """Base class for errors in the diffractometer module."""
 
-class Diffractometer(object):
+class Diffractometer(BaseDeviceGroup):
 
     implements(IDiffractometer)
     
     def __init__(self, distance, two_theta, name='Diffractometer'):
+        BaseDeviceGroup.__init__(self)
         self.name = name
         self.distance  = distance
         self.two_theta = two_theta
-                    
-    def get_state(self):
-        return self.distance.get_state() | self.two_theta.get_state()        
-                        
+        self.add_devices(distance, two_theta)
+                                            
     def wait(self):
         self.distance.wait()
         self.two_theta.wait()
