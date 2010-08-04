@@ -3,7 +3,7 @@
 import logging
 import termcolor
 import types
-
+from twisted.python import log
 LOG_LEVEL = logging.INFO
 
 class NullHandler(logging.Handler):
@@ -31,6 +31,17 @@ class ColoredConsoleHandler(logging.StreamHandler):
         except:
             self.handleError(record)
 
+class TwistedLogHandler(logging.StreamHandler):
+    def emit(self, record):
+        msg = self.format(record)
+        if record.levelno == logging.WARNING:
+            log.msg(msg)
+        elif record.levelno > logging.WARNING:
+            log.err(msg)
+        else:
+            log.msg(msg)
+        self.flush()
+
 def get_module_logger(name):
     """A factory which creates loggers with the given name and returns it."""
     
@@ -46,7 +57,16 @@ def log_to_console(level=LOG_LEVEL):
     
     console = ColoredConsoleHandler()
     console.setLevel(level)
-    formatter = logging.Formatter('%(name)s|%(asctime)s| %(message)s', '%d/%m/%y %H:%M:%S')
+    formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
+    console.setFormatter(formatter)
+    logging.getLogger('').addHandler(console)
+
+def log_to_twisted(level=LOG_LEVEL):
+    """Add a log handler which logs to the twisted logger."""
+    
+    console = TwistedLogHandler()
+    console.setLevel(level)
+    formatter = logging.Formatter('%(message)s')
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)
 
@@ -54,7 +74,7 @@ def log_to_file(filename, level=logging.DEBUG):
     """Add a log handler which logs to the console."""    
     logfile = logging.FileHandler(filename)
     logfile.setLevel(level)
-    formatter = logging.Formatter('%(name)s|%(asctime)s| %(message)s', '%d/%m/%y %H:%M:%S')
+    formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
     logfile.setFormatter(formatter)
     logging.getLogger('').addHandler(logfile)
       
