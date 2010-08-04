@@ -219,9 +219,9 @@ class SimMultiChannelAnalyzer(object):
         self._command_sent = False
                 
         self._x_axis = self.channel_to_energy( numpy.arange(0,4096,1) )
-        self._counts_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'bcm/test/SeMet.raw'), comments="#")
+        self._counts_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'test/old_test/SeMet.raw'), comments="#")
         self._counts_data = self._counts_data[:,1]
-        self._raw_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'bcm/test/XRFTest.raw'), comments="#")
+        self._raw_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'test/old_test/XRFTest.raw'), comments="#")
         self._last_t = time.time()
         self._last_pos = 0
         
