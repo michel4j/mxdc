@@ -279,24 +279,22 @@ class Plotter( gtk.Frame ):
         self.canvas.draw()
 
 
-class ScanPlotter(gtk.Window):
+class ScanPlotter(gtk.VBox):
     implements(IScanPlotter)
 
  
     def __init__(self):
-        gtk.Window.__init__(self)
+        gtk.VBox.__init__(self, False)
         self.plotter = Plotter(self)
         self.plotter.set_size_request(577,400)
-        vbox=gtk.VBox(False)
-        vbox.pack_start(self.plotter, expand=True, fill=True)
+        self.pack_start(self.plotter, expand=True, fill=True)
         self.prog_bar = ActiveProgressBar()
         self.prog_bar.set_fraction(0.0)
         self.prog_bar.idle_text('0%')
 
-        vbox.pack_start(self.prog_bar, expand=False, fill=False)
+        self.pack_start(self.prog_bar, expand=False, fill=False)
         globalRegistry.register([], IScanPlotter, '', self)
         self._sig_handlers = {}
-        self.add(vbox)
         self.show_all()
         self.fit = {}
         
@@ -474,5 +472,9 @@ class ScanPlotter(gtk.Window):
             'title': title, 'data': data, 'subtitle': timestr, 'dim': dim}
 
 
-
-    
+class ScanPlotWindow(gtk.Window):
+    def __init__(self):
+        gtk.Window.__init__(self)
+        self.plot = ScanPlotWidget()
+        self.add(self.plot)
+        self.show_all()

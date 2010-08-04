@@ -23,6 +23,10 @@ from bcm.utils import science, mdns
 from bcm.service.utils import log_call
 from bcm.service.interfaces import IPerspectiveBCM, IBCMService
 from bcm.engine.snapshot import take_sample_snapshots
+from bcm.utils.log import log_to_twisted
+
+# Send Python logs to twisted log
+log_to_twisted()
 
 class MountError(pb.Error):
     """ Unable to Mount """
