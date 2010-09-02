@@ -14,7 +14,7 @@ from twisted.python.components import globalRegistry
 
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+_logger = get_module_logger('diagnostics')
 
 (DIAG_STATUS_GOOD, DIAG_STATUS_WARN, DIAG_STATUS_BAD, DIAG_STATUS_UNKNOWN) = range(4)
 DIAG_STATUS_STRINGS = ['OK', 'WARNING', 'ERROR', 'UNKNOWN']

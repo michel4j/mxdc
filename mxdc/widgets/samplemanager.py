@@ -40,11 +40,14 @@ class SampleManager(gtk.Frame):
                 
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
+        self.hutch_viewer = AxisViewer(self.beamline.hutch_video)
         self.dewar_loader = DewarLoader()
         self.cryo_controller = CryojetWidget(self.beamline.cryojet)
         self.sample_picker = SamplePicker(self.beamline.automounter)
         
-        self.video_ntbk.append_page(self.sample_viewer, tab_label=gtk.Label('  Sample Viewer  '))
+        self.video_ntbk.append_page(self.sample_viewer, tab_label=gtk.Label('  Sample '))
+        self.video_ntbk.append_page(self.hutch_viewer, tab_label=gtk.Label('  Hutch '))
+        self.video_ntbk.connect('realize', lambda x: self.video_ntbk.set_current_page(0))
         self.cryo_ntbk.append_page(self.cryo_controller, tab_label=gtk.Label('  Cryojet Stream  '))
         
         self.robot_ntbk.append_page(self.sample_picker, tab_label=gtk.Label('  Automounter  '))
@@ -53,7 +56,6 @@ class SampleManager(gtk.Frame):
         self.add(self.sample_widget)
         self.dewar_loader.connect('samples-changed', self.on_samples_changed)
         
-    
     def on_samples_changed(self, obj):
         self.emit('samples-changed', self.dewar_loader)
         

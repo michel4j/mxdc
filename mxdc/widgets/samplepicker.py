@@ -343,6 +343,7 @@ class SamplePicker(gtk.Frame):
         self.automounter.connect('message', self.on_message)
         self.automounter.connect('state', self.on_state)
         self.automounter.connect('mounted', self.on_sample_mounted)
+        self.automounter.connect('dismounted', self.on_sample_dismounted)
         
         # layout the gauge section
         self.ln2_gauge = Gauge(0,100,5,3)
@@ -429,6 +430,13 @@ class SamplePicker(gtk.Frame):
             self.lbl_port.set_markup('<i>Port:</i> %s' % '')
             self.lbl_barcode.set_markup('<i>Code:</i> %s ' % '')
             self.dismount_btn.set_sensitive(False)
+
+    def on_sample_dismounted(self, obj):
+        self.mounted.set_text('')
+        self.lbl_port.set_markup('<i>Port:</i> %s' % '')
+        self.lbl_barcode.set_markup('<i>Code:</i> %s ' % '')
+        self.dismount_btn.set_sensitive(False)
+
 
 gobject.type_register(ContainerWidget)
 _TEST_STATE2 = '31uuu00000uujuuuuuuuuuuuuuuuuuuuu111111uuuuuuuuuuuuuuuuuuuuuuuuuu---\

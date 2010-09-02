@@ -5,39 +5,37 @@ import numpy
 import gobject
 
 from zope.interface import implements
-from bcm.device.interfaces import IMonochromator, IMotor, IOptimizer
-from bcm.protocol import ca
+from bcm.device.base import BaseDevice
+from bcm.device.interfaces import IMonochromator, IMotor
+from bcm.engine.interfaces import IOptimizer
 from bcm.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
 
-class MonochromatorError(Exception):
-
-    """Base class for errors."""
-            
-     
-class Monochromator(object):
+class Monochromator(BaseDevice):
     
     implements(IMonochromator)
     
-    def __init__(self, simple_energy, energy, mostab):
-        self.simple_energy = IMotor(simple_energy)
-        self.energy = IMotor(energy)
-        self.mostab = IOptimizer(mostab)
-
-    def get_state(self):
-        return (self.simple_energy.get_state() | 
-                self.energy.get_state() |
-                self.mostab.get_state()
-                )
+    def __init__(self, simple_energy, energy, mostab=None):
+        BaseDevice.__init__(self)
+        self.name = 'Monochromator'
+        self.simple_energy = simple_energy
+        self.energy = energy
+        self.mostab = mostab
+        if self.mostab is not None:
+            self.add_devices(self.energy, self.simple_energy, self.mostab)
+        else:           
+            self.add_devices(self.energy, self.simple_energy)
                         
     def wait(self):
         self.energy.wait()
-        self.mostab.wait()
+        if self.mostab is not None:
+            self.mostab.wait()
 
     def stop(self):
         self.energy.stop()
-        self.mostab.stop()
+        if self.mostab is not None:
+            self.mostab.stop()
         

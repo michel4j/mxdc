@@ -36,6 +36,11 @@ def wait_for_signal(obj, signal, timeout=10):
     gobject.source_remove(id)
     return sw.data
     
+def all(iterable):
+    for element in iterable:
+        if not element:
+            return False
+    return True
     
 
 def generate_run_list(run, show_number=True):
@@ -70,7 +75,7 @@ def generate_run_list(run, show_number=True):
                     list_item = {
                         'index': index,
                         'saved': False,
-                        'frame_number': frame_number,
+                        'frame_number': int(frame_number),
                         'run_number': run.get('number', 1),
                         'frame_name': frame_name,
                         'file_name': file_name,
