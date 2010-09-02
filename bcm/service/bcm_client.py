@@ -9,7 +9,7 @@ import sys, os
 
 log.FileLogObserver(sys.stdout).start()
 
-DIRECTORY = os.path.join(os.environ['HOME'],'bcm_testing')
+DIRECTORY = os.path.join('/users/cmcfadmin','bcm_testing')
 
 run_info = {
     'distance' : 210.0,

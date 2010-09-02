@@ -112,8 +112,8 @@ class ActiveEntry(gtk.VBox):
         
         # signals and parameters
         self.device = device
-        self.device.connect('changed', self._on_value_change)
-
+        self.device.connect('changed', self._on_value_changed)
+        self.device.connect('active', self._on_active_changed)
         self._action_btn.connect('clicked', self._on_activate)
         self._entry.connect('activate', self._on_activate)
         
@@ -162,7 +162,7 @@ class ActiveEntry(gtk.VBox):
         self.set_target(target)
         return target
     
-    def _on_value_change(self, obj, val):
+    def _on_value_changed(self, obj, val):
         if time.time() - self._last_signal > 0.1:
             self.set_feedback(val)
             self._last_signal = time.time()
@@ -177,16 +177,27 @@ class ActiveEntry(gtk.VBox):
         else:
             self.apply()
         return True
+    
+    def _set_active(self, state):
+        if state:
+            self._entry.set_sensitive(True)
+            self._action_btn.set_sensitive(True)
+        else:
+            self._entry.set_sensitive(False)
+            self._action_btn.set_sensitive(False)
+
+    def _on_active_changed(self, obj, state):
+        self._set_active(state)
+            
                     
     
             
 class MotorEntry(ActiveEntry):
     def __init__(self, mtr, label=None, format="%0.3f", width=8):
         ActiveEntry.__init__(self, mtr, label=label, format=format, width=width)
-
-        self.device.connect('moving', self._on_motion_change)
-        self.device.connect('health', self._on_health_change)
-        self.device.connect('enable', self._on_enable_change)
+        self._set_active(False)
+        self.device.connect('busy', self._on_motion_changed)
+        self.device.connect('health', self._on_health_changed)
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                                                'data/active_stop.gif'))
            
@@ -194,21 +205,16 @@ class MotorEntry(ActiveEntry):
         self.device.stop()
         self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
  
-    def _on_health_change(self, obj, state):
-        if state:
+    def _on_health_changed(self, obj, state, msg=None):
+        if state == 0:
             self._fbk_label.modify_fg(gtk.STATE_NORMAL, None)
             self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
         else:
             self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("red"))
             self._action_icon.set_from_stock('gtk-dialog-warning', gtk.ICON_SIZE_MENU)
             
-    def _on_enable_change(self, obj, state):
-        if state:
-            self._entry.set_sensitive(True)
-        else:
-            self._entry.set_sensitive(False)
     
-    def _on_motion_change(self, obj, motion):
+    def _on_motion_changed(self, obj, motion):
         if motion:
             self.running = True
             self._action_icon.set_from_animation(self._animation)

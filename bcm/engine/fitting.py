@@ -55,9 +55,11 @@ def peak_fit(x,y,target='gaussian'):
      1 = L - FWHM of Voigt profile (Wertheim et al)
      2 = P - Position of peak
      3 = n - lorentzian fraction, gaussian offset
+     
+    Success (boolean)
     """
     if target != 'step':
-        pars = histogram_fit(x,y)
+        pars, success = histogram_fit(x,y)
         coeffs = [pars[0], pars[1], pars[2], 0, 0]
     else:
         coeffs = [1,1,0,0]
@@ -67,8 +69,12 @@ def peak_fit(x,y,target='gaussian'):
         err=(vals-y)
         return err
     
-    new_coeffs, results = scipy.optimize.leastsq(_err, coeffs[:], args=(x,y), maxfev=10000)
-    return new_coeffs
+    new_coeffs, cov_x, info, mesg, ier = scipy.optimize.leastsq(_err, coeffs[:], args=(x,y), maxfev=10000,full_output=1)
+    if 1 <= ier <= 4:
+        success = True
+    else:
+        success = False
+    return new_coeffs, success
 
     
 def histogram_fit(x,y):
@@ -79,6 +85,8 @@ def histogram_fit(x,y):
     y - input dependent variable
     return ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema
     cema is center of mass
+    
+    success boolean
     """
     
     ymin,ymax = min(y),max(y)
@@ -115,5 +123,5 @@ def histogram_fit(x,y):
     #xpeak = x[jmax]
     xpeak = (x_hpeak_r + x_hpeak_l)/2.0
     cema = sum(x*y)/sum(y)
-    return [ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema]
+    return [ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema], True
 

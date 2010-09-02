@@ -72,7 +72,6 @@ class AppWindow(gtk.Window):
     def _do_about(self):
         authors = [
             "Michel Fodje (maintainer)",
-            "Kevin Anderson",
             ]
         about = gobject.new(gtk.AboutDialog, name="MX Data Collector",
                             version="3.1.0", copyright="(C) Canadian Light Source, Inc",

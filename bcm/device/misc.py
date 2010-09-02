@@ -9,7 +9,7 @@ from bcm.protocol.ca import PV
 from bcm.protocol import ca
 from bcm.device.base import BaseDevice, BaseDeviceGroup
 from bcm.utils.log import get_module_logger
-from bcm.utils import converter
+from bcm.utils import converter, misc
 from bcm.device.interfaces import *
 from bcm.device.motor import MotorBase
 
@@ -21,6 +21,7 @@ _logger = get_module_logger(__name__)
 class MiscDeviceError(Exception):
 
     """Base class for errors in the misc module."""
+
 
 class PositionerBase(BaseDevice):
     implements(IPositioner)
@@ -36,13 +37,14 @@ class PositionerBase(BaseDevice):
         self.units = ''
                
     def _signal_change(self, obj, value):
-        gobject.idle_add(self.emit, 'changed', self.get())
+        self.set_state(changed=self.get())
     
     def set(self, pos):
         raise exceptions.NotImplementedError
     
     def get(self):
         raise exceptions.NotImplementedError
+
 
 class SimPositioner(PositionerBase):
     def __init__(self, name, pos=0, units=""):
@@ -50,15 +52,16 @@ class SimPositioner(PositionerBase):
         self.name = name
         self._pos = float(pos)
         self.units = units
-        self._signal_change(None, self._pos)
+        self.set_state(changed=self._pos)
         
     def set(self, pos):
         self._pos = pos
-        self._signal_change(self, pos)
+        self.set_state(changed=self._pos)
 
     def get(self):
         return self._pos
-    
+
+ 
 class Positioner(PositionerBase):
     def __init__(self, name, fbk_name=None, scale=None, units=""):
         PositionerBase.__init__(self)
@@ -126,10 +129,7 @@ class PositionerMotor(MotorBase):
     
     def stop(self):
         pass
-    
-    def get_state(self):
-        return 0
-    
+        
     def get_position(self):
         return self.positioner.get()
     
@@ -211,8 +211,7 @@ class Attenuator(BaseDevice):
         _logger.debug('Filters [8421] set to [%s] (0=off,1=on)' % bitmap)
     
     def _signal_change(self, obj, value):
-        gobject.idle_add(self.emit,'changed', self.get())
-
+        self.set_state(changed=self.get())
 
 
 class Attenuator2(Attenuator):  
@@ -268,15 +267,16 @@ class BasicShutter(BaseDevice):
     def __init__(self, open_name, close_name, state_name):
         BaseDevice.__init__(self)
         # initialize variables
-        self._open_cmd = PV(open_name)
-        self._close_cmd = PV(close_name)
-        self._state = PV(state_name)
+        self._open_cmd = self.add_pv(open_name)
+        self._close_cmd = self.add_pv(close_name)
+        self._state = self.add_pv(state_name)
         self._state.connect('changed', self._signal_change)
         self._messages = ['Opening', 'Closing']
         self._name  = 'Shutter'
     
-    def get_state(self):
-        return self._state.get() == 1
+    def is_open(self):
+        """Convenience function for open state"""
+        return self.changed_state
     
     def open(self):
         _logger.debug(' '.join([self._messages[0], self._name]))
@@ -290,9 +290,50 @@ class BasicShutter(BaseDevice):
 
     def _signal_change(self, obj, value):
         if value == 1:
-            gobject.idle_add(self.emit,'changed', True)
+            self.set_state(changed=True)
         else:
-            gobject.idle_add(self.emit,'changed', False)
+            self.set_state(changed=False)
+
+
+class ShutterGroup(BaseDevice):
+    implements(IShutter)
+    __gsignals__ =  { 
+        "changed": ( gobject.SIGNAL_RUN_FIRST, 
+                     gobject.TYPE_NONE, 
+                     (gobject.TYPE_BOOLEAN,)  ),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        BaseDevice.__init__(self)
+        self._dev_list = args 
+        self.add_devices(*self._dev_list)
+        self.name  = 'Beamline Shutters'
+        for dev in self._dev_list:
+            dev.connect('changed', self._on_change)
+            
+    def is_open(self):
+        """Convenience function for open state"""
+        return self.changed_state
+    
+    def _on_change(self, obj, val):
+        if val == 1:
+            if misc.all([dev.changed_state for dev in self._dev_list]):
+                self.set_state(changed=True)
+        else:
+            self.set_state(changed=False)
+    
+    def open(self):
+        for dev in self._dev_list:
+            if dev.changed_state == False:
+                dev.open()
+    
+    def close(self):
+        newlist = self._dev_list[:]
+        newlist.reverse()
+        for dev in newlist:
+            dev.close()
+        
+
         
 class SimShutter(BaseDevice):
     
@@ -308,18 +349,17 @@ class SimShutter(BaseDevice):
         BaseDevice.__init__(self)
         self.name = name
         self._state = False
+        self.set_state(active=True, changed=self._state)
 
     def open(self):
         self._state = True
-        gobject.idle_add(self.emit,'changed', True )
+        self.set_state(changed=True )
 
     def close(self):
         self._state = False
-        gobject.idle_add(self.emit,'changed', False )
+        self.set_state(changed=False )
 
-    def get_state(self):
-        return self._state
-    
+   
 class Shutter(BasicShutter):
     def __init__(self, name):
         open_name = "%s:opr:open" % name
@@ -337,12 +377,13 @@ class CryojetNozzle(BasicShutter):
         self._messages = ['Retracting', 'Restoring']
         self._name = 'Cryojet Nozzle'
 
-class Cryojet(BaseDevice):
+class Cryojet(BaseDeviceGroup):
     
     implements(ICryojet)
     
     def __init__(self, cname, lname, nozzle_motor=None):
-        BaseDevice.__init__(self)
+        BaseDeviceGroup.__init__(self)
+        self.name = 'Cryojet'
         self.temperature = Positioner('%s:sensorTemp:get' % cname,
                                       '%s:sensorTemp:get' % cname,
                                       units='Kelvin')
@@ -352,13 +393,14 @@ class Cryojet(BaseDevice):
         self.shield_flow = Positioner('%s:shieldFlow:set' % cname,
                                       '%s:ShieldFlow:get' % cname,
                                       units='L/min')
-        self.level = PV('%s:ch1LVL:get' % lname)
+        self.level = self.add_pv('%s:ch1LVL:get' % lname)
         #FIXME: This is ugly, should not hardcode pv name in class definition
         if nozzle_motor is not None:
             self.nozzle = IShutter(nozzle_motor)
         else:
             self.nozzle = CryojetNozzle('CSC1608-5-B10-01')
-        self.fill_status = PV('%s:status:ch1:N.SVAL' % lname)
+        self.fill_status = self.add_pv('%s:status:ch1:N.SVAL' % lname)
+        self.add_devices(self.temperature, self.sample_flow, self.shield_flow)
         self._previous_flow = 8.0
                 
     def resume_flow(self):
@@ -382,9 +424,6 @@ class SimCryojet(BaseDevice):
         self.level = SimPositioner('Cryogen Level', pos=90.34, units='%')
         self.fill_status = SimPositioner('Fill Status', pos=1)
         self.nozzle = SimShutter('Cryojet Nozzle Actuator')
-
-    def get_state(self):
-        return False
 
     def stop_flow(self):
         self.sample_flow.set(0.0)
@@ -479,69 +518,32 @@ class Collimator(BaseDeviceGroup):
         self.y.stop()
 
 
-class Optimizer(BaseDevice):
-    implements(IOptimizer)
+
+        
+        
+class HumidityController(BaseDevice):
+    implements(IHumidityController)
     
-    def __init__(self, name):
+    def __init__(self, root_name):
         BaseDevice.__init__(self)
-        self.set_state(active=True)
-    
-    def start(self):
-        pass
-    
-    def stop(self):
-        pass
-    
-    def get_state(self):
-        return True
-    
-    def wait(self):
-        return
-
-SimOptimizer = Optimizer
-  
-class MostabOptimizer(BaseDevice):
-    
-    implements(IOptimizer)
-    
-    def __init__(self, name):
-        BaseDevice.__init__(self)
-        self._start = self.add_pv('%s:Mostab:opt:cmd' % name)
-        self._stop = self.add_pv('%s:abortFlag' % name)
-        self._state1 = self.add_pv('%s:optRun'% name)
-        self._state2 = self.add_pv('%s:optDone'% name)
-        self._status = 0
-        self._command_active = False
-        self._state1.connect('changed', self._state_change)
-        self._state2.connect('changed', self._state_change)
-        
-        
-    def _state_change(self, obj, val):
-        if self._state1.get() > 0:
-            self._status =  1
-            self._command_active = False
-        elif self._state2.get() >0:
-            self._status = 0
-        
-    def start(self):
-        self._command_active = True
-        self._start.put(1)
+        self.name = 'Humidity Controller'
+        self.relative_humidity = Positioner('%s:SetpointRH' % root_name,'%s:RH' % root_name)
+        self.sample_temperature = self.add_pv('%s:SampleTemp' % root_name)
+        self.drop_size = self.add_pv('%s:DropSize' % root_name)
+        self.ROI = Positioner('%s:ROI' % root_name)
+        self.status = self.add_pv('%s:State' % root_name)
+        self.add_devices(self.relative_humidity, self.ROI)
         
     
-    def stop(self):
-        self._stop.put(1)
+    def set_humidity(self, val):
+        self.relative_humitidy.set(val)
     
-    def get_state(self):
-        return self._status
-
-    def wait(self):
-        poll=0.05
-        while self._status == 1 or self._command_active:
-            time.sleep(poll)
-
+    
+    
+        
       
-from twisted.spread import interfaces, pb
-from bcm.service.utils import *
+from twisted.spread import interfaces
+from bcm.service.utils import MasterDevice, SlaveDevice, IDeviceClient, IDeviceServer
 
 class PositionerServer(MasterDevice):
     __used_for__ = IPositioner

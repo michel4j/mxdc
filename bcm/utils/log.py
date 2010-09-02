@@ -4,7 +4,7 @@ import logging
 import termcolor
 import types
 from twisted.python import log
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.DEBUG
 
 class NullHandler(logging.Handler):
 

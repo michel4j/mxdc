@@ -111,51 +111,55 @@ class Screener(gobject.GObject):
                     pause_msg = 'Screening paused automatically, as requested, after completing '
                     pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
                     pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'], 
-                                                                self.run_list[self.pos]['sample']['id'])
+                                                                self.run_list[self.pos]['sample']['name'])
                       
                 elif task.task_type == Screener.TASK_MOUNT:
                     _logger.debug('TASK: Mount "%s"' % task['sample']['port'])
                     self.beamline.goniometer.set_mode('MOUNTING', wait=True)
                     self.beamline.automounter.mount(task['sample']['port'])
                     
-                    #FIXME: Correct value for timeout
-                    _out = wait_for_signal(self.beamline.automounter, 'mounted', 120)
+                    #FIXME: Correct value for timeout and mount_next use case.
+                    # signal will fire every time a sample is dismounted as well
+                    _out = wait_for_signal(self.beamline.automounter, 'mounted', 340)
+                    
                     if _out is None:
                         _logger.error('Timed-out attempting to mount "%s"' % task['sample']['port'])
                         gobject.idle_add(self.emit, 'error', 'Timed-out attempting to mount "%s"' % task['sample']['port'])
-                    #    break
+                        break
+                    
+                    
                 elif task.task_type == Screener.TASK_ALIGN:
-                    _logger.debug('TASK: Align sample "%s"' % task['sample']['id'])
+                    _logger.debug('TASK: Align sample "%s"' % task['sample']['name'])
                     self.beamline.goniometer.set_mode('CENTERING', wait=True)
                     _out = centering.auto_center_loop()
                     if _out is None:
-                        _logger.error('Error attempting auto loop centering "%s"' % task['sample']['id'])
+                        _logger.error('Error attempting auto loop centering "%s"' % task['sample']['name'])
                         pause_msg = 'Screening paused automatically, due to centering error '
                         pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
                         pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'], 
-                                                                self.run_list[self.pos]['sample']['id'])
+                                                                self.run_list[self.pos]['sample']['name'])
                         self.pause()
                     elif _out.get('RELIABILITY') < 70:
                         pause_msg = 'Screening paused automatically, due to unreliable auto-centering '
                         pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
                         pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'], 
-                                                                self.run_list[self.pos]['sample']['id'])
+                                                                self.run_list[self.pos]['sample']['name'])
                         self.pause()
                     else:
-                        directory = os.path.join(task['directory'], task['sample']['id'])
+                        directory = os.path.join(task['directory'], task['sample']['name'])
                         if not os.path.exists(directory):
                             os.makedirs(directory) # make sure directories exist
                         snapshot.take_sample_snapshots('snapshot', directory, [0,90,180], True)
                         
                 elif task.task_type == Screener.TASK_COLLECT:
-                    _logger.debug('TASK: Collect frames for "%s"' % task['sample']['id'])
+                    _logger.debug('TASK: Collect frames for "%s"' % task['sample']['name'])
                     run_params = DEFAULT_PARAMETERS
                     run_params['distance'] = self.beamline.diffractometer.distance.get_position()
                     run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
                     run_params['energy'] = [ self.beamline.monochromator.energy.get_position() ]
                     run_params['energy_label'] = ['E0']
-                    run_params.update({'prefix': task['sample']['id'],
-                                  'directory': os.path.join(task['directory'], task['sample']['id']),
+                    run_params.update({'prefix': task['sample']['name'],
+                                  'directory': os.path.join(task['directory'], task['sample']['name']),
                                   'total_frames': task['frames'],
                                   'start_angle': task['angle'],
                                   'start_frame': task['start_frame'],
@@ -165,7 +169,7 @@ class Screener(gobject.GObject):
                                   'time': task['time'],})
                     if not os.path.exists(run_params['directory']):
                         os.makedirs(run_params['directory']) # make sure directories exist
-                    self.data_collector.configure(run_params)
+                    self.data_collector.configure(run_data=run_params)
                     self.data_collector.run()
                 elif task.task_type == Screener.TASK_ANALYSE:
                     time.sleep(1.0)
@@ -271,7 +275,7 @@ class DataCollector(gobject.GObject):
         try:
                    
             self.beamline.exposure_shutter.close()
-#            # take bias background ever 30 minutes
+#            # take bias background every 30 minutes
 #            if time.time() - self._last_initialized > 1800:
 #                self.beamline.detector.initialize()
 #                self._last_initialized = time.time()

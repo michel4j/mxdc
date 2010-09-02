@@ -65,9 +65,11 @@ class IScan(Interface):
     def stop():
         """Stop the scan.
         """
-    
+        
     def save(filename):
         """Save the scan data to the provided file name."""
+    
+    
                 
 class BasicScan(gobject.GObject):
     
@@ -190,7 +192,7 @@ class AbsScan(BasicScan):
         if not self.append:
             gobject.idle_add(self.emit, "started")
         _logger.info("Scanning '%s' vs '%s' " % (self._motor.name, self._counter.name))
-        _logger.info("%4s '%13s' '%13s_normalized' '%13s' '%13s'" % ('#',
+        _logger.info("%4s '%8s' '%8s_norm' '%8s' '%8s'" % ('#',
                                                    self._motor.name,
                                                    self._counter.name,
                                                    'I_0',
@@ -207,7 +209,7 @@ class AbsScan(BasicScan):
             else:
                 i0 = 1.0
             self.data.append( [x, y/i0, i0, y] )
-            _logger.info("%4d %15g %15g %15g %15g" % (i, x, y/i0, i0, y))
+            _logger.info("%4d %8g %8g %8g %8g" % (i, x, y/i0, i0, y))
             gobject.idle_add(self.emit, "new-point", (x, y/i0, i0, y) )
             gobject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps) )
              
@@ -256,7 +258,7 @@ class AbsScan2(BasicScan):
         _logger.info("Scanning '%s':'%s' vs '%s' " % (self._motor1.name,
                                                       self._motor2.name,
                                                       self._counter.name))
-        _logger.info("%4s '%13s' '%13s' '%13s_normalized' '%13s' '%13s'" % ('#',
+        _logger.info("%4s '%13s' '%13s' '%13s_norm' '%13s' '%13s'" % ('#',
                                                    self._motor1.name,
                                                    self._motor2.name,
                                                    self._counter.name,

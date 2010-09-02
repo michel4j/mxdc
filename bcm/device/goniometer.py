@@ -9,7 +9,7 @@ warnings.simplefilter("ignore")
 from zope.interface import implements
 from bcm.device.interfaces import IGoniometer
 from bcm.protocol.ca import flush
-from bcm.device.motor import VMEMotor, SimMotor
+from bcm.device.motor import VMEMotor, PseudoMotor, SimMotor
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.device.base import BaseDevice
@@ -183,6 +183,22 @@ class MD2Goniometer(GoniometerBase):
         
         #signal handlers
         self._mode_fbk.connect('changed', self.on_mode_changed)
+        
+        #devices to reset during mount mode
+        self._tbl_x = self.add_pv("%s:S:PhiTblXAxPos" % pv_root, monitor=False)
+        self._tbl_y = self.add_pv("%s:S:PhiTblYAxPos" % pv_root, monitor=False)
+        self._tbl_z = self.add_pv("%s:S:PhiTblZAxPos" % pv_root, monitor=False)
+        self._cnt_x = self.add_pv("%s:S:CentTblXAxPos" % pv_root, monitor=False)
+        self._cnt_y = self.add_pv("%s:S:CentTblYAxPos" % pv_root, monitor=False)
+        
+        # device set points for mount mode
+        self._mount_setpoints = {
+            self._tbl_x: 0.9181,
+            self._tbl_y: 1.5091,
+            self._tbl_z: -0.5582,
+            self._cnt_x: 0.1631,
+            self._cnt_y: -0.0259,
+        }
                        
     def configure(self, **kwargs):
         for key in kwargs.keys():
@@ -198,6 +214,10 @@ class MD2Goniometer(GoniometerBase):
             self._mode_cmd.put(cmd_template % (2,))
             #self._mode_centering_cmd.put('\x01')
         elif mode == 'MOUNTING':
+            for dev,val in self._mount_setpoints.items():
+                dev.set(val)
+                time.sleep(5)
+            self.omega.move_to(1.0, wait=True)               
             self._mode_cmd.put(cmd_template % (1,))
             #self._mode_mounting_cmd.put('\x01')
         elif mode == 'COLLECT':

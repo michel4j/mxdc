@@ -409,7 +409,7 @@ class ScanPlotter(gtk.VBox):
             xo = data[:,0]
             yo = data[:,-1]
     
-            params = fitting.peak_fit(xo, yo, 'gaussian')
+            params, success = fitting.peak_fit(xo, yo, 'gaussian')
             yc = fitting.gauss(xo, params)
     
             fwhm = params[1]
@@ -419,7 +419,7 @@ class ScanPlotter(gtk.VBox):
             pkxl = [params[1],params[1]]
             
             #[ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema]            
-            histo_pars = fitting.histogram_fit(xo, yo)
+            histo_pars, success = fitting.histogram_fit(xo, yo)
             
             self.plotter.clear()
             ax = self.plotter.axis[0]

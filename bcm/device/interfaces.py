@@ -28,7 +28,9 @@ class IAutomounter(Interface):
         otherwise it is replaced at the location from which it
         was mounted.        
         """
-    
+    def abort():
+        """Abort all operations."""
+        
     def mount_next():
         """Mount next sample in sequence."""
     
@@ -360,6 +362,16 @@ class ICamera(Interface):
         Returns an image of a frame of video data.
         
         """
+        
+class IHumidityController(Interface):
+
+    """A humidity control device"""
+    
+    name = Attribute("""Name or description of device.""")
+    relative_humidity = Attribute("""A Positioner for relative humidity.""")
+    sample_temperature = Attribute("""Sample Temperature feedback.""")
+    ROI = Attribute("""A Positioner for setting region of interest.""")
+    drop_size = Attribute("""Drop Size""")
 
 class IZoomableCamera(ICamera):
     """ A zoomable camera."""
@@ -411,23 +423,6 @@ class ICryojet(Interface):
 
     def resume_sample_flow():
         """Stop sample flow."""
-    
-
-class IOptimizer(Interface):
-
-    """An optimizer object."""
-    
-    def start():
-        """Start optimizing."""
-                
-    def stop():
-        """Stop optimizing."""
-        
-    def wait():
-        """Wait for optimizer to become idle."""
-        
-    def get_state():
-        """Return the current state of the object."""
 
 
 class ICryojet(Interface):

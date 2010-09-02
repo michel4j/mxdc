@@ -653,6 +653,8 @@ class ImageWidget(gtk.DrawingArea):
         return Ix, Iy, Res, self.pixel_data[Ix, Iy]
 
     def _set_cursor_mode(self, cursor=None ):
+        if self.window is None:
+            return
         if cursor is None:
             self.window.set_cursor(None)
         else:
