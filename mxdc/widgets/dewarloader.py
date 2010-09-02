@@ -292,6 +292,7 @@ class DewarLoader(gtk.Frame):
         self.samples_database = None
         
         # load previously saved configuration
+        #self.connect('realize', lambda x: self.load_saved_config())
         self.load_saved_config()
         
     def __getattr__(self, key):

@@ -80,6 +80,7 @@ class SimCounter(BaseDevice):
         self.zero = float(zero)
         self.name = name
         self.value = SimPositioner('PV', 1.0, '')
+        self.set_state(active=True)
         
     def __repr__(self):
         s = "<%s:'%s'>" % (self.__class__.__name__, self.name)

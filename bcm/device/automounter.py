@@ -128,13 +128,16 @@ class BasicAutomounter(BaseDevice):
             The signal data is a dictionary with three entries as follows:
             {'busy': <boolean>, 'enabled': <boolean>, 'needs':[<str1>,<str2>,...]}
         `mounted`: 
-            a signal emitted when a sample is mounted or dismounted. The data transmitted
+            a signal emitted when a sample is mounted. The data transmitted
             is a tuple of the form (<port no.>, <barcode>) when mounting and ``None`` when dismounting. 
+        `dismounted`: 
+            a signal emitted when a sample is dismounted. 
     """
     implements(IAutomounter)
     __gsignals__ = {
         'state': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'mounted': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'dismounted': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
         'progress':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
     }
     
@@ -162,7 +165,10 @@ class BasicAutomounter(BaseDevice):
         'R': fbstr[-97:]}
         for k,s in info.items():
             self.containers[k].configure(s)
-
+    
+    def abort(self):
+        pass
+        
     def probe(self):
         pass
     
@@ -192,10 +198,15 @@ class SimAutomounter(BasicAutomounter):
         gobject.idle_add(self.emit, 'state', self._state_dict )
         gobject.idle_add(self.emit, 'message', 'Sample Successfully mounted')
         self._mounted_port = port
-        if port is None:
-            gobject.idle_add(self.emit, 'message', 'Sample Successfully dismounted.')
-        else:
-            gobject.idle_add(self.emit, 'message', 'Sample Successfully mounted.')
+        gobject.idle_add(self.emit, 'message', 'Sample Successfully mounted.')
+
+    def _sim_dismount_done(self):
+        self._busy = False
+        self._state_dict = {'busy': self._busy, 'enabled': True, 'needs':[]}
+        gobject.idle_add(self.emit, 'mounted', (port,'') )
+        gobject.idle_add(self.emit, 'state', self._state_dict )
+        self._mounted_port = None
+        gobject.idle_add(self.emit, 'message', 'Sample Successfully dismounted.')
 
     def _sim_mount_start(self, port=None):
         self._busy = True
@@ -221,7 +232,7 @@ class SimAutomounter(BasicAutomounter):
             return
         if self._mounted_port is not None:
             self._sim_mount_start(None)
-            gobject.timeout_add(60000, self._sim_mount_done, None)
+            gobject.timeout_add(60000, self._sim_dismount_done)
 
     def probe(self):
         pass
@@ -252,6 +263,8 @@ class Automounter(BasicAutomounter):
         self._dismount_cmd = self.add_pv('%s:dismntX:opr' % pv_name)
         self._dismount_param = self.add_pv('%s:dismntX:param' % pv_name)
         self._mount_next_cmd = self.add_pv('%s:mntNextX:opr' % pv_name)
+        self._abort_cmd = self.add_pv('%s:abort:opr' % pv_name)
+
         self._wash_param = self.add_pv('%s:washX:param' % pv_name)
         self._bar_code = self.add_pv('%s:bcode:barcode' % pv_name)
         self._barcode_reset = self.add_pv('%s:bcode:clear' % pv_name)
@@ -261,8 +274,11 @@ class Automounter(BasicAutomounter):
         self.port_states.connect('changed', lambda x, y: self.parse_states(y))
         
         #Detailed Status
+        self._gonio_good = self.add_pv('%s:goniPos:mntEn' % pv_name)
         self._mounted =  self.add_pv('%s:status:mounted' % pv_name)
+        self._on_gonio = self.add_pv('%s:state:sts' % pv_name)
         self._position = self.add_pv('%s:state:curPnt' % pv_name)
+        
         self._mounted.connect('changed', self._on_mount_changed)
         self._position.connect('changed', self._on_pos_changed)
         self._warning.connect('changed', self._on_status_warning)
@@ -270,13 +286,17 @@ class Automounter(BasicAutomounter):
         self.needs_val.connect('changed', self._on_needs_changed)
         self._enabled.connect('changed', self._on_enabled_changed)
         self._state.connect('changed', self._on_state_changed)
+        self._gonio_good.connect('changed', self._on_gonio_changed)
         
         #detect external changes
         #self._dismount_cmd.connect('changed', lambda x,y: self._set_steps(25))
         #self._mount_cmd.connect('changed', lambda x,y: self._set_steps(26))
         #self._mount_next_cmd.connect('changed', lambda x,y: self._set_steps(40))
         
-        
+    def abort(self):
+        self._abort_cmd.put(1)
+        self._abort_cmd.put(0)
+     
     def probe(self):
         pass
     
@@ -341,6 +361,12 @@ class Automounter(BasicAutomounter):
         self._state_dict.update({'enabled': (st==1)})
         gobject.idle_add(self.emit, 'state', self._state_dict)
 
+    def _on_gonio_changed(self, pv, st):
+        if self._state.get() == 1 and st != 1:
+            self.abort()
+            _logger.warning('Goniometer became unsafe while automounter was busy. Aborting!')
+            
+        
     def _on_state_changed(self, pv, st):
         self._state_dict.update({'busy': (st==1)})
         gobject.idle_add(self.emit, 'state', self._state_dict)
@@ -349,7 +375,9 @@ class Automounter(BasicAutomounter):
         vl = val.split()
         if val.strip() == "":
             port = None
-            gobject.idle_add(self.emit, 'mounted', (None, ''))
+            if self._mounted_port != port:
+                gobject.idle_add(self.emit, 'dismounted')
+                self._mounted_port = port
         elif len(vl) >= 3:
             port = vl[0].upper() + vl[2] + vl[1]
             try:
@@ -383,7 +411,7 @@ class Automounter(BasicAutomounter):
         if val != self._tool_pos:
             self._step_count += 1
             self._report_progress(val)
-            _logger.debug('Current Position: %s : %d' % (val, self._step_count))
+            #_logger.debug('Current Position: %s : %d' % (val, self._step_count))
             self._tool_pos = val
 
 
