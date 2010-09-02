@@ -1,9 +1,7 @@
 import time
 import math
-import logging
 import gobject
 from zope.interface import implements
-from twisted.spread import pb, interfaces
 from bcm.device.interfaces import IMotor, IShutter
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
@@ -12,7 +10,7 @@ from bcm import registry
 from bcm.device.base import BaseDevice
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+_logger = get_module_logger('devices')
 
 
 class MotorError(Exception):
@@ -28,25 +26,17 @@ class MotorBase(BaseDevice):
     # Motor signals
     __gsignals__ =  { 
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        "moving": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
-        "health": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
-        "enable": ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
         }  
 
     def __init__(self, name):
         BaseDevice.__init__(self)
+        self.set_state(changed=0.0)
         self.name = name
         self._moving = False
         self._command_sent = False
         self._motor_type = 'basic'
         self.units = ''
         self._move_active_value = 1
-        self._signal_health(None, False)
-
-        self.connect('active', self.on_active)
-    
-    def on_active(self, dev, st):
-        self._signal_enable(None, st)
     
     def __repr__(self):
         s = "<%s:'%s', type:%s>" % (self.__class__.__name__,
@@ -55,7 +45,7 @@ class MotorBase(BaseDevice):
         return s
     
     def _signal_change(self, obj, value):
-        gobject.idle_add(self.emit,'changed', self.get_position() )
+        self.set_state(changed=self.get_position())
     
     def _signal_move(self, obj, state):
         if state == self._move_active_value:
@@ -63,24 +53,17 @@ class MotorBase(BaseDevice):
             self._command_sent = False
         else:
             self._moving = False
-        gobject.idle_add(self.emit, 'moving', self._moving)
+        #gobject.idle_add(self.emit, 'busy', self._moving)
+        self.set_state(busy=self._moving)
         if not self._moving:
             _logger.debug( "(%s) stopped at %f" % (self.name, self.get_position()) )
-            
-           
-    def _signal_health(self, obj, state):
-        if state == 0:
-            is_healthy = False
+                       
+    def _on_calib_changed(self, obj, cal):
+        if cal == 0:
+            self.set_state(health=(1, 'calib', 'Device Not Calibrated!'))
         else:
-            is_healthy = True
-        gobject.idle_add(self.emit, 'health', is_healthy)
+            self.set_state(health=(0, 'calib'))
 
-    def _signal_enable(self, obj, state):
-        if state == 0:
-            is_enabled = False
-        else:
-            is_enabled = True
-        gobject.idle_add(self.emit, 'enable', is_enabled)
 
 class SimMotor(MotorBase):
     implements(IMotor)
@@ -88,19 +71,13 @@ class SimMotor(MotorBase):
     def __init__(self, name, pos=0, units='mm'):
         MotorBase.__init__(self,name)
         self._position = float(pos)
-        self._speed = 100
+        self._speed = 200
         self.units = units
         self._state = 0
         self._stopped = False
-        self._healthy = True
         self._enabled = True
-        self._signal_change(None, self._position)
-        self._signal_health(None, self._healthy)
-        self._signal_enable(None, self._enabled)
-     
-    def get_state(self):
-        return self._state
-     
+        self.set_state(health=(0,''), active=True, changed=self._position)
+
     def get_position(self):
         return self._position
     
@@ -110,14 +87,14 @@ class SimMotor(MotorBase):
         self._command_sent = True
         import numpy
         targets = numpy.linspace(self._position, target, 20)
-        self._signal_move(self, 1)
+        self.set_state(busy=True)
         for pos in targets:
-            time.sleep(5.0/self._speed)
+            time.sleep(0.05)
             self._position = pos
             self._signal_change(self, self._position)
             if self._stopped:
                 break
-        self._signal_move(self, 0)
+        self.set_state(busy=False)
             
     def move_to(self, pos, wait=False, force=False):
         self._move_action(pos)
@@ -127,18 +104,9 @@ class SimMotor(MotorBase):
     def move_by(self, pos, wait=False):
         self.move_to(self._position+pos, wait)
     
-    def is_moving(self):
-        return self._moving
-    
-    def is_healthy(self):
-        return True
-    
-    def is_enabled(self):
-        return True
-
     def wait(self, start=True, stop=True):
         poll=0.05
-        timeout = 2.0
+        timeout = 5.0
         if (start and self._command_sent and not self._moving):
             _logger.debug('(%s) Waiting to start moving' % (self.name,))
             while self._command_sent and not self._moving and timeout > 0:
@@ -233,8 +201,8 @@ class Motor(MotorBase):
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
         self.MOVN.connect('changed', self._signal_move)
-        self.CALIB.connect('changed', self._signal_health)
-        self.ENAB.connect('changed', self._signal_enable)
+        self.CALIB.connect('changed', self._on_calib_changed)
+        #self.ENAB.connect('changed', self._signal_enable)
         self.DESC.connect('changed', self._on_desc_change)
 
 
@@ -244,10 +212,7 @@ class Motor(MotorBase):
     def _on_log(self, obj, message):
         msg = "(%s) %s" % (self.name, message)
         _logger.debug(msg)
-                                        
-    def get_state(self):
-        return self.STAT.get()
-    
+                                            
     def get_position(self):
         return self.RBV.get()
 
@@ -270,8 +235,10 @@ class Motor(MotorBase):
     def move_to(self, pos, wait=False, force=False):
 
         # Do not move if motor state is not sane.
-        if not self.is_healthy():
-            _logger.warning( "(%s) is not in a sane state. Move canceled!" % (self.name,) )
+        st = self.get_state()
+        sanity, msg = st['health']
+        if sanity != 0:
+            _logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
             return
         
         # Do not move is requested position is within precision error
@@ -299,25 +266,13 @@ class Motor(MotorBase):
             return
         cur_pos = self.get_position()
         self.move_to(cur_pos + val, wait, force)
-                
-    def is_moving(self):
-        if self.MOVN.get() == self._move_active_value :
-            return True
-        else:
-            return False
-    
-    def is_healthy(self):
-        return (self.CALIB.get() == 1)
-
-    def is_enabled(self):
-        return (self.ENAB.get() == 1) 
-                                 
+                                                     
     def stop(self):
         self.STOP.set(1)
     
     def wait(self, start=True, stop=True):
         poll=0.05
-        timeout = 2.0
+        timeout = 5.0
         if (start and self._command_sent and not self._moving):
             _logger.debug('(%s) Waiting to start moving' % (self.name,))
             while self._command_sent and not self._moving and timeout > 0:
@@ -359,7 +314,7 @@ class EnergyMotor(Motor):
         MotorBase.__init__(self, 'Beamline Energy')
         self.units = 'keV'
         
-        pv1_root = ':'.join(pv1.split(':')[:-1])
+        #pv1_root = ':'.join(pv1.split(':')[:-1])
         pv2_root = ':'.join(pv2.split(':')[:-1])
         # initialize process variables
         self.VAL  = self.add_pv(pv1)    
@@ -381,7 +336,7 @@ class EnergyMotor(Motor):
         self._rbid = self.RBV.connect('changed', self._signal_change)
         self.MOVN.connect('changed', self._signal_move)
         #self.MOVN2.connect('changed', self._signal_move)
-        self.CALIB.connect('changed', self._signal_health)
+        self.CALIB.connect('changed', self._on_calib_changed)
         self.ENAB.connect('changed', self._signal_enable)
                           
     def get_position(self):
@@ -412,8 +367,10 @@ class BraggEnergyMotor(Motor):
             
     def move_to(self, pos, wait=False, force=False):
         # Do not move if motor state is not sane.
-        if not self.is_healthy():
-            _logger.warning( "(%s) is not in a sane state. Move canceled!" % (self.name,) )
+        st = self.get_state()
+        sanity, msg = st['health']
+        if sanity != 0:
+            _logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
             return
 
         # Do not move if requested position is within precision error
@@ -450,7 +407,7 @@ class MotorShutter(gobject.GObject):
         self.out_pos = 5
         self.in_pos = 0
         self.motor.CCW_LIM.connect('changed', self._auto_calib_nozzle)
-        self.motor.connect('moving', self._signal_change)
+        self.motor.connect('busy', self._signal_change)
 
     def _auto_calib_nozzle(self, obj, val):
         if val == 1:
@@ -462,9 +419,6 @@ class MotorShutter(gobject.GObject):
     def close(self):
         self.motor.move_to(self.in_pos-0.1)
             
-    def get_state(self):
-        return abs(self.motor.get_position() - self.in_pos) < 1
-
     def _signal_change(self, obj, value):
         if value == False:
             gobject.idle_add(self.emit,'changed', self.get_state())
@@ -479,10 +433,7 @@ class FixedLine2Motor(MotorBase):
         self.slope = float(slope)
         self.intercept = float(intercept)
         self.y.connect('changed', self._signal_change)
-            
-    def get_state(self):
-        return self.y.get_state()
-    
+                
     def __repr__(self):
         return '<FixedLine2Motor: \n\t%s,\n\t%s,\n\tslope=%0.2f, intercept=%0.2f\n>' % (self.x, self.y, self.slope, self.intercept)
         
@@ -508,12 +459,6 @@ class FixedLine2Motor(MotorBase):
         cur_pos = self.get_position()
         self.move_to(cur_pos + val, wait, force)
                 
-    def is_moving(self):
-        return self.y.is_moving() or self.x.is_moving()
-    
-    def is_healthy(self):
-        return self.x.is_healthy() and self.y.is_healthy()
-
     def is_enabled(self):
         return self.x.is_enabled() and self.y.is_enabled()
                                  
@@ -535,10 +480,7 @@ class RelVerticalMotor(MotorBase):
         self.y1 = y1
         self.y2 = y2
         self.omega = omega
-            
-    def get_state(self):
-        return self.y1.get_state() | self.y2.get_state()
-    
+                
     def __repr__(self):
         return '<RelVerticalMotor: %s, %s >' % (self.y1, self.y2)
         
@@ -561,15 +503,6 @@ class RelVerticalMotor(MotorBase):
             self.wait()
     move_by = move_to
                 
-    def is_moving(self):
-        return self.y1.is_moving() or self.y2.is_moving()
-    
-    def is_healthy(self):
-        return self.y2.is_healthy() and self.y1.is_healthy()
-                                 
-    def is_enabled(self):
-        return self.y2.is_enabled() and self.y1.is_enabled()
-
     def stop(self):
         self.y2.stop()
         self.y1.stop()
@@ -583,15 +516,15 @@ class RelVerticalMotor(MotorBase):
 
 registry.register([IMotor], IShutter, '', MotorShutter)
 
-from bcm.service.utils import *
-from twisted.internet import defer
+from twisted.spread import interfaces
+from bcm.service.utils import MasterDevice, SlaveDevice, IDeviceClient, IDeviceServer
 
 class MotorServer(MasterDevice):
     __used_for__ = IMotor
     def setup(self, device):
         device.connect('changed', lambda x,y: self.notify_clients('changed', y))
         device.connect('health', lambda x,y: self.notify_clients('health', y))
-        device.connect('moving', lambda x,y: self.notify_clients('moving', y))
+        device.connect('busy', lambda x,y: self.notify_clients('busy', y))
         self.device = device
     
     def getStateForClient(self):

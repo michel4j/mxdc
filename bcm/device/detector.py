@@ -141,6 +141,7 @@ class MXCCDImager(BaseDevice):
                       
     def set_parameters(self, data):
         for key in data.keys():
+            #print key, data[key], self._header[key]
             self._header[key].set(data[key])        
         self._header_cmd.put(1)
     
