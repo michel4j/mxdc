@@ -22,6 +22,7 @@ class TextViewer(object):
         pango_font = pango.FontDescription(font)
         self.view.modify_font(pango_font)
         self.wrap_mode = gtk.WRAP_WORD
+        self.prefix = ''
         color_chart = {'INFO': 'Blue',
                'ERROR': 'Red',
                'DEBUG': 'Gray',
@@ -33,7 +34,8 @@ class TextViewer(object):
         for key,v in color_chart.items():
             self.tags[key] = self.text_buffer.create_tag(foreground=v)
             
-
+    def set_prefix(self, txt):
+        self.prefix = txt
         
     def clear(self):
         self.text_buffer.delete(self.text_buffer.get_start_iter(), self.text_buffer.get_end_iter())
@@ -51,9 +53,9 @@ class TextViewer(object):
             for key in ['INFO', 'DEBUG', 'ERROR', 'WARNING', 'CRITICAL']:
                 if re.search(key, text):
                     tag = self.tags[key]
-            self.text_buffer.insert_with_tags(iter, "%s\n" % (text), tag)
+            self.text_buffer.insert_with_tags(iter, "%s%s\n" % (self.prefix, text), tag)
         else:
-            self.text_buffer.insert(iter, "%s\n" % (text) )         
-        self.view.scroll_to_iter(iter, 0.4, use_align=True, yalign=0.5)
+            self.text_buffer.insert(iter, "%s%s\n" % (self.prefix, text) )         
+        self.view.scroll_to_iter(iter, 0, use_align=True, yalign=0.5)
     
         

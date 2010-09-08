@@ -301,7 +301,6 @@ class DewarLoader(gtk.Frame):
         except AttributeError:
             return self._xml.get_widget(key)
 
-    
     def load_saved_config(self):
         #load samples database
         self.samples_database  = load_config(SAMPLES_DB_CONFIG)

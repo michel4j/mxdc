@@ -12,8 +12,7 @@ except:
     using_cairo = False
 
 from bcm.utils.automounter import *
-from mxdc.widgets.gauge import Gauge
-from mxdc.widgets.misc import StatusDisplay
+from mxdc.widgets.textviewer import TextViewer
 
 class _DummyEvent(object):
     width = 0
@@ -137,7 +136,7 @@ class ContainerWidget(gtk.DrawingArea):
     
     def do_configure_event(self, event):
         if self.container_type == CONTAINER_PUCK_ADAPTER:
-            self.height = min(event.width, event.height)
+            self.height = min(event.width, event.height) - 12
             self.width = self.height
             self.radius = (self.width)/19.0
             self.sq_rad = self.radius**2
@@ -290,31 +289,7 @@ class ContainerWidget(gtk.DrawingArea):
             cr.stroke()
 
 
-def _format_error_string(state):
-    nd_dict = {
-        'calib': 'calibration',
-        'inspect': 'inspection',
-        'action': 'action'
-    }
-    needs = []
-    calib = []
-    for t in state['needs']:
-        ts = t.split(':') 
-        if len(ts)>1:
-            if ts[0] == 'calib':
-                calib.append(ts[1])
-            else:
-                needs.append(ts[1] +' '+ nd_dict[ts[0]])
-        else:
-            needs.append(t)
-    if len(calib) > 0:
-        needs.append('calibration')
-    if len(needs) > 0:
-        needs_txt = 'Needs ' + ', '.join(needs)
-    else:
-        needs_txt = ''
-    return needs_txt
-    
+
                       
 
 class SamplePicker(gtk.Frame):
@@ -325,9 +300,11 @@ class SamplePicker(gtk.Frame):
                                   'sample_picker')
         self.add(self.sample_picker)
         self.automounter = automounter
-        pango_font = pango.FontDescription('Sans 7')
+        pango_font = pango.FontDescription('sans 7')
         self.status_lbl.modify_font(pango_font)
         self.pbar.modify_font(pango_font)
+        self.message_log = TextViewer(self.msg_txt)
+        self.message_log.set_prefix('-')
         
         self.containers = {}
         for k in ['Left','Middle','Right']:
@@ -341,17 +318,15 @@ class SamplePicker(gtk.Frame):
         self.dismount_btn.connect('clicked', self.on_dismount)
         self.automounter.connect('progress', self.on_progress)
         self.automounter.connect('message', self.on_message)
-        self.automounter.connect('state', self.on_state)
+        #self.automounter.connect('state', self.on_state)
+        self.automounter.connect('active', self.on_active)
+        self.automounter.connect('busy', self.on_busy)
+        self.automounter.connect('health', self.on_health)
+        self.automounter.connect('enabled', self.on_enabled)
         self.automounter.connect('mounted', self.on_sample_mounted)
-        self.automounter.connect('dismounted', self.on_sample_dismounted)
         
-        # layout the gauge section
-        self.ln2_gauge = Gauge(0,100,5,3)
-        self.ln2_gauge.set_property('units','% LN2')
-        self.ln2_gauge.set_property('low', 70.0)
-        self.level_frame.add(self.ln2_gauge)
 
-        self.automounter.nitrogen_level.connect('changed', self._on_level)
+        self.automounter.nitrogen_level.connect('changed', self._on_ln2level)
         
         # extra widgets
         self.throbber_box.pack_end(self.throbber, expand=False, fill=False)
@@ -367,9 +342,11 @@ class SamplePicker(gtk.Frame):
         except AttributeError:
             return self._xml.get_widget(key)
     
-    def _on_level(self, obj, val):
-        self.ln2_gauge.value = val
-        return False
+    def _on_ln2level(self, obj, val):
+        if val == 1:
+            self.lbl_ln2.set_markup('<span size="smaller" color="#990000">LOW</span>')
+        else:
+            self.lbl_ln2.set_markup('<span size="smaller" color="#009900">NORMAL</span>')
 
     def on_pick(self,obj, sel):
         self.selected.set_text(sel)
@@ -395,47 +372,61 @@ class SamplePicker(gtk.Frame):
         self.pbar.set_text(msg)
     
     def on_message(self, obj, str):
-        self.status_lbl.set_markup('%s' % str)
-        self.status_lbl.set_alignment(1.0, 0.5)
-        
-    def on_state(self, obj, state):
-        needstxt = _format_error_string(state)            
-        if state['busy']:
+        self.message_log.add_text(str)
+    
+    def on_active(self, obj, state):
+        if not state:
+            self.set_sensitive(False)
+            self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        else:
+            self.set_sensitive(True)
+               
+    def on_busy(self, obj, state):
+        if state:
             self.throbber.set_from_animation(self._animation)
             self.command_tbl.set_sensitive(False)
-        elif not state['enabled']:
-            self.command_tbl.set_sensitive(False)
-            self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
-            if needstxt != '':
-                self.on_message(None, needstxt)
         else:
             self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
             self.pbar.set_text('')
             self.command_tbl.set_sensitive(True)
+    
+    def on_health(self, obj, code, message):
+        if code == 0:
+            pass
+        else:
+            self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            if message != '':
+                self.on_message(None, message)
             
+    def on_enabled(self, obj, state):
+        if not state:
+            self.command_tbl.set_sensitive(False)
+            self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        else:
+            self.command_tbl.set_sensitive(True)           
         
     
     def on_sample_mounted(self, obj, info):
-        port, barcode = info
-        if port is not None:
-            self.mounted.set_text(port)
-            self.lbl_port.set_markup('<i>Port:</i> %s' % port)
-            self.lbl_barcode.set_markup('<i>Code:</i> %s ' % barcode)
-            self.dismount_btn.set_sensitive(True)
-            if self.selected.get_text().strip() == port:
-                self.selected.set_text('')
-                self.mount_btn.set_sensitive(False)
-        else:
+        if info is None: # dismounting
             self.mounted.set_text('')
-            self.lbl_port.set_markup('<i>Port:</i> %s' % '')
-            self.lbl_barcode.set_markup('<i>Code:</i> %s ' % '')
+            self.lbl_port.set_markup('')
+            self.lbl_barcode.set_markup('')
             self.dismount_btn.set_sensitive(False)
-
-    def on_sample_dismounted(self, obj):
-        self.mounted.set_text('')
-        self.lbl_port.set_markup('<i>Port:</i> %s' % '')
-        self.lbl_barcode.set_markup('<i>Code:</i> %s ' % '')
-        self.dismount_btn.set_sensitive(False)
+        else:   
+            port, barcode = info
+            if port is not None:
+                self.mounted.set_text(port)
+                self.lbl_port.set_markup(port)
+                self.lbl_barcode.set_markup(barcode)
+                self.dismount_btn.set_sensitive(True)
+                if self.selected.get_text().strip() == port:
+                    self.selected.set_text('')
+                    self.mount_btn.set_sensitive(False)
+            else:
+                self.mounted.set_text('')
+                self.lbl_port.set_markup('')
+                self.lbl_barcode.set_markup('')
+                self.dismount_btn.set_sensitive(False)
 
 
 gobject.type_register(ContainerWidget)

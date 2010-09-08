@@ -63,7 +63,7 @@ class BaseDevice(gobject.GObject):
         self.health_manager = HealthManager()
         self.state_info = {'active': False, 'busy': False, 
                              'health': (0,''), 'message': ''}
-        self.name = 'No Name Device'
+        self.name = self.__class__.__name__ + ' Device'
         self._dev_state_patt = re.compile('^(\w+)_state$')
         self._check_id = gobject.timeout_add(15000, self._check_active)
         

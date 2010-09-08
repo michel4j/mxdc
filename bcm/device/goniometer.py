@@ -70,13 +70,8 @@ class GoniometerBase(BaseDevice):
         BaseDevice.__init__(self)
         self.name = name
         self.mode = -1
-    
-    def __repr__(self):
-        s = "<%s:'%s', mode:%s>" % (self.__class__.__name__,
-                                               self.name, self.mode)
-        return s
-        
-    def get_state(self):
+            
+    def is_busy(self):
         return True
     
     def _set_and_notify_mode(self, mode):
@@ -91,7 +86,7 @@ class GoniometerBase(BaseDevice):
         if (start):
             time_left = 2
             _logger.debug('Waiting for goniometer to start scanning')
-            while not self.get_state() and time_left > 0:
+            while not self.is_busy() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
             if time_left <= 0:
@@ -99,7 +94,7 @@ class GoniometerBase(BaseDevice):
         if (stop):
             time_left = timeout
             _logger.debug('Waiting for goniometer to finish scanning')
-            while self.get_state() and time_left > 0:
+            while self.is_busy() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
             if time_left <= 0:
@@ -115,6 +110,7 @@ class Goniometer(GoniometerBase):
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:scanFrame.PROC" % pv_root, monitor=False)
         self._state = self.add_pv("%s:scanFrame:status" % pv_root)
+        self._state.connect('changed', self._on_busy)
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
         
         self.omega = VMEMotor('%s:deg' % name)
@@ -127,7 +123,12 @@ class Goniometer(GoniometerBase):
         }
         gobject.idle_add(self.emit, 'mode', 'MOVING')
         
-                
+    def _on_busy(self, obj, st):
+        if st != 0:
+            self.set_state(busy=False)
+        else:
+            self.set_state(busy=True)
+                   
     def configure(self, **kwargs):
         for key in kwargs.keys():
             self._settings[key].put(kwargs[key])
@@ -143,8 +144,8 @@ class Goniometer(GoniometerBase):
             t = 180
             self.wait(start=True, stop=True, timeout=t)
 
-    def get_state(self):
-        return self._state.get() != 0   
+    def is_busy(self):
+        return self.busy_state
                         
 
 class MD2Goniometer(GoniometerBase):
@@ -200,6 +201,15 @@ class MD2Goniometer(GoniometerBase):
             self._cnt_y: -0.0259,
         }
                        
+    def _on_busy(self, obj, st):
+        if st != 3:
+            self.set_state(busy=False)
+        else:
+            self.set_state(busy=True)
+            
+    def is_busy(self):
+        return self.busy_state
+
     def configure(self, **kwargs):
         for key in kwargs.keys():
             self._settings[key].put(kwargs[key])
@@ -249,12 +259,6 @@ class MD2Goniometer(GoniometerBase):
         self._scan_cmd.set(0)
         if wait:
             self.wait(start=True, stop=True, timeout=180)
-            #while self._shutter_state.get() != 0:
-            #    time.sleep(0.05)
-
-    def get_state(self):
-        return self._state.get() != 3  
-                        
 
     def stop(self):
         self._abort_cmd.set(1)
@@ -288,7 +292,7 @@ class SimGoniometer(GoniometerBase):
         if wait:
             self.wait(start=True, stop=True)
 
-    def get_state(self):
+    def is_busy(self):
         return self._scanning
                         
 
