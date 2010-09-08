@@ -14,4 +14,3 @@ class IBeamline(Interface):
     def setup():
         """Set up and register the beamline devices."""
         
-     

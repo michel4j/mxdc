@@ -6,7 +6,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data/icons')
     
 def _register_icons():
     icons = ['fullscreen', 'media-play', 'media-stop', 'media-pause',
-             'media-next', 'media-prev', 'contrast', 'brightness', 'internet']
+             'media-next', 'media-prev', 'contrast', 'brightness', 'internet',]
 
     items = []
     for icon in icons:
@@ -30,7 +30,7 @@ def _register_icons():
             setattr(gtk, id_name, stock)
 
 def _register_icon_reuse():
-    extra_icons =  ['idle','good','bad']
+    extra_icons =  ['idle','good','bad','part-cloudy','sunny','cloudy','rainy','stormy','hcane']
 
     # We're too lazy to make our own icons, so we use regular stock icons.
     icons = [

@@ -54,8 +54,8 @@ class PlotterToolbar(NavigationToolbar):
 
         for text, tooltip_text, image_file, callback in self.toolitems:
             if text is None:
-                 self.append_space()
-                 continue
+                self.append_space()
+                continue
             if text in ['Pan','Print']:
                 fname = os.path.join(DATA_DIR, image_file)
                 image = gtk.Image()
@@ -475,6 +475,6 @@ class ScanPlotter(gtk.VBox):
 class ScanPlotWindow(gtk.Window):
     def __init__(self):
         gtk.Window.__init__(self)
-        self.plot = ScanPlotWidget()
+        self.plot = ScanPlotter()
         self.add(self.plot)
         self.show_all()

@@ -19,4 +19,3 @@ class IScript(Interface):
     def wait():
         """Wait for script to finish running."""
                 
- 
