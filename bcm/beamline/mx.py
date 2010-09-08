@@ -71,6 +71,7 @@ from bcm.device.goniometer import *
 from bcm.device.automounter import *
 from bcm.device.monochromator import Monochromator
 from bcm.device.mca import *
+from bcm.device.cryojet import *
 from bcm.device.diffractometer import Diffractometer
 from bcm.device.video import *
 from bcm.service.imagesync_client import *

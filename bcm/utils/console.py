@@ -195,7 +195,7 @@ Beamline Config: %s
                  "from bcm.engine.scripting import *",
                  "from bcm.engine.scanning import *",
                  "from bcm.engine.fitting import *",
-                 "from mxdc.widgets.plotter import ScanPlotter",
+                 "from mxdc.widgets.plotter import ScanPlotWindow",
                  "beamline = MXBeamline(os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_CONSOLE_CONFIG_FILE']))",
                  "bl = beamline",
                  "plot = ScanPlotWindow()",

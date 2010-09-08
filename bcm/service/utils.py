@@ -72,7 +72,7 @@ class MasterDevice(pb.Referenceable):
         
     def setup_client(self, client):
         # Override this method to perform certain actions when a client connects
-       pass
+        pass
         
     def remote_unsubscribe(self, client):
         self.observers.remove(client)

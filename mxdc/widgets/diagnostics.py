@@ -42,13 +42,13 @@ class DiagnosticDisplay(gtk.Frame):
             return 
         # Set Icon
         if data['status'] == diagnostics.DIAG_STATUS_BAD:
-            self.icon.set_from_stock('gtk-dialog-error', gtk.ICON_SIZE_MENU)
+            self.icon.set_from_stock('mxdc-hcane', gtk.ICON_SIZE_MENU)
         elif data['status'] == diagnostics.DIAG_STATUS_GOOD:
-            self.icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
+            self.icon.set_from_stock('mxdc-sunny', gtk.ICON_SIZE_MENU)
         elif data['status'] == diagnostics.DIAG_STATUS_WARN:
-            self.icon.set_from_stock('gtk-dialog-warning', gtk.ICON_SIZE_MENU)
+            self.icon.set_from_stock('mxdc-cloudy', gtk.ICON_SIZE_MENU)
         else:
-            self.icon.set_from_stock('gtk-dialog-question', gtk.ICON_SIZE_MENU)
+            self.icon.set_from_stock('mxdc-hcane', gtk.ICON_SIZE_MENU)
         
         self.info.set_markup('<span color="%s"><i>%s</i></span>' % (MSG_COLORS[data['status']], data['message']))
         self._status = data['status']
