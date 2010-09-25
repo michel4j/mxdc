@@ -302,6 +302,10 @@ class SamplePicker(gtk.Frame):
         self.automounter = automounter
         pango_font = pango.FontDescription('sans 7')
         self.status_lbl.modify_font(pango_font)
+        self.lbl_port.modify_font(pango_font)
+        self.lbl_ln2.modify_font(pango_font)
+        self.lbl_barcode.modify_font(pango_font)
+        self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
         self.pbar.modify_font(pango_font)
         self.message_log = TextViewer(self.msg_txt)
         self.message_log.set_prefix('-')
@@ -318,7 +322,7 @@ class SamplePicker(gtk.Frame):
         self.dismount_btn.connect('clicked', self.on_dismount)
         self.automounter.connect('progress', self.on_progress)
         self.automounter.connect('message', self.on_message)
-        #self.automounter.connect('state', self.on_state)
+        self.automounter.connect('state', self.on_state)
         self.automounter.connect('active', self.on_active)
         self.automounter.connect('busy', self.on_busy)
         self.automounter.connect('health', self.on_health)
@@ -329,8 +333,8 @@ class SamplePicker(gtk.Frame):
         self.automounter.nitrogen_level.connect('changed', self._on_ln2level)
         
         # extra widgets
-        self.throbber_box.pack_end(self.throbber, expand=False, fill=False)
-        self.throbber.show_all()
+        #self.throbber_box.pack_end(self.throbber, expand=False, fill=False)
+        #self.throbber.show_all()
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                                                'data/busy.gif'))
            
@@ -344,9 +348,9 @@ class SamplePicker(gtk.Frame):
     
     def _on_ln2level(self, obj, val):
         if val == 1:
-            self.lbl_ln2.set_markup('<span size="smaller" color="#990000">LOW</span>')
+            self.lbl_ln2.set_markup('<span color="#990000">LOW</span>')
         else:
-            self.lbl_ln2.set_markup('<span size="smaller" color="#009900">NORMAL</span>')
+            self.lbl_ln2.set_markup('<span color="#009900">NORMAL</span>')
 
     def on_pick(self,obj, sel):
         self.selected.set_text(sel)
@@ -373,11 +377,13 @@ class SamplePicker(gtk.Frame):
     
     def on_message(self, obj, str):
         self.message_log.add_text(str)
+
+    def on_state(self, obj, str):
+        self.status_lbl.set_text(str)
     
     def on_active(self, obj, state):
         if not state:
             self.set_sensitive(False)
-            self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
         else:
             self.set_sensitive(True)
                
@@ -394,14 +400,14 @@ class SamplePicker(gtk.Frame):
         if code == 0:
             pass
         else:
-            self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            #self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
             if message != '':
                 self.on_message(None, message)
             
     def on_enabled(self, obj, state):
         if not state:
             self.command_tbl.set_sensitive(False)
-            self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            #self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
         else:
             self.command_tbl.set_sensitive(True)           
         

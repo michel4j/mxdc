@@ -3,6 +3,8 @@ import time
 import gtk
 import gtk.glade
 import gobject
+import pango
+
 from twisted.python.components import globalRegistry
 from mxdc.widgets.samplelist import SampleList
 from mxdc.widgets.sampleviewer import SampleViewer
@@ -12,12 +14,13 @@ from mxdc.widgets.ptzviewer import AxisViewer
 from bcm.beamline.mx import IBeamline
 from bcm.engine.interfaces import IDataCollector
 from bcm.engine.diffraction import Screener, DataCollector
+from mxdc.widgets.textviewer import TextViewer
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 TASKLET_NAME_MAP = {
     Screener.TASK_MOUNT : 'Mount Crystal',
-    Screener.TASK_ALIGN : 'Align Crystal',
+    Screener.TASK_ALIGN : 'Center Crystal',
     Screener.TASK_PAUSE : 'Pause',
     Screener.TASK_COLLECT : 'Collect',
     Screener.TASK_ANALYSE : 'Analyse',
@@ -41,7 +44,10 @@ class Tasklet(object):
             self.options.update(kwargs)
 
     def __repr__(self):
-        return '<Tasklet: %s, %s>' % (self.name, self.options)
+        _info = '%s "%s"' % (self.name, self.options['sample']['name'])
+        if self.task_type == Screener.TASK_COLLECT:
+            _info = u'%s @%0.0f\xb0' % (_info, self.options['angle'])
+        return _info
     
     def __getitem__(self, key):
         return self.options[key]
@@ -62,6 +68,7 @@ class ScreenManager(gtk.Frame):
         self.screen_runner.connect('paused', self._on_pause)
         self.screen_runner.connect('started', self._on_start)
         self.screen_runner.connect('done', self._on_complete)
+        self.screen_runner.connect('sync', self._on_sync)
 
         
     def __getattr__(self, key):
@@ -74,6 +81,18 @@ class ScreenManager(gtk.Frame):
         self.sample_list = SampleList()
 
         self.screen_manager = self._xml.get_widget('screening_widget')
+        self.message_log = TextViewer(self.msg_txt)
+        self.message_log.set_prefix('-')
+        self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_MENU)
+        self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+                                           'data/busy.gif'))
+        pango_font = pango.FontDescription('sans 7')
+        self.lbl_current.modify_font(pango_font)
+        self.lbl_next.modify_font(pango_font)
+        self.lbl_barcode.modify_font(pango_font)
+        self.lbl_state.modify_font(pango_font)
+        self.lbl_sync.modify_font(pango_font)
+        self.lbl_port.modify_font(pango_font)
 
         self.clear_btn.connect('clicked', self._on_queue_clear)
         self.apply_btn.connect('clicked', self._on_sequence_apply)
@@ -86,7 +105,12 @@ class ScreenManager(gtk.Frame):
         self.stop_btn.set_label('mxdc-stop')
         
         self.beamline = globalRegistry.lookup([], IBeamline)
-
+        #signals
+        self.beamline.automounter.connect('message', self._on_message)
+        self.beamline.automounter.connect('mounted', self._on_sample_mounted)
+        self.beamline.automounter.connect('state', self._on_automounter_state)
+        self.beamline.automounter.connect('busy', self.on_busy)
+        
         self.sample_box.pack_start(self.sample_list, expand=True, fill=True)
 
         # video        
@@ -108,14 +132,14 @@ class ScreenManager(gtk.Frame):
         # Task Configuration
         self.TaskList = []
         self.default_tasks = [ 
-                  (Screener.TASK_MOUNT, {'default': True}),
-                  (Screener.TASK_ALIGN, {'default': True}),
-                  (Screener.TASK_PAUSE, {'default': False}), # use this line for collect labels
-                  (Screener.TASK_COLLECT, {'angle': 0.0, 'default': True}),
-                  (Screener.TASK_COLLECT, {'angle': 45.0, 'default': False}),
-                  (Screener.TASK_COLLECT, {'angle': 90.0, 'default': True}),
-                  (Screener.TASK_ANALYSE, {'default': False}),
-                  (Screener.TASK_PAUSE, {'default': False}), ]
+                  (Screener.TASK_MOUNT, {'default': True, 'locked': True}),
+                  (Screener.TASK_ALIGN, {'default': True, 'locked': True}),
+                  (Screener.TASK_PAUSE, {'default': False, 'locked': False}), # use this line for collect labels
+                  (Screener.TASK_COLLECT, {'angle': 0.0, 'default': True, 'locked': True}),
+                  (Screener.TASK_COLLECT, {'angle': 45.0, 'default': False, 'locked': False}),
+                  (Screener.TASK_COLLECT, {'angle': 90.0, 'default': True, 'locked': False}),
+                  (Screener.TASK_ANALYSE, {'default': False, 'locked': False}),
+                  (Screener.TASK_PAUSE, {'default': False, 'locked': False}), ]
         self._settings_sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
         
         # connect signals for collect parameters
@@ -126,12 +150,12 @@ class ScreenManager(gtk.Frame):
         
         for pos, tasklet in enumerate(self.default_tasks):
             key, options = tasklet
-            options.update({'enabled': options['default']})
+            options.update(enabled=options['default'])
             t = Tasklet(key, **options)
             tbtn = gtk.CheckButton(t.name)
             tbtn.set_active(options['default'])
             tbtn.connect('toggled', self._on_task_toggle, t)
-            tbtn.set_sensitive(not(options['default']))
+            tbtn.set_sensitive(not(options['locked']))
 
             if key == Screener.TASK_COLLECT:
                 ctable = self._get_collect_setup(t)
@@ -165,7 +189,43 @@ class ScreenManager(gtk.Frame):
 
         self.add(self.screen_manager) 
         self.show_all()
+
+    def on_busy(self, obj, state):
+        if state:
+            self.throbber.set_from_animation(self._animation)
+        else:
+            self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_MENU)
     
+    def _on_message(self, obj, str):
+        self.message_log.add_text(str)
+
+    def _on_sync(self, obj, st, str):
+        if st:
+            self.lbl_sync.set_markup('<span color="#009900">GOOD</span>')
+        else:
+            self.lbl_sync.set_markup('<span color="#990000">BAD</span>')
+            self.message_log.add_text('sync: %s' % str)
+        self.lbl_sync.set_alignment(0.5, 0.5)
+
+    def _on_automounter_state(self, obj, state):
+        self.lbl_state.set_markup(state)
+    
+    def _on_sample_mounted(self, obj, info):
+        if info is None: # dismounting
+            self.lbl_port.set_markup('')
+            self.lbl_barcode.set_markup('')
+        else:   
+            port, barcode = info
+            if port is not None:
+                self.lbl_port.set_text(port)
+                self.lbl_barcode.set_text(barcode)
+                self.lbl_port.set_alignment(0.5, 0.5)
+                self.lbl_barcode.set_alignment(0.5, 0.5)
+            else:
+                self.lbl_port.set_markup('')
+                self.lbl_barcode.set_markup('')
+               
+
     def add_samples(self, samples):
         self.sample_list.load_data(samples)
         
@@ -376,8 +436,6 @@ class ScreenManager(gtk.Frame):
         self.stop_btn.set_sensitive(False)
                           
     def _on_progress(self, obj, fraction, position):
-        if position == 1:
-            self.start_time = time.time()
         elapsed_time = time.time() - self.start_time
         if fraction > 0:
             time_unit = elapsed_time / fraction
@@ -400,12 +458,28 @@ class ScreenManager(gtk.Frame):
         iter = model.get_iter(path)
         model.set(iter, QUEUE_COLUMN_DONE, True)
         self.listview.scroll_to_cell(path, use_align=True,row_align=0.9)
+        
+        # determine current and next tasks
+        iter = model.iter_next(iter)
+        if iter is None:
+            self.lbl_current.set_text('')
+        else:
+            txt = str(model.get_value(iter, QUEUE_COLUMN_TASK))
+            self.lbl_current.set_text(txt)
+            next_iter = model.iter_next(iter)
+            if next_iter is None:
+                self.lbl_next.set_text('')
+            else:
+                txt = str(model.get_value(next_iter, QUEUE_COLUMN_TASK))
+                self.lbl_next.set_text(txt)
+        self.lbl_current.set_alignment(0.5, 0.5)
+        self.lbl_next.set_alignment(0.5, 0.5)
 
         
     def _on_stop(self, obj):
         self._screening = False
         self._screening_paused = False
-        self.start_btn.set_label('mxdc-collect')
+        self.start_btn.set_label('mxdc-start')
         self.stop_btn.set_sensitive(False)
         self.scan_pbar.set_text("Stopped")
         self.action_frame.set_sensitive(True)
@@ -423,12 +497,9 @@ class ScreenManager(gtk.Frame):
             title = 'Attention Required'
             resp = dialogs.messagedialog(gtk.MESSAGE_WARNING, 
                                          title, msg,
-                                         buttons=( ('Intervene', gtk.RESPONSE_ACCEPT), 
-                                                   ('mxdc-resume', gtk.RESPONSE_CANCEL)) )
+                                         buttons=( ('Intervene', gtk.RESPONSE_ACCEPT),) )
             if resp == gtk.RESPONSE_ACCEPT:
                 return
-            elif resp == gtk.RESPONSE_CANCEL:
-                self.screen_runner.resume()
 
     def _on_start(self, obj):
         self._screening = True
@@ -438,11 +509,12 @@ class ScreenManager(gtk.Frame):
         self.action_frame.set_sensitive(False)
         self.clear_btn.set_sensitive(False)
         self.image_viewer.set_collect_mode(True)
+        self.start_time = time.time()
     
     def _on_complete(self, obj):
         self._screening = False
         self._screening_paused = False
-        self.start_btn.set_label('mxdc-collect')
+        self.start_btn.set_label('mxdc-start')
         self.stop_btn.set_sensitive(False)
         self.action_frame.set_sensitive(True)
         self.clear_btn.set_sensitive(True)

@@ -307,7 +307,7 @@ class PV(gobject.GObject):
                     self._val = self.data.value
             return self._val
 
-    def set(self, val):
+    def set(self, val, flush=False):
         """
         Set the value of the process variable, waiting for up to 1 sec until 
         the put is complete.
@@ -346,7 +346,9 @@ class PV(gobject.GObject):
             data = self._vtype(val)           
         libca.ca_array_put(self._type, self._count, self._chid, byref(data))
         libca.ca_pend_io(1.0)
-    
+        libca.ca_flush_io()
+        libca.ca_pend_event(0.05)
+        
     # provide a put method for those used to EPICS terminology even though
     # set makes more sense
     def put(self, val):
