@@ -1,5 +1,4 @@
 import time
-import logging
 import re
 import warnings
 import gobject
@@ -8,8 +7,8 @@ warnings.simplefilter("ignore")
 
 from zope.interface import implements
 from bcm.device.interfaces import IGoniometer
-from bcm.protocol.ca import flush
-from bcm.device.motor import VMEMotor, PseudoMotor, SimMotor
+from bcm.protocol import ca
+from bcm.device.motor import VMEMotor, SimMotor
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.device.base import BaseDevice
@@ -84,7 +83,7 @@ class GoniometerBase(BaseDevice):
 
     def wait(self, start=True, stop=True, poll=0.05, timeout=20):
         if (start):
-            time_left = 2
+            time_left = timeout
             _logger.debug('Waiting for goniometer to start scanning')
             while not self.is_busy() and time_left > 0:
                 time.sleep(poll)
@@ -124,7 +123,7 @@ class Goniometer(GoniometerBase):
         gobject.idle_add(self.emit, 'mode', 'MOVING')
         
     def _on_busy(self, obj, st):
-        if st != 0:
+        if st == 0:
             self.set_state(busy=False)
         else:
             self.set_state(busy=True)
@@ -184,6 +183,7 @@ class MD2Goniometer(GoniometerBase):
         
         #signal handlers
         self._mode_fbk.connect('changed', self.on_mode_changed)
+        self._state.connect('changed', self._on_busy)
         
         #devices to reset during mount mode
         self._tbl_x = self.add_pv("%s:S:PhiTblXAxPos" % pv_root, monitor=False)
@@ -200,9 +200,10 @@ class MD2Goniometer(GoniometerBase):
             self._cnt_x: 0.1631,
             self._cnt_y: -0.0259,
         }
+        
                        
     def _on_busy(self, obj, st):
-        if st != 3:
+        if st != 4:
             self.set_state(busy=False)
         else:
             self.set_state(busy=True)
@@ -223,11 +224,7 @@ class MD2Goniometer(GoniometerBase):
         if mode == 'CENTERING':
             self._mode_cmd.put(cmd_template % (2,))
             #self._mode_centering_cmd.put('\x01')
-        elif mode == 'MOUNTING':
-            for dev,val in self._mount_setpoints.items():
-                dev.set(val)
-                time.sleep(5)
-            self.omega.move_to(1.0, wait=True)               
+        elif mode in ['MOUNTING','SCANNING']:
             self._mode_cmd.put(cmd_template % (1,))
             #self._mode_mounting_cmd.put('\x01')
         elif mode == 'COLLECT':
@@ -238,12 +235,24 @@ class MD2Goniometer(GoniometerBase):
             #self._mode_beam_cmd.put('\x01')
                     
         if wait:
-            timeout = 30
+            timeout = 60
             while _MODE_MAP_REV.get(self.mode) != mode  and timeout > 0:
                 time.sleep(0.05)
                 timeout -= 0.05
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
+        
+        #FIXME: compensate for broken presents in mounting mode
+        if mode == 'MOUNTING':
+            for dev,val in self._mount_setpoints.items():
+                dev.set(val)
+                time.sleep(3)
+            self.omega.move_to(1.0, wait=True)
+            
+        if mode == 'SCANNING':
+            pass
+            # move capillaries out of the way here              
+
              
 
     def on_mode_changed(self, pv, val):
@@ -256,12 +265,14 @@ class MD2Goniometer(GoniometerBase):
                    
     def scan(self, wait=True):
         self._scan_cmd.set(1)
+        ca.flush()
         self._scan_cmd.set(0)
         if wait:
             self.wait(start=True, stop=True, timeout=180)
 
     def stop(self):
         self._abort_cmd.set(1)
+        ca.flush()
         self._abort_cmd.set(0)
 
 

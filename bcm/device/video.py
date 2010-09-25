@@ -33,7 +33,7 @@ class VideoError(Exception):
 
 class VideoSrc(BaseDevice):
 
-    def __init__(self, name="Basic Camera", maxfps=10.0):
+    def __init__(self, name="Basic Camera", maxfps=5.0):
         BaseDevice.__init__(self)
         self.frame = None
         self.name = name
