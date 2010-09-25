@@ -1,19 +1,19 @@
-import threading
-import logging
-import gobject
-import time
-import os
-
-from zope.interface import Interface, Attribute
-from zope.interface import implements
-from twisted.python.components import globalRegistry
-from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
-from bcm.utils.log import get_module_logger
-from bcm.utils.misc import generate_run_list, wait_for_signal
-from bcm.utils.converter import energy_to_wavelength
 from bcm.engine import centering, snapshot
 from bcm.engine.interfaces import IDataCollector
+from bcm.protocol import ca
+from bcm.utils.converter import energy_to_wavelength
+from bcm.utils.log import get_module_logger
+from bcm.utils.misc import generate_run_list, wait_for_signal
+from twisted.python.components import globalRegistry
+from zope.interface import Interface, Attribute, implements
+
+import gobject
+import logging
+import os
+import threading
+import time
+
 
 
 # setup module logger with a default do-nothing handler
@@ -46,6 +46,7 @@ class Screener(gobject.GObject):
     __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['stopped'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    __gsignals__['sync'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     
     TASK_MOUNT, TASK_ALIGN, TASK_PAUSE, TASK_COLLECT, TASK_ANALYSE = range(5)
@@ -61,6 +62,7 @@ class Screener(gobject.GObject):
         #associate beamline devices
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
+
         except:
             self.beamline = None
             _logger.warning('No registered beamline found.')
@@ -80,7 +82,7 @@ class Screener(gobject.GObject):
         worker_thread.setDaemon(True)
         worker_thread.setName('Screener')
         worker_thread.start()
-    
+            
     def run(self):
         self.paused = False
         self.stopped = False
@@ -88,7 +90,7 @@ class Screener(gobject.GObject):
             _logger.error('No Beamline found. Aborting Screening.')
             return
         ca.threads_init()
-        self.beamline.lock.acquire()
+        #self.beamline.lock.acquire()
         gobject.idle_add(self.emit, 'started')
         try: 
             self.pos = 0
@@ -110,67 +112,88 @@ class Screener(gobject.GObject):
                     self.pause()
                     pause_msg = 'Screening paused automatically, as requested, after completing '
                     pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
-                    pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'], 
+                    pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
                                                                 self.run_list[self.pos]['sample']['name'])
+                    
                       
                 elif task.task_type == Screener.TASK_MOUNT:
-                    _logger.debug('TASK: Mount "%s"' % task['sample']['port'])
-                    self.beamline.goniometer.set_mode('MOUNTING', wait=True)
-                    self.beamline.automounter.mount(task['sample']['port'])
-                    
-                    #FIXME: Correct value for timeout and mount_next use case.
-                    # signal will fire every time a sample is dismounted as well
-                    _out = wait_for_signal(self.beamline.automounter, 'mounted', 340)
-                    
-                    if _out is None:
-                        _logger.error('Timed-out attempting to mount "%s"' % task['sample']['port'])
-                        gobject.idle_add(self.emit, 'error', 'Timed-out attempting to mount "%s"' % task['sample']['port'])
-                        break
-                    
-                    
-                elif task.task_type == Screener.TASK_ALIGN:
-                    _logger.debug('TASK: Align sample "%s"' % task['sample']['name'])
-                    self.beamline.goniometer.set_mode('CENTERING', wait=True)
-                    _out = centering.auto_center_loop()
-                    if _out is None:
-                        _logger.error('Error attempting auto loop centering "%s"' % task['sample']['name'])
-                        pause_msg = 'Screening paused automatically, due to centering error '
-                        pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
-                        pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'], 
-                                                                self.run_list[self.pos]['sample']['name'])
-                        self.pause()
-                    elif _out.get('RELIABILITY') < 70:
-                        pause_msg = 'Screening paused automatically, due to unreliable auto-centering '
-                        pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
-                        pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'], 
-                                                                self.run_list[self.pos]['sample']['name'])
-                        self.pause()
+                    _logger.warn('TASK: Mount "%s"' % task['sample']['port'])
+                    if self.beamline.automounter.is_mounted(task['sample']['port']):
+                        # Do nothing here
+                        pass
+                    elif self.beamline.automounter.is_mountable(task['sample']['port']):
+                        self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+                        success = self.beamline.automounter.mount(task['sample']['port'], wait=True)
+                        mounted_info = self.beamline.automounter.mounted_state
+                        if not success or mounted_info is None:
+                            self.pause()
+                            self.stop()
+                            pause_msg = 'Screening stopped, because automounting failed:  '
+                            pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
+                            pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
+                                                                        self.run_list[self.pos]['sample']['port'])
+                        else:
+                            port, barcode = mounted_info
+                            if port != self.run_list[self.pos]['sample']['port']:
+                                gobject.idle_add(self.emit, 'sync', False, 'Port mismatch. Expected %s.' % self.run_list[self.pos]['sample']['port'])
+                            elif barcode != self.run_list[self.pos]['sample']['barcode']:
+                                gobject.idle_add(self.emit, 'sync', False, 'Barcode mismatch. Expected %s.' % self.run_list[self.pos]['sample']['barcode'])
+                            else:
+                                gobject.idle_add(self.emit, 'sync', True, '')                          
                     else:
+                        #"skip mounting"
+                        _logger.warn('Skipping sample: "%s @ %s". Sample port is not mountable!' % (task['sample']['name'], task['sample']['port']))
+                                                                                                            
+                elif task.task_type == Screener.TASK_ALIGN:
+                    _logger.warn('TASK: Align sample "%s"' % task['sample']['name'])
+                    
+                    if self.beamline.automounter.is_mounted(task['sample']['port']):
+                        self.beamline.goniometer.set_mode('CENTERING', wait=True)
+                        _out = centering.auto_center_loop()
+                        if _out is None:
+                            _logger.error('Error attempting auto loop centering "%s"' % task['sample']['name'])
+                            pause_msg = 'Screening paused automatically, due to centering error '
+                            pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
+                            pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
+                                                                    self.run_list[self.pos]['sample']['port'])
+                            self.pause()
+                        elif _out.get('RELIABILITY') < 70:
+                            pause_msg = 'Screening paused automatically, due to unreliable auto-centering '
+                            pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
+                            pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
+                                                                    self.run_list[self.pos]['sample']['port'])
+                            self.pause()
                         directory = os.path.join(task['directory'], task['sample']['name'])
                         if not os.path.exists(directory):
                             os.makedirs(directory) # make sure directories exist
-                        snapshot.take_sample_snapshots('snapshot', directory, [0,90,180], True)
+                        snapshot.take_sample_snapshots('snapshot', directory, [0, 90, 180], True)
+                    else:
+                        _logger.warn('Skipping task because given sample is not mounted')
                         
                 elif task.task_type == Screener.TASK_COLLECT:
-                    _logger.debug('TASK: Collect frames for "%s"' % task['sample']['name'])
-                    run_params = DEFAULT_PARAMETERS
-                    run_params['distance'] = self.beamline.diffractometer.distance.get_position()
-                    run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
-                    run_params['energy'] = [ self.beamline.monochromator.energy.get_position() ]
-                    run_params['energy_label'] = ['E0']
-                    run_params.update({'prefix': task['sample']['name'],
-                                  'directory': os.path.join(task['directory'], task['sample']['name']),
-                                  'total_frames': task['frames'],
-                                  'start_angle': task['angle'],
-                                  'start_frame': task['start_frame'],
-                                  'number': 0,
-                                  'total_angle': task['delta'] * task['frames'],
-                                  'delta': task['delta'],
-                                  'time': task['time'],})
-                    if not os.path.exists(run_params['directory']):
-                        os.makedirs(run_params['directory']) # make sure directories exist
-                    self.data_collector.configure(run_data=run_params)
-                    self.data_collector.run()
+                    _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
+                    if self.beamline.automounter.is_mounted(task['sample']['port']):
+                        run_params = DEFAULT_PARAMETERS
+                        run_params['distance'] = self.beamline.diffractometer.distance.get_position()
+                        run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
+                        run_params['energy'] = [ self.beamline.monochromator.energy.get_position() ]
+                        run_params['energy_label'] = ['E0']
+                        run_params.update({'prefix': task['sample']['name'],
+                                      'directory': os.path.join(task['directory'], task['sample']['name']),
+                                      'total_frames': task['frames'],
+                                      'start_angle': task['angle'],
+                                      'start_frame': task['start_frame'],
+                                      'number': 0,
+                                      'total_angle': task['delta'] * task['frames'],
+                                      'delta': task['delta'],
+                                      'time': task['time'], })
+                        if not os.path.exists(run_params['directory']):
+                            os.makedirs(run_params['directory']) # make sure directories exist
+                        self.data_collector.configure(run_data=run_params)
+                        self.data_collector.run()
+                    else:
+                        _logger.warn('Skipping task because given sample is not mounted')
+                        
                 elif task.task_type == Screener.TASK_ANALYSE:
                     time.sleep(1.0)
                            
@@ -185,7 +208,7 @@ class Screener(gobject.GObject):
             self.stopped = True
         finally:
             self.beamline.exposure_shutter.close()
-            self.beamline.lock.release()
+            #self.beamline.lock.release()
         
 
     def set_position(self, pos):

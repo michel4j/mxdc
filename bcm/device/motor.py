@@ -176,11 +176,11 @@ class Motor(MotorBase):
             self.CALIB = self.add_pv("%s:isCalib" % (pv_root))
             self.ENAB = self.CALIB
         elif self._motor_type == 'pseudo':
-            self._move_active_value = 0
+            self._move_active_value = 1
             self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
             self.RBV  = self.add_pv("%s:fbk" % (pv_name))
             self.STAT = self.add_pv("%s:status" % pv_root)
-            self.MOVN = self.add_pv("%s:stopped" % pv_root)
+            self.MOVN = self.add_pv("%s:moving" % pv_root)
             self.STOP = self.add_pv("%s:stop" % pv_root)
             self.CALIB = self.add_pv("%s:calibDone" % pv_root)
             self.LOG = self.add_pv("%s:log" % pv_root)
