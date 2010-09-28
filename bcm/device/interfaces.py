@@ -451,3 +451,11 @@ class IDiagnostic(Interface):
     def get_state():
         """Return the current state of the object."""
 
+class IStorageRing(Interface):
+    
+    def beam_available():
+        """Return True if Beam is available"""
+    
+    def wait_for_beam():
+        """Block until beam is available"""
+    
