@@ -194,11 +194,11 @@ class MD2Goniometer(GoniometerBase):
         
         # device set points for mount mode
         self._mount_setpoints = {
-            self._tbl_x: 0.9181,
-            self._tbl_y: 1.5091,
-            self._tbl_z: -0.5582,
-            self._cnt_x: 0.1631,
-            self._cnt_y: -0.0259,
+            self._tbl_x: 0.1658,
+            self._tbl_y: 3.363,
+            self._tbl_z: -0.544,
+            self._cnt_x: 0.0,
+            self._cnt_y: 0.0,
         }
         
                        
@@ -242,18 +242,18 @@ class MD2Goniometer(GoniometerBase):
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
         
-        #FIXME: compensate for broken presents in mounting mode
+        #FIXME: compensate for broken presets in mounting mode
         if mode == 'MOUNTING':
             for dev,val in self._mount_setpoints.items():
-                dev.set(val)
-                time.sleep(3)
-            self.omega.move_to(1.0, wait=True)
+                if abs(dev.get() - val) > 0.01:              
+                    dev.set(val)
+                    time.sleep(2.0)
+            if abs(self.omega.get_position() - 201.75) > 0.01:
+                self.omega.move_to(201.75, wait=True)
             
         if mode == 'SCANNING':
             pass
             # move capillaries out of the way here              
-
-             
 
     def on_mode_changed(self, pv, val):
         self._set_and_notify_mode(val)
@@ -312,3 +312,4 @@ class SimGoniometer(GoniometerBase):
    
 
 __all__ = ['Goniometer', 'MD2Goniometer', 'SimGoniometer']
+

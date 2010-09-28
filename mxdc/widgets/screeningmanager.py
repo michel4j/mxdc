@@ -4,6 +4,7 @@ import gtk
 import gtk.glade
 import gobject
 import pango
+import logging
 
 from twisted.python.components import globalRegistry
 from mxdc.widgets.samplelist import SampleList
@@ -14,7 +15,9 @@ from mxdc.widgets.ptzviewer import AxisViewer
 from bcm.beamline.mx import IBeamline
 from bcm.engine.interfaces import IDataCollector
 from bcm.engine.diffraction import Screener, DataCollector
-from mxdc.widgets.textviewer import TextViewer
+from mxdc.widgets.textviewer import TextViewer, GUIHandler
+
+from mxdc.widgets.dialogs import warning
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -106,6 +109,8 @@ class ScreenManager(gtk.Frame):
         
         self.beamline = globalRegistry.lookup([], IBeamline)
         #signals
+        
+        self.beamline.storage_ring.connect('beam', self._on_beam_change)
         self.beamline.automounter.connect('message', self._on_message)
         self.beamline.automounter.connect('mounted', self._on_sample_mounted)
         self.beamline.automounter.connect('state', self._on_automounter_state)
@@ -187,6 +192,13 @@ class ScreenManager(gtk.Frame):
         self._add_columns()
         self.task_queue_window.add(self.listview)    
 
+
+        log_handler = GUIHandler(self.message_log)
+        log_handler.setLevel(logging.NOTSET)
+        formatter = logging.Formatter('%(message)s')
+        log_handler.setFormatter(formatter)
+        logging.getLogger('').addHandler(log_handler)
+
         self.add(self.screen_manager) 
         self.show_all()
 
@@ -198,6 +210,14 @@ class ScreenManager(gtk.Frame):
     
     def _on_message(self, obj, str):
         self.message_log.add_text(str)
+
+    def _on_beam_change(self, obj, beam_available):
+        if not beam_available and (not self.collector.stopped) and (not self.collector.paused):
+            self.collector.pause()
+            header = "Beam not available. Screening has been paused!"
+            sub_header = "Please resume automatic screening when beam is available again."
+            warning(header, sub_header)
+        return True
 
     def _on_sync(self, obj, st, str):
         if st:

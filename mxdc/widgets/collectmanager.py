@@ -15,7 +15,7 @@ from bcm.utils import misc
 from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
 from mxdc.widgets.runmanager import RunManager
 from mxdc.widgets.imageviewer import ImageViewer
-from mxdc.widgets.dialogs import *
+from mxdc.widgets.dialogs import warning, error
 from mxdc.widgets.rundiagnostics import DiagnosticsWidget 
 (
     COLLECT_COLUMN_SAVED,
@@ -121,39 +121,21 @@ class CollectManager(gtk.Frame):
         self.collector.connect('progress', self.on_progress)
 
         if self.beamline is not None:
-            self.beamline.registry['ring_status'].connect('changed', self._on_inject)
-            self.beamline.registry['ring_current'].connect('changed', self._on_dump)
-            self.beamline.registry['ring_mode'].connect('changed', self._on_dump)
+            self.beamline.storage_ring.connect('beam', self._on_beam_change)
         
         self._load_config()
         self.add(self.collect_widget)
         self.run_manager.set_current_page(0)
         self.show_all()
         
-    def _on_inject(self, obj, value):
-        if value == 1 and (not self.collector.stopped) and (not self.collector.paused):
+    def _on_beam_change(self, obj, beam_available):
+        if not beam_available and (not self.collector.stopped) and (not self.collector.paused):
             self.collector.pause()
-            header = "Data Collection has been paused while the storage ring is re-filled!"
-            sub_header = "Please resume data collection when the beamline is ready for data collection."
-            response = warning(header, sub_header)
+            header = "Beam not Available. Data Collection has been paused!"
+            sub_header = "Please resume data collection when beam is available again."
+            warning(header, sub_header)
         return True
 
-    def _on_dump(self, obj, value):
-        if self._first_launch:
-            self._last_current = value
-        else:
-            self._last_current = 0
-            self._first_launch = False  
-            
-        if (self._last_current - self.beamline.registry['ring_current'].get() > 10):
-            if  (self.collector.stopped) or (self.collector.paused):
-                return True
-            self.collector.pause()
-            header = "Data Collection has been paused due to beam dump!"
-            sub_header = "Please resume data collection when the beamline is ready for data collection."
-            response = warning(header, sub_header)
-        self._last_current = self.beamline.registry['ring_current'].get()
-        return True
 
     def _load_config(self):
         config_dir = os.path.join(os.environ['HOME'], '.mxdc')

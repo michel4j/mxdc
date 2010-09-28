@@ -234,8 +234,8 @@
                                     <property name="width_request">100</property>
                                     <property name="visible">True</property>
                                     <property name="tooltip" translatable="yes">A sub-folder will be created for each sample using the crystal-id</property>
-                                    <property name="action">select-folder</property>
                                     <property name="local_only">False</property>
+                                    <property name="action">select-folder</property>
                                     <property name="title" translatable="yes">Select A Folder</property>
                                   </widget>
                                   <packing>
@@ -898,12 +898,13 @@
               <widget class="GtkScrolledWindow" id="scrolledwindow2">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">never</property>
+                <property name="hscrollbar_policy">automatic</property>
                 <property name="shadow_type">etched-in</property>
                 <child>
                   <widget class="GtkTextView" id="msg_txt">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="wrap_mode">char</property>
                   </widget>
                 </child>
               </widget>

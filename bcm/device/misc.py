@@ -1,5 +1,5 @@
 import math
-
+import time
 import gobject
 from zope.interface import implements
 from bcm import registry
@@ -468,8 +468,47 @@ class HumidityController(BaseDevice):
     def set_humidity(self, val):
         self.relative_humitidy.set(val)
     
+
+
+class StorageRing(BaseDevice):
+    implements(IStorageRing)
+    __gsignals__ =  { 
+        "beam": ( gobject.SIGNAL_RUN_FIRST, 
+                     gobject.TYPE_NONE, 
+                     (gobject.TYPE_BOOLEAN,)),
+        }  
     
+    def __init__(self, pv1, pv2, pv3):
+        BaseDevice.__init__(self)
+        self.mode = self.add_pv(pv1)
+        self.current = self.add_pv(pv2)
+        self.control = self.add_pv(pv3)
+        
+        self.mode.connect('changed', self._on_mode_change)
+        self.current.connect('changed', self._on_current_change)
+        self.control.connect('changed', self._on_mode_change)
+        self._last_current = 0.0
+        
+    def beam_available(self):
+        return ( self.current.get() > 5.0 and self.mode.get() ==4 and self.control.get() == 1)
     
+    def wait_for_beam(self, timeout=60):
+        while not self.beam_available() and timeout > 0:
+            time.sleep(0.05)
+            timeout -= 0.05
+        _logger.warn('Timed out waiting for beam!')
+    
+    def _on_mode_change(self, obj, val):
+        if (obj,val) not in [(self.mode, 4), (self.control, 1)]:
+            self.set_state(beam=False)        
+        elif self.beam_available():
+            self.set_state(beam=True)
+
+    def _on_current_change(self, obj, val):
+        if val <= 5:
+            self.set_state(beam=False)   
+        elif self.beam_available():
+            self.set_state(beam=True)
         
       
 from twisted.spread import interfaces
