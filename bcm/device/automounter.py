@@ -114,7 +114,7 @@ class AutomounterContainer(gobject.GObject):
                     self.samples[id_str] = [PORT_NONE, '']
                 count +=1
         gobject.idle_add(self.emit, 'changed')
-    
+
     def __getitem__(self, key):
         return self.samples.get(key, None)
                     
@@ -200,18 +200,23 @@ class BasicAutomounter(BaseDevice):
         return True
     
     def is_mountable(self, port):
-        state, _ = self.containers[port[0]][port[1:]]
-        return state == PORT_GOOD
+        info = self.containers[port[0]][port[1:]]
+        if info is None:
+            return False
+        else:
+            return info[0] == PORT_GOOD
     
     def is_mounted(self, port):
-        state, _ = self.containers[port[0]][port[1:]]
-        return state == PORT_MOUNTED
+        info = self.containers[port[0]][port[1:]]
+        if info is None:
+            return False
+        else:
+            return info[0] == PORT_MOUNTED
 
        
 class SimAutomounter(BasicAutomounter):        
     def __init__(self):
         BasicAutomounter.__init__(self)
-        self.name = name
         self.parse_states(_TEST_STATE2)
         from bcm.device.misc import SimPositioner
         self.nitrogen_level = SimPositioner('Automounter Cryogen Level', 80.0, '%')
