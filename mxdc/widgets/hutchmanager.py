@@ -90,11 +90,11 @@ class HutchManager(gtk.Frame):
         self.beamline.monochromator.energy.connect('changed', self.update_predictor)
         
         # Button commands
-        self.front_end_btn = ShutterButton(self.beamline.photon_shutter, 'Restore Beam', open_only=True)
+        self.front_end_btn = ShutterButton(self.beamline.all_shutters, 'Restore Beam', open_only=True)
         self.front_end_btn.connect('clicked', self.on_restore_beam)
         
         #self.front_end_btn = ScriptButton(self.scripts['RestoreBeam'], 'Restore Beam')
-        self.shutter_btn = ShutterButton(self.beamline.exposure_shutter, 'Shutter')
+        #self.shutter_btn = ShutterButton(self.beamline.exposure_shutter, 'Shutter')
         self.optimize_btn = ScriptButton(self.scripts['OptimizeBeam'], 'Optimize Beam')
         self.mount_btn = ScriptButton(self.scripts['SetMountMode'], 'Mounting Mode')
         self.cent_btn = ScriptButton(self.scripts['SetCenteringMode'], 'Centering Mode')
@@ -108,7 +108,7 @@ class HutchManager(gtk.Frame):
         for btn in [self.mount_btn, self.cent_btn, self.collect_btn]:
             self.commands_box.pack_end(btn)
             
-        for w in [self.front_end_btn, self.shutter_btn, self.optimize_btn, self.mount_btn, self.cent_btn, self.collect_btn]:
+        for w in [self.front_end_btn, self.optimize_btn, self.mount_btn, self.cent_btn, self.collect_btn]:
             w.set_property('can-focus', False)
         
         # tool book, diagnostics  etc

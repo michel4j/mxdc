@@ -10,7 +10,7 @@ from bcm.utils.log import get_module_logger
 from bcm.utils import converter, misc
 from bcm.device.interfaces import *
 from bcm.device.motor import MotorBase
-
+from bcm.utils.decorators import async
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -264,20 +264,26 @@ class BasicShutter(BaseDevice):
         self._state = self.add_pv(state_name)
         self._state.connect('changed', self._signal_change)
         self._messages = ['Opening', 'Closing']
-        self._name  = 'Shutter'
+        self.name  = open_name.split(':')[0]
     
     def is_open(self):
         """Convenience function for open state"""
         return self.changed_state
     
     def open(self):
-        _logger.debug(' '.join([self._messages[0], self._name]))
+        if self.changed_state:
+            return 
+        _logger.debug(' '.join([self._messages[0], self.name]))
         self._open_cmd.set(1)
+        ca.flush()
         self._open_cmd.set(0)
     
     def close(self):
-        _logger.debug(' '.join([self._messages[1], self._name]))
+        if not self.changed_state:
+            return 
+        _logger.debug(' '.join([self._messages[1], self.name]))
         self._close_cmd.set(1)
+        ca.flush()
         self._close_cmd.set(0)
 
     def _signal_change(self, obj, value):
@@ -308,22 +314,26 @@ class ShutterGroup(BaseDevice):
         return self.changed_state
     
     def _on_change(self, obj, val):
-        if val == 1:
+        if val:
             if misc.all([dev.changed_state for dev in self._dev_list]):
                 self.set_state(changed=True)
         else:
             self.set_state(changed=False)
-    
+    @async
     def open(self):
         for dev in self._dev_list:
             if dev.changed_state == False:
                 dev.open()
-    
+                while not dev.changed_state:
+                    time.sleep(0.1)
+    @async
     def close(self):
         newlist = self._dev_list[:]
         newlist.reverse()
         for dev in newlist:
             dev.close()
+            while dev.changed_state:
+                time.sleep(0.1)
         
 
         

@@ -245,7 +245,7 @@ class ShutterButton(gtk.ToggleButton):
         self.connect('clicked', self._on_clicked)
             
     def _on_clicked(self, widget):
-        if self.shutter.get_state():
+        if self.shutter.is_open():
             self.shutter.close()
         else:
             self.shutter.open()    

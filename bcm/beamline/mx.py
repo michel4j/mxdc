@@ -157,7 +157,8 @@ class MXBeamline(object):
         for section, name, cmd in _item_list:
             n_cmd = re.sub("'@([^- ,]+)'", "self.registry['\\1']", cmd)
             reg_cmd = "self.registry['%s'] = %s" % (name, n_cmd)
-            #self.logger.debug('Setting up %s: %s' % (section, name))
+            self.logger.debug('Setting up %s: %s' % (section, name))
+            
             exec(reg_cmd)
         self.device_config = _item_list
 

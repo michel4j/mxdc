@@ -74,6 +74,8 @@ class Provider(object):
                         log.warning('Service Name Collision. Renaming to %s' % (self._params[3]))
                         retry = True
                 else:
+                    log.error('DBUS Error: %s' % error)
+                    #raise mDNSError('Multicast-DNS Error')
                     retry = False
 
     def __del__(self):
