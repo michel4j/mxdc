@@ -72,7 +72,7 @@ class BaseDevice(gobject.GObject):
         for k,v in self.state_info.items():
             state_txts.append(' %12s: %s' % (k, str(v)))
         state_txts.sort()
-        txt = "<%s:\n%s\n>" % (self.__class__.__name__, '\n'.join(state_txts))
+        txt = "<%s: %s\n%s\n>" % (self.__class__.__name__, self.name, '\n'.join(state_txts))
         return txt
         
     def _check_active(self):
