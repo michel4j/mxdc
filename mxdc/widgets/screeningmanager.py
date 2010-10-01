@@ -212,8 +212,8 @@ class ScreenManager(gtk.Frame):
         self.message_log.add_text(str)
 
     def _on_beam_change(self, obj, beam_available):
-        if not beam_available and (not self.collector.stopped) and (not self.collector.paused):
-            self.collector.pause()
+        if not beam_available and (not self.screen_runner.stopped) and (not self.screen_runner.paused):
+            self.screen_runner.pause()
             header = "Beam not available. Screening has been paused!"
             sub_header = "Please resume automatic screening when beam is available again."
             warning(header, sub_header)

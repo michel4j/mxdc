@@ -35,6 +35,7 @@ class MXDCApp(object):
                          'started': time.asctime(time.localtime())}
         try:
             self.provider = mdns.Provider('MXDC Client', '_mxdc._tcp', 9999, _service_data, unique=True)
+
         except mdns.mDNSError:
             _logger.error('An instance of MXDC is already running on the local network. Only one instance permitted.')
             error('MXDC Already Running', 'An instance of MXDC is already running on the local network. Only one instance permitted.')
