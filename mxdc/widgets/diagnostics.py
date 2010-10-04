@@ -51,6 +51,7 @@ class DiagnosticDisplay(gtk.Frame):
             self.icon.set_from_stock('mxdc-hcane', gtk.ICON_SIZE_MENU)
         
         self.info.set_markup('<span color="%s"><i>%s</i></span>' % (MSG_COLORS[data['status']], data['message']))
+        self.info.set_alignment(1.0, 0.5)
         self._status = data['status']
         
         

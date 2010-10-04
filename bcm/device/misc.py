@@ -490,13 +490,15 @@ class StorageRing(BaseDevice):
     
     def __init__(self, pv1, pv2, pv3):
         BaseDevice.__init__(self)
+        self.name = "Storage Ring"
         self.mode = self.add_pv(pv1)
         self.current = self.add_pv(pv2)
-        self.control = self.add_pv(pv3)
+        self.control = self.add_pv('%s:shutters' % pv3)
+        self.message = self.add_pv('%s:msg:L1' % pv3)
         
         self.mode.connect('changed', self._on_mode_change)
         self.current.connect('changed', self._on_current_change)
-        self.control.connect('changed', self._on_mode_change)
+        self.control.connect('changed', self._on_control_change)
         self._last_current = 0.0
         
     def beam_available(self):
@@ -509,16 +511,37 @@ class StorageRing(BaseDevice):
         _logger.warn('Timed out waiting for beam!')
     
     def _on_mode_change(self, obj, val):
-        if (obj,val) not in [(self.mode, 4), (self.control, 1)]:
-            self.set_state(beam=False)        
-        elif self.beam_available():
+        if val == 4:
+            self.set_state(health=(1,'mode', self.message.get()))
+        else:
+            self.set_state(health=(0,'mode'))
+            
+        if self.beam_available():
             self.set_state(beam=True)
+        else:
+            self.set_state(beam=False)
+
+    def _on_control_change(self, obj, val):
+        if val == 1:
+            self.set_state(health=(4, 'control','Shutters disabled!'))
+        else:
+            self.set_state(health=(0,'control'))
+            
+        if self.beam_available():
+            self.set_state(beam=True)
+        else:
+            self.set_state(beam=False)
 
     def _on_current_change(self, obj, val):
         if val <= 5:
-            self.set_state(beam=False)   
-        elif self.beam_available():
+            self.set_state(health=(4,'beam','No beam!'))
+        else:
+            self.set_state(health=(0,'beam'))
+            
+        if self.beam_available():
             self.set_state(beam=True)
+        else:
+            self.set_state(beam=False)
         
       
 from twisted.spread import interfaces
