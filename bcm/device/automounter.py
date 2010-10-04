@@ -297,6 +297,7 @@ def _format_error_string(need_list):
 class Automounter(BasicAutomounter):
     def __init__(self, pv_name, pv_name2=None):
         BasicAutomounter.__init__(self)
+        self.name = 'SAM Automounter'
         self._pv_name = pv_name
         self._command_sent = False
         

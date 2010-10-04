@@ -174,7 +174,7 @@ class Screener(gobject.GObject):
                     _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
                         run_params = DEFAULT_PARAMETERS
-                        run_params['distance'] = self.beamline.diffractometer.distance.get_position()
+                        #run_params['distance'] = self.beamline.diffractometer.distance.get_position()
                         run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
                         run_params['energy'] = [ self.beamline.monochromator.energy.get_position() ]
                         run_params['energy_label'] = ['E0']
