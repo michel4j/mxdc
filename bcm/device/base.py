@@ -252,7 +252,7 @@ class HealthManager(object):
         for sev, cntx in self.health_states:
             severity = severity | sev
             msg_list.add(self.msg_dict.get(cntx, cntx))
-        msg = '; '.join(msg_list)
+        msg = ' '.join(msg_list)
         return severity, msg
             
             

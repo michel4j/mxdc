@@ -30,7 +30,7 @@ class MXCCDImager(BaseDevice):
         BaseDevice.__init__(self)
         self.size = int(size)
         self.resolution = float(resolution)
-        self.name = name
+        self.name = 'MXCCD Detector'
         
         self._start_cmd = self.add_pv("%s:start:cmd" % name, monitor=False)
         self._abort_cmd = self.add_pv("%s:abort:cmd" % name, monitor=False)
@@ -187,7 +187,7 @@ class MXCCDImager(BaseDevice):
     
 
 
-class SimCCDImager(object):
+class SimCCDImager(BaseDevice):
     
     implements(IImagingDetector)
 
