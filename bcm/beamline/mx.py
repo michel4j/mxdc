@@ -161,6 +161,17 @@ class MXBeamline(object):
             
             exec(reg_cmd)
         self.device_config = _item_list
+        diag_devices = ['automounter', 'goniometer', 'detector', 'cryojet', 'storage_ring', 'mca']
+        self.diagnostics = []
+        for k in diag_devices:
+            try:
+                self.diagnostics.append( DeviceDiag(self.registry[k]) )
+            except:
+                self.logger.warning('Could not configure diagnostic device')
+        try:
+            self.diagnostics.append(ShutterStateDiag(self.all_shutters))
+        except:
+            self.logger.warning('Could not configure diagnostic device')
 
 __all__ = ['MXBeamline']
     

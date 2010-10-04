@@ -105,6 +105,7 @@ class GoniometerBase(BaseDevice):
 class Goniometer(GoniometerBase):
     def __init__(self, name):
         GoniometerBase.__init__(self, name)
+        self.name = 'Goniometer'
         pv_root = name.split(':')[0]
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:scanFrame.PROC" % pv_root, monitor=False)
@@ -151,6 +152,7 @@ class MD2Goniometer(GoniometerBase):
 
     def __init__(self, name, omega_motor):
         GoniometerBase.__init__(self, name)
+        self.name = 'MD2 Goniometer'
         pv_root = name
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:S:StartScan" % pv_root, monitor=False)

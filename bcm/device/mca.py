@@ -23,7 +23,7 @@ class MultiChannelAnalyzer(BaseDevice):
     
     def __init__(self, name, nozzle=None, channels=4096):
         BaseDevice.__init__(self)
-        self.name = name
+        self.name = 'Multi-Channel Analyzer'
         name_parts = name.split(':')
         self._spectrum = self.add_pv(name)
         self._count_time = self.add_pv("%s.PRTM" % name)

@@ -53,19 +53,31 @@ class Cryojet(BaseDevice):
         # connect signals for monitoring state
         self.temperature.connect('changed', self._on_temperature_changed)
         self.level.connect('changed', self._on_level_changed)
-    
+        self.nozzle.connect('changed', self._on_noz_change)
+        
+
     def _on_temperature_changed(self, obj, val):
-        if val >= 105.0:
-            self.set_state(health=(4, 'temp', 'temperature high'))
-        else:
+        if val < 105:
             self.set_state(health=(0, 'temp'))
+        elif val < 110:
+            self.set_state(health=(2, 'temp', 'Temp. high!'))
+        else:
+            self.set_state(health=(4, 'temp', 'Temp. too high!'))
 
     def _on_level_changed(self, obj, val):
-        if val >= 250:
+        if  val < 150:
+            self.set_state(health=(3, 'cryo','Cryogen too low!'))
+        elif val < 200:
+            self.set_state(health=(2, 'cryo','Cryogen low!'))
+        elif val <= 1000:
             self.set_state(health=(0, 'cryo'))
+            
+    def _on_noz_change(self, obj, val):
+        if not val:
+            self.set_state(health=(1, 'nozzle', 'Nozzle retracted!'))
         else:
-            self.set_state(health=(2, 'cryo', 'cryo low'))
-                
+            self.set_state(health=(0, 'nozzle'))
+                       
     def resume_flow(self):
         self.sample_flow.set(self._previous_flow)
     
