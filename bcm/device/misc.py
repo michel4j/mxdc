@@ -511,7 +511,7 @@ class StorageRing(BaseDevice):
         _logger.warn('Timed out waiting for beam!')
     
     def _on_mode_change(self, obj, val):
-        if val == 4:
+        if val != 4:
             self.set_state(health=(1,'mode', self.message.get()))
         else:
             self.set_state(health=(0,'mode'))
@@ -523,7 +523,7 @@ class StorageRing(BaseDevice):
 
     def _on_control_change(self, obj, val):
         if val == 1:
-            self.set_state(health=(4, 'control','Shutters disabled!'))
+            self.set_state(health=(4, 'control','Shutters disabled'))
         else:
             self.set_state(health=(0,'control'))
             
@@ -534,7 +534,7 @@ class StorageRing(BaseDevice):
 
     def _on_current_change(self, obj, val):
         if val <= 5:
-            self.set_state(health=(4,'beam','No beam!'))
+            self.set_state(health=(4,'beam','No beam'))
         else:
             self.set_state(health=(0,'beam'))
             
