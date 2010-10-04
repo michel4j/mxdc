@@ -96,9 +96,7 @@ class ImageViewer(gtk.Frame):
         
         self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
                                   'info_dialog')
-        self.info_dialog = self._xml3.get_widget('info_dialog')
-        self.info_close_btn = self._xml3.get_widget('info_close_btn')
-        self.info_close_btn.connect('clicked', lambda x: self.info_dialog.hide())
+        self.info_dialog = None
         
         self.image_canvas.connect('configure-event', self.on_configure)      
         self.add(self._widget)         
@@ -292,14 +290,19 @@ class ImageViewer(gtk.Frame):
         return False
           
     def on_image_info(self, obj):         
-        self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
-                                  'info_dialog')
-        self.info_dialog = self._xml3.get_widget('info_dialog')
-        self.info_close_btn = self._xml3.get_widget('info_close_btn')
-        self.info_close_btn.connect('clicked', lambda x: self.info_dialog.hide())
+        if self.info_dialog is None:
+            self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+                                      'info_dialog')
+            self.info_dialog = self._xml3.get_widget('info_dialog')
+            self.info_close_btn = self._xml3.get_widget('info_close_btn')
+            self.info_close_btn.connect('clicked', self.on_info_destroy)
+            self.info_dialog.set_transient_for(self._get_parent_window())
         self._update_info()
-        self.info_dialog.set_transient_for(self._get_parent_window())
         self.info_dialog.show()
+
+    def on_info_destroy(self, obj):
+        self.info_dialog.destroy()
+        self.info_dialog = None
 
     def on_next_frame(self,widget):
         if os.access(self.next_filename, os.R_OK):

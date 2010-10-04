@@ -16,20 +16,42 @@ from mxdc.widgets.statuspanel import StatusPanel
 
 _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
+COPYRIGHT = """
+Copyright (c) 2006-2010, Canadian Light Source, Inc
+All rights reserved.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE CANADIAN LIGHT SOURCE BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
 
 class AppWindow(gtk.Window):
-    def __init__(self):
+    def __init__(self, version='3.3.4'):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
+        self._xml = gtk.glade.XML(os.path.join(SHARE_DIR, 'mxdc_main.glade'), 'mxdc_main')
         self.set_position(gtk.WIN_POS_CENTER)
-        icon_file = os.path.join(SHARE_DIR, 'icon.png')
-        pixbuf = gtk.gdk.pixbuf_new_from_file(icon_file)        
-        self.set_icon (pixbuf)
-        
-        self.splash = Splash(version='3.2.0')
+        self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
+        self.set_icon_from_file(self.icon_file)
+        self.set_title('MxDC - Mx Data Collector')
+        self.version = version
+        self.splash = Splash(version)
         self.splash.set_transient_for(self)
         self.splash.show_all()
         while gtk.events_pending():
             gtk.main_iteration()
+
+    def __getattr__(self, key):
+        try:
+            return super(AppWindow).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
         
     def run(self):
         gobject.timeout_add(2000, lambda: self.splash.hide())         
@@ -42,11 +64,6 @@ class AppWindow(gtk.Window):
         self.screen_manager = ScreenManager()
         self.status_panel = StatusPanel()
         
-        self._xml = gtk.glade.XML(os.path.join(SHARE_DIR, 'mxdc_main.glade'), 'mxdc_main')
-        self.main_frame = self._xml.get_widget('main_frame')
-        self.mxdc_main = self._xml.get_widget('mxdc_main')
-        self.quit_cmd = self._xml.get_widget('quit_command')
-        self.about_cmd = self._xml.get_widget('about_cmd')
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
         self.about_cmd.connect('activate', lambda x:  self._do_about() )
         
@@ -73,10 +90,18 @@ class AppWindow(gtk.Window):
         authors = [
             "Michel Fodje (maintainer)",
             ]
-        about = gobject.new(gtk.AboutDialog, name="MX Data Collector",
-                            version="3.1.0", copyright="(C) Canadian Light Source, Inc",
-                            comments="Program for macromolecular crystallography data acquisition.",
-                            authors=authors)
+        about = gtk.AboutDialog()
+        about.set_name("MX Data Collector")
+        about.set_version(self.version)
+        about.set_copyright(COPYRIGHT)
+        about.set_comments("Program for macromolecular crystallography data acquisition.")
+        about.set_website("http://cmcf.lightsource.ca")
+        about.set_authors(authors)
+        about.set_program_name('MxDC')
+        logo = gtk.gdk.pixbuf_new_from_file(self.icon_file)
+        about.set_logo(logo)
+        
+        about.connect('response', lambda x,y: about.destroy())
         about.connect('destroy', lambda x: about.destroy())
         about.set_transient_for(self)
         about.show()
