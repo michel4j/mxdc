@@ -6,6 +6,7 @@ from twisted.internet import reactor
 from twisted.python import log
 from bcm.utils import mdns
 import sys, os
+from bcm.utils.misc import get_short_uuid
 
 log.FileLogObserver(sys.stdout).start()
 
@@ -89,7 +90,11 @@ class App(object):
         #                    directory=DIRECTORY,
         #                    ).addCallback(self.dump_results)
         
-        self.bcm.callRemote('acquireFrames', run_info).addCallback(self.dump_results)
+        self.bcm.callRemote('setupCrystal', 
+                            'xtl123',
+                            '../08B1-20101022-%s' % (get_short_uuid()),
+                            'cmcfadmin',
+                            ).addCallback(self.dump_results).addErrback(self.dump_error)
 
     def on_connection_failed(self, reason):
         log.msg('Could not connect to BCM Server: %', reason)
@@ -97,7 +102,13 @@ class App(object):
 
     def dump_results(self, data):
         """pretty print the data received from the server"""
-        log.msg('Server sent: %s' % str(data))
+        import pprint
+        pp = pprint.PrettyPrinter(indent=4, depth=4)
+
+        log.msg('Server sent: \n%s' % pp.pformat(data))
+
+    def dump_error(self, failure):
+        sys.stderr.write(str(failure))
 
 
 app = App()    

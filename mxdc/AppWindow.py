@@ -13,6 +13,7 @@ from mxdc.widgets.samplemanager import SampleManager
 from bcm.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
+from bcm.engine.scripting import get_scripts
 
 _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
@@ -80,6 +81,11 @@ class AppWindow(gtk.Window):
         self.mxdc_main.pack_start(self.status_panel, expand = False, fill = False)
         #self.status_bar.pack_end(gtk.Label('Beamline'))
         self.add(self.mxdc_main)
+        self.scripts = get_scripts()
+        self.mounting_mnu.connect('activate', self.hutch_manager.on_mounting)
+        self.centering_mnu.connect('activate', self.hutch_manager.on_centering)
+        self.collect_mnu.connect('activate', self.hutch_manager.on_collection)
+
         self.show_all()
         
     def _do_quit(self):

@@ -45,6 +45,7 @@ class ActiveHScale(gtk.HScale):
 class ActiveLabel(gtk.Label):
     def __init__( self, context, format="%s", show_units=True, range=None):
         gtk.Label.__init__(self, '')
+
         self.set_alignment(0.5,0.5)
         self.format = format
         self.context = context
@@ -463,7 +464,6 @@ class CryojetWidget(gtk.Frame):
             'temp': (0, self.cryojet.temperature),
             'smpl': (1, self.cryojet.sample_flow),
             'shld': (2, self.cryojet.shield_flow),
-            'sts' : (3, self.cryojet.fill_status),
             }
         for k,v in tbl_data.items():
             lb = ActiveLabel(v[1])
