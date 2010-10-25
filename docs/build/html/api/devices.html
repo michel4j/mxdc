@@ -100,22 +100,22 @@ it to the original port from which it was mounted.</dd>
 <em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">Automounter</tt><big>(</big><em>pv_name</em>, <em>pv_name2=None</em><big>)</big></dt>
 <dd><dl class="method">
 <dt>
-<tt class="descclassname">Automounter.</tt><tt class="descname">dismount</tt><big>(</big><em>port=None</em><big>)</big></dt>
+<tt class="descclassname">Automounter.</tt><tt class="descname">abort</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">Automounter.</tt><tt class="descname">mount</tt><big>(</big><em>port</em>, <em>wash=False</em><big>)</big></dt>
+<tt class="descclassname">Automounter.</tt><tt class="descname">dismount</tt><big>(</big><em>port=None</em>, <em>wait=False</em><big>)</big></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descclassname">Automounter.</tt><tt class="descname">mount</tt><big>(</big><em>port</em>, <em>wash=False</em>, <em>wait=False</em><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt>
 <tt class="descclassname">Automounter.</tt><tt class="descname">probe</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">Automounter.</tt><tt class="descname">wait</tt><big>(</big><em>timeout=60.0</em><big>)</big></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -256,24 +256,41 @@ If no status string is provided, it resets the container to the &#8216;unknown&#
 <dd><dl class="first last docutils">
 <dt><cite>state</cite>:</dt>
 <dd>a signal which transmits changes in automounter states. The 
-The signal data is a dictionary with three entries as follows:
-{&#8216;busy&#8217;: &lt;boolean&gt;, &#8216;enabled&#8217;: &lt;boolean&gt;, &#8216;needs&#8217;:[&lt;str1&gt;,&lt;str2&gt;,...]}</dd>
-<dt><cite>message</cite>: </dt>
-<dd>a signal which emits messages from the Automounter</dd>
+The signal data is a string</dd>
 <dt><cite>mounted</cite>: </dt>
-<dd>a signal emitted when a sample is mounted or dismounted. The data transmitted
+<dd>a signal emitted when a sample is mounted. The data transmitted
 is a tuple of the form (&lt;port no.&gt;, &lt;barcode&gt;) when mounting and <tt class="xref docutils literal"><span class="pre">None</span></tt> when dismounting.</dd>
 </dl>
 </dd>
 </dl>
 <dl class="method">
 <dt>
-<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">dismount</tt><big>(</big><big>)</big></dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">abort</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">mount</tt><big>(</big><big>)</big></dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">dismount</tt><big>(</big><em>port</em>, <em>wait=False</em><big>)</big></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">is_enabled</tt><big>(</big><big>)</big></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">is_mountable</tt><big>(</big><em>port</em><big>)</big></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">is_mounted</tt><big>(</big><em>port</em><big>)</big></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">mount</tt><big>(</big><em>port</em>, <em>wash=False</em>, <em>wait=False</em><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -290,32 +307,27 @@ If no status string.</p>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">wait</tt><big>(</big><em>timeout=60</em><big>)</big></dt>
+<tt class="descclassname">BasicAutomounter.</tt><tt class="descname">wait</tt><big>(</big><em>start=True</em>, <em>stop=True</em>, <em>timeout=240</em><big>)</big></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">SimAutomounter</tt><big>(</big><em>name='Sim Automounter'</em><big>)</big></dt>
+<em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">SimAutomounter</tt></dt>
 <dd><dl class="method">
 <dt>
-<tt class="descclassname">SimAutomounter.</tt><tt class="descname">dismount</tt><big>(</big><em>port=None</em><big>)</big></dt>
+<tt class="descclassname">SimAutomounter.</tt><tt class="descname">dismount</tt><big>(</big><em>port=None</em>, <em>wait=False</em><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">SimAutomounter.</tt><tt class="descname">mount</tt><big>(</big><em>port</em>, <em>wash=False</em><big>)</big></dt>
+<tt class="descclassname">SimAutomounter.</tt><tt class="descname">mount</tt><big>(</big><em>port</em>, <em>wash=False</em>, <em>wait=False</em><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt>
 <tt class="descclassname">SimAutomounter.</tt><tt class="descname">probe</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">SimAutomounter.</tt><tt class="descname">wait</tt><big>(</big><em>timeout=60.0</em><big>)</big></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -450,27 +462,7 @@ time.</dd>
 <p>&#64;author: michel</p>
 <dl class="class">
 <dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">CryojetDiag</tt><big>(</big><em>descr</em>, <em>cryojet</em>, <em>lo</em>, <em>hi</em><big>)</big></dt>
-<dd><dl class="method">
-<dt>
-<tt class="descclassname">CryojetDiag.</tt><tt class="descname">on_lev_change</tt><big>(</big><em>obj</em>, <em>val</em><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">CryojetDiag.</tt><tt class="descname">on_noz_change</tt><big>(</big><em>obj</em>, <em>val</em><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">CryojetDiag.</tt><tt class="descname">on_temp_change</tt><big>(</big><em>obj</em>, <em>val</em><big>)</big></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">DeviceConnectedDiag</tt><big>(</big><em>descr</em>, <em>device</em>, <em>on</em>, <em>off</em><big>)</big></dt>
+<em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">DeviceDiag</tt><big>(</big><em>device</em>, <em>descr=None</em><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="class">
@@ -486,23 +478,8 @@ time.</dd>
 
 <dl class="class">
 <dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">OpenShutterDiag1</tt><big>(</big><em>descr</em>, <em>device</em><big>)</big></dt>
+<em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">ShutterStateDiag</tt><big>(</big><em>device</em>, <em>descr=None</em><big>)</big></dt>
 <dd></dd></dl>
-
-<dl class="class">
-<dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">OpenShuttersDiag</tt><big>(</big><em>descr</em>, <em>*args</em><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">PVInRange1</tt><big>(</big><em>descr</em>, <em>pv</em>, <em>lo</em>, <em>hi</em><big>)</big></dt>
-<dd><dl class="method">
-<dt>
-<tt class="descclassname">PVInRange1.</tt><tt class="descname">on_change</tt><big>(</big><em>obj</em>, <em>val</em><big>)</big></dt>
-<dd></dd></dl>
-
-</dd></dl>
 
 </div>
 <div class="section" id="module-bcm.device.diffractometer">
@@ -511,11 +488,6 @@ time.</dd>
 <dt>
 <em class="property">class </em><tt class="descclassname">bcm.device.diffractometer.</tt><tt class="descname">Diffractometer</tt><big>(</big><em>distance</em>, <em>two_theta</em>, <em>name='Diffractometer'</em><big>)</big></dt>
 <dd><dl class="method">
-<dt>
-<tt class="descclassname">Diffractometer.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt>
 <tt class="descclassname">Diffractometer.</tt><tt class="descname">stop</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
@@ -546,7 +518,7 @@ time.</dd>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">Goniometer.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
+<tt class="descclassname">Goniometer.</tt><tt class="descname">is_busy</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -571,7 +543,7 @@ time.</dd>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">MD2Goniometer.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
+<tt class="descclassname">MD2Goniometer.</tt><tt class="descname">is_busy</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -611,7 +583,7 @@ time.</dd>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">SimGoniometer.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
+<tt class="descclassname">SimGoniometer.</tt><tt class="descname">is_busy</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -729,13 +701,8 @@ time.</dd>
 <span id="monochromator"></span><h2>3.2.9. Monochromator<a class="headerlink" href="#module-bcm.device.monochromator" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.monochromator.</tt><tt class="descname">Monochromator</tt><big>(</big><em>simple_energy</em>, <em>energy</em>, <em>mostab</em><big>)</big></dt>
+<em class="property">class </em><tt class="descclassname">bcm.device.monochromator.</tt><tt class="descname">Monochromator</tt><big>(</big><em>simple_energy</em>, <em>energy</em>, <em>mostab=None</em><big>)</big></dt>
 <dd><dl class="method">
-<dt>
-<tt class="descclassname">Monochromator.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt>
 <tt class="descclassname">Monochromator.</tt><tt class="descname">stop</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
@@ -745,12 +712,6 @@ time.</dd>
 <tt class="descclassname">Monochromator.</tt><tt class="descname">wait</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
-</dd></dl>
-
-<dl class="exception">
-<dt>
-<em class="property">exception </em><tt class="descclassname">bcm.device.monochromator.</tt><tt class="descname">MonochromatorError</tt></dt>
-<dd><p>Base class for errors.</p>
 </dd></dl>
 
 </div>
@@ -806,22 +767,7 @@ time.</dd>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">FixedLine2Motor.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
 <tt class="descclassname">FixedLine2Motor.</tt><tt class="descname">is_enabled</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">FixedLine2Motor.</tt><tt class="descname">is_healthy</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">FixedLine2Motor.</tt><tt class="descname">is_moving</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -857,26 +803,6 @@ time.</dd>
 <dl class="method">
 <dt>
 <tt class="descclassname">Motor.</tt><tt class="descname">get_position</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">Motor.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">Motor.</tt><tt class="descname">is_enabled</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">Motor.</tt><tt class="descname">is_healthy</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">Motor.</tt><tt class="descname">is_moving</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1014,11 +940,6 @@ time.</dd>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">MotorShutter.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
 <tt class="descclassname">MotorShutter.</tt><tt class="descname">open</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
@@ -1049,26 +970,6 @@ time.</dd>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">RelVerticalMotor.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">RelVerticalMotor.</tt><tt class="descname">is_enabled</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">RelVerticalMotor.</tt><tt class="descname">is_healthy</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">RelVerticalMotor.</tt><tt class="descname">is_moving</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
 <tt class="descclassname">RelVerticalMotor.</tt><tt class="descname">move_by</tt><big>(</big><em>val</em>, <em>wait=False</em>, <em>force=False</em><big>)</big></dt>
 <dd></dd></dl>
 
@@ -1095,26 +996,6 @@ time.</dd>
 <dd><dl class="method">
 <dt>
 <tt class="descclassname">SimMotor.</tt><tt class="descname">get_position</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">SimMotor.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">SimMotor.</tt><tt class="descname">is_enabled</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">SimMotor.</tt><tt class="descname">is_healthy</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">SimMotor.</tt><tt class="descname">is_moving</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1240,7 +1121,7 @@ time.</dd>
 
 <dl class="class">
 <dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.video.</tt><tt class="descname">VideoSrc</tt><big>(</big><em>name='Basic Camera'</em>, <em>maxfps=10.0</em><big>)</big></dt>
+<em class="property">class </em><tt class="descclassname">bcm.device.video.</tt><tt class="descname">VideoSrc</tt><big>(</big><em>name='Basic Camera'</em>, <em>maxfps=5.0</em><big>)</big></dt>
 <dd><dl class="method">
 <dt>
 <tt class="descclassname">VideoSrc.</tt><tt class="descname">add_sink</tt><big>(</big><em>sink</em><big>)</big></dt>
@@ -1311,8 +1192,9 @@ time.</dd>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">BasicShutter.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
+<tt class="descclassname">BasicShutter.</tt><tt class="descname">is_open</tt><big>(</big><big>)</big></dt>
+<dd><p>Convenience function for open state</p>
+</dd></dl>
 
 <dl class="method">
 <dt>
@@ -1326,11 +1208,6 @@ time.</dd>
 <em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">Collimator</tt><big>(</big><em>x</em>, <em>y</em>, <em>width</em>, <em>height</em>, <em>name='Collimator'</em><big>)</big></dt>
 <dd><dl class="method">
 <dt>
-<tt class="descclassname">Collimator.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
 <tt class="descclassname">Collimator.</tt><tt class="descname">stop</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
@@ -1343,76 +1220,10 @@ time.</dd>
 
 <dl class="class">
 <dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">Cryojet</tt><big>(</big><em>cname</em>, <em>lname</em>, <em>nozzle_motor=None</em><big>)</big></dt>
+<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">HumidityController</tt><big>(</big><em>root_name</em><big>)</big></dt>
 <dd><dl class="method">
 <dt>
-<tt class="descclassname">Cryojet.</tt><tt class="descname">resume_flow</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">Cryojet.</tt><tt class="descname">stop_flow</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">CryojetNozzle</tt><big>(</big><em>name</em><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="exception">
-<dt>
-<em class="property">exception </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">MiscDeviceError</tt></dt>
-<dd><p>Base class for errors in the misc module.</p>
-</dd></dl>
-
-<dl class="class">
-<dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">MostabOptimizer</tt><big>(</big><em>name</em><big>)</big></dt>
-<dd><dl class="method">
-<dt>
-<tt class="descclassname">MostabOptimizer.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">MostabOptimizer.</tt><tt class="descname">start</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">MostabOptimizer.</tt><tt class="descname">stop</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">MostabOptimizer.</tt><tt class="descname">wait</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">Optimizer</tt><big>(</big><em>name</em><big>)</big></dt>
-<dd><dl class="method">
-<dt>
-<tt class="descclassname">Optimizer.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">Optimizer.</tt><tt class="descname">start</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">Optimizer.</tt><tt class="descname">stop</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">Optimizer.</tt><tt class="descname">wait</tt><big>(</big><big>)</big></dt>
+<tt class="descclassname">HumidityController.</tt><tt class="descname">set_humidity</tt><big>(</big><em>val</em><big>)</big></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1487,11 +1298,6 @@ time.</dd>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">PositionerMotor.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
 <tt class="descclassname">PositionerMotor.</tt><tt class="descname">move_by</tt><big>(</big><em>val</em>, <em>wait=False</em><big>)</big></dt>
 <dd></dd></dl>
 
@@ -1547,11 +1353,6 @@ time.</dd>
 <em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">SampleStage</tt><big>(</big><em>x</em>, <em>y1</em>, <em>y2</em>, <em>omega</em>, <em>name='Sample Stage'</em><big>)</big></dt>
 <dd><dl class="method">
 <dt>
-<tt class="descclassname">SampleStage.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
 <tt class="descclassname">SampleStage.</tt><tt class="descname">stop</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
@@ -1569,28 +1370,23 @@ time.</dd>
 
 <dl class="class">
 <dt>
-<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">SimCryojet</tt><big>(</big><em>name</em><big>)</big></dt>
+<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">ShutterGroup</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big></dt>
 <dd><dl class="method">
 <dt>
-<tt class="descclassname">SimCryojet.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
+<tt class="descclassname">ShutterGroup.</tt><tt class="descname">close</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">SimCryojet.</tt><tt class="descname">resume_flow</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descclassname">SimCryojet.</tt><tt class="descname">stop_flow</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
+<tt class="descclassname">ShutterGroup.</tt><tt class="descname">is_open</tt><big>(</big><big>)</big></dt>
+<dd><p>Convenience function for open state</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="method">
 <dt>
-<tt class="descclassname">bcm.device.misc.</tt><tt class="descname">SimOptimizer</tt></dt>
-<dd><p>alias of <tt class="xref py py-class docutils literal"><span class="pre">Optimizer</span></tt></p>
+<tt class="descclassname">ShutterGroup.</tt><tt class="descname">open</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -1618,12 +1414,22 @@ time.</dd>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">SimShutter.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
+<tt class="descclassname">SimShutter.</tt><tt class="descname">open</tt><big>(</big><big>)</big></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt>
+<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">StorageRing</tt><big>(</big><em>pv1</em>, <em>pv2</em>, <em>pv3</em><big>)</big></dt>
+<dd><dl class="method">
+<dt>
+<tt class="descclassname">StorageRing.</tt><tt class="descname">beam_available</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt>
-<tt class="descclassname">SimShutter.</tt><tt class="descname">open</tt><big>(</big><big>)</big></dt>
+<tt class="descclassname">StorageRing.</tt><tt class="descname">wait_for_beam</tt><big>(</big><em>timeout=60</em><big>)</big></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1632,11 +1438,6 @@ time.</dd>
 <dt>
 <em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">XYStage</tt><big>(</big><em>x</em>, <em>y</em>, <em>name='XY Stage'</em><big>)</big></dt>
 <dd><dl class="method">
-<dt>
-<tt class="descclassname">XYStage.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt>
 <tt class="descclassname">XYStage.</tt><tt class="descname">stop</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>
@@ -1652,11 +1453,6 @@ time.</dd>
 <dt>
 <em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">XYZStage</tt><big>(</big><em>x</em>, <em>y</em>, <em>z</em>, <em>name='XYZ Stage'</em><big>)</big></dt>
 <dd><dl class="method">
-<dt>
-<tt class="descclassname">XYZStage.</tt><tt class="descname">get_state</tt><big>(</big><big>)</big></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt>
 <tt class="descclassname">XYZStage.</tt><tt class="descname">stop</tt><big>(</big><big>)</big></dt>
 <dd></dd></dl>

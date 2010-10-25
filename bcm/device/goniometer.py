@@ -249,6 +249,7 @@ class MD2Goniometer(GoniometerBase):
             for dev,val in self._mount_setpoints.items():
                 if abs(dev.get() - val) > 0.01:              
                     self.wait()
+                    time.sleep(1.0)
                     dev.set(val)
             if abs(self.omega.get_position() - 201.75) > 0.01:
                 self.omega.move_to(201.75, wait=True)
