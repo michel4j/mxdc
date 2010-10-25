@@ -239,7 +239,7 @@ class SimAutomounter(BasicAutomounter):
                          
     def mount(self, port, wash=False, wait=False):
         if self.is_busy():
-            return
+            return False
         if self._mounted_port is not None:
             self._sim_mount_start(port)
             gobject.timeout_add(5000, self._sim_mount_done, port)
@@ -253,7 +253,7 @@ class SimAutomounter(BasicAutomounter):
     
     def dismount(self, port=None, wait=False):
         if self.busy_state:
-            return
+            return False
         if self._mounted_port is not None:
             self._sim_mount_start(None)
             gobject.timeout_add(60000, self._sim_dismount_done)
@@ -317,12 +317,14 @@ class Automounter(BasicAutomounter):
         self._dismount_param = self.add_pv('%s:dismntX:param' % pv_name)
         self._mount_next_cmd = self.add_pv('%s:mntNextX:opr' % pv_name)
         self._abort_cmd = self.add_pv('%s:abort:opr' % pv_name)
+        self._probe_cmd = self.add_pv('%s:probe:opr' % pv_name)
 
         self._wash_param = self.add_pv('%s:washX:param' % pv_name)
         self._bar_code = self.add_pv('%s:bcode:barcode' % pv_name)
         self._barcode_reset = self.add_pv('%s:bcode:clear' % pv_name)
         self._enabled = self.add_pv('%s:mntEn' % pv_name)
         self._sample_busy = self.add_pv('%s:sample:sts' % pv_name)
+        self._probe_param = self.add_pv('%s:probe:wvParam' % pv_name)
         
         self.port_states.connect('changed', lambda x, y: self.parse_states(y))
         
@@ -349,7 +351,15 @@ class Automounter(BasicAutomounter):
         self._abort_cmd.put(0)
      
     def probe(self):
-        pass
+        probe_str = '1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1'
+        self._probe_param.set(probe_str)
+        enabled = self._wait_for_enable(30)
+        if not enabled:
+            _logger.warning('(%s) command received while disabled. Timed out waiting for enabled state.' % self.name)
+            return False
+        self._probe_cmd.put(1)
+        ca.flush()
+        self._probe_cmd.put(0)
     
     def _set_steps(self, steps):
         self._total_steps = steps
@@ -414,7 +424,7 @@ class Automounter(BasicAutomounter):
             msg = 'No mounted sample to dismount'
             _logger.warning(msg)
             self.set_state(message=msg)
-            return 
+            return False
         self._dismount_param.put(param)
         self._dismount_cmd.put(1)
         ca.flush()

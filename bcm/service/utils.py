@@ -4,14 +4,13 @@ Created on Nov 10, 2009
 @author: michel
 '''
 import exceptions
-from twisted.spread import pb, interfaces
+from twisted.spread import pb
 
 import gobject
-import random
 from zope.interface import Interface, implements
 from twisted.python import log
+from twisted.internet import  threads
 import numpy
-
 
 def log_call(f):
     def new_f(*args, **kwargs):
@@ -22,6 +21,11 @@ def log_call(f):
         return f(*args,**kwargs)
     new_f.__name__ = f.__name__
     return new_f
+
+def defer_to_thread(func):
+    def wrap(*args, **kwargs):
+        return threads.deferToThread(func, *args, **kwargs)
+    return wrap
 
 def send_array(arr):
     if arr is None:
