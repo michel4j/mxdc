@@ -9,10 +9,10 @@ from twisted.python import components
 from twisted.conch import manhole, manhole_ssh
 from twisted.cred import portal, checkers
 from twisted.python import log
+from twisted.python.failure import Failure
 from zope.interface import Interface, implements
 
-import os, sys, time
-import pprint
+import os, sys
 
 from bcm.beamline.mx import MXBeamline
 from bcm.beamline.interfaces import IBeamline
@@ -20,17 +20,18 @@ from bcm.device.remote import *
 from bcm.engine import diffraction
 from bcm.engine import spectroscopy
 from bcm.utils import science, mdns
-from bcm.service.utils import log_call
+from bcm.service.utils import log_call, defer_to_thread
 from bcm.service.interfaces import IPerspectiveBCM, IBCMService
 from bcm.engine.snapshot import take_sample_snapshots
 from bcm.utils.log import log_to_twisted
+from bcm.utils.misc import get_short_uuid
+from bcm.service.common import *
+from bcm.service import auto
 
 # Send Python logs to twisted log
 log_to_twisted()
 
-class MountError(pb.Error):
-    """ Unable to Mount """
-    pass
+
 
 class PerspectiveBCMFromService(pb.Root):
     implements(IPerspectiveBCM)
@@ -69,6 +70,10 @@ class PerspectiveBCMFromService(pb.Root):
     def remote_setUser(self, *args, **kwargs):
         """ Set the current user"""
         return self.service.setUser( *args, **kwargs)
+
+    def remote_setupCrystal(self, *args, **kwargs):
+        """ Prepare environment for the crystal"""
+        return self.service.setupCrystal( *args, **kwargs)
 
     def remote_getConfig(self):
         """Get a Configuration of all beamline devices"""
@@ -155,7 +160,14 @@ class BCMService(service.Service):
             return self.device_server_cache[id]
         
     @log_call
-    def setUser(self, name, uid, gid, directory):
+    def setUser(self, uname):
+        try:
+            uid, gid = get_user_properties(uname)
+            self.settings['uid'] = uid
+            self.settings['gid'] = gid
+        except InvalidUser, e:
+            return defer.fail(Failure(e))       
+        
         user_info = {
             'name': name,
             'uid': uid,
@@ -169,66 +181,138 @@ class BCMService(service.Service):
         return defer.succeed([])
     
     @log_call
-    def mountSample(self, *args, **kwargs):
-        assert self.ready
-        return defer.succeed([])
-
-    @log_call
-    def unmountSample(self, *args, **kwargs):
-        assert self.ready
-        return defer.succeed([])
-                
-    @log_call
-    def scanEdge(self, *args, **kwargs):
-        """
-        Perform a MAD scan around an absorption edge
-        Valid kwargs are:
-            - edge: string, made up of 2-letter Element symbol and edge K, L1, L2, L3, separated by hyphen
-            - exposure_time: exposure time for each point
-            - directory: location to store output
-            - prefix: output prefix
-            - attenuation
-        """
-        #FIXME: We need some way of setting who will own the output files 
-        assert self.ready
-        directory = kwargs['directory']
-        edge = kwargs['edge']
-        exposure_time = kwargs['exposure_time']
-        prefix = kwargs['prefix']
-        attenuation = kwargs['attenuation']
-            
-        self.xanes_scanner.configure(edge, exposure_time, attenuation, directory, prefix)
-        d = threads.deferToThread(self.xanes_scanner.run)
-        return d
-        
-    @log_call
-    def scanSpectrum(self, *args, **kwargs):
-        """
-        Perform an excitation scan around of the current energy
-        Valid kwargs are:
-            - energy
-            - exposure_time: exposure time for each point
-            - directory: location to store output
-            - prefix: output prefix
-            - attenuation
-        """
-        assert self.ready
-        directory = kwargs['directory']
-        exposure_time = kwargs['exposure_time']
-        prefix = kwargs['prefix']
-        energy = kwargs['energy']
-        attenuation = kwargs['attenuation']
+    def setupCrystal(self, crystal_name, session_id, uname):
+        try:
+            uid, gid = get_user_properties(uname)
+            self.settings['uid'] = uid
+            self.settings['gid'] = gid
+        except InvalidUser, e:
+            return defer.fail(Failure(e))
              
-        self.xrf_scanner.configure(energy,  exposure_time,  attenuation, directory, prefix)
-        d = threads.deferToThread(self.xrf_scanner.run)
-        return d
+        dir_list = []
+        base_dir = '/users/%s/%s/%s' % ( user_name, session_id, crystal_name)
+        dir_list.append( ('top-level', base_dir) )
+        for sub_dir in ['data','test','proc','scan','scrn']:
+            dir_list.append( (sub_dir, '%s/%s' % (base_dir, sub_dir)) )
+        
+        try:
+            os.setegid(gid)
+            os.seteuid(uid)
+            for k, dir_name in dir_list:
+                if not os.path.exists(dir_name):
+                    os.makedirs(dir_name)
+            output = dict(dir_list)
+            log.msg('Directories created for crystal `%s`' % (crystal_name))
+            succeed = True
+        except OSError, e:
+            output = Failure(FileSystemError('Could not create directories.'))
+            log.msg('Directories could not be created for crystal `%s`' % (crystal_name))
+            succeed = False
+            
+        os.setuid(0)
+        os.setgid(0)
+        if succeed:
+            return defer.succeed(output)
+        else:
+            return defer.fail(output)
     
     @log_call
-    def acquireFrames(self, run_info, skip_existing=False):
+    @defer_to_thread
+    def mountSample(self, port, name):
+        try:
+            assert self.ready
+        except AssertionError:
+            raise BeamlineNotReady()
+
+        result = auto.auto_mount(self.beamline, port)
+        result['centering'] = auto.auto_center(self.beamline)
+        return result
+          
+    @log_call
+    def unmountSample(self, *args, **kwargs):
+        try:
+            assert self.ready
+        except AssertionError:
+            return defer.fail(Failure(BeamlineNotReady()))
+
+        d = threads.deferToThread(auto.auto_dismount, self.beamline)
+        return d
+        
+                
+    @log_call
+    @defer_to_thread
+    def scanEdge(self, info, directory, uname):
+        """
+        Perform a MAD scan around an absorption edge
+        `info` is a dictionary with the following keys:
+            - edge: string, made up of 2-letter Element symbol and edge K, L1, L2, L3, separated by hyphen
+            - exposure_time: exposure time for each point
+            - prefix: output prefix
+            - attenuation
+        `directory`: location to store output
+        `uname`: user name of file owner
+        """
+        try:
+            assert self.ready
+        except AssertionError:
+            raise BeamlineNotReady()
+
+        uid, gid = get_user_properties(uname)
+        os.setegid(gid)
+        os.seteuid(uid)
+        
+        edge = info['edge']
+        exposure_time = info['exposure_time']
+        prefix = info['prefix']
+        attenuation = info['attenuation']
+                    
+        self.xanes_scanner.configure(edge, exposure_time, attenuation, directory, prefix)
+        results = self.xanes_scanner.run()
+        os.setuid(0)
+        os.setgid(0)
+        return results
+
+        
+       
+    @log_call
+    @defer_to_thread
+    def scanSpectrum(self, info, directory, uname):
+        """
+        Perform an excitation scan around of the current energy
+        `info` is a dictionary with the following keys:
+            - energy
+            - exposure_time: exposure time for each point
+            - prefix: output prefix
+            - attenuation
+        `directory`: location to store output
+        `uname`: user name of file owner
+        """
+        try:
+            assert self.ready
+        except AssertionError:
+            raise BeamlineNotReady()
+
+        uid, gid = get_user_properties(uname)
+        os.setegid(gid)
+        os.seteuid(uid)
+        
+        exposure_time = info['exposure_time']
+        prefix = info['prefix']
+        energy = info['energy']
+        attenuation = info['attenuation']
+             
+        self.xrf_scanner.configure(energy,  exposure_time,  attenuation, directory, prefix)
+        results = self.xrf_scanner.run()
+        os.setuid(0)
+        os.setgid(0)
+        return results
+    
+    @log_call
+    @defer_to_thread
+    def acquireFrames(self, run_info, directory, uname):
         """
         Acquire a set of frames
         @param run_info: a dictionary with the following arguments:
-             - directory: location to store output
             - prefix: output prefix
             - distance: float
             - delta: float
@@ -243,16 +327,38 @@ class BCMService(service.Service):
             - energy_label : a corresponding list of energy labels (strings) no spaces
             - two_theta : a float, default (0.0)
             - attenuation: a float, default (0.0)
+            - skip_existing: boolean (default = False)
+        `directory`: location to store output
+        `uname`: user name of file owner
         """
-        assert self.ready
-        self.data_collector.configure(run_data=run_info, skip_collected=skip_existing)
-        d = threads.deferToThread(self.data_collector.run)     
-        return d
+        try:
+            assert self.ready
+        except AssertionError:
+            raise BeamlineNotReady()
+        
+        uid, gid = get_user_properties(uname)
+        os.setegid(gid)
+        os.seteuid(uid)
+        self.data_collector.configure(run_data=run_info, skip_collected=run_info.get('skip_existing', False))
+        results = self.data_collector.run()     
+        os.setuid(0)
+        os.setgid(0)
+        return results
                    
     @log_call
-    def takeSnapshots(self, prefix, directory, angles=[None], decorate=True):
-        assert self.ready        
-        d = threads.deferToThread(take_sample_snapshots, prefix, directory, angles, decorate=decorate)
+    @defer_to_thread
+    def takeSnapshots(self, prefix,  angles, directory, uname):
+        try:
+            assert self.ready
+        except AssertionError:
+            raise BeamlineNotReady()
+        
+        uid, gid = get_user_properties(uname)
+        os.setegid(gid)
+        os.seteuid(uid)       
+        take_sample_snapshots(prefix, directory, angles=angles, decorate=True)
+        os.setuid(0)
+        os.setgid(0)
         return d
     
     @log_call

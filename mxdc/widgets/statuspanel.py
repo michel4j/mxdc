@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import gtk, gobject
 import sys, os, time
+import pango
 
 from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
@@ -18,20 +19,20 @@ class StatusPanel(gtk.Statusbar):
         if beamline is None:
             return
         self.layout_table.attach(self._frame_control('Beamline', gtk.Label(beamline.name), gtk.SHADOW_IN), 8, 9 , 0, 1)
+        pango_font = pango.FontDescription('Monospace 9')
         
+        beamline.ring_current.units = 'mA'
+        self.cur = ActiveLabel(beamline.ring_current, format="%+0.1f")
+        self.layout_table.attach(self._frame_control('Ring', self.cur, gtk.SHADOW_IN), 7, 8 , 0, 1)
         
-        beamline.registry['ring_current'].units = 'mA'
-        self.intensity = ActiveLabel(beamline.registry['ring_current'], format="<tt>%5.1f</tt>")
-        self.layout_table.attach(self._frame_control('Ring', self.intensity, gtk.SHADOW_IN), 7, 8 , 0, 1)
+        self.i2 = ActiveLabel(beamline.i_2.value, format="%+0.2e")
+        self.layout_table.attach(self._frame_control('I2', self.i2, gtk.SHADOW_IN), 6, 7 , 0, 1)
         
-        self.intensity = ActiveLabel(beamline.registry['i_2'].value, format="<tt>%8.1e</tt>")
-        self.layout_table.attach(self._frame_control('I2', self.intensity, gtk.SHADOW_IN), 6, 7 , 0, 1)
+        self.i1 = ActiveLabel(beamline.i_1.value, format="%+0.2e")
+        self.layout_table.attach(self._frame_control('I1', self.i1, gtk.SHADOW_IN), 5, 6 , 0, 1)
         
-        self.intensity = ActiveLabel(beamline.registry['i_1'].value, format="<tt>%8.1e</tt>")
-        self.layout_table.attach(self._frame_control('I1', self.intensity, gtk.SHADOW_IN), 5, 6 , 0, 1)
-        
-        self.intensity = ActiveLabel(beamline.i_0.value, format="<tt>%8.1e</tt>")
-        self.layout_table.attach(self._frame_control('I0', self.intensity, gtk.SHADOW_IN), 4, 5 , 0, 1)
+        self.i0 = ActiveLabel(beamline.i_0.value, format="%+0.2e")
+        self.layout_table.attach(self._frame_control('I0', self.i0, gtk.SHADOW_IN), 4, 5 , 0, 1)
         
         _map = {True:'<span color="#009900">OPEN</span>',
                 False:'<span color="#990000">CLOSED</span>'}
@@ -60,8 +61,10 @@ class StatusPanel(gtk.Statusbar):
         frame.remove(label)
         self.layout_table.attach(self._frame_control(None, label, gtk.SHADOW_IN), 0,3,0,1)
         frame.add(self.layout_table)
-        #self.remove(child, None)
-        #self.pack_start(self.layout_table, expand= False, fill=False, padding=0)
+
+        for lbl in [self.cur, self.i2, self.i1, self.i0, self.gonio_mode, self.sh_stat]:
+            lbl.modify_font(pango_font)
+
         self.show_all()    
     
     def _update_mode(self, obj, val):
@@ -69,7 +72,7 @@ class StatusPanel(gtk.Statusbar):
         
     def _frame_control(self, label, widget, shadow):
         hbox = gtk.HBox(False,2)
-        hbox.pack_end(widget)
+        hbox.pack_end(widget, expand=True, fill=True)
         if label is not None:
             descr = gtk.Label('<span color="#333333"><i>%s:</i></span>' % label)
             descr.set_sensitive(False)

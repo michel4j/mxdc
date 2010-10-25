@@ -100,6 +100,8 @@ class HutchManager(gtk.Frame):
         self.cent_btn = ScriptButton(self.scripts['SetCenteringMode'], 'Centering Mode')
         self.collect_btn = ScriptButton(self.scripts['SetCollectMode'], 'Collect Mode')
         
+        
+        
         self.commands_box.pack_start(self.front_end_btn)
         #self.commands_box.pack_start(self.shutter_btn)
         self.commands_box.pack_start(self.optimize_btn)
@@ -135,7 +137,16 @@ class HutchManager(gtk.Frame):
     def on_restore_beam(self,obj):
         script = self.scripts['RestoreBeam']
         script.start()
-        
+    
+    def on_mounting(self, obj):
+        self.mount_btn.clicked()
+    
+    def on_centering(self, obj):
+        self.cent_btn.clicked()
+    
+    def on_collection(self, obj):
+        self.collect_btn.clicked()
+            
     def update_predictor(self, widget, val=None):
         self.predictor.configure(energy=self.beamline.monochromator.energy.get_position(),
                                  distance=self.beamline.diffractometer.distance.get_position(),

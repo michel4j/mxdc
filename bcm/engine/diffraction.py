@@ -4,12 +4,11 @@ from bcm.engine.interfaces import IDataCollector
 from bcm.protocol import ca
 from bcm.utils.converter import energy_to_wavelength
 from bcm.utils.log import get_module_logger
-from bcm.utils.misc import generate_run_list, wait_for_signal
+from bcm.utils.misc import generate_run_list
 from twisted.python.components import globalRegistry
-from zope.interface import Interface, Attribute, implements
+from zope.interface import implements
 
 import gobject
-import logging
 import os
 import threading
 import time
@@ -174,7 +173,7 @@ class Screener(gobject.GObject):
                     _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
                         run_params = DEFAULT_PARAMETERS
-                        #run_params['distance'] = self.beamline.diffractometer.distance.get_position()
+                        run_params['distance'] = self.beamline.diffractometer.distance.get_position()
                         run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
                         run_params['energy'] = [ self.beamline.monochromator.energy.get_position() ]
                         run_params['energy_label'] = ['E0']
