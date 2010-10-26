@@ -5,7 +5,7 @@ from twisted.spread import pb
 from twisted.internet import reactor
 from twisted.python import log
 from bcm.utils import mdns
-import sys, os
+import sys, os, time
 from bcm.utils.misc import get_short_uuid
 
 log.FileLogObserver(sys.stdout).start()
@@ -82,19 +82,23 @@ class App(object):
         
 
         # Test a few functions
-        #self.bcm.callRemote('scanSpectrum',
-        #                    prefix='scan1-5', 
-        #                    exposure_time=1.0,
-        #                    attenuation=50.0,
-        #                    energy=18.0,
-        #                    directory=DIRECTORY,
-        #                    ).addCallback(self.dump_results)
-        
-        self.bcm.callRemote('setupCrystal', 
-                            'xtl123',
-                            '../08B1-20101022-%s' % (get_short_uuid()),
-                            'cmcfadmin',
+        info = {'prefix':'xtl123', 
+                'exposure_time':1.0,
+                'attenuation':50.0,
+                'energy':12.0}
+        self.bcm.callRemote('scanSpectrum',
+                            info,
+                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/scan',
+                            uname='cmcfadmin',
                             ).addCallback(self.dump_results).addErrback(self.dump_error)
+        
+        
+#        self.bcm.callRemote('setupCrystal', 
+#                            'xtl123',
+#                            '08B1-%s-%s' % (time.strftime('%Y%m%d'), get_short_uuid()),
+#                            'cmcfadmin',
+#                            ).addCallback(self.dump_results).addErrback(self.dump_error)
+
 
     def on_connection_failed(self, reason):
         log.msg('Could not connect to BCM Server: %', reason)
