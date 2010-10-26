@@ -65,7 +65,7 @@ class BaseDevice(gobject.GObject):
                              'health': (0,''), 'message': ''}
         self.name = self.__class__.__name__ + ' Device'
         self._dev_state_patt = re.compile('^(\w+)_state$')
-        self._check_id = gobject.timeout_add(15000, self._check_active)
+        self._check_id = gobject.timeout_add(30000, self._check_active)
         
     def __repr__(self):
         state_txts = []
@@ -79,8 +79,9 @@ class BaseDevice(gobject.GObject):
         if len(self.pending_devs) > 0:
             inactive_devs = [dev.name for dev in self.pending_devs]
             msg = '\n\t'.join(inactive_devs)
-            msg = '[%d] inactive children:\n\t%s' % (len(inactive_devs), msg)
-            logger.warning( "(%s) inactive. %s" % (self.name, msg))
+            #msg = '[%d] inactive children:\n\t%s' % (len(inactive_devs), msg)
+            msg = '[%d] inactive children.' % (len(inactive_devs))
+            logger.warning( "(%s) %s" % (self.name, msg))
         return True
     
     def do_active(self, st):

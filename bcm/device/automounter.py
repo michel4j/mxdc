@@ -524,6 +524,7 @@ class Automounter(BasicAutomounter):
 # remote server anc client classes
 from bcm.service.utils import *
 from twisted.internet import defer
+from twisted.spread import interfaces
 from bcm import registry
 
 class AutomounterServer(MasterDevice):
@@ -564,7 +565,7 @@ class AutomounterServer(MasterDevice):
     def remote_wait(self, **kwargs):
         self.device.wait(**kwargs)
         
-            
+
 class AutomounterClient(SlaveDevice, BasicAutomounter):
     __used_for__ = interfaces.IJellyable
     implements(IAutomounter)
