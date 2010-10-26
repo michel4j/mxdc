@@ -83,7 +83,7 @@ def auto_center(pre_align=True):
         _logger.error('XREC cound not be executed')
         return None
     
-    results = {}
+    results = {'RELIABILITY': -99}
     
     for line in data:
         vals = line.split()

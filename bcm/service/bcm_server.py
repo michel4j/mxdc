@@ -45,15 +45,15 @@ class PerspectiveBCMFromService(pb.Root):
         
     def remote_mountSample(self, *args, **kwargs):
         """Mount a sample on the Robot and align it"""
-        return self.service.mountSample(**kwargs)
+        return self.service.mountSample(*args, **kwargs)
     
     def remote_unmountSample(self, *args, **kwargs):
         """Mount a sample on the Robot and align it"""
-        return self.service.unmountSample(**kwargs)
+        return self.service.unmountSample(*args,**kwargs)
         
     def remote_scanEdge(self, *args, **kwargs):
         """Perform and Edge scan """
-        return self.service.scanEdge(**kwargs)
+        return self.service.scanEdge(*args,**kwargs)
         
     def remote_scanSpectrum(self, *args, **kwargs):
         """ Perform and excitation scan"""
@@ -190,7 +190,7 @@ class BCMService(service.Service):
             return defer.fail(Failure(e))
              
         dir_list = []
-        base_dir = '/users/%s/%s/%s' % ( user_name, session_id, crystal_name)
+        base_dir = '/users/%s/%s/%s' % ( uname, session_id, crystal_name)
         dir_list.append( ('top-level', base_dir) )
         for sub_dir in ['data','test','proc','scan','scrn']:
             dir_list.append( (sub_dir, '%s/%s' % (base_dir, sub_dir)) )
