@@ -27,6 +27,7 @@ from bcm.utils.log import log_to_twisted
 from bcm.utils.misc import get_short_uuid
 from bcm.service.common import *
 from bcm.service import auto
+from bcm.utils import converter
 try:
     import json
 except:
@@ -173,16 +174,15 @@ class BCMService(service.Service):
             return defer.fail(Failure(e))       
         
         user_info = {
-            'name': name,
+            'name': uname,
             'uid': uid,
             'gid': gid,
-            'directory': directory,
             }
         self.settings['user'] = user_info
         os.setegid(gid)
         os.seteuid(uid)
-        log.msg('Effective User changed to `%s`, (uid=%s,gid=%s), home=`%s`' % (name, uid, gid, directory))
-        return defer.succeed([])
+        log.msg('Effective User changed to `%s`, (uid=%s,gid=%s)' % (uname, uid, gid))
+        return defer.succeed(True)
     
     @log_call
     def setupCrystal(self, crystal_name, session_id, uname):
@@ -271,6 +271,10 @@ class BCMService(service.Service):
         self.xanes_scanner.configure(edge, exposure_time, attenuation, directory, prefix, uname)
         results = self.xanes_scanner.run()
         
+        for key in ['log','text']:
+            if key in results:
+                del results[key]
+        
         return results
 
         
@@ -314,7 +318,7 @@ class BCMService(service.Service):
         Acquire a set of frames
         @param run_info: a dictionary with the following arguments:
             - prefix: output prefix
-            - distance: float
+            - resolution: float, default(2.0)
             - delta: float
             - time : float (in sec)
             - start_angle : float (deg)
@@ -339,13 +343,26 @@ class BCMService(service.Service):
         uid, gid = get_user_properties(uname)
         os.setegid(gid)
         os.seteuid(uid)
+        
+        run_info['directory'] = directory
+        
+        #calculate distance from resolution
+        #        resolution, pixel_size, detector_size, energy, two_theta=0):
+        run_info['distance'] = converter.resol_to_dist(run_info.get('resolution', 2.0),
+                                self.beamline.detector.resolution,
+                                self.beamline.detector.size,
+                                max(run_info.get('energy', [12.658])),
+                                run_info.get('two_theta', 0.0),
+                                )
+        #FIXME:  validate parameters
+        
         self.data_collector.configure(run_data=run_info, skip_collected=run_info.get('skip_existing', False))
         results = self.data_collector.run()   
-
+        
         return results
                    
-    @log_call
     @defer_to_thread
+    @log_call
     def takeSnapshots(self, prefix,  angles, directory, uname):
         try:
             assert self.ready
@@ -355,9 +372,10 @@ class BCMService(service.Service):
         uid, gid = get_user_properties(uname)
         os.setegid(gid)
         os.seteuid(uid)       
-        take_sample_snapshots(prefix, directory, angles=angles, decorate=True)
-
-        return d
+        results = take_sample_snapshots(prefix, directory, angles=angles, decorate=True)
+        if results is None:
+            raise BeamlineNotReady('Could not take video snapshots')
+        return results
     
     @log_call
     def shutdown(self):
@@ -379,11 +397,6 @@ def getShellFactory(service, **passwords):
     f = manhole_ssh.ConchFactory(p)
     return f
         
-
-class BCMError(pb.Error):
-    """An expected Exception in BCM"""
-    pass
-
 
 application = service.Application('BCM')
 f = BCMService()
