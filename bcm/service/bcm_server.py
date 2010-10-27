@@ -20,13 +20,17 @@ from bcm.device.remote import *
 from bcm.engine import diffraction
 from bcm.engine import spectroscopy
 from bcm.utils import science, mdns
-from bcm.service.utils import log_call, defer_to_thread
+from bcm.service.utils import log_call, defer_to_thread, send_array
 from bcm.service.interfaces import IPerspectiveBCM, IBCMService
 from bcm.engine.snapshot import take_sample_snapshots
 from bcm.utils.log import log_to_twisted
 from bcm.utils.misc import get_short_uuid
 from bcm.service.common import *
 from bcm.service import auto
+try:
+    import json
+except:
+    import simplejson as json
 
 # Send Python logs to twisted log
 log_to_twisted()
@@ -85,14 +89,14 @@ class PerspectiveBCMFromService(pb.Root):
 
     def rootObject(self, broker):
         if self.client is not None:
-            return None
-            log.msg('A BCM Client is already connected: %s ' % (self.client))
-            log.msg('New connection refused.')
+            msg = 'A BCM Client `%s` is already connected.' % (self.client)
+            log.msg(msg)
+            return self
         else:
             self.client = broker
             broker.notifyOnDisconnect(self._client_disconnected)
             log.msg('BCM Client Connected: %s' % (self.client))
-        return self
+            return self
     
     def _client_disconnected(self):
         self.client.dontNotifyOnDisconnect(self._client_disconnected)
@@ -209,15 +213,13 @@ class BCMService(service.Service):
             log.msg('Directories could not be created for crystal `%s`' % (crystal_name))
             succeed = False
             
-        os.setuid(0)
-        os.setgid(0)
         if succeed:
             return defer.succeed(output)
         else:
             return defer.fail(output)
     
-    @log_call
     @defer_to_thread
+    @log_call
     def mountSample(self, port, name):
         try:
             assert self.ready
@@ -239,8 +241,8 @@ class BCMService(service.Service):
         return d
         
                 
-    @log_call
     @defer_to_thread
+    @log_call
     def scanEdge(self, info, directory, uname):
         """
         Perform a MAD scan around an absorption edge
@@ -257,25 +259,24 @@ class BCMService(service.Service):
         except AssertionError:
             raise BeamlineNotReady()
 
-        uid, gid = get_user_properties(uname)
-        os.setegid(gid)
-        os.seteuid(uid)
         
         edge = info['edge']
         exposure_time = info['exposure_time']
         prefix = info['prefix']
         attenuation = info['attenuation']
                     
-        self.xanes_scanner.configure(edge, exposure_time, attenuation, directory, prefix)
+        uid, gid = get_user_properties(uname)
+        os.setegid(gid)
+        os.seteuid(uid)
+        self.xanes_scanner.configure(edge, exposure_time, attenuation, directory, prefix, uname)
         results = self.xanes_scanner.run()
-        os.setuid(0)
-        os.setgid(0)
+        
         return results
 
         
        
-    @log_call
     @defer_to_thread
+    @log_call
     def scanSpectrum(self, info, directory, uname):
         """
         Perform an excitation scan around of the current energy
@@ -301,14 +302,13 @@ class BCMService(service.Service):
         energy = info['energy']
         attenuation = info['attenuation']
              
-        self.xrf_scanner.configure(energy,  exposure_time,  attenuation, directory, prefix)
+        self.xrf_scanner.configure(energy,  exposure_time,  attenuation, directory, prefix, uname)
         results = self.xrf_scanner.run()
-        os.setuid(0)
-        os.setgid(0)
+        
         return results
     
-    @log_call
     @defer_to_thread
+    @log_call
     def acquireFrames(self, run_info, directory, uname):
         """
         Acquire a set of frames
@@ -340,9 +340,8 @@ class BCMService(service.Service):
         os.setegid(gid)
         os.seteuid(uid)
         self.data_collector.configure(run_data=run_info, skip_collected=run_info.get('skip_existing', False))
-        results = self.data_collector.run()     
-        os.setuid(0)
-        os.setgid(0)
+        results = self.data_collector.run()   
+
         return results
                    
     @log_call
@@ -357,8 +356,7 @@ class BCMService(service.Service):
         os.setegid(gid)
         os.seteuid(uid)       
         take_sample_snapshots(prefix, directory, angles=angles, decorate=True)
-        os.setuid(0)
-        os.setgid(0)
+
         return d
     
     @log_call

@@ -81,7 +81,7 @@ class App(object):
         self.bcm = perspective
         
 
-        # Test a few functions
+        # excitation scan
         info = {'prefix':'xtl123', 
                 'exposure_time':1.0,
                 'attenuation':50.0,
@@ -92,6 +92,18 @@ class App(object):
                             uname='cmcfadmin',
                             ).addCallback(self.dump_results).addErrback(self.dump_error)
         
+        
+        
+        # edge scan
+        info = {'prefix':'xtl123', 
+                'exposure_time':0.1,
+                'attenuation':50.0,
+                'edge': 'Se-K'}
+        self.bcm.callRemote('scanEdge',
+                            info,
+                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/scan',
+                            uname='cmcfadmin',
+                            ).addCallback(self.dump_results).addErrback(self.dump_error)
         
 #        self.bcm.callRemote('setupCrystal', 
 #                            'xtl123',

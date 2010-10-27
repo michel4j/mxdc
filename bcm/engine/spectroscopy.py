@@ -12,6 +12,10 @@ from bcm.utils import science
 from bcm.engine.autochooch import AutoChooch
 from bcm.utils.misc import get_short_uuid
 from bcm.service.utils import  send_array
+try:
+    import json
+except:
+    import simplejson as json
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -21,7 +25,7 @@ class XRFScan(BasicScan):
         BasicScan.__init__(self)
         self.configure(t, energy, attenuation, directory, 'xrf')
         
-    def configure(self, energy,  t,  attenuation, directory, prefix):
+    def configure(self, energy,  t,  attenuation, directory, prefix, uname=None):
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
         except:
@@ -30,30 +34,35 @@ class XRFScan(BasicScan):
         self._energy = energy
         self._duration = t
         self._directory = directory
-        self._suffix = get_short_uuid()
         self._prefix = prefix
-        self._filename = os.path.join(self._directory, "%s_%0.3f_%s.raw" % (self._prefix, self._energy, self._suffix))    
+        self._user_name = uname
+        self._filename = os.path.join(self._directory, "%s_%0.3f.raw" % (self._prefix, self._energy))
+        self._results_file =   os.path.join(self._directory, "%s_%0.3f.out" % (self._prefix, self._energy))
         self._attenuation = attenuation
         self.data = []
         self.data_names = ['Energy',
                            'Counts']
         self.results = {}
         
-        
-    def analyse(self):
-        
-        x = self.data[:,0]
-        y = self.data[:,1]
+    def analyse(self):        
+        x = self.data[:,0].astype(float)
+        y = self.data[:,1].astype(float)
         peaks = science.peak_search(x, y, w=31, threshold=0.1, min_peak=0.05)
-        self.results['peaks'] = science.assign_peaks(peaks,  dev=0.04)
+        
+        # twisted does not like numpy.float64 so we need to convert x, y to native python
+        # floats here
         self.results = {
-            'data': send_array(self.data),
+            'data': {'energy': map(float, list(x)), 'counts': map(float, list(y))},
             'peaks': science.assign_peaks(peaks,  dev=0.04),
             'parameters ': {'directory': self._directory,
                             'energy': self._energy,
                             'exposure_time': self._duration,
                             'output_file': self._filename}
             }
+        fp = open(self._results_file, 'w')
+        json.dump(self.results, fp)
+        fp.close()
+        
         
         
     def run(self):
@@ -61,7 +70,7 @@ class XRFScan(BasicScan):
         self.beamline.lock.acquire()
         _saved_attenuation = self.beamline.attenuator.get()
         try:
-            _logger.debug('Exitation Scan started')
+            _logger.debug('Exitation Scan started.')
             gobject.idle_add(self.emit, 'started')   
             # prepare environment for scannning
             self.beamline.goniometer.set_mode('COLLECT')
@@ -80,6 +89,7 @@ class XRFScan(BasicScan):
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(_saved_attenuation)
             self.beamline.mca.configure(retract=False)
+            _logger.debug('Exitation scan done.')
             self.beamline.lock.release()
         return self.results
             
@@ -90,7 +100,7 @@ class XANESScan(BasicScan):
         self.configure(edge, t, attenuation, directory, 'xanes')
         self.autochooch = AutoChooch()
         
-    def configure(self, edge, t, attenuation, directory, prefix):
+    def configure(self, edge, t, attenuation, directory, prefix, uname=None):
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
         except:
@@ -103,29 +113,36 @@ class XANESScan(BasicScan):
         self._attenuation = attenuation
         self.data = []
         self._directory = directory
-        self._suffix = get_short_uuid()
         self._prefix = prefix
-        self._filename = os.path.join(self._directory, "%s_%s_%s.raw" % (self._prefix, self._edge, self._suffix))
+        self._user_name = uname
+        self._filename = os.path.join(self._directory, "%s_%s.raw" % (self._prefix, self._edge))
         self.chooch_results = {} 
                     
     def analyse(self):
-        self.autochooch.configure(self._edge, self._directory, self._prefix, self._suffix)
+        self.autochooch.configure(self._edge, self._directory, self._prefix, self._user_name)
         success = self.autochooch.run()
+        res_data = {'energy': [float(v[0]) for v in self.data], 
+                    'counts': [float(v[1]) for v in self.data]}
         if success:
+            _efs = self.autochooch.get_data()
+            efs_data = {'energy': map(float, _efs[:,0]),
+                        'fp': map(float, _efs[:,2]), 
+                        'fpp': map(float, _efs[:,1])
+                        }
             self.results = {
-                'data': self.data,
-                'efs': self.autochooch.get_data(),
+                'data': res_data,
+                'efs': efs_data,
                 'energies': self.autochooch.get_results(),
                 'text': self.autochooch.get_results_text(),
                 'log': self.autochooch.log,
-                'name_template': "%s_%s_%s" % (self._prefix, self._edge, self._suffix),
+                'name_template': "%s_%s" % (self._prefix, self._edge),
                 'directory': self._directory}
         else:
             gobject.idle_add(self.emit, 'error', 'Analysis Failed')
             self.results = {
-                'data': self.data,
+                'data': res_data,
                 'log': self.autochooch.log,
-                'name_template': "%s_%s_%s" % (self._prefix, self._edge, self._suffix),
+                'name_template': "%s_%s" % (self._prefix, self._edge),
                 'directory': self._directory}
          
         
@@ -135,7 +152,7 @@ class XANESScan(BasicScan):
         _saved_attenuation = self.beamline.attenuator.get()
         try:
             gobject.idle_add(self.emit, 'started')
-            _logger.info('Edge Scan started.')
+            _logger.info('Edge scan started.')
             self.beamline.goniometer.set_mode('COLLECT')
             self.beamline.attenuator.set(self._attenuation)
             self.beamline.mca.configure(retract=True, cooling=True, energy=self._roi_energy)
@@ -185,6 +202,7 @@ class XANESScan(BasicScan):
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(_saved_attenuation)
             self.beamline.mca.configure(retract=False)
+            _logger.info('Edge scan done.')
             self.beamline.lock.release()           
         return self.results
     
