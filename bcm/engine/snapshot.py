@@ -27,6 +27,7 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
         beamline = None
         _logger.warning('No registered beamline found.')
         return None
+    #beamline.lock.acquire()
     bw = beamline.beam_w.get_position()
     bh = beamline.beam_h.get_position()
     pix_size = beamline.sample_video.resolution
@@ -47,5 +48,6 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
         img.save(imgname)
         results.append((angle, imgname))
         _logger.debug('Saving video snapshot `%s` at omega angle `%0.1f`' % (imgname, angle))
+    #beamline.lock.release()
     return results
 
