@@ -49,4 +49,4 @@ def auto_center(bl):
         raise CenteringError('Loop centering failed')
     else:
         return _out
-    
+        
