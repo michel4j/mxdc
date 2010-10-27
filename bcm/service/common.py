@@ -12,6 +12,9 @@ class BCMError(Exception):
 class FileSystemError(BCMError):
     pass
 
+class ConnectionRefused(BCMError):
+    pass
+
 class InvalidUser(BCMError):
     pass
 

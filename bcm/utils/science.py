@@ -84,7 +84,7 @@ def get_emission_database():
 def get_peak_database():
     table_data = get_periodic_table()
     peak_db = {}
-    em_keys = ['Ka', 'Ka1', 'Ka2', 'Kb', 'Kb1','La1'] #,'Lb1','Lb2', 'Lg1','Lg2','Lg3','Lg4','Ll']
+    em_keys = ['Ka', 'Kb','La1'] #,'Lb1','Lb2', 'Lg1','Lg2','Lg3','Lg4','Ll']
     for key in table_data.keys():
         for em in em_keys:
             v = float(table_data[key][em])

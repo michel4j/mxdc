@@ -138,7 +138,7 @@ class MultiChannelAnalyzer(BaseDevice):
         return sum(values)
 
     def acquire(self, t=1.0):
-        self._x_axis = self.channel_to_energy( numpy.arange(0,4096,1) )
+        self._x_axis = self.channel_to_energy(numpy.arange(0,4096,1))
         self._acquire_data(t)
         return numpy.array(zip(self._x_axis, self._data))
         
