@@ -135,11 +135,11 @@ class BasicScan(gobject.GObject):
                     os.makedirs(data_dir)
                 filename = os.path.join(data_dir, filename)
             except:
-                self._logger.error("Could not make directory '%s' for writing" % data_dir)
+                _logger.error("Could not make directory '%s' for writing" % data_dir)
         try:
             f = open(filename,'w')
         except:
-            self._logger.error("Could not open file '%s' for writing" % filename)
+            _logger.error("Could not open file '%s' for writing" % filename)
             return
         f.write('# Scan Type: %s -- %s\n' % (self.__class__.__name__, self.__class__.__doc__))
         f.write('# Column descriptions:\n')

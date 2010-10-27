@@ -76,6 +76,7 @@ class SimMotor(MotorBase):
         self._state = 0
         self._stopped = False
         self._enabled = True
+        self._command_sent = False
         self.set_state(health=(0,''), active=True, changed=self._position)
 
     def get_position(self):
@@ -94,6 +95,7 @@ class SimMotor(MotorBase):
             self._signal_change(self, self._position)
             if self._stopped:
                 break
+        self._command_sent = False
         self.set_state(busy=False)
             
     def move_to(self, pos, wait=False, force=False):
@@ -107,17 +109,18 @@ class SimMotor(MotorBase):
     def wait(self, start=True, stop=True):
         poll=0.05
         timeout = 5.0
-        if (start and self._command_sent and not self._moving):
+        _orig_to = timeout
+        if (start and self._command_sent and not self.busy_state):
             _logger.debug('(%s) Waiting to start moving' % (self.name,))
-            while self._command_sent and not self._moving and timeout > 0:
+            while self._command_sent and not self.busy_state and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
             if timeout <= 0:
-                _logger.warning('Timed out waiting for (%s) to start moving.' % (self.name,))
+                _logger.warning('(%s) Timed out. Did move after %d sec.' % (self.name, _orig_to))
                 return False                
-        if (stop and self._moving):
+        if (stop and self.busy_state):
             _logger.debug('(%s) Waiting to stop moving' % (self.name,))
-            while self._moving:
+            while self.busy_state:
                 time.sleep(poll)
     
     def stop(self):

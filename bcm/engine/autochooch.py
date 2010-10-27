@@ -16,11 +16,11 @@ class AutoChooch(gobject.GObject):
         gobject.GObject.__init__(self)
         self._results_text = ""
 
-    def configure(self, edge, directory, prefix, suffix):
+    def configure(self, edge, directory, prefix, uname=None):
         self.directory = directory
         self._edge = edge
         self._prefix = prefix
-        self._suffix = suffix
+        self._user_name = uname
         self.results = {}
         
     def get_results(self):
@@ -50,7 +50,7 @@ class AutoChooch(gobject.GObject):
         
     def run(self):
         self.results = {}
-        file_root = os.path.join(self.directory, "%s_%s_%s" % (self._prefix, self._edge, self._suffix))    
+        file_root = os.path.join(self.directory, "%s_%s" % (self._prefix, self._edge))    
         self.raw_file = "%s.raw" % (file_root)
         self.dat_file = "%s.dat" % (file_root)
         self.efs_file = "%s.efs" % (file_root)
@@ -58,9 +58,18 @@ class AutoChooch(gobject.GObject):
         self.log_file = "%s.log" % (file_root)
         element, edge = self._edge.split('-')
         self.prepare_input_data(self.raw_file, self.dat_file)
-        chooch_command = "chooch -e %s -a %s %s -o %s | tee %s " % (element, edge, self.dat_file, self.efs_file, self.log_file)
+        if self._user_name is not None:
+            chooch_command = "su %s -c 'chooch -e %s -a %s %s -o %s'" % (self._user_name, element, edge, self.dat_file, self.efs_file)
+        else:
+            chooch_command = "chooch -e %s -a %s %s -o %s" % (element, edge, self.dat_file, self.efs_file)
         self.return_code, self.log = commands.getstatusoutput(chooch_command)
         self.log = '\n----------------- %s ----------------------\n\n' % (self.log_file) + self.log
+        
+        # save log file
+        f = open(self.log_file, 'w')
+        f.write(self.log)
+        f.close()
+        
         success = self.read_output()
         if success:
             gobject.idle_add(self.emit, 'done')
@@ -76,17 +85,15 @@ class AutoChooch(gobject.GObject):
             return False
         
         self.data[:, 0] *= 1e-3 # convert to keV
-        ifile = open(self.log_file, 'r')
-        output = ifile.readlines()
         pattern = re.compile('\|\s+([a-z]+)\s+\|\s+(.+)\s+\|\s+(.+)\s+\|\s+(.+)\s+\|')
         found_results = False
-        for line in output:
+
+        for line in self.log.split('\n'):
             lm = pattern.search(line)
             if lm:
                 found_results = True
                 # energy converted to keV
                 self.results[lm.group(1)] =  [lm.group(1), float(lm.group(2))*1e-3, float(lm.group(3)), float(lm.group(4))]
-        ifile.close()
         
         if not found_results:
             self.results = None
@@ -100,7 +107,8 @@ class AutoChooch(gobject.GObject):
         opt = fpp * (fp - self.results['infl'][3])
         opt_i = opt.argmax()
         
-        self.results['remo'] = ['remo', energy[opt_i], fpp[opt_i], fp[opt_i]]
+        # make sure to convert from numpy.float64 to native python float. Twisted doesn't like numpy.float64
+        self.results['remo'] = ['remo', float(energy[opt_i]), float(fpp[opt_i]), float(fp[opt_i])]
         new_output = "Selected Energies for 3-Wavelength MAD data \n"
         new_output +="and corresponding anomalous scattering factors.\n"
         
