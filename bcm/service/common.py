@@ -4,9 +4,10 @@ Created on Oct 25, 2010
 @author: michel
 '''
 import pwd
+from twisted.spread import pb
 
 
-class BCMError(Exception):
+class BCMError(pb.Error):
     pass
     
 class FileSystemError(BCMError):

@@ -62,7 +62,7 @@ class AutoChooch(gobject.GObject):
             chooch_command = "su %s -c 'chooch -e %s -a %s %s -o %s'" % (self._user_name, element, edge, self.dat_file, self.efs_file)
         else:
             chooch_command = "chooch -e %s -a %s %s -o %s" % (element, edge, self.dat_file, self.efs_file)
-        self.return_code, self.log = commands.getstatusoutput(chooch_command)
+        return_code, self.log = commands.getstatusoutput(chooch_command)
         self.log = '\n----------------- %s ----------------------\n\n' % (self.log_file) + self.log
         
         # save log file
@@ -71,11 +71,11 @@ class AutoChooch(gobject.GObject):
         f.close()
         
         success = self.read_output()
-        if success:
+        if success and return_code == 0:
             gobject.idle_add(self.emit, 'done')
             return success
         else:
-            gobject.idle_add(self.emit, 'error','Premature termination')
+            gobject.idle_add(self.emit, 'error','CHOOH Failed.')
             return False
         
     def read_output(self):

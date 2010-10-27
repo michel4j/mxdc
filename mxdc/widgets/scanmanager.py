@@ -366,7 +366,7 @@ class ScanManager(gtk.Frame):
         self._set_scan_action(False)
         self.scan_book.set_current_page(1)
         results = obj.results.get('energies')
-        data = numpy.array(obj.results.get('efs'))
+        
         if results is None:
             warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed')
             return True
@@ -383,8 +383,9 @@ class ScanManager(gtk.Frame):
         info = obj.results.get('text')
         self.plotter.fig.text(0.14,0.7, info,fontdict=fontpar, color='b')
 
-        self.plotter.add_line(data[:,0],data[:,1], 'r', ax=new_axis)
-        self.plotter.add_line(data[:,0],data[:,2], 'g', ax=new_axis, redraw=True)
+        data = obj.results.get('efs')       
+        self.plotter.add_line(data['energy'], data['fpp'], 'r', ax=new_axis)
+        self.plotter.add_line(data['energy'], data['fp'], 'g', ax=new_axis, redraw=True)
                 
         self.set_results(results)
         self.scan_pbar.set_fraction(1.0)

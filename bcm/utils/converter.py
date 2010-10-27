@@ -69,46 +69,36 @@ def dec_to_bin(x):
     return x and (dec_to_bin(x/2) + str(x%2)) or '0'
 
 
-def dist_to_resol(*args, **kwargs):
+def dist_to_resol(distance, pixel_size, detector_size, energy, two_theta=0):
     """Convert from distance in mm to resolution in angstroms.
     
-    Keyword arguments:
+    Arguments:
     pixel_size      --  pixel size of detector
     detector_size   --  width of detector
-    detector_distance   -- detector distance
+    distance   -- detector distance
     energy          --  X-ray energy
     
     """
     
-    pixel_size = kwargs['pixel_size']
-    detector_size = kwargs['detector_size']
-    detector_distance = kwargs['detector_distance']
-    energy = kwargs['energy']
-    #two_theta = kwargs['two_theta']
     
-    theta = 0.5 * math.atan( 0.5 * pixel_size * detector_size / detector_distance)
-    #theta = theta+two_theta
+    theta = 0.5 * math.atan( 0.5 * pixel_size * detector_size / distance)
+    theta = theta+two_theta
     return 0.5 * energy_to_wavelength(energy) / math.sin(theta)
 
 
-def resol_to_dist(*args, **kwargs):
+def resol_to_dist(resolution, pixel_size, detector_size, energy, two_theta=0):
     """Convert from resolution in angstroms to distance in mm.
     
-    Keyword arguments:
+    Arguments:
+    resolution    -- desired resolution
     pixel_size      --  pixel size of detector
     detector_size   --  width of detector
-    detector_distance   -- detector distance
     energy          --  X-ray energy
     
     """
     
-    pixel_size = kwargs['pixel_size']
-    detector_size = kwargs['detector_size']
-    resolution = kwargs['resolution']
-    energy = kwargs['energy']
-    #two_theta = kwargs['two_theta']
     
     theta = math.asin(0.5 * energy_to_wavelength(energy) / resolution)
-    #theta = max(0, (theta-two_theta))
+    theta = max(0, (theta-two_theta))
     return 0.5 * pixel_size * detector_size / math.tan( 2 * theta )
 
