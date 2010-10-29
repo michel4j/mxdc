@@ -160,7 +160,9 @@ class BCMService(service.Service):
     @log_call
     def getParameters(self):
         """Return some bcm configuration parameters for the beamline as a dictionary"""
-        return self.beamline.config
+        params = self.beamline.config.copy()
+        params.update(name=self.beamline.name)
+        return params
 
     @log_call
     def getDevice(self, id):
