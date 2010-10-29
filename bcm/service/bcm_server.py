@@ -83,6 +83,10 @@ class PerspectiveBCMFromService(pb.Root):
     def remote_getConfig(self):
         """Get a Configuration of all beamline devices"""
         return self.service.getConfig()
+
+    def remote_getParameters(self):
+        """Get bcm parameters"""
+        return self.service.getParameters()
         
     def remote_getDevice(self, id):
         """Get a beamline device"""
@@ -152,6 +156,11 @@ class BCMService(service.Service):
                   'name': self.beamline.name,
                   'config': self.beamline.config }
         return config
+
+    @log_call
+    def getParameters(self):
+        """Return some bcm configuration parameters for the beamline as a dictionary"""
+        return self.beamline.config
 
     @log_call
     def getDevice(self, id):

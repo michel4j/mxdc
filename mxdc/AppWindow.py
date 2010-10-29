@@ -10,6 +10,7 @@ from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.hutchmanager import HutchManager
 from mxdc.widgets.screeningmanager import ScreenManager
 from mxdc.widgets.samplemanager import SampleManager
+from mxdc.widgets.resultmanager import ResultManager
 from bcm.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
@@ -34,12 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 class AppWindow(gtk.Window):
-    def __init__(self, version='3.3.4'):
+    def __init__(self, version='3.3.5'):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         self._xml = gtk.glade.XML(os.path.join(SHARE_DIR, 'mxdc_main.glade'), 'mxdc_main')
         self.set_position(gtk.WIN_POS_CENTER)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
-        self.set_icon_from_file(self.icon_file)
         self.set_title('MxDC - Mx Data Collector')
         self.version = version
         self.splash = Splash(version)
@@ -55,12 +55,16 @@ class AppWindow(gtk.Window):
             return self._xml.get_widget(key)
         
     def run(self):
+        icon = gtk.gdk.pixbuf_new_from_file(self.icon_file)
+        self.set_icon(icon)
+
         gobject.timeout_add(2000, lambda: self.splash.hide())         
         self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)       
         self.hutch_manager = HutchManager()
         self.sample_manager = SampleManager()
+        self.result_manager = ResultManager()
         self.sample_manager.connect('samples-changed', self.on_samples_changed)
         self.screen_manager = ScreenManager()
         self.status_panel = StatusPanel()
@@ -74,7 +78,7 @@ class AppWindow(gtk.Window):
         notebook.append_page(self.screen_manager, tab_label=gtk.Label('  Screening  '))
         notebook.append_page(self.collect_manager, tab_label=gtk.Label('  Data Collection '))
         notebook.append_page(self.scan_manager, tab_label=gtk.Label('  Fluorescence Scans  '))
-        #self.screen_manager.set_sensitive(False)
+        notebook.append_page(self.result_manager, tab_label=gtk.Label('  Results  '))
         notebook.set_border_width(6)
 
         self.main_frame.add(notebook)

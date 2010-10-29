@@ -3,16 +3,14 @@ import os
 import logging
 import warnings
 import time
+import gtk
+import gobject
 
 warnings.simplefilter("ignore")
 
 from twisted.internet import gtk2reactor
 gtk2reactor.install()
 from twisted.internet import reactor
-
-import gtk
-import gobject
-gobject.threads_init()
 
 from bcm.beamline.mx import MXBeamline
 from twisted.spread import pb
@@ -59,7 +57,6 @@ class MXDCApp(object):
     def do_quit(self, obj=None):
         _logger.info('Stopping...')
         reactor.stop()
-        #gtk.main_quit()
 
 def main():
     try:
@@ -82,4 +79,3 @@ if __name__ == "__main__":
         
     reactor.callWhenRunning(main)
     reactor.run()
-    #gtk.main()
