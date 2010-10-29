@@ -5,6 +5,8 @@
   <widget class="GtkWindow" id="window1">
     <property name="visible">True</property>
     <property name="title" translatable="yes">MX Data Collector</property>
+    <property name="resizable">False</property>
+    <property name="icon">icon.png</property>
     <child>
       <widget class="GtkVBox" id="mxdc_main">
         <property name="visible">True</property>

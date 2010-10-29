@@ -34,6 +34,9 @@ class IBCMService(Interface):
 
     def getConfig():
         """Get a Configuration of all beamline devices"""
+
+    def getParameters():
+        """Get BCM parameters"""
         
     def getDevice(id):
         """Get a beamline device"""
@@ -68,6 +71,9 @@ class IPerspectiveBCM(Interface):
 
     def remote_getConfig():
         """Get a Configuration of all beamline devices"""
+
+    def remote_getParameters():
+        """Get BCM parameters"""
         
     def remote_getDevice():
         """Get a beamline device"""
