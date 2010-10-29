@@ -71,6 +71,7 @@ class SampleList(gtk.ScrolledWindow):
         self.add(self.listview)
         self.listview.connect('row-activated',self.on_row_activated)
 
+
     def load_data(self, data):
         self.clear()
         for item in data:
