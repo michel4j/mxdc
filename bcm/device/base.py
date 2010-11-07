@@ -65,7 +65,7 @@ class BaseDevice(gobject.GObject):
                              'health': (0,''), 'message': ''}
         self.name = self.__class__.__name__ + ' Device'
         self._dev_state_patt = re.compile('^(\w+)_state$')
-        self._check_id = gobject.timeout_add(30000, self._check_active)
+        #self._check_id = gobject.timeout_add(30000, self._check_active)
         
     def __repr__(self):
         state_txts = []
@@ -87,6 +87,12 @@ class BaseDevice(gobject.GObject):
     def do_active(self, st):
         _k = {True: 'active', False: 'inactive'}
         logger.info( "(%s) is now %s." % (self.name, _k[st]))
+        if not st:
+            if len(self.pending_devs) > 0:
+                inactive_devs = [dev.name for dev in self.pending_devs]
+                msg = '[%d] inactive children.' % (len(inactive_devs))
+                logger.warning( "(%s) %s" % (self.name, msg))
+            
         
             
             
@@ -182,13 +188,8 @@ class BaseDevice(gobject.GObject):
             self.pending_devs.append(dev)
         if len(self.pending_devs) == 0:
             self.set_state(active=True)
-            if self._check_id is not None:
-                gobject.source_remove(self._check_id)
-                self._check_id = None
         else:
             self.set_state(active=False)
-            if self._check_id is None:
-                self._check_id = gobject.timeout_add(1000, self._check_active)
 
     def __getattr__(self, key):
         m = self._dev_state_patt.match(key)

@@ -60,7 +60,7 @@ class ResultList(gtk.ScrolledWindow):
         self.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.add(self.listview)
-        self.listview.connect('row-activated',self.on_row_activated)
+
         self._wait_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/tiny-wait.png'))
         self._ready_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
@@ -70,6 +70,12 @@ class ResultList(gtk.ScrolledWindow):
         self._first = True
 
 
+    def add_row_activate_handler(self, func):
+        return self.listview.connect('row-activated',self.on_row_activated)
+    
+    def del_row_activate_handler(self, id):
+        self.listview.disconnect(id)
+
     def load_data(self, data):
         self.clear()
         for item in data:
@@ -77,13 +83,13 @@ class ResultList(gtk.ScrolledWindow):
             
 
     def add_item(self, item):
-        iter = self.listmodel.append()        
+        iter = self.listmodel.append()
         self.listmodel.set(iter,
                 RESULT_COLUMN_STATE, item.get('state', RESULT_STATE_WAITING),
                 RESULT_COLUMN_NAME, item['name'],
                 RESULT_COLUMN_BARCODE, item.get('barcode','-'),
                 RESULT_COLUMN_GROUP, item.get('group', '-'),
-                RESULT_COLUMN_SCORE, item.get('score', '-'),
+                RESULT_COLUMN_SCORE, item.get('score', -1),
                 RESULT_COLUMN_SG, item.get('space_group', '-'),
                 RESULT_COLUMN_CELL, item.get('unit_cell', '-'),
                 RESULT_COLUMN_DETAIL, item.get('detail', {}),
@@ -92,11 +98,8 @@ class ResultList(gtk.ScrolledWindow):
 
     def update_item(self, iter, data):
         self.listmodel.set(iter,
-                RESULT_COLUMN_STATE, data.get('state', RESULT_STATE_WAITING),
-                RESULT_COLUMN_NAME, data['name'],
-                RESULT_COLUMN_BARCODE, data.get('barcode','-'),
-                RESULT_COLUMN_GROUP, data.get('group', '-'),
-                RESULT_COLUMN_SCORE, data.get('score', '-'),
+                RESULT_COLUMN_STATE, data.get('state', RESULT_STATE_ERROR),
+                RESULT_COLUMN_SCORE, data.get('score', -1),
                 RESULT_COLUMN_SG, data.get('space_group', '-'),
                 RESULT_COLUMN_CELL, data.get('unit_cell', '-'),
                 RESULT_COLUMN_DETAIL, data.get('detail', {}),
@@ -134,6 +137,9 @@ class ResultList(gtk.ScrolledWindow):
         c1v2 = model.get_value(iter2, RESULT_COLUMN_GROUP)
         c2v1 = model.get_value(iter1, RESULT_COLUMN_SCORE)
         c2v2 = model.get_value(iter2, RESULT_COLUMN_SCORE)
+        if c1v1 is None: c1v1 = ''
+        if c1v2 is None: c1v2 = ''
+        
         if c1v1 > c1v2:
             return -1
         elif c1v1 < c1v2:
@@ -174,28 +180,22 @@ class ResultList(gtk.ScrolledWindow):
         self.listmodel.set(iter, RESULT_COLUMN_STATE, state)
         self.listview.scroll_to_cell(path, use_align=True, row_align=0.9)
         
-    def on_row_activated(self, treeview, path, column):
-        model = treeview.get_model()
-        iter = model.get_iter(path)
-        value = model.get_value(iter, RESULT_COLUMN_DETAIL)                 
-        print value      
-        return True        
     
 
     def clear(self):
         self.listmodel.clear()
              
 
-
+TEST_DETAIL = {'url': '/users/cmcfadmin/SIM-20101029/A1/scrn'} 
 
 TEST_DATA = [
  {'state': 0, 'name': 'xtl1', 'barcode': '8392837429','group':'lyso','score': -1,'space_group': '-','unit_cell': '-','detail': {} },
- {'state': 1, 'name': 'xtl2', 'barcode': '8392837429','group':'lyso','score': 0.7,'space_group': 'I2(1)3','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {} },
- {'state': 1, 'name': 'xtl3', 'barcode': '8392837429','group':'lyso','score': 0.8,'space_group': 'I2(1)3','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {} },
- {'state': 1, 'name': 'xtl4', 'barcode': '8392837429','group':'aba1','score': 0.1,'space_group': 'I2(1)3','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {} },
+ {'state': 1, 'name': 'xtl2', 'barcode': '8392837429','group':'lyso','score': 0.7,'space_group': 'I2(1)3','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {'url': '/users/cmcfadmin/SIM-20101029/A1/scrn'} },
+ {'state': 1, 'name': 'xtl3', 'barcode': '8392837429','group':'lyso','score': 0.8,'space_group': 'I2(1)3','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {'url': '/users/cmcfadmin/SIM-20101029/B6/scrn'} },
+ {'state': 1, 'name': 'xtl4', 'barcode': '8392837429','group':'aba1','score': 0.1,'space_group': 'I2(1)3','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {'url': '/users/cmcfadmin/SIM-20101029/B1/scrn'} },
  {'state': 2, 'name': 'xtl5', 'barcode': '8392837429','group':'aba1','score': -1,'space_group': '-','unit_cell': '-','detail': {} },
  {'state': 0, 'name': 'xtl6', 'barcode': '8392837429','group':'aba1','score': -1,'space_group': '-','unit_cell': '-','detail': {} },
- {'state': 1, 'name': 'xtl7', 'barcode': '8392837429','group':'aba1','score': 0.4,'space_group': 'P2(1)2(1)2(1)','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {} },
+ {'state': 1, 'name': 'xtl7', 'barcode': '8392837429','group':'aba1','score': 0.4,'space_group': 'P2(1)2(1)2(1)','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {'url': '/users/cmcfadmin/SIM-20101029/B4/scrn'} },
 ] 
     
 if __name__ == "__main__":

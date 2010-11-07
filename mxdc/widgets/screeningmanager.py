@@ -16,7 +16,6 @@ from bcm.beamline.mx import IBeamline
 from bcm.engine.interfaces import IDataCollector
 from bcm.engine.diffraction import Screener, DataCollector
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
-
 from mxdc.widgets.dialogs import warning
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -64,6 +63,7 @@ class ScreenManager(gtk.Frame):
 
         self._create_widgets()
         self.screen_runner = Screener()
+        
         self._screening = False
         self._screening_paused = False
         self.screen_runner.connect('progress', self._on_progress)

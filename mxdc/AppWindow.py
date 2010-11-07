@@ -15,6 +15,7 @@ from bcm.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
 from bcm.engine.scripting import get_scripts
+from mxdc.utils import clients
 
 _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
@@ -68,6 +69,10 @@ class AppWindow(gtk.Window):
         self.sample_manager.connect('samples-changed', self.on_samples_changed)
         self.screen_manager = ScreenManager()
         self.status_panel = StatusPanel()
+        self.dpm_client = clients.DPMClient()
+        
+        self.screen_manager.screen_runner.connect('analyse-request', self.on_analyse_request)
+
         
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
         self.about_cmd.connect('activate', lambda x:  self._do_about() )
@@ -123,3 +128,23 @@ class AppWindow(gtk.Window):
     def on_samples_changed(self, obj, ctx):
         samples = ctx.get_loaded_samples()
         self.screen_manager.add_samples(samples)
+        
+    def _result_ready(self, data, iter):
+        data = data.values()[0]
+        
+        item = {'state': 1,
+                'score': data['results']['score'],
+                'space_group': str(data['results']['space_group_id']),
+                'detail': data['results']}
+        self.result_manager.update_item(iter, item)
+        
+    def _result_fail(self, failure, iter):
+        _logger.error(failure.getErrorMessage())
+        
+    def on_analyse_request(self, obj, data):
+        iter = self.result_manager.add_item(data['crystal'])
+        self.dpm_client.dpm.callRemote('screenDataset',
+                            data['info'], 
+                            data['directory'],
+                            'cmcfadmin' #data['uname']
+                            ).addCallback(self._result_ready, iter).addErrback(self._result_fail, iter)
