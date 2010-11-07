@@ -13,7 +13,8 @@ from mxdc.widgets.dialogs import *
     SAMPLE_COLUMN_NAME,
     SAMPLE_COLUMN_COMMENTS,
     SAMPLE_COLUMN_EDITABLE,
-) = range(8)
+    SAMPLE_COLUMN_GROUP,
+) = range(9)
 
 COLUMN_DICT = {
     SAMPLE_COLUMN_CONTAINER: 'Container',
@@ -58,7 +59,7 @@ class SampleList(gtk.ScrolledWindow):
             gobject.TYPE_STRING,
             gobject.TYPE_STRING,
             gobject.TYPE_STRING,
-            gobject.TYPE_BOOLEAN,         
+            gobject.TYPE_BOOLEAN,
         )
                         
         self.listview = gtk.TreeView(self.listmodel)
@@ -84,7 +85,7 @@ class SampleList(gtk.ScrolledWindow):
                 SAMPLE_COLUMN_CODE, item['barcode'],
                 SAMPLE_COLUMN_NAME, item['name'],
                 SAMPLE_COLUMN_COMMENTS, item['comments'],
-                SAMPLE_COLUMN_EDITABLE, False
+                SAMPLE_COLUMN_EDITABLE, False,
             )
             
 

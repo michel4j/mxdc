@@ -70,14 +70,15 @@ class SimMotor(MotorBase):
      
     def __init__(self, name, pos=0, units='mm'):
         MotorBase.__init__(self,name)
-        self._position = float(pos)
+        pos = float(pos)
         self._speed = 200
         self.units = units
         self._state = 0
         self._stopped = False
         self._enabled = True
         self._command_sent = False
-        self.set_state(health=(0,''), active=True, changed=self._position)
+        self.set_state(health=(0,''), active=True, changed=pos)
+        self._position = pos
 
     def get_position(self):
         return self._position

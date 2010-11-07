@@ -9,13 +9,14 @@ from twisted.internet import reactor
 from twisted.python import log
 from bcm.utils import mdns
 from dpm.service import common
-
+import gobject
 import os
 
 class DPMClient(object):
     def __init__(self):
         self._service_found = False
         self._ready = False
+        gobject.idle_add(self.setup)
     
     def on_dpm_service_added(self, obj, data):
         if self._service_found:
