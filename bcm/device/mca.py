@@ -200,11 +200,12 @@ class MultiChannelAnalyzer(BaseDevice):
         return True        
 
 
-class SimMultiChannelAnalyzer(object):
+class SimMultiChannelAnalyzer(BaseDevice):
     
     implements(IMultiChannelAnalyzer)
     
     def __init__(self, name, channels=4096):
+        BaseDevice.__init__(self)
         self.name = name
         self.channels = channels
         self.region_of_interest = (0, self.channels)
@@ -224,6 +225,7 @@ class SimMultiChannelAnalyzer(object):
         self._raw_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'test/old_test/XRFTest.raw'), comments="#")
         self._last_t = time.time()
         self._last_pos = 0
+        self.set_state(active=True)
         
 
     def configure(self, **kwargs):

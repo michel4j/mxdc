@@ -152,7 +152,7 @@ class BCMService(service.Service):
     
     @log_call
     def getConfig(self):
-        config = {'devices': self.beamline.device_config,
+        config = {#'devices': self.beamline.device_config,
                   'name': self.beamline.name,
                   'config': self.beamline.config }
         return config
@@ -178,9 +178,10 @@ class BCMService(service.Service):
     @log_call
     def setUser(self, uname):
         try:
-            uid, gid = get_user_properties(uname)
+            uid, gid, dir = get_user_properties(uname)
             self.settings['uid'] = uid
             self.settings['gid'] = gid
+            self.settings['dir'] = dir
         except InvalidUser, e:
             return defer.fail(Failure(e))       
         
@@ -198,22 +199,22 @@ class BCMService(service.Service):
     @log_call
     def setupCrystal(self, crystal_name, session_id, uname):
         try:
-            uid, gid = get_user_properties(uname)
+            uid, gid, dir = get_user_properties(uname)
             self.settings['uid'] = uid
             self.settings['gid'] = gid
         except InvalidUser, e:
             return defer.fail(Failure(e))
              
         dir_list = []
-        base_dir = '/users/%s/%s/%s' % ( uname, session_id, crystal_name)
+        base_dir = os.path.join(dir, session_id, crystal_name)
         dir_list.append( ('top-level', base_dir) )
         for sub_dir in ['data','test','proc','scan','scrn']:
-            dir_list.append( (sub_dir, '%s/%s' % (base_dir, sub_dir)) )
+            dir_list.append( (sub_dir, os.path.join(base_dir, sub_dir)) )
         
         try:
             os.setegid(gid)
             os.seteuid(uid)
-            for k, dir_name in dir_list:
+            for _, dir_name in dir_list:
                 if not os.path.exists(dir_name):
                     os.makedirs(dir_name)
             output = dict(dir_list)
@@ -276,7 +277,7 @@ class BCMService(service.Service):
         prefix = info['prefix']
         attenuation = info['attenuation']
                     
-        uid, gid = get_user_properties(uname)
+        uid, gid, dir = get_user_properties(uname)
         os.setegid(gid)
         os.seteuid(uid)
         self.xanes_scanner.configure(edge, exposure_time, attenuation, directory, prefix, uname)
@@ -286,6 +287,7 @@ class BCMService(service.Service):
             if key in results:
                 del results[key]
         
+        log.msg('scanEdge completed.')
         return results
 
         
@@ -308,18 +310,21 @@ class BCMService(service.Service):
         except AssertionError:
             raise BeamlineNotReady()
 
-        uid, gid = get_user_properties(uname)
+        uid, gid, dir = get_user_properties(uname)
         os.setegid(gid)
         os.seteuid(uid)
+        validate_directory(directory)
         
         exposure_time = info['exposure_time']
         prefix = info['prefix']
         energy = info['energy']
         attenuation = info['attenuation']
-             
+        
+        
         self.xrf_scanner.configure(energy,  exposure_time,  attenuation, directory, prefix, uname)
         results = self.xrf_scanner.run()
         
+        log.msg('scanSpectrum completed.')
         return results
     
     @defer_to_thread
@@ -351,9 +356,10 @@ class BCMService(service.Service):
         except AssertionError:
             raise BeamlineNotReady()
         
-        uid, gid = get_user_properties(uname)
+        uid, gid, dir = get_user_properties(uname)
         os.setegid(gid)
         os.seteuid(uid)
+        validate_directory(directory)
         
         run_info['directory'] = directory
         
@@ -370,6 +376,7 @@ class BCMService(service.Service):
         self.data_collector.configure(run_data=run_info, skip_collected=run_info.get('skip_existing', False))
         results = self.data_collector.run()   
         
+        log.msg('acquireFrames completed.')
         return results
                    
     @defer_to_thread
@@ -380,12 +387,15 @@ class BCMService(service.Service):
         except AssertionError:
             raise BeamlineNotReady()
         
-        uid, gid = get_user_properties(uname)
+        uid, gid, dir = get_user_properties(uname)
         os.setegid(gid)
-        os.seteuid(uid)       
+        os.seteuid(uid)
+        validate_directory(directory)
+
         results = take_sample_snapshots(prefix, directory, angles=angles, decorate=True)
         if results is None:
             raise BeamlineNotReady('Could not take video snapshots')
+        log.msg('takeSnapshots completed.')
         return results
     
     @log_call

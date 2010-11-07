@@ -99,6 +99,8 @@ class SimCryojet(BaseDevice):
         self.level = misc.SimPositioner('Cryogen Level', pos=90.34, units='%')
         self.fill_status = misc.SimPositioner('Fill Status', pos=1)
         self.nozzle = misc.SimShutter('Cryojet Nozzle Actuator')
+        self.set_state(active=True)
+
 
     def stop_flow(self):
         self.sample_flow.set(0.0)

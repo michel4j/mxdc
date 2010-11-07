@@ -220,6 +220,8 @@ class SimAutomounter(BasicAutomounter):
         self.parse_states(_TEST_STATE2)
         from bcm.device.misc import SimPositioner
         self.nitrogen_level = SimPositioner('Automounter Cryogen Level', 80.0, '%')
+        self.set_state(active=True)
+
 
     
     def _sim_mount_done(self, port=None):
@@ -256,7 +258,7 @@ class SimAutomounter(BasicAutomounter):
             return False
         if self._mounted_port is not None:
             self._sim_mount_start(None)
-            gobject.timeout_add(60000, self._sim_dismount_done)
+            gobject.timeout_add(10000, self._sim_dismount_done)
         self._command_sent = True
         if wait:
             return self.wait(start=True, stop=True)
@@ -266,6 +268,11 @@ class SimAutomounter(BasicAutomounter):
     def probe(self):
         pass
 
+    def is_mounted(self, port):
+        if self.mounted_state is None:
+            return False
+        else:
+            return self.mounted_state[0] == port
         
 def _format_error_string(need_list):
     nd_dict = {
