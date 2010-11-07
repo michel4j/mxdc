@@ -131,15 +131,25 @@ class AppWindow(gtk.Window):
         
     def _result_ready(self, data, iter):
         data = data.values()[0]
-        
+        cell_info = '%0.1f %0.1f %0.1f %0.1f %0.1f %0.1f' % (
+                    data['results']['cell_a'],
+                    data['results']['cell_b'],
+                    data['results']['cell_c'],
+                    data['results']['cell_alpha'],
+                    data['results']['cell_beta'],
+                    data['results']['cell_gamma']
+                    )
         item = {'state': 1,
                 'score': data['results']['score'],
-                'space_group': str(data['results']['space_group_id']),
+                'space_group': data['results']['space_group'],
+                'unit_cell': cell_info,
                 'detail': data['results']}
         self.result_manager.update_item(iter, item)
         
     def _result_fail(self, failure, iter):
         _logger.error(failure.getErrorMessage())
+        item = {'state': 2}
+        self.result_manager.update_item(iter, item)
         
     def on_analyse_request(self, obj, data):
         iter = self.result_manager.add_item(data['crystal'])

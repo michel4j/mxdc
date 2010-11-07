@@ -226,7 +226,6 @@ class SimCCDImager(BaseDevice):
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
         time.sleep(1)
     
-    @async
     def _copy_frame(self):
         num = 1 + (self.parameters['frame_number']-1) % self._num_frames
         src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
