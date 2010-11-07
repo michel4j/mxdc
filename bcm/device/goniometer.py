@@ -280,12 +280,13 @@ class MD2Goniometer(GoniometerBase):
 
 
 class SimGoniometer(GoniometerBase):
-    def __init__(self):
-        
+    def __init__(self):       
         GoniometerBase.__init__(self, 'Simulated Goniometer')
         self.omega = SimMotor('Omega Motor', pos=0, units='deg')
         gobject.idle_add(self.emit, 'mode', 'MOVING')
         self._scanning = False
+        self.set_state(active=True)
+
                 
     def configure(self, **kwargs):
         self._settings = kwargs

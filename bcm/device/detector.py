@@ -193,12 +193,22 @@ class SimCCDImager(BaseDevice):
     implements(IImagingDetector)
 
     def __init__(self, name, size, resolution):
+        BaseDevice.__init__(self)
         self.size = int(size)
         self.resolution = float(resolution)
         self.name = name
         self._state = 'idle'
         self._bg_taken = False
-        self._src_dir = os.path.join(os.environ['BCM_PATH'], 'test','images')
+        
+        _src_dir1 = os.path.join(os.environ['BCM_PATH'], 'test','images')
+        _src_dir2 = '/archive/staff/reference/CLS/SIM'
+        if os.path.exists(_src_dir2):
+            self._src_dir = _src_dir2
+            self._num_frames = 180
+        else:
+            self._src_dir = _src_dir1
+            self._num_frames = 2
+        self.set_state(active=True)
     
     def __repr__(self):
         return "<%s:'%s', state:'%s'>" % (self.__class__.__name__, self.name, self.get_state() )
@@ -218,7 +228,7 @@ class SimCCDImager(BaseDevice):
     
     @async
     def _copy_frame(self):
-        num = 1 + self.parameters['frame_number'] % 2
+        num = 1 + (self.parameters['frame_number']-1) % self._num_frames
         src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
         dst_img = os.path.join(self.parameters['directory'], 
                                '%s.gz' % self.parameters['filename'])

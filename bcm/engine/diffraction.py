@@ -217,7 +217,8 @@ class Screener(gobject.GObject):
     __gsignals__['stopped'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['sync'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
-    
+    __gsignals__['analyse-request'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+   
     TASK_MOUNT, TASK_ALIGN, TASK_PAUSE, TASK_COLLECT, TASK_ANALYSE = range(5)
       
     def __init__(self):
@@ -226,6 +227,7 @@ class Screener(gobject.GObject):
         self.stopped = True
         self.skip_collected = False
         self.data_collector = None
+        self._collect_results = None
         
     def configure(self, run_list):
         #associate beamline devices
@@ -332,7 +334,7 @@ class Screener(gobject.GObject):
                             pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
                                                                     self.run_list[self.pos]['sample']['port'])
                             self.pause()
-                        directory = os.path.join(task['directory'], task['sample']['name'])
+                        directory = os.path.join(task['directory'], task['sample']['name'], 'test')
                         if not os.path.exists(directory):
                             os.makedirs(directory) # make sure directories exist
                         snapshot.take_sample_snapshots('snapshot', directory, [0, 90, 180], True)
@@ -348,7 +350,7 @@ class Screener(gobject.GObject):
                         run_params['energy'] = [ self.beamline.monochromator.energy.get_position() ]
                         run_params['energy_label'] = ['E0']
                         run_params.update({'prefix': task['sample']['name'],
-                                      'directory': os.path.join(task['directory'], task['sample']['name']),
+                                      'directory': os.path.join(task['directory'], task['sample']['name'], 'test'),
                                       'total_frames': task['frames'],
                                       'start_angle': task['angle'],
                                       'start_frame': task['start_frame'],
@@ -359,13 +361,29 @@ class Screener(gobject.GObject):
                         if not os.path.exists(run_params['directory']):
                             os.makedirs(run_params['directory']) # make sure directories exist
                         self.data_collector.configure(run_data=run_params)
-                        self.data_collector.run()
+                        self._collect_results = self.data_collector.run()
                     else:
+                        self._collect_results = None
                         _logger.warn('Skipping task because given sample is not mounted')
                         
                 elif task.task_type == Screener.TASK_ANALYSE:
-                    time.sleep(1.0)
-                           
+                    if self._collect_results is not None:
+                        _first_frame = os.path.join(self._collect_results['parameters']['directory'],
+                                                    self._collect_results['frame_list'][0][0])
+                        _a_params = {'directory': os.path.join(task['directory'], task['sample']['name'], 'scrn'),
+                                     'uname': os.getlogin(),
+                                     'info': {'anomalous': False,
+                                              'file_names': [_first_frame,]                                             
+                                              },
+                                     'crystal': task.options['sample'] }
+
+                        if not os.path.exists(_a_params['directory']):
+                            os.makedirs(_a_params['directory']) # make sure directories exist
+                        gobject.idle_add(self.emit, 'analyse-request', _a_params)   
+                        _logger.warn('Requesting analysis')
+                    else:
+                        _logger.warn('Skipping task because frames were not collected')
+                                                  
                 # Notify progress
                 fraction = float(self.pos) / self.total_items
                 gobject.idle_add(self.emit, 'progress', fraction, self.pos)          
