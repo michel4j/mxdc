@@ -30,7 +30,7 @@ umask=022
 
 start() {
     echo -n $"Starting BCM Service: "
-    daemon /usr/bin/twistd -y $appfile --logfile=$logfile --pidfile=$pidfile
+    daemon /usr/bin/twistd -y $appfile --umask=$umask --logfile=$logfile --pidfile=$pidfile
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && touch /var/lock/subsys/$servicename

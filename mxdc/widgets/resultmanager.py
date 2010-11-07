@@ -14,8 +14,10 @@ import gtk.glade
 
 #from twisted.python.components import globalRegistry
 from mxdc.widgets.resultlist import *
-#from bcm.beamline.mx import IBeamline
+from bcm.utils.log import get_module_logger
+
 #from mxdc.widgets.textviewer import TextViewer, GUIHandler
+_logger = get_module_logger(__name__)
 
 try:
     import webkit
@@ -55,12 +57,10 @@ class ResultManager(gtk.Frame):
             self.browser = webkit.WebView()
             self.browser_settings = webkit.WebSettings()
             self.browser_settings.set_property("enable-file-access-from-file-uris", True)
+            self.browser_settings.set_property("default-font-size", 11)
             self.browser.set_settings(self.browser_settings)
-            
-            #self.browser.load_url = self.browser.load_uri
+
             self.html_window.add(self.browser)
-              
-        self.browser.load_uri('file:///users/cmcfadmin/SIM-20101029/B6/scrn/report/index.html')
         self.add(self.result_manager)
         self.show_all()
 
@@ -81,13 +81,13 @@ class ResultManager(gtk.Frame):
         model = treeview.get_model()
         iter = model.get_iter(path)
         data = model.get_value(iter, RESULT_COLUMN_DETAIL)
-        uri = 'file://%s/report/index.html' % data.get('url','')
-        print uri
-        #self.browser.open(uri)
-        self.browser.load_uri('file:///users/cmcfadmin/SIM-20101029/B14/scrn/report/index.html')
-        
-        print uri
-        
+        if data.get('url', None) in [None, '']:
+            _logger.info('No results to load')
+            return
+        uri = 'file://%s/report/index.html' % data.get('url')
+        _logger.info('Loading results in %s' % uri)
+        self.browser.load_uri(uri)
+                
 if __name__ == "__main__":
     from twisted.internet import gtk2reactor
     gtk2reactor.install()

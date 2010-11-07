@@ -266,6 +266,7 @@ class Screener(gobject.GObject):
         try: 
             self.pos = 0
             pause_msg = ''
+
             while self.pos < len(self.run_list) :
                 if self.paused:
                     gobject.idle_add(self.emit, 'paused', True, pause_msg)
