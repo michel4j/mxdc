@@ -50,9 +50,9 @@ def generate_run_list(run, show_number=True):
     if run.get('inverse_beam', False):
         offsets.append(180.0)
     wedge = min(run.get('wedge', 360.0), run['total_angle'])
-    wedge_size = int(wedge // run['delta'])
-    total_size = run['total_frames']
-    passes = int (round(0.5 + (run['total_angle'] - run['delta']) / wedge)) 
+    wedge_size = int(wedge // run['delta_angle'])
+    total_size = run['num_frames']
+    passes = int (round(0.5 + (run['total_angle'] - run['delta_angle']) / wedge)) 
     remaining_frames = total_size
     current_slice = wedge_size
     for i in range(passes):
@@ -65,12 +65,12 @@ def generate_run_list(run, show_number=True):
                 energy_tag = ""
             for offset in offsets:
                 for j in range(current_slice):
-                    angle = run['start_angle'] + (j * run['delta']) + (i * wedge) + offset
-                    frame_number = i * wedge_size + j + int(offset / run['delta']) + run['start_frame']
+                    angle = run['start_angle'] + (j * run['delta_angle']) + (i * wedge) + offset
+                    frame_number = i * wedge_size + j + int(offset / run['delta_angle']) + run['first_frame']
                     if show_number:
-                        frame_name = "%s_%d%s_%03d" % (run['prefix'], run.get('number',1), energy_tag, frame_number)
+                        frame_name = "%s_%d%s_%03d" % (run['name'], run.get('number',1), energy_tag, frame_number)
                     else:
-                        frame_name = "%s%s_%03d" % (run['prefix'], energy_tag, frame_number)
+                        frame_name = "%s%s_%03d" % (run['name'], energy_tag, frame_number)
                     file_name = "%s.img" % (frame_name)
                     list_item = {
                         'index': index,
@@ -80,11 +80,11 @@ def generate_run_list(run, show_number=True):
                         'frame_name': frame_name,
                         'file_name': file_name,
                         'start_angle': angle,
-                        'delta': run['delta'],
-                        'time': run['time'],
+                        'delta_angle': run['delta_angle'],
+                        'exposure_time': run['exposure_time'],
                         'energy': energy,
                         'distance': run['distance'],
-                        'prefix': run['prefix'],
+                        'name': run['name'],
                         'two_theta': run.get('two_theta', 0.0),
                         'directory': run['directory']
                     }

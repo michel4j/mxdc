@@ -21,7 +21,6 @@ configuration file:
     
         - ``name`` : The name of the beamline given as a string.
         - ``energy_range``: The energy range available, given as a comma separated pair of floats.
-        - ``beamline_diagram``: The file name of a graphic depicting the beamline arrangement.
         - ``beamline_type``: The type of beamline. For example "MX" 
         - ``orientation``: an integer identifying the orientation of the beamline, as derined by XREC.
        

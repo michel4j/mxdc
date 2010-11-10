@@ -161,7 +161,14 @@ class BCMService(service.Service):
     def getParameters(self):
         """Return some bcm configuration parameters for the beamline as a dictionary"""
         params = self.beamline.config.copy()
-        params.update(name=self.beamline.name)
+        x, y = self.beamline.detector.get_origin()
+        params.update(name=self.beamline.name,
+                      detector=self.beamline.detector.detector_type,
+                      detector_size=self.beamline.detector.size,
+                      pixel_size=self.beamline.detector.resolution,
+                      beam_x=x,
+                      beam_y=y
+                      )
         return params
 
     @log_call

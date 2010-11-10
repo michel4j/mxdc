@@ -242,12 +242,8 @@ class SimAutomounter(BasicAutomounter):
     def mount(self, port, wash=False, wait=False):
         if self.is_busy():
             return False
-        if self._mounted_port is not None:
-            self._sim_mount_start(port)
-            gobject.timeout_add(5000, self._sim_mount_done, port)
-        else:
-            self._sim_mount_start(port)
-            gobject.timeout_add(10000, self._sim_mount_done, port)
+        self._sim_mount_start(port)
+        gobject.timeout_add(5000, self._sim_mount_done, port)
         self._command_sent = True
         if wait:
             return self.wait(start=True, stop=True)
