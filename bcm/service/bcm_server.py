@@ -380,7 +380,7 @@ class BCMService(service.Service):
                                 )
         #FIXME:  validate parameters
         
-        self.data_collector.configure(run_data=run_info, skip_collected=run_info.get('skip_existing', False))
+        self.data_collector.configure(run_data, skip_collected=run_info.get('skip_existing', False))
         results = self.data_collector.run()   
         
         log.msg('acquireFrames completed.')
