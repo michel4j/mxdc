@@ -10,7 +10,7 @@ try:
 except:
     import simplejson as json
     
-from bcm.utils import misc
+from bcm.utils import misc, runlists
 
 from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
 from mxdc.widgets.runmanager import RunManager
@@ -284,12 +284,8 @@ class CollectManager(gtk.Frame):
                 run_data[0]['energy'] = [self.beamline.monochromator.energy.get_position()]
             run_data[0]['energy_label'] = ['E0']
         self.run_list = []
-        if len( run_data.keys() ) > 1:
-            show_number = True
-        else:
-            show_number = False
-        for run in run_data.values():
-            self.run_list += misc.generate_run_list(run, show_number)
+
+        self.run_list = runlists.generate_run_list(run_data.values())
 
         self.frame_pos = 0
         self.gen_sequence()
