@@ -137,13 +137,13 @@ class ScreenManager(gtk.Frame):
         # Task Configuration
         self.TaskList = []
         self.default_tasks = [ 
-                  (Screener.TASK_MOUNT, {'default': True, 'locked': True}),
+                  (Screener.TASK_MOUNT, {'default': True, 'locked': False}),
                   (Screener.TASK_ALIGN, {'default': True, 'locked': False}),
                   (Screener.TASK_PAUSE, {'default': False, 'locked': False}), # use this line for collect labels
                   (Screener.TASK_COLLECT, {'angle': 0.0, 'default': True, 'locked': False}),
-                  (Screener.TASK_COLLECT, {'angle': 45.0, 'default': False, 'locked': False}),
+                  (Screener.TASK_COLLECT, {'angle': 45.0, 'default': True, 'locked': False}),
                   (Screener.TASK_COLLECT, {'angle': 90.0, 'default': True, 'locked': False}),
-                  (Screener.TASK_ANALYSE, {'default': False, 'locked': False}),
+                  (Screener.TASK_ANALYSE, {'default': True, 'locked': False}),
                   (Screener.TASK_PAUSE, {'default': False, 'locked': False}), ]
         self._settings_sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
         

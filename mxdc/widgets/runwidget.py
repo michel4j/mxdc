@@ -16,21 +16,21 @@ from mxdc.widgets.dialogs import warning, check_folder, DirectoryButton
 ) = range(4)
 
 DEFAULT_PARAMETERS = {
-    'prefix': 'test',
+    'name': 'test',
     'directory': os.environ['HOME'],
     'distance': 250.0,
-    'delta': 1.0,
-    'time': 1.0,
+    'delta_angle': 1.0,
+    'exposure_time': 1.0,
     'start_angle': 0,
     'total_angle': 1.0,
-    'start_frame': 1,
-    'total_frames': 1,
+    'first_frame': 1,
+    'num_frames': 1,
     'inverse_beam': False,
     'wedge': 360.0,
     'energy': [ 12.658 ],
     'energy_label': ['E0'],
     'number': 1,
-    'two_theta': 0.0,
+    'two_theta': 0.0
 }
 
 
@@ -46,12 +46,12 @@ class RunWidget(gtk.Frame):
         self.entry = {}
                 
         # Data for entries (name: (col, row, length, [unit]))
-        entries = ['prefix', 'distance','delta','time','start_frame', 
-                   'start_angle','total_frames','total_angle','wedge',
+        entries = ['name', 'distance','delta_angle','exposure_time','first_frame', 
+                   'start_angle','num_frames','total_angle','wedge',
                    'two_theta','inverse_beam']
         for e in entries:
             self.entry[e] = self._xml.get_widget(e)
-            if isinstance(self.entry[e], gtk.Entry) and e not in ['prefix',]:
+            if isinstance(self.entry[e], gtk.Entry) and e not in ['name',]:
                 self.entry[e].set_alignment(1)
         
         
@@ -62,26 +62,26 @@ class RunWidget(gtk.Frame):
         #self.layout_table.attach(self.entry['directory'], 1,4,1,2, xoptions=gtk.EXPAND|gtk.FILL)
 
         # entry signals
-        self.entry['prefix'].connect('focus-out-event', self.on_prefix_changed)
+        self.entry['name'].connect('focus-out-event', self.on_prefix_changed)
         self.entry['directory'].connect('focus-out-event', self.on_directory_changed)
         self.entry['start_angle'].connect('focus-out-event', self.on_start_angle_changed)
-        self.entry['delta'].connect('focus-out-event', self.on_delta_changed)
+        self.entry['delta_angle'].connect('focus-out-event', self.on_delta_changed)
         self.entry['total_angle'].connect('focus-out-event', self.on_total_angle_changed)
-        self.entry['total_frames'].connect('focus-out-event', self.on_total_frames_changed)
-        self.entry['start_frame'].connect('focus-out-event', self.on_start_frame_changed)
+        self.entry['num_frames'].connect('focus-out-event', self.on_total_frames_changed)
+        self.entry['first_frame'].connect('focus-out-event', self.on_start_frame_changed)
         self.entry['distance'].connect('focus-out-event', self.on_distance_changed)
-        self.entry['time'].connect('focus-out-event', self.on_time_changed)
+        self.entry['exposure_time'].connect('focus-out-event', self.on_time_changed)
         self.entry['wedge'].connect('focus-out-event', self.on_wedge_changed)
         self.entry['two_theta'].connect('focus-out-event', self.on_two_theta_changed)
         
-        self.entry['prefix'].connect('activate', self.on_prefix_changed)
+        self.entry['name'].connect('activate', self.on_prefix_changed)
         self.entry['start_angle'].connect('activate', self.on_start_angle_changed)
-        self.entry['delta'].connect('activate', self.on_delta_changed)
+        self.entry['delta_angle'].connect('activate', self.on_delta_changed)
         self.entry['total_angle'].connect('activate', self.on_total_angle_changed)
-        self.entry['total_frames'].connect('activate', self.on_total_frames_changed)
-        self.entry['start_frame'].connect('activate', self.on_start_frame_changed)
+        self.entry['num_frames'].connect('activate', self.on_total_frames_changed)
+        self.entry['first_frame'].connect('activate', self.on_start_frame_changed)
         self.entry['distance'].connect('activate', self.on_distance_changed)
-        self.entry['time'].connect('activate', self.on_time_changed)
+        self.entry['exposure_time'].connect('activate', self.on_time_changed)
         self.entry['wedge'].connect('activate', self.on_wedge_changed)
         self.entry['two_theta'].connect('activate', self.on_two_theta_changed)
                
@@ -227,18 +227,19 @@ class RunWidget(gtk.Frame):
         self.__reset_e_btn_states()
             
     def set_parameters(self, dict):
-        for key in  ['distance','delta','start_angle','total_angle','wedge','time', 'two_theta']:
+        for key in  ['distance','delta_angle','start_angle','total_angle','wedge','exposure_time', 'two_theta']:
             if dict.has_key(key):
                 self.entry[key].set_text("%0.2f" % dict[key])
             else:
                 self.entry[key].set_text("%0.2f" % DEFAULT_PARAMETERS[key])
-        for key in ['start_frame', 'total_frames']:
+        for key in ['first_frame', 'num_frames']:
             if dict.has_key(key):
                 self.entry[key].set_text("%d" % dict[key])
             else:
                 self.entry[key].set_text("%d" % DEFAULT_PARAMETERS[key])
-        self.entry['prefix'].set_text("%s" % dict['prefix'])
-        if dict['directory'] is not None and os.path.exists(dict['directory']):
+        if 'name' in dict:
+            self.entry['name'].set_text("%s" % dict['name'])
+        if dict.get('directory') is not None and os.path.exists(dict['directory']):
             self.entry['directory'].set_filename("%s" % dict['directory'])
         else:
             self.entry['directory'].set_filename(os.environ['HOME'])
@@ -254,7 +255,7 @@ class RunWidget(gtk.Frame):
         
     def get_parameters(self):
         run_data = {}
-        run_data['prefix']      = self.entry['prefix'].get_text().strip()
+        run_data['name']      = self.entry['name'].get_text().strip()
         run_data['directory']   = self.entry['directory'].get_filename()
         energy = []
         energy_label = []
@@ -270,10 +271,10 @@ class RunWidget(gtk.Frame):
         run_data['inverse_beam'] = self.entry['inverse_beam'].get_active()
         run_data['number'] = self.number
 
-        for key in ['distance','delta','start_angle','total_angle','wedge','time', 'two_theta']:
+        for key in ['distance','delta_angle','start_angle','total_angle','wedge','exposure_time', 'two_theta']:
             run_data[key] = float(self.entry[key].get_text())
 
-        for key in ['start_frame','total_frames']:
+        for key in ['first_frame','num_frames']:
             run_data[key] = int(self.entry[key].get_text())
         return run_data
                 
@@ -293,7 +294,7 @@ class RunWidget(gtk.Frame):
         self.run_title.set_use_markup(True)
         # Hide controls for Run 0
         if num == 0:
-            for key in ['total_angle','total_frames','wedge','inverse_beam']:
+            for key in ['total_angle','num_frames','wedge','inverse_beam']:
                 self.entry[key].set_sensitive(False)
             self.energy_btn_box.hide()
             self.energy_list.set_sensitive(False)
@@ -354,10 +355,10 @@ class RunWidget(gtk.Frame):
         
 
     def on_prefix_changed(self, widget, event=None):
-        prefix = self.entry['prefix'].get_text()
+        prefix = self.entry['name'].get_text()
         for c in [' ','*','#','@','&','[','[']:   
             prefix = prefix.replace(c,'')
-        self.entry['prefix'].set_text(prefix)
+        self.entry['name'].set_text(prefix)
         self.check_changes()
         return False
     
@@ -375,72 +376,72 @@ class RunWidget(gtk.Frame):
     
     def on_total_angle_changed(self,widget,event=None):
         start_angle = float(self.entry['start_angle'].get_text())    
-        start_frame = int(self.entry['start_frame'].get_text())
-        delta = float(self.entry['delta'].get_text())
+        start_frame = int(self.entry['first_frame'].get_text())
+        delta = float(self.entry['delta_angle'].get_text())
         try:
             total_angle = float(self.entry['total_angle'].get_text())
             total_frames = int(total_angle / delta)
         except:
-            total_frames = int(self.entry['total_frames'].get_text())
+            total_frames = int(self.entry['num_frames'].get_text())
             total_angle = total_frames * delta 
 
         self.entry['total_angle'].set_text('%0.2f' % total_angle)                       
-        self.entry['total_frames'].set_text('%d' % total_frames)
+        self.entry['num_frames'].set_text('%d' % total_frames)
         self.check_changes()
         return False
 
     def on_delta_changed(self,widget,event=None):
         try:
-            delta = float(self.entry['delta'].get_text())
+            delta = float(self.entry['delta_angle'].get_text())
         except:
             delta = 1.0
         delta = min(10.0, max(delta, 0.1))
 
-        self.entry['delta'].set_text('%0.2f' % delta)
+        self.entry['delta_angle'].set_text('%0.2f' % delta)
         total_angle = float(self.entry['total_angle'].get_text())
-        total_frames = int(self.entry['total_frames'].get_text())
+        total_frames = int(self.entry['num_frames'].get_text())
 
         if self.number == 0:
             total_angle = delta
             self.entry['total_angle'].set_text('%0.2f' % total_angle)
         total_frames = int(total_angle/delta)
-        self.entry['total_frames'].set_text('%d' % total_frames)
+        self.entry['num_frames'].set_text('%d' % total_frames)
         self.check_changes()
         return False
 
     def on_time_changed(self,widget,event=None):
         try:
-            delta = float(self.entry['delta'].get_text())
-            time = float(self.entry['time'].get_text())
+            delta = float(self.entry['delta_angle'].get_text())
+            time = float(self.entry['exposure_time'].get_text())
         except:
             time = 1.0
         time = max(0.5, time)
-        self.entry['time'].set_text('%0.1f' % time)
+        self.entry['exposure_time'].set_text('%0.1f' % time)
         self.check_changes()
         return False
 
     def on_start_frame_changed(self,widget,event=None):
         start_angle = float(self.entry['start_angle'].get_text())
         try:
-            start_frame = int( float(self.entry['start_frame'].get_text()) )
+            start_frame = int( float(self.entry['first_frame'].get_text()) )
         except:
             start_frame = 1
         
         start_frame = max(start_frame, 1)
-        self.entry['start_frame'].set_text('%d' % start_frame)
+        self.entry['first_frame'].set_text('%d' % start_frame)
         self.check_changes()
         return False
 
     def on_total_frames_changed(self,widget,event=None):
-        delta = float(self.entry['delta'].get_text())
+        delta = float(self.entry['delta_angle'].get_text())
         try:
-            total_frames = float(self.entry['total_frames'].get_text() )
+            total_frames = float(self.entry['num_frames'].get_text() )
             total_angle = total_frames * delta 
         except:
             total_angle = float(self.entry['total_angle'].get_text())
             total_frames = int(total_angle / delta)
         
-        self.entry['total_frames'].set_text('%d' % total_frames)    
+        self.entry['num_frames'].set_text('%d' % total_frames)    
         self.entry['total_angle'].set_text('%0.2f' % total_angle)
         self.check_changes()
         return False
@@ -527,7 +528,6 @@ class RunWidget(gtk.Frame):
             self.check_changes()
         except:
             self.reset_btn.set_sensitive(False)
-        self.set_parameters(params)
         self.check_changes()
         return True  
         
