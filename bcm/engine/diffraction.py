@@ -349,16 +349,14 @@ class Screener(gobject.GObject):
                         run_params['energy_label'] = ['E0']
                         run_params.update({'prefix': task['sample']['name'],
                                       'directory': os.path.join(task['directory'], task['sample']['name'], 'test'),
-                                      'num_frames': task['frames'],
                                       'start_angle': task['angle'],
                                       'first_frame': task['start_frame'],
-                                      'number': 0,
                                       'total_angle': task['delta'] * task['frames'],
                                       'delta_angle': task['delta'],
                                       'exposure_time': task['time'], })
                         if not os.path.exists(run_params['directory']):
                             os.makedirs(run_params['directory']) # make sure directories exist
-                        self.data_collector.configure(run_data=run_params)
+                        self.data_collector.configure(run_params)
                         self._collect_results = self.data_collector.run()
                     else:
                         self._collect_results = None
