@@ -86,11 +86,14 @@ class App(object):
                 'exposure_time':1.0,
                 'attenuation':50.0,
                 'energy':12.0}
-        self.bcm.callRemote('scanSpectrum',
-                            info,
-                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/scan',
-                            uname='cmcfadmin',
-                            ).addCallback(self.dump_results).addErrback(self.dump_error)
+#        self.bcm.callRemote('scanSpectrum',
+#                            info,
+#                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/scan',
+#                            uname='cmcfadmin',
+#                            ).addCallback(self.dump_results).addErrback(self.dump_error)
+
+        self.bcm.callRemote('getParameters').addCallback(self.dump_results).addErrback(self.dump_error)
+        self.bcm.callRemote('mountSample', 'LC2', 'xtal1').addCallback(self.dump_results).addErrback(self.dump_error)
         
         
         
@@ -99,11 +102,11 @@ class App(object):
                 'exposure_time':0.1,
                 'attenuation':50.0,
                 'edge': 'Se-K'}
-        self.bcm.callRemote('scanEdge',
-                            info,
-                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/scan',
-                            uname='cmcfadmin',
-                            ).addCallback(self.dump_results).addErrback(self.dump_error)
+#        self.bcm.callRemote('scanEdge',
+#                            info,
+#                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/scan',
+#                            uname='cmcfadmin',
+#                            ).addCallback(self.dump_results).addErrback(self.dump_error)
         
 #        self.bcm.callRemote('setupCrystal', 
 #                            'xtl123',

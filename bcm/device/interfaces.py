@@ -200,7 +200,9 @@ class IImagingDetector(Interface):
 
     def get_state():
         """Return the current state of the device."""
-
+    
+    def get_origin():
+        """Return the current x,y position of the beam on the detector as a tuple"""
 
 
 class IPositioner(Interface):

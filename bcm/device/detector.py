@@ -27,11 +27,12 @@ class MXCCDImager(BaseDevice):
     
     implements(IImagingDetector)
     
-    def __init__(self, name, size, resolution):
+    def __init__(self, name, size, resolution, detector_type='MX300'):
         BaseDevice.__init__(self)
         self.size = int(size)
         self.resolution = float(resolution)
-        self.name = 'MXCCD Detector'
+        self.detector_type = detector_type
+        self.name = '% Detector' % detector_type
         
         self._start_cmd = self.add_pv("%s:start:cmd" % name, monitor=False)
         self._abort_cmd = self.add_pv("%s:abort:cmd" % name, monitor=False)
@@ -54,12 +55,12 @@ class MXCCDImager(BaseDevice):
             'beam_x' : self.add_pv("%s:beam:x" % name, monitor=False),
             'beam_y' : self.add_pv("%s:beam:y" % name, monitor=False),
             'distance' : self.add_pv("%s:distance" % name, monitor=False),
-            'time' : self.add_pv("%s:exposureTime" % name, monitor=False),
+            'exposure_time' : self.add_pv("%s:exposureTime" % name, monitor=False),
             'axis' : self.add_pv("%s:rot:axis" % name, monitor=False),
             'wavelength':  self.add_pv("%s:src:wavelgth" % name, monitor=False),
-            'delta' : self.add_pv("%s:omega:incr" % name, monitor=False),
+            'delta_angle' : self.add_pv("%s:omega:incr" % name, monitor=False),
             'frame_number': self.add_pv("%s:startFrame" % name, monitor=False),
-            'prefix' : self.add_pv("%s:img:prefix" % name, monitor=False),
+            'name' : self.add_pv("%s:img:prefix" % name, monitor=False),
             'start_angle': self.add_pv("%s:start:omega" % name, monitor=False),
             'energy': self.add_pv("%s:runEnergy" % name, monitor=False),            
         }
@@ -129,6 +130,9 @@ class MXCCDImager(BaseDevice):
         self._save_cmd.put(1)
         if wait:
             self._wait_for_state('read:exec')
+            
+    def get_origin(self):
+        return self._header['beam_x'].get(), self._header['beam_y'].get()
     
     def get_state(self):
         return self._state_list[:]
@@ -192,11 +196,12 @@ class SimCCDImager(BaseDevice):
     
     implements(IImagingDetector)
 
-    def __init__(self, name, size, resolution):
+    def __init__(self, name, size, resolution, detector_type="MX300"):
         BaseDevice.__init__(self)
         self.size = int(size)
         self.resolution = float(resolution)
         self.name = name
+        self.detector_type = detector_type
         self._state = 'idle'
         self._bg_taken = False
         
@@ -225,6 +230,9 @@ class SimCCDImager(BaseDevice):
     def stop(self):
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
         time.sleep(1)
+
+    def get_origin(self):
+        return self.size//2, self.size//2
     
     def _copy_frame(self):
         num = 1 + (self.parameters['frame_number']-1) % self._num_frames

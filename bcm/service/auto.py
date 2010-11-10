@@ -26,6 +26,8 @@ def auto_mount(bl, port):
             mounted_info = bl.automounter.mounted_state
             result['mounted'], result['barcode']  = mounted_info
             result['message'] = 'Sample mounted successfully.'
+    else:
+        raise MountError('Port `%s` is not mountable.' % (port))
     return result
 
 
