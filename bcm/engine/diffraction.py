@@ -4,7 +4,7 @@ from bcm.engine.interfaces import IDataCollector
 from bcm.protocol import ca
 from bcm.utils.converter import energy_to_wavelength
 from bcm.utils.log import get_module_logger
-from bcm.utils.misc import generate_run_list
+from bcm.utils import runlists
 from twisted.python.components import globalRegistry
 from zope.interface import implements
 
@@ -20,21 +20,22 @@ _logger = get_module_logger(__name__)
 
 
 DEFAULT_PARAMETERS = {
-    'prefix': 'test',
+    'name': 'test',
     'directory': '/tmp',
     'distance': 250.0,
-    'delta': 1.0,
-    'time': 1.0,
+    'delta_angle': 1.0,
+    'exposure_time': 1.0,
     'start_angle': 0,
     'total_angle': 1.0,
-    'start_frame': 1,
-    'total_frames': 1,
+    'first_frame': 1,
+    'num_frames': 1,
     'inverse_beam': False,
     'wedge': 360.0,
     'energy': [ 12.658 ],
     'energy_label': ['E0'],
     'number': 1,
     'two_theta': 0.0,
+    'jump': 0.0
 }
 
 class DataCollector(gobject.GObject):
@@ -54,14 +55,11 @@ class DataCollector(gobject.GObject):
         self.stopped = True
         self.skip_collected = False
         self.run_list = []
-        self.run_data = {}
-        self.collected_frames = []
+        self.runs = []
         self.results = {}        
         self._last_initialized = 0
             
-    def configure(self, run_data=None, run_list=None, skip_collected=True):
-        self.run_data = {}
-        self.collected_frames = []
+    def configure(self, runs, skip_collected=True):
         #associate beamline devices
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
@@ -69,20 +67,22 @@ class DataCollector(gobject.GObject):
             self.beamline = None
             _logger.warning('No registered beamline found.')
             raise
-        if run_data is None and run_list is None:
-            self.run_list = []
-            
-            _logger.warning('Run is empty')
-        elif run_data is not None:  # run_data supersedes run_list if specified
-            self.run_data = run_data.copy()     
-            self.run_list = generate_run_list(self.run_data)
-            self.beamline.image_server.setup_folder(self.run_data['directory'])
-        else: # run_list is not empty
-            self.run_list = run_list
-        self.total_frames = len(self.run_list)
+        
         self.skip_collected = skip_collected
+        self.runs = runs.deepcopy()
+        max_sets = 1   
+        for run in self.runs:        
+            self.beamline.image_server.setup_folder(run['directory'])
+            max_sets = max(max_sets, len(run['frame_sets']))
+
+        for i in range(max_sets):
+            for run in self.runs:
+                if i < len(run['frame_sets']):
+                    self.run_list.extend(runlists.generate_frame_list(run, run['frame_sets'][i]))            
         self._user_properties = (pwd.getpwuid(os.geteuid())[0]  , os.geteuid(), os.getegid())
         self.beamline.image_server.set_user(*self._user_properties)
+
+            
         return
     
     def get_state(self):
@@ -106,17 +106,14 @@ class DataCollector(gobject.GObject):
         if self.beamline is None:
             _logger.error('No Beamline found. Aborting data collection.')
             return False
-        ca.threads_init() 
+        ca.threads_init()
         self.beamline.lock.acquire()
         self.beamline.goniometer.set_mode('COLLECT', wait=True) # move goniometer to collect mode
         gobject.idle_add(self.emit, 'started')
         try:
                    
             self.beamline.exposure_shutter.close()
-#            # take bias background every 30 minutes
-#            if time.time() - self._last_initialized > 1800:
-#                self.beamline.detector.initialize()
-#                self._last_initialized = time.time()
+
             self.pos = 0
             header = {}
             pause_msg = ''
@@ -143,7 +140,7 @@ class DataCollector(gobject.GObject):
                 self.beamline.monochromator.energy.wait()                
                 
                 # Prepare image header
-                header['delta'] = frame['delta']
+                header['delta_angle'] = frame['delta_angle']
                 header['filename'] = frame['file_name']
                 dir_parts = frame['directory'].split('/')
                 if dir_parts[1] == 'users':
@@ -152,16 +149,16 @@ class DataCollector(gobject.GObject):
                 else:
                     header['directory'] = frame['directory']
                 header['distance'] = frame['distance'] 
-                header['time'] = frame['time']
+                header['exposure_time'] = frame['exposure_time']
                 header['frame_number'] = frame['frame_number']
                 header['wavelength'] = energy_to_wavelength(frame['energy'])
                 header['energy'] = frame['energy']
-                header['prefix'] = frame['prefix']
+                header['name'] = frame['name']
                 header['start_angle'] = frame['start_angle']            
                 
                 #prepare goniometer for scan   
-                self.beamline.goniometer.configure(time=frame['time'],
-                                                   delta=frame['delta'],
+                self.beamline.goniometer.configure(time=frame['exposure_time'],
+                                                   delta=frame['delta_angle'],
                                                    angle=frame['start_angle'])
 
                 self.beamline.detector.start(first=_first)
@@ -345,20 +342,20 @@ class Screener(gobject.GObject):
                 elif task.task_type == Screener.TASK_COLLECT:
                     _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
-                        run_params = DEFAULT_PARAMETERS
+                        run_params = DEFAULT_PARAMETERS.copy()
                         run_params['distance'] = self.beamline.diffractometer.distance.get_position()
                         run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
                         run_params['energy'] = [ self.beamline.monochromator.energy.get_position() ]
                         run_params['energy_label'] = ['E0']
                         run_params.update({'prefix': task['sample']['name'],
                                       'directory': os.path.join(task['directory'], task['sample']['name'], 'test'),
-                                      'total_frames': task['frames'],
+                                      'num_frames': task['frames'],
                                       'start_angle': task['angle'],
-                                      'start_frame': task['start_frame'],
+                                      'first_frame': task['start_frame'],
                                       'number': 0,
                                       'total_angle': task['delta'] * task['frames'],
-                                      'delta': task['delta'],
-                                      'time': task['time'], })
+                                      'delta_angle': task['delta'],
+                                      'exposure_time': task['time'], })
                         if not os.path.exists(run_params['directory']):
                             os.makedirs(run_params['directory']) # make sure directories exist
                         self.data_collector.configure(run_data=run_params)
