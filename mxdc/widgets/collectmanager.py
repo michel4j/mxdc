@@ -36,11 +36,12 @@ class CollectManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self.run_data = {}
+        self.run_data = []
         self.run_list = []
         self.collect_state = COLLECT_STATE_IDLE
         self.frame_pos = None
         self._first_launch = False
+        self.skip_frames = False
         self._create_widgets()
         
     def __getattr__(self, key):
@@ -108,7 +109,7 @@ class CollectManager(gtk.Frame):
         self.collect_btn.connect('clicked',self.on_activate)
         self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
         self.run_manager.connect('saved', self.save_runs)
-        self.run_manager.connect('del-run', self.remove_run)
+        #self.run_manager.connect('del-run', self.remove_run)
 
         for w in [self.collect_btn, self.stop_btn]:
             w.set_property('can-focus', False)
@@ -186,7 +187,7 @@ class CollectManager(gtk.Frame):
         self.listmodel.set(iter, 
             COLLECT_COLUMN_SAVED, item['saved'], 
             COLLECT_COLUMN_ANGLE, item['start_angle'],
-            COLLECT_COLUMN_RUN, item['run_number'],
+            COLLECT_COLUMN_RUN, item['number'],
             COLLECT_COLUMN_NAME, item['frame_name']
         )
             
@@ -234,58 +235,50 @@ class CollectManager(gtk.Frame):
         
     def save_runs(self, obj=None):
         self.clear_runs()
-        for run in self.run_manager.runs:
-            if run.is_enabled():
+        run_num = self.run_manager.get_current_page()
+        dir_error = False
+
+        try:
+            for run in self.run_manager.runs:
                 data = run.get_parameters()
                 res = self.beamline.image_server.setup_folder(data['directory'])
-                try:
-                    assert(res == True)
-                    self.run_data[ data['number'] ] = data
-                except:
+                if res:
+                    if run_num == 0 and data['number'] == 0:
+                        data['energy'] = [self.beamline.monochromator.energy.get_position()]
+                        data['energy_label'] = ['E0']
+                        self.run_data.append(data)
+                        break
+                    elif run_num == data['number'] or run.is_enabled():
+                        self.run_data.append(data)
+                else:
                     run.disable_run()
-                    msg_title = 'Invalid Directory: "%s"' % data['directory']
-                    msg_sub = 'Could not setup directory for run <b>%d</b>.  ' % data['number']
-                    msg_sub += 'The run has been disabled.  To execute the run, '
-                    msg_sub += 'please select a valid directory and re-activate the run '
-                    msg_sub += 'manually before proceeding.'
-                    warning(msg_title, msg_sub)
+                    dir_error = True
+        except KeyboardInterrupt:
+            msg_title = 'Error Saving Run information'
+            msg_sub = 'Either you have entered invalid parameters or a connection to the Image '
+            msg_sub += 'Synchronisation Server could not be established. Data Collection '
+            msg_sub += 'can not proceed reliably until the problem is resolved.'
+            warning(msg_title, msg_sub)
+        
+        if dir_error:            
+            msg_title = 'Invalid Directories'
+            msg_sub = 'One or more runs have been disbled because directories '
+            msg_sub += 'Could not be setup. Please make sure no  directories with spaces '
+            msg_sub += 'or special characters are used, and try again.'
+            warning(msg_title, msg_sub)
 
         self._save_config()
         self.create_runlist()
         
     def add_run(self, data):
         self.run_manager.add_new_run(data)
-        self.create_runlist()
-            
-    
-    def remove_run(self, obj, index):
-        run_data = {}
-        for key in self.run_data.keys():
-            if key < index:
-                run_data[key] = self.run_data[key]
-                run_data[key]['number'] = key
-            elif key > index:
-                run_data[key-1] = self.run_data[key]
-                run_data[key-1]['number'] = key-1
-        self.run_data = run_data
-    
+               
     def clear_runs(self):
-        self.run_data.clear()
+        del self.run_data[:]
             
     def create_runlist(self):
-        run_num = self.run_manager.get_current_page()
-        run_data = self.run_data.copy()
 
-        if run_num != 0 and 0 in run_data.keys():
-            del run_data[0]
-        elif 0 in run_data.keys():
-            run_data = {0: run_data[0],}
-            if self.beamline is not None:
-                run_data[0]['energy'] = [self.beamline.monochromator.energy.get_position()]
-            run_data[0]['energy_label'] = ['E0']
-        self.run_list = []
-
-        self.run_list = runlists.generate_run_list(run_data.values())
+        self.run_list = runlists.generate_run_list(self.run_data)
 
         self.frame_pos = 0
         self.gen_sequence()
@@ -309,11 +302,12 @@ class CollectManager(gtk.Frame):
             buttons = ( ('gtk-cancel',gtk.RESPONSE_CANCEL), ('Skip', gtk.RESPONSE_YES), ('Replace', gtk.RESPONSE_NO))
             response = warning(header, sub_header, details, buttons=buttons)
             if response == gtk.RESPONSE_YES:
+                self.skip_existing = True
                 for index in existlist:
-                    self.run_list[index]['saved'] = True
                     self.set_row_state(index, saved=True)
                 return True
             elif response == gtk.RESPONSE_NO:
+                self.skip_existing = False
                 for index in existlist:
                     old_name = "%s/%s" % (self.run_list[index]['directory'], self.run_list[index]['file_name']) 
                     os.remove(old_name)
@@ -474,7 +468,7 @@ class CollectManager(gtk.Frame):
         if self.config_user():
             if self.check_runlist():
                 self.progress_bar.busy_text("Starting data collection...")
-                self.collector.configure(run_list=self.run_list, skip_collected=True)
+                self.collector.configure(self.run_data, skip_existing=self.skip_existing)
                 self.collector.start()
                 self.collect_state = COLLECT_STATE_RUNNING
                 self.collect_btn.set_label('mxdc-pause')

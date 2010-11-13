@@ -20,7 +20,7 @@ from bcm.utils.log import get_module_logger
 _logger = get_module_logger(__name__)
 
 try:
-    import webkit
+    import webkit1
     browser_engine = 'webkit'
 except:
     import gtkmozembed
@@ -52,7 +52,8 @@ class ResultManager(gtk.Frame):
         self.list_window.add(self.result_list)
         if browser_engine == 'gecko':
             self.browser = gtkmozembed.MozEmbed()
-            self.html_window.add_with_viewport(self.browser)      
+            self.html_window.add(self.browser)
+            self.browser.load_url('http://cmcf.lightsource.ca')  
         else:
             self.browser = webkit.WebView()
             self.browser_settings = webkit.WebSettings()
@@ -86,13 +87,19 @@ class ResultManager(gtk.Frame):
             return
         uri = 'file://%s/report/index.html' % data.get('url')
         _logger.info('Loading results in %s' % uri)
-        self.browser.load_uri(uri)
+        if browser_engine == 'webkit':
+            self.browser.load_uri(uri)
+        else:
+            self.browser.load_url(uri)
                 
 if __name__ == "__main__":
     from twisted.internet import gtk2reactor
     gtk2reactor.install()
     from twisted.internet import reactor
-
+    
+    for k,v in os.environ.items():
+        print '%s=%s' % (k, v)
+    
     win = gtk.Window()
     win.connect("destroy", lambda x: reactor.stop())
     win.set_default_size(800,600)

@@ -53,13 +53,13 @@ class DataCollector(gobject.GObject):
         gobject.GObject.__init__(self)
         self.paused = False
         self.stopped = True
-        self.skip_collected = False
+        self.skip_existing = False
         self.run_list = []
         self.runs = []
         self.results = {}        
         self._last_initialized = 0
             
-    def configure(self, runs, skip_collected=True):
+    def configure(self, run_data, skip_existing=True):
         #associate beamline devices
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
@@ -68,21 +68,19 @@ class DataCollector(gobject.GObject):
             _logger.warning('No registered beamline found.')
             raise
         
-        self.skip_collected = skip_collected
-        self.runs = runs.deepcopy()
-        max_sets = 1   
+        self.skip_existing = skip_existing
+        if not isinstance(run_data, list):
+            self.runs = [run_data]
+        else:
+            self.runs = run_data[:]
+        self.data_sets, self.run_list = runlists.generate_data_and_list(self.runs)
         for run in self.runs:        
             self.beamline.image_server.setup_folder(run['directory'])
-            max_sets = max(max_sets, len(run['frame_sets']))
-
-        for i in range(max_sets):
-            for run in self.runs:
-                if i < len(run['frame_sets']):
-                    self.run_list.extend(runlists.generate_frame_list(run, run['frame_sets'][i]))            
+        for frame in self.run_list:
+            if os.path.exists(os.path.join(frame['directory'], frame['file_name'])):
+                frame['saved'] = True
         self._user_properties = (pwd.getpwuid(os.geteuid())[0]  , os.geteuid(), os.getegid())
-        self.beamline.image_server.set_user(*self._user_properties)
-
-            
+        self.beamline.image_server.set_user(*self._user_properties)           
         return
     
     def get_state(self):
@@ -118,6 +116,7 @@ class DataCollector(gobject.GObject):
             header = {}
             pause_msg = ''
             _first = True
+            
             while self.pos < len(self.run_list) :
                 if self.paused:
                     gobject.idle_add(self.emit, 'paused', True, pause_msg)
@@ -130,10 +129,11 @@ class DataCollector(gobject.GObject):
                     break
     
                 frame = self.run_list[self.pos]   
-                if frame['saved'] and self.skip_collected:
+                if frame['saved'] and self.skip_existing:
                     _logger.info('Skipping %s' % frame['file_name'])
                     self.pos += 1
-                    continue                               
+                    continue
+                                            
                 self.beamline.monochromator.energy.move_to(frame['energy'])
                 self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)
                 #self.beamline.diffractometer.two_theta.move_to(frame['two_theta'], wait=True)
@@ -166,18 +166,17 @@ class DataCollector(gobject.GObject):
                 self.beamline.goniometer.scan()
                 self.beamline.detector.save()
                 
-                frame['saved'] = True
+                #frame['saved'] = True
                 _first = False
                     
     
-                _logger.info("Image Collected: %s" % frame['file_name'])
+                _logger.info("Image Collected: %s" % (frame['file_name']))
                 gobject.idle_add(self.emit, 'new-image', self.pos, "%s/%s" % (frame['directory'], frame['file_name']))
-                self.collected_frames.append((frame['file_name'], frame['start_angle']))
                 
                 # Notify progress
                 fraction = float(self.pos) / len(self.run_list)
                 gobject.idle_add(self.emit, 'progress', fraction, self.pos + 1)          
-                self.pos += 1
+                self.pos = self.pos + 1
             
             gobject.idle_add(self.emit, 'done')
             if not self.stopped:
@@ -187,10 +186,15 @@ class DataCollector(gobject.GObject):
             self.beamline.exposure_shutter.close()
             #self.beamline.goniometer.set_mode('MOUNTING') # return goniometer to mount position
             self.beamline.lock.release()        
-        self.results = {'parameters': self.run_data, 'frame_list': self.collected_frames}
+        self.results = self.data_sets
         return self.results
 
     def set_position(self, pos):
+        for i, frame in enumerate(self.run_list):
+            if i < pos and len(self.run_list) > pos:
+                frame['saved'] = True
+            else:
+                frame['saved'] = False
         self.pos = pos
         
     def pause(self):
@@ -224,7 +228,7 @@ class Screener(gobject.GObject):
         self.stopped = True
         self.skip_collected = False
         self.data_collector = None
-        self._collect_results = None
+        self._collect_results = []
         
     def configure(self, run_list):
         #associate beamline devices
@@ -347,7 +351,7 @@ class Screener(gobject.GObject):
                         run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
                         run_params['energy'] = [ self.beamline.monochromator.energy.get_position() ]
                         run_params['energy_label'] = ['E0']
-                        run_params.update({'prefix': task['sample']['name'],
+                        run_params.update({'name': task['sample']['name'],
                                       'directory': os.path.join(task['directory'], task['sample']['name'], 'test'),
                                       'start_angle': task['angle'],
                                       'first_frame': task['start_frame'],
@@ -357,15 +361,16 @@ class Screener(gobject.GObject):
                         if not os.path.exists(run_params['directory']):
                             os.makedirs(run_params['directory']) # make sure directories exist
                         self.data_collector.configure(run_params)
-                        self._collect_results = self.data_collector.run()
+                        result = self.data_collector.run()
+                        self._collect_results.extend(result)
                     else:
-                        self._collect_results = None
                         _logger.warn('Skipping task because given sample is not mounted')
                         
                 elif task.task_type == Screener.TASK_ANALYSE:
-                    if self._collect_results is not None:
-                        _first_frame = os.path.join(self._collect_results['parameters']['directory'],
-                                                    self._collect_results['frame_list'][0][0])
+                    if len(self._collect_results) > 0:
+                        _first_frame = os.path.join(self._collect_results[0]['directory'],
+                                                    "%s_%03d.img" % (self._collect_results[0]['name'],
+                                                                     self._collect_results[0]['frame_sets'][0][0][0]))
                         _a_params = {'directory': os.path.join(task['directory'], task['sample']['name'], 'scrn'),
                                      'uname': os.getlogin(),
                                      'info': {'anomalous': False,
