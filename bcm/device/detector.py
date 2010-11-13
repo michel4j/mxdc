@@ -32,7 +32,7 @@ class MXCCDImager(BaseDevice):
         self.size = int(size)
         self.resolution = float(resolution)
         self.detector_type = detector_type
-        self.name = '% Detector' % detector_type
+        self.name = '%s Detector' % detector_type
         
         self._start_cmd = self.add_pv("%s:start:cmd" % name, monitor=False)
         self._abort_cmd = self.add_pv("%s:abort:cmd" % name, monitor=False)
