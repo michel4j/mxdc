@@ -7,6 +7,7 @@ STEP BY STEP:
     - scipy >= 0.6
     - python-ctypes (for python < 2.5  only)
     - python-imaging >= 1.1.6
+    - gnome-python2-gtkmozembed or pywebkitgtk
     - python-zope-interface >= 3.3
     - Twisted >= 8.2
     	NOTE: if using Twisted 9.0, pyasn1, and python-crypto are also required 
