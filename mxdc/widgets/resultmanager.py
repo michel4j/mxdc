@@ -20,7 +20,7 @@ from bcm.utils.log import get_module_logger
 _logger = get_module_logger(__name__)
 
 try:
-    import webkit1
+    import webkit
     browser_engine = 'webkit'
 except:
     import gtkmozembed
