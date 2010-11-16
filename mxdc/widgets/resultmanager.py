@@ -53,7 +53,6 @@ class ResultManager(gtk.Frame):
         if browser_engine == 'gecko':
             self.browser = gtkmozembed.MozEmbed()
             self.html_window.add(self.browser)
-            self.browser.load_url('http://cmcf.lightsource.ca')  
         else:
             self.browser = webkit.WebView()
             self.browser_settings = webkit.WebSettings()
