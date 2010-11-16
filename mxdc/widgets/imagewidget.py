@@ -41,6 +41,11 @@ COLORMAPS = pickle.load(file(os.path.join(DATA_DIR, 'colormaps.data')))
 _COLORNAMES = ['gist_yarg','gist_gray','hot','jet','hsv','Spectral',
                      'Paired','gist_heat','PiYG','Set1','gist_ncar']
 
+# Modify default colormap to add overloaded pixel effect
+COLORMAPS['gist_yarg'][-1] = 0
+COLORMAPS['gist_yarg'][-2] = 0
+COLORMAPS['gist_yarg'][-3] = 255
+
 _GAMMA_SHIFT = 3.5        
         
 def _read_marccd_header(filename):
@@ -99,12 +104,23 @@ def _read_marccd_header(filename):
     myfile.close()
     return header
 
+
+def stretch(gamma):
+    lut = numpy.zeros(65536, dtype=numpy.uint)
+    lut[65280:] = 255
+    for i in xrange(65280):
+        v = int(i*gamma)
+        if v >= 255:
+            lut[i] = 254
+        else:
+            lut[i] = v
+    return lut
+
 def _read_marccd_image(filename, gamma_offset = 0.0):
     image_info = {}
     image_info['header'] = _read_marccd_header(filename)
     raw_img = Image.open(filename)
     image_info['data'] = raw_img.load()
-    image_info['src-image'] = raw_img
     hist = raw_img.histogram()
     # recalculate average intensity if not present within file
     if image_info['header']['average_intensity'] < 0.1:
@@ -112,7 +128,10 @@ def _read_marccd_image(filename, gamma_offset = 0.0):
         image_info['header']['gamma'] = 29.378 * image_info['header']['average_intensity']**-0.86
         
     disp_gamma = image_info['header']['gamma'] * numpy.exp(-gamma_offset + _GAMMA_SHIFT)/30.0
-    image_info['image'] = raw_img.point(lambda x: x * disp_gamma).convert('L')
+    lut = stretch(disp_gamma)
+    raw_img = raw_img.convert('I')
+    image_info['src-image'] = raw_img
+    image_info['image'] = raw_img.point(lut, 'L')
     idx = range(len(hist))
     x = numpy.linspace(0, 65535, len(hist))
     l = 2
@@ -612,7 +631,8 @@ class ImageWidget(gtk.DrawingArea):
         self.file_loader.gamma_offset = value
         gamma = self.gamma * numpy.exp(-self.file_loader.gamma_offset+_GAMMA_SHIFT)/30.0
         if gamma != self.display_gamma:
-            self.raw_img = self.src_image.point(lambda x: x * gamma).convert('L')
+            lut = stretch(gamma)
+            self.raw_img = self.src_image.point(lut, 'L')
             self._create_pixbuf()
             self.queue_draw()
             self.display_gamma = gamma
@@ -626,7 +646,8 @@ class ImageWidget(gtk.DrawingArea):
         self.set_colormap('gist_yarg')
         self.display_gamma = self.gamma
         self.file_loader.gamma_offset = 0.0
-        self.raw_img = self.src_image.point(lambda x: x * self.display_gamma).convert('L')
+        lut = stretch(self.gamma)
+        self.raw_img = self.src_image.point(lut, 'L')
         self._create_pixbuf()
         self.queue_draw()
        
