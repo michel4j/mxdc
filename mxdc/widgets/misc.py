@@ -493,7 +493,7 @@ class CryojetWidget(gtk.Frame):
         return False
     
     def _on_nozzle_change(self, obj, state):
-        if state:
+        if not state:
             self.noz_img.set_from_file(os.path.join(DATA_DIR, 'icons', 'cryojet_in.png'))
         else:
             self.noz_img.set_from_file(os.path.join(DATA_DIR, 'icons', 'cryojet_out.png'))

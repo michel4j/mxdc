@@ -522,7 +522,7 @@ class StorageRing(BaseDevice):
             self.set_state(beam=False)
 
     def _on_control_change(self, obj, val):
-        if val == 1:
+        if val != 1:
             self.set_state(health=(4, 'control','Shutters disabled'))
         else:
             self.set_state(health=(0,'control'))

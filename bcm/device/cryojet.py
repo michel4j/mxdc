@@ -17,9 +17,9 @@ class CryojetNozzle(misc.BasicShutter):
     def __init__(self, name):
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
-        state_name = "%s:in" % name
+        state_name = "%s:out" % name
         misc.BasicShutter.__init__(self, open_name, close_name, state_name)
-        self._messages = ['Retracting', 'Restoring']
+        self._messages = ['Restoring', 'Retracting']
         self._name = 'Cryojet Nozzle'
 
 class Cryojet(BaseDevice):
@@ -73,7 +73,7 @@ class Cryojet(BaseDevice):
             self.set_state(health=(0, 'cryo'))
             
     def _on_noz_change(self, obj, val):
-        if not val:
+        if val:
             self.set_state(health=(1, 'nozzle', 'Nozzle retracted!'))
         else:
             self.set_state(health=(0, 'nozzle'))
