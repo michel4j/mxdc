@@ -83,7 +83,7 @@ def generate_frame_list(run, frame_set):
         frame = {
             'saved': False,
             'frame_number': frame_number,
-            'number': run['number'],
+            'number': run.get('number',1),
             'frame_name': frame_name,
             'file_name': file_name,
             'start_angle': angle,

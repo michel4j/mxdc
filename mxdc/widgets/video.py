@@ -42,11 +42,15 @@ class VideoWidget(gtk.DrawingArea):
         self.connect('expose_event',self.on_expose)
         self.connect('realize', self.on_realized)
         self.connect('configure-event', self.on_configure)        
-        self.connect("destroy", lambda x: self.camera.del_sink(self))
+        self.connect("unrealize", self.on_destroy)
     
     def set_src(self, src):
         self.camera = src
         self.camera.start()
+    
+    def on_destroy(self, obj):
+        self.camera.del_sink(self)
+        self.camera.stop()
         
     def on_configure(self, widget, event):
         width, height = event.width, event.height
