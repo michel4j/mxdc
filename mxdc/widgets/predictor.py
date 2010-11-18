@@ -38,6 +38,7 @@ class Predictor( gtk.AspectFrame ):
         rcParams['font.family'] = 'sans-serif'
         rcParams['font.sans-serif'] = _fd.get_family()
         rcParams['font.size'] = _fd.get_size()/pango.SCALE
+        self._destroyed = False
         
         self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
         self.add( self.canvas )
@@ -57,7 +58,11 @@ class Predictor( gtk.AspectFrame ):
                 gtk.gdk.POINTER_MOTION_MASK |
                 gtk.gdk.POINTER_MOTION_HINT_MASK|
                 gtk.gdk.VISIBILITY_NOTIFY_MASK)  
+        
         self.canvas.connect('visibility-notify-event', self.on_visibility_notify)
+        self.canvas.connect('unrealize', self.on_destroy)
+        self.connect('unrealize', self.on_destroy)
+        
         self.canvas.connect('unmap', self.on_unmap)
         self.canvas.connect_after('map', self.on_map)
         self._do_update = False
@@ -67,6 +72,8 @@ class Predictor( gtk.AspectFrame ):
         self.calculator.setDaemon(True)
         self.calculator.start()
 
+    def on_destroy(self, obj):
+        self._destroyed = True
         
     def display(self, widget=None):
         self.axis.clear()
@@ -163,22 +170,21 @@ class Predictor( gtk.AspectFrame ):
         return d
 
     def _do_calc(self):
-        while 1:
-            self._do_update = False
-            grid_size = 100
-            x = arange(0, self.detector_size, grid_size)
-            y = x
-            X,Y = meshgrid(x,y)
-            Z = self._pix_resol(X,Y)
-            xp = self._mm(X, self.beam_x)
-            yp = self._mm(Y, self.beam_y)
-            self.xp = xp
-            self.yp = yp
-            self.Z = Z
-            gobject.idle_add(self.display)
-            while not self._do_update:
-                time.sleep(0.25)
-            time.sleep(0.25)
+        while not self._destroyed:
+            if self._do_update:
+                self._do_update = False
+                grid_size = 100
+                x = arange(0, self.detector_size, grid_size)
+                y = x
+                X,Y = meshgrid(x,y)
+                Z = self._pix_resol(X,Y)
+                xp = self._mm(X, self.beam_x)
+                yp = self._mm(Y, self.beam_y)
+                self.xp = xp
+                self.yp = yp
+                self.Z = Z
+                gobject.idle_add(self.display)
+            time.sleep(0.5)
             
     def update(self, force=False):
         if self._can_update and self.get_child_visible():

@@ -10,24 +10,22 @@ from bcm.utils.misc import get_short_uuid
 
 log.FileLogObserver(sys.stdout).start()
 
-DIRECTORY = os.path.join('/users/cmcfadmin','bcm_testing')
+DIRECTORY = os.path.join('/users/cmcfadmin','7sept2010')
 
 run_info = {
     'distance' : 210.0,
     'two_theta' : 0.0,
-    'start_frame' : 1,
+    'first_frame' : 1,
     'start_angle' : 0.0,
     'total_angle' : 20.0,
-    'energy' : [12.658],
-    'delta' : 1.0,
-    'number' : 1,
-    'energy_label' : ['E0'],
+    'energy' : [12.658, 12.654],
+    'delta_angle' : 1.0,
+    'energy_label' : ['peak','infl'],
     'wedge' : 360.0,
-    'prefix' : 'test-6',
+    'name' : 'test6',
     'inverse_beam' : False,
-    'time' : 1.0,
+    'exposure_time' : 1.0,
     'directory' : DIRECTORY,
-    'total_frames' : 5,
     'attenuation': 0.0,
 }
 
@@ -93,7 +91,12 @@ class App(object):
 #                            ).addCallback(self.dump_results).addErrback(self.dump_error)
 
         self.bcm.callRemote('getParameters').addCallback(self.dump_results).addErrback(self.dump_error)
-        self.bcm.callRemote('mountSample', 'LC2', 'xtal1').addCallback(self.dump_results).addErrback(self.dump_error)
+        #self.bcm.callRemote('mountSample', 'LC2', 'xtal1').addCallback(self.dump_results).addErrback(self.dump_error)
+        self.bcm.callRemote('acquireFrames', 
+                            run_info, 
+                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/data',
+                            uname='cmcfadmin',
+                            ).addCallback(self.dump_results).addErrback(self.dump_error)
         
         
         

@@ -5,6 +5,7 @@ import warnings
 import time
 import gtk
 import gobject
+import gc
 
 warnings.simplefilter("ignore")
 
@@ -57,7 +58,9 @@ class MXDCApp(object):
     def do_quit(self, obj=None):
         _logger.info('Stopping...')
         reactor.stop()
-
+        gc.collect()
+        sys.exit()
+        
 def main():
     try:
         config = os.path.join(os.environ['BCM_CONFIG_PATH'],
@@ -69,6 +72,8 @@ def main():
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')
         reactor.stop()
+        sys.exit(1)
+        
     app = MXDCApp()
     app.run_local(config)
     #app.run_remote()
