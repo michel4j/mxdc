@@ -2,6 +2,7 @@ import gtk, gobject
 import gtk.glade
 import sys, os
 import logging
+import pwd
 
 from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
@@ -130,20 +131,20 @@ class AppWindow(gtk.Window):
         self.screen_manager.add_samples(samples)
         
     def _result_ready(self, data, iter):
-        data = data.values()[0]
+        data = data[0]
         cell_info = '%0.1f %0.1f %0.1f %0.1f %0.1f %0.1f' % (
-                    data['results']['cell_a'],
-                    data['results']['cell_b'],
-                    data['results']['cell_c'],
-                    data['results']['cell_alpha'],
-                    data['results']['cell_beta'],
-                    data['results']['cell_gamma']
+                    data['result']['cell_a'],
+                    data['result']['cell_b'],
+                    data['result']['cell_c'],
+                    data['result']['cell_alpha'],
+                    data['result']['cell_beta'],
+                    data['result']['cell_gamma']
                     )
         item = {'state': 1,
-                'score': data['results']['score'],
-                'space_group': data['results']['space_group'],
+                'score': data['result']['score'],
+                'space_group': data['result']['space_group_name'],
                 'unit_cell': cell_info,
-                'detail': data['results']}
+                'detail': data}
         self.result_manager.update_item(iter, item)
         
     def _result_fail(self, failure, iter):
@@ -156,5 +157,5 @@ class AppWindow(gtk.Window):
         self.dpm_client.dpm.callRemote('screenDataset',
                             data['info'], 
                             data['directory'],
-                            'cmcfadmin' #data['uname']
+                            pwd.getpwuid(os.getuid()).pw_name,
                             ).addCallback(self._result_ready, iter).addErrback(self._result_fail, iter)

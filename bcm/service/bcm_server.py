@@ -25,6 +25,7 @@ from bcm.service.interfaces import IPerspectiveBCM, IBCMService
 from bcm.engine.snapshot import take_sample_snapshots
 from bcm.utils.log import log_to_twisted
 from bcm.utils.misc import get_short_uuid
+from bcm.utils import runlists
 from bcm.service.common import *
 from bcm.service import auto
 from bcm.utils import converter
@@ -380,9 +381,11 @@ class BCMService(service.Service):
                                 )
         #FIXME:  validate parameters
         
-        self.data_collector.configure(run_data, skip_collected=run_info.get('skip_existing', False))
+        self.data_collector.configure(run_info, skip_existing=run_info.get('skip_existing', False))
         results = self.data_collector.run()   
-        
+        for dataset in results:
+            dataset['frame_sets'] = runlists.summarize_sets(dataset)
+
         log.msg('acquireFrames completed.')
         return results
                    

@@ -106,7 +106,7 @@ def auto_center(pre_align=True):
             beamline.sample_stage.y.move_by(-ymm)
             
     # cleanup
-    #shutil.rmtree(directory)
+    shutil.rmtree(directory)
     
     _logger.info('Centering reliability is %d%%.' % results['RELIABILITY'])   
     return results
