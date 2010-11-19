@@ -20,7 +20,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 class ImageViewer(gtk.Frame):
     def __init__(self, size=512):
         gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_OUT)
+        self.set_shadow_type(gtk.SHADOW_NONE)
         self._canvas_size = size
         self._brightness = 1.0
         self._contrast = 1.0
@@ -262,6 +262,7 @@ class ImageViewer(gtk.Frame):
     def on_mouse_motion(self,widget,event):
         ix, iy, ires, ivalue = self.image_canvas.get_position(event.x, event.y)
         self.info_label.set_markup("<small><tt>%5d %4d \n%5d %4.1f Å</tt></small>"% (ix, iy, ivalue, ires))
+        self.info_label.set_alignment(1.0, 0.5)
 
 
     def _update_info(self, obj=None):
@@ -278,6 +279,7 @@ class ImageViewer(gtk.Frame):
             else:
                 txt = "%g" % val
             w.set_markup(txt)
+
             
     def add_frame(self, filename):
         if self._collecting and self._following:
