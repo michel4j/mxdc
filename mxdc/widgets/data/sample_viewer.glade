@@ -498,6 +498,8 @@
                 <property name="visible">True</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">in</property>
+                <property name="xalign">1</property>
+                <property name="yalign">0</property>
                 <property name="ratio">1.3300000429153442</property>
                 <property name="obey_child">False</property>
                 <child>
@@ -511,7 +513,7 @@
             <child>
               <widget class="GtkTable" id="table5">
                 <property name="visible">True</property>
-                <property name="n_columns">3</property>
+                <property name="n_columns">5</property>
                 <property name="homogeneous">True</property>
                 <child>
                   <widget class="GtkLabel" id="status_label">
@@ -520,22 +522,20 @@
                     <property name="xalign">1</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
-                    <property name="label" translatable="yes">Image Position</property>
                     <property name="use_markup">True</property>
                     <property name="justify">right</property>
                     <property name="selectable">True</property>
                     <property name="single_line_mode">True</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">3</property>
+                    <property name="right_attach">4</property>
                   </packing>
                 </child>
                 <child>
                   <widget class="GtkLabel" id="meas_label">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="xalign">0</property>
+                    <property name="xalign">1</property>
                     <property name="xpad">3</property>
                     <property name="label" translatable="yes">FPS:</property>
                     <property name="use_markup">True</property>
@@ -543,6 +543,10 @@
                     <property name="ellipsize">middle</property>
                     <property name="single_line_mode">True</property>
                   </widget>
+                  <packing>
+                    <property name="left_attach">4</property>
+                    <property name="right_attach">5</property>
+                  </packing>
                 </child>
               </widget>
               <packing>

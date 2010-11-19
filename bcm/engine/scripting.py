@@ -27,6 +27,7 @@ class Script(gobject.GObject):
     implements(IPlugin, ibcm.IScript)
     __gsignals__ = {}
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+    __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     description = 'A Script'
     progress = None
@@ -54,6 +55,7 @@ class Script(gobject.GObject):
     def _thread_run(self, *args, **kwargs):
         try:
             ca.threads_init()
+            gobject.idle_add(self.emit, "started")
             self.output = self.run(*args, **kwargs)
             _logger.info('Script `%s` terminated successfully' % (self.name) )
         finally:
