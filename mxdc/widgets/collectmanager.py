@@ -246,9 +246,9 @@ class CollectManager(gtk.Frame):
                     if run_num == 0 and data['number'] == 0:
                         data['energy'] = [self.beamline.monochromator.energy.get_position()]
                         data['energy_label'] = ['E0']
-                        self.run_data.append(data)
+                        self.run_data = [data]
                         break
-                    elif run_num == data['number'] or run.is_enabled():
+                    elif (run_num == data['number'] or run.is_enabled()) and data['number'] != 0:
                         self.run_data.append(data)
                 else:
                     run.disable_run()
@@ -266,7 +266,8 @@ class CollectManager(gtk.Frame):
             msg_sub += 'Could not be setup. Please make sure no  directories with spaces '
             msg_sub += 'or special characters are used, and try again.'
             warning(msg_title, msg_sub)
-
+        
+        print run_num, len(self.run_data)
         self._save_config()
         self.create_runlist()
         
@@ -275,6 +276,7 @@ class CollectManager(gtk.Frame):
                
     def clear_runs(self):
         del self.run_data[:]
+        self.run_data = []
             
     def create_runlist(self):
 
