@@ -30,7 +30,8 @@ DEFAULT_PARAMETERS = {
     'energy': [ 12.658 ],
     'energy_label': ['E0'],
     'number': 1,
-    'two_theta': 0.0
+    'two_theta': 0.0,
+    'skip': '',
 }
 
 
@@ -48,7 +49,7 @@ class RunWidget(gtk.Frame):
         # Data for entries (name: (col, row, length, [unit]))
         entries = ['name', 'distance','delta_angle','exposure_time','first_frame', 
                    'start_angle','num_frames','total_angle','wedge',
-                   'two_theta','inverse_beam']
+                   'two_theta','inverse_beam','skip']
         for e in entries:
             self.entry[e] = self._xml.get_widget(e)
             if isinstance(self.entry[e], gtk.Entry) and e not in ['name',]:
@@ -73,6 +74,7 @@ class RunWidget(gtk.Frame):
         self.entry['exposure_time'].connect('focus-out-event', self.on_time_changed)
         self.entry['wedge'].connect('focus-out-event', self.on_wedge_changed)
         self.entry['two_theta'].connect('focus-out-event', self.on_two_theta_changed)
+        self.entry['skip'].connect('focus-out-event', self.on_skip_changed)
         
         self.entry['name'].connect('activate', self.on_prefix_changed)
         self.entry['start_angle'].connect('activate', self.on_start_angle_changed)
@@ -84,6 +86,7 @@ class RunWidget(gtk.Frame):
         self.entry['exposure_time'].connect('activate', self.on_time_changed)
         self.entry['wedge'].connect('activate', self.on_wedge_changed)
         self.entry['two_theta'].connect('activate', self.on_two_theta_changed)
+        self.entry['skip'].connect('activate', self.on_skip_changed)
                
         # Energy
         self.sw = self._xml.get_widget('energy_view')
@@ -132,7 +135,7 @@ class RunWidget(gtk.Frame):
         self.parameters = DEFAULT_PARAMETERS
         self.set_number(num)
         self.set_parameters(self.parameters)
-        self.parameters = self.get_parameters()
+        #self.parameters = self.get_parameters()
 
         self._changes_pending = False
                 
@@ -251,10 +254,12 @@ class RunWidget(gtk.Frame):
         for i in range(len(dict['energy'])):
             self.__add_energy([dict['energy_label'][i], dict['energy'][i], True, False] )
         self.__reset_e_btn_states()
+        self.entry['skip'].set_text(dict.get('skip',''))
         self.check_changes()
         
     def get_parameters(self):
-        run_data = {}
+        run_data = DEFAULT_PARAMETERS.copy()
+                
         run_data['name']      = self.entry['name'].get_text().strip()
         run_data['directory']   = self.entry['directory'].get_filename()
         energy = []
@@ -272,10 +277,20 @@ class RunWidget(gtk.Frame):
         run_data['number'] = self.number
 
         for key in ['distance','delta_angle','start_angle','total_angle','wedge','exposure_time', 'two_theta']:
-            run_data[key] = float(self.entry[key].get_text())
+            try:
+                run_data[key] = float(self.entry[key].get_text())
+            except:
+                self.entry[key].activate()
 
         for key in ['first_frame','num_frames']:
-            run_data[key] = int(self.entry[key].get_text())
+            try:
+                run_data[key] = int(self.entry[key].get_text())
+            except:
+                self.entry[key].activate()
+        
+        for key in ['skip']:
+            run_data[key] = self.entry[key].get_text()
+            
         return run_data
                 
     def is_enabled(self):
@@ -294,8 +309,8 @@ class RunWidget(gtk.Frame):
         self.run_title.set_use_markup(True)
         # Hide controls for Run 0
         if num == 0:
-            for key in ['total_angle','num_frames','wedge','inverse_beam']:
-                self.entry[key].set_sensitive(False)
+#            for key in ['total_angle','num_frames','wedge','inverse_beam', 'skip']:
+#                self.entry[key].set_sensitive(False)
             self.energy_btn_box.hide()
             self.energy_list.set_sensitive(False)
             self.sw.hide()    
@@ -309,6 +324,7 @@ class RunWidget(gtk.Frame):
                 except:
                     self.predictor = Predictor()
                 self.predictor.set_size_request(200,200)
+                self.predictor.set_border_width(12)
                 self.run_widget.pack_end( self.predictor, expand=True, fill=True)
     
         
@@ -344,7 +360,7 @@ class RunWidget(gtk.Frame):
             
             if widget is None:
                 continue
-            if new_values[key] != self.parameters[key]:
+            if new_values[key] != self.parameters.get(key):
                 widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("magenta"))
                 widget.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("magenta"))
                 self._changes_pending = True
@@ -373,10 +389,29 @@ class RunWidget(gtk.Frame):
         self.entry['start_angle'].set_text('%0.2f' % start_angle)            
         self.check_changes()
         return False
+
+    def on_skip_changed(self,widget,event=None):
+        try:
+            skip = self.entry['skip'].get_text()
+        except:
+            skip = ''
+        skip_list = []
+        for w in skip.split(','):
+            try:
+                wi = map(int, w.split('-'))
+                if len(wi) == 1:
+                    skip_list.append('%d' % wi[0])
+                elif len(wi) == 2:
+                    skip_list.append('%d-%d' % (wi[0], wi[1]))
+            except:
+                pass
+        
+        skip = ','.join(skip_list)
+        self.entry['skip'].set_text(skip)            
+        self.check_changes()
+        return False
     
     def on_total_angle_changed(self,widget,event=None):
-        start_angle = float(self.entry['start_angle'].get_text())    
-        start_frame = int(self.entry['first_frame'].get_text())
         delta = float(self.entry['delta_angle'].get_text())
         try:
             total_angle = float(self.entry['total_angle'].get_text())
@@ -399,11 +434,6 @@ class RunWidget(gtk.Frame):
 
         self.entry['delta_angle'].set_text('%0.2f' % delta)
         total_angle = float(self.entry['total_angle'].get_text())
-        total_frames = int(self.entry['num_frames'].get_text())
-
-        if self.number == 0:
-            total_angle = delta
-            self.entry['total_angle'].set_text('%0.2f' % total_angle)
         total_frames = int(total_angle/delta)
         self.entry['num_frames'].set_text('%d' % total_frames)
         self.check_changes()
@@ -411,7 +441,6 @@ class RunWidget(gtk.Frame):
 
     def on_time_changed(self,widget,event=None):
         try:
-            delta = float(self.entry['delta_angle'].get_text())
             time = float(self.entry['exposure_time'].get_text())
         except:
             time = 1.0
@@ -421,7 +450,6 @@ class RunWidget(gtk.Frame):
         return False
 
     def on_start_frame_changed(self,widget,event=None):
-        start_angle = float(self.entry['start_angle'].get_text())
         try:
             start_frame = int( float(self.entry['first_frame'].get_text()) )
         except:
@@ -505,7 +533,6 @@ class RunWidget(gtk.Frame):
         return False
         
     def on_directory_changed(self,widget=None, event=None):
-        directory = self.entry['directory'].get_filename()
         self.check_changes()
         return False        
 

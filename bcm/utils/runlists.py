@@ -110,7 +110,22 @@ def generate_frame_sets(run, show_number=True):
     start_angle =  run.get('start_angle', 0.0)
     wedge = run.get('wedge', 360.0) 
     jump = run.get('jump', 0.0)
+    skip = run.get('skip','')
     
+    # generate list of frames to exclude from skip
+    excluded_frames = []
+    if skip != '':
+        ws =  skip.split(',')
+        for w in ws:
+            try:
+                v = map(int, w.split('-'))
+                if len(v) == 2:
+                    excluded_frames.extend(range(v[0],v[1]+1))
+                elif len(v) == 1:
+                    excluded_frames.extend(v)
+            except:
+                pass
+
     # jump must be greater than wedge to be meaningful
     if jump < wedge:
         jump = 0.0
@@ -135,7 +150,8 @@ def generate_frame_sets(run, show_number=True):
                 angle += offset
                 
                 frame_number = int(first_frame + (angle - start_angle)/delta_angle)
-                wedge_list.append((frame_number, angle))
+                if frame_number not in excluded_frames:
+                    wedge_list.append((frame_number, angle))
         if len(wedge_list) > 0:
             frame_sets.append(wedge_list)
             

@@ -53,7 +53,7 @@ class CollectManager(gtk.Frame):
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/collect_widget.glade'), 
                                   'collect_widget')            
-        self.image_viewer = ImageViewer(size=560)
+        self.image_viewer = ImageViewer(size=640)
         self.run_manager = RunManager()
         self.collector = DataCollector()
         self.beamline = globalRegistry.lookup([], IBeamline)      
@@ -96,7 +96,7 @@ class CollectManager(gtk.Frame):
             pos_table.attach(ActiveLabel(self.beamline.monochromator.energy, format='%7.4f'), 1,2,3,4)
         
         # Image Viewer
-        self.collect_widget.pack_start(self.image_viewer)
+        self.frame_book.add(self.image_viewer)
         self.setup_box.pack_end(self.run_manager, expand = True, fill = True)
         
         #diagnostics
@@ -267,7 +267,6 @@ class CollectManager(gtk.Frame):
             msg_sub += 'or special characters are used, and try again.'
             warning(msg_title, msg_sub)
         
-        print run_num, len(self.run_data)
         self._save_config()
         self.create_runlist()
         

@@ -184,14 +184,6 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkSeparatorToolItem" id="separatortoolitem4">
-                <property name="visible">True</property>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-              </packing>
-            </child>
-            <child>
               <widget class="GtkToolButton" id="info_btn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
@@ -200,6 +192,14 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkSeparatorToolItem" id="separatortoolitem4">
+                <property name="visible">True</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
               </packing>
             </child>
             <child>
@@ -215,7 +215,7 @@
                 </child>
               </widget>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
               </packing>
             </child>
           </widget>

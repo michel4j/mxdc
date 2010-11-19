@@ -20,7 +20,7 @@ class RunManager(gtk.Notebook):
         self.add_new_run()
         self.show_all()
         self.connect('switch-page', self.on_switch_page)
-    
+        
     def add_new_run(self, data=None):
         number = len(self.runs)
         newrun = RunWidget(num=number)
@@ -36,6 +36,10 @@ class RunManager(gtk.Notebook):
             if number > 0:
                 data = self.runs[number - 1].get_parameters()
                 data['number'] = number
+                data['skip'] = ''
+                data['wedge'] = 360
+                data['two_theta'] = 0.0
+                data['inverse_beam'] = False
                 newrun.set_parameters(data)
         self.runs.append(newrun)
         self.run_labels.append(gtk.Label(" %d " % (len(self.runs) - 1)))
