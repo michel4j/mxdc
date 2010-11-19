@@ -4,7 +4,7 @@ points can be added to each line and the plot is automatically updated.
 """
 import gtk, gobject
 import threading
-import sys, time
+import sys
 import pango
 import thread
 
@@ -12,13 +12,14 @@ from matplotlib.artist import Artist
 from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
 import matplotlib.cm as cm
-from matplotlib.colors import normalize
+from matplotlib.colors import Normalize, LogNorm
 from matplotlib.numerix import arange, sin, pi, arcsin, arctan, sqrt, cos
 from matplotlib.ticker import FormatStrFormatter, NullLocator
 from matplotlib import rcParams
 from pylab import meshgrid
 from bcm.utils import converter
 from bcm.utils.log import get_module_logger
+import time
 
 _logger = get_module_logger(__name__)
 
@@ -66,7 +67,6 @@ class Predictor( gtk.AspectFrame ):
         self.canvas.connect('unmap', self.on_unmap)
         self.canvas.connect_after('map', self.on_map)
         self._do_update = False
-        self.lines = self._shells(num=16)
 
         self.calculator = threading.Thread(target=self._do_calc)
         self.calculator.setDaemon(True)
@@ -80,8 +80,9 @@ class Predictor( gtk.AspectFrame ):
         self.axis.set_axis_off()
         self.axis.xaxis.set_major_locator(NullLocator())
         self.axis.yaxis.set_major_locator(NullLocator())
-        normFunction = normalize(-3, 8)
-        cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1, cmap=cm.hot_r, norm=normFunction)
+        normFunction = LogNorm(vmin=0.4, vmax=50) #Normalize(0, 30)
+        self.lines = self._shells(num=int(8*self.Z.min()))
+        cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1, cmap=cm.gist_heat_r, norm=normFunction)
         #cntr = self.axis.contour(self.xp, self.yp, self.Z, 16)
         self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)        
         self.canvas.draw()
@@ -97,14 +98,14 @@ class Predictor( gtk.AspectFrame ):
                     redraw_pending = True
                     self.wavelength = v
             elif k == 'energy':
-                v_ = converter.energy_to_wavelength(v)
+                v_ = converter.energy_to_wavelength(abs(v))
                 if (abs(v_-self.wavelength) >= 0.1): 
                     redraw_pending = True
                     self.wavelength = v_
             elif k == 'distance':
                 if (abs(v-self.distance) >= 1.0): 
                     redraw_pending = True
-                    self.distance = v
+                    self.distance = abs(v)
             elif k == 'two_theta':
                 v_ = v * pi/ 180.0
                 if (abs(v_-self.two_theta) >= 0.05):
@@ -150,9 +151,9 @@ class Predictor( gtk.AspectFrame ):
     def _mm(self, pix, center):
         return (pix - center) * self.pixel_size
          
-    def _shells(self, resolution=0.9, num=8):
+    def _shells(self, resolution=0.8, num=10):
         max_angle = self._angle( resolution )
-        min_angle = self._angle( 25.0)
+        min_angle = self._angle( 50.0)
         step_size = ( max_angle - min_angle ) / num
         angles = arange(min_angle, max_angle + step_size, step_size)
         result = []
@@ -173,7 +174,7 @@ class Predictor( gtk.AspectFrame ):
         while not self._destroyed:
             if self._do_update:
                 self._do_update = False
-                grid_size = 100
+                grid_size = 150
                 x = arange(0, self.detector_size, grid_size)
                 y = x
                 X,Y = meshgrid(x,y)
@@ -184,7 +185,10 @@ class Predictor( gtk.AspectFrame ):
                 self.yp = yp
                 self.Z = Z
                 gobject.idle_add(self.display)
-            time.sleep(0.5)
+            try:
+                time.sleep(0.05)
+            except:
+                return
             
     def update(self, force=False):
         if self._can_update and self.get_child_visible():

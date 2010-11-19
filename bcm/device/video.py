@@ -76,7 +76,10 @@ class VideoSrc(BaseDevice):
                     #_logger.error('(%s) Error fetching frame' % self.name)
                     pass
             # for some reason this does not cleanup properly without try-except
-            time.sleep(dur)
+            try:
+                time.sleep(dur)
+            except:
+                return
                
     def get_frame(self): 
         pass                  
