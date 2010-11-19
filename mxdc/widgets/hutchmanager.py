@@ -33,7 +33,8 @@ class HutchManager(gtk.Frame):
         self._create_widgets()
         # Some scripts need to reactivate settings frame on completion
         for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode']:
-            self.scripts[sc].connect('done', lambda x, y: self.settings_frame.set_sensitive(True))
+            self.scripts[sc].connect('done', lambda x,y: self.device_box.set_sensitive(True))
+            self.scripts[sc].connect('started', lambda x: self.device_box.set_sensitive(False))
     
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'hutch_widget.glade'), 
@@ -42,7 +43,6 @@ class HutchManager(gtk.Frame):
         self.commands_box = self._xml.get_widget('commands_box')
         self.settings_frame = self._xml.get_widget('settings_frame')
         self.predictor_frame = self._xml.get_widget('predictor_frame')       
-        self.lower_box = self._xml.get_widget('lower_box')
         self.video_book = self._xml.get_widget('video_book')
         self.tool_book = self._xml.get_widget('tool_book')        
         self.device_box = self._xml.get_widget('device_box')
@@ -84,6 +84,7 @@ class HutchManager(gtk.Frame):
         # Predictor
         self.predictor = Predictor(self.beamline.detector.resolution, 
                                    self.beamline.detector.size)
+        self.predictor.set(xalign=1.0, yalign=0.5)
         self.predictor_frame.add(self.predictor)
         self.beamline.diffractometer.distance.connect('changed', self.update_predictor)
         self.beamline.diffractometer.two_theta.connect('changed', self.update_predictor)
