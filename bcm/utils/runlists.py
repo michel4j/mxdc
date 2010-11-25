@@ -149,7 +149,7 @@ def generate_frame_sets(run, show_number=True):
                     break
                 angle += offset
                 
-                frame_number = int(first_frame + (angle - start_angle)/delta_angle)
+                frame_number = int(round(first_frame + (angle - start_angle)/delta_angle))
                 if frame_number not in excluded_frames:
                     wedge_list.append((frame_number, angle))
         if len(wedge_list) > 0:
