@@ -118,3 +118,14 @@ class VideoWidget(gtk.DrawingArea):
     def on_unmap(self, obj):
         self.stopped = True
         
+    def save_image(self, filename):
+        colormap = self.window.get_colormap()
+        pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, 0, 8, *self.window.get_size())
+        pixbuf = pixbuf.get_from_drawable(self.window, colormap, 0,0,0,0, *self.window.get_size())
+        ftype = os.path.splitext(filename)[-1]
+        ftype = ftype.lower()
+        if ftype in ['.jpg', '.jpeg']: 
+            ftype = 'jpeg'
+        else:
+            ftype = 'png'
+        pixbuf.save(filename, ftype)

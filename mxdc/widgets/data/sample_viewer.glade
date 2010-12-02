@@ -519,7 +519,6 @@
                   <widget class="GtkLabel" id="status_label">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="xalign">1</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
                     <property name="use_markup">True</property>
@@ -528,7 +527,7 @@
                     <property name="single_line_mode">True</property>
                   </widget>
                   <packing>
-                    <property name="right_attach">4</property>
+                    <property name="right_attach">3</property>
                   </packing>
                 </child>
                 <child>
@@ -544,7 +543,7 @@
                     <property name="single_line_mode">True</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">4</property>
+                    <property name="left_attach">3</property>
                     <property name="right_attach">5</property>
                   </packing>
                 </child>

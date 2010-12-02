@@ -341,7 +341,7 @@ class EnergyMotor(Motor):
         self.MOVN.connect('changed', self._signal_move)
         #self.MOVN2.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
-        self.ENAB.connect('changed', self._signal_enable)
+        #self.ENAB.connect('changed', self._signal_enable)
                           
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())           
@@ -498,11 +498,11 @@ class RelVerticalMotor(MotorBase):
     def move_to(self, val, wait=False, force=False):
         if val == 0.0:
             return
-        tmp_omega = int(self.omega.get_position() )
+        tmp_omega = int(self.omega.get_position() ) - 90
         sin_w = math.sin(tmp_omega * math.pi / 180)
         cos_w = math.cos(tmp_omega * math.pi / 180)
-        self.y1.move_by(val * sin_w)
-        self.y2.move_by(-val * cos_w)
+        self.y1.move_by(-val * sin_w)
+        self.y2.move_by(val * cos_w)
         if wait:
             self.wait()
     move_by = move_to

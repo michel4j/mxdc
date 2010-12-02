@@ -284,7 +284,7 @@
         <child>
           <widget class="GtkTable" id="info_table">
             <property name="visible">True</property>
-            <property name="n_rows">13</property>
+            <property name="n_rows">14</property>
             <property name="n_columns">3</property>
             <property name="column_spacing">6</property>
             <property name="row_spacing">6</property>
@@ -501,7 +501,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="img_size_lbl">
+              <widget class="GtkLabel" id="detector_size_lbl">
                 <property name="visible">True</property>
                 <property name="xalign">1</property>
                 <property name="use_markup">True</property>
@@ -513,7 +513,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="pix_size_lbl">
+              <widget class="GtkLabel" id="pixel_size_lbl">
                 <property name="visible">True</property>
                 <property name="xalign">1</property>
                 <property name="use_markup">True</property>
@@ -556,7 +556,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="angle_lbl">
+              <widget class="GtkLabel" id="start_angle_lbl">
                 <property name="visible">True</property>
                 <property name="xalign">1</property>
                 <property name="use_markup">True</property>
@@ -570,7 +570,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="delta_lbl">
+              <widget class="GtkLabel" id="delta_angle_lbl">
                 <property name="visible">True</property>
                 <property name="xalign">1</property>
                 <property name="use_markup">True</property>
@@ -584,7 +584,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="exp_time_lbl">
+              <widget class="GtkLabel" id="exposure_time_lbl">
                 <property name="visible">True</property>
                 <property name="xalign">1</property>
                 <property name="use_markup">True</property>
@@ -612,7 +612,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="avg_int_lbl">
+              <widget class="GtkLabel" id="average_intensity_lbl">
                 <property name="visible">True</property>
                 <property name="xalign">1</property>
                 <property name="use_markup">True</property>
@@ -626,7 +626,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="max_int_lbl">
+              <widget class="GtkLabel" id="max_intensity_lbl">
                 <property name="visible">True</property>
                 <property name="xalign">1</property>
                 <property name="use_markup">True</property>
@@ -674,15 +674,37 @@
                 <property name="label" translatable="yes">File:</property>
               </widget>
               <packing>
+                <property name="top_attach">13</property>
+                <property name="bottom_attach">14</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="filename_lbl">
+                <property name="visible">True</property>
+                <property name="use_markup">True</property>
+                <property name="selectable">True</property>
+              </widget>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">3</property>
+                <property name="top_attach">13</property>
+                <property name="bottom_attach">14</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label20">
+                <property name="visible">True</property>
+                <property name="xalign">1</property>
+                <property name="label" translatable="yes">Detector Type:</property>
+              </widget>
+              <packing>
                 <property name="top_attach">12</property>
                 <property name="bottom_attach">13</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="file_lbl">
+              <widget class="GtkLabel" id="detector_type_lbl">
                 <property name="visible">True</property>
-                <property name="use_markup">True</property>
-                <property name="selectable">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
