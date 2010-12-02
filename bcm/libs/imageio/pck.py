@@ -13,6 +13,7 @@ import os
 
 from bcm.libs.imageio.utils import calc_gamma
 from bcm.utils.log import get_module_logger
+from bcm.libs.imageio.common import *
 
 # Configure Logging
 _logger = get_module_logger('imageio.pck')
@@ -23,8 +24,7 @@ try:
     pcklib = cdll.LoadLibrary(os.path.join(DATA_DIR, 'libpck.so'))
 except:
     _logger.error("PCK shared library 'libpck.so' could not be loaded!")
-    sys.exit(1)
-
+    raise FormatNotAvailable
 
 pcklib.openfile.argtypes = [c_char_p, c_void_p]
 
