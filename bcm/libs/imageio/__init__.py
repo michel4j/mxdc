@@ -1,18 +1,25 @@
 import sys
-from bcm.libs.imageio import magic, cbf, marccd, smv, pck
+from bcm.libs.imageio import magic
+from bcm.libs.imageio.common import *
 
+from bcm.libs.imageio import marccd, smv
 _image_type_map = {
     'marCCD Area Detector Image' : marccd.MarCCDImageFile,
     'SMV Area Detector Image' : smv.SMVImageFile,
-    'CBF Area Detector Image' : cbf.CBFImageFile,
-    'PCK Area Detector Image' : pck.PCKImageFile,
 }
 
-class UnknownImageFormat(Exception):
+try:
+    from bcm.libs.imageio import cbf
+    _image_type_map['CBF Area Detector Image'] = cbf.CBFImageFile
+except FormatNotAvailable:
     pass
 
-class ImageIOError(Exception):
+try:
+    from bcm.libs.imageio import pck
+    _image_type_map['PCK Area Detector Image'] = pck.PCKImageFile
+except FormatNotAvailable:
     pass
+
 
 def read_image(filename, header_only=False):
     """Determine the file type using libmagic, open the image using the correct image IO 
@@ -34,8 +41,7 @@ def read_image(filename, header_only=False):
     else:
         known_formats = ', '.join([v.split()[0] for v in _image_type_map.keys()])
         print 'Unknown File format `%s`' % key
-        print 'Only image formats [%s] supported' % (known_formats,)
-        raise UnknownImageFormat('Only image formats [%s] supported' % (known_formats,))
+        raise UnknownImageFormat('Supported formats [%s]' % (known_formats,))
         
 
 def read_header(filename):

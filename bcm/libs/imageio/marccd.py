@@ -9,6 +9,7 @@ import Image
 import numpy
 from bcm.libs.imageio.utils import calc_gamma
 from bcm.utils.log import get_module_logger
+from bcm.libs.imageio.common import *
 
 # Configure Logging
 _logger = get_module_logger('imageio.marccd')
