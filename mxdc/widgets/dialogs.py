@@ -254,12 +254,19 @@ class ImageSelector(object):
         self.img_filter.add_pattern("*.marccd")
         self.img_filter.add_pattern("*.mccd")
         self.img_filter.add_pattern("*.pck")
+        self.img_filter.add_pattern("*.cbf")
+        self.img_filter.add_pattern("*.smv")
         self.img_filter.add_pattern("*.[0-9][0-9][0-9]")
         self.img_filter.add_pattern("*.[0-9][0-9][0-9][0-9]")
         
         self.spot_filter = gtk.FileFilter()
         self.spot_filter.set_name("XDS SPOT Files")
         self.spot_filter.add_pattern("SPOT.XDS*")
+        self.spot_filter.add_pattern("*.HKL*")
+
+        self.all_filter = gtk.FileFilter()
+        self.all_filter.set_name("All Files")
+        self.all_filter.add_pattern("*.*")
     
     def set_path(self, path):
         if path is None or not os.path.exists(path):
@@ -278,6 +285,8 @@ class ImageSelector(object):
    
         file_open.add_filter(self.img_filter)
         file_open.add_filter(self.spot_filter)
+        file_open.add_filter(self.all_filter)
+        
         if path: 
             self.path = path
         file_open.set_current_folder (self.path)

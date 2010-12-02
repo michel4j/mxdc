@@ -84,26 +84,26 @@ class GoniometerBase(BaseDevice):
     def wait(self, start=True, stop=True, poll=0.05, timeout=20):
         if (start):
             time_left = timeout
-            _logger.debug('Waiting for goniometer to start scanning')
+            _logger.debug('Waiting for goniometer to start moving')
             while not self.is_busy() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
             if time_left <= 0:
-                _logger.warn('Timed out waiting for goniometer to start scanning')
+                _logger.warn('Timed out waiting for goniometer to start moving')
         if (stop):
             time_left = timeout
-            _logger.debug('Waiting for goniometer to finish scanning')
+            _logger.debug('Waiting for goniometer to stop')
             while self.is_busy() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
             if time_left <= 0:
-                _logger.warn('Timed out waiting for goniometer to stop scanning')
+                _logger.warn('Timed out waiting for goniometer to stop')
     
     def stop(self):
         pass
     
 class Goniometer(GoniometerBase):
-    def __init__(self, name):
+    def __init__(self, name, blname):
         GoniometerBase.__init__(self, name)
         self.name = 'Goniometer'
         pv_root = name.split(':')[0]
@@ -112,7 +112,7 @@ class Goniometer(GoniometerBase):
         self._state = self.add_pv("%s:scanFrame:status" % pv_root)
         self._state.connect('changed', self._on_busy)
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
-        
+        self._bl_position = self.add_pv(blname)
         self.omega = VMEMotor('%s:deg' % name)
                 
         #parameters
@@ -136,7 +136,34 @@ class Goniometer(GoniometerBase):
     def set_mode(self, mode, wait=False):
         if isinstance(mode, int):
             mode = _MODE_MAP_REV.get(mode, 'MOVING')
+
+        if mode == 'CENTERING':
+            self._bl_position.put(1)
+            #put up backlight
+        elif mode in ['MOUNTING','SCANNING']:
+            self._bl_position.put(0)
+            #put down backlight
+        elif mode == 'COLLECT':
+            self._bl_position.put(0)
+            #put down backlight
+        elif mode == 'BEAM':
+            self._bl_position.put(0)
+            #put down backlight
+                    
         self._set_and_notify_mode(_MODE_MAP.get(mode))
+        if wait:
+            timeout = 60
+            while _MODE_MAP_REV.get(self.mode) != mode  and timeout > 0:
+                time.sleep(0.05)
+                timeout -= 0.05
+            if timeout <= 0:
+                _logger.warn('Timed out waiting for requested mode `%s`' % mode)
+            
+        if mode == 'SCANNING':
+            pass
+            # move capillaries out of the way here              
+
+
     
     def scan(self, wait=True):
         self._scan_cmd.set('\x01')

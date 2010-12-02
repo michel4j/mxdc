@@ -28,13 +28,14 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
         _logger.warning('No registered beamline found.')
         return None
     #beamline.lock.acquire()
-    bw = beamline.beam_w.get_position()
-    bh = beamline.beam_h.get_position()
+    bw = beamline.aperture.get()
+    bh = beamline.aperture.get()
     pix_size = beamline.sample_video.resolution
     x = beamline.camera_center_x.get()
     y = beamline.camera_center_y.get()
     w = int(bw / pix_size) 
     h = int(bh / pix_size)
+
     results = []
     for angle in angles:
         if angle is not None:
