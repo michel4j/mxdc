@@ -13,6 +13,7 @@ import re
 
 from bcm.libs.imageio.utils import calc_gamma
 from bcm.utils.log import get_module_logger
+from bcm.libs.imageio.common import *
 
 # Configure Logging
 _logger = get_module_logger('imageio.cbf')
@@ -95,13 +96,14 @@ try:
     cbflib = cdll.LoadLibrary('libcbf.so')
 except:
     _logger.error("CBF shared library 'libcbf.so' could not be loaded!")
-    sys.exit(1)
+    raise FormatNotAvailable
 
 try:
     libc = cdll.LoadLibrary('libc.so.6')
 except:
     _logger.error("C runtime library 'libc.so.6' could not be loaded!")
-    sys.exit(1)
+    raise FormatNotAvailable
+
 
 # define argument and return types
 libc.fopen.argtypes = [c_char_p, c_char_p]
@@ -265,8 +267,6 @@ class CBFImageFile(object):
         header['file_format'] = 'CBF'
 
         self.header = header
-        if res != 0:
-            _logger.error('CBF Header: missing parameters.')
 
     def _read_image(self):
         num_el = self.header['detector_size'][0] * self.header['detector_size'][1]
@@ -300,8 +300,6 @@ class CBFImageFile(object):
         res = self._cbflib.cbf_free_handle(self.handle)
         res |= self._cbflib.cbf_free_goniometer(self.goniometer)
         res |= self._cbflib.cbf_free_detector(self.detector)
-        if res != 0:
-            _logger.error('Cleanup: %s' % (_format_error(res),))
 
 
 __all__ = ['CBFImageFile']
