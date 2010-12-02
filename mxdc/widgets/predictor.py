@@ -82,12 +82,13 @@ class Predictor( gtk.AspectFrame ):
         self.axis.yaxis.set_major_locator(NullLocator())
         normFunction = LogNorm(vmin=0.4, vmax=50) #Normalize(0, 30)
         self.lines = self._shells(num=int(8*self.Z.min()))
-        cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1, cmap=cm.gist_heat_r, norm=normFunction)
-        #cntr = self.axis.contour(self.xp, self.yp, self.Z, 16)
-        self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)        
-        self.canvas.draw()
-        #_logger.debug('Predictor Widget updating...')
-        self.last_updated = time.time()
+        try:
+            cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1, cmap=cm.gist_heat_r, norm=normFunction)
+            self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)             
+            self.canvas.draw()
+            self.last_updated = time.time()
+        except:
+            _logger.debug('Predictor Widget not updating...')
         return False
         
     def configure(self, **kwargs):

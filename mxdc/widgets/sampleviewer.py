@@ -10,7 +10,6 @@ from mxdc.widgets.misc import ActiveHScale
 from bcm.engine.scripting import get_scripts 
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
-from bcm.utils.video import add_decorations
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 
@@ -63,35 +62,14 @@ class SampleViewer(gtk.Frame):
 
                                         
     def save_image(self, filename):
-        ftype = filename.split('.')[-1]
-        if ftype == 'jpg': 
-            ftype = 'jpeg'
-        img = self.beamline.sample_video.get_frame()
-        try:
-            bw = self.beamline.beam_w.get_position()
-            bh = self.beamline.beam_h.get_position()
-            pix_size = self.beamline.sample_video.resolution
-            cx = self.beamline.camera_center_x.get()
-            cy = self.beamline.camera_center_y.get()
-        except ca.ChannelAccessError:
-            pass
-        else:
-            # slit position and sizes in pixels
-            w = int(bw / pix_size) 
-            h = int(bh / pix_size)
-            x = cx
-            y = cy
-        
-            img = add_decorations(img, x, y, w, h)
-        img.save(filename)
+        self.video.save_image(filename)
             
     def draw_beam_overlay(self, pixmap):
         w, h = pixmap.get_size()
         pix_size = self.beamline.sample_video.resolution      
         try:
-             
-            bw = self.beamline.beam_w.get_position()
-            bh = self.beamline.beam_h.get_position()
+            bw = self.beamline.aperture.get()
+            bh = self.beamline.aperture.get()
             bx = 0 #self.beamline.beam_x.get_position()
             by = 0 #self.beamline.beam_y.get_position()
             cx = self.beamline.camera_center_x.get()
@@ -101,6 +79,7 @@ class SampleViewer(gtk.Frame):
             bw = bh = 1.0
             bx = by = 0
             cy = h//2
+            raise
         
         # slit sizes in pixels
         sw = bw / pix_size 
@@ -114,8 +93,9 @@ class SampleViewer(gtk.Frame):
         
         if using_cairo:
             cr = pixmap.cairo_create()
-            cr.set_source_rgba(1, 0.1, 1.0, 1.0)
-            cr.set_line_width(max(cr.device_to_user_distance(1, 1)))
+            cr.set_source_rgba(1, 0.2, 0.1, 1.0)
+            cr.set_line_width(max(cr.device_to_user_distance(0.5, 0.5)))
+            cr.set_dash([4,2])
 
             # cross center
             cr.move_to(x-tick, y)
@@ -125,38 +105,44 @@ class SampleViewer(gtk.Frame):
             cr.line_to(x, y-tick)
             cr.stroke()
             
-            cr.move_to(x-hw, y-hh+tick)
-            cr.line_to(x-hw, y-hh)
-            cr.line_to(x-hw+tick, y-hh)
-            cr.stroke()
             
             # beam size
-            cr.move_to(x+hw, y+hh-tick)
-            cr.line_to(x+hw, y+hh)
-            cr.line_to(x+hw-tick, y+hh)
+            cr.set_dash([4,4])
+            cr.arc(x, y, hh-1.0, 0, 2.0 * 3.14)
             cr.stroke()
             
-            cr.move_to(x-hw, y+hh-tick)
-            cr.line_to(x-hw, y+hh)
-            cr.line_to(x-hw+tick, y+hh)
-            cr.stroke()
-
-            cr.move_to(x+hw, y-hh+tick)
-            cr.line_to(x+hw, y-hh)
-            cr.line_to(x+hw-tick, y-hh)
-            cr.stroke()
+#            cr.move_to(x-hw, y-hh+tick)
+#            cr.line_to(x-hw, y-hh)
+#            cr.line_to(x-hw+tick, y-hh)
+#            cr.stroke()
+#            cr.move_to(x+hw, y+hh-tick)
+#            cr.line_to(x+hw, y+hh)
+#            cr.line_to(x+hw-tick, y+hh)
+#            cr.stroke()
+#            
+#            cr.move_to(x-hw, y+hh-tick)
+#            cr.line_to(x-hw, y+hh)
+#            cr.line_to(x-hw+tick, y+hh)
+#            cr.stroke()
+#
+#            cr.move_to(x+hw, y-hh+tick)
+#            cr.line_to(x+hw, y-hh)
+#            cr.line_to(x+hw-tick, y-hh)
+#            cr.stroke()
         else:        
             pixmap.draw_line(self.video.ol_gc, x-tick, y, x+tick, y)
             pixmap.draw_line(self.video.ol_gc, x, y-tick, x, y+tick)
             
-            pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw, y-hh+tick)
-            pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw+tick, y-hh)
-            pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw, y+hh-tick)
-            pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw-tick, y+hh)
-            pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw, y+hh-tick)
-            pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw+tick, y+hh)
-            pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw, y-hh+tick)
-            pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw-tick, y-hh)
+            pixmap.draw_arc(self.video.ol_gc, False, x-hw+1, y-hh+1, hh*2-1, hw*2-1, 0, 23040)
+
+#            pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw, y-hh+tick)
+#            pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw+tick, y-hh)
+#            pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw, y+hh-tick)
+#            pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw-tick, y+hh)
+#            pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw, y+hh-tick)
+#            pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw+tick, y+hh)
+#            pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw, y-hh+tick)
+#            pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw-tick, y-hh)
         return
         
     def draw_meas_overlay(self, pixmap):
@@ -171,8 +157,8 @@ class SampleViewer(gtk.Frame):
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             if using_cairo:
                 cr = pixmap.cairo_create()
-                cr.set_source_rgba(1, 0.1, 0.1, 1.0)
-                cr.set_line_width(max(cr.device_to_user_distance(1, 1)))
+                cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
+                cr.set_line_width(0.5)
                 cr.move_to(x1, y1)
                 cr.line_to(x2, y2)
                 cr.stroke()
@@ -355,13 +341,13 @@ class SampleViewer(gtk.Frame):
             self.width, self.height)
     
     def on_zoom_in(self,widget):
-        self.beamline.sample_video.zoom(10)
+        self.beamline.sample_video.zoom(8)
 
     def on_zoom_out(self,widget):
         self.beamline.sample_video.zoom(1)
 
     def on_unzoom(self,widget):
-        self.beamline.sample_video.zoom(6)
+        self.beamline.sample_video.zoom(4)
 
     def on_incr_omega(self,widget):
         cur_omega = int(self.beamline.goniometer.omega.get_position() )

@@ -199,10 +199,10 @@ class BCMService(service.Service):
             'gid': gid,
             }
         self.settings['user'] = user_info
-        os.setegid(gid)
-        os.seteuid(uid)
-        log.msg('Effective User changed to `%s`, (uid=%s,gid=%s)' % (uname, uid, gid))
-        return defer.succeed(True)
+        #os.setegid(gid)
+        #os.seteuid(uid)
+        #log.msg('Effective User changed to `%s`, (uid=%s,gid=%s)' % (uname, uid, gid))
+        return defer.succeed(False)
     
     @log_call
     def setupCrystal(self, crystal_name, session_id, uname):

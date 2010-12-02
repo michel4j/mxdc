@@ -16,6 +16,7 @@ __log_section__ = 'mxdc.imageviewer'
 img_logger = logging.getLogger(__log_section__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
+FILE_PATTERN = re.compile('^(?P<base>[\w]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.?[\w.]+)?$')
 
 class ImageViewer(gtk.Frame):
     def __init__(self, size=512):
@@ -138,27 +139,25 @@ class ImageViewer(gtk.Frame):
     def _set_file_specs(self, filename):
         self.filename = filename
         # determine file template and frame_number
-        file_pattern = re.compile('^(.*)([_.])(\d+)(\..+)?$')
-        fm = file_pattern.search(self.filename)
+        file_dir = os.path.dirname(filename)
+        fm = FILE_PATTERN.search(os.path.basename(self.filename))
         if fm:
-            parts = fm.groups()
-            if len(parts) == 4:
-                prefix = parts[0] + parts[1]
-                if parts[3]:
-                    file_extension = parts[3]
-                else:
-                    file_extension = ""
-                self.file_template = "%s%s0%dd%s" % (prefix, '%', len(parts[2]), file_extension)
-                self.frame_number = int (parts[2])
+            if fm.group('ext') is not None:
+                extension = fm.group('ext')
             else:
-                self.file_template = None
-                self.frame_number = None
-            
+                extension = ''
+            self.file_template = os.path.join(file_dir,
+                                    "%s%s0%dd%s" % (
+                                            fm.group('base'),
+                                            '%', len(fm.group('num')),
+                                            extension))
+            self.frame_number = int(fm.group('num'))            
             self.next_filename = self.file_template % (self.frame_number + 1)
             self.prev_filename = self.file_template % (self.frame_number - 1)
         else:
             self.next_filename = ''
             self.prev_filename = ''
+            
         # test next
         if not image_loadable(self.next_filename):
             self.next_btn.set_sensitive(False)
@@ -189,15 +188,12 @@ class ImageViewer(gtk.Frame):
             image_spots = self._select_image_spots(self.all_spots)
             indexed, unindexed = self._select_spots(image_spots)
             self.image_canvas.set_spots(indexed, unindexed)
+               
+        img_logger.info("Loading image %s" % (filename))
+        self.image_canvas.load_frame(filename)
 
-        file_extension = os.path.splitext(filename)[1].lower()                
-        if file_extension in ['.pck']:
-            img_logger.info("Loading packed image %s" % (filename))
-            self.image_canvas.load_pck(self.filename)
-        else:
-            img_logger.info("Loading image %s" % (filename))
-            self.image_canvas.load_frame(filename)
-        #self._set_file_specs(filename)
+            
+
         
     def set_collect_mode(self, state=True):
         self._collecting = state
@@ -267,15 +263,18 @@ class ImageViewer(gtk.Frame):
 
     def _update_info(self, obj=None):
         info = self.image_canvas.get_image_info()
-        self._set_file_specs(info['file'])
+
+        self._set_file_specs(info['filename'])
         for key, val in info.items():
             w = self._xml3.get_widget('%s_lbl' % key)
             if not w:
-                break
-            if key in ['img_size', 'beam_center']:
+                continue
+            if key in ['detector_size', 'beam_center']:
                 txt = "%0.0f, %0.0f" % (val[0], val[1])
-            elif key in ['file']:
+            elif key in ['filename']:
                 txt = os.path.basename(val)
+            elif key in ['detector_type']:
+                txt = val
             else:
                 txt = "%g" % val
             w.set_markup(txt)

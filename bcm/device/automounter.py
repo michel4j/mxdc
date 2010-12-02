@@ -470,7 +470,10 @@ class Automounter(BasicAutomounter):
                    
 
     def _on_state_changed(self, pv, st):
-        state = st.split()[0].strip().replace('_', ' ')
+        try:
+            state = st.split()[0].strip().replace('_', ' ')
+        except IndexError:
+            return
         self.set_state(state=state)
         #FIXME: Aborting issue
         if state in ['idle','robot standby','aborting']:

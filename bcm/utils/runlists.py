@@ -16,7 +16,7 @@ FULL_PARAMETERS = {
     'first_frame': 1,
     'inverse_beam': False,
     'wedge': 5.0,
-    'energy': [12.658,12.66,12.67],
+    'energy': [12.658, 12.66, 12.67],
     'energy_label': ['peak','infl','remo'],
     'number': 1,
     'two_theta': 0.0,
@@ -32,10 +32,12 @@ def prepare_run(run_data):
         energies = zip(e_values, e_names)
         for e_v, e_n in energies:
             param = run_data.copy()
+            param['energy'] = e_v
             if len(e_values) > 1:
                 param['name'] = '%s_%s' % (param['name'], e_n)
-                param['energy'] = e_v
+                
             param['frame_sets'] = generate_frame_sets(param)
+            param['two_theta'] = run_data.get('two_theta', 0.0)
             runs.append(param)
     else:
         param = run_data
