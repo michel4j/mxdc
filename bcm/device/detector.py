@@ -48,6 +48,7 @@ class MXCCDImager(BaseDevice):
         self._dezinger_cmd = self.add_pv("%s:dezinger:cmd" % name, monitor=False)
         self._connection_state = self.add_pv('%s:sock:state'% name)
         
+        
         #Header parameters
         self._header = {
             'filename' : self.add_pv("%s:img:filename" % name, monitor=False),
@@ -62,7 +63,8 @@ class MXCCDImager(BaseDevice):
             'frame_number': self.add_pv("%s:startFrame" % name, monitor=False),
             'name' : self.add_pv("%s:img:prefix" % name, monitor=False),
             'start_angle': self.add_pv("%s:start:omega" % name, monitor=False),
-            'energy': self.add_pv("%s:runEnergy" % name, monitor=False),            
+            'energy': self.add_pv("%s:runEnergy" % name, monitor=False),       
+            'comments': self.add_pv('%s:dataset:cmnts'% name, monitor=False),
         }
                 
         #Status parameters
@@ -147,7 +149,8 @@ class MXCCDImager(BaseDevice):
     def set_parameters(self, data):
         for key in data.keys():
             #print key, data[key], self._header[key]
-            self._header[key].set(data[key])        
+            self._header[key].set(data[key])    
+            
         self._header_cmd.put(1)
     
     def _on_state_change(self, pv, val):

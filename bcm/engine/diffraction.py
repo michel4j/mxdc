@@ -7,6 +7,11 @@ from bcm.utils.log import get_module_logger
 from bcm.utils import runlists
 from twisted.python.components import globalRegistry
 from zope.interface import implements
+try:
+    import json
+except:
+    import simplejson as json
+    
 
 import gobject
 import os
@@ -83,6 +88,23 @@ class DataCollector(gobject.GObject):
         self.beamline.image_server.set_user(*self._user_properties)           
         return
     
+    def save_dataset_info(self, data_list):
+        for d in data_list[:]:
+            data = d.copy()
+            
+            if len(data['frame_sets']) == 0:
+                continue
+            if len(data['frame_sets'][0]) < 4:
+                continue
+            data['frame_sets'] = runlists.summarize_sets(data)
+            data['wavelength'] = energy_to_wavelength(data['energy'])
+            data['beamline'] = 'CLS %s' % (self.beamline.name)
+
+            filename = os.path.join(data['directory'], '%s.SUMMARY' % data['name'])
+            fh = open(filename,'w')
+            json.dump(data, fh, indent=4)
+            fh.close()
+            
     def get_state(self):
         state = {
             'paused': self.paused,
@@ -154,7 +176,8 @@ class DataCollector(gobject.GObject):
                 header['wavelength'] = energy_to_wavelength(frame['energy'])
                 header['energy'] = frame['energy']
                 header['name'] = frame['name']
-                header['start_angle'] = frame['start_angle']            
+                header['start_angle'] = frame['start_angle']
+                header['comments'] = 'BEAMLINE: %s %s' % ('CLS', self.beamline.name)
                 
                 #prepare goniometer for scan   
                 self.beamline.goniometer.configure(time=frame['exposure_time'],
@@ -185,8 +208,9 @@ class DataCollector(gobject.GObject):
         finally:
             self.beamline.exposure_shutter.close()
             #self.beamline.goniometer.set_mode('MOUNTING') # return goniometer to mount position
-            self.beamline.lock.release()        
+            self.beamline.lock.release()
         self.results = self.data_sets
+        self.save_dataset_info(self.data_sets)
         return self.results
 
     def set_position(self, pos):
