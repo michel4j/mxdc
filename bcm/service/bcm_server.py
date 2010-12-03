@@ -229,6 +229,7 @@ class BCMService(service.Service):
             log.msg('Directories created for crystal `%s`' % (crystal_name))
             succeed = True
         except OSError, e:
+            log.err()
             output = Failure(FileSystemError('Could not create directories.'))
             log.msg('Directories could not be created for crystal `%s`' % (crystal_name))
             succeed = False
@@ -385,6 +386,8 @@ class BCMService(service.Service):
         results = self.data_collector.run()   
         for dataset in results:
             dataset['frame_sets'] = runlists.summarize_sets(dataset)
+            dataset['wavelength'] = converter.energy_to_wavelength(dataset['energy'])
+            del dataset['energy']
 
         log.msg('acquireFrames completed.')
         return results
