@@ -68,8 +68,8 @@ class SampleViewer(gtk.Frame):
         w, h = pixmap.get_size()
         pix_size = self.beamline.sample_video.resolution      
         try:
-            bw = self.beamline.aperture.get()
-            bh = self.beamline.aperture.get()
+            bw = self.beamline.aperture.get() * 0.001 # convert to mm
+            bh = self.beamline.aperture.get() * 0.001
             bx = 0 #self.beamline.beam_x.get_position()
             by = 0 #self.beamline.beam_y.get_position()
             cx = self.beamline.camera_center_x.get()

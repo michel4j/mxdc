@@ -28,8 +28,8 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
         _logger.warning('No registered beamline found.')
         return None
     #beamline.lock.acquire()
-    bw = beamline.aperture.get()
-    bh = beamline.aperture.get()
+    bw = beamline.aperture.get() * 0.001
+    bh = beamline.aperture.get() * 0.001
     pix_size = beamline.sample_video.resolution
     x = beamline.camera_center_x.get()
     y = beamline.camera_center_y.get()

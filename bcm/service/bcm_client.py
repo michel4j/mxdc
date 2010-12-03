@@ -25,7 +25,6 @@ run_info = {
     'name' : 'test6',
     'inverse_beam' : False,
     'exposure_time' : 1.0,
-    'directory' : DIRECTORY,
     'attenuation': 0.0,
 }
 
@@ -83,33 +82,34 @@ class App(object):
         info = {'prefix':'xtl123', 
                 'exposure_time':1.0,
                 'attenuation':50.0,
-                'energy':12.0}
-#        self.bcm.callRemote('scanSpectrum',
+                'energy':12.0,
+                'edge': 'Se-K'}
+#        self.bcm.callRemote('scanEdge',
 #                            info,
 #                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/scan',
 #                            uname='cmcfadmin',
 #                            ).addCallback(self.dump_results).addErrback(self.dump_error)
 
         self.bcm.callRemote('getParameters').addCallback(self.dump_results).addErrback(self.dump_error)
-        self.bcm.callRemote('takeSnapshots',
-                            'test_snapshot',  [0,90], 
-                            '/home/michel/Desktop', 'michel',                           
-                            ).addCallback(self.dump_results).addErrback(self.dump_error)
+#        self.bcm.callRemote('takeSnapshots',
+#                            'test_snapshot',  [0,90], 
+#                            '/home/michel/Desktop', 'michel',                           
+#                            ).addCallback(self.dump_results).addErrback(self.dump_error)
 
         #self.bcm.callRemote('mountSample', 'LC2', 'xtal1').addCallback(self.dump_results).addErrback(self.dump_error)
-#        self.bcm.callRemote('acquireFrames', 
-#                            run_info, 
-#                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/data',
-#                            uname='cmcfadmin',
-#                            ).addCallback(self.dump_results).addErrback(self.dump_error)
+        self.bcm.callRemote('acquireFrames', 
+                            run_info, 
+                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/data',
+                            uname='cmcfadmin',
+                            ).addCallback(self.dump_results).addErrback(self.dump_error)
         
         
         
         # edge scan
-        info = {'prefix':'xtl123', 
-                'exposure_time':0.1,
-                'attenuation':50.0,
-                'edge': 'Se-K'}
+#        info = {'prefix':'xtl123', 
+#                'exposure_time':0.1,
+#                'attenuation':50.0,
+#                'edge': 'Se-K'}
 #        self.bcm.callRemote('scanEdge',
 #                            info,
 #                            directory='/users/cmcfadmin/08B1-20101026-a4df2030/xtl123/scan',
