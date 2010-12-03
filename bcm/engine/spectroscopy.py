@@ -101,6 +101,8 @@ class XANESScan(BasicScan):
         self.autochooch = AutoChooch()
         
     def configure(self, edge, t, attenuation, directory, prefix, uname=None):
+        #FIXME: Possible race condition here if new configure is issued while previous scan is still running
+        # - maybe we should use queues and have the scan constantly check and perform a scan
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
         except:
