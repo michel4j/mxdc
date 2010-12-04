@@ -20,6 +20,7 @@ from mxdc.utils import clients
 
 _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
+VERSION = (file(os.path.join(os.path.dirname(__file__), 'VERSION')).readline()).strip()
 COPYRIGHT = """
 Copyright (c) 2006-2010, Canadian Light Source, Inc
 All rights reserved.
@@ -37,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 class AppWindow(gtk.Window):
-    def __init__(self, version='3.3.5'):
+    def __init__(self, version=VERSION):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         self._xml = gtk.glade.XML(os.path.join(SHARE_DIR, 'mxdc_main.glade'), 'mxdc_main')
         self.set_position(gtk.WIN_POS_CENTER)
