@@ -41,7 +41,7 @@ class Splash1(object):
         self.title = self.canvas.create_pango_layout('')
         self.title.set_markup('<big><b>MX Data Collector</b></big>')
         self.log = self.canvas.create_pango_layout('Initializing MXDC...')
-        self.vers = self.canvas.create_pango_layout('Version %s RC4' % (self.version))
+        self.vers = self.canvas.create_pango_layout('Version %s' % (self.version))
        
         self.win.set_position(gtk.WIN_POS_CENTER)                
         
@@ -107,14 +107,14 @@ class Splash(gtk.Window):
         cr = widget.window.cairo_create()
         cr.set_source_pixbuf(pixbuf,0,0)
         cr.paint()
-        cr.set_source_rgb(0.3,0.2, 0.1)
+        cr.set_source_rgb(1, 1, 1)
         cr.set_line_width(0.5)
-        cr.move_to(28, 28+self.height/2)
+        cr.move_to(16, self.height - 32)
         cr.select_font_face("Luxi Sans",
-                cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+                cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
-        cr.set_font_size(14)
-        cr.text_path('Release %s' % self.version)
+        cr.set_font_size(10)
+        cr.text_path('ver. %s' % self.version)
         cr.fill()
         #cr.stroke()
         #widget.shape_combine_mask(mask, 0, 0)
