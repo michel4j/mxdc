@@ -53,7 +53,7 @@ class MotorBase(BaseDevice):
             self._command_sent = False
         else:
             self._moving = False
-        #gobject.idle_add(self.emit, 'busy', self._moving)
+
         self.set_state(busy=self._moving)
         if not self._moving:
             _logger.debug( "(%s) stopped at %f" % (self.name, self.get_position()) )
@@ -245,7 +245,7 @@ class Motor(MotorBase):
             _logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
             return
         
-        # Do not move is requested position is within precision error
+        # Do not move if requested position is within precision error
         # from current position.
         prec = self.PREC.get()
         if prec == 0:

@@ -22,7 +22,7 @@ class LabelHandler(logging.Handler):
 
 class Splash1(object):
     def __init__(self, version, color=None, bg=None):
-        image_file = os.path.join(DATA_DIR, 'cool-splash.png')
+        image_file = os.path.join(DATA_DIR, 'splash.png')
         self.version = version
         self.win = gtk.Window()
         self.win.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
@@ -63,7 +63,7 @@ class Splash1(object):
         
 
 class Splash(gtk.Window):
-    def __init__(self, version, image='cool-splash.png'):
+    def __init__(self, version, image='splash.png'):
         gtk.Window.__init__(self)
         self.img_file = os.path.join(DATA_DIR, image)
         self.version = version
