@@ -59,7 +59,6 @@ class MXDCApp(object):
         _logger.info('Stopping...')
         reactor.stop()
         gc.collect()
-        sys.exit()
         
 def main():
     try:
@@ -72,7 +71,6 @@ def main():
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')
         reactor.stop()
-        sys.exit(1)
         
     app = MXDCApp()
     app.run_local(config)
