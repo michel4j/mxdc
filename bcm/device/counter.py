@@ -44,10 +44,6 @@ class Counter(BaseDevice):
         self.DESC = self.add_pv('%s.DESC' % pv_name)
         self.DESC.connect('changed', self._on_name_change)
     
-    def __repr__(self):
-        s = "<%s:'%s'>" % (self.__class__.__name__, self.name)
-        return s
-
     def _on_name_change(self, pv, val):
         if val != '':
             self.name = val

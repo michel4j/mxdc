@@ -30,7 +30,7 @@ class MotorBase(BaseDevice):
 
     def __init__(self, name):
         BaseDevice.__init__(self)
-        self.set_state(changed=0.0)
+        #self.set_state(changed=0.0)
         self.name = name
         self._moving = False
         self._command_sent = False
@@ -38,11 +38,6 @@ class MotorBase(BaseDevice):
         self.units = ''
         self._move_active_value = 1
     
-    def __repr__(self):
-        s = "<%s:'%s', type:%s>" % (self.__class__.__name__,
-                                               self.name,
-                                               self._motor_type)
-        return s
     
     def _signal_change(self, obj, value):
         self.set_state(changed=self.get_position())
@@ -318,8 +313,8 @@ class EnergyMotor(Motor):
         MotorBase.__init__(self, 'Beamline Energy')
         self.units = 'keV'
         
-        #pv1_root = ':'.join(pv1.split(':')[:-1])
         pv2_root = ':'.join(pv2.split(':')[:-1])
+        pv1_root = ':'.join(pv2.split(':')[:-1])
         # initialize process variables
         self.VAL  = self.add_pv(pv1)    
         self.PREC = self.add_pv("%s.PREC" % pv2)  
@@ -329,8 +324,8 @@ class EnergyMotor(Motor):
         else:
             self.RBV  = self.add_pv("%s:sp" % pv2)
             self.PREC = self.add_pv("%s:sp.PREC" % pv2)
-        self.MOVN = self.add_pv("%s:moving" % pv1)
-        self.MOVN2 = self.add_pv("%s:moving" % pv2)
+        self.MOVN = self.add_pv("%s:moving" % pv1_root)
+        self.MOVN2 = self.add_pv("%s:moving" % pv2_root)
         self.STOP = self.add_pv("%s:stop" % pv1)
         self.CALIB =  self.add_pv("%s:calibDone" % pv2_root)
         self.STAT =  self.add_pv("%s:status" % pv2_root)
