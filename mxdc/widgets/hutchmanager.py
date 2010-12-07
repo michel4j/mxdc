@@ -32,9 +32,9 @@ class HutchManager(gtk.Frame):
         self.scripts = get_scripts()
         self._create_widgets()
         # Some scripts need to reactivate settings frame on completion
-        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode']:
-            self.scripts[sc].connect('done', lambda x,y: self.device_box.set_sensitive(True))
-            self.scripts[sc].connect('started', lambda x: self.device_box.set_sensitive(False))
+        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam']:
+            self.scripts[sc].connect('started', self.on_scripts_started)
+            self.scripts[sc].connect('done', self.on_scripts_done)
     
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'hutch_widget.glade'), 
@@ -147,7 +147,15 @@ class HutchManager(gtk.Frame):
     
     def on_collection(self, obj):
         self.collect_btn.clicked()
-            
+    
+    def on_scripts_started(self, obj, event=None):
+        self.device_box.set_sensitive(False)
+        self.commands_box.set_sensitive(False)
+    
+    def on_scripts_done(self, obj, event=None):
+        self.device_box.set_sensitive(True)
+        self.commands_box.set_sensitive(True)
+        
     def update_predictor(self, widget, val=None):
         self.predictor.configure(energy=self.beamline.monochromator.energy.get_position(),
                                  distance=self.beamline.diffractometer.distance.get_position(),

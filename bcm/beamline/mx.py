@@ -134,7 +134,7 @@ class MXBeamline(object):
                     self.name = item[1]
                 elif item[0] == 'energy_range':
                     self.config[item[0]] = map(float, item[1].split(','))
-                elif item[0] in ['default_attenuation', 'default_exposure']:
+                elif item[0] in ['default_attenuation', 'default_exposure', 'default_beamstop', 'safe_beamstop']:
                     self.config[item[0]] = float(item[1])
                 else:
                     self.config[item[0]] = item[1]
