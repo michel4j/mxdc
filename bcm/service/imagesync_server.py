@@ -6,7 +6,7 @@ from twisted.cred import portal, checkers
 from twisted.spread import pb
 from twisted.python import log
 
-from bcm.service.imagesync import ImgSyncService
+from bcm.service.imagesync import ImgSyncService, IPptvISync
 from bcm.utils import mdns
 
 # generate ssh factory which points to a given service
