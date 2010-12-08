@@ -9,6 +9,7 @@ from zope.interface import implements
 from bcm.device.interfaces import IGoniometer
 from bcm.protocol import ca
 from bcm.device.motor import VMEMotor, SimMotor
+from bcm.device.misc import Positioner
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.device.base import BaseDevice
@@ -32,23 +33,24 @@ _MODE_MAP = {
              'MOUNTING':GONIO_MODE_MOUNT, 
              'CENTERING': GONIO_MODE_CENTER,
              'COLLECT': GONIO_MODE_COLLECT,
+             'SCANNING': GONIO_MODE_COLLECT,
              'BEAM': GONIO_MODE_BEAM,
 }
 _MODE_MAP_REV = {
-             GONIO_MODE_INIT: 'INIT',
-             GONIO_MODE_ALIGN: 'ALIGNMENT',
-             GONIO_MODE_MOUNT: 'MOUNTING', 
-             GONIO_MODE_CENTER: 'CENTERING',
-             GONIO_MODE_COLLECT: 'COLLECT',
-             GONIO_MODE_BEAM: 'BEAM',
-             GONIO_MODE_UNKNOWN: 'MOVING',
+             GONIO_MODE_INIT: ['INIT'],
+             GONIO_MODE_ALIGN: ['ALIGNMENT'],
+             GONIO_MODE_MOUNT: ['MOUNTING'], 
+             GONIO_MODE_CENTER: ['CENTERING'],
+             GONIO_MODE_COLLECT: ['COLLECT','SCANNING'],
+             GONIO_MODE_BEAM: ['BEAM'],
+             GONIO_MODE_UNKNOWN: ['MOVING'],
 }
 
 _STATE_PATTERNS = {
-    GONIO_MODE_MOUNT: re.compile('^Waiting sample transfer\s.+$'),
-    GONIO_MODE_CENTER: re.compile('^Click one of the Centring\s.+$'),
-    GONIO_MODE_COLLECT: re.compile('^Waiting for scan\s.+$'),
-    GONIO_MODE_BEAM: re.compile('^Drag the beam mark\s.+$'),
+    'MOUNTING': re.compile('^Waiting sample transfer\s.+$'),
+    'CENTERING': re.compile('^Click one of the Centring\s.+$'),
+    'COLLECT': re.compile('^Waiting for scan\s.+$'),
+    'BEAM': re.compile('^Drag the beam mark\s.+$'),
 
 }
 class GoniometerError(Exception):
@@ -73,13 +75,13 @@ class GoniometerBase(BaseDevice):
     def is_busy(self):
         return True
     
-    def _set_and_notify_mode(self, mode):
+    def _set_and_notify_mode(self, mode_str):
+        mode = _MODE_MAP.get(mode_str, 6)
         if mode != self.mode:
-            self.mode = mode
-            _mode_str = _MODE_MAP_REV.get(mode, 'MOVING')
-            gobject.idle_add(self.emit, 'mode', _mode_str)
-            if _mode_str not in ['MOVING', 'UNKNOWN']:
-                _logger.info( "(%s) mode changed to `%s`" % (self.name, _mode_str))
+            if mode_str not in ['MOVING', 'UNKNOWN']:
+                _logger.info( "(%s) mode changed to `%s`" % (self.name, mode_str))
+        gobject.idle_add(self.emit, 'mode', mode_str)
+        self.mode = mode   
 
     def wait(self, start=True, stop=True, poll=0.05, timeout=20):
         if (start):
@@ -135,8 +137,6 @@ class Goniometer(GoniometerBase):
             self._settings[key].put(kwargs[key])
     
     def set_mode(self, mode, wait=False):
-        if isinstance(mode, int):
-            mode = _MODE_MAP_REV.get(mode, 'MOVING')
 
         if mode == 'CENTERING':
             self._bl_position.put(1)
@@ -146,28 +146,19 @@ class Goniometer(GoniometerBase):
             self._bl_position.put(0)
             self.minibeam.move_to(27.0, wait=True)
             #put down backlight
-        elif mode == 'COLLECT':
-            self._bl_position.put(0)
-            self.minibeam.move_to(3.82, wait=True)
-            #put down backlight
-        elif mode == 'BEAM':
+        elif mode in ['COLLECT', 'BEAM']:
             self._bl_position.put(0)
             self.minibeam.move_to(3.82, wait=True)
             #put down backlight
                     
-        self._set_and_notify_mode(_MODE_MAP.get(mode))
+        self._set_and_notify_mode(mode)
         if wait:
             timeout = 60
-            while _MODE_MAP_REV.get(self.mode) != mode  and timeout > 0:
+            while mode not in _MODE_MAP_REV.get(self.mode) and timeout > 0:
                 time.sleep(0.05)
                 timeout -= 0.05
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
-            
-        if mode == 'SCANNING':
-            pass
-            # move capillaries out of the way here              
-
 
     
     def scan(self, wait=True):
@@ -219,12 +210,14 @@ class MD2Goniometer(GoniometerBase):
         self._mode_fbk.connect('changed', self.on_mode_changed)
         self._state.connect('changed', self._on_busy)
         
-        #devices to reset during mount mode
-        self._tbl_x = self.add_pv("%s:S:PhiTblXAxPos" % pv_root, monitor=False)
-        self._tbl_y = self.add_pv("%s:S:PhiTblYAxPos" % pv_root, monitor=False)
-        self._tbl_z = self.add_pv("%s:S:PhiTblZAxPos" % pv_root, monitor=False)
-        self._cnt_x = self.add_pv("%s:S:CentTblXAxPos" % pv_root, monitor=False)
-        self._cnt_y = self.add_pv("%s:S:CentTblYAxPos" % pv_root, monitor=False)
+        #devices to reset during mount scan mode
+        self._tbl_x = Positioner("%s:S:PhiTblXAxPos" % pv_root, "%s:G:PhiTblXAxPos" % pv_root)
+        self._tbl_y = Positioner("%s:S:PhiTblYAxPos" % pv_root, "%s:G:PhiTblYAxPos" % pv_root)
+        self._tbl_z = Positioner("%s:S:PhiTblZAxPos" % pv_root, "%s:G:PhiTblZAxPos" % pv_root)
+        self._cnt_x = Positioner("%s:S:CentTblXAxPos" % pv_root, "%s:G:CentTblXAxPos" % pv_root)
+        self._cnt_y = Positioner("%s:S:CentTblYAxPos" % pv_root, "%s:G:CentTblYAxPos" % pv_root)
+        self._minibeam = Positioner("%s:S:CapPredefPosn" % pv_root, "%s:G:CapPredefPosn" % pv_root)
+        self.add_devices(self._tbl_x, self._tbl_y, self._tbl_z, self._cnt_x, self._cnt_y, self._minibeam)
         
         # device set points for mount mode
         self._mount_setpoints = {
@@ -250,18 +243,17 @@ class MD2Goniometer(GoniometerBase):
             self._settings[key].put(kwargs[key])
     
     def set_mode(self, mode, wait=False):
-        if isinstance(mode, int):
-            mode = _MODE_MAP_REV.get(mode, 'MOVING')
+
         cmd_template = "SET_CLSMDPhasePosition=%d"
         mode = mode.strip().upper()
 
         if mode == 'CENTERING':
             self._mode_cmd.put(cmd_template % (2,))
             #self._mode_centering_cmd.put('\x01')
-        elif mode in ['MOUNTING','SCANNING']:
+        elif mode == 'MOUNTING':
             self._mode_cmd.put(cmd_template % (1,))
             #self._mode_mounting_cmd.put('\x01')
-        elif mode == 'COLLECT':
+        elif mode in ['COLLECT', 'SCANNING']:
             self._mode_cmd.put(cmd_template % (5,))
             #self._mode_collect_cmd.put('\x01')
         elif mode == 'BEAM':
@@ -270,7 +262,7 @@ class MD2Goniometer(GoniometerBase):
                     
         if wait:
             timeout = 60
-            while _MODE_MAP_REV.get(self.mode) != mode  and timeout > 0:
+            while mode not in _MODE_MAP_REV.get(self.mode)  and timeout > 0:
                 time.sleep(0.05)
                 timeout -= 0.05
             if timeout <= 0:
@@ -280,18 +272,18 @@ class MD2Goniometer(GoniometerBase):
         if mode == 'MOUNTING':
             for dev,val in self._mount_setpoints.items():
                 if abs(dev.get() - val) > 0.01:              
-                    self.wait()
+                    self.wait() 
                     time.sleep(1.0)
                     dev.set(val)
             if abs(self.omega.get_position() - 201.75) > 0.01:
                 self.omega.move_to(201.75, wait=True)
             
-        if mode == 'SCANNING':
-            pass
-            # move capillaries out of the way here              
+        elif mode == 'SCANNING':
+            self._minibeam.set(2)
 
     def on_mode_changed(self, pv, val):
-        self._set_and_notify_mode(val)
+        mode_str = _MODE_MAP_REV.get(val, ['UNKNOWN'])[0]      
+        self._set_and_notify_mode(mode_str)
     
     def on_log_status(self, pv, txt):
         for k,v in _STATE_PATTERNS.items():
@@ -315,7 +307,7 @@ class SimGoniometer(GoniometerBase):
     def __init__(self):       
         GoniometerBase.__init__(self, 'Simulated Goniometer')
         self.omega = SimMotor('Omega Motor', pos=0, units='deg')
-        gobject.idle_add(self.emit, 'mode', 'MOVING')
+        gobject.idle_add(self.emit, 'mode', 'INIT')
         self._scanning = False
         self.set_state(active=True)
 
@@ -325,8 +317,8 @@ class SimGoniometer(GoniometerBase):
         
     def set_mode(self, mode, wait=False):
         if isinstance(mode, int):
-            mode = _MODE_MAP_REV.get(mode, 'MOVING')
-        self._set_and_notify_mode(_MODE_MAP.get(mode))
+            mode = _MODE_MAP_REV.get(mode, ['MOVING'])[0]
+        self._set_and_notify_mode(mode)
     
     @async
     def _start_scan(self):
