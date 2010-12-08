@@ -320,6 +320,7 @@ class Screener(gobject.GObject):
                         pass
                     elif self.beamline.automounter.is_mountable(task['sample']['port']):
                         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+                        self.beamline.cryoject.nozzle.open()
                         success = self.beamline.automounter.mount(task['sample']['port'], wait=True)
                         mounted_info = self.beamline.automounter.mounted_state
                         if not success or mounted_info is None:
@@ -346,6 +347,8 @@ class Screener(gobject.GObject):
                     
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
                         self.beamline.goniometer.set_mode('CENTERING', wait=True)
+                        self.beamline.cryoject.nozzle.close()
+
                         _out = centering.auto_center_loop()
                         if _out is None:
                             _logger.error('Error attempting auto loop centering "%s"' % task['sample']['name'])
@@ -370,6 +373,7 @@ class Screener(gobject.GObject):
                 elif task.task_type == Screener.TASK_COLLECT:
                     _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
+                        self.beamline.cryoject.nozzle.close()
                         run_params = DEFAULT_PARAMETERS.copy()
                         run_params['distance'] = self.beamline.diffractometer.distance.get_position()
                         run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
