@@ -2,7 +2,7 @@ import time
 import math
 import gobject
 from zope.interface import implements
-from bcm.device.interfaces import IMotor, IShutter
+from bcm.device.interfaces import IMotor
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.utils import converter
@@ -389,38 +389,6 @@ class BraggEnergyMotor(Motor):
         if wait:
             self.wait()
 
-class MotorShutter(gobject.GObject):
-    """Used for CMCF1 cryojet Motor"""
-    implements(IShutter)
-    __used_for__ = IMotor
-    __gsignals__ =  { 
-        "changed": ( gobject.SIGNAL_RUN_FIRST, 
-                     gobject.TYPE_NONE, 
-                     (gobject.TYPE_BOOLEAN,)  ),
-        }
-    
-    def __init__(self, motor):
-        gobject.GObject.__init__(self)
-        self.motor = motor
-        self.name = motor.name
-        self.out_pos = 5
-        self.in_pos = 0
-        self.motor.CCW_LIM.connect('changed', self._auto_calib_nozzle)
-        self.motor.connect('busy', self._signal_change)
-
-    def _auto_calib_nozzle(self, obj, val):
-        if val == 1:
-            self.motor.configure(reset=0.0)
-            
-    def open(self):
-        self.motor.move_to(self.out_pos)
-
-    def close(self):
-        self.motor.move_to(self.in_pos-0.1)
-            
-    def _signal_change(self, obj, value):
-        if value == False:
-            gobject.idle_add(self.emit,'changed', self.get_state())
 
 class FixedLine2Motor(MotorBase):
     
@@ -512,8 +480,6 @@ class RelVerticalMotor(MotorBase):
         self.y2.wait(start=False, stop=stop)
         self.y1.wait(start=False, stop=stop)
 
-
-registry.register([IMotor], IShutter, '', MotorShutter)
 
 from twisted.spread import interfaces
 from bcm.service.utils import MasterDevice, SlaveDevice, IDeviceClient, IDeviceServer
