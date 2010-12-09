@@ -65,7 +65,7 @@ class GoniometerBase(BaseDevice):
     # Motor signals
     __gsignals__ =  { 
         "mode": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        }  
+        } 
 
     def __init__(self, name):
         BaseDevice.__init__(self)
