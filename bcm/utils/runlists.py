@@ -110,7 +110,10 @@ def generate_frame_sets(run, show_number=True):
     total_angle = run.get('total_angle', 180.0)
     first_frame = run.get('first_frame', 1)
     start_angle =  run.get('start_angle', 0.0)
-    wedge = run.get('wedge', 360.0) 
+    wedge = run.get('wedge', 360.0)
+    # make sure wedge is good
+    if wedge < total_angle:
+        wedge = delta_angle * round(wedge/delta_angle)
     jump = run.get('jump', 0.0)
     skip = run.get('skip','')
     
@@ -132,7 +135,7 @@ def generate_frame_sets(run, show_number=True):
     if jump < wedge:
         jump = 0.0
         
-    n_wedge = int(wedge/delta_angle)  # number of frames in a wedge
+    n_wedge = int(round(wedge/delta_angle))  # number of frames in a wedge
     
     #inverse beam
     if run.get('inverse_beam', False):

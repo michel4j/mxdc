@@ -1,0 +1,2 @@
+#!/bin/csh
+python $BCM_PATH/bcm/utils/backup.py $*
