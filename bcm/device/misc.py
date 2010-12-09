@@ -336,6 +336,47 @@ class ShutterGroup(BaseDevice):
             while dev.changed_state:
                 time.sleep(0.1)
         
+class MotorShutter(BaseDevice):
+    """Used for CMCF1 cryojet Motor"""
+    implements(IShutter)
+    __used_for__ = IMotor  
+    __gsignals__ =  { 
+        "changed": ( gobject.SIGNAL_RUN_FIRST, 
+                     gobject.TYPE_NONE, 
+                     (gobject.TYPE_BOOLEAN,)  ),
+        }
+    
+    def __init__(self, motor):
+        BaseDevice.__init__(self)
+        self.motor = motor
+        self.add_devices(self.motor)
+        self.name = motor.name
+        self.out_pos = 5
+        self.in_pos = 0
+        self.motor.CCW_LIM.connect('changed', self._auto_calib_nozzle)
+        self.motor.connect('changed', self._signal_change)
+
+    def _auto_calib_nozzle(self, obj, val):
+        if val == 1:
+            self.motor.configure(reset=0.0)
+            
+    def is_open(self):
+        """Convenience function for open state"""
+        return self.changed_state
+        
+    def open(self):
+        self.motor.move_to(self.out_pos)
+
+    def close(self):
+        self.motor.move_to(self.in_pos-0.1)
+            
+    def _signal_change(self, obj, value):
+        if abs(value - self.in_pos) < 0.1:
+            self.set_state(changed=False)
+        else:
+            self.set_state(changed=True)
+
+registry.register([IMotor], IShutter, '', MotorShutter)
 
         
 class SimShutter(BaseDevice):
