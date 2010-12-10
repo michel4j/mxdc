@@ -72,20 +72,25 @@ class DataCollector(gobject.GObject):
             self.beamline = None
             _logger.warning('No registered beamline found.')
             raise
-        
-        self.skip_existing = skip_existing
+ 
+        self.collect_parameters = {}
+        self.collect_parameters['skip_existing'] = skip_existing
+
         if not isinstance(run_data, list):
-            self.runs = [run_data]
+            self.collect_parameters['runs'] = [run_data]
         else:
-            self.runs = run_data[:]
-        self.data_sets, self.run_list = runlists.generate_data_and_list(self.runs)
-        for run in self.runs:        
+            self.collect_parameters['runs'] = run_data[:]
+        data_sets, run_list = runlists.generate_data_and_list(self.collect_parameters['runs'])
+        self.collect_parameters['data_sets'] = data_sets
+        self.collect_parameters['run_list'] = run_list
+        
+        for run in self.collect_parameters['runs']:        
             self.beamline.image_server.setup_folder(run['directory'])
-        for frame in self.run_list:
+        for frame in self.collect_parameters['run_list']:
             if os.path.exists(os.path.join(frame['directory'], frame['file_name'])):
                 frame['saved'] = True
-        self._user_properties = (pwd.getpwuid(os.geteuid())[0]  , os.geteuid(), os.getegid())
-        self.beamline.image_server.set_user(*self._user_properties)           
+        self.collect_parameters['user_properties'] = (pwd.getpwuid(os.geteuid())[0]  , os.geteuid(), os.getegid())
+                
         return
     
     def save_dataset_info(self, data_list):
@@ -121,13 +126,22 @@ class DataCollector(gobject.GObject):
         worker_thread.start()
     
     def run(self):
-        self.paused = False
-        self.stopped = False
         if self.beamline is None:
             _logger.error('No Beamline found. Aborting data collection.')
             return False
         ca.threads_init()
         self.beamline.lock.acquire()
+        # Obtain configured parameters
+        self.skip_existing = self.collect_parameters['skip_existing']
+        self.runs = self.collect_parameters['runs']
+        self.data_sets = self.collect_parameters['data_sets']
+        self.run_list = self.collect_parameters['run_list']
+        self._user_properties = self.collect_parameters['user_properties']
+        
+        
+        self.beamline.image_server.set_user(*self._user_properties)
+        self.paused = False
+        self.stopped = False           
         self.beamline.goniometer.set_mode('COLLECT', wait=True) # move goniometer to collect mode
         gobject.idle_add(self.emit, 'started')
         try:
@@ -320,7 +334,7 @@ class Screener(gobject.GObject):
                         pass
                     elif self.beamline.automounter.is_mountable(task['sample']['port']):
                         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
-                        self.beamline.cryoject.nozzle.open()
+                        self.beamline.cryojet.nozzle.open()
                         success = self.beamline.automounter.mount(task['sample']['port'], wait=True)
                         mounted_info = self.beamline.automounter.mounted_state
                         if not success or mounted_info is None:
@@ -347,7 +361,7 @@ class Screener(gobject.GObject):
                     
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
                         self.beamline.goniometer.set_mode('CENTERING', wait=True)
-                        self.beamline.cryoject.nozzle.close()
+                        self.beamline.cryojet.nozzle.close()
 
                         _out = centering.auto_center_loop()
                         if _out is None:
@@ -373,7 +387,7 @@ class Screener(gobject.GObject):
                 elif task.task_type == Screener.TASK_COLLECT:
                     _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
-                        self.beamline.cryoject.nozzle.close()
+                        self.beamline.cryojet.nozzle.close()
                         run_params = DEFAULT_PARAMETERS.copy()
                         run_params['distance'] = self.beamline.diffractometer.distance.get_position()
                         run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()

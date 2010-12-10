@@ -580,7 +580,6 @@ class DewarLoader(gtk.Frame):
             return
         xls_loader = XLSLoader(filename)
         self.samples_database = xls_loader.get_database()
-        
         # make sure sample list is stored to file for restore
         save_config(SAMPLES_DB_CONFIG, self.samples_database)
         
@@ -604,7 +603,7 @@ class DewarLoader(gtk.Frame):
                 self.inventory.load_containers(self.samples_database['containers'].values())
                 dialogs.info(header, subhead)
             self.inventory.save_containers()
-
+        
 def main():
     w = gtk.Window()
     w.set_default_size(640, 400)
