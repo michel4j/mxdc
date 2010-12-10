@@ -74,7 +74,7 @@ def image_loadable(filename):
         return False
     if os.path.basename(filename) in os.listdir(os.path.dirname(filename)):
         statinfo = os.stat(filename)
-        if (time.time() - statinfo.st_mtime) > 0:
+        if (time.time() - statinfo.st_mtime) > 1.0:
             if not os.path.isfile(filename):
                 return False
             if os.access(filename, os.R_OK):

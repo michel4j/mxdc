@@ -184,37 +184,3 @@ class ResultList(gtk.ScrolledWindow):
 
     def clear(self):
         self.listmodel.clear()
-             
-
-TEST_DETAIL = {'url': '/users/cmcfadmin/SIM-20101029/A1/scrn'} 
-
-TEST_DATA = [
- {'state': 0, 'name': 'xtl1', 'barcode': '8392837429','group':'lyso','score': -1,'space_group': '-','unit_cell': '-','detail': {} },
- {'state': 1, 'name': 'xtl2', 'barcode': '8392837429','group':'lyso','score': 0.7,'space_group': 'I2(1)3','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {'url': '/users/cmcfadmin/SIM-20101029/A1/scrn'} },
- {'state': 1, 'name': 'xtl3', 'barcode': '8392837429','group':'lyso','score': 0.8,'space_group': 'I2(1)3','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {'url': '/users/cmcfadmin/SIM-20101029/B6/scrn'} },
- {'state': 1, 'name': 'xtl4', 'barcode': '8392837429','group':'aba1','score': 0.1,'space_group': 'I2(1)3','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {'url': '/users/cmcfadmin/SIM-20101029/B1/scrn'} },
- {'state': 2, 'name': 'xtl5', 'barcode': '8392837429','group':'aba1','score': -1,'space_group': '-','unit_cell': '-','detail': {} },
- {'state': 0, 'name': 'xtl6', 'barcode': '8392837429','group':'aba1','score': -1,'space_group': '-','unit_cell': '-','detail': {} },
- {'state': 1, 'name': 'xtl7', 'barcode': '8392837429','group':'aba1','score': 0.4,'space_group': 'P2(1)2(1)2(1)','unit_cell': '77.3,77.3,77.3,90.0,90.0,90.0','detail': {'url': '/users/cmcfadmin/SIM-20101029/B4/scrn'} },
-] 
-    
-if __name__ == "__main__":
-   
-    win = gtk.Window()
-    win.connect("destroy", lambda x: gtk.main_quit())
-    win.set_default_size(600,400)
-    win.set_border_width(2)
-    win.set_title("Sample Widget Demo")
-
-    example = ResultList()
-    example.load_data(TEST_DATA)
-
-    win.add(example)
-    win.show_all()
-
-    try:
-        gtk.main()
-    except KeyboardInterrupt:
-        print "Quiting..."
-        sys.exit()
-        
