@@ -81,10 +81,17 @@ class ResultManager(gtk.Frame):
         model = treeview.get_model()
         iter = model.get_iter(path)
         data = model.get_value(iter, RESULT_COLUMN_DETAIL)
-        if data.get('url', None) in [None, '']:
+
+        result = data.get('result', None)
+        strategy = data.get('strategy', None)
+        if result in [None, '']:
             _logger.info('No results to load')
             return
-        uri = 'file://%s/report/index.html' % data.get('url')
+               
+        if result.get('url', None) in [None, '']:
+            _logger.info('No results to load')
+            return
+        uri = 'file://%s/report/index.html' % result['url']
         _logger.info('Loading results in %s' % uri)
         if browser_engine == 'webkit':
             self.browser.load_uri(uri)

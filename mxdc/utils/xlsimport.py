@@ -8,40 +8,50 @@ from bcm.utils import xlrd
 from bcm.utils.enum import Enum
 import os
 
+COLUMN_MAP = dict([(index, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[index]) for index in range(26)])
 EXPERIMENT_SHEET_NUM = 1
 EXPERIMENT_SHEET_NAME = 'Groups'
 EXPERIMENT_NAME = 0
-EXPERIMENT_NAME_ERROR = 'Invalid Experiment name "%s" in cell Groups!$A$%d.'
+EXPERIMENT_NAME_ERROR = 'Invalid Experiment name "%s" in cell Groups!$' + COLUMN_MAP[EXPERIMENT_NAME] + '$%d.'
 EXPERIMENT_KIND = 1
-EXPERIMENT_KIND_ERROR = 'Invalid Experiment type "%s" in cell Groups!$B$%d.'
+EXPERIMENT_KIND_ERROR = 'Invalid Experiment type "%s" in cell Groups!$' + COLUMN_MAP[EXPERIMENT_KIND] + '$%d.'
 EXPERIMENT_PLAN = 2
-EXPERIMENT_PLAN_ERROR = 'Invalid Experiment plan "%s" in cell Groups!$C$%d.'
+EXPERIMENT_PLAN_ERROR = 'Invalid Experiment plan "%s" in cell Groups!$' + COLUMN_MAP[EXPERIMENT_PLAN] + '$%d.'
 EXPERIMENT_PRIORITY = 3
 EXPERIMENT_ABSORPTION_EDGE = 4
-EXPERIMENT_R_MEAS = 5
-EXPERIMENT_R_MEAS_ERROR = 'Invalid Experiment R-factor "%s" in cell Groups!$F$%d.'
-EXPERIMENT_I_SIGMA = 6
-EXPERIMENT_I_SIGMA_ERROR = 'Invalid Experiment I/Sigma "%s" in cell Groups!$G$%d.'
-EXPERIMENT_RESOLUTION = 7
-EXPERIMENT_RESOLUTION_ERROR = 'Invalid Experiment resolution "%s" in cell Groups!$H$%d.'
+EXPERIMENT_ABSORPTION_EDGE_ERROR = 'Invalid Experiment absorption edge "%s" in cell Groups!$' + COLUMN_MAP[EXPERIMENT_ABSORPTION_EDGE] + '$%d.'
+EXPERIMENT_ENERGY = 5
+EXPERIMENT_TOTAL_ANGLE = 6
+EXPERIMENT_DELTA_ANGLE = 7
+EXPERIMENT_R_MEAS = 8
+EXPERIMENT_R_MEAS_ERROR = 'Invalid Experiment R-factor "%s" in cell Groups!$' + COLUMN_MAP[EXPERIMENT_R_MEAS] + '$%d.'
+EXPERIMENT_I_SIGMA = 9
+EXPERIMENT_I_SIGMA_ERROR = 'Invalid Experiment I/Sigma "%s" in cell Groups!$' + COLUMN_MAP[EXPERIMENT_I_SIGMA] + '$%d.'
+EXPERIMENT_RESOLUTION = 10
+EXPERIMENT_RESOLUTION_ERROR = 'Invalid Experiment resolution "%s" in cell Groups!$' + COLUMN_MAP[EXPERIMENT_RESOLUTION] + '$%d.'
+EXPERIMENT_SPACE_GROUP = 11
+EXPERIMENT_SPACE_GROUP_ERROR = 'Invalid Experiment space group "%s" in cell Groups!$' + COLUMN_MAP[EXPERIMENT_RESOLUTION] + '$%d.'
+EXPERIMENT_CELL_A = 12
+EXPERIMENT_CELL_B = 13
+EXPERIMENT_CELL_C = 14
+EXPERIMENT_CELL_ALPHA = 15
+EXPERIMENT_CELL_BETA = 16
+EXPERIMENT_CELL_GAMMA = 17
 
 CRYSTAL_SHEET_NUM = 0
 CRYSTAL_SHEET_NAME = 'Crystals'
 CRYSTAL_NAME = 0
-CRYSTAL_NAME_ERROR = 'Invalid Crystal name "%s" in cell Crystals!$A$%d.'
-CRYSTAL_CODE = 1
-
+CRYSTAL_NAME_ERROR = 'Invalid Crystal name "%s" in cell Crystals!$' + COLUMN_MAP[CRYSTAL_NAME] + '$%d.'
+CRYSTAL_BARCODE = 1
+CRYSTAL_BARCODE_ERROR = 'Invalid Crystal barcode "%s" in cell Crystals!$' + COLUMN_MAP[CRYSTAL_BARCODE] + '$%d.'
 CRYSTAL_EXPERIMENT = 2
-CRYSTAL_EXPERIMENT_ERROR = 'Invalid Group/Experiment name "%s" in cell Crystals!$B$%d.'
+CRYSTAL_EXPERIMENT_ERROR = 'Invalid Group/Experiment name "%s" in cell Crystals!$' + COLUMN_MAP[CRYSTAL_EXPERIMENT] + '$%d.'
 CRYSTAL_CONTAINER = 3
-CRYSTAL_CONTAINER_ERROR = 'Invalid Container name "%s" in cell Crystals!$C$%d.'
+CRYSTAL_CONTAINER_ERROR = 'Invalid Container name "%s" in cell Crystals!$' + COLUMN_MAP[CRYSTAL_CONTAINER] + '$%d.'
 CRYSTAL_CONTAINER_KIND = 4
-CRYSTAL_CONTAINER_KIND_ERROR = 'Invalid Container kind "%s" in cell Crystals!$D$%d.'
+CRYSTAL_CONTAINER_KIND_ERROR = 'Invalid Container kind "%s" in cell Crystals!$' + COLUMN_MAP[CRYSTAL_CONTAINER_KIND] + '$%d.'
 CRYSTAL_CONTAINER_LOCATION = 5
-CRYSTAL_CONTAINER_LOCATION_ERROR = 'Invalid Container location "%s" in cell Crystals!$E$%d.'
-
-IGNORE_CONTAINER_WARNING = 'Ignoring incompatible container "%s" of type "%s".'
-
+CRYSTAL_CONTAINER_LOCATION_ERROR = 'Invalid Container location "%s" in cell Crystals!$' + COLUMN_MAP[CRYSTAL_CONTAINER_LOCATION] + '$%d.'
 CRYSTAL_PRIORITY = 6
 CRYSTAL_COCKTAIL = 7
 CRYSTAL_COMMENTS = 8
@@ -167,6 +177,9 @@ class XLSLoader(object):
                 
             if row_values[EXPERIMENT_ABSORPTION_EDGE]:
                 experiment['absorption_edge'] = row_values[EXPERIMENT_ABSORPTION_EDGE]
+
+            if row_values[EXPERIMENT_ENERGY]:
+                experiment['energy'] = row_values[EXPERIMENT_ENERGY]
                 
             if row_values[EXPERIMENT_R_MEAS]:
                 experiment['r_meas'] = row_values[EXPERIMENT_R_MEAS]
@@ -200,6 +213,12 @@ class XLSLoader(object):
                 crystal['name'] = row_values[CRYSTAL_NAME]
             else:
                 self.errors.append(CRYSTAL_NAME_ERROR % (row_values[CRYSTAL_NAME], row_num))
+
+            if row_values[CRYSTAL_BARCODE]:
+                crystal['barcode'] = row_values[CRYSTAL_BARCODE]
+            else:
+                crystal['barcode'] = ''
+
                 
             crystal['experiment'] = None
             if row_values[CRYSTAL_EXPERIMENT] and row_values[CRYSTAL_EXPERIMENT] in self.experiments:
@@ -237,10 +256,6 @@ class XLSLoader(object):
             else:
                 crystal['comments'] = ''
                 
-            if row_values[CRYSTAL_CODE]:
-                crystal['barcode'] = row_values[CRYSTAL_CODE]
-            else:
-                crystal['barcode'] = ''
                 
             crystals[crystal['name']] = crystal
         return crystals

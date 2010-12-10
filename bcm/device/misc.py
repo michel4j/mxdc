@@ -322,7 +322,6 @@ class ShutterGroup(BaseDevice):
     @async
     def open(self):
         for dev in self._dev_list:
-            print dev.changed_state, dev
             if dev.changed_state == False:
                 dev.open()
                 while not dev.changed_state:
