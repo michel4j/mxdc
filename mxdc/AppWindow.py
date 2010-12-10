@@ -132,7 +132,7 @@ class AppWindow(gtk.Window):
         self.screen_manager.add_samples(samples)
         
     def _result_ready(self, data, iter):
-        data = data[0]
+        data = data[0]        
         cell_info = '%0.1f %0.1f %0.1f %0.1f %0.1f %0.1f' % (
                     data['result']['cell_a'],
                     data['result']['cell_b'],

@@ -23,6 +23,7 @@ _logger = get_module_logger(__name__)
 class XRFScan(BasicScan):    
     def __init__(self, energy=None, t=0.5, attenuation=0.0, directory=''):
         BasicScan.__init__(self)
+        self.data_names = ['Energy', 'Counts']
         self.configure(t, energy, attenuation, directory, 'xrf')
         
     def configure(self, energy,  t,  attenuation, directory, prefix, uname=None):
@@ -30,18 +31,16 @@ class XRFScan(BasicScan):
             self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
+        self.scan_parameters = {}
+        self.scan_parameters['energy'] = energy
+        self.scan_parameters['duration'] = t
+        self.scan_parameters['directory'] = directory
+        self.scan_parameters['prefix'] = prefix
+        self.scan_parameters['user_name'] = uname
+        self.scan_parameters['filename'] = os.path.join(directory, "%s_%0.3f.raw" % (prefix, energy))
+        self.scan_parameters['results_file'] = os.path.join(directory, "%s_%0.3f.out" % (prefix, energy))
+        self.scan_parameters['attenuation'] = attenuation
 
-        self._energy = energy
-        self._duration = t
-        self._directory = directory
-        self._prefix = prefix
-        self._user_name = uname
-        self._filename = os.path.join(self._directory, "%s_%0.3f.raw" % (self._prefix, self._energy))
-        self._results_file =   os.path.join(self._directory, "%s_%0.3f.out" % (self._prefix, self._energy))
-        self._attenuation = attenuation
-        self.data = []
-        self.data_names = ['Energy',
-                           'Counts']
         self.results = {}
         
     def analyse(self):        
@@ -68,6 +67,16 @@ class XRFScan(BasicScan):
     def run(self):
         _logger.debug('Exitation Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
+        # get parameters from recent configure
+        self._energy = self.scan_parameters['energy']
+        self._duration = self.scan_parameters['duration']
+        self._directory = self.scan_parameters['directory']
+        self._prefix = self.scan_parameters['prefix']
+        self._user_name = self.scan_parameters['user_name']
+        self._filename = self.scan_parameters['filename']
+        self._results_file = self.scan_parameters['results_file']
+        self._attenuation = self.scan_parameters['attenuation']
+        self.data = []        
         _saved_attenuation = self.beamline.attenuator.get()
         try:
             _logger.debug('Exitation Scan started.')
@@ -98,8 +107,9 @@ class XRFScan(BasicScan):
 class XANESScan(BasicScan):
     def __init__(self, edge='Se-K', t=0.5, attenuation=0.0, directory=''):
         BasicScan.__init__(self)
-        self.configure(edge, t, attenuation, directory, 'xanes')
+        self._energy_db = get_energy_database()
         self.autochooch = AutoChooch()
+        self.configure(edge, t, attenuation, directory, 'xanes')
         
     def configure(self, edge, t, attenuation, directory, prefix, uname=None):
         #FIXME: Possible race condition here if new configure is issued while previous scan is still running
@@ -108,18 +118,17 @@ class XANESScan(BasicScan):
             self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
-        self._duration = t
-        self._edge = edge
-        self._energy_db = get_energy_database()
-        self._edge_energy, self._roi_energy = self._energy_db[edge]
-        self._targets = xanes_targets(self._edge_energy)
-        self._attenuation = attenuation
-        self.data = []
-        self._directory = directory
-        self._prefix = prefix
-        self._user_name = uname
-        self._filename = os.path.join(self._directory, "%s_%s.raw" % (self._prefix, self._edge))
-        self.chooch_results = {} 
+        self.scan_parameters = {}
+        self.scan_parameters['edge'] = edge
+        self.scan_parameters['edge_energy'],  self.scan_parameters['roi_energy'] = self._energy_db[edge]
+        self.scan_parameters['duration'] = t
+        self.scan_parameters['directory'] = directory
+        self.scan_parameters['prefix'] = prefix
+        self.scan_parameters['user_name'] = uname
+        self.scan_parameters['targets'] = xanes_targets(self.scan_parameters['edge_energy'])
+        self.scan_parameters['filename'] = os.path.join(directory, "%s_%s.raw" % (prefix, edge))
+        self.scan_parameters['attenuation'] = attenuation
+        
                     
     def analyse(self):
         self.autochooch.configure(self._edge, self._directory, self._prefix, self._user_name)
@@ -152,6 +161,20 @@ class XANESScan(BasicScan):
     def run(self):
         _logger.info('Edge Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
+
+        # Optain scan parameters from recent configure
+        self._duration = self.scan_parameters['duration']
+        self._edge = self.scan_parameters['edge']
+        self._edge_energy = self.scan_parameters['edge_energy']
+        self._roi_energy = self.scan_parameters['roi_energy']      
+        self._targets = self.scan_parameters['targets']        
+        self._attenuation = self.scan_parameters['attenuation']
+        self._directory = self.scan_parameters['directory']
+        self._prefix = self.scan_parameters['prefix']
+        self._user_name = self.scan_parameters['user_name']
+        self._filename = self.scan_parameters['filename']
+        self.data = []
+        self.chooch_results = {} 
         _saved_attenuation = self.beamline.attenuator.get()
         try:
             gobject.idle_add(self.emit, 'started')
