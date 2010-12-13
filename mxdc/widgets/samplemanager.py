@@ -34,7 +34,10 @@ class SampleManager(gtk.Frame):
             return super(SampleManager).__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
-
+    
+    def do_samples_changed(self, obj=None):
+        pass
+    
     def _create_widgets(self):
         self.beamline = globalRegistry.lookup([], IBeamline)
                 

@@ -183,18 +183,18 @@ class XLSLoader(object):
                 
             if row_values[EXPERIMENT_R_MEAS]:
                 experiment['r_meas'] = row_values[EXPERIMENT_R_MEAS]
-            else:
-                self.errors.append(EXPERIMENT_R_MEAS_ERROR % (row_values[EXPERIMENT_R_MEAS], row_num))
+            #else:
+            #    self.errors.append(EXPERIMENT_R_MEAS_ERROR % (row_values[EXPERIMENT_R_MEAS], row_num))
                 
             if row_values[EXPERIMENT_I_SIGMA]:
                 experiment['i_sigma'] = row_values[EXPERIMENT_I_SIGMA]
-            else:
-                self.errors.append(EXPERIMENT_I_SIGMA_ERROR % (row_values[EXPERIMENT_I_SIGMA], row_num))
+            #else:
+            #    self.errors.append(EXPERIMENT_I_SIGMA_ERROR % (row_values[EXPERIMENT_I_SIGMA], row_num))
                 
             if row_values[EXPERIMENT_RESOLUTION]:
                 experiment['resolution'] = row_values[EXPERIMENT_RESOLUTION]
-            else:
-                self.errors.append(EXPERIMENT_RESOLUTION_ERROR % (row_values[EXPERIMENT_RESOLUTION], row_num))
+            #else:
+            #    self.errors.append(EXPERIMENT_RESOLUTION_ERROR % (row_values[EXPERIMENT_RESOLUTION], row_num))
                 
             experiments[experiment['name']] = experiment
         return experiments
