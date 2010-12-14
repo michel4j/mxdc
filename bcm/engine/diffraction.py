@@ -400,6 +400,8 @@ class Screener(gobject.GObject):
                                       'total_angle': task['delta'] * task['frames'],
                                       'delta_angle': task['delta'],
                                       'exposure_time': task['time'], })
+                        _logger.debug('Collecting frames for crystal `%s`, in directory `%s`.' % (run_params['name'],
+                                                                                     run_params['directory']))
                         if not os.path.exists(run_params['directory']):
                             os.makedirs(run_params['directory']) # make sure directories exist
                         self.data_collector.configure(run_params)

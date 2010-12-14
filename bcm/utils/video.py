@@ -3,7 +3,9 @@ import array
 
 try:
     import cairo
+    assert cairo.version >= '1.4.0'
     using_cairo = True
+    
 except:
     import ImageDraw
     using_cairo = False
