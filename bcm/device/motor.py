@@ -324,7 +324,7 @@ class EnergyMotor(Motor):
         else:
             self.RBV  = self.add_pv("%s:sp" % pv2)
             self.PREC = self.add_pv("%s:sp.PREC" % pv2)
-        self.MOVN = self.add_pv("%s:moving" % pv1_root)
+        self.MOVN = self.add_pv("%s:moving:fbk" % pv1_root)
         self.MOVN2 = self.add_pv("%s:moving" % pv2_root)
         self.STOP = self.add_pv("%s:stop" % pv1)
         self.CALIB =  self.add_pv("%s:calibDone" % pv2_root)
