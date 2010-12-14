@@ -314,7 +314,6 @@ class EnergyMotor(Motor):
         self.units = 'keV'
         
         pv2_root = ':'.join(pv2.split(':')[:-1])
-        pv1_root = ':'.join(pv2.split(':')[:-1])
         # initialize process variables
         self.VAL  = self.add_pv(pv1)    
         self.PREC = self.add_pv("%s.PREC" % pv2)  
@@ -324,8 +323,7 @@ class EnergyMotor(Motor):
         else:
             self.RBV  = self.add_pv("%s:sp" % pv2)
             self.PREC = self.add_pv("%s:sp.PREC" % pv2)
-        self.MOVN = self.add_pv("%s:moving:fbk" % pv1_root)
-        self.MOVN2 = self.add_pv("%s:moving" % pv2_root)
+        self.MOVN = self.add_pv("%s:moving:fbk" % pv1)
         self.STOP = self.add_pv("%s:stop" % pv1)
         self.CALIB =  self.add_pv("%s:calibDone" % pv2_root)
         self.STAT =  self.add_pv("%s:status" % pv2_root)
@@ -334,7 +332,6 @@ class EnergyMotor(Motor):
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
         self.MOVN.connect('changed', self._signal_move)
-        self.MOVN2.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
         self.ENAB.connect('changed', self._signal_enable)
     
