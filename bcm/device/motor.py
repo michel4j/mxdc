@@ -334,10 +334,16 @@ class EnergyMotor(Motor):
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
         self.MOVN.connect('changed', self._signal_move)
-        #self.MOVN2.connect('changed', self._signal_move)
+        self.MOVN2.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
-        #self.ENAB.connect('changed', self._signal_enable)
-                          
+        self.ENAB.connect('changed', self._signal_enable)
+    
+    def _signal_enable(self, obj, val):
+        if val == 1:
+            self.set_state(enabled=True)
+        else:
+            self.set_state(enabled=False)
+                            
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())           
 
