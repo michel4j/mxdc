@@ -424,7 +424,8 @@ class Screener(gobject.GObject):
 
                         if not os.path.exists(_a_params['directory']):
                             os.makedirs(_a_params['directory']) # make sure directories exist
-                        gobject.idle_add(self.emit, 'analyse-request', _a_params)   
+                        gobject.idle_add(self.emit, 'analyse-request', _a_params)
+                        self._collect_results = []
                         _logger.warn('Requesting analysis')
                     else:
                         _logger.warn('Skipping task because frames were not collected')
