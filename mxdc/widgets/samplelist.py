@@ -14,13 +14,15 @@ from mxdc.widgets.dialogs import *
     SAMPLE_COLUMN_COMMENTS,
     SAMPLE_COLUMN_EDITABLE,
     SAMPLE_COLUMN_GROUP,
-) = range(9)
+    SAMPLE_COLUMN_PRIORITY,  
+) = range(10)
 
 COLUMN_DICT = {
     SAMPLE_COLUMN_CONTAINER: 'Container',
     SAMPLE_COLUMN_STATE: 'State', 
     SAMPLE_COLUMN_SELECTED: 'Selected',
     SAMPLE_COLUMN_PORT: 'Port',
+    SAMPLE_COLUMN_GROUP: 'Group',
     SAMPLE_COLUMN_CODE: 'BarCode',
     SAMPLE_COLUMN_NAME: 'Name',
     SAMPLE_COLUMN_COMMENTS: 'Comments',  
@@ -60,6 +62,7 @@ class SampleList(gtk.ScrolledWindow):
             gobject.TYPE_STRING,
             gobject.TYPE_STRING,
             gobject.TYPE_BOOLEAN,
+            gobject.TYPE_STRING,
         )
                         
         self.listview = gtk.TreeView(self.listmodel)
@@ -86,6 +89,7 @@ class SampleList(gtk.ScrolledWindow):
                 SAMPLE_COLUMN_NAME, item['name'],
                 SAMPLE_COLUMN_COMMENTS, item['comments'],
                 SAMPLE_COLUMN_EDITABLE, False,
+                SAMPLE_COLUMN_GROUP, item['experiment']['name'],
             )
             
 
@@ -100,12 +104,33 @@ class SampleList(gtk.ScrolledWindow):
             SAMPLE_COLUMN_NAME, item.get(COLUMN_DICT[SAMPLE_COLUMN_NAME].lower(),'unknown'),
             SAMPLE_COLUMN_COMMENTS, item.get(COLUMN_DICT[SAMPLE_COLUMN_COMMENTS].lower(),''),
             SAMPLE_COLUMN_EDITABLE, False,
+            SAMPLE_COLUMN_GROUP, item['experiment']['name'],
         )
     
     def __set_color(self,column, renderer, model, iter):
         value = model.get_value(iter, SAMPLE_COLUMN_STATE)
         renderer.set_property("foreground", STATE_DICT[value])
         return
+
+    def __sort_func(self, model, iter1, iter2, data):
+        c1v1 = model.get_value(iter1, SAMPLE_COLUMN_GROUP)
+        c1v2 = model.get_value(iter2, SAMPLE_COLUMN_GROUP)
+        c2v1 = model.get_value(iter1, SAMPLE_COLUMN_NAME)
+        c2v2 = model.get_value(iter2, SAMPLE_COLUMN_NAME)
+        if c1v1 is None: c1v1 = ''
+        if c1v2 is None: c1v2 = ''
+        
+        if c1v1 > c1v2:
+            return -1
+        elif c1v1 < c1v2:
+            return 1
+        else:
+            if c2v1 < c2v2:
+                return 1
+            elif c2v1 > c2v2:
+                return -1
+            else:
+                return 0
         
                 
     def __add_columns(self):
@@ -119,7 +144,7 @@ class SampleList(gtk.ScrolledWindow):
         column.set_fixed_width(50)
         self.listview.append_column(column)
         
-        for key in [SAMPLE_COLUMN_NAME, SAMPLE_COLUMN_CONTAINER, SAMPLE_COLUMN_PORT, SAMPLE_COLUMN_CODE, SAMPLE_COLUMN_COMMENTS]:
+        for key in [SAMPLE_COLUMN_NAME, SAMPLE_COLUMN_GROUP, SAMPLE_COLUMN_CONTAINER, SAMPLE_COLUMN_PORT, SAMPLE_COLUMN_CODE, SAMPLE_COLUMN_COMMENTS]:
             renderer = gtk.CellRendererText()
             renderer.connect("edited", self._on_cell_edited, model, key)
             column = gtk.TreeViewColumn(COLUMN_DICT[key], renderer, text=key, editable=SAMPLE_COLUMN_EDITABLE)
@@ -127,6 +152,8 @@ class SampleList(gtk.ScrolledWindow):
             #column.set_sort_column_id(key)        
             self.listview.append_column(column)
         self.listview.set_search_column(SAMPLE_COLUMN_NAME)
+        model.set_sort_func(SAMPLE_COLUMN_PRIORITY, self.__sort_func, None)
+        model.set_sort_column_id(SAMPLE_COLUMN_PRIORITY, gtk.SORT_DESCENDING)
 
     def _on_cell_edited(self, cell, path_string, new_text, model, column):
         iter = model.get_iter_from_string(path_string)
