@@ -193,8 +193,10 @@ class SampleViewer(gtk.Frame):
     @async
     def center_pixel(self, x, y):
         im_x, im_y, xmm, ymm = self._img_position(x,y)
-        self.beamline.sample_stage.x.move_by(-xmm, wait=True)
-        self.beamline.sample_stage.y.move_by(-ymm)
+        if not self.beamline.sample_stage.x.is_busy():
+            self.beamline.sample_stage.x.move_by(-xmm, wait=True)
+        if not self.beamline.sample_stage.y.is_busy():
+            self.beamline.sample_stage.y.move_by(-ymm)
 
     def _create_widgets(self):
         self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
