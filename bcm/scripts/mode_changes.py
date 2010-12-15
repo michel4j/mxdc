@@ -5,7 +5,7 @@ class SetMountMode(Script):
     def run(self):
         safe_distance = 700
         safe_beamstop = self.beamline.config['safe_beamstop']
-        self.beamline.distance.move_to(safe_distance)
+        self.beamline.detector_z.move_to(safe_distance)
         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
         self.beamline.beamstop_z.move_to(safe_beamstop)
         self.beamline.cryojet.nozzle.open()
@@ -20,7 +20,7 @@ class SetCenteringMode(Script):
         save_distance = 300
         self.beamline.goniometer.set_mode('CENTERING', wait=True)
         self.beamline.beamstop_z.move_to(safe_beamstop)
-        self.beamline.distance.move_to(save_distance)
+        self.beamline.detector_z.move_to(save_distance)
         self.beamline.cryojet.nozzle.close()
         
 
