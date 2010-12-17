@@ -52,28 +52,36 @@ if __name__ == '__main__':
     backup_sources = sources.get('hosts',{})
     backup_sources['global'] = sources.get('global',[])
     for host, directories in backup_sources.items():
+        _logger.info('Performing the backups for %s' % host)
         success = False
         todays_dir = os.path.join(backupdir, host, today)
         yesterdays_dir = os.path.join(backupdir, host, yesterday)
         thisweeks_dir = os.path.join(backupdir, host, 'Week-%s' % thisweek)
         
         # Step 1:  Save previous backup as backup for this week if it exists
+        _logger.info('Save previous backup as backup for this week if it exists')
         if os.path.exists(todays_dir):
             cmd1 = '/bin/rm -rf %s' % (thisweeks_dir)
             cmd2 = "/bin/mv %s %s" % (todays_dir, thisweeks_dir)
+            _logger.info('Removing %s' % thisweeks_dir)
             sts, out = commands.getstatusoutput(cmd1)
+            _logger.info('Copying %s to %s' % (todays_dir, thisweeks_dir))
             sts, out = commands.getstatusoutput(cmd2)
     
         # Step 2: Copy yesterdays backup into todays directory before updating it
+        _logger.info('Copy yesterdays backup into todays directory before updating it')
         if os.path.exists(yesterdays_dir):
             cmd = '/bin/cp -apl %s %s' % (yesterdays_dir, todays_dir)
+            _logger.info(' - Copying %s to %s' % (yesterdays_dir, todays_dir))
             sts, out = commands.getstatusoutput(cmd)
         else:
             cmd = '/bin/mkdir -p %s' % (todays_dir)
+            _logger.info(' - Creating missing directory %s' % (todays_dir))
             sts, out = commands.getstatusoutput(cmd)
     
         # Step 3: rsync from system into today's snapshot directory
         for directory in directories:
+            _logger.info("rsync from system into today's snapshot directory")
             dir_backup_loc = os.path.join(todays_dir, os.path.sep.join(directory.split(os.path.sep)[1:]))
             if host == 'global':
                 command_subst = (rsync_opts_local, directory, dir_backup_loc)
@@ -83,6 +91,7 @@ if __name__ == '__main__':
                 rsync_cmd = "rsync %s  %s@%s:%s/ %s" % (command_subst)
             if not os.path.exists(dir_backup_loc):
                 cmd = 'mkdir -p %s' % (dir_backup_loc)
+                _logger.info(' - Updating %s' % (dir_backup_loc))
                 sts, out = commands.getstatusoutput(cmd)
                 
             #print rsync_cmd
