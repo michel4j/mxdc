@@ -319,6 +319,7 @@ class Screener(gobject.GObject):
     
                 # Perform the screening task here
                 task = self.run_list[self.pos]
+                _logger.debug('TASK: "%s"' % str(task))
                 if task.task_type == Screener.TASK_PAUSE:
                     self.pause()
                     pause_msg = 'Screening paused automatically, as requested, after completing '

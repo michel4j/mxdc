@@ -73,10 +73,6 @@ class PerspectiveBCMFromService(pb.Root):
         """ Save a set of images from the sample video"""
         return self.service.takeSnapshots(*args, **kwargs)
 
-    def remote_setUser(self, *args, **kwargs):
-        """ Set the current user"""
-        return self.service.setUser( *args, **kwargs)
-
     def remote_setupCrystal(self, *args, **kwargs):
         """ Prepare environment for the crystal"""
         return self.service.setupCrystal( *args, **kwargs)
@@ -146,7 +142,7 @@ class BCMService(service.Service):
     def getStates(self):
         import random
         for method in ['mountSample', 'unmountSample', 'scanEdge', 
-                       'scanSpectrum', 'acquireFrames', 'takeSnapshots' ,'setUser', 'getConfig', 'getDevice']:
+                       'scanSpectrum', 'acquireFrames', 'takeSnapshots', 'getConfig', 'getDevice']:
             self.states[method] = random.choice([True, False])
         return self.states
     
@@ -182,28 +178,7 @@ class BCMService(service.Service):
             dev = IDeviceServer(self.beamline[id])
             self.device_server_cache[id] = (dev.__class__.__name__, dev)
             return self.device_server_cache[id]
-        
-    @log_call
-    def setUser(self, uname):
-        try:
-            uid, gid, dir = get_user_properties(uname)
-            self.settings['uid'] = uid
-            self.settings['gid'] = gid
-            self.settings['dir'] = dir
-        except InvalidUser, e:
-            return defer.fail(Failure(e))       
-        
-        user_info = {
-            'name': uname,
-            'uid': uid,
-            'gid': gid,
-            }
-        self.settings['user'] = user_info
-        #os.setegid(gid)
-        #os.seteuid(uid)
-        #log.msg('Effective User changed to `%s`, (uid=%s,gid=%s)' % (uname, uid, gid))
-        return defer.succeed(False)
-    
+            
     @log_call
     def setupCrystal(self, crystal_name, session_id, uname):
         try:
