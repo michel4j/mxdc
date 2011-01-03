@@ -53,9 +53,9 @@ def add_decorations(img, x, y, bw, bh):
         surface = cairo.ImageSurface.create_for_data(src, cairo.FORMAT_ARGB32,
                                               w, h, w*4)
         cr = cairo.Context(surface)
-        cr.set_source_rgba(1.0, 0.4, 0.2, 1.0)
-        cr.set_line_width(max(cr.device_to_user_distance(0.5, 0.5)))
-        cr.set_dash([4,2])
+        cr.set_source_rgba(0.2, 0.4, 1.0, 0.7)
+        cr.set_line_width(max(cr.device_to_user_distance(1.0, 1.0)))
+        cr.set_dash([], 0)
 
         # cross center
         cr.move_to(x-tick, y)
@@ -66,7 +66,7 @@ def add_decorations(img, x, y, bw, bh):
         cr.stroke()
               
         # beam size
-        cr.set_dash([4,4])
+        cr.set_dash([6,6])
         cr.arc(x, y, hh-1.0, 0, 2.0 * 3.14)
         cr.stroke()
         
