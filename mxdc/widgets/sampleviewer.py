@@ -12,6 +12,7 @@ from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
+from bcm.utils.video import add_decorations
 
 try:
     import cairo
@@ -34,7 +35,7 @@ class SampleViewer(gtk.Frame):
         self._timeout_id = None
         self._click_centering  = False
         self._colormap = 0
-        self._tick_size = 10
+        self._tick_size = 8
                 
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
@@ -62,8 +63,29 @@ class SampleViewer(gtk.Frame):
 
                                         
     def save_image(self, filename):
-        self.video.save_image(filename)
-            
+        img = self.beamline.sample_video.get_frame()
+        pix_size = self.beamline.sample_video.resolution      
+        try:
+            bw = self.beamline.aperture.get() * 0.001 # convert to mm
+            bh = self.beamline.aperture.get() * 0.001
+            bx = 0 #self.beamline.beam_x.get_position()
+            by = 0 #self.beamline.beam_y.get_position()
+            cx = self.beamline.camera_center_x.get()
+            cy = self.beamline.camera_center_y.get()
+        except:
+            w, h = img.size
+            cx = w//2
+            bw = bh = 1.0
+            bx = by = 0
+            cy = h//2
+        
+        sw = bw / pix_size 
+        sh = bh / pix_size
+        x = int(cx - (bx / pix_size))
+        y = int(cy - (by / pix_size))
+        img = add_decorations(img, x, y, sw, sh)
+        img.save(filename)
+                    
     def draw_beam_overlay(self, pixmap):
         w, h = pixmap.get_size()
         pix_size = self.beamline.sample_video.resolution      
@@ -79,7 +101,6 @@ class SampleViewer(gtk.Frame):
             bw = bh = 1.0
             bx = by = 0
             cy = h//2
-            raise
         
         # slit sizes in pixels
         sw = bw / pix_size 
@@ -89,13 +110,14 @@ class SampleViewer(gtk.Frame):
 
         hw = int(0.5 * sw * self.video.scale)
         hh = int(0.5 * sh * self.video.scale)
-        tick = int(self._tick_size * self.video.scale*1.5)
+        tick = int(self._tick_size * self.video.scale)
         
         if using_cairo:
             cr = pixmap.cairo_create()
             cr.set_source_rgba(1, 0.2, 0.1, 1.0)
             cr.set_line_width(max(cr.device_to_user_distance(0.5, 0.5)))
-            cr.set_dash([4,2])
+            cr.set_dash([], 0)
+
 
             # cross center
             cr.move_to(x-tick, y)
@@ -111,38 +133,13 @@ class SampleViewer(gtk.Frame):
             cr.arc(x, y, hh-1.0, 0, 2.0 * 3.14)
             cr.stroke()
             
-#            cr.move_to(x-hw, y-hh+tick)
-#            cr.line_to(x-hw, y-hh)
-#            cr.line_to(x-hw+tick, y-hh)
-#            cr.stroke()
-#            cr.move_to(x+hw, y+hh-tick)
-#            cr.line_to(x+hw, y+hh)
-#            cr.line_to(x+hw-tick, y+hh)
-#            cr.stroke()
-#            
-#            cr.move_to(x-hw, y+hh-tick)
-#            cr.line_to(x-hw, y+hh)
-#            cr.line_to(x-hw+tick, y+hh)
-#            cr.stroke()
-#
-#            cr.move_to(x+hw, y-hh+tick)
-#            cr.line_to(x+hw, y-hh)
-#            cr.line_to(x+hw-tick, y-hh)
-#            cr.stroke()
+
         else:        
             pixmap.draw_line(self.video.ol_gc, x-tick, y, x+tick, y)
             pixmap.draw_line(self.video.ol_gc, x, y-tick, x, y+tick)
             
             pixmap.draw_arc(self.video.ol_gc, False, x-hw+1, y-hh+1, hh*2-1, hw*2-1, 0, 23040)
 
-#            pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw, y-hh+tick)
-#            pixmap.draw_line(self.video.ol_gc, x-hw, y-hh, x-hw+tick, y-hh)
-#            pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw, y+hh-tick)
-#            pixmap.draw_line(self.video.ol_gc, x+hw, y+hh, x+hw-tick, y+hh)
-#            pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw, y+hh-tick)
-#            pixmap.draw_line(self.video.ol_gc, x-hw, y+hh, x-hw+tick, y+hh)
-#            pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw, y-hh+tick)
-#            pixmap.draw_line(self.video.ol_gc, x+hw, y-hh, x+hw-tick, y-hh)
         return
         
     def draw_meas_overlay(self, pixmap):
