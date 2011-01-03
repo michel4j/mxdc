@@ -42,25 +42,44 @@ def auto_center(pre_align=True):
     else:
         direction = 1.0
 
+    # set lighting
+    backlt = beamline.sample_backlight.get()
+    frontlt = beamline.sample_frontlight.get()
+    beamline.sample_backlight.set(100)
+    beamline.sample_frontlight.set(0)
+
     # get images
     prefix = get_short_uuid()
     directory = tempfile.mkdtemp(prefix='centering')
     angles = [angle]
     count = 1
-    while count < 6:
+    while count < 8:
         count += 1
-        angle = angle + (direction * 60.0)
+        angle = angle + (direction * 40.0)
         angles.append(angle)
     imglist = take_sample_snapshots(prefix, directory, angles, decorate=False)
-    
+
+    # determine zoom level to select appropriate background image
+    zoom = beamline.sample_zoom.get()
+    if zoom == 1.0:
+        zmlevel = 'low'
+    elif zoom == 4.0:
+        zmlevel = 'mid'
+    elif zoom == 8.0:
+        zmlevel = 'high'
+    else:
+        zmlevel = 0    
+
     # create XREC input
     infile_name = os.path.join(directory, '%s.inp' % prefix)
     outfile_name = os.path.join(directory, '%s.out' % prefix)
     infile = open(infile_name, 'w')
     in_data = 'LOOP_POSITION  %s\n' % beamline.config['orientation']
-    in_data+= 'NUMBER_OF_IMAGES 6 \n'
+    in_data+= 'NUMBER_OF_IMAGES 8 \n'
     in_data+= 'CENTER_COORD %d\n' % (beamline.camera_center_y.get())
     in_data+= 'BORDER 4\n'
+    if zmlevel:
+        in_data+= 'BACK %s/data/%s/centering-bg-%s.png\n' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, zmlevel) 
     if pre_align:
         in_data+= 'PREALIGN\n'
     in_data+= 'DATA_START\n'
@@ -104,7 +123,10 @@ def auto_center(pre_align=True):
             beamline.sample_stage.y.move_by(ymm)
         else:
             beamline.sample_stage.y.move_by(-ymm)
-            
+
+    beamline.sample_backlight.set(backlt)
+    beamline.sample_frontlight.set(frontlt)            
+
     # cleanup
     #shutil.rmtree(directory)
     
