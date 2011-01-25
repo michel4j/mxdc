@@ -55,7 +55,7 @@ def auto_center(pre_align=True):
     count = 1
     while count < 8:
         count += 1
-        angle = angle + (direction * 40.0)
+        angle = (angle + (direction * 40.0)) % 360
         angles.append(angle)
     imglist = take_sample_snapshots(prefix, directory, angles, decorate=False)
 
@@ -69,6 +69,7 @@ def auto_center(pre_align=True):
         zmlevel = 'high'
     else:
         zmlevel = 0    
+	back_filename = '%s/data/%s/centering-bg-%s.png\n' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, zmlevel
 
     # create XREC input
     infile_name = os.path.join(directory, '%s.inp' % prefix)
@@ -78,8 +79,8 @@ def auto_center(pre_align=True):
     in_data+= 'NUMBER_OF_IMAGES 8 \n'
     in_data+= 'CENTER_COORD %d\n' % (beamline.camera_center_y.get())
     in_data+= 'BORDER 4\n'
-    if zmlevel:
-        in_data+= 'BACK %s/data/%s/centering-bg-%s.png\n' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, zmlevel) 
+    if os.path.exists(back_filename):
+        in_data+= 'BACK %s' % (back_filename) 
     if pre_align:
         in_data+= 'PREALIGN\n'
     in_data+= 'DATA_START\n'
