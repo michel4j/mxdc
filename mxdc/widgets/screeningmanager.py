@@ -17,6 +17,7 @@ from bcm.engine.interfaces import IDataCollector
 from bcm.engine.diffraction import Screener, DataCollector
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.dialogs import warning
+from mxdc.utils import config
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -26,6 +27,7 @@ TASKLET_NAME_MAP = {
     Screener.TASK_PAUSE : 'Pause',
     Screener.TASK_COLLECT : 'Collect',
     Screener.TASK_ANALYSE : 'Analyse',
+    Screener.TASK_DISMOUNT : 'Dismount',
 }
 
 (
@@ -34,6 +36,8 @@ TASKLET_NAME_MAP = {
     QUEUE_COLUMN_NAME,
     QUEUE_COLUMN_TASK,
 ) = range(4)
+
+SCREEN_CONFIG_FILE = 'screen_config.json'
 
 class Tasklet(object):
     def __init__(self, task_type, **kwargs):
@@ -152,14 +156,15 @@ class ScreenManager(gtk.Frame):
         self.delta_entry.connect('focus-out-event', self._on_entry_changed)
         self.time_entry.connect('activate', self._on_entry_changed, None)
         self.time_entry.connect('focus-out-event', self._on_entry_changed)
-        
+                
         for pos, tasklet in enumerate(self.default_tasks):
             key, options = tasklet
             options.update(enabled=options['default'])
             t = Tasklet(key, **options)
             tbtn = gtk.CheckButton(t.name)
-            tbtn.set_active(options['default'])
             tbtn.connect('toggled', self._on_task_toggle, t)
+            
+            tbtn.set_active(options['default'])
             tbtn.set_sensitive(not(options['locked']))
 
             if key == Screener.TASK_COLLECT:
@@ -199,7 +204,8 @@ class ScreenManager(gtk.Frame):
         log_handler.setFormatter(formatter)
         logging.getLogger('').addHandler(log_handler)
 
-        self.add(self.screen_manager) 
+        self.add(self.screen_manager)
+        self.connect('realize', lambda x: self._load_config())
         self.show_all()
 
     def on_busy(self, obj, state):
@@ -338,6 +344,24 @@ class ScreenManager(gtk.Frame):
         column.set_cell_data_func(renderer, self._done_color)
         self.listview.append_column(column)
     
+    def _save_config(self):
+        data = {
+            "directory": self.folder_btn.get_current_folder(),
+            "delta": float(self.delta_entry.get_text()),
+            "time": float(self.time_entry.get_text()),
+            "tasks": [t.options['enabled'] for  t , tbtn in self.TaskList]}
+        config.save_config(SCREEN_CONFIG_FILE, data)
+    
+    def _load_config(self):
+        data = config.load_config(SCREEN_CONFIG_FILE)
+        if data is not None:
+            self.folder_btn.set_current_folder(data.get('directory',os.environ['HOME']))
+            self.time_entry.set_text('%0.1f' % data.get('time'))
+            self.delta_entry.set_text('%0.1f' % data.get('delta'))
+            for idx, v in enumerate(data.get('tasks',[])):
+                self.TaskList[idx][1].set_active(v)
+                  
+        
     def _on_task_toggle(self, obj, tasklet):
         tasklet.configure(enabled=obj.get_active())
     
@@ -360,6 +384,15 @@ class ScreenManager(gtk.Frame):
                             'start_frame':st_fr})
                     q_item = {'done': False, 'task': tsk} 
                     self._add_item(q_item)
+                    
+            # Add dismount task for last item
+            if item == items[-1]:
+                tsk = Tasklet(Screener.TASK_DISMOUNT)
+                tsk.options.update({'sample':  item})
+                self._add_item({'done':False, 'task': tsk})
+                
+        # Save the configuration everytime we hit apply
+        self._save_config()
   
 
     def _on_export(self, obj):

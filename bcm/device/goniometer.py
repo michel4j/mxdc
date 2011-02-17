@@ -105,7 +105,7 @@ class GoniometerBase(BaseDevice):
         pass
     
 class Goniometer(GoniometerBase):
-    def __init__(self, name, blname, minibeam):
+    def __init__(self, name, blname, mnt_cmd, minibeam):
         GoniometerBase.__init__(self, name)
         self.name = 'Goniometer'
         pv_root = name.split(':')[0]
@@ -115,8 +115,10 @@ class Goniometer(GoniometerBase):
         self._state.connect('changed', self._on_busy)
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
         self._bl_position = self.add_pv(blname)
+        self._expbox_mount_cmd = self.add_pv(mnt_cmd)
         self.omega = VMEMotor('%s:deg' % name)
         self.minibeam = minibeam
+        self.minibeam_in_position = 3.650
          
         #parameters
         self._settings = {
@@ -140,15 +142,16 @@ class Goniometer(GoniometerBase):
 
         if mode == 'CENTERING':
             self._bl_position.put(1)
-            self.minibeam.move_to(3.82, wait=True)
+            self.minibeam.move_to(self.minibeam_in_position, wait=True)
             #put up backlight
-        elif mode in ['MOUNTING','SCANNING']:
+        elif mode in ['MOUNTING']:
+            self._expbox_mount_cmd.put(1)
+            if wait:
+                time.sleep(3);
+
+        elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
             self._bl_position.put(0)
-            self.minibeam.move_to(27.0, wait=True)
-            #put down backlight
-        elif mode in ['COLLECT', 'BEAM']:
-            self._bl_position.put(0)
-            self.minibeam.move_to(3.82, wait=True)
+            self.minibeam.move_to(self.minibeam_in_position, wait=True)
             #put down backlight
                     
         self._set_and_notify_mode(mode)

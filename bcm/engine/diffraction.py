@@ -170,10 +170,10 @@ class DataCollector(gobject.GObject):
                     self.pos += 1
                     continue
                                             
-                self.beamline.monochromator.energy.move_to(frame['energy'])
+                self.beamline.monochromator.energy.move_to(frame['energy'], wait=True)
                 self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)
                 #self.beamline.diffractometer.two_theta.move_to(frame['two_theta'], wait=True)
-                self.beamline.monochromator.energy.wait()                
+                #self.beamline.monochromator.energy.wait()                
                 
                 # Prepare image header
                 header['delta_angle'] = frame['delta_angle']
@@ -258,7 +258,7 @@ class Screener(gobject.GObject):
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['analyse-request'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
    
-    TASK_MOUNT, TASK_ALIGN, TASK_PAUSE, TASK_COLLECT, TASK_ANALYSE = range(5)
+    TASK_MOUNT, TASK_ALIGN, TASK_PAUSE, TASK_COLLECT, TASK_ANALYSE, TASK_DISMOUNT = range(6)
       
     def __init__(self):
         gobject.GObject.__init__(self)
@@ -356,7 +356,12 @@ class Screener(gobject.GObject):
                     else:
                         #"skip mounting"
                         _logger.warn('Skipping sample: "%s @ %s". Sample port is not mountable!' % (task['sample']['name'], task['sample']['port']))
-                                                                                                            
+                elif task.task_type == Screener.TASK_DISMOUNT:
+                    _logger.warn('TASK: Dismounting Last Sample')
+                    self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+                    self.beamline.cryojet.nozzle.open()
+                    success = self.beamline.automounter.dismount(wait=True)
+                                                                                            
                 elif task.task_type == Screener.TASK_ALIGN:
                     _logger.warn('TASK: Align sample "%s"' % task['sample']['name'])
                     
@@ -430,12 +435,13 @@ class Screener(gobject.GObject):
                         _logger.warn('Requesting analysis')
                     else:
                         _logger.warn('Skipping task because frames were not collected')
-                                                  
+                                                                     
                 # Notify progress
                 fraction = float(self.pos) / self.total_items
                 gobject.idle_add(self.emit, 'progress', fraction, self.pos)          
                 self.pos += 1
             
+                         
             gobject.idle_add(self.emit, 'done')
             if not self.stopped:
                 gobject.idle_add(self.emit, 'progress', 1.0, 0)
