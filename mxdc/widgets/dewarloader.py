@@ -587,7 +587,6 @@ class DewarLoader(gtk.Frame):
         if filename is None:
             return
         xls_loader = XLSLoader(filename)
-
         loaded_db = xls_loader.get_database()
         if self.samples_database is None:
             self.samples_database = loaded_db
@@ -596,6 +595,7 @@ class DewarLoader(gtk.Frame):
             self.samples_database['crystals'].update(loaded_db.get('crystals'))
             self.samples_database['experiments'].update(loaded_db.get('experiments'))
         
+
         if len(xls_loader.errors) > 0:
             header = 'Error Importing Spreadsheet'
             subhead = 'The file "%s" could not be opened.\n\nSee detailed errors below.' % filename

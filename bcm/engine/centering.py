@@ -69,7 +69,7 @@ def auto_center(pre_align=True):
         zmlevel = 'high'
     else:
         zmlevel = 0    
-	back_filename = '%s/data/%s/centering-bg-%s.png\n' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, zmlevel
+	back_filename = '%s/data/%s/centering-bg-%s.png\n' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, zmlevel)
 
     # create XREC input
     infile_name = os.path.join(directory, '%s.inp' % prefix)

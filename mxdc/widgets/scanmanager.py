@@ -9,6 +9,7 @@ from mxdc.widgets.periodictable import PeriodicTable
 from mxdc.widgets.textviewer import TextViewer
 from mxdc.widgets.plotter import Plotter
 from mxdc.widgets.dialogs import  warning, error
+from mxdc.utils import config
 from bcm.beamline.mx import IBeamline
 from twisted.python.components import globalRegistry
 from bcm.engine.spectroscopy import XRFScan, XANESScan
@@ -253,24 +254,12 @@ class ScanManager(gtk.Frame):
         return run_data
 
     def _load_config(self):
-        config_dir = os.path.join(os.environ['HOME'], '.mxdc')
-        config_file = os.path.join(config_dir, SCAN_CONFIG_FILE)
-        if os.access(config_file, os.R_OK):
-            config = json.loads(file(config_file).read())
-            self.set_parameters(config)
+        data = config.load_config(SCAN_CONFIG_FILE)
+        if data is not None:
+            self.set_parameters(data)
 
     def _save_config(self, parameters):
-        config_dir = os.path.join(os.environ['HOME'], '.mxdc')
-        # create configuration directory if none exists
-        if not os.access( config_dir , os.R_OK):
-            if os.access( os.environ['HOME'], os.W_OK):
-                os.mkdir( config_dir )
-                
-        config_file = os.path.join(config_dir, SCAN_CONFIG_FILE)
-        if os.access(config_dir, os.W_OK):
-            f = open(config_file,'w')
-            json.dump(parameters, f)
-            f.close()
+        config.save_config(SCAN_CONFIG_FILE, parameters)
 
     
     def run_xanes(self):

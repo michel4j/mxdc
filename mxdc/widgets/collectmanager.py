@@ -16,7 +16,9 @@ from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
 from mxdc.widgets.runmanager import RunManager
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.dialogs import warning, error
-from mxdc.widgets.rundiagnostics import DiagnosticsWidget 
+from mxdc.widgets.rundiagnostics import DiagnosticsWidget
+from mxdc.utils import config
+
 (
     COLLECT_COLUMN_SAVED,
     COLLECT_COLUMN_ANGLE,
@@ -138,34 +140,22 @@ class CollectManager(gtk.Frame):
         return True
 
 
-    def _load_config(self):
-        config_dir = os.path.join(os.environ['HOME'], '.mxdc')
-        config_file = os.path.join(config_dir, RUN_CONFIG_FILE)
-        if os.access(config_file, os.R_OK):
-            data = {}
-            config = json.loads(file(config_file).read())
-            for section in config.keys():
-                run = int(section)
-                data[run] = config[section]
-                self.add_run(data[run])
+    def _load_config(self):        
+        data = config.load_config(RUN_CONFIG_FILE)
+        if data is None:
+            return
+        for section in data.keys():
+            run = int(section)
+            data[run] = config[section]
+            self.add_run(data[run])
 
     def _save_config(self):
-        config_dir = os.path.join(os.environ['HOME'], '.mxdc')
-        # create configuration directory if none exists
-        if not os.access( config_dir , os.R_OK):
-            if os.access( os.environ['HOME'], os.W_OK):
-                os.mkdir( config_dir )
-                
-        config_file = os.path.join(config_dir, RUN_CONFIG_FILE)
         save_data = {}
         for run in self.run_manager.runs:
             data = run.get_parameters()
             save_data[ data['number'] ] = data
-        if os.access(config_dir, os.W_OK):
-            f = open(config_file,'w')
-            json.dump(save_data, f)
-            f.close()
-
+        config.save_config(RUN_CONFIG_FILE, save_data)
+        
     def config_user(self):
         username = os.environ['USER']
         userid = os.getuid()
