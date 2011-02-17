@@ -350,15 +350,18 @@ class MotorShutter(BaseDevice):
         self.motor = motor
         self.add_devices(self.motor)
         self.name = motor.name
-        self.out_pos = 5
+        self.out_pos = 50
         self.in_pos = 0
-        self.motor.CCW_LIM.connect('changed', self._auto_calib_nozzle)
-        self.motor.connect('changed', self._signal_change)
+        self.motor.CW_LIM.connect('changed', self._auto_calib_nozzle)
+        #self.motor.connect('changed', self._signal_change)
 
     def _auto_calib_nozzle(self, obj, val):
         if val == 1:
-            self.motor.configure(reset=0.0)
-            
+            self.set_state(changed=True)
+            #self.motor.configure(reset=0.0)
+        else:
+            self.set_state(changed=False)
+
     def is_open(self):
         """Convenience function for open state"""
         return self.changed_state
