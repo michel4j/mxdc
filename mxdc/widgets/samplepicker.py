@@ -12,7 +12,14 @@ except:
     using_cairo = False
 
 from bcm.utils.automounter import *
+from bcm.utils.log import get_module_logger
+from bcm.utils.decorators import async
+from bcm.engine import auto
 from mxdc.widgets.textviewer import TextViewer
+from bcm.beamline.interfaces import IBeamline
+from twisted.python.components import globalRegistry
+
+_logger = get_module_logger('mxdc.samplepicker')
 
 class _DummyEvent(object):
     width = 0
@@ -293,13 +300,21 @@ class ContainerWidget(gtk.DrawingArea):
                       
 
 class SamplePicker(gtk.Frame):
-    def __init__(self, automounter):
+    def __init__(self, automounter=None):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
         self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/sample_picker.glade'), 
                                   'sample_picker')
+        
+        try:
+            self.beamline = globalRegistry.lookup([], IBeamline)
+            self.automounter = self.beamline.automounter
+        except:
+            self.beamline = None
+            self.automounter = automounter
+            _logger.error('No registered beamline found.')
+
         self.add(self.sample_picker)
-        self.automounter = automounter
         pango_font = pango.FontDescription('sans 7')
         self.status_lbl.modify_font(pango_font)
         self.lbl_port.modify_font(pango_font)
@@ -326,7 +341,7 @@ class SamplePicker(gtk.Frame):
         self.automounter.connect('active', self.on_active)
         self.automounter.connect('busy', self.on_busy)
         self.automounter.connect('health', self.on_health)
-        self.automounter.connect('enabled', self.on_enabled)
+        #self.automounter.connect('enabled', self.on_enabled)
         self.automounter.connect('mounted', self.on_sample_mounted)
         
 
@@ -357,18 +372,40 @@ class SamplePicker(gtk.Frame):
         self.mount_btn.set_sensitive(True)
     
     def on_mount(self, obj):
-        wash = self.wash_btn.get_active()
-        port = self.selected.get_text()
-        if port.strip() == '':
+        if not self.command_active:
+            wash = self.wash_btn.get_active()
+            port = self.selected.get_text()
+            if port.strip() == '':
+                self.mount_btn.set_sensitive(False)
+                return
+            self.execute_mount(port, wash)
+            self.selected.set_text('')
             self.mount_btn.set_sensitive(False)
-            return
-        self.automounter.mount(port, wash)
-        self.selected.set_text('')
-        self.mount_btn.set_sensitive(False)
+    
+    @async
+    def execute_mount(self, port, wash):
+        try:
+            self.command_active = True
+            auto.auto_mount_manual(self.beamline, port, wash)
+        except:
+            _logger.error('Sample mounting failed')
+        self.command_active = False
+        
+    @async
+    def execute_dismount(self, port):
+        try:
+            self.command_active = True
+            auto.auto_dismount_manual(self.beamline, port)
+        except:
+            _logger.error('Sample dismounting failed')
+        self.command_active = False
+                
 
     def on_dismount(self, obj):
-        port = self.mounted.get_text().strip()
-        self.automounter.dismount(port)
+        if not self.command_active:
+            port = self.mounted.get_text().strip()
+            self.mount_btn.set_sensitive(False)
+            self.execute_dismount(port)
     
     def on_progress(self, obj, state):
         val, msg = state

@@ -355,37 +355,38 @@ class ActiveProgressBar(gtk.ProgressBar):
         self.set_text('0.0%')
         self.progress_id = None
         self.busy_state = False
-      
-    def set_busy(self,busy):
+    
+    
+    def set_busy(self, busy):
         if busy:
-            if self.busy_state == False:
-                self.progress_id = gobject.timeout_add(100, self.busy)
-                self.busy_state = True
+            self.busy_state = True
+            if self.progress_id is None:
+                self.progress_id = gobject.timeout_add(100,  self._progress_timeout)
+            self.pulse()
         else:
-            if self.progress_id:
+            self.busy_state = False
+            if self.progress_id is not None:
                 gobject.source_remove(self.progress_id)
-                self.busy_state = False
-                self.progress_id = None
+            self.set_fraction(0.0)
 
-    def busy(self):
+    def get_busy(self):
+        return self.busy_state
+
+    def _progress_timeout(self):
         self.pulse()
-        self.set_text(self.get_text())
         return True
      
-    def busy_text(self,text):
-        self.set_text(text)
+    def busy_text(self, text):
         self.set_busy(True)
+        self.set_text(text)
     
-    def idle_text(self,text, fraction=None):
+    def idle_text(self, text, fraction=0.0):
         self.set_busy(False)
-        if fraction:
-            self.set_fraction(fraction)
+        self.set_fraction(fraction)
         self.set_text(text)
     
     def set_complete(self, complete, text=''):
-        if self.progress_id:
-            gobject.source_remove(self.progress_id)
-            self.progress_id = None
+        self.set_busy(False)
         self.set_fraction(complete)
         complete_text = '%0.1f%%  %s' % ((complete * 100), text)
         self.set_text(complete_text)

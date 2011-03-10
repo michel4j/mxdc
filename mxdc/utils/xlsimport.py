@@ -68,9 +68,10 @@ CONTAINER_TYPE = Enum(
         'Carousel',)
 
 def port_is_valid(container, loc):
-    if container['type'] == 'CASSETTE':
+    all_positions = []
+    if container['type'] == 'Cassette':
         all_positions = ["ABCDEFGHIJKL"[x/8]+str(1+x%8) for x in range(96) ]
-    elif container['type'] == 'UNI-PUCK':
+    elif container['type'] == 'Uni-Puck':
         all_positions = [ str(x+1) for x in range(16) ]
     return loc in all_positions
     
@@ -104,8 +105,8 @@ class XLSLoader(object):
         self.experiments_sheet = self.book.sheet_by_name(EXPERIMENT_SHEET_NAME)
         self.crystals_sheet = self.book.sheet_by_name(CRYSTAL_SHEET_NAME)
         
-        self.experiments = self._get_experiments()
         self.containers = self._get_containers()
+        self.experiments = self._get_experiments()
         self.crystals = self._get_crystals()
                 
     def _get_containers(self):
@@ -127,21 +128,20 @@ class XLSLoader(object):
                         self.errors.append(CRYSTAL_CONTAINER_ERROR % (row_values[CRYSTAL_CONTAINER], row_num))
                     
                     if row_values[CRYSTAL_CONTAINER_KIND]:
-                        container['type'] = row_values[CRYSTAL_CONTAINER_KIND].upper() # validated by Excel
+                        container['type'] = row_values[CRYSTAL_CONTAINER_KIND] # validated by Excel
                     else:
                         self.errors.append(CRYSTAL_CONTAINER_KIND_ERROR % (row_values[CRYSTAL_CONTAINER_KIND], row_num))
                     container['comments'] = ''
-                    if container['type'] in ['CASSETTE', 'UNI-PUCK']:
-                        containers[ container['name'] ] = container
-                    else:
-                        self.warnings.append(IGNORE_CONTAINER_WARNING % (container['name'], container['type']))
-                    
+                    container['id'] = None
+                    container['load_position'] = ''
+                    container['crystals'] = []
+                    containers[ container['name'] ] = container
+                   
                 # a bit more validation to ensure that the Container 'kind' does not change
                 else:
                     container = containers[row_values[CRYSTAL_CONTAINER]]
-                    
                     if row_values[CRYSTAL_CONTAINER_KIND]:
-                        kind = row_values[CRYSTAL_CONTAINER_KIND].upper() # validated by Excel
+                        kind = row_values[CRYSTAL_CONTAINER_KIND] # validated by Excel
                         if kind != container['type']:
                             self.errors.append(CRYSTAL_CONTAINER_KIND_ERROR % (row_values[CRYSTAL_CONTAINER_KIND], row_num))
                     else:
@@ -173,7 +173,7 @@ class XLSLoader(object):
             if row_values[EXPERIMENT_PLAN]:
                 experiment['plan'] = row_values[EXPERIMENT_PLAN] # validated by Excel
             else:
-                self.errors.append(EXPERIMENT_PLAN_ERROR % (row_values[EXPERIMENT_PLAN], row_num))
+                experiment['plan'] = 'Just Collect'
                 
             if row_values[EXPERIMENT_ABSORPTION_EDGE]:
                 experiment['absorption_edge'] = row_values[EXPERIMENT_ABSORPTION_EDGE]
@@ -195,7 +195,10 @@ class XLSLoader(object):
                 experiment['resolution'] = row_values[EXPERIMENT_RESOLUTION]
             #else:
             #    self.errors.append(EXPERIMENT_RESOLUTION_ERROR % (row_values[EXPERIMENT_RESOLUTION], row_num))
-                
+            
+            experiment['id'] = None
+            experiment['comments'] = ''
+            experiment['crystals'] = []
             experiments[experiment['name']] = experiment
         return experiments
     
@@ -220,51 +223,49 @@ class XLSLoader(object):
                 crystal['barcode'] = ''
 
                 
-            crystal['experiment'] = None
+            crystal['experiment_id'] = None
             if row_values[CRYSTAL_EXPERIMENT] and row_values[CRYSTAL_EXPERIMENT] in self.experiments:
-                # patch the reference - it will be put in the Experiment in .save()
-                crystal['experiment'] = self.experiments[row_values[CRYSTAL_EXPERIMENT]]
+                crystal['experiment_id'] = row_values[CRYSTAL_EXPERIMENT]
+                self.experiments[row_values[CRYSTAL_EXPERIMENT]]['crystals'].append(row_values[CRYSTAL_NAME])
             else:
                 self.errors.append(CRYSTAL_EXPERIMENT_ERROR % (row_values[CRYSTAL_EXPERIMENT], row_num))
-            
-            #skip for ignored containers
-            if not(row_values[CRYSTAL_CONTAINER] in self.containers):
-                continue
-            
-            if row_values[CRYSTAL_CONTAINER] and row_values[CRYSTAL_CONTAINER] in self.containers:
-                crystal['container'] = row_values[CRYSTAL_CONTAINER]
+                        
+            if row_values[CRYSTAL_CONTAINER]:
+                crystal['container_id'] = row_values[CRYSTAL_CONTAINER]
             else:
                 self.errors.append(CRYSTAL_CONTAINER_ERROR % (row_values[CRYSTAL_CONTAINER], row_num))
                 
             if row_values[CRYSTAL_CONTAINER_LOCATION]:
                 # xlrd is doing some auto-conversion to floats regardless of the Excel field type
                 try:
-                    crystal['port'] = str(int(row_values[CRYSTAL_CONTAINER_LOCATION]))
+                    crystal['container_location'] = str(int(row_values[CRYSTAL_CONTAINER_LOCATION]))
                 except ValueError:
-                    crystal['port'] = row_values[CRYSTAL_CONTAINER_LOCATION].strip()
+                    crystal['container_location'] = row_values[CRYSTAL_CONTAINER_LOCATION].strip()
             else:
                 self.errors.append(CRYSTAL_CONTAINER_LOCATION_ERROR % (row_values[CRYSTAL_CONTAINER_LOCATION], row_num))
                 
             # sanity check on container_location
-            if crystal['container']:
-                if not port_is_valid(self.containers[crystal['container']], crystal['port']):
+            if crystal['container_id']:
+                if not port_is_valid(self.containers[crystal['container_id']], crystal['container_location']):
                     self.errors.append(CRYSTAL_CONTAINER_LOCATION_ERROR % (row_values[CRYSTAL_CONTAINER_LOCATION], row_num))
-                
-                
+                else:
+                    self.containers[row_values[CRYSTAL_CONTAINER]]['crystals'].append(row_values[CRYSTAL_NAME])
+                                                   
             if row_values[CRYSTAL_COMMENTS]:
                 crystal['comments'] = row_values[CRYSTAL_COMMENTS]
             else:
                 crystal['comments'] = ''
-                
-                
+            
+            crystal['id'] = None                                
             crystals[crystal['name']] = crystal
         return crystals
     
     def get_database(self):
         db = {}
         db['containers'] = self.containers
-        db['crystals'] = self.crystals
         db['experiments'] = self.experiments
+        db['crystals'] = self.crystals
+
         return db
     
     def is_valid(self):
