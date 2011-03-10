@@ -287,7 +287,6 @@ class DewarLoader(gtk.Frame):
             os.path.join(os.path.dirname(__file__), 'data', 'icons', 'drag_cassette_template.png'))
 
         #btn signals
-        self.lims_btn.connect('clicked', self.on_import_lims)
         self.file_btn.connect('clicked', self.on_import_file)
         self.samples_database = None
         
@@ -533,22 +532,7 @@ class DewarLoader(gtk.Frame):
             if cnt is not None:
                 ctx.set_icon_stock('gtk-undo', -10, -10)
             
-    def on_import_lims(self, obj):
-        #FIXME
-        current_user = os.getlogin()
-        cred_user = 'testuser'
-        cred_pass = '08id-1'
-        lims_url = 'https://cmcf.lightsource.ca/json/'
-        
-        try:
-            from jsonrpc.proxy import ServiceProxy
-            server = ServiceProxy(lims_url)
-            lims_loader =   server.lims.get_user_samples(cred_user, cred_pass, {'user': current_user})  
-        except:
-            header = 'Error Connecting to LIMS'
-            subhead = 'Containers and Samples could not be imported.'
-            dialogs.error(header, subhead)
-            return
+    def import_lims(self, lims_loader):
         
         self.samples_database = lims_loader['result']
             

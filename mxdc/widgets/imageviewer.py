@@ -269,6 +269,8 @@ class ImageViewer(gtk.Frame):
             w = self._xml3.get_widget('%s_lbl' % key)
             if not w:
                 continue
+            if key == "two_theta":
+            	val = val * 180.0 / math.pi
             if key in ['detector_size', 'beam_center']:
                 txt = "%0.0f, %0.0f" % (val[0], val[1])
             elif key in ['filename']:

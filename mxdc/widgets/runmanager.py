@@ -8,7 +8,7 @@ class RunManager(gtk.Notebook):
         'del-run' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
     }
     def __init__(self):
-        gtk.Notebook.__init__(self)       
+        gtk.Notebook.__init__(self)
         self.runs = []
         self.run_labels = []
         self.blank_page = gtk.EventBox()
@@ -62,7 +62,11 @@ class RunManager(gtk.Notebook):
         if num == len(self.runs):
             num = num - 1
         self.set_current_page(num)
-        
+    
+    def update_sample(self, data):
+        for run in self.runs:
+            run.update_sample(data)
+            
     def on_save(self, widget):
         self.emit('saved')
         return True
@@ -78,17 +82,7 @@ class RunManager(gtk.Notebook):
         self.del_run(num)
         self.emit('del-run', num)
         
-    
-    def reset_parent(self):
-        if self.parent:
-            self.parent.clear_runs()
-            for run in self.runs:
-                self.parent.apply_run()
-                          
-    def update_parent(self, pos):
-        if self.parent:
-            self.parent.apply_run()
-
+                              
 gobject.type_register(RunManager)
                 
             

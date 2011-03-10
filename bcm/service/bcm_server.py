@@ -27,7 +27,7 @@ from bcm.utils.log import log_to_twisted
 from bcm.utils.misc import get_short_uuid
 from bcm.utils import runlists
 from bcm.service.common import *
-from bcm.service import auto
+from bcm.engine import auto
 from bcm.utils import converter
 try:
     import json
@@ -157,14 +157,17 @@ class BCMService(service.Service):
     @log_call
     def getParameters(self):
         """Return some bcm configuration parameters for the beamline as a dictionary"""
-        params = self.beamline.config.copy()
+        params = {}
         x, y = self.beamline.detector.get_origin()
         params.update(name=self.beamline.name,
                       detector=self.beamline.detector.detector_type,
                       detector_size=self.beamline.detector.size,
                       pixel_size=self.beamline.detector.resolution,
                       beam_x=x,
-                      beam_y=y
+                      beam_y=y,
+                      energy_range=self.beamline.config['energy_range'],
+                      default_exposure=self.beamline.config['default_exposure'],
+                      default_attenuation=self.beamline.config['default_attenuation'],
                       )
         return params
 

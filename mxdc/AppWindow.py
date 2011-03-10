@@ -68,12 +68,13 @@ class AppWindow(gtk.Window):
         self.hutch_manager = HutchManager()
         self.sample_manager = SampleManager()
         self.result_manager = ResultManager()
-        self.sample_manager.connect('samples-changed', self.on_samples_changed)
         self.screen_manager = ScreenManager()
         self.status_panel = StatusPanel()
         self.dpm_client = clients.DPMClient()
         
         self.screen_manager.screen_runner.connect('analyse-request', self.on_analyse_request)
+        self.sample_manager.connect('samples-changed', self.on_samples_changed)
+        self.sample_manager.connect('sample-selected', self.on_sample_selected)
 
         
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
@@ -131,6 +132,9 @@ class AppWindow(gtk.Window):
         samples = ctx.get_loaded_samples()
         self.screen_manager.add_samples(samples)
         
+    def on_sample_selected(self, obj, data):
+        self.collect_manager.update_sample(data)
+
     def _result_ready(self, data, iter):
         data = data[0]        
         cell_info = '%0.1f %0.1f %0.1f %0.1f %0.1f %0.1f' % (

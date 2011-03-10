@@ -44,6 +44,7 @@ from bcm.utils.log import get_module_logger
 from bcm.utils.automounter import *
 import gobject
 import time
+import re
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -137,7 +138,6 @@ class BasicAutomounter(BaseDevice):
         'mounted': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'progress':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
     }
-    
     def __init__(self):
         BaseDevice.__init__(self)
         self.containers = {'L': AutomounterContainer('L'),
@@ -149,8 +149,8 @@ class BasicAutomounter(BaseDevice):
         self._step_count = 0
         self._last_warn = ''
         self.set_state(active=False, enabled=False)
-        self._command_sent = False
-    
+        self._command_sent = False    
+
     def is_enabled(self):
         return self.enabled_state
     
@@ -200,6 +200,8 @@ class BasicAutomounter(BaseDevice):
         return True
     
     def is_mountable(self, port):
+        if not re.match('[RML][ABCD]\d{1,2}', port):
+            return False
         info = self.containers[port[0]][port[1:]]
         if info is None:
             return False
@@ -207,6 +209,8 @@ class BasicAutomounter(BaseDevice):
             return info[0] == PORT_GOOD
     
     def is_mounted(self, port):
+        if not re.match('[RML][ABCD]\d{1,2}', port):
+            return False
         info = self.containers[port[0]][port[1:]]
         if info is None:
             return False
@@ -421,13 +425,15 @@ class Automounter(BasicAutomounter):
 
         if port is None:
             port = self._mounted.get().strip()
-        else:
-            param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
+            
         if port == '':
             msg = 'No mounted sample to dismount'
             _logger.warning(msg)
             self.set_state(message=msg)
             return False
+        else:
+            param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
+            
         self._dismount_param.put(param)
         self._dismount_cmd.put(1)
         ca.flush()

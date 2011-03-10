@@ -253,8 +253,9 @@ class ScreenManager(gtk.Frame):
                
 
     def add_samples(self, samples):
+        self.sample_list.clear()
         self.sample_list.load_data(samples)
-        
+            
     def get_task_list(self):
         model = self.listview.get_model()
         iter = model.get_iter_first()
