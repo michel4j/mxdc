@@ -4,10 +4,12 @@ Created on Nov 10, 2010
 @author: michel
 '''
 import os
-    
+import fnmatch
+import re
+
 FULL_PARAMETERS = {
     'name': 'test',
-    'directory': os.environ['HOME'],
+    'directory': os.environ.get('HOME', '/tmp'),
     'distance': 250.0,
     'delta_angle': 1.0,
     'exposure_time': 1.0,
@@ -34,44 +36,60 @@ def prepare_run(run_data):
             param = run_data.copy()
             param['energy'] = e_v
             if len(e_values) > 1:
-                param['name'] = '%s_%s' % (param['name'], e_n)
-                
-            param['frame_sets'] = generate_frame_sets(param)
+                param['name'] = '%s_%s' % (param['name'], e_n)                
             param['two_theta'] = run_data.get('two_theta', 0.0)
+            param['frame_sets'] = generate_frame_sets(param)
             runs.append(param)
     else:
         param = run_data
         param['energy'] = e_values
         param['frame_sets'] = generate_frame_sets(param)
         runs.append(param)
+    
         
     return runs
             
-def summarize_sets(run_data):
+
+def _summarize_frame_set(full_set):
+    # takes a list of integers such as [1,2,3,4,6,7,8]
+    # and reduces it to the string "1-4,6-8"
     sum_list = []
+
+    full_set.sort()
     
-    for frame_set in run_data['frame_sets']:
-        if len(frame_set) < 2:
-            if len(frame_set) == 1:
-                sum_list.append('%d' % (frame_set[0][0]))                 
+    first = True
+    for n in full_set:
+        if first:
+            st = n
+            en = n
+            first = False
             continue
-        st = 0            
-        en = st + 1
-        
-        while en < len(frame_set):
-            if en + 1 < len(frame_set):
-                en += 1
-                if frame_set[en][0] - frame_set[en-1][0] > 1:
-                    sum_list.append('%d-%d' % (frame_set[st][0], frame_set[en-1][0]))                
-                    st = en
-                    en = st + 1
+        if n == full_set[-1]: #last item
+            en = n
+            if st == en:
+                sum_list.append('%d' % (st,))
             else:
-                sum_list.append('%d-%d' % (frame_set[st][0], frame_set[en][0]))
-                break
+                sum_list.append('%d-%d' % (st, en))
+        elif n - en > 1: # an edge 
+            if st == en:
+                sum_list.append('%d' % (st,))
+            else:
+                sum_list.append('%d-%d' % (st, en))
+            st = n
+            en = n
+        else:
+            en += 1
+               
     return ','.join(sum_list)
     
-
-
+def summarize_sets(run_data):
+    
+    full_set = []
+    for frame_set in run_data['frame_sets']:
+        full_set.extend(frame_set)
+    full_set = [n for n,_ in full_set]
+    return _summarize_frame_set(full_set)
+    
 def generate_frame_list(run, frame_set):
     frame_list = []
     
@@ -184,18 +202,45 @@ def generate_run_list(run_info_list):
     return run_list     
 
 def generate_data_and_list(run_info_list):
-    runs = []
-    for r in run_info_list:
-        runs.extend(prepare_run(r))
-
+    runs = {}
     run_list = []
     max_sets = 1   
-    for run in runs:       
-        max_sets = max(max_sets, len(run['frame_sets']))
+    for r in run_info_list:
+        for run in prepare_run(r):
+            runs[r['name']] = run
+            max_sets = max(max_sets, len(run['frame_sets']))
 
     for i in range(max_sets):
-        for run in runs:
+        for run in runs.values():
             if i < len(run['frame_sets']):
                 run_list.extend(generate_frame_list(run, run['frame_sets'][i]))
     return runs, run_list     
         
+def _all_files(root, patterns='*'):
+    """ 
+    Return a list of all the files in a directory matching the pattern
+    
+    """
+    patterns = patterns.split(';')
+    path, subdirs, files = os.walk(root).next()
+    sfiles = []
+    for name in files:
+        for pattern in patterns:
+            if fnmatch.fnmatch(name,pattern):
+                sfiles.append(name)
+    sfiles.sort()
+    return sfiles
+
+def get_disk_frameset(run):
+    # Given a run, determine the collected frame set and number of frames based on images on disk
+    file_wcard = "%s_???.img" % (run['name'])
+    file_pattern = '%s_(\d{3}).img' % (run['name'])
+    filetxt = ' '.join(_all_files(run['directory'], file_wcard))
+    full_set = map(int, re.findall(file_pattern, filetxt))
+    
+    return _summarize_frame_set(full_set), len(full_set)
+    
+    
+    
+    
+    

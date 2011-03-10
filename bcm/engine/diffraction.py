@@ -2,7 +2,7 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.engine import centering, snapshot
 from bcm.engine.interfaces import IDataCollector
 from bcm.protocol import ca
-from bcm.utils.converter import energy_to_wavelength
+from bcm.utils.converter import energy_to_wavelength, dist_to_resol
 from bcm.utils.log import get_module_logger
 from bcm.utils import runlists
 from twisted.python.components import globalRegistry
@@ -66,6 +66,7 @@ class DataCollector(gobject.GObject):
             
     def configure(self, run_data, skip_existing=True):
         #associate beamline devices
+        
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
         except:
@@ -93,7 +94,8 @@ class DataCollector(gobject.GObject):
                 
         return
     
-    def save_dataset_info(self, data_list):
+    def get_dataset_info(self, data_list):
+        results = []
         for d in data_list[:]:
             data = d.copy()
             
@@ -101,14 +103,35 @@ class DataCollector(gobject.GObject):
                 continue
             if len(data['frame_sets'][0]) < 4:
                 continue
-            data['frame_sets'] = runlists.summarize_sets(data)
+            # Remove frames from the list that were not collected
+            #FIXME
+            data['id'] = None
+            data['frame_sets'], data['num_frames'] = runlists.get_disk_frameset(data)
             data['wavelength'] = energy_to_wavelength(data['energy'])
-            data['beamline'] = 'CLS %s' % (self.beamline.name)
-
+            data['resolution'] = dist_to_resol(data['distance'], 
+                                self.beamline.detector.resolution,
+                                self.beamline.detector.size,
+                                data['energy'])
+            data['beamline_name'] = self.beamline.name
+            data['detector_size'] = self.beamline.detector.size
+            data['pixel_size'] = self.beamline.detector.resolution
+            data['beam_x'],  data['beam_y'] = self.beamline.detector.get_origin()
+            data['detector'] = self.beamline.detector.detector_type
             filename = os.path.join(data['directory'], '%s.SUMMARY' % data['name'])
+            if os.path.exists(filename):
+                old_data = json.load(file(filename))
+                if old_data.get('id', None) is not None:
+                    data['id'] = old_data['id']
+                if data.get('crystal_id') is None:
+                    data['crystal_id'] = old_data.get('crystal_id', None)
+                if data.get('experiment_id') is None:
+                    data['experiment_id'] = old_data.get('experiment_id', None)
+            
             fh = open(filename,'w')
             json.dump(data, fh, indent=4)
             fh.close()
+            results.append(data)
+        return results
             
     def get_state(self):
         state = {
@@ -206,7 +229,6 @@ class DataCollector(gobject.GObject):
                 #frame['saved'] = True
                 _first = False
                     
-    
                 _logger.info("Image Collected: %s" % (frame['file_name']))
                 gobject.idle_add(self.emit, 'new-image', self.pos, "%s/%s" % (frame['directory'], frame['file_name']))
                 
@@ -215,6 +237,7 @@ class DataCollector(gobject.GObject):
                 gobject.idle_add(self.emit, 'progress', fraction, self.pos + 1)          
                 self.pos = self.pos + 1
             
+            self.results = self.get_dataset_info(self.data_sets.values())
             gobject.idle_add(self.emit, 'done')
             if not self.stopped:
                 gobject.idle_add(self.emit, 'progress', 1.0, 0)
@@ -223,8 +246,6 @@ class DataCollector(gobject.GObject):
             self.beamline.exposure_shutter.close()
             #self.beamline.goniometer.set_mode('MOUNTING') # return goniometer to mount position
             self.beamline.lock.release()
-        self.results = self.data_sets
-        self.save_dataset_info(self.data_sets)
         return self.results
 
     def set_position(self, pos):

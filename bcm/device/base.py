@@ -93,10 +93,6 @@ class BaseDevice(gobject.GObject):
                 msg = '[%d] inactive children.' % (len(inactive_devs))
                 logger.warning( "(%s) %s" % (self.name, msg))
             
-        
-            
-            
-
     def is_active(self):
         """Convenience function for active state"""
         return self.active_state

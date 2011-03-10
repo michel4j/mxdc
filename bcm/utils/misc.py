@@ -3,6 +3,7 @@ import sys
 import math, time
 #import gtk
 import gobject
+import pwd
 
 if sys.version_info[:2] == (2,5):
     import uuid
@@ -42,3 +43,7 @@ def all(iterable):
             return False
     return True
     
+
+def get_project_name():
+    return pwd.getpwuid(os.geteuid())[0]
+    #return 'testuser'
