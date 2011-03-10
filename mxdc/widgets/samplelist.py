@@ -1,6 +1,5 @@
 import gtk, gobject
 import sys, os, time
-from bcm.utils.configobj import ConfigObj
 
 from mxdc.widgets.dialogs import *
 
@@ -81,7 +80,7 @@ class SampleList(gtk.ScrolledWindow):
         for item in data:
             iter = self.listmodel.append()        
             self.listmodel.set(iter,
-                SAMPLE_COLUMN_CONTAINER, item['container'],
+                SAMPLE_COLUMN_CONTAINER, item['container_name'],
                 SAMPLE_COLUMN_STATE, 0, 
                 SAMPLE_COLUMN_SELECTED, False,
                 SAMPLE_COLUMN_PORT, item['port'],
@@ -89,14 +88,14 @@ class SampleList(gtk.ScrolledWindow):
                 SAMPLE_COLUMN_NAME, item['name'],
                 SAMPLE_COLUMN_COMMENTS, item['comments'],
                 SAMPLE_COLUMN_EDITABLE, False,
-                SAMPLE_COLUMN_GROUP, item['experiment']['name'],
+                SAMPLE_COLUMN_GROUP, item['group'],
             )
             
 
     def __add_item(self, item):
         iter = self.listmodel.append()        
         self.listmodel.set(iter,
-            SAMPLE_COLUMN_CONTAINER, item.get(COLUMN_DICT[SAMPLE_COLUMN_CONTAINER].lower(),''),
+            SAMPLE_COLUMN_CONTAINER, item.get('container_name',''),
             SAMPLE_COLUMN_STATE, item[COLUMN_DICT[SAMPLE_COLUMN_STATE].lower()], 
             SAMPLE_COLUMN_SELECTED, item[COLUMN_DICT[SAMPLE_COLUMN_SELECTED].lower()],
             SAMPLE_COLUMN_PORT, item.get(COLUMN_DICT[SAMPLE_COLUMN_PORT].lower(),''),
@@ -104,7 +103,7 @@ class SampleList(gtk.ScrolledWindow):
             SAMPLE_COLUMN_NAME, item.get(COLUMN_DICT[SAMPLE_COLUMN_NAME].lower(),'unknown'),
             SAMPLE_COLUMN_COMMENTS, item.get(COLUMN_DICT[SAMPLE_COLUMN_COMMENTS].lower(),''),
             SAMPLE_COLUMN_EDITABLE, False,
-            SAMPLE_COLUMN_GROUP, item['experiment']['name'],
+            SAMPLE_COLUMN_GROUP, item['group'],
         )
     
     def __set_color(self,column, renderer, model, iter):
@@ -221,113 +220,7 @@ class SampleList(gtk.ScrolledWindow):
     def clear(self):
         model = self.listview.get_model()
         model.clear()
-    
-    def export_xls(self, filename):
-        model = self.listview.get_model()
-        from pyExcelerator import Workbook
-        wb = Workbook()
-        wso = wb.add_sheet('0')
-        columns = [COLUMN_DICT[SAMPLE_COLUMN_CONTAINER], 
-                   COLUMN_DICT[SAMPLE_COLUMN_PORT],
-                   COLUMN_DICT[SAMPLE_COLUMN_CODE],
-                   COLUMN_DICT[SAMPLE_COLUMN_NAME],
-                   COLUMN_DICT[SAMPLE_COLUMN_COMMENTS],]                  
-        for i in range(len(columns)):
-            wso.write(0, i, columns[i])
-        col = 1
-        iter = model.get_iter_first()
-        while iter:      
-            rowinfo = [model.get_value(iter, SAMPLE_COLUMN_CONTAINER),
-                       model.get_value(iter, SAMPLE_COLUMN_PORT),
-                       model.get_value(iter, SAMPLE_COLUMN_CODE),
-                       model.get_value(iter, SAMPLE_COLUMN_NAME),
-                       model.get_value(iter, SAMPLE_COLUMN_COMMENTS)]
-            for j in range(len(rowinfo)):
-                wso.write(col, j, rowinfo[j])
-            col +=1
-            iter = model.iter_next(iter)
-        wb.save(filename)
-
-    def export_csv(self, filename):
-        model = self.listview.get_model()
-        import csv
-        w = csv.writer(open(filename,'w'))
-        columns = [COLUMN_DICT[SAMPLE_COLUMN_CONTAINER], 
-                   COLUMN_DICT[SAMPLE_COLUMN_PORT],
-                   COLUMN_DICT[SAMPLE_COLUMN_CODE],
-                   COLUMN_DICT[SAMPLE_COLUMN_NAME],
-                   COLUMN_DICT[SAMPLE_COLUMN_COMMENTS],]                  
-        w.writerow( columns)
-        iter = model.get_iter_first()
-        while iter:      
-            rowinfo = [model.get_value(iter, SAMPLE_COLUMN_CONTAINER),
-                       model.get_value(iter, SAMPLE_COLUMN_PORT),
-                       model.get_value(iter, SAMPLE_COLUMN_CODE),
-                       model.get_value(iter, SAMPLE_COLUMN_NAME),
-                       model.get_value(iter, SAMPLE_COLUMN_COMMENTS)]
-            w.writerow(rowinfo)
-            iter = model.iter_next(iter)
-
-    def import_csv(self, filename):
-        import csv
-        model = self.listview.get_model()
-        csvfile = open(filename)
-        dialect = csv.Sniffer().sniff(csvfile.read(1024))
-        csvfile.seek(0)
-        reader = csv.reader(csvfile, dialect)
-        header = reader.next()
-        hset = set([x.lower() for x in header])
-        try:
-            assert(hset.issuperset(MIN_COLUMN_SET))
-        except:
-            missing = ', '.join(MIN_COLUMN_SET.difference(hset))
-            header = 'Missing Columns in "%s"' % os.path.basename(filename)
-            subhead = 'The following required columns "%s" were not found' % missing
-            error(header, subhead)
-            csvfile.close()
-            return
-            
-        self.clear()
-        for row in reader:
-            item = {COLUMN_DICT[SAMPLE_COLUMN_STATE].lower(): 0, 
-                    COLUMN_DICT[SAMPLE_COLUMN_SELECTED].lower(): False}
-            for i in range(len(header)):
-                item[header[i].lower()] = row[i]
-            self.__add_item(item)
-        csvfile.close()
-            
-
-    def import_xls(self, filename):
-        import pyExcelerator as xls
-        sheet, values = xls.parse_xls(filename)[0]
-        rid = set([k[0] for k in values.keys()])
-        cid = set([k[1] for k in values.keys()])
-        rows = []
-        for r in rid:
-            row = []
-            for c in cid:
-                row.append( values.get((r,c), '') )
-            rows.append(row)
-        header = rows[0]
-        hset = set([x.lower() for x in header])
-        try:
-            assert(hset.issuperset(MIN_COLUMN_SET))
-        except:
-            missing = ', '.join(MIN_COLUMN_SET.difference(hset))
-            header = 'Missing Columns in "%s"' % os.path.basename(filename)
-            subhead = 'The following required columns "%s" were not found' % missing
-            error(header, subhead)
-            csvfile.close()
-            return
-        
-        self.clear()
-        for row in rows[1:]:
-            item = {COLUMN_DICT[SAMPLE_COLUMN_STATE].lower(): 0, 
-                    COLUMN_DICT[SAMPLE_COLUMN_SELECTED].lower(): False}
-            for i in range(len(header)):
-                item[header[i].lower()] = row[i]
-            self.__add_item(item)
-         
+             
         
 if __name__ == "__main__":
    

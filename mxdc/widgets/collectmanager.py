@@ -1,9 +1,12 @@
 import gtk, gobject
 import sys, os, time
 
+
 from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.engine.diffraction import DataCollector
+from bcm.utils.decorators import async
+from bcm.utils.misc import get_project_name
 
 try:
     import json
@@ -11,6 +14,8 @@ except:
     import simplejson as json
     
 from bcm.utils import misc, runlists
+from bcm.utils.log import get_module_logger
+from bcm.engine import auto
 
 from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
 from mxdc.widgets.runmanager import RunManager
@@ -18,6 +23,9 @@ from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.dialogs import warning, error
 from mxdc.widgets.rundiagnostics import DiagnosticsWidget
 from mxdc.utils import config
+
+# setup module logger with a default do-nothing handler
+_logger = get_module_logger(__name__)
 
 (
     COLLECT_COLUMN_SAVED,
@@ -32,19 +40,32 @@ from mxdc.utils import config
     COLLECT_STATE_PAUSED
 ) = range(3)
 
+(
+    MOUNT_ACTION_NONE,
+    MOUNT_ACTION_DISMOUNT,
+    MOUNT_ACTION_MOUNT,
+) = range(3)
+
 RUN_CONFIG_FILE = 'run_config.json'
 
 class CollectManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
+        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/collect_widget.glade'), 
+                                  'collect_widget')            
         self.run_data = []
         self.run_list = []
+        
         self.collect_state = COLLECT_STATE_IDLE
         self.frame_pos = None
         self._first_launch = False
         self.skip_frames = False
         self._create_widgets()
+        
+        self.selected_sample = {}
+        self.update_sample()
+        
         
     def __getattr__(self, key):
         try:
@@ -53,14 +74,14 @@ class CollectManager(gtk.Frame):
             return self._xml.get_widget(key)
 
     def _create_widgets(self):
-        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/collect_widget.glade'), 
-                                  'collect_widget')            
         self.image_viewer = ImageViewer(size=640)
         self.run_manager = RunManager()
         self.collector = DataCollector()
         self.beamline = globalRegistry.lookup([], IBeamline)      
         
         self.collect_state = COLLECT_STATE_IDLE
+        self.sel_mount_action = MOUNT_ACTION_NONE 
+        self.sel_mounting  = False # will be sent to true when mount command has been sent and false when it is done
         self.frame_pos = None
         
         # Run List
@@ -85,10 +106,7 @@ class CollectManager(gtk.Frame):
         self.progress_bar.set_fraction(0.0)
         self.progress_bar.idle_text('0%')
         self.control_box.pack_start(self.progress_bar, expand=False, fill=True)
-        
-        # Dose Control
-        self.dose_frame.set_sensitive(False)
-        
+                
         # Current Position
         pos_table = self._xml.get_widget('position_table')
         if self.beamline is not None:
@@ -101,6 +119,10 @@ class CollectManager(gtk.Frame):
         self.frame_book.add(self.image_viewer)
         self.setup_box.pack_end(self.run_manager, expand = True, fill = True)
         
+        #automounter signals
+        self.beamline.automounter.connect('mounted', lambda x,y: self.update_sample())
+
+        
         #diagnostics
         self.diagnostics = DiagnosticsWidget()
         self.tool_book.append_page(self.diagnostics, tab_label=gtk.Label('Run Diagnostics'))
@@ -110,6 +132,7 @@ class CollectManager(gtk.Frame):
         self.listview.connect('row-activated',self.on_row_activated)
         self.collect_btn.connect('clicked',self.on_activate)
         self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
+        self.mnt_action_btn.connect('clicked', self.on_mount_action)
         self.run_manager.connect('saved', self.save_runs)
         #self.run_manager.connect('del-run', self.remove_run)
 
@@ -120,7 +143,7 @@ class CollectManager(gtk.Frame):
         self.collector.connect('error', self.on_error)
         self.collector.connect('paused',self.on_pause)
         self.collector.connect('new-image', self.on_new_image)
-        self.collector.connect('stopped', self.on_stop)
+        self.collector.connect('stopped', self.on_complete)
         self.collector.connect('progress', self.on_progress)
 
         if self.beamline is not None:
@@ -146,7 +169,7 @@ class CollectManager(gtk.Frame):
             return
         for section in data.keys():
             run = int(section)
-            data[run] = config[section]
+            data[run] = data[section]
             self.add_run(data[run])
 
     def _save_config(self):
@@ -156,6 +179,69 @@ class CollectManager(gtk.Frame):
             save_data[ data['number'] ] = data
         config.save_config(RUN_CONFIG_FILE, save_data)
         
+    def update_sample(self, data=None):
+        
+        if data is not None:
+            self.selected_sample.update(data)
+            self.run_manager.update_sample(self.selected_sample)
+            
+        self.mnt_action_btn.set_sensitive(False)
+        self.mnt_action_btn.set_label('Mount')
+        self.sel_mount_action = MOUNT_ACTION_NONE
+        
+        if self.selected_sample.get('name') is not None:
+            if self.selected_sample.get('port') is not None:
+                txt = "%s(%s)" % (self.selected_sample['name'], 
+                                  self.selected_sample['port'])
+                self.crystal_lbl.set_text(txt)
+                if self.beamline.automounter.is_mounted(self.selected_sample['port']):
+                    self.mnt_action_btn.set_label('Dismount')
+                    self.sel_mount_action = MOUNT_ACTION_DISMOUNT
+                elif self.beamline.automounter.is_mountable(self.selected_sample['port']):
+                    self.mnt_action_btn.set_label('Mount')
+                    self.sel_mount_action = MOUNT_ACTION_MOUNT
+                if self.sel_mounting or self.beamline.automounter.is_busy() or not self.beamline.automounter.is_active():
+                    self.sel_mount_action = MOUNT_ACTION_NONE
+                    self.mnt_action_btn.set_sensitive(False)
+                else:
+                    self.mnt_action_btn.set_sensitive(True)
+                    
+    @async
+    def execute_mount_action(self):
+        
+        if self.sel_mount_action == MOUNT_ACTION_MOUNT:
+            try:
+                gobject.idle_add(self.progress_bar.busy_text, 
+                                 'Mounting %s ...' % self.selected_sample['name'])
+                self.sel_mounting = True
+                gobject.idle_add(self.update_sample)
+                auto.auto_mount_manual(self.beamline, self.selected_sample['port'])
+                done_text = "Mount succeeded"
+            except:
+                _logger.error('Sample mounting failed')
+                done_text = "Mount failed"
+        elif self.sel_mount_action == MOUNT_ACTION_DISMOUNT:
+            try:
+                gobject.idle_add(self.progress_bar.busy_text, 
+                                 'Dismounting %s ...' % self.selected_sample['name'])
+                self.sel_mounting = True
+                gobject.idle_add(self.update_sample)
+                auto.auto_dismount_manual(self.beamline, self.selected_sample['port'])
+                done_text = "Dismount succeeded"
+            except:
+                _logger.error('Sample dismounting failed')
+                done_text = "Dismount failed"
+        
+        if self.progress_bar.get_busy():
+            gobject.idle_add(self.progress_bar.idle_text,  done_text)
+        self.sel_mounting = False
+        gobject.idle_add(self.update_sample)
+    
+    
+    def on_mount_action(self, obj):
+        self.execute_mount_action()
+
+    
     def config_user(self):
         username = os.environ['USER']
         userid = os.getuid()
@@ -197,8 +283,7 @@ class CollectManager(gtk.Frame):
             renderer.set_property("foreground", '#cc0000')
         else:
             renderer.set_property("foreground", None)
-        return
-        
+        return      
                 
     def _add_columns(self):
         model = self.listview.get_model()
@@ -389,21 +474,64 @@ class CollectManager(gtk.Frame):
         self.stop_btn.set_sensitive(False)
         self.progress_bar.busy_text("Stopping after this frame...")
         
-    def on_stop(self, widget=None):
-        self.collect_state = COLLECT_STATE_IDLE
-        self.collect_btn.set_label('mxdc-collect')
-        self.stop_btn.set_sensitive(False)
-        self.run_manager.set_sensitive(True)
-        self.image_viewer.set_collect_mode(False)
-        self.progress_bar.idle_text("Stopped")
     
-    def on_complete(self, widget=None):
+    def on_complete(self, obj=None):
         self.collect_state = COLLECT_STATE_IDLE
         self.collect_btn.set_label('mxdc-collect')
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
         self.progress_bar.idle_text("Stopped")
+        
+        try:
+            for result in obj.results:
+                json_info = {
+                    'id': result.get('id'),
+                    'crystal_id': result.get('crystal_id'),
+                    'experiment_id': result.get('experiment_id'),
+                    'name': result['name'],
+                    'resolution': round(result['resolution'], 5),
+                    'start_angle': result['start_angle'],
+                    'delta_angle': result['delta_angle'],
+                    'first_frame': result['first_frame'],
+                    'frame_sets': result['frame_sets'],
+                    'exposure_time': result['exposure_time'],
+                    'two_theta': result['two_theta'],
+                    'wavelength': round(result['wavelength'], 5),
+                    'detector': result['detector'],
+                    'beamline_name': result['beamline_name'],
+                    'detector_size': result['detector_size'],
+                    'pixel_size': result['pixel_size'],
+                    'beam_x': result['beam_x'],
+                    'beam_y': result['beam_y'],
+                    'url': result['directory'],
+                    'staff_comments': result.get('comments'),
+                    #'project_name': "testuser",                  
+                    'project_name': get_project_name(),                  
+                    }
+                if result['num_frames'] < 4:
+                    return
+                if result['num_frames'] < 10:
+                    json_info['kind'] = 0 # screening
+                else:
+                    json_info['kind'] = 1 # collection
+                
+                reply = self.beamline.lims_server.lims.add_data(
+                            self.beamline.config.get('lims_api_key',''), json_info)
+                if reply.get('result') is not None:
+                    if reply['result'].get('data_id') is not None:
+                        # save data id to file so next time we can find it
+                        result['id'] = reply['result']['data_id']
+                        _logger.info('Dataset uploaded to LIMS.')
+                elif reply.get('error') is not None:
+                    _logger.error('Dataset could not be uploaded to LIMS.')
+                filename = os.path.join(result['directory'], '%s.SUMMARY' % result['name'])
+                fh = open(filename,'w')
+                json.dump(result, fh, indent=4)
+                fh.close()
+        except:
+            print sys.exc_info()
+            _logger.warn('Could not upload dataset to LIMS.')
 
     def on_new_image(self, widget, index, filename):
         self.frame_pos = index

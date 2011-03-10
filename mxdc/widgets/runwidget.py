@@ -22,9 +22,9 @@ DEFAULT_PARAMETERS = {
     'delta_angle': 1.0,
     'exposure_time': 1.0,
     'start_angle': 0,
-    'total_angle': 1.0,
+    'total_angle': 180.0,
     'first_frame': 1,
-    'num_frames': 1,
+    'num_frames': 180,
     'inverse_beam': False,
     'wedge': 360.0,
     'energy': [ 12.658 ],
@@ -32,6 +32,9 @@ DEFAULT_PARAMETERS = {
     'number': 1,
     'two_theta': 0.0,
     'skip': '',
+    'crystal_id': None,
+    'experiment_id': None,
+    'comments': '',
 }
 
 
@@ -43,7 +46,7 @@ class RunWidget(gtk.Frame):
                                   'run_widget')
         
         self.add(self.run_widget)
-        self.reset_btn.connect('clicked', self.on_reset_parameters)
+        self.update_btn.connect('clicked', self.on_update_parameters)
         self.entry = {}
                 
         # Data for entries (name: (col, row, length, [unit]))
@@ -89,7 +92,6 @@ class RunWidget(gtk.Frame):
         self.entry['skip'].connect('activate', self.on_skip_changed)
                
         # Energy
-        self.sw = self._xml.get_widget('energy_view')
         self.energy_store = gtk.ListStore(
             gobject.TYPE_STRING,
             gobject.TYPE_FLOAT,
@@ -99,7 +101,7 @@ class RunWidget(gtk.Frame):
         self.energy_list = gtk.TreeView(model=self.energy_store)
         self.energy_list.connect('focus-out-event', lambda x, y: self.check_changes())
         self.energy_list.set_rules_hint(True)
-        self.sw.add(self.energy_list)
+        self.energy_view.add(self.energy_list)
         
         
         #Label column
@@ -132,10 +134,11 @@ class RunWidget(gtk.Frame):
         self.set_no_show_all(True)
         
         #initialize parameters
-        self.parameters = DEFAULT_PARAMETERS
+        self.parameters = {}
+        self.parameters.update(DEFAULT_PARAMETERS)
         self.set_number(num)
         self.set_parameters(self.parameters)
-        #self.parameters = self.get_parameters()
+        self.selected_sample = {}
 
         self._changes_pending = False
                 
@@ -246,6 +249,7 @@ class RunWidget(gtk.Frame):
             self.entry['directory'].set_filename("%s" % dict['directory'])
         else:
             self.entry['directory'].set_filename(os.environ['HOME'])
+            dict['directory'] = os.environ['HOME']
     
         self.set_number(dict['number'])
         self.entry['inverse_beam'].set_active(dict['inverse_beam'])
@@ -255,10 +259,15 @@ class RunWidget(gtk.Frame):
             self.__add_energy([dict['energy_label'][i], dict['energy'][i], True, False] )
         self.__reset_e_btn_states()
         self.entry['skip'].set_text(dict.get('skip',''))
+      
+        _cmt_buf =  self.comments_entry.get_buffer()
+        _cmt_buf.set_text(dict['comments'])
+        
+        self.parameters.update(dict)
         self.check_changes()
         
     def get_parameters(self):
-        run_data = DEFAULT_PARAMETERS.copy()
+        run_data = self.parameters.copy()
                 
         run_data['name']      = self.entry['name'].get_text().strip()
         run_data['directory']   = self.entry['directory'].get_filename()
@@ -290,7 +299,9 @@ class RunWidget(gtk.Frame):
         
         for key in ['skip']:
             run_data[key] = self.entry[key].get_text()
-            
+        _cmt_buf =  self.comments_entry.get_buffer()           
+        run_data['comments'] = _cmt_buf.get_text(_cmt_buf.get_start_iter(), _cmt_buf.get_end_iter())
+
         return run_data
                 
     def is_enabled(self):
@@ -313,7 +324,8 @@ class RunWidget(gtk.Frame):
 #                self.entry[key].set_sensitive(False)
             self.energy_btn_box.hide()
             self.energy_list.set_sensitive(False)
-            self.sw.hide()    
+            self.comments_frame.hide()
+            self.energy_view.hide()    
             self.delete_btn.set_sensitive(False)
             if self.predictor is None:    
                 #add Predictor
@@ -327,6 +339,8 @@ class RunWidget(gtk.Frame):
                 self.predictor.set_border_width(12)
                 self.run_widget.pack_end( self.predictor, expand=True, fill=True)
     
+    def update_sample(self, data):
+        self.selected_sample = data
         
     def check_changes(self):
         new_values = self.get_parameters()
@@ -334,10 +348,13 @@ class RunWidget(gtk.Frame):
             self.predictor.configure(distance=new_values['distance'], 
                                      energy=new_values['energy'][0],
                                      two_theta=new_values['two_theta'])
-        
-        keys = new_values.keys()
-        keys.remove('energy_label')
+
+        keys = self.parameters.keys()
         for key in keys:
+            # skip some keys 
+            if key in ['energy_label', 'crystal_id', 'experiment_id', 'comments']:
+                continue
+            
             if key == 'energy':
                 widget = None
                 _energy_changed = False
@@ -541,20 +558,37 @@ class RunWidget(gtk.Frame):
         self.parameters = self.get_parameters()
         self.check_changes()
         return True
-
-    def on_reset_parameters(self, obj):
+        
+    def on_update_parameters(self, obj):
         params = self.get_parameters()
+        print params
         try:
-            beamline = globalRegistry.lookup([], IBeamline)      
-            params['distance'] = beamline.distance.get_position()
-            params['two_theta'] = beamline.two_theta.get_position()
-            params['energy'] = [ beamline.energy.get_position() ]
-            params['energy_label'] = ['E0']
-            params['start_angle'] = beamline.goniometer.omega.get_position()
+            beamline = globalRegistry.lookup([], IBeamline)
+            strategy = self.selected_sample.get('strategy', {})
+            params['name'] = self.selected_sample.get('name', params['name'])
+            params['distance'] = strategy.get('distance', beamline.distance.get_position())
+            params['two_theta'] = strategy.get('two_theta', beamline.two_theta.get_position())
+            params['energy'] = strategy.get('energy', [beamline.energy.get_position()])
+            params['energy_label'] = strategy.get('energy_label', ['E0'])
+            params['start_angle'] = strategy.get('start_angle', beamline.goniometer.omega.get_position())
+            params['delta_angle'] = strategy.get('delta_angle', 1.0)
+            params['exposure_time'] = strategy.get('exposure_time', beamline.config['default_exposure'])
+            params['total_angle'] = strategy.get('total_angle', 180.0)
+            params['first_frame'] = 1
+            params['skip'] = ""
+            params['wedge'] = 360.0
+            params['inverse_beam'] = False
+            params['crystal_id'] = self.selected_sample.get('id', None)
+            params['experiment_id'] = self.selected_sample.get('experiment_id', None)
+            if self.selected_sample.get('comments') is not None:
+                params['comments'] = self.selected_sample['comments']
+            else:
+                params['comments'] = ''
             self.set_parameters(params)
             self.check_changes()
         except:
-            self.reset_btn.set_sensitive(False)
+            raise
+            self.update_btn.set_sensitive(False)
         self.check_changes()
         return True  
         
