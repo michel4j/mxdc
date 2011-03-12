@@ -26,21 +26,27 @@ from mxdc.AppWindow import AppWindow
 _logger = get_module_logger('mxdc')
 
 class MXDCApp(object):
+    def provider_success(self, config):
+        _ = MXBeamline(config)
+        self.main_window.connect('destroy', self.do_quit)
+        self.main_window.run()
+
+    def provider_failure(self):
+        _logger.error('An instance of MXDC is already running on the local network. Only one instance permitted.')
+        error('MXDC Already Running', 'An instance of MXDC is already running on the local network. Only one instance permitted.')
+        self.do_quit()
+
     def run_local(self, config):
         self.main_window = AppWindow()
         _service_data = {'user': get_project_name(), 
                          'started': time.asctime(time.localtime())}
         try:
             self.provider = mdns.Provider('MXDC Client', '_mxdc._tcp', 9999, _service_data, unique=True)
+            self.provider.connect('running', lambda x: self.provider_success(config))
+            self.provider.connect('collision', lambda x: self.provider_failure())
 
         except mdns.mDNSError:
-            _logger.error('An instance of MXDC is already running on the local network. Only one instance permitted.')
-            error('MXDC Already Running', 'An instance of MXDC is already running on the local network. Only one instance permitted.')
-            self.do_quit()
-        else:
-            _ = MXBeamline(config)
-            self.main_window.connect('destroy', self.do_quit)
-            self.main_window.run()
+            self.provider_failure()
         return False
     
     def run_remote(self):
