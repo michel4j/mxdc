@@ -11,7 +11,11 @@ import gobject
 import dbus
 import dbus.glib
 import avahi
-
+try:
+    import json
+except:
+    import simplejson as json
+    
 # get logging object
 from bcm.utils.log import get_module_logger
 log = get_module_logger('mdns')
@@ -20,13 +24,19 @@ _bus = dbus.SystemBus()
 class mDNSError(Exception):
     pass
 
-class Provider(object):
+class Provider(gobject.GObject):
     """
     Provide a multicast DNS service with the given name and type listening on the given
     port with additional information in the data record.
     """
+    __gsignals__ = {
+        'running' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+        'collision' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+    }
+
 
     def __init__(self, name, service_type, port, data={}, unique=False):
+        gobject.GObject.__init__(self)
         self._bus = _bus
         self._avahi = dbus.Interface(
             self._bus.get_object( avahi.DBUS_NAME, avahi.DBUS_PATH_SERVER ),
@@ -34,27 +44,39 @@ class Provider(object):
         self._entrygroup = dbus.Interface(
             self._bus.get_object( avahi.DBUS_NAME, self._avahi.EntryGroupNew()),
             avahi.DBUS_INTERFACE_ENTRY_GROUP)
+        self._entrygroup.connect_to_signal('StateChanged', self._state_changed)
         self._services = {}
         self._params = [
             avahi.IF_UNSPEC,            # interface
             avahi.PROTO_UNSPEC,         # protocol
-            0,                          # flags
+            dbus.UInt32(0),                          # flags
             name,                       # name
             service_type,               # service type
             "",                         # domain
             "",                         # host
             dbus.UInt16(port),          # port
-            avahi.string_array_to_txt_array([ '%s=%s' % t for t in data.items() ]), # data
+            json.dumps(data), # data
         ]
         self._add_service(unique)
 
-
+    def _state_changed(self, cur, prev):
+        
+        if cur == avahi.SERVER_COLLISION:
+            gobject.idle_add(self.emit, 'collision')
+            log.error("Service name collision")
+        elif cur == avahi.SERVER_RUNNING:
+            gobject.idle_add(self.emit, 'running')
+            log.info("MXDC Service published")
+            
     def _add_service(self, unique=False):
         """
         Add a service with the given parameters.
         """
         retries = 0
-        max_retries = 12 
+        if unique:
+            max_retries = 1
+        else:
+            max_retries = 12
         retry = True
         base_name = self._params[3]
 
@@ -62,33 +84,29 @@ class Provider(object):
             retries += 1
             try:
                 self._entrygroup.AddService(*self._params)
-                self._entrygroup.Commit(reply_handler=self._on_complete, error_handler=self._on_complete)
+                self._entrygroup.Commit()
+                print 
             except dbus.exceptions.DBusException,  error:
-                if re.search('Local name collision', str(error)):
-                    if unique:
-                        log.error('Service Name Collision')
-                        retry = False
-                        raise mDNSError('Service Name Collision')
-                    else:
-                        self._params[3] = '%s #%d' % (base_name, retries)
-                        log.warning('Service Name Collision. Renaming to %s' % (self._params[3]))
-                        retry = True
-                else:
-                    log.error('DBUS Error: %s' % error)
-                    #raise mDNSError('Multicast-DNS Error')
+                if unique:
+                    log.error('Service Name Collision')
                     retry = False
+                    raise mDNSError('Service Name Collision')
+                else:
+                    self._params[3] = '%s #%d' % (base_name, retries)
+                    log.warning('Service Name Collision. Renaming to %s' % (self._params[3]))
+                    retry = True
 
     def __del__(self):
         self._entrygroup.Reset(reply_handler=self._on_complete, error_handler=self._on_complete)
-        self._entrygroup.Commit(reply_handler=self._on_complete, error_handler=self._on_complete)
+        self._entrygroup.Commit()
 
     def _on_complete(self, error=None):
         """
         Handle event when dbus command is finished.
         """
         if error:
-            #log.error(error)
-            pass
+            log.error(error)
+            
 
 class Browser(gobject.GObject):
     __gsignals__ = {
