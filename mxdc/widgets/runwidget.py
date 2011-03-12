@@ -261,7 +261,7 @@ class RunWidget(gtk.Frame):
         self.entry['skip'].set_text(dict.get('skip',''))
       
         _cmt_buf =  self.comments_entry.get_buffer()
-        _cmt_buf.set_text(dict['comments'])
+        _cmt_buf.set_text(dict.get('comments', ''))
         
         self.parameters.update(dict)
         self.check_changes()
