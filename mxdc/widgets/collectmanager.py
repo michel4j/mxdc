@@ -509,13 +509,13 @@ class CollectManager(gtk.Frame):
                     #'project_name': "testuser",                  
                     'project_name': get_project_name(),                  
                     }
-                if result['num_frames'] < 4:
-                    return
                 if result['num_frames'] < 10:
                     json_info['kind'] = 0 # screening
                 else:
                     json_info['kind'] = 1 # collection
                 
+                if result['num_frames'] < 4:
+                    return
                 reply = self.beamline.lims_server.lims.add_data(
                             self.beamline.config.get('lims_api_key',''), json_info)
                 if reply.get('result') is not None:

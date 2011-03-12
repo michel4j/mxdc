@@ -14,6 +14,7 @@ from mxdc.widgets import dialogs
 from mxdc.widgets.ptzviewer import AxisViewer
 from bcm.beamline.mx import IBeamline
 from bcm.engine.interfaces import IDataCollector
+from bcm.utils.runlists import determine_skip
 from bcm.engine.diffraction import Screener, DataCollector
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.dialogs import warning
@@ -25,7 +26,7 @@ TASKLET_NAME_MAP = {
     Screener.TASK_MOUNT : 'Mount Crystal',
     Screener.TASK_ALIGN : 'Center Crystal',
     Screener.TASK_PAUSE : 'Pause',
-    Screener.TASK_COLLECT : 'Collect',
+    Screener.TASK_COLLECT : 'Collect Frames',
     Screener.TASK_ANALYSE : 'Analyse',
     Screener.TASK_DISMOUNT : 'Dismount',
 }
@@ -370,7 +371,10 @@ class ScreenManager(gtk.Frame):
         model = self.listview.get_model()
         model.clear()
         items = self.sample_list.get_selected()
+        delta = float(self.delta_entry.get_text())
         for item in items:
+            collect_task = None
+            collect_frames = []
             for t,b in self.TaskList:
                 if t.options['enabled']:
                     tsk = Tasklet(t.task_type, **t.options)
@@ -378,13 +382,36 @@ class ScreenManager(gtk.Frame):
                         'directory' : self.folder_btn.get_current_folder(),
                         'sample':  item})
                     if tsk.task_type == Screener.TASK_COLLECT:
-                        st_fr = 1 + tsk.options['angle']//float(self.delta_entry.get_text())
-                        tsk.options.update({
-                            'delta': float(self.delta_entry.get_text()),
-                            'time': float(self.time_entry.get_text()),
-                            'start_frame':st_fr})
-                    q_item = {'done': False, 'task': tsk} 
-                    self._add_item(q_item)
+                        for n in range(t.options['frames']):
+                            ang = t.options['angle'] + n*delta
+                            num = int(round(ang/delta)) + 1
+                            collect_frames.append(num)
+                            
+                        if collect_task is None:
+                            collect_task = tsk
+                            q_item = {'done': False, 'task': tsk}
+                            self._add_item(q_item)
+                    else:
+                        if tsk.task_type == Screener.TASK_ANALYSE:
+                            # make sure analyse knows about corresponding collect
+                            tsk.options.update(collect_task=collect_task)   
+                        q_item = {'done': False, 'task': tsk} 
+                        self._add_item(q_item)
+            
+            # setup collect parameters for this item
+            if collect_task is not None:
+                collect_task.options.update({
+                    'delta_angle': float(self.delta_entry.get_text()),
+                    'exposure_time': float(self.time_entry.get_text()),
+                    'distance': float(self.distance_entry.get_text()),
+                    'energy': [float(self.energy_entry.get_text())],
+                    'energy_label': ['E0'],
+                    'first_frame': 1,
+                    'start_angle': 0.0,
+                    'wedge': 360.0,
+                    'total_angle': (max(collect_frames)+1) * delta,
+                    'skip': determine_skip(collect_frames),
+                    })
                     
             # Add dismount task for last item
             if item == items[-1]:

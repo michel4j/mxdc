@@ -268,7 +268,6 @@ class DewarLoader(gtk.Frame):
                     self.samples_database['containers'][str(cnt_detail['name'])]['load_position'] = new_stall
                 self.load_database(self.samples_database)
                 self.save_database()
-                self._notify_changes()
 
             else:
                 unused = set(VALID_STALLS.get(container_type,[])).difference(data['used'])
@@ -318,6 +317,7 @@ class DewarLoader(gtk.Frame):
                 else:
                     xtl['group'] = None
                 self.crystals.add_crystal(xtl)
+        self._notify_changes()
 
     def load_saved_database(self):
         #load samples database

@@ -13,8 +13,9 @@ from mxdc.widgets.dialogs import *
     SAMPLE_COLUMN_COMMENTS,
     SAMPLE_COLUMN_EDITABLE,
     SAMPLE_COLUMN_GROUP,
-    SAMPLE_COLUMN_PRIORITY,  
-) = range(10)
+    SAMPLE_COLUMN_DATA,
+    SAMPLE_COLUMN_PRIORITY,
+) = range(11)
 
 COLUMN_DICT = {
     SAMPLE_COLUMN_CONTAINER: 'Container',
@@ -62,6 +63,7 @@ class SampleList(gtk.ScrolledWindow):
             gobject.TYPE_STRING,
             gobject.TYPE_BOOLEAN,
             gobject.TYPE_STRING,
+            gobject.TYPE_PYOBJECT,
         )
                         
         self.listview = gtk.TreeView(self.listmodel)
@@ -89,6 +91,7 @@ class SampleList(gtk.ScrolledWindow):
                 SAMPLE_COLUMN_COMMENTS, item['comments'],
                 SAMPLE_COLUMN_EDITABLE, False,
                 SAMPLE_COLUMN_GROUP, item['group'],
+                SAMPLE_COLUMN_DATA, item,
             )
             
 
@@ -104,6 +107,7 @@ class SampleList(gtk.ScrolledWindow):
             SAMPLE_COLUMN_COMMENTS, item.get(COLUMN_DICT[SAMPLE_COLUMN_COMMENTS].lower(),''),
             SAMPLE_COLUMN_EDITABLE, False,
             SAMPLE_COLUMN_GROUP, item['group'],
+            SAMPLE_COLUMN_DATA, item,
         )
     
     def __set_color(self,column, renderer, model, iter):
@@ -201,9 +205,7 @@ class SampleList(gtk.ScrolledWindow):
             item = {}
             sel = model.get_value(iter, SAMPLE_COLUMN_SELECTED)
             if sel:
-                item[COLUMN_DICT[SAMPLE_COLUMN_CODE].lower()] = model.get_value(iter, SAMPLE_COLUMN_CODE)
-                item[COLUMN_DICT[SAMPLE_COLUMN_NAME].lower()] = model.get_value(iter, SAMPLE_COLUMN_NAME)
-                item[COLUMN_DICT[SAMPLE_COLUMN_PORT].lower()] = model.get_value(iter, SAMPLE_COLUMN_PORT)
+                item = model.get_value(iter, SAMPLE_COLUMN_DATA)
                 items.append(item)
             iter = model.iter_next(iter)
         return items
