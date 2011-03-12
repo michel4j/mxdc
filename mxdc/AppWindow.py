@@ -16,6 +16,7 @@ from bcm.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
 from bcm.engine.scripting import get_scripts
+from bcm.utils.misc import get_project_name
 from mxdc.utils import clients
 
 _logger = get_module_logger('mxdc')
@@ -162,5 +163,5 @@ class AppWindow(gtk.Window):
         self.dpm_client.dpm.callRemote('screenDataset',
                             data['info'], 
                             data['directory'],
-                            pwd.getpwuid(os.getuid()).pw_name,
+                            get_project_name(),
                             ).addCallback(self._result_ready, iter).addErrback(self._result_fail, iter)
