@@ -50,7 +50,7 @@ def prepare_run(run_data):
     return runs
             
 
-def _summarize_frame_set(full_set):
+def summarize_frame_set(full_set):
     # takes a list of integers such as [1,2,3,4,6,7,8]
     # and reduces it to the string "1-4,6-8"
     sum_list = []
@@ -81,6 +81,16 @@ def _summarize_frame_set(full_set):
             en += 1
                
     return ','.join(sum_list)
+
+def determine_skip(frame_list):
+    # takes a list of integers such as [1,2,3,4,7,8]
+    # and reduces it to the string of skipped regions such as "5-6"
+    
+    complete_set = set(range(1, max(frame_list)+1))
+    frame_set = set(frame_list)
+    full_set = list(complete_set.difference(frame_set))
+    return summarize_frame_set(full_set)
+
     
 def summarize_sets(run_data):
     
@@ -88,7 +98,7 @@ def summarize_sets(run_data):
     for frame_set in run_data['frame_sets']:
         full_set.extend(frame_set)
     full_set = [n for n,_ in full_set]
-    return _summarize_frame_set(full_set)
+    return summarize_frame_set(full_set)
     
 def generate_frame_list(run, frame_set):
     frame_list = []
@@ -238,9 +248,18 @@ def get_disk_frameset(run):
     filetxt = ' '.join(_all_files(run['directory'], file_wcard))
     full_set = map(int, re.findall(file_pattern, filetxt))
     
-    return _summarize_frame_set(full_set), len(full_set)
+    return summarize_frame_set(full_set), len(full_set)
     
     
-    
-    
-    
+def frameset_to_list(frame_set):
+    frame_numbers = []
+    wlist = [map(int, w.split('-')) for w in frame_set.split(',')]
+    for v in wlist:
+        if len(v) == 2:
+            frame_numbers.extend(range(v[0],v[1]+1))
+        elif len(v) == 1:
+            frame_numbers.extend(v) 
+    return frame_numbers
+
+
+

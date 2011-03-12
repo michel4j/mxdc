@@ -395,7 +395,7 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <widget class="GtkEntry" id="delta_entry1">
+                                  <widget class="GtkEntry" id="distance_entry">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="tooltip" translatable="yes">Detector distance in mm</property>
@@ -412,7 +412,7 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <widget class="GtkEntry" id="time_entry1">
+                                  <widget class="GtkEntry" id="energy_entry">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="tooltip" translatable="yes">Beamline energy in KeV</property>

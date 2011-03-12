@@ -4,6 +4,7 @@ from bcm.engine.interfaces import IDataCollector
 from bcm.protocol import ca
 from bcm.utils.converter import energy_to_wavelength, dist_to_resol
 from bcm.utils.log import get_module_logger
+from bcm.utils.misc import get_project_name
 from bcm.utils import runlists
 from twisted.python.components import globalRegistry
 from zope.interface import implements
@@ -379,9 +380,11 @@ class Screener(gobject.GObject):
                         _logger.warn('Skipping sample: "%s @ %s". Sample port is not mountable!' % (task['sample']['name'], task['sample']['port']))
                 elif task.task_type == Screener.TASK_DISMOUNT:
                     _logger.warn('TASK: Dismounting Last Sample')
-                    self.beamline.goniometer.set_mode('MOUNTING', wait=True)
-                    self.beamline.cryojet.nozzle.open()
-                    success = self.beamline.automounter.dismount(wait=True)
+                    if self.beamline.automounter.is_mounted(task['sample']['port']):
+                        self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+                        self.beamline.cryojet.nozzle.open()
+                        success = self.beamline.automounter.dismount(wait=True)
+                        
                                                                                             
                 elif task.task_type == Screener.TASK_ALIGN:
                     _logger.warn('TASK: Align sample "%s"' % task['sample']['name'])
@@ -415,45 +418,44 @@ class Screener(gobject.GObject):
                     _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
                         self.beamline.cryojet.nozzle.close()
-                        run_params = DEFAULT_PARAMETERS.copy()
-                        run_params['distance'] = self.beamline.diffractometer.distance.get_position()
-                        run_params['two_theta'] = self.beamline.diffractometer.two_theta.get_position()
-                        run_params['energy'] = [ self.beamline.monochromator.energy.get_position() ]
-                        run_params['energy_label'] = ['E0']
-                        run_params.update({'name': task['sample']['name'],
-                                      'directory': os.path.join(task['directory'], task['sample']['name'], 'test'),
-                                      'start_angle': task['angle'],
-                                      'first_frame': task['start_frame'],
-                                      'total_angle': task['delta'] * task['frames'],
-                                      'delta_angle': task['delta'],
-                                      'exposure_time': task['time'], })
-                        _logger.debug('Collecting frames for crystal `%s`, in directory `%s`.' % (run_params['name'],
-                                                                                     run_params['directory']))
-                        if not os.path.exists(run_params['directory']):
-                            os.makedirs(run_params['directory']) # make sure directories exist
-                        self.data_collector.configure(run_params)
+                        sample = task['sample']
+                        params = DEFAULT_PARAMETERS.copy()
+                        params['name'] = "%s_test" % sample['name']
+                        params['two_theta'] = self.beamline.two_theta.get_position()
+                        params['crystal_id'] = sample.get('id', None)
+                        params['experiment_id'] = sample.get('experiment_id', None)
+                        params['directory'] = os.path.join(task['directory'], sample['name'], 'test')
+                        params['energy'] = [self.beamline.energy.get_position()]
+                        for k in ['distance', 'delta_angle', 'exposure_time', 'start_angle', 'total_angle', 'first_frame', 'skip']:
+                            params[k] = task.options[k]
+                        _logger.debug('Collecting frames for crystal `%s`, in directory `%s`.' % (params['name'], params['directory']))
+                        if not os.path.exists(params['directory']):
+                            os.makedirs(params['directory']) # make sure directories exist
+                        self.data_collector.configure(params)
                         result = self.data_collector.run()
-                        self._collect_results.extend(result)
+                        task.options['results'] = result
                     else:
                         _logger.warn('Skipping task because given sample is not mounted')
                         
                 elif task.task_type == Screener.TASK_ANALYSE:
-                    if len(self._collect_results) > 0:
-                        _first_frame = os.path.join(self._collect_results[0]['directory'],
-                                                    "%s_%03d.img" % (self._collect_results[0]['name'],
-                                                                     self._collect_results[0]['frame_sets'][0][0][0]))
-                        _a_params = {'directory': os.path.join(task['directory'], task['sample']['name'], 'scrn'),
-                                     'uname': os.getlogin(),
-                                     'info': {'anomalous': False,
-                                              'file_names': [_first_frame,]                                             
-                                              },
-                                     'crystal': task.options['sample'] }
+                    collect_task = task.options.get('collect_task')
+                    if collect_task is not None:
+                        collect_results = collect_task.options.get('results', [])
+                        if len(collect_results) > 0:
+                            frame_list = runlists.frameset_to_list(collect_results[0]['frame_sets'])
+                            _first_frame = os.path.join(collect_results[0]['directory'],
+                                                        "%s_%03d.img" % (collect_results[0]['name'], frame_list[0]))
+                            _a_params = {'directory': os.path.join(task['directory'], task['sample']['name'], 'scrn'),
+                                         'info': {'anomalous': False,
+                                                  'file_names': [_first_frame,]                                             
+                                                  },
+                                         'crystal': task.options['sample'] }
 
-                        if not os.path.exists(_a_params['directory']):
-                            os.makedirs(_a_params['directory']) # make sure directories exist
-                        gobject.idle_add(self.emit, 'analyse-request', _a_params)
-                        self._collect_results = []
-                        _logger.warn('Requesting analysis')
+                            if not os.path.exists(_a_params['directory']):
+                                os.makedirs(_a_params['directory']) # make sure directories exist
+                            gobject.idle_add(self.emit, 'analyse-request', _a_params)
+                            self._collect_results = []
+                            _logger.warn('Requesting analysis')
                     else:
                         _logger.warn('Skipping task because frames were not collected')
                                                                      

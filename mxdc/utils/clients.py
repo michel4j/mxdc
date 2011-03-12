@@ -7,6 +7,7 @@ Created on Oct 28, 2010
 from twisted.spread import pb
 from twisted.internet import reactor
 from twisted.python import log
+
 from bcm.utils import mdns
 from dpm.service import common
 import gobject
@@ -74,3 +75,4 @@ class DPMClient(object):
     def dump_error(self, failure):
         r = failure.trap(common.InvalidUser, common.CommandFailed)
         log.err('<%s -- %s>.' % (r, failure.getErrorMessage()))
+   
