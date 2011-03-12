@@ -19,7 +19,7 @@ from bcm.beamline.remote import BeamlineClient
 from bcm.utils.log import get_module_logger, log_to_console, log_to_file
 from mxdc.widgets.dialogs import error
 from bcm.utils import mdns
-
+from bcm.utils.misc import get_project_name
 #from mxdc.utils import gtkexcepthook
 from mxdc.AppWindow import AppWindow
 
@@ -28,9 +28,7 @@ _logger = get_module_logger('mxdc')
 class MXDCApp(object):
     def run_local(self, config):
         self.main_window = AppWindow()
-        _service_data = {'user': os.getlogin(), 
-                         'uid': os.getuid(), 
-                         'gid': os.getgid(), 
+        _service_data = {'user': get_project_name(), 
                          'started': time.asctime(time.localtime())}
         try:
             self.provider = mdns.Provider('MXDC Client', '_mxdc._tcp', 9999, _service_data, unique=True)
