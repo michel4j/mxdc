@@ -288,7 +288,6 @@ class DewarLoader(gtk.Frame):
         iter = model.get_iter(path)
         crystal_data = model.get_value(iter, model.DATA)        
         gobject.idle_add(self.emit, 'sample-selected', crystal_data)
-        print crystal_data
        
     def save_database(self):
         save_config(SAMPLES_DB_CONFIG, self.samples_database)

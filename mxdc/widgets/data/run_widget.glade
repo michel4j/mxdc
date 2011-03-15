@@ -589,7 +589,7 @@
             <child>
               <widget class="GtkLabel" id="label22">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Skip</property>
+                <property name="label" translatable="yes">Skip:</property>
               </widget>
               <packing>
                 <property name="top_attach">9</property>

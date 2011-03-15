@@ -319,8 +319,6 @@ class TextStatusDisplay(gtk.Label):
         self.device = device
         self.set_use_markup(True)
         self.device.connect(sig, self._on_signal)
-        self.set_alignment(0.5,1)
-        self.set_width_chars(6)
                     
     def _on_signal(self, obj, state):
         self.set_markup(self.text_map.get(state, state))

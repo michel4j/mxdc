@@ -200,6 +200,10 @@ class BasicAutomounter(BaseDevice):
         return True
     
     def is_mountable(self, port):
+        """Returns true if the specified port can be mounted without issues.
+        Does not guarantee that the port is actually mountable, only that the
+        the port was marked as mountable since the last probe operation."""
+        
         if not re.match('[RML][ABCD]\d{1,2}', port):
             return False
         info = self.containers[port[0]][port[1:]]
@@ -208,7 +212,13 @@ class BasicAutomounter(BaseDevice):
         else:
             return info[0] == PORT_GOOD
     
-    def is_mounted(self, port):
+    def is_mounted(self, port=None):
+        """Returns true if the specified port is currently mounted. If no port is
+        specified, return true if any port is mounted."""
+        
+        if port is None:
+            return self._mounted_port != None
+        
         if not re.match('[RML][ABCD]\d{1,2}', port):
             return False
         info = self.containers[port[0]][port[1:]]
@@ -216,6 +226,7 @@ class BasicAutomounter(BaseDevice):
             return False
         else:
             return info[0] == PORT_MOUNTED
+    
 
        
 class SimAutomounter(BasicAutomounter):        
@@ -268,7 +279,9 @@ class SimAutomounter(BasicAutomounter):
     def probe(self):
         pass
 
-    def is_mounted(self, port):
+    def is_mounted(self, port=None):
+        if port is None:
+            return self.mounted_state is not None
         if self.mounted_state is None:
             return False
         else:
