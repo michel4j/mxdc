@@ -271,7 +271,7 @@ class DataCollector(gobject.GObject):
 class Screener(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['message'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
-    __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_INT))
+    __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_INT, gobject.TYPE_INT))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
@@ -281,6 +281,7 @@ class Screener(gobject.GObject):
     __gsignals__['analyse-request'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
    
     TASK_MOUNT, TASK_ALIGN, TASK_PAUSE, TASK_COLLECT, TASK_ANALYSE, TASK_DISMOUNT = range(6)
+    TASK_STATE_PENDING, TASK_STATE_RUNNING, TASK_STATE_DONE, TASK_STATE_ERROR, TASK_STATE_SKIPPED = range(5)
       
     def __init__(self):
         gobject.GObject.__init__(self)
@@ -315,6 +316,11 @@ class Screener(gobject.GObject):
         worker_thread.setName('Screener')
         worker_thread.start()
             
+    def _notify_progress(self, status):
+        # Notify progress
+        fraction = float(self.pos) / self.total_items
+        gobject.idle_add(self.emit, 'progress', fraction, self.pos, status)          
+        
     def run(self):
         self.paused = False
         self.stopped = False
@@ -329,6 +335,7 @@ class Screener(gobject.GObject):
             pause_msg = ''
 
             while self.pos < len(self.run_list) :
+
                 if self.paused:
                     gobject.idle_add(self.emit, 'paused', True, pause_msg)
                     pause_msg = ''
@@ -343,6 +350,7 @@ class Screener(gobject.GObject):
                 task = self.run_list[self.pos]
                 _logger.debug('TASK: "%s"' % str(task))
                 if task.task_type == Screener.TASK_PAUSE:
+                    self._notify_progress(Screener.TASK_STATE_RUNNING)
                     self.pause()
                     pause_msg = 'Screening paused automatically, as requested, after completing '
                     pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
@@ -353,9 +361,10 @@ class Screener(gobject.GObject):
                 elif task.task_type == Screener.TASK_MOUNT:
                     _logger.warn('TASK: Mount "%s"' % task['sample']['port'])
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
-                        # Do nothing here
-                        pass
+                        # do nothing
+                        self._notify_progress(Screener.TASK_STATE_SKIPPED)
                     elif self.beamline.automounter.is_mountable(task['sample']['port']):
+                        self._notify_progress(Screener.TASK_STATE_RUNNING)
                         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
                         self.beamline.cryojet.nozzle.open()
                         success = self.beamline.automounter.mount(task['sample']['port'], wait=True)
@@ -367,6 +376,7 @@ class Screener(gobject.GObject):
                             pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
                             pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
                                                                         self.run_list[self.pos]['sample']['port'])
+                            self._notify_progress(Screener.TASK_STATE_ERROR)
                         else:
                             port, barcode = mounted_info
                             if port != self.run_list[self.pos]['sample']['port']:
@@ -374,22 +384,27 @@ class Screener(gobject.GObject):
                             elif barcode != self.run_list[self.pos]['sample']['barcode']:
                                 gobject.idle_add(self.emit, 'sync', False, 'Barcode mismatch. Expected %s.' % self.run_list[self.pos]['sample']['barcode'])
                             else:
-                                gobject.idle_add(self.emit, 'sync', True, '')                          
+                                gobject.idle_add(self.emit, 'sync', True, '')
+                            self._notify_progress(Screener.TASK_STATE_DONE)                        
                     else:
                         #"skip mounting"
                         _logger.warn('Skipping sample: "%s @ %s". Sample port is not mountable!' % (task['sample']['name'], task['sample']['port']))
+                        self._notify_progress(Screener.TASK_STATE_SKIPPED)                        
                 elif task.task_type == Screener.TASK_DISMOUNT:
                     _logger.warn('TASK: Dismounting Last Sample')
-                    if self.beamline.automounter.is_mounted(task['sample']['port']):
+                    if self.beamline.automounter.is_mounted(): # only attempt if any sample is mounted
+                        self._notify_progress(Screener.TASK_STATE_RUNNING)                        
                         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
                         self.beamline.cryojet.nozzle.open()
                         success = self.beamline.automounter.dismount(wait=True)
+                        self._notify_progress(Screener.TASK_STATE_DONE)      
                         
                                                                                             
                 elif task.task_type == Screener.TASK_ALIGN:
                     _logger.warn('TASK: Align sample "%s"' % task['sample']['name'])
                     
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
+                        self._notify_progress(Screener.TASK_STATE_RUNNING)            
                         self.beamline.goniometer.set_mode('CENTERING', wait=True)
                         self.beamline.cryojet.nozzle.close()
 
@@ -401,22 +416,28 @@ class Screener(gobject.GObject):
                             pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
                                                                     self.run_list[self.pos]['sample']['port'])
                             self.pause()
+                            self._notify_progress(Screener.TASK_STATE_ERROR)            
                         elif _out.get('RELIABILITY') < 70:
                             pause_msg = 'Screening paused automatically, due to unreliable auto-centering '
                             pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
                             pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
                                                                     self.run_list[self.pos]['sample']['port'])
                             self.pause()
+                            self._notify_progress(Screener.TASK_STATE_ERROR)
+                        else:
+                            self._notify_progress(Screener.TASK_STATE_DONE)
                         directory = os.path.join(task['directory'], task['sample']['name'], 'test')
                         if not os.path.exists(directory):
                             os.makedirs(directory) # make sure directories exist
                         snapshot.take_sample_snapshots('snapshot', directory, [0, 90, 180], True)
                     else:
+                        self._notify_progress(Screener.TASK_STATE_SKIPPED)
                         _logger.warn('Skipping task because given sample is not mounted')
                         
                 elif task.task_type == Screener.TASK_COLLECT:
                     _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
+                        self._notify_progress(Screener.TASK_STATE_RUNNING)
                         self.beamline.cryojet.nozzle.close()
                         sample = task['sample']
                         params = DEFAULT_PARAMETERS.copy()
@@ -434,7 +455,9 @@ class Screener(gobject.GObject):
                         self.data_collector.configure(params)
                         result = self.data_collector.run()
                         task.options['results'] = result
+                        self._notify_progress(Screener.TASK_STATE_DONE)
                     else:
+                        self._notify_progress(Screener.TASK_STATE_SKIPPED)
                         _logger.warn('Skipping task because given sample is not mounted')
                         
                 elif task.task_type == Screener.TASK_ANALYSE:
@@ -456,18 +479,18 @@ class Screener(gobject.GObject):
                             gobject.idle_add(self.emit, 'analyse-request', _a_params)
                             self._collect_results = []
                             _logger.warn('Requesting analysis')
+                            self._notify_progress(Screener.TASK_STATE_DONE)
+                        else:
+                            self._notify_progress(Screener.TASK_STATE_SKIPPED)
+                            _logger.warn('Skipping task because frames were not collected')
                     else:
+                        self._notify_progress(Screener.TASK_STATE_SKIPPED)
                         _logger.warn('Skipping task because frames were not collected')
                                                                      
-                # Notify progress
-                fraction = float(self.pos) / self.total_items
-                gobject.idle_add(self.emit, 'progress', fraction, self.pos)          
                 self.pos += 1
             
                          
             gobject.idle_add(self.emit, 'done')
-            if not self.stopped:
-                gobject.idle_add(self.emit, 'progress', 1.0, 0)
             self.stopped = True
         finally:
             self.beamline.exposure_shutter.close()

@@ -66,7 +66,7 @@ class SimMotor(MotorBase):
     def __init__(self, name, pos=0, units='mm'):
         MotorBase.__init__(self,name)
         pos = float(pos)
-        self._speed = 200
+        self._speed = 50
         self.units = units
         self._state = 0
         self._stopped = False
@@ -83,7 +83,7 @@ class SimMotor(MotorBase):
         self._stopped = False
         self._command_sent = True
         import numpy
-        targets = numpy.linspace(self._position, target, 20)
+        targets = numpy.linspace(self._position, target, self._speed)
         self.set_state(busy=True)
         for pos in targets:
             time.sleep(0.05)
@@ -95,6 +95,9 @@ class SimMotor(MotorBase):
         self.set_state(busy=False)
             
     def move_to(self, pos, wait=False, force=False):
+        if pos == self._position:
+            _logger.debug( "(%s) is already at %s" % (self.name, pos) )
+            return
         self._move_action(pos)
         if wait:
             self.wait()

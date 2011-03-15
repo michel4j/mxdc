@@ -31,7 +31,7 @@ def auto_center(pre_align=True):
         beamline = globalRegistry.lookup([], IBeamline)
     except:
         _logger.warning('No registered beamline found')
-        return None
+        return {'RELIABILITY': -99}
            
     tst = time.time()
     
@@ -69,7 +69,7 @@ def auto_center(pre_align=True):
         zmlevel = 'high'
     else:
         zmlevel = 0    
-	back_filename = '%s/data/%s/centering-bg-%s.png\n' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, zmlevel)
+    back_filename = '%s/data/%s/centering-bg-%s.png\n' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, zmlevel)
 
     # create XREC input
     infile_name = os.path.join(directory, '%s.inp' % prefix)
@@ -94,14 +94,14 @@ def auto_center(pre_align=True):
     try:
         sts, output = commands.getstatusoutput('xrec %s %s' % (infile_name, outfile_name))
         if sts != 0:
-            return None
+            return {'RELIABILITY': -99}
         #read results and analyze it
         outfile = open(outfile_name)
         data = outfile.readlines()
         outfile.close()
     except:
         _logger.error('XREC cound not be executed')
-        return None
+        return  {'RELIABILITY': -99}
     
     results = {'RELIABILITY': -99}
     
@@ -109,6 +109,12 @@ def auto_center(pre_align=True):
         vals = line.split()
         results[vals[0]] = int(vals[1])
         
+    # verify integrity of results  
+    for key in ['TARGET_ANGLE', 'Y_CENTER', 'X_CENTER', 'RADIUS']:
+        if key not in results:
+            _logger.info('Centering failed.')   
+            return results
+    
     # calculate motor positions and move
     cx = beamline.camera_center_x.get()
     cy = beamline.camera_center_y.get()
@@ -138,7 +144,7 @@ def auto_center_loop():
     tst = time.time()
     result = auto_center(pre_align=True)
     if result['RELIABILITY'] < 70:
-        if (result['X_CENTRE'] == -1) and  (result['Y_CENTRE'] == -1):
+        if (result.get('X_CENTRE', -1) == -1) and  (result.get('Y_CENTRE', -1) == -1):
             _logger.error('Loop centering failed. No loop detected.')
         else:
             _logger.info('Loop centering was not reliable enough.')
@@ -150,7 +156,7 @@ def auto_center_crystal():
     tst = time.time()
     result = auto_center(pre_align=True)
     if result['RELIABILITY'] < 70:
-        if (result['X_CENTRE'] == -1) and  (result['Y_CENTRE'] == -1):
+        if (result.get('X_CENTRE', -1) == -1) and  (result.get('Y_CENTRE', -1) == -1):
             _logger.error('Initial Loop centering failed. No loop detected.')
         else:
             _logger.info('Loop centering was not reliable enough. Repeating ')

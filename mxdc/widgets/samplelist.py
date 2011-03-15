@@ -34,23 +34,16 @@ MIN_COLUMN_SET = set([COLUMN_DICT[SAMPLE_COLUMN_CONTAINER].lower(),
                       COLUMN_DICT[SAMPLE_COLUMN_NAME].lower(),
                       COLUMN_DICT[SAMPLE_COLUMN_COMMENTS].lower()])
 
-(
-    SAMPLE_STATE_NONE,
-    SAMPLE_STATE_NEXT,
-    SAMPLE_STATE_RUNNING,
-    SAMPLE_STATE_PAUSED,
-    SAMPLE_STATE_PROCESSED,
-) = range(5)
-
-STATE_DICT = {
-    SAMPLE_STATE_NONE : None,
-    SAMPLE_STATE_RUNNING : '#cc0099',
-    SAMPLE_STATE_PAUSED : '#660033',
-    SAMPLE_STATE_PROCESSED: '#cc0000',
-    SAMPLE_STATE_NEXT: '#33cc33',
-}
-
 class SampleList(gtk.ScrolledWindow):
+
+    SAMPLE_STATE_GOOD, SAMPLE_STATE_EMPTY, SAMPLE_STATE_JAM, SAMPLE_STATE_MOUNTED, SAMPLE_STATE_UNKNOWN = range(5)  
+    STATUS_COLORS = {
+        SAMPLE_STATE_GOOD: '#004400',
+        SAMPLE_STATE_EMPTY: '#777777',
+        SAMPLE_STATE_JAM: '#990000',
+        SAMPLE_STATE_MOUNTED: '#990099',
+        SAMPLE_STATE_UNKNOWN: None,
+    }
     def __init__(self):
         gtk.ScrolledWindow.__init__(self)
         self.listmodel = gtk.ListStore(
@@ -83,7 +76,7 @@ class SampleList(gtk.ScrolledWindow):
             iter = self.listmodel.append()        
             self.listmodel.set(iter,
                 SAMPLE_COLUMN_CONTAINER, item['container_name'],
-                SAMPLE_COLUMN_STATE, 0, 
+                SAMPLE_COLUMN_STATE, item.get('state', self.SAMPLE_STATE_UNKNOWN), 
                 SAMPLE_COLUMN_SELECTED, False,
                 SAMPLE_COLUMN_PORT, item['port'],
                 SAMPLE_COLUMN_CODE, item['barcode'],
@@ -112,7 +105,7 @@ class SampleList(gtk.ScrolledWindow):
     
     def __set_color(self,column, renderer, model, iter):
         value = model.get_value(iter, SAMPLE_COLUMN_STATE)
-        renderer.set_property("foreground", STATE_DICT[value])
+        renderer.set_property("foreground", self.STATUS_COLORS[value])
         return
 
     def __sort_func(self, model, iter1, iter2, data):
@@ -168,11 +161,13 @@ class SampleList(gtk.ScrolledWindow):
         self.listmodel.set(iter, SAMPLE_COLUMN_SELECTED, selected)
         self.listview.scroll_to_cell(path, use_align=True, row_align=0.9)
 
-    def set_row_state(self, pos, state=SAMPLE_STATE_NONE):
+    def set_row_state(self, pos, state):
         path = (pos,)
-        iter = self.listmodel.get_iter(path)
-        self.listmodel.set(iter, SAMPLE_COLUMN_SELECTED, selected)
-        self.listview.scroll_to_cell(path, use_align=True, row_align=0.9)
+        try:
+            iter = self.listmodel.get_iter(path)
+            self.listmodel.set(iter, SAMPLE_COLUMN_STATE, state)
+        except ValueError:
+            pass
         
     def on_row_activated(self, treeview, path, column):
         model = treeview.get_model()

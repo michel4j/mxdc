@@ -15,6 +15,7 @@ from mxdc.widgets.resultmanager import ResultManager
 from bcm.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
+from mxdc.widgets import dialogs
 from bcm.engine.scripting import get_scripts
 from bcm.utils.misc import get_project_name
 from mxdc.utils import clients
@@ -26,16 +27,16 @@ COPYRIGHT = """
 Copyright (c) 2006-2010, Canadian Light Source, Inc
 All rights reserved.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE CANADIAN LIGHT SOURCE BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+This software is provided by the copyright holders and contributors "as is" and
+any express or implied warranties, including, but not limited to, the implied
+warranties of merchantability and fitness for a particular purpose are
+disclaimed. In no event shall the Canadian Light Source be liable for any
+direct, indirect, incidental, special, exemplary, or consequential damages
+(including, but not limited to, procurement of substitute goods or services;
+loss of use, data, or profits; or business interruption) however caused and
+on any theory of liability, whether in contract, strict liability, or tort
+(including negligence or otherwise) arising in any way out of the use of this
+software, even if advised of the possibility of such damage.
 """
 
 class AppWindow(gtk.Window):
@@ -75,19 +76,27 @@ class AppWindow(gtk.Window):
         
         self.screen_manager.screen_runner.connect('analyse-request', self.on_analyse_request)
         self.sample_manager.connect('samples-changed', self.on_samples_changed)
-        self.sample_manager.connect('sample-selected', self.on_sample_selected)
+        self.sample_manager.connect('active-sample', self.on_active_sample)
+        self.result_manager.connect('active-sample', self.on_active_sample)
+        self.result_manager.connect('active-strategy', self.on_active_strategy)
+        self.scan_manager.connect('active-strategy', self.on_active_strategy)
 
         
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
         self.about_cmd.connect('activate', lambda x:  self._do_about() )
         
         notebook = gtk.Notebook()
-        notebook.append_page(self.hutch_manager, tab_label=gtk.Label('  Beamline Setup  '))
-        notebook.append_page(self.sample_manager, tab_label=gtk.Label('  Samples  '))
-        notebook.append_page(self.screen_manager, tab_label=gtk.Label('  Screening  '))
-        notebook.append_page(self.collect_manager, tab_label=gtk.Label('  Data Collection '))
-        notebook.append_page(self.scan_manager, tab_label=gtk.Label('  Fluorescence Scans  '))
-        notebook.append_page(self.result_manager, tab_label=gtk.Label('  Results  '))
+        def _mk_lbl(txt):
+            lbl = gtk.Label(txt)
+            lbl.set_padding(6,0)
+            return lbl
+            
+        notebook.append_page(self.hutch_manager, tab_label=_mk_lbl('Beamline Setup'))
+        notebook.append_page(self.sample_manager, tab_label=_mk_lbl('Samples'))
+        notebook.append_page(self.collect_manager, tab_label=_mk_lbl('Data Collection'))
+        notebook.append_page(self.screen_manager, tab_label=_mk_lbl('Screening'))
+        notebook.append_page(self.scan_manager, tab_label=_mk_lbl('Fluorescence Scans'))
+        notebook.append_page(self.result_manager, tab_label=_mk_lbl('Results'))
         notebook.set_border_width(6)
 
         self.main_frame.add(notebook)
@@ -108,6 +117,8 @@ class AppWindow(gtk.Window):
     def _do_about(self):
         authors = [
             "Michel Fodje (maintainer)",
+            "Kathryn Janzen",
+            "Kevin Anderson",
             ]
         about = gtk.AboutDialog()
         about.set_name("MX Data Collector")
@@ -128,13 +139,28 @@ class AppWindow(gtk.Window):
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
         self.collect_manager.add_run( run_data )
+        header = 'New MAD Run Added'
+        subhead = 'A new run for MAD data collection has been added to the "Data Collection" tab. '
+        subhead += 'Remember to delete the runs you no longer need before proceeding.'
+        dialogs.info(header, subhead)
         
     def on_samples_changed(self, obj, ctx):
         samples = ctx.get_loaded_samples()
         self.screen_manager.add_samples(samples)
         
-    def on_sample_selected(self, obj, data):
-        self.collect_manager.update_sample(data)
+    def on_active_sample(self, obj, data):
+        self.collect_manager.update_active_data(sample=data)
+        header = 'Active Sample Updated'
+        subhead = 'The active sample has been updated to "%s (%s)", in the "Data Collection" tab. ' % (data['name'], data['port'])
+        subhead += 'Please create a new run or update the run parameters to collect on it.'
+        dialogs.info(header, subhead)
+
+    def on_active_strategy(self, obj, data):
+        self.collect_manager.update_active_data(strategy=data)
+        header = 'Active Strategy Updated'
+        subhead = 'The active strategy has been updated in the "Data Collection" tab. '
+        subhead += 'Please create a new run or update the run parameters to use it.'
+        dialogs.info(header, subhead)
 
     def _result_ready(self, data, iter):
         data = data[0]        

@@ -50,15 +50,20 @@ class HutchManager(gtk.Frame):
         self.beamline = globalRegistry.lookup([], IBeamline)
         
         
-        # video        
+        # video
+        def _mk_lbl(txt):
+            lbl = gtk.Label(txt)
+            lbl.set_padding(6,0)
+            return lbl
+
         self.sample_viewer = SampleViewer()
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
-        self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))
-        self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
+        self.video_book.append_page(self.hutch_viewer, tab_label=_mk_lbl('Hutch Camera'))
+        self.video_book.append_page(self.sample_viewer, tab_label=_mk_lbl('Sample Camera'))
         self.video_book.connect('realize', lambda x: self.video_book.set_current_page(0))
         if self.beamline.registry.get('beam_video'):
             self.beam_viewer = SimpleVideo(self.beamline.registry['beam_video'])
-            self.video_book.append_page(self.beam_viewer, tab_label=gtk.Label('Beam Camera'))
+            self.video_book.append_page(self.beam_viewer, tab_label=_mk_lbl('Beam Camera'))
 
         
         # create and pack devices into settings frame
