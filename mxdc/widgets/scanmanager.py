@@ -34,11 +34,14 @@ SCAN_CONFIG_FILE = 'scan_config.json'
 
 class ScanManager(gtk.Frame):
     __gsignals__ = {
-            'create-run': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+        'create-run': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+        'active-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
+        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'scan_manager.glade'), 
+                                  'scan_widget')            
 
         self._create_widgets()
 
@@ -63,29 +66,33 @@ class ScanManager(gtk.Frame):
         self.energies = []
         self.names = []
         self._load_config()
+    
+    def do_create_run(self):
+        pass
+    
+    def do_active_strategy(self, data):
+        pass
+
+    def __getattr__(self, key):
+        try:
+            return super(ScanManager).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
 
     def _create_widgets(self):
-        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'scan_manager.glade'), 
-                                  'scan_widget')            
-        self.scan_widget = self._xml.get_widget('scan_widget')
-        self.scan_btn = self._xml.get_widget('scan_btn')
+        
         self.scan_btn.set_label('mxdc-scan')
-        self.scan_pbar = self._xml.get_widget('scan_pbar')
         self.scan_btn.connect('clicked', self.on_scan_activated)
         
         # Scan options
-        self.xanes_btn = self._xml.get_widget('xanes_btn')
-        self.xrf_btn = self._xml.get_widget('xanes_btn')
         self.xanes_btn.connect('toggled', self.on_mode_change)
-        self.scan_help = self._xml.get_widget('scan_help')
-        self.layout_table = self._xml.get_widget('layout_table')
         self.entries = {
-            'prefix': self._xml.get_widget('prefix_entry'),
-            'directory': self._xml.get_widget('directory_btn'),
-            'edge': self._xml.get_widget('edge_entry'),
-            'energy': self._xml.get_widget('energy_entry'),
-            'time': self._xml.get_widget('time_entry'),
-            'attenuation': self._xml.get_widget('attenuation_entry'),
+            'prefix': self.prefix_entry,
+            'directory': self.directory_btn,
+            'edge': self.edge_entry,
+            'energy': self.energy_entry,
+            'time': self.time_entry,
+            'attenuation': self.attenuation_entry,
         }
         self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=gtk.EXPAND|gtk.FILL)
         for key in ['prefix','edge']:
@@ -94,11 +101,7 @@ class ScanManager(gtk.Frame):
             self.entries[key].set_alignment(1)
 
         # Notebook 
-        self.scan_book = self._xml.get_widget('scan_book')
-        pt_frame = self._xml.get_widget('periodic_frame')
-        plot_frame = self._xml.get_widget('plot_frame')
-        text_view = self._xml.get_widget('output_text')
-        self.output_log = TextViewer(text_view)
+        self.output_log = TextViewer(self.output_text)
         
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
@@ -109,12 +112,11 @@ class ScanManager(gtk.Frame):
         self.periodic_table = PeriodicTable(loE, hiE)
         self.periodic_table.connect('edge-selected',self.on_edge_selected)
         self.plotter = Plotter(xformat='%g')
-        pt_frame.add(self.periodic_table)
-        plot_frame.add(self.plotter)
+        self.periodic_frame.add(self.periodic_table)
+        self.plot_frame.add(self.plotter)
         self.add(self.scan_widget)
 
         # XANES Results section
-        self.sw = self._xml.get_widget('xanes_sw')
         self.energy_store = gtk.ListStore(
             gobject.TYPE_STRING,
             gobject.TYPE_FLOAT,
@@ -123,11 +125,10 @@ class ScanManager(gtk.Frame):
         )
         self.energy_list = gtk.TreeView(model=self.energy_store)
         self.energy_list.set_rules_hint(True)
-        self.sw.add(self.energy_list)
-        self.create_run_btn = self._xml.get_widget('create_run_btn')
-        self.xanes_results = self._xml.get_widget('xanes_vbox')
-        self.xanes_results.set_sensitive(False)
+        self.xanes_sw.add(self.energy_list)
+        self.xanes_vbox.set_sensitive(False)
         self.create_run_btn.connect('clicked', self.on_create_run)
+        self.update_strategy_btn.connect('clicked', self.on_update_strategy)
 
         #Label column
         renderer = gtk.CellRendererText()
@@ -191,7 +192,7 @@ class ScanManager(gtk.Frame):
         for key in keys:
             if key in results.keys():  # all energies are not necessarily present
                 self._add_energy(results[key])
-        self.xanes_results.set_sensitive(True)
+        self.xanes_vbox.set_sensitive(True)
         return True
     
     def set_parameters(self, params=None):
@@ -237,20 +238,13 @@ class ScanManager(gtk.Frame):
         return params
 
     def get_run_data(self):
-        run_data = self.get_parameters()
-        run_data['distance'] = 150.0
-        run_data['delta'] = 1
-        run_data['time'] = 1
-        run_data['start_angle'] = 0
-        run_data['total_angle']= 180
-        run_data['start_frame']= 1
-        run_data['total_frames']= 180
-        run_data['inverse_beam']= False
-        run_data['wedge']=180
+        params = self.get_parameters()
+        run_data = {}
+        run_data['name'] = params['prefix']
+        run_data['directory'] = params['directory']
         run_data['energy'] = self.energies
         run_data['energy_label'] = self.names
         run_data['number'] = -1
-        run_data['two_theta'] = 0.0
         return run_data
 
     def _load_config(self):
@@ -385,8 +379,16 @@ class ScanManager(gtk.Frame):
         self.create_run_btn.set_sensitive(True) 
         return True
                 
-    def on_create_run(self,widget):
+    def on_create_run(self, obj):
         self.emit('create-run')
+
+    def on_update_strategy(self, obj):
+        if len(self.energies) > 0:
+            strategy = {
+                'energy': self.energies,
+                'energy_label': self.names,
+                }
+            self.emit('active-strategy', strategy)
 
     def on_progress(self, widget, fraction):
         self.scan_pbar.set_fraction(fraction)

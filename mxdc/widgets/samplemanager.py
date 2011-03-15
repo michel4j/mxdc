@@ -22,7 +22,7 @@ _logger = get_module_logger('mxdc.samplemanager')
 class SampleManager(gtk.Frame):
     __gsignals__ = {
         'samples-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'sample-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'active-sample': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }    
     def __init__(self):
         gtk.Frame.__init__(self)
@@ -41,7 +41,7 @@ class SampleManager(gtk.Frame):
     def do_samples_changed(self, obj=None):
         pass
     
-    def do_sample_selected(self, obj=None, data=None):
+    def do_active_sample(self, obj=None, data=None):
         pass
     
     def _create_widgets(self):
@@ -53,13 +53,18 @@ class SampleManager(gtk.Frame):
         self.dewar_loader = DewarLoader()
         self.cryo_controller = CryojetWidget(self.beamline.cryojet)
         self.sample_picker = SamplePicker()
+
+        def _mk_lbl(txt):
+            lbl = gtk.Label(txt)
+            lbl.set_padding(6,0)
+            return lbl
         
-        self.video_ntbk.append_page(self.sample_viewer, tab_label=gtk.Label('  Sample '))
-        self.video_ntbk.append_page(self.hutch_viewer, tab_label=gtk.Label('  Hutch '))
+        self.video_ntbk.append_page(self.sample_viewer, tab_label=_mk_lbl('Sample'))
+        self.video_ntbk.append_page(self.hutch_viewer, tab_label=_mk_lbl('Hutch'))
         self.video_ntbk.connect('realize', lambda x: self.video_ntbk.set_current_page(0))
-        self.cryo_ntbk.append_page(self.cryo_controller, tab_label=gtk.Label('  Cryojet Stream  '))
+        self.cryo_ntbk.append_page(self.cryo_controller, tab_label=_mk_lbl('Cryojet Stream'))
         
-        self.robot_ntbk.append_page(self.sample_picker, tab_label=gtk.Label('  Automounter  '))
+        self.robot_ntbk.append_page(self.sample_picker, tab_label=_mk_lbl('Automounter '))
         self.dewar_loader.set_border_width(3)     
         self.loader_frame.add(self.dewar_loader)
         self.add(self.sample_widget)
@@ -71,7 +76,7 @@ class SampleManager(gtk.Frame):
         gobject.idle_add(self.emit, 'samples-changed', self.dewar_loader)
         
     def on_sample_selected(self, obj, data):
-        gobject.idle_add(self.emit, 'sample-selected', data)
+        gobject.idle_add(self.emit, 'active-sample', data)
 
     def on_import_lims(self, obj):
             info = {

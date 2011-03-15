@@ -26,3 +26,11 @@ if ($?PYTHONPATH) then
 else
 	setenv PYTHONPATH ${BCM_PATH}
 endif
+
+# Setup MOZEMBED XUL PATH
+set gre_version=`xulrunner --gre-version`
+set xul_lib=`xulrunner --find-gre ${gre_version}`
+if ( ! $?MOZILLA_FIVE_HOME) then
+	setenv MOZILLA_FIVE_HOME `dirname ${xul_lib}`
+endif
+

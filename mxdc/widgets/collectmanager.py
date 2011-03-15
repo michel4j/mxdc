@@ -1,4 +1,6 @@
-import gtk, gobject
+import gtk
+import gobject
+import pango
 import sys, os, time
 
 
@@ -28,7 +30,7 @@ from mxdc.utils import config
 _logger = get_module_logger(__name__)
 
 (
-    COLLECT_COLUMN_SAVED,
+    COLLECT_COLUMN_STATUS,
     COLLECT_COLUMN_ANGLE,
     COLLECT_COLUMN_RUN,
     COLLECT_COLUMN_NAME
@@ -39,6 +41,13 @@ _logger = get_module_logger(__name__)
     COLLECT_STATE_RUNNING,
     COLLECT_STATE_PAUSED
 ) = range(3)
+
+(
+    FRAME_STATE_PENDING,
+    FRAME_STATE_RUNNING,
+    FRAME_STATE_DONE,
+    FRAME_STATE_SKIPPED,
+) = range(4)
 
 (
     MOUNT_ACTION_NONE,
@@ -63,8 +72,9 @@ class CollectManager(gtk.Frame):
         self.skip_frames = False
         self._create_widgets()
         
-        self.selected_sample = {}
-        self.update_sample()
+        self.active_sample = {}
+        self.active_strategy = {}
+        self.update_active_data()
         
         
     def __getattr__(self, key):
@@ -84,13 +94,19 @@ class CollectManager(gtk.Frame):
         self.sel_mounting  = False # will be sent to true when mount command has been sent and false when it is done
         self.frame_pos = None
         
+        
+        pango_font = pango.FontDescription("monospace 8")
+        self.strategy_view.modify_font(pango_font)
+
+        
         # Run List
         self.listmodel = gtk.ListStore(
-            gobject.TYPE_BOOLEAN,
+            gobject.TYPE_UINT,
             gobject.TYPE_FLOAT,
             gobject.TYPE_UINT,
             gobject.TYPE_STRING           
         )
+        
         self.listview = gtk.TreeView(self.listmodel)
         self.listview.set_rules_hint(True)
         self._add_columns()     
@@ -120,7 +136,7 @@ class CollectManager(gtk.Frame):
         self.setup_box.pack_end(self.run_manager, expand = True, fill = True)
         
         #automounter signals
-        self.beamline.automounter.connect('mounted', lambda x,y: self.update_sample())
+        self.beamline.automounter.connect('mounted', lambda x,y: self.update_active_data())
 
         
         #diagnostics
@@ -134,7 +150,7 @@ class CollectManager(gtk.Frame):
         self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
         self.mnt_action_btn.connect('clicked', self.on_mount_action)
         self.run_manager.connect('saved', self.save_runs)
-        #self.run_manager.connect('del-run', self.remove_run)
+        self.clear_strategy_btn.connect('clicked', self.on_clear_strategy)
 
         for w in [self.collect_btn, self.stop_btn]:
             w.set_property('can-focus', False)
@@ -153,6 +169,17 @@ class CollectManager(gtk.Frame):
         self.add(self.collect_widget)
         self.run_manager.set_current_page(0)
         self.show_all()
+        
+        #prepare pixbufs for status icons
+        self._wait_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+                                                               'data/tiny-wait.png'))
+        self._ready_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+                                                               'data/tiny-ready.png'))
+        self._error_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+                                                               'data/tiny-error.png'))
+        self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+                                                               'data/tiny-skip.png'))
+
         
     def _on_beam_change(self, obj, beam_available):
         if not beam_available and (not self.collector.stopped) and (not self.collector.paused):
@@ -179,25 +206,35 @@ class CollectManager(gtk.Frame):
             save_data[ data['number'] ] = data
         config.save_config(RUN_CONFIG_FILE, save_data)
         
-    def update_sample(self, data=None):
-        
-        if data is not None:
-            self.selected_sample.update(data)
-            self.run_manager.update_sample(self.selected_sample)
+    def update_active_data(self, sample=None, strategy=None):
+
+        if sample is not None:
+            self.active_sample = sample
+        # pass in {} to delete the current strategy or None to ignore it
+        # if number of keys in strategy is 6 or more then replace it
+        # otherwise simply update it
+        if strategy is not None:
+            if strategy == {} or len(strategy.keys())> 5:
+                self.active_strategy = strategy
+            else:
+                self.active_strategy.update(strategy)
             
+        # send updated parameters to runs
+        self.run_manager.update_active_data(sample=self.active_sample, strategy=self.active_strategy)
+           
         self.mnt_action_btn.set_sensitive(False)
         self.mnt_action_btn.set_label('Mount')
         self.sel_mount_action = MOUNT_ACTION_NONE
         
-        if self.selected_sample.get('name') is not None:
-            if self.selected_sample.get('port') is not None:
-                txt = "%s(%s)" % (self.selected_sample['name'], 
-                                  self.selected_sample['port'])
+        if self.active_sample.get('name') is not None:
+            if self.active_sample.get('port') is not None:
+                txt = "%s(%s)" % (self.active_sample['name'], 
+                                  self.active_sample['port'])
                 self.crystal_lbl.set_text(txt)
-                if self.beamline.automounter.is_mounted(self.selected_sample['port']):
+                if self.beamline.automounter.is_mounted(self.active_sample['port']):
                     self.mnt_action_btn.set_label('Dismount')
                     self.sel_mount_action = MOUNT_ACTION_DISMOUNT
-                elif self.beamline.automounter.is_mountable(self.selected_sample['port']):
+                elif self.beamline.automounter.is_mountable(self.active_sample['port']):
                     self.mnt_action_btn.set_label('Mount')
                     self.sel_mount_action = MOUNT_ACTION_MOUNT
                 if self.sel_mounting or self.beamline.automounter.is_busy() or not self.beamline.automounter.is_active():
@@ -205,17 +242,36 @@ class CollectManager(gtk.Frame):
                     self.mnt_action_btn.set_sensitive(False)
                 else:
                     self.mnt_action_btn.set_sensitive(True)
-                    
+        
+        if self.active_strategy != {}:
+            # display text in strategy_view
+            txt = ""
+            for key in ['start_angle', 'delta_angle', 'exposure_time', 'attenuation', 'distance', 'total_angle']:
+                if key in self.active_strategy:
+                    txt += '%15s: %7.2f\n' % (key, self.active_strategy[key])
+            if 'energy' in self.active_strategy:
+                txt += "%15s:\n" % ('energies')
+                for val, lbl in zip(self.active_strategy['energy'], self.active_strategy['energy_label']):
+                    txt += "%15s = %8.5f\n" % (lbl, val)
+            buf = self.strategy_view.get_buffer()
+            buf.set_text(txt)
+            self.active_strategy_box.set_visible(True)
+        else:
+            self.active_strategy_box.set_visible(False)
+
+    def on_clear_strategy(self, obj):
+        self.update_active_data(strategy={})
+                       
     @async
     def execute_mount_action(self):
         
         if self.sel_mount_action == MOUNT_ACTION_MOUNT:
             try:
                 gobject.idle_add(self.progress_bar.busy_text, 
-                                 'Mounting %s ...' % self.selected_sample['name'])
+                                 'Mounting %s ...' % self.active_sample['name'])
                 self.sel_mounting = True
-                gobject.idle_add(self.update_sample)
-                auto.auto_mount_manual(self.beamline, self.selected_sample['port'])
+                gobject.idle_add(self.update_active_data)
+                auto.auto_mount_manual(self.beamline, self.active_sample['port'])
                 done_text = "Mount succeeded"
             except:
                 _logger.error('Sample mounting failed')
@@ -223,10 +279,10 @@ class CollectManager(gtk.Frame):
         elif self.sel_mount_action == MOUNT_ACTION_DISMOUNT:
             try:
                 gobject.idle_add(self.progress_bar.busy_text, 
-                                 'Dismounting %s ...' % self.selected_sample['name'])
+                                 'Dismounting %s ...' % self.active_sample['name'])
                 self.sel_mounting = True
-                gobject.idle_add(self.update_sample)
-                auto.auto_dismount_manual(self.beamline, self.selected_sample['port'])
+                gobject.idle_add(self.update_active_data)
+                auto.auto_dismount_manual(self.beamline, self.active_sample['port'])
                 done_text = "Dismount succeeded"
             except:
                 _logger.error('Sample dismounting failed')
@@ -235,7 +291,7 @@ class CollectManager(gtk.Frame):
         if self.progress_bar.get_busy():
             gobject.idle_add(self.progress_bar.idle_text,  done_text)
         self.sel_mounting = False
-        gobject.idle_add(self.update_sample)
+        gobject.idle_add(self.update_active_data)
     
     
     def on_mount_action(self, obj):
@@ -259,40 +315,56 @@ class CollectManager(gtk.Frame):
 
 
     def _add_item(self, item):
-        iter = self.listmodel.append()        
+        iter = self.listmodel.append()
+        if item['saved']:
+            status = FRAME_STATE_DONE
+        else:
+            status = FRAME_STATE_PENDING
         self.listmodel.set(iter, 
-            COLLECT_COLUMN_SAVED, item['saved'], 
+            COLLECT_COLUMN_STATUS, status, 
             COLLECT_COLUMN_ANGLE, item['start_angle'],
             COLLECT_COLUMN_RUN, item['number'],
             COLLECT_COLUMN_NAME, item['frame_name']
         )
             
-    def _float_format(self, column, renderer, model, iter, format):
-        value = model.get_value(iter, COLLECT_COLUMN_ANGLE)
-        saved = model.get_value(iter, COLLECT_COLUMN_SAVED)
-        renderer.set_property('text', format % value)
-        if saved:
-            renderer.set_property("foreground", '#cc0000')
+
+    def _saved_pixbuf(self, column, renderer, model, iter):
+        value = model.get_value(iter, COLLECT_COLUMN_STATUS)
+        if value == FRAME_STATE_PENDING:
+            renderer.set_property('pixbuf', None)
+        elif value == FRAME_STATE_RUNNING:
+            renderer.set_property('pixbuf', self._wait_img)
+        elif value == FRAME_STATE_DONE:
+            renderer.set_property('pixbuf', self._ready_img)
+        elif value == FRAME_STATE_SKIPPED:
+            renderer.set_property('pixbuf', self._skip_img)
         else:
-            renderer.set_property("foreground", None)
-        return
+            renderer.set_property('pixbuf', None)
 
     def _saved_color(self,column, renderer, model, iter):
-        value = model.get_value(iter, COLLECT_COLUMN_SAVED)
-        if value:
-            renderer.set_property("foreground", '#cc0000')
-        else:
-            renderer.set_property("foreground", None)
+        status = model.get_value(iter, COLLECT_COLUMN_STATUS)
+        _state_colors = {
+            FRAME_STATE_PENDING : None,
+            FRAME_STATE_RUNNING : '#990099',
+            FRAME_STATE_SKIPPED : '#777777',
+            FRAME_STATE_DONE : '#006600',
+            }
+        renderer.set_property("foreground", _state_colors.get(status))
         return      
+
+    def _float_format(self, column, renderer, model, iter, format):
+        value = model.get_value(iter, COLLECT_COLUMN_ANGLE)
+        renderer.set_property('text', format % value)
+        self._saved_color(column, renderer, model, iter)
+        return
                 
     def _add_columns(self):
-        model = self.listview.get_model()
-                                        
         # Saved Column
-        renderer = gtk.CellRendererToggle()
-        column = gtk.TreeViewColumn('Saved', renderer, active=COLLECT_COLUMN_SAVED)
+        renderer = gtk.CellRendererPixbuf()
+        column = gtk.TreeViewColumn('', renderer)
         column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-        column.set_fixed_width(50)
+        column.set_fixed_width(24)
+        column.set_cell_data_func(renderer, self._saved_pixbuf)
         self.listview.append_column(column)
         
         # Name Column
@@ -380,7 +452,7 @@ class CollectManager(gtk.Frame):
             if response == gtk.RESPONSE_YES:
                 self.skip_existing = True
                 for index in existlist:
-                    self.set_row_state(index, saved=True)
+                    self.set_row_state(index, FRAME_STATE_SKIPPED)
                 return True
             elif response == gtk.RESPONSE_NO:
                 self.skip_existing = False
@@ -392,11 +464,15 @@ class CollectManager(gtk.Frame):
                 return False
         return True
             
-    def set_row_state(self, pos, saved=True):
+    def set_row_state(self, pos, status):
         path = (pos,)
-        iter = self.listmodel.get_iter(path)
-        self.listmodel.set(iter, COLLECT_COLUMN_SAVED, saved)
-        self.listview.scroll_to_cell(path,use_align=True,row_align=0.9)
+        try:
+            iter = self.listmodel.get_iter(path)
+            self.listmodel.set(iter, COLLECT_COLUMN_STATUS, status)
+            self.listview.scroll_to_cell(path, use_align=True, row_align=0.7)
+        except ValueError:
+            #only change valid positions
+            pass
         
     def on_row_activated(self, treeview, path, column):
         if self.collect_state != COLLECT_STATE_PAUSED:
@@ -408,10 +484,15 @@ class CollectManager(gtk.Frame):
         while iter:
             i = model.get_path(iter)[0]
             if i < self.frame_pos:
-                model.set(iter, COLLECT_COLUMN_SAVED, True)
+                status = model.get_value(iter, COLLECT_COLUMN_STATUS)
+                if status != FRAME_STATE_DONE:
+                    model.set(iter, COLLECT_COLUMN_STATUS, FRAME_STATE_SKIPPED)
                 self.run_list[i]['saved'] = True
+            elif i == self.frame_pos:
+                model.set(iter, COLLECT_COLUMN_STATUS, FRAME_STATE_RUNNING)
+                self.run_list[i]['saved'] = False
             else:
-                model.set(iter, COLLECT_COLUMN_SAVED, False)
+                model.set(iter, COLLECT_COLUMN_STATUS, FRAME_STATE_PENDING)
                 self.run_list[i]['saved'] = False
             iter = model.iter_next(iter)
             
@@ -427,10 +508,10 @@ class CollectManager(gtk.Frame):
         pos = model.get_iter(path)
         i = model.get_path(pos)[0]             
         if self.run_list[i]['saved'] :
-            model.set(iter, COLLECT_COLUMN_SAVED, False)
+            model.set(iter, COLLECT_COLUMN_STATUS, False)
             self.run_list[i]['saved'] = False
         else:
-            model.set(iter, COLLECT_COLUMN_SAVED, True)
+            model.set(iter, COLLECT_COLUMN_STATUS, True)
             self.run_list[i]['saved'] = True
         return True
 
@@ -505,8 +586,7 @@ class CollectManager(gtk.Frame):
                     'beam_x': result['beam_x'],
                     'beam_y': result['beam_y'],
                     'url': result['directory'],
-                    'staff_comments': result.get('comments'),
-                    #'project_name': "testuser",                  
+                    'staff_comments': result.get('comments'),                 
                     'project_name': get_project_name(),                  
                     }
                 if result['num_frames'] < 10:
@@ -536,7 +616,8 @@ class CollectManager(gtk.Frame):
     def on_new_image(self, widget, index, filename):
         self.frame_pos = index
         self.image_viewer.add_frame(filename)
-        self.set_row_state(index, saved=True)
+        self.set_row_state(index, FRAME_STATE_DONE)
+        self.set_row_state(index+1, FRAME_STATE_RUNNING)
       
 
     def on_progress1(self, obj, fraction, position):

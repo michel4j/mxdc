@@ -1,7 +1,7 @@
 from bcm.engine.scripting import Script
 
 class SetMountMode(Script):
-    description = "Prepare for sample mounting."
+    description = "Prepare for manual sample mounting."
     def run(self):
         safe_distance = 700
         safe_beamstop = self.beamline.config['safe_beamstop']
