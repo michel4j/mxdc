@@ -13,6 +13,8 @@ class RunManager(gtk.Notebook):
         self.run_labels = []
         self.blank_page = gtk.EventBox()
         self.set_tab_pos(gtk.POS_RIGHT)
+        self.active_sample = None
+        self.active_strategy = None
         
         self.add_run_btn = gtk.image_new_from_stock('gtk-add', gtk.ICON_SIZE_MENU) 
         self.add_run_btn.show()
@@ -30,8 +32,10 @@ class RunManager(gtk.Notebook):
                 self.runs[0].set_parameters(data)
                 return
             else:
-                data['number'] = number
-                newrun.set_parameters(data)
+                new_data = self.runs[number - 1].get_parameters()
+                new_data.update(data)
+                new_data['number'] = number
+                newrun.set_parameters(new_data)
         else:
             if number > 0:
                 data = self.runs[number - 1].get_parameters()
@@ -41,7 +45,10 @@ class RunManager(gtk.Notebook):
                 data['two_theta'] = 0.0
                 data['inverse_beam'] = False
                 newrun.set_parameters(data)
+                newrun.update_active_data(sample=self.active_sample, strategy=self.active_strategy)
+                newrun.on_update_parameters(None) # force update 
         self.runs.append(newrun)
+        newrun.check_changes()
         self.run_labels.append(gtk.Label(" %d " % (len(self.runs) - 1)))
         pos = len(self.runs) - 1
         self.insert_page(self.runs[-1], tab_label=self.run_labels[-1], position=pos)
@@ -63,9 +70,11 @@ class RunManager(gtk.Notebook):
             num = num - 1
         self.set_current_page(num)
     
-    def update_sample(self, data):
+    def update_active_data(self, sample=None, strategy=None):
+        self.active_sample = sample
+        self.active_strategy = strategy
         for run in self.runs:
-            run.update_sample(data)
+            run.update_active_data(sample, strategy)
             
     def on_save(self, widget):
         self.emit('saved')

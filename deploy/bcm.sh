@@ -28,3 +28,10 @@ if [ $PYTHONPATH ]; then
 else
 	export PYTHONPATH=${BCM_PATH}
 fi
+
+# Setup MOZEMBED XUL PATH
+gre_version=`xulrunner --gre-version`
+xul_lib=`xulrunner --find-gre ${gre_version}`
+if [ ! $MOZILLA_FIVE_HOME ]; then
+	export MOZILLA_FIVE_HOME=`dirname ${xul_lib}`
+fi

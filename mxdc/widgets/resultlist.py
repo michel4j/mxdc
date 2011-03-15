@@ -6,14 +6,15 @@ from mxdc.widgets.dialogs import *
 (
     RESULT_COLUMN_STATE,
     RESULT_COLUMN_NAME,
-    RESULT_COLUMN_BARCODE,
+    RESULT_COLUMN_PORT,
     RESULT_COLUMN_GROUP,
     RESULT_COLUMN_SCORE,
     RESULT_COLUMN_SG,
     RESULT_COLUMN_CELL,
-    RESULT_COLUMN_DETAIL,
+    RESULT_COLUMN_DATA,
+    RESULT_COLUMN_RESULT,    
     RESULT_SORT_COLUMN,
-) = range(9)
+) = range(10)
 
 RESULT_TYPES = (
     gobject.TYPE_INT,
@@ -24,6 +25,7 @@ RESULT_TYPES = (
     gobject.TYPE_STRING,
     gobject.TYPE_STRING,
     gobject.TYPE_PYOBJECT,
+    gobject.TYPE_PYOBJECT,
 )
 
 (
@@ -32,18 +34,18 @@ RESULT_TYPES = (
     RESULT_STATE_ERROR,) = range(3)
 
 STATE_DICT = {
-    RESULT_STATE_WAITING : '#CCCCCC',
+    RESULT_STATE_WAITING : '#990099',
     RESULT_STATE_READY: '#006600',
-    RESULT_STATE_ERROR: '#CC0000',
+    RESULT_STATE_ERROR: '#990000',
 }
 
 COLUMN_DICT = {
     RESULT_COLUMN_NAME: 'State',               
     RESULT_COLUMN_NAME: 'Crystal',
-    RESULT_COLUMN_BARCODE: 'BarCode',
+    RESULT_COLUMN_PORT: 'Port',
     RESULT_COLUMN_GROUP: 'Group',
     RESULT_COLUMN_SCORE: 'Score',
-    RESULT_COLUMN_SG: 'Spacegroup',
+    RESULT_COLUMN_SG: 'SpaceGroup',
     RESULT_COLUMN_CELL: 'Unit Cell',
 }
 
@@ -87,13 +89,13 @@ class ResultList(gtk.ScrolledWindow):
         self.listmodel.set(iter,
                 RESULT_COLUMN_STATE, item.get('state', RESULT_STATE_WAITING),
                 RESULT_COLUMN_NAME, item['name'],
-                RESULT_COLUMN_BARCODE, item.get('barcode','-'),
+                RESULT_COLUMN_PORT, item.get('port','-'),
                 RESULT_COLUMN_GROUP, item.get('group', '-'),
                 RESULT_COLUMN_SCORE, item.get('score', -1),
                 RESULT_COLUMN_SG, item.get('space_group', '-'),
                 RESULT_COLUMN_CELL, item.get('unit_cell', '-'),
-                RESULT_COLUMN_DETAIL, item.get('detail', {}),
-        )
+                RESULT_COLUMN_DATA, item,
+                RESULT_COLUMN_RESULT, {})
         return iter
 
     def update_item(self, iter, data):
@@ -102,7 +104,7 @@ class ResultList(gtk.ScrolledWindow):
                 RESULT_COLUMN_SCORE, data.get('score', -1),
                 RESULT_COLUMN_SG, data.get('space_group', '-'),
                 RESULT_COLUMN_CELL, data.get('unit_cell', '-'),
-                RESULT_COLUMN_DETAIL, data.get('detail', {}),
+                RESULT_COLUMN_RESULT, data.get('detail', {}),
         )
     
     def __format_cell(self, column, renderer, model, iter):
@@ -161,7 +163,7 @@ class ResultList(gtk.ScrolledWindow):
         column.set_cell_data_func(renderer, self.__format_pixbuf)
         self.listview.append_column(column)
         
-        for key in [RESULT_COLUMN_NAME, RESULT_COLUMN_BARCODE, RESULT_COLUMN_GROUP, RESULT_COLUMN_SCORE, RESULT_COLUMN_SG, RESULT_COLUMN_CELL]:
+        for key in [RESULT_COLUMN_NAME, RESULT_COLUMN_PORT, RESULT_COLUMN_GROUP, RESULT_COLUMN_SCORE, RESULT_COLUMN_SG, RESULT_COLUMN_CELL]:
             renderer = gtk.CellRendererText()
             column = gtk.TreeViewColumn(COLUMN_DICT[key], renderer, text=key)
             if key == RESULT_COLUMN_SCORE:

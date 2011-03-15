@@ -14,7 +14,7 @@ from mxdc.widgets import dialogs
 from mxdc.widgets.ptzviewer import AxisViewer
 from bcm.beamline.mx import IBeamline
 from bcm.engine.interfaces import IDataCollector
-from bcm.utils.runlists import determine_skip
+from bcm.utils.runlists import determine_skip, summarize_frame_set
 from bcm.engine.diffraction import Screener, DataCollector
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.dialogs import warning
@@ -27,12 +27,12 @@ TASKLET_NAME_MAP = {
     Screener.TASK_ALIGN : 'Center Crystal',
     Screener.TASK_PAUSE : 'Pause',
     Screener.TASK_COLLECT : 'Collect Frames',
-    Screener.TASK_ANALYSE : 'Analyse',
-    Screener.TASK_DISMOUNT : 'Dismount',
+    Screener.TASK_ANALYSE : 'Request Analysis',
+    Screener.TASK_DISMOUNT : 'Dismount Last',
 }
 
 (
-    QUEUE_COLUMN_DONE,
+    QUEUE_COLUMN_STATUS,
     QUEUE_COLUMN_ID,
     QUEUE_COLUMN_NAME,
     QUEUE_COLUMN_TASK,
@@ -51,9 +51,12 @@ class Tasklet(object):
             self.options.update(kwargs)
 
     def __repr__(self):
-        _info = '%s "%s"' % (self.name, self.options['sample']['name'])
         if self.task_type == Screener.TASK_COLLECT:
-            _info = u'%s @%0.0f\xb0' % (_info, self.options['angle'])
+            _info = 'Collecting %s' % (self.options.get('frame_set'))
+        elif self.task_type == Screener.TASK_DISMOUNT:
+            _info = self.name
+        else:
+            _info = '%s: %s' % (self.name, self.options['sample']['name'])
         return _info
     
     def __getitem__(self, key):
@@ -94,7 +97,7 @@ class ScreenManager(gtk.Frame):
         self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_MENU)
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                            'data/busy.gif'))
-        pango_font = pango.FontDescription('sans 7')
+        pango_font = pango.FontDescription('sans 8')
         self.lbl_current.modify_font(pango_font)
         self.lbl_next.modify_font(pango_font)
         self.lbl_barcode.modify_font(pango_font)
@@ -153,11 +156,14 @@ class ScreenManager(gtk.Frame):
         self._settings_sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
         
         # connect signals for collect parameters
-        self.delta_entry.connect('activate', self._on_entry_changed, None)
-        self.delta_entry.connect('focus-out-event', self._on_entry_changed)
-        self.time_entry.connect('activate', self._on_entry_changed, None)
-        self.time_entry.connect('focus-out-event', self._on_entry_changed)
-                
+        self.delta_entry.connect('activate', self._on_entry_changed, None, (0.2, 90.0, 1.0))
+        self.delta_entry.connect('focus-out-event', self._on_entry_changed, (0.2, 90.0, 1.0))
+        self.distance_entry.connect('activate', self._on_entry_changed, None, (100, 1000.0, 300.0))
+        self.distance_entry.connect('focus-out-event', self._on_entry_changed, (100, 1000.0, 300.0))
+        self.time_entry.connect('activate', self._on_entry_changed, None, (0.1, 360.0, self.beamline.config['default_exposure']))
+        self.time_entry.connect('focus-out-event', self._on_entry_changed, (0.1, 360.0, self.beamline.config['default_exposure']))
+        self.beamline.energy.connect('changed', lambda obj, val: self.energy_entry.set_text('%0.4f' % val))
+        
         for pos, tasklet in enumerate(self.default_tasks):
             key, options = tasklet
             options.update(enabled=options['default'])
@@ -188,7 +194,7 @@ class ScreenManager(gtk.Frame):
         
         # Run List
         self.listmodel = gtk.ListStore(
-            gobject.TYPE_BOOLEAN,
+            gobject.TYPE_INT,
             gobject.TYPE_STRING,
             gobject.TYPE_STRING,
             gobject.TYPE_PYOBJECT,
@@ -208,6 +214,17 @@ class ScreenManager(gtk.Frame):
         self.add(self.screen_manager)
         self.connect('realize', lambda x: self._load_config())
         self.show_all()
+        
+        #prepare pixbufs for status icons
+        self._wait_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+                                                               'data/tiny-wait.png'))
+        self._ready_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+                                                               'data/tiny-ready.png'))
+        self._error_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+                                                               'data/tiny-error.png'))
+        self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+                                                               'data/tiny-skip.png'))
+        
 
     def on_busy(self, obj, state):
         if state:
@@ -228,33 +245,38 @@ class ScreenManager(gtk.Frame):
 
     def _on_sync(self, obj, st, str):
         if st:
-            self.lbl_sync.set_markup('<span color="#009900">GOOD</span>')
+            self.lbl_sync.set_markup('<span color="#009900">Barcode match</span>')
         else:
-            self.lbl_sync.set_markup('<span color="#990000">BAD</span>')
+            self.lbl_sync.set_markup('<span color="#990000">Barcode mismatch</span>')
             self.message_log.add_text('sync: %s' % str)
-        self.lbl_sync.set_alignment(0.5, 0.5)
+        #self.lbl_sync.set_alignment(0.5, 0.5)
 
     def _on_automounter_state(self, obj, state):
         self.lbl_state.set_markup(state)
     
     def _on_sample_mounted(self, obj, info):
         if info is None: # dismounting
-            self.lbl_port.set_markup('')
-            self.lbl_barcode.set_markup('')
+            self.lbl_port.set_text('')
+            self.lbl_barcode.set_text('')
         else:   
             port, barcode = info
             if port is not None:
                 self.lbl_port.set_text(port)
                 self.lbl_barcode.set_text(barcode)
-                self.lbl_port.set_alignment(0.5, 0.5)
-                self.lbl_barcode.set_alignment(0.5, 0.5)
+                #self.lbl_port.set_alignment(0.5, 0.5)
+                #self.lbl_barcode.set_alignment(0.5, 0.5)
             else:
-                self.lbl_port.set_markup('')
-                self.lbl_barcode.set_markup('')
+                self.lbl_port.set_text('')
+                self.lbl_barcode.set_text('')
                
 
     def add_samples(self, samples):
         self.sample_list.clear()
+        for sample in samples:
+            if self.beamline.automounter.is_mountable(sample.get('port')):
+                sample['state'] = SampleList.SAMPLE_STATE_GOOD
+            else:
+                sample['state'] = SampleList.SAMPLE_STATE_JAM
         self.sample_list.load_data(samples)
             
     def get_task_list(self):
@@ -302,38 +324,64 @@ class ScreenManager(gtk.Frame):
             val = obj.default_value
         task.options[key] = val
     
-    def _on_entry_changed(self, obj, event):
+    def _on_entry_changed(self, obj, event, data):
+        _min, _max, _default = data
         try:
             val = float( obj.get_text() )
-            val = max(0.2, val)
-            obj.set_text( '%0.1f' % val )
+            val = min(_max, max(_min, val))
+            obj.set_text( '%0.2f' % val )
         except:
-            val = obj.default_value
-            obj.set_text( '%0.1f' % val )
+            val = _default
+            obj.set_text( '%0.2f' % val )
             
         
        
     def _add_item(self, item):
         iter = self.listmodel.append()
+        sample = item['task'].options.get('sample', {}) # dismount does not have a sample
         self.listmodel.set(iter, 
-            QUEUE_COLUMN_DONE, item['done'], 
-            QUEUE_COLUMN_ID, item['task'].options['sample']['name'],
+            QUEUE_COLUMN_STATUS, item.get('status', Screener.TASK_STATE_PENDING), 
+            QUEUE_COLUMN_ID, sample.get('name', '[LAST]'), # use [LAST] as sample name
             QUEUE_COLUMN_NAME, item['task'].name,
             QUEUE_COLUMN_TASK, item['task'],
         )
         self.start_btn.set_sensitive(True)
         
     def _done_color(self, column, renderer, model, iter):
-        value = model.get_value(iter, QUEUE_COLUMN_DONE)
-        if value:
-            renderer.set_property("foreground", '#cc0000')
+        status = model.get_value(iter, QUEUE_COLUMN_STATUS)
+        _state_colors = {
+            Screener.TASK_STATE_PENDING : None,
+            Screener.TASK_STATE_RUNNING : '#990099',
+            Screener.TASK_STATE_DONE : '#006600',
+            Screener.TASK_STATE_ERROR : '#990000',
+            Screener.TASK_STATE_SKIPPED : '#777777',
+            }
+        renderer.set_property("foreground", _state_colors.get(status))
+        
+    def _done_pixbuf(self, column, renderer, model, iter):
+        value = model.get_value(iter, QUEUE_COLUMN_STATUS)
+        if value == Screener.TASK_STATE_PENDING:
+            renderer.set_property('pixbuf', None)
+        elif value == Screener.TASK_STATE_RUNNING:
+            renderer.set_property('pixbuf', self._wait_img)
+        elif value == Screener.TASK_STATE_DONE:
+            renderer.set_property('pixbuf', self._ready_img)
+        elif value == Screener.TASK_STATE_ERROR:
+            renderer.set_property('pixbuf', self._error_img)
+        elif value == Screener.TASK_STATE_SKIPPED:
+            renderer.set_property('pixbuf', self._skip_img)
         else:
-            renderer.set_property("foreground", None)
-        return
+            renderer.set_property('pixbuf', None)
 
     def _add_columns(self):
-        model = self.listview.get_model()
-                                          
+        # Status Column
+        renderer = gtk.CellRendererPixbuf()
+        column = gtk.TreeViewColumn('', renderer)
+        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        column.set_fixed_width(24)
+        column.set_cell_data_func(renderer, self._done_pixbuf)
+        self.listview.append_column(column)
+
         # Name Column
         renderer = gtk.CellRendererText()
         column = gtk.TreeViewColumn('Crystal', renderer, text=QUEUE_COLUMN_ID)
@@ -351,15 +399,17 @@ class ScreenManager(gtk.Frame):
             "directory": self.folder_btn.get_current_folder(),
             "delta": float(self.delta_entry.get_text()),
             "time": float(self.time_entry.get_text()),
-            "tasks": [t.options['enabled'] for  t , tbtn in self.TaskList]}
+            "distance": float(self.distance_entry.get_text()),
+            "tasks": [t.options['enabled'] for  t , _ in self.TaskList]}
         config.save_config(SCREEN_CONFIG_FILE, data)
     
     def _load_config(self):
         data = config.load_config(SCREEN_CONFIG_FILE)
         if data is not None:
             self.folder_btn.set_current_folder(data.get('directory',os.environ['HOME']))
-            self.time_entry.set_text('%0.1f' % data.get('time'))
-            self.delta_entry.set_text('%0.1f' % data.get('delta'))
+            self.time_entry.set_text('%0.2f' % data.get('time', self.beamline.config['default_exposure']))
+            self.delta_entry.set_text('%0.2f' % data.get('delta', 1.0))
+            self.distance_entry.set_text('%0.2f' % data.get('distance', 300.0))
             for idx, v in enumerate(data.get('tasks',[])):
                 self.TaskList[idx][1].set_active(v)
                   
@@ -375,7 +425,7 @@ class ScreenManager(gtk.Frame):
         for item in items:
             collect_task = None
             collect_frames = []
-            for t,b in self.TaskList:
+            for t, _ in self.TaskList:
                 if t.options['enabled']:
                     tsk = Tasklet(t.task_type, **t.options)
                     tsk.options.update({
@@ -389,13 +439,13 @@ class ScreenManager(gtk.Frame):
                             
                         if collect_task is None:
                             collect_task = tsk
-                            q_item = {'done': False, 'task': tsk}
+                            q_item = {'status': Screener.TASK_STATE_PENDING, 'task': tsk}
                             self._add_item(q_item)
                     else:
                         if tsk.task_type == Screener.TASK_ANALYSE:
                             # make sure analyse knows about corresponding collect
                             tsk.options.update(collect_task=collect_task)   
-                        q_item = {'done': False, 'task': tsk} 
+                        q_item = {'status': Screener.TASK_STATE_PENDING, 'task': tsk} 
                         self._add_item(q_item)
             
             # setup collect parameters for this item
@@ -411,81 +461,17 @@ class ScreenManager(gtk.Frame):
                     'wedge': 360.0,
                     'total_angle': (max(collect_frames)+1) * delta,
                     'skip': determine_skip(collect_frames),
+                    'frame_set': summarize_frame_set(collect_frames),
                     })
                     
             # Add dismount task for last item
             if item == items[-1]:
                 tsk = Tasklet(Screener.TASK_DISMOUNT)
-                tsk.options.update({'sample':  item})
-                self._add_item({'done':False, 'task': tsk})
+                self._add_item({'status': Screener.TASK_STATE_PENDING, 'task': tsk})
                 
         # Save the configuration everytime we hit apply
         self._save_config()
   
-
-    def _on_export(self, obj):
-        _CSV = 'Comma Separated Values'
-        _XLS = 'Excel 97-2003'
-        filters = [
-            (_XLS, ['*.xls']),
-            (_CSV, ['*.csv']),
-        ]
-        export_selector = dialogs.FileSelector('Export Spreadsheet',
-                                       gtk.FILE_CHOOSER_ACTION_SAVE,
-                                       filters=filters)
-        filename = export_selector.run()
-        filter = export_selector.get_filter()
-        if filename is None:
-            return
-        ext = os.path.splitext(filename)[1].lower()
-        if ext == '.csv':
-            self.sample_list.export_csv(filename)
-        elif ext == '.xls':
-            self.sample_list.export_xls(filename)
-        else:
-            format = filter.get_name()
-            if format == _CSV:
-                self.sample_list.export_csv(filename)
-            elif format == _XLS:
-                self.sample_list.export_xls(filename)
-            
-    def _on_import(self, obj):
-        _ALL = 'All Files'
-        _CSV = 'Comma Separated Values'
-        _XLS = 'Excel 97-2003'
-        filters = [
-            (_XLS, ['*.xls']),
-            (_CSV, ['*.csv']),
-            (_ALL, ['*']),
-        ]
-        export_selector = dialogs.FileSelector('Import Spreadsheet',
-                                       gtk.FILE_CHOOSER_ACTION_OPEN,
-                                       filters=filters)
-        filename = export_selector.run()
-        filter = export_selector.get_filter()
-        if filename is None:
-            return
-        ext = os.path.splitext(filename)[1].lower()
-        if ext == '.csv':
-            self.sample_list.import_csv(filename)
-        elif ext == '.xls':
-            self.sample_list.import_xls(filename)
-        else:
-            format = filter.get_name()
-            if format == _CSV:
-                self.sample_list.import_csv(filename)
-            elif format == _XLS:
-                self.sample_list.import_xls(filename)
-            elif format == _ALL:
-                try:
-                    self.sample_list.import_csv(filename)
-                except:
-                    try:
-                        self.sample_list.import_xls(filename)
-                    except:
-                        header = 'Unknown file format'
-                        subhead = 'The file "%s" could not be opened' % filename
-                        dialogs.error(header, subhead)
 
     
     def _on_sequence_reset(self, obj):
@@ -516,7 +502,7 @@ class ScreenManager(gtk.Frame):
         self.screen_runner.stop()
         self.stop_btn.set_sensitive(False)
                           
-    def _on_progress(self, obj, fraction, position):
+    def _on_progress(self, obj, fraction, position, status=Screener.TASK_STATE_RUNNING):
         elapsed_time = time.time() - self.start_time
         if fraction > 0:
             time_unit = elapsed_time / fraction
@@ -526,7 +512,6 @@ class ScreenManager(gtk.Frame):
         eta_time = time_unit * (1 - fraction)
         percent = fraction * 100
         if position > 0:
-            frame_time = elapsed_time / position
             text = "%0.0f %%, ETA %s" % (percent, time.strftime('%H:%M:%S',time.gmtime(eta_time)))
         else:
             text = "Total: %s sec" % (time.strftime('%H:%M:%S',time.gmtime(elapsed_time)))
@@ -537,11 +522,10 @@ class ScreenManager(gtk.Frame):
         path = (position,)
         model = self.listview.get_model()
         iter = model.get_iter(path)
-        model.set(iter, QUEUE_COLUMN_DONE, True)
+        model.set(iter, QUEUE_COLUMN_STATUS, status)
         self.listview.scroll_to_cell(path, use_align=True,row_align=0.9)
         
         # determine current and next tasks
-        iter = model.iter_next(iter)
         if iter is None:
             self.lbl_current.set_text('')
         else:
@@ -553,8 +537,8 @@ class ScreenManager(gtk.Frame):
             else:
                 txt = str(model.get_value(next_iter, QUEUE_COLUMN_TASK))
                 self.lbl_next.set_text(txt)
-        self.lbl_current.set_alignment(0.5, 0.5)
-        self.lbl_next.set_alignment(0.5, 0.5)
+        #self.lbl_current.set_alignment(0.5, 0.5)
+        #self.lbl_next.set_alignment(0.5, 0.5)
 
         
     def _on_stop(self, obj):
