@@ -12,6 +12,7 @@ from mxdc.widgets.hutchmanager import HutchManager
 from mxdc.widgets.screeningmanager import ScreenManager
 from mxdc.widgets.samplemanager import SampleManager
 from mxdc.widgets.resultmanager import ResultManager
+from mxdc.widgets.resultlist import RESULT_STATE_WAITING, RESULT_STATE_READY, RESULT_STATE_ERROR
 from bcm.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
@@ -101,13 +102,15 @@ class AppWindow(gtk.Window):
 
         self.main_frame.add(notebook)
         self.mxdc_main.pack_start(self.status_panel, expand = False, fill = False)
-        #self.status_bar.pack_end(gtk.Label('Beamline'))
         self.add(self.mxdc_main)
         self.scripts = get_scripts()
+        # register menu events
         self.mounting_mnu.connect('activate', self.hutch_manager.on_mounting)
         self.centering_mnu.connect('activate', self.hutch_manager.on_centering)
         self.collect_mnu.connect('activate', self.hutch_manager.on_collection)
-
+        self.beam_mnu.connect('activate', self.hutch_manager.on_beam_mode)
+        self.open_shutter_mnu.connect('activate', self.hutch_manager.on_open_shutter)
+        self.close_shutter_mnu.connect('activate', self.hutch_manager.on_close_shutter)
         self.show_all()
         
     def _do_quit(self):
@@ -162,8 +165,8 @@ class AppWindow(gtk.Window):
         subhead += 'Please create a new run or update the run parameters to use it.'
         dialogs.info(header, subhead)
 
-    def _result_ready(self, data, iter):
-        data = data[0]        
+    def _result_ready(self, results, iter):
+        data = results[0]        
         cell_info = '%0.1f %0.1f %0.1f %0.1f %0.1f %0.1f' % (
                     data['result']['cell_a'],
                     data['result']['cell_b'],
@@ -172,19 +175,23 @@ class AppWindow(gtk.Window):
                     data['result']['cell_beta'],
                     data['result']['cell_gamma']
                     )
-        item = {'state': 1,
+        item = {'state': RESULT_STATE_READY,
                 'score': data['result']['score'],
                 'space_group': data['result']['space_group_name'],
                 'unit_cell': cell_info,
                 'detail': data}
         self.result_manager.update_item(iter, item)
+        print data['result']['name'], iter
+        #self.result_manager.upload_results(results)
+
         
     def _result_fail(self, failure, iter):
         _logger.error(failure.getErrorMessage())
-        item = {'state': 2}
+        item = {'state': RESULT_STATE_ERROR}
         self.result_manager.update_item(iter, item)
         
     def on_analyse_request(self, obj, data):
+        data.update(state=RESULT_STATE_WAITING)
         iter = self.result_manager.add_item(data['crystal'])
         self.dpm_client.dpm.callRemote('screenDataset',
                             data['info'], 

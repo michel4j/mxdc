@@ -6,13 +6,15 @@ import pango
 import gtk.glade
 from mxdc.widgets.dialogs import save_selector, warning, error
 from mxdc.widgets.video import VideoWidget
-from mxdc.widgets.misc import ActiveHScale
+from mxdc.widgets.misc import ActiveHScale, ScriptButton
 from bcm.engine.scripting import get_scripts 
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.utils.video import add_decorations
+
+from bcm.engine.scripting import get_scripts
 
 try:
     import cairo
@@ -30,6 +32,10 @@ _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 class SampleViewer(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
+        self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
+                                  'sample_viewer')
+        self._xml_popup = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
+                                  'colormap_popup')
         self.set_shadow_type(gtk.SHADOW_NONE)
         
         self._timeout_id = None
@@ -42,7 +48,8 @@ class SampleViewer(gtk.Frame):
         except:
             self.beamline = None
             _logger.warning('No registered beamline found.')
-
+            
+        self.scripts = get_scripts()
         self._create_widgets()
 
         # initialize measurement variables
@@ -61,6 +68,11 @@ class SampleViewer(gtk.Frame):
         script.connect('done', self.done_centering)
         script.connect('error', self.error_centering)
 
+    def __getattr__(self, key):
+        try:
+            return super(SampleViewer).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
                                         
     def save_image(self, filename):
         img = self.beamline.sample_video.get_frame()
@@ -196,11 +208,7 @@ class SampleViewer(gtk.Frame):
             self.beamline.sample_stage.y.move_by(-ymm)
 
     def _create_widgets(self):
-        self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
-                                  'sample_viewer')
-        self._xml_popup = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
-                                  'colormap_popup')
-        widget = self._xml.get_widget('sample_viewer')
+
         self.cmap_popup = self._xml_popup.get_widget('colormap_popup')
         self.cmap_popup.set_title('Pseudo Color Mode')
         
@@ -210,60 +218,38 @@ class SampleViewer(gtk.Frame):
             w = self._xml_popup.get_widget(cmap_items[i])
             w.connect('activate', self.on_cmap_activate, i)
         
-        self.add(widget)
-        
-        self.side_panel = self._xml.get_widget('side_panel')
-        
+        self.add(self.sample_viewer)
+                
         #zoom
-        self.zoom_out_btn = self._xml.get_widget('zoom_out_btn')
-        self.zoom_in_btn = self._xml.get_widget('zoom_in_btn')
-        self.zoom_100_btn = self._xml.get_widget('zoom_100_btn')
         self.zoom_out_btn.connect('clicked', self.on_zoom_out)
         self.zoom_in_btn.connect('clicked', self.on_zoom_in)
         self.zoom_100_btn.connect('clicked', self.on_unzoom)
         
         # move sample
-        self.up_btn = self._xml.get_widget('up_btn')
-        self.dn_btn = self._xml.get_widget('dn_btn')
-        self.left_btn = self._xml.get_widget('left_btn')
-        self.right_btn = self._xml.get_widget('right_btn')
-        self.home_btn = self._xml.get_widget('home_btn')
-        self.up_btn.connect('clicked', self.on_fine_up)
-        self.dn_btn.connect('clicked', self.on_fine_down)
         self.left_btn.connect('clicked', self.on_fine_left)
         self.right_btn.connect('clicked', self.on_fine_right)        
         self.home_btn.connect('clicked', self.on_home)
         
         # rotate sample
-        self.decr_90_btn = self._xml.get_widget('decr_90_btn')
-        self.incr_90_btn = self._xml.get_widget('incr_90_btn')
-        self.incr_180_btn = self._xml.get_widget('incr_180_btn')
         self.decr_90_btn.connect('clicked',self.on_decr_omega)
         self.incr_90_btn.connect('clicked',self.on_incr_omega)
         self.incr_180_btn.connect('clicked',self.on_double_incr_omega)
         
         # centering 
-        self.loop_btn = self._xml.get_widget('loop_btn')
-        self.crystal_btn = self._xml.get_widget('crystal_btn')
-        self.click_btn = self._xml.get_widget('click_btn')
         self.click_btn.connect('clicked', self.toggle_click_centering)
         self.loop_btn.connect('clicked', self.on_center_loop)
         self.crystal_btn.connect('clicked', self.on_center_crystal)
 
 
         # status, save, etc
-        self.pos_label = self._xml.get_widget('status_label')
-        self.meas_label = self._xml.get_widget('meas_label')
-        self.save_btn = self._xml.get_widget('save_btn')
         self.save_btn.connect('clicked', self.on_save)
         
         #Video Area
-        self.video_frame = self._xml.get_widget('video_adjuster')
+        self.video_frame = self.video_adjuster
         self.video = VideoWidget(self.beamline.sample_video)
         self.video_frame.add(self.video)
         
         # Lighting
-        self.lighting_box =   self._xml.get_widget('lighting_box')       
         self.side_light = ActiveHScale(self.beamline.sample_frontlight)
         self.back_light = ActiveHScale(self.beamline.sample_backlight)
         self.side_light.set_update_policy(gtk.UPDATE_DELAYED)
@@ -275,6 +261,22 @@ class SampleViewer(gtk.Frame):
         pango_font = pango.FontDescription('Monospace 8')
         self.pos_label.modify_font(pango_font)
         self.meas_label.modify_font(pango_font)
+        
+        # mode buttons
+        self.cent_btn = ScriptButton(self.scripts['SetCenteringMode'], 'Centering')
+        msg = "This procedure involves both moving any mounted samples away from the beam position and"
+        msg += " moving the scintillator to the beam position. It is recommended to dismount any samples "
+        msg += " before switching to BEAM mode. Are you sure you want to proceed?"
+        self.beam_btn = ScriptButton(self.scripts['SetBeamMode'], 'Beam', confirm=True, message=msg)
+        self.mode_tbl.attach(self.cent_btn, 0, 1, 0, 1)
+        self.mode_tbl.attach(self.beam_btn, 1, 2, 0, 1)
+        
+        # disable key controls while scripts are running
+        for sc in ['SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'SetBeamMode']:
+            self.scripts[sc].connect('started', self.on_scripts_started)
+            self.scripts[sc].connect('done', self.on_scripts_done)
+    
+        
 
 
     def _overlay_function(self, pixmap):
@@ -284,6 +286,13 @@ class SampleViewer(gtk.Frame):
         
     
     # callbacks
+    def on_scripts_started(self, obj, event=None):
+        self.side_panel.set_sensitive(False)
+    
+    def on_scripts_done(self, obj, event=None):
+        self.side_panel.set_sensitive(True)
+
+    
     def on_cmap_activate(self, obj, cmap):
         self.video.set_colormap(COLOR_MAPS[cmap])
         
@@ -390,24 +399,17 @@ class SampleViewer(gtk.Frame):
             self.measure_x2, self.measure_y2 = event.x, event.y
         elif event.button == 3:
             self.cmap_popup.popup(None, None, None, event.button,event.time)
-                
-    def on_fine_up(self,widget):
-        step_size = self.beamline.sample_video.resolution * 10.0
-        self.beamline.sample_stage.y.move_by( step_size * 0.5 )
-        
-    def on_fine_down(self,widget):
-        step_size = self.beamline.sample_video.resolution * 10.0
-        self.beamline.sample_stage.y.move_by( -step_size * 0.5)
-        
+                        
     def on_fine_left(self,widget):
-        step_size = self.beamline.sample_video.resolution * 10.0
-        self.beamline.sample_stage.x.move_by( step_size * 0.5 )
+        # move left by 0.2 mm
+        self.beamline.sample_stage.x.move_by( 0.2 )
         
     def on_fine_right(self,widget):
-        step_size = self.beamline.sample_video.resolution * 10.0
-        self.beamline.sample_stage.x.move_by( -step_size * 0.5 )
+        # move right by 0.2 mm
+        self.beamline.sample_stage.x.move_by( -0.2 )
         
     def on_home(self,widget):
+        # move to horizontal home position
         #self.beamline.sample_stage.x.move_to( 22.0 )
         return True
                 

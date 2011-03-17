@@ -2,6 +2,7 @@ import gtk, gobject
 import sys, os, time
 
 from mxdc.widgets.dialogs import *
+from bcm.utils import automounter
 
 (   
     SAMPLE_COLUMN_CONTAINER,
@@ -35,14 +36,13 @@ MIN_COLUMN_SET = set([COLUMN_DICT[SAMPLE_COLUMN_CONTAINER].lower(),
                       COLUMN_DICT[SAMPLE_COLUMN_COMMENTS].lower()])
 
 class SampleList(gtk.ScrolledWindow):
-
-    SAMPLE_STATE_GOOD, SAMPLE_STATE_EMPTY, SAMPLE_STATE_JAM, SAMPLE_STATE_MOUNTED, SAMPLE_STATE_UNKNOWN = range(5)  
     STATUS_COLORS = {
-        SAMPLE_STATE_GOOD: '#004400',
-        SAMPLE_STATE_EMPTY: '#777777',
-        SAMPLE_STATE_JAM: '#990000',
-        SAMPLE_STATE_MOUNTED: '#990099',
-        SAMPLE_STATE_UNKNOWN: None,
+        automounter.PORT_GOOD: '#006600',
+        automounter.PORT_UNKNOWN: '#000000',
+        automounter.PORT_EMPTY: '#cccccc',
+        automounter.PORT_JAMMED: '#990000',
+        automounter.PORT_MOUNTED: '#990099',
+        automounter.PORT_NONE: '#990000',
     }
     def __init__(self):
         gtk.ScrolledWindow.__init__(self)
@@ -71,12 +71,12 @@ class SampleList(gtk.ScrolledWindow):
 
 
     def load_data(self, data):
-        self.clear()
+        self.clear() 
         for item in data:
-            iter = self.listmodel.append()        
+            iter = self.listmodel.append()
             self.listmodel.set(iter,
                 SAMPLE_COLUMN_CONTAINER, item['container_name'],
-                SAMPLE_COLUMN_STATE, item.get('state', self.SAMPLE_STATE_UNKNOWN), 
+                SAMPLE_COLUMN_STATE, item.get('state', automounter.PORT_UNKNOWN), 
                 SAMPLE_COLUMN_SELECTED, False,
                 SAMPLE_COLUMN_PORT, item['port'],
                 SAMPLE_COLUMN_CODE, item['barcode'],
@@ -86,7 +86,7 @@ class SampleList(gtk.ScrolledWindow):
                 SAMPLE_COLUMN_GROUP, item['group'],
                 SAMPLE_COLUMN_DATA, item,
             )
-            
+
 
     def __add_item(self, item):
         iter = self.listmodel.append()        
@@ -172,23 +172,18 @@ class SampleList(gtk.ScrolledWindow):
     def on_row_activated(self, treeview, path, column):
         model = treeview.get_model()
         iter = model.get_iter(path)
-        value = model.get_value(iter, SAMPLE_COLUMN_SELECTED)                 
-        model.set(iter, SAMPLE_COLUMN_SELECTED, (not value) )            
+        value = model.get_value(iter, SAMPLE_COLUMN_SELECTED)
+        state = model.get_value(iter, SAMPLE_COLUMN_STATE)
+        if state in [automounter.PORT_GOOD, automounter.PORT_UNKNOWN, automounter.PORT_MOUNTED]:           
+            model.set(iter, SAMPLE_COLUMN_SELECTED, (not value) )            
         return True
     
     def on_row_toggled(self, cell, path, model):
         iter = model.get_iter(path)
         value = model.get_value(iter, SAMPLE_COLUMN_SELECTED)                 
-        model.set(iter, SAMPLE_COLUMN_SELECTED, (not value) )            
-        return True
-    
-    def on_edit_toggled(self, obj):
-        state = obj.get_active()
-        model = self.listview.get_model()
-        iter = model.get_iter_first()
-        while iter:
-            model.set_value(iter, SAMPLE_COLUMN_EDITABLE, state)
-            iter = model.iter_next(iter)
+        state = model.get_value(iter, SAMPLE_COLUMN_STATE)
+        if state in [automounter.PORT_GOOD, automounter.PORT_UNKNOWN, automounter.PORT_MOUNTED]:           
+            model.set(iter, SAMPLE_COLUMN_SELECTED, (not value) )            
         return True
         
     
@@ -199,7 +194,8 @@ class SampleList(gtk.ScrolledWindow):
         while iter:
             item = {}
             sel = model.get_value(iter, SAMPLE_COLUMN_SELECTED)
-            if sel:
+            state = model.get_value(iter, SAMPLE_COLUMN_STATE)
+            if sel and state in [automounter.PORT_GOOD, automounter.PORT_UNKNOWN, automounter.PORT_MOUNTED]:
                 item = model.get_value(iter, SAMPLE_COLUMN_DATA)
                 items.append(item)
             iter = model.iter_next(iter)
@@ -208,9 +204,10 @@ class SampleList(gtk.ScrolledWindow):
     def select_all(self, option=True):
         model = self.listview.get_model()
         iter = model.get_iter_first()
-        items = []
         while iter:
-            model.set_value(iter, SAMPLE_COLUMN_SELECTED, option)
+            state = model.get_value(iter, SAMPLE_COLUMN_STATE)
+            if state in [automounter.PORT_GOOD, automounter.PORT_UNKNOWN, automounter.PORT_MOUNTED]:
+                model.set_value(iter, SAMPLE_COLUMN_SELECTED, option)
             iter = model.iter_next(iter)
         return
 

@@ -6,6 +6,8 @@ from bcm.utils.converter import energy_to_wavelength, dist_to_resol
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_project_name
 from bcm.utils import runlists
+from bcm.utils import lims_tools
+
 from twisted.python.components import globalRegistry
 from zope.interface import implements
 try:
@@ -319,7 +321,7 @@ class Screener(gobject.GObject):
     def _notify_progress(self, status):
         # Notify progress
         fraction = float(self.pos) / self.total_items
-        gobject.idle_add(self.emit, 'progress', fraction, self.pos, status)          
+        gobject.idle_add(self.emit, 'progress', fraction, self.pos, status)                
         
     def run(self):
         self.paused = False
@@ -453,8 +455,9 @@ class Screener(gobject.GObject):
                         if not os.path.exists(params['directory']):
                             os.makedirs(params['directory']) # make sure directories exist
                         self.data_collector.configure(params)
-                        result = self.data_collector.run()
-                        task.options['results'] = result
+                        results = self.data_collector.run()
+                        task.options['results'] = results
+                        lims_tools.upload_data(self.beamline, results)
                         self._notify_progress(Screener.TASK_STATE_DONE)
                     else:
                         self._notify_progress(Screener.TASK_STATE_SKIPPED)
@@ -502,12 +505,15 @@ class Screener(gobject.GObject):
         
     def pause(self):
         self.paused = True
+        self.data_collector.pause()
         
     def resume(self):
         self.paused = False
+        self.data_collector.resume()
     
     def stop(self):
         self.stopped = True
+        self.data_collector.stop()
 
 
 

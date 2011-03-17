@@ -210,7 +210,7 @@ class BasicAutomounter(BaseDevice):
         if info is None:
             return False
         else:
-            return info[0] == PORT_GOOD
+            return info[0] in [PORT_GOOD, PORT_MOUNTED, PORT_UNKNOWN]
     
     def is_mounted(self, port=None):
         """Returns true if the specified port is currently mounted. If no port is
@@ -227,7 +227,14 @@ class BasicAutomounter(BaseDevice):
         else:
             return info[0] == PORT_MOUNTED
     
-
+    def get_port_state(self, port):
+        """Returns the current state of the specified port."""
+        if not re.match('[RML][ABCD]\d{1,2}', port):
+            return PORT_NONE
+        else:
+            info = self.containers[port[0]][port[1:]]
+            return info[0]
+        
        
 class SimAutomounter(BasicAutomounter):        
     def __init__(self):

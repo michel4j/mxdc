@@ -32,7 +32,7 @@ class HutchManager(gtk.Frame):
         self.scripts = get_scripts()
         self._create_widgets()
         # Some scripts need to reactivate settings frame on completion
-        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam']:
+        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam','SetBeamMode']:
             self.scripts[sc].connect('started', self.on_scripts_started)
             self.scripts[sc].connect('done', self.on_scripts_done)
     
@@ -78,10 +78,10 @@ class HutchManager(gtk.Frame):
             'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f")
         }
         motor_box1 = gtk.VBox(False,0)
-        for key in ['energy','attenuation','beam_width','beam_height']:
+        for key in ['energy','attenuation','beam_width', 'beam_height']:
             motor_box1.pack_start(self.entries[key], expand=True, fill=False)
         motor_box2 = gtk.VBox(False,0)        
-        for key in ['angle','beam_stop','distance','two_theta']:
+        for key in ['angle','beam_stop','distance', 'two_theta']:
             motor_box2.pack_start(self.entries[key], expand=True, fill=False)
         self.device_box.pack_start(motor_box1, expand=True, fill=True)
         self.device_box.pack_start(motor_box2, expand=True, fill=True)
@@ -99,25 +99,19 @@ class HutchManager(gtk.Frame):
         self.front_end_btn = ShutterButton(self.beamline.all_shutters, 'Restore Beam', open_only=True)
         self.front_end_btn.connect('clicked', self.on_restore_beam)
         
-        #self.front_end_btn = ScriptButton(self.scripts['RestoreBeam'], 'Restore Beam')
-        #self.shutter_btn = ShutterButton(self.beamline.exposure_shutter, 'Shutter')
         self.optimize_btn = ScriptButton(self.scripts['OptimizeBeam'], 'Optimize Beam')
         self.mount_btn = ScriptButton(self.scripts['SetMountMode'], 'Mounting Mode')
         self.cent_btn = ScriptButton(self.scripts['SetCenteringMode'], 'Centering Mode')
-        self.collect_btn = ScriptButton(self.scripts['SetCollectMode'], 'Collect Mode')
-        
-        
-        
+        self.collect_btn = ScriptButton(self.scripts['SetCollectMode'], 'Collect Mode')        
+        self.beam_btn = ScriptButton(self.scripts['SetBeamMode'], 'Beam Mode') # Not currently displayed but used      
         self.commands_box.pack_start(self.front_end_btn)
-        #self.commands_box.pack_start(self.shutter_btn)
         self.commands_box.pack_start(self.optimize_btn)
+
+
         self.commands_box.pack_start(gtk.Label(''))
         
         for btn in [self.mount_btn, self.cent_btn, self.collect_btn]:
             self.commands_box.pack_end(btn)
-            
-        for w in [self.front_end_btn, self.optimize_btn, self.mount_btn, self.cent_btn, self.collect_btn]:
-            w.set_property('can-focus', False)
         
         # tool book, diagnostics  etc
         self.diagnostics = DiagnosticsViewer()
@@ -139,7 +133,9 @@ class HutchManager(gtk.Frame):
         
         self.add(self.hutch_widget)
         self.show_all()
-        
+    
+    
+    
     def on_restore_beam(self,obj):
         script = self.scripts['RestoreBeam']
         script.start()
@@ -147,6 +143,9 @@ class HutchManager(gtk.Frame):
     def on_mounting(self, obj):
         self.mount_btn.clicked()
     
+    def on_beam_mode(self, obj):
+        self.beam_btn.clicked()
+
     def on_centering(self, obj):
         self.cent_btn.clicked()
     
@@ -156,6 +155,13 @@ class HutchManager(gtk.Frame):
     def on_scripts_started(self, obj, event=None):
         self.device_box.set_sensitive(False)
         self.commands_box.set_sensitive(False)
+    
+    def on_open_shutter(self, obj):
+        self.beamline.exposure_shutter.open()
+    
+    def on_close_shutter(self, obj):
+        self.beamline.exposure_shutter.close()
+    
     
     def on_scripts_done(self, obj, event=None):
         self.device_box.set_sensitive(True)
