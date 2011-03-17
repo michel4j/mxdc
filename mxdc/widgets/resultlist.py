@@ -28,10 +28,9 @@ RESULT_TYPES = (
     gobject.TYPE_PYOBJECT,
 )
 
-(
-    RESULT_STATE_WAITING,
+(   RESULT_STATE_WAITING,
     RESULT_STATE_READY,
-    RESULT_STATE_ERROR,) = range(3)
+    RESULT_STATE_ERROR) = range(3)
 
 STATE_DICT = {
     RESULT_STATE_WAITING : '#990099',
@@ -87,7 +86,7 @@ class ResultList(gtk.ScrolledWindow):
     def add_item(self, item):
         iter = self.listmodel.append()
         self.listmodel.set(iter,
-                RESULT_COLUMN_STATE, item.get('state', RESULT_STATE_WAITING),
+                RESULT_COLUMN_STATE, RESULT_STATE_WAITING,
                 RESULT_COLUMN_NAME, item['name'],
                 RESULT_COLUMN_PORT, item.get('port','-'),
                 RESULT_COLUMN_GROUP, item.get('group', '-'),
@@ -100,7 +99,7 @@ class ResultList(gtk.ScrolledWindow):
 
     def update_item(self, iter, data):
         self.listmodel.set(iter,
-                RESULT_COLUMN_STATE, data.get('state', RESULT_STATE_ERROR),
+                RESULT_COLUMN_STATE, data.get('state'),
                 RESULT_COLUMN_SCORE, data.get('score', -1),
                 RESULT_COLUMN_SG, data.get('space_group', '-'),
                 RESULT_COLUMN_CELL, data.get('unit_cell', '-'),
@@ -125,12 +124,14 @@ class ResultList(gtk.ScrolledWindow):
     
     def __format_pixbuf(self, column, renderer, model, iter):
         value = model.get_value(iter, RESULT_COLUMN_STATE)
-        if value == 0:
+        if value == RESULT_STATE_WAITING:
             renderer.set_property('pixbuf', self._wait_img)
-        elif value == 1:
+        elif value == RESULT_STATE_READY:
             renderer.set_property('pixbuf', self._ready_img)
-        else:
+        elif value == RESULT_STATE_ERROR:
             renderer.set_property('pixbuf', self._error_img)
+        else:
+            renderer.set_property('pixbuf', None)
         return
     
     

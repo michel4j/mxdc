@@ -8,7 +8,8 @@ from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.engine.diffraction import DataCollector
 from bcm.utils.decorators import async
-from bcm.utils.misc import get_project_name
+from bcm.utils import lims_tools
+
 
 try:
     import json
@@ -565,50 +566,7 @@ class CollectManager(gtk.Frame):
         self.progress_bar.idle_text("Stopped")
         
         try:
-            for result in obj.results:
-                json_info = {
-                    'id': result.get('id'),
-                    'crystal_id': result.get('crystal_id'),
-                    'experiment_id': result.get('experiment_id'),
-                    'name': result['name'],
-                    'resolution': round(result['resolution'], 5),
-                    'start_angle': result['start_angle'],
-                    'delta_angle': result['delta_angle'],
-                    'first_frame': result['first_frame'],
-                    'frame_sets': result['frame_sets'],
-                    'exposure_time': result['exposure_time'],
-                    'two_theta': result['two_theta'],
-                    'wavelength': round(result['wavelength'], 5),
-                    'detector': result['detector'],
-                    'beamline_name': result['beamline_name'],
-                    'detector_size': result['detector_size'],
-                    'pixel_size': result['pixel_size'],
-                    'beam_x': result['beam_x'],
-                    'beam_y': result['beam_y'],
-                    'url': result['directory'],
-                    'staff_comments': result.get('comments'),                 
-                    'project_name': get_project_name(),                  
-                    }
-                if result['num_frames'] < 10:
-                    json_info['kind'] = 0 # screening
-                else:
-                    json_info['kind'] = 1 # collection
-                
-                if result['num_frames'] < 4:
-                    return
-                reply = self.beamline.lims_server.lims.add_data(
-                            self.beamline.config.get('lims_api_key',''), json_info)
-                if reply.get('result') is not None:
-                    if reply['result'].get('data_id') is not None:
-                        # save data id to file so next time we can find it
-                        result['id'] = reply['result']['data_id']
-                        _logger.info('Dataset uploaded to LIMS.')
-                elif reply.get('error') is not None:
-                    _logger.error('Dataset could not be uploaded to LIMS.')
-                filename = os.path.join(result['directory'], '%s.SUMMARY' % result['name'])
-                fh = open(filename,'w')
-                json.dump(result, fh, indent=4)
-                fh.close()
+            lims_tools.upload_data(self.beamline, obj.results)
         except:
             print sys.exc_info()
             _logger.warn('Could not upload dataset to LIMS.')

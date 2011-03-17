@@ -397,6 +397,10 @@ class SimShutter(BaseDevice):
         self._state = False
         self.set_state(active=True, changed=self._state)
 
+    def is_open(self):
+        """Convenience function for open state"""
+        return self.changed_state
+
     def open(self):
         self._state = True
         self.set_state(changed=True )

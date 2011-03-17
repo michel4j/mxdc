@@ -229,18 +229,21 @@ class MotorEntry(ActiveEntry):
 
 
 class ShutterButton(gtk.ToggleButton):
-    def __init__(self, shutter, label, open_only=False):
+    def __init__(self, shutter, label, open_only=False, action_label=False):
         gtk.ToggleButton.__init__(self)
         self.shutter = shutter
         self.open_only = open_only
-        container = gtk.HBox(False,0)
+        self.action_label = action_label
+        alignment = gtk.Alignment(0.5,0.5,0.0,0.0)
+        container = gtk.HBox(False, 2)
         #container.set_border_width(2)
         self.label_text = label
         self.image = gtk.Image()
         self.label = gtk.Label(label)
         container.pack_start(self.image, expand=False, fill=False)
-        container.pack_start(self.label, expand=True, fill=True)
-        self.add(container)
+        container.pack_start(self.label, expand=False, fill=False)
+        alignment.add(container)
+        self.add(alignment)
         self._set_off()
         self.shutter.connect('changed', self._on_state_change)
         self.connect('clicked', self._on_clicked)
@@ -262,38 +265,55 @@ class ShutterButton(gtk.ToggleButton):
         if self.open_only:
             self.set_sensitive(False)
         else:
-            self.label.set_text(self.label_text)
+            if not self.action_label:
+                self.label.set_text(self.label_text)
+            else:
+                self.label.set_text("Close")
         self.image.set_from_stock('gtk-yes', gtk.ICON_SIZE_SMALL_TOOLBAR)
     
     def _set_off(self):
         self.set_sensitive(True)
-        self.label.set_text(self.label_text)
+        if not self.action_label:
+            self.label.set_text(self.label_text)
+        else:
+            self.label.set_text("Open")
         self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_SMALL_TOOLBAR)
 
 class ScriptButton(gtk.Button):
-    def __init__(self, script, label):
+    def __init__(self, script, label, confirm=False, message=""):
         gtk.Button.__init__(self)
         self.script = script
-        container = gtk.HBox(False,0)
-        #container.set_border_width(2)
+        self.confirm = confirm
+        self.warning_text = message
+        alignment = gtk.Alignment(0.5,0.5,0.0,0.0)
+        container = gtk.HBox(False, 2)
+
         self.label_text = label
         self.image = gtk.Image()
         self.label = gtk.Label(label)
+        self.image.set_alignment(0.5, 0.5)
+        self.label.set_alignment(0.5, 0.5)
         container.pack_start(self.image, expand=False, fill=False)
-        container.pack_start(self.label, expand=True, fill=True)
-        self.add(container)
+        container.pack_start(self.label, expand=False, fill=False)
+        alignment.add(container)
+        self.add(alignment)
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                                                'data/active_stop.gif'))
         self.tooltip = gtk.Tooltips()
         self.tooltip.set_tip(self, self.script.description)
         self._set_off()
-     
+        self.set_property('can-focus', False)
         self.script.connect('done', self._on_state_change)
         self.script.connect('error', self._on_state_change)
         self.connect('clicked', self._on_clicked)
             
     def _on_clicked(self, widget):
-        if not self.script.is_active():
+        if self.confirm and not self.script.is_active():
+            response = warning(self.script.description, self.warning_text, buttons=(('Cancel', gtk.BUTTONS_CANCEL), ('Proceed', gtk.BUTTONS_OK)))
+            if response == gtk.BUTTONS_OK:
+                self.script.start()
+                self._set_on()  
+        elif not self.script.is_active():
             self.script.start()
             self._set_on()  
         
