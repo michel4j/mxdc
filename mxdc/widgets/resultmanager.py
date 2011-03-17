@@ -12,9 +12,11 @@ import gtk.glade
 #import pango
 #import logging
 
-#from twisted.python.components import globalRegistry
+from twisted.python.components import globalRegistry
 from mxdc.widgets.resultlist import *
 from bcm.utils.log import get_module_logger
+from bcm.utils import lims_tools
+from bcm.beamline.mx import IBeamline
 
 #from mxdc.widgets.textviewer import TextViewer, GUIHandler
 _logger = get_module_logger(__name__)
@@ -57,7 +59,8 @@ class ResultManager(gtk.Frame):
         except AttributeError:
             return self._xml.get_widget(key)
 
-    def _create_widgets(self):      
+    def _create_widgets(self):
+        self.beamline = globalRegistry.lookup([], IBeamline)  
         self.result_list = ResultList()
         self.result_list.listview.connect('row-activated', self.on_result_row_activated)
     
@@ -83,6 +86,9 @@ class ResultManager(gtk.Frame):
     
     def update_item(self, iter, data):
         self.result_list.update_item(iter, data)
+
+    def upload_results(self, results):
+        lims_tools.upload_report(self.beamline, results)
 
     def add_items(self, item_list):
         for item in item_list:
