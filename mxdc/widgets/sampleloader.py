@@ -24,20 +24,12 @@ CNT_DB_CONFIG = 'containers_db.json'
 
 ( STATUS_NOT_LOADED,
   STATUS_LOADED,
-  STATUS_ROBOT_GOOD,
-  STATUS_ROBOT_EMPTY,
-  STATUS_ROBOT_JAM,
-  STATUS_ROBOT_MOUNTED,
-  STATUS_ROBOT_UNKONWN ) = range(7)
+) = range(2)
 
 STATUS_COLORS = {
     STATUS_NOT_LOADED: '#999999',
     STATUS_LOADED: '#000000',
-    STATUS_ROBOT_GOOD: '#90dc8f',
-    STATUS_ROBOT_EMPTY: '#aaaaaa',
-    STATUS_ROBOT_JAM: '#ff6464',
-    STATUS_ROBOT_MOUNTED: '#dd5cdc',
-    STATUS_ROBOT_UNKONWN: None,}
+}
 
 class CrystalStore(gtk.ListStore):
     (   

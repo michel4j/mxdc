@@ -5,7 +5,7 @@ import pango
 
 from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
-from mxdc.widgets.misc import ActiveLabel, TextStatusDisplay
+from mxdc.widgets.misc import ActiveLabel, TextStatusDisplay, ShutterButton
 
 class StatusPanel(gtk.Statusbar):
     def __init__(self):
@@ -52,7 +52,7 @@ class StatusPanel(gtk.Statusbar):
                 'INIT':'<span color="#000099">INIT</span>',
                 'ALIGN': '<span color="#000099">ALIGN</span>',
                 }
-        self.gonio_mode = TextStatusDisplay(beamline.registry['goniometer'], sig='mode', text_map=_map)
+        self.gonio_mode = TextStatusDisplay(beamline.goniometer, sig='mode', text_map=_map)
         self.layout_table.attach(self._frame_control('Mode', self.gonio_mode, gtk.SHADOW_IN), 2, 3 , 0, 1, **options)
         #self.progress_bar = gtk.ProgressBar()
         #self.progress_bar.set_size_request(50,-1)
@@ -64,7 +64,8 @@ class StatusPanel(gtk.Statusbar):
         frame = self.get_children()[0]
         label = frame.get_children()[0]
         frame.remove(label)
-        self.layout_table.attach(self._frame_control(None, label, gtk.SHADOW_IN), 0,2,0,1, **options)
+        
+        self.layout_table.attach(self._frame_control(None, label, gtk.SHADOW_NONE), 0,2,0,1, **options)
         frame.add(self.layout_table)
 
         for lbl in [self.cur, self.i2, self.i1, self.i0, self.gonio_mode, self.sh_stat]:

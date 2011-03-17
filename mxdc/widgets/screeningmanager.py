@@ -15,6 +15,7 @@ from mxdc.widgets.ptzviewer import AxisViewer
 from bcm.beamline.mx import IBeamline
 from bcm.engine.interfaces import IDataCollector
 from bcm.utils.runlists import determine_skip, summarize_frame_set
+from bcm.utils import automounter
 from bcm.engine.diffraction import Screener, DataCollector
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.dialogs import warning
@@ -68,7 +69,7 @@ class ScreenManager(gtk.Frame):
         self.set_shadow_type(gtk.SHADOW_NONE)
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
                                   'screening_widget')
-
+        self.samples_data = []
         self._create_widgets()
         self.screen_runner = Screener()
         
@@ -90,6 +91,7 @@ class ScreenManager(gtk.Frame):
 
     def _create_widgets(self):        
         self.sample_list = SampleList()
+        self.beamline = globalRegistry.lookup([], IBeamline)
 
         self.screen_manager = self._xml.get_widget('screening_widget')
         self.message_log = TextViewer(self.msg_txt)
@@ -105,19 +107,19 @@ class ScreenManager(gtk.Frame):
         self.lbl_sync.modify_font(pango_font)
         self.lbl_port.modify_font(pango_font)
 
+        #signals
         self.clear_btn.connect('clicked', self._on_queue_clear)
         self.apply_btn.connect('clicked', self._on_sequence_apply)
         self.reset_btn.connect('clicked', self._on_sequence_reset)
         self.select_all_btn.connect('clicked', lambda x: self.sample_list.select_all(True) )
         self.deselect_all_btn.connect('clicked', lambda x: self.sample_list.select_all(False) )
+        self.refresh_btn.connect('clicked', lambda x: self.refresh_samples())
         self.start_btn.connect('clicked', self._on_activate)
         self.stop_btn.connect('clicked', self._on_stop_btn_clicked)
         self.start_btn.set_label('mxdc-start')
         self.stop_btn.set_label('mxdc-stop')
         
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        #signals
-        
+
         self.beamline.storage_ring.connect('beam', self._on_beam_change)
         self.beamline.automounter.connect('message', self._on_message)
         self.beamline.automounter.connect('mounted', self._on_sample_mounted)
@@ -269,15 +271,16 @@ class ScreenManager(gtk.Frame):
                 self.lbl_port.set_text('')
                 self.lbl_barcode.set_text('')
                
+        
+    def refresh_samples(self):
+        self.sample_list.clear()
+        for sample in self.samples_data:
+            sample['state'] = self.beamline.automounter.get_port_state(sample.get('port'))
+        self.sample_list.load_data(self.samples_data)        
 
     def add_samples(self, samples):
-        self.sample_list.clear()
-        for sample in samples:
-            if self.beamline.automounter.is_mountable(sample.get('port')):
-                sample['state'] = SampleList.SAMPLE_STATE_GOOD
-            else:
-                sample['state'] = SampleList.SAMPLE_STATE_JAM
-        self.sample_list.load_data(samples)
+        self.samples_data = samples
+        self.refresh_samples()
             
     def get_task_list(self):
         model = self.listview.get_model()

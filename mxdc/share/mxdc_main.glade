@@ -58,35 +58,74 @@
               </widget>
             </child>
             <child>
-              <widget class="GtkMenuItem" id="menuitem2">
+              <widget class="GtkMenuItem" id="menuitem3">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Beamline _Mode</property>
+                <property name="label" translatable="yes">Beamline _Control</property>
                 <property name="use_underline">True</property>
                 <child>
-                  <widget class="GtkMenu" id="menu1">
+                  <widget class="GtkMenu" id="menu2">
                     <property name="visible">True</property>
                     <child>
-                      <widget class="GtkMenuItem" id="mounting_mnu">
+                      <widget class="GtkMenuItem" id="open_shutter_mnu">
                         <property name="visible">True</property>
-                        <property name="tooltip" translatable="yes">Prepare beamline for mounting</property>
-                        <property name="label" translatable="yes">Mounting</property>
+                        <property name="label" translatable="yes">Open Shutter</property>
                         <property name="use_underline">True</property>
                       </widget>
                     </child>
                     <child>
-                      <widget class="GtkMenuItem" id="centering_mnu">
+                      <widget class="GtkMenuItem" id="close_shutter_mnu">
                         <property name="visible">True</property>
-                        <property name="tooltip" translatable="yes">Prepare beamline for crystal centering</property>
-                        <property name="label" translatable="yes">Centering</property>
+                        <property name="label" translatable="yes">Close Shutter</property>
                         <property name="use_underline">True</property>
                       </widget>
                     </child>
                     <child>
-                      <widget class="GtkMenuItem" id="collect_mnu">
+                      <widget class="GtkSeparatorMenuItem" id="separatormenuitem1">
                         <property name="visible">True</property>
-                        <property name="tooltip" translatable="yes">Prepare for data collection</property>
-                        <property name="label" translatable="yes">Data Collection</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkMenuItem" id="menuitem2">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Switch _Mode</property>
                         <property name="use_underline">True</property>
+                        <child>
+                          <widget class="GtkMenu" id="menu1">
+                            <property name="visible">True</property>
+                            <child>
+                              <widget class="GtkMenuItem" id="mounting_mnu">
+                                <property name="visible">True</property>
+                                <property name="tooltip" translatable="yes">Prepare beamline for mounting</property>
+                                <property name="label" translatable="yes">Mounting</property>
+                                <property name="use_underline">True</property>
+                              </widget>
+                            </child>
+                            <child>
+                              <widget class="GtkMenuItem" id="centering_mnu">
+                                <property name="visible">True</property>
+                                <property name="tooltip" translatable="yes">Prepare beamline for crystal centering</property>
+                                <property name="label" translatable="yes">Centering</property>
+                                <property name="use_underline">True</property>
+                              </widget>
+                            </child>
+                            <child>
+                              <widget class="GtkMenuItem" id="collect_mnu">
+                                <property name="visible">True</property>
+                                <property name="tooltip" translatable="yes">Prepare for data collection</property>
+                                <property name="label" translatable="yes">Collection</property>
+                                <property name="use_underline">True</property>
+                              </widget>
+                            </child>
+                            <child>
+                              <widget class="GtkMenuItem" id="beam_mnu">
+                                <property name="visible">True</property>
+                                <property name="tooltip" translatable="yes">Switch to Beam Inspection mode</property>
+                                <property name="label" translatable="yes">Beam</property>
+                                <property name="use_underline">True</property>
+                              </widget>
+                            </child>
+                          </widget>
+                        </child>
                       </widget>
                     </child>
                   </widget>

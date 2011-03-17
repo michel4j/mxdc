@@ -31,7 +31,16 @@ class SetCollectMode(Script):
         beamstop_pos = self.beamline.config['default_beamstop']
         self.beamline.beamstop_z.move_to(beamstop_pos)
         self.beamline.cryojet.nozzle.close()
+
+class SetBeamMode(Script):
+    description = "Switch to Beam Inspection Mode."
+    def run(self):
+        self.beamline.goniometer.set_mode('BEAM', wait=True)
+        #FIXME: should we open the shutter here? Who is responsible for
+        # closing it
+
         
 myscript0 = SetCenteringMode()
 myscript1 = SetMountMode()
 myscript2 = SetCollectMode()
+myscript3 = SetBeamMode()
