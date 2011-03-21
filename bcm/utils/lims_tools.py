@@ -45,25 +45,27 @@ def upload_data(beamline, results):
         else:
             json_info['kind'] = 1 # collection
         
-        if result['num_frames'] < 4:
-            return
-        reply = beamline.lims_server.lims.add_data(
-                    beamline.config.get('lims_api_key',''), json_info)
-        if reply.get('result') is not None:
-            if reply['result'].get('data_id') is not None:
-                # save data id to file so next time we can find it
-                result['id'] = reply['result']['data_id']
-                _logger.info('Dataset uploaded to LIMS.')
-        elif reply.get('error') is not None:
-            _logger.error('Dataset could not be uploaded to LIMS.')
+        if result['num_frames'] >= 4:
+            reply = beamline.lims_server.lims.add_data(
+                        beamline.config.get('lims_api_key',''), json_info)
+            if reply.get('result') is not None:
+                if reply['result'].get('data_id') is not None:
+                    # save data id to file so next time we can find it
+                    result['id'] = reply['result']['data_id']
+                    _logger.info('Dataset uploaded to LIMS.')
+            elif reply.get('error') is not None:
+                _logger.error('Dataset could not be uploaded to LIMS.')
         filename = os.path.join(result['directory'], '%s.SUMMARY' % result['name'])
         fh = open(filename,'w')
         json.dump(result, fh, indent=4)
         fh.close()
+    return results
 
 
 def upload_report(beamline, results):
-    for report in results:       
+    for report in results:
+        if report['result'].get('data_id') is None:
+            continue
         report['result'].update(project_name = get_project_name())            
         reply = beamline.lims_server.lims.add_report(
                     beamline.config.get('lims_api_key',''), report['result'])
@@ -74,3 +76,15 @@ def upload_report(beamline, results):
                 _logger.info('Processing Report uploaded to LIMS.')
         elif reply.get('error') is not None:
             _logger.error('Processing report could not be uploaded to LIMS.')
+
+    #TODO: Investigate, potential issue with merged processing and MAD datasets
+    filename = os.path.join(report['result']['url'], 'process.json')
+    info = {
+        'result': results,
+        'error': None,
+    }
+
+    fh = open(filename,'w')
+    json.dump(info, fh)
+    fh.close()
+    return results

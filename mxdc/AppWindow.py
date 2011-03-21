@@ -81,6 +81,8 @@ class AppWindow(gtk.Window):
         self.result_manager.connect('active-sample', self.on_active_sample)
         self.result_manager.connect('active-strategy', self.on_active_strategy)
         self.scan_manager.connect('active-strategy', self.on_active_strategy)
+        self.collect_manager.connect('new-datasets', self.on_new_datasets)
+        self.screen_manager.connect('new-datasets', self.on_new_datasets)
 
         
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
@@ -165,36 +167,21 @@ class AppWindow(gtk.Window):
         subhead += 'Please create a new run or update the run parameters to use it.'
         dialogs.info(header, subhead)
 
-    def _result_ready(self, results, iter):
-        data = results[0]        
-        cell_info = '%0.1f %0.1f %0.1f %0.1f %0.1f %0.1f' % (
-                    data['result']['cell_a'],
-                    data['result']['cell_b'],
-                    data['result']['cell_c'],
-                    data['result']['cell_alpha'],
-                    data['result']['cell_beta'],
-                    data['result']['cell_gamma']
-                    )
-        item = {'state': RESULT_STATE_READY,
-                'score': data['result']['score'],
-                'space_group': data['result']['space_group_name'],
-                'unit_cell': cell_info,
-                'detail': data}
-        self.result_manager.update_item(iter, item)
-        print data['result']['name'], iter
-        #self.result_manager.upload_results(results)
-
-        
-    def _result_fail(self, failure, iter):
-        _logger.error(failure.getErrorMessage())
-        item = {'state': RESULT_STATE_ERROR}
-        self.result_manager.update_item(iter, item)
+    def on_new_datasets(self, obj, datasets):
+        # Fech full crystal information from sample database and update the dataset information
+        database =  self.sample_manager.get_database()
+        if database is not None:
+            for dataset in datasets:
+                if dataset.get('crystal_id') is not None:
+                    crystal = database['crystals'].get(str(dataset['crystal_id']))
+                    if crystal is None:
+                        continue
+                    if dataset.get('experiment_id') is not None:
+                        group = database['experiments'].get(str(dataset['experiment_id']))
+                        if group is not None:
+                            crystal.update(group_name=group.get('name', dataset['experiment_id']))
+                    dataset.update(crystal=crystal)
+        self.result_manager.add_datasets(datasets)
         
     def on_analyse_request(self, obj, data):
-        data.update(state=RESULT_STATE_WAITING)
-        iter = self.result_manager.add_item(data['crystal'])
-        self.dpm_client.dpm.callRemote('screenDataset',
-                            data['info'], 
-                            data['directory'],
-                            get_project_name(),
-                            ).addCallback(self._result_ready, iter).addErrback(self._result_fail, iter)
+        self.result_manager.process_dataset(data)

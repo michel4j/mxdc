@@ -65,7 +65,9 @@ class ScanManager(gtk.Frame):
         # lists to hold results data
         self.energies = []
         self.names = []
+        self.scattering_factors = []
         self._load_config()
+        self.xanes_scanner.analyse_file('/home/michel/Downloads/test_scan_Se-K.raw')
     
     def do_create_run(self):
         pass
@@ -167,6 +169,7 @@ class ScanManager(gtk.Frame):
         )
         self.energies.append(item[COLUMN_ENERGY])
         self.names.append(item[COLUMN_LABEL])
+        self.scattering_factors.append({'fp':item[COLUMN_FP], 'fpp':item[COLUMN_FPP]})
         
     def _float_format(self, cell, renderer, model, iter, data):
         format, column = data
@@ -185,6 +188,7 @@ class ScanManager(gtk.Frame):
         self.energy_store.clear()
         self.energies = []
         self.names = []
+        self.scattering_factors = []
         self.create_run_btn.set_sensitive(False)
         
     def set_results(self,results):
@@ -244,6 +248,7 @@ class ScanManager(gtk.Frame):
         run_data['directory'] = params['directory']
         run_data['energy'] = self.energies
         run_data['energy_label'] = self.names
+        run_data['scattering_factors'] = self.scattering_factors
         run_data['number'] = -1
         return run_data
 
@@ -387,6 +392,7 @@ class ScanManager(gtk.Frame):
             strategy = {
                 'energy': self.energies,
                 'energy_label': self.names,
+                'scattering_factors': self.scattering_factors,
                 }
             self.emit('active-strategy', strategy)
 

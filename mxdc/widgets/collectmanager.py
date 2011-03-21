@@ -43,12 +43,11 @@ _logger = get_module_logger(__name__)
     COLLECT_STATE_PAUSED
 ) = range(3)
 
-(
-    FRAME_STATE_PENDING,
-    FRAME_STATE_RUNNING,
-    FRAME_STATE_DONE,
-    FRAME_STATE_SKIPPED,
-) = range(4)
+
+FRAME_STATE_PENDING = DataCollector.STATE_PENDING
+FRAME_STATE_RUNNING = DataCollector.STATE_RUNNING
+FRAME_STATE_DONE = DataCollector.STATE_DONE
+FRAME_STATE_SKIPPED = DataCollector.STATE_SKIPPED
 
 (
     MOUNT_ACTION_NONE,
@@ -59,6 +58,9 @@ _logger = get_module_logger(__name__)
 RUN_CONFIG_FILE = 'run_config.json'
 
 class CollectManager(gtk.Frame):
+    __gsignals__ = {
+        'new-datasets': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+    }
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
@@ -84,6 +86,9 @@ class CollectManager(gtk.Frame):
         except AttributeError:
             return self._xml.get_widget(key)
 
+    def do_new_datasets(self, dataset):
+        pass
+    
     def _create_widgets(self):
         self.image_viewer = ImageViewer(size=640)
         self.run_manager = RunManager()
@@ -131,7 +136,7 @@ class CollectManager(gtk.Frame):
             pos_table.attach(ActiveLabel(self.beamline.diffractometer.two_theta, format='%7.2f'), 1,2,1,2)
             pos_table.attach(ActiveLabel(self.beamline.diffractometer.distance, format='%7.2f'), 1,2,2,3)
             pos_table.attach(ActiveLabel(self.beamline.monochromator.energy, format='%7.4f'), 1,2,3,4)
-        
+            pos_table.attach(ActiveLabel(self.beamline.attenuator, format='%7.2f'), 1,2,4,5)        
         # Image Viewer
         self.frame_book.add(self.image_viewer)
         self.setup_box.pack_end(self.run_manager, expand = True, fill = True)
@@ -251,9 +256,17 @@ class CollectManager(gtk.Frame):
                 if key in self.active_strategy:
                     txt += '%15s: %7.2f\n' % (key, self.active_strategy[key])
             if 'energy' in self.active_strategy:
-                txt += "%15s:\n" % ('energies')
-                for val, lbl in zip(self.active_strategy['energy'], self.active_strategy['energy_label']):
-                    txt += "%15s = %8.5f\n" % (lbl, val)
+                scat_fac = self.active_strategy.get('scattering_factors')
+                if scat_fac is None:
+                    txt += "%15s:\n" % ('energies')
+                    for val, lbl, sf in zip(self.active_strategy['energy'], self.active_strategy['energy_label']):
+                        txt += "%15s = %7.4f\n" % (lbl, val)
+                else:
+                    txt += "%15s:\n" % ('energies')
+                    txt += "%6s %7s %6s %6s\n" % ('name', 'energy', 'f\'', 'f"')
+                    txt += "  --------------------------\n"
+                    for val, lbl, sf in zip(self.active_strategy['energy'], self.active_strategy['energy_label'], scat_fac):
+                        txt += "%6s %7.4f %6.2f %6.2f\n" % (lbl, val, sf['fp'], sf['fpp'])
             buf = self.strategy_view.get_buffer()
             buf.set_text(txt)
             self.active_strategy_box.set_visible(True)
@@ -565,6 +578,7 @@ class CollectManager(gtk.Frame):
         self.image_viewer.set_collect_mode(False)
         self.progress_bar.idle_text("Stopped")
         
+        self.emit('new-datasets', obj.results)
         try:
             lims_tools.upload_data(self.beamline, obj.results)
         except:
@@ -574,26 +588,9 @@ class CollectManager(gtk.Frame):
     def on_new_image(self, widget, index, filename):
         self.frame_pos = index
         self.image_viewer.add_frame(filename)
-        self.set_row_state(index, FRAME_STATE_DONE)
-        self.set_row_state(index+1, FRAME_STATE_RUNNING)
       
 
-    def on_progress1(self, obj, fraction, position):
-        if fraction > 0.0:
-            total_frames = position/fraction
-            if self.last_time is None:
-                self.last_time = time.time()
-                time_unit = 0.0
-            else:
-                time_unit = time.time() - self.last_time
-                self.last_time = time.time()
-        
-            eta_time = time_unit * (total_frames - position)
-            if time_unit > 0.0:
-                text = "ETA %s @ %0.1fs/frame" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)), time_unit)
-                self.progress_bar.set_complete(fraction, text)
-
-    def on_progress(self, obj, fraction, position):
+    def on_progress(self, obj, fraction, position, state):
         if position == 1:
             self.start_time = time.time()
         elapsed_time = time.time() - self.start_time
@@ -609,6 +606,8 @@ class CollectManager(gtk.Frame):
         else:
             text = "Total: %s sec" % (time.strftime('%H:%M:%S',time.gmtime(elapsed_time)))
         self.progress_bar.set_complete(fraction, text)
+        self.set_row_state(position, state)
+
                 
     def on_energy_changed(self, obj, val):
         run_zero = self.run_manager.runs[0]
