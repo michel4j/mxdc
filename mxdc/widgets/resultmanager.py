@@ -14,9 +14,13 @@ import gtk.glade
 
 from twisted.python.components import globalRegistry
 from mxdc.widgets.resultlist import *
+from mxdc.widgets.datalist import DataList
 from bcm.utils.log import get_module_logger
-from bcm.utils import lims_tools
+from bcm.utils import lims_tools, runlists
 from bcm.beamline.mx import IBeamline
+from mxdc.utils import clients
+from bcm.utils.misc import get_project_name
+from bcm.utils.science import SPACE_GROUP_NAMES
 
 #from mxdc.widgets.textviewer import TextViewer, GUIHandler
 _logger = get_module_logger(__name__)
@@ -47,24 +51,35 @@ class ResultManager(gtk.Frame):
         self.active_sample = None
         self.active_strategy = None
 
-    def do_active_sample(self, obj=None):
-        pass
-    
-    def do_active_strategy(self, obj=None, data=None):
-        pass
-        
     def __getattr__(self, key):
         try:
             return super(ResultManager).__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
 
+    def do_active_sample(self, obj=None):
+        pass
+    
+    def do_active_strategy(self, obj=None, data=None):
+        pass
+        
+
     def _create_widgets(self):
         self.beamline = globalRegistry.lookup([], IBeamline)  
+        self.dpm_client = clients.DPMClient()
         self.result_list = ResultList()
+        self.dataset_list = DataList()
         self.result_list.listview.connect('row-activated', self.on_result_row_activated)
+        self.screen_btn.connect('clicked', self.on_screen_action)
+        self.process_btn.connect('clicked', self.on_process_action)
+        
+        # make buttons only active when something is selected
+        data_selector = self.dataset_list.listview.get_selection()
+        data_selector.connect('changed', self.on_datasets_selected)
+        
     
-        self.list_window.add(self.result_list)
+        self.results_frame.add(self.result_list)
+        self.datasets_frame.add(self.dataset_list)
         if browser_engine == 'gecko':
             self.browser = gtkmozembed.MozEmbed()
             self.html_window.add(self.browser)
@@ -81,21 +96,31 @@ class ResultManager(gtk.Frame):
         self.add(self.result_manager)
         self.show_all()
 
-    def add_item(self, data):
+    def add_result(self, data):
         return self.result_list.add_item(data)
+
+    def add_dataset(self, data):
+        return self.dataset_list.add_item(data)
     
-    def update_item(self, iter, data):
+    def update_result(self, iter, data):
         self.result_list.update_item(iter, data)
 
     def upload_results(self, results):
         lims_tools.upload_report(self.beamline, results)
 
-    def add_items(self, item_list):
+    def add_results(self, item_list):
         for item in item_list:
-            self.add_item(item)
+            self.add_result(item)
+
+    def add_datasets(self, item_list):
+        for item in item_list:
+            self.add_dataset(item)
     
     def clear_results(self):
         self.result_list.clear()
+
+    def clear_datasets(self):
+        self.dataset_list.clear()
 
     def send_active_sample(self, obj):
         if self.active_sample is not None:
@@ -104,6 +129,101 @@ class ResultManager(gtk.Frame):
     def send_active_strategy(self, obj):
         if self.active_strategy is not None:
             self.emit('active-strategy', self.active_strategy)
+
+    def on_dataset_loaded(self, obj):
+        pass
+
+    def on_datasets_selected(self, selection):
+        if selection.count_selected_rows() > 0:
+            self.process_btn.set_sensitive(True)
+            self.screen_btn.set_sensitive(True)
+        else:
+            self.process_btn.set_sensitive(True)
+            self.screen_btn.set_sensitive(False)
+                        
+    def on_screen_action(self, obj):
+        datasets = self.dataset_list.get_selected()
+        for data in datasets:
+            frame_list = runlists.frameset_to_list(data['frame_sets'])
+            _first_frame = os.path.join(data['directory'],
+                                        "%s_%03d.img" % (data['name'], frame_list[0]))
+            _a_params = {'directory': os.path.join(data['directory'], '%s-scrn'% data['name']),
+                         'info': {'anomalous': self.anom_check_btn.get_active(),
+                                  'file_names': [_first_frame,]                                             
+                                  },
+                         'type': 'SCRN',
+                         'crystal': data['crystal'],
+                         'name': data['name'] }
+        self.process_dataset(_a_params)
+    
+    def on_process_action(self, obj):
+        datasets = self.dataset_list.get_selected()
+        if not self.merge_check_btn.get_active() and not self.mad_check_btn.get_active():
+            for data in datasets:
+                frame_list = runlists.frameset_to_list(data['frame_sets'])
+                _first_frame = os.path.join(data['directory'],
+                                        "%s_%03d.img" % (data['name'], frame_list[0]))
+                _a_params = {'directory': os.path.join(data['directory'], '%s-proc' % data['name']),
+                             'info': {'anomalous': self.anom_check_btn.get_active(),
+                                      'file_names': [_first_frame,]                                             
+                                      },
+                             'type': 'PROC',
+                             'crystal': data['crystal'],
+                             'name': data['name'] }
+                self.process_dataset(_a_params)
+        else:              
+            file_names = []
+            for data in datasets:
+                frame_list = runlists.frameset_to_list(data['frame_sets'])
+                file_names.append(os.path.join(data['directory'],
+                                            "%s_%03d.img" % (data['name'], frame_list[0])))
+            
+            _a_params = {'directory': os.path.join(data['directory'], '%s-proc' % datasets[0]['name']),
+                         'info': {'mad': self.mad_check_btn.get_active(),
+                                  'file_names': file_names,                                             
+                                  },
+                         'type': 'PROC',
+                         'crystal': datasets[0]['crystal'], # use crystal from first one
+                         'name': datasets[0]['name']} # use name from first one only
+            self.process_dataset(_a_params)
+        
+    def process_dataset(self, params):
+        params.update(state=RESULT_STATE_WAITING)
+        iter = self.add_result(params)
+        if params.get('type', 'SCRN') == 'SCRN':
+            cmd = 'screenDataset'
+        else:
+            cmd = 'processDataset'
+        self.dpm_client.dpm.callRemote(cmd,
+                            params['info'], 
+                            params['directory'],
+                            get_project_name(),
+                            ).addCallback(self._result_ready, iter).addErrback(self._result_fail, iter)
+        
+    def _result_ready(self, results, iter):
+        data = results[0]        
+        cell_info = '%0.1f %0.1f %0.1f %0.1f %0.1f %0.1f' % (
+                    data['result']['cell_a'],
+                    data['result']['cell_b'],
+                    data['result']['cell_c'],
+                    data['result']['cell_alpha'],
+                    data['result']['cell_beta'],
+                    data['result']['cell_gamma']
+                    )
+        item = {'state': RESULT_STATE_READY,
+                'score': data['result']['score'],
+                'space_group': SPACE_GROUP_NAMES[data['result']['space_group_id']],
+                'unit_cell': cell_info,
+                'detail': data}
+        self.update_result(iter, item)
+        self.upload_results(results)
+
+        
+    def _result_fail(self, failure, iter):
+        _logger.error(failure.getErrorMessage())
+        item = {'state': RESULT_STATE_ERROR}
+        self.update_result(iter, item)
+
 
     def on_result_row_activated(self, treeview, path, column):
         model = treeview.get_model()
@@ -118,8 +238,8 @@ class ResultManager(gtk.Frame):
         if result in [None, '']:
             _logger.info('Results are not yet available')
             return
-        
-        if self.active_sample is not None:
+                
+        if self.active_sample is not None and self.active_sample != {}:
             _crystal_string = "<b>Selected crystal: </b> %s [%s]" % (self.active_sample.get('name'),
                                            self.active_sample.get('port'))
             self.crystal_lbl.set_markup(_crystal_string)
@@ -129,10 +249,11 @@ class ResultManager(gtk.Frame):
             return
         
         # Active update buttons if data is available
-        if self.active_sample is not None:
+        if self.active_sample is not None and self.active_sample != {}:
             self.update_sample_btn.set_sensitive(True)
         else:
             self.update_sample_btn.set_sensitive(False)
+            
         if self.active_strategy is not None:
             self.update_strategy_btn.set_sensitive(True)
         else:

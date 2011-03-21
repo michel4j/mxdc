@@ -6,7 +6,7 @@ from mxdc.widgets.dialogs import *
 (
     RESULT_COLUMN_STATE,
     RESULT_COLUMN_NAME,
-    RESULT_COLUMN_PORT,
+    RESULT_COLUMN_TYPE,
     RESULT_COLUMN_GROUP,
     RESULT_COLUMN_SCORE,
     RESULT_COLUMN_SG,
@@ -40,8 +40,8 @@ STATE_DICT = {
 
 COLUMN_DICT = {
     RESULT_COLUMN_NAME: 'State',               
-    RESULT_COLUMN_NAME: 'Crystal',
-    RESULT_COLUMN_PORT: 'Port',
+    RESULT_COLUMN_NAME: 'Dataset',
+    RESULT_COLUMN_TYPE: 'Type',
     RESULT_COLUMN_GROUP: 'Group',
     RESULT_COLUMN_SCORE: 'Score',
     RESULT_COLUMN_SG: 'SpaceGroup',
@@ -85,15 +85,16 @@ class ResultList(gtk.ScrolledWindow):
 
     def add_item(self, item):
         iter = self.listmodel.append()
+        crystal = item.get('crystal', {})
         self.listmodel.set(iter,
                 RESULT_COLUMN_STATE, RESULT_STATE_WAITING,
                 RESULT_COLUMN_NAME, item['name'],
-                RESULT_COLUMN_PORT, item.get('port','-'),
-                RESULT_COLUMN_GROUP, item.get('group', '-'),
+                RESULT_COLUMN_TYPE, item.get('type','Screen'),
+                RESULT_COLUMN_GROUP, crystal.get('group', '-'),
                 RESULT_COLUMN_SCORE, item.get('score', -1),
                 RESULT_COLUMN_SG, item.get('space_group', '-'),
                 RESULT_COLUMN_CELL, item.get('unit_cell', '-'),
-                RESULT_COLUMN_DATA, item,
+                RESULT_COLUMN_DATA, crystal,
                 RESULT_COLUMN_RESULT, {})
         return iter
 
@@ -118,8 +119,10 @@ class ResultList(gtk.ScrolledWindow):
         # Hide negative values
         if value < 0:
             renderer.set_property('text', '-')
+            renderer.set_property('xalign', 0.5)
         else:
             renderer.set_property('text', '%8.2f' % value)
+            renderer.set_property('xalign', 1.0)
         return
     
     def __format_pixbuf(self, column, renderer, model, iter):
@@ -164,13 +167,16 @@ class ResultList(gtk.ScrolledWindow):
         column.set_cell_data_func(renderer, self.__format_pixbuf)
         self.listview.append_column(column)
         
-        for key in [RESULT_COLUMN_NAME, RESULT_COLUMN_PORT, RESULT_COLUMN_GROUP, RESULT_COLUMN_SCORE, RESULT_COLUMN_SG, RESULT_COLUMN_CELL]:
+        for key in [RESULT_COLUMN_NAME, RESULT_COLUMN_TYPE, RESULT_COLUMN_GROUP, RESULT_COLUMN_SCORE, RESULT_COLUMN_SG, RESULT_COLUMN_CELL]:
             renderer = gtk.CellRendererText()
             column = gtk.TreeViewColumn(COLUMN_DICT[key], renderer, text=key)
             if key == RESULT_COLUMN_SCORE:
                 column.set_cell_data_func(renderer, self.__format_float_cell)
             else:
+                if key in [RESULT_COLUMN_NAME, RESULT_COLUMN_TYPE, RESULT_COLUMN_GROUP, RESULT_COLUMN_SG]:
+                    renderer.set_property('xalign', 0.5)
                 column.set_cell_data_func(renderer, self.__format_cell)
+            
             column.set_resizable(True)
             self.listview.append_column(column)
         self.listview.set_search_column(RESULT_COLUMN_NAME)

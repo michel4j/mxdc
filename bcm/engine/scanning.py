@@ -12,6 +12,10 @@ from twisted.python.components import globalRegistry
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from bcm.device.interfaces import IMotor, ICounter
+try:
+    import json
+except:
+    import simplejson as json
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -87,6 +91,7 @@ class BasicScan(gobject.GObject):
         gobject.GObject.__init__(self)
         self._stopped = False
         self.append = False
+        self.meta_data = None
         self.data = []
         self.data_names = []
         try:
@@ -142,6 +147,7 @@ class BasicScan(gobject.GObject):
             _logger.error("Could not open file '%s' for writing" % filename)
             return
         f.write('# Scan Type: %s -- %s\n' % (self.__class__.__name__, self.__class__.__doc__))
+        f.write('# Meta Data: %s\n' % json.dumps(self.meta_data))
         f.write('# Column descriptions:\n')
         header = ''
         for i , name in enumerate(self.data_names):

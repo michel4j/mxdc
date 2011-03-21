@@ -45,4 +45,5 @@ def all(iterable):
     
 
 def get_project_name():
-    return pwd.getpwuid(os.geteuid())[0]
+    return "fodje"
+    #return pwd.getpwuid(os.geteuid())[0]
