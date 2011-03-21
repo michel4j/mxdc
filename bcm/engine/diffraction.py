@@ -6,7 +6,6 @@ from bcm.utils.converter import energy_to_wavelength, dist_to_resol
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_project_name
 from bcm.utils import runlists
-from bcm.utils import lims_tools
 
 from twisted.python.components import globalRegistry
 from zope.interface import implements
@@ -50,13 +49,14 @@ class DataCollector(gobject.GObject):
     implements(IDataCollector)
     __gsignals__ = {}
     __gsignals__['new-image'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT, gobject.TYPE_STRING))
-    __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_INT))
+    __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_INT, gobject.TYPE_INT))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['stopped'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     
+    STATE_PENDING, STATE_RUNNING, STATE_DONE, STATE_SKIPPED = range(4)
     def __init__(self):
         gobject.GObject.__init__(self)
         self.paused = False
@@ -96,6 +96,11 @@ class DataCollector(gobject.GObject):
         self.collect_parameters['user_properties'] = (pwd.getpwuid(os.geteuid())[0]  , os.geteuid(), os.getegid())
                 
         return
+
+    def _notify_progress(self, status):
+        # Notify progress
+        fraction = float(self.pos) / self.total_items
+        gobject.idle_add(self.emit, 'progress', fraction, self.pos, status)                
     
     def get_dataset_info(self, data_list):
         results = []
@@ -170,6 +175,7 @@ class DataCollector(gobject.GObject):
         self.stopped = False           
         self.beamline.goniometer.set_mode('COLLECT', wait=True) # move goniometer to collect mode
         gobject.idle_add(self.emit, 'started')
+        _current_attenuation = self.beamline.attenuator.get()
         try:
                    
             self.beamline.exposure_shutter.close()
@@ -178,8 +184,8 @@ class DataCollector(gobject.GObject):
             header = {}
             pause_msg = ''
             _first = True
-            
-            while self.pos < len(self.run_list) :
+            self.total_items = len(self.run_list)
+            while self.pos < self.total_items :
                 if self.paused:
                     gobject.idle_add(self.emit, 'paused', True, pause_msg)
                     pause_msg = ''
@@ -193,13 +199,14 @@ class DataCollector(gobject.GObject):
                 frame = self.run_list[self.pos]   
                 if frame['saved'] and self.skip_existing:
                     _logger.info('Skipping %s' % frame['file_name'])
+                    self._notify_progress(self.STATE_SKIPPED)
                     self.pos += 1
                     continue
-                                            
+                
+                self._notify_progress(self.STATE_RUNNING)                                           
                 self.beamline.monochromator.energy.move_to(frame['energy'], wait=True)
                 self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)
-                #self.beamline.diffractometer.two_theta.move_to(frame['two_theta'], wait=True)
-                #self.beamline.monochromator.energy.wait()                
+                self.beamline.attenuator.set(frame['attenuation'], wait=True)               
                 
                 # Prepare image header
                 header['delta_angle'] = frame['delta_angle']
@@ -235,19 +242,16 @@ class DataCollector(gobject.GObject):
                 _logger.info("Image Collected: %s" % (frame['file_name']))
                 gobject.idle_add(self.emit, 'new-image', self.pos, "%s/%s" % (frame['directory'], frame['file_name']))
                 
-                # Notify progress
-                fraction = float(self.pos) / len(self.run_list)
-                gobject.idle_add(self.emit, 'progress', fraction, self.pos + 1)          
+                self._notify_progress(self.STATE_DONE)
                 self.pos = self.pos + 1
             
             self.results = self.get_dataset_info(self.data_sets.values())
             gobject.idle_add(self.emit, 'done')
-            if not self.stopped:
-                gobject.idle_add(self.emit, 'progress', 1.0, 0)
             self.stopped = True
         finally:
             self.beamline.exposure_shutter.close()
-            #self.beamline.goniometer.set_mode('MOUNTING') # return goniometer to mount position
+            # Restore attenuation
+            self.beamline.attenuator.set(_current_attenuation)
             self.beamline.lock.release()
         return self.results
 
@@ -272,7 +276,6 @@ class DataCollector(gobject.GObject):
         
 class Screener(gobject.GObject):
     __gsignals__ = {}
-    __gsignals__['message'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_INT, gobject.TYPE_INT))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
@@ -281,6 +284,7 @@ class Screener(gobject.GObject):
     __gsignals__['sync'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['analyse-request'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+    __gsignals__['new-datasets'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
    
     TASK_MOUNT, TASK_ALIGN, TASK_PAUSE, TASK_COLLECT, TASK_ANALYSE, TASK_DISMOUNT = range(6)
     TASK_STATE_PENDING, TASK_STATE_RUNNING, TASK_STATE_DONE, TASK_STATE_ERROR, TASK_STATE_SKIPPED = range(5)
@@ -457,7 +461,7 @@ class Screener(gobject.GObject):
                         self.data_collector.configure(params)
                         results = self.data_collector.run()
                         task.options['results'] = results
-                        lims_tools.upload_data(self.beamline, results)
+                        gobject.idle_add(self.emit, 'new-datasets', results)                       
                         self._notify_progress(Screener.TASK_STATE_DONE)
                     else:
                         self._notify_progress(Screener.TASK_STATE_SKIPPED)
@@ -475,7 +479,9 @@ class Screener(gobject.GObject):
                                          'info': {'anomalous': False,
                                                   'file_names': [_first_frame,]                                             
                                                   },
-                                         'crystal': task.options['sample'] }
+                                         'type': 'SCRN',
+                                         'crystal': task.options['sample'],
+                                         'name': collect_results[0]['name'] }
 
                             if not os.path.exists(_a_params['directory']):
                                 os.makedirs(_a_params['directory']) # make sure directories exist

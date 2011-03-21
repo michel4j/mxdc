@@ -26,8 +26,7 @@ class SampleManager(gtk.Frame):
     }    
     def __init__(self):
         gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
-        
+        self.set_shadow_type(gtk.SHADOW_NONE)       
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'sample_widget.glade'), 
                                   'sample_widget')
         self._create_widgets()
@@ -37,7 +36,7 @@ class SampleManager(gtk.Frame):
             return super(SampleManager).__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
-    
+
     def do_samples_changed(self, obj=None):
         pass
     
@@ -77,6 +76,9 @@ class SampleManager(gtk.Frame):
         
     def on_sample_selected(self, obj, data):
         gobject.idle_add(self.emit, 'active-sample', data)
+    
+    def get_database(self):
+        return self.dewar_loader.samples_database
 
     def on_import_lims(self, obj):
             info = {

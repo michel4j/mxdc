@@ -2,6 +2,7 @@
 import os
 import time
 import gobject
+import re
 from zope.interface import Interface, Attribute, invariant
 from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
@@ -40,7 +41,7 @@ class XRFScan(BasicScan):
         self.scan_parameters['filename'] = os.path.join(directory, "%s_%0.3f.raw" % (prefix, energy))
         self.scan_parameters['results_file'] = os.path.join(directory, "%s_%0.3f.out" % (prefix, energy))
         self.scan_parameters['attenuation'] = attenuation
-
+        self.meta_data = {'energy': energy, 'time': t, 'attenuation': attenuation, 'prefix': prefix, 'user_name': uname}
         self.results = {}
         
     def analyse(self):        
@@ -128,8 +129,26 @@ class XANESScan(BasicScan):
         self.scan_parameters['targets'] = xanes_targets(self.scan_parameters['edge_energy'])
         self.scan_parameters['filename'] = os.path.join(directory, "%s_%s.raw" % (prefix, edge))
         self.scan_parameters['attenuation'] = attenuation
+        self.meta_data = {'edge': edge, 'time': t, 'attenuation': attenuation, 'prefix': prefix, 'user_name': uname}
         
                     
+    def analyse_file(self, filename):
+        import numpy
+        data = numpy.loadtxt(filename)
+        raw_text = file(filename).read()
+        self.data = zip(data[:,0], data[:,1], data[:,2], data[:,3])
+        
+        meta = re.search('# Meta Data: ({.+})', raw_text)
+        if meta:
+            self.meta_data = json.loads(meta.group(1))
+            self._edge = self.meta_data['edge']
+            self._directory = os.path.dirname(filename)
+            self._prefix = self.meta_data['prefix']
+            self._user_name = self.meta_data['user_name']
+                        
+        self.analyse()
+        gobject.idle_add(self.emit, "done")
+    
     def analyse(self):
         self.autochooch.configure(self._edge, self._directory, self._prefix, self._user_name)
         success = self.autochooch.run()

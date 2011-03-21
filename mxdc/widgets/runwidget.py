@@ -29,12 +29,14 @@ DEFAULT_PARAMETERS = {
     'wedge': 360.0,
     'energy': [ 12.658 ],
     'energy_label': ['E0'],
+    'attenuation': 0.0,
     'number': 1,
     'two_theta': 0.0,
     'skip': '',
     'crystal_id': None,
     'experiment_id': None,
     'comments': '',
+    'scattering_factors': None,
 }
 
 
@@ -52,7 +54,7 @@ class RunWidget(gtk.Frame):
         # Data for entries (name: (col, row, length, [unit]))
         entries = ['name', 'distance','delta_angle','exposure_time','first_frame', 
                    'start_angle','num_frames','total_angle','wedge',
-                   'two_theta','inverse_beam','skip']
+                   'attenuation','inverse_beam','skip']
         for e in entries:
             self.entry[e] = self._xml.get_widget(e)
             if isinstance(self.entry[e], gtk.Entry) and e not in ['name',]:
@@ -76,7 +78,7 @@ class RunWidget(gtk.Frame):
         self.entry['distance'].connect('focus-out-event', self.on_distance_changed)
         self.entry['exposure_time'].connect('focus-out-event', self.on_time_changed)
         self.entry['wedge'].connect('focus-out-event', self.on_wedge_changed)
-        self.entry['two_theta'].connect('focus-out-event', self.on_two_theta_changed)
+        self.entry['attenuation'].connect('focus-out-event', self.on_attenuation_changed)
         self.entry['skip'].connect('focus-out-event', self.on_skip_changed)
         
         self.entry['name'].connect('activate', self.on_prefix_changed)
@@ -88,7 +90,7 @@ class RunWidget(gtk.Frame):
         self.entry['distance'].connect('activate', self.on_distance_changed)
         self.entry['exposure_time'].connect('activate', self.on_time_changed)
         self.entry['wedge'].connect('activate', self.on_wedge_changed)
-        self.entry['two_theta'].connect('activate', self.on_two_theta_changed)
+        self.entry['attenuation'].connect('activate', self.on_attenuation_changed)
         self.entry['skip'].connect('activate', self.on_skip_changed)
                
         # Energy
@@ -236,7 +238,7 @@ class RunWidget(gtk.Frame):
         self.__reset_e_btn_states()
             
     def set_parameters(self, dict):
-        for key in  ['distance','delta_angle','start_angle','total_angle','wedge','exposure_time', 'two_theta']:
+        for key in  ['distance','delta_angle','start_angle','total_angle','wedge','exposure_time', 'attenuation']:
             if key in dict:
                 self.entry[key].set_text("%0.2f" % dict[key])
             else:
@@ -269,7 +271,7 @@ class RunWidget(gtk.Frame):
         _cmt_buf =  self.comments_entry.get_buffer()
         _cmt_buf.set_text(dict.get('comments', ''))
         
-        #self.parameters.update(dict)
+        self.parameters.update(dict)
         self.check_changes()
         
     def get_parameters(self):
@@ -290,18 +292,12 @@ class RunWidget(gtk.Frame):
         run_data['energy_label'] = energy_label
         run_data['inverse_beam'] = self.entry['inverse_beam'].get_active()
         run_data['number'] = self.number
-
-        for key in ['distance','delta_angle','start_angle','total_angle','wedge','exposure_time', 'two_theta']:
-            try:
-                run_data[key] = float(self.entry[key].get_text())
-            except:
-                self.entry[key].activate()
+            
+        for key in ['distance','delta_angle','start_angle','total_angle', 'wedge', 'exposure_time', 'attenuation', 'num_frames']:
+            run_data[key] = float(self.entry[key].get_text())
 
         for key in ['first_frame','num_frames']:
-            try:
-                run_data[key] = int(self.entry[key].get_text())
-            except:
-                self.entry[key].activate()
+            run_data[key] = int(self.entry[key].get_text())
         
         for key in ['skip']:
             run_data[key] = self.entry[key].get_text()
@@ -361,7 +357,7 @@ class RunWidget(gtk.Frame):
         keys = self.parameters.keys()
         for key in keys:
             # skip some keys 
-            if key in ['energy_label', 'crystal_id', 'experiment_id', 'comments']:
+            if key in ['energy_label', 'crystal_id', 'experiment_id', 'comments', 'two_theta', 'scattering_factors']:
                 continue
             
             if key == 'energy':
@@ -510,27 +506,18 @@ class RunWidget(gtk.Frame):
         self.check_changes()
         return False
 
-    def on_two_theta_changed(self,widget,event=None):
-        distance = float(self.entry['distance'].get_text())    
+    def on_attenuation_changed(self,widget,event=None):
         try:
-            two_theta = float(self.entry['two_theta'].get_text())    
+            attenuation = float(self.entry['attenuation'].get_text())    
         except:
-            two_theta = 0.0
-
-        if distance <= 170.0:
-            tt_max = (14.0/70.0) * (distance - 100.0) + 20.0
-        elif distance <= 850 :
-            tt_max = (-16.0/680.0) * (distance - 170.0) + 34.0
-        else:
-            tt_max = 0.0
-
-        two_theta = max(0.0, min(tt_max, two_theta))
-        self.entry['two_theta'].set_text('%0.2f' % two_theta) 
+            attenuation = 0.0
+        attenuation = max(0.0, min(100, attenuation))
+        self.entry['attenuation'].set_text('%0.0f' % attenuation) 
         self.check_changes()
         return False
 
     def on_distance_changed(self,widget,event=None):
-        two_theta = float(self.entry['two_theta'].get_text())    
+        two_theta = self.parameters.get('two_theta', 0)    
         try:
             distance = float(self.entry['distance'].get_text())
         except:
@@ -575,7 +562,8 @@ class RunWidget(gtk.Frame):
             beamline = globalRegistry.lookup([], IBeamline)
             params['name'] = self.active_sample.get('name', params['name'])
             params['distance'] = self.active_strategy.get('distance', beamline.distance.get_position())
-            params['two_theta'] = self.active_strategy.get('two_theta', beamline.two_theta.get_position())
+            params['attenuation'] = self.active_strategy.get('attenuation', beamline.attenuator.get())
+            params['two_theta'] =  beamline.two_theta.get_position()
             params['energy'] = self.active_strategy.get('energy', [beamline.energy.get_position()])
             params['energy_label'] = self.active_strategy.get('energy_label', ['E0'])
             params['start_angle'] = self.active_strategy.get('start_angle', beamline.goniometer.omega.get_position())
@@ -588,6 +576,7 @@ class RunWidget(gtk.Frame):
             params['inverse_beam'] = False
             params['crystal_id'] = self.active_sample.get('id', None)
             params['experiment_id'] = self.active_sample.get('experiment_id', None)
+            params['scattering_factors'] = self.active_strategy.get('scattering_factors', None)
             if self.active_sample.get('comments') is not None:
                 params['comments'] = self.active_sample['comments']
             else:
