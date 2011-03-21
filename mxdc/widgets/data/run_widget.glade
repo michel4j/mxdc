@@ -28,8 +28,9 @@
             <child>
               <widget class="GtkToolButton" id="save_btn">
                 <property name="visible">True</property>
-                <property name="tooltip" translatable="yes">Save Run</property>
-                <property name="stock_id">gtk-save</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip" translatable="yes">Apply Run Settings</property>
+                <property name="stock_id">gtk-apply</property>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -267,7 +268,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkEntry" id="two_theta">
+              <widget class="GtkEntry" id="attenuation">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
@@ -302,7 +303,7 @@
               <widget class="GtkLabel" id="label19">
                 <property name="visible">True</property>
                 <property name="xalign">0</property>
-                <property name="label" translatable="yes">deg</property>
+                <property name="label" translatable="yes">%</property>
               </widget>
               <packing>
                 <property name="left_attach">3</property>
@@ -407,7 +408,7 @@
               <widget class="GtkLabel" id="label12">
                 <property name="visible">True</property>
                 <property name="xalign">1</property>
-                <property name="label" translatable="yes">TwoTheta:</property>
+                <property name="label" translatable="yes">Attenuation:</property>
               </widget>
               <packing>
                 <property name="top_attach">10</property>

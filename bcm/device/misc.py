@@ -31,7 +31,7 @@ class PositionerBase(BaseDevice):
     def _signal_change(self, obj, value):
         self.set_state(changed=self.get())
     
-    def set(self, pos):
+    def set(self, pos, wait=False):
         raise exceptions.NotImplementedError
     
     def get(self):
@@ -46,7 +46,7 @@ class SimPositioner(PositionerBase):
         self.units = units
         self.set_state(changed=self._pos)
         
-    def set(self, pos):
+    def set(self, pos, wait=False):
         self._pos = pos
         self.set_state(changed=self._pos)
 
@@ -84,7 +84,7 @@ class Positioner(PositionerBase):
                                                     self.name,
                                                     self.set_pv.name,
                                                     self.fbk_pv.name )
-    def set(self, pos):
+    def set(self, pos, wait=False):
         if self.scale is None:
             self.set_pv.set(pos)
         else:
@@ -114,10 +114,10 @@ class PositionerMotor(MotorBase):
         pass
     
     def move_to(self, pos, wait=False):
-        self.positioner.set(pos)
+        self.positioner.set(pos, wait)
     
     def move_by(self, val, wait=False):
-        self.positioner.set( self.positioner.get() + val )
+        self.positioner.set( self.positioner.get() + val, wait )
     
     def stop(self):
         pass
@@ -177,13 +177,14 @@ class Attenuator(BaseDevice):
             attenuation = 0
         elif attenuation > 1.0:
             attenuation = 1.0
+        self._bitmap = bitmap
         return attenuation*100.0
     
     def _set_bits(self, bitmap):
         for i in range(4):
             self._filters[i].put( int(bitmap[i]) )
         
-    def set(self, target):
+    def set(self, target, wait=False):
         e = self._energy.get()
         if target > 99.9:
             target = 99.9
@@ -201,6 +202,15 @@ class Attenuator(BaseDevice):
         self._set_bits(bitmap)
         _logger.info('Attenuation of %f %s requested' % (target, self.units))
         _logger.debug('Filters [8421] set to [%s] (0=off,1=on)' % bitmap)
+        
+        if wait:
+            timeout = 5.0
+            while timeout > 0 and self._bitmap != bitmap:
+                timeout -= 0.05
+                time.sleep(0.05)
+            if timeout <= 0:
+                _logger.waring('Attenuator timed out going to [%s]' % (bitmap))
+            
     
     def _signal_change(self, obj, value):
         self.set_state(changed=self.get())
@@ -621,7 +631,7 @@ class PositionerClient(SlaveDevice, PositionerBase):
         PositionerBase.__init__(self)
         self.value = 0
             
-    def set(self, pos):
+    def set(self, pos, wait=False):
         return self.device.callRemote('set', pos)
     
     def get(self):

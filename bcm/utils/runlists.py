@@ -22,6 +22,7 @@ FULL_PARAMETERS = {
     'energy_label': ['peak','infl','remo'],
     'number': 1,
     'two_theta': 0.0,
+    'attenuation': 0.0,
     'jump': 0.0,
 }
 
@@ -30,11 +31,17 @@ def prepare_run(run_data):
     run_data = run_data.copy()
     e_values = run_data.pop('energy')
     e_names = run_data.pop('energy_label')
+    if 'scattering_factors' in run_data:
+        scat_d = run_data.pop('scattering_factors')
+    else:
+        scat_d = len(e_names)*[None]
     if isinstance(e_values, list):
-        energies = zip(e_values, e_names)
-        for e_v, e_n in energies:
+        energies = zip(e_values, e_names, scat_d)
+        for e_v, e_n, e_s in energies:
             param = run_data.copy()
             param['energy'] = e_v
+            if e_s is not None:
+                param['scattering_factors'] = e_s
             if len(e_values) > 1:
                 param['name'] = '%s_%s' % (param['name'], e_n)                
             param['two_theta'] = run_data.get('two_theta', 0.0)
@@ -123,6 +130,7 @@ def generate_frame_list(run, frame_set):
             'distance': run['distance'],
             'name': run['name'],
             'two_theta': run.get('two_theta', 0.0),
+            'attenuation': run.get('attenuation', 0.0),
             'directory': run['directory'],
         }
         frame_list.append(frame)           
@@ -196,35 +204,40 @@ def generate_frame_sets(run, show_number=True):
     return frame_sets
 
 def generate_run_list(run_info_list):
-    runs = []
+    all_runs = []
     for r in run_info_list:
-        runs.extend(prepare_run(r))
+        all_runs.extend(prepare_run(r))
 
     run_list = []
     max_sets = 1   
-    for run in runs:       
+    for run in all_runs:       
         max_sets = max(max_sets, len(run['frame_sets']))
 
     for i in range(max_sets):
-        for run in runs:
+        for run in all_runs:
             if i < len(run['frame_sets']):
                 run_list.extend(generate_frame_list(run, run['frame_sets'][i]))
+ 
     return run_list     
 
 def generate_data_and_list(run_info_list):
     runs = {}
+    all_runs = []
+    for r in run_info_list:
+        all_runs.extend(prepare_run(r))
+
     run_list = []
     max_sets = 1   
-    for r in run_info_list:
-        for run in prepare_run(r):
-            runs[r['name']] = run
-            max_sets = max(max_sets, len(run['frame_sets']))
+    for run in all_runs:       
+        runs[run['name']] = run
+        max_sets = max(max_sets, len(run['frame_sets']))
 
     for i in range(max_sets):
-        for run in runs.values():
+        for run in all_runs:
             if i < len(run['frame_sets']):
                 run_list.extend(generate_frame_list(run, run['frame_sets'][i]))
-    return runs, run_list     
+
+    return runs, run_list   
         
 def _all_files(root, patterns='*'):
     """ 

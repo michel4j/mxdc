@@ -66,7 +66,7 @@ class AutomounterContainer(gobject.GObject):
          `changed`: Emits the `changed` GObject signal when the state of the container changes.
     """
     __gsignals__ = {
-        'changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
+        'changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
     }
     def __init__(self, location, status_str=None):
         """ Create a container at the specified `location` in the Automounter, where
@@ -133,10 +133,10 @@ class BasicAutomounter(BaseDevice):
     """
     implements(IAutomounter)
     __gsignals__ = {
-        'state':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
-        'enabled': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
-        'mounted': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'progress':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'state':(gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
+        'enabled': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
+        'mounted': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'progress':(gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
     }
     def __init__(self):
         BaseDevice.__init__(self)

@@ -16,6 +16,7 @@ from bcm.beamline.mx import IBeamline
 from bcm.engine.interfaces import IDataCollector
 from bcm.utils.runlists import determine_skip, summarize_frame_set
 from bcm.utils import automounter
+from bcm.utils import lims_tools
 from bcm.engine.diffraction import Screener, DataCollector
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.dialogs import warning
@@ -64,6 +65,10 @@ class Tasklet(object):
         return self.options[key]
 
 class ScreenManager(gtk.Frame):
+    __gsignals__ = {
+        'new-datasets': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+    }
+
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
@@ -81,6 +86,7 @@ class ScreenManager(gtk.Frame):
         self.screen_runner.connect('started', self._on_start)
         self.screen_runner.connect('done', self._on_complete)
         self.screen_runner.connect('sync', self._on_sync)
+        self.screen_runner.connect('new-datasets', self._on_new_datasets)
 
         
     def __getattr__(self, key):
@@ -88,6 +94,9 @@ class ScreenManager(gtk.Frame):
             return super(ScreenManager).__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
+
+    def do_new_datasets(self, datasets):
+        pass
 
     def _create_widgets(self):        
         self.sample_list = SampleList()
@@ -252,6 +261,10 @@ class ScreenManager(gtk.Frame):
             self.lbl_sync.set_markup('<span color="#990000">Barcode mismatch</span>')
             self.message_log.add_text('sync: %s' % str)
         #self.lbl_sync.set_alignment(0.5, 0.5)
+
+    def _on_new_datasets(self, obj, datasets):
+        datasets = lims_tools.upload_data(self.beamline, datasets)
+        self.emit('new-datasets', datasets)
 
     def _on_automounter_state(self, obj, state):
         self.lbl_state.set_markup(state)
