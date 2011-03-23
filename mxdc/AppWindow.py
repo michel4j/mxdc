@@ -19,7 +19,6 @@ from mxdc.widgets.statuspanel import StatusPanel
 from mxdc.widgets import dialogs
 from bcm.engine.scripting import get_scripts
 from bcm.utils.misc import get_project_name
-from mxdc.utils import clients
 
 _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
@@ -73,7 +72,6 @@ class AppWindow(gtk.Window):
         self.result_manager = ResultManager()
         self.screen_manager = ScreenManager()
         self.status_panel = StatusPanel()
-        self.dpm_client = clients.DPMClient()
         
         self.screen_manager.screen_runner.connect('analyse-request', self.on_analyse_request)
         self.sample_manager.connect('samples-changed', self.on_samples_changed)
@@ -99,7 +97,7 @@ class AppWindow(gtk.Window):
         notebook.append_page(self.collect_manager, tab_label=_mk_lbl('Data Collection'))
         notebook.append_page(self.screen_manager, tab_label=_mk_lbl('Screening'))
         notebook.append_page(self.scan_manager, tab_label=_mk_lbl('Fluorescence Scans'))
-        notebook.append_page(self.result_manager, tab_label=_mk_lbl('Results'))
+        notebook.append_page(self.result_manager, tab_label=_mk_lbl('Processing Results'))
         notebook.set_border_width(6)
 
         self.main_frame.add(notebook)
