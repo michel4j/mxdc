@@ -77,7 +77,7 @@ from bcm.service.imagesync_client import *
 from bcm.engine.optimizer import *
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger, log_to_console
-from jsonrpc.proxy import ServiceProxy as LimsClient
+from bcm.utils.lims_tools import LimsClient
 
 #log_to_console()
 

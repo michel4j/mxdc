@@ -12,6 +12,13 @@ try:
 except:
     import simplejson as json
 
+try:
+    from jsonrpc.proxy import ServiceProxy
+    LimsClient = ServiceProxy
+except:
+    from jsonrpclib import ServerProxy
+    LimsClient = ServerProxy
+
 _logger = get_module_logger(__name__)
 
 
@@ -88,3 +95,5 @@ def upload_report(beamline, results):
     json.dump(info, fh)
     fh.close()
     return results
+
+__all__ = ['upload_report', 'upload_data', 'ServiceProxy']
