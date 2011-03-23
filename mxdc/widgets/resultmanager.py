@@ -271,6 +271,7 @@ class ResultManager(gtk.Frame):
         _logger.error("Unable to process data")
         if failure is not None:
             _logger.error(failure.getErrorMessage())
+            failure.printDetailedTraceback()
         item = {'state': RESULT_STATE_ERROR}
         self.update_result(iter, item)
 
