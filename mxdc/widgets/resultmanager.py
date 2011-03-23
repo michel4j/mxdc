@@ -241,7 +241,6 @@ class ResultManager(gtk.Frame):
                                 ).addCallback(self._result_ready, iter, params).addErrback(self._result_fail, iter)
         except:
             self._result_fail(None, iter)
-            raise
         
     def _result_ready(self, results, iter, params):
         for index, data in enumerate(results):
@@ -271,7 +270,7 @@ class ResultManager(gtk.Frame):
     def _result_fail(self, failure, iter):
         _logger.error("Unable to process data")
         if failure is not None:
-            _logger.error(failure.getMessage())
+            _logger.error(failure.getErrorMessage())
         item = {'state': RESULT_STATE_ERROR}
         self.update_result(iter, item)
 
