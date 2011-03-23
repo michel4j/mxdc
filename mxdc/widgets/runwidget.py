@@ -254,9 +254,9 @@ class RunWidget(gtk.Frame):
         if 'name' in dict:
             self.entry['name'].set_text("%s" % dict['name'])
         if dict.get('directory') is not None and os.path.exists(dict['directory']):
-            self.entry['directory'].set_filename("%s" % dict['directory'])
+            self.entry['directory'].set_current_folder("%s" % dict['directory'])
         else:
-            self.entry['directory'].set_filename(os.environ['HOME'])
+            self.entry['directory'].set_current_folder(os.environ['HOME'])
             dict['directory'] = os.environ['HOME']
     
         self.set_number(dict['number'])

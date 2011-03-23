@@ -21,6 +21,10 @@ from bcm.beamline.mx import IBeamline
 from mxdc.utils import clients
 from bcm.utils.misc import get_project_name
 from bcm.utils.science import SPACE_GROUP_NAMES
+try:
+    import json
+except:
+    import simplejson as json
 
 #from mxdc.widgets.textviewer import TextViewer, GUIHandler
 _logger = get_module_logger(__name__)
@@ -93,6 +97,11 @@ class ResultManager(gtk.Frame):
             self.html_window.add(self.browser)
         self.update_sample_btn.connect('clicked', self.send_active_sample)
         self.update_strategy_btn.connect('clicked', self.send_active_strategy)
+        self.add_dataset_btn.connect('file-set', self.on_dataset_loaded)
+        self.dataset_filter = gtk.FileFilter()
+        self.dataset_filter.set_name("Dataset Summary")
+        self.dataset_filter.add_pattern("*.SUMMARY")
+        self.add_dataset_btn.add_filter(self.dataset_filter)
         self.add(self.result_manager)
         self.show_all()
 
@@ -131,8 +140,16 @@ class ResultManager(gtk.Frame):
             self.emit('active-strategy', self.active_strategy)
 
     def on_dataset_loaded(self, obj):
-        pass
-
+        filenames = obj.get_filenames()
+        for filename in filenames:
+            if filename is not None:
+                try:
+                    data = json.load(file(filename))
+                    self.add_dataset(data)
+                    _logger.info('Dataset "%s" loaded.' % data['name'])
+                except:
+                    _logger.error('Invalid file format. Unable to load dataset')
+            
     def on_datasets_selected(self, selection):
         if selection.count_selected_rows() > 0:
             self.process_btn.set_sensitive(True)
@@ -173,12 +190,19 @@ class ResultManager(gtk.Frame):
                 self.process_dataset(_a_params)
         else:              
             file_names = []
+            name_list = []
             for data in datasets:
                 frame_list = runlists.frameset_to_list(data['frame_sets'])
                 file_names.append(os.path.join(data['directory'],
                                             "%s_%03d.img" % (data['name'], frame_list[0])))
-            
-            _a_params = {'directory': os.path.join(data['directory'], '%s-proc' % datasets[0]['name']),
+                name_list.append(data['name'])
+            _prefix = os.path.commonprefix(name_list)
+            if _prefix == '':
+                _prefix = '_'.join(name_list)
+            elif _prefix[-1] == '_':
+                _prefix = _prefix[:-1]
+
+            _a_params = {'directory': os.path.join(data['directory'], '%s-proc' % _prefix),
                          'info': {'mad': self.mad_check_btn.get_active(),
                                   'file_names': file_names,                                             
                                   },
@@ -194,33 +218,43 @@ class ResultManager(gtk.Frame):
             cmd = 'screenDataset'
         else:
             cmd = 'processDataset'
-        self.dpm_client.dpm.callRemote(cmd,
-                            params['info'], 
-                            params['directory'],
-                            get_project_name(),
-                            ).addCallback(self._result_ready, iter).addErrback(self._result_fail, iter)
+        try:
+            self.dpm_client.dpm.callRemote(cmd,
+                                params['info'], 
+                                params['directory'],
+                                get_project_name(),
+                                ).addCallback(self._result_ready, iter, params).addErrback(self._result_fail, iter)
+        except:
+            self._result_fail(None, iter)
+            raise
         
-    def _result_ready(self, results, iter):
-        data = results[0]        
-        cell_info = '%0.1f %0.1f %0.1f %0.1f %0.1f %0.1f' % (
-                    data['result']['cell_a'],
-                    data['result']['cell_b'],
-                    data['result']['cell_c'],
-                    data['result']['cell_alpha'],
-                    data['result']['cell_beta'],
-                    data['result']['cell_gamma']
-                    )
-        item = {'state': RESULT_STATE_READY,
-                'score': data['result']['score'],
-                'space_group': SPACE_GROUP_NAMES[data['result']['space_group_id']],
-                'unit_cell': cell_info,
-                'detail': data}
-        self.update_result(iter, item)
+    def _result_ready(self, results, iter, params):
+        for index, data in enumerate(results):
+            if index != 0:
+                _a_params = params
+                _a_params.update(name=data['result']['name'], state=RESULT_STATE_WAITING)
+                res_iter = self.add_result(params)
+            else:
+                res_iter = iter
+            cell_info = '%0.1f %0.1f %0.1f %0.1f %0.1f %0.1f' % (
+                        data['result']['cell_a'],
+                        data['result']['cell_b'],
+                        data['result']['cell_c'],
+                        data['result']['cell_alpha'],
+                        data['result']['cell_beta'],
+                        data['result']['cell_gamma']
+                        )
+            item = {'state': RESULT_STATE_READY,
+                    'score': data['result']['score'],
+                    'space_group': SPACE_GROUP_NAMES[data['result']['space_group_id']],
+                    'unit_cell': cell_info,
+                    'detail': data}
+            self.update_result(res_iter, item)
         self.upload_results(results)
 
         
     def _result_fail(self, failure, iter):
-        _logger.error(failure.getErrorMessage())
+        _logger.error("Unable to process data")
         item = {'state': RESULT_STATE_ERROR}
         self.update_result(iter, item)
 

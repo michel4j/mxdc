@@ -67,7 +67,7 @@ class ScanManager(gtk.Frame):
         self.names = []
         self.scattering_factors = []
         self._load_config()
-        self.xanes_scanner.analyse_file('/home/michel/Downloads/test_scan_Se-K.raw')
+        #self.xanes_scanner.analyse_file('/home/michel/Downloads/test_scan_Se-K.raw')
     
     def do_create_run(self):
         pass

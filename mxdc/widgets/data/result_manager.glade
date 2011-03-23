@@ -135,14 +135,6 @@
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkFileChooserButton" id="add_dataset_btn">
-                            <property name="visible">True</property>
-                            <property name="tooltip" translatable="yes">Select a dataset to add to the list</property>
-                            <property name="create_folders">False</property>
-                            <property name="title" translatable="yes">Select A Dataset</property>
-                          </widget>
-                        </child>
-                        <child>
                           <widget class="GtkCheckButton" id="merge_check_btn">
                             <property name="label" translatable="yes">Merge</property>
                             <property name="visible">True</property>
@@ -157,6 +149,17 @@
                             <property name="left_attach">1</property>
                             <property name="right_attach">2</property>
                           </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkFileChooserButton" id="add_dataset_btn">
+                            <property name="visible">True</property>
+                            <property name="tooltip" translatable="yes">Select a dataset to add to the list</property>
+                            <property name="create_folders">False</property>
+                            <property name="preview_widget_active">False</property>
+                            <property name="select_multiple">True</property>
+                            <property name="use_preview_label">False</property>
+                            <property name="title" translatable="yes">Select Datasets to Load</property>
+                          </widget>
                         </child>
                       </widget>
                       <packing>

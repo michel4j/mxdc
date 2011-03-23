@@ -45,5 +45,7 @@ def all(iterable):
     
 
 def get_project_name():
-    return "fodje"
-    #return pwd.getpwuid(os.geteuid())[0]
+    if os.environ.get('BCM_DEBUG') is not None:
+        return 'fodje'
+    else:
+        return pwd.getpwuid(os.geteuid())[0]
