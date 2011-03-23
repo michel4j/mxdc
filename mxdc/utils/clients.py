@@ -9,9 +9,12 @@ from twisted.internet import reactor
 from twisted.python import log
 
 from bcm.utils import mdns
+from bcm.utils.log import get_module_logger
+
 from dpm.service import common
 import gobject
 import os
+_logger = get_module_logger(__name__)
 
 class DPMClient(object):
     def __init__(self):
@@ -24,7 +27,7 @@ class DPMClient(object):
             return
         self._service_found = True
         self._service_data = data
-        log.msg('DPM Server found on local network at %s:%s' % (self._service_data['host'], 
+        _logger.info('DPM Servive found at %s:%s' % (self._service_data['host'], 
                                                                 self._service_data['port']))
         self.factory = pb.PBClientFactory()
         self.factory.getRootObject().addCallback(self.on_dpm_connected).addErrback(self.dump_error)
@@ -36,7 +39,7 @@ class DPMClient(object):
             return
         self._service_found = False
         self._ready = False
-        log.msg('DPM Service no longer available on local network at %s:%s' % (self._service_data['host'], 
+        _logger.warning('DPM Service %s:%s disconnected.' % (self._service_data['host'], 
                                                                 self._service_data['port']))
         
     def setup(self):
@@ -55,13 +58,13 @@ class DPMClient(object):
         """ I am called when a connection to the DPM Server has been established.
         I expect to receive a remote perspective which will be used to call remote methods
         on the DPM server."""
-        log.msg('Connection to DPM Server Established')
+        _logger.info('Connection to DPM Server established')
         self.dpm = perspective
         
         self._ready = True
 
     def on_connection_failed(self, reason):
-        log.msg('Could not connect to DPM Server: %', reason)
+        _logger.error('Could not connect to DPM Server: %', reason)
     
     def is_ready(self):
         return self._ready
@@ -70,9 +73,9 @@ class DPMClient(object):
         """pretty print the data received from the server"""
         import pprint
         pp = pprint.PrettyPrinter(indent=4, depth=4)
-        log.msg('Server sent: %s' % pp.pformat(data))
+        _logger.info('Server sent: %s' % pp.pformat(data))
 
     def dump_error(self, failure):
         r = failure.trap(common.InvalidUser, common.CommandFailed)
-        log.err('<%s -- %s>.' % (r, failure.getErrorMessage()))
+        _logger.error('<%s -- %s>.' % (r, failure.getErrorMessage()))
    
