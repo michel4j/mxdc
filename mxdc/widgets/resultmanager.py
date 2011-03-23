@@ -184,7 +184,7 @@ class ResultManager(gtk.Frame):
                                   'file_names': [_first_frame,]                                             
                                   },
                          'type': 'SCRN',
-                         'crystal': data.get('crystal'),
+                         'crystal': data.get('crystal', {}),
                          'name': data['name'] }
         self.process_dataset(_a_params)
     
@@ -200,7 +200,7 @@ class ResultManager(gtk.Frame):
                                       'file_names': [_first_frame,]                                             
                                       },
                              'type': 'PROC',
-                             'crystal': data.get('crystal'),
+                             'crystal': data.get('crystal', {}),
                              'name': data['name'] }
                 self.process_dataset(_a_params)
         else:              
@@ -222,7 +222,7 @@ class ResultManager(gtk.Frame):
                                   'file_names': file_names,                                             
                                   },
                          'type': 'PROC',
-                         'crystal': datasets[0].get('crystal'), # use crystal from first one
+                         'crystal': datasets[0].get('crystal', {}), # use crystal from first one
                          'name': datasets[0]['name']} # use name from first one only
             self.process_dataset(_a_params)
         
