@@ -238,7 +238,8 @@ class ResultManager(gtk.Frame):
                                 params['info'], 
                                 params['directory'],
                                 get_project_name(),
-                                ).addCallback(self._result_ready, iter, params).addErrback(self._result_fail, iter)
+                                ).addCallbacks(self._result_ready, callbackArgs=[iter, params],
+                                               errback=self._result_fail, errbackArgs=[iter])
         except:
             self._result_fail(None, iter)
         
@@ -271,7 +272,7 @@ class ResultManager(gtk.Frame):
         _logger.error("Unable to process data")
         if failure is not None:
             _logger.error(failure.getErrorMessage())
-            failure.printDetailedTraceback()
+            failure.printBriefTraceback()
         item = {'state': RESULT_STATE_ERROR}
         self.update_result(iter, item)
 
