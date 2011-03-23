@@ -36,6 +36,8 @@ def prepare_run(run_data):
     else:
         scat_d = len(e_names)*[None]
     if isinstance(e_values, list):
+        if not isinstance(scat_d, list):
+            scat_d = len(e_names)*[None]
         energies = zip(e_values, e_names, scat_d)
         for e_v, e_n, e_s in energies:
             param = run_data.copy()
