@@ -270,6 +270,8 @@ class ResultManager(gtk.Frame):
         
     def _result_fail(self, failure, iter):
         _logger.error("Unable to process data")
+        if failure is not None:
+            _logger.error(failure.getMessage())
         item = {'state': RESULT_STATE_ERROR}
         self.update_result(iter, item)
 
