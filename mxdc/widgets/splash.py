@@ -114,7 +114,7 @@ class Splash(gtk.Window):
                 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
         cr.set_font_size(10)
-        cr.text_path('Version. %s' % self.version)
+        cr.text_path('Release %s' % self.version)
         cr.fill()
         #cr.stroke()
         #widget.shape_combine_mask(mask, 0, 0)
