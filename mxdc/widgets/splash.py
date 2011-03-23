@@ -107,14 +107,14 @@ class Splash(gtk.Window):
         cr = widget.window.cairo_create()
         cr.set_source_pixbuf(pixbuf,0,0)
         cr.paint()
-        cr.set_source_rgb(1, 1, 1)
+        cr.set_source_rgb(0.2, 0.5, 0.7)
         cr.set_line_width(0.5)
-        cr.move_to(16, self.height - 32)
+        cr.move_to(32, self.height - 32)
         cr.select_font_face("Luxi Sans",
                 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
         cr.set_font_size(10)
-        cr.text_path('ver. %s' % self.version)
+        cr.text_path('Version. %s' % self.version)
         cr.fill()
         #cr.stroke()
         #widget.shape_combine_mask(mask, 0, 0)
