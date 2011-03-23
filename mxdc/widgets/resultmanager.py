@@ -54,6 +54,7 @@ class ResultManager(gtk.Frame):
         self._create_widgets()
         self.active_sample = None
         self.active_strategy = None
+        self._dataset_path = os.environ['HOME']
 
     def __getattr__(self, key):
         try:
@@ -97,11 +98,7 @@ class ResultManager(gtk.Frame):
             self.html_window.add(self.browser)
         self.update_sample_btn.connect('clicked', self.send_active_sample)
         self.update_strategy_btn.connect('clicked', self.send_active_strategy)
-        self.add_dataset_btn.connect('file-set', self.on_dataset_loaded)
-        self.dataset_filter = gtk.FileFilter()
-        self.dataset_filter.set_name("Dataset Summary")
-        self.dataset_filter.add_pattern("*.SUMMARY")
-        self.add_dataset_btn.add_filter(self.dataset_filter)
+        self.add_dataset_btn.connect('clicked', self.on_load_dataset)
         self.add(self.result_manager)
         self.show_all()
 
@@ -139,8 +136,26 @@ class ResultManager(gtk.Frame):
         if self.active_strategy is not None:
             self.emit('active-strategy', self.active_strategy)
 
-    def on_dataset_loaded(self, obj):
-        filenames = obj.get_filenames()
+    def on_load_dataset(self, obj):
+        
+        file_open = gtk.FileChooserDialog(title="Select Datasets to add",
+                action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        file_open.set_select_multiple(True)
+        dataset_filter = gtk.FileFilter()
+        dataset_filter.set_name("Dataset Summary")
+        dataset_filter.add_pattern("*.SUMMARY")
+        file_open.add_filter(dataset_filter)
+        file_open.set_current_folder(self._dataset_path)
+
+        if file_open.run() == gtk.RESPONSE_OK:
+            filenames = file_open.get_filenames()
+        else:
+            filenames = []
+        file_open.destroy()  
+        if len(filenames) > 0:
+            self._dataset_path = os.path.dirname(filenames[0])
+                
         for filename in filenames:
             if filename is not None:
                 try:
