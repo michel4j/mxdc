@@ -269,9 +269,11 @@ class CollectManager(gtk.Frame):
                         txt += "%6s %7.4f %6.2f %6.2f\n" % (lbl, val, sf['fp'], sf['fpp'])
             buf = self.strategy_view.get_buffer()
             buf.set_text(txt)
-            self.active_strategy_box.set_visible(True)
+            #self.active_strategy_box.set_visible(True)
+            self.active_strategy_box.show()
         else:
-            self.active_strategy_box.set_visible(False)
+            #self.active_strategy_box.set_visible(False)
+            self.active_strategy_box.hide()
 
     def on_clear_strategy(self, obj):
         self.update_active_data(strategy={})
