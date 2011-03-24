@@ -24,7 +24,7 @@ class DPMClient(object):
         self._service_found = False
         self._ready = False
         if address is not None:
-            m = re.match('([\w.-_]+):(\d+)', address)
+            m = re.match('([\w.\-_]+):(\d+)', address)
             if m:
                 data = {'name': 'DPM Service',
                         'host': m.group(1),
@@ -97,7 +97,7 @@ class LIMSClient(object):
         self._service_found = False
         self._ready = False
         if address is not None:
-            m = re.match('(\w+)://([\w.-_]+)(:?(\d+))?(.+)?', address)
+            m = re.match('(\w+)://([\w.\-_]+)(:?(\d+))?(.+)?', address)
             if m:
                 if m.group(4) is None:
                     port = {'http':80, 'https':443}[m.group(1)]
