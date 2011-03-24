@@ -10,8 +10,9 @@ from twisted.python import log
 
 from bcm.utils import mdns
 from bcm.utils.log import get_module_logger
-#from jsonrpclib.jsonrpc import ServerProxy
-from jsonrpc.proxy import ServiceProxy as ServerProxy
+from jsonrpclib.jsonrpc import ServerProxy
+#from jsonrpc.proxy import ServiceProxy as ServerProxy
+
 import re
 from dpm.service import common
 import gobject
