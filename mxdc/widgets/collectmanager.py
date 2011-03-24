@@ -10,7 +10,7 @@ from bcm.engine.diffraction import DataCollector
 from bcm.utils.decorators import async
 
     
-from bcm.utils import runlists
+from bcm.utils import runlists, lims_tools
 from bcm.utils.log import get_module_logger
 from bcm.engine import auto
 
