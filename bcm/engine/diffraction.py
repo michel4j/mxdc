@@ -5,14 +5,11 @@ from bcm.protocol import ca
 from bcm.utils.converter import energy_to_wavelength, dist_to_resol
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_project_name
-from bcm.utils import runlists
+from bcm.utils import json, runlists
 
 from twisted.python.components import globalRegistry
 from zope.interface import implements
-try:
-    import json
-except:
-    import simplejson as json
+
     
 
 import gobject

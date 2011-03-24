@@ -15,10 +15,7 @@ from twisted.python.components import globalRegistry
 from bcm.engine.spectroscopy import XRFScan, XANESScan
 from bcm.utils import science
 from bcm.utils.log import get_module_logger
-try:
-    import json
-except:
-    import simplejson as json
+
 
 _logger = get_module_logger('mxdc.scanmanager')
 

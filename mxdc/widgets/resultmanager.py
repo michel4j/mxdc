@@ -16,15 +16,12 @@ from twisted.python.components import globalRegistry
 from mxdc.widgets.resultlist import *
 from mxdc.widgets.datalist import DataList
 from bcm.utils.log import get_module_logger
-from bcm.utils import lims_tools, runlists
+from bcm.utils import lims_tools, runlists, json
 from bcm.beamline.mx import IBeamline
 from mxdc.utils import clients
 from bcm.utils.misc import get_project_name
 from bcm.utils.science import SPACE_GROUP_NAMES
-try:
-    import json
-except:
-    import simplejson as json
+
 
 #from mxdc.widgets.textviewer import TextViewer, GUIHandler
 _logger = get_module_logger(__name__)

@@ -24,9 +24,9 @@ export BCM_CONFIG_PATH=$BCM_PATH/etc
 export BCM_DATA_PATH=$HOME/scans
 export PATH=${PATH}:$BCM_PATH/bin
 if [ $PYTHONPATH ]; then
-	export PYTHONPATH=${PYTHONPATH}:${BCM_PATH}
+	export PYTHONPATH=${PYTHONPATH}:${BCM_PATH}:${BCM_PATH}/bcm/libs
 else
-	export PYTHONPATH=${BCM_PATH}
+	export PYTHONPATH=${BCM_PATH}:${BCM_PATH}/bcm/libs
 fi
 
 # Setup MOZEMBED XUL PATH

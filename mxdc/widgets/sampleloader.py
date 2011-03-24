@@ -13,11 +13,6 @@ from mxdc.widgets import dialogs
 from mxdc.utils.xlsimport import XLSLoader
 from mxdc.utils.config import load_config, save_config
 
-try:
-    import json
-except:
-    import simplejson as json
-
 SAMPLES_DB_CONFIG = 'samples_db.json'
 XTALS_DB_CONFIG = 'crystals_db.json'
 CNT_DB_CONFIG = 'containers_db.json'
@@ -419,8 +414,8 @@ def main():
     rd = DewarLoader()
     w.add(rd)
     w.show_all()
-    from jsonrpc.proxy import ServiceProxy
-    server = ServiceProxy('http://localhost:8000/json/')
+    from bcm.libs.jsonrpclib.jsonrpc import ServerProxy
+    server = ServerProxy('http://localhost:8000/json/')
     params = {'project_name':'testuser', 'beamline_name': '08ID-1'}
     reply = server.lims.get_onsite_samples('8CABA1A7-3FD9-494F-8D14-62A6876B2BC7', params)
     #reply = server.lims.get_active_runlist('8CABA1A7-3FD9-494F-8D14-62A6876B2BC7')
