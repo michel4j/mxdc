@@ -8,15 +8,10 @@ import os
 import gobject
 import gtk
 import gtk.glade
-import time
 from mxdc.widgets import dialogs
 from mxdc.utils.xlsimport import XLSLoader
 from mxdc.utils.config import load_config, save_config
-
-try:
-    import json
-except:
-    import simplejson as json
+from bcm.utils import json
 
 #Dewar Columns
 (

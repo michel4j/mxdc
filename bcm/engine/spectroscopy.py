@@ -9,14 +9,11 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.engine.scanning import BasicScan, ScanError
 from bcm.utils.science import *
 from bcm.utils.log import get_module_logger
-from bcm.utils import science
+from bcm.utils import science, json
 from bcm.engine.autochooch import AutoChooch
 from bcm.utils.misc import get_short_uuid
 from bcm.service.utils import  send_array
-try:
-    import json
-except:
-    import simplejson as json
+
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)

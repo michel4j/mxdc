@@ -5,10 +5,7 @@ Created on May 26, 2010
 '''
 
 import os
-try:
-    import json
-except:
-    import simplejson as json
+from bcm.utils import json
 
 CONFIG_DIR = os.path.join(os.environ['HOME'], '.mxdc-%s' % os.environ['BCM_BEAMLINE'])
 
