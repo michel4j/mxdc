@@ -20,10 +20,20 @@ import os
 _logger = get_module_logger(__name__)
 
 class DPMClient(object):
-    def __init__(self):
+    def __init__(self, address=None):
         self._service_found = False
         self._ready = False
-        gobject.idle_add(self.setup)
+        if address is not None:
+            m = re.match('([\w.]+):(\d+)', address)
+            if m:
+                data = {'name': 'DPM Service',
+                        'host': m.group(1),
+                        'address': m.group(1),
+                        'port': int(m.group(2)),
+                        }
+            self.on_dpm_service_added(None, data)
+        else:
+            gobject.idle_add(self.setup)
     
     def on_dpm_service_added(self, obj, data):
         if self._service_found:
