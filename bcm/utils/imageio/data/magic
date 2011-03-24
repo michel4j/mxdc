@@ -1,0 +1,34 @@
+#------------------------------------------------------------------------------
+# X-Ray Area Detector images
+0	string	R-AXIS4\ \ \ 	R-Axis Area Detector Image:
+>796	lelong	<20		Little-endian, IP #%d,
+>>768	lelong	>0		Size=%dx
+>>772	lelong	>0		\b%d
+>796	belong	<20		Big-endian, IP #%d,
+>>768	belong	>0		Size=%dx
+>>772	belong	>0		\b%d
+
+0	string	RAXIS\ \ \ \ \ 	R-Axis Area Detector Image, Win32:
+>796	lelong	<20		Little-endian, IP #%d,
+>>768	lelong	>0		Size=%dx
+>>772	lelong	>0		\b%d
+>796	belong	<20		Big-endian, IP #%d,
+>>768	belong	>0		Size=%dx
+>>772	belong	>0		\b%d
+
+1028	string	MMX\000\000\000\000\000\000\000\000\000\000\000\000\000	marCCD Area Detector Image,
+>1072	ulong	>1		Compressed(%d),
+>1100	ulong	>1		%d headers,
+>1104	ulong	>0		%d x
+>1108	ulong	>0		%d,
+>1120	ulong	>0		%d bits/pixel
+
+0	string	{\nHEADER_BYTES=	SMV Area Detector Image 
+
+0	string	###CBF:\ 	CBF Area Detector Image 
+
+0       lelong          1234		mar345 Area Detector Image, (Little Endian)
+
+0       belong          1234		mar345 Area Detector Image, (Big Endian)
+
+1   string	CCP4\ packed\ image	PCK Area Detector Image
