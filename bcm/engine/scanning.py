@@ -12,10 +12,7 @@ from twisted.python.components import globalRegistry
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from bcm.device.interfaces import IMotor, ICounter
-try:
-    import json
-except:
-    import simplejson as json
+from bcm.utils import json
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)

@@ -26,8 +26,8 @@ from mpl_toolkits.axes_grid.axislines import SubplotZero
 from matplotlib.pylab import loadtxt
 from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
 from bcm.utils.science import peak_search
-from bcm.libs.imageio import read_image
-from bcm.libs.imageio.utils import stretch, calc_gamma
+from bcm.utils.imageio import read_image
+from bcm.utils.imageio.utils import stretch, calc_gamma
 
 try:
     import cairo

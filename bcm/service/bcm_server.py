@@ -28,11 +28,7 @@ from bcm.utils.misc import get_short_uuid
 from bcm.utils import runlists
 from bcm.service.common import *
 from bcm.engine import auto
-from bcm.utils import converter
-try:
-    import json
-except:
-    import simplejson as json
+from bcm.utils import converter, json
 
 # Send Python logs to twisted log
 log_to_twisted()

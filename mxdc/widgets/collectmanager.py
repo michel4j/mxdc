@@ -8,15 +8,9 @@ from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.engine.diffraction import DataCollector
 from bcm.utils.decorators import async
-from bcm.utils import lims_tools
 
-
-try:
-    import json
-except:
-    import simplejson as json
     
-from bcm.utils import misc, runlists
+from bcm.utils import runlists
 from bcm.utils.log import get_module_logger
 from bcm.engine import auto
 
