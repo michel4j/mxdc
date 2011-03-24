@@ -6,10 +6,7 @@ Created on Mar 16, 2011
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_project_name
 from bcm.utils import json
-from jsonrpclib.jsonrpc import ServerProxy
 import os
-
-LimsClient = ServerProxy
 
 
 _logger = get_module_logger(__name__)
@@ -46,7 +43,7 @@ def upload_data(beamline, results):
             json_info['kind'] = 1 # collection
         
         if result['num_frames'] >= 4:
-            reply = beamline.lims_server.lims.add_data(
+            reply = beamline.lims.service.lims.add_data(
                         beamline.config.get('lims_api_key',''), json_info)
             if reply.get('result') is not None:
                 if reply['result'].get('data_id') is not None:
@@ -67,7 +64,7 @@ def upload_report(beamline, results):
         if report['result'].get('data_id') is None:
             continue
         report['result'].update(project_name = get_project_name())            
-        reply = beamline.lims_server.lims.add_report(
+        reply = beamline.lims.service.lims.add_report(
                     beamline.config.get('lims_api_key',''), report['result'])
         if reply.get('result') is not None:
             if reply['result'].get('result_id') is not None:
@@ -89,4 +86,17 @@ def upload_report(beamline, results):
     fh.close()
     return results
 
-__all__ = ['upload_report', 'upload_data', 'ServiceProxy']
+def get_onsite_samples(beamline):
+    info = {
+        'project_name': get_project_name(),
+        'beamline_name': beamline.name }
+    try:
+        reply = beamline.lims.service.lims.get_onsite_samples(
+                        beamline.config.get('lims_api_key',''), info)
+    except Exception, e:
+        _logger.error('Unable to fetch samples: %s' % e)
+        reply = {'error': {'message': str(e)}}       
+    return reply
+
+
+__all__ = ['upload_report', 'upload_data']

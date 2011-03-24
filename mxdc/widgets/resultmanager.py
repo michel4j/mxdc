@@ -18,7 +18,6 @@ from mxdc.widgets.datalist import DataList
 from bcm.utils.log import get_module_logger
 from bcm.utils import lims_tools, runlists, json
 from bcm.beamline.mx import IBeamline
-from mxdc.utils import clients
 from bcm.utils.misc import get_project_name
 from bcm.utils.science import SPACE_GROUP_NAMES
 
@@ -67,8 +66,7 @@ class ResultManager(gtk.Frame):
         
 
     def _create_widgets(self):
-        self.beamline = globalRegistry.lookup([], IBeamline)  
-        self.dpm_client = clients.DPMClient()
+        self.beamline = globalRegistry.lookup([], IBeamline)
         self.result_list = ResultList()
         self.dataset_list = DataList()
         self.result_list.listview.connect('row-activated', self.on_result_row_activated)
@@ -231,13 +229,14 @@ class ResultManager(gtk.Frame):
         else:
             cmd = 'processDataset'
         try:
-            self.dpm_client.dpm.callRemote(cmd,
+            self.beamline.dpm.service.callRemote(cmd,
                                 params['info'], 
                                 params['directory'],
                                 get_project_name(),
                                 ).addCallbacks(self._result_ready, callbackArgs=[iter, params],
                                                errback=self._result_fail, errbackArgs=[iter])
         except:
+            raise
             self._result_fail(None, iter)
         
     def _result_ready(self, results, iter, params):
