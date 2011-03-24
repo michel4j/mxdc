@@ -31,13 +31,12 @@ def prepare_run(run_data):
     run_data = run_data.copy()
     e_values = run_data.pop('energy')
     e_names = run_data.pop('energy_label')
+    scat_d = None
     if 'scattering_factors' in run_data:
         scat_d = run_data.pop('scattering_factors')
-    else:
+    if not isinstance(scat_d, list):
         scat_d = len(e_names)*[None]
     if isinstance(e_values, list):
-        if not isinstance(scat_d, list):
-            scat_d = len(e_names)*[None]
         energies = zip(e_values, e_names, scat_d)
         for e_v, e_n, e_s in energies:
             param = run_data.copy()
