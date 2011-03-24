@@ -7,6 +7,7 @@ from bcm.beamline.mx import IBeamline
 from bcm.engine.scripting import get_scripts
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_project_name
+from bcm.utils import lims_tools
 
 from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.sampleviewer import SampleViewer
@@ -81,19 +82,14 @@ class SampleManager(gtk.Frame):
         return self.dewar_loader.samples_database
 
     def on_import_lims(self, obj):
-            info = {
-                'project_name': get_project_name(),
-                'beamline_name': self.beamline.name }
-            #info = {'project_name': 'testuser', 'beamline_name': self.beamline.name }
-            reply = self.beamline.lims_server.lims.get_onsite_samples(
-                            self.beamline.config.get('lims_api_key',''), info)
-            if reply.get('error') is not None:
-                header = 'Error Connecting to the LIMS'
-                subhead = 'Containers and Samples could not be imported.'
-                details = reply['error'].get('message')
-                dialogs.error(header, subhead, details=details)
-            else:
-                self.dewar_loader.import_lims(reply)
+        reply = lims_tools.get_onsite_samples(self.beamline)
+        if reply.get('error') is not None:
+            header = 'Error Connecting to the LIMS'
+            subhead = 'Containers and Samples could not be imported.'
+            details = reply['error'].get('message')
+            dialogs.error(header, subhead, details=details)
+        else:
+            self.dewar_loader.import_lims(reply)
         
         
         

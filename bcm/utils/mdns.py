@@ -32,7 +32,7 @@ class Provider(gobject.GObject):
     }
 
 
-    def __init__(self, name, service_type, port, data={}, unique=False):
+    def __init__(self, name, service_type, port, data={}, unique=False, hostname=""):
         gobject.GObject.__init__(self)
         self._bus = _bus
         self._avahi = dbus.Interface(
@@ -50,7 +50,7 @@ class Provider(gobject.GObject):
             name,                       # name
             service_type,               # service type
             "",                         # domain
-            "",                         # host
+            hostname,                         # host
             dbus.UInt16(port),          # port
             json.dumps(data), # data
         ]

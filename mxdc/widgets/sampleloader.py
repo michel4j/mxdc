@@ -414,10 +414,10 @@ def main():
     rd = DewarLoader()
     w.add(rd)
     w.show_all()
-    from bcm.libs.jsonrpclib.jsonrpc import ServerProxy
-    server = ServerProxy('http://localhost:8000/json/')
-    params = {'project_name':'testuser', 'beamline_name': '08ID-1'}
-    reply = server.lims.get_onsite_samples('8CABA1A7-3FD9-494F-8D14-62A6876B2BC7', params)
+    from jsonrpclib.jsonrpc import ServerProxy
+    server = ServerProxy('https://cmcf.lightsource.ca/json/')
+    params = {'project_name':'testuser', 'beamline_name': '08B1-1'}
+    reply = server.lims.get_onsite_samples('3B7FF046-2726-4195-AC8A-9AE09B207765', params)
     #reply = server.lims.get_active_runlist('8CABA1A7-3FD9-494F-8D14-62A6876B2BC7')
     import pprint
     pprint.pprint(reply, indent=2, depth=5)
