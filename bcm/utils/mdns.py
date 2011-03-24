@@ -11,14 +11,11 @@ import gobject
 import dbus
 import dbus.glib
 import avahi
-try:
-    import json
-except:
-    import simplejson as json
+from bcm.utils import json
+from bcm.utils.log import get_module_logger
     
 # get logging object
-from bcm.utils.log import get_module_logger
-log = get_module_logger('mdns')
+log = get_module_logger(__name__)
 _bus = dbus.SystemBus()
 
 class mDNSError(Exception):
@@ -86,7 +83,7 @@ class Provider(gobject.GObject):
                 self._entrygroup.AddService(*self._params)
                 self._entrygroup.Commit()
                 print 
-            except dbus.exceptions.DBusException,  error:
+            except dbus.exceptions.DBusException:
                 if unique:
                     log.error('Service Name Collision')
                     retry = False

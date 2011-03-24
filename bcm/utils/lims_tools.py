@@ -5,19 +5,12 @@ Created on Mar 16, 2011
 '''
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_project_name
+from bcm.utils import json
+from jsonrpclib.jsonrpc import ServerProxy
 import os
 
-try:
-    import json
-except:
-    import simplejson as json
+LimsClient = ServerProxy
 
-try:
-    from jsonrpc.proxy import ServiceProxy
-    LimsClient = ServiceProxy
-except:
-    from jsonrpclib import ServerProxy
-    LimsClient = ServerProxy
 
 _logger = get_module_logger(__name__)
 

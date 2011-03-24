@@ -4,7 +4,7 @@ Created on May 20, 2010
 @author: michel
 '''
 
-from bcm.utils import xlrd
+from bcm.libs import xlrd
 from bcm.utils.enum import Enum
 import os
 

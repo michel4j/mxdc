@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 import os, sys, time
-try:
-    import json
-except:
-    import simplejson as json
+from bcm.utils import json
     
 import logging
 import logging.handlers
