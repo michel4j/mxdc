@@ -10,8 +10,7 @@ from twisted.python import log
 
 from bcm.utils import mdns
 from bcm.utils.log import get_module_logger
-#from jsonrpclib.jsonrpc import ServerProxy
-from jsonrpc.proxy import ServiceProxy as ServerProxy
+from bcm.utils.jsonrpc import ServiceProxy
 
 import re
 from dpm.service import common
@@ -130,7 +129,7 @@ class LIMSClient(object):
                                     self._service_data['data']['path'])
         _logger.info('LIMS Service found at %s' % (address))
         try:                                
-            self.service = ServerProxy(address)
+            self.service = ServiceProxy(address)
             self._ready = True
         except IOError, e:
             self.on_connection_failed(e)
