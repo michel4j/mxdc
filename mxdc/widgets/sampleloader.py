@@ -339,7 +339,7 @@ class DewarLoader(gtk.Frame):
                               
     def import_lims(self, lims_loader):
         self.selected_crystal = None
-        self.samples_database = lims_loader.get('result')
+        self.samples_database = lims_loader.get('result',{})
             
         if lims_loader.get('error'):
             header = 'Error Importing from LIMS'

@@ -99,4 +99,4 @@ def get_onsite_samples(beamline):
     return reply
 
 
-__all__ = ['upload_report', 'upload_data']
+__all__ = ['upload_report', 'upload_data', 'get_onsite_samples']
