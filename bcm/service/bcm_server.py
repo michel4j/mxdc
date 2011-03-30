@@ -359,8 +359,6 @@ class BCMService(service.Service):
         self.data_collector.configure(run_info, skip_existing=run_info.get('skip_existing', False))
         results = self.data_collector.run()   
         for dataset in results:
-            dataset['frame_sets'] = runlists.summarize_sets(dataset)
-            dataset['wavelength'] = converter.energy_to_wavelength(dataset['energy'])
             del dataset['energy']
 
         log.msg('acquireFrames completed.')

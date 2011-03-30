@@ -11,13 +11,12 @@
         <child>
           <widget class="GtkLabel" id="run_title">
             <property name="visible">True</property>
-            <property name="ypad">10</property>
-            <property name="label" translatable="yes">&lt;big&gt;&lt;b&gt;Run 0&lt;/b&gt;&lt;/big&gt;</property>
+            <property name="ypad">3</property>
+            <property name="label" translatable="yes">&lt;big&gt;Run 0&lt;/big&gt;</property>
             <property name="use_markup">True</property>
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
             <property name="position">0</property>
           </packing>
         </child>
@@ -29,6 +28,7 @@
               <widget class="GtkToolButton" id="save_btn">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="has_tooltip">True</property>
                 <property name="tooltip" translatable="yes">Apply Run Settings</property>
                 <property name="stock_id">gtk-apply</property>
               </widget>
@@ -40,6 +40,7 @@
             <child>
               <widget class="GtkToolButton" id="update_btn">
                 <property name="visible">True</property>
+                <property name="has_tooltip">True</property>
                 <property name="tooltip" translatable="yes">Update parameters</property>
                 <property name="stock_id">gtk-refresh</property>
               </widget>
@@ -49,10 +50,13 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkToggleToolButton" id="enable_btn">
+              <widget class="GtkToolButton" id="reset_btn">
                 <property name="visible">True</property>
-                <property name="tooltip" translatable="yes">Activate/De-activate Run</property>
-                <property name="stock_id">gtk-execute</property>
+                <property name="has_tooltip">True</property>
+                <property name="tooltip" translatable="yes">Reset to defaults</property>
+                <property name="label" translatable="yes">toolbutton1</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-clear</property>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -68,8 +72,21 @@
               </packing>
             </child>
             <child>
+              <widget class="GtkToggleToolButton" id="enable_btn">
+                <property name="visible">True</property>
+                <property name="has_tooltip">True</property>
+                <property name="tooltip" translatable="yes">Activate/De-activate Run</property>
+                <property name="stock_id">gtk-execute</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
               <widget class="GtkToolButton" id="delete_btn">
                 <property name="visible">True</property>
+                <property name="has_tooltip">True</property>
                 <property name="tooltip" translatable="yes">Delete Run</property>
                 <property name="stock_id">gtk-remove</property>
               </widget>
@@ -81,16 +98,18 @@
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
             <property name="padding">6</property>
             <property name="position">1</property>
           </packing>
         </child>
         <child>
+          <placeholder/>
+        </child>
+        <child>
           <widget class="GtkTable" id="layout_table">
             <property name="visible">True</property>
             <property name="border_width">6</property>
-            <property name="n_rows">15</property>
+            <property name="n_rows">16</property>
             <property name="n_columns">4</property>
             <property name="column_spacing">2</property>
             <property name="row_spacing">2</property>
@@ -109,8 +128,8 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">3</property>
-                <property name="top_attach">12</property>
-                <property name="bottom_attach">14</property>
+                <property name="top_attach">13</property>
+                <property name="bottom_attach">15</property>
               </packing>
             </child>
             <child>
@@ -122,8 +141,8 @@
               <packing>
                 <property name="left_attach">2</property>
                 <property name="right_attach">3</property>
-                <property name="top_attach">5</property>
-                <property name="bottom_attach">6</property>
+                <property name="top_attach">6</property>
+                <property name="bottom_attach">7</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -137,8 +156,8 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">2</property>
-                <property name="top_attach">5</property>
-                <property name="bottom_attach">6</property>
+                <property name="top_attach">6</property>
+                <property name="bottom_attach">7</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -152,25 +171,13 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">4</property>
+                <property name="top_attach">1</property>
+                <property name="bottom_attach">2</property>
                 <property name="y_options"></property>
               </packing>
             </child>
             <child>
               <widget class="GtkEntry" id="distance">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="width_chars">0</property>
-              </widget>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">3</property>
-                <property name="top_attach">2</property>
-                <property name="bottom_attach">3</property>
-                <property name="y_options"></property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkEntry" id="delta_angle">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
@@ -184,7 +191,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkEntry" id="exposure_time">
+              <widget class="GtkEntry" id="delta_angle">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
@@ -198,6 +205,20 @@
               </packing>
             </child>
             <child>
+              <widget class="GtkEntry" id="exposure_time">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">0</property>
+              </widget>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">3</property>
+                <property name="top_attach">5</property>
+                <property name="bottom_attach">6</property>
+                <property name="y_options"></property>
+              </packing>
+            </child>
+            <child>
               <widget class="GtkEntry" id="start_angle">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -206,8 +227,8 @@
               <packing>
                 <property name="left_attach">2</property>
                 <property name="right_attach">3</property>
-                <property name="top_attach">6</property>
-                <property name="bottom_attach">7</property>
+                <property name="top_attach">7</property>
+                <property name="bottom_attach">8</property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -220,8 +241,8 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">2</property>
-                <property name="top_attach">6</property>
-                <property name="bottom_attach">7</property>
+                <property name="top_attach">7</property>
+                <property name="bottom_attach">8</property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -234,8 +255,8 @@
               <packing>
                 <property name="left_attach">2</property>
                 <property name="right_attach">3</property>
-                <property name="top_attach">7</property>
-                <property name="bottom_attach">8</property>
+                <property name="top_attach">8</property>
+                <property name="bottom_attach">9</property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -248,8 +269,8 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">2</property>
-                <property name="top_attach">7</property>
-                <property name="bottom_attach">8</property>
+                <property name="top_attach">8</property>
+                <property name="bottom_attach">9</property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -262,8 +283,8 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">3</property>
-                <property name="top_attach">8</property>
-                <property name="bottom_attach">9</property>
+                <property name="top_attach">9</property>
+                <property name="bottom_attach">10</property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -276,8 +297,8 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">3</property>
-                <property name="top_attach">10</property>
-                <property name="bottom_attach">11</property>
+                <property name="top_attach">11</property>
+                <property name="bottom_attach">12</property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -293,8 +314,8 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">3</property>
-                <property name="top_attach">11</property>
-                <property name="bottom_attach">12</property>
+                <property name="top_attach">12</property>
+                <property name="bottom_attach">13</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -308,8 +329,8 @@
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
-                <property name="top_attach">10</property>
-                <property name="bottom_attach">11</property>
+                <property name="top_attach">11</property>
+                <property name="bottom_attach">12</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -323,8 +344,8 @@
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
-                <property name="top_attach">8</property>
-                <property name="bottom_attach">9</property>
+                <property name="top_attach">9</property>
+                <property name="bottom_attach">10</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -338,8 +359,8 @@
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
-                <property name="top_attach">7</property>
-                <property name="bottom_attach">8</property>
+                <property name="top_attach">8</property>
+                <property name="bottom_attach">9</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -353,8 +374,8 @@
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
-                <property name="top_attach">6</property>
-                <property name="bottom_attach">7</property>
+                <property name="top_attach">7</property>
+                <property name="bottom_attach">8</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -368,8 +389,8 @@
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
-                <property name="top_attach">4</property>
-                <property name="bottom_attach">5</property>
+                <property name="top_attach">5</property>
+                <property name="bottom_attach">6</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -383,8 +404,8 @@
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
-                <property name="top_attach">3</property>
-                <property name="bottom_attach">4</property>
+                <property name="top_attach">4</property>
+                <property name="bottom_attach">5</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -398,8 +419,8 @@
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
-                <property name="top_attach">2</property>
-                <property name="bottom_attach">3</property>
+                <property name="top_attach">3</property>
+                <property name="bottom_attach">4</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -411,8 +432,8 @@
                 <property name="label" translatable="yes">Attenuation:</property>
               </widget>
               <packing>
-                <property name="top_attach">10</property>
-                <property name="bottom_attach">11</property>
+                <property name="top_attach">11</property>
+                <property name="bottom_attach">12</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -424,8 +445,8 @@
                 <property name="label" translatable="yes">Wedge:</property>
               </widget>
               <packing>
-                <property name="top_attach">8</property>
-                <property name="bottom_attach">9</property>
+                <property name="top_attach">9</property>
+                <property name="bottom_attach">10</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -437,8 +458,8 @@
                 <property name="label" translatable="yes">Total:</property>
               </widget>
               <packing>
-                <property name="top_attach">7</property>
-                <property name="bottom_attach">8</property>
+                <property name="top_attach">8</property>
+                <property name="bottom_attach">9</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -450,8 +471,8 @@
                 <property name="label" translatable="yes">Start:</property>
               </widget>
               <packing>
-                <property name="top_attach">6</property>
-                <property name="bottom_attach">7</property>
+                <property name="top_attach">7</property>
+                <property name="bottom_attach">8</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -463,8 +484,8 @@
                 <property name="label" translatable="yes">Time:</property>
               </widget>
               <packing>
-                <property name="top_attach">4</property>
-                <property name="bottom_attach">5</property>
+                <property name="top_attach">5</property>
+                <property name="bottom_attach">6</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -476,8 +497,8 @@
                 <property name="label" translatable="yes">Delta:</property>
               </widget>
               <packing>
-                <property name="top_attach">3</property>
-                <property name="bottom_attach">4</property>
+                <property name="top_attach">4</property>
+                <property name="bottom_attach">5</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -489,8 +510,8 @@
                 <property name="label" translatable="yes">Distance:</property>
               </widget>
               <packing>
-                <property name="top_attach">2</property>
-                <property name="bottom_attach">3</property>
+                <property name="top_attach">3</property>
+                <property name="bottom_attach">4</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -502,8 +523,8 @@
                 <property name="label" translatable="yes">Folder:</property>
               </widget>
               <packing>
-                <property name="top_attach">1</property>
-                <property name="bottom_attach">2</property>
+                <property name="top_attach">2</property>
+                <property name="bottom_attach">3</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -515,6 +536,8 @@
                 <property name="label" translatable="yes">Prefix:</property>
               </widget>
               <packing>
+                <property name="top_attach">1</property>
+                <property name="bottom_attach">2</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -568,8 +591,8 @@
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
-                <property name="top_attach">12</property>
-                <property name="bottom_attach">14</property>
+                <property name="top_attach">13</property>
+                <property name="bottom_attach">15</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -585,8 +608,8 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">4</property>
-                <property name="top_attach">1</property>
-                <property name="bottom_attach">2</property>
+                <property name="top_attach">2</property>
+                <property name="bottom_attach">3</property>
               </packing>
             </child>
             <child>
@@ -595,8 +618,8 @@
                 <property name="label" translatable="yes">Skip:</property>
               </widget>
               <packing>
-                <property name="top_attach">9</property>
-                <property name="bottom_attach">10</property>
+                <property name="top_attach">10</property>
+                <property name="bottom_attach">11</property>
               </packing>
             </child>
             <child>
@@ -613,8 +636,8 @@ specified ranges.</property>
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">3</property>
-                <property name="top_attach">9</property>
-                <property name="bottom_attach">10</property>
+                <property name="top_attach">10</property>
+                <property name="bottom_attach">11</property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -626,8 +649,36 @@ specified ranges.</property>
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
-                <property name="top_attach">9</property>
-                <property name="bottom_attach">10</property>
+                <property name="top_attach">10</property>
+                <property name="bottom_attach">11</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label20">
+                <property name="visible">True</property>
+                <property name="xalign">1</property>
+                <property name="label" translatable="yes">Crystal:</property>
+              </widget>
+              <packing>
+                <property name="x_options"></property>
+                <property name="y_options"></property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkEntry" id="crystal_entry">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can_focus">True</property>
+                <property name="editable">False</property>
+                <property name="invisible_char">&#x2022;</property>
+                <property name="width_chars">0</property>
+                <property name="text" translatable="yes">[Unknown]</property>
+                <property name="xalign">0.5</property>
+              </widget>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">4</property>
+                <property name="y_options"></property>
               </packing>
             </child>
             <child>
@@ -664,7 +715,7 @@ specified ranges.</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -711,7 +762,7 @@ specified ranges.</property>
             </child>
           </widget>
           <packing>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>

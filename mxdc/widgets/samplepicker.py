@@ -300,6 +300,9 @@ class ContainerWidget(gtk.DrawingArea):
                       
 
 class SamplePicker(gtk.Frame):
+    __gsignals__ = {
+        'active-sample': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+    }    
     def __init__(self, automounter=None):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
@@ -361,6 +364,9 @@ class SamplePicker(gtk.Frame):
         except AttributeError:
             return self._xml.get_widget(key)
     
+    def do_active_sample(self, obj=None, data=None):
+        pass
+    
     def _on_ln2level(self, obj, val):
         if val == 1:
             self.lbl_ln2.set_markup('<span color="#990000">LOW</span>')
@@ -387,6 +393,7 @@ class SamplePicker(gtk.Frame):
         try:
             self.command_active = True
             auto.auto_mount_manual(self.beamline, port, wash)
+            gobject.idle_add(self.emit, 'active-sample', port)
         except:
             _logger.error('Sample mounting failed')
         self.command_active = False

@@ -41,7 +41,7 @@ class MXDCApp(object):
         _service_data = {'user': get_project_name(), 
                          'started': time.asctime(time.localtime())}
         try:
-            self.provider = mdns.Provider('MXDC Client', '_mxdc._tcp', 9999, _service_data, unique=True)
+            self.provider = mdns.Provider('MXDC Client (%s)' % os.environ.get('BCM_BEAMLINE', 'sim'), '_mxdc._tcp', 9999, _service_data, unique=True)
             self.provider.connect('running', lambda x: self.provider_success(config))
             self.provider.connect('collision', lambda x: self.provider_failure())
 
