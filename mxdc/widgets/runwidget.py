@@ -49,6 +49,7 @@ class RunWidget(gtk.Frame):
         
         self.add(self.run_widget)
         self.update_btn.connect('clicked', self.on_update_parameters)
+        self.reset_btn.connect('clicked', self.on_reset_parameters)
         self.entry = {}
                 
         # Data for entries (name: (col, row, length, [unit]))
@@ -259,6 +260,13 @@ class RunWidget(gtk.Frame):
             self.entry['directory'].set_current_folder(os.environ['HOME'])
             dict['directory'] = os.environ['HOME']
     
+    
+        if dict.get('crystal_id') is not None and self.active_sample is not None:
+            name = self.active_sample.get('name','???')
+            txt = '%s [ID:%s]' %(name,  dict['crystal_id'])
+            self.crystal_entry.set_text(txt)
+        else:
+            self.crystal_entry.set_text('[ Unknown ]')
         self.set_number(dict['number'])
         self.entry['inverse_beam'].set_active(dict['inverse_beam'])
         self.energy_store.clear()
@@ -555,6 +563,12 @@ class RunWidget(gtk.Frame):
         self.check_changes()
         return True
         
+    def on_reset_parameters(self, obj):
+        params = DEFAULT_PARAMETERS.copy()
+        self.set_parameters(params)
+        self.check_changes()
+        return True  
+        
     def on_update_parameters(self, obj):
         params = self.get_parameters()
 
@@ -588,4 +602,3 @@ class RunWidget(gtk.Frame):
             self.update_btn.set_sensitive(False)
         self.check_changes()
         return True  
-        

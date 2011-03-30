@@ -71,9 +71,21 @@ class SampleManager(gtk.Frame):
         self.dewar_loader.lims_btn.connect('clicked', self.on_import_lims)
         self.dewar_loader.connect('samples-changed', self.on_samples_changed)
         self.dewar_loader.connect('sample-selected', self.on_sample_selected)
+        self.sample_picker.connect('active-sample', self.on_sample_mounted)
         
     def on_samples_changed(self, obj):
         gobject.idle_add(self.emit, 'samples-changed', self.dewar_loader)
+
+    def on_sample_mounted(self, obj, port):
+        # find crystal in database.
+        found = None
+        for xtl in self.dewar_loader.samples_database['crystals'].values():
+            if xtl['port'] == port:
+                found = xtl
+                break
+        
+        if found is not None:
+            gobject.idle_add(self.emit, 'active_sample', found)
         
     def on_sample_selected(self, obj, data):
         gobject.idle_add(self.emit, 'active-sample', data)
