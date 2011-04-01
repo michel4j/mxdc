@@ -229,6 +229,8 @@ class BasicAutomounter(BaseDevice):
     
     def get_port_state(self, port):
         """Returns the current state of the specified port."""
+        if not self.active_state:
+            return PORT_UNKNOWN
         if not re.match('[RML][ABCD]\d{1,2}', port):
             return PORT_NONE
         else:
