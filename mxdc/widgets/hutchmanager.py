@@ -70,18 +70,18 @@ class HutchManager(gtk.Frame):
         self.entries = {
             'energy':       MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.3f"),
             'attenuation':  ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
-            'angle':        MotorEntry(self.beamline.goniometer.omega, 'Omega', format="%0.2f"),
-            'beam_width':   MotorEntry(self.beamline.beam_w, 'Beam width', format="%0.2f"),
-            'beam_height':  MotorEntry(self.beamline.beam_h, 'Beam height', format="%0.2f"),
+            'omega':        MotorEntry(self.beamline.goniometer.omega, 'Goniometer Omega', format="%0.2f"),
+            'beam_size':     ActiveEntry(self.beamline.aperture, 'Beam Size', format="%0.2f"),
             'distance':     MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.1f"),
             'beam_stop':    MotorEntry(self.beamline.beam_stop.z, 'Beam-stop', format="%0.1f"),
-            'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f")
+            'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f"),
+            'chi':          MotorEntry(self.beamline.chi, 'Goniometer Chi', format="%0.1f")
         }
         motor_box1 = gtk.VBox(False,0)
-        for key in ['energy','attenuation','beam_width', 'beam_height']:
+        for key in ['energy','attenuation','omega', 'chi']:
             motor_box1.pack_start(self.entries[key], expand=True, fill=False)
         motor_box2 = gtk.VBox(False,0)        
-        for key in ['angle','beam_stop','distance', 'two_theta']:
+        for key in ['beam_size','beam_stop','distance', 'two_theta']:
             motor_box2.pack_start(self.entries[key], expand=True, fill=False)
         self.device_box.pack_start(motor_box1, expand=True, fill=True)
         self.device_box.pack_start(motor_box2, expand=True, fill=True)
