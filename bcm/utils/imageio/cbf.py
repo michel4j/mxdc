@@ -93,7 +93,7 @@ def _format_error(code):
         
              
 try:
-    cbflib = cdll.LoadLibrary('libcbf.so')
+    cbflib = cdll.LoadLibrary('libcbf.so.0')
 except:
     _logger.error("CBF shared library 'libcbf.so' could not be loaded!")
     raise FormatNotAvailable
