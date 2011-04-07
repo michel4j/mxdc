@@ -32,7 +32,7 @@ SCAN_CONFIG_FILE = 'scan_config.json'
 class ScanManager(gtk.Frame):
     __gsignals__ = {
         'create-run': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
-        'active-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'update-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
     def __init__(self):
         gtk.Frame.__init__(self)
@@ -69,7 +69,7 @@ class ScanManager(gtk.Frame):
     def do_create_run(self):
         pass
     
-    def do_active_strategy(self, data):
+    def do_update_strategy(self, data):
         pass
 
     def __getattr__(self, key):
@@ -391,7 +391,7 @@ class ScanManager(gtk.Frame):
                 'energy_label': self.names,
                 'scattering_factors': self.scattering_factors,
                 }
-            self.emit('active-strategy', strategy)
+            self.emit('update-strategy', strategy)
 
     def on_progress(self, widget, fraction):
         self.scan_pbar.set_fraction(fraction)

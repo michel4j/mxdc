@@ -231,25 +231,12 @@
                 <child>
                   <widget class="GtkTable" id="result_tbl">
                     <property name="visible">True</property>
-                    <property name="n_columns">4</property>
+                    <property name="n_columns">5</property>
                     <property name="column_spacing">6</property>
                     <property name="homogeneous">True</property>
                     <child>
                       <widget class="GtkButton" id="update_sample_btn">
-                        <property name="label" translatable="yes">Update Active Crystal</property>
-                        <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                      </widget>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="right_attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkButton" id="update_strategy_btn">
-                        <property name="label" translatable="yes">Update Active Strategy</property>
+                        <property name="label" translatable="yes">SelectCrystal</property>
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
@@ -257,7 +244,7 @@
                       </widget>
                       <packing>
                         <property name="left_attach">3</property>
-                        <property name="right_attach">4</property>
+                        <property name="right_attach">5</property>
                       </packing>
                     </child>
                     <child>
@@ -265,7 +252,7 @@
                         <property name="visible">True</property>
                       </widget>
                       <packing>
-                        <property name="right_attach">2</property>
+                        <property name="right_attach">3</property>
                       </packing>
                     </child>
                   </widget>

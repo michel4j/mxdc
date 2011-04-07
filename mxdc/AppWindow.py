@@ -39,6 +39,7 @@ on any theory of liability, whether in contract, strict liability, or tort
 software, even if advised of the possibility of such damage.
 """
 
+    
 class AppWindow(gtk.Window):
     def __init__(self, version=VERSION):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
@@ -50,6 +51,17 @@ class AppWindow(gtk.Window):
         self.splash = Splash(version)
         self.splash.set_transient_for(self)
         self.splash.show_all()
+        
+        #prepare pixbufs for tab status icons
+        self._info_img = gtk.gdk.pixbuf_new_from_file(
+                            os.path.join(os.path.dirname(__file__), 'widgets','data','tiny-info.png'))
+        self._warn_img = gtk.gdk.pixbuf_new_from_file(
+                            os.path.join(os.path.dirname(__file__), 'widgets','data','tiny-warn.png'))
+
+        self._first_load = True
+        self._show_select_dialog = True
+        self._show_run_dialog = True
+
         while gtk.events_pending():
             gtk.main_iteration()
 
@@ -75,10 +87,11 @@ class AppWindow(gtk.Window):
         
         self.screen_manager.screen_runner.connect('analyse-request', self.on_analyse_request)
         self.sample_manager.connect('samples-changed', self.on_samples_changed)
+        self.sample_manager.connect('sample-selected', self.on_sample_selected)
         self.sample_manager.connect('active-sample', self.on_active_sample)
-        self.result_manager.connect('active-sample', self.on_active_sample)
-        self.result_manager.connect('active-strategy', self.on_active_strategy)
-        self.scan_manager.connect('active-strategy', self.on_active_strategy)
+        self.result_manager.connect('sample-selected', self.on_sample_selected)
+        self.result_manager.connect('update-strategy', self.on_update_strategy)
+        self.scan_manager.connect('update-strategy', self.on_update_strategy)
         self.collect_manager.connect('new-datasets', self.on_new_datasets)
         self.screen_manager.connect('new-datasets', self.on_new_datasets)
 
@@ -87,10 +100,21 @@ class AppWindow(gtk.Window):
         self.about_cmd.connect('activate', lambda x:  self._do_about() )
         
         notebook = gtk.Notebook()
+        
         def _mk_lbl(txt):
-            lbl = gtk.Label(txt)
-            lbl.set_padding(6,0)
-            return lbl
+            aln = gtk.Alignment(0.5,0.5,0,0)
+            aln.set_padding(0,0,6,6)
+            box = gtk.HBox(False,2)
+            aln.raw_text = txt
+            aln.label = gtk.Label(txt)
+            aln.label.set_use_markup(True)
+            box.pack_end(aln.label, expand=False, fill=False)
+            aln.image = gtk.Image()
+            box.pack_start(aln.image, expand=False, fill=False)
+            aln.add(box)
+            aln.show_all()
+            #box.show_all()
+            return aln
             
         notebook.append_page(self.hutch_manager, tab_label=_mk_lbl('Beamline Setup'))
         notebook.append_page(self.sample_manager, tab_label=_mk_lbl('Samples'))
@@ -99,6 +123,8 @@ class AppWindow(gtk.Window):
         notebook.append_page(self.scan_manager, tab_label=_mk_lbl('Fluorescence Scans'))
         notebook.append_page(self.result_manager, tab_label=_mk_lbl('Processing Results'))
         notebook.set_border_width(6)
+        self.notebook = notebook
+        self.notebook.connect('switch-page', self.on_page_switch)
 
         self.main_frame.add(notebook)
         self.mxdc_main.pack_start(self.status_panel, expand = False, fill = False)
@@ -142,28 +168,63 @@ class AppWindow(gtk.Window):
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
         self.collect_manager.add_run( run_data )
-        header = 'New MAD Run Added'
-        subhead = 'A new run for MAD data collection has been added to the "Data Collection" tab. '
-        subhead += 'Remember to delete the runs you no longer need before proceeding.'
-        dialogs.info(header, subhead)
+        if self._show_run_dialog:
+            header = 'New MAD Run Added'
+            subhead = 'A new run for MAD data collection has been added to the "Data Collection" tab. '
+            subhead += 'Remember to delete the runs you no longer need before proceeding.'
+            chkbtn = gtk.CheckButton('Do not show this dialog again.')
+            def _chk_cb(obj):
+                self._show_run_dialog = (not obj.get_active())
+            chkbtn.connect('toggled', _chk_cb)
+            chkbtn.set_property('can-focus', False)
+            dialogs.info(header, subhead, extra_widgets=[chkbtn])
         
     def on_samples_changed(self, obj, ctx):
         samples = ctx.get_loaded_samples()
         self.screen_manager.add_samples(samples)
+        # only change tabs if samples are changed manually
+        if not self._first_load:
+            tab_lbl = self.notebook.get_tab_label(self.screen_manager)
+            tab_lbl.image.set_from_pixbuf(self._info_img)
+            tab_lbl.label.set_markup("<b>%s</b>" % tab_lbl.raw_text)
+        else:
+            self._first_load = False
         
     def on_active_sample(self, obj, data):
-        self.collect_manager.update_active_data(sample=data)
-        header = 'Active Sample Updated'
-        subhead = 'The active sample has been updated to "%s (%s)", in the "Data Collection" tab. ' % (data['name'], data['port'])
-        subhead += 'Please create a new run or update the run parameters to collect on it.'
-        dialogs.info(header, subhead)
+        self.collect_manager.update_active_sample(data)
 
-    def on_active_strategy(self, obj, data):
-        self.collect_manager.update_active_data(strategy=data)
-        header = 'Active Strategy Updated'
-        subhead = 'The active strategy has been updated in the "Data Collection" tab. '
-        subhead += 'Please create a new run or update the run parameters to use it.'
-        dialogs.info(header, subhead)
+    def on_sample_selected(self, obj, data):
+        self.collect_manager.update_data(sample=data)
+        _logger.info('The selected sample has been updated to "%s (%s)"' % (data['name'], data['port']))
+        tab_lbl = self.notebook.get_tab_label(self.collect_manager)
+        tab_lbl.image.set_from_pixbuf(self._info_img)
+        tab_lbl.label.set_markup("<b>%s</b>" % tab_lbl.raw_text)
+        
+        if self._show_select_dialog:
+            header = 'Selected Crystal Updated'
+            subhead = 'The selected crystal has been updated to "%s (%s)" in ' % (data['name'], data['port'])
+            subhead += 'the Data Collection tab.'
+            chkbtn = gtk.CheckButton('Do not show this dialog again.')
+            def _chk_cb(obj):
+                self._show_select_dialog = (not obj.get_active())
+            chkbtn.connect('toggled', _chk_cb)
+            chkbtn.set_property('can-focus', False)
+            dialogs.info(header, subhead, extra_widgets=[chkbtn])
+
+        
+        
+
+    
+    def on_page_switch(self, obj, pg, pgn):
+        wdg = self.notebook.get_nth_page(pgn)
+        tab_lbl = self.notebook.get_tab_label(wdg)
+        tab_lbl.image.set_from_pixbuf(None)
+        tab_lbl.label.set_markup(tab_lbl.raw_text)
+        
+
+    def on_update_strategy(self, obj, data):
+        self.collect_manager.update_data(strategy=data)
+        _logger.info('The active strategy has been updated in the "Data Collection" tab.')
 
     def on_new_datasets(self, obj, datasets):
         # Fech full crystal information from sample database and update the dataset information
@@ -183,3 +244,7 @@ class AppWindow(gtk.Window):
         
     def on_analyse_request(self, obj, data):
         self.result_manager.process_dataset(data)
+        tab_lbl = self.notebook.get_tab_label(self.result_manager)
+        tab_lbl.image.set_from_pixbuf(self._info_img)
+        tab_lbl.label.set_markup("<b>%s</b>" % tab_lbl.raw_text)
+        
