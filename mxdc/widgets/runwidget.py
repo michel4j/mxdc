@@ -259,14 +259,17 @@ class RunWidget(gtk.Frame):
         else:
             self.entry['directory'].set_current_folder(os.environ['HOME'])
             dict['directory'] = os.environ['HOME']
-    
-    
-        if dict.get('crystal_id') is not None and self.active_sample is not None:
-            name = self.active_sample.get('name','???')
-            txt = '%s [ID:%s]' %(name,  dict['crystal_id'])
+        
+        # always display up to date active crystal
+        if self.active_sample:
+            txt = '%s [ID:%s]' %(self.active_sample['name'], self.active_sample['id'])
+            self.crystal_entry.set_text(txt)
+        elif  dict.get('crystal_id'):                                                                          
+            txt = '[ID:%s]' % (dict['crystal_id'])
             self.crystal_entry.set_text(txt)
         else:
             self.crystal_entry.set_text('[ Unknown ]')
+            
         self.set_number(dict['number'])
         self.entry['inverse_beam'].set_active(dict['inverse_beam'])
         self.energy_store.clear()
@@ -311,7 +314,6 @@ class RunWidget(gtk.Frame):
             run_data[key] = self.entry[key].get_text()
         _cmt_buf =  self.comments_entry.get_buffer()           
         run_data['comments'] = _cmt_buf.get_text(_cmt_buf.get_start_iter(), _cmt_buf.get_end_iter())
-
         return run_data
                 
     def is_enabled(self):
@@ -352,6 +354,16 @@ class RunWidget(gtk.Frame):
     def update_active_data(self, sample=None, strategy=None):
         if sample is not None:
             self.active_sample = sample
+            params = self.get_parameters()
+            params['crystal_id'] = self.active_sample.get('id', None)
+            params['experiment_id'] = self.active_sample.get('experiment_id', None)
+            if self.active_sample.get('comments') is not None:
+                params['comments'] = self.active_sample['comments']
+            else:
+                params['comments'] = ''
+            self.set_parameters(params)
+            self.check_changes()
+            
         if strategy is not None:
             self.active_strategy = strategy
         
@@ -564,41 +576,34 @@ class RunWidget(gtk.Frame):
         return True
         
     def on_reset_parameters(self, obj):
-        params = DEFAULT_PARAMETERS.copy()
+        params = self.get_parameters()
+        beamline = globalRegistry.lookup([], IBeamline)
+        for k in ['attenuation', 'distance', 'two_theta', 'energy', 'energy_label',
+                  'start_angle', 'delta_angle', 'total_angle', 'first_frame', 'skip', 'wedge', 'inverse_beam']:
+            params[k] = DEFAULT_PARAMETERS[k]
+        params['exposure_time'] = beamline.config['default_exposure']
+        
         self.set_parameters(params)
         self.check_changes()
         return True  
         
     def on_update_parameters(self, obj):
         params = self.get_parameters()
-
-        try:
-            beamline = globalRegistry.lookup([], IBeamline)
-            params['name'] = self.active_sample.get('name', params['name'])
-            params['distance'] = self.active_strategy.get('distance', beamline.distance.get_position())
-            params['attenuation'] = self.active_strategy.get('attenuation', beamline.attenuator.get())
-            params['two_theta'] =  beamline.two_theta.get_position()
-            params['energy'] = self.active_strategy.get('energy', [beamline.energy.get_position()])
-            params['energy_label'] = self.active_strategy.get('energy_label', ['E0'])
-            params['start_angle'] = self.active_strategy.get('start_angle', beamline.goniometer.omega.get_position())
-            params['delta_angle'] = self.active_strategy.get('delta_angle', 1.0)
-            params['exposure_time'] = self.active_strategy.get('exposure_time', beamline.config['default_exposure'])
-            params['total_angle'] = self.active_strategy.get('total_angle', 180.0)
-            params['first_frame'] = 1
-            params['skip'] = ""
-            params['wedge'] = 360.0
-            params['inverse_beam'] = False
-            params['crystal_id'] = self.active_sample.get('id', None)
-            params['experiment_id'] = self.active_sample.get('experiment_id', None)
-            params['scattering_factors'] = self.active_strategy.get('scattering_factors', None)
-            if self.active_sample.get('comments') is not None:
-                params['comments'] = self.active_sample['comments']
-            else:
-                params['comments'] = ''
-            self.set_parameters(params)
-            self.check_changes()
-        except:
-            raise
-            self.update_btn.set_sensitive(False)
+        beamline = globalRegistry.lookup([], IBeamline)
+        params['distance'] = self.active_strategy.get('distance', beamline.distance.get_position())
+        params['attenuation'] = self.active_strategy.get('attenuation', beamline.attenuator.get())
+        params['two_theta'] =  beamline.two_theta.get_position()
+        params['energy'] = self.active_strategy.get('energy', [beamline.energy.get_position()])
+        params['energy_label'] = self.active_strategy.get('energy_label', ['E0'])
+        params['start_angle'] = self.active_strategy.get('start_angle', beamline.goniometer.omega.get_position())
+        params['delta_angle'] = self.active_strategy.get('delta_angle', 1.0)
+        params['exposure_time'] = self.active_strategy.get('exposure_time', beamline.config['default_exposure'])
+        params['total_angle'] = self.active_strategy.get('total_angle', 180.0)
+        params['first_frame'] = 1
+        params['skip'] = ""
+        params['wedge'] = 360.0
+        params['inverse_beam'] = False
+        params['scattering_factors'] = self.active_strategy.get('scattering_factors', None)
+        self.set_parameters(params)
         self.check_changes()
         return True  

@@ -43,8 +43,11 @@ def upload_data(beamline, results):
             json_info['kind'] = 1 # collection
         
         if result['num_frames'] >= 4:
-            reply = beamline.lims.service.lims.add_data(
+            try:
+                reply = beamline.lims.service.lims.add_data(
                         beamline.config.get('lims_api_key',''), json_info)
+            except IOError:
+                reply = {'error': 'Unable to connect to LIMS'}
             if reply.get('result') is not None:
                 if reply['result'].get('data_id') is not None:
                     # save data id to file so next time we can find it
@@ -63,9 +66,13 @@ def upload_report(beamline, results):
     for report in results:
         if report['result'].get('data_id') is None:
             continue
-        report['result'].update(project_name = get_project_name())            
-        reply = beamline.lims.service.lims.add_report(
+        report['result'].update(project_name = get_project_name())
+        try:          
+            reply = beamline.lims.service.lims.add_report(
                     beamline.config.get('lims_api_key',''), report['result'])
+        except IOError:
+            reply = {'error': 'Unable to connect to LIMS'}
+        
         if reply.get('result') is not None:
             if reply['result'].get('result_id') is not None:
                 # save data id to file so next time we can find it
@@ -93,7 +100,7 @@ def get_onsite_samples(beamline):
     try:
         reply = beamline.lims.service.lims.get_onsite_samples(
                         beamline.config.get('lims_api_key',''), info)
-    except Exception, e:
+    except IOError, e:
         _logger.error('Unable to fetch samples: %s' % e)
         reply = {'error': {'message': str(e)}}       
     return reply
