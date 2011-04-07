@@ -87,7 +87,10 @@ class AlertDialog(gtk.Dialog):
     def set_primary(self, text):
         self._primary_label.set_markup(
             "<span weight=\"bold\" size=\"larger\">%s</span>" % text)
-
+        
+    def add_widget(self, widget):
+        self.label_vbox.pack_start(widget)
+        
     def set_secondary(self, text):
         self._secondary_label.set_markup(text)
 
@@ -97,7 +100,7 @@ class AlertDialog(gtk.Dialog):
         self._expander.show()
 
 def messagedialog(dialog_type, header, sub_header=None, details=None, parent=None,
-                  buttons=gtk.BUTTONS_OK, default=-1):
+                  buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
     """Create and show a MessageDialog.
 
     @param dialog_type: one of constants
@@ -162,33 +165,38 @@ def messagedialog(dialog_type, header, sub_header=None, details=None, parent=Non
         d.set_transient_for(parent)
         d.set_modal(True)
 
+    if extra_widgets:
+        for wdg in extra_widgets:
+            d.add_widget(wdg)
+            wdg.show()
+            
     response = d.run()
     d.destroy()
     return response
 
 def _simple(type, header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK,
-          default=-1):
+          default=-1, extra_widgets=None):
     if buttons == gtk.BUTTONS_OK:
         default = gtk.RESPONSE_OK
     return messagedialog(type, header, sub_header, details,
                          parent=parent, buttons=buttons,
-                         default=default)
+                         default=default, extra_widgets=extra_widgets)
 
-def error(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1):
+def error(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
     return _simple(gtk.MESSAGE_ERROR, header, sub_header, details, parent=parent,
-                   buttons=buttons, default=default)
+                   buttons=buttons, default=default, extra_widgets=extra_widgets)
 
-def info(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1):
+def info(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
     return _simple(gtk.MESSAGE_INFO, header, sub_header, details, parent=parent,
-                   buttons=buttons, default=default)
+                   buttons=buttons, default=default, extra_widgets=extra_widgets)
 
-def warning(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1):
+def warning(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
     return _simple(gtk.MESSAGE_WARNING, header, sub_header, details, parent=parent,
-                   buttons=buttons, default=default)
+                   buttons=buttons, default=default, extra_widgets=extra_widgets)
 
-def question(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1):
+def question(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
     return _simple(gtk.MESSAGE_QUESTION, header, sub_header, details, parent=parent,
-                   buttons=buttons, default=default)
+                   buttons=buttons, default=default, extra_widgets=extra_widgets)
 
 def yesno(header, sub_header=None, details=None, parent=None, default=gtk.RESPONSE_YES,
           buttons=gtk.BUTTONS_YES_NO):

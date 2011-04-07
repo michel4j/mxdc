@@ -47,7 +47,9 @@ FRAME_STATE_SKIPPED = DataCollector.STATE_SKIPPED
     MOUNT_ACTION_NONE,
     MOUNT_ACTION_DISMOUNT,
     MOUNT_ACTION_MOUNT,
-) = range(3)
+    MOUNT_ACTION_MANUAL_DISMOUNT,
+    MOUNT_ACTION_MANUAL_MOUNT
+) = range(5)
 
 RUN_CONFIG_FILE = 'run_config.json'
 
@@ -70,8 +72,9 @@ class CollectManager(gtk.Frame):
         self._create_widgets()
         
         self.active_sample = {}
+        self.selected_sample = {}
         self.active_strategy = {}
-        self.update_active_data()
+        self.connect('realize', lambda x: self.update_data())
         
         
     def __getattr__(self, key):
@@ -136,7 +139,7 @@ class CollectManager(gtk.Frame):
         self.setup_box.pack_end(self.run_manager, expand = True, fill = True)
         
         #automounter signals
-        self.beamline.automounter.connect('mounted', lambda x,y: self.update_active_data())
+        self.beamline.automounter.connect('mounted', lambda x,y: self.update_data())
 
         
         #diagnostics
@@ -205,83 +208,108 @@ class CollectManager(gtk.Frame):
             data = run.get_parameters()
             save_data[ data['number'] ] = data
         config.save_config(RUN_CONFIG_FILE, save_data)
-        
-    def update_active_data(self, sample=None, strategy=None):
 
+    def update_data(self, sample=None, strategy=None):
+        # pass in {} to delete the current setting or None to ignore it
+        
+        # handle sample data
         if sample is not None:
-            self.active_sample = sample
-        # pass in {} to delete the current strategy or None to ignore it
-        # if number of keys in strategy is 6 or more then replace it
-        # otherwise simply update it
+            self.selected_sample = sample
+        if self.selected_sample.get('name') is not None:
+            txt = "%s(%s)" % (self.selected_sample['name'], 
+                              self.selected_sample.get('port',''))
+            self.crystal_lbl.set_text(txt)          
+            if self.selected_sample.get('load_status', 0) == 1:
+                if self.beamline.automounter.is_mounted(self.selected_sample['port']):
+                    self.mnt_action_btn.set_label('Dismount')
+                    self.sel_mount_action = MOUNT_ACTION_DISMOUNT
+                elif self.beamline.automounter.is_mountable(self.selected_sample['port']):
+                    self.mnt_action_btn.set_label('Mount')
+                    self.sel_mount_action = MOUNT_ACTION_MOUNT
+                else:
+                    self.mnt_action_btn.set_label('Mount')
+                    self.sel_mount_action = MOUNT_ACTION_MANUAL_MOUNT
+                    
+            else:
+                if self.selected_sample == self.active_sample:
+                    self.mnt_action_btn.set_label('Dismount')
+                    self.sel_mount_action = MOUNT_ACTION_MANUAL_DISMOUNT
+                else:
+                    self.mnt_action_btn.set_label('Mount')
+                    self.sel_mount_action = MOUNT_ACTION_MANUAL_MOUNT
+        else:
+            self.mnt_action_btn.set_sensitive(False) 
+            self.sel_mount_action = MOUNT_ACTION_NONE
+            self.mnt_action_btn.set_label('Mount')
+                
+                    
+        if self.sel_mounting or self.beamline.automounter.is_busy() or not self.beamline.automounter.is_active():
+            self.sel_mount_action = MOUNT_ACTION_NONE
+            self.mnt_action_btn.set_sensitive(False)
+        else:
+            self.mnt_action_btn.set_sensitive(True)
+        
+        
+        # handle strategy data
         if strategy is not None:
+            # if number of keys in strategy is 6 or more then replace it
+            # otherwise simply update it
             if strategy == {} or len(strategy.keys())> 5:
                 self.active_strategy = strategy
             else:
                 self.active_strategy.update(strategy)
             
+            # send updated strategy parameters to runs, do not send active sample
+            self.run_manager.update_active_data(strategy=self.active_strategy)
+            
+            if self.active_strategy != {}:
+                # display text in strategy_view
+                txt = ""
+                for key in ['start_angle', 'delta_angle', 'exposure_time', 'attenuation', 'distance', 'total_angle']:
+                    if key in self.active_strategy:
+                        txt += '%15s: %7.2f\n' % (key, self.active_strategy[key])
+                if 'energy' in self.active_strategy:
+                    scat_fac = self.active_strategy.get('scattering_factors')
+                    if scat_fac is None:
+                        txt += "%15s:\n" % ('energies')
+                        for val, lbl, sf in zip(self.active_strategy['energy'], self.active_strategy['energy_label']):
+                            txt += "%15s = %7.4f\n" % (lbl, val)
+                    else:
+                        txt += "%15s:\n" % ('energies')
+                        txt += "%6s %7s %6s %6s\n" % ('name', 'energy', 'f\'', 'f"')
+                        txt += "  --------------------------\n"
+                        for val, lbl, sf in zip(self.active_strategy['energy'], self.active_strategy['energy_label'], scat_fac):
+                            txt += "%6s %7.4f %6.2f %6.2f\n" % (lbl, val, sf['fp'], sf['fpp'])
+                buf = self.strategy_view.get_buffer()
+                buf.set_text(txt)
+                #self.active_strategy_box.set_visible(True)
+                self.active_strategy_box.show()
+            else:
+                #self.active_strategy_box.set_visible(False)
+                self.active_strategy_box.hide()
+        
+    def update_active_sample(self, sample):   
         # send updated parameters to runs
-        self.run_manager.update_active_data(sample=self.active_sample, strategy=self.active_strategy)
-           
-        self.mnt_action_btn.set_sensitive(False)
-        self.mnt_action_btn.set_label('Mount')
-        self.sel_mount_action = MOUNT_ACTION_NONE
-        
-        if self.active_sample.get('name') is not None:
-            if self.active_sample.get('port') is not None:
-                txt = "%s(%s)" % (self.active_sample['name'], 
-                                  self.active_sample['port'])
-                self.crystal_lbl.set_text(txt)
-                if self.beamline.automounter.is_mounted(self.active_sample['port']):
-                    self.mnt_action_btn.set_label('Dismount')
-                    self.sel_mount_action = MOUNT_ACTION_DISMOUNT
-                elif self.beamline.automounter.is_mountable(self.active_sample['port']):
-                    self.mnt_action_btn.set_label('Mount')
-                    self.sel_mount_action = MOUNT_ACTION_MOUNT
-                if self.sel_mounting or self.beamline.automounter.is_busy() or not self.beamline.automounter.is_active():
-                    self.sel_mount_action = MOUNT_ACTION_NONE
-                    self.mnt_action_btn.set_sensitive(False)
-                else:
-                    self.mnt_action_btn.set_sensitive(True)
-        
-        if self.active_strategy != {}:
-            # display text in strategy_view
-            txt = ""
-            for key in ['start_angle', 'delta_angle', 'exposure_time', 'attenuation', 'distance', 'total_angle']:
-                if key in self.active_strategy:
-                    txt += '%15s: %7.2f\n' % (key, self.active_strategy[key])
-            if 'energy' in self.active_strategy:
-                scat_fac = self.active_strategy.get('scattering_factors')
-                if scat_fac is None:
-                    txt += "%15s:\n" % ('energies')
-                    for val, lbl, sf in zip(self.active_strategy['energy'], self.active_strategy['energy_label']):
-                        txt += "%15s = %7.4f\n" % (lbl, val)
-                else:
-                    txt += "%15s:\n" % ('energies')
-                    txt += "%6s %7s %6s %6s\n" % ('name', 'energy', 'f\'', 'f"')
-                    txt += "  --------------------------\n"
-                    for val, lbl, sf in zip(self.active_strategy['energy'], self.active_strategy['energy_label'], scat_fac):
-                        txt += "%6s %7.4f %6.2f %6.2f\n" % (lbl, val, sf['fp'], sf['fpp'])
-            buf = self.strategy_view.get_buffer()
-            buf.set_text(txt)
-            #self.active_strategy_box.set_visible(True)
-            self.active_strategy_box.show()
+        if sample is None:
+            self.active_sample = {}
         else:
-            #self.active_strategy_box.set_visible(False)
-            self.active_strategy_box.hide()
+            self.active_sample = sample
+        self.run_manager.update_active_data(sample=self.active_sample)
+        self.update_data(sample=self.active_sample)
 
     def on_clear_strategy(self, obj):
         self.update_active_data(strategy={})
                        
     @async
     def execute_mount_action(self):
-        
+        done_text = ''
         if self.sel_mount_action == MOUNT_ACTION_MOUNT:
             try:
                 gobject.idle_add(self.progress_bar.busy_text, 
-                                 'Mounting %s ...' % self.active_sample['name'])
+                                 'Mounting %s ...' % self.selected_sample['name'])
                 self.sel_mounting = True
-                gobject.idle_add(self.update_active_data)
-                auto.auto_mount_manual(self.beamline, self.active_sample['port'])
+                gobject.idle_add(self.update_data)
+                auto.auto_mount_manual(self.beamline, self.selected_sample['port'])
                 done_text = "Mount succeeded"
             except:
                 _logger.error('Sample mounting failed')
@@ -289,19 +317,24 @@ class CollectManager(gtk.Frame):
         elif self.sel_mount_action == MOUNT_ACTION_DISMOUNT:
             try:
                 gobject.idle_add(self.progress_bar.busy_text, 
-                                 'Dismounting %s ...' % self.active_sample['name'])
+                                 'Dismounting %s ...' % self.selected_sample['name'])
                 self.sel_mounting = True
-                gobject.idle_add(self.update_active_data)
-                auto.auto_dismount_manual(self.beamline, self.active_sample['port'])
+                gobject.idle_add(self.update_data)
+                auto.auto_dismount_manual(self.beamline, self.selected_sample['port'])
                 done_text = "Dismount succeeded"
             except:
                 _logger.error('Sample dismounting failed')
-                done_text = "Dismount failed"
-        
-        if self.progress_bar.get_busy():
-            gobject.idle_add(self.progress_bar.idle_text,  done_text)
+                done_text = "Dismount failed"        
+        elif self.sel_mount_action == MOUNT_ACTION_MANUAL_MOUNT:
+            self.update_active_sample(self.selected_sample)
+            done_text = 'Manual mount'
+        elif self.sel_mount_action == MOUNT_ACTION_MANUAL_DISMOUNT:
+            self.update_active_sample(None)
+            done_text = 'Manual dismount'
+            
+        gobject.idle_add(self.progress_bar.idle_text,  done_text)
         self.sel_mounting = False
-        gobject.idle_add(self.update_active_data)
+        gobject.idle_add(self.update_data)
     
     
     def on_mount_action(self, obj):

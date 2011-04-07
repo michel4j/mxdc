@@ -300,9 +300,6 @@ class ContainerWidget(gtk.DrawingArea):
                       
 
 class SamplePicker(gtk.Frame):
-    __gsignals__ = {
-        'active-sample': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
-    }    
     def __init__(self, automounter=None):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
@@ -364,16 +361,23 @@ class SamplePicker(gtk.Frame):
         except AttributeError:
             return self._xml.get_widget(key)
     
-    def do_active_sample(self, obj=None, data=None):
-        pass
     
     def _on_ln2level(self, obj, val):
         if val == 1:
             self.lbl_ln2.set_markup('<span color="#990000">LOW</span>')
         else:
             self.lbl_ln2.set_markup('<span color="#009900">NORMAL</span>')
-
-    def on_pick(self,obj, sel):
+    
+    def pick_port(self, port):
+        if port is not None:
+            self.selected.set_text(port)
+            self.mount_btn.set_sensitive(True)
+        else:
+            self.selected.set_text('')
+            self.mount_btn.set_sensitive(False)
+            
+                    
+    def on_pick(self, obj, sel):
         self.selected.set_text(sel)
         self.mount_btn.set_sensitive(True)
     
@@ -393,7 +397,6 @@ class SamplePicker(gtk.Frame):
         try:
             self.command_active = True
             auto.auto_mount_manual(self.beamline, port, wash)
-            gobject.idle_add(self.emit, 'active-sample', port)
         except:
             _logger.error('Sample mounting failed')
         self.command_active = False
@@ -478,23 +481,3 @@ class SamplePicker(gtk.Frame):
                 self.lbl_barcode.set_markup('')
                 self.dismount_btn.set_sensitive(False)
 
-
-gobject.type_register(ContainerWidget)
-_TEST_STATE2 = '31uuu00000uujuuuuuuuuuuuuuuuuuuuu111111uuuuuuuuuuuuuuuuuuuuuuuuuu---\
------------------------------41uuuuuuuuuuuumuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu\
-uuuuuuuuuuuuuuuu0uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu20------uu------uu------\
-uu------uu------uu------uu------uu------uu------uu------uu------uu------u'
-
-if __name__ == '__main__':
-       
-    win = gtk.Window()
-    win.set_border_width(6)
-
-    rob = DummyAutomounter()
-    p1 = SamplePicker(rob)
-    gobject.timeout_add(5000, rob.set_state, _TEST_STATE2)
-    
-    win.add(p1)
-    win.show_all()
-    win.connect('destroy', lambda x: gtk.main_quit())
-    gtk.main()
