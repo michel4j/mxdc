@@ -36,6 +36,7 @@ class RunManager(gtk.Notebook):
                 new_data.update(data)
                 new_data['number'] = number
                 newrun.set_parameters(new_data)
+                newrun.update_active_data(sample=self.active_sample, strategy=self.active_strategy)
         else:
             if number > 0:
                 data = self.runs[number - 1].get_parameters()

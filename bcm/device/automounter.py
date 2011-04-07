@@ -522,7 +522,7 @@ class Automounter(BasicAutomounter):
             try:
                 barcode = self._bar_code.get()
             except:
-                barcode = '[NONE]'   
+                barcode = ''   
             if port != self._mounted_port:
                 self.set_state(mounted=(port, barcode))
                 self._mounted_port = port

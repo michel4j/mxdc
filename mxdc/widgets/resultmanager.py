@@ -37,8 +37,8 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class ResultManager(gtk.Frame):
     __gsignals__ = {
-        'active-sample': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
-        'active-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'sample-selected': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'update-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
     
     def __init__(self):
@@ -58,10 +58,10 @@ class ResultManager(gtk.Frame):
         except AttributeError:
             return self._xml.get_widget(key)
 
-    def do_active_sample(self, obj=None):
+    def do_sample_selected(self, data):
         pass
     
-    def do_active_strategy(self, obj=None, data=None):
+    def do_update_strategy(self, data):
         pass
         
 
@@ -91,8 +91,7 @@ class ResultManager(gtk.Frame):
             self.browser.set_settings(self.browser_settings)
 
             self.html_window.add(self.browser)
-        self.update_sample_btn.connect('clicked', self.send_active_sample)
-        self.update_strategy_btn.connect('clicked', self.send_active_strategy)
+        self.update_sample_btn.connect('clicked', self.send_selected_sample)
         self.add_dataset_btn.connect('clicked', self.on_load_dataset)
         self.add(self.result_manager)
         self.show_all()
@@ -123,13 +122,11 @@ class ResultManager(gtk.Frame):
     def clear_datasets(self):
         self.dataset_list.clear()
 
-    def send_active_sample(self, obj):
+    def send_selected_sample(self, obj):
         if self.active_sample is not None:
-            self.emit('active-sample', self.active_sample)
-
-    def send_active_strategy(self, obj):
+            self.emit('sample-selected', self.active_sample)
         if self.active_strategy is not None:
-            self.emit('active-strategy', self.active_strategy)
+            self.emit('update-strategy', self.active_strategy)
 
     def on_load_dataset(self, obj):
         
@@ -297,16 +294,17 @@ class ResultManager(gtk.Frame):
             return
         
         # Active update buttons if data is available
-        if self.active_sample is not None and self.active_sample != {}:
+        if self.active_sample not in [None, {}] or self.active_strategy is not None:
+            if self.active_strategy is None:
+                self.update_sample_btn.set_label('Select Crystal')
+            elif self.active_sample in [None, {}]:
+                self.update_sample_btn.set_label('Select Strategy')
+            else:
+                self.update_sample_btn.set_label('Select Crystal & Strategy')
             self.update_sample_btn.set_sensitive(True)
-        else:
+        else:            
             self.update_sample_btn.set_sensitive(False)
-            
-        if self.active_strategy is not None:
-            self.update_strategy_btn.set_sensitive(True)
-        else:
-            self.update_strategy_btn.set_sensitive(False)
-
+       
         
         filename =  os.path.join(result['url'], 'report', 'index.html')
         if os.path.exists(filename):

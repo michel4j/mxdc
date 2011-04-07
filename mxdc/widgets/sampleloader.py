@@ -199,15 +199,18 @@ class DewarLoader(gtk.Frame):
 
     def _notify_changes(self):
         gobject.idle_add(self.emit, 'samples-changed')
+        #txt = "The list of crystals in the Screening tab has been updated."
         if self.selected_crystal is not None:
             iter = self.crystals.get_iter(self.selected_crystal)
             crystal_data = self.crystals.get_value(iter, self.crystals.DATA)        
             gobject.idle_add(self.emit, 'sample-selected', crystal_data)
+            #txt = "Crystal information has been updated in the Screening & Collection tabs"
+        #self.selected_lbl.set_markup(txt)
     
-    def do_samples_changed(self, obj=None):
+    def do_samples_changed(self):
         pass
 
-    def do_sample_selected(self, obj=None):
+    def do_sample_selected(self, data):
         pass
 
     def on_stall_edited(self, cell, path_string, new_text):
@@ -275,10 +278,34 @@ class DewarLoader(gtk.Frame):
         iter = model.get_iter(path)
         crystal_data = model.get_value(iter, model.DATA)        
         gobject.idle_add(self.emit, 'sample-selected', crystal_data)
+        #txt = "The selected crystal in the Collection tab has been updated."
+        #self.selected_lbl.set_markup(txt)
+
        
     def save_database(self):
         save_config(SAMPLES_DB_CONFIG, self.samples_database)
-
+    
+    def find_crystal(self, port=None, barcode=None):
+        found = None
+        if port is None and barcode is None:
+            pass
+        elif port is None:
+            for xtl in self.samples_database['crystals'].values():
+                if xtl['barcode'] == barcode:
+                    found = xtl
+                    break
+        elif barcode is None:
+            for xtl in self.samples_database['crystals'].values():
+                if xtl['port'] == port:
+                    found = xtl
+                    break
+        else:
+            for xtl in self.samples_database['crystals'].values():
+                if (xtl['port'], xtl['barcode']) == (port,barcode):
+                    found = xtl
+                    break
+        return found
+                      
     def load_database(self, samples_database):
         self.containers.clear()
         self.crystals.clear()
@@ -313,7 +340,7 @@ class DewarLoader(gtk.Frame):
             self.selected_crystal = None
         except:
             pass
-        self._notify_changes()
+
     
     def get_loaded_samples(self):
         if self.samples_database is None or self.samples_database == {}:

@@ -14,7 +14,7 @@ from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.ptzviewer import AxisViewer
 from mxdc.widgets.samplepicker import SamplePicker
 from mxdc.widgets.simplevideo import SimpleVideo
-from mxdc.widgets.sampleloader import DewarLoader
+from mxdc.widgets.sampleloader import DewarLoader, STATUS_NOT_LOADED, STATUS_LOADED
 from mxdc.widgets import dialogs
 from mxdc.widgets.misc import *
 
@@ -24,6 +24,7 @@ class SampleManager(gtk.Frame):
     __gsignals__ = {
         'samples-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'active-sample': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'sample-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }    
     def __init__(self):
         gtk.Frame.__init__(self)
@@ -38,15 +39,18 @@ class SampleManager(gtk.Frame):
         except AttributeError:
             return self._xml.get_widget(key)
 
-    def do_samples_changed(self, obj=None):
+    def do_samples_changed(self, data):
+        pass
+
+    def do_sample_selected(self, data):
         pass
     
-    def do_active_sample(self, obj=None, data=None):
+    def do_active_sample(self, data):
         pass
     
     def _create_widgets(self):
         self.beamline = globalRegistry.lookup([], IBeamline)
-                
+               
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
         self.hutch_viewer = AxisViewer(self.beamline.hutch_video)
@@ -71,24 +75,39 @@ class SampleManager(gtk.Frame):
         self.dewar_loader.lims_btn.connect('clicked', self.on_import_lims)
         self.dewar_loader.connect('samples-changed', self.on_samples_changed)
         self.dewar_loader.connect('sample-selected', self.on_sample_selected)
-        self.sample_picker.connect('active-sample', self.on_sample_mounted)
+        self.beamline.automounter.connect('mounted', self.on_sample_mounted)
         
     def on_samples_changed(self, obj):
         gobject.idle_add(self.emit, 'samples-changed', self.dewar_loader)
 
-    def on_sample_mounted(self, obj, port):
-        # find crystal in database.
-        found = None
-        for xtl in self.dewar_loader.samples_database['crystals'].values():
-            if xtl['port'] == port:
-                found = xtl
-                break
+    def on_sample_mounted(self, obj, mount_info):
+        if mount_info is not None: # sample mounted
+            port, barcode = mount_info
+            if barcode.strip() != '': # find crystal in database by barcode one was detected
+                xtl = self.dewar_loader.find_crystal(barcode=barcode)
+                if xtl is not None:
+                    if xtl['port'] != port:
+                        header = 'Barcode Mismatch'
+                        subhead = 'The observed barcode read by the automounter is different from'
+                        subhead += 'the expected one. The barcode will be trusted rather than the port.'
+                        dialogs.warning(header, subhead)
+                else:
+                    xtl =  self.dewar_loader.find_crystal(port=port)
+            else: # if barcode is not read correctly or none exists, use port
+                xtl =  self.dewar_loader.find_crystal(port=port)
+            gobject.idle_add(self.emit, 'active-sample', xtl)
+
+        else:   # sample dismounted
+            gobject.idle_add(self.emit, 'active-sample', None)
+            
         
-        if found is not None:
-            gobject.idle_add(self.emit, 'active_sample', found)
+    def on_sample_selected(self, obj, crystal):
         
-    def on_sample_selected(self, obj, data):
-        gobject.idle_add(self.emit, 'active-sample', data)
+        if crystal.get('load_status', STATUS_NOT_LOADED) == STATUS_LOADED:
+            self.sample_picker.pick_port(crystal['port'])
+        else:
+            self.sample_picker.pick_port(None)
+        gobject.idle_add(self.emit, 'sample-selected', crystal)
     
     def get_database(self):
         return self.dewar_loader.samples_database
