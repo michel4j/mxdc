@@ -233,7 +233,6 @@ class ResultManager(gtk.Frame):
                                 ).addCallbacks(self._result_ready, callbackArgs=[iter, params],
                                                errback=self._result_fail, errbackArgs=[iter])
         except:
-            raise
             self._result_fail(None, iter)
         
     def _result_ready(self, results, iter, params):
