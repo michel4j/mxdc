@@ -87,7 +87,7 @@ class SimMotor(MotorBase):
         targets = numpy.linspace(self._position, target, self._speed)
         self.set_state(busy=True)
         for pos in targets:
-            time.sleep(0.05)
+            time.sleep(0.01)
             self._position = pos
             self._signal_change(self, self._position)
             if self._stopped:
