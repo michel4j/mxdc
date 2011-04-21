@@ -5,6 +5,7 @@ import gc
 import time
 import sys
 import os
+import numpy
 
 from zope.interface import Interface, Attribute
 from zope.interface import implements
@@ -103,6 +104,9 @@ class BasicScan(gobject.GObject):
     
     def extend(self, steps):
         self.append = True
+
+    def get_specs(self):
+        return {}
         
     def start(self, append=None):
         self._stopped = False
@@ -145,7 +149,7 @@ class BasicScan(gobject.GObject):
             return
         f.write('# Scan Type: %s -- %s\n' % (self.__class__.__name__, self.__class__.__doc__))
         f.write('# Meta Data: %s\n' % json.dumps(self.meta_data))
-        f.write('# Column descriptions:\n')
+        f.write('# Column descriptions: \n')
         header = ''
         for i , name in enumerate(self.data_names):
             f.write('#  Column %d: %s \n' % (i, name))
@@ -243,6 +247,7 @@ class AbsScan2(BasicScan):
         self._step_size1 = (self._end_pos1 - self._start_pos1) / float( self._steps )
         self._step_size2 = (self._end_pos2 - self._start_pos2) / float( self._steps )
         self._start_step = 0
+
     
     def extend(self, steps):
         self.append = True
@@ -360,11 +365,21 @@ class GridScan(BasicScan):
         self._end_pos1 = end_pos1 
         self._start_pos2 = start_pos2
         self._end_pos2 = end_pos2 
-        self._step_size1 = (self._end_pos1 - self._start_pos1) / float( self._steps )
-        self._step_size2 = (self._end_pos2 - self._start_pos2) / float( self._steps )
+        self._points1 = numpy.linspace( self._start_pos1, self._end_pos1, self._steps)
+        self._points2 = numpy.linspace( self._start_pos2, self._end_pos2, self._steps)
    
     def extend(self, steps):
         print 'Grid Scan can not be extended'
+
+
+    def get_specs(self):
+        return {'type': 'GRID',
+                'steps' : self._steps,
+                'start_1': self._start_pos1,
+                'start_2': self._start_pos2,
+                'end_1': self._end_pos1,
+                'end_2': self._end_pos2,
+                }
      
     def run(self):
         self.data_names = [self._motor1.name,
@@ -382,27 +397,28 @@ class GridScan(BasicScan):
                                                    self._counter.name,
                                                    'I_0',
                                                    self._counter.name))
-        for i in xrange(self._steps**2):
-            if self._stopped:
-                _logger.info( "Scan stopped!" )
-                break
-            i_1 = i % self._steps
-            i_2 = i // self._steps
-            x1 = self._start_pos1 + (i_1 * self._step_size1)
-            x2 = self._start_pos2 + (i_2 * self._step_size2)
-            self._motor1.move_to(x1)
-            self._motor1.wait()
-            self._motor2.move_to(x2)
-            self._motor2.wait()
-            y = self._counter.count(self._duration)         
-            if self._i0 is not None:         
-                i0 = self._i0.count(self._duration)
-            else:
-                i0 = 1.0
-            self.data.append( [x1, x2, y/i0, i0, y] )
-            _logger.info("%4d %15g %15g %15g %15g %15g" % (i, x1, x2, y/i0, i0, y))
-            gobject.idle_add(self.emit, "new-point", (x1, x2, y/i0, i0, y) )
-            gobject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps**2) )
+        total_points = len(self._points1) * len(self._points2)
+        pos = 0
+        for x2 in self._points2:
+            for x1 in self._points1:
+                if self._stopped:
+                    _logger.info( "Scan stopped!" )
+                    break
+                self._motor2.move_to(x2)
+                self._motor2.wait()
+                self._motor1.move_to(x1)
+                self._motor1.wait()
+
+                y = self._counter.count(self._duration)         
+                if self._i0 is not None:         
+                    i0 = self._i0.count(self._duration)
+                else:
+                    i0 = 1.0
+                self.data.append( [x1, x2, y/i0, i0, y] )
+                _logger.info("%4d %15g %15g %15g %15g %15g" % (pos, x1, x2, y/i0, i0, y))
+                gobject.idle_add(self.emit, "new-point", (x1, x2, y/i0, i0, y) )
+                gobject.idle_add(self.emit, "progress", (pos + 1.0)/(total_points) )
+                pos += 1
              
         gobject.idle_add(self.emit, "done")
 

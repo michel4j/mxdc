@@ -13,14 +13,12 @@ Each Counter device obeys the following interface:
     
 """
 import time
-import math
-import logging
+import numpy
+import os
 import random
-
 
 from zope.interface import implements
 from bcm.device.interfaces import ICounter
-from bcm.protocol.ca import PV
 from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
 
@@ -68,6 +66,7 @@ class Counter(BaseDevice):
 
 class SimCounter(BaseDevice):
     
+    SIM_COUNTER_DATA = numpy.loadtxt(os.path.join(os.path.dirname(__file__),'data','simcounter.dat'))
     implements(ICounter)
     
     def __init__(self, name, zero=0):
@@ -77,6 +76,7 @@ class SimCounter(BaseDevice):
         self.name = name
         self.value = SimPositioner('PV', 1.0, '')
         self.set_state(active=True)
+        self._counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0]**2)
         
     def __repr__(self):
         s = "<%s:'%s'>" % (self.__class__.__name__, self.name)
@@ -84,7 +84,9 @@ class SimCounter(BaseDevice):
     
     def count(self, t):
         time.sleep(t)
-        return self.value.get()
+        i,j = divmod(self._counter_position, self.SIM_COUNTER_DATA.shape[0])
+        self._counter_position += 1
+        return self.SIM_COUNTER_DATA[i,j]
 
 
 __all__ = ['Counter', 'SimCounter']
