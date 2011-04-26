@@ -26,6 +26,7 @@ class MotorBase(BaseDevice):
     # Motor signals
     __gsignals__ =  { 
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        "timed-change": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         }  
 
     def __init__(self, name):
@@ -41,6 +42,9 @@ class MotorBase(BaseDevice):
     
     def _signal_change(self, obj, value):
         self.set_state(changed=self.get_position())
+
+    def _signal_timed_change(self, obj, data):
+        self.set_state(timed_change=data, changed=data[0])
     
     def _signal_move(self, obj, state):
         if state == self._move_active_value:
@@ -86,14 +90,16 @@ class SimMotor(MotorBase):
         import numpy
         targets = numpy.linspace(self._position, target, self._speed)
         self.set_state(busy=True)
+        self._command_sent = False
         for pos in targets:
-            time.sleep(0.05)
             self._position = pos
-            self._signal_change(self, self._position)
+            data = (pos, time.time())
+            self._signal_timed_change(self, data)
             if self._stopped:
                 break
-        self._command_sent = False
+            time.sleep(0.05)
         self.set_state(busy=False)
+
             
     def move_to(self, pos, wait=False, force=False):
         if pos == self._position:
@@ -107,7 +113,7 @@ class SimMotor(MotorBase):
         self.move_to(self._position+pos, wait)
     
     def wait(self, start=True, stop=True):
-        poll=0.05
+        poll=0.01
         timeout = 5.0
         _orig_to = timeout
         if (start and self._command_sent and not self.busy_state):
@@ -156,10 +162,10 @@ class Motor(MotorBase):
         #self.ENAB = self.add_pv("%s:enabled" % (pv_root))
         if self._motor_type in ['vme','vmeenc']:
             if self._motor_type == 'vme':
-                self.RBV  = self.add_pv("%s:sp" % (pv_name))
+                self.RBV  = self.add_pv("%s:sp" % (pv_name), timed=True)
                 self.PREC =    self.add_pv("%s:sp.PREC" % (pv_name))
             else:
-                self.RBV  = self.add_pv("%s:fbk" % (pv_name))
+                self.RBV  = self.add_pv("%s:fbk" % (pv_name), timed=True)
                 self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
             self.STAT = self.add_pv("%s:status" % pv_root)
             self._move_active_value = 1
@@ -172,7 +178,7 @@ class Motor(MotorBase):
             self.CW_LIM = self.add_pv("%s:cw" % (pv_root))
         elif self._motor_type == 'cls':
             self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
-            self.RBV  = self.add_pv("%s:fbk" % (pv_name))
+            self.RBV  = self.add_pv("%s:fbk" % (pv_name), timed=True)
             self.MOVN = self.add_pv("%s:state" % pv_root)
             self.STAT = self.MOVN
             self.STOP = self.add_pv("%s:emergStop" % pv_root)
@@ -181,7 +187,7 @@ class Motor(MotorBase):
         elif self._motor_type == 'pseudo':
             self._move_active_value = 1
             self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
-            self.RBV  = self.add_pv("%s:fbk" % (pv_name))
+            self.RBV  = self.add_pv("%s:fbk" % (pv_name), timed=True)
             self.STAT = self.add_pv("%s:status" % pv_root)
             self.MOVN = self.add_pv("%s:moving" % pv_root)
             self.STOP = self.add_pv("%s:stop" % pv_root)
@@ -192,7 +198,7 @@ class Motor(MotorBase):
         elif self._motor_type == 'oldpseudo':
             self._move_active_value = 0
             self.PREC =    self.add_pv("%s:sp.PREC" % (pv_name))
-            self.RBV  = self.add_pv("%s:sp" % (pv_name))
+            self.RBV  = self.add_pv("%s:sp" % (pv_name), timed=True)
             self.STAT = self.add_pv("%s:status" % pv_root)
             self.MOVN = self.add_pv("%s:stopped" % pv_root)
             self.STOP = self.add_pv("%s:stop" % pv_root)
@@ -202,7 +208,7 @@ class Motor(MotorBase):
             self.ENAB = self.add_pv("%s:enabled" % (pv_root))
                      
         # connect monitors
-        self._rbid = self.RBV.connect('changed', self._signal_change)
+        self._rbid = self.RBV.connect('timed-change', self._signal_timed_change)
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
         #self.ENAB.connect('changed', self._signal_enable)
@@ -322,10 +328,10 @@ class EnergyMotor(Motor):
         self.VAL  = self.add_pv(pv1)    
         self.PREC = self.add_pv("%s.PREC" % pv2)  
         if enc is not None:
-            self.RBV = self.add_pv(enc)
+            self.RBV = self.add_pv(enc, timed=True)
             self.PREC = self.add_pv("%s.PREC" % enc)  
         else:
-            self.RBV  = self.add_pv("%s:sp" % pv2)
+            self.RBV  = self.add_pv("%s:sp" % pv2, timed=True)
             self.PREC = self.add_pv("%s:sp.PREC" % pv2)
         self.MOVN = self.add_pv("%s:moving:fbk" % pv1)
         self.STOP = self.add_pv("%s:stop" % pv1)
@@ -334,7 +340,7 @@ class EnergyMotor(Motor):
         self.ENAB = self.CALIB
         
         # connect monitors
-        self._rbid = self.RBV.connect('changed', self._signal_change)
+        self._rbid = self.RBV.connect('timed-change', self._signal_timed_change)
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
         self.ENAB.connect('changed', self._signal_enable)
@@ -359,9 +365,9 @@ class BraggEnergyMotor(Motor):
         del self.DESC
         if enc is not None:
             del self.RBV          
-            self.RBV = self.add_pv(enc)
+            self.RBV = self.add_pv(enc, timed=True)
             gobject.source_remove(self._rbid)
-            self.RBV.connect('changed', self._signal_change)
+            self.RBV.connect('timed-change', self._signal_timed_change)
         self.name = 'Bragg Energy'
         self._motor_type = 'vmeenc'
 
@@ -370,7 +376,11 @@ class BraggEnergyMotor(Motor):
                                    
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())
-            
+    
+    def _signal_timed_change(self, obj, data):
+        val = converter.bragg_to_energy(data[0])
+        self.set_state(timed_change=(val, data[1]), changed=val)
+        
     def move_to(self, pos, wait=False, force=False):
         # Do not move if motor state is not sane.
         st = self.get_state()

@@ -21,7 +21,8 @@ from bcm.engine.scanning import IScanPlotter
 #    from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 #FIXME GTKCairo crashes sometimes on SL5.3 when that is sorted out, replace the following line with commented ones above
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
-    
+from matplotlib import cm
+from matplotlib.colors import Normalize
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 from matplotlib.backends.backend_gtk import FileChooserDialog
 try:
@@ -125,7 +126,8 @@ class PlotterToolbar(NavigationToolbar):
     
     def print_figure(self, obj):
         print 'No printing implemented'
-          
+
+        
 class Plotter( gtk.Frame ):
     def __init__( self, loop=False, buffer_size=2500, xformat='%g' ):
         gtk.Frame.__init__(self)
@@ -151,6 +153,12 @@ class Plotter( gtk.Frame ):
         self.line = []
         self.x_data = []
         self.y_data = []
+        
+        # variables used for grid plotting
+        self.grid_data = None
+        self.grid_mode = False
+        self.grid_specs = None
+        
         self.simulate_ring_buffer = loop
         self.buffer_size = buffer_size
         self.add(self.vbox)
@@ -218,13 +226,41 @@ class Plotter( gtk.Frame ):
     def clear(self, grid=False):
         self.fig.clear()
         self.axis = []    
-        self.axis.append( self.fig.add_subplot(111) )
-        self.axis[0].xaxis.set_major_formatter(self.xformatter)
+        self.axis.append(self.fig.add_subplot(111))
         self.line = []
         self.x_data = []
         self.y_data = []
-        
+        self.grid_mode = grid
+        if not self.grid_mode:
+            self.grid_data = None
+            self.grid_specs = None
+            self.axis[0].xaxis.set_major_formatter(self.xformatter)
+            
+    
+    def set_grid(self, data):        
+        self.grid_data = numpy.zeros((data['steps'], data['steps']))
+        self.grid_specs = data
+        bounds = [data['start_1'], data['end_1'], data['start_2'], data['end_2']]
+        self.grid_plot = self.axis[0].imshow(self.grid_data, interpolation='bicubic', 
+                                             origin='lower', extent=bounds, aspect="auto",
+                                             cmap=cm.jet)
+       
+    def add_grid_point(self, xv, yv, z, redraw=True):
+        if self.grid_data is not None and self.grid_specs is not None:
+            xl = numpy.linspace(self.grid_specs['start_1'], self.grid_specs['end_1'], self.grid_specs['steps'])
+            yl = numpy.linspace(self.grid_specs['start_2'], self.grid_specs['end_2'], self.grid_specs['steps'])
+            x = numpy.abs(xl-xv).argmin() # find index of value closest to xv
+            y = numpy.abs(yl-yv).argmin() # find index of value closest to yv
+            my, mx = self.grid_data.shape
+            if (0 <= x < mx) and (0 <= y < my):
+                self.grid_data[y,x] = z
+                self.grid_plot.set_array(self.grid_data)
+                self.grid_plot.set_norm(Normalize(vmin=self.grid_data.min(), vmax=self.grid_data.max()))
+                self.canvas.draw()        
+        return True
+
     def add_point(self, x, y, lin=0, redraw=True):
+
         if len(self.line) <= lin:
             self.add_line([x],[y],'-')
         else:                    
@@ -297,6 +333,7 @@ class ScanPlotter(gtk.VBox):
         self._sig_handlers = {}
         self.show_all()
         self.fit = {}
+        self.grid_scan = False
         
     def connect_scanner(self, scan):
         _sig_map = {
@@ -319,7 +356,14 @@ class ScanPlotter(gtk.VBox):
     
     def on_start(self, scan, data=None):
         """Clear Scan and setup based on contents of data dictionary."""
-        self.plotter.clear()
+        data = scan.get_specs()
+        if data.get('type','').lower() == 'grid':
+            self.plotter.clear(grid=True)
+            self.plotter.set_grid(data)
+            self.grid_scan = True
+        else:
+            self.grid_scan = False
+            self.plotter.clear()
         self._start_time = time.time()
         self.plotter.set_labels(title=scan.__doc__,
                                 x_label=scan.data_names[0],
@@ -341,7 +385,11 @@ class ScanPlotter(gtk.VBox):
 
     def on_new_point(self, scan, data):
         """New point handler."""
-        self.plotter.add_point(data[0], data[1])
+
+        if self.grid_scan:
+            self.plotter.add_grid_point(data[0], data[1], data[2])
+        else:
+            self.plotter.add_point(data[0], data[1])
         
         
     def on_stop(self, scan):
@@ -457,8 +505,8 @@ class ScanPlotter(gtk.VBox):
     def _get_scan_data(self, filename):
         lines = file(filename).readlines()
         title = lines[0].split(': ')[1][:-1]
-        x_title = lines[2].split(': ')[1][:-1]
-        y_title = lines[3].split(': ')[1][:-1]
+        x_title = lines[3].split(': ')[1][:-1]
+        y_title = lines[4].split(': ')[1][:-1]
         scan_type = title.split(' -- ')[0]
         data = numpy.loadtxt(filename, comments='#')
         t = os.stat(filename).st_ctime

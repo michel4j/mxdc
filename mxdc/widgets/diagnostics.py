@@ -26,6 +26,7 @@ class DiagnosticDisplay(gtk.Frame):
                                   'status_widget')
         self._diagnostic = diag
         self.label.set_markup("<span color='#444647'><b>%s</b></span>" % self._diagnostic.description)
+        
         self._diagnostic.connect('status', self.on_status_changed)
         self._status = diagnostics.DIAG_STATUS_UNKNOWN
         self.add(self.status_widget)

@@ -590,6 +590,8 @@ class RunWidget(gtk.Frame):
     def on_update_parameters(self, obj):
         params = self.get_parameters()
         beamline = globalRegistry.lookup([], IBeamline)
+        if self.active_sample:
+            params['name'] = self.active_sample.get('name', params['name']) 
         params['distance'] = self.active_strategy.get('distance', beamline.distance.get_position())
         params['attenuation'] = self.active_strategy.get('attenuation', beamline.attenuator.get())
         params['two_theta'] =  beamline.two_theta.get_position()
