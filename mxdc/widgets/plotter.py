@@ -260,6 +260,7 @@ class Plotter( gtk.Frame ):
         return True
 
     def add_point(self, x, y, lin=0, redraw=True):
+
         if len(self.line) <= lin:
             self.add_line([x],[y],'-')
         else:                    
@@ -362,6 +363,7 @@ class ScanPlotter(gtk.VBox):
             self.grid_scan = True
         else:
             self.grid_scan = False
+            self.plotter.clear()
         self._start_time = time.time()
         self.plotter.set_labels(title=scan.__doc__,
                                 x_label=scan.data_names[0],
@@ -383,6 +385,7 @@ class ScanPlotter(gtk.VBox):
 
     def on_new_point(self, scan, data):
         """New point handler."""
+
         if self.grid_scan:
             self.plotter.add_grid_point(data[0], data[1], data[2])
         else:
