@@ -2,6 +2,8 @@ import os
 import gtk
 import re
 
+MAIN_WINDOW = None
+
 _IMAGE_TYPES = {
     gtk.MESSAGE_INFO: gtk.STOCK_DIALOG_INFO,
     gtk.MESSAGE_WARNING : gtk.STOCK_DIALOG_WARNING,
@@ -99,8 +101,7 @@ class AlertDialog(gtk.Dialog):
         self.details_buffer.insert(iter, text)
         self._expander.show()
 
-def messagedialog(dialog_type, header, sub_header=None, details=None, parent=None,
-                  buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
+class MyDialog(object):
     """Create and show a MessageDialog.
 
     @param dialog_type: one of constants
@@ -125,62 +126,78 @@ def messagedialog(dialog_type, header, sub_header=None, details=None, parent=Non
       is a stock-id a stock icon will be displayed.
     @param default: optional default response id
     """
-    if buttons in (gtk.BUTTONS_NONE, gtk.BUTTONS_OK, gtk.BUTTONS_CLOSE,
-                   gtk.BUTTONS_CANCEL, gtk.BUTTONS_YES_NO,
-                   gtk.BUTTONS_OK_CANCEL):
-        dialog_buttons = buttons
-        buttons = []
-    else:
-        if buttons is not None and type(buttons) != tuple:
-            raise TypeError(
-                "buttons must be a GtkButtonsTypes constant or a tuple")
-        dialog_buttons = gtk.BUTTONS_NONE
-
-    if parent and not isinstance(parent, gtk.Window):
-        raise TypeError("parent must be a gtk.Window subclass")
-
-    d = AlertDialog(parent=parent, flags=gtk.DIALOG_MODAL,
-                       type=dialog_type, buttons=dialog_buttons)
-    if buttons:
-        for text, response in buttons:
-            d.add_buttons(text, response)
-
-    d.set_primary(header)
-    if sub_header:
-        d.set_secondary(sub_header)
+    def __init__(self, dialog_type, header, sub_header=None, details=None, parent=None,
+                  buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
         
-    if details:
-        if isinstance(details, gtk.Widget):
-            d.set_details_widget(details)
-        elif isinstance(details, basestring):
-            d.set_details(details)
+        if buttons in (gtk.BUTTONS_NONE, gtk.BUTTONS_OK, gtk.BUTTONS_CLOSE,
+                       gtk.BUTTONS_CANCEL, gtk.BUTTONS_YES_NO,
+                       gtk.BUTTONS_OK_CANCEL):
+            dialog_buttons = buttons
+            buttons = []
         else:
-            raise TypeError(
-                "long must be a gtk.Widget or a string, not %r" % details)
-
-    if default != -1:
-        d.set_default_response(default)
-
-    if parent:
-        d.set_transient_for(parent)
-        d.set_modal(True)
-
-    if extra_widgets:
-        for wdg in extra_widgets:
-            d.add_widget(wdg)
-            wdg.show()
+            if buttons is not None and type(buttons) != tuple:
+                raise TypeError(
+                    "buttons must be a GtkButtonsTypes constant or a tuple")
+            dialog_buttons = gtk.BUTTONS_NONE
+        if parent is None:
+            parent = MAIN_WINDOW
             
-    response = d.run()
-    d.destroy()
-    return response
+        if parent and not isinstance(parent, gtk.Window):
+            raise TypeError("parent must be a gtk.Window subclass")
+    
+        self.dialog = AlertDialog(parent=parent, flags=gtk.DIALOG_MODAL,
+                           type=dialog_type, buttons=dialog_buttons)
+        if buttons:
+            for text, response in buttons:
+                self.dialog.add_buttons(text, response)
+    
+        self.dialog.set_primary(header)
+        if sub_header:
+            self.dialog.set_secondary(sub_header)
+            
+        if details:
+            if isinstance(details, gtk.Widget):
+                self.dialog.set_details_widget(details)
+            elif isinstance(details, basestring):
+                self.dialog.set_details(details)
+            else:
+                raise TypeError(
+                    "long must be a gtk.Widget or a string, not %r" % details)
+    
+        if default != -1:
+            self.dialog.set_default_response(default)
+    
+        if parent:
+            self.dialog.set_transient_for(parent)
+            self.dialog.set_modal(True)
+    
+        if extra_widgets:
+            for wdg in extra_widgets:
+                self.dialog.add_widget(wdg)
+                wdg.show()
+                
+    def __call__(self):
+        response = self.dialog.run()
+        self.dialog.destroy()
+        return response
+
+    def show(self):
+        response = self.dialog.run()
+        self.dialog.destroy()
+        return response
+        
+    def close(self):
+        self.dialog.destroy()
+    
 
 def _simple(type, header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK,
           default=-1, extra_widgets=None):
     if buttons == gtk.BUTTONS_OK:
         default = gtk.RESPONSE_OK
-    return messagedialog(type, header, sub_header, details,
+    messagedialog = MyDialog(type, header, sub_header, details,
                          parent=parent, buttons=buttons,
                          default=default, extra_widgets=extra_widgets)
+    return messagedialog()
 
 def error(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
     return _simple(gtk.MESSAGE_ERROR, header, sub_header, details, parent=parent,
@@ -200,8 +217,9 @@ def question(header, sub_header=None, details=None, parent=None, buttons=gtk.BUT
 
 def yesno(header, sub_header=None, details=None, parent=None, default=gtk.RESPONSE_YES,
           buttons=gtk.BUTTONS_YES_NO):
-    return messagedialog(gtk.MESSAGE_WARNING, header, sub_header, details, parent,
+    messagedialog = MyDialog(gtk.MESSAGE_WARNING, header, sub_header, details, parent,
                          buttons=buttons, default=default)
+    return messagedialog()
 
 def check_folder(directory, parent=None, warn=True):
     print directory

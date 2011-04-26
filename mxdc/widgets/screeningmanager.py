@@ -1,5 +1,5 @@
 import os
-import time
+import time, datetime
 import gtk
 import gtk.glade
 import gobject
@@ -19,8 +19,9 @@ from bcm.utils import automounter
 from bcm.utils import lims_tools
 from bcm.engine.diffraction import Screener, DataCollector
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
-from mxdc.widgets.dialogs import warning
+from mxdc.widgets.dialogs import warning, MyDialog
 from mxdc.utils import config
+from bcm.engine.scripting import get_scripts
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -31,6 +32,14 @@ TASKLET_NAME_MAP = {
     Screener.TASK_COLLECT : 'Collect Frames',
     Screener.TASK_ANALYSE : 'Request Analysis',
     Screener.TASK_DISMOUNT : 'Dismount Last',
+}
+
+PAUSE_MSGS = { 
+    Screener.PAUSE_ALIGN: 'Screening paused automatically, due to centering error ',
+    Screener.PAUSE_MOUNT: 'Screening stopped, because automounting failed: ',
+    Screener.PAUSE_UNRELIABLE: 'Screening paused automatically, due to unreliable auto-centering ',
+    Screener.PAUSE_TASK: 'Screening paused automatically, as requested, after completing ',
+    Screener.PAUSE_BEAM: 'Beam not Available. Screening has been paused and will automatically resume once the beam becomes available.  Intervene to manually resume screening.' 
 }
 
 (
@@ -87,8 +96,12 @@ class ScreenManager(gtk.Frame):
         self.screen_runner.connect('done', self._on_complete)
         self.screen_runner.connect('sync', self._on_sync)
         self.screen_runner.connect('new-datasets', self._on_new_datasets)
-
         
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        self._beam_up = False
+        self._intervening = False
+        self.scripts = get_scripts()
+
     def __getattr__(self, key):
         try:
             return super(ScreenManager).__getattr__(self, key)
@@ -129,7 +142,6 @@ class ScreenManager(gtk.Frame):
         self.stop_btn.set_label('mxdc-stop')
         
 
-        self.beamline.storage_ring.connect('beam', self._on_beam_change)
         self.beamline.automounter.connect('message', self._on_message)
         self.beamline.automounter.connect('mounted', self._on_sample_mounted)
         self.beamline.automounter.connect('state', self._on_automounter_state)
@@ -245,14 +257,6 @@ class ScreenManager(gtk.Frame):
     
     def _on_message(self, obj, str):
         self.message_log.add_text(str)
-
-    def _on_beam_change(self, obj, beam_available):
-        if not beam_available and (not self.screen_runner.stopped) and (not self.screen_runner.paused):
-            self.screen_runner.pause()
-            header = "Beam not available. Screening has been paused!"
-            sub_header = "Please resume automatic screening when beam is available again."
-            warning(header, sub_header)
-        return True
 
     def _on_sync(self, obj, st, str):
         if st:
@@ -448,7 +452,7 @@ class ScreenManager(gtk.Frame):
                         'directory' : self.folder_btn.get_current_folder(),
                         'sample':  item})
                     if tsk.task_type == Screener.TASK_COLLECT:
-                        for n in range(t.options['frames']):
+                        for n in range(int(t.options['frames'])):
                             ang = t.options['angle'] + n*delta
                             num = int(round(ang/delta)) + 1
                             collect_frames.append(num)
@@ -565,23 +569,68 @@ class ScreenManager(gtk.Frame):
         self.scan_pbar.set_text("Stopped")
         self.action_frame.set_sensitive(True)
 
-    def _on_pause(self, obj, state, msg):
+    def _on_pause(self, obj, state, pause_dict):
+        # Build the dialog message
+        msg = ''
+        if 'type' in pause_dict:
+            msg = PAUSE_MSGS[pause_dict['type']]
+        if ('task' and 'sample' and 'port') in pause_dict:
+            msg += 'task <b>"%s"</b> ' % pause_dict['task']
+            msg += 'on sample <b>"%s(%s)</b>"' % (pause_dict['sample'], pause_dict['port'])
+
         if state:
             self._screening_paused = True
             self.start_btn.set_label('mxdc-resume')
         else:
             self._screening_paused = False
-            self.start_btn.set_label('mxdc-pause')           
+            self.start_btn.set_label('mxdc-pause')
         self.stop_btn.set_sensitive(True)
         self.scan_pbar.set_text("Paused")
         if msg:
             title = 'Attention Required'
-            resp = dialogs.messagedialog(gtk.MESSAGE_WARNING, 
+            self.resp = MyDialog(gtk.MESSAGE_WARNING, 
                                          title, msg,
                                          buttons=( ('Intervene', gtk.RESPONSE_ACCEPT),) )
-            if resp == gtk.RESPONSE_ACCEPT:
+            self._intervening = False
+            if pause_dict['type'] is Screener.PAUSE_BEAM: 
+                self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
+                try:
+                    self.collect_obj = pause_dict['collector']
+                    self.data_collector.set_position(pause_dict['position'])
+                except:
+                    self.collect_obj = False
+            response = self.resp()
+            if response == gtk.RESPONSE_ACCEPT or (pause_dict['type'] == Screener.PAUSE_BEAM and self._beam_up):
+                self._intervening = True
+                self._beam_up = False
+                if self.collect_obj:
+                    self.resume_labels = self.start_btn.connect('clicked', self._on_resume)
+                if self.beam_connect:
+                    self.beamline.storage_ring.disconnect(self.beam_connect)
                 return
 
+    def _on_resume(self, obj=None):
+        self.scan_pbar.set_text("Resuming")
+        self.start_btn.set_label('mxdc-pause')
+        if self.resume_labels: self.start_btn.disconnect(self.resume_labels)
+
+    def _on_beam_change(self, obj, beam_available):
+        
+        def resume_screen(script, obj):
+            if self.collect_obj: 
+                self._on_resume()
+            self._screening_paused = False
+            self.screen_runner.resume()
+            self.resp.dialog.destroy()
+            s.disconnect(self.resume_connect)
+            
+        if beam_available and not self._intervening and self._screening_paused:
+            self._beam_up = True
+            s = self.scripts['RestoreBeam']
+            self.resume_connect = s.connect('done', resume_screen )
+            s.start()
+        return True
+        
     def _on_start(self, obj):
         self._screening = True
         self._screening_paused = False
