@@ -121,16 +121,6 @@ class ExceptionHandlerArgs(Structure):
 class ChannelAccessError(Exception):
     """Channel Access Exception."""
     pass
-
-class TimedValueEvent(object):
-    def __init__(self, t, val):
-        self.time = t
-        self.value = val
-
-class AlarmEvent(object):
-    def __init__(self, alarm, severity):
-        self.alarm = alarm
-        self.severity = severity
         
 _base_fields = [('status', c_short), ('severity', c_short), ('stamp', EpicsTimeStamp)]
 _16offset_fields = _base_fields + [('pad0', c_short)]
@@ -374,11 +364,11 @@ class PV(gobject.GObject):
         self._time     = epics_to_posixtime(dbr.contents.stamp)
         gobject.idle_add(self.emit,'changed', self._val)
         if self._time_changes:
-            gobject.idle_add(self.emit,'timed-change', TimedValueEvent(self._time, self._val))
+            gobject.idle_add(self.emit,'timed-change', (self._val, self._time))
         _alm, _sev = dbr.contents.status, dbr.contents.severity
         if (_alm, _sev) != (self._alarm, self._severity):
             self._alarm, self._severity = _alm, _sev
-            gobject.idle_add(self.emit, 'alarm', AlarmEvent(self._alarm, self._severity))
+            gobject.idle_add(self.emit, 'alarm', (self._alarm, self._severity))
         #self._lock.release()
         return 0
 
