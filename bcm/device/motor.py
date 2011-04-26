@@ -90,15 +90,16 @@ class SimMotor(MotorBase):
         import numpy
         targets = numpy.linspace(self._position, target, self._speed)
         self.set_state(busy=True)
+        self._command_sent = False
         for pos in targets:
-            time.sleep(0.01)
             self._position = pos
             data = (pos, time.time())
             self._signal_timed_change(self, data)
             if self._stopped:
                 break
-        self._command_sent = False
+            time.sleep(0.05)
         self.set_state(busy=False)
+
             
     def move_to(self, pos, wait=False, force=False):
         if pos == self._position:
@@ -112,7 +113,7 @@ class SimMotor(MotorBase):
         self.move_to(self._position+pos, wait)
     
     def wait(self, start=True, stop=True):
-        poll=0.05
+        poll=0.01
         timeout = 5.0
         _orig_to = timeout
         if (start and self._command_sent and not self.busy_state):
