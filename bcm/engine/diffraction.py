@@ -48,7 +48,7 @@ class DataCollector(gobject.GObject):
     __gsignals__['new-image'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT, gobject.TYPE_STRING))
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_INT, gobject.TYPE_INT))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
-    __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
+    __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_PYOBJECT))
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['stopped'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
@@ -73,7 +73,12 @@ class DataCollector(gobject.GObject):
             self.beamline = None
             _logger.warning('No registered beamline found.')
             raise
- 
+        try:
+            self.beamline.storage_ring.disconnect(self.beam_connect)
+        except:
+            pass
+        self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
+         
         self.collect_parameters = {}
         self.collect_parameters['skip_existing'] = skip_existing
 
@@ -93,6 +98,15 @@ class DataCollector(gobject.GObject):
         self.collect_parameters['user_properties'] = (pwd.getpwuid(os.geteuid())[0]  , os.geteuid(), os.getegid())
                 
         return
+
+    def _on_beam_change(self, obj, beam_available):
+        if not beam_available and (not self.paused) and (not self.stopped):
+            self.pause()
+            pause_dict = { 'type': Screener.PAUSE_BEAM, 
+                           'collector': True,
+                           'position': self.pos - 1 }
+            gobject.idle_add(self.emit, 'paused', True, pause_dict)
+        return True
 
     def _notify_progress(self, status):
         # Notify progress
@@ -179,16 +193,15 @@ class DataCollector(gobject.GObject):
 
             self.pos = 0
             header = {}
-            pause_msg = ''
+            pause_dict = {}
             _first = True
             self.total_items = len(self.run_list)
             while self.pos < self.total_items :
                 if self.paused:
-                    gobject.idle_add(self.emit, 'paused', True, pause_msg)
-                    pause_msg = ''
+                    gobject.idle_add(self.emit, 'paused', True, pause_dict)
                     while self.paused and not self.stopped:
                         time.sleep(0.05)
-                    gobject.idle_add(self.emit, 'paused', False, '')
+                    gobject.idle_add(self.emit, 'paused', False, {})
                 if self.stopped:
                     gobject.idle_add(self.emit, 'stopped')
                     break
@@ -275,7 +288,7 @@ class Screener(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_INT, gobject.TYPE_INT))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
-    __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
+    __gsignals__['paused'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_PYOBJECT))
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['stopped'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['sync'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING))
@@ -285,6 +298,8 @@ class Screener(gobject.GObject):
    
     TASK_MOUNT, TASK_ALIGN, TASK_PAUSE, TASK_COLLECT, TASK_ANALYSE, TASK_DISMOUNT = range(6)
     TASK_STATE_PENDING, TASK_STATE_RUNNING, TASK_STATE_DONE, TASK_STATE_ERROR, TASK_STATE_SKIPPED = range(5)
+    
+    PAUSE_TASK, PAUSE_BEAM, PAUSE_ALIGN, PAUSE_MOUNT, PAUSE_UNRELIABLE = range(5)
       
     def __init__(self):
         gobject.GObject.__init__(self)
@@ -293,6 +308,7 @@ class Screener(gobject.GObject):
         self.skip_collected = False
         self.data_collector = None
         self._collect_results = []
+        self.last_pause = None
         
     def configure(self, run_list):
         #associate beamline devices
@@ -303,15 +319,26 @@ class Screener(gobject.GObject):
             self.beamline = None
             _logger.warning('No registered beamline found.')
             raise
-        try: 
+        try:  
             self.data_collector = globalRegistry.lookup([], IDataCollector, 'mxdc.screening')
         except:
             if self.data_collector is None:
                 self.data_collector = DataCollector()
+        try: 
+            self.data_collector.disconnect(self.collect_connect)
+        except: 
+            pass
+        self.collect_connect = self.data_collector.connect('paused', self._on_collector_pause)
         self.run_list = run_list
         self.total_items = len(self.run_list)
         return
-    
+ 
+    def _on_collector_pause(self, obj, state, pause_dict):
+        task = self.run_list[self.pos]
+        if task.task_type == Screener.TASK_COLLECT and (not self.paused) and (not self.stopped) and ('collector' in pause_dict):
+            self.paused = True
+            gobject.idle_add(self.emit, 'paused', True, pause_dict)
+        return True
     
     def start(self):
         worker_thread = threading.Thread(target=self.run)
@@ -335,31 +362,38 @@ class Screener(gobject.GObject):
         gobject.idle_add(self.emit, 'started')
         try: 
             self.pos = 0
-            pause_msg = ''
+            pause_dict = {}
 
-            while self.pos < len(self.run_list) :
+            while self.pos < len(self.run_list):
+                task = self.run_list[self.pos]
+                _logger.debug('TASK: "%s"' % str(task))
 
-                if self.paused:
-                    gobject.idle_add(self.emit, 'paused', True, pause_msg)
-                    pause_msg = ''
-                    while self.paused and not self.stopped:
-                        time.sleep(0.05)
-                    gobject.idle_add(self.emit, 'paused', False, '')
+                # Making sure beam is available before trying to collect
+                if (self.last_pause != Screener.PAUSE_BEAM) and task.task_type == Screener.TASK_COLLECT and not self.beamline.storage_ring.get_state()['beam'] and not self.paused:
+                    self.pause()
+                    pause_dict = { 'type': Screener.PAUSE_BEAM,
+                                   'object': None }
+
                 if self.stopped:
                     gobject.idle_add(self.emit, 'stopped')
                     break
-    
+                if self.paused:
+                    gobject.idle_add(self.emit, 'paused', True, pause_dict)
+                    self.last_pause = pause_dict.get('type', None)
+                    pause_dict = {}
+                    while self.paused and not self.stopped:
+                        time.sleep(0.05)
+                    gobject.idle_add(self.emit, 'paused', False, pause_dict)
+                    continue
+                
                 # Perform the screening task here
-                task = self.run_list[self.pos]
-                _logger.debug('TASK: "%s"' % str(task))
                 if task.task_type == Screener.TASK_PAUSE:
                     self._notify_progress(Screener.TASK_STATE_RUNNING)
                     self.pause()
-                    pause_msg = 'Screening paused automatically, as requested, after completing '
-                    pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
-                    pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
-                                                                self.run_list[self.pos]['sample']['name'])
-                    
+                    pause_dict = {'type': Screener.PAUSE_TASK,
+                                  'task': self.run_list[self.pos - 1].name,
+                                  'sample': self.run_list[self.pos]['sample']['name'],
+                                  'port': self.run_list[self.pos]['sample']['port'] }
                       
                 elif task.task_type == Screener.TASK_MOUNT:
                     _logger.warn('TASK: Mount "%s"' % task['sample']['port'])
@@ -375,10 +409,10 @@ class Screener(gobject.GObject):
                         if not success or mounted_info is None:
                             self.pause()
                             self.stop()
-                            pause_msg = 'Screening stopped, because automounting failed:  '
-                            pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
-                            pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
-                                                                        self.run_list[self.pos]['sample']['port'])
+                            pause_dict = {'type': Screener.PAUSE_MOUNT,
+                                          'task': self.run_list[self.pos - 1].name,
+                                          'sample': self.run_list[self.pos]['sample']['name'],
+                                          'port': self.run_list[self.pos]['sample']['port'] }
                             self._notify_progress(Screener.TASK_STATE_ERROR)
                         else:
                             port, barcode = mounted_info
@@ -414,17 +448,17 @@ class Screener(gobject.GObject):
                         _out = centering.auto_center_loop()
                         if _out is None:
                             _logger.error('Error attempting auto loop centering "%s"' % task['sample']['name'])
-                            pause_msg = 'Screening paused automatically, due to centering error '
-                            pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
-                            pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
-                                                                    self.run_list[self.pos]['sample']['port'])
+                            pause_dict = {'type': Screener.PAUSE_ALIGN,
+                                          'task': self.run_list[self.pos - 1].name,
+                                          'sample': self.run_list[self.pos]['sample']['name'],
+                                          'port': self.run_list[self.pos]['sample']['port'] }
                             self.pause()
                             self._notify_progress(Screener.TASK_STATE_ERROR)            
                         elif _out.get('RELIABILITY') < 70:
-                            pause_msg = 'Screening paused automatically, due to unreliable auto-centering '
-                            pause_msg += 'task <b>"%s"</b> ' % self.run_list[self.pos - 1].name
-                            pause_msg += 'on sample <b>"%s(%s)</b>"' % (self.run_list[self.pos]['sample']['name'],
-                                                                    self.run_list[self.pos]['sample']['port'])
+                            pause_dict = {'type': Screener.PAUSE_UNRELIABLE,
+                                          'task': self.run_list[self.pos - 1].name,
+                                          'sample': self.run_list[self.pos]['sample']['name'],
+                                          'port': self.run_list[self.pos]['sample']['port'] }
                             self.pause()
                             self._notify_progress(Screener.TASK_STATE_ERROR)
                         else:
@@ -439,6 +473,7 @@ class Screener(gobject.GObject):
                         
                 elif task.task_type == Screener.TASK_COLLECT:
                     _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
+                    
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
                         self._notify_progress(Screener.TASK_STATE_RUNNING)
                         self.beamline.cryojet.nozzle.close()
@@ -511,6 +546,8 @@ class Screener(gobject.GObject):
         self.data_collector.pause()
         
     def resume(self):
+        if self.last_pause is Screener.PAUSE_BEAM and self.beamline.storage_ring.get_state()['beam']:
+            self.last_pause = None
         self.paused = False
         self.data_collector.resume()
     
