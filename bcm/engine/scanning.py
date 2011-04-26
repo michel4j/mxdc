@@ -6,6 +6,7 @@ import time
 import sys
 import os
 import numpy
+from scipy import interpolate
 
 from zope.interface import Interface, Attribute
 from zope.interface import implements
@@ -316,6 +317,99 @@ class RelScan(AbsScan):
         self._end_pos = cur_pos + end_offset
         self._step_size = (self._end_pos - self._start_pos) / float( self._steps )
         self._start_step = 0
+
+class CntScan(BasicScan):
+    """A Continuous scan of a single motor."""
+
+    def __init__(self, mtr, start_pos, end_pos, cntr, t, i0=None):
+        BasicScan.__init__(self)
+        self.configure(mtr, start_pos, end_pos, cntr, t, i0)
+        
+    def configure(self, mtr, start_pos, end_pos, cntr, t, i0=None):
+        self._motor = IMotor(mtr)
+        self._counter = ICounter(cntr)
+        if i0 is not None:
+            self._i0 = ICounter(i0)
+        else:
+            self._i0 = None
+        self._duration = t
+        self._start_pos = start_pos
+        self._end_pos = end_pos
+            
+     
+    def run(self):
+        self.data_names = [self._motor.name, 
+                           self._counter.name+'_scaled', 
+                           'I_0',
+                           self._counter.name]
+        if not self.append:
+            gobject.idle_add(self.emit, "started")
+        _logger.info("Scanning '%s' vs '%s' " % (self._motor.name, self._counter.name))
+        _logger.info("%4s '%8s' '%8s_norm' '%8s' '%8s'" % ('#',
+                                                   self._motor.name,
+                                                   self._counter.name,
+                                                   'I_0',
+                                                   self._counter.name))
+        x_ot = []
+        y_ot = []
+        i_ot = []
+        
+        def _chg_cb(obj, dat):
+            x_ot.append(dat)
+        
+        self._motor.move_to(self._start_pos, wait=True)
+        self._motor.move_to(self._end_pos, wait=False)
+        src_id = self._motor.connect('timed-change', lambda x,y: x_ot.append(y))
+        self._motor.wait(start=True, stop=False)
+        
+        while self._motor.busy_state:
+            if self._stopped:
+                _logger.info( "Scan stopped!" )
+                break
+            ts= time.time()
+            y = self._counter.count(self._duration)
+            t = (ts + time.time() / 2.0)
+
+            if self._i0 is not None:         
+                ts= time.time()
+                i0 = self._i0.count(self._duration)
+                ti = (ts + time.time() / 2.0)
+            else:
+                ti = time.time()
+                i0 = 1.0
+            y_ot.append((y, t))
+            i_ot.append((i0, ti))
+            yi = y/i0
+            if len(x_ot) > 0:
+                x = x_ot[-1][0] # x should be the last value, only rough estimate for now
+                gobject.idle_add(self.emit, "new-point", (x, yi, i0, y))
+                gobject.idle_add(self.emit, "progress", (x - self._start_pos)/(self._end_pos - self._start_pos))
+            time.sleep(0.01)
+           
+        self._motor.disconnect(src_id)
+        # Perform interpolation
+        xi, tx = zip(*x_ot)
+        yi, ty = zip(*y_ot)
+        ii, ti = zip(*i_ot)
+
+        mintx, maxtx = min(tx), max(tx)
+        minty, maxty = min(ty), max(ty)
+        tst = max(mintx, minty)
+        ten = min(maxtx, maxty)
+        t_final = numpy.linspace(tst, ten, len(y_ot)*2) # 2 x oversampling based on counter
+        
+        tckx = interpolate.splrep(tx, xi)
+        tcky = interpolate.splrep(ty, yi)
+        tcki = interpolate.splrep(ti, ii)
+
+        xnew = interpolate.splev(t_final, tckx, der=0)
+        ynew = interpolate.splev(t_final, tcky, der=0)
+        inew = interpolate.splev(t_final, tcki, der=0)
+
+        yinew = ynew/inew
+        self.data = zip(xnew, yinew, inew, ynew)          
+        gobject.idle_add(self.emit, "done")
+
 
 class RelScan2(AbsScan2):
     """A relative scan of a two motors."""
