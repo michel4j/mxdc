@@ -1,12 +1,12 @@
 import gtk
 import gobject
 import pango
-import sys, os, time
-
+import sys, os, time, datetime
 
 from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.engine.diffraction import DataCollector
+from bcm.engine.scripting import get_scripts
 from bcm.utils.decorators import async
 
     
@@ -17,7 +17,7 @@ from bcm.engine import auto
 from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
 from mxdc.widgets.runmanager import RunManager
 from mxdc.widgets.imageviewer import ImageViewer
-from mxdc.widgets.dialogs import warning, error
+from mxdc.widgets.dialogs import warning, error, MyDialog
 from mxdc.widgets.rundiagnostics import DiagnosticsWidget
 from mxdc.utils import config
 
@@ -56,6 +56,7 @@ RUN_CONFIG_FILE = 'run_config.json'
 class CollectManager(gtk.Frame):
     __gsignals__ = {
         'new-datasets': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'beam-change': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_BOOLEAN,]),
     }
     def __init__(self):
         gtk.Frame.__init__(self)
@@ -68,6 +69,7 @@ class CollectManager(gtk.Frame):
         self.collect_state = COLLECT_STATE_IDLE
         self.frame_pos = None
         self._first_launch = False
+        self.await_response = False
         self.skip_frames = False
         self._create_widgets()
         
@@ -76,6 +78,7 @@ class CollectManager(gtk.Frame):
         self.active_strategy = {}
         self.connect('realize', lambda x: self.update_data())
         
+        self.scripts = get_scripts()
         
     def __getattr__(self, key):
         try:
@@ -91,7 +94,7 @@ class CollectManager(gtk.Frame):
         self.run_manager = RunManager()
         self.collector = DataCollector()
         self.beamline = globalRegistry.lookup([], IBeamline)      
-        
+
         self.collect_state = COLLECT_STATE_IDLE
         self.sel_mount_action = MOUNT_ACTION_NONE 
         self.sel_mounting  = False # will be sent to true when mount command has been sent and false when it is done
@@ -166,7 +169,7 @@ class CollectManager(gtk.Frame):
         self.collector.connect('progress', self.on_progress)
 
         if self.beamline is not None:
-            self.beamline.storage_ring.connect('beam', self._on_beam_change)
+            self.beamline.storage_ring.connect('beam', self.beam_change)
         
         self._load_config()
         self.add(self.collect_widget)
@@ -182,16 +185,6 @@ class CollectManager(gtk.Frame):
                                                                'data/tiny-error.png'))
         self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/tiny-skip.png'))
-
-        
-    def _on_beam_change(self, obj, beam_available):
-        if not beam_available and (not self.collector.stopped) and (not self.collector.paused):
-            self.collector.pause()
-            header = "Beam not Available. Data Collection has been paused!"
-            sub_header = "Please resume data collection when beam is available again."
-            warning(header, sub_header)
-        return True
-
 
     def _load_config(self):        
         data = config.load_config(RUN_CONFIG_FILE)
@@ -558,15 +551,63 @@ class CollectManager(gtk.Frame):
             self.run_list[i]['saved'] = True
         return True
 
-    def on_pause(self,widget, paused, msg=''):
+    def on_pause(self,widget, paused, pause_dict):
         if paused:
+            self.paused = True
             self.collect_btn.set_label('mxdc-resume')
             self.collect_state = COLLECT_STATE_PAUSED
             self.progress_bar.idle_text("Paused")
             self.collect_btn.set_sensitive(True)
         else:
+            self.paused = False
             self.collect_btn.set_label('mxdc-pause')   
             self.collect_state = COLLECT_STATE_RUNNING
+  
+        # Build the dialog message
+        msg = ''
+        if 'type' in pause_dict:
+            msg = "Beam not Available. Collection has been paused and will automatically resume once the beam becomes available. Intervene to manually resume collection."
+            
+        if msg:
+            title = 'Attention Required'
+            self.resp = MyDialog(gtk.MESSAGE_WARNING, 
+                                         title, msg,
+                                         buttons=( ('Intervene', gtk.RESPONSE_ACCEPT),) )
+            self._intervening = False
+            if 'type' in pause_dict: 
+                self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
+                try:
+                    self.collect_obj = pause_dict['collector']
+                    self.collector.set_position(pause_dict['position'])
+                except:
+                    self.collect_obj = False
+            response = self.resp()
+            if response == gtk.RESPONSE_ACCEPT or (('type' in pause_dict) and self._beam_up):
+                self._intervening = True
+                self._beam_up = False
+                if self.beam_connect:
+                    self.beamline.storage_ring.disconnect(self.beam_connect)
+                return 
+
+    def beam_change(self, obj, beam_available):
+        self.emit('beam-change', beam_available)
+
+    def _on_beam_change(self, obj, beam_available):
+        
+        def resume_screen(script, obj):
+            if self.collect_obj:
+                self.paused = False
+            self.collector.resume()
+            self.resp.dialog.destroy()
+            s.disconnect(self.resume_connect)
+            
+        if beam_available and not self._intervening and self.paused:
+            self._beam_up = True
+            s = self.scripts['RestoreBeam']
+            self.resume_connect = s.connect('done', resume_screen )
+            s.start()
+        return True  
+
             
     def on_error(self, widget, msg):
         msg_title = msg

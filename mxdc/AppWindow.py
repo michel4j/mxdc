@@ -50,6 +50,7 @@ class AppWindow(gtk.Window):
         self.version = version
         self.splash = Splash(version)
         self.splash.set_transient_for(self)
+        dialogs.MAIN_WINDOW = self
         self.splash.show_all()
         
         #prepare pixbufs for tab status icons
@@ -95,6 +96,7 @@ class AppWindow(gtk.Window):
         self.collect_manager.connect('new-datasets', self.on_new_datasets)
         self.screen_manager.connect('new-datasets', self.on_new_datasets)
 
+        self.collect_manager.connect('beam-change', self.on_beam_change)
         
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
         self.about_cmd.connect('activate', lambda x:  self._do_about() )
@@ -212,8 +214,15 @@ class AppWindow(gtk.Window):
             dialogs.info(header, subhead, extra_widgets=[chkbtn])
 
         
-        
-
+                
+    def on_beam_change(self, obj, beam_available):
+        tab_lbl = self.notebook.get_tab_label(self.hutch_manager)
+        if beam_available:
+            tab_lbl.image.set_from_pixbuf(None)
+            tab_lbl.label.set_markup(tab_lbl.raw_text)
+        else:
+            tab_lbl.image.set_from_pixbuf(self._warn_img)
+            tab_lbl.label.set_markup("<b>%s</b>" % tab_lbl.raw_text)
     
     def on_page_switch(self, obj, pg, pgn):
         wdg = self.notebook.get_nth_page(pgn)
@@ -221,7 +230,6 @@ class AppWindow(gtk.Window):
         tab_lbl.image.set_from_pixbuf(None)
         tab_lbl.label.set_markup(tab_lbl.raw_text)
         
-
     def on_update_strategy(self, obj, data):
         self.collect_manager.update_data(strategy=data)
         _logger.info('The active strategy has been updated in the "Data Collection" tab.')

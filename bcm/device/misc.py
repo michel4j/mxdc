@@ -15,7 +15,6 @@ from bcm.utils.decorators import async
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
-
 class PositionerBase(BaseDevice):
     implements(IPositioner)
     __gsignals__ =  { 
@@ -539,7 +538,41 @@ class HumidityController(BaseDevice):
         self.relative_humitidy.set(val)
     
 
-
+class SimStorageRing(BaseDevice):
+    implements(IStorageRing)
+    __gsignals__ =  { 
+        "beam": ( gobject.SIGNAL_RUN_FIRST, 
+                     gobject.TYPE_NONE, 
+                     (gobject.TYPE_BOOLEAN,)),
+        }  
+    
+    def __init__(self, name, pv1, pv2, pv3):
+        BaseDevice.__init__(self)
+        self.name = name
+        self.message = 'Sim SR Testing!'
+        self.beam_available = False
+        gobject.timeout_add(11000, self.change_beam)
+        
+    def change_beam(self):
+        self.beam_available = not self.beam_available
+        if self.beam_available: self.health = 0
+        else: self.health = 2
+        self.set_state(beam=self.beam_available, health=(self.health, 'mode', self.message), active=True)
+        _logger.warn('Sim SR Beam Available %s!' % str(self.beam_available))
+        return True
+        
+    def beam_available(self):
+        return self.beam_available
+    
+    def wait_for_beam(self, timeout=60):
+        while not self.beam_available() and timeout > 0:
+            time.sleep(0.05)
+            timeout -= 0.05
+        _logger.warn('Timed out waiting for beam!')
+        
+    def get_mode(self):
+        pass
+    
 class StorageRing(BaseDevice):
     implements(IStorageRing)
     __gsignals__ =  { 
