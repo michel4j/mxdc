@@ -25,6 +25,9 @@ _logger = get_module_logger('mxdc.hutchmanager')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class HutchManager(gtk.Frame):
+    __gsignals__ = {
+        'beam-change': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_BOOLEAN,]),
+    }
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
@@ -107,7 +110,9 @@ class HutchManager(gtk.Frame):
         self.commands_box.pack_start(self.front_end_btn)
         self.commands_box.pack_start(self.optimize_btn)
 
-
+        # Monitor beam changes
+        self.beamline.storage_ring.connect('beam', self.on_beam_change)
+        
         self.commands_box.pack_start(gtk.Label(''))
         
         for btn in [self.mount_btn, self.cent_btn, self.collect_btn]:
@@ -135,6 +140,8 @@ class HutchManager(gtk.Frame):
         self.show_all()
     
     
+    def on_beam_change(self, obj, beam_available):
+        self.emit('beam-change', beam_available)
     
     def on_restore_beam(self,obj):
         script = self.scripts['RestoreBeam']
