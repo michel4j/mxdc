@@ -56,7 +56,6 @@ RUN_CONFIG_FILE = 'run_config.json'
 class CollectManager(gtk.Frame):
     __gsignals__ = {
         'new-datasets': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
-        'beam-change': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_BOOLEAN,]),
     }
     def __init__(self):
         gtk.Frame.__init__(self)
@@ -167,9 +166,6 @@ class CollectManager(gtk.Frame):
         self.collector.connect('new-image', self.on_new_image)
         self.collector.connect('stopped', self.on_complete)
         self.collector.connect('progress', self.on_progress)
-
-        if self.beamline is not None:
-            self.beamline.storage_ring.connect('beam', self.beam_change)
         
         self._load_config()
         self.add(self.collect_widget)
@@ -588,9 +584,6 @@ class CollectManager(gtk.Frame):
                 if self.beam_connect:
                     self.beamline.storage_ring.disconnect(self.beam_connect)
                 return 
-
-    def beam_change(self, obj, beam_available):
-        self.emit('beam-change', beam_available)
 
     def _on_beam_change(self, obj, beam_available):
         
