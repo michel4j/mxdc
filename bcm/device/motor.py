@@ -340,6 +340,7 @@ class EnergyMotor(Motor):
         self.ENAB = self.CALIB
         
         # connect monitors
+        gobject.source_remove(self._rbid)
         self._rbid = self.RBV.connect('timed-change', self._signal_timed_change)
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
