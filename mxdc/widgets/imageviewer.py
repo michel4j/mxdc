@@ -16,7 +16,7 @@ __log_section__ = 'mxdc.imageviewer'
 img_logger = logging.getLogger(__log_section__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
-FILE_PATTERN = re.compile('^(?P<base>[\w]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.?[\w.]+)?$')
+FILE_PATTERN = re.compile('^(?P<base>[\w-]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.?[\w.]+)?$')
 
 class ImageViewer(gtk.Frame):
     def __init__(self, size=512):

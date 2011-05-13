@@ -582,6 +582,7 @@ class RunWidget(gtk.Frame):
                   'start_angle', 'delta_angle', 'total_angle', 'first_frame', 'skip', 'wedge', 'inverse_beam']:
             params[k] = DEFAULT_PARAMETERS[k]
         params['exposure_time'] = beamline.config['default_exposure']
+        params['crystal_id'] = self.active_sample.get('id', None)
         
         self.set_parameters(params)
         self.check_changes()
