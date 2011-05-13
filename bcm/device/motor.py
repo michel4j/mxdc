@@ -340,12 +340,15 @@ class EnergyMotor(Motor):
         self.ENAB = self.CALIB
         
         # connect monitors
-        gobject.source_remove(self._rbid)
         self._rbid = self.RBV.connect('timed-change', self._signal_timed_change)
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
         self.ENAB.connect('changed', self._signal_enable)
     
+    def _signal_timed_change(self, obj, data):
+        val = converter.bragg_to_energy(data[0])
+        self.set_state(timed_change=(val, data[1]), changed=val)
+
     def _signal_enable(self, obj, val):
         if val == 1:
             self.set_state(enabled=True)
