@@ -205,7 +205,7 @@ class BasicAutomounter(BaseDevice):
         the port was marked as mountable since the last probe operation."""
         
         #if not re.match('[RML][ABCD]\d{1,2}', port):
-		if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
+        if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
             return False
         info = self.containers[port[0]][port[1:]]
         if info is None:
@@ -221,7 +221,7 @@ class BasicAutomounter(BaseDevice):
             return self._mounted_port != None
         
         #if not re.match('[RML][ABCD]\d{1,2}', port):
-		if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
+        if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
             return False
         info = self.containers[port[0]][port[1:]]
         if info is None:
@@ -234,7 +234,7 @@ class BasicAutomounter(BaseDevice):
         if not self.active_state:
             return PORT_UNKNOWN
         #if not re.match('[RML][ABCD]\d{1,2}', port):
-		if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
+        if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
             return PORT_NONE
         else:
             info = self.containers[port[0]][port[1:]]
