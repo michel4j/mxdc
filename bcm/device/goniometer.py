@@ -118,7 +118,7 @@ class Goniometer(GoniometerBase):
         self._expbox_mount_cmd = self.add_pv(mnt_cmd)
         self.omega = VMEMotor('%s:deg' % name)
         self.minibeam = minibeam
-        self.minibeam_in_position = 3.650
+        self.minibeam_in_position = 3.630
          
         #parameters
         self._settings = {
