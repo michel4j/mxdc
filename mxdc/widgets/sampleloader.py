@@ -287,23 +287,25 @@ class DewarLoader(gtk.Frame):
     
     def find_crystal(self, port=None, barcode=None):
         found = None
+        
         if port is None and barcode is None:
             pass
-        elif port is None:
-            for xtl in self.samples_database['crystals'].values():
-                if xtl['barcode'] == barcode:
-                    found = xtl
-                    break
-        elif barcode is None:
-            for xtl in self.samples_database['crystals'].values():
-                if xtl['port'] == port:
-                    found = xtl
-                    break
-        else:
-            for xtl in self.samples_database['crystals'].values():
-                if (xtl['port'], xtl['barcode']) == (port,barcode):
-                    found = xtl
-                    break
+        elif self.samples_database:
+            if port is None:
+                for xtl in self.samples_database.get('crystals',{}).values():
+                    if xtl['barcode'] == barcode:
+                        found = xtl
+                        break
+            elif barcode is None:
+                for xtl in self.samples_database.get('crystals',{}).values():
+                    if xtl['port'] == port:
+                        found = xtl
+                        break
+            else:
+                for xtl in self.samples_database.get('crystals',{}).values():
+                    if (xtl['port'], xtl['barcode']) == (port,barcode):
+                        found = xtl
+                        break
         return found
                       
     def load_database(self, samples_database):
@@ -339,7 +341,8 @@ class DewarLoader(gtk.Frame):
             self.load_database(self.samples_database)
             self.selected_crystal = None
         except:
-            pass
+            self.samples_database = {}
+
 
     
     def get_loaded_samples(self):
