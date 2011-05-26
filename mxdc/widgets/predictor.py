@@ -23,11 +23,11 @@ import time
 
 _logger = get_module_logger(__name__)
 
-try:
-    from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
-except:
-    from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
+#try:
+#    from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
+#except:
 
+from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
             
 class Predictor( gtk.AspectFrame ):
