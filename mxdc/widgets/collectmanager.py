@@ -289,7 +289,7 @@ class CollectManager(gtk.Frame):
     def on_clear_strategy(self, obj):
         self.update_active_data(strategy={})
                        
-    @async
+    #@async
     def execute_mount_action(self):
         done_text = ''
         if self.sel_mount_action == MOUNT_ACTION_MOUNT:
