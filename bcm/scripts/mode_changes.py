@@ -17,10 +17,14 @@ class SetCenteringMode(Script):
     description = "Prepare for crystal centering."
     def run(self):
         safe_beamstop = self.beamline.config['default_beamstop']
-        save_distance = 300
+        safe_distance = 300
+        
+        mount_distance = 700 # Should be the same as the 'safe_distance' from SetMountMode
+        
         self.beamline.goniometer.set_mode('CENTERING', wait=True)
         self.beamline.beamstop_z.move_to(safe_beamstop)
-        self.beamline.detector_z.move_to(save_distance)
+        if abs(self.beamline.detector_z.get_position() - mount_distance) < 1:
+            self.beamline.detector_z.move_to(safe_distance)
         self.beamline.cryojet.nozzle.close()
         
 
