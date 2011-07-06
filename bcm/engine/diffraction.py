@@ -201,6 +201,7 @@ class DataCollector(gobject.GObject):
                     gobject.idle_add(self.emit, 'paused', True, pause_dict)
                     while self.paused and not self.stopped:
                         time.sleep(0.05)
+                    self.beamline.goniometer.set_mode('COLLECT', wait=True)   
                     gobject.idle_add(self.emit, 'paused', False, {})
                 if self.stopped:
                     gobject.idle_add(self.emit, 'stopped')

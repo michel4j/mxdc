@@ -109,7 +109,7 @@ def from_buffer(buffer, mime=False):
 
 
 
-libmagic = cbflib = ctypes.cdll.LoadLibrary('libmagic.so')
+libmagic = cbflib = ctypes.cdll.LoadLibrary('libmagic.so.1')
 
 magic_t = ctypes.c_void_p
 
