@@ -6,6 +6,7 @@ Created on Oct 25, 2010
 from bcm.engine import centering, snapshot
 from bcm.service.common import *
 from bcm.utils.decorators import ca_thread_enable
+from bcm.utils.decorators import async
 
 from bcm.utils.log import get_module_logger
 _logger = get_module_logger('bcm.engine.auto')
@@ -60,7 +61,7 @@ def auto_center(bl):
         return _out
 
 
-@ca_thread_enable
+@async
 def auto_mount_manual(bl, port, wash=False):
     if bl.automounter.is_busy() or not bl.automounter.is_active():
         raise MountError("Automounter is busy or inactive.")
@@ -79,7 +80,7 @@ def auto_mount_manual(bl, port, wash=False):
             bl.goniometer.set_mode('CENTERING', wait=True)
             _logger.info('Sample mounting succeeded')
 
-@ca_thread_enable    
+@async  
 def auto_dismount_manual(bl, port):
     if bl.automounter.is_busy() or not bl.automounter.is_active():
         raise MountError("Automounter is busy or inactive.")
