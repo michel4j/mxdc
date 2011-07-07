@@ -141,7 +141,13 @@ cbflib.cbf_find_column.argtypes = [c_void_p, c_char_p]
 cbflib.cbf_datablock_name.argtypes = [c_void_p, c_void_p]
 cbflib.cbf_get_overload.argtypes = [c_void_p, c_uint, POINTER(c_double)]
 
-
+def get_max_int(t):
+    v = t(2**(8*sizeof(t))-1).value
+    if v == -1: #signed
+        return t(2**(8*sizeof(t)-1)-1)
+    else:       #unsiged
+        return t(2**(8*sizeof(t)-1))
+    
 class CBFImageFile(object):
     def __init__(self, filename, header_only=False):
         self._cbflib = cbflib # keep a reference until all objects are destroyed
@@ -241,7 +247,7 @@ class CBFImageFile(object):
         header['delta_angle'] = inc.value
         
         el_type = DECODER_DICT[self.mime_header.get('X-Binary-Element-Type', 'signed 32-bit integer')][0]
-        ovl = c_double(2**(8*sizeof(el_type)) - 1)
+        ovl = get_max_int(el_type)
         res |= cbflib.cbf_get_overload(self.handle, 0, byref(ovl))
         header['saturated_value'] = ovl.value
         
