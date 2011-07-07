@@ -48,6 +48,10 @@ COLORMAPS['gist_yarg'][-1] = 0
 COLORMAPS['gist_yarg'][-2] = 0
 COLORMAPS['gist_yarg'][-3] = 255
 
+COLORMAPS['gist_yarg'][0] = 0
+COLORMAPS['gist_yarg'][1] = 0
+COLORMAPS['gist_yarg'][2] = 255
+
 _GAMMA_SHIFT = 3.5        
         
 def _load_frame_image(filename, gamma_offset = 0.0):
@@ -60,9 +64,10 @@ def _load_frame_image(filename, gamma_offset = 0.0):
     disp_gamma = image_info['header']['gamma'] * numpy.exp(-gamma_offset + _GAMMA_SHIFT)/30.0
     lut = stretch(disp_gamma)
     image_info['src-image'] =  image_obj.image
+    img_min, img_max =  image_obj.image.getextrema()
     image_info['image'] = image_obj.image.point(lut, 'L')
     idx = range(len(hist))
-    x = numpy.linspace(0, 65535, len(hist))
+    x = numpy.linspace(img_min, img_max, len(hist))
     l = 2
     r = len(hist)-1
     image_info['histogram'] = numpy.array(zip(idx[l:r],x[l:r],hist[l:r]))
