@@ -250,6 +250,7 @@ class CBFImageFile(object):
         ovl = get_max_int(el_type)
         res |= cbflib.cbf_get_overload(self.handle, 0, byref(ovl))
         header['saturated_value'] = ovl.value
+
         
         nx, ny, nz = c_double(0.0), c_double(0.0), c_double(0.0)
         res |= cbflib.cbf_get_detector_normal(self.detector, byref(nx), byref(ny), byref(nx))
@@ -297,7 +298,7 @@ class CBFImageFile(object):
         self.image = Image.fromstring('F', self.header['detector_size'], data, 'raw', el_params[1])
         self.image = self.image.convert('I')
         arr = numpy.fromstring(data, dtype=el_type)
-        self.header['average_intensity'] = arr.mean()    
+        self.header['average_intensity'] = arr.mean()
         self.header['min_intensity'], self.header['max_intensity'] = arr.min(), arr.max()
         self.header['gamma'] = calc_gamma(self.header['average_intensity'])
         self.header['overloads'] = len(numpy.where(arr >= self.header['saturated_value'])[0])
