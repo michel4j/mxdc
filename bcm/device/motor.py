@@ -35,6 +35,7 @@ class MotorBase(BaseDevice):
         self.name = name
         self._moving = False
         self._command_sent = False
+        self._target_pos = 0
         self._motor_type = 'basic'
         self.units = ''
         self._move_active_value = 1
@@ -263,6 +264,7 @@ class Motor(MotorBase):
         
                 
         self._command_sent = True
+        self._target_pos = pos
         self.VAL.set(pos)
         _pos_from = _pos_format % self.get_position()
         _logger.debug( "(%s) moving from %s to %s" % (self.name, _pos_from, _pos_to) )
@@ -282,11 +284,20 @@ class Motor(MotorBase):
     def wait(self, start=True, stop=True):
         poll=0.05
         timeout = 5.0
+        
+        #initialize precision
+        prec = self.PREC.get()
+        if prec == 0 or prec is None:
+            prec = 3
+
         if (start and self._command_sent and not self._moving):
             _logger.debug('(%s) Waiting to start moving' % (self.name,))
             while self._command_sent and not self._moving and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
+                if abs(self._target_pos - self.get_position()) < 10**-prec:
+                    self._command_sent = False
+                    _logger.warning('(%s) already moved to target.' % (self.name,))
             if timeout <= 0:
                 _logger.warning('Timed out waiting for (%s) to start moving.' % (self.name,))
                 return False                
@@ -404,6 +415,7 @@ class BraggEnergyMotor(Motor):
         
         deg_target = converter.energy_to_bragg(pos)
         self._command_sent = True
+        self._target_pos = pos
         self.VAL.put(deg_target)
         _logger.info( "(%s) moving to %f" % (self.name, pos) )
         

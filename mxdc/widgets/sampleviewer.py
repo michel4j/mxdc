@@ -15,6 +15,7 @@ from bcm.utils.decorators import async
 from bcm.utils.video import add_decorations
 
 from bcm.engine.scripting import get_scripts
+from bcm.utils.imgproc import get_pin_tip
 
 try:
     import cairo
@@ -39,6 +40,7 @@ class SampleViewer(gtk.Frame):
         self.set_shadow_type(gtk.SHADOW_NONE)
         
         self._timeout_id = None
+        self._disp_time = 0
         self._click_centering  = False
         self._colormap = 0
         self._tick_size = 8
@@ -276,13 +278,10 @@ class SampleViewer(gtk.Frame):
             self.scripts[sc].connect('started', self.on_scripts_started)
             self.scripts[sc].connect('done', self.on_scripts_done)
     
-        
-
-
     def _overlay_function(self, pixmap):
         self.draw_beam_overlay(pixmap)
         self.draw_meas_overlay(pixmap)
-        return True     
+        return True        
         
     
     # callbacks
@@ -352,10 +351,10 @@ class SampleViewer(gtk.Frame):
         self.beamline.sample_video.zoom(8)
 
     def on_zoom_out(self,widget):
-        self.beamline.sample_video.zoom(1)
+        self.beamline.sample_video.zoom(2)
 
     def on_unzoom(self,widget):
-        self.beamline.sample_video.zoom(4)
+        self.beamline.sample_video.zoom(5)
 
     def on_incr_omega(self,widget):
         cur_omega = int(self.beamline.goniometer.omega.get_position() )
