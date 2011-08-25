@@ -32,6 +32,7 @@ class ImageViewer(gtk.Frame):
         self._cl_hide_id = None
         self._follow_id = None
         self.next_filename = ''
+        self._last_queued = ''
         self.prev_filename = ''
         self.all_spots = []
         self._create_widgets()
@@ -103,16 +104,6 @@ class ImageViewer(gtk.Frame):
         self.add(self._widget)         
         self.show_all()
 
-    def __set_busy(self, busy ):
-        if busy:
-            self.cursor = gtk.gdk.Cursor(gtk.gdk.WATCH)
-            self.image_canvas.window.set_cursor( self.cursor )
-        else:
-            self.cursor = None
-            self.image_canvas.window.set_cursor( self.cursor )
-        while gtk.events_pending():
-            gtk.main_iteration()
-
     def log(self, msg):
         img_logger.info(msg)
        
@@ -163,6 +154,7 @@ class ImageViewer(gtk.Frame):
             self.next_btn.set_sensitive(False)
         else:
             self.next_btn.set_sensitive(True)
+            
         # test prev
         if not image_loadable(self.prev_filename):
             self.prev_btn.set_sensitive(False)
@@ -179,10 +171,6 @@ class ImageViewer(gtk.Frame):
         self.info_btn.set_sensitive(True)
     
     def open_image(self, filename):
-        if not image_loadable(filename):
-            img_logger.error("File '%s' not readable!" % filename)
-            return
-                
         # select spots and display for current image
         if len(self.all_spots) > 0:
             image_spots = self._select_image_spots(self.all_spots)
@@ -287,10 +275,13 @@ class ImageViewer(gtk.Frame):
             self.image_canvas.queue_frame(filename)
 
     def _follow_frames(self):
-        if image_loadable(self.next_filename) and self._following:
-            self.image_canvas.queue_frame(self.next_filename)
-            gobject.timeout_add(1000, self._follow_frames)
-        return False
+        if self._following:
+            if (self._last_queued != self.next_filename):
+                self.image_canvas.queue_frame(self.next_filename)
+                self._last_queued = self.next_filename
+            return True
+        else:
+            return False
           
     def on_image_info(self, obj):         
         if self.info_dialog is None:
