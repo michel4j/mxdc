@@ -71,8 +71,8 @@ class SMVImageFile(object):
         info['pixel_size'] = float(tmp_info['pixel_size'])
         orgx = float(tmp_info['beam_center_x'])/info['pixel_size']
         orgy =float(tmp_info['beam_center_y'])/info['pixel_size']
-        info['beam_center'] = (orgy, orgx)
         info['detector_size'] = (int(tmp_info['size1']), int(tmp_info['size2']))
+        info['beam_center'] = (orgx, info['detector_size'][1] - orgy)
         # use image center if detector origin is (0,0)
         if sum(info['beam_center']) <  0.1:
             info['beam_center'] = (info['detector_size'][0]/2.0, info['detector_size'][1]/2.0)

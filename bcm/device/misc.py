@@ -526,16 +526,22 @@ class HumidityController(BaseDevice):
     def __init__(self, root_name):
         BaseDevice.__init__(self)
         self.name = 'Humidity Controller'
-        self.relative_humidity = Positioner('%s:SetpointRH' % root_name,'%s:RH' % root_name)
-        self.sample_temperature = self.add_pv('%s:SampleTemp' % root_name)
+        self.humidity = Positioner('%s:SetpointRH' % root_name,'%s:RH' % root_name)
+        self.temperature = Positioner('%s:SetpointSampleTemp' % root_name, '%s:SampleTemp' % root_name)
+        self.session = self.add_pv('%s:Session' % root_name )
+        self.ROI = self.add_pv('%s:ROI' % root_name)
+        self.modbus_state = self.add_pv('%s:ModbusControllerState' % root_name)
+        
         self.drop_size = self.add_pv('%s:DropSize' % root_name)
-        self.ROI = Positioner('%s:ROI' % root_name)
+        self.drop_coords = self.add_pv('%s:DropCoordinates' % root_name)
+        
         self.status = self.add_pv('%s:State' % root_name)
-        self.add_devices(self.relative_humidity, self.ROI)
+        self.add_devices(self.humidity, self.temperature)
         
     
     def set_humidity(self, val):
-        self.relative_humitidy.set(val)
+        self.humitidy.set(val)
+    
     
 
 class SimStorageRing(BaseDevice):
