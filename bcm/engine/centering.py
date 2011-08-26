@@ -27,6 +27,8 @@ def pre_center():
     except:
         _logger.warning('No registered beamline found')
         return {'RELIABILITY': -99}
+    
+    beamline.sample_frontlight.set(100)
     zoom = beamline.sample_zoom.get()
     blight = beamline.sample_backlight.get()
     back_filename = '%s/data/%s/bg-%d_%d.png' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, int(zoom), int(blight))
@@ -73,9 +75,9 @@ def auto_center(pre_align=True):
     frontlt = beamline.sample_frontlight.get()
     beamline.sample_zoom.set(ZOOM)
     beamline.sample_backlight.set(BLIGHT)
-    beamline.sample_frontlight.set(FLIGHT)
 
     pre_center();
+    beamline.sample_frontlight.set(FLIGHT)
 
     # get images
     prefix = get_short_uuid()
@@ -139,7 +141,7 @@ def auto_center(pre_align=True):
     # calculate motor positions and move
     cx = beamline.camera_center_x.get()
     cy = beamline.camera_center_y.get()
-    beamline.goniometer.omega.move_to(results['TARGET_ANGLE'], wait=True)
+    beamline.goniometer.omega.move_to(results['TARGET_ANGLE'] % 360.0, wait=True)
     if results['Y_CENTRE'] != -1:
         x = results['Y_CENTRE']
         xmm = (cx - x) * beamline.sample_video.resolution
