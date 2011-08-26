@@ -256,6 +256,9 @@ class DataCollector(gobject.GObject):
                 self._notify_progress(self.STATE_DONE)
                 self.pos = self.pos + 1
             
+            # Wait for Last image to be transfered
+            time.sleep(2.0)
+            
             self.results = self.get_dataset_info(self.data_sets.values())
             gobject.idle_add(self.emit, 'done')
             self.stopped = True

@@ -19,7 +19,6 @@ def get_pin_tip(img, bkg=None, orientation=2):
         ab -= ab.mean()
     else:
         ab = numpy.asarray(img.convert('L'))
-        ab -= ab.mean()
         
     x1 = numpy.amax(ab, 0) - numpy.amin(ab, 0)
     y1 = numpy.amax(ab, 1) - numpy.amin(ab, 1)
