@@ -11,6 +11,7 @@ import gobject
 import dbus
 import dbus.glib
 import avahi
+import socket
 from bcm.utils import json
 from bcm.utils.log import get_module_logger
     
@@ -43,6 +44,9 @@ class Provider(gobject.GObject):
             avahi.DBUS_INTERFACE_ENTRY_GROUP)
         self._entrygroup.connect_to_signal('StateChanged', self._state_changed)
         self._services = {}
+        data_list = []
+        for k,v in data.items():
+            data_list.append("%s=%s" % (k, v))
         self._params = [
             avahi.IF_UNSPEC,            # interface
             avahi.PROTO_UNSPEC,         # protocol
@@ -50,9 +54,9 @@ class Provider(gobject.GObject):
             name,                       # name
             service_type,               # service type
             "",                         # domain
-            hostname,                         # host
+            hostname,                   # host
             dbus.UInt16(port),          # port
-            json.dumps(data), # data
+            avahi.string_array_to_txt_array(data_list), # data
         ]
         self._add_service(unique)
 
@@ -82,7 +86,6 @@ class Provider(gobject.GObject):
             try:
                 self._entrygroup.AddService(*self._params)
                 self._entrygroup.Commit()
-                print 
             except dbus.exceptions.DBusException:
                 if unique:
                     log.error('Service Name Collision')
@@ -170,7 +173,7 @@ class Browser(gobject.GObject):
             'protocol': int(protocol), 
             'name': str(name),
             'domain':  str(domain),
-            'host':  str(host), 
+            'host':  socket.gethostbyaddr(str(address))[0].lower(), 
             'address': str(address), 
             'port': int(port),
             'local': local,
