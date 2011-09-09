@@ -69,10 +69,8 @@ class Positioner(PositionerBase):
             self.fbk_pv = self.add_pv(fbk_name)
         self.DESC = PV('%s.DESC' % name) # device should work without desc pv so not using add_pv
         self.name = name
-        if scale is None:
-            self.units = units
-        else:
-            self.units = '%'
+        self.units = units
+
         self.fbk_pv.connect('changed', self._signal_change)
         self.DESC.connect('changed', self._on_name_change)
 

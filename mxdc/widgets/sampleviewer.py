@@ -273,6 +273,9 @@ class SampleViewer(gtk.Frame):
         self.mode_tbl.attach(self.cent_btn, 0, 1, 0, 1)
         self.mode_tbl.attach(self.beam_btn, 1, 2, 0, 1)
         
+        # disable mode change buttons while automounter is busy
+        self.beamline.automounter.connect('busy', self.on_automounter_busy)
+              
         # disable key controls while scripts are running
         for sc in ['SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'SetBeamMode']:
             self.scripts[sc].connect('started', self.on_scripts_started)
@@ -285,6 +288,10 @@ class SampleViewer(gtk.Frame):
         
     
     # callbacks
+    def on_automounter_busy(self, obj, state):
+        self.cent_btn.set_sensitive(not state)
+        self.beam_btn.set_sensitive(not state)
+        
     def on_scripts_started(self, obj, event=None):
         self.side_panel.set_sensitive(False)
     
