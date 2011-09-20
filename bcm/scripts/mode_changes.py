@@ -3,15 +3,15 @@ from bcm.engine.scripting import Script
 class SetMountMode(Script):
     description = "Prepare for manual sample mounting."
     def run(self):
-        if not self.beamline.automounter.is_busy():
-            safe_distance = 700
-            if self.beamline.detector_z.get_position() < safe_distance:
-                self.beamline.detector_z.move_to(safe_distance)
-            safe_beamstop = self.beamline.config['safe_beamstop']
-            self.beamline.goniometer.set_mode('MOUNTING', wait=True)
-            self.beamline.beamstop_z.move_to(safe_beamstop)
-            self.beamline.cryojet.nozzle.open()
-            self.beamline.beamstop_z.wait()
+        #if not self.beamline.automounter.is_busy():
+        safe_distance = 700
+        if self.beamline.detector_z.get_position() < safe_distance:
+            self.beamline.detector_z.move_to(safe_distance)
+        safe_beamstop = self.beamline.config['safe_beamstop']
+        self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+        self.beamline.beamstop_z.move_to(safe_beamstop)
+        self.beamline.cryojet.nozzle.open()
+        self.beamline.beamstop_z.wait()
         
         
         
