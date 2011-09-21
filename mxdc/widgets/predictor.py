@@ -7,13 +7,13 @@ import threading
 import sys
 import pango
 import thread
+import numpy
 
 from matplotlib.artist import Artist
 from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize, LogNorm
-from matplotlib.numerix import arange, sin, pi, arcsin, arctan, sqrt, cos
 from matplotlib.ticker import FormatStrFormatter, NullLocator
 from matplotlib import rcParams
 from pylab import meshgrid
@@ -87,7 +87,7 @@ class Predictor( gtk.AspectFrame ):
             self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)             
             self.canvas.draw()
             self.last_updated = time.time()
-        except:
+        except ValueError:
             _logger.debug('Predictor Widget not updating...')
         return False
         
@@ -108,10 +108,10 @@ class Predictor( gtk.AspectFrame ):
                     redraw_pending = True
                     self.distance = abs(v)
             elif k == 'two_theta':
-                v_ = v * pi/ 180.0
+                v_ = v * numpy.pi/ 180.0
                 if (abs(v_-self.two_theta) >= 0.05):
                     redraw_pending = True
-                    self.two_theta = v_
+                    self.two_theta = abs(v_)
             elif k == 'pixel_size':
                 if (v != self.pixel_size): 
                     redraw_pending = True
@@ -144,10 +144,11 @@ class Predictor( gtk.AspectFrame ):
         return True
     
     def _angle(self, resol):
-        return arcsin( 0.5 * self.wavelength / resol )
+        sa = max(-1.0, min(0.5 * self.wavelength / resol, 1.0))
+        return numpy.arcsin(sa)
         
     def _resol(self, angl):
-        return 0.5 * self.wavelength / sin (angl)
+        return 0.5 * self.wavelength / numpy.sin (angl)
         
     def _mm(self, pix, center):
         return (pix - center) * self.pixel_size
@@ -156,7 +157,7 @@ class Predictor( gtk.AspectFrame ):
         max_angle = self._angle( resolution )
         min_angle = self._angle( 50.0)
         step_size = ( max_angle - min_angle ) / num
-        angles = arange(min_angle, max_angle + step_size, step_size)
+        angles = numpy.arange(min_angle, max_angle + step_size, step_size)
         result = []
         for ang in angles:
             result.append( self._resol(ang) )
@@ -165,10 +166,10 @@ class Predictor( gtk.AspectFrame ):
     def _pix_resol(self, xp, yp):
         x = (xp - self.beam_x) * self.pixel_size
         y = (yp - self.beam_y) * self.pixel_size
-        dangle = arctan( sqrt(x**2 + pow(y*cos(self.two_theta) + self.distance*sin(self.two_theta),2))
-                 / (self.distance * cos(self.two_theta) - y * sin(self.two_theta)) )
+        dangle = numpy.arctan( numpy.sqrt(x**2 + (y*numpy.cos(self.two_theta) + self.distance*numpy.sin(self.two_theta))**2)
+                 / (self.distance * numpy.cos(self.two_theta) - y * numpy.sin(self.two_theta)) )
         theta = 0.5 * ( dangle + 1.0e-12) # make sure theta is never zero
-        d = self.wavelength / ( 2.0 * sin(theta) )
+        d = self.wavelength / ( 2.0 * numpy.sin(theta) )
         return d
 
     def _do_calc(self):
@@ -176,7 +177,7 @@ class Predictor( gtk.AspectFrame ):
             if self._do_update:
                 self._do_update = False
                 grid_size = 150
-                x = arange(0, self.detector_size, grid_size)
+                x = numpy.arange(0, self.detector_size, grid_size)
                 y = x
                 X,Y = meshgrid(x,y)
                 Z = self._pix_resol(X,Y)

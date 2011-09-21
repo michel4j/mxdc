@@ -48,12 +48,31 @@ COLORMAPS['gist_yarg'][-1] = 0
 COLORMAPS['gist_yarg'][-2] = 0
 COLORMAPS['gist_yarg'][-3] = 255
 
-COLORMAPS['gist_yarg'][0] = 0
-COLORMAPS['gist_yarg'][1] = 0
-COLORMAPS['gist_yarg'][2] = 255
+#COLORMAPS['gist_yarg'][0] = 0
+#COLORMAPS['gist_yarg'][1] = 0
+#COLORMAPS['gist_yarg'][2] = 255
 
 _GAMMA_SHIFT = 3.5        
-        
+
+
+_BUSY_CURSOR_BITS_ = "\
+\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\
+\x0c\x00\x00\x00\x1c\x00\x00\x00\x3c\x00\x00\x00\
+\x7c\x00\x00\x00\xfc\x00\x00\x00\xfc\x01\x00\x00\
+\xfc\x3b\x00\x00\x7c\x38\x00\x00\x6c\x54\x00\x00\
+\xc4\xdc\x00\x00\xc0\x44\x00\x00\x80\x39\x00\x00\
+\x80\x39\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+\x00\x00\x00\x00\x00\x00\x00\x00"
+
+_c_pix = gtk.gdk.bitmap_create_from_data(None, _BUSY_CURSOR_BITS_, 32, 32)
+_c_color = gtk.gdk.Color()
+LEFT_PTR_WATCH=gtk.gdk.Cursor(_c_pix, _c_pix, _c_color, _c_color, 2, 2)
+
+   
 def _load_frame_image(filename, gamma_offset = 0.0):
     image_info = {}
     image_obj = read_image(filename)
@@ -136,7 +155,7 @@ class FileLoader(gobject.GObject):
     def _run(self):
         filename = None
         while not self._stopped:
-            time.sleep(0.2)
+            time.sleep(0.5)
             if self._paused:
                 continue
             elif filename is None:
@@ -551,9 +570,12 @@ class ImageWidget(gtk.DrawingArea):
         if cursor is None:
             self.window.set_cursor(None)
         else:
-            self.window.set_cursor(gtk.gdk.Cursor(cursor))            
-        while gtk.events_pending():
-            gtk.main_iteration()
+            if cursor == gtk.gdk.WATCH:
+                _cur = LEFT_PTR_WATCH
+            else:
+                _cur = gtk.gdk.Cursor(cursor)
+            self.window.set_cursor(_cur)
+        gtk.main_iteration()
             
     def _clear_extents(self):
         self.extents_back = []
