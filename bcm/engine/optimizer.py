@@ -33,6 +33,25 @@ class Optimizer(BaseDevice):
 
 SimOptimizer = Optimizer
   
+class BossOptimizer(BaseDevice):
+    
+    def __init__(self, name):
+        BaseDevice.__init__(self)
+        self.name = name
+        self._enable = self.add_pv('%s:EnableDacOUT' % name)
+        self._status = self.add_pv('%s:EnableDacIN' % name)
+        
+    def status(self):
+        return self._status.get()
+        
+    def enable(self):
+        _logger.debug('Enabling BOSS.')
+        self._enable.put(1)
+        
+    def disable(self):
+        _logger.debug('Disabling BOSS.')
+        self._enable.put(0)
+        
 class MostabOptimizer(BaseDevice):
     
     implements(IOptimizer)
@@ -136,11 +155,11 @@ class PitchOptimizer(BaseDevice):
         if self.active_state and self._scan is not None:
             self._scan.stop()
             self.pitch.move_to(self._current_pitch)
-            _logger.info('Pitch Optimization aborded. Moving to theoretical position %0.4e.' % (self._current_pitch))
+            _logger.info('Pitch Optimization aborted. Moving to theoretical position %0.4e.' % (self._current_pitch))
 
     def wait(self):
         poll=0.05
         while self.busy_state:
             time.sleep(poll)
             
-__all__ = ['MostabOptimizer', 'SimOptimizer', 'PitchOptimizer'] 
+__all__ = ['BossOptimizer', 'MostabOptimizer', 'SimOptimizer', 'PitchOptimizer'] 
