@@ -492,7 +492,7 @@ class Automounter(BasicAutomounter):
     def _on_safety_changed(self, pv, st):
         if self.busy_state and st != 1:
             self.abort()
-            msg = "Enstation became unsafe while automounter was busy. Aborting."
+            msg = "Endstation became unsafe while automounter was busy. Aborting."
             _logger.error(msg)
             self.set_state(health=(2, 'dev-unsafe', msg))
         else:
@@ -639,6 +639,28 @@ class AutomounterClient(SlaveDevice, BasicAutomounter):
     
     def remote_update(self, state):
         self.parse_states(state)
+       
+class ManualMounter(BaseDevice):
+    """Basic Automounter objects. Contains a number of Automounter Containers.
+    
+    Signals:
+        `mounted`: 
+            a signal emitted when a sample is mounted. The data transmitted
+            is a tuple of the form (<port no.>, <barcode>) when mounting and ``None`` when dismounting. 
+    """
+    
+    __gsignals__ = {
+        'mounted': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+    }
+    def __init__(self):
+        BaseDevice.__init__(self)
+        self.sample = None
+
+    def mount(self, state):
+        gobject.idle_add(self.emit, 'mounted', state)
+    
+    def dismount(self, state):
+        gobject.idle_add(self.emit, 'mounted', None)
        
 # Motors
 registry.register([IAutomounter], IDeviceServer, '', AutomounterServer)
