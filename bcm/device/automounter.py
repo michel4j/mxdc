@@ -491,14 +491,8 @@ class Automounter(BasicAutomounter):
 
     def _on_safety_changed(self, pv, st):
         if self.busy_state and st != 1:
-            self.abort()
-            msg = "Endstation became unsafe while automounter was busy. Aborting."
-            _logger.error(msg)
-            self.set_state(health=(2, 'dev-unsafe', msg))
-        else:
-            if st == 1:
-                self.set_state(health=(0, 'dev-unsafe') )
-                   
+            msg = "Endstation became unsafe while automounter was busy"
+            _logger.warning(msg)
 
     def _on_state_changed(self, pv, st):
         try:

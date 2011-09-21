@@ -39,8 +39,11 @@ class MXDCApp(object):
     def run_local(self, config):
         self.main_window = AppWindow()
         _service_data = {'user': get_project_name(), 
-                         'started': time.asctime(time.localtime())}
+                         'started': time.asctime(time.localtime()),
+                         'beamline': os.environ.get('BCM_BEAMLINE', 'sim')}
         try:
+            self.browser = mdns.Browser('_mxdc._tcp')
+            self.browser.connect('added', self.found_existing)
             self.provider = mdns.Provider('MXDC Client (%s)' % os.environ.get('BCM_BEAMLINE', 'sim'), '_mxdc._tcp', 9999, _service_data, unique=True)
             self.provider.connect('running', lambda x: self.provider_success(config))
             self.provider.connect('collision', lambda x: self.provider_failure())
@@ -49,6 +52,12 @@ class MXDCApp(object):
             self.provider_failure()
         return False
     
+    def found_existing(self, obj, instance):
+        data = instance['data']
+        if data.get('beamline') == os.environ.get('BCM_BEAMLINE', 'sim'):
+            _logger.info('MxDC is running on `%s` and was started`%s` by user `%s`.' % (instance['host'], data['started'], data['user'] ))    
+        
+        
     def run_remote(self):
         self.main_window = AppWindow()
         beamline = BeamlineClient()

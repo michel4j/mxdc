@@ -15,6 +15,7 @@ from bcm.utils.decorators import async
 from bcm.utils.video import add_decorations
 
 from bcm.engine.scripting import get_scripts
+from bcm.utils.imgproc import get_pin_tip
 
 try:
     import cairo
@@ -39,6 +40,7 @@ class SampleViewer(gtk.Frame):
         self.set_shadow_type(gtk.SHADOW_NONE)
         
         self._timeout_id = None
+        self._disp_time = 0
         self._click_centering  = False
         self._colormap = 0
         self._tick_size = 8
@@ -271,21 +273,25 @@ class SampleViewer(gtk.Frame):
         self.mode_tbl.attach(self.cent_btn, 0, 1, 0, 1)
         self.mode_tbl.attach(self.beam_btn, 1, 2, 0, 1)
         
+        # disable mode change buttons while automounter is busy
+        self.beamline.automounter.connect('busy', self.on_automounter_busy)
+              
         # disable key controls while scripts are running
         for sc in ['SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'SetBeamMode']:
             self.scripts[sc].connect('started', self.on_scripts_started)
             self.scripts[sc].connect('done', self.on_scripts_done)
     
-        
-
-
     def _overlay_function(self, pixmap):
         self.draw_beam_overlay(pixmap)
         self.draw_meas_overlay(pixmap)
-        return True     
+        return True        
         
     
     # callbacks
+    def on_automounter_busy(self, obj, state):
+        self.cent_btn.set_sensitive(not state)
+        self.beam_btn.set_sensitive(not state)
+        
     def on_scripts_started(self, obj, event=None):
         self.side_panel.set_sensitive(False)
     
@@ -352,10 +358,10 @@ class SampleViewer(gtk.Frame):
         self.beamline.sample_video.zoom(8)
 
     def on_zoom_out(self,widget):
-        self.beamline.sample_video.zoom(1)
+        self.beamline.sample_video.zoom(2)
 
     def on_unzoom(self,widget):
-        self.beamline.sample_video.zoom(4)
+        self.beamline.sample_video.zoom(5)
 
     def on_incr_omega(self,widget):
         cur_omega = int(self.beamline.goniometer.omega.get_position() )

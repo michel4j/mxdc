@@ -95,12 +95,13 @@ class HutchManager(gtk.Frame):
             'energy':       MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.3f"),
             'attenuation':  ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
             'omega':        MotorEntry(self.beamline.goniometer.omega, 'Goniometer Omega', format="%0.2f"),
-            'beam_size':     ActiveEntry(self.beamline.aperture, 'Beam Size', format="%0.2f"),
+            'beam_size':     MotorEntry(self.beamline.aperture, 'Beam Size', format="%0.2f"),
             'distance':     MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.1f"),
             'beam_stop':    MotorEntry(self.beamline.beam_stop.z, 'Beam-stop', format="%0.1f"),
             'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f"),
             'chi':          MotorEntry(self.beamline.chi, 'Goniometer Chi', format="%0.1f")
         }
+                
         motor_box1 = gtk.VBox(False,0)
         for key in ['energy','attenuation','omega', 'chi']:
             motor_box1.pack_start(self.entries[key], expand=True, fill=False)
@@ -134,6 +135,9 @@ class HutchManager(gtk.Frame):
         self.beam_btn = ScriptButton(self.scripts['SetBeamMode'], 'Beam Mode') # Not currently displayed but used      
         self.commands_box.pack_start(self.front_end_btn)
         self.commands_box.pack_start(self.optimize_btn)
+        
+        # disable mode change buttons while automounter is busy
+        self.beamline.automounter.connect('busy', self.on_automounter_busy)
 
         # Monitor beam changes
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
@@ -164,6 +168,12 @@ class HutchManager(gtk.Frame):
         self.add(self.hutch_widget)
         self.show_all()
     
+    def on_automounter_busy(self, obj, state):
+        self.mount_btn.set_sensitive(not state)
+        self.cent_btn.set_sensitive(not state)
+        self.collect_btn.set_sensitive(not state)  
+        self.beam_btn.set_sensitive(not state)  
+        
     
     def on_beam_change(self, obj, beam_available):
         self.emit('beam-change', beam_available)
