@@ -174,6 +174,8 @@ class MXBeamline(object):
             self.diagnostics.append(ShutterStateDiag(self.all_shutters))
         except:
             self.logger.warning('Could not configure diagnostic device')
+            
+        self.registry['manualmounter'] = ManualMounter()
 
 __all__ = ['MXBeamline']
     
