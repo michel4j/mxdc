@@ -71,7 +71,7 @@ class RunManager(gtk.Notebook):
             num = num - 1
         self.set_current_page(num)
     
-    def update_active_data(self, sample=None, strategy=None):
+    def update_active_data(self, obj=None, sample=None, strategy=None):
         self.active_sample = sample
         self.active_strategy = strategy
         for run in self.runs:
