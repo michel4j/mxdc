@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <glade-interface>
   <!-- interface-requires gtk+ 2.10 -->
   <!-- interface-naming-policy toplevel-contextual -->
@@ -13,7 +13,6 @@
         <child>
           <widget class="GtkVBox" id="vbox1">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
             <property name="spacing">6</property>
             <child>
               <widget class="GtkFrame" id="frame1">
@@ -27,7 +26,6 @@
                     <child>
                       <widget class="GtkVBox" id="vbox2">
                         <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
                         <child>
                           <widget class="GtkRadioButton" id="xanes_btn">
                             <property name="label" translatable="yes">MAD Scan</property>
@@ -130,7 +128,7 @@
                     <child>
                       <widget class="GtkTable" id="layout_table">
                         <property name="visible">True</property>
-                        <property name="n_rows">6</property>
+                        <property name="n_rows">7</property>
                         <property name="n_columns">3</property>
                         <property name="homogeneous">True</property>
                         <child>
@@ -335,6 +333,39 @@
                           </packing>
                         </child>
                         <child>
+                          <widget class="GtkLabel" id="label3">
+                            <property name="visible">True</property>
+                            <property name="xalign">1</property>
+                            <property name="label" translatable="yes">Crystal:</property>
+                          </widget>
+                          <packing>
+                            <property name="top_attach">6</property>
+                            <property name="bottom_attach">7</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkEntry" id="crystal_entry">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">True</property>
+                            <property name="editable">False</property>
+                            <property name="invisible_char">•</property>
+                            <property name="width_chars">0</property>
+                            <property name="text" translatable="yes">[Unknown]</property>
+                            <property name="xalign">0.5</property>
+                            <property name="invisible_char_set">True</property>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">3</property>
+                            <property name="top_attach">6</property>
+                            <property name="bottom_attach">7</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
                           <placeholder/>
                         </child>
                       </widget>
@@ -359,7 +390,6 @@
             </child>
             <child>
               <widget class="GtkVBox" id="xanes_vbox">
-                <property name="orientation">vertical</property>
                 <property name="spacing">3</property>
                 <child>
                   <widget class="GtkScrolledWindow" id="xanes_sw">
@@ -468,7 +498,6 @@
             <child>
               <widget class="GtkVBox" id="vbox3">
                 <property name="visible">True</property>
-                <property name="orientation">vertical</property>
                 <property name="spacing">3</property>
                 <child>
                   <widget class="GtkButton" id="scan_btn">
