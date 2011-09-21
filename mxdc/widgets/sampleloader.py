@@ -12,6 +12,7 @@ import time
 from mxdc.widgets import dialogs
 from mxdc.utils.xlsimport import XLSLoader
 from mxdc.utils.config import load_config, save_config
+from mxdc.widgets.mountwidget import MountWidget
 
 SAMPLES_DB_CONFIG = 'samples_db.json'
 XTALS_DB_CONFIG = 'crystals_db.json'
@@ -113,7 +114,11 @@ class DewarLoader(gtk.Frame):
         self.crystals_view = self.__create_crystals_view()
         self.crystals_view.connect('row-activated',self.on_crystal_activated)
 
+        self.expand_separator.set_expand(True)
+
         self.crystals_sw.add(self.crystals_view)
+        self.mount_widget = MountWidget()
+        self.mnt_hbox.add(self.mount_widget)
                 
         #btn commands
         self.clear_btn.connect('clicked', lambda x: self.clear_inventory())
