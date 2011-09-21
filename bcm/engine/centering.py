@@ -4,27 +4,54 @@ Created on Jan 26, 2010
 @author: michel
 '''
 
-import sys
 import os
 import time
 import tempfile
 from bcm.engine.snapshot import take_sample_snapshots
 from twisted.python.components import globalRegistry
-from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_short_uuid
+from bcm.utils.imgproc import get_pin_tip
+import Image
 import commands
 import shutil
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
-if sys.version_info[:2] >= (2,5):
-    import uuid
-else:
-    from bcm.utils import uuid # for 2.3, 2.4
 
+def pre_center():
+    try:
+        beamline = globalRegistry.lookup([], IBeamline)
+    except:
+        _logger.warning('No registered beamline found')
+        return {'RELIABILITY': -99}
+    
+    beamline.sample_frontlight.set(100)
+    zoom = beamline.sample_zoom.get()
+    blight = beamline.sample_backlight.get()
+    back_filename = '%s/data/%s/bg-%d_%d.png' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, int(zoom), int(blight))
+    if os.path.exists(back_filename):
+        bkg = Image.open(back_filename)
+    else:
+        bkg = None
+
+    cx = beamline.camera_center_x.get()
+    cy = beamline.camera_center_y.get()
+    for _ in range(3):
+        img = beamline.sample_video.get_frame()
+        x, y = get_pin_tip(img, bkg, orientation=int(beamline.config['orientation']))
+   
+        # calculate motor positions and move
+
+        xmm = (cx - x) * beamline.sample_video.resolution
+        beamline.sample_stage.x.move_by(-xmm, wait=True)
+
+        ymm = (cy - y) * beamline.sample_video.resolution
+        beamline.sample_stage.y.move_by(-ymm, wait=True)
+        beamline.goniometer.omega.move_by(60.0, wait=True)
+    
 
 def auto_center(pre_align=True):
     try:
@@ -32,9 +59,7 @@ def auto_center(pre_align=True):
     except:
         _logger.warning('No registered beamline found')
         return {'RELIABILITY': -99}
-           
-    tst = time.time()
-    
+               
     # determine direction based on current omega
     angle = beamline.goniometer.omega.get_position()
     if angle >  270:
@@ -42,11 +67,17 @@ def auto_center(pre_align=True):
     else:
         direction = 1.0
 
-    # set lighting
+    # set lighting and zoom
+    ZOOM = 2
+    BLIGHT = 65
+    FLIGHT = 0
     backlt = beamline.sample_backlight.get()
     frontlt = beamline.sample_frontlight.get()
-    beamline.sample_backlight.set(100)
-    beamline.sample_frontlight.set(0)
+    beamline.sample_zoom.set(ZOOM)
+    beamline.sample_backlight.set(BLIGHT)
+
+    pre_center();
+    beamline.sample_frontlight.set(FLIGHT)
 
     # get images
     prefix = get_short_uuid()
@@ -61,15 +92,7 @@ def auto_center(pre_align=True):
 
     # determine zoom level to select appropriate background image
     zoom = beamline.sample_zoom.get()
-    if zoom == 1.0:
-        zmlevel = 'low'
-    elif zoom == 4.0:
-        zmlevel = 'mid'
-    elif zoom == 8.0:
-        zmlevel = 'high'
-    else:
-        zmlevel = 0    
-    back_filename = '%s/data/%s/centering-bg-%s.png\n' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, zmlevel)
+    back_filename = '%s/data/%s/bg-%d_%d.png' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, int(zoom), BLIGHT)
 
     # create XREC input
     infile_name = os.path.join(directory, '%s.inp' % prefix)
@@ -80,7 +103,7 @@ def auto_center(pre_align=True):
     in_data+= 'CENTER_COORD %d\n' % (beamline.camera_center_y.get())
     in_data+= 'BORDER 4\n'
     if os.path.exists(back_filename):
-        in_data+= 'BACK %s' % (back_filename) 
+        in_data+= 'BACK %s\n' % (back_filename) 
     if pre_align:
         in_data+= 'PREALIGN\n'
     in_data+= 'DATA_START\n'
@@ -92,7 +115,7 @@ def auto_center(pre_align=True):
     
     #execute XREC
     try:
-        sts, output = commands.getstatusoutput('xrec %s %s' % (infile_name, outfile_name))
+        sts, _ = commands.getstatusoutput('xrec %s %s' % (infile_name, outfile_name))
         if sts != 0:
             return {'RELIABILITY': -99}
         #read results and analyze it
@@ -110,15 +133,15 @@ def auto_center(pre_align=True):
         results[vals[0]] = int(vals[1])
         
     # verify integrity of results  
-    for key in ['TARGET_ANGLE', 'Y_CENTER', 'X_CENTER', 'RADIUS']:
+    for key in ['TARGET_ANGLE', 'Y_CENTRE', 'X_CENTRE', 'RADIUS']:
         if key not in results:
-            _logger.info('Centering failed.')   
+            _logger.info('Centering failed.')
             return results
     
     # calculate motor positions and move
     cx = beamline.camera_center_x.get()
     cy = beamline.camera_center_y.get()
-    beamline.goniometer.omega.move_to(results['TARGET_ANGLE'], wait=True)
+    beamline.goniometer.omega.move_to(results['TARGET_ANGLE'] % 360.0, wait=True)
     if results['Y_CENTRE'] != -1:
         x = results['Y_CENTRE']
         xmm = (cx - x) * beamline.sample_video.resolution
@@ -135,7 +158,7 @@ def auto_center(pre_align=True):
     beamline.sample_frontlight.set(frontlt)            
 
     # cleanup
-    #shutil.rmtree(directory)
+    shutil.rmtree(directory)
     
     _logger.info('Centering reliability is %d%%.' % results['RELIABILITY'])   
     return results

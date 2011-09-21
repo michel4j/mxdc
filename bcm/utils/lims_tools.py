@@ -37,6 +37,8 @@ def upload_data(beamline, results):
             'staff_comments': result.get('comments'),                 
             'project_name': get_project_name(),                  
             }
+        if json_info['crystal_id'] is None:
+            json_info['experiment_id'] = None 
         if result['num_frames'] < 10:
             json_info['kind'] = 0 # screening
         else:

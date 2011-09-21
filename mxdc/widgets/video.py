@@ -29,7 +29,9 @@ class VideoWidget(gtk.DrawingArea):
         self._palette = None
         self.fps = 0
         self._last_frame = 0
-        self.overlay_func = None 
+        self.overlay_func = None
+        self.display_func = None
+        
         self.set_events(gtk.gdk.EXPOSURE_MASK |
                 gtk.gdk.LEAVE_NOTIFY_MASK |
                 gtk.gdk.BUTTON_PRESS_MASK |
@@ -68,6 +70,9 @@ class VideoWidget(gtk.DrawingArea):
     
     def set_overlay_func(self, func):
         self.overlay_func = func
+
+    def set_display_func(self, func):
+        self.display_func = func
         
     def display(self, img):
         img = img.resize((self._img_width, self._img_height), Image.BICUBIC)
@@ -80,6 +85,8 @@ class VideoWidget(gtk.DrawingArea):
         self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
             False, 8, w, h, 3 * w )
         gobject.idle_add(self.queue_draw)
+        if self.display_func is not None:
+            self.display_func(img, scale=self.scale)
     
     def set_colormap(self, colormap=None):
         if colormap is not None:

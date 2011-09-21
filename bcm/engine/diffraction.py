@@ -256,6 +256,9 @@ class DataCollector(gobject.GObject):
                 self._notify_progress(self.STATE_DONE)
                 self.pos = self.pos + 1
             
+            # Wait for Last image to be transfered
+            time.sleep(2.0)
+            
             self.results = self.get_dataset_info(self.data_sets.values())
             gobject.idle_add(self.emit, 'done')
             self.stopped = True
@@ -406,6 +409,7 @@ class Screener(gobject.GObject):
                         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
                         self.beamline.cryojet.nozzle.open()
                         success = self.beamline.automounter.mount(task['sample']['port'], wait=True)
+                        self.beamline.cryojet.nozzle.close()
                         mounted_info = self.beamline.automounter.mounted_state
                         if not success or mounted_info is None:
                             self.pause()
@@ -423,6 +427,7 @@ class Screener(gobject.GObject):
                                 gobject.idle_add(self.emit, 'sync', False, 'Barcode mismatch. Expected %s.' % self.run_list[self.pos]['sample']['barcode'])
                             else:
                                 gobject.idle_add(self.emit, 'sync', True, '')
+                            self.beamline.goniometer.set_mode('CENTERING', wait=True)
                             self._notify_progress(Screener.TASK_STATE_DONE)                        
                     else:
                         #"skip mounting"
@@ -443,8 +448,6 @@ class Screener(gobject.GObject):
                     
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
                         self._notify_progress(Screener.TASK_STATE_RUNNING)            
-                        self.beamline.goniometer.set_mode('CENTERING', wait=True)
-                        self.beamline.cryojet.nozzle.close()
 
                         _out = centering.auto_center_loop()
                         if _out is None:
