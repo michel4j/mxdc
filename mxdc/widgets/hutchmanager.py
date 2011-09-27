@@ -121,8 +121,11 @@ class HutchManager(gtk.Frame):
         self.beamline.monochromator.energy.connect('changed', self.update_predictor)
 
         # BOSS enable/disable        
-        self.beamline.monochromator.energy.connect('busy', self.switch_boss, self.beamline.boss)
-        self.beamline.mostab.connect('busy', self.switch_boss, self.beamline.boss)
+        try:
+            self.beamline.monochromator.energy.connect('busy', self.switch_boss, self.beamline.boss)
+            self.beamline.mostab.connect('busy', self.switch_boss, self.beamline.boss)
+        except:
+            pass
        
         # Button commands
         self.front_end_btn = ShutterButton(self.beamline.all_shutters, 'Restore Beam', open_only=True)
