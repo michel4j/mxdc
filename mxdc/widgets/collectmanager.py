@@ -72,6 +72,7 @@ class CollectManager(gtk.Frame):
         self.await_response = False
         self.skip_frames = False
         self._create_widgets()
+        self.pause_time = 0
         
         self.active_sample = {}
         self.selected_sample = {}
@@ -497,12 +498,14 @@ class CollectManager(gtk.Frame):
     def on_pause(self,widget, paused, pause_dict):
         if paused:
             self.paused = True
+            self.pause_start = time.time()
             self.collect_btn.set_label('mxdc-resume')
             self.collect_state = COLLECT_STATE_PAUSED
             self.progress_bar.idle_text("Paused")
             self.collect_btn.set_sensitive(True)
         else:
             self.paused = False
+            self.pause_time = time.time() - self.pause_start
             self.collect_btn.set_label('mxdc-pause')   
             self.collect_state = COLLECT_STATE_RUNNING
   
@@ -601,24 +604,26 @@ class CollectManager(gtk.Frame):
       
 
     def on_progress(self, obj, fraction, position, state):
-        if position == 1:
-            self.start_time = time.time()
+        if position == 0:
+            self.skipped = 0
+        if state is 3: # skipping this frame
+            self.skipped += 1
+        self.start_time = (position == 0 or position == self.skipped) and time.time() or self.start_time + self.pause_time
+        self.pause_time = 0
         elapsed_time = time.time() - self.start_time
-        if fraction > 0:
-            time_unit = elapsed_time / fraction
-        else:
-            time_unit = 0.0
         
-        eta_time = time_unit * (1 - fraction)
-        if position > 0:
-            frame_time = elapsed_time / position
-            text = "ETA %s @ %0.1fs/frame" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)), frame_time)
+        if position - 1 > self.skipped:
+            frame_time = elapsed_time / ( position -1 - self.skipped )
+            eta_time = frame_time * ( self.ntot - position )
+            eta_format = eta_time >= 3600 and '%H:%M:%S' or '%M:%S'
+            text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format ,time.gmtime(eta_time)), frame_time)
         else:
+            if fraction: 
+                self.ntot = position / fraction
             text = "Total: %s sec" % (time.strftime('%H:%M:%S',time.gmtime(elapsed_time)))
         self.progress_bar.set_complete(fraction, text)
         self.set_row_state(position, state)
 
-                
     def on_energy_changed(self, obj, val):
         run_zero = self.run_manager.runs[0]
         data = run_zero.get_parameters()
