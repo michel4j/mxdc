@@ -29,20 +29,20 @@ class ToggleBoss():
         self.called = {}
     
     def __call__(self, obj, busy, boss):
-        if not self.called.has_key(obj.name):
-            self.called[obj.name] = busy
-        if busy and len(self.called.keys()) is 1:
+        if not obj in self.called:
+            self.called[obj] = busy
+        if busy and len(self.called.keys()) == 1:
             try:
-                boss.disable()
+                boss.stop()
             except:
-                _logger.info('Failed...')
+                _logger.error('Could not disable BOSS')
         elif not busy:
-            self.called.pop(obj.name)
+            self.called.pop(obj)
             if not self.called.keys():
                 try:
-                    boss.enable()
+                    boss.start()
                 except:
-                    _logger.info('Failed...')
+                    _logger.error('Could not enable BOSS')
 
 class HutchManager(gtk.Frame):
     __gsignals__ = {
@@ -121,11 +121,8 @@ class HutchManager(gtk.Frame):
         self.beamline.monochromator.energy.connect('changed', self.update_predictor)
 
         # BOSS enable/disable        
-        try:
-            self.beamline.monochromator.energy.connect('busy', self.switch_boss, self.beamline.boss)
-            self.beamline.mostab.connect('busy', self.switch_boss, self.beamline.boss)
-        except:
-            pass
+        self.beamline.monochromator.energy.connect('busy', self.switch_boss, self.beamline.boss)
+        self.beamline.mostab.connect('busy', self.switch_boss, self.beamline.boss)
        
         # Button commands
         self.front_end_btn = ShutterButton(self.beamline.all_shutters, 'Restore Beam', open_only=True)

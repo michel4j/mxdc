@@ -606,9 +606,12 @@ class CollectManager(gtk.Frame):
     def on_progress(self, obj, fraction, position, state):
         if position == 0:
             self.skipped = 0
-        if state is 3: # skipping this frame
+        if state == FRAME_STATE_SKIPPED: # skipping this frame
             self.skipped += 1
-        self.start_time = (position == 0 or position == self.skipped) and time.time() or self.start_time + self.pause_time
+        if (position == 0 or position == self.skipped):
+            self.start_time = time.time()
+        else:
+            self.start_time + self.pause_time
         self.pause_time = 0
         elapsed_time = time.time() - self.start_time
         
