@@ -37,13 +37,15 @@ def upload_data(beamline, results):
             'staff_comments': result.get('comments'),                 
             'project_name': get_project_name(),                  
             }
+        if json_info['crystal_id'] is None:
+            json_info['experiment_id'] = None 
         if result['num_frames'] < 10:
             json_info['kind'] = 0 # screening
         else:
             json_info['kind'] = 1 # collection
         
         if result['num_frames'] >= 4:
-            try:
+            try:     
                 reply = beamline.lims.service.lims.add_data(
                         beamline.config.get('lims_api_key',''), json_info)
             except IOError:
@@ -54,6 +56,7 @@ def upload_data(beamline, results):
                     result['id'] = reply['result']['data_id']
                     _logger.info('Dataset uploaded to LIMS.')
             elif reply.get('error') is not None:
+                print reply.get('error')
                 _logger.error('Dataset could not be uploaded to LIMS.')
         filename = os.path.join(result['directory'], '%s.SUMMARY' % result['name'])
         fh = open(filename,'w')
@@ -61,13 +64,12 @@ def upload_data(beamline, results):
         fh.close()
     return results
 
-
 def upload_report(beamline, results):
     for report in results:
         if report['result'].get('data_id') is None:
             continue
         report['result'].update(project_name = get_project_name())
-        try:          
+        try:    
             reply = beamline.lims.service.lims.add_report(
                     beamline.config.get('lims_api_key',''), report['result'])
         except IOError:
@@ -91,6 +93,52 @@ def upload_report(beamline, results):
     fh = open(filename,'w')
     json.dump(info, fh)
     fh.close()
+    return results
+
+def upload_scan(beamline, results):
+    for scan in results:
+        scan['project_name'] = get_project_name()
+        kind = scan.get('kind')
+        if kind == 1: # Excitation Scan
+            new_info = {
+                'details': {
+                    'energy': scan['data'].get('energy'),
+                    'counts': scan['data'].get('counts'),
+                    'peaks': scan.get('peaks'),
+                    },
+                'name': scan['parameters'].get('prefix'),
+                'crystal_id': scan['parameters'].get('crystal_id'),
+                'exposure_time': scan['parameters'].get('exposure_time'),
+                'attenuation': scan['parameters'].get('attenuation'),
+                'edge': scan['parameters'].get('edge'),
+                'energy': scan['parameters'].get('energy'),
+                }
+        elif kind is 0: # MAD Scan
+            new_info = {
+                'details': {
+                    'energies': [scan['energies'].get('peak'),scan['energies'].get('infl'),scan['energies'].get('remo')],
+                    'efs': scan.get('efs'),
+                    'data': scan.get('data'),
+                    },
+                'name': scan.get('name_template'),
+                'crystal_id': scan.get('crystal_id'),
+                'attenuation': scan.get('attenuation'),
+                'edge': scan.get('edge'),
+                'energy': scan.get('energy')
+                }
+        # General information
+        new_info['kind'] = kind
+        new_info['beamline_name'] = beamline.name
+        new_info['project_name'] = get_project_name()
+        
+        try:          
+            reply = beamline.lims.service.lims.add_scan(
+                    beamline.config.get('lims_api_key',''), new_info)
+            _logger.info('Scan uploaded to LIMS.')
+        except IOError, e:
+            _logger.error('Scan could not be uploaded to LIMS')
+            reply = {'error': 'Unable to connect to LIMS %s' % e}
+        
     return results
 
 def get_onsite_samples(beamline):
