@@ -139,7 +139,7 @@ def upload_scan(beamline, results):
             _logger.error('Scan could not be uploaded to LIMS')
             reply = {'error': 'Unable to connect to LIMS %s' % e}
         
-    return results
+    return reply
 
 def get_onsite_samples(beamline):
     info = {
