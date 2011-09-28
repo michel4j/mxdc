@@ -76,38 +76,60 @@ class SampleManager(gtk.Frame):
         self.dewar_loader.connect('samples-changed', self.on_samples_changed)
         self.dewar_loader.connect('sample-selected', self.on_sample_selected)
         self.beamline.automounter.connect('mounted', self.on_sample_mounted)
+        self.beamline.manualmounter.connect('mounted', self.on_sample_mounted, False)
         
     def on_samples_changed(self, obj):
         gobject.idle_add(self.emit, 'samples-changed', self.dewar_loader)
 
-    def on_sample_mounted(self, obj, mount_info):
-        if mount_info is not None: # sample mounted
-            port, barcode = mount_info
-            if barcode.strip() != '': # find crystal in database by barcode one was detected
-                xtl = self.dewar_loader.find_crystal(barcode=barcode)
-                if xtl is not None:
-                    if xtl['port'] != port:
-                        header = 'Barcode Mismatch'
-                        subhead = 'The observed barcode read by the automounter is different from'
-                        subhead += 'the expected one. The barcode will be trusted rather than the port.'
-                        dialogs.warning(header, subhead)
-                else:
-                    xtl =  self.dewar_loader.find_crystal(port=port)
-            else: # if barcode is not read correctly or none exists, use port
-                xtl =  self.dewar_loader.find_crystal(port=port)
-            gobject.idle_add(self.emit, 'active-sample', xtl)
+    def update_data(self, sample=None):
+        self.dewar_loader.mount_widget.update_data(sample)
 
-        else:   # sample dismounted
-            gobject.idle_add(self.emit, 'active-sample', None)
+    def on_sample_mounted(self, obj, mount_info, auto=True):
+        if auto:
+            if mount_info is not None: # sample mounted
+                port, barcode = mount_info
+                if barcode.strip() != '': # find crystal in database by barcode one was detected
+                    xtl = self.dewar_loader.find_crystal(barcode=barcode)
+                    if xtl is not None:
+                        if xtl['port'] != port:
+                            header = 'Barcode Mismatch'
+                            subhead = 'The observed barcode read by the automounter is different from'
+                            subhead += 'the expected one. The barcode will be trusted rather than the port.'
+                            dialogs.warning(header, subhead)
+                    else:
+                        xtl =  self.dewar_loader.find_crystal(port=port)
+                else: # if barcode is not read correctly or none exists, use port
+                    xtl =  self.dewar_loader.find_crystal(port=port)
+                gobject.idle_add(self.emit, 'active-sample', xtl)
+    
+            else:   # sample dismounted
+                gobject.idle_add(self.emit, 'active-sample', None)
+        else:
+            gobject.idle_add(self.emit, 'active-sample', mount_info)
             
-        
     def on_sample_selected(self, obj, crystal):
         
         if crystal.get('load_status', STATUS_NOT_LOADED) == STATUS_LOADED:
-            self.sample_picker.pick_port(crystal['port'])
+            if self.beamline.automounter.is_mountable(crystal['port']):
+                self.sample_picker.pick_port(crystal['port'])
+                gobject.idle_add(self.emit, 'sample-selected', crystal)
+            else:
+                self.sample_picker.pick_port(None)
+                gobject.idle_add(self.emit, 'sample-selected', {})
         else:
             self.sample_picker.pick_port(None)
-        gobject.idle_add(self.emit, 'sample-selected', crystal)
+            gobject.idle_add(self.emit, 'sample-selected', crystal)
+
+    def update_active_sample(self, sample=None):
+        # send updated parameters to runs
+        if sample is None:
+            self.active_sample = {}
+        else:
+            self.active_sample = sample
+        self.dewar_loader.mount_widget.update_active_sample(self.active_sample)
+    
+    def update_selected(self, sample=None):
+        self.dewar_loader.mount_widget.update_selected(sample)
     
     def get_database(self):
         return self.dewar_loader.samples_database

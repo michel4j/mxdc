@@ -19,6 +19,7 @@ from mxdc.widgets.runmanager import RunManager
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.dialogs import warning, error, MyDialog
 from mxdc.widgets.rundiagnostics import DiagnosticsWidget
+from mxdc.widgets.mountwidget import MountWidget
 from mxdc.utils import config
 
 # setup module logger with a default do-nothing handler
@@ -71,6 +72,7 @@ class CollectManager(gtk.Frame):
         self.await_response = False
         self.skip_frames = False
         self._create_widgets()
+        self.pause_time = 0
         
         self.active_sample = {}
         self.selected_sample = {}
@@ -92,6 +94,7 @@ class CollectManager(gtk.Frame):
         self.image_viewer = ImageViewer(size=640)
         self.run_manager = RunManager()
         self.collector = DataCollector()
+        self.mount_widget = MountWidget()
         self.beamline = globalRegistry.lookup([], IBeamline)      
 
         self.collect_state = COLLECT_STATE_IDLE
@@ -117,6 +120,8 @@ class CollectManager(gtk.Frame):
         self._add_columns()     
         sw = self._xml.get_widget('run_list_window')
         sw.add(self.listview)
+        
+        self.mnt_hbox.add(self.mount_widget)
 
         self.collect_btn.set_label('mxdc-collect')
         self.stop_btn.set_label('mxdc-stop')
@@ -141,8 +146,9 @@ class CollectManager(gtk.Frame):
         self.setup_box.pack_end(self.run_manager, expand = True, fill = True)
         
         #automounter signals
-        self.beamline.automounter.connect('mounted', lambda x,y: self.update_data())
-
+        self.beamline.automounter.connect('busy', self.on_mount_busy)
+        self.beamline.automounter.connect('mounted', self.on_mount_done)
+        self.beamline.manualmounter.connect('mounted', self.on_mount_done)
         
         #diagnostics
         self.diagnostics = DiagnosticsWidget()
@@ -153,7 +159,6 @@ class CollectManager(gtk.Frame):
         self.listview.connect('row-activated',self.on_row_activated)
         self.collect_btn.connect('clicked',self.on_activate)
         self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
-        self.mnt_action_btn.connect('clicked', self.on_mount_action)
         self.run_manager.connect('saved', self.save_runs)
         self.clear_strategy_btn.connect('clicked', self.on_clear_strategy)
 
@@ -200,45 +205,7 @@ class CollectManager(gtk.Frame):
 
     def update_data(self, sample=None, strategy=None):
         # pass in {} to delete the current setting or None to ignore it
-        
-        # handle sample data
-        if sample is not None:
-            self.selected_sample = sample
-        if self.selected_sample.get('name') is not None:
-            txt = "%s(%s)" % (self.selected_sample['name'], 
-                              self.selected_sample.get('port',''))
-            self.crystal_lbl.set_text(txt)          
-            if self.selected_sample.get('load_status', 0) == 1:
-                if self.beamline.automounter.is_mounted(self.selected_sample['port']):
-                    self.mnt_action_btn.set_label('Dismount')
-                    self.sel_mount_action = MOUNT_ACTION_DISMOUNT
-                elif self.beamline.automounter.is_mountable(self.selected_sample['port']):
-                    self.mnt_action_btn.set_label('Mount')
-                    self.sel_mount_action = MOUNT_ACTION_MOUNT
-                else:
-                    self.mnt_action_btn.set_label('Mount')
-                    self.sel_mount_action = MOUNT_ACTION_MANUAL_MOUNT
-                    
-            else:
-                if self.selected_sample == self.active_sample:
-                    self.mnt_action_btn.set_label('Dismount')
-                    self.sel_mount_action = MOUNT_ACTION_MANUAL_DISMOUNT
-                else:
-                    self.mnt_action_btn.set_label('Mount')
-                    self.sel_mount_action = MOUNT_ACTION_MANUAL_MOUNT
-        else:
-            self.mnt_action_btn.set_sensitive(False) 
-            self.sel_mount_action = MOUNT_ACTION_NONE
-            self.mnt_action_btn.set_label('Mount')
-                
-                    
-        if self.sel_mounting or self.beamline.automounter.is_busy() or not self.beamline.automounter.is_active():
-            self.sel_mount_action = MOUNT_ACTION_NONE
-            self.mnt_action_btn.set_sensitive(False)
-        else:
-            self.mnt_action_btn.set_sensitive(True)
-        
-        
+        #self.mount_widget.update_data(sample)
         # handle strategy data
         if strategy is not None:
             # if number of keys in strategy is 6 or more then replace it
@@ -277,59 +244,40 @@ class CollectManager(gtk.Frame):
                 #self.active_strategy_box.set_visible(False)
                 self.active_strategy_box.hide()
         
-    def update_active_sample(self, sample):   
+    def update_active_sample(self, sample=None):   
         # send updated parameters to runs
         if sample is None:
             self.active_sample = {}
         else:
             self.active_sample = sample
+        self.mount_widget.update_active_sample(self.active_sample)
         self.run_manager.update_active_data(sample=self.active_sample)
-        self.update_data(sample=self.active_sample)
+
+    def update_selected(self, sample=None):
+        self.mount_widget.update_selected(sample)
 
     def on_clear_strategy(self, obj):
         self.update_active_data(strategy={})
                        
-    #@async
-    def execute_mount_action(self):
-        done_text = ''
-        if self.sel_mount_action == MOUNT_ACTION_MOUNT:
-            try:
-                gobject.idle_add(self.progress_bar.busy_text, 
-                                 'Mounting %s ...' % self.selected_sample['name'])
-                self.sel_mounting = True
-                gobject.idle_add(self.update_data)
-                auto.auto_mount_manual(self.beamline, self.selected_sample['port'])
-                done_text = "Mount succeeded"
-            except:
-                _logger.error('Sample mounting failed')
-                done_text = "Mount failed"
-        elif self.sel_mount_action == MOUNT_ACTION_DISMOUNT:
-            try:
-                gobject.idle_add(self.progress_bar.busy_text, 
-                                 'Dismounting %s ...' % self.selected_sample['name'])
-                self.sel_mounting = True
-                gobject.idle_add(self.update_data)
-                auto.auto_dismount_manual(self.beamline, self.selected_sample['port'])
-                done_text = "Dismount succeeded"
-            except:
-                _logger.error('Sample dismounting failed')
-                done_text = "Dismount failed"        
-        elif self.sel_mount_action == MOUNT_ACTION_MANUAL_MOUNT:
-            self.update_active_sample(self.selected_sample)
-            done_text = 'Manual mount'
-        elif self.sel_mount_action == MOUNT_ACTION_MANUAL_DISMOUNT:
-            self.update_active_sample(None)
-            done_text = 'Manual dismount'
-            
-        gobject.idle_add(self.progress_bar.idle_text,  done_text)
-        self.sel_mounting = False
-        gobject.idle_add(self.update_data)
-    
-    
-    def on_mount_action(self, obj):
-        self.execute_mount_action()
+    def on_mount_busy(self, obj, busy):
+        if busy:
+            self.progress_bar.busy_text(self.mount_widget.busy_text)
 
-    
+    def on_mount_done(self, obj, state):
+        if obj.__class__.__name__ is "ManualMounter":
+            if state is not None:
+                done_text = "Manual Mount"
+            else:
+                done_text = "Manual Dismount"
+        else:
+            if state is not None and obj.get_state()['health'][0] == 0:
+                done_text = "Mount Succeeded"
+            elif obj.get_state()['health'][0] == 0:
+                done_text = "Dismount Succeeded"
+            else:
+                done_text = obj.get_state()['health'][1]
+        self.progress_bar.idle_text(done_text)
+        
     def config_user(self):
         username = os.environ['USER']
         userid = os.getuid()
@@ -339,7 +287,7 @@ class CollectManager(gtk.Frame):
             assert(res==True)
             return True
         except:
-            msg_title = 'Image Syncronization Server Error'
+            msg_title = 'Image Synchronization Server Error'
             msg_sub = 'MXDC could not configure the server for the current user. '
             msg_sub += 'Data collection can not proceed reliably without the server up and running.'
             warning(msg_title, msg_sub)
@@ -550,12 +498,14 @@ class CollectManager(gtk.Frame):
     def on_pause(self,widget, paused, pause_dict):
         if paused:
             self.paused = True
+            self.pause_start = time.time()
             self.collect_btn.set_label('mxdc-resume')
             self.collect_state = COLLECT_STATE_PAUSED
             self.progress_bar.idle_text("Paused")
             self.collect_btn.set_sensitive(True)
         else:
             self.paused = False
+            self.pause_time = time.time() - self.pause_start
             self.collect_btn.set_label('mxdc-pause')   
             self.collect_state = COLLECT_STATE_RUNNING
   
@@ -654,24 +604,26 @@ class CollectManager(gtk.Frame):
       
 
     def on_progress(self, obj, fraction, position, state):
-        if position == 1:
-            self.start_time = time.time()
+        if position == 0:
+            self.skipped = 0
+        if state is 3: # skipping this frame
+            self.skipped += 1
+        self.start_time = (position == 0 or position == self.skipped) and time.time() or self.start_time + self.pause_time
+        self.pause_time = 0
         elapsed_time = time.time() - self.start_time
-        if fraction > 0:
-            time_unit = elapsed_time / fraction
-        else:
-            time_unit = 0.0
         
-        eta_time = time_unit * (1 - fraction)
-        if position > 0:
-            frame_time = elapsed_time / position
-            text = "ETA %s @ %0.1fs/frame" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)), frame_time)
+        if position - 1 > self.skipped:
+            frame_time = elapsed_time / ( position -1 - self.skipped )
+            eta_time = frame_time * ( self.ntot - position )
+            eta_format = eta_time >= 3600 and '%H:%M:%S' or '%M:%S'
+            text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format ,time.gmtime(eta_time)), frame_time)
         else:
+            if fraction: 
+                self.ntot = position / fraction
             text = "Total: %s sec" % (time.strftime('%H:%M:%S',time.gmtime(elapsed_time)))
         self.progress_bar.set_complete(fraction, text)
         self.set_row_state(position, state)
 
-                
     def on_energy_changed(self, obj, val):
         run_zero = self.run_manager.runs[0]
         data = run_zero.get_parameters()
