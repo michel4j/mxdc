@@ -1,28 +1,32 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <glade-interface>
   <!-- interface-requires gtk+ 2.10 -->
   <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkWindow" id="window1">
+    <property name="can_focus">False</property>
     <property name="title" translatable="yes">window1</property>
     <child>
       <widget class="GtkVBox" id="run_widget">
         <property name="visible">True</property>
-        <property name="orientation">vertical</property>
+        <property name="can_focus">False</property>
         <child>
           <widget class="GtkLabel" id="run_title">
             <property name="visible">True</property>
+            <property name="can_focus">False</property>
             <property name="ypad">3</property>
             <property name="label" translatable="yes">&lt;big&gt;Run 0&lt;/big&gt;</property>
             <property name="use_markup">True</property>
           </widget>
           <packing>
             <property name="expand">False</property>
+            <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
         </child>
         <child>
           <widget class="GtkToolbar" id="toolbar1">
             <property name="visible">True</property>
+            <property name="can_focus">False</property>
             <property name="toolbar_style">both-horiz</property>
             <child>
               <widget class="GtkToolButton" id="save_btn">
@@ -30,6 +34,7 @@
                 <property name="can_focus">True</property>
                 <property name="has_tooltip">True</property>
                 <property name="tooltip" translatable="yes">Apply Run Settings</property>
+                <property name="use_action_appearance">False</property>
                 <property name="stock_id">gtk-apply</property>
               </widget>
               <packing>
@@ -40,8 +45,10 @@
             <child>
               <widget class="GtkToolButton" id="update_btn">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
                 <property name="tooltip" translatable="yes">Update parameters</property>
+                <property name="use_action_appearance">False</property>
                 <property name="stock_id">gtk-refresh</property>
               </widget>
               <packing>
@@ -52,8 +59,10 @@
             <child>
               <widget class="GtkToolButton" id="reset_btn">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
                 <property name="tooltip" translatable="yes">Reset to defaults</property>
+                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">toolbutton1</property>
                 <property name="use_underline">True</property>
                 <property name="stock_id">gtk-clear</property>
@@ -66,6 +75,7 @@
             <child>
               <widget class="GtkSeparatorToolItem" id="separatortoolitem1">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -74,8 +84,10 @@
             <child>
               <widget class="GtkToggleToolButton" id="enable_btn">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
                 <property name="tooltip" translatable="yes">Activate/De-activate Run</property>
+                <property name="use_action_appearance">False</property>
                 <property name="stock_id">gtk-execute</property>
               </widget>
               <packing>
@@ -86,8 +98,10 @@
             <child>
               <widget class="GtkToolButton" id="delete_btn">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
                 <property name="tooltip" translatable="yes">Delete Run</property>
+                <property name="use_action_appearance">False</property>
                 <property name="stock_id">gtk-remove</property>
               </widget>
               <packing>
@@ -98,6 +112,7 @@
           </widget>
           <packing>
             <property name="expand">False</property>
+            <property name="fill">True</property>
             <property name="padding">6</property>
             <property name="position">1</property>
           </packing>
@@ -108,6 +123,7 @@
         <child>
           <widget class="GtkTable" id="layout_table">
             <property name="visible">True</property>
+            <property name="can_focus">False</property>
             <property name="border_width">6</property>
             <property name="n_rows">16</property>
             <property name="n_columns">4</property>
@@ -135,6 +151,7 @@
             <child>
               <widget class="GtkLabel" id="label8">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Angle</property>
               </widget>
@@ -150,6 +167,7 @@
             <child>
               <widget class="GtkLabel" id="label7">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Frame</property>
               </widget>
@@ -167,6 +185,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -181,6 +203,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -195,6 +221,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -209,6 +239,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -223,6 +257,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">2</property>
@@ -237,6 +275,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -251,6 +293,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">2</property>
@@ -265,6 +311,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -279,6 +329,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -293,6 +347,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -308,6 +366,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
+                <property name="use_action_appearance">False</property>
                 <property name="use_underline">True</property>
                 <property name="draw_indicator">True</property>
               </widget>
@@ -323,6 +382,7 @@
             <child>
               <widget class="GtkLabel" id="label19">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">0</property>
                 <property name="label" translatable="yes">%</property>
               </widget>
@@ -338,6 +398,7 @@
             <child>
               <widget class="GtkLabel" id="label18">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">0</property>
                 <property name="label" translatable="yes">deg</property>
               </widget>
@@ -353,6 +414,7 @@
             <child>
               <widget class="GtkLabel" id="label17">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">0</property>
                 <property name="label" translatable="yes">deg</property>
               </widget>
@@ -368,6 +430,7 @@
             <child>
               <widget class="GtkLabel" id="label16">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">0</property>
                 <property name="label" translatable="yes">deg</property>
               </widget>
@@ -383,6 +446,7 @@
             <child>
               <widget class="GtkLabel" id="label15">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">0</property>
                 <property name="label" translatable="yes">sec</property>
               </widget>
@@ -398,6 +462,7 @@
             <child>
               <widget class="GtkLabel" id="label14">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">0</property>
                 <property name="label" translatable="yes">deg</property>
               </widget>
@@ -413,6 +478,7 @@
             <child>
               <widget class="GtkLabel" id="label13">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">0</property>
                 <property name="label" translatable="yes">mm</property>
               </widget>
@@ -428,6 +494,7 @@
             <child>
               <widget class="GtkLabel" id="label12">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Attenuation:</property>
               </widget>
@@ -441,6 +508,7 @@
             <child>
               <widget class="GtkLabel" id="label11">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Wedge:</property>
               </widget>
@@ -454,6 +522,7 @@
             <child>
               <widget class="GtkLabel" id="label10">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Total:</property>
               </widget>
@@ -467,6 +536,7 @@
             <child>
               <widget class="GtkLabel" id="label9">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Start:</property>
               </widget>
@@ -480,6 +550,7 @@
             <child>
               <widget class="GtkLabel" id="label6">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Time:</property>
               </widget>
@@ -493,6 +564,7 @@
             <child>
               <widget class="GtkLabel" id="label5">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Delta:</property>
               </widget>
@@ -506,6 +578,7 @@
             <child>
               <widget class="GtkLabel" id="label4">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Distance:</property>
               </widget>
@@ -519,6 +592,7 @@
             <child>
               <widget class="GtkLabel" id="label3">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Folder:</property>
               </widget>
@@ -532,6 +606,7 @@
             <child>
               <widget class="GtkLabel" id="label2">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Prefix:</property>
               </widget>
@@ -545,17 +620,19 @@
             <child>
               <widget class="GtkVBox" id="energy_btn_box">
                 <property name="visible">True</property>
-                <property name="orientation">vertical</property>
+                <property name="can_focus">False</property>
                 <property name="homogeneous">True</property>
                 <child>
                   <widget class="GtkButton" id="add_e_btn">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
                     <property name="relief">none</property>
                     <child>
                       <widget class="GtkImage" id="image1">
                         <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <property name="stock">gtk-add</property>
                         <property name="icon-size">1</property>
                       </widget>
@@ -572,10 +649,12 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
                     <property name="relief">none</property>
                     <child>
                       <widget class="GtkImage" id="image2">
                         <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <property name="stock">gtk-remove</property>
                         <property name="icon-size">1</property>
                       </widget>
@@ -600,6 +679,7 @@
             <child>
               <widget class="GtkFileChooserButton" id="directory_btn">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="action">select-folder</property>
                 <property name="preview_widget_active">False</property>
                 <property name="use_preview_label">False</property>
@@ -615,6 +695,7 @@
             <child>
               <widget class="GtkLabel" id="label22">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Skip:</property>
               </widget>
               <packing>
@@ -630,8 +711,12 @@
 1, 5-30, 55, 90-98
 will skip the individual frames and all frames in the 
 specified ranges.</property>
-                <property name="invisible_char">&#x2022;</property>
+                <property name="invisible_char">•</property>
                 <property name="width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -644,6 +729,7 @@ specified ranges.</property>
             <child>
               <widget class="GtkLabel" id="label1">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="label" translatable="yes">frame #s</property>
               </widget>
               <packing>
@@ -656,6 +742,7 @@ specified ranges.</property>
             <child>
               <widget class="GtkLabel" id="label20">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">Crystal:</property>
               </widget>
@@ -669,11 +756,17 @@ specified ranges.</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
+                <property name="tooltip" translatable="yes">Currently mounted crystal.
+Datasets will be linked to it</property>
                 <property name="editable">False</property>
-                <property name="invisible_char">&#x2022;</property>
+                <property name="invisible_char">•</property>
                 <property name="width_chars">0</property>
                 <property name="text" translatable="yes">[Unknown]</property>
                 <property name="xalign">0.5</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -721,11 +814,13 @@ specified ranges.</property>
         <child>
           <widget class="GtkFrame" id="comments_frame">
             <property name="visible">True</property>
+            <property name="can_focus">False</property>
             <property name="label_xalign">0</property>
             <property name="shadow_type">none</property>
             <child>
               <widget class="GtkAlignment" id="alignment1">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="left_padding">12</property>
                 <property name="right_padding">6</property>
                 <child>
@@ -753,6 +848,7 @@ specified ranges.</property>
             <child>
               <widget class="GtkLabel" id="label21">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Comments:</property>
                 <property name="use_markup">True</property>
               </widget>
@@ -762,6 +858,8 @@ specified ranges.</property>
             </child>
           </widget>
           <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
             <property name="position">4</property>
           </packing>
         </child>
