@@ -24,6 +24,26 @@ _logger = get_module_logger('mxdc.hutchmanager')
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
+class ToggleBoss():
+    def __init__(self):
+        self.called = {}
+    
+    def __call__(self, obj, busy, boss):
+        if not self.called.has_key(obj.name):
+            self.called[obj.name] = busy
+        if busy and len(self.called.keys()) is 1:
+            try:
+                boss.disable()
+            except:
+                _logger.info('Failed...')
+        elif not busy:
+            self.called.pop(obj.name)
+            if not self.called.keys():
+                try:
+                    boss.enable()
+                except:
+                    _logger.info('Failed...')
+
 class HutchManager(gtk.Frame):
     __gsignals__ = {
         'beam-change': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_BOOLEAN,]),
@@ -40,6 +60,7 @@ class HutchManager(gtk.Frame):
             self.scripts[sc].connect('done', self.on_scripts_done)
     
     def _create_widgets(self):
+        self.switch_boss = ToggleBoss()
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'hutch_widget.glade'), 
                                   'hutch_widget')
         self.hutch_widget = self._xml.get_widget('hutch_widget')
@@ -98,7 +119,14 @@ class HutchManager(gtk.Frame):
         self.beamline.diffractometer.distance.connect('changed', self.update_predictor)
         self.beamline.diffractometer.two_theta.connect('changed', self.update_predictor)
         self.beamline.monochromator.energy.connect('changed', self.update_predictor)
-        
+
+        # BOSS enable/disable        
+        try:
+            self.beamline.monochromator.energy.connect('busy', self.switch_boss, self.beamline.boss)
+            self.beamline.mostab.connect('busy', self.switch_boss, self.beamline.boss)
+        except:
+            pass
+       
         # Button commands
         self.front_end_btn = ShutterButton(self.beamline.all_shutters, 'Restore Beam', open_only=True)
         self.front_end_btn.connect('clicked', self.on_restore_beam)

@@ -1,5 +1,5 @@
 
-import os
+import os, sys
 import gtk
 import gtk.glade
 import gobject
@@ -13,7 +13,7 @@ from mxdc.utils import config
 from bcm.beamline.mx import IBeamline
 from twisted.python.components import globalRegistry
 from bcm.engine.spectroscopy import XRFScan, XANESScan
-from bcm.utils import science
+from bcm.utils import science, lims_tools
 from bcm.utils.log import get_module_logger
 
 
@@ -58,6 +58,7 @@ class ScanManager(gtk.Frame):
         self.scanning = False
         self.progress_id = None
         self.scan_mode = 'XANES'
+        self.active_sample = {}
         
         # lists to hold results data
         self.energies = []
@@ -92,6 +93,7 @@ class ScanManager(gtk.Frame):
             'energy': self.energy_entry,
             'time': self.time_entry,
             'attenuation': self.attenuation_entry,
+            'crystal': self.crystal_entry
         }
         self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=gtk.EXPAND|gtk.FILL)
         for key in ['prefix','edge']:
@@ -228,6 +230,7 @@ class ScanManager(gtk.Frame):
             params[key]  = self.entries[key].get_text().strip()
         for key in ['time','energy','attenuation']:
             params[key] = float(self.entries[key].get_text())
+        params['crystal'] = self.active_sample.get('id', '')
         params['directory']   = self.entries['directory'].get_filename()
         if params['directory'] is None:
             params['directory'] = os.environ['HOME']
@@ -270,7 +273,7 @@ class ScanManager(gtk.Frame):
         self.plotter.set_labels(title=title, x_label="Energy (keV)", y1_label='Fluorescence Counts')      
         self.xanes_scanner.configure(scan_parameters['edge'], scan_parameters['time'], 
                                      scan_parameters['attenuation'], scan_parameters['directory'],
-                                     scan_parameters['prefix'])
+                                     scan_parameters['prefix'], scan_parameters['crystal'])
         
         self._set_scan_action(True)
         self.scan_book.set_current_page(1)
@@ -286,9 +289,10 @@ class ScanManager(gtk.Frame):
         self._save_config(scan_parameters)
         self.plotter.clear()
         
-        self.xrf_scanner.configure(scan_parameters['energy'], scan_parameters['time'],  
-                                   scan_parameters['attenuation'], scan_parameters['directory'],
-                                   scan_parameters['prefix'])
+        self.xrf_scanner.configure(scan_parameters['energy'], scan_parameters['edge'], 
+                                   scan_parameters['time'], scan_parameters['attenuation'], 
+                                   scan_parameters['directory'], scan_parameters['prefix'],
+                                   scan_parameters['crystal'])
         
         self._set_scan_action(True)
         self.scan_book.set_current_page(1)
@@ -351,7 +355,6 @@ class ScanManager(gtk.Frame):
         self._set_scan_action(False)
         self.scan_book.set_current_page(1)
         results = obj.results.get('energies')
-        
         if results is None:
             warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed')
             return True
@@ -379,6 +382,13 @@ class ScanManager(gtk.Frame):
         info_log = '\n---------------------------------------\n\n'
         self.output_log.add_text(info_log)
         self.create_run_btn.set_sensitive(True) 
+        try:
+	    result = list()
+	    result.append(obj.results)
+            lims_tools.upload_scan(self.beamline, result)
+        except:
+            print sys.exc_info()
+            _logger.warn('Could not upload scan to LIMS.')
         return True
                 
     def on_create_run(self, obj):
@@ -392,6 +402,21 @@ class ScanManager(gtk.Frame):
                 'scattering_factors': self.scattering_factors,
                 }
             self.emit('update-strategy', strategy)
+            
+    def update_active_sample(self, sample=None):
+        if sample is None:
+            self.active_sample = {}
+        else: 
+            self.active_sample = sample
+        # always display up to date active crystal
+        if self.active_sample:
+            txt = '%s [ID:%s]' %(self.active_sample['name'], self.active_sample['id'])
+            self.crystal_entry.set_text(txt)
+        elif self.active_sample.get('crystal_id'):                                                                          
+            txt = '[ID:%s]' % (self.active_sample['crystal_id'])
+            self.crystal_entry.set_text(txt)
+        else:
+            self.crystal_entry.set_text('[ Unknown ]')
 
     def on_progress(self, widget, fraction):
         self.scan_pbar.set_fraction(fraction)
@@ -445,5 +470,10 @@ class ScanManager(gtk.Frame):
         self.scan_pbar.set_text("Scan complete.")
         self.scan_pbar.set_fraction(1.0)
         self._set_scan_action(False)
+
+        # Upload scan to lims with data already smoothed
+        obj.results['data']['counts'] = list(sy)
+        lims_tools.upload_scan(self.beamline, [obj.results])
+
         return True
                                                             
