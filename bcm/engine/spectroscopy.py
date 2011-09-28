@@ -19,18 +19,19 @@ from bcm.service.utils import  send_array
 _logger = get_module_logger(__name__)
 
 class XRFScan(BasicScan):    
-    def __init__(self, energy=None, t=0.5, attenuation=0.0, directory=''):
+    def __init__(self, energy=None, edge='Se-K', t=0.5, attenuation=0.0, directory=''):
         BasicScan.__init__(self)
         self.data_names = ['Energy', 'Counts']
-        self.configure(t, energy, attenuation, directory, 'xrf')
+        self.configure(t, energy, edge, attenuation, directory, 'xrf')
         
-    def configure(self, energy,  t,  attenuation, directory, prefix, uname=None):
+    def configure(self, energy, edge, t, attenuation, directory, prefix, crystal=None, uname=None):
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
         self.scan_parameters = {}
         self.scan_parameters['energy'] = energy
+        self.scan_parameters['edge'] = edge
         self.scan_parameters['duration'] = t
         self.scan_parameters['directory'] = directory
         self.scan_parameters['prefix'] = prefix
@@ -38,6 +39,7 @@ class XRFScan(BasicScan):
         self.scan_parameters['filename'] = os.path.join(directory, "%s_%0.3f.raw" % (prefix, energy))
         self.scan_parameters['results_file'] = os.path.join(directory, "%s_%0.3f.out" % (prefix, energy))
         self.scan_parameters['attenuation'] = attenuation
+        self.scan_parameters['crystal_id'] = crystal
         self.meta_data = {'energy': energy, 'time': t, 'attenuation': attenuation, 'prefix': prefix, 'user_name': uname}
         self.results = {}
         
@@ -51,10 +53,15 @@ class XRFScan(BasicScan):
         self.results = {
             'data': {'energy': map(float, list(x)), 'counts': map(float, list(y))},
             'peaks': science.assign_peaks(peaks,  dev=0.04),
-            'parameters ': {'directory': self._directory,
+            'parameters': {'directory': self._directory,
                             'energy': self._energy,
+                            'edge': self._edge,
                             'exposure_time': self._duration,
-                            'output_file': self._filename}
+                            'output_file': self._filename,
+                            'attenuation': self._attenuation,
+                            'crystal_id': self._crystal_id,
+                            'prefix': self._prefix },
+            'kind': 1, # Excitation Scan
             }
         fp = open(self._results_file, 'w')
         json.dump(self.results, fp)
@@ -63,13 +70,15 @@ class XRFScan(BasicScan):
         
         
     def run(self):
-        _logger.debug('Exitation Scan waiting for beamline to become available.')
+        _logger.debug('Excitation Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
         # get parameters from recent configure
         self._energy = self.scan_parameters['energy']
+        self._edge = self.scan_parameters['edge']
         self._duration = self.scan_parameters['duration']
         self._directory = self.scan_parameters['directory']
         self._prefix = self.scan_parameters['prefix']
+        self._crystal_id = self.scan_parameters['crystal_id']
         self._user_name = self.scan_parameters['user_name']
         self._filename = self.scan_parameters['filename']
         self._results_file = self.scan_parameters['results_file']
@@ -96,7 +105,7 @@ class XRFScan(BasicScan):
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(_saved_attenuation)
             self.beamline.mca.configure(retract=False)
-            _logger.debug('Exitation scan done.')
+            _logger.debug('Excitation scan done.')
             self.beamline.goniometer.set_mode('COLLECT')
             self.beamline.lock.release()
         return self.results
@@ -109,7 +118,7 @@ class XANESScan(BasicScan):
         self.autochooch = AutoChooch()
         self.configure(edge, t, attenuation, directory, 'xanes')
         
-    def configure(self, edge, t, attenuation, directory, prefix, uname=None):
+    def configure(self, edge, t, attenuation, directory, prefix, crystal=None, uname=None):
         #FIXME: Possible race condition here if new configure is issued while previous scan is still running
         # - maybe we should use queues and have the scan constantly check and perform a scan
         try:
@@ -126,6 +135,7 @@ class XANESScan(BasicScan):
         self.scan_parameters['targets'] = xanes_targets(self.scan_parameters['edge_energy'])
         self.scan_parameters['filename'] = os.path.join(directory, "%s_%s.raw" % (prefix, edge))
         self.scan_parameters['attenuation'] = attenuation
+        self.scan_parameters['crystal_id'] = crystal
         self.meta_data = {'edge': edge, 'time': t, 'attenuation': attenuation, 'prefix': prefix, 'user_name': uname}
         
                     
@@ -164,7 +174,13 @@ class XANESScan(BasicScan):
                 'text': self.autochooch.get_results_text(),
                 'log': self.autochooch.log,
                 'name_template': "%s_%s" % (self._prefix, self._edge),
-                'directory': self._directory}
+                'directory': self._directory,
+                'edge': self._edge,
+                'crystal_id': self._crystal_id,
+                'attenuation': self._attenuation,
+                'energy': self._edge_energy,
+                'kind': 0 # MAD Scan
+                }
         else:
             gobject.idle_add(self.emit, 'error', 'Analysis Failed')
             self.results = {
@@ -178,7 +194,7 @@ class XANESScan(BasicScan):
         _logger.info('Edge Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
 
-        # Optain scan parameters from recent configure
+        # Obtain scan parameters from recent configure
         self._duration = self.scan_parameters['duration']
         self._edge = self.scan_parameters['edge']
         self._edge_energy = self.scan_parameters['edge_energy']
@@ -189,6 +205,7 @@ class XANESScan(BasicScan):
         self._prefix = self.scan_parameters['prefix']
         self._user_name = self.scan_parameters['user_name']
         self._filename = self.scan_parameters['filename']
+        self._crystal_id = self.scan_parameters['crystal_id']
         self.data = []
         self.chooch_results = {} 
         _saved_attenuation = self.beamline.attenuator.get()

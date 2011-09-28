@@ -194,19 +194,28 @@ class AppWindow(gtk.Window):
             self._first_load = False
         
     def on_active_sample(self, obj, data):
+        self.sample_manager.update_active_sample(data)
         self.collect_manager.update_active_sample(data)
+        self.scan_manager.update_active_sample(data)
 
     def on_sample_selected(self, obj, data):
-        self.collect_manager.update_data(sample=data)
-        _logger.info('The selected sample has been updated to "%s (%s)"' % (data['name'], data['port']))
+        self.collect_manager.update_selected(sample=data)
+        self.sample_manager.update_selected(sample=data)
+        try:
+            _logger.info('The selected sample has been updated to "%s (%s)"' % (data['name'], data['port']))
+        except KeyError:
+            _logger.info('The crystal cannot be selected')
         tab_lbl = self.notebook.get_tab_label(self.collect_manager)
         tab_lbl.image.set_from_pixbuf(self._info_img)
         tab_lbl.label.set_markup("<b>%s</b>" % tab_lbl.raw_text)
         
         if self._show_select_dialog:
             header = 'Selected Crystal Updated'
-            subhead = 'The selected crystal has been updated to "%s (%s)" in ' % (data['name'], data['port'])
-            subhead += 'the Data Collection tab.'
+            try:
+                subhead = 'The selected crystal has been updated to "%s (%s)" in ' % (data['name'], data['port'])
+                subhead += 'the Data Collection tab.'
+            except KeyError:
+                subhead = 'The crystal cannot be selected.'
             chkbtn = gtk.CheckButton('Do not show this dialog again.')
             def _chk_cb(obj):
                 self._show_select_dialog = (not obj.get_active())
@@ -214,8 +223,6 @@ class AppWindow(gtk.Window):
             chkbtn.set_property('can-focus', False)
             dialogs.info(header, subhead, extra_widgets=[chkbtn])
 
-        
-                
     def on_beam_change(self, obj, beam_available):
         # Do not show icon if current page is already hutch tab
         if self.notebook.get_current_page() != self.notebook.page_num(self.hutch_manager):

@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <glade-interface>
   <!-- interface-requires gtk+ 2.10 -->
   <!-- interface-naming-policy toplevel-contextual -->
@@ -49,7 +49,6 @@
                   <widget class="GtkVBox" id="control_box">
                     <property name="width_request">200</property>
                     <property name="visible">True</property>
-                    <property name="orientation">vertical</property>
                     <property name="spacing">6</property>
                     <child>
                       <widget class="GtkHButtonBox" id="hbuttonbox1">
@@ -206,43 +205,10 @@
                         <property name="label_xalign">0</property>
                         <property name="shadow_type">none</property>
                         <child>
-                          <widget class="GtkVBox" id="vbox1">
+                          <widget class="GtkHBox" id="mnt_hbox">
                             <property name="visible">True</property>
-                            <property name="border_width">3</property>
-                            <property name="orientation">vertical</property>
-                            <property name="spacing">3</property>
                             <child>
-                              <widget class="GtkTable" id="table2">
-                                <property name="visible">True</property>
-                                <property name="n_columns">2</property>
-                                <property name="homogeneous">True</property>
-                                <child>
-                                  <widget class="GtkLabel" id="crystal_lbl">
-                                    <property name="visible">True</property>
-                                    <property name="label" translatable="yes">[None]</property>
-                                    <property name="wrap">True</property>
-                                    <property name="ellipsize">middle</property>
-                                    <property name="max_width_chars">12</property>
-                                  </widget>
-                                </child>
-                                <child>
-                                  <widget class="GtkButton" id="mnt_action_btn">
-                                    <property name="label" translatable="yes">Mount</property>
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="receives_default">True</property>
-                                    <property name="use_underline">True</property>
-                                  </widget>
-                                  <packing>
-                                    <property name="left_attach">1</property>
-                                    <property name="right_attach">2</property>
-                                    <property name="y_options"></property>
-                                  </packing>
-                                </child>
-                              </widget>
-                              <packing>
-                                <property name="position">0</property>
-                              </packing>
+                              <placeholder/>
                             </child>
                           </widget>
                         </child>
@@ -265,7 +231,6 @@
                     <child>
                       <widget class="GtkVBox" id="active_strategy_box">
                         <property name="no_show_all">True</property>
-                        <property name="orientation">vertical</property>
                         <child>
                           <widget class="GtkHBox" id="hbox2">
                             <property name="visible">True</property>
