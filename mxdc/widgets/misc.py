@@ -91,7 +91,7 @@ class ActiveEntry(gtk.VBox):
         self._action_btn = self._xml.get_widget('action_btn')
         self._action_icon = self._xml.get_widget('action_icon')
         self._label = self._xml.get_widget('label')
-        font_desc = pango.FontDescription()
+        #font_desc = pango.FontDescription()
 
         self._sizegroup_h.add_widget(self._entry)
         self._sizegroup_h.add_widget(self._fbk_label)
@@ -137,7 +137,7 @@ class ActiveEntry(gtk.VBox):
         text = self.number_format % val
         if len(text) > self.width:
             text = "##.##"
-        self._fbk_label.set_markup('%8s' % (text,))
+        self._fbk_label.set_markup('%7s ' % (text,))
 
     def set_target(self,val):
         text = self.number_format % val
@@ -234,16 +234,19 @@ class ShutterButton(gtk.ToggleButton):
         self.shutter = shutter
         self.open_only = open_only
         self.action_label = action_label
-        alignment = gtk.Alignment(0.5,0.5,0.0,0.0)
         container = gtk.HBox(False, 2)
-        #container.set_border_width(2)
+
         self.label_text = label
         self.image = gtk.Image()
         self.label = gtk.Label(label)
+        self.image.set_alignment(0.5, 0.5)
+        self.image.set_padding(3,0)
+        self.label.set_alignment(0.0, 0.5)
+        self.label.set_padding(3,0)
+        
         container.pack_start(self.image, expand=False, fill=False)
-        container.pack_start(self.label, expand=False, fill=False)
-        alignment.add(container)
-        self.add(alignment)
+        container.pack_start(self.label, expand=True, fill=True)
+        self.add(container)
         self._set_off()
         self.shutter.connect('changed', self._on_state_change)
         self.connect('clicked', self._on_clicked)
@@ -285,20 +288,20 @@ class ScriptButton(gtk.Button):
         self.script = script
         self.confirm = confirm
         self.warning_text = message
-        alignment = gtk.Alignment(0.5,0.5,0.0,0.0)
+        self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+                                                               'data/active_stop.gif'))
         container = gtk.HBox(False, 2)
 
         self.label_text = label
         self.image = gtk.Image()
         self.label = gtk.Label(label)
         self.image.set_alignment(0.5, 0.5)
-        self.label.set_alignment(0.5, 0.5)
+        self.image.set_padding(3,0)
+        self.label.set_alignment(0.0, 0.5)
+        self.label.set_padding(3,0)
         container.pack_start(self.image, expand=False, fill=False)
-        container.pack_start(self.label, expand=False, fill=False)
-        alignment.add(container)
-        self.add(alignment)
-        self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
-                                                               'data/active_stop.gif'))
+        container.pack_end(self.label, expand=True, fill=True)
+        self.add(container)
         self.tooltip = gtk.Tooltips()
         self.tooltip.set_tip(self, self.script.description)
         self._set_off()
