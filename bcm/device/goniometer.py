@@ -146,6 +146,7 @@ class Goniometer(GoniometerBase):
             #put up backlight
         elif mode in ['MOUNTING']:
             self._expbox_mount_cmd.put(1)
+            self._bl_position.put(0)
             if wait:
                 time.sleep(3);
 
