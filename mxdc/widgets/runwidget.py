@@ -427,9 +427,9 @@ class RunWidget(gtk.Frame):
         except:
             start_angle = 0
         
-        start_angle = min(360.0, max(-360.0, start_angle))    
+        start_angle = min(360.0, max(-360.0, start_angle))
         if start_angle < 0:
-            start_angle += 360.0
+            start_angle += 360.0  
         self.entry['start_angle'].set_text('%0.2f' % start_angle)            
         self.check_changes()
         return False

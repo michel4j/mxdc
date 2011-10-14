@@ -139,6 +139,7 @@ class AppWindow(gtk.Window):
         self.beam_mnu.connect('activate', self.hutch_manager.on_beam_mode)
         self.open_shutter_mnu.connect('activate', self.hutch_manager.on_open_shutter)
         self.close_shutter_mnu.connect('activate', self.hutch_manager.on_close_shutter)
+        
         self.show_all()
         
     def _do_quit(self):
