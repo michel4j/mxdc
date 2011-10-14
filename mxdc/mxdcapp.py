@@ -41,6 +41,11 @@ class MXDCApp(object):
         _service_data = {'user': get_project_name(), 
                          'started': time.asctime(time.localtime()),
                          'beamline': os.environ.get('BCM_BEAMLINE', 'sim')}
+
+        if _service_data['beamline'] == 'sim':
+            self.provider_success(config)
+            return False
+        
         try:
             self.browser = mdns.Browser('_mxdc._tcp')
             self.browser.connect('added', self.found_existing)
