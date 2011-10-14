@@ -6,13 +6,13 @@ import pango
 import gtk.glade
 from mxdc.widgets.dialogs import save_selector, warning, error
 from mxdc.widgets.video import VideoWidget
-from mxdc.widgets.misc import ActiveHScale, ScriptButton
+from mxdc.widgets.misc import ActiveHScale, ScriptButton, ActiveEntry
 from bcm.engine.scripting import get_scripts 
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
-from bcm.utils.video import add_decorations
+from bcm.utils.video import add_decorations, add_hc_decorations
 
 from bcm.engine.scripting import get_scripts
 from bcm.utils.imgproc import get_pin_tip
@@ -419,4 +419,224 @@ class SampleViewer(gtk.Frame):
         #self.beamline.sample_stage.x.move_to( 22.0 )
         return True
                 
-                        
+                
+class HCViewer(SampleViewer):
+    
+    def __init__(self):
+        gtk.Frame.__init__(self)
+        self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'hc_viewer.glade'), 
+                                  'hc_viewer')
+        self._xml_popup = gtk.glade.XML(os.path.join(_DATA_DIR, 'hc_viewer.glade'), 
+                                  'colormap_popup')
+        self.set_shadow_type(gtk.SHADOW_NONE)
+        
+        self._timeout_id = None
+        self._disp_time = 0
+        self._colormap = 0
+                
+        try:
+            self.beamline = globalRegistry.lookup([], IBeamline)
+        except:
+            self.beamline = None
+            _logger.warning('No registered beamline found.')
+        
+        self.hc = self.beamline.humidity_control
+        self.entries = {
+            'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', format="%0.1f"),
+            'sample_temp':     ActiveEntry(self.hc.temperature, 'Sample Temperature', format="%0.1f")
+        }
+           
+        self._create_widgets()
+        
+        self.video.connect('realize', self.on_realize)
+        self.video.connect('motion_notify_event', self.on_mouse_motion)
+        self.video.connect('button_press_event', self.on_image_click)
+        self.video.connect('button_release_event', self.on_drag_motion)
+        self.video.set_overlay_func(self._overlay_function)
+
+        self.roi_btn.connect('clicked', self.toggle_define_roi)
+        self._define_roi = False
+
+    def __getattr__(self, key):
+        try:
+            return super(HCViewer).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
+        
+    def _create_widgets(self):
+
+        self.add(self.hc_viewer)
+                
+        # status, save, etc
+        self.save_btn.connect('clicked', self.on_save)
+        
+        #Video Area
+        self.video_frame = self.video_adjuster
+        self.video = VideoWidget(self.beamline.sample_video)
+        self.video_frame.add(self.video)
+        
+        # Lighting
+        self.side_light = ActiveHScale(self.beamline.sample_frontlight)
+        self.back_light = ActiveHScale(self.beamline.sample_backlight)
+        self.side_light.set_update_policy(gtk.UPDATE_DELAYED)
+        self.back_light.set_update_policy(gtk.UPDATE_DELAYED)
+        
+        pango_font = pango.FontDescription('Monospace 8')
+        self.pos_label.modify_font(pango_font)
+        self.meas_label.modify_font(pango_font)
+        
+        entry_box = gtk.VBox(False,0)
+        for key in ['rel_humidity','sample_temp']:
+            entry_box.pack_start(self.entries[key], expand=True, fill=False)
+        self.roi_btn = gtk.ToggleButton()
+        self.roi_btn.set_label('Define ROI')
+        self.side_panel.pack_start(entry_box, expand=True, fill=True)
+        self.side_panel.pack_start(self.roi_btn, expand=True, fill=False)
+
+    def _get_roi(self, obj=None, state=None):
+        self.dragging = False
+        roi = list(self.hc.ROI.get())        
+
+        self.roi_x1 = int(roi[0] / self.xf)
+        self.roi_y1 = int(roi[1] / self.yf)
+        self.roi_x2 = int(roi[2] / self.xf)
+        self.roi_y2 = int(roi[3] / self.yf) 
+ 
+    def save_image(self, filename):
+        img = self.beamline.sample_video.get_frame()
+        x1 = self.roi_x1 * self.xf
+        x2 = self.roi_x2 * self.xf
+        y1 = self.roi_y1 * self.yf
+        y2 = self.roi_y2 * self.yf
+        
+        img = add_hc_decorations(img, x1, x2, y1, y2)
+        img.save(filename)
+ 
+    def on_realize(self, obj):
+        super(HCViewer, self).on_realize(obj)
+        w, h = self.video.window.get_size()
+        self.xf = float(self.hc.img_width)/float(w)
+        self.yf = float(self.hc.img_height)/float(h)
+        
+        self._get_roi()
+        self.hc.ROI.connect('changed', self._get_roi)
+ 
+    def on_mouse_motion(self, widget, event):
+        if event.is_hint:
+            x, y, state = event.window.get_pointer()
+        else:
+            x = event.x; y = event.y
+        im_x, im_y, xmm, ymm = self._img_position(x,y)
+        self.pos_label.set_markup("%4d,%4d [%6.3f, %6.3f mm]" % (im_x, im_y, xmm, ymm))
+        if 'GDK_BUTTON1_MASK' in event.state.value_names and self._define_roi:
+            self.roi_x2, self.roi_y2, = event.x, event.y
+        elif 'GDK_BUTTON2_MASK' in event.state.value_names:
+            self.measure_x2, self.measure_y2, = event.x, event.y
+        else:
+            self.measuring = False
+            self.dragging = False
+
+    def on_image_click(self, widget, event):
+        if event.button == 1 and self._define_roi:
+            self.dragging = True
+            self.roi_x1, self.roi_y1 = event.x, event.y
+            self.roi_x2, self.roi_y2 = event.x, event.y
+        elif event.button == 2:
+            self.measuring = True
+            self.measure_x1, self.measure_y1 = event.x, event.y
+            self.measure_x2, self.measure_y2 = event.x, event.y
+        #elif event.button == 3:
+        #    self.measuring = False
+
+    def on_drag_motion(self, widget, event):
+        if self._define_roi:
+            x1 = int(self.roi_x1*self.xf)
+            x2 = int(self.roi_x2*self.xf)
+            y1 = int(self.roi_y1*self.yf)
+            y2 = int(self.roi_y2*self.yf)
+            
+            self.hc.ROI.set([x1, y1, x2, y2])
+               
+    def toggle_define_roi(self, widget=None):
+        if self._define_roi == True:
+            self._define_roi = False
+        else:
+            self._define_roi = True
+        return False
+        
+    def _overlay_function(self, pixmap):
+        self.draw_roi_overlay(pixmap)
+        self.draw_drop_coords(pixmap)
+        self.draw_meas_overlay(pixmap)
+        return True        
+    
+    def draw_roi_overlay(self, pixmap):
+        
+        x1 = self.roi_x1
+        x2 = self.roi_x2
+        y1 = self.roi_y1
+        y2 = self.roi_y2
+
+        if using_cairo:
+            cr = pixmap.cairo_create()
+            cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
+            cr.set_line_width(0.5)
+            cr.rectangle(x1, y1, x2-x1, y2-y1)
+            cr.stroke()
+        else:
+            pixmap.draw_line(self.video.ol_gc, x1, y1, x1, y2)
+            pixmap.draw_line(self.video.ol_gc, x2, y1, x2, y2)
+            pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y1)
+            pixmap.draw_line(self.video.ol_gc, x1, y2, x2, y2)
+        self.meas_label.set_markup("FPS: %0.1f" % self.video.fps)
+
+        return True
+
+    def draw_meas_overlay(self, pixmap):
+        pix_size = self.beamline.sample_video.resolution
+        w, h = pixmap.get_size()
+        if self.measuring:
+            x1 = self.measure_x1
+            x2 = self.measure_x2
+            y1 = self.measure_y1
+            y2 = self.measure_y2        
+        
+            dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+            if using_cairo:
+                cr = pixmap.cairo_create()
+                cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
+                cr.set_line_width(0.5)
+                cr.move_to(x1, y1)
+                cr.line_to(x2, y2)
+                cr.stroke()
+            else:
+                pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y2)       
+            self.meas_label.set_markup("Length: %0.2g mm" % dist)
+            
+    def draw_drop_coords(self, pixmap):
+        if self.hc.drop_size.get() > 0:
+            pix_size = self.beamline.sample_video.resolution
+            w, h = pixmap.get_size()
+            try:
+                drop_coords = list(self.hc.drop_coords.get())
+            except:
+                return
+            
+            x1 = drop_coords[0]/self.xf
+            x2 = drop_coords[2]/self.xf
+            y1 = drop_coords[1]/self.yf
+            y2 = drop_coords[3]/self.yf
+            
+            dist = pix_size * self.hc.drop_size.get()
+            if using_cairo:
+                cr = pixmap.cairo_create()
+                cr.set_source_rgba(0.0, 0.0, 1.0, 1.0)
+                cr.set_line_width(1)
+                cr.move_to(x1, y1)
+                cr.line_to(x2, y2)
+                cr.stroke()
+            else:
+                pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y2)            
+            self.meas_label.set_markup("Drop Size: %0.2g mm" % dist)
+            
