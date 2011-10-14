@@ -62,33 +62,28 @@ def summarize_frame_set(full_set):
     # takes a list of integers such as [1,2,3,4,6,7,8]
     # and reduces it to the string "1-4,6-8"
     sum_list = []
-
-    full_set.sort()
+    tmp_pairs = []
     
-    first = True
-    for n in full_set:
-        if first:
-            st = n
-            en = n
-            first = False
-            continue
-        if n == full_set[-1]: #last item
-            en = n
-            if st == en:
-                sum_list.append('%d' % (st,))
-            else:
-                sum_list.append('%d-%d' % (st, en))
-        elif n - en > 1: # an edge 
-            if st == en:
-                sum_list.append('%d' % (st,))
-            else:
-                sum_list.append('%d-%d' % (st, en))
-            st = n
-            en = n
+    if len(full_set) == 0:
+        return ""
+    full_set.sort()
+    cur = full_set.pop(0)
+    tmp_pairs.append([cur, cur])    
+    while len(full_set) > 0:
+        cur = full_set.pop(0)
+        last_pair = tmp_pairs[-1]
+        if (cur - last_pair[-1]) == 1:
+            last_pair[-1] = cur
         else:
-            en += 1
-               
+            tmp_pairs.append([cur, cur])
+    
+    for st, en in tmp_pairs:
+        if st == en:
+            sum_list.append('%d' % (st,))
+        else:
+            sum_list.append('%d-%d' % (st, en))
     return ','.join(sum_list)
+
 
 def determine_skip(frame_list):
     # takes a list of integers such as [1,2,3,4,7,8]
@@ -258,7 +253,7 @@ def _all_files(root, patterns='*'):
 def get_disk_frameset(run):
     # Given a run, determine the collected frame set and number of frames based on images on disk
     file_wcard = "%s_???.img" % (run['name'])
-    file_pattern = '%s_(\d{3}).img' % (run['name'])
+    file_pattern = '%s_(\d+).img' % (run['name'])
     filetxt = ' '.join(_all_files(run['directory'], file_wcard))
     full_set = map(int, re.findall(file_pattern, filetxt))
     

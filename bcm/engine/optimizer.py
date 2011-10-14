@@ -34,23 +34,28 @@ class Optimizer(BaseDevice):
 SimOptimizer = Optimizer
   
 class BossOptimizer(BaseDevice):
+    implements(IOptimizer)
     
     def __init__(self, name):
         BaseDevice.__init__(self)
         self.name = name
         self._enable = self.add_pv('%s:EnableDacOUT' % name)
         self._status = self.add_pv('%s:EnableDacIN' % name)
+        self._status.connect('changed', self._state_change)
         
-    def status(self):
-        return self._status.get()
+    def _state_change(self, obj, val):
+        self.set_state(active=(val==1))
         
-    def enable(self):
+    def start(self):
         _logger.debug('Enabling BOSS.')
         self._enable.put(1)
         
-    def disable(self):
+    def stop(self):
         _logger.debug('Disabling BOSS.')
         self._enable.put(0)
+    
+    def wait(self):
+        return
         
 class MostabOptimizer(BaseDevice):
     
