@@ -62,11 +62,11 @@ class MountWidget(gtk.HBox):
                 action = "Dismount"
             self.mnt_action_btn.set_sensitive(True)
         else:       
-            txt = '[None]'
+            txt = '<i>None</i>'
             self.mnt_action_btn.set_sensitive(False)
         if self.beamline.automounter.is_busy() or not self.beamline.automounter.is_active():
             self.mnt_action_btn.set_sensitive(False)
-        self.crystal_lbl.set_text(txt)
+        self.crystal_lbl.set_markup(txt)
         self.mnt_action_btn.set_label(action)
 
     def update_selected(self, sample=None):

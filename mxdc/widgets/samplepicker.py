@@ -49,7 +49,7 @@ class ContainerWidget(gtk.DrawingArea):
                 gtk.gdk.POINTER_MOTION_MASK |
                 gtk.gdk.POINTER_MOTION_HINT_MASK|
                 gtk.gdk.VISIBILITY_NOTIFY_MASK)
-        self.set_size_request(290,290)
+        self.set_size_request(160,160)
         self.container.connect('changed', self.on_container_changed)
     
     def on_container_changed(self, obj):
@@ -145,14 +145,14 @@ class ContainerWidget(gtk.DrawingArea):
         if self.container_type == CONTAINER_PUCK_ADAPTER:
             self.height = min(event.width, event.height) - 12
             self.width = self.height
-            self.radius = (self.width)/19.0
+            self.radius = (self.width)/18.2
             self.sq_rad = self.radius**2
             self.x_pad = (event.width - self.width)//2
             self.y_pad = (event.height - self.height)//2
             self.coordinates, self.labels = self._puck_coordinates(self.width, self.height)
         elif self.container_type in [CONTAINER_CASSETTE, CONTAINER_CALIB_CASSETTE]:
             self.width = min(event.width, event.height*12/9)
-            self.height = self.width*9/12
+            self.height = self.width*9/12.5
             self.radius = (self.width)/24.0
             self.sq_rad = self.radius**2
             self.x_pad = (event.width - self.width)//2
@@ -258,7 +258,10 @@ class ContainerWidget(gtk.DrawingArea):
     
     def draw_cairo(self, cr):
         if self.container_type in [CONTAINER_NONE, CONTAINER_UNKNOWN, CONTAINER_EMPTY]:
-            text = 'Empty or Undetermined'
+            if self.container_type in [CONTAINER_NONE, CONTAINER_EMPTY]:
+                text = 'Automounter Location is Empty'
+            else:
+                text = 'Container type is Unknown'
             x_b, y_b, w, h = cr.text_extents(text)[:4]
             cr.move_to(self.x_pad + self.width/2 - w/2,
                        self.y_pad + self.height/2 - h/2,
@@ -268,17 +271,19 @@ class ContainerWidget(gtk.DrawingArea):
             return
            
         # draw main labels
-        cr.set_font_size(14)
-        cr.set_line_width(0.8)
+        cr.set_font_size(15)
+        cr.set_line_width(0.85)
+        cr.set_source_color( gtk.gdk.color_parse("#3232ff") )
         for label, coord in self.labels.items():
             x, y = coord
             x_b, y_b, w, h = cr.text_extents(label)[:4]
-            cr.move_to(x - w / 2 - x_b, y - h / 2 - y_b)
+            cr.move_to(x - w/2.0 - x_b, y - h/2.0 - y_b)
             cr.show_text(label)
             cr.stroke()
 
+
         # draw pins
-        cr.set_font_size(9)
+        cr.set_font_size(10)
         style = self.get_style()
         for label, coord in self.coordinates.items():
             x, y = coord
@@ -290,9 +295,9 @@ class ContainerWidget(gtk.DrawingArea):
             cr.set_source_color(style.fg[self.state])
             cr.arc(x, y, r-1.0, 0, 2.0 * 3.14)
             cr.stroke()
-            x_b, y_b, w, h = cr.text_extents(label)[:4]
-            cr.move_to(x - w / 2 - x_b, y - h / 2 - y_b)
-            cr.show_text(label)
+            x_b, y_b, w, h = cr.text_extents(label[1:])[:4]
+            cr.move_to(x - w/2.0 - x_b, y - h/2.0 - y_b)
+            cr.show_text(label[1:])
             cr.stroke()
 
 
