@@ -1,24 +1,27 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <glade-interface>
   <!-- interface-requires gtk+ 2.10 -->
   <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkWindow" id="window1">
     <property name="visible">True</property>
+    <property name="can_focus">False</property>
     <property name="title" translatable="yes">window1</property>
     <child>
       <widget class="GtkHBox" id="sample_widget">
         <property name="visible">True</property>
+        <property name="can_focus">False</property>
         <property name="border_width">6</property>
         <property name="spacing">6</property>
         <child>
           <widget class="GtkVBox" id="vbox1">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
+            <property name="can_focus">False</property>
             <property name="spacing">6</property>
             <child>
               <widget class="GtkNotebook" id="loader_frame">
                 <property name="height_request">300</property>
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="show_tabs">False</property>
                 <child>
                   <placeholder/>
@@ -26,6 +29,7 @@
                 <child>
                   <widget class="GtkLabel" id="label10">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 1</property>
                   </widget>
                   <packing>
@@ -39,6 +43,7 @@
                 <child>
                   <widget class="GtkLabel" id="label11">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 2</property>
                   </widget>
                   <packing>
@@ -53,6 +58,7 @@
                 <child>
                   <widget class="GtkLabel" id="label12">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 3</property>
                   </widget>
                   <packing>
@@ -63,6 +69,8 @@
                 </child>
               </widget>
               <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
             </child>
@@ -76,6 +84,7 @@
                 <child>
                   <widget class="GtkLabel" id="label7">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 1</property>
                   </widget>
                   <packing>
@@ -89,6 +98,7 @@
                 <child>
                   <widget class="GtkLabel" id="label8">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 2</property>
                   </widget>
                   <packing>
@@ -103,6 +113,7 @@
                 <child>
                   <widget class="GtkLabel" id="label9">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 3</property>
                   </widget>
                   <packing>
@@ -113,29 +124,35 @@
                 </child>
               </widget>
               <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
                 <property name="position">1</property>
               </packing>
             </child>
           </widget>
           <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
         </child>
         <child>
           <widget class="GtkVBox" id="vbox2">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
+            <property name="can_focus">False</property>
             <property name="spacing">6</property>
             <child>
               <widget class="GtkNotebook" id="robot_ntbk">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="show_tabs">False</property>
                 <child>
                   <placeholder/>
                 </child>
                 <child>
                   <widget class="GtkLabel" id="label1">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 1</property>
                   </widget>
                   <packing>
@@ -149,6 +166,7 @@
                 <child>
                   <widget class="GtkLabel" id="label2">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 2</property>
                   </widget>
                   <packing>
@@ -163,6 +181,7 @@
                 <child>
                   <widget class="GtkLabel" id="label3">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 3</property>
                   </widget>
                   <packing>
@@ -173,6 +192,8 @@
                 </child>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
             </child>
@@ -186,6 +207,7 @@
                 <child>
                   <widget class="GtkLabel" id="label4">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 1</property>
                   </widget>
                   <packing>
@@ -199,6 +221,7 @@
                 <child>
                   <widget class="GtkLabel" id="label5">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 2</property>
                   </widget>
                   <packing>
@@ -213,6 +236,7 @@
                 <child>
                   <widget class="GtkLabel" id="label6">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">page 3</property>
                   </widget>
                   <packing>
@@ -223,13 +247,16 @@
                 </child>
               </widget>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
                 <property name="pack_type">end</property>
                 <property name="position">1</property>
               </packing>
             </child>
           </widget>
           <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
             <property name="pack_type">end</property>
             <property name="position">1</property>
           </packing>
