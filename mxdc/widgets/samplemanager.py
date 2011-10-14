@@ -10,7 +10,7 @@ from bcm.utils.misc import get_project_name
 from bcm.utils import lims_tools
 
 from mxdc.widgets.predictor import Predictor
-from mxdc.widgets.sampleviewer import SampleViewer
+from mxdc.widgets.sampleviewer import SampleViewer, HCViewer
 from mxdc.widgets.ptzviewer import AxisViewer
 from mxdc.widgets.samplepicker import SamplePicker
 from mxdc.widgets.simplevideo import SimpleVideo
@@ -32,6 +32,7 @@ class SampleManager(gtk.Frame):
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'sample_widget.glade'), 
                                   'sample_widget')
         self._create_widgets()
+        self.changed_hc = False
     
     def __getattr__(self, key):
         try:
@@ -53,11 +54,13 @@ class SampleManager(gtk.Frame):
                
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
+        self.hc_viewer = HCViewer()
+        self.humidity_controller = HCWidget(self.beamline.humidity_control)
         self.hutch_viewer = AxisViewer(self.beamline.hutch_video)
         self.dewar_loader = DewarLoader()
         self.cryo_controller = CryojetWidget(self.beamline.cryojet)
         self.sample_picker = SamplePicker()
-
+        
         def _mk_lbl(txt):
             lbl = gtk.Label(txt)
             lbl.set_padding(6,0)
@@ -66,7 +69,15 @@ class SampleManager(gtk.Frame):
         self.video_ntbk.append_page(self.sample_viewer, tab_label=_mk_lbl('Sample'))
         self.video_ntbk.append_page(self.hutch_viewer, tab_label=_mk_lbl('Hutch'))
         self.video_ntbk.connect('realize', lambda x: self.video_ntbk.set_current_page(0))
+        
         self.cryo_ntbk.append_page(self.cryo_controller, tab_label=_mk_lbl('Cryojet Stream'))
+
+        if self.beamline.humidity_control.status.connected():
+            self.video_ntbk.append_page(self.hc_viewer, tab_label=_mk_lbl('Humidity Control'))
+            self.video_ntbk.connect('switch-page', self.on_tab_change)
+            self.cryo_ntbk.append_page(self.humidity_controller, tab_label=_mk_lbl('Humidity Control'))
+            self.cryo_ntbk.connect('switch-page', self.on_tab_change)
+            
         
         self.robot_ntbk.append_page(self.sample_picker, tab_label=_mk_lbl('Automounter '))
         self.dewar_loader.set_border_width(3)     
@@ -78,6 +89,15 @@ class SampleManager(gtk.Frame):
         self.beamline.automounter.connect('mounted', self.on_sample_mounted)
         self.beamline.manualmounter.connect('mounted', self.on_sample_mounted, False)
         
+    def on_tab_change(self, obj, pointer, page_num):
+        if not self.changed_hc:
+            if ( obj.get_property("name") == "video_ntbk" and page_num is 2 ) or ( obj.get_property("name") == "cryo_ntbk" and page_num is 1 ):
+                self.changed_hc = True
+                self.cryo_ntbk.set_current_page(1)
+                self.video_ntbk.set_current_page(2)
+        else:
+            self.changed_hc = False
+
     def on_samples_changed(self, obj):
         gobject.idle_add(self.emit, 'samples-changed', self.dewar_loader)
 

@@ -565,3 +565,79 @@ class CryojetWidget(gtk.Frame):
             return True
         else:
             return False
+
+from plotter import Plotter
+
+class HCWidget(gtk.Frame):
+    def __init__(self, hc):
+        gtk.Frame.__init__(self, '')
+        self.set_shadow_type(gtk.SHADOW_NONE)
+        self.hc = hc
+        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'hc_widget.glade'), 
+                                  'hc_widget')
+        self.hc_widget = self._xml.get_widget('hc_widget')
+        self.add(self.hc_widget)
+        
+        self.temp_btn.connect('clicked', self.on_view_temp)
+        self.dropsize_btn.connect('clicked', self.on_view_dropsize)
+        self.plotter = Plotter(xformat='%g')
+        self.hc_plot.add(self.plotter)
+
+        self.temp_plot = True
+        self.drop_plot = False
+        self.follow_data()
+
+        self.start_time = time.time()
+        self.temp_btn.set_active(True)
+        
+    def __getattr__(self, key):
+        try:
+            return super(CryojetWidget).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
+                
+    def follow_data(self):
+        gobject.timeout_add(1000, self._follow_data)
+        return True
+    
+    def _follow_data(self):
+        print self.temp_plot, self.drop_plot 
+        if self.temp_plot:
+            print "adding a point"
+            self.plotter.add_point(time.time()-self.start_time, self.hc.temperature.get())
+        elif self.drop_plot:
+            self.plotter.add_point(time.time()-self.start_time, self.hc.drop_size.get())
+        return True  
+        
+    def on_view_temp(self, widget):
+        if widget.get_active():
+            self.temp_plot = True
+            self.dropsize_btn.set_active(False)
+            self.plotter.clear()
+            self.plotter.add_line([time.time()-self.start_time], [self.hc.temperature.get()], '-')
+        else:
+            self.temp_plot = False
+        
+    def on_view_dropsize(self, widget):
+        if widget.get_active():
+            self.drop_plot = True
+            self.temp_btn.set_active(False)
+            self.plotter.clear()
+            self.plotter.add_line([time.time()-self.start_time], [self.hc.drop_size.get()], '-')
+        else:
+            self.drop_plot = False
+                
+    def _refresh_temp(self, widget):
+        print self.temp_btn.toggled()
+        self.temp_plot = True
+        self.drop_plot = False
+                
+    def _refresh_dropsize(self, widget):
+        print self.hc_plot
+
+    def make_plot(self):
+        self.plotter.clear()
+        self.plotter.add_line([5, 5], [5, 3], '-')
+        self.plotter.set_labels(x_label='Time', y1_label='Drop Size (um)')
+        new_axis = self.plotter.add_axis(label="Relative Humidity")
+        self.plotter.redraw()
