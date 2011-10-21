@@ -10,6 +10,7 @@ from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
 import numpy
 from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
+from matplotlib.dates import date2num, MinuteLocator, SecondLocator
 from matplotlib import rcParams
 
 from zope.interface import implements
@@ -222,6 +223,12 @@ class Plotter( gtk.Frame ):
         self.axis[0].set_xlabel(x_label)
         self.axis[0].set_ylabel(y1_label)
         
+    def set_time_labels(self, labels, format, maj_int, min_int):
+        self.axis[0].xaxis.set_major_locator(MinuteLocator(interval=maj_int))
+        self.axis[0].xaxis.set_minor_locator(SecondLocator(interval=min_int))
+        if len(self.axis[0].xaxis.get_major_ticks()) < len(labels):
+            labels.pop(0)
+        self.axis[0].set_xticklabels([d.strftime(format) for d in labels])   
 
     def clear(self, grid=False):
         self.fig.clear()
