@@ -537,8 +537,8 @@ class HumidityController(BaseDevice):
         self.add_devices(self.humidity, self.temperature)
         self.img_height = 576
         self.img_width = 768
-        
-        
+
+        self.dew_point = Positioner('%s:SetpointDewPointTemp' % root_name, '%s:DewPointTemp' % root_name)        
 
 
 
