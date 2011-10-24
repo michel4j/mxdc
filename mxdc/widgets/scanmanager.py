@@ -216,9 +216,9 @@ class ScanManager(gtk.Frame):
         #Toggle column
         renderer = gtk.CellRendererToggle()
         renderer.connect('toggled', self.on_element_toggled, self.xrf_store)
-        column = gtk.TreeViewColumn('Draw', renderer, active=COLUMN_DRAW)
+        column = gtk.TreeViewColumn('', renderer, active=COLUMN_DRAW)
         column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-        column.set_fixed_width(50)
+        column.set_fixed_width(24)
 
         self.xrf_list.append_column(column)
         
