@@ -46,13 +46,53 @@ class XRFScan(BasicScan):
     def analyse(self):        
         x = self.data[:,0].astype(float)
         y = self.data[:,1].astype(float)
-        peaks = science.peak_search(x, y, w=31, threshold=0.1, min_peak=0.05)
+        peaks = science.find_peaks(x,y,sensitivity=0.005)
+        energy = self._energy
+        elastic_candidates = []
+        for peak in peaks:
+            if peak[1] > peaks[0][1]/10.0 :
+                dev = abs(energy-peak[0])
+                if dev < 0.45:
+                    elastic_candidates.append(peak)
+        
+        for peak in peaks:
+            if peak[1] > 1:
+                zero_peak = peak
+                break
+                 
+        if len(elastic_candidates) == 1:
+            elastic_peak = elastic_candidates[0]
+        elif len(elastic_candidates) > 1:
+            elastic_peak = elastic_candidates[-1]
+        else:
+            elastic_peak = (energy, 0.0)
+        scale = energy/(elastic_peak[0]+-zero_peak[0])
+        scale = max(min(scale, 1.03), 0.97)
+        
+        # initial adjustment of MCA calibration
+        x = (x - zero_peak[0]) * scale        
+        elements, bblocks, coeffs = science.interprete_xrf(x, y, energy, speedup=8)
+        x = x / coeffs[-1]
+        
+        assigned = {}        
+        for i, el_info in enumerate(elements):
+            symbol = el_info[0]
+            if coeffs[i] > 0.001: 
+                a = bblocks[:,i].sum()
+                prob = 100.0*a/y.sum()
+                if prob > 0.5:
+                    line_info = science.get_line_info(el_info, coeffs[i])
+                    if line_info is not None:
+                        assigned[symbol] = [prob, science.get_line_info(el_info, coeffs[i])]         
         
         # twisted does not like numpy.float64 so we need to convert x, y to native python
         # floats here
+        ys = science.smooth_data(y, times=2, window=21)
         self.results = {
-            'data': {'energy': map(float, list(x)), 'counts': map(float, list(y))},
-            'peaks': science.assign_peaks(peaks,  dev=0.04),
+            'data': {'energy': map(float, list(x)), 
+                     'counts': map(float, list(ys)),
+                     'fit' : map(float, list(bblocks.sum(1)))},
+            'assigned': assigned,
             'parameters': {'directory': self._directory,
                             'energy': self._energy,
                             'edge': self._edge,
@@ -95,9 +135,13 @@ class XRFScan(BasicScan):
             if self._energy is not None:
                 self.beamline.monochromator.energy.move_to(self._energy)
                 self.beamline.monochromator.energy.wait()
+            gobject.idle_add(self.emit, "progress", 0.15)
             self.beamline.exposure_shutter.open()
             self.data = self.beamline.mca.acquire(t=self._duration)
+            self.beamline.exposure_shutter.close()
             self.save(self._filename)
+            gobject.idle_add(self.emit, "progress", 0.3)
+            _logger.debug('Interpreting scan...')
             self.analyse()
             gobject.idle_add(self.emit, "done")
             gobject.idle_add(self.emit, "progress", 1.0)
