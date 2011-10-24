@@ -14,6 +14,7 @@
         <property name="spacing">6</property>
         <child>
           <widget class="GtkVBox" id="vbox1">
+            <property name="width_request">270</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="spacing">6</property>
@@ -97,17 +98,18 @@
                   <widget class="GtkAlignment" id="alignment2">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
                     <property name="left_padding">12</property>
                     <child>
                       <widget class="GtkLabel" id="scan_help">
-                        <property name="width_request">175</property>
+                        <property name="width_request">220</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="xalign">0</property>
-                        <property name="label" translatable="yes">Scan absorption edge to find peak, inflection and remote energies for MAD experiments</property>
+                        <property name="label" translatable="yes">Find peak, inflection and remote energies for MAD experiments</property>
+                        <property name="use_markup">True</property>
                         <property name="wrap">True</property>
                         <property name="selectable">True</property>
-                        <property name="width_chars">24</property>
                       </widget>
                     </child>
                   </widget>
@@ -147,6 +149,8 @@
                         <property name="can_focus">False</property>
                         <property name="n_rows">7</property>
                         <property name="n_columns">3</property>
+                        <property name="column_spacing">2</property>
+                        <property name="row_spacing">2</property>
                         <property name="homogeneous">True</property>
                         <child>
                           <widget class="GtkLabel" id="label5">
@@ -446,9 +450,24 @@ with this crystal</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkVBox" id="xanes_vbox">
+              <widget class="GtkVBox" id="xanes_box">
                 <property name="can_focus">False</property>
+                <property name="no_show_all">True</property>
                 <property name="spacing">3</property>
+                <child>
+                  <widget class="GtkLabel" id="label17">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">&lt;b&gt;Results:&lt;/b&gt;</property>
+                    <property name="use_markup">True</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
                 <child>
                   <widget class="GtkScrolledWindow" id="xanes_sw">
                     <property name="visible">True</property>
@@ -463,7 +482,7 @@ with this crystal</property>
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -545,18 +564,6 @@ with this crystal</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkHSeparator" id="hseparator1">
-                    <property name="height_request">3</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                  </widget>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
                     <property name="position">2</property>
                   </packing>
                 </child>
@@ -588,9 +595,6 @@ with this crystal</property>
                   </packing>
                 </child>
                 <child>
-                  <placeholder/>
-                </child>
-                <child>
                   <widget class="GtkProgressBar" id="scan_pbar">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -600,15 +604,69 @@ with this crystal</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="pack_type">end</property>
-                    <property name="position">2</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
               </widget>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
+                <property name="pack_type">end</property>
                 <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkVBox" id="xrf_box">
+                <property name="can_focus">False</property>
+                <property name="no_show_all">True</property>
+                <child>
+                  <widget class="GtkLabel" id="label19">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">&lt;b&gt;Results:&lt;/b&gt;</property>
+                    <property name="use_markup">True</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkScrolledWindow" id="xrf_sw">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hscrollbar_policy">never</property>
+                    <property name="vscrollbar_policy">automatic</property>
+                    <property name="shadow_type">etched-in</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </widget>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </widget>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkHSeparator" id="hseparator1">
+                <property name="height_request">3</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">6</property>
               </packing>
             </child>
           </widget>
