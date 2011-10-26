@@ -62,15 +62,12 @@ class SampleManager(gtk.Frame):
     def _create_widgets(self):
         self.beamline = globalRegistry.lookup([], IBeamline)
 
-        self.hc = self.beamline.hc1               
-        self.data = {'temps': [(datetime.now(), date2num(datetime.now()), self.hc.temperature.get())], 
-                     'drops': [(datetime.now(), date2num(datetime.now()), self.hc.drop_size.get())], 
-                     'relhs': [(datetime.now(), date2num(datetime.now()), self.hc.humidity.get())]}
+        self.hc = self.beamline.hc1          
 
-        self.hc.temperature.connect('changed', self.on_pv_change, 'temps')
-        self.hc.drop_size.connect('changed', self.on_pv_change, 'drops')
-        self.hc.humidity.connect('changed', self.on_pv_change, 'relhs')
-        self.clear_drops = True   
+        self.tupdate = self.hc.temperature.connect('changed', self.on_new_data, 'temps')
+        self.dupdate = self.hc.drop_size.connect('changed', self.on_new_data, 'drops')
+        self.hupdate = self.hc.humidity.connect('changed', self.on_new_data, 'relhs')
+        self.paused = False
             
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
@@ -96,10 +93,14 @@ class SampleManager(gtk.Frame):
         self.cryo_ntbk.append_page(self.cryo_controller, tab_label=_mk_lbl('Cryojet Stream'))
 
         if self.beamline.hc1.status.connected():
+            self.reset_data()  
             self.video_ntbk.append_page(self.hc_viewer, tab_label=_mk_lbl('Humidity Control'))
             self.video_ntbk.connect('switch-page', self.on_tab_change)
             self.cryo_ntbk.append_page(self.hc_plot, tab_label=_mk_lbl('Humidity Control'))
             self.cryo_ntbk.connect('switch-page', self.on_tab_change)
+            self.hc_viewer.connect('plot-changed', self.on_plot_change)
+            self.hc_viewer.connect('plot_paused', self.on_pause)
+            self.hc_viewer.connect('plot_cleared', self.on_clear)
         
         self.robot_ntbk.append_page(self.sample_picker, tab_label=_mk_lbl('Automounter '))
         self.dewar_loader.set_border_width(3)     
@@ -110,22 +111,22 @@ class SampleManager(gtk.Frame):
         self.dewar_loader.connect('sample-selected', self.on_sample_selected)
         self.beamline.automounter.connect('mounted', self.on_sample_mounted)
         self.beamline.manualmounter.connect('mounted', self.on_sample_mounted, False)
+  
+    def reset_data(self):
+        pix_size = self.beamline.sample_video.resolution * 1000
+        self.data = {'temps': [(datetime.now(), date2num(datetime.now()), self.hc.temperature.get())], 
+                     'drops': [(datetime.now(), date2num(datetime.now()), self.hc.drop_size.get() * pix_size)], 
+                     'relhs': [(datetime.now(), date2num(datetime.now()), self.hc.humidity.get())]}
         
-        self.hc_viewer.connect('plot-changed', self.on_plot_change)
-        
-    def on_pv_change(self, pv, state, key=None):
-        if key in ['temps', 'relhs']:
-            self.data[key].append((datetime.now(), date2num(datetime.now()), state))
-        elif key in ['drops']:
+    def on_new_data(self, pv, state, key=None):
+        if len(self.data[key]):
+            self.data[key].append((datetime.now(), date2num(datetime.now()), self.data[key][-1][2]))
+        if key in ['drops']:
             pix_size = self.beamline.sample_video.resolution * 1000
-            # GET RID OF THIS AND ADD A "CLEAR" BUTTON
-            if self.clear_drops and len(self.data[key]) > 1: 
-                self.data[key].pop(0)
-                self.clear_drops = False
-            if state * pix_size < 10000 and float(self.beamline.sample_video.resolution) is not float(1.0):
-                self.data[key].append((datetime.now(), date2num(datetime.now()), state * pix_size))
+            state = state * pix_size
+        self.data[key].append((datetime.now(), date2num(datetime.now()), state))
 
-        if len(self.data[key]) > 600:
+        if len(self.data[key]) > 1000:
             self.data[key].pop(0)
         self.plot_new_points(key)
             
@@ -140,8 +141,17 @@ class SampleManager(gtk.Frame):
             self.changed_hc = False
 
     def on_plot_change(self, obj, widget, state):
-        self.on_toggle_plot(widget, state)
+        self.redraw_plot(widget, state)
 
+    def on_pause(self, obj, widget, paused):
+        self.paused = paused
+        if not paused:
+            self.redraw_plot()
+    
+    def on_clear(self, obj, data):
+        self.reset_data()
+        self.redraw_plot()
+    
     def on_samples_changed(self, obj):
         gobject.idle_add(self.emit, 'samples-changed', self.dewar_loader)
 
@@ -209,40 +219,49 @@ class SampleManager(gtk.Frame):
             self.dewar_loader.import_lims(reply)
         
     def plot_new_points(self, plot):
-        now, t, y = self.data[plot][-1]
-        xlabels = []
-        tot = 6
-        for i in range(tot):
-            minutes = ((now.minute + (i-(tot-1)) < 0) and now.minute + (i-(tot-1)) + 60) or (now.minute + (i-(tot-1))) 
-            hours = ((minutes - (i-(tot-1)) > 59) and now.hour - 1) or (now.hour)
-            xlabels.append(datetime(now.year, now.month, now.day, hours, minutes, now.second))
-        min_time = xlabels[0]
-        
-        # add points to each plot
-        if plot == self.pname:
-            rdt, rt, ry = self.data['relhs'][-1]
-            self.plotter.add_point(t, y, lin=0, redraw=False)
-            self.plotter.add_point(t, ry, lin=1, redraw=False)
-        elif plot == 'relhs':
-            pdt, pt, py = self.data[self.pname][-1]
-            self.plotter.add_point(t, py, lin=0, redraw=False)
-            self.plotter.add_point(t, y, lin=1, redraw=False)
-        
-        # tweak formatting before drawing plots
-        if len(self.plotter.axis) > 1:
-            self.plotter.axis[1].set_ylim((0,100))
-        self.plotter.axis[0].set_xlim((date2num(min_time), date2num(now)))
-        self.plotter.set_time_labels(xlabels, '%H:%M', 1, 10)
-        self.plotter.canvas.draw()
-   
-    def on_toggle_plot(self, widget, state):
-        self.plotter.clear()
+        if not self.paused or self.plot_init:
+            self.plot_init = False
+            now, t, y = self.data[plot][-1]
+            xlabels = []
+            tot = 6
+            for i in range(tot):
+                minutes = ((now.minute + (i-(tot-1)) < 0) and now.minute + (i-(tot-1)) + 60) or (now.minute + (i-(tot-1))) 
+                hours = ((minutes - (i-(tot-1)) > 59) and now.hour - 1) or (now.hour)
+                xlabels.append(datetime(now.year, now.month, now.day, hours, minutes, now.second))
+            min_time = xlabels[0]
             
-        if ( widget.get_label() == 'Temperature' and state is True ) or \
-           ( widget.get_label() == 'Drop Size' and state is False ):
-            self.pname = 'temps'
-        else:
-            self.pname = 'drops'
+            # add points to each plot
+            if plot == self.pname:
+                rdt, rt, ry = self.data['relhs'][-1]
+                self.plotter.add_point(t, y, lin=0, redraw=False)
+                self.plotter.add_point(t, ry, lin=1, redraw=False)
+            elif plot == 'relhs':
+                pdt, pt, py = self.data[self.pname][-1]
+                self.plotter.add_point(t, py, lin=0, redraw=False)
+                self.plotter.add_point(t, y, lin=1, redraw=False)
+            
+            # tweak formatting before drawing plots
+            if len(self.plotter.axis) > 1:
+                self.plotter.axis[1].set_ylim((0,100))
+            self.plotter.axis[0].set_xlim((date2num(min_time), date2num(now)))
+            self.plotter.set_time_labels(xlabels, '%H:%M', 1, 10)
+            self.plotter.canvas.draw()
+   
+    def redraw_plot(self, widget=None, state=True):
+        self.plotter.clear()
+        self.plot_init = True
+        
+        if widget is not None:
+            if state is True:
+                self.pname = 'temps'
+            else:
+                self.pname = 'drops'
+            #if ( widget.get_label() == 'Temperature' and state is True ) or \
+            #   ( widget.get_label() == 'Drop Size' and state is False ):
+            #    self.pname = 'temps'
+            #else:
+            #    self.pname = 'drops'
+        
         self.add_hc_line(self.pname)
         self.add_hc_line('relhs', 1)
 
