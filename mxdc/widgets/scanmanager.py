@@ -27,7 +27,51 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
   COLUMN_FP,
 ) = range(4)
 
+(
+  COLUMN_DRAW,
+  COLUMN_ELEMENT,
+  COLUMN_PERCENT,
+) = range(3)
+
 SCAN_CONFIG_FILE = 'scan_config.json'
+
+def summarize_lines(data):
+    name_dict = {
+        'L1M2,3,L2M4': 'L1,2M',
+        'L1M3,L2M4': 'L1,2M',       
+        'L1M,L2M4': 'L1,2M',
+    }
+    def join(a,b):
+        if a==b:
+            return [a]
+        if abs(b[1]-a[1]) < 0.200:
+            if a[0][:-1] == b[0][:-1]:
+                #nm = '%s,%s' % (a[0], b[0][-1])
+                nm = b[0][:-1]
+            else:
+                nm = '%s,%s' % (a[0], b[0])
+            nm = name_dict.get(nm, nm)
+            ht =  (a[2] + b[2])
+            pos = (a[1]*a[2] + b[1]*b[2])/ht
+            return [(nm, round(pos,4), round(ht,2))]
+        else:
+            return [a, b]
+    #data.sort(key=lambda x: x[1])
+    data.sort()
+    #print data
+    new_data = [data[0]]
+    for entry in data:
+        old = new_data[-1]
+        _new = join(old, entry)
+        new_data.remove(old)
+        new_data.extend(_new)
+    #print new_data
+    return new_data
+        
+XRF_COLOR_LIST = ['#800080','#FF0000','#008000',
+                  '#FF00FF','#800000','#808000',
+                  '#008080','#00FF00','#000080',
+                  '#00FFFF','#0000FF','#000000']
 
 class ScanManager(gtk.Frame):
     __gsignals__ = {
@@ -53,12 +97,16 @@ class ScanManager(gtk.Frame):
         self.xrf_scanner.connect('done', self.on_xrf_done)   
         self.xrf_scanner.connect('stopped', self.on_scan_stopped)
         self.xrf_scanner.connect('error', self.on_scan_error)
+        self.xrf_scanner.connect('progress', self.on_progress)
 
         # initial variables
         self.scanning = False
         self.progress_id = None
         self.scan_mode = 'XANES'
         self.active_sample = {}
+        self.xrf_results = {}
+        self.xrf_annotations = {}
+
         
         # lists to hold results data
         self.energies = []
@@ -127,7 +175,6 @@ class ScanManager(gtk.Frame):
         self.energy_list = gtk.TreeView(model=self.energy_store)
         self.energy_list.set_rules_hint(True)
         self.xanes_sw.add(self.energy_list)
-        self.xanes_vbox.set_sensitive(False)
         self.create_run_btn.connect('clicked', self.on_create_run)
         self.update_strategy_btn.connect('clicked', self.on_update_strategy)
 
@@ -154,11 +201,44 @@ class ScanManager(gtk.Frame):
         self.energy_list.append_column(column2)
         self.energy_list.append_column(column4)
         self.energy_list.append_column(column3)
+        self.xanes_sw.show_all()
+        
+        # XRF Results section
+        self.xrf_store = gtk.ListStore(
+            gobject.TYPE_BOOLEAN,                          
+            gobject.TYPE_STRING,
+            gobject.TYPE_FLOAT
+        )
+        self.xrf_list = gtk.TreeView(model=self.xrf_store)
+        self.xrf_list.set_rules_hint(True)
+        self.xrf_sw.add(self.xrf_list)
+        
+        #Toggle column
+        renderer = gtk.CellRendererToggle()
+        renderer.connect('toggled', self.on_element_toggled, self.xrf_store)
+        column = gtk.TreeViewColumn('', renderer, active=COLUMN_DRAW)
+        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        column.set_fixed_width(24)
+
+        self.xrf_list.append_column(column)
+        
+        #Name column
+        renderer = gtk.CellRendererText()
+        column = gtk.TreeViewColumn('Element', renderer, text=COLUMN_ELEMENT)
+        column.set_cell_data_func(renderer, self._color_element, COLUMN_PERCENT)
+        self.xrf_list.append_column(column)
+
+        #Percent column
+        renderer = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("Reliability (%)", renderer, text=COLUMN_PERCENT)
+        column.set_cell_data_func(renderer, self._float_format, ('%5.2f', COLUMN_PERCENT))
+        self.xrf_list.append_column(column)
+        self.xrf_sw.show_all()
         
         self.show_all()
         self.set_parameters()
    
-    def _add_energy(self, item=None): 
+    def _add_xanes_energy(self, item=None): 
         iter = self.energy_store.append()        
         self.energy_store.set(iter, 
             COLUMN_LABEL, item[COLUMN_LABEL], 
@@ -169,11 +249,27 @@ class ScanManager(gtk.Frame):
         self.energies.append(item[COLUMN_ENERGY])
         self.names.append(item[COLUMN_LABEL])
         self.scattering_factors.append({'fp':item[COLUMN_FP], 'fpp':item[COLUMN_FPP]})
+
+    def _add_xrf_element(self, item=None): 
+        iter = self.xrf_store.append()        
+        self.xrf_store.set(iter, 
+            COLUMN_DRAW, False, 
+            COLUMN_ELEMENT, item[0],
+            COLUMN_PERCENT, item[1]
+        )
         
     def _float_format(self, cell, renderer, model, iter, data):
         format, column = data
         value = model.get_value(iter, column)
+        index = model.get_path(iter)[0]
         renderer.set_property('text', format % value)
+        if model == self.xrf_store:
+            renderer.set_property("foreground", XRF_COLOR_LIST[index])
+        return
+
+    def _color_element(self, cell, renderer, model, iter, column):
+        index = model.get_path(iter)[0]
+        renderer.set_property("foreground", XRF_COLOR_LIST[index])
         return
 
     def _set_scan_action(self, state):
@@ -189,13 +285,22 @@ class ScanManager(gtk.Frame):
         self.names = []
         self.scattering_factors = []
         self.create_run_btn.set_sensitive(False)
+        self.xanes_box.hide()
+
+    def clear_xrf_results(self):
+        self.xrf_store.clear()
+        self.xrf_box.hide()
+        self.xrf_results = {}
+        self.xrf_annotations = {}
+        
         
     def set_results(self,results):
         keys = ['peak','infl','remo']  # collect peak infl remo in that order
         for key in keys:
             if key in results.keys():  # all energies are not necessarily present
-                self._add_energy(results[key])
-        self.xanes_vbox.set_sensitive(True)
+                self._add_xanes_energy(results[key])
+        if len(results.keys()) > 0:
+            self.xanes_box.set_sensitive(True)
         return True
     
     def set_parameters(self, params=None):
@@ -262,6 +367,7 @@ class ScanManager(gtk.Frame):
 
     
     def run_xanes(self):
+        self.xrf_box.hide()
         if self.scanning:
             return True
         self.plotter.clear()
@@ -283,6 +389,7 @@ class ScanManager(gtk.Frame):
         return True
         
     def run_xrf(self):
+        self.xanes_box.hide()
         if self.scanning:
             return True
         scan_parameters = self.get_parameters() 
@@ -303,10 +410,10 @@ class ScanManager(gtk.Frame):
     
     def on_mode_change(self, widget):
         if widget.get_active():
-            self.scan_help.set_markup('Scan absorption edge to find peak, inflection and remote energies for MAD experiments')
+            self.scan_help.set_markup('Find peak, inflection and remote energies for MAD experiments')
             self.scan_mode = 'XANES'
         else:
-            self.scan_help.set_markup('Collect a full spectrum to identify elements present in the sample')
+            self.scan_help.set_markup('Identify elements present in the sample from their fluorescence')
             self.scan_mode = 'XRF'
         return
 
@@ -351,13 +458,15 @@ class ScanManager(gtk.Frame):
         self.output_log.add_text(obj.results.get('log'))
         return True
     
-    def on_xanes_done(self, obj):
+    def on_xanes_done(self, obj):        
         self._set_scan_action(False)
         self.scan_book.set_current_page(1)
         results = obj.results.get('energies')
         if results is None:
             warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed')
             return True
+        
+        self.xanes_box.show()
         new_axis = self.plotter.add_axis(label="Anomalous scattering factors (f', f'')")
         if 'infl' in results.keys():
                 self.plotter.axis[0].axvline( results['infl'][1], color='m', linestyle=':', linewidth=1)
@@ -422,58 +531,96 @@ class ScanManager(gtk.Frame):
         self.scan_pbar.set_fraction(fraction)
         self.scan_pbar.set_text('%0.0f %%' % (fraction * 100))
         return True
-                    
+            
     def on_xrf_done(self, obj):
-        em_names = {'Ka': r'K$\alpha$', 
-                    'Ka1': r'K$\alpha_1$',
-                    'Ka2': r'K$\alpha_2$',
-                    'Kb': r'K$\beta$',
-                    'Kb1': r'K$\beta_1$',
-                    'La1': r'L$\alpha 1$'}
-        x = obj.data[:,0]
-        y = obj.data[:,1]
+        self.clear_xrf_results()
+        self.xrf_box.show()
+        
+        x = obj.results['data']['energy']
+        y = obj.results['data']['counts']
+        yc = obj.results['data']['fit']
+        self.xrf_results = obj.results['assigned']
         self.plotter.set_labels(title='X-Ray Fluorescence',x_label='Energy (keV)',y1_label='Fluorescence')
         self.scan_book.set_current_page(1)
-        sy = science.savitzky_golay(y, kernel=31)
-        self.plotter.add_line(x, sy,'b-')
-        self.output_log.clear()
-        peak_log = "#%9s %10s %10s    %s\n" % ('Position',
-                                            'Height',
-                                            'FWHM',
-                                            'Identity')
-        peaks = obj.results.get('peaks')
-        if peaks is None:
-            return
-        tick_size = max(y)/50.0
-        for peak in peaks:
-            if len(peak)> 4:
-                el, pk = peak[4].split('-')
-                #lbl = '%s-%s' % (el, em_names[pk])
-                lbl = '%s-%s' % (el, pk)
 
-                lbls = ', '.join(peak[4:])
-            else:
-                lbl = '?'
-                lbls = ''
-            self.plotter.axis[0].plot([peak[0], peak[0]], [peak[1]+tick_size,peak[1]+tick_size*2], 'm-')
-            self.plotter.axis[0].text(peak[0], 
-                                      peak[1]+tick_size*2.2,
-                                      lbl,
-                                      horizontalalignment='center', 
-                                      color='black', size=9)
-            peak_log += "%10.3f %10.3f %10.3f    %s\n" % (peak[0],
-                                                        peak[1],
-                                                        peak[2],
-                                                        lbls)
+        self.plotter.add_line(x, y,'b-', label='Exp')
+        self.plotter.add_line(x, yc,'k:', label='Fit')
+        self.plotter.axis[0].axhline(0.0, color='gray', linewidth=0.5)
+        self.output_log.clear()
+        
+        # get list of elements sorted in descending order of prevalence
+        element_list = [(v[0], k) for k,v in obj.results['assigned'].items()]
+        element_list.sort()
+        element_list.reverse()
+
+        peak_log = "%7s %7s %5s %8s %8s\n" % (
+                      "Element",
+                      "%Cont",
+                      "Trans",
+                      "Energy",
+                      "Height")
+                      
+        # Display at most 10 entries in the xrf_list
+        count = 0
+        for prob, el in element_list:
+            if count < 10:
+                self._add_xrf_element((el, prob))
+                count += 1
+            peak_log += 39 * "-" + "\n"
+            peak_log += "%7s %7.2f %5s %8s %8s\n" % (el, prob, "", "", "")
+            contents = obj.results['assigned'][el]
+            for trans,energy,height in contents[1]:
+                peak_log += "%7s %7s %5s %8.3f %8.2f\n" % (
+                                "", "", trans, energy, height)
+
         self.output_log.add_text(peak_log)
+        self.plotter.axis[0].legend()
         self.plotter.redraw()
         self.scan_pbar.set_text("Scan complete.")
         self.scan_pbar.set_fraction(1.0)
         self._set_scan_action(False)
 
-        # Upload scan to lims with data already smoothed
-        obj.results['data']['counts'] = list(sy)
+        # Upload scan to lims
         lims_tools.upload_scan(self.beamline, [obj.results])
 
         return True
-                                                            
+        
+    def on_element_toggled(self, cell, path, model):
+        iter = model.get_iter(path)
+        index = model.get_path(iter)[0]
+        _color = XRF_COLOR_LIST[index]
+
+        element = model.get_value(iter, COLUMN_ELEMENT)                 
+        element_info = self.xrf_results.get(element)
+        state = model.get_value(iter, COLUMN_DRAW)
+        model.set(iter, COLUMN_DRAW, (not state) )
+        ax = self.plotter.axis[0]
+        line_list = summarize_lines(element_info[1])
+        if state:
+            # Delete drawings
+            for _anotation in self.xrf_annotations[element]:
+                _anotation.remove()
+            del self.xrf_annotations[element]
+            self.plotter.canvas.draw()
+        else:
+            # Add Drawings
+            self.xrf_annotations[element] = []
+            ln_points = []
+            for _nm, _pos, _ht in line_list:
+                ln_points.extend(([_pos, _pos],[0.0, _ht*0.95]))
+                #ax.axvline(_pos, label=_nm)
+                txt = ax.text(_pos, -0.5, 
+                              "%s-%s" % (element, _nm), 
+                              rotation=90, 
+                              fontsize=7,
+                              horizontalalignment='center',
+                              verticalalignment='top',
+                              color=_color
+                      )
+                self.xrf_annotations[element].append(txt)
+            lns = ax.plot(*ln_points, linewidth=1.0, color=_color)
+            self.xrf_annotations[element].extend(lns)
+            
+            self.plotter.canvas.draw()
+        return True
+                                                             
