@@ -29,7 +29,9 @@ _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class HCViewer(SampleViewer):
     __gsignals__ = {
-        'plot_changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT, gobject.TYPE_BOOLEAN])
+        'plot_changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT, gobject.TYPE_BOOLEAN]),
+        'plot-paused': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT, gobject.TYPE_BOOLEAN]),
+        'plot-cleared': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT])
     }
     def __init__(self):
         gtk.Frame.__init__(self)
@@ -42,6 +44,7 @@ class HCViewer(SampleViewer):
         self._timeout_id = None
         self._disp_time = 0
         self._colormap = 0
+        self.paused = False
                 
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
@@ -69,12 +72,13 @@ class HCViewer(SampleViewer):
         self.video.set_overlay_func(self._overlay_function)
 
         self.temp_btn.connect('clicked', self.on_plot_change)
-        self.dropsize_btn.connect('clicked', self.on_plot_change)
         self.roi_btn.connect('clicked', self.toggle_define_roi)
         self.reset_btn.connect('clicked', self.on_reset_roi)
+        self.pause_btn.connect('clicked', self.on_pause)
+        self.clear_btn.connect('clicked', self.on_clear)
 
-        self.temp_btn.set_active(True)
         self._define_roi = False
+        self.on_plot_change(self.temp_btn)
 
     def __getattr__(self, key):
         try:
@@ -83,6 +87,12 @@ class HCViewer(SampleViewer):
             return self._xml.get_widget(key)
 
     def do_plot_changed(self, obj, data):
+        pass
+    
+    def do_plot_paused(self, obj, data):
+        pass
+    
+    def do_plot_cleared(self, obj):
         pass
         
     def _create_widgets(self):
@@ -111,14 +121,26 @@ class HCViewer(SampleViewer):
         self.hc_panel.pack_start(entry_box, expand=True, fill=False)
 
     def on_plot_change(self, widget):
-        gobject.idle_add(self.emit, 'plot-changed', widget, widget.get_active())
-        if ( widget is self.temp_btn and widget.get_active() is True ) or \
-           ( widget is self.dropsize_btn and widget.get_active() is False ):
-            if not self.temp_btn.get_active(): self.temp_btn.set_active(True)
-            if self.dropsize_btn.get_active(): self.dropsize_btn.set_active(False)
+        if widget.get_label() == 'Temperature':
+            state = True
+            label = 'Drop Size'
         else:
-            if self.temp_btn.get_active(): self.temp_btn.set_active(False)
-            if not self.dropsize_btn.get_active(): self.dropsize_btn.set_active(True)
+            state = False
+            label = 'Temperature'
+        gobject.idle_add(self.emit, 'plot-changed', widget, state)
+        self.temp_btn.set_label(label)
+
+    def on_pause(self, widget):
+        if self.paused:
+            self.paused = False
+            self.pause_img.set_from_stock('gtk-media-pause', gtk.ICON_SIZE_MENU)
+        else:
+            self.paused = True
+            self.pause_img.set_from_stock('gtk-media-play', gtk.ICON_SIZE_MENU)
+        gobject.idle_add(self.emit, 'plot-paused', widget, self.paused)
+
+    def on_clear(self, widget):
+        gobject.idle_add(self.emit, 'plot-cleared', widget)
 
     def _get_roi(self, obj=None, state=None):
         self.dragging = False

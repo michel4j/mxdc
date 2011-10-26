@@ -2,62 +2,6 @@
 <glade-interface>
   <!-- interface-requires gtk+ 2.6 -->
   <!-- interface-naming-policy toplevel-contextual -->
-  <widget class="GtkMenu" id="colormap_popup">
-    <child>
-      <widget class="GtkMenuItem" id="cmap_default">
-        <property name="visible">True</property>
-        <property name="label" translatable="yes">Default</property>
-        <property name="use_underline">True</property>
-      </widget>
-    </child>
-    <child>
-      <widget class="GtkSeparatorMenuItem" id="separator1">
-        <property name="visible">True</property>
-      </widget>
-    </child>
-    <child>
-      <widget class="GtkMenuItem" id="cmap_spectral">
-        <property name="visible">True</property>
-        <property name="label" translatable="yes">Spectral</property>
-        <property name="use_underline">True</property>
-      </widget>
-    </child>
-    <child>
-      <widget class="GtkMenuItem" id="cmap_hsv">
-        <property name="visible">True</property>
-        <property name="label" translatable="yes">HSV</property>
-        <property name="use_underline">True</property>
-      </widget>
-    </child>
-    <child>
-      <widget class="GtkMenuItem" id="cmap_jet">
-        <property name="visible">True</property>
-        <property name="label" translatable="yes">Jet</property>
-        <property name="use_underline">True</property>
-      </widget>
-    </child>
-    <child>
-      <widget class="GtkMenuItem" id="cmap_ryg">
-        <property name="visible">True</property>
-        <property name="label" translatable="yes">RYG</property>
-        <property name="use_underline">True</property>
-      </widget>
-    </child>
-    <child>
-      <widget class="GtkMenuItem" id="cmap_hot">
-        <property name="visible">True</property>
-        <property name="label" translatable="yes">Hot</property>
-        <property name="use_underline">True</property>
-      </widget>
-    </child>
-    <child>
-      <widget class="GtkMenuItem" id="cmap_pubu">
-        <property name="visible">True</property>
-        <property name="label" translatable="yes">PuBu</property>
-        <property name="use_underline">True</property>
-      </widget>
-    </child>
-  </widget>
   <widget class="GtkWindow" id="window1">
     <property name="title" translatable="yes">window1</property>
     <child>
@@ -233,7 +177,7 @@
               <widget class="GtkLabel" id="label1">
                 <property name="visible">True</property>
                 <property name="xalign">0.029999999329447746</property>
-                <property name="label" translatable="yes">&lt;b&gt;Plot View:&lt;/b&gt;</property>
+                <property name="label" translatable="yes">&lt;b&gt;Plot Controls:&lt;/b&gt;</property>
                 <property name="use_markup">True</property>
               </widget>
               <packing>
@@ -260,26 +204,54 @@
                 <child>
                   <widget class="GtkHBox" id="hbox1">
                     <property name="visible">True</property>
-                    <property name="homogeneous">True</property>
                     <child>
-                      <widget class="GtkToggleButton" id="temp_btn">
+                      <widget class="GtkButton" id="temp_btn">
                         <property name="label" translatable="yes">Temperature</property>
+                        <property name="width_request">98</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="receives_default">False</property>
-                        <property name="use_underline">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
                       </widget>
                       <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
                         <property name="position">0</property>
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkToggleButton" id="dropsize_btn">
-                        <property name="label" translatable="yes">Drop Size</property>
+                      <widget class="GtkHBox" id="hbox7">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">False</property>
-                        <property name="use_underline">True</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <widget class="GtkButton" id="pause_btn">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="use_action_appearance">False</property>
+                            <child>
+                              <widget class="GtkImage" id="pause_img">
+                                <property name="visible">True</property>
+                                <property name="stock">gtk-media-pause</property>
+                              </widget>
+                            </child>
+                          </widget>
+                          <packing>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkButton" id="clear_btn">
+                            <property name="label" translatable="yes">Clear</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="use_action_appearance">False</property>
+                          </widget>
+                          <packing>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
                       </widget>
                       <packing>
                         <property name="position">1</property>
@@ -303,18 +275,17 @@
                 <property name="label" translatable="yes"> </property>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">8</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
             </child>
             <child>
               <widget class="GtkButton" id="save_btn">
                 <property name="label">gtk-save</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
+                <property name="receives_default">True</property>
                 <property name="use_stock">True</property>
               </widget>
               <packing>
@@ -400,6 +371,62 @@
             <property name="position">1</property>
           </packing>
         </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="GtkMenu" id="colormap_popup">
+    <child>
+      <widget class="GtkMenuItem" id="cmap_default">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Default</property>
+        <property name="use_underline">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkSeparatorMenuItem" id="separator1">
+        <property name="visible">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkMenuItem" id="cmap_spectral">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Spectral</property>
+        <property name="use_underline">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkMenuItem" id="cmap_hsv">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">HSV</property>
+        <property name="use_underline">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkMenuItem" id="cmap_jet">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Jet</property>
+        <property name="use_underline">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkMenuItem" id="cmap_ryg">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">RYG</property>
+        <property name="use_underline">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkMenuItem" id="cmap_hot">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Hot</property>
+        <property name="use_underline">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkMenuItem" id="cmap_pubu">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">PuBu</property>
+        <property name="use_underline">True</property>
       </widget>
     </child>
   </widget>
