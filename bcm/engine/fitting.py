@@ -15,12 +15,22 @@ def step_func(x, coeffs):
     y = abs(H)*( 0.5 + (1.0/numpy.pi)*scipy.arctan( (x-P)/(0.5*L))) + d
     return y
 
-def multi_peak(x, coeffs, target='gaussian'):
+def multi_peak(x, coeffs, target='gaussian', fraction=0.5):
+    y = numpy.zeros(len(x))
+    npeaks = len(coeffs)//4
+    for i in range(npeaks):
+        a, fwhm, pos, off = coeffs[i*4:(i+1)*4]
+        n = fraction
+        pars = [a, fwhm, pos, off, n]
+        y += TARGET_FUNC[target](x,pars)
+    return y
+
+def multi_peak_fwhm(x, coeffs, fwhm, target='gaussian', fraction=0.5):
     y = numpy.zeros(len(x))
     npeaks = len(coeffs)//3
     for i in range(npeaks):
-        a, fwhm, pos, off = coeffs[i*4:(i+1)*4]
-        n = 0.5
+        a, pos, off = coeffs[i*3:(i+1)*3]
+        n = fraction
         pars = [a, fwhm, pos, off, n]
         y += TARGET_FUNC[target](x,pars)
     return y
@@ -34,8 +44,8 @@ def voigt(x, coeffs):
 
 def gauss(x, coeffs):
     H, L, P, O = coeffs[:4]
-    c = 2.35482
-    return abs(H) * scipy.exp(-0.5*(( x - P)/(L/c))**2 ) + O
+    sigma = L/2.35482
+    return O + abs(H) * scipy.exp(-(x - P)**2/(2*sigma**2))
 
 def lorentz(x, coeffs):
     H, L, P, O = coeffs[:4]

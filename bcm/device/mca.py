@@ -2,6 +2,7 @@ import time
 import numpy
 import os
 import gobject
+import random
 from zope.interface import implements
 from bcm.device.interfaces import IMultiChannelAnalyzer
 from bcm.protocol import ca
@@ -219,10 +220,8 @@ class SimMultiChannelAnalyzer(BaseDevice):
         self._data_read = False
         self._command_sent = False
                 
-        self._x_axis = self.channel_to_energy( numpy.arange(0,4096,1) )
-        self._counts_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'test/old_test/SeMet.raw'), comments="#")
-        self._counts_data = self._counts_data[:,1]
-        self._raw_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'test/old_test/XRFTest.raw'), comments="#")
+        self._counts_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'test/scans/xanes_001.raw'), comments="#")
+        self._counts_data = self._counts_data[:,1]        
         self._last_t = time.time()
         self._last_pos = 0
         self.set_state(active=True)
@@ -269,6 +268,9 @@ class SimMultiChannelAnalyzer(BaseDevice):
         self._aquiring = True
         time.sleep(t)
         self._acquiring = False
+        fname = os.path.join(os.environ['BCM_PATH'],'test/scans/xrf_%03d.raw' % 1)
+        self._raw_data = numpy.loadtxt(fname, comments="#")
+        self._x_axis = self._raw_data[:,0]
         return numpy.array(zip(self._x_axis, self._raw_data[:,1]))
         
     def stop(self):
