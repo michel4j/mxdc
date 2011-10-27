@@ -77,6 +77,10 @@ class HCViewer(SampleViewer):
         self.pause_btn.connect('clicked', self.on_pause)
         self.clear_btn.connect('clicked', self.on_clear)
 
+        self.hc1_active = False        
+        self.on_hc1_active()
+        self.beamline.hc1.status.connect('active', self.on_hc1_active)
+
         self._define_roi = False
         self.on_plot_change(self.temp_btn)
 
@@ -119,7 +123,7 @@ class HCViewer(SampleViewer):
             entry_box.pack_start(self.entries[key], expand=True, fill=False)
         self.stat_panel.pack_start(stat_box, expand=True, fill=False) 
         self.hc_panel.pack_start(entry_box, expand=True, fill=False)
-
+        
     def on_plot_change(self, widget):
         if widget.get_label() == 'Temperature':
             state = True
@@ -130,7 +134,17 @@ class HCViewer(SampleViewer):
         gobject.idle_add(self.emit, 'plot-changed', widget, state)
         self.temp_btn.set_label(label)
 
-    def on_pause(self, widget):
+    def on_hc1_active(self, obj=None, active=False):
+        self.hc1_active = active
+        self.reset_btn.set_sensitive(active)
+        self.roi_btn.set_sensitive(active)
+        self.clear_btn.set_sensitive(active)
+        if not active:
+            self.paused = True
+            self.on_pause()
+        self.pause_btn.set_sensitive(active)
+        
+    def on_pause(self, widget=None):
         if self.paused:
             self.paused = False
             self.pause_img.set_from_stock('gtk-media-pause', gtk.ICON_SIZE_MENU)
@@ -144,12 +158,13 @@ class HCViewer(SampleViewer):
 
     def _get_roi(self, obj=None, state=None):
         self.dragging = False
-        roi = list(self.hc.ROI.get())        
-
-        self.roi_x1 = int(roi[0] / self.xf)
-        self.roi_y1 = int(roi[1] / self.yf)
-        self.roi_x2 = int(roi[2] / self.xf)
-        self.roi_y2 = int(roi[3] / self.yf) 
+        if self.hc1_active:
+            roi = list(self.hc.ROI.get())        
+    
+            self.roi_x1 = int(roi[0] / self.xf)
+            self.roi_y1 = int(roi[1] / self.yf)
+            self.roi_x2 = int(roi[2] / self.xf)
+            self.roi_y2 = int(roi[3] / self.yf) 
  
     def save_image(self, filename):
         img = self.beamline.sample_video.get_frame()
@@ -217,8 +232,9 @@ class HCViewer(SampleViewer):
         self._get_roi()
         
     def _overlay_function(self, pixmap):
-        self.draw_roi_overlay(pixmap)
-        self.draw_drop_coords(pixmap)
+        if self.hc1_active:
+            self.draw_roi_overlay(pixmap)
+            self.draw_drop_coords(pixmap)
         self.draw_meas_overlay(pixmap)
         return True        
     
