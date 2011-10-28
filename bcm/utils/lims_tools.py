@@ -104,7 +104,8 @@ def upload_scan(beamline, results):
                 'details': {
                     'energy': scan['data'].get('energy'),
                     'counts': scan['data'].get('counts'),
-                    'peaks': scan.get('peaks'),
+                    'fit': scan['data'].get('fit'),
+                    'peaks': scan.get('assigned'),
                     },
                 'name': scan['parameters'].get('prefix'),
                 'crystal_id': scan['parameters'].get('crystal_id'),
