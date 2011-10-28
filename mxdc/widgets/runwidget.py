@@ -257,7 +257,7 @@ class RunWidget(gtk.Frame):
         if dict.get('directory') is not None and os.path.exists(dict['directory']):
             self.entry['directory'].set_current_folder("%s" % dict['directory'])
         else:
-            self.entry['directory'].set_current_folder(os.environ['HOME'])
+            #self.entry['directory'].set_current_folder(os.environ['HOME'])
             dict['directory'] = os.environ['HOME']
         
         # always display up to date active crystal
