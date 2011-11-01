@@ -68,16 +68,15 @@ class MotorBase(BaseDevice):
 class SimMotor(MotorBase):
     implements(IMotor)
      
-    def __init__(self, name, pos=0, units='mm', active='True'):
+    def __init__(self, name, pos=0, units='mm', active=True):
         MotorBase.__init__(self,name)
-        pos = float(pos)
+        pos = pos
         self._speed = 50
         self.units = units
         self._state = 0
         self._stopped = False
         self._enabled = True
         self._command_sent = False
-        active = {'True':True, 'False':False}[active]
         self.set_state(health=(0,''), active=active, changed=pos)
         self._position = pos
 

@@ -7,8 +7,10 @@ warnings.simplefilter("ignore")
 
 from zope.interface import implements
 from bcm.device.interfaces import IGoniometer
+from twisted.python.components import globalRegistry
+from bcm.beamline.interfaces import IBeamline
 from bcm.protocol import ca
-from bcm.device.motor import VMEMotor, SimMotor
+from bcm.device.motor import PseudoMotor, SimMotor
 from bcm.device.misc import Positioner
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
@@ -116,9 +118,7 @@ class Goniometer(GoniometerBase):
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
         self._bl_position = self.add_pv(blname)
         self._expbox_mount_cmd = self.add_pv(mnt_cmd)
-        self.omega = VMEMotor('%s:deg' % name)
-        self.minibeam = minibeam
-        self.minibeam_in_position = 3.630
+        self.minibeam = PseudoMotor(minibeam)
          
         #parameters
         self._settings = {
@@ -151,9 +151,14 @@ class Goniometer(GoniometerBase):
                 time.sleep(3);
 
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
+            bl = globalRegistry.lookup([], IBeamline)
+            if bl is None:
+                _logger.error('Beamline is not available.')
+                return 
             self._bl_position.put(0)
-            self.minibeam.move_to(self.minibeam_in_position, wait=True)
-            #put down backlight
+            in_position = bl.config['misc']['aperture_in_position']
+            self.minibeam.move_to(in_position, wait=True)
+
                     
         self._set_and_notify_mode(mode)
         if wait:
@@ -177,7 +182,7 @@ class Goniometer(GoniometerBase):
 
 class MD2Goniometer(GoniometerBase):
 
-    def __init__(self, name, omega_motor):
+    def __init__(self, name):
         GoniometerBase.__init__(self, name)
         self.name = 'MD2 Goniometer'
         pv_root = name
@@ -200,7 +205,6 @@ class MD2Goniometer(GoniometerBase):
         self._shutter_state = self.add_pv("%s:G:ShutterIsOpen" % pv_root)
         self._log = self.add_pv('%s:G:StatusMsg' % pv_root)
         
-        self.omega = omega_motor
                 
         #parameters
         self._settings = {
@@ -279,8 +283,6 @@ class MD2Goniometer(GoniometerBase):
                     self.wait() 
                     time.sleep(1.0)
                     dev.set(val)
-            if abs(self.omega.get_position() - 201.75) > 0.01:
-                self.omega.move_to(201.75, wait=True)
             
         elif mode == 'SCANNING':
             self._minibeam.set(2)
@@ -310,7 +312,6 @@ class MD2Goniometer(GoniometerBase):
 class SimGoniometer(GoniometerBase):
     def __init__(self):       
         GoniometerBase.__init__(self, 'Simulated Goniometer')
-        self.omega = SimMotor('Omega Motor', pos=0, units='deg')
         gobject.idle_add(self.emit, 'mode', 'INIT')
         self._scanning = False
         self.set_state(active=True)

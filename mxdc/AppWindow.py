@@ -209,19 +209,19 @@ class AppWindow(gtk.Window):
         tab_lbl.image.set_from_pixbuf(self._info_img)
         tab_lbl.label.set_markup("<b>%s</b>" % tab_lbl.raw_text)
         
-        if self._show_select_dialog:
-            header = 'Selected Crystal Updated'
-            try:
-                subhead = 'The selected crystal has been updated to "%s (%s)" in ' % (data['name'], data['port'])
-                subhead += 'the Data Collection tab.'
-            except KeyError:
-                subhead = 'The crystal cannot be selected.'
-            chkbtn = gtk.CheckButton('Do not show this dialog again.')
-            def _chk_cb(obj):
-                self._show_select_dialog = (not obj.get_active())
-            chkbtn.connect('toggled', _chk_cb)
-            chkbtn.set_property('can-focus', False)
-            dialogs.info(header, subhead, extra_widgets=[chkbtn])
+#        if self._show_select_dialog:
+#            header = 'Selected Crystal Updated'
+#            try:
+#                subhead = 'The selected crystal has been updated to "%s (%s)" in ' % (data['name'], data['port'])
+#                subhead += 'the Data Collection tab.'
+#            except KeyError:
+#                subhead = 'The crystal cannot be selected.'
+#            chkbtn = gtk.CheckButton('Do not show this dialog again.')
+#            def _chk_cb(obj):
+#                self._show_select_dialog = (not obj.get_active())
+#            chkbtn.connect('toggled', _chk_cb)
+#            chkbtn.set_property('can-focus', False)
+#            dialogs.info(header, subhead, extra_widgets=[chkbtn])
 
     def on_beam_change(self, obj, beam_available):
         # Do not show icon if current page is already hutch tab

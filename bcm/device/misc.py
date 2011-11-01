@@ -38,14 +38,13 @@ class PositionerBase(BaseDevice):
 
 
 class SimPositioner(PositionerBase):
-    def __init__(self, name, pos=0, units="", active='True'):
+    def __init__(self, name, pos=0, units="", active=True):
         PositionerBase.__init__(self)
         self.name = name
         self._pos = float(pos)
         self.units = units
         self.set_state(changed=self._pos)
-        active = {'True':True, 'False':False}[active]
-        self.set_state(active=bool(active))
+        self.set_state(active=active)
         
     def set(self, pos, wait=False):
         self._pos = pos

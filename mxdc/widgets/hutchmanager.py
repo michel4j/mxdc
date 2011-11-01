@@ -94,10 +94,10 @@ class HutchManager(gtk.Frame):
         self.entries = {
             'energy':       MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.3f"),
             'attenuation':  ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
-            'omega':        MotorEntry(self.beamline.goniometer.omega, 'Goniometer Omega', format="%0.2f"),
+            'omega':        MotorEntry(self.beamline.omega, 'Goniometer Omega', format="%0.2f"),
             'beam_size':     MotorEntry(self.beamline.aperture, 'Beam Size', format="%0.2f"),
             'distance':     MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.1f"),
-            'beam_stop':    MotorEntry(self.beamline.beam_stop.z, 'Beam-stop', format="%0.1f"),
+            'beam_stop':    MotorEntry(self.beamline.beamstop_z, 'Beam-stop', format="%0.1f"),
             'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f"),
             'chi':          MotorEntry(self.beamline.chi, 'Goniometer Chi', format="%0.1f")
         }
@@ -120,9 +120,10 @@ class HutchManager(gtk.Frame):
         self.beamline.diffractometer.two_theta.connect('changed', self.update_predictor)
         self.beamline.monochromator.energy.connect('changed', self.update_predictor)
 
-        # BOSS enable/disable        
-        self.beamline.monochromator.energy.connect('busy', self.switch_boss, self.beamline.boss)
-        self.beamline.mostab.connect('busy', self.switch_boss, self.beamline.boss)
+        # BOSS enable/disable if a boss has been defined
+        if 'boss' in self.beamline.registry and self.beamline.boss.is_active():
+            self.beamline.monochromator.energy.connect('busy', self.switch_boss, self.beamline.boss)
+            self.beamline.mostab.connect('busy', self.switch_boss, self.beamline.boss)
        
         # Button commands
         self.front_end_btn = ShutterButton(self.beamline.all_shutters, 'Restore Beam', open_only=True)
@@ -221,8 +222,7 @@ def junk():
     win.connect("destroy", lambda x: gtk.main_quit())
     win.set_border_width(0)
     win.set_title("Hutch Demo")
-    config_file = '/media/seagate/beamline-control-module/etc/08id1.conf'
-    bl = bcm.beamline.mx.MXBeamline(config_file)
+    bl = bcm.beamline.mx.MXBeamline()
     hutch = HutchManager()
     win.add(hutch)    
     win.show_all()

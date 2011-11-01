@@ -50,7 +50,7 @@ def pre_center():
 
         ymm = (cy - y) * beamline.sample_video.resolution
         beamline.sample_stage.y.move_by(-ymm, wait=True)
-        beamline.goniometer.omega.move_by(60.0, wait=True)
+        beamline.omega.move_by(60.0, wait=True)
     
 
 def auto_center(pre_align=True):
@@ -61,7 +61,7 @@ def auto_center(pre_align=True):
         return {'RELIABILITY': -99}
                
     # determine direction based on current omega
-    angle = beamline.goniometer.omega.get_position()
+    angle = beamline.omega.get_position()
     if angle >  270:
         direction = -1.0
     else:
@@ -141,7 +141,7 @@ def auto_center(pre_align=True):
     # calculate motor positions and move
     cx = beamline.camera_center_x.get()
     cy = beamline.camera_center_y.get()
-    beamline.goniometer.omega.move_to(results['TARGET_ANGLE'] % 360.0, wait=True)
+    beamline.omega.move_to(results['TARGET_ANGLE'] % 360.0, wait=True)
     if results['Y_CENTRE'] != -1:
         x = results['Y_CENTRE']
         xmm = (cx - x) * beamline.sample_video.resolution
