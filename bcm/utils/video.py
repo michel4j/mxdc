@@ -89,3 +89,27 @@ def add_decorations(img, x, y, bw, bh):
         draw.arc([x-hw, y-hh, x+hw, y+hh], 0, 360, fill='#c39')
 
     return img
+
+def add_hc_decorations(img, x1, x2, y1, y2):
+    img = img.convert('RGBA')
+    w, h = img.size
+    if using_cairo:
+        src = array.array('B', img.tostring('raw', 'RGBA', 0, 1))
+        surface = cairo.ImageSurface.create_for_data(src, cairo.FORMAT_ARGB32, w, h, w*4)
+        cr = cairo.Context(surface)
+        cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
+        cr.set_line_width(0.5)
+        cr.rectangle(x1, y1, x2-x1, y2-y1)
+        cr.stroke()
+        
+        ovl_img = Image.frombuffer("RGBA", (surface.get_width(), surface.get_height()),
+                                   surface.get_data(), 'raw', 'RGBA', 0, 1)
+        img = ovl_img
+    else:
+        draw = ImageDraw.Draw(img)
+        draw.line([(x1, y1), (x1, y2)])
+        draw.line([(x2, y1), (x2, y2)])
+        draw.line([(x1, y1), (x2, y1)])
+        draw.line([(x1, y2), (x2, y2)])
+
+    return img
