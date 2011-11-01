@@ -76,11 +76,12 @@ DEVICES = {
     'i_0': SimCounter('I_0'),
     'i_1': SimCounter('I_1'),
     'i_2': SimCounter('I_2'),
+    
+    # Misc: Automounter, HC1 etc
+    'automounter':  SimAutomounter(),
+    'humidifier': HumidityController('HC1608-01'),
     'attenuator': SimPositioner('Attenuator', 0.0, '%'),
     'mca': SimMultiChannelAnalyzer('Simulated MCA'),
-    
-    # Automounter
-    'automounter':  SimAutomounter(),
 }
 
 # lims, dpm, imagesync and other services
