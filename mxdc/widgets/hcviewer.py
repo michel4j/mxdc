@@ -55,12 +55,10 @@ class HCViewer(SampleViewer):
             return
         
         self.entries = {
-            'hc1':             DiagnosticDisplay(DeviceDiag(self.hc)),
+            'modbus':          StatDisplay(self.hc.modbus_state, 'Modbus', icon_map={'Unknown': 'mxdc-cloudy', 'Disable': 'mxdc-hcane'}),
+            'state':           StatDisplay(self.hc, '', sig='health'), 
             'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', format="%0.2f", width=20),
             'sample_temp':     ActiveEntry(self.hc.temperature, 'Sample Temperature', format="%0.2f"),
-            'modbus':          StatDisplay(self.hc.modbus_state, 'Modbus', icon_map={'Unknown': 'mxdc-cloudy', 'Disable': 'mxdc-hcane'}),
-            'state':           StatDisplay(self.hc.status, 'HC1', icon_map={'Ready': 'mxdc-sunny', 'Initializing': 'mxdc-cloudy'}), 
-            'session':         StatDisplay(self.hc.session, 'Session'),
             'dewpoint_temp':   ActiveEntry(self.hc.dew_point, 'Dew Point Temperature', format="%0.1f"),
         }
                        
@@ -118,7 +116,7 @@ class HCViewer(SampleViewer):
         
         entry_box = gtk.VBox(False,0)
         stat_box = gtk.VBox(True,0)
-        for key in ['state','modbus']:
+        for key in ['state']:
             stat_box.pack_start(self.entries[key], expand=True, fill=False)
         for key in ['rel_humidity','sample_temp']:
             entry_box.pack_start(self.entries[key], expand=True, fill=False)
@@ -160,28 +158,18 @@ class HCViewer(SampleViewer):
     def _get_roi(self, obj=None, state=None):
         self.dragging = False
         if self.hc1_active:
-            roi = list(self.hc.ROI.get())        
-    
-            self.roi_x1 = int(roi[0] / self.xf)
-            self.roi_y1 = int(roi[1] / self.yf)
-            self.roi_x2 = int(roi[2] / self.xf)
-            self.roi_y2 = int(roi[3] / self.yf) 
+            self.roi = list(self.hc.ROI.get())     
  
     def save_image(self, filename):
         img = self.beamline.sample_video.get_frame()
-        x1 = self.roi_x1 * self.xf
-        x2 = self.roi_x2 * self.xf
-        y1 = self.roi_y1 * self.yf
-        y2 = self.roi_y2 * self.yf
         
+        [x1, y1, x2, y2] = self.roi
+
         img = add_hc_decorations(img, x1, x2, y1, y2)
         img.save(filename)
  
     def on_realize(self, obj):
         super(HCViewer, self).on_realize(obj)
-        w, h = self.video.window.get_size()
-        self.xf = float(self.hc.img_width)/float(w)
-        self.yf = float(self.hc.img_height)/float(h)
         
         self._get_roi()
         self.hc.ROI.connect('changed', self._get_roi)
@@ -194,7 +182,7 @@ class HCViewer(SampleViewer):
         im_x, im_y, xmm, ymm = self._img_position(x,y)
         self.pos_label.set_markup("%4d,%4d [%6.3f, %6.3f mm]" % (im_x, im_y, xmm, ymm))
         if 'GDK_BUTTON1_MASK' in event.state.value_names and self._define_roi:
-            self.roi_x2, self.roi_y2, = event.x, event.y
+            self.roi[2], self.roi[3], = int(event.x / float(self.video.scale)), int(event.y / float(self.video.scale))
         elif 'GDK_BUTTON2_MASK' in event.state.value_names:
             self.measure_x2, self.measure_y2, = event.x, event.y
         else:
@@ -204,8 +192,8 @@ class HCViewer(SampleViewer):
     def on_image_click(self, widget, event):
         if event.button == 1 and self._define_roi:
             self.dragging = True
-            self.roi_x1, self.roi_y1 = event.x, event.y
-            self.roi_x2, self.roi_y2 = event.x, event.y
+            self.roi[0], self.roi[1] = int(event.x / float(self.video.scale)), int(event.y / float(self.video.scale))
+            self.roi[2], self.roi[3] = int(event.x / float(self.video.scale)), int(event.y / float(self.video.scale))
         elif event.button == 2:
             self.measuring = True
             self.measure_x1, self.measure_y1 = event.x, event.y
@@ -213,12 +201,7 @@ class HCViewer(SampleViewer):
 
     def on_drag_motion(self, widget, event):
         if self._define_roi:
-            x1 = int(self.roi_x1*self.xf)
-            x2 = int(self.roi_x2*self.xf)
-            y1 = int(self.roi_y1*self.yf)
-            y2 = int(self.roi_y2*self.yf)
-            
-            self.hc.ROI.set([x1, y1, x2, y2])
+            self.hc.ROI.set(self.roi)
                
     def toggle_define_roi(self, widget=None):
         if self._define_roi == True:
@@ -240,11 +223,10 @@ class HCViewer(SampleViewer):
         return True        
     
     def draw_roi_overlay(self, pixmap):
-        
-        x1 = self.roi_x1
-        x2 = self.roi_x2
-        y1 = self.roi_y1
-        y2 = self.roi_y2
+        coords = []
+        for i in range(4):
+            coords.append(int(self.roi[i] * float(self.video.scale)))
+        [x1, y1, x2, y2] = coords
 
         if using_cairo:
             cr = pixmap.cairo_create()
@@ -289,11 +271,10 @@ class HCViewer(SampleViewer):
                 drop_coords = list(self.hc.drop_coords.get())
             except:
                 return
-            
-            x1 = drop_coords[0]/self.xf
-            x2 = drop_coords[2]/self.xf
-            y1 = drop_coords[1]/self.yf
-            y2 = drop_coords[3]/self.yf
+
+            for i in range(4):
+                drop_coords[i] = int(drop_coords[i] * float(self.video.scale))
+            [x1, y1, x2, y2] = drop_coords[:4]
             
             dist = pix_size * self.hc.drop_size.get()
             if using_cairo:
