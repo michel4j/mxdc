@@ -534,12 +534,12 @@ class HumidityController(BaseDevice):
         
         self.status = self.add_pv('%s:State' % root_name)
         self.add_devices(self.humidity, self.temperature)
-        
-    
-    def set_humidity(self, val):
-        self.humitidy.set(val)
-    
-    
+        self.img_height = 576
+        self.img_width = 768
+
+        self.dew_point = Positioner('%s:SetpointDewPointTemp' % root_name, '%s:DewPointTemp' % root_name)        
+
+
 
 class SimStorageRing(BaseDevice):
     implements(IStorageRing)

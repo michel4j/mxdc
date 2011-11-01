@@ -37,7 +37,8 @@ class VideoWidget(gtk.DrawingArea):
                 gtk.gdk.BUTTON_PRESS_MASK |
                 gtk.gdk.POINTER_MOTION_MASK |
                 gtk.gdk.POINTER_MOTION_HINT_MASK|
-                gtk.gdk.VISIBILITY_NOTIFY_MASK)  
+                gtk.gdk.VISIBILITY_NOTIFY_MASK | 
+                gtk.gdk.BUTTON_RELEASE_MASK)  
 
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
