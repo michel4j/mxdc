@@ -515,8 +515,6 @@ class Collimator(BaseDeviceGroup):
 
 
 
-        
-        
 class HumidityController(BaseDevice):
     implements(IHumidityController)
     
@@ -534,12 +532,22 @@ class HumidityController(BaseDevice):
         
         self.status = self.add_pv('%s:State' % root_name)
         self.add_devices(self.humidity, self.temperature)
+        #FIXME: The following 'magic numbers' should not be here. Maybe
+        # get them from the video object within the hcviewer
         self.img_height = 576
         self.img_width = 768
 
         self.dew_point = Positioner('%s:SetpointDewPointTemp' % root_name, '%s:DewPointTemp' % root_name)        
 
-
+    def on_status_changed(self, obj, state):
+        #FIXME: use self.set_state(active=.., health=...) to set properties these 
+        # will emit the appropriate signals
+        pass
+    
+    def on_modbus_changed(self, obj, state):
+        #FIXME: use self.set_state(active=.., health=...) to set properties these 
+        # will emit the appropriate signals
+        pass
 
 class SimStorageRing(BaseDevice):
     implements(IStorageRing)
