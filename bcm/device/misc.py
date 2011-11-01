@@ -523,32 +523,35 @@ class HumidityController(BaseDevice):
         self.name = 'Humidity Controller'
         self.humidity = Positioner('%s:SetpointRH' % root_name,'%s:RH' % root_name)
         self.temperature = Positioner('%s:SetpointSampleTemp' % root_name, '%s:SampleTemp' % root_name)
+        self.dew_point = Positioner('%s:SetpointDewPointTemp' % root_name, '%s:DewPointTemp' % root_name)
         self.session = self.add_pv('%s:Session' % root_name )
         self.ROI = self.add_pv('%s:ROI' % root_name)
         self.modbus_state = self.add_pv('%s:ModbusControllerState' % root_name)
-        
         self.drop_size = self.add_pv('%s:DropSize' % root_name)
         self.drop_coords = self.add_pv('%s:DropCoordinates' % root_name)
-        
         self.status = self.add_pv('%s:State' % root_name)
+        
         self.add_devices(self.humidity, self.temperature)
-        #FIXME: The following 'magic numbers' should not be here. Maybe
-        # get them from the video object within the hcviewer
-        self.img_height = 576
-        self.img_width = 768
-
-        self.dew_point = Positioner('%s:SetpointDewPointTemp' % root_name, '%s:DewPointTemp' % root_name)        
+        
+        self.modbus_state.connect('changed', self.on_modbus_changed)  
+        self.status.connect('changed', self.on_status_changed)  
 
     def on_status_changed(self, obj, state):
-        #self.set_state(beam=self.beam_available, health=(self.health, 'mode', self.message), active=True)
-        #FIXME: use self.set_state(active=.., health=...) to set properties these 
-        # will emit the appropriate signals
+        if state == 'Initializing':
+            self.set_state(health=(1,'status', state))
+        elif state == 'Ready':
+            self.set_state(health=(0,'status'))
         pass
     
     def on_modbus_changed(self, obj, state):
-        #FIXME: use self.set_state(active=.., health=...) to set properties these 
-        # will emit the appropriate signals
-        pass
+        if state == 'Disable':
+            self.set_state(health=(0,'modbus'))
+            self.set_state(health=(2,'modbus','Modbus disconnected'))
+        elif state == 'Unknown':
+            self.set_state(health=(0,'modbus'))
+            self.set_state(health=(1,'modbus','Modbus state unknown'))
+        elif state == 'Enable':
+            self.set_state(health=(0,'modbus'))
 
 class SimStorageRing(BaseDevice):
     implements(IStorageRing)
