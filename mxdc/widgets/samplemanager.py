@@ -69,7 +69,6 @@ class SampleManager(gtk.Frame):
             
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
-        self.hc_viewer = HCViewer()
         self.hutch_viewer = AxisViewer(self.beamline.hutch_video)
         self.dewar_loader = DewarLoader()
         self.cryo_controller = CryojetWidget(self.beamline.cryojet)
@@ -92,6 +91,7 @@ class SampleManager(gtk.Frame):
 
         self.hc_data = None        
         if 'humidifier' in self.beamline.registry:
+            self.hc_viewer = HCViewer()
             self.hc = self.beamline.humidifier        
         
             self.video_ntbk.append_page(self.hc_viewer, tab_label=_mk_lbl('Humidity Control'))
