@@ -48,11 +48,12 @@ class HCViewer(SampleViewer):
                 
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
+            self.hc = self.beamline.humidifier
         except:
             self.beamline = None
             _logger.warning('No registered beamline found.')
+            return
         
-        self.hc = self.beamline.humidifier
         self.entries = {
             'hc1':             DiagnosticDisplay(DeviceDiag(self.hc)),
             'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', format="%0.2f", width=20),
