@@ -24,7 +24,7 @@ from matplotlib.dates import date2num
 
 _logger = get_module_logger('mxdc.samplemanager')
 
-_PLOT_INFO = {
+_HCPLOT_INFO = {
     'temps': {'title': 'Temperature', 'units': 'C', 'color': 'm'},
     'drops': {'title': 'Drop Size', 'units': 'um', 'color': 'c'},
     'relhs': {'title': 'Relative Humidity', 'units': 'h', 'color': 'b'}
@@ -41,8 +41,13 @@ class SampleManager(gtk.Frame):
         self.set_shadow_type(gtk.SHADOW_NONE)       
         self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'sample_widget.glade'), 
                                   'sample_widget')
-        self._create_widgets()
+
         self.changed_hc = False
+        self.hc1_active = False
+        self._plot_init = False
+        self._plot_paused = False
+        self._create_widgets()
+
     
     def __getattr__(self, key):
         try:
@@ -61,10 +66,6 @@ class SampleManager(gtk.Frame):
     
     def _create_widgets(self):
         self.beamline = globalRegistry.lookup([], IBeamline)
-
-        self.hc = self.beamline.humidifier          
-
-        self.paused = False
             
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
@@ -89,10 +90,10 @@ class SampleManager(gtk.Frame):
         
         self.cryo_ntbk.append_page(self.cryo_controller, tab_label=_mk_lbl('Cryojet Stream'))
 
-        self.hc1_active = False
-
-        self.data = None        
-        if self.beamline.humidifier.status.connected():
+        self.hc_data = None        
+        if 'humidifier' in self.beamline.registry:
+            self.hc = self.beamline.humidifier        
+        
             self.video_ntbk.append_page(self.hc_viewer, tab_label=_mk_lbl('Humidity Control'))
             self.video_ntbk.connect('switch-page', self.on_tab_change)
             self.cryo_ntbk.append_page(self.hc_plot, tab_label=_mk_lbl('Humidity Control'))
@@ -101,7 +102,7 @@ class SampleManager(gtk.Frame):
             self.hc_viewer.connect('plot_paused', self.on_pause)
             self.hc_viewer.connect('plot_cleared', self.on_clear)
                 
-            self.beamline.humidifier.status.connect('active', self.on_hc1_active)
+            self.beamline.humidifier.connect('active', self.on_hc1_active)
         
         self.robot_ntbk.append_page(self.sample_picker, tab_label=_mk_lbl('Automounter '))
         self.dewar_loader.set_border_width(3)     
@@ -182,32 +183,34 @@ class SampleManager(gtk.Frame):
     def on_hc1_active(self, obj, active):
         self.hc1_active = active
         if active:
-            if self.data is None: self.reset_data()
+            self.hc_viewer.side_panel.set_sensitive(True)
+            if self.hc_data is None: self.reset_data()
             self.tupdate = self.hc.temperature.connect('changed', self.on_new_data, 'temps')
             self.dupdate = self.hc.drop_size.connect('changed', self.on_new_data, 'drops')
             self.hupdate = self.hc.humidity.connect('changed', self.on_new_data, 'relhs')
             self.redraw_plot()
         else:
+            self.hc_viewer.side_panel.set_sensitive(False)
             self.hc.temperature.disconnect(self.tupdate)
             self.hc.drop_size.disconnect(self.dupdate)
             self.hc.humidity.disconnect(self.hupdate)
             
     def reset_data(self):
         pix_size = self.beamline.sample_video.resolution * 1000
-        self.data = {'temps': [(datetime.now(), date2num(datetime.now()), self.hc.temperature.get())], 
+        self.hc_data = {'temps': [(datetime.now(), date2num(datetime.now()), self.hc.temperature.get())], 
                      'drops': [(datetime.now(), date2num(datetime.now()), self.hc.drop_size.get() * pix_size)], 
                      'relhs': [(datetime.now(), date2num(datetime.now()), self.hc.humidity.get())]}
 
     def on_new_data(self, pv, state, key=None):
-        if len(self.data[key]):
-            self.data[key].append((datetime.now(), date2num(datetime.now()), self.data[key][-1][2]))
+        if len(self.hc_data[key]):
+            self.hc_data[key].append((datetime.now(), date2num(datetime.now()), self.hc_data[key][-1][2]))
         if key in ['drops']:
             pix_size = self.beamline.sample_video.resolution * 1000
             state = state * pix_size
-        self.data[key].append((datetime.now(), date2num(datetime.now()), state))
+        self.hc_data[key].append((datetime.now(), date2num(datetime.now()), state))
 
-        if len(self.data[key]) > 1000:
-            self.data[key].pop(0)
+        if len(self.hc_data[key]) > 1000:
+            self.hc_data[key].pop(0)
         self.plot_new_points(key)
             
     def on_tab_change(self, obj, pointer, page_num):
@@ -224,7 +227,7 @@ class SampleManager(gtk.Frame):
         self.redraw_plot(widget, state)
 
     def on_pause(self, obj, widget, paused):
-        self.paused = paused
+        self._plot_paused = paused
         if not paused:
             self.redraw_plot()
     
@@ -233,7 +236,7 @@ class SampleManager(gtk.Frame):
         self.redraw_plot()
         
     def plot_config(self, key):
-        now = self.data[key][-1][0]
+        now = self.hc_data[key][-1][0]
         xlabels = []
         tot = 4
         for i in range(tot):
@@ -244,7 +247,7 @@ class SampleManager(gtk.Frame):
    
     def redraw_plot(self, widget=None, state=True):
         self.plotter.clear()
-        self.plot_init = True
+        self._plot_init = True
         
         if widget is not None:
             if state is True:
@@ -252,7 +255,7 @@ class SampleManager(gtk.Frame):
             else:
                 self.pname = 'drops'
         
-        if self.data and self.pname:
+        if self.hc_data and self.pname:
             self.add_hc_line(self.pname)
             self.add_hc_line('relhs', 1)
 
@@ -262,7 +265,7 @@ class SampleManager(gtk.Frame):
                 self.plot_new_points(self.pname)
         
     def add_hc_line(self, name, ax=0):
-        info = _PLOT_INFO[name]
+        info = _HCPLOT_INFO[name]
         if ax:
             axis = self.plotter.add_axis(info.get('title'))
         else:
@@ -272,7 +275,7 @@ class SampleManager(gtk.Frame):
             axis = 0
         xdata = []
         ydata = []
-        for point in self.data[name]:
+        for point in self.hc_data[name]:
             dt, t, y = point
             xdata.append(t)
             ydata.append(y)
@@ -281,15 +284,15 @@ class SampleManager(gtk.Frame):
         self.plotter.axis[ax].tick_params(axis='y', colors=info.get('color'))
         
     def plot_new_points(self, plot):
-        if not self.paused or self.plot_init:
-            self.plot_init = False
+        if not self._plot_paused or self._plot_init:
+            self._plot_init = False
             min, max, xlabels = self.plot_config(plot)
-            now, t, y = self.data[plot][-1]
+            now, t, y = self.hc_data[plot][-1]
             
             # add points to each plot
             if plot == self.pname or plot == 'relhs':
-                ry = self.data['relhs'][-1][2]
-                py = self.data[self.pname][-1][2]
+                ry = self.hc_data['relhs'][-1][2]
+                py = self.hc_data[self.pname][-1][2]
                 self.plotter.add_point(t, py, lin=0, redraw=False)
                 self.plotter.add_point(t, ry, lin=1, redraw=False)
             
