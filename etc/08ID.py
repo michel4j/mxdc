@@ -13,7 +13,7 @@ DEFAULT_BEAMSTOP    = 30.0
 SAFE_BEAMSTOP       = 50.0
 XRF_BEAMSTOP        = 30.0
 
-# miscelanous settings
+# miscellaneous settings
 MISC_SETTINGS = {
     'aperture_in_position': 3.63,
 }

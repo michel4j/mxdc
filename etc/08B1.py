@@ -15,7 +15,7 @@ XRF_BEAMSTOP        = 100.0
 
 LIMS_API_KEY    = "3B7FF046-2726-4195-AC8A-9AE09B207765"
 
-# miscelanous settings
+# miscellaneous settings
 MISC_SETTINGS = {
 }
 

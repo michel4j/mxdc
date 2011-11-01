@@ -540,6 +540,7 @@ class HumidityController(BaseDevice):
         self.dew_point = Positioner('%s:SetpointDewPointTemp' % root_name, '%s:DewPointTemp' % root_name)        
 
     def on_status_changed(self, obj, state):
+        #self.set_state(beam=self.beam_available, health=(self.health, 'mode', self.message), active=True)
         #FIXME: use self.set_state(active=.., health=...) to set properties these 
         # will emit the appropriate signals
         pass
