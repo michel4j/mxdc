@@ -600,7 +600,7 @@ class RunWidget(gtk.Frame):
         params['two_theta'] =  beamline.two_theta.get_position()
         params['energy'] = self.active_strategy.get('energy', [beamline.energy.get_position()])
         params['energy_label'] = self.active_strategy.get('energy_label', ['E0'])
-        params['start_angle'] = self.active_strategy.get('start_angle', beamline.goniometer.omega.get_position())
+        params['start_angle'] = self.active_strategy.get('start_angle', beamline.omega.get_position())
         params['delta_angle'] = self.active_strategy.get('delta_angle', 1.0)
         params['exposure_time'] = self.active_strategy.get('exposure_time', beamline.config['default_exposure'])
         params['total_angle'] = self.active_strategy.get('total_angle', 180.0)

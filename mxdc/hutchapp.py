@@ -36,13 +36,12 @@ def main():
     win.set_title("HutchViewer")
  
     try:
-        config = os.path.join(os.environ['BCM_CONFIG_PATH'],
-                              os.environ['BCM_CONFIG_FILE'])
+        _ = os.environ['BCM_CONFIG_PATH']
     except:
         _logger.error('Could not fine Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')
         sys.exit(1)
-    bl = MXBeamline(config)
+    bl = MXBeamline()
     
     myviewer = HutchManager()
     myviewer.video_book.connect('realize', lambda x: myviewer.video_book.set_page(1))
