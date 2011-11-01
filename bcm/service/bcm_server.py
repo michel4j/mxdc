@@ -110,18 +110,11 @@ class BCMService(service.Service):
     
     def __init__(self):
         self.settings = {}
-        try:
-            config_file = os.path.join(os.environ['BCM_CONFIG_PATH'],
-                              os.environ['BCM_CONFIG_FILE'])
-            self.settings['config_file'] = config_file
-        except:
-            log.err('Could not find Beamline Configuration')
-            self.shutdown()
         d = threads.deferToThread(self._init_beamline)
         d.addCallbacks(self._service_ready, self._service_failed)
     
     def _init_beamline(self):
-        self.beamline = MXBeamline(self.settings['config_file'])
+        self.beamline = MXBeamline()
         
     def _service_ready(self, result):
         self.data_collector = diffraction.DataCollector()

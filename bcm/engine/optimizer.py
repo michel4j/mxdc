@@ -98,38 +98,33 @@ class PitchOptimizer(BaseDevice):
     """Pitch Optimizer for 08B1-1"""
     implements(IOptimizer)
     
-    def __init__(self, pitch_mtr, cntr, min_count=0.0):
+    def __init__(self, name, pitch_func, min_count=0.0):
         BaseDevice.__init__(self)
-        self.name = 'Pitch Optimizer'
-        self.pitch = pitch_mtr
-        self.counter = cntr
+        self.name = name
         self.min_count = min_count
-        self.add_devices(self.pitch, self.counter)
         self._scan = None
+        self.set_state(active=True)
+        self.pitch_func = pitch_func
     
-    def calc_pitch(self, energy, p=[0.3985341, -0.10101318, 0.01685788, -0.15792546]):
-        x = energy
-        a = numpy.arcsin(1.97704/x)
-        return p[0] + p[1] * numpy.sin(a) + p[2] * numpy.log(a) + p[3] * numpy.cos(a)
-    
+
     def start(self):
         bl = globalRegistry.lookup([], IBeamline)
         if bl is None:
             _logger.warning('Beamline is not available.')
             return 
-        elif self.active_state == False:
-            _logger.warning('Pitch Optimizer is inactive.')
-            return 
         elif self.busy_state == True:
             _logger.warning('Pitch Optimizer is already busy.')
             return 
-        elif self.counter.value.get() < self.min_count:
+        self.pitch = bl.dcm_pitch
+        self.counter = bl.i_0
+        energy = bl.energy.get_position()
+
+        if self.counter.value.get() < self.min_count:
             _logger.warning('Counter is below threshold.')
             return 
         else:
             self.set_state(busy=True)
-            energy = bl.energy.get_position()
-            _p = self.calc_pitch(energy)
+            _p = self.pitch_func(energy)
             self._current_pitch = _p
             st_p = _p - 0.002
             en_p = _p + 0.002

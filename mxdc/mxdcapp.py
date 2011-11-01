@@ -26,8 +26,8 @@ from mxdc.AppWindow import AppWindow
 _logger = get_module_logger('mxdc')
 
 class MXDCApp(object):
-    def provider_success(self, config):
-        _ = MXBeamline(config)
+    def provider_success(self):
+        _ = MXBeamline()
         self.main_window.connect('destroy', self.do_quit)
         self.main_window.run()
 
@@ -36,21 +36,21 @@ class MXDCApp(object):
         error('MXDC Already Running', 'An instance of MXDC is already running on the local network. Only one instance permitted.')
         self.do_quit()
 
-    def run_local(self, config):
+    def run_local(self):
         self.main_window = AppWindow()
         _service_data = {'user': get_project_name(), 
                          'started': time.asctime(time.localtime()),
-                         'beamline': os.environ.get('BCM_BEAMLINE', 'sim')}
+                         'beamline': os.environ.get('BCM_BEAMLINE', 'SIM')}
 
-        if _service_data['beamline'] == 'sim':
-            self.provider_success(config)
+        if _service_data['beamline'] == 'SIM':
+            self.provider_success()
             return False
         
         try:
             self.browser = mdns.Browser('_mxdc._tcp')
             self.browser.connect('added', self.found_existing)
-            self.provider = mdns.Provider('MXDC Client (%s)' % os.environ.get('BCM_BEAMLINE', 'sim'), '_mxdc._tcp', 9999, _service_data, unique=True)
-            self.provider.connect('running', lambda x: self.provider_success(config))
+            self.provider = mdns.Provider('MXDC Client (%s)' % os.environ.get('BCM_BEAMLINE', 'SIM'), '_mxdc._tcp', 9999, _service_data, unique=True)
+            self.provider.connect('running', lambda x: self.provider_success())
             self.provider.connect('collision', lambda x: self.provider_failure())
 
         except mdns.mDNSError:
@@ -80,23 +80,18 @@ class MXDCApp(object):
         
 def main():
     try:
-        config = os.path.join(os.environ['BCM_CONFIG_PATH'],
-                              os.environ['BCM_CONFIG_FILE'])
-        _logger.info('Starting MXDC ... ')
-        _logger.info('Local configuration: "%s"' % os.environ['BCM_CONFIG_FILE'])
-        #beamline = MXBeamline(config)
+        _ = os.environ['BCM_CONFIG_PATH']
+        _logger.info('Starting MXDC (%s)... ' % os.environ['BCM_BEAMLINE'])
     except:
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')
         reactor.stop()
         
     app = MXDCApp()
-    app.run_local(config)
-    #app.run_remote()
+    app.run_local()
 
 if __name__ == "__main__":
     log_to_console()
-    #log_to_file(os.path.join(os.environ['HOME'],'mxdc.log'))
         
     reactor.callWhenRunning(main)
     reactor.run()

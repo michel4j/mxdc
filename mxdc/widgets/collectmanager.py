@@ -136,7 +136,7 @@ class CollectManager(gtk.Frame):
         # Current Position
         pos_table = self._xml.get_widget('position_table')
         if self.beamline is not None:
-            pos_table.attach(ActiveLabel(self.beamline.goniometer.omega, format='%7.2f'), 1,2,0,1)
+            pos_table.attach(ActiveLabel(self.beamline.omega, format='%7.2f'), 1,2,0,1)
             pos_table.attach(ActiveLabel(self.beamline.diffractometer.two_theta, format='%7.2f'), 1,2,1,2)
             pos_table.attach(ActiveLabel(self.beamline.diffractometer.distance, format='%7.2f'), 1,2,2,3)
             pos_table.attach(ActiveLabel(self.beamline.monochromator.energy, format='%7.4f'), 1,2,3,4)

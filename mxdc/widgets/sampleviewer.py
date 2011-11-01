@@ -364,22 +364,22 @@ class SampleViewer(gtk.Frame):
         self.beamline.sample_video.zoom(5)
 
     def on_incr_omega(self,widget):
-        cur_omega = int(self.beamline.goniometer.omega.get_position() )
+        cur_omega = int(self.beamline.omega.get_position() )
         target = (cur_omega + 90)
         target = (target > 360) and (target % 360) or target
-        self.beamline.goniometer.omega.move_to(target)
+        self.beamline.omega.move_to(target)
 
     def on_decr_omega(self,widget):
-        cur_omega = int(self.beamline.goniometer.omega.get_position() )
+        cur_omega = int(self.beamline.omega.get_position() )
         target = (cur_omega - 90)
         target = (target < -180) and (target % 360) or target
-        self.beamline.goniometer.omega.move_to(target)
+        self.beamline.omega.move_to(target)
  
     def on_double_incr_omega(self,widget):
-        cur_omega = int(self.beamline.goniometer.omega.get_position() )
+        cur_omega = int(self.beamline.omega.get_position() )
         target = (cur_omega + 180)
         target = (target > 360) and (target % 360) or target
-        self.beamline.goniometer.omega.move_to(target)
+        self.beamline.omega.move_to(target)
                 
     def on_mouse_motion(self, widget, event):
         if event.is_hint:

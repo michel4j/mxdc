@@ -201,6 +201,28 @@ class ZoomableAxisCamera(AxisCamera):
         self.resolution = 3.6875e-3 * numpy.exp( -0.2527 * val)
 
 
+class ZoomableCamera(object):
+    
+    implements(IZoomableCamera)
+    
+    def __init__(self, camera, zoom_device, name="Zoomable Camera"):
+        self._camera = camera
+        self.resolution = 1.0
+        self._zoom = IMotor(zoom_device)
+        self._zoom.connect('changed', self._on_zoom_change)
+    
+    def zoom(self, value):
+        self._zoom.move_to(value)
+    
+    def _on_zoom_change(self, obj, val):
+        self.resolution = 3.6875e-3 * numpy.exp( -0.2527 * val)
+    
+    def __getattr__(self, key):
+        try:
+            return getattr(self._camera, key)
+        except AttributeError:
+            raise
+
                                         
 class AxisPTZCamera(AxisCamera):
 
