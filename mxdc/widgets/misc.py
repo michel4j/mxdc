@@ -5,6 +5,7 @@ import gtk
 import gtk.glade
 import gobject
 import pango
+from datetime import datetime
 
 from gauge import Gauge
 from dialogs import warning
@@ -347,8 +348,31 @@ class TextStatusDisplay(gtk.Label):
         self.set_markup(self.text_map.get(state, state))
         return True
 
-    
+class StatDisplay(gtk.HBox):
+    def __init__(self, device, label='', icon_map={}, sig='changed'):
+        gtk.HBox.__init__(self)
+        
+        self.nm = gtk.Label('')
+        self.nm.set_alignment(0.1, 0.5)
+        self.nm.set_markup('<small><b>%s</b></small>' % label)
+        
+        self.status = gtk.Label('')
+        self.status.set_alignment(0.95, 0.5)
+        self.device = device
+        self.device.connect(sig, self._on_signal)
 
+        self.icon = gtk.Image()
+        self.icon.set_alignment(0.1,0.5)
+        self.icon_map = icon_map
+        self.pack_start(self.icon, expand=False, fill=False)
+        self.pack_start(self.nm, expand=True, fill=True)
+        self.pack_start(self.status)
+                    
+    def _on_signal(self, obj, state):
+        self.status.set_markup('<small><i>%s</i></small>' % state)
+        self.icon.set_from_stock(self.icon_map.get(state, 'mxdc-hcane'), gtk.ICON_SIZE_MENU)
+        return True
+    
 class StatusDisplay(gtk.HBox):
     def __init__(self, icon_list, message):
         gtk.HBox.__init__(self, False, 0)
@@ -366,8 +390,6 @@ class StatusDisplay(gtk.HBox):
         if message is not None:
             self.message = message
             self.label.set_markup(message)
-        
-        
         
 class ActiveProgressBar(gtk.ProgressBar):
     def __init__(self):
@@ -568,3 +590,4 @@ class CryojetWidget(gtk.Frame):
             return True
         else:
             return False
+

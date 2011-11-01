@@ -1,7 +1,7 @@
 #!/bin/csh
 
 ## ---- Setup Top level directory of BCM installation ----
-setenv BCM_PATH /home/michel/Code/eclipse-ws/beamline-control-module
+setenv BCM_PATH /home/kathryn/sandbox/beamline-control-module
 
 
 ## ---- Setup Beamline Configuration by network ----

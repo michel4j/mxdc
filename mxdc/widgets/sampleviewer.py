@@ -14,7 +14,6 @@ from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.utils.video import add_decorations
 
-from bcm.engine.scripting import get_scripts
 from bcm.utils.imgproc import get_pin_tip
 
 try:
@@ -419,4 +418,3 @@ class SampleViewer(gtk.Frame):
         #self.beamline.sample_stage.x.move_to( 22.0 )
         return True
                 
-                        
