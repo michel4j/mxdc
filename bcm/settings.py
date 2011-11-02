@@ -1,5 +1,6 @@
 
 from bcm.protocol.ca import PV
+from bcm.protocol.interfaces import *
 from bcm.device.motor import *
 from bcm.device.counter import *
 from bcm.device.misc import *
@@ -12,6 +13,7 @@ from bcm.device.cryojet import *
 from bcm.device.video import *
 from bcm.service.imagesync_client import *
 from bcm.engine.optimizer import *
+from bcm.engine.interfaces import *
 from bcm.utils.clients import LIMSClient, DPMClient
 from bcm.device.monochromator import Monochromator
 from bcm.device.diffractometer import Diffractometer

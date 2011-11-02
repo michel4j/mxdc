@@ -89,7 +89,7 @@ DEVICES = {
     'humidifier': HumidityController('HC1608-01'),
     'attenuator': Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
     'mca': MultiChannelAnalyzer('XFD1608-501:mca1'),
-    'mca_nozzle': PV('BL08B1:MD2:S:MoveFluoDetFront'),
+    'mca_nozzle': Positioner('BL08B1:MD2:S:MoveFluoDetFront'),
 }
 
 # lims, dpm, imagesync and other services

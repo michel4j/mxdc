@@ -109,7 +109,8 @@ class DeviceDiag(DiagnosticBase):
             _diag = (DIAG_STATUS_BAD,'Not connected!')            
         self._signal_status(*_diag)
 
-    def _on_health(self, obj, st, descr):
+    def _on_health(self, obj, hlth):
+        st, descr = hlth
         if self.device.active_state:          
             if st == 0:
                 _diag = (DIAG_STATUS_GOOD, 'OK!')

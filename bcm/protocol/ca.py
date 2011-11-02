@@ -37,6 +37,7 @@ from ctypes import *
 import gobject
 import numpy
 import array
+import re
 
 from zope.interface import implements
 from bcm.protocol.interfaces import IProcessVariable
@@ -222,6 +223,9 @@ class PV(gobject.GObject):
     def __init__(self, name, monitor=True, connect=False, timed=False):
         gobject.GObject.__init__(self)
 
+        self.state_info = {'active': False, 'changed': 0, 
+                             'timed-change': (0,0), 'alarm': (0,0)}
+        self._dev_state_patt = re.compile('^(\w+)_state$')
         self._name = name
         self._monitor = monitor
         self._time_changes = timed
@@ -362,16 +366,22 @@ class PV(gobject.GObject):
                 self._val = dbr.contents.value
         
         self._time     = epics_to_posixtime(dbr.contents.stamp)
-        gobject.idle_add(self.emit,'changed', self._val)
+        self.set_state(changed=self._val)
         if self._time_changes:
-            gobject.idle_add(self.emit,'timed-change', (self._val, self._time))
+            self.set_state(timed_change=(self._val, self._time))
         _alm, _sev = dbr.contents.status, dbr.contents.severity
         if (_alm, _sev) != (self._alarm, self._severity):
             self._alarm, self._severity = _alm, _sev
-            gobject.idle_add(self.emit, 'alarm', (self._alarm, self._severity))
+            self.set_state(alarm=(self._alarm, self._severity))
         #self._lock.release()
         return 0
-
+    
+    def set_state(self, **kwargs):
+        for st, val in kwargs.items():
+            st = st.replace('_','-')
+            self.state_info.update({st: val})
+            gobject.idle_add(self.emit, st, val)
+    
     def connected(self):
         """Returns True if the channel is active"""
         return self._connected == CA_OP_CONN_UP
@@ -435,9 +445,9 @@ class PV(gobject.GObject):
                 self._set_properties()
                 if self._monitor == True:
                     self._add_handler( self._on_change )
-            gobject.idle_add(self.emit, 'active', True)
+            self.set_state(active=True)
         else:
-            gobject.idle_add(self.emit, 'active', False)
+            self.set_state(active=False)
         return 0
         
     def _add_handler(self, callback):
@@ -467,18 +477,22 @@ class PV(gobject.GObject):
         libca.ca_pend_io(0.1)
     
     def __getattr__(self, attr):
-        try:
-            return super(PV).__getattr__(self, attr)
-        except AttributeError:
-            if attr == 'name': return self._name
-            #elif attr == 'value':  return self._val
-            elif attr == 'count':   return self._count
-            elif attr == 'severity':  return self._severity
-            elif attr == 'host':  return self._host
-            elif attr == 'access': return self._access
-            elif attr == 'type': return TypeMap[self._type][1]
+
+        if attr == 'name': return self._name
+        #elif attr == 'value':  return self._val
+        elif attr == 'count':   return self._count
+        elif attr == 'severity':  return self._severity
+        elif attr == 'host':  return self._host
+        elif attr == 'access': return self._access
+        elif attr == 'type': return TypeMap[self._type][1]
+        else:
+            m = self._dev_state_patt.match(attr)
+            if m:
+                attr = m.group(1)
+                return self.state_info.get(attr, None)
             else:
-                raise AttributeError("'PV' has no attribute '%s'" % attr)
+                raise AttributeError("%s has no attribute '%s'" % (self.__class__.__name__, attr))
+
 
     value=property(fset=put, fget=get)
                   

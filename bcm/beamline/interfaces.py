@@ -9,6 +9,7 @@ class IBeamline(Interface):
     
     name = Attribute("""Name or description of device.""")
     config = Attribute("""A dictionary of beamline configuratioin parameters.""")
+    lock = Attribute("""A reentrant lock""")
     registry = Attribute("""A dictionary of all beamline components.""")
      
     def setup():

@@ -448,7 +448,8 @@ class SamplePicker(gtk.Frame):
             self.pbar.set_text('')
             self.command_tbl.set_sensitive(True)
     
-    def on_health(self, obj, code, message):
+    def on_health(self, obj, health):
+        code, message = health
         if code == 0:
             pass
         else:
