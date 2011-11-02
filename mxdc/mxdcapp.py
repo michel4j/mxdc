@@ -89,6 +89,7 @@ def main():
         
     app = MXDCApp()
     app.run_local()
+    #app.run_remote()
 
 if __name__ == "__main__":
     log_to_console()

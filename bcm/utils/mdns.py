@@ -67,7 +67,7 @@ class Provider(gobject.GObject):
             log.error("Service name collision")
         elif cur == avahi.SERVER_RUNNING:
             gobject.idle_add(self.emit, 'running')
-            log.info("MXDC Service published")
+            log.info("Service published")
             
     def _add_service(self, unique=False):
         """

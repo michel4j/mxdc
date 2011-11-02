@@ -9,20 +9,7 @@ from bcm.beamline.interfaces import IBeamline
 import sys, os
 import re
 
-from bcm.protocol import ca
-from bcm.protocol.ca import PV
-from bcm.device.motor import *
-from bcm.device.counter import Counter
-from bcm.device.misc import *
-from bcm.device.detector import *
-from bcm.device.goniometer import *
-from bcm.device.automounter import *
-from bcm.device.monochromator import Monochromator
-from bcm.device.mca import MultiChannelAnalyzer
-from bcm.device.diffractometer import Diffractometer
-from bcm.device.video import *
-from bcm.service.imagesync_client import ImageSyncClient
-from bcm.beamline.interfaces import IBeamline
+from bcm.settings import *
 from bcm.utils.log import get_module_logger, log_to_console
 
 
@@ -41,55 +28,59 @@ class BeamlineClient(gobject.GObject):
         self.registry = {}
         self.ready = False
 
+    @defer.deferredGenerator
     def setup(self, remote):
         self.remote = remote
-        remote.callRemote("getConfig").addCallbacks(self._got_config, log.err)
+        self.logger = get_module_logger(__name__)
+        d2 = remote.callRemote("getRegistry").addCallbacks(self._got_devices, log.err)
+        dlist = defer.DeferredList([d2])
         
-    def _got_device(self, response, name):
-        device = registry.queryAdapter(response[1], IDeviceClient, response[0])
-        self.registry[name] = device
-        print 'Setting up %s' % (name)
-    
-        
-    @defer.deferredGenerator
-    def _got_config(self, response):
-        self.name = response['name']
-        self.config = response['config']
-        dev_reqs = []
-        delayed_devices = []
-        for section, dev_name, cmd in response['devices']:
-            dev_type = cmd.split('(')[0]
-            if dev_type in ['Automounter', 'PseudoMotor','VMEMotor','BraggEnergyMotor','Positioner','Attenuator']:
-                d = self.remote.callRemote('getDevice', dev_name)
-                d.addCallback(self._got_device, dev_name).addErrback(log.err)
-                dev_reqs.append(d)
-            else:
-                delayed_devices.append((dev_name, cmd))
-
-        
-        dl = defer.DeferredList(dev_reqs)
-
         # wait for all deferreds to fire @defer.deferredGenerator
-        waitress = defer.waitForDeferred(dl)
+        waitress = defer.waitForDeferred(dlist)
         yield waitress
         res = waitress.getResult()
-        
-        for name, cmd in delayed_devices:
-            n_cmd = re.sub("'@([^- ,]+)'", "self.registry['\\1']", cmd)
-            reg_cmd = "self.registry['%s'] = %s" % (name, n_cmd)
-            exec(reg_cmd)
-            util_cmd = "self.%s = self.registry['%s']" % (name, name)
-            print 'Registering %s: %s' % (section, name)
-            exec(util_cmd)
 
         # now register beamline
         globalRegistry.register([], IBeamline, '', self)
-        print 'Beamline Registered'
+        log.msg('Beamline Registered')
         gobject.idle_add(self.emit, 'ready', True)
-        print self.registry
         self.ready = True
 
+        
+    def _got_devices(self, blconfig):
+        self.config = blconfig['config']
+        for name, dev_specs in blconfig['devices'].items():
+            device = registry.queryAdapter(dev_specs[1], IDeviceClient, dev_specs[0])
+            self.registry[name] = device
+            log.msg('Setting up %s' % (name))
+    
+        # Create and register other/compound devices
+        self.registry['monochromator'] = Monochromator(self.bragg_energy, self.energy, self.mostab)
+        self.registry['collimator'] = Collimator(self.beam_x, self.beam_y, self.beam_w, self.beam_h)
+        self.registry['diffractometer'] = Diffractometer(self.distance, self.two_theta)
+        if 'sample_y' in self.registry:
+            self.registry['sample_stage'] = XYStage(self.sample_x, self.sample_y)
+        else:
+            self.registry['sample_stage'] = SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega)
+        self.registry['sample_video'] = ZoomableCamera(self.sample_camera, self.sample_zoom)
+        self.registry['manualmounter'] = ManualMounter()
+        self.mca.nozzle = self.registry.get('mca_nozzle', None)
+        self.registry['manualmounter'] = ManualMounter()
+                
+        # Setup diagnostics on some devices
+        self.diagnostics = []
+        for k in ['automounter', 'goniometer', 'detector', 'cryojet', 'storage_ring', 'mca']:
+            try:
+                self.diagnostics.append( DeviceDiag(self.registry[k]) )
+            except:
+                self.logger.warning('Could not configure diagnostic device `%s`' % k)
+        try:
+            self.diagnostics.append(ShutterStateDiag(self.all_shutters))
+        except:
+            self.logger.warning('Could not configure diagnostic device `shutters`')
+                    
 
+        
     def __getitem__(self, key):
         try:
             return self.registry[key]
@@ -105,15 +96,6 @@ class BeamlineClient(gobject.GObject):
             return super(BeamlineClient).__getattr__(self, key)
         except AttributeError:
             return self.registry[key]
-
-def waitForResult(d):
-    @defer.deferredGenerator
-    def _f(d):
-        waitress = defer.waitForDeferred(d)
-        yield waitress
-        res = waitress.getResult()
-        yield res
-        return
     
     
 def main():

@@ -166,16 +166,15 @@ class AxisCamera(VideoSrc):
         VideoSrc.__init__(self, name, maxfps=20.0)
         self.size = (768, 576)
         if id is None:
-            self._url = 'http://%s/jpg/image.jpg' % hostname
+            self.url = 'http://%s/jpg/image.jpg' % hostname
         else:
-            self._url = 'http://%s/jpg/%s/image.jpg' % (hostname,id)
-        self._server = httplib.HTTPConnection(hostname)
+            self.url = 'http://%s/jpg/%s/image.jpg' % (hostname,id)
         self._last_frame = time.time()
         self.set_state(active=True)
 
     def get_frame(self):
         try:
-            f = urllib.urlopen(self._url)
+            f = urllib.urlopen(self.url)
             f_str = cStringIO.StringIO(f.read())
             img = Image.open(f_str)
             self.size = img.size
@@ -230,6 +229,7 @@ class AxisPTZCamera(AxisCamera):
       
     def __init__(self, hostname, id=None, name='Axis PTZ Camera'):
         AxisCamera.__init__(self, hostname, id, name)
+        self._server = httplib.HTTPConnection(hostname)
         self._rzoom = 0
        
     def zoom(self, value):
