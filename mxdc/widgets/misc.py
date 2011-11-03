@@ -10,6 +10,16 @@ from datetime import datetime
 from gauge import Gauge
 from dialogs import warning
 
+from bcm.device import diagnostics
+from diagnostics import MSG_COLORS
+
+MSG_ICONS = {
+    diagnostics.DIAG_STATUS_BAD: 'mxdc-hcane',
+    diagnostics.DIAG_STATUS_WARN: 'mxdc-cloudy',
+    diagnostics.DIAG_STATUS_GOOD: 'mxdc-sunny',
+    diagnostics.DIAG_STATUS_UNKNOWN: 'gtk-dialog-question',
+}
+
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class ActiveHScale(gtk.HScale):
@@ -349,7 +359,7 @@ class TextStatusDisplay(gtk.Label):
         return True
 
 class StatDisplay(gtk.HBox):
-    def __init__(self, device, label='', icon_map={'0': 'mxdc-sunny', '1': 'mxdc-cloudy'}, sig='changed'):
+    def __init__(self, device, label='', icon_map=MSG_ICONS, color_map=MSG_COLORS, sig='changed'):
         gtk.HBox.__init__(self)
         
         self.nm = gtk.Label('')
@@ -364,18 +374,16 @@ class StatDisplay(gtk.HBox):
         self.icon = gtk.Image()
         self.icon.set_alignment(0.1,0.5)
         self.icon_map = icon_map
-        self.color_map = {'0': '#396b3b', '1': '#8a8241'}
+        self.color_map = color_map
         self.pack_start(self.icon, expand=False, fill=False)
         self.pack_start(self.nm, expand=True, fill=True)
         self.pack_start(self.status)
         
     def _on_signal(self, obj, state, message=''):
-        if message:
-            text = message
-        else:
-            text = 'OK!'
-        self.status.set_markup('<small><span color="%s"><i>%s</i></span></small>' % (self.color_map.get(str(state), '#9a2b2b'), text))
-        self.icon.set_from_stock(self.icon_map.get(str(state), 'mxdc-hcane'), gtk.ICON_SIZE_MENU)
+        text = message or 'Ready'
+        self.status.set_markup('<small><span color="%s"><i>%s</i></span></small>' 
+                               % (self.color_map.get(state, '#9a2b2b'), text))
+        self.icon.set_from_stock(self.icon_map.get(state, 'mxdc-hcane'), gtk.ICON_SIZE_MENU)
         return True
     
 class StatusDisplay(gtk.HBox):

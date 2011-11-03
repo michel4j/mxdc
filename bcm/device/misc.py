@@ -534,22 +534,25 @@ class HumidityController(BaseDevice):
         self.add_devices(self.humidity, self.temperature)
         
         self.modbus_state.connect('changed', self.on_modbus_changed)  
-        self.status.connect('changed', self.on_status_changed)  
+        self.status.connect('changed', self.on_status_changed)
+        
+        self.set_state(health=(2,'status','Disconnected'))
 
     def on_status_changed(self, obj, state):
         if state == 'Initializing':
             self.set_state(health=(1,'status', state))
+        elif state == 'Closing':
+            self.set_state(health=(2,'status', 'Disconnected'))
         elif state == 'Ready':
             self.set_state(health=(0,'status'))
-        pass
     
     def on_modbus_changed(self, obj, state):
         if state == 'Disable':
             self.set_state(health=(0,'modbus'))
-            self.set_state(health=(2,'modbus','Modbus disconnected'))
+            self.set_state(health=(2,'modbus','Communication disconnected'))
         elif state == 'Unknown':
             self.set_state(health=(0,'modbus'))
-            self.set_state(health=(1,'modbus','Modbus state unknown'))
+            self.set_state(health=(1,'modbus','Communication state unknown'))
         elif state == 'Enable':
             self.set_state(health=(0,'modbus'))
 

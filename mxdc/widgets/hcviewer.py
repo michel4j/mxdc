@@ -5,7 +5,7 @@ import gobject
 import pango
 import gtk.glade
 from mxdc.widgets.video import VideoWidget
-from mxdc.widgets.misc import ActiveEntry, TextStatusDisplay, StatDisplay
+from mxdc.widgets.misc import ActiveEntry, StatDisplay
 from mxdc.widgets.sampleviewer import SampleViewer
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
@@ -13,7 +13,6 @@ from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.utils.video import add_hc_decorations
 from bcm.device.diagnostics import *
-from mxdc.widgets.diagnostics import DiagnosticDisplay
 
 from twisted.python.components import globalRegistry
 try:
@@ -135,13 +134,11 @@ class HCViewer(SampleViewer):
 
     def on_hc1_active(self, obj=None, active=False):
         self.hc1_active = active
-        self.reset_btn.set_sensitive(active)
-        self.roi_btn.set_sensitive(active)
-        self.clear_btn.set_sensitive(active)
         if not active:
             self.paused = True
             self.on_pause()
-        self.pause_btn.set_sensitive(active)
+        self.side_panel.set_sensitive(active)
+        self.stat_lbl.set_sensitive(active)
         
     def on_pause(self, widget=None):
         if self.paused:
