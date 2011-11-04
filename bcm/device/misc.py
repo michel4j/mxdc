@@ -543,6 +543,7 @@ class HumidityController(BaseDevice):
             self.set_state(health=(1,'status', state))
         elif state == 'Closing':
             self.set_state(health=(2,'status', 'Disconnected'))
+            self.set_state(health=(0,'modbus'))
         elif state == 'Ready':
             self.set_state(health=(0,'status'))
     
