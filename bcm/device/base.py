@@ -53,7 +53,7 @@ class BaseDevice(gobject.GObject):
     __gsignals__ =  { 
         "active": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
         "busy": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
-        "health": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_INT, gobject.TYPE_STRING)),
+        "health": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         "message": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
         }
     
@@ -143,7 +143,7 @@ class BaseDevice(gobject.GObject):
                     self.health_manager.remove(cntx)
                 _health = self.health_manager.get_health()
                 self.state_info.update({st: _health})
-                gobject.idle_add(self.emit, st, *_health)
+                gobject.idle_add(self.emit, st, _health)
             
     def add_pv(self, *args, **kwargs):
         """ Add a process variable (PV) to the device and return its reference. 

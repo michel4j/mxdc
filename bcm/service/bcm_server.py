@@ -81,9 +81,9 @@ class PerspectiveBCMFromService(pb.Root):
         """Get bcm parameters"""
         return self.service.getParameters()
         
-    def remote_getDevice(self, id):
+    def remote_getRegistry(self):
         """Get a beamline device"""
-        return self.service.getDevice(id)
+        return self.service.getRegistry()
 
     def rootObject(self, broker):
         if self.client is not None:
@@ -110,6 +110,7 @@ class BCMService(service.Service):
     
     def __init__(self):
         self.settings = {}
+        self.device_server_cache = {}
         d = threads.deferToThread(self._init_beamline)
         d.addCallbacks(self._service_ready, self._service_failed)
     
@@ -131,14 +132,14 @@ class BCMService(service.Service):
     def getStates(self):
         import random
         for method in ['mountSample', 'unmountSample', 'scanEdge', 
-                       'scanSpectrum', 'acquireFrames', 'takeSnapshots', 'getConfig', 'getDevice']:
+                       'scanSpectrum', 'acquireFrames', 'takeSnapshots', 'getConfig', 'getRegistry']:
             self.states[method] = random.choice([True, False])
         return self.states
     
     
     @log_call
     def getConfig(self):
-        config = {#'devices': self.beamline.device_config,
+        config = {
                   'name': self.beamline.name,
                   'config': self.beamline.config }
         return config
@@ -161,15 +162,20 @@ class BCMService(service.Service):
         return params
 
     @log_call
-    def getDevice(self, id):
-        if self.device_server_cache.get(id, None) is not None:
-            log.msg('Returning cached device server `%s`' % id)
-            return self.device_server_cache[id]
-        else:
-            log.msg('Returning cached device server `%s`' % id)
-            dev = IDeviceServer(self.beamline[id])
-            self.device_server_cache[id] = (dev.__class__.__name__, dev)
-            return self.device_server_cache[id]
+    def getRegistry(self):
+        devices = {}
+        services = {}
+        for id, dev in self.beamline.registry.items():
+            if self.device_server_cache.get(id, None) is None:
+                try:
+                    dev = IDeviceServer(self.beamline[id])
+                    self.device_server_cache[id] = (dev.__class__.__name__, dev)
+                except:
+                    #log.err()
+                    log.err('Device not remote-able `%s`' % id)
+                    continue
+            devices[id] = self.device_server_cache[id]
+        return {'config': self.beamline.config, 'devices': devices}
             
     @log_call
     def setupCrystal(self, crystal_name, session_id, uname):
