@@ -7,9 +7,10 @@ import exceptions
 from twisted.spread import pb
 
 import gobject
+from bcm.device.base import BaseDevice
 from zope.interface import Interface, implements
 from twisted.python import log
-from twisted.internet import  threads
+from twisted.internet import  threads, defer
 import numpy
 
 def log_call(f):
@@ -59,13 +60,17 @@ class MasterDevice(pb.Referenceable):
     def __init__(self, device):
         self.observers = []
         self.device = device
-        self.setup(device) 
+        self.setup()
     
     def getStateForClient(self):
         return {}
     
-    def notify_clients(self, *args):
-        for o in self.observers: o.callRemote('notify', *args)
+    def notify_clients(self, **kw):
+        for o in self.observers: 
+            self.notify_client(o, **kw)
+
+    def notify_client(self, client, **kw):
+        client.callRemote('notify', **kw)
     
     def remote_subscribe(self, client):
         self.observers.append(client)
@@ -76,37 +81,55 @@ class MasterDevice(pb.Referenceable):
         
     def setup_client(self, client):
         # Override this method to perform certain actions when a client connects
-        pass
+        self.notify_client(client, active=self.device.active_state)
+        self.notify_client(client, health=self.device.health_state)
+        self.notify_client(client, busy=self.device.busy_state)
+        self.notify_client(client, message=self.device.message_state)
         
     def remote_unsubscribe(self, client):
         self.observers.remove(client)
-        #log.msg('Client disconnected. Total : %d' % (len(self.observers)))
+        log.msg('Client disconnected. Total : %d' % (len(self.observers)))
 
-    def setup(self, device):
-        #implement how to setup server here, eg connect signals
-        raise exceptions.NotImplementedError
+    def setup(self):
+        # Override this method to setup the device for all clients
+        self.device.connect('health', lambda x,y: self.notify_clients(health=y))
+        self.device.connect('busy', lambda x,y: self.notify_clients(busy=y))
+        self.device.connect('active', lambda x,y: self.notify_clients(active=y))
+        self.device.connect('message', lambda x,y: self.notify_clients(message=y))
+        
                             
     # implement extra methods for wrapping control of local server device
 
-class SlaveDevice(pb.Referenceable):
+class SlaveDevice(pb.Referenceable, BaseDevice):
     implements(IDeviceClient)
     def __init__(self, device):
+        BaseDevice.__init__(self)
         self.setup()
         self.device = device
-        self.device.callRemote('subscribe', self).addErrback(log.err)
+        self._prepare_state()
+        print self.__dict__
     
-    def remote_notify(self, *args):
-        gobject.idle_add(self.emit, *args)
+    def remote_notify(self, **kw):
+        self.set_state(**kw)
         
     def remote_setState(self, state):
         for k,v in state.items():
             setattr(self, k, v)
-            
+    
+    @defer.deferredGenerator
+    def _prepare_state(self):
+        d = self.device.callRemote('subscribe', self).addErrback(log.err)
+        waitress = defer.waitForDeferred(d)
+        yield waitress
+        _ = waitress.getResult()
+        return
+       
     def setup(self):
         # implement how to setup client here
-        raise exceptions.NotImplementedError
+        pass
     
     #implement methods here for clients to be able to control server
+    #according to the provided interface
     
 # Add one entry for each remote device type
 # eg:  registry.register([interfaces.IJellyable], IDeviceClient, 'MasterDevice', SlaveDevice)

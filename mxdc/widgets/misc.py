@@ -217,7 +217,8 @@ class MotorEntry(ActiveEntry):
         self.device.stop()
         self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
  
-    def _on_health_changed(self, obj, state, msg=None):
+    def _on_health_changed(self, obj, health):
+        state, msg = health
         if state == 0:
             self._fbk_label.modify_fg(gtk.STATE_NORMAL, None)
             self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
