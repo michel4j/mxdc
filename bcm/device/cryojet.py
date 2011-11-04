@@ -26,7 +26,7 @@ class Cryojet(BaseDevice):
     
     implements(ICryojet)
     
-    def __init__(self, cname, lname, nozzle_motor=None):
+    def __init__(self, cname, lname, nname=''):
         BaseDevice.__init__(self)
         self.name = 'Cryojet'
         self.temperature = misc.Positioner('%s:sensorTemp:get' % cname,
@@ -39,13 +39,8 @@ class Cryojet(BaseDevice):
                                       '%s:ShieldFlow:get' % cname,
                                       units='L/min')
         self.level = self.add_pv('%s:ch1LVL:get' % lname)
-        
-        
-        #FIXME: This is ugly, should not hardcode pv name in class definition
-        if nozzle_motor is not None:
-            self.nozzle = IShutter(nozzle_motor)
-        else:
-            self.nozzle = CryojetNozzle('CSC1608-5-B10-01')
+        self.nozzle = CryojetNozzle(nname)
+
         self.fill_status = self.add_pv('%s:status:ch1:N.SVAL' % lname)
         self.add_devices(self.temperature, self.sample_flow, self.shield_flow)
         self._previous_flow = 7.0
