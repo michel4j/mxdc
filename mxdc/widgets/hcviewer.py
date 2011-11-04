@@ -5,7 +5,7 @@ import gobject
 import pango
 import gtk.glade
 from mxdc.widgets.video import VideoWidget
-from mxdc.widgets.misc import ActiveEntry, StatDisplay
+from mxdc.widgets.misc import ActiveEntry, HealthDisplay
 from mxdc.widgets.sampleviewer import SampleViewer
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
@@ -54,8 +54,7 @@ class HCViewer(SampleViewer):
             return
         
         self.entries = {
-            'modbus':          StatDisplay(self.hc.modbus_state, 'Modbus', icon_map={'Unknown': 'mxdc-cloudy', 'Disable': 'mxdc-hcane'}),
-            'state':           StatDisplay(self.hc, '', sig='health'), 
+            'state':           HealthDisplay(self.hc), 
             'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', format="%0.2f", width=20),
             'sample_temp':     ActiveEntry(self.hc.temperature, 'Sample Temperature', format="%0.2f"),
             'dewpoint_temp':   ActiveEntry(self.hc.dew_point, 'Dew Point Temperature', format="%0.1f"),

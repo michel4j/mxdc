@@ -359,8 +359,8 @@ class TextStatusDisplay(gtk.Label):
         self.set_markup(self.text_map.get(state, state))
         return True
 
-class StatDisplay(gtk.HBox):
-    def __init__(self, device, label='', icon_map=MSG_ICONS, color_map=MSG_COLORS, sig='changed'):
+class HealthDisplay(gtk.HBox):
+    def __init__(self, device, label='', icon_map=MSG_ICONS, color_map=MSG_COLORS, sig='health'):
         gtk.HBox.__init__(self)
         
         self.nm = gtk.Label('')
@@ -380,8 +380,9 @@ class StatDisplay(gtk.HBox):
         self.pack_start(self.nm, expand=True, fill=True)
         self.pack_start(self.status)
         
-    def _on_signal(self, obj, state, message=''):
-        text = message or 'Ready'
+    def _on_signal(self, obj, status):
+        state = status[0]
+        text = status[1] or 'Ready'
         self.status.set_markup('<small><span color="%s"><i>%s</i></span></small>' 
                                % (self.color_map.get(state, '#9a2b2b'), text))
         self.icon.set_from_stock(self.icon_map.get(state, 'mxdc-hcane'), gtk.ICON_SIZE_MENU)
