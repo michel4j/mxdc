@@ -117,6 +117,7 @@ class MXBeamline(object):
             'safe_beamstop': getattr(l_settings, 'SAFE_BEAMSTOP', getattr(g_settings, 'SAFE_BEAMSTOP', 25.0)),
             'xrf_beamstop': getattr(l_settings, 'XRF_BEAMSTOP', getattr(g_settings, 'XRF_BEAMSTOP', 50.0)),           
             'lims_api_key': getattr(l_settings, 'LIMS_API_KEY', getattr(g_settings, 'LIMS_API_KEY', '')),
+            'shutter_sequence': getattr(l_settings, 'BEAMLINE_SHUTTERS', getattr(g_settings, 'BEAMLINE_SHUTTERS')),
             'misc': _misc,        
             })
                     
@@ -152,11 +153,11 @@ class MXBeamline(object):
         self.registry['sample_video'] = ZoomableCamera(self.sample_camera, self.sample_zoom)
         self.registry['manualmounter'] = ManualMounter()
         self.mca.nozzle = self.registry.get('mca_nozzle', None)
+        self.registry['manualmounter'] = ManualMounter()
         
         #Setup Bealine shutters
-        _shutter_sequence = getattr(l_settings, 'BEAMLINE_SHUTTERS', getattr(g_settings, 'BEAMLINE_SHUTTERS'))
         _shutter_list = []
-        for nm in _shutter_sequence:
+        for nm in self.config['shutter_sequence']:
             _shutter_list.append(self.registry[nm])
         self.registry['all_shutters'] = ShutterGroup(*tuple(_shutter_list))
         
@@ -172,8 +173,6 @@ class MXBeamline(object):
         except:
             self.logger.warning('Could not configure diagnostic device')
             
-        self.registry['manualmounter'] = ManualMounter()
-
 
 __all__ = ['MXBeamline']
     

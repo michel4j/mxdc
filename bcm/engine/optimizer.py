@@ -63,6 +63,7 @@ class MostabOptimizer(BaseDevice):
     
     def __init__(self, name):
         BaseDevice.__init__(self)
+        self.name = name
         self._start = self.add_pv('%s:Mostab:opt:cmd' % name)
         self._stop = self.add_pv('%s:abortFlag' % name)
         self._state1 = self.add_pv('%s:optRun'% name)
