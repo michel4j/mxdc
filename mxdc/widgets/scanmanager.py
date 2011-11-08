@@ -621,6 +621,6 @@ class ScanManager(gtk.Frame):
             lns = ax.plot(*ln_points, **{'linewidth':1.0, 'color':_color})
             self.xrf_annotations[element].extend(lns)
             
-            self.plotter.canvas.draw()
+            self.plotter.redraw()
         return True
                                                              
