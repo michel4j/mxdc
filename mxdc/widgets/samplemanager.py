@@ -183,14 +183,12 @@ class SampleManager(gtk.Frame):
     def on_hc1_active(self, obj, active):
         self.hc1_active = active
         if active:
-            self.hc_viewer.side_panel.set_sensitive(True)
             if self.hc_data is None: self.reset_data()
             self.tupdate = self.hc.temperature.connect('changed', self.on_new_data, 'temps')
             self.dupdate = self.hc.drop_size.connect('changed', self.on_new_data, 'drops')
             self.hupdate = self.hc.humidity.connect('changed', self.on_new_data, 'relhs')
             self.redraw_plot()
         else:
-            self.hc_viewer.side_panel.set_sensitive(False)
             self.hc.temperature.disconnect(self.tupdate)
             self.hc.drop_size.disconnect(self.dupdate)
             self.hc.humidity.disconnect(self.hupdate)
@@ -276,7 +274,7 @@ class SampleManager(gtk.Frame):
         xdata = []
         ydata = []
         for point in self.hc_data[name]:
-            dt, t, y = point
+            t, y = point[1:3]
             xdata.append(t)
             ydata.append(y)
         self.plotter.add_line(xdata, ydata, '%s-' % info.get('color'), info.get('title'), axis, redraw=False)
@@ -287,7 +285,7 @@ class SampleManager(gtk.Frame):
         if not self._plot_paused or self._plot_init:
             self._plot_init = False
             min, max, xlabels = self.plot_config(plot)
-            now, t, y = self.hc_data[plot][-1]
+            t = self.hc_data[plot][-1][1]
             
             # add points to each plot
             if plot == self.pname or plot == 'relhs':
