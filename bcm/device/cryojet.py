@@ -69,9 +69,9 @@ class Cryojet(BaseDevice):
             
     def _on_noz_change(self, obj, val):
         if val:
-            self.set_state(health=(1, 'nozzle', 'Nozzle retracted!'))
+            self.set_state(health=(1, 'nozzle', 'Retracted!'))
         else:
-            self.set_state(health=(0, 'nozzle'))
+            self.set_state(health=(0, 'nozzle', 'Restored'))
                        
     def resume_flow(self):
         self.sample_flow.set(self._previous_flow)

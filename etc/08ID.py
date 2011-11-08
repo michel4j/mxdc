@@ -29,7 +29,7 @@ DEVICES = {
     'mostab': MostabOptimizer('MOS16082I1001'),
     
     # Goniometer/goniometer head devices
-    'goniometer': Goniometer('GV6K1608-001', 'SOL1608-3-I10-01:ON', 'ROB16083I:mnt:gotoMount', 'PM1608-3-I10-02:pm:mm'),
+    'goniometer': Goniometer('GV6K1608-001', 'OAV1608-3-I10-01', 'ROB16083I:mnt:gotoMount', 'PM1608-3-I10-02:pm:mm'),
     'omega':    VMEMotor('GV6K1608-001:deg'),
     'chi':  SimMotor('Chi', 0.0, 'deg', False),
     'sample_x':  VMEMotor('SMTR16083I1011:mm'),
@@ -54,7 +54,7 @@ DEVICES = {
     'sample_zoom':  VMEMotor('SMTR16083I1025:mm'),
     'camera_center_x':  Positioner('BL08ID1:video:sample:x'),
     'camera_center_y':  Positioner('BL08ID1:video:sample:y'),
-    'cryojet':  Cryojet('cryoCtlr', 'cryoLVM'),
+    'cryojet':  Cryojet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
     'sample_camera': AxisCamera('V2E1608-001', 4),
     'sample_backlight': Positioner('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk', 100.0),
     'sample_frontlight': Positioner('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk', 100.0),    

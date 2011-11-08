@@ -60,7 +60,7 @@ DEVICES = {
     'sample_zoom':  Positioner('BL08B1:MD2:S:ZoomLevel', 'BL08B1:MD2:G:ZoomLevel'),
     'camera_center_x':  Positioner('BL08B1:MD2:cam:x'),
     'camera_center_y':  Positioner('BL08B1:MD2:cam:y'),
-    'cryojet':  Cryojet('CSC1608-5-01', 'CSCLVM1608-5-01'),
+    'cryojet':  Cryojet('CSC1608-5-01', 'CSCLVM1608-5-01', 'CSC1608-5-B10-01'),
     'sample_camera': AxisCamera('V2E1608-400', 1),
     'sample_backlight': Positioner('BL08B1:MD2:S:BlightLevel', 'BL08B1:MD2:G:BlightLevel', 100.0),
     'sample_frontlight': Positioner('BL08B1:MD2:S:BlightLevel', 'BL08B1:MD2:G:BlightLevel', 100.0),    
