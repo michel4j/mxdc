@@ -77,7 +77,7 @@ DEVICES = {
     
     # Misc: Automounter, HC1 etc
     'automounter':  Automounter('ROB16083I', 'ROB1608-300'),
-    'humidifier': HumidityController('HC1608-01'),
+    #'humidifier': HumidityController('HC1608-01'),
     'attenuator': Attenuator('PFIL1608-3-I10-01', 'BL08ID1:energy'),
     'mca': MultiChannelAnalyzer('XFD1608-101:mca1'),
 }
