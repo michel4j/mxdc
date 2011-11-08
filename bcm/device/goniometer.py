@@ -243,7 +243,7 @@ class MD2Goniometer(GoniometerBase):
         self._mount_setpoints = {
             #self._tbl_x: 0.1658,
             #self._tbl_y: 3.363,
-            self._tbl_z: -0.5422,
+            #self._tbl_z: -0.5422,
             self._cnt_x: 0.0,
             self._cnt_y: 0.0,
         }
