@@ -618,7 +618,7 @@ class ScanManager(gtk.Frame):
                               color=_color
                       )
                 self.xrf_annotations[element].append(txt)
-            lns = ax.plot(*ln_points, lw=1.0, c=_color)
+            lns = ax.plot(*ln_points, linewidth=1.0, color=_color)
             self.xrf_annotations[element].extend(lns)
             
             self.plotter.canvas.draw()
