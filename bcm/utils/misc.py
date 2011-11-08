@@ -46,6 +46,6 @@ def all(iterable):
 
 def get_project_name():
     if os.environ.get('BCM_DEBUG') is not None:
-        return 'kathryn'
+        return 'testuser'
     else:
         return pwd.getpwuid(os.geteuid())[0]
