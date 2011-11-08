@@ -121,7 +121,7 @@ class HutchManager(gtk.Frame):
         self.beamline.monochromator.energy.connect('changed', self.update_predictor)
 
         # BOSS enable/disable if a boss has been defined
-        if 'boss' in self.beamline.registry and self.beamline.boss.is_active():
+        if 'boss' in self.beamline.registry:
             self.beamline.monochromator.energy.connect('busy', self.switch_boss, self.beamline.boss)
             self.beamline.mostab.connect('busy', self.switch_boss, self.beamline.boss)
        
