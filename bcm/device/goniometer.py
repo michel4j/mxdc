@@ -56,12 +56,12 @@ _STATE_PATTERNS = {
 
 }
 
-class BackLight(misc.BasicShutter):
+class BackLight(BasicShutter):
     def __init__(self, name):
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
         state_name = "%s:out" % name
-        misc.BasicShutter.__init__(self, open_name, close_name, state_name)
+        BasicShutter.__init__(self, open_name, close_name, state_name)
         self._messages = ['Moving in', 'Moving out']
         self._name = 'Backlight'
 
