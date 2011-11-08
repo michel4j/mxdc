@@ -75,6 +75,7 @@ class AppWindow(gtk.Window):
     def run(self):
         icon = gtk.gdk.pixbuf_new_from_file(self.icon_file)
         self.set_icon(icon)
+        self.set_resizable(False)
 
         gobject.timeout_add(2000, lambda: self.splash.hide())         
         self.scan_manager = ScanManager()
