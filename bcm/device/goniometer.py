@@ -11,7 +11,7 @@ from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.protocol import ca
 from bcm.device.motor import PseudoMotor, SimMotor
-from bcm.device.misc import Positioner
+from bcm.device.misc import Positioner, BasicShutter
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.device.base import BaseDevice
@@ -55,6 +55,17 @@ _STATE_PATTERNS = {
     'BEAM': re.compile('^Drag the beam mark\s.+$'),
 
 }
+
+class BackLight(misc.BasicShutter):
+    def __init__(self, name):
+        open_name = "%s:opr:open" % name
+        close_name = "%s:opr:close" % name
+        state_name = "%s:out" % name
+        misc.BasicShutter.__init__(self, open_name, close_name, state_name)
+        self._messages = ['Moving in', 'Moving out']
+        self._name = 'Backlight'
+
+
 class GoniometerError(Exception):
 
     """Base class for errors in the goniometer module."""
@@ -116,8 +127,9 @@ class Goniometer(GoniometerBase):
         self._state = self.add_pv("%s:scanFrame:status" % pv_root)
         self._state.connect('changed', self._on_busy)
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
-        self._bl_position = self.add_pv(blname)
+        self._bl_position = BackLight(blname)
         self._expbox_mount_cmd = self.add_pv(mnt_cmd)
+        self.add_devices(self._bl_position)
         self.minibeam = PseudoMotor(minibeam)
          
         #parameters
@@ -141,12 +153,12 @@ class Goniometer(GoniometerBase):
     def set_mode(self, mode, wait=False):
 
         if mode == 'CENTERING':
-            self._bl_position.put(1)
+            self._bl_position.open()
             self.minibeam.move_to(self.minibeam_in_position, wait=True)
             #put up backlight
         elif mode in ['MOUNTING']:
             self._expbox_mount_cmd.put(1)
-            self._bl_position.put(0)
+            self._bl_position.close()
             if wait:
                 time.sleep(3);
 
@@ -155,7 +167,7 @@ class Goniometer(GoniometerBase):
             if bl is None:
                 _logger.error('Beamline is not available.')
                 return 
-            self._bl_position.put(0)
+            self._bl_position.close()
             in_position = bl.config['misc']['aperture_in_position']
             self.minibeam.move_to(in_position, wait=True)
 
