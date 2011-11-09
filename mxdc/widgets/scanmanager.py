@@ -595,13 +595,14 @@ class ScanManager(gtk.Frame):
         state = model.get_value(iter, COLUMN_DRAW)
         model.set(iter, COLUMN_DRAW, (not state) )
         ax = self.plotter.axis[0]
+        ax.axis('tight')
+        alims = ax.axis()
         line_list = summarize_lines(element_info[1])
         if state:
             # Delete drawings
             for _anotation in self.xrf_annotations[element]:
                 _anotation.remove()
             del self.xrf_annotations[element]
-            self.plotter.canvas.draw()
         else:
             # Add Drawings
             self.xrf_annotations[element] = []
@@ -621,6 +622,8 @@ class ScanManager(gtk.Frame):
             lns = ax.plot(*ln_points, **{'linewidth':1.0, 'color':_color})
             self.xrf_annotations[element].extend(lns)
             
-            self.plotter.redraw()
+        _offset = 0.1 * alims[3]
+        ax.axis(ymin=alims[2]-_offset, ymax=alims[3]+_offset)
+        self.plotter.redraw()
         return True
                                                              
