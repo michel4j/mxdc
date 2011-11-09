@@ -142,6 +142,7 @@ class Goniometer(GoniometerBase):
             'delta' : self.add_pv("%s:deltaOmega" % pv_root, monitor=False),
             'angle': self.add_pv("%s:openSHPos" % pv_root, monitor=False),
         }
+        self._requested_mode = None
         gobject.idle_add(self.emit, 'mode', 'MOVING')
     
     def _on_gonio_pos(self, obj, val):
@@ -157,7 +158,10 @@ class Goniometer(GoniometerBase):
         elif self.minibeam.get_position()>= out_position:
             self._set_and_notify_mode("MOUNTING")
         else:
-            self._set_and_notify_mode("COLLECT")       
+            if self._requested_mode in ['BEAM', 'COLLECT', 'SCANNING']:
+                self._set_and_notify_mode(self._requested_mode)
+            else:
+                self._set_and_notify_mode("UNKNOWN")    
             
     def _on_busy(self, obj, st):
         if st == 0:
@@ -170,7 +174,7 @@ class Goniometer(GoniometerBase):
             self._settings[key].put(kwargs[key])
     
     def set_mode(self, mode, wait=False):
-
+        self._requested_mode = mode
         bl = globalRegistry.lookup([], IBeamline)
         if bl is None:
             _logger.error('Beamline is not available.')
