@@ -262,6 +262,8 @@ class CollectManager(gtk.Frame):
     def on_mount_busy(self, obj, busy):
         if busy:
             self.progress_bar.busy_text(self.mount_widget.busy_text)
+        else:
+            self.progress_bar.idle_text('')
 
     def on_mount_done(self, obj, state):
         if obj.__class__.__name__ is "ManualMounter":
