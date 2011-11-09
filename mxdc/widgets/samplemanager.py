@@ -69,8 +69,8 @@ class SampleManager(gtk.Frame):
         
         # make video and cryo notebooks same vertical size
         self._szgrp1 = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
-        self._szgrp1.add_widget(self.video_ntbk)
-        self._szgrp1.add_widget(self.cryo_ntbk)
+        self._szgrp1.add_widget(self.loader_frame)
+        self._szgrp1.add_widget(self.robot_ntbk)
             
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
