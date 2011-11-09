@@ -132,9 +132,9 @@ class Goniometer(GoniometerBase):
         self.add_devices(self._bl_position)
         self.minibeam = PseudoMotor(minibeam)
 
-        self.minibeam.connect('changed', self._on_gonio_pos)
-        self.minibeam.connect('busy', self._on_gonio_pos)
-        self._bl_position.connect('changed', self._on_gonio_pos)
+        self.minibeam.connect('changed', lambda x,y: self._check_gonio_pos())
+        self.minibeam.connect('busy', lambda x,y: self._check_gonio_pos())
+        self._bl_position.connect('changed', lambda x,y: self._check_gonio_pos())
          
         #parameters
         self._settings = {
@@ -145,7 +145,7 @@ class Goniometer(GoniometerBase):
         self._requested_mode = None
         gobject.idle_add(self.emit, 'mode', 'MOVING')
     
-    def _on_gonio_pos(self, obj, val):
+    def _check_gonio_pos(self):
         bl = globalRegistry.lookup([], IBeamline)
         out_position = bl.config['misc']['aperture_out_position']
         if bl is None:
@@ -198,6 +198,7 @@ class Goniometer(GoniometerBase):
 
                     
         #self._set_and_notify_mode(mode)
+        self._check_gonio_pos()
         if wait:
             timeout = 60
             while mode not in _MODE_MAP_REV.get(self.mode) and timeout > 0:
