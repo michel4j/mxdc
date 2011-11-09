@@ -66,6 +66,11 @@ class SampleManager(gtk.Frame):
     
     def _create_widgets(self):
         self.beamline = globalRegistry.lookup([], IBeamline)
+        
+        # make video and cryo notebooks same vertical size
+        self._szgrp1 = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
+        self._szgrp1.add_widget(self.video_ntbk)
+        self._szgrp1.add_widget(self.cryo_ntbk)
             
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
@@ -74,9 +79,7 @@ class SampleManager(gtk.Frame):
         self.cryo_controller = CryojetWidget(self.beamline.cryojet)
         self.sample_picker = SamplePicker()
         
-        self.plotter = Plotter(xformat='%g', loop=True, buffer_size=600)
-        self.hc_plot = gtk.Frame()
-        self.hc_plot.add(self.plotter)
+        self.plotter = Plotter(xformat='%g', loop=True, buffer_size=600, dpi=72)
 
         def _mk_lbl(txt):
             lbl = gtk.Label(txt)
@@ -88,6 +91,7 @@ class SampleManager(gtk.Frame):
         self.video_ntbk.connect('realize', lambda x: self.video_ntbk.set_current_page(0))
         
         self.cryo_ntbk.append_page(self.cryo_controller, tab_label=_mk_lbl('Cryojet Stream'))
+        self.cryo_ntbk.connect('realize', lambda x: self.cryo_ntbk.set_current_page(0))
 
         self.hc_data = None        
         if 'humidifier' in self.beamline.registry:
@@ -96,7 +100,7 @@ class SampleManager(gtk.Frame):
         
             self.video_ntbk.append_page(self.hc_viewer, tab_label=_mk_lbl('Humidity Control'))
             self.video_ntbk.connect('switch-page', self.on_tab_change)
-            self.cryo_ntbk.append_page(self.hc_plot, tab_label=_mk_lbl('Humidity Control'))
+            self.cryo_ntbk.append_page(self.plotter, tab_label=_mk_lbl('Humidity Control'))
             self.cryo_ntbk.connect('switch-page', self.on_tab_change)
             self.hc_viewer.connect('plot-changed', self.on_plot_change)
             self.hc_viewer.connect('plot_paused', self.on_pause)
