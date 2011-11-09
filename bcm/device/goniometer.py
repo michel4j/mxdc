@@ -152,9 +152,15 @@ class Goniometer(GoniometerBase):
     
     def set_mode(self, mode, wait=False):
 
+        bl = globalRegistry.lookup([], IBeamline)
+        if bl is None:
+            _logger.error('Beamline is not available.')
+            return 
+        
         if mode == 'CENTERING':
             self._bl_position.open()
-            self.minibeam.move_to(self.minibeam_in_position, wait=True)
+            in_position = bl.config['misc']['aperture_in_position']
+            self.minibeam.move_to(in_position, wait=True)
             #put up backlight
         elif mode in ['MOUNTING']:
             self._expbox_mount_cmd.put(1)
@@ -163,10 +169,6 @@ class Goniometer(GoniometerBase):
                 time.sleep(3);
 
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
-            bl = globalRegistry.lookup([], IBeamline)
-            if bl is None:
-                _logger.error('Beamline is not available.')
-                return 
             self._bl_position.close()
             in_position = bl.config['misc']['aperture_in_position']
             self.minibeam.move_to(in_position, wait=True)
