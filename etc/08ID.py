@@ -16,6 +16,7 @@ XRF_BEAMSTOP        = 30.0
 # miscellaneous settings
 MISC_SETTINGS = {
     'aperture_in_position': 3.63,
+    'aperture_out_position': 26.5,
 }
 
 LIMS_API_KEY    = "DE5C410E-6D59-4DE8-AFFC-3FF5F367359E"
