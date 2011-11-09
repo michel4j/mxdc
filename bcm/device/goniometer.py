@@ -131,6 +131,10 @@ class Goniometer(GoniometerBase):
         self._expbox_mount_cmd = self.add_pv(mnt_cmd)
         self.add_devices(self._bl_position)
         self.minibeam = PseudoMotor(minibeam)
+
+        self.minibeam.connect('changed', self._on_gonio_pos)
+        self.minibeam.connect('busy', self._on_gonio_pos)
+        self._bl_position.connect('changed', self._on_gonio_pos)
          
         #parameters
         self._settings = {
@@ -139,7 +143,22 @@ class Goniometer(GoniometerBase):
             'angle': self.add_pv("%s:openSHPos" % pv_root, monitor=False),
         }
         gobject.idle_add(self.emit, 'mode', 'MOVING')
-        
+    
+    def _on_gonio_pos(self, obj, val):
+        bl = globalRegistry.lookup([], IBeamline)
+        out_position = bl.config['misc']['aperture_out_position']
+        if bl is None:
+            _logger.error('Beamline is not available.')
+            return
+        if self.minibeam.busy_state:
+            self._set_and_notify_mode("MOVING")
+        elif self._bl_position.changed_state:
+            self._set_and_notify_mode("CENTERING")
+        elif self.minibeam.get_position()>= out_position:
+            self._set_and_notify_mode("MOUNTING")
+        else:
+            self._set_and_notify_mode("COLLECT")       
+            
     def _on_busy(self, obj, st):
         if st == 0:
             self.set_state(busy=False)
@@ -174,7 +193,7 @@ class Goniometer(GoniometerBase):
             self.minibeam.move_to(in_position, wait=True)
 
                     
-        self._set_and_notify_mode(mode)
+        #self._set_and_notify_mode(mode)
         if wait:
             timeout = 60
             while mode not in _MODE_MAP_REV.get(self.mode) and timeout > 0:
