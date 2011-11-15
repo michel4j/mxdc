@@ -56,12 +56,12 @@ _STATE_PATTERNS = {
 
 }
 
-class BackLight(misc.BasicShutter):
+class BackLight(BasicShutter):
     def __init__(self, name):
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
-        state_name = "%s:out" % name
-        misc.BasicShutter.__init__(self, open_name, close_name, state_name)
+        state_name = "%s:in" % name
+        BasicShutter.__init__(self, open_name, close_name, state_name)
         self._messages = ['Moving in', 'Moving out']
         self._name = 'Backlight'
 
@@ -131,6 +131,10 @@ class Goniometer(GoniometerBase):
         self._expbox_mount_cmd = self.add_pv(mnt_cmd)
         self.add_devices(self._bl_position)
         self.minibeam = PseudoMotor(minibeam)
+
+        self.minibeam.connect('changed', lambda x,y: self._check_gonio_pos())
+        self.minibeam.connect('busy', lambda x,y: self._check_gonio_pos())
+        self._bl_position.connect('changed', lambda x,y: self._check_gonio_pos())
          
         #parameters
         self._settings = {
@@ -138,8 +142,27 @@ class Goniometer(GoniometerBase):
             'delta' : self.add_pv("%s:deltaOmega" % pv_root, monitor=False),
             'angle': self.add_pv("%s:openSHPos" % pv_root, monitor=False),
         }
+        self._requested_mode = None
         gobject.idle_add(self.emit, 'mode', 'MOVING')
-        
+    
+    def _check_gonio_pos(self):
+        bl = globalRegistry.lookup([], IBeamline)
+        out_position = bl.config['misc']['aperture_out_position']
+        if bl is None:
+            _logger.error('Beamline is not available.')
+            return
+        if self.minibeam.busy_state:
+            self._set_and_notify_mode("MOVING")
+        elif self._bl_position.changed_state:
+            self._set_and_notify_mode("CENTERING")
+        elif self.minibeam.get_position()>= out_position:
+            self._set_and_notify_mode("MOUNTING")
+        else:
+            if self._requested_mode in ['BEAM', 'COLLECT', 'SCANNING']:
+                self._set_and_notify_mode(self._requested_mode)
+            else:
+                self._set_and_notify_mode("UNKNOWN")    
+            
     def _on_busy(self, obj, st):
         if st == 0:
             self.set_state(busy=False)
@@ -151,10 +174,16 @@ class Goniometer(GoniometerBase):
             self._settings[key].put(kwargs[key])
     
     def set_mode(self, mode, wait=False):
-
+        self._requested_mode = mode
+        bl = globalRegistry.lookup([], IBeamline)
+        if bl is None:
+            _logger.error('Beamline is not available.')
+            return 
+        
         if mode == 'CENTERING':
             self._bl_position.open()
-            self.minibeam.move_to(self.minibeam_in_position, wait=True)
+            in_position = bl.config['misc']['aperture_in_position']
+            self.minibeam.move_to(in_position, wait=True)
             #put up backlight
         elif mode in ['MOUNTING']:
             self._expbox_mount_cmd.put(1)
@@ -163,16 +192,13 @@ class Goniometer(GoniometerBase):
                 time.sleep(3);
 
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
-            bl = globalRegistry.lookup([], IBeamline)
-            if bl is None:
-                _logger.error('Beamline is not available.')
-                return 
             self._bl_position.close()
             in_position = bl.config['misc']['aperture_in_position']
             self.minibeam.move_to(in_position, wait=True)
 
                     
-        self._set_and_notify_mode(mode)
+        #self._set_and_notify_mode(mode)
+        self._check_gonio_pos()
         if wait:
             timeout = 60
             while mode not in _MODE_MAP_REV.get(self.mode) and timeout > 0:

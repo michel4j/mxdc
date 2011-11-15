@@ -24,7 +24,7 @@ _logger = get_module_logger('mxdc.hutchmanager')
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-class ToggleBoss():
+class ToggleBoss:
     def __init__(self):
         self.called = {}
     
