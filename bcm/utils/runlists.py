@@ -58,11 +58,12 @@ def prepare_run(run_data):
     return runs
             
 
-def summarize_frame_set(full_set):
+def summarize_frame_set(full_frame_set):
     # takes a list of integers such as [1,2,3,4,6,7,8]
     # and reduces it to the string "1-4,6-8"
     sum_list = []
     tmp_pairs = []
+    full_set = full_frame_set[:]
     
     if len(full_set) == 0:
         return ""
