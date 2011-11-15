@@ -133,16 +133,16 @@ class SampleViewer(gtk.Frame):
 
 
             # cross center
-            cr.move_to(x-tick, y)
-            cr.line_to(x+tick, y)
-            cr.stroke()
-            cr.move_to(x, y+tick)
-            cr.line_to(x, y-tick)
-            cr.stroke()
+            #cr.move_to(x-tick, y)
+            #cr.line_to(x+tick, y)
+            #cr.stroke()
+            #cr.move_to(x, y+tick)
+            #cr.line_to(x, y-tick)
+            #cr.stroke()
             
             
             # beam size
-            cr.set_dash([4,4])
+            cr.set_dash([1,1])
             cr.arc(x, y, hh-1.0, 0, 2.0 * 3.14)
             cr.stroke()
             
