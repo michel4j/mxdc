@@ -412,9 +412,15 @@ class ScanManager(gtk.Frame):
         if widget.get_active():
             self.scan_help.set_markup('Find peak, inflection and remote energies for MAD experiments')
             self.scan_mode = 'XANES'
+            self.edge_entry.set_editable(False)
+            self.edge_entry.set_sensitive(True)
+            self.energy_entry.set_sensitive(False)
         else:
             self.scan_help.set_markup('Identify elements present in the sample from their fluorescence')
             self.scan_mode = 'XRF'
+            self.edge_entry.set_sensitive(False)
+            self.energy_entry.set_sensitive(True)
+            
         return
 
     def on_scan_activated(self, widget):
