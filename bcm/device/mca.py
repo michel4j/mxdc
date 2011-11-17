@@ -220,7 +220,7 @@ class SimMultiChannelAnalyzer(BaseDevice):
         self._data_read = False
         self._command_sent = False
                 
-        self._counts_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'test/scans/xanes_001.raw'), comments="#")
+        self._counts_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'test/scans/xanes_002.raw'), comments="#")
         self._counts_data = self._counts_data[:,1]        
         self._last_t = time.time()
         self._last_pos = 0
