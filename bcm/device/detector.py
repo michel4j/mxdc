@@ -223,16 +223,16 @@ class SimCCDImager(BaseDevice):
     
     def initialize(self, wait=True):
         _logger.debug('(%s) Initializing CCD ...' % (self.name,)) 
-        time.sleep(1)
+        time.sleep(0.1)
         _logger.debug('(%s) CCD Initialization complete.' % (self.name,))
                         
     def start(self, first=False):
         self.initialize(True)
-        time.sleep(1)
+        time.sleep(0.1)
         
     def stop(self):
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
-        time.sleep(1)
+        time.sleep(0.1)
 
     def get_origin(self):
         return self.size//2, self.size//2
@@ -251,13 +251,12 @@ class SimCCDImager(BaseDevice):
         
     def save(self, wait=False):
         self._copy_frame()
-        time.sleep(0.1)
         
     def get_state(self):
         return ['idle']
     
     def wait(self, state='idle'):
-        time.sleep(3)
+        time.sleep(0.1)
                                       
     def set_parameters(self, data):
         self.parameters = data
