@@ -417,22 +417,20 @@ class ActiveProgressBar(gtk.ProgressBar):
     
     def set_busy(self, busy):
         if busy:
-            self.busy_state = True
-            if self.progress_id is None:
-                self.progress_id = gobject.timeout_add(100,  self._progress_timeout)
+            if not self.busy_state:
+                self.busy_state = True
+                gobject.timeout_add(100,  self._progress_timeout)
             self.pulse()
         else:
             self.busy_state = False
-            if self.progress_id is not None:
-                gobject.source_remove(self.progress_id)
-            self.set_fraction(0.0)
 
     def get_busy(self):
         return self.busy_state
 
     def _progress_timeout(self):
-        self.pulse()
-        return True
+        if self.busy_state:
+            self.pulse()
+        return self.busy_state
      
     def busy_text(self, text):
         self.set_busy(True)

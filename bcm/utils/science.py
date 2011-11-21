@@ -8,6 +8,7 @@ import re
 from bcm.utils import json
 from bcm.engine import fitting
 from scipy import interpolate
+from bcm.utils import converter
 
 SPACE_GROUP_NAMES = {
     1:'P1', 3:'P2', 4:'P2(1)', 5:'C2', 16:'P222', 
@@ -67,6 +68,46 @@ def xanes_targets(energy):
         
     return targets
 
+def exafs_targets(energy, regions=[-0.2, -0.005, 0.006, 16], pe_factor=10.0, e_step=0.0005, k_step=0.05):
+    # Calculate energy positions for exafs scans
+    
+    start = regions[0]
+    pre_edge_end = regions[1]
+    edge_end = regions[2]
+    exafs_end = regions[3] # in K
+    
+    targets = []
+    
+    # Decreasing step size for the pre-edge
+    val = start
+    targets.append(val)
+    while val < pre_edge_end:
+        step_size = abs(val)/(pe_factor)
+        val += step_size
+        targets.append(val)
+    
+    # edge region
+    while val < edge_end:
+        step_size = e_step
+        val += step_size
+        targets.append(val)
+    
+    #the exafs region
+    kval = converter.energy_to_kspace(val)
+    while kval < exafs_end:
+        kval += k_step
+        targets.append(converter.kspace_to_energy(kval))
+            
+    return energy + numpy.array(targets)
+
+def exafs_time_func(t, k, n=2, kmin=3.0, kmax=16.0):
+    
+    if k < kmin: # anything below kmin gets min time = t
+        _t = t
+    else:
+        _t = t + (9.0*t)*((k-kmin)/(kmax-kmin))**n
+    return _t
+    
 def get_periodic_table():
     return PERIODIC_TABLE
    
