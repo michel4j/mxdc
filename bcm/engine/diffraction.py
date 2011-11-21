@@ -63,6 +63,7 @@ class DataCollector(gobject.GObject):
         self.runs = []
         self.results = {}        
         self._last_initialized = 0
+        
             
     def configure(self, run_data, skip_existing=True):
         #associate beamline devices
@@ -214,8 +215,15 @@ class DataCollector(gobject.GObject):
                     self.pos += 1
                     continue
                 
-                self._notify_progress(self.STATE_RUNNING)                                           
-                self.beamline.monochromator.energy.move_to(frame['energy'], wait=True)
+                self._notify_progress(self.STATE_RUNNING)
+                _cur_energy = self.beamline.energy.get_position()
+                self.beamline.energy.move_to(frame['energy'], wait=True)
+                
+                # if energy changes by more than 5 eV, Optimize
+                if  abs(frame['energy'] - _cur_energy) >= 0.005:                                    
+                    self.beamline.mostab.start()
+                    self.beamline.mostab.wait()
+
                 self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)
                 self.beamline.attenuator.set(frame['attenuation'], wait=True)               
                 
