@@ -10,9 +10,10 @@ from mxdc.widgets.textviewer import TextViewer
 from mxdc.widgets.plotter import Plotter
 from mxdc.widgets.dialogs import  warning, error
 from mxdc.utils import config
+from mxdc.widgets.misc import ActiveProgressBar
 from bcm.beamline.mx import IBeamline
 from twisted.python.components import globalRegistry
-from bcm.engine.spectroscopy import XRFScan, XANESScan
+from bcm.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
 from bcm.utils import science, lims_tools
 from bcm.utils.log import get_module_logger
 
@@ -88,16 +89,27 @@ class ScanManager(gtk.Frame):
 
         self.xanes_scanner = XANESScan()
         self.xrf_scanner = XRFScan()
-                
+        self.exafs_scanner = EXAFSScan()
+        
+        # XANES   
         self.xanes_scanner.connect('new-point', self.on_new_scan_point)    
         self.xanes_scanner.connect('done', self.on_xanes_done)
         self.xanes_scanner.connect('stopped', self.on_xanes_done)
         self.xanes_scanner.connect('progress', self.on_progress)    
-        self.xanes_scanner.connect('error', self.on_xanes_error)        
+        self.xanes_scanner.connect('error', self.on_xanes_error)  
+        
+        # XRF      
         self.xrf_scanner.connect('done', self.on_xrf_done)   
         self.xrf_scanner.connect('stopped', self.on_scan_stopped)
         self.xrf_scanner.connect('error', self.on_scan_error)
         self.xrf_scanner.connect('progress', self.on_progress)
+        
+        # EXAFS
+        self.exafs_scanner.connect('new-point', self.on_new_scan_point)    
+        self.exafs_scanner.connect('progress', self.on_progress)    
+        self.exafs_scanner.connect('done', self.on_scan_done)
+        self.exafs_scanner.connect('stopped', self.on_scan_stopped)
+        self.exafs_scanner.connect('error', self.on_scan_error)        
 
         # initial variables
         self.scanning = False
@@ -131,9 +143,15 @@ class ScanManager(gtk.Frame):
         
         self.scan_btn.set_label('mxdc-scan')
         self.scan_btn.connect('clicked', self.on_scan_activated)
+        # pbar
+        self.scan_pbar = ActiveProgressBar()
+        self.vbox3.pack_end(self.scan_pbar, expand=False, fill=False)
+        self.xanes_btn.set_active(True)
         
         # Scan options
-        self.xanes_btn.connect('toggled', self.on_mode_change)
+        self.xanes_btn.connect('toggled', self.on_mode_change, 'XANES')
+        self.xrf_btn.connect('toggled', self.on_mode_change, 'XRF')
+        self.exafs_btn.connect('toggled', self.on_mode_change, 'EXAFS')
         self.entries = {
             'prefix': self.prefix_entry,
             'directory': self.directory_btn,
@@ -325,8 +343,10 @@ class ScanManager(gtk.Frame):
         self._emission = params['emission']
         if params['mode'] == 'XANES':
             self.xanes_btn.set_active(True)
-        else:
+        elif params['mode'] == 'XRF':
             self.xrf_btn.set_active(True)
+        elif params['mode'] == 'EXAFS':
+            self.exafs_btn.set_active(True)
         return True
         
     def get_parameters(self):
@@ -341,8 +361,10 @@ class ScanManager(gtk.Frame):
             params['directory'] = os.environ['HOME']
         if self.xanes_btn.get_active():
             params['mode'] = 'XANES'
-        else:
+        elif self.xrf_btn.get_active():
             params['mode'] = 'XRF'
+        elif self.exafs_btn.get_active():
+            params['mode'] = 'EXAFS'
         params['emission'] = self._emission
         return params
 
@@ -387,6 +409,28 @@ class ScanManager(gtk.Frame):
         self.scan_pbar.set_text("Starting MAD scan...")
         self.xanes_scanner.start()
         return True
+
+    def run_exafs(self):
+        self.xanes_box.hide()
+        self.xrf_box.hide()
+        if self.scanning:
+            return True
+        self.plotter.clear()
+        scan_parameters = self.get_parameters()
+        self._save_config(scan_parameters)
+            
+        title = scan_parameters['edge'] + " EXAFS Scan"
+        self.plotter.set_labels(title=title, x_label="Energy (keV)", y1_label='Fluorescence Counts')      
+        self.exafs_scanner.configure(scan_parameters['edge'], scan_parameters['time'], 
+                                     scan_parameters['attenuation'], scan_parameters['directory'],
+                                     scan_parameters['prefix'], scan_parameters['crystal'])
+        
+        self._set_scan_action(True)
+        self.scan_book.set_current_page(1)
+        self.scan_pbar.set_fraction(0.0)
+        self.scan_pbar.set_text("Starting EXAFS scan...")
+        self.exafs_scanner.start()
+        return True
         
     def run_xrf(self):
         self.xanes_box.hide()
@@ -408,32 +452,41 @@ class ScanManager(gtk.Frame):
         self.xrf_scanner.start()
         return True
     
-    def on_mode_change(self, widget):
-        if widget.get_active():
+    def on_mode_change(self, widget, mode='XANES'):
+        self.scan_mode = mode
+        if mode == 'XANES':
             self.scan_help.set_markup('Find peak, inflection and remote energies for MAD experiments')
-            self.scan_mode = 'XANES'
             self.edge_entry.set_editable(False)
             self.edge_entry.set_sensitive(True)
             self.energy_entry.set_sensitive(False)
-        else:
+        elif mode == 'XRF':
             self.scan_help.set_markup('Identify elements present in the sample from their fluorescence')
-            self.scan_mode = 'XRF'
             self.edge_entry.set_sensitive(False)
             self.energy_entry.set_sensitive(True)
-            
+        elif mode == 'EXAFS':
+            self.scan_help.set_markup('Perform full EXAFS scan for the selected edge')
+            self.edge_entry.set_editable(False)
+            self.edge_entry.set_sensitive(True)
+            self.energy_entry.set_sensitive(False)
+        
         return
 
     def on_scan_activated(self, widget):
         pars = self.get_parameters()
         if self.scanning:
+            # Stop the scan if running
             self.xanes_scanner.stop()
             self.xrf_scanner.stop()
+            self.exafs_scanner.stop()
             self._set_scan_action(False)
         else:
+            # Start the scan if not running
             if pars['mode'] == 'XANES':
                 self.run_xanes()
-            else:
+            elif pars['mode'] == 'XRF':
                 self.run_xrf()
+            elif pars['mode'] == 'EXAFS':
+                self.run_exafs()
     
     def on_edge_selected(self, widget, data):
         vals = data.split(':')
@@ -456,6 +509,11 @@ class ScanManager(gtk.Frame):
     def on_scan_error(self, widget, reason):
         self._set_scan_action(False)
         self.scan_pbar.set_text('Scan Error: %s' % (reason,))
+        return True
+
+    def on_scan_done(self, widget):
+        self._set_scan_action(False)
+        self.scan_pbar.idle_text('Scan Complete!', 1.0)
         return True
     
     def on_xanes_error(self, obj, reason):
@@ -491,8 +549,7 @@ class ScanManager(gtk.Frame):
         self.plotter.add_line(data['energy'], data['fp'], 'g', ax=new_axis, redraw=True)
                 
         self.set_results(results)
-        self.scan_pbar.set_fraction(1.0)
-        self.scan_pbar.set_text("Scan Complete")
+        self.scan_pbar.idle_text("Scan Complete", 1.0)
         self.output_log.add_text(obj.results.get('log'))
         info_log = '\n---------------------------------------\n\n'
         self.output_log.add_text(info_log)
@@ -533,9 +590,11 @@ class ScanManager(gtk.Frame):
         else:
             self.crystal_entry.set_text('[ Unknown ]')
 
-    def on_progress(self, widget, fraction):
-        self.scan_pbar.set_fraction(fraction)
-        self.scan_pbar.set_text('%0.0f %%' % (fraction * 100))
+    def on_progress(self, widget, fraction, msg):
+        if fraction >= 0.0:
+            self.scan_pbar.idle_text('%s %0.0f %%' % (msg, (fraction * 100)), fraction)
+        else:
+            self.scan_pbar.busy_text(msg)
         return True
             
     def on_xrf_done(self, obj):
@@ -582,8 +641,7 @@ class ScanManager(gtk.Frame):
         self.output_log.add_text(peak_log)
         self.plotter.axis[0].legend()
         self.plotter.redraw()
-        self.scan_pbar.set_text("Scan complete.")
-        self.scan_pbar.set_fraction(1.0)
+        self.scan_pbar.idle_text("Scan complete.", 1.0)
         self._set_scan_action(False)
 
         # Upload scan to lims

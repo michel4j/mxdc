@@ -71,7 +71,8 @@ class SimMotor(MotorBase):
     def __init__(self, name, pos=0, units='mm', active=True):
         MotorBase.__init__(self,name)
         pos = pos
-        self._speed = 50
+        self._time = 2.0 # duration of each move
+        self._steps = 10
         self.units = units
         self._state = 0
         self._stopped = False
@@ -88,7 +89,7 @@ class SimMotor(MotorBase):
         self._stopped = False
         self._command_sent = True
         import numpy
-        targets = numpy.linspace(self._position, target, self._speed)
+        targets = numpy.linspace(self._position, target, self._steps)
         self.set_state(busy=True)
         self._command_sent = False
         for pos in targets:
@@ -97,7 +98,7 @@ class SimMotor(MotorBase):
             self._signal_timed_change(self, data)
             if self._stopped:
                 break
-            time.sleep(0.05)
+            time.sleep(self._time/self._steps)
         self.set_state(busy=False)
 
             

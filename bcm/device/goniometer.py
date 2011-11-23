@@ -366,7 +366,10 @@ class SimGoniometer(GoniometerBase):
     @async
     def _start_scan(self):
         self._scanning = True
-        time.sleep(2)
+        bl = globalRegistry.lookup([], IBeamline)
+        bl.omega.move_to(self._settings['angle'] - 0.05, wait=True)
+        bl.omega._time = 1.1 * self._settings['time']
+        bl.omega.move_to(self._settings['angle'] + self._settings['delta'] + 0.05, wait=True)        
         self._scanning = False
         
     def scan(self, wait=True):
