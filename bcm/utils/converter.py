@@ -1,12 +1,15 @@
 import os
 import math
 import time
+import numpy
 
 
 
 # Physical Constats
-_h = 4.13566733e-15 # eV.s
+_h = 4.135667516e-15 # eV.s
 _c = 299792458e10   # A/s
+_m = 5.685629904369271e-32 # eV.A^-2 , calculated using 
+_hb =  _h/(2*math.pi)
 
 _S111_A_DICT = {
     '08B1': 5.4310209,
@@ -20,6 +23,17 @@ def energy_to_wavelength(energy):
     if energy == 0.0:
         return 0.0
     return (_h*_c)/(energy*1000.0)
+
+def energy_to_kspace(delta_e): 
+    """Convert delta_energy in KeV to k-space in A-1."""
+    #return numpy.sign(delta_e)*numpy.sqrt(0.2625 * abs(delta_e))
+    return numpy.sign(delta_e)*numpy.sqrt(2000.0*_m*abs(delta_e))/_hb
+
+def kspace_to_energy(k): 
+    """Convert k-space in A-1 to delta_energy in KeV """
+    #return numpy.sign(k)*(k**2)/0.2625
+    return numpy.sign(k)*numpy.sign(k)*(k*_hb)**2/(2000.0*_m)
+
 
 def wavelength_to_energy(wavelength): 
     """Convert wavelength in angstroms to energy in keV."""

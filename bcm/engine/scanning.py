@@ -79,7 +79,7 @@ class BasicScan(gobject.GObject):
     implements(IScan)
     __gsignals__ = {}
     __gsignals__['new-point'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
-    __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,))
+    __gsignals__['progress'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_STRING,))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
@@ -219,7 +219,7 @@ class AbsScan(BasicScan):
             self.data.append( [x, y/i0, i0, y] )
             _logger.info("%4d %8g %8g %8g %8g" % (i, x, y/i0, i0, y))
             gobject.idle_add(self.emit, "new-point", (x, y/i0, i0, y) )
-            gobject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps) )
+            gobject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps), "" )
              
         gobject.idle_add(self.emit, "done")
     
@@ -291,7 +291,7 @@ class AbsScan2(BasicScan):
             self.data.append( [x1, x2, y/i0, i0, y] )
             _logger.info("%4d %15g %15g %15g %15g %15g" % (i, x1, x2, y/i0, i0, y))
             gobject.idle_add(self.emit, "new-point", (x1, x2, y/i0, i0, y) )
-            gobject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps) )
+            gobject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps), "")
              
         gobject.idle_add(self.emit, "done")
 
@@ -383,7 +383,7 @@ class CntScan(BasicScan):
             if len(x_ot) > 0:
                 x = x_ot[-1][0] # x should be the last value, only rough estimate for now
                 gobject.idle_add(self.emit, "new-point", (x, yi, i0, y))
-                gobject.idle_add(self.emit, "progress", (x - self._start_pos)/(self._end_pos - self._start_pos))
+                gobject.idle_add(self.emit, "progress", (x - self._start_pos)/(self._end_pos - self._start_pos), "")
             time.sleep(0.01)
            
         self._motor.disconnect(src_id)
@@ -511,7 +511,7 @@ class GridScan(BasicScan):
                 self.data.append( [x1, x2, y/i0, i0, y] )
                 _logger.info("%4d %15g %15g %15g %15g %15g" % (pos, x1, x2, y/i0, i0, y))
                 gobject.idle_add(self.emit, "new-point", (x1, x2, y/i0, i0, y) )
-                gobject.idle_add(self.emit, "progress", (pos + 1.0)/(total_points) )
+                gobject.idle_add(self.emit, "progress", (pos + 1.0)/(total_points), "" )
                 pos += 1
              
         gobject.idle_add(self.emit, "done")
