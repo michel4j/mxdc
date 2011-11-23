@@ -129,22 +129,31 @@ class XRFScan(BasicScan):
             _logger.debug('Exitation Scan started.')
             gobject.idle_add(self.emit, 'started')   
             # prepare environment for scannning
+            gobject.idle_add(self.emit, "progress", -1, "Preparing devices ...")
             self.beamline.goniometer.set_mode('SCANNING')
             self.beamline.mca.configure(retract=True, cooling=True, energy=None)
             self.beamline.attenuator.set(self._attenuation)
             if self._energy is not None:
-                self.beamline.monochromator.energy.move_to(self._energy)
-                self.beamline.monochromator.energy.wait()
-            gobject.idle_add(self.emit, "progress", 0.15)
+                _cur_energy = self.beamline.energy.get_position()
+                gobject.idle_add(self.emit, "progress", -1, "Changing Energy ...")
+                self.beamline.energy.move_to(self._energy)
+                self.beamline.energy.wait()
+                
+                # if energy just moved more than 5eV, optimize
+                if abs(_cur_energy - self._energy) >= 0.005:
+                    gobject.idle_add(self.emit, "progress", -1, "Optimizing beam ...")
+                    self.beamline.mostab.start()
+                    self.beamline.mostab.wait()
+
+            gobject.idle_add(self.emit, "progress", -1, "Acquiring spectrum ...")
             self.beamline.exposure_shutter.open()
             self.data = self.beamline.mca.acquire(t=self._duration)
             self.beamline.exposure_shutter.close()
             self.save(self._filename)
-            gobject.idle_add(self.emit, "progress", 0.3)
-            _logger.debug('Interpreting scan...')
+            gobject.idle_add(self.emit, "progress", -1, 'Interpreting spectrum ...')
             self.analyse()
             gobject.idle_add(self.emit, "done")
-            gobject.idle_add(self.emit, "progress", 1.0)
+            gobject.idle_add(self.emit, "progress", 1.0, 'Done')
         finally:
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(_saved_attenuation)
@@ -257,10 +266,19 @@ class XANESScan(BasicScan):
             gobject.idle_add(self.emit, 'started')
             _logger.info('Edge scan started.')
             self.beamline.goniometer.set_mode('SCANNING')
+            gobject.idle_add(self.emit, "progress", -1, "Preparing devices ...")
             self.beamline.attenuator.set(self._attenuation)
             self.beamline.mca.configure(retract=True, cooling=True, energy=self._roi_energy)
-            self.beamline.monochromator.energy.move_to(self._edge_energy)
-            self.beamline.monochromator.energy.wait()   
+            gobject.idle_add(self.emit, "progress", -1, "Moving to Edge ...")
+            _cur_energy = self.beamline.energy.get_position()
+            self.beamline.energy.move_to(self._edge_energy)
+            self.beamline.energy.wait()
+            
+            # if energy just moved more than 10eV, optimize
+            if abs(_cur_energy - self._edge_energy) >= 0.01:
+                gobject.idle_add(self.emit, "progress", -1, "Optimizing Energy ...")
+                self.beamline.mostab.start()
+                self.beamline.mostab.wait()
                    
             self.count = 0
             self.beamline.exposure_shutter.open()
@@ -286,7 +304,7 @@ class XANESScan(BasicScan):
                 fraction = float(self.count) / len(self._targets)
                 #_logger.info("%4d %15g %15g %15g %15g" % (self.count, x, y*scale, i0, y))
                 gobject.idle_add(self.emit, "new-point", (x, y*scale, i0, y))
-                gobject.idle_add(self.emit, "progress", fraction )
+                gobject.idle_add(self.emit, "progress", fraction, "Doing Scan ...")
                              
             if self._stopped:
                 _logger.warning("XANES Scan stopped. Will Attempt CHOOCH Analysis")
@@ -298,7 +316,7 @@ class XANESScan(BasicScan):
                 self.save(self._filename)
                 self.analyse()
                 gobject.idle_add(self.emit, "done")
-                gobject.idle_add(self.emit, "progress", 1.0 )
+                gobject.idle_add(self.emit, "progress", 1.0, "Done")
         finally:
             self.beamline.monochromator.energy.move_to(self._edge_energy)
             self.beamline.exposure_shutter.close()
@@ -308,4 +326,119 @@ class XANESScan(BasicScan):
             self.beamline.goniometer.set_mode('COLLECT')
             self.beamline.lock.release()           
         return self.results
+
+
+class EXAFSScan(BasicScan):
+    def __init__(self, edge='Se-K', t=1.0, attenuation=0.0, directory=''):
+        BasicScan.__init__(self)
+        self._energy_db = get_energy_database()
+        self.configure(edge, t, attenuation, directory, 'exafs')
+        
+    def configure(self, edge, t, attenuation, directory, prefix, crystal=None, uname=None):
+        #FIXME: Possible race condition here if new configure is issued while previous scan is still running
+        # - maybe we should use queues and have the scan constantly check and perform a scan
+        try:
+            self.beamline = globalRegistry.lookup([], IBeamline)
+        except:
+            self.beamline = None
+        self.scan_parameters = {}
+        self.scan_parameters['edge'] = edge
+        self.scan_parameters['edge_energy'],  self.scan_parameters['roi_energy'] = self._energy_db[edge]
+        self.scan_parameters['duration'] = t
+        self.scan_parameters['directory'] = directory
+        self.scan_parameters['prefix'] = prefix
+        self.scan_parameters['user_name'] = uname
+        self.scan_parameters['targets'] = exafs_targets(self.scan_parameters['edge_energy'])
+        self.scan_parameters['filename'] = os.path.join(directory, "%s_%s.raw" % (prefix, edge))
+        self.scan_parameters['attenuation'] = attenuation
+        self.scan_parameters['crystal_id'] = crystal
+        self.meta_data = {'edge': edge, 'time': t, 'attenuation': attenuation, 'prefix': prefix, 'user_name': uname}
+        
+                    
+    
+    def analyse(self):
+        pass
+        
+    def run(self):
+        _logger.info('EXAFS Scan waiting for beamline to become available.')
+        self.beamline.lock.acquire()
+
+        # Obtain scan parameters from recent configure
+        self._duration = self.scan_parameters['duration']
+        self._edge = self.scan_parameters['edge']
+        self._edge_energy = self.scan_parameters['edge_energy']
+        self._roi_energy = self.scan_parameters['roi_energy']      
+        self._targets = self.scan_parameters['targets']        
+        self._attenuation = self.scan_parameters['attenuation']
+        self._directory = self.scan_parameters['directory']
+        self._prefix = self.scan_parameters['prefix']
+        self._user_name = self.scan_parameters['user_name']
+        self._filename = self.scan_parameters['filename']
+        self._crystal_id = self.scan_parameters['crystal_id']
+        self.data = []
+        _saved_attenuation = self.beamline.attenuator.get()
+        try:
+            gobject.idle_add(self.emit, 'started')
+            _logger.info('EXAFS scan started.')
+            self.beamline.goniometer.set_mode('SCANNING')
+            gobject.idle_add(self.emit, "progress", -1, "Preparing devices ...")
+            self.beamline.attenuator.set(self._attenuation)
+            self.beamline.mca.configure(retract=True, cooling=True, energy=self._roi_energy)
+            gobject.idle_add(self.emit, "progress", -1, "Moving to Edge ...")
+            _cur_energy = self.beamline.energy.get_position()
+            self.beamline.energy.move_to(self._edge_energy)
+            self.beamline.energy.wait()
+            
+            # if energy just moved more than 10eV, optimize
+            if abs(_cur_energy - self._edge_energy) >= 0.01:
+                gobject.idle_add(self.emit, "progress", -1, "Optimizing Energy ...")
+                self.beamline.mostab.start()
+                self.beamline.mostab.wait()
+                    
+            self.count = 0
+            self.beamline.exposure_shutter.open()
+            self.data_names = ['Energy',
+                               'Scaled Counts',
+                               'I_0',
+                               'K',
+                               'Raw Counts']
+            for x in self._targets:
+                if self._stopped:
+                    _logger.info("Scan stopped!")
+                    break
+                    
+                self.count += 1
+                self.beamline.monochromator.simple_energy.move_to(x, wait=True)
+                k = converter.energy_to_kspace(x - self._edge_energy)
+                _t = science.exafs_time_func(self._duration, k)
+                y = self.beamline.mca.count(_t)
+                i0 = self.beamline.i_0.count(_t)
+                if self.count == 1:
+                    scale = 1.0
+                else:
+                    scale = (self.data[0][2]/i0)
+                self.data.append( [x, y*scale, i0, k, y] )
+                    
+                fraction = float(self.count) / len(self._targets)
+                gobject.idle_add(self.emit, "new-point", (x, y*scale, i0, k,  y))
+                gobject.idle_add(self.emit, "progress", fraction , "")
+                             
+            if self._stopped:
+                _logger.warning("EXAFS Scan stopped.")
+                self.save(self._filename)
+                gobject.idle_add(self.emit, "stopped")
+            else:
+                _logger.info("EXAFS Scan complete.")
+                self.save(self._filename)
+                gobject.idle_add(self.emit, "done")
+                gobject.idle_add(self.emit, "progress", 1.0, "")
+        finally:
+            self.beamline.monochromator.energy.move_to(self._edge_energy)
+            self.beamline.exposure_shutter.close()
+            self.beamline.attenuator.set(_saved_attenuation)
+            self.beamline.mca.configure(retract=False)
+            _logger.info('EXAFS scan done.')
+            self.beamline.goniometer.set_mode('COLLECT')
+            self.beamline.lock.release()        
+        return self.data
     

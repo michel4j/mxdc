@@ -377,7 +377,7 @@ class ScanPlotter(gtk.VBox):
                                 y1_label=scan.data_names[1])
              
     
-    def on_progress(self, scan, fraction):
+    def on_progress(self, scan, fraction, msg):
         """Progress handler."""
         elapsed_time = time.time() - self._start_time
         if fraction > 0:
