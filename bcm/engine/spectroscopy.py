@@ -411,8 +411,7 @@ class EXAFSScan(BasicScan):
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
                 k = converter.energy_to_kspace(x - self._edge_energy)
                 _t = science.exafs_time_func(self._duration, k)
-                y = self.beamline.mca.count(_t)
-                i0 = self.beamline.i_0.count(_t)
+                y,i0 = multi_count(self.beamline.mca, self.beamline.i_0, _t)
                 if self.count == 1:
                     scale = 1.0
                 else:
