@@ -11,7 +11,7 @@ from bcm.utils.science import *
 from bcm.utils.log import get_module_logger
 from bcm.utils import science, json
 from bcm.engine.autochooch import AutoChooch
-from bcm.utils.misc import get_short_uuid
+from bcm.utils.misc import get_short_uuid, multi_count
 from bcm.service.utils import  send_array
 
 
@@ -294,8 +294,7 @@ class XANESScan(BasicScan):
                     
                 self.count += 1
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
-                y = self.beamline.mca.count(self._duration)
-                i0 = self.beamline.i_0.count(self._duration)
+                y,i0 = multi_count(self.beamline.mca, self.beamline.i_0, self._duration)
                 if self.count == 1:
                     scale = 1.0
                 else:
@@ -412,8 +411,7 @@ class EXAFSScan(BasicScan):
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
                 k = converter.energy_to_kspace(x - self._edge_energy)
                 _t = science.exafs_time_func(self._duration, k)
-                y = self.beamline.mca.count(_t)
-                i0 = self.beamline.i_0.count(_t)
+                y,i0 = multi_count(self.beamline.mca, self.beamline.i_0, _t)
                 if self.count == 1:
                     scale = 1.0
                 else:

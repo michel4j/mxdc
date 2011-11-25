@@ -15,6 +15,7 @@ from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from bcm.device.interfaces import IMotor, ICounter
 from bcm.utils import json
+from bcm.utils import misc
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -211,10 +212,10 @@ class AbsScan(BasicScan):
                 break
             x = self._start_pos + (i * self._step_size)
             self._motor.move_to(x, wait=True)
-            y = self._counter.count(self._duration)
-            if self._i0 is not None:         
-                i0 = self._i0.count(self._duration)
+            if self._i0 is not None: 
+                y,i0 = misc.multi_count(self._counter, self._i0, self._duration)        
             else:
+                y = self._counter.count(self._duration)
                 i0 = 1.0
             self.data.append( [x, y/i0, i0, y] )
             _logger.info("%4d %8g %8g %8g %8g" % (i, x, y/i0, i0, y))
@@ -283,10 +284,10 @@ class AbsScan2(BasicScan):
             self._motor2.move_to(x2)
             self._motor1.wait()
             self._motor2.wait()
-            y = self._counter.count(self._duration)         
-            if self._i0 is not None:         
-                i0 = self._i0.count(self._duration)
+            if self._i0 is not None:    
+                y,i0 = misc.multi_count(self._counter, self._i0, self._duration)     
             else:
+                y = self._counter.count(self._duration)  
                 i0 = 1.0
             self.data.append( [x1, x2, y/i0, i0, y] )
             _logger.info("%4d %15g %15g %15g %15g %15g" % (i, x1, x2, y/i0, i0, y))
@@ -503,10 +504,10 @@ class GridScan(BasicScan):
                 self._motor1.move_to(x1)
                 self._motor1.wait()
 
-                y = self._counter.count(self._duration)         
                 if self._i0 is not None:         
-                    i0 = self._i0.count(self._duration)
+                    y,i0 = misc.multi_count(self._counter, self._i0, self._duration)
                 else:
+                    y = self._counter.count(self._duration)
                     i0 = 1.0
                 self.data.append( [x1, x2, y/i0, i0, y] )
                 _logger.info("%4d %15g %15g %15g %15g %15g" % (pos, x1, x2, y/i0, i0, y))

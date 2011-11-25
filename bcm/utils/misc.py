@@ -4,6 +4,8 @@ import math, time
 #import gtk
 import gobject
 import pwd
+import threading
+from bcm.protocol import ca
 
 if sys.version_info[:2] == (2,5):
     import uuid
@@ -42,10 +44,24 @@ def all(iterable):
         if not element:
             return False
     return True
-    
 
 def get_project_name():
     if os.environ.get('BCM_DEBUG') is not None:
         return 'testuser'
     else:
         return pwd.getpwuid(os.geteuid())[0]
+
+def multi_count(*args):
+    counts = [0.0]*(len(args)-1)
+    
+    def count(device, t, i):
+        ca.threads_init()
+        counts[i] = device.count(t)
+    
+    threads = []    
+    for i, device in enumerate(args[:-1]):
+        threads.append(threading.Thread(target=count, args=(device, args[-1],i,)))
+    [th.start() for th in threads]
+    [th.join() for th in threads]
+    return tuple(counts)
+
