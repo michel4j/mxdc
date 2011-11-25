@@ -625,10 +625,10 @@ class ScanManager(gtk.Frame):
                       "Energy",
                       "Height")
                       
-        # Display at most 10 entries in the xrf_list
+        # Display at most 20 entries in the xrf_list
         count = 0
         for prob, el in element_list:
-            if count < 10:
+            if count < 20:
                 self._add_xrf_element((el, prob))
                 count += 1
             peak_log += 39 * "-" + "\n"
