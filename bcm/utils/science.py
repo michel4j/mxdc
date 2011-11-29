@@ -312,7 +312,7 @@ def generate_spectrum(info, energy, xa):
     xa is an array of energy values
     """
     
-    PEAK_FWHM = 0.155
+    PEAK_FWHM = 0.143
     y = numpy.zeros(len(xa))
     
     el = info[0]    
