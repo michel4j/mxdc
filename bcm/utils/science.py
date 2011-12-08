@@ -68,7 +68,7 @@ def xanes_targets(energy):
         
     return targets
 
-def exafs_targets(energy, regions=[-0.2, -0.005, 0.006, 16], pe_factor=10.0, e_step=0.0005, k_step=0.05):
+def exafs_targets(energy, regions=[-0.2, -0.005, 0.006, 12], pe_factor=10.0, e_step=0.0005, k_step=0.05):
     # Calculate energy positions for exafs scans
     
     start = regions[0]
@@ -100,7 +100,7 @@ def exafs_targets(energy, regions=[-0.2, -0.005, 0.006, 16], pe_factor=10.0, e_s
             
     return energy + numpy.array(targets)
 
-def exafs_time_func(t, k, n=2, kmin=3.0, kmax=16.0):
+def exafs_time_func(t, k, n=2, kmin=3.0, kmax=12.0):
     
     if k < kmin: # anything below kmin gets min time = t
         _t = t

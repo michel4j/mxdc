@@ -136,6 +136,10 @@ class MultiChannelAnalyzer(BaseDevice):
     def count(self, t):
         self._acquire_data(t)
         values = self._data[self.region_of_interest[0]:self.region_of_interest[1]]
+        #zero_peak = self._data[0:180].sum()
+        #self._x_axis = self.channel_to_energy(numpy.arange(0,4096,1))
+        #dat = numpy.array(zip(self._x_axis, self._data))
+        #numpy.savetxt('/home/michel/Work/exafs/%0.0f.raw' % time.time(), dat)
         return sum(values)
 
     def acquire(self, t=1.0):
