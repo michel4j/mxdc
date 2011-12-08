@@ -401,6 +401,7 @@ class EXAFSScan(BasicScan):
                                'Scaled Counts',
                                'I_0',
                                'K',
+                               'Time',
                                'Raw Counts']
             for x in self._targets:
                 if self._stopped:
@@ -416,7 +417,7 @@ class EXAFSScan(BasicScan):
                     scale = 1.0
                 else:
                     scale = (self.data[0][2]/i0)
-                self.data.append( [x, y*scale, i0, k, y] )
+                self.data.append( [x, y*scale, i0, k, _t,  y] )
                     
                 fraction = float(self.count) / len(self._targets)
                 gobject.idle_add(self.emit, "new-point", (x, y*scale, i0, k,  y))
