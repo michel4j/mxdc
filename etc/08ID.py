@@ -59,7 +59,7 @@ DEVICES = {
     'sample_camera': AxisCamera('V2E1608-001', 4),
     'sample_backlight': Positioner('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk', 100.0),
     'sample_frontlight': Positioner('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk', 100.0),    
-    'hutch_video':  AxisPTZCamera('CCD1608-201'),
+    'hutch_video':  AxisPTZCamera('CCD1608-301'),
     
     # Facility, storage-ring, shutters, etc
     'ring_current':  PV('PCT1402-01:mA:fbk'),
