@@ -60,7 +60,7 @@ class Counter(BaseDevice):
             time_left -= interval
         total = (sum(values, 0.0)/len(values)) - self.zero
         _logger.debug('(%s) Returning average of %d values for %0.2f sec.' % (self.name, len(values), t) )
-        return total
+        return total * (t/interval)
                         
 
 
