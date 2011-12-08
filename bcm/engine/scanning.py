@@ -384,11 +384,16 @@ class CntScan(BasicScan):
             if len(x_ot) > 0:
                 x = x_ot[-1][0] # x should be the last value, only rough estimate for now
                 gobject.idle_add(self.emit, "new-point", (x, yi, i0, y))
+                print "x", x
+                print "start, end", self._start_pos, ",", self._end_pos
                 gobject.idle_add(self.emit, "progress", (x - self._start_pos)/(self._end_pos - self._start_pos), "")
             time.sleep(0.01)
            
         self._motor.disconnect(src_id)
         # Perform interpolation
+        print "x_ot", x_ot
+        print "y_ot", y_ot
+        print "i_ot", i_ot
         xi, tx = zip(*x_ot)
         yi, ty = zip(*y_ot)
         ii, ti = zip(*i_ot)
@@ -399,16 +404,22 @@ class CntScan(BasicScan):
         ten = min(maxtx, maxty)
         t_final = numpy.linspace(tst, ten, len(y_ot)*2) # 2 x oversampling based on counter
         
-        tckx = interpolate.splrep(tx, xi)
+        print "yi", yi
+        print "ii", ii
+        #tckx = interpolate.splrep(tx, xi)
         tcky = interpolate.splrep(ty, yi)
         tcki = interpolate.splrep(ti, ii)
 
-        xnew = interpolate.splev(t_final, tckx, der=0)
-        ynew = interpolate.splev(t_final, tcky, der=0)
-        inew = interpolate.splev(t_final, tcki, der=0)
+        #xnew = interpolate.splev(t_final, tckx, der=0)
+        ynew = interpolate.splev(tx, tcky, der=0)
+        inew = interpolate.splev(tx, tcki, der=0)
+
+        #print "xnew", xnew
+        print "ynew", ynew
+        print "inew", inew
 
         yinew = ynew/inew
-        self.data = zip(xnew, yinew, inew, ynew)          
+        self.data = zip(xi, yinew, inew, ynew)          
         gobject.idle_add(self.emit, "done")
 
 
