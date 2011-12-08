@@ -24,8 +24,8 @@ class SetCenteringMode(Script):
             
             mount_distance = 700 # Should be the same as the 'safe_distance' from SetMountMode
             
+            self.beamline.beamstop_z.move_to(safe_beamstop, wait=True)
             self.beamline.goniometer.set_mode('CENTERING', wait=True)
-            self.beamline.beamstop_z.move_to(safe_beamstop)
             if abs(self.beamline.detector_z.get_position() - mount_distance) < 1:
                 self.beamline.detector_z.move_to(safe_distance)
             self.beamline.cryojet.nozzle.close()
