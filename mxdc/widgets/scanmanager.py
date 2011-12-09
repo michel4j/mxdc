@@ -598,7 +598,7 @@ class ScanManager(gtk.Frame):
             self.crystal_entry.set_text('[ Unknown ]')
 
     def on_progress(self, widget, fraction, msg):
-        if fraction >= 0.0:
+        if fraction > 0.0:
             _used_time = time.time() - self._start_time
             _tot_time = _used_time/fraction
             eta = _tot_time - _used_time
@@ -606,12 +606,13 @@ class ScanManager(gtk.Frame):
             txt = '%s %0.1f%% - ETA %s'% (msg, fraction*100,
                                         time.strftime(eta_format ,time.gmtime(eta)))
             self.scan_pbar.idle_text(txt, fraction)
+        elif fraction == 0.0:
+            self._start_time = time.time()
         else:
             self.scan_pbar.busy_text(msg)
         return True
 
     def on_scan_started(self, widget, fraction, msg):
-        self._start_time = time.time()
         return True
             
     def on_xrf_done(self, obj):
