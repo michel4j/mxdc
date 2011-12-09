@@ -600,7 +600,7 @@ class ScanManager(gtk.Frame):
     def on_progress(self, widget, fraction, msg):
         if fraction >= 0.0:
             _used_time = time.time() - self._start_time
-            _tot_time = _tot_time/fraction
+            _tot_time = _used_time/fraction
             eta = _tot_time - _used_time
             eta_format = eta >= 3600 and '%H:%M:%S' or '%M:%S'
             txt = '%s %0.1f%% - ETA %s'% (msg, fraction*100,
