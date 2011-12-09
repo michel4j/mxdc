@@ -263,6 +263,7 @@ class XANESScan(BasicScan):
         self.chooch_results = {} 
         _saved_attenuation = self.beamline.attenuator.get()
         try:
+            gobject.idle_add(self.emit, 'started')
             _logger.info('Edge scan started.')
             self.beamline.goniometer.set_mode('SCANNING')
             gobject.idle_add(self.emit, "progress", -1, "Preparing devices ...")
@@ -286,7 +287,7 @@ class XANESScan(BasicScan):
                                'Scaled Counts',
                                'I_0',
                                'Raw Counts']
-            gobject.idle_add(self.emit, 'started')
+            gobject.idle_add(self.emit, 'progress', 0.0, "")
             for x in self._targets:
                 if self._stopped:
                     _logger.info("Scan stopped!")
@@ -379,6 +380,7 @@ class EXAFSScan(BasicScan):
         _saved_attenuation = self.beamline.attenuator.get()
         try:
             _logger.info('EXAFS scan started.')
+            gobject.idle_add(self.emit, 'started')
             self.beamline.goniometer.set_mode('SCANNING')
             gobject.idle_add(self.emit, "progress", -1, "Preparing devices ...")
             self.beamline.attenuator.set(self._attenuation)
@@ -413,7 +415,7 @@ class EXAFSScan(BasicScan):
                 _tot_time += _t
             
             _used_time = 0.0
-            gobject.idle_add(self.emit, 'started')
+            gobject.idle_add(self.emit, "progress", 0.0 , "")
             for x, kt in zip(self._targets, _k_time):
                 if self._stopped:
                     _logger.info("Scan stopped!")
