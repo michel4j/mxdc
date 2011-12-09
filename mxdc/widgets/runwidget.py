@@ -470,26 +470,43 @@ class RunWidget(gtk.Frame):
         return False
 
     def on_delta_changed(self,widget,event=None):
+        beamline = globalRegistry.lookup([], IBeamline)
+
+        max_dps = beamline.config.get('max_omega_velocity', 20.0)
         try:
             delta = float(self.entry['delta_angle'].get_text())
+            time = float(self.entry['exposure_time'].get_text())
         except:
             delta = 1.0
-        delta = min(10.0, max(delta, 0.1))
-
+        delta = min(180.0, max(delta, 0.1))
         self.entry['delta_angle'].set_text('%0.2f' % delta)
         total_angle = float(self.entry['total_angle'].get_text())
-        total_frames = int(total_angle/delta)
+        total_frames = max(1, int(total_angle/delta))
+        self.entry['total_angle'].set_text('%d' % (total_frames * delta))
         self.entry['num_frames'].set_text('%d' % total_frames)
+        new_time = round(delta / min(max_dps, delta/time), 1)
+        if new_time != time:
+            self.entry['exposure_time'].set_text('%0.1f' % new_time)
         self.check_changes()
         return False
 
     def on_time_changed(self,widget,event=None):
+        """Check the validity of the exposure time and adjust both 
+           time and delta to be compatible with the beamline maximum 
+           omega velocity"""
+        
+        beamline = globalRegistry.lookup([], IBeamline)
+        max_dps = beamline.config.get('max_omega_velocity', 20.0)
         try:
             time = float(self.entry['exposure_time'].get_text())
+            delta = float(self.entry['delta_angle'].get_text())
         except:
             time = 1.0
-        time = max(0.5, time)
+        time = max(0.1, time)
         self.entry['exposure_time'].set_text('%0.1f' % time)
+        new_delta = round(time * min(max_dps, delta/time), 2)
+        if new_delta != delta:
+            self.entry['delta_angle'].set_text('%0.2f' % new_delta)
         self.check_changes()
         return False
 
