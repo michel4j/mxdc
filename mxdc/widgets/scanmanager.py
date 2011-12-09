@@ -97,13 +97,15 @@ class ScanManager(gtk.Frame):
         self.xanes_scanner.connect('done', self.on_xanes_done)
         self.xanes_scanner.connect('stopped', self.on_xanes_done)
         self.xanes_scanner.connect('progress', self.on_progress)    
-        self.xanes_scanner.connect('error', self.on_xanes_error)  
+        self.xanes_scanner.connect('error', self.on_xanes_error)
+        self.xanes_scanner.connect('started', self.on_scan_started)  
         
         # XRF      
         self.xrf_scanner.connect('done', self.on_xrf_done)   
         self.xrf_scanner.connect('stopped', self.on_scan_stopped)
         self.xrf_scanner.connect('error', self.on_scan_error)
         self.xrf_scanner.connect('progress', self.on_progress)
+        self.xrf_scanner.connect('started', self.on_scan_started)  
         
         # EXAFS
         self.exafs_scanner.connect('new-point', self.on_new_scan_point)    
@@ -111,6 +113,7 @@ class ScanManager(gtk.Frame):
         self.exafs_scanner.connect('done', self.on_scan_done)
         self.exafs_scanner.connect('stopped', self.on_scan_stopped)
         self.exafs_scanner.connect('error', self.on_scan_error)        
+        self.exafs_scanner.connect('started', self.on_scan_started)  
 
         # initial variables
         self.scanning = False
@@ -121,8 +124,7 @@ class ScanManager(gtk.Frame):
         self.xrf_annotations = {}
         
         # housekeeping
-        self._last_frac = 0.0
-        self._last_time = time.time()
+        self._start_time = 0.0
 
         
         # lists to hold results data
@@ -597,16 +599,18 @@ class ScanManager(gtk.Frame):
 
     def on_progress(self, widget, fraction, msg):
         if fraction >= 0.0:
-            rt = (fraction - self._last_frac)/(time.time() - self._last_time)
+            rt = fraction/(time.time() - self._start_time)
             eta = (1.0 - fraction)/rt
             eta_format = eta >= 3600 and '%H:%M:%S' or '%M:%S'
-            txt = '%s %0.0f%% ETA %s'% (msg, fraction*100,
+            txt = '%s %0.1f%% - ETA %s'% (msg, fraction*100,
                                         time.strftime(eta_format ,time.gmtime(eta)))
             self.scan_pbar.idle_text(txt, fraction)
-            self._last_frac = fraction
-            self._last_time = time.time()
         else:
             self.scan_pbar.busy_text(msg)
+        return True
+
+    def on_scan_started(self, widget, fraction, msg):
+        self._start_time = time.time()
         return True
             
     def on_xrf_done(self, obj):
