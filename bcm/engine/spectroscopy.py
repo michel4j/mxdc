@@ -403,23 +403,33 @@ class EXAFSScan(BasicScan):
                                'K',
                                'Time',
                                'Raw Counts']
-            for x in self._targets:
+                               
+            # calculate k and time for each target point
+            _tot_time = 0.0
+            _k_time = []
+            for v in self._targets:
+                _k = converter.energy_to_kspace(v - self._edge_energy)
+                _t = science.exafs_time_func(self._duration, _k)
+                _k_time.append((_k, _t))
+                _tot_time += _t
+            
+            _used_time = 0.0
+            for x, kt in zip(self._targets, _k_time):
                 if self._stopped:
                     _logger.info("Scan stopped!")
                     break
                     
                 self.count += 1
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
-                k = converter.energy_to_kspace(x - self._edge_energy)
-                _t = science.exafs_time_func(self._duration, k)
+                k, _t = kt
                 y,i0 = multi_count(self.beamline.mca, self.beamline.i_0, _t)
                 if self.count == 1:
                     scale = 1.0
                 else:
                     scale = (self.data[0][2]/i0)
                 self.data.append( [x, y*scale, i0, k, _t,  y] )
-                    
-                fraction = float(self.count) / len(self._targets)
+                _used_time += _t    
+                fraction = _used_time / _tot_time
                 gobject.idle_add(self.emit, "new-point", (x, y*scale, i0, k,  y))
                 gobject.idle_add(self.emit, "progress", fraction , "")
                              
