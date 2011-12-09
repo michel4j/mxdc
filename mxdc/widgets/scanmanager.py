@@ -1,5 +1,6 @@
 
 import os, sys
+import time
 import gtk
 import gtk.glade
 import gobject
@@ -118,6 +119,10 @@ class ScanManager(gtk.Frame):
         self.active_sample = {}
         self.xrf_results = {}
         self.xrf_annotations = {}
+        
+        # housekeeping
+        self._last_frac = 0.0
+        self._last_time = time.time()
 
         
         # lists to hold results data
@@ -592,7 +597,14 @@ class ScanManager(gtk.Frame):
 
     def on_progress(self, widget, fraction, msg):
         if fraction >= 0.0:
-            self.scan_pbar.idle_text('%s %0.0f %%' % (msg, (fraction * 100)), fraction)
+            rt = (fraction - self._last_frac)/(time.time() - self._last_time)
+            eta = (1.0 - fraction)/rt
+            eta_format = eta >= 3600 and '%H:%M:%S' or '%M:%S'
+            txt = '%s %0.0f%% ETA %s'% (msg, fraction*100,
+                                        time.strftime(eta_format ,time.gmtime(eta)))
+            self.scan_pbar.idle_text(txt, fraction)
+            self._last_frac = fraction
+            self._last_time = time.time()
         else:
             self.scan_pbar.busy_text(msg)
         return True
