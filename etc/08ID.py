@@ -17,6 +17,7 @@ XRF_BEAMSTOP        = 30.0
 MISC_SETTINGS = {
     'aperture_in_position': 3.63,
     'aperture_out_position': 26.5,
+    'max_omega_velocity': 30.0,  # deg/sec
 }
 
 LIMS_API_KEY    = "DE5C410E-6D59-4DE8-AFFC-3FF5F367359E"

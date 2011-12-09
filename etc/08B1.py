@@ -17,6 +17,7 @@ LIMS_API_KEY    = "3B7FF046-2726-4195-AC8A-9AE09B207765"
 
 # miscellaneous settings
 MISC_SETTINGS = {
+    'max_omega_velocity': 120.0,  # deg/sec
 }
 
 # pitch function for PitchOptimizer
