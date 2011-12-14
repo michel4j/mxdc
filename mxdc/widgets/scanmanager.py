@@ -612,7 +612,7 @@ class ScanManager(gtk.Frame):
             self.scan_pbar.busy_text(msg)
         return True
 
-    def on_scan_started(self, widget, fraction, msg):
+    def on_scan_started(self, obj):
         return True
             
     def on_xrf_done(self, obj):
