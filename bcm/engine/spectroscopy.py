@@ -402,8 +402,9 @@ class EXAFSScan(BasicScan):
                                'Scaled Counts',
                                'I_0',
                                'K',
-                               'Time',
-                               'Raw Counts']
+                               'Time']
+            for ch in range(self.beamline.mca.elements):
+                self.data_names.append('Raw%d' % (ch+1))
                                
             # calculate k and time for each target point
             _tot_time = 0.0
@@ -425,11 +426,15 @@ class EXAFSScan(BasicScan):
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
                 k, _t = kt
                 y,i0 = multi_count(self.beamline.mca, self.beamline.i_0, _t)
+                mca_values = self.beamline.mca.get_roi_counts()
                 if self.count == 1:
                     scale = 1.0
                 else:
                     scale = (self.data[0][2]/i0)
-                self.data.append( [x, y*scale, i0, k, _t,  y] )
+                data_point = [x, y*scale, i0, k, _t]
+                for j in range(self.beamline.mca.elements):
+                    data_point.append(mca_values[j])
+                self.data.append(data_point)
                 _used_time += _t    
                 fraction = _used_time / _tot_time
                 gobject.idle_add(self.emit, "new-point", (x, y*scale, i0, k,  y))
