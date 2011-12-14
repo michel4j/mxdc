@@ -154,7 +154,16 @@ TypeMap = {
     DBR_SHORT: (c_int16, 'DBR_SHORT'),
     DBR_LONG: (c_int32, 'DBR_LONG'),
     DBR_FLOAT: (c_float, 'DBR_FLOAT'),
-    DBR_DOUBLE: (c_double, 'DBR_DOUBLE'),}
+    DBR_DOUBLE: (c_double, 'DBR_DOUBLE'),
+    DBR_TIME_STRING: (c_char * MAX_STRING_SIZE, 'DBR_TIME_STRING'),
+    DBR_TIME_CHAR: (c_char, 'DBR_TIME_CHAR'),
+    DBR_TIME_ENUM: (c_uint16, 'DBR_TIME_ENUM'),
+    DBR_TIME_SHORT: (c_int16, 'DBR_TIME_SHORT'),
+    DBR_TIME_LONG: (c_int32, 'DBR_TIME_LONG'),
+    DBR_TIME_FLOAT: (c_float, 'DBR_TIME_FLOAT'),
+    DBR_TIME_DOUBLE: (c_double, 'DBR_TIME_DOUBLE'),
+    }
+
    
 _PV_REPR_FMT = """<ProcessVariable
     Name:       %s
@@ -290,13 +299,14 @@ class PV(gobject.GObject):
         else:
             libca.ca_array_get( self._type, self._count, self._chid, byref(self.data))
             libca.ca_pend_io(1.0)
+            
             if self._type == DBR_STRING:
                 self._val = c_char_p(self.data.raw).value
             elif self._type == DBR_CHAR:
                 self._val = self.data.value
             else:
                 if self._count > 1:
-                    self._val = numpy.array(self.data.value)
+                    self._val = numpy.frombuffer(self.data, TypeMap[self._type][0])
                 else:
                     self._val = self.data.value
             return self._val
@@ -361,7 +371,7 @@ class PV(gobject.GObject):
             self._val = dbr.contents.value
         else:
             if self._count > 1:
-                self._val = numpy.array(dbr.contents.value)
+                self._val = numpy.frombuffer(dbr.contents.value, TypeMap[event.type][0])
             else:
                 self._val = dbr.contents.value
         
