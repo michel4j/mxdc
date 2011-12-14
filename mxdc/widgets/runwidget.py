@@ -482,7 +482,7 @@ class RunWidget(gtk.Frame):
         self.entry['delta_angle'].set_text('%0.2f' % delta)
         total_angle = float(self.entry['total_angle'].get_text())
         total_frames = max(1, int(total_angle/delta))
-        self.entry['total_angle'].set_text('%d' % (total_frames * delta))
+        self.entry['total_angle'].set_text('%0.2f' % (total_frames * delta))
         self.entry['num_frames'].set_text('%d' % total_frames)
         new_time = round(delta / min(max_dps, delta/time), 1)
         if new_time != time:
