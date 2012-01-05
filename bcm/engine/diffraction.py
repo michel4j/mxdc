@@ -209,11 +209,14 @@ class DataCollector(gobject.GObject):
                     break
     
                 frame = self.run_list[self.pos]   
-                if frame['saved'] and self.skip_existing:
-                    _logger.info('Skipping %s' % frame['file_name'])
-                    self._notify_progress(self.STATE_SKIPPED)
-                    self.pos += 1
-                    continue
+                if frame['saved']:
+                    if self.skip_existing:
+                        _logger.info('Skipping %s' % frame['file_name'])
+                        self._notify_progress(self.STATE_SKIPPED)
+                        self.pos += 1
+                        continue
+                    else:
+                        os.remove("%s/%s" % (frame['directory'], frame['file_name']))
                 
                 self._notify_progress(self.STATE_RUNNING)
                 _cur_energy = self.beamline.energy.get_position()
