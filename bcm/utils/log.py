@@ -4,7 +4,12 @@ import logging
 import termcolor
 import types
 from twisted.python import log
-LOG_LEVEL = logging.DEBUG
+import os
+
+if os.environ.get('MXDC_DEBUG', False):
+    LOG_LEVEL = logging.DEBUG
+else:   
+    LOG_LEVEL = logging.INFO
 
 class NullHandler(logging.Handler):
 
@@ -44,7 +49,7 @@ class TwistedLogHandler(logging.StreamHandler):
 
 def get_module_logger(name):
     """A factory which creates loggers with the given name and returns it."""
-    
+    name = name.split('.')[-1]
     _logger = logging.getLogger(name)
     _logger.setLevel(LOG_LEVEL)
     _logger.addHandler( NullHandler() )

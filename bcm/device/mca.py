@@ -31,16 +31,8 @@ class BasicMCA(BaseDevice):
         self.data = None
         
         # Setup the PVS
-        self.spectra = [self.add_pv("%s:mca%d" % (name, d+1), monitor=False) for d in range(elements)]
         self.custom_setup(name)
 
-
-        # Calibration parameters
-        self._slope = self.add_pv("%s:mca1.CALS" % name)
-        self._offset = self.add_pv("%s:mca1.CALO" % name)
-
-        # Signal handlers, RDNG and ACQG must be PVs defined in custom_setup
-        self.ACQG.connect('changed', self._monitor_state)
         
         # Default parameters
         self.half_roi_width = 0.075 # energy units
@@ -51,14 +43,23 @@ class BasicMCA(BaseDevice):
         
     def custom_setup(self, pv_root):
         # Overwrite this method to setup PVs. follow are examples only
-        self.READ = self.add_pv("%s:mca1.READ" % pv_root, monitor=False)
-        self.RDNG = self.add_pv("%s:mca1.RDNG" % pv_root)
-        self.START = self.add_pv("%s:mca1.ERST" % pv_root, monitor=False)
-        self.ERASE = self.add_pv("%s:mca1.ERAS" % pv_root, monitor=False)
-        self.IDTIM = self.add_pv("%s:mca1.IDTIM" % pv_root, monitor=False)
-        self.ACQG = self.add_pv("%s:mca1.ACQG" % pv_root)
-        self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
-        self._count_time = self.add_pv("%s:mca1.PRTM" % pv_root)
+        #self.spectra = [self.add_pv("%s:mca%d" % (name, d+1), monitor=False) for d in range(elements)]
+        #self.READ = self.add_pv("%s:mca1.READ" % pv_root, monitor=False)
+        #self.RDNG = self.add_pv("%s:mca1.RDNG" % pv_root)
+        #self.START = self.add_pv("%s:mca1.ERST" % pv_root, monitor=False)
+        #self.ERASE = self.add_pv("%s:mca1.ERAS" % pv_root, monitor=False)
+        #self.IDTIM = self.add_pv("%s:mca1.IDTIM" % pv_root, monitor=False)
+        #self.ACQG = self.add_pv("%s:mca1.ACQG" % pv_root)
+        #self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
+        #self._count_time = self.add_pv("%s:mca1.PRTM" % pv_root)
+
+        # Calibration parameters
+        #self._slope = self.add_pv("%s:mca1.CALS" % pv_root)
+        #self._offset = self.add_pv("%s:mca1.CALO" % pv_root)
+
+        # Signal handlers, RDNG and ACQG must be PVs defined in custom_setup
+        #self.ACQG.connect('changed', self._monitor_state)
+        pass
                 
     def configure(self, **kwargs):
         if 'retract' in kwargs.keys():
@@ -109,6 +110,10 @@ class BasicMCA(BaseDevice):
         # get counts for each spectrum within region of interest
         values = self.data[self.region_of_interest[0]:self.region_of_interest[1], 1:].sum(0)
         return values
+
+    def get_count_rates(self):                            
+        # get IRC and OCR tuple
+        return [-1, -1]
     
     def count(self, t):
         self._acquire_data(t)
@@ -176,6 +181,7 @@ class XFlashMCA(BasicMCA):
         self.name = 'XFlash MCA'
         
     def custom_setup(self, pv_root):       
+        self.spectra = [self.add_pv("%s:mca%d" % (pv_root, d+1), monitor=False) for d in range(self.elements)]
         self.READ = self.add_pv("%s:mca1.READ" % pv_root, monitor=False)
         self.RDNG = self.add_pv("%s:mca1.RDNG" % pv_root)
         self.START = self.add_pv("%s:mca1.ERST" % pv_root, monitor=False)
@@ -183,6 +189,10 @@ class XFlashMCA(BasicMCA):
         self.IDTIM = self.add_pv("%s:mca1.IDTIM" % pv_root, monitor=False)
         self.ACQG = self.add_pv("%s:mca1.ACQG" % pv_root)
         self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
+        
+        # Calibration parameters
+        self._slope = self.add_pv("%s:mca1.CALS" % pv_root)
+        self._offset = self.add_pv("%s:mca1.CALO" % pv_root)
         
         # temperature parameters
         self.TMP = self.add_pv("%s:Rontec1Temperature" % pv_root)
@@ -227,6 +237,9 @@ class XFlashMCA(BasicMCA):
                 gobject.source_remove(self._monitor_id)
             self._monitor_id = gobject.timeout_add(300000, self._set_temp, False)
 
+    def get_count_rates(self):                            
+        # get IRC and OCR tuple
+        return [-1, -1]
 
 class VortexMCA(BasicMCA):
     
@@ -235,6 +248,7 @@ class VortexMCA(BasicMCA):
         self.name = 'Vortex MCA'
         
     def custom_setup(self, pv_root):
+        self.spectra = [self.add_pv("%s:mca%d" % (pv_root, d+1), monitor=False) for d in range(self.elements)]
         self.READ = self.add_pv("%s:mca1.READ" % pv_root, monitor=False)
         self.RDNG = self.add_pv("%s:mca1.RDNG" % pv_root)
         self.START = self.add_pv("%s:EraseStart" % pv_root, monitor=False)
@@ -242,10 +256,21 @@ class VortexMCA(BasicMCA):
         self.IDTIM = self.add_pv("%s:DeadTime" % pv_root, monitor=False)
         self.ACQG = self.add_pv("%s:Acquiring" % pv_root)
         self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
-        self.ICR = self.add_pv("%s:dxpSum.ICR" % pv_root)
+        self.ICR = self.add_pv("%s:dxpSum:ICR" % pv_root)
+        self.OCR = self.add_pv("%s:dxpSum:OCR" % pv_root)
         self.spectra.append(self.add_pv("%s:mcaCorrected" % pv_root, monitor=False))
         self._count_time = self.add_pv("%s:PresetReal" % pv_root)
+
+        # Calibration parameters
+        self._slope = self.add_pv("%s:mca1.CALS" % pv_root)
+        self._offset = self.add_pv("%s:mca1.CALO" % pv_root)
+
+        # Signal handlers, RDNG and ACQG must be PVs defined in custom_setup
+        self.ACQG.connect('changed', self._monitor_state)
         
+    def get_count_rates(self):                            
+        # get IRC and OCR tuple
+        return [self.ICR.get(), self.OCR.get()]
 
 class MultiChannelAnalyzer(BaseDevice):
     
@@ -424,24 +449,19 @@ class MultiChannelAnalyzer(BaseDevice):
         return True      
 
 
-class SimMultiChannelAnalyzer(BaseDevice):
+class SimMultiChannelAnalyzer(BasicMCA):
     
-    implements(IMultiChannelAnalyzer)
     
     def __init__(self, name, channels=4096):
-        BaseDevice.__init__(self)
+        BasicMCA.__init__(self, name, None, 1, channels)
         self.name = name
         self.channels = channels
+        self.elements = 1
         self.region_of_interest = (0, self.channels)
         
         # Default parameters
-        self.half_roi_width = 15 # in channel units 
         self.slope = 17.0/3298 #50000     #0.00498
         self.offset = -96.0 * self.slope #9600 #-0.45347
-        self._monitor_id = None
-        self._acquiring = False
-        self._data_read = False
-        self._command_sent = False
                 
         self._counts_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'test/scans/xanes_002.raw'), comments="#")
         self._counts_data = self._counts_data[:,1]        
@@ -449,29 +469,11 @@ class SimMultiChannelAnalyzer(BaseDevice):
         self._last_pos = 0
         self.set_state(active=True)
         
-
     def configure(self, **kwargs):
-        # configure the mcarecord scan parameters        
-        for k,v in kwargs.items():
-            if k == 'cooling':
-                _logger.debug('(%s) Waiting for MCA to cool down' % (self.name,))
-                
-            if k == 'roi':
-                if v is None:
-                    self.region_of_interest = (0, self.channels)
-                else:
-                    self.region_of_interest = v
-            if k == 'energy':
-                if v is None:
-                    self.region_of_interest = (0, self.channels)
-                else:
-                    midp = self.energy_to_channel(v)
-                    self.region_of_interest = (midp - self.half_roi_width, 
-                                               midp + self.half_roi_width)
         self._last_pos = 0
         self._last_t = time.time()     
+        BasicMCA.configure(self, **kwargs)
                 
-
     def channel_to_energy(self, x):
         return self.slope*x + self.offset
     
@@ -498,6 +500,9 @@ class SimMultiChannelAnalyzer(BaseDevice):
     
     def get_roi_counts(self):
         return [0.0]
+
+    def get_count_rates(self):
+        return [-1, -1]
         
     def stop(self):
         pass
