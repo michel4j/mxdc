@@ -9,8 +9,8 @@ BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
 
 DEFAULT_EXPOSURE    = 5.0
 DEFAULT_ATTENUATION = 0.0              # attenuation in %
-DEFAULT_BEAMSTOP    = 60.0
-SAFE_BEAMSTOP       = 70.0
+DEFAULT_BEAMSTOP    = 70.0
+SAFE_BEAMSTOP       = 80.0
 XRF_BEAMSTOP        = 100.0
 
 LIMS_API_KEY    = "3B7FF046-2726-4195-AC8A-9AE09B207765"
@@ -89,9 +89,9 @@ DEVICES = {
     'automounter':  Automounter('ROB16085B', 'ROB1608-500'),
     'humidifier': HumidityController('HC1608-01'),
     'attenuator': Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
-    'mca_nozzle': Positioner('BL08B1:MD2:S:MoveFluoDetFront'),
-    'mca': XFlashMCA('XFD1608-501'),
-    'mca4': VortexMCA('dxp1608-004'),
+    #'mca_nozzle': Positioner('BL08B1:MD2:S:MoveFluoDetFront'),
+    #'mca1': XFlashMCA('XFD1608-501'),
+    'mca': VortexMCA('dxp1608-004'),
 }
 
 # lims, dpm, imagesync and other services
