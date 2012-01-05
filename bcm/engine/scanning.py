@@ -155,12 +155,12 @@ class BasicScan(gobject.GObject):
         header = ''
         for i , name in enumerate(self.data_names):
             f.write('#  Column %d: %s \n' % (i, name))
-            header = "%s %12s" % (header, ('Column %d' % i) )
+            header = "%s %14s" % (header, name )
         header = '#%s' % header[1:]
         f.write('%s \n' % header)
         for point in self.data:
             for val in point:
-                f.write(' %12.4e' % val)
+                f.write(' %14.8e' % val)
             f.write('\n')
         f.close()
         return filename

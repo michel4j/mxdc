@@ -133,7 +133,7 @@ class Plotter( gtk.Frame ):
     def __init__( self, loop=False, buffer_size=2500, xformat='%g', dpi=96 ):
         gtk.Frame.__init__(self)
         _fd = self.get_pango_context().get_font_description()
-        rcParams['font.family'] = 'sans-serif'
+        rcParams['font.family'] = 'serif'
         rcParams['font.sans-serif'] = _fd.get_family()
         rcParams['font.size'] = 0.95 * _fd.get_size()/pango.SCALE
         self.fig = Figure( figsize=( 10, 8 ), dpi=dpi, facecolor='w' )

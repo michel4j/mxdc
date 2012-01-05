@@ -1,6 +1,7 @@
 """This module defines classes aid interfaces for X-Ray fluorescence."""
 import os
 import time
+from datetime import datetime
 import gobject
 import re
 from zope.interface import Interface, Attribute, invariant
@@ -9,7 +10,7 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.engine.scanning import BasicScan, ScanError
 from bcm.utils.science import *
 from bcm.utils.log import get_module_logger
-from bcm.utils import science, json
+from bcm.utils import science, json, converter
 from bcm.engine.autochooch import AutoChooch
 from bcm.utils.misc import get_short_uuid, multi_count
 from bcm.service.utils import  send_array
@@ -288,6 +289,7 @@ class XANESScan(BasicScan):
                                'I_0',
                                'Raw Counts']
             gobject.idle_add(self.emit, 'progress', 0.0, "")
+            
             for x in self._targets:
                 if self._stopped:
                     _logger.info("Scan stopped!")
@@ -356,6 +358,44 @@ class EXAFSScan(BasicScan):
         self.meta_data = {'edge': edge, 'time': t, 'attenuation': attenuation, 'prefix': prefix, 'user_name': uname}
         
                     
+    def save(self, filename):
+        """Save EXAFS output in XDI 1.0 format"""
+        
+        fmt_prefix = '%10'
+        try:
+            f = open(filename,'w')
+        except:
+            _logger.error("Could not open file '%s' for writing" % filename)
+            return
+        f.write('# XDI/1.0 MXDC\n')
+        f.write('# Beamline.name: CLS %s\n' % self.beamline.name)
+        f.write('# Beamline.edge-energy: %0.2f\n' % (1000.0 * self.scan_parameters['edge_energy']))
+        f.write('# Beamline.d-spacing: %0.5f\n' % converter.energy_to_d(self.scan_parameters['edge_energy']))
+        f.write('# Time.start: %s\n' % self.scan_parameters['start_time'].isoformat())
+        f.write('# Time.end: %s\n' % self.scan_parameters['end_time'].isoformat())
+        
+        header = ''
+        for i , info in enumerate(self.data_names):
+            name, units, fmts = info
+            fmt = fmt_prefix + 's '
+            header += fmt % (name )
+            f.write('# Column.%d: %s %s\n' % (i+1, name, units))
+
+        f.write('#///\n')
+        f.write('# %s, EXAFS\n' % (self.scan_parameters['edge']))
+        f.write('# %s\n' % json.dumps(self.meta_data))
+        f.write('# %d data points\n' % len(self._targets)) 
+        f.write('#---\n')
+        f.write('# %s\n' % header[2:])
+        for point in self.data:
+            for info, val in zip(self.data_names, point):
+                name, units, fmts = info
+                fmt = fmt_prefix + fmts + ' '
+                f.write(fmt % val)
+            f.write('\n')
+
+        f.close()
+        return filename
     
     def analyse(self):
         pass
@@ -385,30 +425,34 @@ class EXAFSScan(BasicScan):
             gobject.idle_add(self.emit, "progress", -1, "Preparing devices ...")
             self.beamline.attenuator.set(self._attenuation)
             self.beamline.mca.configure(retract=True, cooling=True, energy=self._roi_energy)
-            gobject.idle_add(self.emit, "progress", -1, "Moving to Edge ...")
+            gobject.idle_add(self.emit, "progress", -1, "Moving to Mid-point ...")
             _cur_energy = self.beamline.energy.get_position()
-            self.beamline.energy.move_to(self._edge_energy)
+            self.beamline.energy.move_to(self._edge_energy+0.2) # for exafs optimize a 0.2 above edge
             self.beamline.energy.wait()
             
             # if energy just moved more than 10eV, optimize
-            if abs(_cur_energy - self._edge_energy) >= 0.01:
+            if abs(_cur_energy - (self._edge_energy+0.2)) >= 0.01:
                 gobject.idle_add(self.emit, "progress", -1, "Optimizing Energy ...")
                 self.beamline.mostab.start()
                 self.beamline.mostab.wait()
                     
             self.count = 0
             self.beamline.exposure_shutter.open()
-            self.data_names = ['Energy',
-                               'Scaled Counts',
-                               'I_0',
-                               'K',
-                               'Time']
+            self.data_names = [  # last string in tuple is format suffix appended to end of '%n' 
+                ('energy','eV', '.2f'),
+                ('normfluor', '', '.8g'),
+                ('i0', '', '.8G'),
+                ('k', '', '.6f'),
+                ('time','', '.4G'),
+            ]
             for ch in range(self.beamline.mca.elements):
-                self.data_names.append('Raw%d' % (ch+1))
+                self.data_names.append(('ifluor.%d' % (ch+1), '', 'g'))
+            self.data_names.append(('icr', '', 'g'))
                                
             # calculate k and time for each target point
             _tot_time = 0.0
             _k_time = []
+            self.scan_parameters['start_time'] = datetime.now()
             for v in self._targets:
                 _k = converter.energy_to_kspace(v - self._edge_energy)
                 _t = science.exafs_time_func(self._duration, _k)
@@ -431,15 +475,19 @@ class EXAFSScan(BasicScan):
                     scale = 1.0
                 else:
                     scale = (self.data[0][2]/i0)
-                data_point = [x, y*scale, i0, k, _t]
+                data_point = [1000*x, y*scale, i0, k, _t] # convert KeV to eV
                 for j in range(self.beamline.mca.elements):
                     data_point.append(mca_values[j])
+                _rates = self.beamline.mca.get_count_rates()
+                data_point.append(_rates[0])
                 self.data.append(data_point)
+                
                 _used_time += _t    
                 fraction = _used_time / _tot_time
                 gobject.idle_add(self.emit, "new-point", (x, y*scale, i0, k,  y))
                 gobject.idle_add(self.emit, "progress", fraction , "")
                              
+            self.scan_parameters['end_time'] = datetime.now()
             if self._stopped:
                 _logger.warning("EXAFS Scan stopped.")
                 self.save(self._filename)
