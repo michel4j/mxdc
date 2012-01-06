@@ -22,7 +22,13 @@ from bcm.utils.misc import get_project_name
 
 _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
-VERSION = (file(os.path.join(os.path.dirname(__file__), 'VERSION')).readline()).strip()
+
+_version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
+if os.path.exists(_version_file):
+    VERSION = (file(_version_file).readline()).strip()
+else:
+    VERSION = '- Development -'
+
 COPYRIGHT = """
 Copyright (c) 2006-2010, Canadian Light Source, Inc
 All rights reserved.

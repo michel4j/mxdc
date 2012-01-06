@@ -1,0 +1,8 @@
+#!/bin/sh
+# This hook automatically sets the version number for MXDC
+# place this in .git/hooks within the live repository (eg /cmcf_apps/bcm-4/.git/hooks/)
+# to automatically update the MXDC version file every time a pull is done
+
+# The file should be renamed 'post-merge' and made executable
+
+exec git describe  | sed 's/.0-/./g' > mxdc/VERSION
