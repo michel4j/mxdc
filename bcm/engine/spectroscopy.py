@@ -441,9 +441,9 @@ class EXAFSScan(BasicScan):
             self.data_names = [  # last string in tuple is format suffix appended to end of '%n' 
                 ('energy','eV', '.2f'),
                 ('normfluor', '', '.8g'),
-                ('i0', '', '.8G'),
+                ('i0', '', '.8g'),
                 ('k', '', '.6f'),
-                ('time','', '.4G'),
+                ('time','', '.4g'),
             ]
             for ch in range(self.beamline.mca.elements):
                 self.data_names.append(('ifluor.%d' % (ch+1), '', 'g'))

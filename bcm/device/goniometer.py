@@ -319,8 +319,9 @@ class MD2Goniometer(GoniometerBase):
                     time.sleep(1.0)
                     dev.set(val)
             
-        elif mode == 'SCANNING':
-            self._minibeam.set(2)
+        elif mode == 'SCANNING': 
+            #self._minibeam.set(2) # may not be needed any more
+            pass
 
     def on_mode_changed(self, pv, val):
         mode_str = _MODE_MAP_REV.get(val, ['UNKNOWN'])[0]      
