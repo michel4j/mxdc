@@ -438,9 +438,6 @@ class CollectManager(gtk.Frame):
                 return True
             elif response == gtk.RESPONSE_NO:
                 self.skip_existing = False
-                for index in existlist:
-                    old_name = "%s/%s" % (self.run_list[index]['directory'], self.run_list[index]['file_name']) 
-                    os.remove(old_name)
                 return True
             else:
                 return False
