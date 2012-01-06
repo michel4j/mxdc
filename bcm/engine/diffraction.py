@@ -216,6 +216,7 @@ class DataCollector(gobject.GObject):
                         self.pos += 1
                         continue
                     else:
+                        _logger.info('Overwriting %s' % frame['file_name'])
                         os.remove("%s/%s" % (frame['directory'], frame['file_name']))
                 
                 self._notify_progress(self.STATE_RUNNING)
