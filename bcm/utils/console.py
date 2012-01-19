@@ -208,5 +208,5 @@ if __name__ == '__main__':
     try:
         BeamlineConsole().mainloop()
     finally:
-        print 'Quiting...'
+        print 'Quitting...'
 
