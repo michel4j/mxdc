@@ -479,7 +479,7 @@ class ScreenManager(gtk.Frame):
                     'first_frame': 1,
                     'start_angle': 0.0,
                     'wedge': 360.0,
-                    'total_angle': (max(collect_frames)+1) * delta,
+                    'total_angle': (max(collect_frames)) * delta,
                     'skip': determine_skip(collect_frames),
                     'frame_set': summarize_frame_set(collect_frames),
                     })
