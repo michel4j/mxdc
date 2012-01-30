@@ -40,7 +40,6 @@ class MotorBase(BaseDevice):
         self.units = ''
         self._move_active_value = 1
     
-    
     def _signal_change(self, obj, value):
         self.set_state(changed=self.get_position())
 
@@ -133,7 +132,22 @@ class SimMotor(MotorBase):
     def stop(self):
         self._stopped = True
     
-    
+ENC_SETTINGS = {
+    'VEL': '%root:vel:%unitps:sp',
+    'VBASE': '%root:vBase:%unitps:sp',
+    'ACC': '%root:acc:%unitpss:sp',
+    'OFFSET': '%root:%unit:offset',
+    'STEP_SLO': '%root:step:slope',
+    'STEP_OFF': '%root:step:offset',
+    'ENC_SLO': '%root:enc:slope',
+    'ENC_OFF': '%root:enc:offset',                 
+}
+SAVE_VALS = {
+    'UNIT_ENC': '%root:%unit:fbk',
+    'STEP_ENC': '%root:enc:fbk',
+    'UNIT_VAL': '%root:%unit:sp',
+    'STEP_VAL': '%root:step:sp',
+}
          
 class Motor(MotorBase):
 
@@ -155,6 +169,7 @@ class Motor(MotorBase):
           
         self.units = pv_parts[-1]
         pv_root = ':'.join(pv_parts[:-1])
+        self.pv_root = pv_root
         self._motor_type = motor_type
         
         # initialize process variables based on motor type
@@ -241,7 +256,15 @@ class Motor(MotorBase):
                 else:
                     _logger.error( "(%s) can not reset %s Motors." %
                         (self._motor_type) )
-                                    
+   
+    # Added for Save/Restore                             
+    def get_settings(self):
+        self.settings = {}
+        PV_DICT = dict(ENC_SETTINGS.items() + SAVE_VALS.items())
+        for i in PV_DICT:
+            self.settings[i] = self.add_pv(PV_DICT[i].replace('%root', self.pv_root).replace('%unit', self.units))
+        return
+           
     def move_to(self, pos, wait=False, force=False):
 
         # Do not move if motor state is not sane.
