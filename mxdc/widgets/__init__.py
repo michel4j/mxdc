@@ -53,6 +53,8 @@ def _register_icon_reuse():
         ('mxdc-stop', 'S_top', 0, 0, None),
         ('mxdc-scan', '_Start Scan', 0, 0, None),
         ('mxdc-stop-scan', 'S_top Scan', 0, 0, None),
+        ('mxdc-pause-scan', '_Pause Scan', 0, 0, None),
+        ('mxdc-resume-scan', '_Resume Scan', 0, 0, None),
     ]
     
     gtk.stock_add(items)

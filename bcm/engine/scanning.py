@@ -85,11 +85,13 @@ class BasicScan(gobject.GObject):
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['stopped'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    __gsignals__['paused'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,])
    
 
     def __init__(self):
         gobject.GObject.__init__(self)
         self._stopped = False
+        self._paused = False
         self.append = False
         self.meta_data = None
         self.data = []
@@ -124,6 +126,9 @@ class BasicScan(gobject.GObject):
         ca.threads_init()
         self.run()
         pass
+
+    def pause(self, state):
+        self._paused = state    
         
     def stop(self):
         self._stopped = True    
