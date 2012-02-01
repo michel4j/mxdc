@@ -4,35 +4,29 @@
   <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkWindow" id="window1">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
     <property name="title" translatable="yes">window1</property>
     <child>
       <widget class="GtkHBox" id="scan_widget">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
         <property name="border_width">6</property>
         <property name="spacing">6</property>
         <child>
           <widget class="GtkVBox" id="vbox1">
             <property name="width_request">270</property>
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
             <property name="spacing">6</property>
             <child>
               <widget class="GtkFrame" id="frame1">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
                   <widget class="GtkAlignment" id="alignment1">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
                     <property name="left_padding">12</property>
                     <child>
                       <widget class="GtkVBox" id="vbox2">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
                         <child>
                           <widget class="GtkRadioButton" id="xanes_btn">
                             <property name="label" translatable="yes">MAD Scan</property>
@@ -78,8 +72,6 @@
                             <property name="group">xanes_btn</property>
                           </widget>
                           <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
                             <property name="position">2</property>
                           </packing>
                         </child>
@@ -90,7 +82,6 @@
                 <child>
                   <widget class="GtkLabel" id="label1">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">&lt;b&gt;Scan Mode:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
@@ -101,20 +92,17 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
-                <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
             </child>
             <child>
               <widget class="GtkFrame" id="frame2">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
                   <widget class="GtkAlignment" id="alignment2">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
                     <property name="xalign">0</property>
                     <property name="left_padding">12</property>
                     <child>
@@ -134,7 +122,6 @@
                 <child>
                   <widget class="GtkLabel" id="label2">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">&lt;b&gt;Description&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
@@ -145,25 +132,21 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
-                <property name="fill">True</property>
                 <property name="position">1</property>
               </packing>
             </child>
             <child>
               <widget class="GtkFrame" id="frame3">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
                   <widget class="GtkAlignment" id="alignment3">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
                     <property name="left_padding">12</property>
                     <child>
                       <widget class="GtkTable" id="layout_table">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
                         <property name="n_rows">7</property>
                         <property name="n_columns">3</property>
                         <property name="column_spacing">2</property>
@@ -172,7 +155,6 @@
                         <child>
                           <widget class="GtkLabel" id="label5">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="xalign">1</property>
                             <property name="label" translatable="yes">Prefix:</property>
                           </widget>
@@ -186,7 +168,6 @@
                         <child>
                           <widget class="GtkLabel" id="label6">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="xalign">1</property>
                             <property name="label" translatable="yes">Folder:</property>
                           </widget>
@@ -200,7 +181,6 @@
                         <child>
                           <widget class="GtkLabel" id="label7">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="xalign">1</property>
                             <property name="label" translatable="yes">Edge:</property>
                           </widget>
@@ -214,7 +194,6 @@
                         <child>
                           <widget class="GtkLabel" id="label8">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="xalign">1</property>
                             <property name="label" translatable="yes">Energy:</property>
                           </widget>
@@ -228,7 +207,6 @@
                         <child>
                           <widget class="GtkLabel" id="label9">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="xalign">1</property>
                             <property name="label" translatable="yes">Time:</property>
                           </widget>
@@ -242,7 +220,6 @@
                         <child>
                           <widget class="GtkLabel" id="label10">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="xalign">1</property>
                             <property name="label" translatable="yes">Attenuation:</property>
                           </widget>
@@ -256,7 +233,6 @@
                         <child>
                           <widget class="GtkLabel" id="label11">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">%</property>
                           </widget>
                           <packing>
@@ -271,7 +247,6 @@
                         <child>
                           <widget class="GtkLabel" id="label12">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">sec</property>
                           </widget>
                           <packing>
@@ -286,7 +261,6 @@
                         <child>
                           <widget class="GtkLabel" id="label13">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">keV</property>
                           </widget>
                           <packing>
@@ -303,10 +277,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="width_chars">1</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </widget>
                           <packing>
                             <property name="left_attach">1</property>
@@ -322,10 +292,6 @@
                             <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="width_chars">1</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </widget>
                           <packing>
                             <property name="left_attach">1</property>
@@ -340,10 +306,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="width_chars">1</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </widget>
                           <packing>
                             <property name="left_attach">1</property>
@@ -358,10 +320,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="width_chars">1</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </widget>
                           <packing>
                             <property name="left_attach">1</property>
@@ -376,10 +334,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="width_chars">1</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </widget>
                           <packing>
                             <property name="left_attach">1</property>
@@ -392,7 +346,6 @@
                         <child>
                           <widget class="GtkFileChooserButton" id="directory_btn">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="action">select-folder</property>
                             <property name="title" translatable="yes">Select A Directory</property>
                             <property name="width_chars">10</property>
@@ -408,7 +361,6 @@
                         <child>
                           <widget class="GtkLabel" id="label3">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
                             <property name="xalign">1</property>
                             <property name="label" translatable="yes">Crystal:</property>
                           </widget>
@@ -430,11 +382,6 @@ with this crystal</property>
                             <property name="width_chars">0</property>
                             <property name="text" translatable="yes">[Unknown]</property>
                             <property name="xalign">0.5</property>
-                            <property name="invisible_char_set">True</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </widget>
                           <packing>
                             <property name="left_attach">1</property>
@@ -452,7 +399,6 @@ with this crystal</property>
                 <child>
                   <widget class="GtkLabel" id="label4">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">&lt;b&gt;Scan Parameters:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
@@ -463,26 +409,22 @@ with this crystal</property>
               </widget>
               <packing>
                 <property name="expand">False</property>
-                <property name="fill">True</property>
                 <property name="position">2</property>
               </packing>
             </child>
             <child>
               <widget class="GtkVBox" id="xanes_box">
-                <property name="can_focus">False</property>
                 <property name="no_show_all">True</property>
                 <property name="spacing">3</property>
                 <child>
                   <widget class="GtkLabel" id="label17">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
                     <property name="xalign">0</property>
                     <property name="label" translatable="yes">&lt;b&gt;Results:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>
                 </child>
@@ -498,15 +440,12 @@ with this crystal</property>
                     </child>
                   </widget>
                   <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
                     <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
                   <widget class="GtkHButtonBox" id="hbuttonbox1">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
                     <property name="spacing">3</property>
                     <property name="homogeneous">True</property>
                     <child>
@@ -515,46 +454,8 @@ with this crystal</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="tooltip" translatable="yes">Add a new data collection Run</property>
-                        <property name="use_action_appearance">False</property>
                         <child>
-                          <widget class="GtkAlignment" id="alignment5">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="xscale">0</property>
-                            <property name="yscale">0</property>
-                            <child>
-                              <widget class="GtkHBox" id="hbox3">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="spacing">2</property>
-                                <child>
-                                  <widget class="GtkImage" id="image2">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="stock">gtk-apply</property>
-                                  </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">False</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <widget class="GtkLabel" id="label18">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">New Run</property>
-                                    <property name="use_underline">True</property>
-                                  </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">False</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
-                              </widget>
-                            </child>
-                          </widget>
+                          <placeholder/>
                         </child>
                       </widget>
                       <packing>
@@ -565,12 +466,10 @@ with this crystal</property>
                     </child>
                     <child>
                       <widget class="GtkButton" id="update_strategy_btn">
-                        <property name="label" translatable="yes">Update Strategy</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="tooltip" translatable="yes">Update Active Strategy</property>
-                        <property name="use_action_appearance">False</property>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -581,63 +480,26 @@ with this crystal</property>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
                     <property name="position">2</property>
                   </packing>
                 </child>
               </widget>
               <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
                 <property name="position">3</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkVBox" id="vbox3">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="spacing">3</property>
-                <child>
-                  <widget class="GtkButton" id="scan_btn">
-                    <property name="label">sm-scan</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">False</property>
-                    <property name="use_action_appearance">False</property>
-                    <property name="use_stock">True</property>
-                  </widget>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="pack_type">end</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
-            <child>
               <widget class="GtkVBox" id="xrf_box">
-                <property name="can_focus">False</property>
                 <property name="no_show_all">True</property>
                 <child>
                   <widget class="GtkLabel" id="label19">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
                     <property name="xalign">0</property>
                     <property name="label" translatable="yes">&lt;b&gt;Results:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>
                 </child>
@@ -653,15 +515,11 @@ with this crystal</property>
                     </child>
                   </widget>
                   <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
                     <property name="position">1</property>
                   </packing>
                 </child>
               </widget>
               <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
                 <property name="position">5</property>
               </packing>
             </child>
@@ -669,18 +527,65 @@ with this crystal</property>
               <widget class="GtkHSeparator" id="hseparator1">
                 <property name="height_request">3</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
               </widget>
               <packing>
                 <property name="expand">False</property>
-                <property name="fill">True</property>
                 <property name="position">6</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkVBox" id="vbox3">
+                <property name="visible">True</property>
+                <property name="spacing">3</property>
+                <child>
+                  <widget class="GtkHButtonBox" id="hbuttonbox2">
+                    <property name="visible">True</property>
+                    <property name="homogeneous">True</property>
+                    <child>
+                      <widget class="GtkButton" id="scan_btn">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_stock">True</property>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkButton" id="stop_btn">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_stock">True</property>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </widget>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="pack_type">end</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
         </child>
@@ -691,7 +596,6 @@ with this crystal</property>
             <child>
               <widget class="GtkFrame" id="periodic_frame">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
                 <property name="border_width">3</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
@@ -703,7 +607,6 @@ with this crystal</property>
             <child>
               <widget class="GtkLabel" id="label14">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Periodic Table</property>
               </widget>
               <packing>
@@ -714,7 +617,6 @@ with this crystal</property>
             <child>
               <widget class="GtkFrame" id="plot_frame">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
                 <property name="border_width">3</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
@@ -729,7 +631,6 @@ with this crystal</property>
             <child>
               <widget class="GtkLabel" id="label15">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Scan Plot</property>
               </widget>
               <packing>
@@ -759,7 +660,6 @@ with this crystal</property>
             <child>
               <widget class="GtkLabel" id="label16">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Output Log</property>
               </widget>
               <packing>
@@ -770,8 +670,6 @@ with this crystal</property>
             </child>
           </widget>
           <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
         </child>
