@@ -165,11 +165,11 @@ class CollectManager(gtk.Frame):
         for w in [self.collect_btn, self.stop_btn]:
             w.set_property('can-focus', False)
         
-        self.collector.connect('done', self.on_complete)
+        self.collector.connect('done', self.on_done)
         self.collector.connect('error', self.on_error)
         self.collector.connect('paused',self.on_pause)
         self.collector.connect('new-image', self.on_new_image)
-        self.collector.connect('stopped', self.on_complete)
+        self.collector.connect('stopped', self.on_stopped)
         self.collector.connect('progress', self.on_progress)
         
         self._load_config()
@@ -580,15 +580,22 @@ class CollectManager(gtk.Frame):
         self.collector.stop()
         self.stop_btn.set_sensitive(False)
         self.progress_bar.busy_text("Stopping after this frame...")
-        
     
+    def on_done(self, obj=None):
+        self.on_complete(obj)
+        text = 'Completed in %s' % time.strftime('%H:%M:%S', time.gmtime(time.time() - self.init_time))
+        self.progress_bar.idle_text(text)
+
+    def on_stopped(self, obj=None):
+        self.on_complete(obj)
+        self.progress_bar.idle_text("Stopped")
+
     def on_complete(self, obj=None):
         self.collect_state = COLLECT_STATE_IDLE
         self.collect_btn.set_label('mxdc-collect')
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
-        self.progress_bar.idle_text("Stopped")
         
         self.emit('new-datasets', obj.results)
         try:
@@ -603,28 +610,25 @@ class CollectManager(gtk.Frame):
       
 
     def on_progress(self, obj, fraction, position, state):
+        self.set_row_state(position, state)
         if position == 0:
             self.skipped = 0
-        if state == FRAME_STATE_SKIPPED: # skipping this frame
-            self.skipped += 1
-        if (position == 0 or position == self.skipped):
-            self.start_time = time.time()
-        else:
-            self.start_time + self.pause_time
+        self.start_time = (position == self.skipped) and time.time() or self.start_time + self.pause_time
         self.pause_time = 0
-        elapsed_time = time.time() - self.start_time
-        
-        if position - 1 > self.skipped:
-            frame_time = elapsed_time / ( position -1 - self.skipped )
-            eta_time = frame_time * ( self.ntot - position )
-            eta_format = eta_time >= 3600 and '%H:%M:%S' or '%M:%S'
-            text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format ,time.gmtime(eta_time)), frame_time)
-        else:
-            if fraction: 
-                self.ntot = position / fraction
-            text = "Total: %s sec" % (time.strftime('%H:%M:%S',time.gmtime(elapsed_time)))
-        self.progress_bar.set_complete(fraction, text)
-        self.set_row_state(position, state)
+        if state == FRAME_STATE_RUNNING and position != self.skipped:
+            elapsed_time = time.time() - self.start_time
+            if position - 1 > self.skipped:
+                frame_time = elapsed_time / ( position -1 - self.skipped )
+                eta_time = frame_time * ( self.ntot - position )
+                eta_format = eta_time >= 3600 and '%H:%M:%S' or '%M:%S'
+                text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format, time.gmtime(eta_time)), frame_time)
+            else:
+                if fraction: 
+                    self.ntot = int(round(position / fraction))
+                text = "Calculating ETA..."
+            self.progress_bar.set_complete(fraction, text)
+        elif state == FRAME_STATE_SKIPPED: # skipping this frame
+            self.skipped += 1
 
     def on_energy_changed(self, obj, val):
         run_zero = self.run_manager.runs[0]
@@ -637,7 +641,7 @@ class CollectManager(gtk.Frame):
             self.labels[key].set_text(dict[key])
 
     def start_collection(self):
-        self.start_time = time.time()
+        self.init_time = time.time()
         self.create_runlist()
         if self.config_user():
             if self.check_runlist():
