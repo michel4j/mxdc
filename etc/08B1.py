@@ -39,7 +39,10 @@ DEVICES = {
     # Goniometer/goniometer head devices
     'goniometer': MD2Goniometer('BL08B1:MD2'),
     'omega':    PseudoMotor('PSMTR1608-5-B10-06:pm:deg'),
-    'chi':  SimMotor('Chi', 0.0, 'deg', False),
+    #'chi':  SimMotor('Chi', 0.0, 'deg', False),
+    'phi': PseudoMotor('PSMTR1608-5-B10-12:pm:deg'),
+    'chi': PseudoMotor('PSMTR1608-5-B10-13:pm:deg'),
+    'kappa': PseudoMotor('PSMTR1608-5-B10-11:pm:deg'),
     'sample_x':  PseudoMotor('PSMTR1608-5-B10-02:pm:mm'),
     'sample_y':  PseudoMotor('PSMTR1608-5-B10-07:pm:mm'),
     
@@ -89,9 +92,9 @@ DEVICES = {
     'automounter':  Automounter('ROB16085B', 'ROB1608-500'),
     'humidifier': HumidityController('HC1608-01'),
     'attenuator': Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
-    #'mca_nozzle': Positioner('BL08B1:MD2:S:MoveFluoDetFront'),
-    #'mca1': XFlashMCA('XFD1608-501'),
-    'mca': VortexMCA('dxp1608-004'),
+    'mca_nozzle': Positioner('BL08B1:MD2:S:MoveFluoDetFront'),
+    'mca': XFlashMCA('XFD1608-501'),
+    #'mca': VortexMCA('dxp1608-004'),
 }
 
 # lims, dpm, imagesync and other services
