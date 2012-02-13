@@ -183,7 +183,7 @@ class Goniometer(GoniometerBase):
         if mode == 'CENTERING':
             self._bl_position.open()
             in_position = bl.config['misc']['aperture_in_position']
-            self.minibeam.move_to(in_position, wait=True)
+            self.minibeam.move_to(in_position, wait=False)
             #put up backlight
         elif mode in ['MOUNTING']:
             self._expbox_mount_cmd.put(1)
