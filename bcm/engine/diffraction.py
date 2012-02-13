@@ -279,7 +279,7 @@ class DataCollector(gobject.GObject):
                 self.pos = self.pos + 1
             
             # Wait for Last image to be transfered
-            time.sleep(2.0)
+            time.sleep(5.0)
             
             self.results = self.get_dataset_info(self.data_sets.values())
             gobject.idle_add(self.emit, 'done')
