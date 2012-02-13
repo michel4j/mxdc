@@ -111,6 +111,7 @@ class XRFScan(BasicScan):
         
         
     def run(self):
+        self._paused = False
         _logger.debug('Excitation Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
         # get parameters from recent configure
@@ -245,6 +246,7 @@ class XANESScan(BasicScan):
          
         
     def run(self):
+        self._paused = False
         _logger.info('Edge Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
 
@@ -291,6 +293,14 @@ class XANESScan(BasicScan):
             gobject.idle_add(self.emit, 'progress', 0.0, "")
             
             for x in self._targets:
+                if self._paused:
+                    gobject.idle_add(self.emit, 'paused', True)
+                    _logger.warning("Edge Scan paused at point %s." % str(x))
+                    while self._paused and not self._stopped:
+                        time.sleep(0.05)
+                    self.beamline.goniometer.set_mode('SCANNING', wait=True)   
+                    gobject.idle_add(self.emit, 'paused', False)
+                    _logger.info("Scan resumed.")                
                 if self._stopped:
                     _logger.info("Scan stopped!")
                     break
@@ -310,6 +320,10 @@ class XANESScan(BasicScan):
                 gobject.idle_add(self.emit, "progress", fraction, "Doing Scan ...")
                              
             if self._stopped:
+                if self.count < 2:
+                    gobject.idle_add(self.emit, "stopped")
+                    self.results = {'energies': None}
+                    return
                 _logger.warning("XANES Scan stopped. Will Attempt CHOOCH Analysis")
                 self.save(self._filename)
                 self.analyse()
@@ -401,6 +415,7 @@ class EXAFSScan(BasicScan):
         pass
         
     def run(self):
+        self._paused = False
         _logger.info('EXAFS Scan waiting for beamline to become available.')
         self.beamline.lock.acquire()
 
@@ -462,6 +477,14 @@ class EXAFSScan(BasicScan):
             _used_time = 0.0
             gobject.idle_add(self.emit, "progress", 0.0 , "")
             for x, kt in zip(self._targets, _k_time):
+                if self._paused:
+                    gobject.idle_add(self.emit, 'paused', True)
+                    _logger.warning("EXAFS Scan paused at point %s." % str(x))
+                    while self._paused and not self._stopped:
+                        time.sleep(0.05)
+                    self.beamline.goniometer.set_mode('SCANNING', wait=True)   
+                    gobject.idle_add(self.emit, 'paused', False)
+                    _logger.info("Scan resumed.")
                 if self._stopped:
                     _logger.info("Scan stopped!")
                     break
