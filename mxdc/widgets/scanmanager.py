@@ -35,6 +35,13 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
   COLUMN_PERCENT,
 ) = range(3)
 
+(
+  SCAN_START,
+  SCAN_PAUSE,
+  SCAN_RESUME,
+  SCAN_STOP,
+) = range(4)
+
 SCAN_CONFIG_FILE = 'scan_config.json'
 
 def summarize_lines(data):
@@ -99,6 +106,7 @@ class ScanManager(gtk.Frame):
         self.xanes_scanner.connect('progress', self.on_progress)    
         self.xanes_scanner.connect('error', self.on_xanes_error)
         self.xanes_scanner.connect('started', self.on_scan_started)  
+        self.xanes_scanner.connect('paused', self.on_scan_paused)  
         
         # XRF      
         self.xrf_scanner.connect('done', self.on_xrf_done)   
@@ -114,9 +122,11 @@ class ScanManager(gtk.Frame):
         self.exafs_scanner.connect('stopped', self.on_scan_stopped)
         self.exafs_scanner.connect('error', self.on_scan_error)        
         self.exafs_scanner.connect('started', self.on_scan_started)  
+        self.exafs_scanner.connect('paused', self.on_scan_paused)
 
         # initial variables
         self.scanning = False
+        self.paused = False
         self.progress_id = None
         self.scan_mode = 'XANES'
         self.active_sample = {}
@@ -149,7 +159,9 @@ class ScanManager(gtk.Frame):
     def _create_widgets(self):
         
         self.scan_btn.set_label('mxdc-scan')
+        self.stop_btn.set_label('mxdc-stop-scan')
         self.scan_btn.connect('clicked', self.on_scan_activated)
+        self.stop_btn.connect('clicked', self.on_stop_activated)
         # pbar
         self.scan_pbar = ActiveProgressBar()
         self.vbox3.pack_end(self.scan_pbar, expand=False, fill=False)
@@ -298,11 +310,22 @@ class ScanManager(gtk.Frame):
         return
 
     def _set_scan_action(self, state):
-        self.scanning = state
-        if self.scanning:
-            self.scan_btn.set_label('mxdc-stop-scan')
+        if state in [SCAN_START, SCAN_RESUME]:
+            self.scanning = True
+            self.paused = False
+            self.scan_btn.set_label('mxdc-pause-scan')
+            self.stop_btn.set_sensitive(True)
         else:
-            self.scan_btn.set_label('mxdc-scan')
+            self.scanning = False
+            if state is SCAN_PAUSE:
+                self.paused = True
+                self.scan_btn.set_label('mxdc-resume-scan')
+            else:
+                self.paused = False
+                self.scan_btn.set_label('mxdc-scan')
+                self.scan_btn.set_sensitive(True)
+                self.stop_btn.set_sensitive(False)
+                self.scan_pbar.set_text('Scan Stopped')
 
     def clear_xanes_results(self):
         self.energy_store.clear()
@@ -410,7 +433,7 @@ class ScanManager(gtk.Frame):
                                      scan_parameters['attenuation'], scan_parameters['directory'],
                                      scan_parameters['prefix'], scan_parameters['crystal'])
         
-        self._set_scan_action(True)
+        self._set_scan_action(SCAN_START)
         self.scan_book.set_current_page(1)
         self.scan_pbar.set_fraction(0.0)
         self.scan_pbar.set_text("Starting MAD scan...")
@@ -432,7 +455,7 @@ class ScanManager(gtk.Frame):
                                      scan_parameters['attenuation'], scan_parameters['directory'],
                                      scan_parameters['prefix'], scan_parameters['crystal'])
         
-        self._set_scan_action(True)
+        self._set_scan_action(SCAN_START)
         self.scan_book.set_current_page(1)
         self.scan_pbar.set_fraction(0.0)
         self.scan_pbar.set_text("Starting EXAFS scan...")
@@ -452,7 +475,7 @@ class ScanManager(gtk.Frame):
                                    scan_parameters['directory'], scan_parameters['prefix'],
                                    scan_parameters['crystal'])
         
-        self._set_scan_action(True)
+        self._set_scan_action(SCAN_START)
         self.scan_book.set_current_page(1)
         self.scan_pbar.set_fraction(0.0)
         self.scan_pbar.set_text('Performing Excitation Scan...')
@@ -477,15 +500,28 @@ class ScanManager(gtk.Frame):
             self.energy_entry.set_sensitive(False)
         
         return
+    
+    def on_stop_activated(self, widget):
+        # Stop the scan 
+        self.xanes_scanner.stop()
+        self.xrf_scanner.stop()
+        self.exafs_scanner.stop()
+        self.scan_btn.set_sensitive(False)
+        self.stop_btn.set_sensitive(False)
 
     def on_scan_activated(self, widget):
         pars = self.get_parameters()
         if self.scanning:
-            # Stop the scan if running
-            self.xanes_scanner.stop()
-            self.xrf_scanner.stop()
-            self.exafs_scanner.stop()
-            self._set_scan_action(False)
+            # Pause the scan if running
+            self.xanes_scanner.pause(True)
+            self.xrf_scanner.pause(True)
+            self.exafs_scanner.pause(True)
+            self._set_scan_action(SCAN_PAUSE)
+        elif self.paused:
+            self.xanes_scanner.pause(False)
+            self.xrf_scanner.pause(False)
+            self.exafs_scanner.pause(False)
+            self._set_scan_action(SCAN_RESUME)
         else:
             # Start the scan if not running
             if pars['mode'] == 'XANES':
@@ -508,29 +544,38 @@ class ScanManager(gtk.Frame):
         self.plotter.add_point(point[0], point[1])
         return True
     
+    def on_scan_paused(self, widget, state):
+        if state:
+            self.scan_pbar.set_text('Scan Paused')
+        else:
+            if self.paused:
+                self._set_scan_action(SCAN_RESUME)
+            self.scan_pbar.set_text('Scan Resuming')
+        return True
+    
     def on_scan_stopped(self, widget):
-        self._set_scan_action(False)
+        self._set_scan_action(SCAN_STOP)
         self.scan_pbar.set_text('Scan Stopped')
         return True
     
     def on_scan_error(self, widget, reason):
-        self._set_scan_action(False)
+        self._set_scan_action(SCAN_STOP)
         self.scan_pbar.set_text('Scan Error: %s' % (reason,))
         return True
 
     def on_scan_done(self, widget):
-        self._set_scan_action(False)
+        self._set_scan_action(SCAN_STOP)
         self.scan_pbar.idle_text('Scan Complete!', 1.0)
         return True
     
     def on_xanes_error(self, obj, reason):
-        self._set_scan_action(False)
+        self._set_scan_action(SCAN_STOP)
         self.scan_pbar.set_text('Scan Error: %s' % (reason,))
         self.output_log.add_text(obj.results.get('log'))
         return True
     
     def on_xanes_done(self, obj):        
-        self._set_scan_action(False)
+        self._set_scan_action(SCAN_STOP)
         self.scan_book.set_current_page(1)
         results = obj.results.get('energies')
         if results is None:
@@ -660,7 +705,7 @@ class ScanManager(gtk.Frame):
         self.plotter.axis[0].legend()
         self.plotter.redraw()
         self.scan_pbar.idle_text("Scan complete.", 1.0)
-        self._set_scan_action(False)
+        self._set_scan_action(SCAN_STOP)
 
         # Upload scan to lims
         lims_tools.upload_scan(self.beamline, [obj.results])
