@@ -185,6 +185,16 @@ class DataCollector(gobject.GObject):
         self.beamline.image_server.set_user(*self._user_properties)
         self.paused = False
         self.stopped = False           
+        # Take snapshots before beginning collection
+        if len(self.run_list) >= 4:
+            directory = os.path.join(self.run_list[0]['directory'])
+            prefix = '%s-pic' % (self.run_list[0]['name'])
+            if not os.path.exists(directory):
+                os.makedirs(directory) # make sure directories exist
+            a1 = self.beamline.omega.get_position()
+            a2 = a1 < 270 and a1 + 90 or a1 - 270
+            _logger.info('Taking snapshots of crystal at %0.1f and %0.1f' %(a1, a2))
+            snapshot.take_sample_snapshots(prefix, directory, [a1, a2], decorate=True)
         self.beamline.goniometer.set_mode('COLLECT', wait=True) # move goniometer to collect mode
         gobject.idle_add(self.emit, 'started')
         _current_attenuation = self.beamline.attenuator.get()
