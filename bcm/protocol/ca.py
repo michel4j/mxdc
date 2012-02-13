@@ -71,6 +71,9 @@ SEVERITY_NAMES = ['', 'MINOR', 'MAJOR', 'INVALID']
 
 POSIX_TIME_AT_EPICS_EPOCH = 631152000.0
 MAX_STRING_SIZE = 40
+MAX_UNITS_SIZE =  8
+MAX_ENUM_STRING_SIZE = 26
+MAX_ENUM_STATES = 16
 
 
 DBE_VALUE = 1<<0
@@ -127,6 +130,18 @@ _base_fields = [('status', c_short), ('severity', c_short), ('stamp', EpicsTimeS
 _16offset_fields = _base_fields + [('pad0', c_short)]
 _24offset_fields = _16offset_fields + [('pad1', c_char)]
 _32offset_fields = _16offset_fields + [('pad1', c_short)]
+_base_ctrl = [('status', c_short),('severity', c_short)]
+
+def _limit_fields(_t):
+    fields = [('units', c_char*MAX_UNITS_SIZE)]
+
+    extras = [(n, _t) for n in ('upper_disp_limit', 'lower_disp_limit', 'upper_alarm_limit', 
+     'upper_warning_limit', 'lower_warning_limit', 'lower_alarm_limit', 
+     'upper_ctrl_limit', 'lower_ctrl_limit')]
+    return fields + extras
+    
+_enum_ctrl = [('no_str', c_short),
+              ('strs', (c_char * MAX_ENUM_STRING_SIZE) * MAX_ENUM_STATES)]
 
 BaseFieldMap = {
     DBR_TIME_STRING: _base_fields,
@@ -135,7 +150,15 @@ BaseFieldMap = {
     DBR_TIME_SHORT: _16offset_fields,
     DBR_TIME_LONG: _base_fields,
     DBR_TIME_FLOAT: _base_fields,
-    DBR_TIME_DOUBLE: _32offset_fields,}
+    DBR_TIME_DOUBLE: _32offset_fields,
+    DBR_CTRL_STRING: _base_ctrl,
+    DBR_CTRL_SHORT: _base_ctrl + _limit_fields(c_short),
+    DBR_CTRL_FLOAT: _base_ctrl + [('precision', c_short), ('RISC_pad', c_short)] + _limit_fields(c_float),
+    DBR_CTRL_ENUM: _base_ctrl + _enum_ctrl,
+    DBR_CTRL_CHAR: _base_ctrl + _limit_fields(c_char) + [('RISC_pad', c_char)],
+    DBR_CTRL_LONG: _base_ctrl + _limit_fields(c_long),
+    DBR_CTRL_DOUBLE: _base_ctrl + [('precision', c_short), ('RISC_pad', c_short)] + _limit_fields(c_double),
+    }
 
 OP_messages = {
     CA_OP_GET: 'getting',
@@ -162,6 +185,13 @@ TypeMap = {
     DBR_TIME_LONG: (c_int32, 'DBR_TIME_LONG'),
     DBR_TIME_FLOAT: (c_float, 'DBR_TIME_FLOAT'),
     DBR_TIME_DOUBLE: (c_double, 'DBR_TIME_DOUBLE'),
+    DBR_CTRL_STRING: (c_char * MAX_STRING_SIZE, 'DBR_CTRL_STRING'),
+    DBR_CTRL_CHAR: (c_char, 'DBR_CTRL_CHAR'),
+    DBR_CTRL_ENUM: (c_uint16, 'DBR_CTRL_ENUM'),
+    DBR_CTRL_SHORT: (c_int16, 'DBR_CTRL_SHORT'),
+    DBR_CTRL_LONG: (c_int32, 'DBR_CTRL_LONG'),
+    DBR_CTRL_FLOAT: (c_float, 'DBR_CTRL_FLOAT'),
+    DBR_CTRL_DOUBLE: (c_double, 'DBR_CTRL_DOUBLE'),    
     }
 
    
@@ -249,9 +279,10 @@ class PV(gobject.GObject):
         self._type      = None
         self._ttype     = None
         self._vtype     = None
+        self._ctype     = None
         self._dtype     = None
         self._chid = c_ulong()
-        
+        self._params = {}
         self._callbacks = {}
         self._lock = threading.RLock()
         
@@ -310,6 +341,33 @@ class PV(gobject.GObject):
                 else:
                     self._val = self.data.value
             return self._val
+
+    def _get_parameters(self):
+        """Get control parameters of a Process Variable.
+        """
+        if self._connected != CA_OP_CONN_UP:
+            raise ChannelAccessError('(%s) PV not connected' % (self._name,))
+        else:
+            count = 1   # use count of 1 for control parameters
+            _vtype = TypeMap[self._type][0] * count 
+            _dtype = type("DBR_%02d_%02d" % (self._ctype, count),
+                                   (Structure,),
+                                   {'_fields_': BaseFieldMap[self._ctype] + [('value', self._vtype)]})
+            data = _dtype()
+            libca.ca_array_get( self._ctype, self._count, self._chid, byref(data))
+            libca.ca_pend_io(1.0)
+            
+            for _k, _t in _dtype._fields_:
+                v = getattr(data, _k)
+                if _k in ['pad', 'pad0', 'pad1', 'RISC_pad', 'no_str', 'value']:
+                    continue
+                if _k == 'strs':
+                    strs = [v[i].value for i in range(data.no_str)]
+                    self._params[_k] = strs
+                else:
+                    self._params[_k] = v
+            
+            return data
 
     def set(self, val, flush=False):
         """
@@ -375,9 +433,9 @@ class PV(gobject.GObject):
             else:
                 self._val = dbr.contents.value
         
-        self._time     = epics_to_posixtime(dbr.contents.stamp)
         self.set_state(changed=self._val)
         if self._time_changes:
+            self._time     = epics_to_posixtime(dbr.contents.stamp)
             self.set_state(timed_change=(self._val, self._time))
         _alm, _sev = dbr.contents.status, dbr.contents.severity
         if (_alm, _sev) != (self._alarm, self._severity):
@@ -432,8 +490,9 @@ class PV(gobject.GObject):
         _w = libca.ca_write_access(self._chid)
         self._access = ('none', 'read', 'write', 'read+write')[_r + 2*_w]
         
-        # get DBR_TIME_XXXX value from DBR_XXXX
+        # get DBR_TIME_XXXX and DBR_CTRL_XXXX value from DBR_XXXX
         self._ttype = self._type + 14
+        self._ctype = self._type + 28
                     
         if self._count == 1:
             self._vtype = TypeMap[self._type][0]
@@ -443,7 +502,6 @@ class PV(gobject.GObject):
         self._dtype = type("DBR_%02d_%02d" % (self._ttype, self._count),
                                (Structure,),
                                {'_fields_': BaseFieldMap[self._ttype] + [('value', self._vtype)]})
-            
         self.data = self._vtype()
                                               
     def _on_connect(self, event):
