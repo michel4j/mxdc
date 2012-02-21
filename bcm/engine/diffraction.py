@@ -282,6 +282,8 @@ class DataCollector(gobject.GObject):
             self.results = self.get_dataset_info(self.data_sets.values())
             if not self.stopped:
                 gobject.idle_add(self.emit, 'done')
+            else:
+                gobject.idle_add(self.emit, 'stopped')
             self.stopped = True
         finally:
             self.beamline.exposure_shutter.close()
