@@ -45,6 +45,7 @@ class BaseDevice(gobject.GObject):
                 functionality. Attention may soon be needed.
               - 4 : SERIOUS, functionality impacted but recovery is possible. Attention needed.
               - 8 : CRITICAL, functionality broken, recovery is not possible. Attention needed.
+              - 16 : DISABLED, device has been manually disabled.
         - ``message``: signal for sending messages from the device to any listeners. Messages are
           passed as a single string parameter.
         

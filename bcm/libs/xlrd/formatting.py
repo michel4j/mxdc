@@ -626,8 +626,7 @@ def palette_epilogue(book):
                 "*** Font #%d (%r): colour index 0x%04x is unknown" \
                 % (font.font_index, font.name, cx)
     if book.verbosity >= 1:
-        used = book.colour_indexes_used.keys()
-        used.sort()
+        used = sorted(book.colour_indexes_used)
         print >> book.logfile, "\nColour indexes used:\n%r\n" % used
 
 def handle_style(book, data):
