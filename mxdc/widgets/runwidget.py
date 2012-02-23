@@ -374,8 +374,7 @@ class RunWidget(gtk.Frame):
                                      energy=new_values['energy'][0],
                                      two_theta=new_values['two_theta'])
 
-        keys = self.parameters.keys()
-        for key in keys:
+        for key in self.parameters.keys():
             # skip some keys 
             if key in ['energy_label', 'crystal_id', 'experiment_id', 'comments', 'two_theta', 'scattering_factors']:
                 continue
