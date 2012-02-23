@@ -63,6 +63,11 @@ class MotorBase(BaseDevice):
         else:
             self.set_state(health=(0, 'calib'))
 
+    def _signal_enable(self, obj, val):
+        if val == 0:
+            self.set_state(health=(16, 'disabled', 'Device disabled!'))
+        else:
+            self.set_state(health=(0, 'disabled'))
 
 class SimMotor(MotorBase):
     implements(IMotor)
@@ -227,7 +232,7 @@ class Motor(MotorBase):
         self._rbid = self.RBV.connect('timed-change', self._signal_timed_change)
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
-        #self.ENAB.connect('changed', self._signal_enable)
+        self.ENAB.connect('changed', self._signal_enable)
         self.DESC.connect('changed', self._on_desc_change)
 
 
@@ -382,12 +387,6 @@ class EnergyMotor(Motor):
     def _signal_timed_change(self, obj, data):
         val = converter.bragg_to_energy(data[0])
         self.set_state(timed_change=(val, data[1]), changed=val)
-
-    def _signal_enable(self, obj, val):
-        if val == 1:
-            self.set_state(enabled=True)
-        else:
-            self.set_state(enabled=False)
                             
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())           
