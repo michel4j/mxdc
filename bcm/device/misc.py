@@ -5,7 +5,7 @@ from zope.interface import implements
 from bcm import registry
 from bcm.protocol.ca import PV
 from bcm.protocol import ca
-from bcm.device.base import BaseDevice, BaseDeviceGroup
+from bcm.device.base import BaseDevice, BaseDevice
 from bcm.utils.log import get_module_logger
 from bcm.utils import converter, misc
 from bcm.device.interfaces import *
@@ -427,12 +427,12 @@ class Shutter(BasicShutter):
 
 
    
-class XYZStage(BaseDeviceGroup):
+class XYZStage(BaseDevice):
 
     implements(IStage)
     
     def __init__(self, x, y, z, name='XYZ Stage'):
-        BaseDeviceGroup.__init__(self)
+        BaseDevice.__init__(self)
         self.name = name
         self.x  = x
         self.y  = y
@@ -449,12 +449,12 @@ class XYZStage(BaseDeviceGroup):
         self.y.stop()
         self.z.stop()
 
-class SampleStage(BaseDeviceGroup):
+class SampleStage(BaseDevice):
 
     implements(IStage)
     
     def __init__(self, x, y1, y2, omega, name='Sample Stage'):
-        BaseDeviceGroup.__init__(self)
+        BaseDevice.__init__(self)
         from bcm.device.motor import RelVerticalMotor
         self.name = name
         self.x  = x
@@ -470,10 +470,10 @@ class SampleStage(BaseDeviceGroup):
         self.y.stop()
  
 
-class XYStage(BaseDeviceGroup):
+class XYStage(BaseDevice):
     implements(IStage)
     def __init__(self, x, y, name='XY Stage'):
-        BaseDeviceGroup.__init__(self)
+        BaseDevice.__init__(self)
         self.name = name
         self.x  = x
         self.y  = y
@@ -488,12 +488,12 @@ class XYStage(BaseDeviceGroup):
         self.y.stop()
 
 
-class Collimator(BaseDeviceGroup):
+class Collimator(BaseDevice):
 
     implements(ICollimator)
     
     def __init__(self, x, y, width, height, name='Collimator'):
-        BaseDeviceGroup.__init__(self)
+        BaseDevice.__init__(self)
         self.name = name
         self.x  = x
         self.y = y

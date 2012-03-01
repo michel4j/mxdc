@@ -1,0 +1,492 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Devices &mdash; Beamline Control Module v4.0.171-g929974f documentation</title>
+    <link rel="stylesheet" href="../_static/jinja.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '4.0.171-g929974f',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Beamline Control Module v4.0.171-g929974f documentation" href="../index.html" />
+    <link rel="up" title="API documentation" href="index.html" />
+    <link rel="next" title="&lt;no title&gt;" href="engines.html" />
+    <link rel="prev" title="API documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="engines.html" title="&lt;no title&gt;"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="API documentation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Beamline Control Module v4.0.171-g929974f documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">API documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="devices">
+<h1>Devices<a class="headerlink" href="#devices" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-bcm.device.base">
+<span id="base-device"></span><h2>Base Device<a class="headerlink" href="#module-bcm.device.base" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-bcm.device.base"></span><dl class="class">
+<dt id="bcm.device.base.BaseDevice">
+<em class="property">class </em><tt class="descclassname">bcm.device.base.</tt><tt class="descname">BaseDevice</tt><a class="headerlink" href="#bcm.device.base.BaseDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic device object class.</p>
+<p>All devices should be derived from this class. Objects of this class are instances of
+<cite>gobject.GObject</cite>.</p>
+<p><strong>Attributes:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><cite>pending_devs</cite>: a list of inactive child devices.</li>
+<li><cite>health_manager</cite>: A <a class="reference internal" href="#bcm.device.base.HealthManager" title="bcm.device.base.HealthManager"><tt class="xref py py-class docutils literal"><span class="pre">HealthManager</span></tt></a> object.</li>
+<li><cite>state_info</cite>: A dict containing state information.</li>
+<li><cite>name</cite>:  the name of the device</li>
+</ul>
+</div></blockquote>
+<p><strong>Signals:</strong></p>
+<blockquote>
+<div><ul>
+<li><dl class="first docutils">
+<dt><cite>active</cite>: emitted when the state of the device changes from inactive to active</dt>
+<dd><p class="first last">and vice-versa. Passes a single boolean value as a parameter. <cite>True</cite> represents
+a change from inactive to active, and <cite>False</cite> represents the opposite.</p>
+</dd>
+</dl>
+</li>
+<li><p class="first"><cite>busy</cite>: emitted to notify listeners of a change in the busy state of the device.
+A single boolean parameter is passed along with the signal. <cite>True</cite> means busy,
+<cite>False</cite> means not busy.</p>
+</li>
+<li><p class="first"><cite>health</cite>: signals an device sanity/error condition. Passes two parameters, an integer error code
+and a string description. The integer error codes are the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li>0 : No error</li>
+<li>1 : MINOR, no impact to device functionality. No attention needed.</li>
+<li>2 : MARGINAL, no immediate impact to device functionality but may impact future
+functionality. Attention may soon be needed.</li>
+<li>4 : SERIOUS, functionality impacted but recovery is possible. Attention needed.</li>
+<li>8 : CRITICAL, functionality broken, recovery is not possible. Attention needed.</li>
+<li>16 : DISABLED, device has been manually disabled.</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first"><cite>message</cite>: signal for sending messages from the device to any listeners. Messages are
+passed as a single string parameter.</p>
+</li>
+</ul>
+</div></blockquote>
+<dl class="method">
+<dt id="bcm.device.base.BaseDevice.add_devices">
+<tt class="descname">add_devices</tt><big>(</big><em>*args</em><big>)</big><a class="headerlink" href="#bcm.device.base.BaseDevice.add_devices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add one or more devices as children of this device.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.base.BaseDevice.add_pv">
+<tt class="descname">add_pv</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.base.BaseDevice.add_pv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a process variable (PV) to the device.</p>
+<p>Create a new process variable, add it to the device. 
+Keyworded arguments should be the same as those expected for instantiating a
+<tt class="xref py py-class docutils literal"><span class="pre">bcm.protocol.ca.PV</span></tt> object.</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>A reference to the created <tt class="xref py py-class docutils literal"><span class="pre">bcm.protocol.ca.PV</span></tt> object.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.base.BaseDevice.get_state">
+<tt class="descname">get_state</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.base.BaseDevice.get_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain a copy of the device state.</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd><p class="first">A dict mapping state keys to their correponding values. Entries contain
+at least the following entries:</p>
+<blockquote class="last">
+<div><ul class="simple">
+<li><cite>active</cite> : Boolean</li>
+<li><cite>busy</cite>: Boolean</li>
+<li><cite>health</cite>: tuple(int, string)</li>
+<li><cite>message</cite>: string</li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.base.BaseDevice.is_active">
+<tt class="descname">is_active</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.base.BaseDevice.is_active" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function for checking if the device is active. Returns a boolean.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.base.BaseDevice.is_busy">
+<tt class="descname">is_busy</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.base.BaseDevice.is_busy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function for checking if the device is busy. Returns a boolean.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.base.BaseDevice.set_state">
+<tt class="descname">set_state</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.base.BaseDevice.set_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the state of the device.</p>
+<p>Set the state of the device and emit the appropriate signal based on the
+specified keyworded arguments. Keyworded arguments follow the same conventions
+as the state dictionary and correspond to any signals defined for the device.
+For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">mydevice</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">busy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> 
+                   <span class="n">health</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s">&#39;error&#39;</span><span class="p">,</span><span class="s">&#39;too hot&#39;</span><span class="p">),</span>
+                   <span class="n">message</span><span class="o">=</span><span class="s">&quot;the device is overheating&quot;</span><span class="p">)</span>              
+</pre></div>
+</div>
+<p>Signals will be emitted for the specified keyworded arguments, which be
+defined as supported signals of the device.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.base.HealthManager">
+<em class="property">class </em><tt class="descclassname">bcm.device.base.</tt><tt class="descname">HealthManager</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>An object which manages the health state of a device.</p>
+<p>The object enables registration and removal of error states and consistent
+reporting of health based on all currently active health issues.</p>
+<dl class="method">
+<dt id="bcm.device.base.HealthManager.add">
+<tt class="descname">add</tt><big>(</big><em>severity</em>, <em>context</em>, <em>msg=None</em><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds an error state of the given context as a string
+and a severity value as a integer. If a message is given, it will be 
+stored and used instead of the context name. Only one message per context
+type is allowed. Use a different context if you want different messages.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.base.HealthManager.get_health">
+<tt class="descname">get_health</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager.get_health" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an error code and string based on all the currently registered
+errors within the health registry</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.base.HealthManager.register_messages">
+<tt class="descname">register_messages</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager.register_messages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update or add entries to the context message register</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.base.HealthManager.remove">
+<tt class="descname">remove</tt><big>(</big><em>context</em><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager.remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove all errors of the given context as a string.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.device.automounter">
+<span id="automounter"></span><h2>Automounter<a class="headerlink" href="#module-bcm.device.automounter" title="Permalink to this headline">¶</a></h2>
+<p>Automounter Device objects</p>
+<p>An automounter object is an event driven <tt class="docutils literal"><span class="pre">GObject</span></tt> which contains a number of Automounter Containers.</p>
+<dl class="docutils">
+<dt>Each Automounter device obeys the following interface:</dt>
+<dd><p class="first">signals:</p>
+<dl class="docutils">
+<dt><cite>state</cite>:</dt>
+<dd>a signal which transmits changes in automounter states. The 
+The signal data is a dictionary with three entries as follows:
+{&#8216;busy&#8217;: &lt;boolean&gt;, &#8216;enabled&#8217;: &lt;boolean&gt;, &#8216;needs&#8217;:[&lt;str1&gt;,&lt;str2&gt;,...]}</dd>
+<dt><cite>message</cite>: </dt>
+<dd>a signal which emits messages from the Automounter</dd>
+<dt><cite>mounted</cite>: </dt>
+<dd>a signal emitted when a sample is mounted or dismounted. The data transmitted
+is a tuple of the form (&lt;port no.&gt;, &lt;barcode&gt;) when mounting and <tt class="xref docutils literal"><span class="pre">None</span></tt> when dismounting.</dd>
+<dt><cite>progress</cite>:</dt>
+<dd>notifies listeners of automounter progress. Transmitted data is a tuple of the form
+(&lt;% complete&gt;, &lt;description&gt;)</dd>
+</dl>
+<p>methods:</p>
+<dl class="last docutils">
+<dt>probe(probe_string)</dt>
+<dd>command the automounter the probe for containers and port states as specified by the DCSS compatible
+probe string provided.</dd>
+<dt>mount(port, wash=False)</dt>
+<dd>mount the sample at the specified port, optionally washing the sample in the process.</dd>
+<dt>dismount(port=None)</dt>
+<dd>dismount the sample into the specified port if provided, otherwise dismount 
+it to the original port from which it was mounted.</dd>
+</dl>
+</dd>
+</dl>
+<dl class="class">
+<dt id="bcm.device.automounter.AutomounterContainer">
+<em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">AutomounterContainer</tt><big>(</big><em>location</em>, <em>status_str=None</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.AutomounterContainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>An event driven object for representing an automounter container.</p>
+<dl class="docutils">
+<dt>Signals:</dt>
+<dd><cite>changed</cite>: Emits the <cite>changed</cite> GObject signal when the state of the container changes.</dd>
+</dl>
+<dl class="method">
+<dt id="bcm.device.automounter.AutomounterContainer.configure">
+<tt class="descname">configure</tt><big>(</big><em>status_str=None</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.AutomounterContainer.configure" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method sets up the container type and state from a status string.
+If no status string is provided, it resets the container to the &#8216;unknown&#8217; state.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.automounter.BasicAutomounter">
+<em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">BasicAutomounter</tt><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Basic Automounter objects. Contains a number of Automounter Containers.</p>
+<dl class="docutils">
+<dt>Signals:</dt>
+<dd><dl class="first last docutils">
+<dt><cite>state</cite>:</dt>
+<dd>a signal which transmits changes in automounter states. The 
+The signal data is a string</dd>
+<dt><cite>mounted</cite>: </dt>
+<dd>a signal emitted when a sample is mounted. The data transmitted
+is a tuple of the form (&lt;port no.&gt;, &lt;barcode&gt;) when mounting and <tt class="xref docutils literal"><span class="pre">None</span></tt> when dismounting.</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="bcm.device.automounter.BasicAutomounter.get_port_state">
+<tt class="descname">get_port_state</tt><big>(</big><em>port</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.get_port_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the current state of the specified port.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.automounter.BasicAutomounter.is_mountable">
+<tt class="descname">is_mountable</tt><big>(</big><em>port</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.is_mountable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if the specified port can be mounted without issues.
+Does not guarantee that the port is actually mountable, only that the
+the port was marked as mountable since the last probe operation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.automounter.BasicAutomounter.is_mounted">
+<tt class="descname">is_mounted</tt><big>(</big><em>port=None</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.is_mounted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if the specified port is currently mounted. If no port is
+specified, return true if any port is mounted.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.automounter.BasicAutomounter.parse_states">
+<tt class="descname">parse_states</tt><big>(</big><em>state</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.parse_states" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method sets up all the container types and states from a DCSS type status string.
+If no status string.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.automounter.ManualMounter">
+<em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">ManualMounter</tt><a class="headerlink" href="#bcm.device.automounter.ManualMounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Basic Automounter objects. Contains a number of Automounter Containers.</p>
+<dl class="docutils">
+<dt>Signals:</dt>
+<dd><dl class="first last docutils">
+<dt><cite>mounted</cite>: </dt>
+<dd>a signal emitted when a sample is mounted. The data transmitted
+is a tuple of the form (&lt;port no.&gt;, &lt;barcode&gt;) when mounting and <tt class="xref docutils literal"><span class="pre">None</span></tt> when dismounting.</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.device.counter">
+<span id="counters"></span><h2>Counters<a class="headerlink" href="#module-bcm.device.counter" title="Permalink to this headline">¶</a></h2>
+<p>Counter Device objects</p>
+<p>A counter device enables counting and averaging over given time periods.</p>
+<p>Each Counter device obeys the following interface:</p>
+<blockquote>
+<div><p>methods:</p>
+<dl class="docutils">
+<dt>count(time)</dt>
+<dd>count for the specified amount of time and return the numeric value
+corresponding to the average count. This method blocks for the specified 
+time.</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="module-bcm.device.detector">
+<span id="detector"></span><h2>Detector<a class="headerlink" href="#module-bcm.device.detector" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-bcm.device.diagnostics">
+<span id="diagnostics"></span><h2>Diagnostics<a class="headerlink" href="#module-bcm.device.diagnostics" title="Permalink to this headline">¶</a></h2>
+<p>Created on Jun 1, 2010</p>
+<p>&#64;author: michel</p>
+<dl class="class">
+<dt id="bcm.device.diagnostics.DiagnosticBase">
+<em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">DiagnosticBase</tt><big>(</big><em>descr</em><big>)</big><a class="headerlink" href="#bcm.device.diagnostics.DiagnosticBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for diagnostics.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.device.diffractometer">
+<span id="diffractometer"></span><h2>Diffractometer<a class="headerlink" href="#module-bcm.device.diffractometer" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="bcm.device.diffractometer.DiffractometerError">
+<em class="property">exception </em><tt class="descclassname">bcm.device.diffractometer.</tt><tt class="descname">DiffractometerError</tt><a class="headerlink" href="#bcm.device.diffractometer.DiffractometerError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for errors in the diffractometer module.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.device.goniometer">
+<span id="goniometer"></span><h2>Goniometer<a class="headerlink" href="#module-bcm.device.goniometer" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-bcm.device.mca">
+<span id="multi-channel-analyzer"></span><h2>Multi-Channel Analyzer<a class="headerlink" href="#module-bcm.device.mca" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-bcm.device.monochromator">
+<span id="monochromator"></span><h2>Monochromator<a class="headerlink" href="#module-bcm.device.monochromator" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="bcm.device.monochromator.Monochromator">
+<em class="property">class </em><tt class="descclassname">bcm.device.monochromator.</tt><tt class="descname">Monochromator</tt><big>(</big><em>simple_energy</em>, <em>energy</em>, <em>mostab=None</em><big>)</big><a class="headerlink" href="#bcm.device.monochromator.Monochromator" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="bcm.device.monochromator.Monochromator.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.monochromator.Monochromator.stop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.monochromator.Monochromator.wait">
+<tt class="descname">wait</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.monochromator.Monochromator.wait" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.device.motor">
+<span id="motors"></span><h2>Motors<a class="headerlink" href="#module-bcm.device.motor" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="bcm.device.motor.MotorBase">
+<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">MotorBase</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.motor.MotorBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for motors.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="bcm.device.motor.MotorError">
+<em class="property">exception </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">MotorError</tt><a class="headerlink" href="#bcm.device.motor.MotorError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for errors in the motor module.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.device.video">
+<span id="video"></span><h2>Video<a class="headerlink" href="#module-bcm.device.video" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="bcm.device.video.VideoError">
+<em class="property">exception </em><tt class="descclassname">bcm.device.video.</tt><tt class="descname">VideoError</tt><a class="headerlink" href="#bcm.device.video.VideoError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for errors in the video module.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.device.misc">
+<span id="miscelanous"></span><h2>Miscelanous<a class="headerlink" href="#module-bcm.device.misc" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="bcm.device.misc.MotorShutter">
+<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">MotorShutter</tt><big>(</big><em>motor</em><big>)</big><a class="headerlink" href="#bcm.device.misc.MotorShutter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Used for CMCF1 cryojet Motor</p>
+<dl class="method">
+<dt id="bcm.device.misc.MotorShutter.is_open">
+<tt class="descname">is_open</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.misc.MotorShutter.is_open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function for open state</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper"><p class="logo"><a href="../index.html">
+  <img class="logo" src="../_static/logo-small.png" alt="Logo"/>
+</a></p>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Devices</a><ul>
+<li><a class="reference internal" href="#module-bcm.device.base">Base Device</a></li>
+<li><a class="reference internal" href="#module-bcm.device.automounter">Automounter</a></li>
+<li><a class="reference internal" href="#module-bcm.device.counter">Counters</a></li>
+<li><a class="reference internal" href="#module-bcm.device.detector">Detector</a></li>
+<li><a class="reference internal" href="#module-bcm.device.diagnostics">Diagnostics</a></li>
+<li><a class="reference internal" href="#module-bcm.device.diffractometer">Diffractometer</a></li>
+<li><a class="reference internal" href="#module-bcm.device.goniometer">Goniometer</a></li>
+<li><a class="reference internal" href="#module-bcm.device.mca">Multi-Channel Analyzer</a></li>
+<li><a class="reference internal" href="#module-bcm.device.monochromator">Monochromator</a></li>
+<li><a class="reference internal" href="#module-bcm.device.motor">Motors</a></li>
+<li><a class="reference internal" href="#module-bcm.device.video">Video</a></li>
+<li><a class="reference internal" href="#module-bcm.device.misc">Miscelanous</a></li>
+</ul>
+</li>
+</ul>
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">API documentation</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">API documentation</a></li>
+      <li>Next: <a href="engines.html" title="next chapter">&lt;no title&gt;</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/api/devices.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2012, Canadian Light Source, Inc.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+  </body>
+</html>
