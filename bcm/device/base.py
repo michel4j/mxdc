@@ -201,7 +201,7 @@ class BaseDevice(gobject.GObject):
 
 
 class HealthManager(object):
-    """An object which manages the health state of a device.
+    """Manages the health states.
     
     The object enables registration and removal of error states and consistent
     reporting of health based on all currently active health issues.
