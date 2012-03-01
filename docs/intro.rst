@@ -9,6 +9,7 @@ This is the documentation for MxDC and the BCM. It documents the application pro
 
 This document is targeted at beamline administrators or software developers rather than users of MxDC. If you are a user looking for user documentation, please consult the `MxDC user guide <http://cmcf.lightsource.ca/user-guide/user-manual/data-collection/>`_
 
+
 Prerequisites
 -------------
 
