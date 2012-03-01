@@ -1,9 +1,7 @@
-'''Basic Beamline device
-
-This module defines functions and classes for basic beamline devices which
-implement generic housekeeping required by all devices.
-
-'''
+"""
+.. module:: bcm.device.base
+    :synopsis: Basic beamline device housekeeping.
+"""
 
 import gobject
 import re
@@ -17,28 +15,27 @@ class BaseDevice(gobject.GObject):
     """A generic device object class.
         
     All devices should be derived from this class. Objects of this class are instances of
-    ``gobject.GObject``. Objects have the following additional ``signals`` defined.
+    `gobject.GObject`. 
     
-    Attributes:
-    ----------
-    In addition to all attributes defined by ``gobject.GObject``, a device also has the
-    following attributes
+    **Attributes:**
+    
+        - `pending_devs`: a list of inactive child devices.
+        - `health_manager`: A :class:`HealthManager` object.
+        - `state_info`: A dict containing state information.
+        - `name`:  the name of the device
         
-        - ``health_manager``: A ``HealthManager`` object.
-        - ``name``:  the name of the device
-        
     
-    Signals:
-    --------
+    **Signals:**
     
-        - ``active``: emitted when the state of the device changes from inactive to active
-           and vice-versa. Passes a single boolean value as a parameter. ``True`` represents
-           a change from inactive to active, and ``False`` represents the opposite.
-        - ``busy``: emitted to notify listeners of a change in the busy state of the device.
-          A single boolean parameter is passed along with the signal. ``True`` means busy,
-          ``False`` means not busy.
-        - ``health``: signals an device sanity/error condition. Passes two parameters, an integer error code
+        - `active`: emitted when the state of the device changes from inactive to active
+           and vice-versa. Passes a single boolean value as a parameter. `True` represents
+           a change from inactive to active, and `False` represents the opposite.
+        - `busy`: emitted to notify listeners of a change in the busy state of the device.
+          A single boolean parameter is passed along with the signal. `True` means busy,
+          `False` means not busy.
+        - `health`: signals an device sanity/error condition. Passes two parameters, an integer error code
           and a string description. The integer error codes are the following:
+          
               - 0 : No error
               - 1 : MINOR, no impact to device functionality. No attention needed.
               - 2 : MARGINAL, no immediate impact to device functionality but may impact future
@@ -46,7 +43,8 @@ class BaseDevice(gobject.GObject):
               - 4 : SERIOUS, functionality impacted but recovery is possible. Attention needed.
               - 8 : CRITICAL, functionality broken, recovery is not possible. Attention needed.
               - 16 : DISABLED, device has been manually disabled.
-        - ``message``: signal for sending messages from the device to any listeners. Messages are
+              
+        - `message`: signal for sending messages from the device to any listeners. Messages are
           passed as a single string parameter.
         
     """
@@ -60,8 +58,8 @@ class BaseDevice(gobject.GObject):
     
     def __init__(self):
         gobject.GObject.__init__(self)
-        self.pending_devs = [] # used for EPICS devices and device groups
-        self.health_manager = HealthManager()
+        self.pending_devs = [] # inactive child devices or process variables
+        self.health_manager = HealthManager() # manages the health states
         self.state_info = {'active': False, 'busy': False, 
                              'health': (0,''), 'message': ''}
         self.name = self.__class__.__name__ + ' Device'
@@ -95,36 +93,40 @@ class BaseDevice(gobject.GObject):
                 logger.warning( "(%s) %s" % (self.name, msg))
             
     def is_active(self):
-        """Convenience function for active state"""
+        """Convenience function for checking if the device is active. Returns a boolean."""
         return self.active_state
     
     def is_busy(self):
-        """Convenience function for busy state"""
+        """Convenience function for checking if the device is busy. Returns a boolean."""
         return self.busy_state
     
     def get_state(self):
-        """ Returns the state of the device as a dictionary. The entries of the
-        state dictionary are:
+        """Obtain a copy of the device state.
+         
+        Returns:
+            A dict mapping state keys to their correponding values. Entries contain
+            at least the following entries:
         
-            - ``active`` : Boolean
-            - ``busy``: Boolean
-            - ``health``: tuple(int, string)
-            - ``message``: string
-        
+                - `active` : Boolean
+                - `busy`: Boolean
+                - `health`: tuple(int, string)
+                - `message`: string        
         """
         return self.state_info.copy()
     
     def set_state(self, **kwargs):
-        """ Set the state of the device based on the specified keyworded arguments.
-        Also emits the state signals in the process . Keyworded arguments follow 
-        the same conventions as the state dictionary and the following are recognized:
-                
-            - ``active`` : Boolean
-            - ``busy``: Boolean
-            - ``health``: tuple(int, string, [string])
-            - ``message``: string
+        """Set the state of the device.
         
-        Signals will be emitted the specified keyworded arguments, which must have been
+        Set the state of the device and emit the appropriate signal based on the
+        specified keyworded arguments. Keyworded arguments follow the same conventions
+        as the state dictionary and correspond to any signals defined for the device.
+        For example::
+        
+            mydevice.set_state(active=True, busy=False, 
+                               health=(1, 'error','too hot'),
+                               message="the device is overheating")              
+        
+        Signals will be emitted for the specified keyworded arguments, which be
         defined as supported signals of the device.
         """
         for st, val in kwargs.items():
@@ -147,30 +149,30 @@ class BaseDevice(gobject.GObject):
                 gobject.idle_add(self.emit, st, _health)
             
     def add_pv(self, *args, **kwargs):
-        """ Add a process variable (PV) to the device and return its reference. 
-        Keeps track of added PVs. Keyworded 
-        arguments should be the same as those expected for instantiating a
-        ``bcm.protocol.ca.PV`` object.
+        """Add a process variable (PV) to the device.
         
-        This method also connects the PVs 'active' signal to the ``on_pv_active`` method.
+        Create a new process variable, add it to the device. 
+        Keyworded arguments should be the same as those expected for instantiating a
+        :class:`bcm.protocol.ca.PV` object.
+
+        Returns:
+            A reference to the created :class:`bcm.protocol.ca.PV` object.
         """
 
         dev = ca.PV(*args, **kwargs)
         self.pending_devs.append(dev)
-        dev.connect('active', self.on_device_active)
+        dev.connect('active', self._on_device_active)
         return dev
     
     def add_devices(self, *args):
-        """ Add one or more devices to the device. 
-                
-        This method also connects the devices' 'active' signal to the ``on_device_active`` method.
+        """ Add one or more devices as children of this device. 
         """
         
         for dev in args:
             self.pending_devs.append(dev)
-            dev.connect('active', self.on_device_active)
+            dev.connect('active', self._on_device_active)
 
-    def on_device_active(self, dev, state):
+    def _on_device_active(self, dev, state):
         """I am called every time a device becomes active or inactive.
         I expect to receive a reference to the device and a boolean 
         state flag which is True on connect and False on disconnect. If it is
@@ -197,13 +199,6 @@ class BaseDevice(gobject.GObject):
             raise AttributeError("%s has no attribute '%s'" % (self.__class__.__name__, key))
         
 
-
-
-class BaseDeviceGroup(BaseDevice):
-    """A generic device container for convenient grouping of multiple devices, with 
-    a single state reflecting combined states of individual devices."""
-
-    pass
 
 class HealthManager(object):
     """An object which manages the health state of a device.
