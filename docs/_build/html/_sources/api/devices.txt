@@ -6,7 +6,6 @@ Base Device
 .. automodule:: bcm.device.base
    :members:
 
-
 Automounter
 -----------
 
