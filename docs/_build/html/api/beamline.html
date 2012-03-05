@@ -1,0 +1,198 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Beamline &mdash; Beamline Control Module v4.0.171-g929974f documentation</title>
+    <link rel="stylesheet" href="../_static/jinja.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '4.0.171-g929974f',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Beamline Control Module v4.0.171-g929974f documentation" href="../index.html" />
+    <link rel="up" title="API documentation" href="index.html" />
+    <link rel="next" title="&lt;no title&gt;" href="protocols.html" />
+    <link rel="prev" title="&lt;no title&gt;" href="engines.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="protocols.html" title="&lt;no title&gt;"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="engines.html" title="&lt;no title&gt;"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Beamline Control Module v4.0.171-g929974f documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">API documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="beamline">
+<h1>Beamline<a class="headerlink" href="#beamline" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt>
+<em class="property">class </em><tt class="descclassname">bcm.beamline.interfaces.</tt><tt class="descname">IBeamline</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big></dt>
+<dd><p>A beamline object.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.beamline.mx">
+<span id="mx-beamline"></span><h2>MX Beamline<a class="headerlink" href="#module-bcm.beamline.mx" title="Permalink to this headline">¶</a></h2>
+<p>MX Beamline(Macromolecular Crystallography Beamline) objects</p>
+<p>This module creates MXBeamline objects (class MXBeamline) from a python
+configuration file
+file. The configuration file is loaded as a python module and follows the 
+following conventions:</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Must be named the same as BCM_BEAMLINE environment variable followed by .py
+and placed in the directory defined by BCM_CONFIG_PATH. For example if the 
+BCM_BEAMLINE is &#8216;08B1&#8217;, the module should be &#8216;08B1.py&#8217;</p>
+</li>
+<li><p class="first">Optionally will also load a local module defined in the file 
+$(BCM_BEAMLINE)_local.py e.g &#8216;08B1_local.py for the above example.</p>
+</li>
+<li><dl class="first docutils">
+<dt>Global Variables:</dt>
+<dd><p class="first">BEAMLINE_NAME = Any string preferably without spaces
+BEAMLINE_TYPE = Only the string &#8216;MX&#8217; for now
+BEAMLINE_ENERGY_RANGE = A tuple of 2 floats for low and hi energy limits
+BEAMLINE_GONIO_POSITION = Goniometer orientation according to XREC (i.e 1,2,3 etc)          
+DEFAULT_EXPOSURE    = A float for the default exposure time
+DEFAULT_ATTENUATION = A float for attenuation in %
+DEFAULT_BEAMSTOP    = Default beam-stop position
+SAFE_BEAMSTOP       = Safe Beam-stop position during mounting
+XRF_BEAMSTOP        = Beam-stop position for XRF scans
+LIMS_API_KEY        = A string
+MISC_SETTINGS       = A dictionary containing any other key value pairs</p>
+<blockquote>
+<div><p>will be available as beamline.config[&#8216;misc&#8217;]</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>DEVICES             = A dictionary mapping device names to device objects.</dt>
+<dd><p class="first last">See SIM.py for a standard set of names.</p>
+</dd>
+<dt>CONSOLE_DEVICES = Same as above but only available in the console</dt>
+<dd><p class="first last">in addition to the above</p>
+</dd>
+</dl>
+<p>SERVICES = A dictionary mapping service names to service client objects
+BEAMLINE_SHUTTERS = A sequence of shutter device names for all shutters</p>
+<blockquote class="last">
+<div><p>required to allow beam to the end-station in the order 
+in which they have to be opened.</p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<dl class="class">
+<dt>
+<em class="property">class </em><tt class="descclassname">bcm.beamline.mx.</tt><tt class="descname">MXBeamline</tt><big>(</big><em>console=False</em><big>)</big></dt>
+<dd><p>An MX Beamline</p>
+<dl class="method">
+<dt>
+<tt class="descclassname">MXBeamline.</tt><tt class="descname">setup</tt><big>(</big><big>)</big></dt>
+<dd><p>Set up and register the beamline devices.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="remote-client">
+<h2>Remote Client<a class="headerlink" href="#remote-client" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt>
+<em class="property">class </em><tt class="descclassname">bcm.beamline.remote.</tt><tt class="descname">BeamlineClient</tt></dt>
+<dd><dl class="method">
+<dt>
+<tt class="descclassname">BeamlineClient.</tt><tt class="descname">setup</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper"><p class="logo"><a href="../index.html">
+  <img class="logo" src="../_static/logo-small.png" alt="Logo"/>
+</a></p>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Beamline</a><ul>
+<li><a class="reference internal" href="#interfaces">Interfaces</a></li>
+<li><a class="reference internal" href="#module-bcm.beamline.mx">MX Beamline</a></li>
+<li><a class="reference internal" href="#remote-client">Remote Client</a></li>
+</ul>
+</li>
+</ul>
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">API documentation</a><ul>
+      <li>Previous: <a href="engines.html" title="previous chapter">&lt;no title&gt;</a></li>
+      <li>Next: <a href="protocols.html" title="next chapter">&lt;no title&gt;</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/api/beamline.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2012, Canadian Light Source, Inc.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+  </body>
+</html>

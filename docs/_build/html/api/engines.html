@@ -1,0 +1,224 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Engines &mdash; Beamline Control Module v4.0.171-g929974f documentation</title>
+    <link rel="stylesheet" href="../_static/jinja.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '4.0.171-g929974f',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Beamline Control Module v4.0.171-g929974f documentation" href="../index.html" />
+    <link rel="up" title="API documentation" href="index.html" />
+    <link rel="next" title="Beamline" href="beamline.html" />
+    <link rel="prev" title="Devices" href="devices.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="beamline.html" title="Beamline"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="devices.html" title="Devices"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Beamline Control Module v4.0.171-g929974f documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">API documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="engines">
+<h1>Engines<a class="headerlink" href="#engines" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-bcm.engine.diffraction">
+<span id="diffraction-engine"></span><h2>Diffraction Engine<a class="headerlink" href="#module-bcm.engine.diffraction" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="spectroscopy-engine">
+<h2>Spectroscopy Engine<a class="headerlink" href="#spectroscopy-engine" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-bcm.engine.spectroscopy"></span><p>This module defines classes aid interfaces for X-Ray fluorescence.</p>
+</div>
+<div class="section" id="module-bcm.engine.centering">
+<span id="centering-engine"></span><h2>Centering Engine<a class="headerlink" href="#module-bcm.engine.centering" title="Permalink to this headline">¶</a></h2>
+<p>Created on Jan 26, 2010</p>
+<p>&#64;author: michel</p>
+</div>
+<div class="section" id="module-bcm.engine.scanning">
+<span id="scanning-engine"></span><h2>Scanning Engine<a class="headerlink" href="#module-bcm.engine.scanning" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="bcm.engine.scanning.AbsScan">
+<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">AbsScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.AbsScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>An absolute scan of a single motor.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.engine.scanning.AbsScan2">
+<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">AbsScan2</tt><big>(</big><em>mtr1</em>, <em>start_pos1</em>, <em>end_pos1</em>, <em>mtr2</em>, <em>start_pos2</em>, <em>end_pos2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.AbsScan2" title="Permalink to this definition">¶</a></dt>
+<dd><p>An Absolute scan of two motors.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.engine.scanning.CntScan">
+<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">CntScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.CntScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Continuous scan of a single motor.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.engine.scanning.GridScan">
+<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">GridScan</tt><big>(</big><em>mtr1</em>, <em>start_pos1</em>, <em>end_pos1</em>, <em>mtr2</em>, <em>start_pos2</em>, <em>end_pos2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.GridScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A absolute scan of two motors in a grid.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.engine.scanning.RelScan">
+<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">RelScan</tt><big>(</big><em>mtr</em>, <em>start_offset</em>, <em>end_offset</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.RelScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A relative scan of a single motor.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.engine.scanning.RelScan2">
+<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">RelScan2</tt><big>(</big><em>mtr1</em>, <em>start_offset1</em>, <em>end_offset1</em>, <em>mtr2</em>, <em>start_offset2</em>, <em>end_offset2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.RelScan2" title="Permalink to this definition">¶</a></dt>
+<dd><p>A relative scan of a two motors.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="bcm.engine.scanning.ScanError">
+<em class="property">exception </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">ScanError</tt><a class="headerlink" href="#bcm.engine.scanning.ScanError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scan Error.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.engine.fitting">
+<span id="fitting-engine"></span><h2>Fitting Engine<a class="headerlink" href="#module-bcm.engine.fitting" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="bcm.engine.fitting.histogram_fit">
+<tt class="descclassname">bcm.engine.fitting.</tt><tt class="descname">histogram_fit</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="headerlink" href="#bcm.engine.fitting.histogram_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>calcfwhm(x,y) - with input x,y vector this function calculates fwhm and returns
+(fwhm,xpeak,ymax, fwhm_x_left, fwhm_x_right)
+x - input independent variable
+y - input dependent variable
+return ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema
+cema is center of mass</p>
+<p>success boolean</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="bcm.engine.fitting.peak_fit">
+<tt class="descclassname">bcm.engine.fitting.</tt><tt class="descname">peak_fit</tt><big>(</big><em>x</em>, <em>y</em>, <em>target='gaussian'</em><big>)</big><a class="headerlink" href="#bcm.engine.fitting.peak_fit" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Returns the coefficients for the target function</dt>
+<dd>0 = H - Height of peak
+1 = L - FWHM of Voigt profile (Wertheim et al)
+2 = P - Position of peak
+3 = n - lorentzian fraction, gaussian offset</dd>
+</dl>
+<p>Success (boolean)</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.engine.scripting">
+<span id="scripting-engine"></span><h2>Scripting Engine<a class="headerlink" href="#module-bcm.engine.scripting" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="bcm.engine.scripting.ScriptError">
+<em class="property">exception </em><tt class="descclassname">bcm.engine.scripting.</tt><tt class="descname">ScriptError</tt><a class="headerlink" href="#bcm.engine.scripting.ScriptError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exceptioins for Scripting Engine.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-bcm.engine.auto">
+<span id="miscelaneous-engines"></span><h2>Miscelaneous Engines<a class="headerlink" href="#module-bcm.engine.auto" title="Permalink to this headline">¶</a></h2>
+<p>Created on Oct 25, 2010</p>
+<p>&#64;author: michel</p>
+<span class="target" id="module-bcm.engine.autochooch"></span><span class="target" id="module-bcm.engine.optimizer"></span><p>This module defines classes for Optimizers.</p>
+<dl class="class">
+<dt id="bcm.engine.optimizer.PitchOptimizer">
+<em class="property">class </em><tt class="descclassname">bcm.engine.optimizer.</tt><tt class="descname">PitchOptimizer</tt><big>(</big><em>name</em>, <em>pitch_func</em>, <em>min_count=0.0</em><big>)</big><a class="headerlink" href="#bcm.engine.optimizer.PitchOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pitch Optimizer for 08B1-1</p>
+</dd></dl>
+
+<span class="target" id="module-bcm.engine.snapshot"></span><p>Created on Jan 26, 2010</p>
+<p>&#64;author: michel</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper"><p class="logo"><a href="../index.html">
+  <img class="logo" src="../_static/logo-small.png" alt="Logo"/>
+</a></p>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Engines</a><ul>
+<li><a class="reference internal" href="#module-bcm.engine.diffraction">Diffraction Engine</a></li>
+<li><a class="reference internal" href="#spectroscopy-engine">Spectroscopy Engine</a></li>
+<li><a class="reference internal" href="#module-bcm.engine.centering">Centering Engine</a></li>
+<li><a class="reference internal" href="#module-bcm.engine.scanning">Scanning Engine</a></li>
+<li><a class="reference internal" href="#module-bcm.engine.fitting">Fitting Engine</a></li>
+<li><a class="reference internal" href="#module-bcm.engine.scripting">Scripting Engine</a></li>
+<li><a class="reference internal" href="#module-bcm.engine.auto">Miscelaneous Engines</a></li>
+</ul>
+</li>
+</ul>
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">API documentation</a><ul>
+      <li>Previous: <a href="devices.html" title="previous chapter">Devices</a></li>
+      <li>Next: <a href="beamline.html" title="next chapter">Beamline</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/api/engines.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2012, Canadian Light Source, Inc.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+  </body>
+</html>
