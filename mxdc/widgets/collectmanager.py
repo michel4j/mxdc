@@ -73,6 +73,7 @@ class CollectManager(gtk.Frame):
         self.skip_frames = False
         self._create_widgets()
         self.pause_time = 0
+        self.auto_pause = False
         
         self.active_sample = {}
         self.selected_sample = {}
@@ -494,7 +495,7 @@ class CollectManager(gtk.Frame):
             self.run_list[i]['saved'] = True
         return True
 
-    def on_pause(self,widget, paused, pause_dict):
+    def on_pause(self, widget, paused, pause_dict):
         if paused:
             self.paused = True
             self.pause_start = time.time()
@@ -512,20 +513,21 @@ class CollectManager(gtk.Frame):
         msg = ''
         if 'type' in pause_dict:
             msg = "Beam not Available. Collection has been paused and will automatically resume once the beam becomes available. Intervene to manually resume collection."
-            
+            self.auto_pause = True
+
         if msg:
             title = 'Attention Required'
             self.resp = MyDialog(gtk.MESSAGE_WARNING, 
                                          title, msg,
                                          buttons=( ('Intervene', gtk.RESPONSE_ACCEPT),) )
             self._intervening = False
-            if 'type' in pause_dict: 
-                self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
-                try:
-                    self.collect_obj = pause_dict['collector']
-                    self.collector.set_position(pause_dict['position'])
-                except:
-                    self.collect_obj = False
+            self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
+            try:
+                self.ntot += 1
+                self.collect_obj = pause_dict['collector']
+                self.collector.set_position(pause_dict['position'])
+            except:
+                self.collect_obj = False
             response = self.resp()
             if response == gtk.RESPONSE_ACCEPT or (('type' in pause_dict) and self._beam_up):
                 self._intervening = True
@@ -618,10 +620,11 @@ class CollectManager(gtk.Frame):
         if state == FRAME_STATE_RUNNING and position != self.skipped:
             elapsed_time = time.time() - self.start_time
             if position - 1 > self.skipped:
-                frame_time = elapsed_time / ( position -1 - self.skipped )
-                eta_time = frame_time * ( self.ntot - position )
+                self.frame_time = ( self.auto_pause and self.frame_time ) or elapsed_time / ( position -1 - self.skipped )
+                if self.auto_pause: self.auto_pause = False
+                eta_time = self.frame_time * ( self.ntot - position )
                 eta_format = eta_time >= 3600 and '%H:%M:%S' or '%M:%S'
-                text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format, time.gmtime(eta_time)), frame_time)
+                text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format, time.gmtime(eta_time)), self.frame_time)
             else:
                 if fraction: 
                     self.ntot = int(round(position / fraction))

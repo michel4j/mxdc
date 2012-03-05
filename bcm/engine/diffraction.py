@@ -213,7 +213,6 @@ class DataCollector(gobject.GObject):
                     self.beamline.goniometer.set_mode('COLLECT', wait=True)   
                     gobject.idle_add(self.emit, 'paused', False, {})
                 if self.stopped:
-                    gobject.idle_add(self.emit, 'stopped')
                     break
     
                 frame = self.run_list[self.pos]   
@@ -276,8 +275,9 @@ class DataCollector(gobject.GObject):
                 self._notify_progress(self.STATE_DONE)
                 self.pos = self.pos + 1
             
-            # Wait for Last image to be transfered
-            time.sleep(5.0)
+            # Wait for Last image to be transfered (only if dataset is to be uploaded to MxLIVE)
+            if self.pos >= 4:
+                time.sleep(5.0)
             
             self.results = self.get_dataset_info(self.data_sets.values())
             if not self.stopped:
