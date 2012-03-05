@@ -370,8 +370,9 @@ class RunWidget(gtk.Frame):
     def check_changes(self):
         new_values = self.get_parameters()
         if self.predictor is not None and self.number == 0:
+            beamline = globalRegistry.lookup([], IBeamline)
             self.predictor.configure(distance=new_values['distance'], 
-                                     energy=new_values['energy'][0],
+                                     energy=beamline.energy.get_position(),
                                      two_theta=new_values['two_theta'])
 
         for key in self.parameters.keys():

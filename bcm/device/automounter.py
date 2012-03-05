@@ -19,11 +19,7 @@ Each Automounter device obeys the following interface:
         (<% complete>, <description>)
     
     methods:
-    
-    parse_states(state_string)
-        configure all the containers and their respective states from the DCSS compatible state
-        string provided.
-    
+        
     probe(probe_string)
         command the automounter the probe for containers and port states as specified by the DCSS compatible
         probe string provided.
