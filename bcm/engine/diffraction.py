@@ -213,6 +213,7 @@ class DataCollector(gobject.GObject):
                     self.beamline.goniometer.set_mode('COLLECT', wait=True)   
                     gobject.idle_add(self.emit, 'paused', False, {})
                 if self.stopped:
+                    _logger.info("Stopping Collection")
                     break
     
                 frame = self.run_list[self.pos]   

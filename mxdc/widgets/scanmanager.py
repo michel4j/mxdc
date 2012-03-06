@@ -9,7 +9,7 @@ import numpy
 from mxdc.widgets.periodictable import PeriodicTable
 from mxdc.widgets.textviewer import TextViewer
 from mxdc.widgets.plotter import Plotter
-from mxdc.widgets.dialogs import  warning, error
+from mxdc.widgets.dialogs import  warning, error, MyDialog
 from mxdc.utils import config
 from mxdc.widgets.misc import ActiveProgressBar
 from bcm.beamline.mx import IBeamline
@@ -544,13 +544,26 @@ class ScanManager(gtk.Frame):
         self.plotter.add_point(point[0], point[1])
         return True
     
-    def on_scan_paused(self, widget, state):
+    def on_scan_paused(self, widget, state, warning=False):
         if state:
             self.scan_pbar.set_text('Scan Paused')
         else:
             if self.paused:
                 self._set_scan_action(SCAN_RESUME)
             self.scan_pbar.set_text('Scan Resuming')
+            
+        # Build the dialog message
+        if warning:
+            self._set_scan_action(SCAN_PAUSE)
+            msg = "Beam not Available. The scan has been paused and can be resumed once the beam becomes available."
+            title = 'Attention Required'
+            self.resp = MyDialog(gtk.MESSAGE_WARNING, 
+                                         title, msg,
+                                         buttons=( ('OK', gtk.RESPONSE_ACCEPT),) )
+            self._intervening = False
+            response = self.resp()
+            if response == gtk.RESPONSE_ACCEPT:
+                return 
         return True
     
     def on_scan_stopped(self, widget):
