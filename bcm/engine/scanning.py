@@ -85,13 +85,14 @@ class BasicScan(gobject.GObject):
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     __gsignals__['error'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['stopped'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
-    __gsignals__['paused'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,])
+    __gsignals__['paused'] = ( gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,gobject.TYPE_BOOLEAN])
    
 
     def __init__(self):
         gobject.GObject.__init__(self)
         self._stopped = False
         self._paused = False
+        self._notify = False
         self.append = False
         self.meta_data = None
         self.data = []
@@ -135,6 +136,12 @@ class BasicScan(gobject.GObject):
 
     def run(self):
         pass # derived classes should implement this
+
+    def on_beam_change(self, obj, beam_available):
+        self._notify = not beam_available
+        if not beam_available and (not self._paused) and (not self._stopped):
+            self.pause(True)    
+        return True
     
     def save(self, filename=None):
         if filename is None:

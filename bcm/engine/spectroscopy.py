@@ -180,6 +180,11 @@ class XANESScan(BasicScan):
             self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
+        try:
+            self.beamline.storage_ring.disconnect(self.beam_connect)
+        except:
+            pass
+        self.beam_connect = self.beamline.storage_ring.connect('beam', self.on_beam_change)
         self.scan_parameters = {}
         self.scan_parameters['edge'] = edge
         self.scan_parameters['edge_energy'],  self.scan_parameters['roi_energy'] = self._energy_db[edge]
@@ -294,12 +299,16 @@ class XANESScan(BasicScan):
             
             for x in self._targets:
                 if self._paused:
-                    gobject.idle_add(self.emit, 'paused', True)
+                    gobject.idle_add(self.emit, 'paused', True, self._notify)
+                    self._notify = False
                     _logger.warning("Edge Scan paused at point %s." % str(x))
                     while self._paused and not self._stopped:
                         time.sleep(0.05)
-                    self.beamline.goniometer.set_mode('SCANNING', wait=True)   
-                    gobject.idle_add(self.emit, 'paused', False)
+                    if self._notify:
+                        self.pause(True)
+                        continue
+                    self.beamline.goniometer.set_mode('SCANNING', wait=True)  
+                    gobject.idle_add(self.emit, 'paused', False, self._notify)
                     _logger.info("Scan resumed.")                
                 if self._stopped:
                     _logger.info("Scan stopped!")
@@ -358,6 +367,11 @@ class EXAFSScan(BasicScan):
             self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
+        try:
+            self.beamline.storage_ring.disconnect(self.beam_connect)
+        except:
+            pass
+        self.beam_connect = self.beamline.storage_ring.connect('beam', self.on_beam_change)
         self.scan_parameters = {}
         self.scan_parameters['edge'] = edge
         self.scan_parameters['edge_energy'],  self.scan_parameters['roi_energy'] = self._energy_db[edge]
@@ -478,12 +492,16 @@ class EXAFSScan(BasicScan):
             gobject.idle_add(self.emit, "progress", 0.0 , "")
             for x, kt in zip(self._targets, _k_time):
                 if self._paused:
-                    gobject.idle_add(self.emit, 'paused', True)
+                    gobject.idle_add(self.emit, 'paused', True, self._notify)
+                    self._notify = False
                     _logger.warning("EXAFS Scan paused at point %s." % str(x))
                     while self._paused and not self._stopped:
                         time.sleep(0.05)
+                    if self._notify:
+                        self.pause(True)
+                        continue
                     self.beamline.goniometer.set_mode('SCANNING', wait=True)   
-                    gobject.idle_add(self.emit, 'paused', False)
+                    gobject.idle_add(self.emit, 'paused', False, self._notify)
                     _logger.info("Scan resumed.")
                 if self._stopped:
                     _logger.info("Scan stopped!")
