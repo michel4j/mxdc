@@ -169,6 +169,11 @@ class MXBeamline(object):
                 self.diagnostics.append( DeviceDiag(self.registry[k]) )
             except:
                 self.logger.warning('Could not configure diagnostic device')
+        for k in ['dpm', 'lims', 'image_server']:
+            try:
+                self.diagnostics.append( ServiceDiag(self.registry[k]) )
+            except:
+                self.logger.warning('Could not configure diagnostic service')
         try:
             self.diagnostics.append(ShutterStateDiag(self.all_shutters))
         except:
