@@ -228,7 +228,7 @@ class Plotter( gtk.Frame ):
         self.axis[0].xaxis.set_minor_locator(SecondLocator(interval=min_int))
         if len(self.axis[0].xaxis.get_major_ticks()) < len(labels):
             labels.pop(0)
-        self.axis[0].set_xticklabels([d.strftime(format) for d in labels])   
+        self.axis[0].set_xticklabels([d is not ' ' and d.strftime(format) or '' for d in labels])   
 
     def clear(self, grid=False):
         self.fig.clear()
@@ -266,7 +266,7 @@ class Plotter( gtk.Frame ):
                 self.canvas.draw()        
         return True
 
-    def add_point(self, x, y, lin=0, redraw=True):
+    def add_point(self, x, y, lin=0, redraw=True, resize=False):
 
         if len(self.line) <= lin:
             self.add_line([x],[y],'-')
@@ -292,8 +292,9 @@ class Plotter( gtk.Frame ):
             #only update limits if they are wider than current limits
             curr_ymin, curr_ymax = self.line[lin].axes.get_ylim()
             curr_xmin, curr_xmax = self.line[lin].axes.get_xlim()
-            ymin = (curr_ymin+ypadding < ymin) and curr_ymin  or (ymin - ypadding)
-            ymax = (curr_ymax-ypadding > ymax) and curr_ymax  or (ymax + ypadding)
+            
+            ymin = resize and (ymin - ypadding) or (curr_ymin+ypadding < ymin) and curr_ymin  or (ymin - ypadding)
+            ymax = resize and (ymax + ypadding) or (curr_ymax-ypadding > ymax) and curr_ymax  or (ymax + ypadding)
 
             if (xmax-xmin) > 1e-15:
                 self.line[lin].axes.set_xlim(xmin, xmax)
