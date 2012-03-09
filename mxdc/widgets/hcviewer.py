@@ -28,9 +28,9 @@ _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class HCViewer(SampleViewer):
     __gsignals__ = {
-        'plot_changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT, gobject.TYPE_BOOLEAN]),
+        'plot-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT, gobject.TYPE_BOOLEAN]),
         'plot-paused': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT, gobject.TYPE_BOOLEAN]),
-        'plot-cleared': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT])
+        'plot-cleared': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT]),
     }
     def __init__(self):
         gtk.Frame.__init__(self)
@@ -73,12 +73,19 @@ class HCViewer(SampleViewer):
         self.reset_btn.connect('clicked', self.on_reset_roi)
         self.pause_btn.connect('clicked', self.on_pause)
         self.clear_btn.connect('clicked', self.on_clear)
+        self.time_btn.connect('changed', self.on_set_time)
+
+        self.hc.ROI.connect('changed', self._get_roi)
+        self.hc.drop_coords.connect('changed', self._get_drop_coords)
+        self.hc.drop_size.connect('changed', self._get_drop_size)
 
         self.hc1_active = False        
         self.on_hc1_active()
         self.beamline.humidifier.status.connect('active', self.on_hc1_active)
 
+        self.drop_coords = None
         self._define_roi = False
+        self.xtime = 5
         self.on_plot_change(self.temp_btn)
 
     def __getattr__(self, key):
@@ -121,6 +128,18 @@ class HCViewer(SampleViewer):
         self.stat_panel.pack_start(stat_box, expand=True, fill=False) 
         self.hc_panel.pack_start(entry_box, expand=True, fill=False)
         
+        
+        store = gtk.ListStore(gobject.TYPE_STRING)
+        for t in ['5', '10', '20']:
+            store.append(['%s min' % t])
+        self.time_btn.set_model(store)
+        cell = gtk.CellRendererText()
+        cell.set_alignment(0.5, 0.5)
+        self.time_btn.pack_start(cell, True)
+        self.time_btn.add_attribute(cell, 'text', 0)
+        self.time_btn.set_active(0)
+            
+        
     def on_plot_change(self, widget):
         if widget.get_label() == 'Temperature':
             state = True
@@ -143,18 +162,30 @@ class HCViewer(SampleViewer):
         if self.paused:
             self.paused = False
             self.pause_img.set_from_stock('gtk-media-pause', gtk.ICON_SIZE_MENU)
+            self.pause_lbl.set_text('Pause')
         else:
             self.paused = True
             self.pause_img.set_from_stock('gtk-media-play', gtk.ICON_SIZE_MENU)
+            self.pause_lbl.set_text('Track')
         gobject.idle_add(self.emit, 'plot-paused', widget, self.paused)
 
     def on_clear(self, widget):
         gobject.idle_add(self.emit, 'plot-cleared', widget)
+        
+    def on_set_time(self, widget):
+        self.xtime = int(self.time_btn.get_active_text().split(' ')[0])
 
     def _get_roi(self, obj=None, state=None):
         self.dragging = False
         if self.hc1_active:
-            self.roi = list(self.hc.ROI.get())     
+            self.roi = list(state)     
+ 
+    def _get_drop_coords(self, obj, pv):
+        drop_coords = [val for val in list(pv)[:4] if val < 770 and val > 0]
+        if len(drop_coords) is 4: self.drop_coords = drop_coords 
+        
+    def _get_drop_size(self, obj, val):
+        self.drop_size = val
  
     def save_image(self, filename):
         img = self.beamline.sample_video.get_frame()
@@ -163,13 +194,7 @@ class HCViewer(SampleViewer):
 
         img = add_hc_decorations(img, x1, x2, y1, y2)
         img.save(filename)
- 
-    def on_realize(self, obj):
-        super(HCViewer, self).on_realize(obj)
-        
-        self._get_roi()
-        self.hc.ROI.connect('changed', self._get_roi)
- 
+      
     def on_mouse_motion(self, widget, event):
         if event.is_hint:
             x, y, state = event.window.get_pointer()
@@ -247,7 +272,7 @@ class HCViewer(SampleViewer):
             y1 = self.measure_y1
             y2 = self.measure_y2        
         
-            dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale
+            dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale * 1000
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             if using_cairo:
                 cr = pixmap.cairo_create()
@@ -258,21 +283,12 @@ class HCViewer(SampleViewer):
                 cr.stroke()
             else:
                 pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y2)       
-            self.meas_label.set_markup("Length: %0.2g mm" % dist)
+            self.meas_label.set_markup("Length: %0.1f um" % dist)
             
     def draw_drop_coords(self, pixmap):
-        if self.hc.drop_size.get() > 0:
-            pix_size = self.beamline.sample_video.resolution
-            try:
-                drop_coords = list(self.hc.drop_coords.get())
-            except:
-                return
+        if self.drop_coords and self.drop_size > 0:
+            [x1, y1, x2, y2] = [val * float(self.video.scale) for val in self.drop_coords]
 
-            for i in range(4):
-                drop_coords[i] = int(drop_coords[i] * float(self.video.scale))
-            [x1, y1, x2, y2] = drop_coords[:4]
-            
-            dist = pix_size * self.hc.drop_size.get()
             if using_cairo:
                 cr = pixmap.cairo_create()
                 cr.set_source_rgba(0.0, 0.0, 1.0, 1.0)
@@ -282,5 +298,8 @@ class HCViewer(SampleViewer):
                 cr.stroke()
             else:
                 pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y2)            
-            self.meas_label.set_markup("Drop Size: %0.2g mm" % dist)
-            
+
+        pix_size = self.beamline.sample_video.resolution
+        dist = pix_size * self.drop_size * 1000
+        self.meas_label.set_markup("Drop Size: %0.1f um" % dist)
+        return True
