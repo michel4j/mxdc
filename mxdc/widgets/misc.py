@@ -389,7 +389,7 @@ class HealthDisplay(gtk.HBox):
         
     def _on_signal(self, obj, status):
         state = status[0]
-        text = status[1] or 'Ready'
+        text = status[1] or 'Connected and Ready'
         self.status.set_markup('<small><span color="%s"><i>%s</i></span></small>' 
                                % (self.color_map.get(state, '#9a2b2b'), text))
         self.icon.set_from_stock(self.icon_map.get(state, 'mxdc-hcane'), gtk.ICON_SIZE_MENU)
