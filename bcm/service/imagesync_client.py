@@ -43,6 +43,7 @@ class SimImageSyncClient(object):
     implements(IImageSyncService)
 
     def __init__(self):
+        self.name = "Image Server"
         pass
     
     def set_user(self, user, uid, gid):
