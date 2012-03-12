@@ -9,8 +9,10 @@ from twisted.python import log
 from bcm.service.imagesync import ImgSyncService, IPptvISync
 from bcm.utils import mdns
 
-# generate ssh factory which points to a given service
 def getShellFactory(service, **passwords):
+    """Generate ssh factory which points to a given service.
+    """
+    
     realm = manhole_ssh.TerminalRealm()
     def getManhole(_):
         namespace = {'service': service, '_': None }
