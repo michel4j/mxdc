@@ -11,6 +11,7 @@ from twisted.python import log
 from bcm.utils import mdns
 from bcm.utils.log import get_module_logger
 from bcm.utils.jsonrpc import ServiceProxy
+from bcm.service.base import BaseService
 
 import re
 from dpm.service import common
@@ -18,8 +19,10 @@ import gobject
 import os
 _logger = get_module_logger(__name__)
 
-class DPMClient(object):
+class DPMClient(BaseService):
     def __init__(self, address=None):
+        BaseService.__init__(self)
+        self.name = "AutoProcess"
         self._service_found = False
         self._ready = False
         if address is not None:
@@ -45,6 +48,7 @@ class DPMClient(object):
         self.factory.getRootObject().addCallback(self.on_dpm_connected).addErrback(self.dump_error)
         reactor.connectTCP(self._service_data['address'],
                            self._service_data['port'], self.factory)
+        self.set_state(active=True)
         
     def on_dpm_service_removed(self, obj, data):
         if not self._service_found and self._service_data['host']==data['host']:
@@ -53,6 +57,7 @@ class DPMClient(object):
         self._ready = False
         _logger.warning('DPM Service %s:%s disconnected.' % (self._service_data['host'], 
                                                                 self._service_data['port']))
+        self.set_state(active=False)
         
     def setup(self):
         """Find out the connection details of the DPM Server using mdns
@@ -91,8 +96,10 @@ class DPMClient(object):
         r = failure.trap(common.InvalidUser, common.CommandFailed)
         _logger.error('<%s -- %s>.' % (r, failure.getErrorMessage()))
 
-class LIMSClient(object):
+class LIMSClient(BaseService):
     def __init__(self, address=None):
+        BaseService.__init__(self)
+        self.name = "MxLIVE"
         self._service_found = False
         self._ready = False
         if address is not None:
@@ -131,8 +138,10 @@ class LIMSClient(object):
         try:                                
             self.service = ServiceProxy(address)
             self._ready = True
+            self.set_state(active=True)
         except IOError, e:
             self.on_connection_failed(e)
+            self.set_state(active=False)
         
     def on_lims_service_removed(self, obj, data):
         if not self._service_found and self._service_data['host']==data['host']:
@@ -140,6 +149,7 @@ class LIMSClient(object):
         self._service_found = False
         self._ready = False
         _logger.warning('LIMS Service disconnected.')
+        self.set_state(active=False)
         
     def setup(self):
         """Find out the connection details of the LIMS Server using mdns
