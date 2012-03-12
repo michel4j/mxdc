@@ -148,6 +148,9 @@ class ImgSyncService(service.Service):
 components.registerAdapter(ImgSyncResource, IImageSyncService, resource.IResource)
 
 class CommandProtocol(protocol.ProcessProtocol):
+    """Twisted protocol for running external commands to collect output, errors 
+    and return status asynchronously.
+    """
     
     def __init__(self, path):
         self.output = ''
@@ -174,6 +177,8 @@ class CommandProtocol(protocol.ProcessProtocol):
             self.deferred.errback(rc)
 
 def run_command(command, args, path='/tmp', uid=0, gid=0):
+    """Run an external or system command asynchronously.
+    """
     prot = CommandProtocol(path)
     prot.deferred = defer.Deferred()
     args = [command,] + args
@@ -188,7 +193,7 @@ def run_command(command, args, path='/tmp', uid=0, gid=0):
 
 
 class FileTailProducer(object):
-    """A pull producer that sends the tail contents of a file to a consumer.
+    """A pull producer that sends the tail contents of a file to any consumer.
     """
     implements(interfaces.IPushProducer)
     deferred = None
@@ -257,38 +262,15 @@ class FileTailProducer(object):
             self.deferred.errback(Exception("Consumer asked us to stop producing"))
             self.deferred = None
             
-class LogConsumer(object):
-    """
-    A consumer that writes data to a file.
-
-    @ivar fObj: a file object opened for writing, used to write data received.
-    @type fObj: C{file}
-    """
-
-    implements(interfaces.IConsumer)
-
-    def __init__(self, fObj):
-        self.fObj = fObj
-
-    def registerProducer(self, producer, streaming):
-        self.producer = producer
-        assert streaming
-        self.producer.resumeProducing()
-
-
-    def unregisterProducer(self):
-        self.producer = None
-        self.fObj.close()
-        
-    def write(self, bytes):
-        self.fObj.write(bytes)
 
 class ImgConsumer(object):
     """
-    A consumer that writes data to a file.
+    A consumer that consumes a stream of text corresponding to a list of files 
+    to transfer.
 
-    @ivar fObj: a file object opened for writing, used to write data received.
-    @type fObj: C{file}
+    The stream contains a list of image files one per line. The consumer makes 
+    a copy of the image file in the owner's home directory and also at a backup
+    location, setting the file ownsership permissions appropriately.
     """
 
     implements(interfaces.IConsumer)
@@ -296,16 +278,23 @@ class ImgConsumer(object):
         self.parent = parent
 
     def registerProducer(self, producer, streaming):
+        """Connect a stream producer to this consumer.        
+        """
+        
         self.producer = producer
         assert streaming
         self.producer.resumeProducing()
 
 
     def unregisterProducer(self):
+        """Disconnect a stream producer from this consumer.        
+        """
         self.producer = None
 
-    def write(self, bytes):
-        lines = bytes.split('\n')
+    def write(self, chunk):
+        """Consume a chunk of text obtained from the stream producer.        
+        """
+        lines = chunk.split('\n')
         my_match = re.compile('^([^ ]+\.img)$')
         for line in lines:
             tm = my_match.match(line)
@@ -329,7 +318,7 @@ class ImgConsumer(object):
                     user_res = run_command('/bin/cp',
                                           [img_path, user_file])
                     user_res.addCallback(cb)
-                    bkup_res = run_command('/bin/cp',
+                    run_command('/bin/cp',
                                           [img_path, bkup_file])
 
                     log.msg("New Frame '%s" % (user_file))
@@ -337,7 +326,13 @@ class ImgConsumer(object):
                 log.err()
         
 def img_selector(chunk):
-    lines = chunk.split('\n')
+    """A transformer which takes a piece of text and transforms it into a list 
+    of image files on behalf of a producer.
+    
+    This transformer is specific for MarCCD log files. It reads a chunk of data
+    from a MarCCD log file and returns a list of images collected.
+    """
+    
     img_patt = re.compile('.*byte frame written to file:\s+(?P<file>[^ ]+\.img)\s+.*\n')
     new_images = img_patt.findall(chunk)
     return '\n'.join(new_images)
