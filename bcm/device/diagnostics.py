@@ -119,3 +119,20 @@ class DeviceDiag(DiagnosticBase):
         else:
             _diag = (DIAG_STATUS_BAD, 'Not connected!')
         self._signal_status(*_diag)
+
+
+class ServiceDiag(DiagnosticBase):
+    
+    def __init__(self, device, descr=None):
+        if descr is None:
+            descr = device.name
+        DiagnosticBase.__init__(self, descr)
+        self.device = device
+        self.device.connect('active', self._on_active)
+        
+    def _on_active(self, obj, val):
+        if val:
+            _diag = (DIAG_STATUS_GOOD,'OK!')
+        else:
+            _diag = (DIAG_STATUS_BAD,'Not connected!')            
+        self._signal_status(*_diag)

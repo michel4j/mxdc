@@ -65,7 +65,8 @@ class MotorBase(BaseDevice):
 
     def _signal_enable(self, obj, val):
         if val == 0:
-            self.set_state(health=(16, 'disabled', 'Device disabled!'))
+            if not self.is_busy():
+                self.set_state(health=(16, 'disabled', 'Device disabled!'))
         else:
             self.set_state(health=(0, 'disabled'))
 
