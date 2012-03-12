@@ -79,7 +79,7 @@ class SampleManager(gtk.Frame):
         self.cryo_controller = CryojetWidget(self.beamline.cryojet)
         self.sample_picker = SamplePicker()
         
-        self.plotter = Plotter(xformat='%g', loop=True, buffer_size=600, dpi=72)
+        self.plotter = Plotter(xformat='%g', loop=True, buffer_size=1200, dpi=72)
 
         def _mk_lbl(txt):
             lbl = gtk.Label(txt)
@@ -103,8 +103,8 @@ class SampleManager(gtk.Frame):
             self.cryo_ntbk.append_page(self.plotter, tab_label=_mk_lbl('Humidity Control'))
             self.cryo_ntbk.connect('switch-page', self.on_tab_change)
             self.hc_viewer.connect('plot-changed', self.on_plot_change)
-            self.hc_viewer.connect('plot_paused', self.on_pause)
-            self.hc_viewer.connect('plot_cleared', self.on_clear)
+            self.hc_viewer.connect('plot-paused', self.on_pause)
+            self.hc_viewer.connect('plot-cleared', self.on_clear)
                 
             self.beamline.humidifier.connect('active', self.on_hc1_active)
         
@@ -240,11 +240,12 @@ class SampleManager(gtk.Frame):
     def plot_config(self, key):
         now = self.hc_data[key][-1][0]
         xlabels = []
-        tot = 4
+        tot = self.hc_viewer.xtime + 1
         for i in range(tot):
             minutes = ((now.minute + (i-(tot-1)) < 0) and now.minute + (i-(tot-1)) + 60) or (now.minute + (i-(tot-1))) 
             hours = ((minutes - (i-(tot-1)) > 59) and now.hour - 1) or (now.hour)
-            xlabels.append(datetime(now.year, now.month, now.day, hours, minutes, now.second))
+            time = ( tot > 10 and ( i % 2 and ' ' ) ) or datetime(now.year, now.month, now.day, hours, minutes, now.second)
+            xlabels.append(time)
         return (date2num(xlabels[0]), date2num(now), xlabels)
    
     def redraw_plot(self, widget=None, state=True):
@@ -283,7 +284,8 @@ class SampleManager(gtk.Frame):
             ydata.append(y)
         self.plotter.add_line(xdata, ydata, '%s-' % info.get('color'), info.get('title'), axis, redraw=False)
         self.plotter.axis[ax].yaxis.label.set_color(info.get('color'))
-        self.plotter.axis[ax].tick_params(axis='y', colors=info.get('color'))
+        for tl in self.plotter.axis[ax].get_yticklabels():
+            tl.set_color(info.get('color'))
         
     def plot_new_points(self, plot):
         if not self._plot_paused or self._plot_init:
@@ -295,7 +297,7 @@ class SampleManager(gtk.Frame):
             if plot == self.pname or plot == 'relhs':
                 ry = self.hc_data['relhs'][-1][2]
                 py = self.hc_data[self.pname][-1][2]
-                self.plotter.add_point(t, py, lin=0, redraw=False)
+                self.plotter.add_point(t, py, lin=0, redraw=False, resize=True)
                 self.plotter.add_point(t, ry, lin=1, redraw=False)
             
             # tweak formatting before drawing plots

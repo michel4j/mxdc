@@ -565,7 +565,7 @@ class SimStorageRing(BaseDevice):
                      (gobject.TYPE_BOOLEAN,)),
         }  
     
-    def __init__(self, name, pv1, pv2, pv3):
+    def __init__(self, name, pv1=None, pv2=None, pv3=None):
         BaseDevice.__init__(self)
         self.name = name
         self.message = 'Sim SR Testing!'
