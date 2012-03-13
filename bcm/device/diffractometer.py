@@ -9,15 +9,23 @@ from bcm.utils.log import get_module_logger
 _logger = get_module_logger(__name__)
 
 
-class DiffractometerError(Exception):
-
-    """Base class for errors in the diffractometer module."""
-
 class Diffractometer(BaseDevice):
-
+    """A Container device object which groups a detector distance and detector
+    swing-out.
+    """
+    
     implements(IDiffractometer)
     
     def __init__(self, distance, two_theta, name='Diffractometer'):
+        """Args:
+            `distance` (class::`interfaces.IMotor` provider): device which controls
+            the detector distance.
+            `two_theta` (class::`interfaces.IMotor` provider): device which controls
+            the detector swing-out angle.
+        
+        Kwargs:
+            `name` (str): The name of the device group.
+        """
         BaseDevice.__init__(self)
         self.name = name
         self.distance  = distance
@@ -25,10 +33,12 @@ class Diffractometer(BaseDevice):
         self.add_devices(distance, two_theta)
                                             
     def wait(self):
+        """Wait for both child devices to finish moving."""
         self.distance.wait()
         self.two_theta.wait()
 
     def stop(self):
+        """Stop both child devices."""
         self.distance.stop()
         self.two_theta.stop()
 
