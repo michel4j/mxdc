@@ -22,13 +22,13 @@ _logger = get_module_logger(__name__)
 class DPMClient(BaseService):
     def __init__(self, address=None):
         BaseService.__init__(self)
-        self.name = "AutoProcess"
+        self.name = "AutoProcess Service"
         self._service_found = False
         self._ready = False
         if address is not None:
             m = re.match('([\w.\-_]+):(\d+)', address)
             if m:
-                data = {'name': 'DPM Service',
+                data = {'name': 'AutoProcess Service',
                         'host': m.group(1),
                         'address': m.group(1),
                         'port': int(m.group(2)),
@@ -42,25 +42,24 @@ class DPMClient(BaseService):
             return
         self._service_found = True
         self._service_data = data
-        _logger.info('DPM Service found at %s:%s' % (self._service_data['host'], 
+        _logger.info('AutoProcess Service found at %s:%s' % (self._service_data['host'], 
                                                                 self._service_data['port']))
         self.factory = pb.PBClientFactory()
         self.factory.getRootObject().addCallback(self.on_dpm_connected).addErrback(self.dump_error)
         reactor.connectTCP(self._service_data['address'],
                            self._service_data['port'], self.factory)
-        self.set_state(active=True)
         
     def on_dpm_service_removed(self, obj, data):
         if not self._service_found and self._service_data['host']==data['host']:
             return
         self._service_found = False
         self._ready = False
-        _logger.warning('DPM Service %s:%s disconnected.' % (self._service_data['host'], 
+        _logger.warning('AutoProcess Service %s:%s disconnected.' % (self._service_data['host'], 
                                                                 self._service_data['port']))
         self.set_state(active=False)
         
     def setup(self):
-        """Find out the connection details of the DPM Server using mdns
+        """Find out the connection details of the AutoProcess Server using mdns
         and initiate a connection"""
         import time
         _service_data = {'user': os.getlogin(), 
@@ -72,16 +71,16 @@ class DPMClient(BaseService):
         self.browser.connect('removed', self.on_dpm_service_removed)
         
     def on_dpm_connected(self, perspective):
-        """ I am called when a connection to the DPM Server has been established.
+        """ I am called when a connection to the AutoProcess Server has been established.
         I expect to receive a remote perspective which will be used to call remote methods
         on the DPM server."""
-        _logger.info('Connection to DPM Server established')
-        self.service = perspective
-        
+        _logger.info('Connection to AutoProcess Server established')
+        self.service = perspective        
         self._ready = True
+        self.set_state(active=True)
 
     def on_connection_failed(self, reason):
-        _logger.error('Could not connect to DPM Server: %', reason)
+        _logger.error('Could not connect to AutoProcess Server: %', reason)
     
     def is_ready(self):
         return self._ready
@@ -99,7 +98,7 @@ class DPMClient(BaseService):
 class LIMSClient(BaseService):
     def __init__(self, address=None):
         BaseService.__init__(self)
-        self.name = "MxLIVE"
+        self.name = "MxLIVE Service"
         self._service_found = False
         self._ready = False
         if address is not None:
@@ -134,7 +133,7 @@ class LIMSClient(BaseService):
         address = '%s://%s:%s%s/' % (protocol, self._service_data['host'], 
                                     self._service_data['port'],
                                     self._service_data['data']['path'])
-        _logger.info('LIMS Service found at %s' % (address))
+        _logger.info('MxLIVE Service found at %s' % (address))
         try:                                
             self.service = ServiceProxy(address)
             self._ready = True
@@ -148,18 +147,18 @@ class LIMSClient(BaseService):
             return
         self._service_found = False
         self._ready = False
-        _logger.warning('LIMS Service disconnected.')
+        _logger.warning('M Service disconnected.')
         self.set_state(active=False)
         
     def setup(self):
-        """Find out the connection details of the LIMS Server using mdns
+        """Find out the connection details of the MxLIVE Server using mdns
         and initiate a connection"""
         self.browser = mdns.Browser('_cmcf_lims._tcp')
         self.browser.connect('added', self.on_lims_service_added)
         self.browser.connect('removed', self.on_lims_service_removed)
         
     def on_connection_failed(self, reason):
-        _logger.error('Could not connect to LIMS Service: %', reason)
+        _logger.error('Could not connect to MxLIVE Service: %', reason)
     
     def is_ready(self):
         return self._ready
