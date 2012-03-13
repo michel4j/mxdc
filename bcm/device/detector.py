@@ -16,18 +16,25 @@ from bcm.utils.log import get_module_logger
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
-WAIT_DELAY = 0.02
-
-class DetectorError(Exception):
-
-    """Base class for errors in the detector module."""
-            
+WAIT_DELAY = 0.02            
      
 class MXCCDImager(BaseDevice):
-    
+    """MX Detector object for EPICS based Rayonix CCD detectors at the CLS."""
     implements(IImagingDetector)
     
     def __init__(self, name, size, resolution, detector_type='MX300'):
+        """
+        Args:
+            `name` (str): Root name of the EPICS record Process Variables.
+            `size` (int): The size in pixels of the detector. Assumes square 
+            detectors.
+            `resolueion` (float): The pixel size in 
+        
+        Kwargs:
+            `detector_type` (str): The type of detector. e.g. "MX300" for Rayonix
+            MX CCD 300.
+        """
+             
         BaseDevice.__init__(self)
         self.size = int(size)
         self.resolution = float(resolution)
@@ -46,8 +53,7 @@ class MXCCDImager(BaseDevice):
         self._readout_flag = self.add_pv("%s:readout:flag" % name, monitor=False)
         self._dezinger_flag = self.add_pv("%s:dez:flag" % name, monitor=False)
         self._dezinger_cmd = self.add_pv("%s:dezinger:cmd" % name, monitor=False)
-        self._connection_state = self.add_pv('%s:sock:state'% name)
-        
+        self._connection_state = self.add_pv('%s:sock:state' % name)       
         
         #Header parameters
         self._header = {
@@ -63,8 +69,8 @@ class MXCCDImager(BaseDevice):
             'frame_number': self.add_pv("%s:startFrame" % name, monitor=False),
             'name' : self.add_pv("%s:img:prefix" % name, monitor=False),
             'start_angle': self.add_pv("%s:start:omega" % name, monitor=False),
-            'energy': self.add_pv("%s:runEnergy" % name, monitor=False),       
-            'comments': self.add_pv('%s:dataset:cmnts'% name, monitor=False),
+            'energy': self.add_pv("%s:runEnergy" % name, monitor=False),
+            'comments': self.add_pv('%s:dataset:cmnts' % name, monitor=False),
         }
                 
         #Status parameters
@@ -77,17 +83,103 @@ class MXCCDImager(BaseDevice):
         
         self._state.connect('changed', self._on_state_change)
         self._connection_state.connect('changed', self._update_background)
-
-    def __repr__(self):
-        return "<%s:'%s', state:'%s'>" % (self.__class__.__name__, self.name, self.get_state() )
     
     def initialize(self, wait=True):
+        """Initialize the detector and take background images if necessary. This
+        method does not do anything if the device is already initialized.
+        
+        Kwargs:
+            `wait` (bool): If true, the call will block until initialization is
+            complete.
+        """
         if not self._bg_taken:
             _logger.debug('(%s) Initializing CCD ...' % (self.name,))
-            self.take_background()
+            self._take_background()
             self._bg_taken = True
     
-    def take_background(self):
+    def start(self, first=False):
+        """Start acquiring.
+        
+        Kwargs:
+            `first` (bool): Specifies whether this is the first of a series of
+            acquisitions. This is used to customize the behaviour for the first.
+        """
+        self.initialize(True)
+        if not first:
+            self._wait_in_state('acquire:queue')
+            self._wait_in_state('acquire:exec')
+            #self._wait_for_state('correct:exec')
+        _logger.debug('(%s) Starting CCD acquire ...' % (self.name,))
+        self._start_cmd.put(1)
+        self._wait_for_state('acquire:exec')
+
+    def stop(self):
+        """Stop and Abort the current acquisition."""
+        _logger.debug('(%s) Stopping CCD ...' % (self.name,))
+        self._abort_cmd.put(1)
+        ca.flush()
+        self._wait_for_state('idle')
+        
+    def save(self, wait=False):
+        """Save the current buffers according to the current parameters.
+        
+        Kwargs:
+            `wait` (bool): If true, the call will block until the save operation
+            is complete.
+        """
+        
+        _logger.debug('(%s) Starting CCD readout ...' % (self.name,))
+        self._readout_flag.put(0)
+        ca.flush()
+        self._save_cmd.put(1)
+        if wait:
+            self._wait_for_state('read:exec')
+            
+    def get_origin(self):
+        """Obtain the detector origin/beam position in pixels.
+        
+        Returns:
+            tuple(x, y) corresponding to the beam-x and beam-y coordinates.
+        """
+        return self._header['beam_x'].get(), self._header['beam_y'].get()
+    
+    
+    def wait(self, state='idle'):
+        """Wait until the detector reaches a given state.
+        
+        Kwargs:
+            `state` (str): The state to wait for. Default 'idle'.
+        """
+        self._wait_for_state(state,timeout=10.0)
+                                     
+    def set_parameters(self, data):
+        """Set the detector parameters for the image header and file names.
+        
+        Args:
+            `data` (dict): A dictionary of key value pairs for the parameters.
+            supported parameters are:
+            
+                - `filename` (str), Output file name of the image.
+                - `directory` (str), Directory name to store image.  
+                - `beam_x` (int), Detector X-origin in pixels.  
+                - `beam_y` (int), Detector Y-origin in pixels.
+                - `distance` (float), Detector distance in mm.
+                - `exposure_time` , Exposure time in seconds.
+                - `axis` (str), Spindle rotation axis.
+                - `wavelength` (float),  Wavelength of radiation in Angstroms.
+                - `delta_angle` (float), Delta oscillation angle in deg.
+                - `frame_number` (int), Frame number.
+                - `name` (str), File name prefix for the image.
+                - `start_angle` (float), Starting spindle position of image in deg.
+                - `energy` (float), Wavelength of radiation in KeV.
+                - `comments` (str), File comments.
+                         
+        """
+        for key in data.keys():
+            self._header[key].set(data[key])                
+        self._header_cmd.put(1)
+    
+    def _take_background(self):
         _logger.debug('(%s) Taking a dezingered bias frame ...' % (self.name,)) 
         self.stop()
         self._start_cmd.put(1)     
@@ -106,53 +198,10 @@ class MXCCDImager(BaseDevice):
         self._dezinger_cmd.put(1)
         self._wait_for_state('dezinger:queue')
              
-    def start(self, first=False):
-        self.initialize(True)
-        if not first:
-            self._wait_in_state('acquire:queue')
-            self._wait_in_state('acquire:exec')
-            #self._wait_for_state('correct:exec')
-        else:
-            pass
-            #self.take_background()
-        _logger.debug('(%s) Starting CCD acquire ...' % (self.name,))
-        self._start_cmd.put(1)
-        self._wait_for_state('acquire:exec')
-
-    def stop(self):
-        _logger.debug('(%s) Stopping CCD ...' % (self.name,))
-        self._abort_cmd.put(1)
-        ca.flush()
-        self._wait_for_state('idle')
-        
-    def save(self, wait=False):
-        _logger.debug('(%s) Starting CCD readout ...' % (self.name,))
-        self._readout_flag.put(0)
-        ca.flush()
-        self._save_cmd.put(1)
-        if wait:
-            self._wait_for_state('read:exec')
-            
-    def get_origin(self):
-        return self._header['beam_x'].get(), self._header['beam_y'].get()
-    
-    def get_state(self):
-        return self._state_list[:]
-    
-    def wait(self, state='idle'):
-        self._wait_for_state(state,timeout=10.0)
-                
     def _update_background(self, obj, state):
         if state == 1:
             self._bg_taken = False
-                      
-    def set_parameters(self, data):
-        for key in data.keys():
-            #print key, data[key], self._header[key]
-            self._header[key].set(data[key])    
-            
-        self._header_cmd.put(1)
-    
+
     def _on_state_change(self, pv, val):
         _state_string = "%08x" % val
         states = []
@@ -188,7 +237,7 @@ class MXCCDImager(BaseDevice):
         return True
         
     def _is_in_state(self, state):
-        if state in self.get_state():
+        if state in self._state_list[:]:
             return True
         else:
             return False
@@ -217,10 +266,7 @@ class SimCCDImager(BaseDevice):
             self._src_dir = _src_dir1
             self._num_frames = 2
         self.set_state(active=True)
-    
-    def __repr__(self):
-        return "<%s:'%s', state:'%s'>" % (self.__class__.__name__, self.name, self.get_state() )
-    
+        
     def initialize(self, wait=True):
         _logger.debug('(%s) Initializing CCD ...' % (self.name,)) 
         time.sleep(0.1)
@@ -251,10 +297,7 @@ class SimCCDImager(BaseDevice):
         
     def save(self, wait=False):
         self._copy_frame()
-        
-    def get_state(self):
-        return ['idle']
-    
+            
     def wait(self, state='idle'):
         time.sleep(0.1)
                                       

@@ -1,17 +1,3 @@
-r""" Counter Device objects
-
-A counter device enables counting and averaging over given time periods.
-
-Each Counter device obeys the following interface:
-
-    methods:
-    
-    count(time)
-        count for the specified amount of time and return the numeric value
-        corresponding to the average count. This method blocks for the specified 
-        time.
-    
-"""
 import time
 import numpy
 import os
@@ -25,16 +11,25 @@ from bcm.utils.log import get_module_logger
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
-class CounterError(Exception):
-
-    """Base class for errors in the counter module."""
-
 
 class Counter(BaseDevice):
+    """EPICS based Counter Device objects. Enables counting and averaging of 
+    process variables over given time periods.
+    """
 
     implements(ICounter)
     
-    def __init__(self, pv_name, zero=0):
+    def __init__(self, pv_name, zero=0.0):
+        """        
+        Args:
+            pv_name (str): Process Variable name.
+        
+        Kwargs:
+            zero (float):  Zero offset value. Defaults to 0.0;
+        
+        Returns
+            float. The average process variable value during the count time.            
+        """
         BaseDevice.__init__(self)
         self.name = pv_name
         self.zero = float(zero)
@@ -47,6 +42,17 @@ class Counter(BaseDevice):
             self.name = val
     
     def count(self, t):
+        """Count for the specified amount of time and return the numeric value
+        corresponding to the average count. This method blocks for the specified 
+        time.
+        
+        Args:
+            t (float): averaging time in seconds.
+        
+        Returns
+            float. The average process variable value during the count time.            
+        """
+        
         if t <= 0.0:
             return self.value.get() - self.zero
             
@@ -65,11 +71,26 @@ class Counter(BaseDevice):
 
 
 class SimCounter(BaseDevice):
+    """Simulated Counter Device objects. Optionally reads from external file.
+    """
     
     SIM_COUNTER_DATA = numpy.loadtxt(os.path.join(os.path.dirname(__file__),'data','simcounter.dat'))
     implements(ICounter)
     
-    def __init__(self, name, zero=1.0, real=1):
+    def __init__(self, name, zero=1.0, real=True):
+        """        
+        Args:
+            name (str): Device Name.
+        
+        Kwargs:
+            zero (float):  Zero offset value. Defaults to 1.0;
+            real (bool): Whether to read from a file for more realistic values.
+        
+        Returns
+            float. If reading from a file (default), the value loops through and
+            cycles back at the end. Otherwise it alwas returns the zero value.            
+        """
+        
         BaseDevice.__init__(self)
         from bcm.device.misc import SimPositioner
         self.zero = float(zero)
@@ -84,6 +105,17 @@ class SimCounter(BaseDevice):
         return s
     
     def count(self, t):
+        """Count for the specified amount of time and return the numeric value
+        corresponding to the average count. This method blocks for the specified 
+        time.
+        
+        Args:
+            t (float): averaging time in seconds.
+        
+        Returns
+            float. The average process variable value during the count time.            
+        """
+        
         time.sleep(t)
         i,j = divmod(self._counter_position, self.SIM_COUNTER_DATA.shape[0])
         self._counter_position += 1

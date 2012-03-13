@@ -6,13 +6,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Beamline &mdash; Beamline Control Module v4.0.171-g929974f documentation</title>
+    <title>Beamline &mdash; Beamline Control Module v4.0.185-g20fd45f documentation</title>
     <link rel="stylesheet" href="../_static/jinja.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '4.0.171-g929974f',
+        VERSION:     '4.0.185-g20fd45f',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -21,10 +21,10 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="Beamline Control Module v4.0.171-g929974f documentation" href="../index.html" />
+    <link rel="top" title="Beamline Control Module v4.0.185-g20fd45f documentation" href="../index.html" />
     <link rel="up" title="API documentation" href="index.html" />
     <link rel="next" title="&lt;no title&gt;" href="protocols.html" />
-    <link rel="prev" title="&lt;no title&gt;" href="engines.html" /> 
+    <link rel="prev" title="Engines" href="engines.html" /> 
   </head>
   <body>
     <div class="related">
@@ -40,9 +40,9 @@
           <a href="protocols.html" title="&lt;no title&gt;"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="engines.html" title="&lt;no title&gt;"
+          <a href="engines.html" title="Engines"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Beamline Control Module v4.0.171-g929974f documentation</a> &raquo;</li>
+        <li><a href="../index.html">Beamline Control Module v4.0.185-g20fd45f documentation</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">API documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -65,10 +65,12 @@
 </div>
 <div class="section" id="module-bcm.beamline.mx">
 <span id="mx-beamline"></span><h2>MX Beamline<a class="headerlink" href="#module-bcm.beamline.mx" title="Permalink to this headline">¶</a></h2>
-<p>MX Beamline(Macromolecular Crystallography Beamline) objects</p>
-<p>This module creates MXBeamline objects (class MXBeamline) from a python
-configuration file
-file. The configuration file is loaded as a python module and follows the 
+<dl class="class">
+<dt>
+<em class="property">class </em><tt class="descclassname">bcm.beamline.mx.</tt><tt class="descname">MXBeamline</tt><big>(</big><em>console=False</em><big>)</big></dt>
+<dd><p>MX Beamline(Macromolecular Crystallography Beamline) objects</p>
+<p>Initializes a MXBeamline object from a python configuration file. The 
+configuration file is loaded as a python module and follows the 
 following conventions:</p>
 <blockquote>
 <div><ul>
@@ -114,14 +116,10 @@ in which they have to be opened.</p>
 </li>
 </ul>
 </div></blockquote>
-<dl class="class">
-<dt>
-<em class="property">class </em><tt class="descclassname">bcm.beamline.mx.</tt><tt class="descname">MXBeamline</tt><big>(</big><em>console=False</em><big>)</big></dt>
-<dd><p>An MX Beamline</p>
 <dl class="method">
 <dt>
 <tt class="descclassname">MXBeamline.</tt><tt class="descname">setup</tt><big>(</big><big>)</big></dt>
-<dd><p>Set up and register the beamline devices.</p>
+<dd><p>Setup and register the beamline devices from configuration files.</p>
 </dd></dl>
 
 </dd></dl>
@@ -163,7 +161,7 @@ in which they have to be opened.</p>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
   <li><a href="index.html">API documentation</a><ul>
-      <li>Previous: <a href="engines.html" title="previous chapter">&lt;no title&gt;</a></li>
+      <li>Previous: <a href="engines.html" title="previous chapter">Engines</a></li>
       <li>Next: <a href="protocols.html" title="next chapter">&lt;no title&gt;</a></li>
   </ul></li>
   </ul></li>
