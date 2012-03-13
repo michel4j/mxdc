@@ -1,37 +1,7 @@
-r""" Automounter Device objects
+#===============================================================================
+# Automounter Classes
+#===============================================================================
 
-An automounter object is an event driven ``GObject`` which contains a number of Automounter Containers.
-
-Each Automounter device obeys the following interface:
-    signals:
-    
-    `state`:
-        a signal which transmits changes in automounter states. The 
-        The signal data is a dictionary with three entries as follows:
-        {'busy': <boolean>, 'enabled': <boolean>, 'needs':[<str1>,<str2>,...]}
-    `message`: 
-        a signal which emits messages from the Automounter
-    `mounted`: 
-        a signal emitted when a sample is mounted or dismounted. The data transmitted
-        is a tuple of the form (<port no.>, <barcode>) when mounting and ``None`` when dismounting.
-    `progress`:
-        notifies listeners of automounter progress. Transmitted data is a tuple of the form
-        (<% complete>, <description>)
-    
-    methods:
-        
-    probe(probe_string)
-        command the automounter the probe for containers and port states as specified by the DCSS compatible
-        probe string provided.
-    
-    mount(port, wash=False)
-        mount the sample at the specified port, optionally washing the sample in the process.
-    
-    dismount(port=None)
-        dismount the sample into the specified port if provided, otherwise dismount 
-        it to the original port from which it was mounted. 
-    
-"""
 from zope.interface import implements
 from bcm.device.interfaces import IAutomounter
 from bcm.protocol import ca
@@ -45,32 +15,28 @@ import re
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
-_TEST_STATE = '31uuuuuuuuuujuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu---\
------------------------------01uuuuuuuuuuuumuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu\
-uuuuuuuuuuuuuuuu0uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu20------uu------uu------\
-uu------uu------uu------uu------uu------uu------uu------uu------uu------u'
-_TEST_STATE2 = '31uuu00000uuj11u1uuuuuuuuuuuuuuuu111111uuuuuuuuuuuuuuuuuuuuuuuuuu---\
------------------------------41uuuuuuuuuuuumuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu\
-uuuuuuuuuuuuuuuu0uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu20------uu------uu------\
-uu------uu------uu------uu------uu------uu------uu------uu------uu------u'
 
 
 class AutomounterContainer(gobject.GObject):
     """An event driven object for representing an automounter container.
     
-    Signals:
-         `changed`: Emits the `changed` GObject signal when the state of the container changes.
+    **Signals**:
+        - `changed`: Emitted when the state of the container changes. Transmits
+          no data.
     """
     __gsignals__ = {
         'changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
     }
     def __init__(self, location, status_str=None):
-        """ Create a container at the specified `location` in the Automounter, where
-        the location is a single character string from the set ('L', 'R', 'M') corresponding
-        to 'Left', 'Right', 'Middle'.
+        """ Create a container at the specified location in the Automounter.
         
-        Optionally also takes in a status string which is a BLU-Ice compatible string specifying
-        the type and complete state of the container.
+        Args:
+            location (str): a single character string ('L', 'R' or 'M') 
+            corresponding to 'Left', 'Right', 'Middle'.
+        
+        Kwargs:
+            status_str (str or None): status string to update container with.
+        
         """
         
         gobject.GObject.__init__(self)
@@ -79,8 +45,12 @@ class AutomounterContainer(gobject.GObject):
         self.configure(status_str)
     
     def configure(self, status_str=None):
-        """This method sets up the container type and state from a status string.
-        If no status string is provided, it resets the container to the 'unknown' state.
+        """Sets up the container type and state from a status string.
+        If no status string is provided, it is rest the 'unknown' state.
+        
+        Kwargs:
+            status_str (str or None): status string to update with.
+            
         """
         if status_str is not None and len(status_str)>0:
             if status_str[0] == 'u':
@@ -117,15 +87,21 @@ class AutomounterContainer(gobject.GObject):
                     
 
 class BasicAutomounter(BaseDevice):
-    """Basic Automounter objects. Contains a number of Automounter Containers.
+    """Basic Automounter object. 
+
+    An automounter object contains a number of AutomounterContainers.
     
-    Signals:
-        `state`:
-            a signal which transmits changes in automounter states. The 
-            The signal data is a string
-        `mounted`: 
-            a signal emitted when a sample is mounted. The data transmitted
-            is a tuple of the form (<port no.>, <barcode>) when mounting and ``None`` when dismounting. 
+    Signals:        
+        - `state`: transmits changes in automounter states. The signal data is 
+           a dictionary with three entries {'busy': <boolean>, 
+           'enabled': <boolean>, 'needs':[<str>,<str>,...]}.
+        - `message`: messages from the Automounter
+        - `mounted`: emitted when a sample is mounted or dismounted. The data 
+           transmitted is a tuple of the form (<port no.>, <barcode>) when 
+           mounting and `None` when dismounting.
+        - `progress`:  notifies listeners of automounter progress. Data is a 
+           tuple of the form (<% complete>, <description>).
+            
     """
     implements(IAutomounter)
     __gsignals__ = {
@@ -146,13 +122,13 @@ class BasicAutomounter(BaseDevice):
         self._last_warn = ''
         self.set_state(active=False, enabled=False)
         self._command_sent = False    
-
-    def is_enabled(self):
-        return self.enabled_state
     
-    def parse_states(self, state):
+    def _parse_states(self, state):
         """This method sets up all the container types and states from a DCSS type status string.
         If no status string.
+        
+        Args:
+            state (str): State string for container.
         """        
         fbstr = ''.join(state.split())
         info = {
@@ -163,18 +139,49 @@ class BasicAutomounter(BaseDevice):
             self.containers[k].configure(s)
     
     def abort(self):
-        pass
+        """Abort all actions."""
         
     def probe(self):
+        """Command the automounter the probe for containers and port states."""
         pass
     
     def mount(self, port, wash=False, wait=False):
+        """Mount the sample at the specified port, optionally washing the sample
+        in the process.
+        
+        Args:
+            port (str): Address to mount.
+        
+        Kwargs:
+            wash (bool): Whether to wash or not (default is False)
+            wait (bool): Run asynchronously or block (default is async, False)
+        """
         pass
     
-    def dismount(self, port, wait=False):
+    def dismount(self, port=None, wait=False):
+        """Dismount the sample into the specified port if provided, otherwise 
+        dismount it to the original port from which it was mounted.
+        
+        Kwargs:
+            port (str): Destination address to dismount to, default is original
+                port
+            wait (bool): Run asynchronously or block (default is async, False)
+        """
         pass
     
     def wait(self, start=True, stop=True, timeout=240):
+        """Wait for the automounter
+        
+        Kwargs:
+            start (bool): Wait for automounter to start.
+            stop (bool): Wait for automounter to stop.
+            timeout (int): Maximum time to wait
+        
+        Returns:
+            True if the wait was successful.
+            False if the wait timed-out.
+            
+        """
         poll=0.20
         if (start and self._command_sent and not self.is_busy()):
             _logger.debug('Waiting for (%s) to start' % (self.name,))
@@ -196,11 +203,17 @@ class BasicAutomounter(BaseDevice):
         return True
     
     def is_mountable(self, port):
-        """Returns true if the specified port can be mounted without issues.
-        Does not guarantee that the port is actually mountable, only that the
-        the port was marked as mountable since the last probe operation."""
+        """Check if a sample location can be mounted safely. Does not guarantee
+        that the port is actually mountable, only that the the port was marked 
+        as mountable during the last probe operation.
         
-        #if not re.match('[RML][ABCD]\d{1,2}', port):
+        Args:
+            port (str): The sample location to check.
+        
+        Returns:
+            True or False.
+        """
+        
         if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
             return False
         info = self.containers[port[0]][port[1:]]
@@ -210,8 +223,16 @@ class BasicAutomounter(BaseDevice):
             return info[0] in [PORT_GOOD, PORT_MOUNTED, PORT_UNKNOWN]
     
     def is_mounted(self, port=None):
-        """Returns true if the specified port is currently mounted. If no port is
-        specified, return true if any port is mounted."""
+        """Check if any sample or a specific sample location is currently 
+        mounted. 
+        
+        Kwargs:
+            port (str): The sample location to check.
+            
+        Returns:
+            True if a port is specified and is mounted or if no port is 
+            specified and any sample is mounted. False otherwise.
+        """
         
         if port is None:
             return self._mounted_port != None
@@ -230,7 +251,21 @@ class BasicAutomounter(BaseDevice):
             return port_state == PORT_MOUNTED
     
     def get_port_state(self, port):
-        """Returns the current state of the specified port."""
+        """Obtain the detailed state of the specified sample location.
+        
+        Args:
+            port (str): The sample location
+        
+        Returns:
+            int. one of::
+            
+                0 -- PORT_EMPTY
+                1 -- PORT_GOOD
+                2 -- PORT_UNKNOWN
+                3 -- PORT_MOUNTED
+                4 -- PORT_JAMMED
+                5 -- PORT_NONE
+        """
         if not self.active_state:
             return PORT_UNKNOWN
 
@@ -243,94 +278,13 @@ class BasicAutomounter(BaseDevice):
             except AttributeError:
                 port_state = PORT_UNKNOWN
             return port_state
-        
-       
-class SimAutomounter(BasicAutomounter):        
-    def __init__(self):
-        BasicAutomounter.__init__(self)
-        self.parse_states(_TEST_STATE2)
-        from bcm.device.misc import SimPositioner
-        self.nitrogen_level = SimPositioner('Automounter Cryogen Level', 80.0, '%')
-        self.set_state(active=True)
 
 
-    
-    def _sim_mount_done(self, port=None):
-        self.set_state(busy=False, enabled=True, message="Sample mounted", mounted=(port,''))
-        self._mounted_port = port
-
-    def _sim_dismount_done(self):
-        self.set_state(busy=False, enabled=True, message="Sample dismounted", mounted=None)
-        self._mounted_port = None
-
-    def _sim_mount_start(self, port=None):
-        if port is None:
-            msg = 'Dismounting crystal'
-        else:
-            msg = 'Mounting sample at %s' % port
-        self.set_state(busy=True, message=msg)
-                         
-    def mount(self, port, wash=False, wait=False):
-        if self.is_busy():
-            return False
-        self._sim_mount_start(port)
-        gobject.timeout_add(5000, self._sim_mount_done, port)
-        self._command_sent = True
-        if wait:
-            return self.wait(start=True, stop=True)
-        return True
-    
-    def dismount(self, port=None, wait=False):
-        if self.busy_state:
-            return False
-        if self._mounted_port is not None:
-            self._sim_mount_start(None)
-            gobject.timeout_add(10000, self._sim_dismount_done)
-        self._command_sent = True
-        if wait:
-            return self.wait(start=True, stop=True)
-        return True
-                       
-
-    def probe(self):
-        pass
-
-    def is_mounted(self, port=None):
-        if port is None:
-            return self.mounted_state is not None
-        if self.mounted_state is None:
-            return False
-        else:
-            return self.mounted_state[0] == port
-        
-def _format_error_string(need_list):
-    nd_dict = {
-        'calib': 'calibration',
-        'inspect': 'inspection',
-        'action': 'action'
-    }
-    needs = []
-    calib = []
-    for t in need_list:
-        ts = t.split(':') 
-        if len(ts)>1:
-            if ts[0] == 'calib':
-                calib.append(ts[1])
-            else:
-                needs.append(ts[1] +' '+ nd_dict[ts[0]])
-        else:
-            needs.append(t)
-    if len(calib) > 0:
-        needs.append('calibration')
-    if len(needs) > 0:
-        needs_txt = 'Needs ' + ', '.join(needs)
-    else:
-        needs_txt = ''
-    return needs_txt
-
-
-   
 class Automounter(BasicAutomounter):
+    """EPICS Based SAM Automounter object. 
+
+    """
+    
     def __init__(self, pv_name, pv_name2=None):
         BasicAutomounter.__init__(self)
         self.name = 'SAM Automounter'
@@ -362,7 +316,7 @@ class Automounter(BasicAutomounter):
         self._sample_busy = self.add_pv('%s:sample:sts' % pv_name)
         self._probe_param = self.add_pv('%s:probe:wvParam' % pv_name)
         
-        self.port_states.connect('changed', lambda x, y: self.parse_states(y))
+        self.port_states.connect('changed', lambda x, y: self._parse_states(y))
         
         #Detailed Status
         self._gonio_safe = self.add_pv('%s:goniPos:mntEn' % pv_name)
@@ -382,12 +336,14 @@ class Automounter(BasicAutomounter):
         
         
     def abort(self):
+        """Abort all actions."""
         self._abort_cmd.put(1)
         ca.flush()
         self._abort_cmd.put(0)
      
     def probe(self):
-        probe_str = '1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1'
+        """Command the automounter the probe for containers and port states."""
+        probe_str = ('1 '*291).strip()  #DCSS probe string
         self._probe_param.set(probe_str)
         enabled = self._wait_for_enable(30)
         if not enabled:
@@ -397,19 +353,17 @@ class Automounter(BasicAutomounter):
         ca.flush()
         self._probe_cmd.put(0)
     
-    def _set_steps(self, steps):
-        self._total_steps = steps
-
-    def _wait_for_enable(self, timeout=60):
-        while not self.is_enabled() and timeout > 0:
-            timeout -= 0.05
-            time.sleep(0.05)
-        if timeout <= 0:
-            return False
-        else:
-            return True
-        
     def mount(self, port, wash=False, wait=False):
+        """Mount the sample at the specified port, optionally washing the sample
+        in the process.
+        
+        Args:
+            port (str): Address to mount.
+        
+        Kwargs:
+            wash (bool): Whether to wash or not (default is False)
+            wait (bool): Run asynchronously or block (default is async, False)
+        """
         enabled = self._wait_for_enable(30)
         if not enabled:
             _logger.warning('(%s) command received while disabled. Timed out waiting for enabled state.' % self.name)
@@ -447,6 +401,14 @@ class Automounter(BasicAutomounter):
         
     
     def dismount(self, port=None, wait=False):
+        """Dismount the sample into the specified port if provided, otherwise 
+        dismount it to the original port from which it was mounted.
+        
+        Kwargs:
+            port (str): Destination address to dismount to, default is original
+                port
+            wait (bool): Run asynchronously or block (default is async, False)
+        """
         enabled = self._wait_for_enable(30)
         if not enabled:
             _logger.warning('(%s) command received while disabled. Timed out waiting for enabled state.' % self.name)
@@ -477,6 +439,17 @@ class Automounter(BasicAutomounter):
             return self.wait(start=True, stop=True, timeout=240)
         return True
     
+    def _set_steps(self, steps):
+        self._total_steps = steps
+
+    def _wait_for_enable(self, timeout=60):
+        while not self.is_enabled() and timeout > 0:
+            timeout -= 0.05
+            time.sleep(0.05)
+        if timeout <= 0:
+            return False
+        else:
+            return True       
                     
     def _report_progress(self, msg=""):
         prog = 0.0
@@ -556,13 +529,7 @@ class Automounter(BasicAutomounter):
             self._tool_pos = val
 
 class ManualMounter(BasicAutomounter):
-    """Basic Automounter objects. Contains a number of Automounter Containers.
-    
-    Signals:
-        `mounted`: 
-            a signal emitted when a sample is mounted. The data transmitted
-            is a tuple of the form (<port no.>, <barcode>) when mounting and ``None`` when dismounting. 
-    """
+    """Manual Mounter objects."""
     
     def __init__(self):
         BasicAutomounter.__init__(self)
@@ -573,4 +540,97 @@ class ManualMounter(BasicAutomounter):
     
     def dismount(self, state):
         self.set_state(mounted=None)
+        
+
+_TEST_STATE = '31uuuuuuuuuujuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu---\
+-----------------------------01uuuuuuuuuuuumuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu\
+uuuuuuuuuuuuuuuu0uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu20------uu------uu------\
+uu------uu------uu------uu------uu------uu------uu------uu------uu------u'
+_TEST_STATE2 = '31uuu00000uuj11u1uuuuuuuuuuuuuuuu111111uuuuuuuuuuuuuuuuuuuuuuuuuu---\
+-----------------------------41uuuuuuuuuuuumuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu\
+uuuuuuuuuuuuuuuu0uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu20------uu------uu------\
+uu------uu------uu------uu------uu------uu------uu------uu------uu------u'
+
+       
+class SimAutomounter(BasicAutomounter):        
+    def __init__(self):
+        BasicAutomounter.__init__(self)
+        self._parse_states(_TEST_STATE2)
+        from bcm.device.misc import SimPositioner
+        self.nitrogen_level = SimPositioner('Automounter Cryogen Level', 80.0, '%')
+        self.set_state(active=True)
+
+
+    
+    def mount(self, port, wash=False, wait=False):
+        if self.is_busy():
+            return False
+        self._sim_mount_start(port)
+        gobject.timeout_add(5000, self._sim_mount_done, port)
+        self._command_sent = True
+        if wait:
+            return self.wait(start=True, stop=True)
+        return True
+    
+    def dismount(self, port=None, wait=False):
+        if self.busy_state:
+            return False
+        if self._mounted_port is not None:
+            self._sim_mount_start(None)
+            gobject.timeout_add(10000, self._sim_dismount_done)
+        self._command_sent = True
+        if wait:
+            return self.wait(start=True, stop=True)
+        return True
+                       
+    def _sim_mount_done(self, port=None):
+        self.set_state(busy=False, enabled=True, message="Sample mounted", mounted=(port,''))
+        self._mounted_port = port
+
+    def _sim_dismount_done(self):
+        self.set_state(busy=False, enabled=True, message="Sample dismounted", mounted=None)
+        self._mounted_port = None
+
+    def _sim_mount_start(self, port=None):
+        if port is None:
+            msg = 'Dismounting crystal'
+        else:
+            msg = 'Mounting sample at %s' % port
+        self.set_state(busy=True, message=msg)                         
+
+    def is_mounted(self, port=None):
+        if port is None:
+            return self.mounted_state is not None
+        if self.mounted_state is None:
+            return False
+        else:
+            return self.mounted_state[0] == port
+        
+def _format_error_string(need_list):
+    nd_dict = {
+        'calib': 'calibration',
+        'inspect': 'inspection',
+        'action': 'action'
+    }
+    needs = []
+    calib = []
+    for t in need_list:
+        ts = t.split(':') 
+        if len(ts)>1:
+            if ts[0] == 'calib':
+                calib.append(ts[1])
+            else:
+                needs.append(ts[1] +' '+ nd_dict[ts[0]])
+        else:
+            needs.append(t)
+    if len(calib) > 0:
+        needs.append('calibration')
+    if len(needs) > 0:
+        needs_txt = 'Needs ' + ', '.join(needs)
+    else:
+        needs_txt = ''
+    return needs_txt
+
+
+   
        

@@ -60,7 +60,7 @@ class MXDCApp(object):
     def found_existing(self, obj, instance):
         data = instance['data']
         if data.get('beamline') == os.environ.get('BCM_BEAMLINE', 'sim'):
-            _logger.info('MxDC is running on `%s` and was started`%s` by user `%s`.' % (instance['host'], data['started'], data['user'] ))    
+            _logger.info('MxDC running on `%s`, since `%s` by `%s`.' % (instance['host'], data['started'], data['user'] ))    
         
         
     def run_remote(self):

@@ -285,9 +285,9 @@ class CollectManager(gtk.Frame):
         username = os.environ['USER']
         userid = os.getuid()
         groupid = os.getgid()
-        res = self.beamline.image_server.set_user( username, userid, groupid )
         try:
-            assert(res==True)
+            assert(self.beamline.image_server.is_active()==True)
+            self.beamline.image_server.set_user(username, userid, groupid)
             return True
         except:
             msg_title = 'Image Synchronization Server Error'
@@ -369,21 +369,18 @@ class CollectManager(gtk.Frame):
         dir_error = False
 
         try:
+            assert(self.beamline.image_server.is_active())            
             for run in self.run_manager.runs:
-                data = run.get_parameters()
-                res = self.beamline.image_server.setup_folder(data['directory'])
-                if res:
-                    if run_num == 0 and data['number'] == 0:
-                        data['energy'] = [self.beamline.monochromator.energy.get_position()]
-                        data['energy_label'] = ['E0']
-                        self.run_data = [data]
-                        break
-                    elif (run_num == data['number'] or run.is_enabled()) and data['number'] != 0:
-                        self.run_data.append(data)
-                else:
-                    run.disable_run()
-                    dir_error = True
-        except KeyboardInterrupt:
+                data = run.get_parameters()                
+                self.beamline.image_server.setup_folder(data['directory'])
+                if run_num == 0 and data['number'] == 0:
+                    data['energy'] = [self.beamline.monochromator.energy.get_position()]
+                    data['energy_label'] = ['E0']
+                    self.run_data = [data]
+                    break
+                elif (run_num == data['number'] or run.is_enabled()) and data['number'] != 0:
+                    self.run_data.append(data)
+        except:
             msg_title = 'Error Saving Run information'
             msg_sub = 'Either you have entered invalid parameters or a connection to the Image '
             msg_sub += 'Synchronisation Server could not be established. Data Collection '
