@@ -5,17 +5,14 @@
 
 import gobject
 import re
-import time
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 
 logger = get_module_logger('devices')
 
 class BaseDevice(gobject.GObject):
-    """A generic device object class.
-        
-    All devices should be derived from this class. Objects of this class are instances of
-    `gobject.GObject`. 
+    """A generic device object class.  All devices should be derived from this 
+    class. Objects of this class are instances of `gobject.GObject`. 
     
     **Attributes:**
     
@@ -23,30 +20,43 @@ class BaseDevice(gobject.GObject):
         - `health_manager`: A :class:`HealthManager` object.
         - `state_info`: A dict containing state information.
         - `name`:  the name of the device
-        
     
-    **Signals:**
-    
-        - `active`: emitted when the state of the device changes from inactive to active
-           and vice-versa. Passes a single boolean value as a parameter. `True` represents
-           a change from inactive to active, and `False` represents the opposite.
-        - `busy`: emitted to notify listeners of a change in the busy state of the device.
-          A single boolean parameter is passed along with the signal. `True` means busy,
-          `False` means not busy.
-        - `health`: signals an device sanity/error condition. Passes two parameters, an integer error code
-          and a string description. The integer error codes are the following:
+    **Signals:**    
+        - `active`: emitted when the state of the device changes from inactive 
+          to active and vice-versa. Passes a single boolean value.
+        - `busy`: emitted to notify listeners of a change in the busy state. A 
+          single boolean parameter is passed along with the signal. `True` means
+          busy, `False` means not busy.
+        - `health`: signals an device sanity/error condition. Passes two 
+          parameters, an integer error code and a string description. The 
+          integer error codes are:
           
               - 0 : No error
-              - 1 : MINOR, no impact to device functionality. No attention needed.
-              - 2 : MARGINAL, no immediate impact to device functionality but may impact future
-                functionality. Attention may soon be needed.
-              - 4 : SERIOUS, functionality impacted but recovery is possible. Attention needed.
-              - 8 : CRITICAL, functionality broken, recovery is not possible. Attention needed.
+              - 1 : MINOR, no impact to device functionality.
+              - 2 : MARGINAL, no immediate impact. Attention may soon be needed.
+              - 4 : SERIOUS, functionality impacted but recovery is possible.
+              - 8 : CRITICAL, functionality broken, recovery is not possible.
               - 16 : DISABLED, device has been manually disabled.
               
-        - `message`: signal for sending messages from the device to any listeners. Messages are
-          passed as a single string parameter.
-        
+        - `message`: signal for sending messages from the device to any 
+          listeners. Messages are passed as a single string parameter.
+
+    **Dynamic Attributes:**
+        - `<signal>_state`: for each signal defined in derived classes, the last
+          transmitted data corresponding to the current state can be obtained 
+          through the dynamic variable with the suffix "_state" added to the 
+          signal name. For example::
+         
+          >>> obj.active_state
+          >>> True
+    
+    **Dynamic Methods:**
+        - `is_<signal>()`: for each boolean signal defined in derived clases, the
+          current state can be obtained by adding the prefix "is_" to the signal
+          name. For example::
+          
+          >>> obj.is_active()
+          >>> True
     """
     # signals
     __gsignals__ =  { 
@@ -64,7 +74,7 @@ class BaseDevice(gobject.GObject):
                              'health': (0,''), 'message': ''}
         self.name = self.__class__.__name__ + ' Device'
         self._dev_state_patt = re.compile('^(\w+)_state$')
-        #self._check_id = gobject.timeout_add(30000, self._check_active)
+        self._dev_bool_patt = re.compile('^is_(\w+)$')
         
     def __repr__(self):
         state_txts = []
@@ -93,11 +103,9 @@ class BaseDevice(gobject.GObject):
                 logger.warning( "(%s) %s" % (self.name, msg))
             
     def is_active(self):
-        """Convenience function for checking if the device is active. Returns a boolean."""
         return self.active_state
     
     def is_busy(self):
-        """Convenience function for checking if the device is busy. Returns a boolean."""
         return self.busy_state
     
     def get_state(self):
@@ -115,19 +123,18 @@ class BaseDevice(gobject.GObject):
         return self.state_info.copy()
     
     def set_state(self, **kwargs):
-        """Set the state of the device.
+        """Set the state of the device and emit the corresponding signal. 
         
-        Set the state of the device and emit the appropriate signal based on the
-        specified keyworded arguments. Keyworded arguments follow the same conventions
-        as the state dictionary and correspond to any signals defined for the device.
+        Kwargs:
+            Keyworded arguments follow the same conventions as the state 
+            dictionary and correspond to any signals defined for the device.
+            Signals must be previously defined as supported signals of the device.
+            
         For example::
         
             mydevice.set_state(active=True, busy=False, 
                                health=(1, 'error','too hot'),
-                               message="the device is overheating")              
-        
-        Signals will be emitted for the specified keyworded arguments, which be
-        defined as supported signals of the device.
+                               message="the device is overheating")                     
         """
         for st, val in kwargs.items():
             if st != 'health':
@@ -164,11 +171,10 @@ class BaseDevice(gobject.GObject):
         dev.connect('active', self._on_device_active)
         return dev
     
-    def add_devices(self, *args):
-        """ Add one or more devices as children of this device. 
-        """
+    def add_devices(self, *devices):
+        """ Add one or more devices as children of this device. """
         
-        for dev in args:
+        for dev in devices:
             self.pending_devs.append(dev)
             dev.connect('active', self._on_device_active)
 
@@ -192,19 +198,27 @@ class BaseDevice(gobject.GObject):
 
     def __getattr__(self, key):
         m = self._dev_state_patt.match(key)
+        n = self._dev_bool_patt.match(key)
         if m:
             key = m.group(1)
             return self.state_info.get(key, None)
+        elif n:
+            key = n.group(1)
+            val = self.state_info.get(key, None)
+            if (val is True) or (val is False):
+                def dyn_func(): return val
+                return dyn_func
+            else:
+                raise AttributeError("%s is not a boolean '%s'" % (self.__class__.__name__, key))
         else:
             raise AttributeError("%s has no attribute '%s'" % (self.__class__.__name__, key))
         
 
 
 class HealthManager(object):
-    """Manages the health states.
-    
-    The object enables registration and removal of error states and consistent
-    reporting of health based on all currently active health issues.
+    """Manages the health states. The object enables registration and removal of
+    error states and consistent reporting of health based on all currently 
+    active health issues.
     """
     
     def __init__(self, **kwargs):
@@ -231,15 +245,14 @@ class HealthManager(object):
         self.health_states.add((severity, context))
     
     def remove(self, context):
-        """Remove all errors of the given context as a string.
-        """
+        """Remove all errors of the given context as a string."""
         err_list = [e for e in self.health_states if e[1] == context]
         for e in err_list:
             self.health_states.remove(e)
     
     def get_health(self):
         """Generate an error code and string based on all the currently registered
-        errors within the health registry
+        errors within the health registry.
         """
         severity = 0
         msg_list = set()

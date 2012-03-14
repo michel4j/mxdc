@@ -13,12 +13,8 @@ from bcm.utils.log import get_module_logger
 _logger = get_module_logger(__name__)
 
 
-class MCAError(Exception):
-    
-    """MCA Exception."""
-
-       
 class BasicMCA(BaseDevice):
+    """Base class for single and multi-element fluorescence MCA detector objects."""
     
     implements(IMultiChannelAnalyzer)
     
@@ -175,6 +171,7 @@ class BasicMCA(BaseDevice):
         return True        
 
 class XFlashMCA(BasicMCA):
+    """mcaRecord based single element fluorescence detector object."""
     
     def __init__(self, name, nozzle=None, channels=4096):
         BasicMCA.__init__(self, name, nozzle=nozzle, elements=1, channels=channels)
@@ -242,7 +239,7 @@ class XFlashMCA(BasicMCA):
         return [-1, -1]
 
 class VortexMCA(BasicMCA):
-    
+    """EPICS based 4-element Vortex ME4 detector object."""
     def __init__(self, name, channels=2048):
         BasicMCA.__init__(self, name, nozzle=None, elements=4, channels=channels)
         self.name = 'Vortex MCA'

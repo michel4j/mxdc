@@ -1,9 +1,3 @@
-'''
-Created on Sep 7, 2010
-
-@author: michel
-'''
-
 from zope.interface import implements
 from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
@@ -14,7 +8,11 @@ from bcm.device import misc
 _logger = get_module_logger('devices')
 
 class CryojetNozzle(misc.BasicShutter):
+    """A specialized in-out actuator for pneumatic cryoject nozzles at the CLS."""
     def __init__(self, name):
+        """Args:
+            name (str): Process variable root name.
+        """
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
         state_name = "%s:out" % name
@@ -23,10 +21,18 @@ class CryojetNozzle(misc.BasicShutter):
         self._name = 'Cryojet Nozzle'
 
 class Cryojet(BaseDevice):
+    """EPICS Based cryoject device object at the CLS."""
     
     implements(ICryojet)
     
     def __init__(self, cname, lname, nname=''):
+        """Args:
+            cname (str): Root name for EPICS cryojet record.
+            lname (str): root name for EPICS cryo-level controller record.
+        
+        Kwargs:
+            nname (str): Root name of the EPICS cryoject nozzle record.
+        """
         BaseDevice.__init__(self)
         self.name = 'Cryojet'
         self.temperature = misc.Positioner('%s:sensorTemp:get' % cname,
@@ -61,9 +67,9 @@ class Cryojet(BaseDevice):
 
     def _on_level_changed(self, obj, val):
         if  val < 150:
-            self.set_state(health=(3, 'cryo','Cryogen too low!'))
+            self.set_state(health=(3, 'cryo', 'Cryogen too low!'))
         elif val < 200:
-            self.set_state(health=(2, 'cryo','Cryogen low!'))
+            self.set_state(health=(2, 'cryo', 'Cryogen low!'))
         elif val <= 1000:
             self.set_state(health=(0, 'cryo'))
             
@@ -73,34 +79,46 @@ class Cryojet(BaseDevice):
         else:
             self.set_state(health=(0, 'nozzle', 'Restored'))
                        
-    def resume_flow(self):
-        self.sample_flow.set(self._previous_flow)
-    
     def stop_flow(self):
+        """Stop the flow of the cold nitrogen stream. The current setting for
+        flow rate is saved.
+        """
         self._previous_flow = self.sample_flow.get()
         self.sample_flow.set(0.0)
 
+    def resume_flow(self):
+        """Restores the flow rate to the previously saved setting."""
+        self.sample_flow.set(self._previous_flow)
+    
+
 class SimCryojet(BaseDevice):
+    """Simulated cryoject device."""
     implements(ICryojet)
     def __init__(self, name):
+        """Args:
+            name (str): Name of the device.
+        """
         BaseDevice.__init__(self)
         self.name = name
         self.temperature = misc.SimPositioner('Cryojet Temperature',
                                         pos=101.2, units='Kelvin')
         self.sample_flow = misc.SimPositioner('Cryojet Sample Flow',
-                                         pos=8.0,  units='L/min')
+                                         pos=8.0, units='L/min')
         self.shield_flow = misc.SimPositioner('Cryojet Shield Flow',
-                                         pos=5.0,  units='L/min')
+                                         pos=5.0, units='L/min')
         self.level = misc.SimPositioner('Cryogen Level', pos=90.34, units='%')
         self.fill_status = misc.SimPositioner('Fill Status', pos=1)
         self.nozzle = misc.SimShutter('Cryojet Nozzle Actuator')
         self.set_state(active=True)
 
-
     def stop_flow(self):
+        """Stop the flow of the cold nitrogen stream. The current setting for
+        flow rate is saved.
+        """
         self.sample_flow.set(0.0)
 
     def resume_flow(self):
+        """Restores the flow rate to the previously saved setting."""
         self.sample_flow.set(8.0)
 
 __all__ = ['Cryojet', 'SimCryojet']

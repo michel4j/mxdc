@@ -10,15 +10,7 @@ from datetime import datetime
 from gauge import Gauge
 from dialogs import warning
 
-from bcm.device import diagnostics
-from diagnostics import MSG_COLORS
-
-MSG_ICONS = {
-    diagnostics.DIAG_STATUS_BAD: 'mxdc-hcane',
-    diagnostics.DIAG_STATUS_WARN: 'mxdc-cloudy',
-    diagnostics.DIAG_STATUS_GOOD: 'mxdc-sunny',
-    diagnostics.DIAG_STATUS_UNKNOWN: 'gtk-dialog-question',
-}
+from diagnostics import MSG_COLORS, MSG_ICONS
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 

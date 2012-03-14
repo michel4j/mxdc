@@ -4,31 +4,26 @@ Devices
 Base Device
 -----------
 .. automodule:: bcm.device.base
-   :members:
+    :members:
+
 
 Automounter
 -----------
 
 .. automodule:: bcm.device.automounter
-   :members:
+   :members: BasicAutomounter
 
 Counters
 --------
 
 .. automodule:: bcm.device.counter
-   :members:
+   :members: Counter
 
 Detector
 --------
 
 .. automodule:: bcm.device.detector
-   :members:
-
-Diagnostics
------------
-
-.. automodule:: bcm.device.diagnostics
-   :members:
+   :members: MXCCDImager
 
 Diffractometer
 --------------
@@ -40,7 +35,7 @@ Goniometer
 ----------
 
 .. automodule:: bcm.device.goniometer
-   :members:
+   :members: Goniometer, MD2Goniometer, BackLight
 
 
 Multi-Channel Analyzer
@@ -68,10 +63,15 @@ Video
 .. automodule:: bcm.device.video
    :members:
 
-Miscelanous
+Miscellaneous
 -----------
 
 .. automodule:: bcm.device.misc
    :members:
+   
+.. automodule:: bcm.device.cryojet
+   :members: Cryojet, CryojetNozzle
 
+.. automodule:: bcm.device.diagnostics
+   :members: 
 
