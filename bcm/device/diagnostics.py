@@ -92,7 +92,9 @@ class DeviceDiag(DiagnosticBase):
     def _on_health(self, obj, hlth):
         st, descr = hlth
         if st == 0:
-            _diag = (DIAG_STATUS_GOOD, 'OK!')
+            if descr == '':               
+                descr = 'OK!'
+            _diag = (DIAG_STATUS_GOOD, descr)
         elif st < 4:
             _diag = (DIAG_STATUS_WARN, descr)
         elif st < 16:

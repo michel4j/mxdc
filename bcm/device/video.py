@@ -95,7 +95,7 @@ class SimCamera(VideoSrc):
         self.resolution = 1.0
         self._packet_size = self.size[0] * self.size[1]
         self._fsource = open('/dev/urandom','rb')
-        self.set_state(active=True)
+        self.set_state(active=True, health=(0,''))
         
     def get_frame(self):
         data = self._fsource.read(self._packet_size)
