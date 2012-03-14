@@ -30,7 +30,10 @@ def _register_icons():
             setattr(gtk, id_name, stock)
 
 def _register_icon_reuse():
-    extra_icons =  ['idle','good','bad','part-cloudy','sunny','cloudy','rainy','stormy','hcane']
+    extra_icons =  ['idle','good','bad','part-cloudy',
+                    'sunny','cloudy','rainy','stormy','hcane',
+                    'dunknown','dgood','dwarn','dbad','ddisabled'
+                    ]
 
     # We're too lazy to make our own icons, so we use regular stock icons.
     icons = [
