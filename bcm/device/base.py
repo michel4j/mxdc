@@ -152,8 +152,9 @@ class BaseDevice(gobject.GObject):
                 else:
                     self.health_manager.remove(cntx)
                 _health = self.health_manager.get_health()
-                self.state_info.update({st: _health})
-                gobject.idle_add(self.emit, st, _health)
+                if _health != self.health_state:
+                    self.state_info.update({st: _health})
+                    gobject.idle_add(self.emit, st, _health)
             
     def add_pv(self, *args, **kwargs):
         """Add a process variable (PV) to the device.
@@ -192,9 +193,9 @@ class BaseDevice(gobject.GObject):
         elif not state and dev not in self.pending_devs:
             self.pending_devs.append(dev)
         if len(self.pending_devs) == 0:
-            self.set_state(active=True)
+            self.set_state(active=True, health=(0, 'active'))
         else:
-            self.set_state(active=False)
+            self.set_state(active=False, health=(4, 'active', '%d inactive components.' % len(self.pending_devs)))
 
     def __getattr__(self, key):
         m = self._dev_state_patt.match(key)
