@@ -601,7 +601,7 @@ class CollectManager(gtk.Frame):
             lims_tools.upload_data(self.beamline, obj.results)
         except:
             print sys.exc_info()
-            _logger.warn('Could not upload dataset to LIMS.')
+            _logger.warn('Could not upload dataset meta-data to MxLIVE.')
 
     def on_new_image(self, widget, index, filename):
         self.frame_pos = index
