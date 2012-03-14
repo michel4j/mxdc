@@ -82,6 +82,9 @@ DEVICES = {
     #'humidifier': HumidityController('HC1608-01'),
     'attenuator': Attenuator('PFIL1608-3-I10-01', 'BL08ID1:energy'),
     'mca': XFlashMCA('XFD1608-101'),
+    
+    #disk space monitor
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', freq=0.5), 
 }
 
 # lims, dpm, imagesync and other services
