@@ -95,6 +95,9 @@ DEVICES = {
     'mca_nozzle': Positioner('BL08B1:MD2:S:MoveFluoDetFront'),
     'mca': XFlashMCA('XFD1608-501'),
     #'mca': VortexMCA('dxp1608-004'),
+
+    #disk space monitor
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', freq=0.5), 
 }
 
 # lims, dpm, imagesync and other services

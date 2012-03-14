@@ -251,11 +251,14 @@ class MD2Goniometer(GoniometerBase):
         GoniometerBase.__init__(self, name)
         self.name = 'MD2 Goniometer'
         pv_root = name
+        
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:S:StartScan" % pv_root, monitor=False)
         self._abort_cmd = self.add_pv("%s:S:AbortScan" % pv_root, monitor=False)
         self._state = self.add_pv("%s:G:MachAppState" % pv_root)
         self._mode_cmd = self.add_pv("%s:S:MDPhasePosition:asyn.AOUT" % pv_root, monitor=False)
+        self._dev_cnct = self.add_pv("%s:G:MachAppState:asyn.CNCT" % pv_root)
+        self._dev_enabled = self.add_pv("%s:usrEnable" % pv_root)
         
         # Does not work reliably yet
         #self._mode_mounting_cmd = self.add_pv("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
@@ -281,7 +284,9 @@ class MD2Goniometer(GoniometerBase):
         
         #signal handlers
         self._mode_fbk.connect('changed', self._on_mode_changed)
-        self._state.connect('changed', self._on_busy)
+        self._state.connect('changed', self._on_state_changed)
+        self._dev_cnct.connect('changed', self._on_cnct_changed)
+        self._dev_enabled.connect('changed', self._on_enabled_changed)
         
         #devices to reset during mount scan mode
         self._tbl_x = Positioner("%s:S:PhiTblXAxPos" % pv_root, "%s:G:PhiTblXAxPos" % pv_root)
@@ -296,15 +301,7 @@ class MD2Goniometer(GoniometerBase):
         self._mount_setpoints = {
             self._cnt_x: 0.0,
             self._cnt_y: 0.0,
-        }
-        
-                       
-    def _on_busy(self, obj, st):
-        if st != 4:
-            self.set_state(busy=False)
-        else:
-            self.set_state(busy=True)
-            
+        }                    
 
     def configure(self, **kwargs):
         """Configure the goniometer to perform an oscillation scan.
@@ -371,6 +368,28 @@ class MD2Goniometer(GoniometerBase):
     def _on_mode_changed(self, pv, val):
         mode_str = _MODE_MAP_REV.get(val, ['UNKNOWN'])[0]      
         self._set_and_notify_mode(mode_str)
+
+    def _on_cnct_changed(self, pv, val):
+        if val == 0:
+            self.set_state(health=(4,'connection', 'Connection to server lost!'))
+        else:
+            self.set_state(health=(0,'connection'))
+
+    def _on_state_changed(self, obj, st):
+        if st in [4,5,6]:
+            self.set_state(health=(0, 'faults'), busy=True)
+        elif st in [0, 1, 7]:
+            msg = self._log.get().split('.')[0]
+            self.set_state(health=(2, 'faults', msg), busy=False)
+        else:
+            self.set_state(busy=False, health=(0, 'faults'))
+
+    def _on_enabled_changed(self, pv, val):
+        if val == 0:
+            self.set_state(health=(16,'enable', 'Disabled by staff.'))
+        else:
+            self.set_state(health=(0,'enable'))
+            
     
     def _on_log_status(self, pv, txt):
         for k,v in _STATE_PATTERNS.items():
@@ -402,7 +421,7 @@ class SimGoniometer(GoniometerBase):
         GoniometerBase.__init__(self, 'Simulated Goniometer')
         gobject.idle_add(self.emit, 'mode', 'INIT')
         self._scanning = False
-        self.set_state(active=True)
+        self.set_state(active=True, health=(0,''))
 
                 
     def configure(self, **kwargs):
