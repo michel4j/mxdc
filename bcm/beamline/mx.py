@@ -179,6 +179,11 @@ class MXBeamline(object):
                 self.diagnostics.append( ServiceDiag(self.registry[k]) )
             except:
                 self.logger.warning('Could not configure diagnostic service')
+        
+        try:
+            self.diagnostics.append( DeviceDiag(self.registry['disk_space']) )
+        except:
+            self.logger.warning('Could not configure diagnostic service')
             
 
 __all__ = ['MXBeamline']

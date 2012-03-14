@@ -1,4 +1,5 @@
 import math
+import os
 import time
 import gobject
 from zope.interface import implements
@@ -592,7 +593,44 @@ class SimStorageRing(BaseDevice):
         
     def get_mode(self):
         pass
+
+class DiskSpaceMonitor(BaseDevice):
+    """An object which periodically monitors a given path for available space."""
+    def __init__(self, descr, path, threshold=0.9, freq=5.0):
+        """Args:
+            `descr` (str): A description.
+            `path` (str): Path to monitor.
+            
+        Kwargs:
+            `threshold` (float): Warn if fraction of used space goes above this
+                value. Default (0.9).
+            `freq` (float): Frequency in minutes to check disk usage. Default (5)
+        """ 
+        BaseDevice.__init__(self)
+        self.name = descr
+        self.path = path
+        self.threshold = 0.9
+        self.frequency = int(freq * 60 * 1000)
+        self.set_state(active=True)
+        self._check_space()       
+        gobject.timeout_add(self.frequency, self._check_space)
     
+    def _check_space(self):
+        fs_stat = os.statvfs(self.path)
+        total = round((fs_stat.f_frsize*fs_stat.f_blocks)/1073741824.0, 2)
+        avail = round((fs_stat.f_frsize*fs_stat.f_bfree)/1073741824.0, 2)
+        fraction = avail/total
+        msg = '%0.1f %% used. %0.1f GB available.' % (fraction*100, avail)
+        if fraction < self.threshold:
+            self.set_state(health=(0, 'usage', msg))
+            _logger.info(msg)
+        else:
+            self.set_state(health=(1, 'usage', msg))
+            _logger.warn(msg)
+        
+        
+    
+          
 class StorageRing(BaseDevice):
     implements(IStorageRing)
     __gsignals__ =  { 

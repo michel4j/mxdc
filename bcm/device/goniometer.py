@@ -421,7 +421,7 @@ class SimGoniometer(GoniometerBase):
         GoniometerBase.__init__(self, 'Simulated Goniometer')
         gobject.idle_add(self.emit, 'mode', 'INIT')
         self._scanning = False
-        self.set_state(active=True)
+        self.set_state(active=True, health=(0,''))
 
                 
     def configure(self, **kwargs):
