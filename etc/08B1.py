@@ -99,7 +99,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'image_server': ImageSyncClient('http://ccdc1608-002:8888'),
+    'image_server': ImageSyncClient(),
     'lims': LIMSClient(),
     'dpm': DPMClient(),
 }
