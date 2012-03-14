@@ -49,15 +49,15 @@ def upload_data(beamline, results):
                 reply = beamline.lims.service.lims.add_data(
                         beamline.config.get('lims_api_key',''), json_info)
             except IOError:
-                reply = {'error': 'Unable to connect to LIMS'}
+                reply = {'error': 'Unable to connect to MxLIVE'}
             if reply.get('result') is not None:
                 if reply['result'].get('data_id') is not None:
                     # save data id to file so next time we can find it
                     result['id'] = reply['result']['data_id']
-                    _logger.info('Dataset uploaded to LIMS.')
+                    _logger.info('Dataset meta-data uploaded to MxLIVE.')
             elif reply.get('error') is not None:
                 print reply.get('error')
-                _logger.error('Dataset could not be uploaded to LIMS.')
+                _logger.error('Dataset meta-data could not be uploaded to MxLIVE.')
         filename = os.path.join(result['directory'], '%s.SUMMARY' % result['name'])
         fh = open(filename,'w')
         json.dump(result, fh, indent=4)
@@ -73,15 +73,15 @@ def upload_report(beamline, results):
             reply = beamline.lims.service.lims.add_report(
                     beamline.config.get('lims_api_key',''), report['result'])
         except IOError:
-            reply = {'error': 'Unable to connect to LIMS'}
+            reply = {'error': 'Unable to connect to MxLIVE'}
         
         if reply.get('result') is not None:
             if reply['result'].get('result_id') is not None:
                 # save data id to file so next time we can find it
                 report['result']['id'] = reply['result']['result_id']
-                _logger.info('Processing Report uploaded to LIMS.')
+                _logger.info('Processing Report uploaded to MxLIVE.')
         elif reply.get('error') is not None:
-            _logger.error('Processing report could not be uploaded to LIMS.')
+            _logger.error('Processing report could not be uploaded to MxLIVE.')
 
     #TODO: Investigate, potential issue with merged processing and MAD datasets
     filename = os.path.join(report['result']['url'], 'process.json')
@@ -135,10 +135,10 @@ def upload_scan(beamline, results):
         try:          
             reply = beamline.lims.service.lims.add_scan(
                     beamline.config.get('lims_api_key',''), new_info)
-            _logger.info('Scan uploaded to LIMS.')
+            _logger.info('Scan uploaded to MxLIVE.')
         except IOError, e:
-            _logger.error('Scan could not be uploaded to LIMS')
-            reply = {'error': 'Unable to connect to LIMS %s' % e}
+            _logger.error('Scan could not be uploaded to MxLIVE')
+            reply = {'error': 'Unable to connect to MxLIVE %s' % e}
         
     return reply
 
