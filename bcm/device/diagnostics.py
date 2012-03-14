@@ -1,8 +1,3 @@
-'''
-Created on Jun 1, 2010
-
-@author: michel
-'''
 import time
 import math
 import logging
@@ -16,12 +11,16 @@ from twisted.python.components import globalRegistry
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger('diagnostics')
 
-(DIAG_STATUS_GOOD, DIAG_STATUS_WARN, DIAG_STATUS_BAD, DIAG_STATUS_UNKNOWN) = range(4)
-DIAG_STATUS_STRINGS = ['OK', 'WARNING', 'ERROR', 'UNKNOWN']
+(DIAG_STATUS_GOOD, 
+ DIAG_STATUS_WARN, 
+ DIAG_STATUS_BAD, 
+ DIAG_STATUS_UNKNOWN, 
+ DIAG_STATUS_DISABLED) = range(5)
+DIAG_STATUS_STRINGS = ['OK', 'WARNING', 'ERROR', 'UNKNOWN', 'DISABLED']
 
 class DiagnosticBase(gobject.GObject):
-
     """Base class for diagnostics."""
+    
     implements(IDiagnostic)
 
     # Motor signals
@@ -57,12 +56,33 @@ class DiagnosticBase(gobject.GObject):
         self._status = data
     
     def get_status(self):
+        """Check the state of the diagnostic.
+        
+        Returns:
+            int. One of the following:
+                0 - DIAG_STATUS_GOOD
+                1 - DIAG_STATUS_WARN
+                2 - DIAG_STATUS_BAD
+                3 - DIAG_STATUS_UNKNOWN
+                4 - DIAG_STATUS_DISABLED 
+        """
+        
         return self._status
             
 
 class ShutterStateDiag(DiagnosticBase):
+    """A diagnostic object for shutters which emits a warning when the shutter
+    is closed and an error if it is inactive.
+    """
     
     def __init__(self, device, descr=None):
+        """Args:
+            `device` (a class::`base.BaseDevice` object) the device to
+            monitor.
+            
+        Kwargs:
+            `descr` (str): Short description of the diagnostic.
+        """
         if descr is None:
             descr = device.name
         DiagnosticBase.__init__(self, descr)
@@ -93,8 +113,18 @@ class ShutterStateDiag(DiagnosticBase):
 
 
 class DeviceDiag(DiagnosticBase):
+    """A diagnostic object for generic devices which emits a warning when the
+    device health is not good and an error when it is disconnected or disabled.
+    """
     
     def __init__(self, device, descr=None):
+        """Args:
+            `device` (a class::`device.base.BaseDevice` object) the device to
+            monitor.
+            
+        Kwargs:
+            `descr` (str): Short description of the diagnostic.
+        """
         if descr is None:
             descr = device.name
         DiagnosticBase.__init__(self, descr)
@@ -114,21 +144,36 @@ class DeviceDiag(DiagnosticBase):
         if self.device.active_state:          
             if st == 0:
                 _diag = (DIAG_STATUS_GOOD, 'OK!')
-            else:
+            elif st < 4:
                 _diag = (DIAG_STATUS_WARN, descr)
+            elif st < 16:
+                _diag = (DIAG_STATUS_BAD, descr)
+            else:
+                _diag = (DIAG_STATUS_DISABLED, descr)
+                
         else:
             _diag = (DIAG_STATUS_BAD, 'Not connected!')
         self._signal_status(*_diag)
 
 
 class ServiceDiag(DiagnosticBase):
+    """A diagnostic object for generic services which emits an error when it is
+    disconnected or disabled.
+    """
     
-    def __init__(self, device, descr=None):
+    def __init__(self, service, descr=None):
+        """Args:
+            `service` (a class::`service.base.BaseService` object) the service to
+            monitor.
+
+        Kwargs:
+            `descr` (str): Short description of the diagnostic.
+        """
         if descr is None:
-            descr = device.name
+            descr = service.name
         DiagnosticBase.__init__(self, descr)
-        self.device = device
-        self.device.connect('active', self._on_active)
+        self.service = service
+        self.service.connect('active', self._on_active)
         
     def _on_active(self, obj, val):
         if val:

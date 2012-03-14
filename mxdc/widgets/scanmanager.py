@@ -162,9 +162,17 @@ class ScanManager(gtk.Frame):
         self.stop_btn.set_label('mxdc-stop-scan')
         self.scan_btn.connect('clicked', self.on_scan_activated)
         self.stop_btn.connect('clicked', self.on_stop_activated)
+        
+        # Sizegroups for buttons horizontal sizes
+        sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        sg.add_widget(self.scan_btn)
+        sg.add_widget(self.stop_btn)
+        sg.add_widget(self.update_strategy_btn)
+        sg.add_widget(self.create_run_btn)
+        
         # pbar
         self.scan_pbar = ActiveProgressBar()
-        self.vbox3.pack_end(self.scan_pbar, expand=False, fill=False)
+        self.vbox3.pack_start(self.scan_pbar, expand=False, fill=False)
         self.xanes_btn.set_active(True)
         
         # Scan options

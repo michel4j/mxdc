@@ -1,69 +1,63 @@
-"""This module defines interfaces for Beamline Control Module."""
+#===============================================================================
+# This module defines interfaces for Beamline Control Module.
+#===============================================================================
 
 from zope.interface import Interface, Attribute, invariant
 
-class IAutomounter(Interface):
-    
-    """A sample automounter device object."""
-    
+class IDevice(Interface):
+    """A generic device interface."""
     name = Attribute("""Name or description of device.""")
-     
-    def mount(address, wash=False):
-        """Pick up a sample and mount in on the goniometer.
-        
-        Arguments:
-        address -- location of sample in automounter
-        
-        Keyword arguments:
-        wash    -- whether to wash the sample or not (default False)       
-        """
+    pending_devs = Attribute("""List of inactive devices.""")
+    health_manager = Attribute("""Health manager object.""")
     
-    def dismount(address=None):
-        """Dismount a sample from the goiniometer.
+    def get_state(self):
+        """Return the state dictionary."""
         
-        Keyword arguments:
-        address -- location to store sample (default None)
+    def set_state(self, kwargs):
+        """Set the state of the device"""
+    
+    def add_pv(self, kwargs):
+        """Add a process variable"""
+    
+    def add_device(self, devices):
+        """Add one or more child devices"""
         
-        The sample is stored at the given address if specified, 
-        otherwise it is replaced at the location from which it
-        was mounted.        
-        """
+class IAutomounter(IDevice):    
+    """A sample automounter device interface."""
+     
+    def probe():
+        """Check automounter locations for sample presence and accessibility."""
+
+    def mount(address, wash=False):
+        """Pick up a sample and mount in on the goniometer."""
+            
+    def dismount():
+        """Dismount a sample from the goiniometer."""
+
     def abort():
         """Abort all operations."""
-        
-    def mount_next():
-        """Mount next sample in sequence."""
     
-    def probe(mask):
-        """Check automounter locations for sample presence and accessibility.
+    def wait(kwargs):
+        """Wait for operation to complete."""
         
-        Arguments:
-        mask -- a string defining locations to probe        
-        """
+    def is_mounted(address):
+        """Check if the provided address is currently mounted."""
 
-    def get_state():
-        """Return the current state of the device."""
+    def is_mountable(address):
+        """Check if the provided address can be mounted safely. """
     
+    def get_port_state(address):
+        """Obtain the state of a specified port. """
         
-    def wait():
-        """Wait for automounter to become idle."""
-        
-    
-    def stop():
-        """Terminate all automounter operations and go to home position."""
   
 
 
-class ICollimator(Interface):
-    
-    """An X-ray beam collimator device object."""
-    
+class ICollimator(IDevice):    
+    """An X-ray beam collimator device object."""    
     width = Attribute("""A motor controlling the horizontal gap.""")
     height = Attribute("""A motor controlling the vertical gap.""")
     x = Attribute("""A motor controlling the horizontal position.""")
-    y = Attribute("""A motor controlling the vertical position.""")
-    name = Attribute("""Name or description of device.""")
-    
+    y = Attribute("""A motor controlling the vertical position.""")   
 
     def wait():
         """Wait for collimator to become idle."""
@@ -71,38 +65,19 @@ class ICollimator(Interface):
     def stop():
         """Terminate all collimator operations."""
 
-    def get_state():
-        """Return the current state of the device."""
 
-
-class ICounter(Interface):
-
-    """An integrating counter object."""
-    
+class ICounter(IDevice):
+    """An integrating counter object."""    
     value = Attribute("""Process Variable.""")
-    name = Attribute("""Name or description of device.""")
             
     def count(time):
-        """
-        Integrate the counter for a specified duration and returns total count.
-        
-        Arguments:
-        time --   Duration to integrate object in seconds 
-        
-        Returns the total number of counts.       
-        """
+        """Integrate the counter for a specified duration and returns total count."""
 
-class IMonochromator(Interface):
-
+class IMonochromator(IDevice):
     """A monochromator device object."""
-    
-    name = Attribute("""Name or description of device.""")
     energy = Attribute("""Full monochromator energy motor""")
     bragg_energy = Attribute("""Simple monochromator energy motor.""")
     optimize = Attribute("""Monocromator optimizer.""")
-        
-    def get_state():
-        """Return the current state of the device."""
         
     def wait():
         """Wait for monochromator to become idle."""
@@ -111,31 +86,19 @@ class IMonochromator(Interface):
         """Terminate all monochromator operations."""
 
 
-class IGoniometer(Interface):
-
+class IGoniometer(IDevice):
     """A goniometer device object."""
-    
-    name = Attribute("""Name or description of device.""")
     omega = Attribute("""Goniometer omega motor.""")
     
     def configure(time=1.0, delta=1.0, angle=0.0):
-        """Configure the goniometer scan parameters.
-        
-        Keyword arguments:
-        time    -- scan exposure time in seconds (default 1.0)
-        delta   -- scan range in degrees (default 1.0) 
-        angle   -- starting angle position for scan in degrees (default 0.0)
-        """
+        """Configure the goniometer scan parameters."""
     
     def set_mode(mode):
         """Set the goniometer mode"""
     
     def scan():
         """Start the scan operation."""
-    
-    def get_state():
-        """Return the current state of the device."""
-        
+            
     def wait():
         """Wait for goniometer to become idle."""
         
@@ -143,11 +106,8 @@ class IGoniometer(Interface):
         """Terminate all goniometer operations."""
     
   
-class IShutter(Interface):
-
+class IShutter(IDevice):
     """A shutter device object."""
-
-    name = Attribute("""Name or description of device.""")
     
     def open():
         """Open the shutter."""
@@ -155,16 +115,11 @@ class IShutter(Interface):
     def close():
         """Close the shutter."""
 
-    def get_state():
-        """Return the current state of the device."""
 
 
-
-class IImagingDetector(Interface):
-
+class IImagingDetector(IDevice):
     """An imaging detector device for aquiring image frames."""
     
-    name = Attribute("""Name or description of device.""")
     size = Attribute("""A size in pixels along x-axis.""")
     resolution = Attribute("""Pixel resolution in mm.""" )    
        
@@ -188,8 +143,7 @@ class IImagingDetector(Interface):
             energy      -- beam energy for this frame
             prefix      -- file name prefix            
             filename    -- name of image file to save
-            directory   -- directory to save image           
-        
+            directory   -- directory to save image                
         """
     
     def wait():
@@ -198,38 +152,27 @@ class IImagingDetector(Interface):
     def stop():
         """Terminate all detector operations."""
 
-    def get_state():
-        """Return the current state of the device."""
-    
     def get_origin():
         """Return the current x,y position of the beam on the detector as a tuple"""
 
+    def set_parameters():
+        """Update the device parameters."""
 
-class IPositioner(Interface):
-
+class IPositioner(IDevice):
     """A positioning device object.""" 
 
-    name = Attribute("""Device name or description.""")
     units = Attribute("""Engineering units.""")
     
     def set(pos):
-        """Set the position of the device.
-        
-        Arguments:
-        pos -- the target position to set to
-        
-        """
+        """Set the position of the device."""
         
     def get():
         """Return the current position of the device."""
 
 
-
-class IDiffractometer(Interface):
-
+class IDiffractometer(IDevice):
     """A diffractometer device object."""
     
-    name = Attribute("""Name or description of device.""")
     distance = Attribute("""Detector distance motor.""")
     two_theta = Attribute("""Detector swing-out angle motor.""")
 
@@ -239,15 +182,10 @@ class IDiffractometer(Interface):
     def stop():
         """Terminate all diffractometer operations."""
 
-    def get_state():
-        """Return the current state of the device."""
 
-
-class IStage(Interface):
-
+class IStage(IDevice):
     """An X,Y,Z stage device object."""
     
-    name = Attribute("""Name or description of device.""")
     x = Attribute("""Stage X motor.""")
     y = Attribute("""Stage Y motor.""")
     z = Attribute("""Stage Z motor.""")
@@ -258,38 +196,15 @@ class IStage(Interface):
     def stop():
         """Terminate all operations."""
 
-    def get_state():
-        """Return the current state of the device."""
-
 
 class IMultiChannelAnalyzer(ICounter):
-
     """A Multi Channel Analyzer device object"""
-
-    name = Attribute("""Name or description of device.""")
     
     def configure(**kwargs):
-        """Configure the properties of the device.
-        
-        Keyword arguments: properties        
-        props    -- a dictionary of property name, value pairs to set
-        valid keys for props are:
-            cooling     -- boolean value, whether to turn cooling on or off
-            energy      -- set the position of the region of interest. None 
-                           resets to the full range.        
-
-        """
+        """Configure the properties of the device."""
         
     def acquire(time):
-        """Acquire a full spectrum of data and return an array of the spectrum.
-        
-        Arguments:
-        time    -- scan duration in seconds.
-
-        Returns a 2-dimentional array with the first column being the energy
-        values, and the second column being the corresponding counts.
-           
-        """
+        """Acquire a full spectrum of data and return an array of the spectrum."""
         
     def wait():
         """Wait for Multi Channel Analyzer to complete all tasks."""
@@ -297,44 +212,20 @@ class IMultiChannelAnalyzer(ICounter):
     def stop():
         """Terminate all operations."""
 
-    def get_state():
-        """Return the current state of the device."""
 
-
-
-class IMotor(Interface):
-
+class IMotor(IDevice):
     """A Motor device object."""
-    
-    name = Attribute("""Motor name or description.""")
+
     units = Attribute("""Engineering units.""")
 
     def configure(props):
-        """Configure the properties of the device.
-        
-        Arguments: properties        
-        props    -- a dictionary of property name, value pairs to set
-        valid keys for props are:
-            calib   -- boolean value, whether to motor is calibrated or not
-            reset   -- reset the position to the given value        
-
-        """
+        """Configure the properties of the device."""
 
     def move_to(pos):
-        """Move the motor to the specified position.
-        
-        Arguments:
-        pos -- the target position to move to.
-        
-        """
+        """Move the motor to the specified position."""
         
     def move_by(incr):
-        """Move the motor to the relative to the current position.
-        
-        Arguments:
-        incr -- the relative increment to move by.
-        
-        """
+        """Move the motor to the relative to the current position."""
         
     def get_position():
         """Return the current position of the motor."""
@@ -345,31 +236,20 @@ class IMotor(Interface):
     def stop():  
         """Stop Motor movement."""
     
-    def get_state():
-        """Return the current state of the device."""
 
-
-class ICamera(Interface):
-
+class ICamera(IDevice):
     """A camera device object providing a video source."""
     
-    name = Attribute("""Name or description of device.""")
     size = Attribute("""A 2-tuple for horizontal and vertical size.""")
     resolution = Attribute("""Pixel size.""")
     is_active = Attribute("""Boolean value indicating if Camera is active.""")
             
     def get_frame():
-        """Get current frame of video.
+        """Get current frame of video."""
         
-        Returns an image of a frame of video data.
-        
-        """
-        
-class IHumidityController(Interface):
-
+class IHumidityController(IDevice):
     """A humidity control device"""
     
-    name = Attribute("""Name or description of device.""")
     relative_humidity = Attribute("""A Positioner for relative humidity.""")
     sample_temperature = Attribute("""Sample Temperature feedback.""")
     ROI = Attribute("""A Positioner for setting region of interest.""")
@@ -379,59 +259,22 @@ class IZoomableCamera(ICamera):
     """ A zoomable camera."""
     
     def zoom(value):
-        """Set the Camera Zoom level.
-        
-        Arguments:
-        value   -- zoom level of camera.
-        
-        """
+        """Set the Camera Zoom level."""
 
 
-class IPTZCameraController(Interface):
-
+class IPTZCameraController(IDevice):
     """A Pan-Tilt-Zoom Camera controller device object."""
                 
     def center(x, y):
-        """Center the Camera view to the given position.
-        
-        Arguments:
-        x   -- horizontal position.
-        y   -- vertical position.   
-
-        """
+        """Center the Camera view to the given position."""
             
     def goto(position):
-        """Move the Camera to a preset position.
-        
-        Arguments:
-        position    -- the name of the preset position.
-
-        """
+        """Move the Camera to a preset position."""
                 
         
-class ICryojet(Interface):
-
+class ICryojet(IDevice):
     """A CryoJet device object."""
     
-    name = Attribute("""Name or description of device.""")
-    sample_flow = Attribute("""Sample flow rate.""")
-    shield_flow = Attribute("""Shield flow rate.""")
-    temperature = Attribute("""Temperature.""")
-    level = Attribute("""Cryogen level.""")
-    nozzle = Attribute("""Device, controlling nozzle gap.""")
-
-    def stop_sample_flow():
-        """Stop sample flow."""
-
-    def resume_sample_flow():
-        """Stop sample flow."""
-
-
-class ICryojet(Interface):
-
-    """A CryoJet device object."""
-    
-    name = Attribute("""Name or description of device.""")
     sample_flow = Attribute("""Sample flow rate.""")
     shield_flow = Attribute("""Shield flow rate.""")
     temperature = Attribute("""Temperature.""")
@@ -450,10 +293,10 @@ class IDiagnostic(Interface):
     """A diagnostic object."""
     description = Attribute("""Name or description of device.""")
             
-    def get_state():
+    def get_status():
         """Return the current state of the object."""
 
-class IStorageRing(Interface):
+class IStorageRing(IDevice):
     
     def beam_available():
         """Return True if Beam is available"""

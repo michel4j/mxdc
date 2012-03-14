@@ -16,6 +16,15 @@ MSG_COLORS = {
     diagnostics.DIAG_STATUS_WARN: '#8a8241',
     diagnostics.DIAG_STATUS_GOOD: '#396b3b',
     diagnostics.DIAG_STATUS_UNKNOWN: '#2d6294',
+    diagnostics.DIAG_STATUS_DISABLED: '#8a8241',
+}
+
+MSG_ICONS = {
+    diagnostics.DIAG_STATUS_BAD: 'mxdc-dbad',
+    diagnostics.DIAG_STATUS_WARN: 'mxdc-dwarn',
+    diagnostics.DIAG_STATUS_GOOD: 'mxdc-dgood',
+    diagnostics.DIAG_STATUS_UNKNOWN: 'mxdc-dunknown',
+    diagnostics.DIAG_STATUS_DISABLED: 'mxdc-ddisabled',
 }
 
 class DiagnosticDisplay(gtk.Frame):
@@ -28,7 +37,8 @@ class DiagnosticDisplay(gtk.Frame):
         self.label.set_markup("<span color='#444647'><b>%s</b></span>" % self._diagnostic.description)
         
         self._diagnostic.connect('status', self.on_status_changed)
-        self._status = diagnostics.DIAG_STATUS_UNKNOWN
+        self._status = {'status': diagnostics.DIAG_STATUS_UNKNOWN, 'message': ''}
+        self.icon.set_from_stock('mxdc-dunknown', gtk.ICON_SIZE_MENU)
         self.add(self.status_widget)
         self.show_all()
         
@@ -39,21 +49,14 @@ class DiagnosticDisplay(gtk.Frame):
             return self._xml.get_widget(key)
 
     def on_status_changed(self, obj, data):
-        if data['status'] == self._status:
-            return 
-        # Set Icon
-        if data['status'] == diagnostics.DIAG_STATUS_BAD:
-            self.icon.set_from_stock('mxdc-hcane', gtk.ICON_SIZE_MENU)
-        elif data['status'] == diagnostics.DIAG_STATUS_GOOD:
-            self.icon.set_from_stock('mxdc-sunny', gtk.ICON_SIZE_MENU)
-        elif data['status'] == diagnostics.DIAG_STATUS_WARN:
-            self.icon.set_from_stock('mxdc-cloudy', gtk.ICON_SIZE_MENU)
-        else:
-            self.icon.set_from_stock('mxdc-hcane', gtk.ICON_SIZE_MENU)
+        if data == self._status:
+            return
         
-        self.info.set_markup('<span color="%s"><i>%s</i></span>' % (MSG_COLORS[data['status']], data['message']))
+        # Set Icon and message
+        self.icon.set_from_stock(MSG_ICONS.get(data['status'], 'mxdc-unknown'), gtk.ICON_SIZE_MENU)        
+        self.info.set_markup('<span color="%s"><i>%s</i></span>' % (MSG_COLORS.get(data['status'], 'black'), data['message']))
         self.info.set_alignment(1.0, 0.5)
-        self._status = data['status']
+        self._status = data
         
         
 
