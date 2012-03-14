@@ -57,6 +57,7 @@ _STATE_PATTERNS = {
 }
 
 class BackLight(BasicShutter):
+    """A specialized in-out actuator for pneumatic OAV backlight at the CLS."""
     def __init__(self, name):
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
@@ -66,16 +67,9 @@ class BackLight(BasicShutter):
         self._name = 'Backlight'
 
 
-class GoniometerError(Exception):
-
-    """Base class for errors in the goniometer module."""
-
-
 class GoniometerBase(BaseDevice):
     """Base class for goniometer."""
     implements(IGoniometer)
-
-    # Motor signals
     __gsignals__ =  { 
         "mode": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         } 
@@ -84,10 +78,7 @@ class GoniometerBase(BaseDevice):
         BaseDevice.__init__(self)
         self.name = name
         self.mode = -1
-            
-    def is_busy(self):
-        return True
-    
+                
     def _set_and_notify_mode(self, mode_str):
         mode = _MODE_MAP.get(mode_str, 6)
         if mode != self.mode:
@@ -115,10 +106,18 @@ class GoniometerBase(BaseDevice):
                 _logger.warn('Timed out waiting for goniometer to stop')
     
     def stop(self):
+        """Stop and abort the current scan if any."""
         pass
     
 class Goniometer(GoniometerBase):
+    """EPICS based Parker-type Goniometer at the CLS 08ID-1."""
     def __init__(self, name, blname, mnt_cmd, minibeam):
+        """Args:
+            `name` (str): PV name of goniometer EPICS record.
+            `blname` (str): PV name for Backlight PV.
+            `mnt_cmd` (str): PV name for toggling mount mode.
+            `minibeam` (str): PV name for minibeam motor. 
+        """
         GoniometerBase.__init__(self, name)
         self.name = 'Goniometer'
         pv_root = name.split(':')[0]
@@ -170,10 +169,30 @@ class Goniometer(GoniometerBase):
             self.set_state(busy=True)
                    
     def configure(self, **kwargs):
+        """Configure the goniometer to perform an oscillation scan.
+        
+        Kwargs:
+            `time` (float): Exposure time in seconds
+            `delta` (float): Delta oscillation range in deg
+            `angle` (float): Starting angle of oscillation in deg
+        """ 
         for key in kwargs.keys():
             self._settings[key].put(kwargs[key])
     
     def set_mode(self, mode, wait=False):
+        """Set the mode of the goniometer environment.
+        
+        Args:
+            `mode` (str) one of:
+                - "CENTERING" : Prepare for centering 
+                - "MOUNTING" : Prepare for mounting/dismounting samples
+                - "COLLECT" : Prepare for data collection
+                - "BEAM" : Inspect the beam
+                - "SCANNING" : Prepare for scanning and fluorescence measurements
+        
+        Kwargs:
+            `wait` (bool): if True, block until the mode is completely changed.
+        """
         self._requested_mode = mode
         bl = globalRegistry.lookup([], IBeamline)
         if bl is None:
@@ -209,18 +228,26 @@ class Goniometer(GoniometerBase):
 
     
     def scan(self, wait=True):
+        """Perform an oscillation scan according to the currently set parameters
+        
+        Kwargs:
+            `wait` (bool): if True, wait until the scan is complete otherwise run
+            asynchronously.
+        """
         self._scan_cmd.set('\x01')
         if wait:
             t = 180
             self.wait(start=True, stop=True, timeout=t)
-
-    def is_busy(self):
-        return self.busy_state
                         
 
 class MD2Goniometer(GoniometerBase):
+    """EPICS based MD2-type Goniometer at the CLS 08B1-1."""
 
     def __init__(self, name):
+        """
+        Args:
+            `name` (str): Root PV name of the goniometer EPICS record.
+        """
         GoniometerBase.__init__(self, name)
         self.name = 'MD2 Goniometer'
         pv_root = name
@@ -253,7 +280,7 @@ class MD2Goniometer(GoniometerBase):
         }
         
         #signal handlers
-        self._mode_fbk.connect('changed', self.on_mode_changed)
+        self._mode_fbk.connect('changed', self._on_mode_changed)
         self._state.connect('changed', self._on_busy)
         
         #devices to reset during mount scan mode
@@ -278,14 +305,32 @@ class MD2Goniometer(GoniometerBase):
         else:
             self.set_state(busy=True)
             
-    def is_busy(self):
-        return self.busy_state
 
     def configure(self, **kwargs):
+        """Configure the goniometer to perform an oscillation scan.
+        
+        Kwargs:
+            `time` (float): Exposure time in seconds
+            `delta` (float): Delta oscillation range in deg
+            `angle` (float): Starting angle of oscillation in deg
+        """ 
         for key in kwargs.keys():
             self._settings[key].put(kwargs[key])
     
     def set_mode(self, mode, wait=False):
+        """Set the mode of the goniometer environment.
+        
+        Args:
+            `mode` (str) one of:
+                - "CENTERING" : Prepare for centering 
+                - "MOUNTING" : Prepare for mounting/dismounting samples
+                - "COLLECT" : Prepare for data collection
+                - "BEAM" : Inspect the beam
+                - "SCANNING" : Prepare for scanning and fluorescence measurements
+        
+        Kwargs:
+            `wait` (bool): if True, block until the mode is completely changed.
+        """
 
         cmd_template = "SET_CLSMDPhasePosition=%d"
         mode = mode.strip().upper()
@@ -323,16 +368,22 @@ class MD2Goniometer(GoniometerBase):
             #self._minibeam.set(2) # may not be needed any more
             pass
 
-    def on_mode_changed(self, pv, val):
+    def _on_mode_changed(self, pv, val):
         mode_str = _MODE_MAP_REV.get(val, ['UNKNOWN'])[0]      
         self._set_and_notify_mode(mode_str)
     
-    def on_log_status(self, pv, txt):
+    def _on_log_status(self, pv, txt):
         for k,v in _STATE_PATTERNS.items():
             if v.match(txt):
                 self._set_and_notify_mode(k)
                    
     def scan(self, wait=True):
+        """Perform an oscillation scan according to the currently set parameters
+        
+        Kwargs:
+            `wait` (bool): if True, wait until the scan is complete otherwise run
+            asynchronously.
+        """
         self._scan_cmd.set(1)
         ca.flush()
         self._scan_cmd.set(0)
@@ -340,6 +391,7 @@ class MD2Goniometer(GoniometerBase):
             self.wait(start=True, stop=True, timeout=180)
 
     def stop(self):
+        """Stop and abort the current scan if any."""
         self._abort_cmd.set(1)
         ca.flush()
         self._abort_cmd.set(0)

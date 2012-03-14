@@ -144,6 +144,10 @@ class ImgSyncService(service.Service):
             log.err()
             return False
         return True
+
+    @log_call   
+    def shutdown(self):
+        reactor.stop()
     
 components.registerAdapter(ImgSyncResource, IImageSyncService, resource.IResource)
 
