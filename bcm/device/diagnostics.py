@@ -11,8 +11,12 @@ from twisted.python.components import globalRegistry
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger('diagnostics')
 
-(DIAG_STATUS_GOOD, DIAG_STATUS_WARN, DIAG_STATUS_BAD, DIAG_STATUS_UNKNOWN) = range(4)
-DIAG_STATUS_STRINGS = ['OK', 'WARNING', 'ERROR', 'UNKNOWN']
+(DIAG_STATUS_GOOD, 
+ DIAG_STATUS_WARN, 
+ DIAG_STATUS_BAD, 
+ DIAG_STATUS_UNKNOWN, 
+ DIAG_STATUS_DISABLED) = range(5)
+DIAG_STATUS_STRINGS = ['OK', 'WARNING', 'ERROR', 'UNKNOWN', 'DISABLED']
 
 class DiagnosticBase(gobject.GObject):
     """Base class for diagnostics."""
@@ -59,7 +63,8 @@ class DiagnosticBase(gobject.GObject):
                 0 - DIAG_STATUS_GOOD
                 1 - DIAG_STATUS_WARN
                 2 - DIAG_STATUS_BAD
-                3 - DIAG_STATUS_UNKNOWN         
+                3 - DIAG_STATUS_UNKNOWN
+                4 - DIAG_STATUS_DISABLED 
         """
         
         return self._status
@@ -139,8 +144,13 @@ class DeviceDiag(DiagnosticBase):
         if self.device.active_state:          
             if st == 0:
                 _diag = (DIAG_STATUS_GOOD, 'OK!')
-            else:
+            elif st < 4:
                 _diag = (DIAG_STATUS_WARN, descr)
+            elif st < 16:
+                _diag = (DIAG_STATUS_BAD, descr)
+            else:
+                _diag = (DIAG_STATUS_DISABLED, descr)
+                
         else:
             _diag = (DIAG_STATUS_BAD, 'Not connected!')
         self._signal_status(*_diag)

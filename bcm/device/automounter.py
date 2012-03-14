@@ -300,6 +300,9 @@ class Automounter(BasicAutomounter):
         
         self._warning = self.add_pv('%s:status:warning' % pv_name)
         self._status = self.add_pv('%s:status:state' % pv_name)
+        self._normal = self.add_pv('%s:mod:normal' % pv_name)
+        self._dhs_off = self.add_pv('%s:mod:dhsOff' % pv_name)
+        self._usr_disable = self.add_pv('%s:mnt:usrEnable' % pv_name)
         
         self._mount_cmd = self.add_pv('%s:mntX:opr' % pv_name)
         self._mount_param = self.add_pv('%s:mntX:param' % pv_name)
@@ -333,6 +336,10 @@ class Automounter(BasicAutomounter):
         self._enabled.connect('changed', self._on_enabled_changed)
         self._gonio_safe.connect('changed', self._on_safety_changed)
         self.nitrogen_level.connect('changed', self._on_ln2level_changed)
+        
+        self._normal.connect('changed', self._on_normal_changed)
+        self._dhs_off.connect('changed', self._on_dhs_changed)
+        self._usr_disable.connect('changed', self._on_disable_changed)
         
         
     def abort(self):
@@ -470,6 +477,24 @@ class Automounter(BasicAutomounter):
         if self.busy_state and st != 1:
             msg = "Endstation became unsafe while automounter was busy"
             _logger.warning(msg)
+
+    def _on_normal_changed(self, obj, st):
+        if st == 1:
+            self.set_state(health=(4, 'normal', 'Needs staff attention!'))
+        else:
+            self.set_state(health=(0, 'normal'))
+    
+    def _on_dhs_changed(self, obj, st):
+        if st == 1:
+            self.set_state(health=(4, 'dhs-state', 'DHS offline.'))
+        else:
+            self.set_state(health=(0, 'dhs-state'))
+
+    def _on_disable_changed(self, obj, st):
+        if st == 0:
+            self.set_state(health=(16, 'disable', 'Disabled by staff.'))
+        else:
+            self.set_state(health=(0, 'disable'))
 
     def _on_state_changed(self, pv, st):
         try:
