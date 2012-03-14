@@ -67,7 +67,7 @@ class Cryojet(BaseDevice):
 
     def _on_level_changed(self, obj, val):
         if  val < 150:
-            self.set_state(health=(3, 'cryo', 'Cryogen too low!'))
+            self.set_state(health=(4, 'cryo', 'Cryogen too low!'))
         elif val < 200:
             self.set_state(health=(2, 'cryo', 'Cryogen low!'))
         elif val <= 1000:

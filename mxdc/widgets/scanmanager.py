@@ -633,7 +633,7 @@ class ScanManager(gtk.Frame):
             lims_tools.upload_scan(self.beamline, result)
         except:
             print sys.exc_info()
-            _logger.warn('Could not upload scan to LIMS.')
+            _logger.warn('Could not upload scan to MxLIVE.')
         return True
                 
     def on_create_run(self, obj):
