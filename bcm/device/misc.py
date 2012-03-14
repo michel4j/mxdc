@@ -324,9 +324,10 @@ class ShutterGroup(BaseDevice):
     def _on_change(self, obj, val):
         if val:
             if misc.all([dev.changed_state for dev in self._dev_list]):
-                self.set_state(changed=True)
+                self.set_state(changed=True, health=(0, 'state'))
+                
         else:
-            self.set_state(changed=False)
+            self.set_state(changed=False, health=(2, 'state', 'Not Open!'))
     @async
     def open(self):
         for dev in self._dev_list:
@@ -536,13 +537,13 @@ class HumidityController(BaseDevice):
         self.modbus_state.connect('changed', self.on_modbus_changed)  
         self.status.connect('changed', self.on_status_changed)
         
-        self.set_state(health=(2,'status','Disconnected'))
+        self.set_state(health=(4,'status','Disconnected'))
 
     def on_status_changed(self, obj, state):
         if state == 'Initializing':
             self.set_state(health=(1,'status', state))
         elif state == 'Closing':
-            self.set_state(health=(2,'status', 'Disconnected'))
+            self.set_state(health=(4,'status', 'Disconnected'))
             self.set_state(health=(0,'modbus'))
         elif state == 'Ready':
             self.set_state(health=(0,'status'))
@@ -550,10 +551,10 @@ class HumidityController(BaseDevice):
     def on_modbus_changed(self, obj, state):
         if state == 'Disable':
             self.set_state(health=(0,'modbus'))
-            self.set_state(health=(2,'modbus','Communication disconnected'))
+            self.set_state(health=(4,'modbus','Communication disconnected'))
         elif state == 'Unknown':
             self.set_state(health=(0,'modbus'))
-            self.set_state(health=(1,'modbus','Communication state unknown'))
+            self.set_state(health=(4,'modbus','Communication state unknown'))
         elif state == 'Enable':
             self.set_state(health=(0,'modbus'))
 

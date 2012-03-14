@@ -168,17 +168,13 @@ class MXBeamline(object):
         
         # Setup diagnostics on some devices
         self.diagnostics = []
-        for k in ['automounter', 'goniometer', 'detector', 'cryojet', 'storage_ring', 'mca']:
+        for k in ['automounter', 'goniometer', 'detector', 'cryojet', 'mca', 'all_shutters', 'storage_ring']:
             try:
                 self.diagnostics.append( DeviceDiag(self.registry[k]) )
             except:
                 self.logger.warning('Could not configure diagnostic device')
-        try:
-            self.diagnostics.append(ShutterStateDiag(self.all_shutters))
-        except:
-            self.logger.warning('Could not configure diagnostic device')
             
-        for k in ['dpm', 'lims', 'image_server']:
+        for k in ['image_server', 'dpm', 'lims', ]:
             try:
                 self.diagnostics.append( ServiceDiag(self.registry[k]) )
             except:
