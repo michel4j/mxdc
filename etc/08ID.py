@@ -86,7 +86,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'image_server': ImageSyncClient('http://ccdc1608-003:8888'),
+    'image_server': ImageSyncClient(),
     'lims': LIMSClient('https://cmcf.lightsource.ca/json/'),
     'dpm': DPMClient('srv-cmcf-dp2:8881'),
 }
