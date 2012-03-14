@@ -258,7 +258,7 @@ class CollectManager(gtk.Frame):
         self.mount_widget.update_selected(sample)
 
     def on_clear_strategy(self, obj):
-        self.update_active_data(strategy={})
+        self.update_data(strategy={})
                        
     def on_mount_busy(self, obj, busy):
         if busy:
