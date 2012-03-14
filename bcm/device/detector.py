@@ -82,7 +82,7 @@ class MXCCDImager(BaseDevice):
         self._state_list = []
         
         self._state.connect('changed', self._on_state_change)
-        self._connection_state.connect('changed', self._update_background)
+        self._connection_state.connect('changed', self._on_connection_changed)
     
     def initialize(self, wait=True):
         """Initialize the detector and take background images if necessary. This
@@ -198,9 +198,12 @@ class MXCCDImager(BaseDevice):
         self._dezinger_cmd.put(1)
         self._wait_for_state('dezinger:queue')
              
-    def _update_background(self, obj, state):
-        if state == 1:
+    def _on_connection_changed(self, obj, state):
+        if state == 0:
             self._bg_taken = False
+            self.set_state(health=(4, 'socket', 'Connection to server lost!'))
+        else:
+            self.set_state(health=(0, 'socket'))
 
     def _on_state_change(self, pv, val):
         _state_string = "%08x" % val
@@ -265,7 +268,7 @@ class SimCCDImager(BaseDevice):
         else:
             self._src_dir = _src_dir1
             self._num_frames = 2
-        self.set_state(active=True)
+        self.set_state(active=True, health=(0,''))
         
     def initialize(self, wait=True):
         _logger.debug('(%s) Initializing CCD ...' % (self.name,)) 

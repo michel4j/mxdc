@@ -59,7 +59,7 @@ class MotorBase(BaseDevice):
                        
     def _on_calib_changed(self, obj, cal):
         if cal == 0:
-            self.set_state(health=(1, 'calib', 'Device Not Calibrated!'))
+            self.set_state(health=(2, 'calib', 'Device Not Calibrated!'))
         else:
             self.set_state(health=(0, 'calib'))
 

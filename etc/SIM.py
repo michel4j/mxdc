@@ -82,6 +82,9 @@ DEVICES = {
     'humidifier': HumidityController('HC1608-01'),
     'attenuator': SimPositioner('Attenuator', 0.0, '%'),
     'mca': SimMultiChannelAnalyzer('Simulated MCA'),
+
+    #disk space monitor
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', freq=0.5), 
 }
 
 # lims, dpm, imagesync and other services

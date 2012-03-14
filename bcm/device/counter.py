@@ -97,7 +97,7 @@ class SimCounter(BaseDevice):
         self.name = name
         self.real = int(real)
         self.value = SimPositioner('PV', self.zero, '')
-        self.set_state(active=True)
+        self.set_state(active=True, health=(0,''))
         self._counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0]**2)
         
     def __repr__(self):

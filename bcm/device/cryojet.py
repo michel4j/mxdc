@@ -67,7 +67,7 @@ class Cryojet(BaseDevice):
 
     def _on_level_changed(self, obj, val):
         if  val < 150:
-            self.set_state(health=(3, 'cryo', 'Cryogen too low!'))
+            self.set_state(health=(4, 'cryo', 'Cryogen too low!'))
         elif val < 200:
             self.set_state(health=(2, 'cryo', 'Cryogen low!'))
         elif val <= 1000:
@@ -109,7 +109,7 @@ class SimCryojet(BaseDevice):
         self.level = misc.SimPositioner('Cryogen Level', pos=90.34, units='%')
         self.fill_status = misc.SimPositioner('Fill Status', pos=1)
         self.nozzle = misc.SimShutter('Cryojet Nozzle Actuator')
-        self.set_state(active=True)
+        self.set_state(active=True, health=(0,''))
 
     def stop_flow(self):
         """Stop the flow of the cold nitrogen stream. The current setting for

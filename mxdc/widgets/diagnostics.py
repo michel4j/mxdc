@@ -54,7 +54,7 @@ class DiagnosticDisplay(gtk.Frame):
         
         # Set Icon and message
         self.icon.set_from_stock(MSG_ICONS.get(data['status'], 'mxdc-unknown'), gtk.ICON_SIZE_MENU)        
-        self.info.set_markup('<span color="%s"><i>%s</i></span>' % (MSG_COLORS.get(data['status'], 'black'), data['message']))
+        self.info.set_markup('<span color="%s">%s</span>' % (MSG_COLORS.get(data['status'], 'black'), data['message']))
         self.info.set_alignment(1.0, 0.5)
         self._status = data
         
@@ -68,7 +68,7 @@ class DiagnosticsViewer(gtk.VBox):
         _dl = globalRegistry.subscriptions([], diagnostics.IDiagnostic)
         for diag in _dl:
             self.add_diagnostic(diag)
-        self.set_border_width(36)
+        self.set_border_width(24)
         self.pack_end(gtk.Label(''), expand=True, fill=True)
         self.show_all()
         
