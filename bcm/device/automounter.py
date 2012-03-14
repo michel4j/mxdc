@@ -221,7 +221,7 @@ class BasicAutomounter(BaseDevice):
         try:
             info = self.containers[port[0]][port[1:]]
             port_state = info[0]
-        except AttributeError:
+        except (AttributeError, TypeError):
             port_state = PORT_UNKNOWN
             
         if info is None:
@@ -240,7 +240,7 @@ class BasicAutomounter(BaseDevice):
             try:
                 info = self.containers[port[0]][port[1:]]
                 port_state = info[0]
-            except AttributeError:
+            except (AttributeError, TypeError):
                 port_state = PORT_UNKNOWN
             return port_state
         
