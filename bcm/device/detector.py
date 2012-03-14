@@ -268,7 +268,7 @@ class SimCCDImager(BaseDevice):
         else:
             self._src_dir = _src_dir1
             self._num_frames = 2
-        self.set_state(active=True)
+        self.set_state(active=True, health=(0,''))
         
     def initialize(self, wait=True):
         _logger.debug('(%s) Initializing CCD ...' % (self.name,)) 

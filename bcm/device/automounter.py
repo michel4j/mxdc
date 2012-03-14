@@ -583,7 +583,7 @@ class SimAutomounter(BasicAutomounter):
         self._parse_states(_TEST_STATE2)
         from bcm.device.misc import SimPositioner
         self.nitrogen_level = SimPositioner('Automounter Cryogen Level', 80.0, '%')
-        self.set_state(active=True)
+        self.set_state(active=True, health=(0,''))
 
 
     
