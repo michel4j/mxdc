@@ -88,6 +88,9 @@ pygments_style = 'jinjaext.JinjaStyle'
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
+# autodoc documenting classes
+autoclass_content = "both"
+autodoc_member_order = "bysource"
 
 # -- Options for HTML output ---------------------------------------------------
 

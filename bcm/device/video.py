@@ -24,16 +24,17 @@ from bcm import registry
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
-
-
-class VideoError(Exception):
-
-    """Base class for errors in the video module."""
-    
+   
 
 class VideoSrc(BaseDevice):
-
+    """Base class for all Video Sources. Maintains a list of listenners (sinks)
+    and updates each one when the video frame changes."""
+    
     def __init__(self, name="Basic Camera", maxfps=5.0):
+        """Kwargs:
+            `name` (str): Camera name.
+            `maxfps` (flaot): Maximum frame rate.
+        """
         BaseDevice.__init__(self)
         self.frame = None
         self.name = name
@@ -44,14 +45,26 @@ class VideoSrc(BaseDevice):
         self._active = True
     
     def add_sink(self, sink):
+        """Add a video sink.
+        
+        Args:
+            `sink` (:class:`bcm.device.interfaces.IVideoSink` provider).
+        """ 
         self.sinks.append( sink )
         sink.set_src(self)
 
     def del_sink(self, sink):
+        """Remove a video sink.
+        
+        Args:
+            `sink` (:class:`bcm.device.interfaces.IVideoSink` provider).
+        """ 
         if sink in self.sinks:
             self.sinks.remove(sink)
             
     def start(self):
+        """Start producing video frames. """ 
+        
         if self._stopped == True:
             self._stopped = False
             worker = threading.Thread(target=self._stream_video)
@@ -60,6 +73,7 @@ class VideoSrc(BaseDevice):
             worker.start()        
         
     def stop(self):
+        """Start producing video frames. """ 
         self._stopped = True
     
     def _stream_video(self):
@@ -81,7 +95,12 @@ class VideoSrc(BaseDevice):
             except:
                 return
                
-    def get_frame(self): 
+    def get_frame(self):
+        """Obtain the most recent video frame.
+        
+        Returns:
+            A :class:`Image.Image` (Python Imaging Library) image object.
+        """
         pass                  
     
                  
@@ -113,6 +132,10 @@ class SimZoomableCamera(SimCamera):
         self._zoom.connect('changed', self._on_zoom_change)
             
     def zoom(self, value):
+        """Set the zoom position of the camera
+        Args:
+            `value` (float): the target zoom value.
+        """
         self._zoom.move_to(value)
 
     def _on_zoom_change(self, obj, val):
@@ -211,6 +234,10 @@ class ZoomableCamera(object):
         self._zoom.connect('changed', self._on_zoom_change)
     
     def zoom(self, value):
+        """Set the zoom position of the camera
+        Args:
+            `value` (float): the target zoom value.
+        """
         self._zoom.move_to(value)
     
     def _on_zoom_change(self, obj, val):
@@ -233,6 +260,11 @@ class AxisPTZCamera(AxisCamera):
         self._rzoom = 0
        
     def zoom(self, value):
+        """Set the zoom position of the PTZ camera
+        
+        Args:
+            `value` (int): the target zoom value.
+        """
         self._server.connect()
         command = "/axis-cgi/com/ptz.cgi?rzoom=%s" % value
         self._server.request("GET", command)
@@ -240,12 +272,23 @@ class AxisPTZCamera(AxisCamera):
         self._server.close()
 
     def center(self, x, y):
+        """Set the pan-tilt focal point of the PTZ camera
+        
+        Args:
+            `x` (int): the target horizontal focal point on the image.
+            `y` (int): the target horizontal focal point on the image.
+        """
         self._server.connect()
         command = "/axis-cgi/com/ptz.cgi?center=%d,%d" % (x, y)
         self._server.request("GET", command)
         self._server.close()
     
     def goto(self, position):
+        """Set the pan-tilt focal point based on a predefined position
+        
+        Args:
+            `position` (str): Name of predefined position.
+        """
         self._server.connect()
         position = urllib.quote_plus(position)
         command = "/axis-cgi/com/ptz.cgi?gotoserverpresetname=%s" % position
@@ -254,6 +297,12 @@ class AxisPTZCamera(AxisCamera):
         self._server.close()
 
     def get_presets(self):
+        """Get a list of all predefined position names from the PTZ camera
+        
+        Returns:
+            A list of strings.
+        """
+        
         try:
             self._server.connect()
             command = "/axis-cgi/com/ptz.cgi?query=presetposall"

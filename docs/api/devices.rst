@@ -5,7 +5,7 @@ Base Device
 -----------
 .. automodule:: bcm.device.base
     :members:
-
+ 
 
 Automounter
 -----------
@@ -61,7 +61,7 @@ Video
 -----
 
 .. automodule:: bcm.device.video
-   :members:
+   :members: VideoSrc, ZoomableCamera, AxisPTZCamera
 
 Miscellaneous
 -----------
