@@ -246,6 +246,28 @@ class ICamera(IDevice):
             
     def get_frame():
         """Get current frame of video."""
+    
+    def add_sink(sink):
+        """Add a video sink."""
+
+    def del_sink(sink):
+        """Remove a video sink."""
+    
+    def start():
+        """Start producing video frames"""
+    
+    def stop():
+        """Stop producing video frames"""
+    
+
+class IVideoSink(IDevice):
+    """An object which can consume video frames."""
+    
+    def set_src(vidsrc):
+        """Connect a video src to the sink."""
+    
+    def display(frame):
+        """Used by video sources to update the video frame."""
         
 class IHumidityController(IDevice):
     """A humidity control device"""

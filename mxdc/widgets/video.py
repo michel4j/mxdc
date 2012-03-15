@@ -13,6 +13,9 @@ import ImageFont
 
 
 from bcm.protocol import ca
+from bcm.device.interfaces import IVideoSink
+from zope.interface import implements
+
 import pickle
 
 WIDGET_DIR = os.path.dirname(__file__)
@@ -20,6 +23,7 @@ COLORMAPS = pickle.load(file(os.path.join(WIDGET_DIR, 'data/colormaps.data')))
 
     
 class VideoWidget(gtk.DrawingArea):
+    implements(IVideoSink)    
     def __init__(self, camera):
         gtk.DrawingArea.__init__(self)
         self.camera = camera
