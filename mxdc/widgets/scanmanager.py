@@ -553,27 +553,24 @@ class ScanManager(gtk.Frame):
         return True
     
     def on_scan_paused(self, widget, state, warning=False):
-        if state:
-            self.scan_pbar.set_text('Scan Paused')
-        else:
-            if self.paused:
-                self._set_scan_action(SCAN_RESUME)
+        if not state and not warning:
             self.scan_pbar.set_text('Scan Resuming')
-            
-        # Build the dialog message
-        if warning:
+            self._set_scan_action(SCAN_RESUME)
+        else:
+            self.scan_pbar.set_text('Scan Paused')
             self._set_scan_action(SCAN_PAUSE)
-            msg = "Beam not Available. The scan has been paused and can be resumed once the beam becomes available."
-            title = 'Attention Required'
-            self.resp = MyDialog(gtk.MESSAGE_WARNING, 
-                                         title, msg,
-                                         buttons=( ('OK', gtk.RESPONSE_ACCEPT),) )
-            self._intervening = False
-            response = self.resp()
-            if response == gtk.RESPONSE_ACCEPT:
-                return 
+            
+            # Build the dialog message
+            if warning:
+                msg = "Beam not Available. When the beam is available again, resume your scan." 
+                title = 'Attention Required'
+                self.resp = MyDialog(gtk.MESSAGE_WARNING, 
+                                             title, msg,
+                                             buttons=( ('OK', gtk.RESPONSE_ACCEPT),) )
+                self._intervening = False
+                response = self.resp()
         return True
-    
+            
     def on_scan_stopped(self, widget):
         self._set_scan_action(SCAN_STOP)
         self.scan_pbar.set_text('Scan Stopped')

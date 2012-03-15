@@ -134,7 +134,6 @@ class HCViewer(SampleViewer):
             store.append(['%s min' % t])
         self.time_btn.set_model(store)
         cell = gtk.CellRendererText()
-        cell.set_alignment(0.5, 0.5)
         self.time_btn.pack_start(cell, True)
         self.time_btn.add_attribute(cell, 'text', 0)
         self.time_btn.set_active(0)

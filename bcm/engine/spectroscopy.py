@@ -298,8 +298,10 @@ class XANESScan(BasicScan):
             gobject.idle_add(self.emit, 'progress', 0.0, "")
             
             for x in self._targets:
-                if self._paused:
+                if self._paused or self._notify:
                     gobject.idle_add(self.emit, 'paused', True, self._notify)
+                    if not self._paused: 
+                        self.pause(True)
                     self._notify = False
                     _logger.warning("Edge Scan paused at point %s." % str(x))
                     while self._paused and not self._stopped:
