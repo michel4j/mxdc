@@ -160,13 +160,16 @@ class AppWindow(gtk.Window):
             "Kevin Anderson",
             ]
         about = gtk.AboutDialog()
-        about.set_name("MX Data Collector")
+        name = 'Mx Data Collector (MxDC)'
+        try:
+            about.set_program_name(name)
+        except:
+            about.set_name(name)
         about.set_version(self.version)
         about.set_copyright(COPYRIGHT)
         about.set_comments("Program for macromolecular crystallography data acquisition.")
         about.set_website("http://cmcf.lightsource.ca")
         about.set_authors(authors)
-        about.set_program_name('MxDC')
         logo = gtk.gdk.pixbuf_new_from_file(self.icon_file)
         about.set_logo(logo)
         
