@@ -23,7 +23,7 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="top" title="Beamline Control Module v4.0.185-g20fd45f documentation" href="../index.html" />
     <link rel="up" title="API documentation" href="index.html" />
-    <link rel="next" title="Beamline" href="beamline.html" />
+    <link rel="next" title="&lt;no title&gt;" href="services.html" />
     <link rel="prev" title="Devices" href="devices.html" /> 
   </head>
   <body>
@@ -37,7 +37,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="beamline.html" title="Beamline"
+          <a href="services.html" title="&lt;no title&gt;"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="devices.html" title="Devices"
@@ -68,6 +68,12 @@
 </div>
 <div class="section" id="module-bcm.engine.scanning">
 <span id="scanning-engine"></span><h2>Scanning Engine<a class="headerlink" href="#module-bcm.engine.scanning" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="bcm.engine.scanning.ScanError">
+<em class="property">exception </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">ScanError</tt><a class="headerlink" href="#bcm.engine.scanning.ScanError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scan Error.</p>
+</dd></dl>
+
 <dl class="class">
 <dt id="bcm.engine.scanning.AbsScan">
 <em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">AbsScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.AbsScan" title="Permalink to this definition">¶</a></dt>
@@ -81,21 +87,15 @@
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.engine.scanning.CntScan">
-<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">CntScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.CntScan" title="Permalink to this definition">¶</a></dt>
-<dd><p>A Continuous scan of a single motor.</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="bcm.engine.scanning.GridScan">
-<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">GridScan</tt><big>(</big><em>mtr1</em>, <em>start_pos1</em>, <em>end_pos1</em>, <em>mtr2</em>, <em>start_pos2</em>, <em>end_pos2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.GridScan" title="Permalink to this definition">¶</a></dt>
-<dd><p>A absolute scan of two motors in a grid.</p>
-</dd></dl>
-
-<dl class="class">
 <dt id="bcm.engine.scanning.RelScan">
 <em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">RelScan</tt><big>(</big><em>mtr</em>, <em>start_offset</em>, <em>end_offset</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.RelScan" title="Permalink to this definition">¶</a></dt>
 <dd><p>A relative scan of a single motor.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.engine.scanning.CntScan">
+<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">CntScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.CntScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Continuous scan of a single motor.</p>
 </dd></dl>
 
 <dl class="class">
@@ -104,27 +104,15 @@
 <dd><p>A relative scan of a two motors.</p>
 </dd></dl>
 
-<dl class="exception">
-<dt id="bcm.engine.scanning.ScanError">
-<em class="property">exception </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">ScanError</tt><a class="headerlink" href="#bcm.engine.scanning.ScanError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Scan Error.</p>
+<dl class="class">
+<dt id="bcm.engine.scanning.GridScan">
+<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">GridScan</tt><big>(</big><em>mtr1</em>, <em>start_pos1</em>, <em>end_pos1</em>, <em>mtr2</em>, <em>start_pos2</em>, <em>end_pos2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.GridScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>A absolute scan of two motors in a grid.</p>
 </dd></dl>
 
 </div>
 <div class="section" id="module-bcm.engine.fitting">
 <span id="fitting-engine"></span><h2>Fitting Engine<a class="headerlink" href="#module-bcm.engine.fitting" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="bcm.engine.fitting.histogram_fit">
-<tt class="descclassname">bcm.engine.fitting.</tt><tt class="descname">histogram_fit</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="headerlink" href="#bcm.engine.fitting.histogram_fit" title="Permalink to this definition">¶</a></dt>
-<dd><p>calcfwhm(x,y) - with input x,y vector this function calculates fwhm and returns
-(fwhm,xpeak,ymax, fwhm_x_left, fwhm_x_right)
-x - input independent variable
-y - input dependent variable
-return ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema
-cema is center of mass</p>
-<p>success boolean</p>
-</dd></dl>
-
 <dl class="function">
 <dt id="bcm.engine.fitting.peak_fit">
 <tt class="descclassname">bcm.engine.fitting.</tt><tt class="descname">peak_fit</tt><big>(</big><em>x</em>, <em>y</em>, <em>target='gaussian'</em><big>)</big><a class="headerlink" href="#bcm.engine.fitting.peak_fit" title="Permalink to this definition">¶</a></dt>
@@ -136,6 +124,18 @@ cema is center of mass</p>
 3 = n - lorentzian fraction, gaussian offset</dd>
 </dl>
 <p>Success (boolean)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="bcm.engine.fitting.histogram_fit">
+<tt class="descclassname">bcm.engine.fitting.</tt><tt class="descname">histogram_fit</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="headerlink" href="#bcm.engine.fitting.histogram_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>calcfwhm(x,y) - with input x,y vector this function calculates fwhm and returns
+(fwhm,xpeak,ymax, fwhm_x_left, fwhm_x_right)
+x - input independent variable
+y - input dependent variable
+return ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema
+cema is center of mass</p>
+<p>success boolean</p>
 </dd></dl>
 
 </div>
@@ -190,7 +190,7 @@ cema is center of mass</p>
   <li><a href="../index.html">Documentation overview</a><ul>
   <li><a href="index.html">API documentation</a><ul>
       <li>Previous: <a href="devices.html" title="previous chapter">Devices</a></li>
-      <li>Next: <a href="beamline.html" title="next chapter">Beamline</a></li>
+      <li>Next: <a href="services.html" title="next chapter">&lt;no title&gt;</a></li>
   </ul></li>
   </ul></li>
 </ul>

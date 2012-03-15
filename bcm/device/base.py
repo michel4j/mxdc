@@ -134,7 +134,7 @@ class BaseDevice(gobject.GObject):
         
             mydevice.set_state(active=True, busy=False, 
                                health=(1, 'error','too hot'),
-                               message="the device is overheating")                     
+                               message="the device is overheating")
         """
         for st, val in kwargs.items():
             if st != 'health':
