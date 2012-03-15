@@ -52,6 +52,7 @@ div.body {
     background-color: #ffffff;
     color: #3E4349;
     padding: 0 30px 0 30px;
+    border-left: 1px #ccc solid;
 }
 
 img.floatingflask {
@@ -62,9 +63,11 @@ img.floatingflask {
 div.footer {
     width: 940px;
     margin: 20px auto 30px auto;
+    padding-top: 0.5em;
     font-size: 14px;
     color: #888;
     text-align: right;
+    border-top: 1px #ccc solid;
 }
 
 div.footer a {
@@ -87,17 +90,13 @@ div.sphinxsidebar a:hover {
  
 div.sphinxsidebar {
     font-size: 15px;
-    line-height: 1.5;
-}
-
-div.sphinxsidebarwrapper {
-    padding: 0;
+    /* line-height: 1.5; */
 }
 
 div.sphinxsidebarwrapper p.logo {
     padding: 0 0 20px 0;
     margin: 0;
-    text-align: center;
+    text-align: left;
 }
  
 div.sphinxsidebar h3,
@@ -171,7 +170,7 @@ div.body h6 {
     color: black;
 }
  
-div.body h1 { margin-top: 0; padding-top: 0; font-size: 240%; }
+div.body h1 { margin-top: 0; padding-top: 0; font-size: 240%; border-bottom: 1px solid #ccc;}
 div.body h2 { font-size: 180%; }
 div.body h3 { font-size: 150%; }
 div.body h4 { font-size: 130%; }
@@ -190,7 +189,7 @@ a.headerlink:hover {
 }
  
 div.body p, div.body dd, div.body li {
-    line-height: 1.4em;
+    /*line-height: 1.4em;*/
 }
 
 div.admonition {
@@ -345,11 +344,11 @@ ul, ol {
  
 pre {
     background: #eee;
-    padding: 7px 30px;
-    margin: 15px -30px;
-    line-height: 1.3em;
+    padding: 7px;
+    line-height: 1.2em;
 }
 
+/*
 dl pre, blockquote pre, li pre {
     margin-left: -60px;
     padding-left: 60px;
@@ -359,7 +358,8 @@ dl dl pre {
     margin-left: -90px;
     padding-left: 90px;
 }
- 
+*/
+
 tt {
     background-color: #E8EFF0;
     color: #222;

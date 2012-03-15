@@ -14,12 +14,10 @@ _logger = get_module_logger('devices')
 
 
 class MotorError(Exception):
-
     """Base class for errors in the motor module."""
 
 
 class MotorBase(BaseDevice):
-
     """Base class for motors."""
     implements(IMotor)
 
