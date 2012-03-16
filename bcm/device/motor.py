@@ -18,7 +18,15 @@ class MotorError(Exception):
 
 
 class MotorBase(BaseDevice):
-    """Base class for motors."""
+    """Base class for motors.
+    
+    Signals:
+        - `changed` (float): Emitted everytime the position of the motor changes.
+          Data contains the current position of the motor.
+        - `timed-change` (tuple(float, float)): Emitted everytime the motor changes.
+          Data is a 2-tuple with the current position and the timestamp of the last change.
+        
+    """
     implements(IMotor)
 
     # Motor signals
@@ -67,6 +75,10 @@ class MotorBase(BaseDevice):
                 self.set_state(health=(16, 'disabled', 'Device disabled!'))
         else:
             self.set_state(health=(0, 'disabled'))
+
+    def configure(self, **kwargs):
+        pass
+                                            
 
 class SimMotor(MotorBase):
     implements(IMotor)
@@ -154,10 +166,20 @@ SAVE_VALS = {
 }
          
 class Motor(MotorBase):
-
+    """Motor object for EPICS based motor records."""  
     implements(IMotor) 
        
     def __init__(self, pv_name, motor_type):
+        """  
+        Args:
+            - `pv_name` (str): Root PV name for the EPICS record.
+            - `motor_type` (str): Type of EPICS motor record. Accepted values are::
+            
+               "vme" - CLS VME58 and MaxV motor record without encoder support.
+               "vmeenc" - CLS VME58 and MaxV motor record with encoder support.
+               "cls" - OLD CLS motor record.
+               "pseudo" - CLS PseutoMotor record.
+        """
         MotorBase.__init__(self, pv_name)
         pv_parts = pv_name.split(':')
         if len(pv_parts)<2:
@@ -243,9 +265,21 @@ class Motor(MotorBase):
         _logger.debug(msg)
                                             
     def get_position(self):
+        """Obtain the current position of the motor in device units.
+        
+        Returns:
+            float.
+        """
         return self.RBV.get()
 
     def configure(self, **kwargs):
+        """Configure the motor. Currently only allows changing the calibration
+        flag and reseting the position  for "vme" and "vmeenc" motors only.
+        
+        Kwargs:
+            - `calib` (int): 0 removes the calibration flag, anything else sets it.
+            - `reset` (float): position to recalibrate the current motor to.
+        """
         for key, val in kwargs.items():
             # Set Calibration
             if key == 'calib':
@@ -260,17 +294,23 @@ class Motor(MotorBase):
                 else:
                     _logger.error( "(%s) can not reset %s Motors." %
                         (self._motor_type) )
-   
-    # Added for Save/Restore                             
-    def get_settings(self):
-        self.settings = {}
-        PV_DICT = dict(ENC_SETTINGS.items() + SAVE_VALS.items())
-        for i in PV_DICT:
-            self.settings[i] = self.add_pv(PV_DICT[i].replace('%root', self.pv_root).replace('%unit', self.units))
-        return
-           
+              
     def move_to(self, pos, wait=False, force=False):
-
+        """Request the motor to move to an absolute position. By default, the 
+        command will not be sent to the motor if its current position is the 
+        same as the requested position within its preset precision. In addition
+        the command will not be sent if the motor health severity is not zero
+        (GOOD). 
+        
+        Args:
+            - `pos` (float): Target position to move to.
+        
+        Kwargs:
+            - `wait` (bool): Whether to wait for move to complete or return 
+              immediately.
+            - `force` (bool): Force a command to be sent to the motor even if the
+              target is the same as the current position.        
+        """
         # Do not move if motor state is not sane.
         st = self.get_state()
         sanity, msg = st['health']
@@ -299,16 +339,35 @@ class Motor(MotorBase):
         if wait:
             self.wait()
 
-    def move_by(self,val, wait=False, force=False):
+    def move_by(self, val, wait=False, force=False):
+        """Similar to :func:`move_to`, except request the motor to move by a 
+        relative amount.
+        
+        Args:
+            - `val` (float): amount to move position by.
+        
+        Kwargs:
+            - `wait` (bool): Whether to wait for move to complete or return 
+              immediately.
+            - `force` (bool): Force a command to be sent to the motor even if the
+              target is the same as the current position.        
+        """
         if val == 0.0:
             return
         cur_pos = self.get_position()
         self.move_to(cur_pos + val, wait, force)
                                                      
     def stop(self):
+        """Stop the motor from moving."""
         self.STOP.set(1)
     
     def wait(self, start=True, stop=True):
+        """Wait for the motor busy state to change. 
+        
+        Kwargs:
+            - `start` (bool): Wait for the motor to start moving.
+            - `stop` (bool): Wait for the motor to stop moving.       
+        """
         poll=0.05
         timeout = 5.0
         
@@ -332,21 +391,55 @@ class Motor(MotorBase):
             _logger.debug('(%s) Waiting to stop moving' % (self.name,))
             while self._moving:
                 time.sleep(poll)
+
+    # Added for Save/Restore                             
+    def get_settings(self):
+        """Obtain the motor settings for saving/restore purposes.
+        
+        Returns:
+            A dict.
+        """       
+        self.settings = {}
+        PV_DICT = dict(ENC_SETTINGS.items() + SAVE_VALS.items())
+        for i in PV_DICT:
+            self.settings[i] = self.add_pv(PV_DICT[i].replace('%root', self.pv_root).replace('%unit', self.units))
+        return
         
 class VMEMotor(Motor):
+    """Convenience class for "vme" type motors."""
     def __init__(self, name):
+        """  
+        Args:        
+            - `name` (str): Root PV name of the motor record.
+        """
         Motor.__init__(self, name, motor_type = 'vme')
 
 class ENCMotor(Motor):
+    """Convenience class for "vmeenc" type motors."""
     def __init__(self, name):
+        """  
+        Args:       
+            - `name` (str): Root PV name of the motor record.
+        """
         Motor.__init__(self, name, motor_type = 'vmeenc')
 
 class CLSMotor(Motor):
+    """Convenience class for "cls" type motors."""
     def __init__(self, name):
+        """  
+        Args:       
+            - `name` (str): Root PV name of the motor record.
+        """
         Motor.__init__(self, name, motor_type = 'cls')
 
 class PseudoMotor(Motor):
+    """Convenience class for "pseudo" type motors."""
     def __init__(self, name):
+        """  
+        Args:       
+            - `name` (str): Root PV name of the motor record.
+            
+        """
         Motor.__init__(self, name, motor_type = 'pseudo')
 
 class PseudoMotor2(Motor):
@@ -393,11 +486,26 @@ class EnergyMotor(Motor):
                 
 
 class BraggEnergyMotor(Motor):
+    """A specialized energy motor for using just the monochromator bragg angle."""
 
     implements(IMotor)
     
-    def __init__(self, name, enc=None):
-        Motor.__init__(self, name, motor_type='vme' )
+    def __init__(self, name, enc=None, motor_type="vme"):
+        """  
+        Args:
+            - `name` (str): Root PV name of motor record.
+        
+        Kwargs:
+            - `enc` (str): PV name for an optional encoder feedback value from
+              which to read the energy value.
+            - `motor_type` (str): Type of EPICS motor record. Accepted values are::
+        
+               "vme" - CLS VME58 and MaxV motor record without encoder support.
+               "vmeenc" - CLS VME58 and MaxV motor record with encoder support.
+               "cls" - OLD CLS motor record.
+               "pseudo" - CLS PseutoMotor record.
+        """
+        Motor.__init__(self, name, motor_type=motor_type)
         del self.DESC
         if enc is not None:
             del self.RBV          
@@ -445,25 +553,38 @@ class BraggEnergyMotor(Motor):
 
 
 class FixedLine2Motor(MotorBase):
+    """A specialized fixed offset pseudo-motor for moving two motors along a 
+    straight line."""
     
     def __init__(self, x, y, slope, intercept, linked=False):
+        """  
+        Args:
+            - `x` (:class:`MotorBase`): x-axis motor.
+            - `y` (:class:`MotorBase`): y-axis motor.
+            - `slope` (float): slope of the line.
+            - `intercept` (float): y-intercept of the line.
+        
+        Kwargs:
+            - `linked` (bool): Whether the two motors are linked. Two motors are 
+              linked if they can not be moved at the same time.
+        
+        """
         MotorBase.__init__(self, 'FixedOffset')        
         self.y = y
         self.x = x
-        self.linked = bool(linked)
-        self.slope = float(slope)
-        self.intercept = float(intercept)
+        self.add_devices(self.x, self.y)
+        self.linked = linked
+        self.slope = slope
+        self.intercept = intercept
         self.y.connect('changed', self._signal_change)
                 
     def __repr__(self):
         return '<FixedLine2Motor: \n\t%s,\n\t%s,\n\tslope=%0.2f, intercept=%0.2f\n>' % (self.x, self.y, self.slope, self.intercept)
         
     def get_position(self):
+        """Obtain the position of the `x` motor only."""
         return self.x.get_position()
         
-    def configure(self, **kwargs):
-        pass
-                                            
     def move_to(self, pos, wait=False, force=False):
         px = pos
         self.x.move_to(px, force=force)
@@ -495,27 +616,42 @@ class FixedLine2Motor(MotorBase):
 
 
 class RelVerticalMotor(MotorBase):
+    """A specialized pseudo-motor for moving an x-y stage attached to a 
+    rotating axis vertically. Such as a centering table attached to a goniometer.
+    The current position is always zero and all moves are relative."""
 
-    def __init__(self, y1, y2, omega):
+    def __init__(self, y1, y2, omega, offset=0.0):
+        """  
+        Args:
+            - `y1` (:class:`MotorBase`): The first motor which is moves 
+              vertically when the angle of the 
+                axis is at zero.              
+            - `y2` (:class:`MotorBase`): The second motor which is moves 
+              horizontally when the angle of the axis is at zero.             
+            - `omega` (:class:`MotorBase`): The motor for the rotation axis.
+        
+        Kwargs:
+            - `offset` (float): An angle correction to apply to the rotation 
+              axis position to make `y1` vertical.
+        """
         MotorBase.__init__(self, 'Relative Vertical')        
         self.y1 = y1
         self.y2 = y2
         self.omega = omega
+        self.offset = offset
+        self.add_devices(self.y1, self.y2, self.omega)
                 
     def __repr__(self):
         return '<RelVerticalMotor: %s, %s >' % (self.y1, self.y2)
         
     def get_position(self):
         # make sure all moves are relative by fixing current position at 0 always
-        return 0
-        
-    def configure(self, **kwargs):
-        pass
-                                                    
+        return 0.0
+                                                            
     def move_to(self, val, wait=False, force=False):
         if val == 0.0:
             return
-        tmp_omega = int(self.omega.get_position() ) - 90
+        tmp_omega = int(self.omega.get_position() ) - 90.0 - self.offset
         sin_w = math.sin(tmp_omega * math.pi / 180)
         cos_w = math.cos(tmp_omega * math.pi / 180)
         self.y1.move_by(-val * sin_w)
