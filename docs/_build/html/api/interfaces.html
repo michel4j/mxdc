@@ -1,0 +1,144 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Interfaces &mdash; Beamline Control Module v4.1.6-gedc482b documentation</title>
+    <link rel="stylesheet" href="../_static/jinja.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '4.1.6-gedc482b',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Beamline Control Module v4.1.6-gedc482b documentation" href="../index.html" />
+    <link rel="up" title="API documentation" href="index.html" />
+    <link rel="next" title="Devices" href="devices.html" />
+    <link rel="prev" title="API documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="devices.html" title="Devices"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="API documentation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Beamline Control Module v4.1.6-gedc482b documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">API documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="interfaces">
+<h1>Interfaces<a class="headerlink" href="#interfaces" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="bcm.device.interfaces.IDevice">
+<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">IDevice</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.IDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">zope.interface.Interface</span></tt></p>
+<p>A generic device interface.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.interfaces.IAutomounter">
+<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">IAutomounter</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.IAutomounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.interfaces.IDevice" title="bcm.device.interfaces.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IDevice</span></tt></a></p>
+<p>A sample automounter device interface.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.interfaces.ICollimator">
+<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">ICollimator</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.ICollimator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.interfaces.IDevice" title="bcm.device.interfaces.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IDevice</span></tt></a></p>
+<p>An X-ray beam collimator device object.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.interfaces.ICounter">
+<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">ICounter</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.ICounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.interfaces.IDevice" title="bcm.device.interfaces.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IDevice</span></tt></a></p>
+<p>An integrating counter object.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.interfaces.IGoniometer">
+<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">IGoniometer</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.IGoniometer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.interfaces.IDevice" title="bcm.device.interfaces.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IDevice</span></tt></a></p>
+<p>A goniometer device object.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.interfaces.IImagingDetector">
+<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">IImagingDetector</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.IImagingDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.interfaces.IDevice" title="bcm.device.interfaces.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IDevice</span></tt></a></p>
+<p>An imaging detector device for aquiring image frames.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper"><p class="logo"><a href="../index.html">
+  <img class="logo" src="../_static/logo-small.png" alt="Logo"/>
+</a></p><h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">API documentation</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">API documentation</a></li>
+      <li>Next: <a href="devices.html" title="next chapter">Devices</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/api/interfaces.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2012, Canadian Light Source, Inc.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+  </body>
+</html>

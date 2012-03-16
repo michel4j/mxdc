@@ -91,6 +91,7 @@ pygments_style = 'jinjaext.JinjaStyle'
 # autodoc documenting classes
 autoclass_content = "both"
 autodoc_member_order = "bysource"
+autodoc_default_flags = ['show-inheritance']
 
 # -- Options for HTML output ---------------------------------------------------
 

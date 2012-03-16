@@ -6,13 +6,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Devices &mdash; Beamline Control Module v4.0.185-g20fd45f documentation</title>
+    <title>Devices &mdash; Beamline Control Module v4.1.6-gedc482b documentation</title>
     <link rel="stylesheet" href="../_static/jinja.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '4.0.185-g20fd45f',
+        VERSION:     '4.1.6-gedc482b',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -21,7 +21,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="Beamline Control Module v4.0.185-g20fd45f documentation" href="../index.html" />
+    <link rel="top" title="Beamline Control Module v4.1.6-gedc482b documentation" href="../index.html" />
     <link rel="up" title="API documentation" href="index.html" />
     <link rel="next" title="Engines" href="engines.html" />
     <link rel="prev" title="API documentation" href="index.html" /> 
@@ -42,7 +42,7 @@
         <li class="right" >
           <a href="index.html" title="API documentation"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Beamline Control Module v4.0.185-g20fd45f documentation</a> &raquo;</li>
+        <li><a href="../index.html">Beamline Control Module v4.1.6-gedc482b documentation</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">API documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -59,7 +59,8 @@
 <span class="target" id="module-bcm.device.base"></span><dl class="class">
 <dt id="bcm.device.base.BaseDevice">
 <em class="property">class </em><tt class="descclassname">bcm.device.base.</tt><tt class="descname">BaseDevice</tt><a class="headerlink" href="#bcm.device.base.BaseDevice" title="Permalink to this definition">¶</a></dt>
-<dd><p>A generic device object class.  All devices should be derived from this 
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">gobject._gobject.GObject</span></tt></p>
+<p>A generic device object class.  All devices should be derived from this 
 class. Objects of this class are instances of <cite>gobject.GObject</cite>.</p>
 <p><strong>Attributes:</strong></p>
 <blockquote>
@@ -187,7 +188,8 @@ Keyworded arguments should be the same as those expected for instantiating a
 <dl class="class">
 <dt id="bcm.device.base.HealthManager">
 <em class="property">class </em><tt class="descclassname">bcm.device.base.</tt><tt class="descname">HealthManager</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager" title="Permalink to this definition">¶</a></dt>
-<dd><p>Manages the health states. The object enables registration and removal of
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Manages the health states. The object enables registration and removal of
 error states and consistent reporting of health based on all currently 
 active health issues.</p>
 <p>Takes key worded arguments. The keyword name is the context, and
@@ -229,7 +231,8 @@ errors within the health registry.</p>
 <dl class="class">
 <dt id="bcm.device.automounter.BasicAutomounter">
 <em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">BasicAutomounter</tt><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Basic Automounter object.</p>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>Basic Automounter object.</p>
 <p>An automounter object contains a number of AutomounterContainers.</p>
 <dl class="docutils">
 <dt>Signals:        </dt>
@@ -373,7 +376,8 @@ specified and any sample is mounted. False otherwise.</dd>
 <dl class="class">
 <dt id="bcm.device.counter.Counter">
 <em class="property">class </em><tt class="descclassname">bcm.device.counter.</tt><tt class="descname">Counter</tt><big>(</big><em>pv_name</em>, <em>zero=0.0</em><big>)</big><a class="headerlink" href="#bcm.device.counter.Counter" title="Permalink to this definition">¶</a></dt>
-<dd><p>EPICS based Counter Device objects. Enables counting and averaging of 
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>EPICS based Counter Device objects. Enables counting and averaging of 
 process variables over given time periods.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -405,7 +409,8 @@ time.</p>
 <dl class="class">
 <dt id="bcm.device.detector.MXCCDImager">
 <em class="property">class </em><tt class="descclassname">bcm.device.detector.</tt><tt class="descname">MXCCDImager</tt><big>(</big><em>name</em>, <em>size</em>, <em>resolution</em>, <em>detector_type='MX300'</em><big>)</big><a class="headerlink" href="#bcm.device.detector.MXCCDImager" title="Permalink to this definition">¶</a></dt>
-<dd><p>MX Detector object for EPICS based Rayonix CCD detectors at the CLS.</p>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>MX Detector object for EPICS based Rayonix CCD detectors at the CLS.</p>
 <dl class="docutils">
 <dt>Args:</dt>
 <dd><cite>name</cite> (str): Root name of the EPICS record Process Variables.
@@ -514,7 +519,8 @@ supported parameters are:</p>
 <dl class="class">
 <dt id="bcm.device.diffractometer.Diffractometer">
 <em class="property">class </em><tt class="descclassname">bcm.device.diffractometer.</tt><tt class="descname">Diffractometer</tt><big>(</big><em>distance</em>, <em>two_theta</em>, <em>name='Diffractometer'</em><big>)</big><a class="headerlink" href="#bcm.device.diffractometer.Diffractometer" title="Permalink to this definition">¶</a></dt>
-<dd><p>A Container device object which groups a detector distance and detector
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>A Container device object which groups a detector distance and detector
 swing-out.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -545,13 +551,15 @@ the detector swing-out angle.</dd>
 <dl class="class">
 <dt id="bcm.device.goniometer.BackLight">
 <em class="property">class </em><tt class="descclassname">bcm.device.goniometer.</tt><tt class="descname">BackLight</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.BackLight" title="Permalink to this definition">¶</a></dt>
-<dd><p>A specialized in-out actuator for pneumatic OAV backlight at the CLS.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.misc.BasicShutter</span></tt></p>
+<p>A specialized in-out actuator for pneumatic OAV backlight at the CLS.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="bcm.device.goniometer.Goniometer">
 <em class="property">class </em><tt class="descclassname">bcm.device.goniometer.</tt><tt class="descname">Goniometer</tt><big>(</big><em>name</em>, <em>blname</em>, <em>mnt_cmd</em>, <em>minibeam</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.Goniometer" title="Permalink to this definition">¶</a></dt>
-<dd><p>EPICS based Parker-type Goniometer at the CLS 08ID-1.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.goniometer.GoniometerBase</span></tt></p>
+<p>EPICS based Parker-type Goniometer at the CLS 08ID-1.</p>
 <p>Args:
 <cite>name</cite> (str): PV name of goniometer EPICS record.
 <cite>blname</cite> (str): PV name for Backlight PV.
@@ -608,7 +616,8 @@ asynchronously.</dd>
 <dl class="class">
 <dt id="bcm.device.goniometer.MD2Goniometer">
 <em class="property">class </em><tt class="descclassname">bcm.device.goniometer.</tt><tt class="descname">MD2Goniometer</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.MD2Goniometer" title="Permalink to this definition">¶</a></dt>
-<dd><p>EPICS based MD2-type Goniometer at the CLS 08B1-1.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.goniometer.GoniometerBase</span></tt></p>
+<p>EPICS based MD2-type Goniometer at the CLS 08B1-1.</p>
 <dl class="docutils">
 <dt>Args:</dt>
 <dd><cite>name</cite> (str): Root PV name of the goniometer EPICS record.</dd>
@@ -673,13 +682,15 @@ asynchronously.</dd>
 <dl class="class">
 <dt id="bcm.device.mca.XFlashMCA">
 <em class="property">class </em><tt class="descclassname">bcm.device.mca.</tt><tt class="descname">XFlashMCA</tt><big>(</big><em>name</em>, <em>nozzle=None</em>, <em>channels=4096</em><big>)</big><a class="headerlink" href="#bcm.device.mca.XFlashMCA" title="Permalink to this definition">¶</a></dt>
-<dd><p>mcaRecord based single element fluorescence detector object.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.mca.BasicMCA</span></tt></p>
+<p>mcaRecord based single element fluorescence detector object.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="bcm.device.mca.VortexMCA">
 <em class="property">class </em><tt class="descclassname">bcm.device.mca.</tt><tt class="descname">VortexMCA</tt><big>(</big><em>name</em>, <em>channels=2048</em><big>)</big><a class="headerlink" href="#bcm.device.mca.VortexMCA" title="Permalink to this definition">¶</a></dt>
-<dd><p>EPICS based 4-element Vortex ME4 detector object.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.mca.BasicMCA</span></tt></p>
+<p>EPICS based 4-element Vortex ME4 detector object.</p>
 </dd></dl>
 
 </div>
@@ -688,7 +699,8 @@ asynchronously.</dd>
 <dl class="class">
 <dt id="bcm.device.monochromator.Monochromator">
 <em class="property">class </em><tt class="descclassname">bcm.device.monochromator.</tt><tt class="descname">Monochromator</tt><big>(</big><em>simple_energy</em>, <em>energy</em>, <em>mostab=None</em><big>)</big><a class="headerlink" href="#bcm.device.monochromator.Monochromator" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dl class="method">
 <dt id="bcm.device.monochromator.Monochromator.wait">
 <tt class="descname">wait</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.monochromator.Monochromator.wait" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -706,13 +718,295 @@ asynchronously.</dd>
 <dl class="exception">
 <dt id="bcm.device.motor.MotorError">
 <em class="property">exception </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">MotorError</tt><a class="headerlink" href="#bcm.device.motor.MotorError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Base class for errors in the motor module.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+<p>Base class for errors in the motor module.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="bcm.device.motor.MotorBase">
 <em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">MotorBase</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.motor.MotorBase" title="Permalink to this definition">¶</a></dt>
-<dd><p>Base class for motors.</p>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>Base class for motors.</p>
+<dl class="docutils">
+<dt>Signals:</dt>
+<dd><ul class="first last simple">
+<li><cite>changed</cite> (float): Emitted everytime the position of the motor changes.
+Data contains the current position of the motor.</li>
+<li><cite>timed-change</cite> (tuple(float, float)): Emitted everytime the motor changes.
+Data is a 2-tuple with the current position and the timestamp of the last change.</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.motor.Motor">
+<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">Motor</tt><big>(</big><em>pv_name</em>, <em>motor_type</em><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.MotorBase</span></tt></a></p>
+<p>Motor object for EPICS based motor records.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last">
+<li><p class="first"><cite>pv_name</cite> (str): Root PV name for the EPICS record.</p>
+</li>
+<li><p class="first"><cite>motor_type</cite> (str): Type of EPICS motor record. Accepted values are:</p>
+<div class="highlight-python"><pre>"vme" - CLS VME58 and MaxV motor record without encoder support.
+"vmeenc" - CLS VME58 and MaxV motor record with encoder support.
+"cls" - OLD CLS motor record.
+"pseudo" - CLS PseutoMotor record.</pre>
+</div>
+</li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="bcm.device.motor.Motor.get_position">
+<tt class="descname">get_position</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.get_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the current position of the motor in device units.</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>float.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.motor.Motor.configure">
+<tt class="descname">configure</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.configure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure the motor. Currently only allows changing the calibration
+flag and reseting the position  for &#8220;vme&#8221; and &#8220;vmeenc&#8221; motors only.</p>
+<dl class="docutils">
+<dt>Kwargs:</dt>
+<dd><ul class="first last simple">
+<li><cite>calib</cite> (int): 0 removes the calibration flag, anything else sets it.</li>
+<li><cite>reset</cite> (float): position to recalibrate the current motor to.</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.motor.Motor.move_to">
+<tt class="descname">move_to</tt><big>(</big><em>pos</em>, <em>wait=False</em>, <em>force=False</em><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.move_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Request the motor to move to an absolute position. By default, the 
+command will not be sent to the motor if its current position is the 
+same as the requested position within its preset precision. In addition
+the command will not be sent if the motor health severity is not zero
+(GOOD).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last simple">
+<li><cite>pos</cite> (float): Target position to move to.</li>
+</ul>
+</dd>
+<dt>Kwargs:</dt>
+<dd><ul class="first last simple">
+<li><cite>wait</cite> (bool): Whether to wait for move to complete or return 
+immediately.</li>
+<li><cite>force</cite> (bool): Force a command to be sent to the motor even if the
+target is the same as the current position.</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.motor.Motor.move_by">
+<tt class="descname">move_by</tt><big>(</big><em>val</em>, <em>wait=False</em>, <em>force=False</em><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.move_by" title="Permalink to this definition">¶</a></dt>
+<dd><p>Similar to <a class="reference internal" href="#bcm.device.motor.Motor.move_to" title="bcm.device.motor.Motor.move_to"><tt class="xref py py-func docutils literal"><span class="pre">move_to()</span></tt></a>, except request the motor to move by a 
+relative amount.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last simple">
+<li><cite>val</cite> (float): amount to move position by.</li>
+</ul>
+</dd>
+<dt>Kwargs:</dt>
+<dd><ul class="first last simple">
+<li><cite>wait</cite> (bool): Whether to wait for move to complete or return 
+immediately.</li>
+<li><cite>force</cite> (bool): Force a command to be sent to the motor even if the
+target is the same as the current position.</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.motor.Motor.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop the motor from moving.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.motor.Motor.wait">
+<tt class="descname">wait</tt><big>(</big><em>start=True</em>, <em>stop=True</em><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the motor busy state to change.</p>
+<dl class="docutils">
+<dt>Kwargs:</dt>
+<dd><ul class="first last simple">
+<li><cite>start</cite> (bool): Wait for the motor to start moving.</li>
+<li><cite>stop</cite> (bool): Wait for the motor to stop moving.</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.device.motor.Motor.get_settings">
+<tt class="descname">get_settings</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.get_settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the motor settings for saving/restore purposes.</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>A dict.</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.motor.VMEMotor">
+<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">VMEMotor</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.motor.VMEMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.Motor" title="bcm.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.Motor</span></tt></a></p>
+<p>Convenience class for &#8220;vme&#8221; type motors.</p>
+<dl class="docutils">
+<dt>Args:        </dt>
+<dd><ul class="first last simple">
+<li><cite>name</cite> (str): Root PV name of the motor record.</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.motor.ENCMotor">
+<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">ENCMotor</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.motor.ENCMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.Motor" title="bcm.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.Motor</span></tt></a></p>
+<p>Convenience class for &#8220;vmeenc&#8221; type motors.</p>
+<dl class="docutils">
+<dt>Args:       </dt>
+<dd><ul class="first last simple">
+<li><cite>name</cite> (str): Root PV name of the motor record.</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.motor.CLSMotor">
+<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">CLSMotor</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.motor.CLSMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.Motor" title="bcm.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.Motor</span></tt></a></p>
+<p>Convenience class for &#8220;cls&#8221; type motors.</p>
+<dl class="docutils">
+<dt>Args:       </dt>
+<dd><ul class="first last simple">
+<li><cite>name</cite> (str): Root PV name of the motor record.</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.motor.PseudoMotor">
+<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">PseudoMotor</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.motor.PseudoMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.Motor" title="bcm.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.Motor</span></tt></a></p>
+<p>Convenience class for &#8220;pseudo&#8221; type motors.</p>
+<dl class="docutils">
+<dt>Args:       </dt>
+<dd><ul class="first last simple">
+<li><cite>name</cite> (str): Root PV name of the motor record.</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.motor.BraggEnergyMotor">
+<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">BraggEnergyMotor</tt><big>(</big><em>name</em>, <em>enc=None</em>, <em>motor_type='vme'</em><big>)</big><a class="headerlink" href="#bcm.device.motor.BraggEnergyMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.Motor" title="bcm.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.Motor</span></tt></a></p>
+<p>A specialized energy motor for using just the monochromator bragg angle.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last simple">
+<li><cite>name</cite> (str): Root PV name of motor record.</li>
+</ul>
+</dd>
+<dt>Kwargs:</dt>
+<dd><ul class="first last">
+<li><p class="first"><cite>enc</cite> (str): PV name for an optional encoder feedback value from
+which to read the energy value.</p>
+</li>
+<li><p class="first"><cite>motor_type</cite> (str): Type of EPICS motor record. Accepted values are:</p>
+<div class="highlight-python"><pre>"vme" - CLS VME58 and MaxV motor record without encoder support.
+"vmeenc" - CLS VME58 and MaxV motor record with encoder support.
+"cls" - OLD CLS motor record.
+"pseudo" - CLS PseutoMotor record.</pre>
+</div>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.motor.FixedLine2Motor">
+<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">FixedLine2Motor</tt><big>(</big><em>x</em>, <em>y</em>, <em>slope</em>, <em>intercept</em>, <em>linked=False</em><big>)</big><a class="headerlink" href="#bcm.device.motor.FixedLine2Motor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.MotorBase</span></tt></a></p>
+<p>A specialized fixed offset pseudo-motor for moving two motors along a 
+straight line.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last simple">
+<li><cite>x</cite> (<a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): x-axis motor.</li>
+<li><cite>y</cite> (<a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): y-axis motor.</li>
+<li><cite>slope</cite> (float): slope of the line.</li>
+<li><cite>intercept</cite> (float): y-intercept of the line.</li>
+</ul>
+</dd>
+<dt>Kwargs:</dt>
+<dd><ul class="first last simple">
+<li><cite>linked</cite> (bool): Whether the two motors are linked. Two motors are 
+linked if they can not be moved at the same time.</li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="bcm.device.motor.FixedLine2Motor.get_position">
+<tt class="descname">get_position</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.motor.FixedLine2Motor.get_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the position of the <cite>x</cite> motor only.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="bcm.device.motor.RelVerticalMotor">
+<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">RelVerticalMotor</tt><big>(</big><em>y1</em>, <em>y2</em>, <em>omega</em>, <em>offset=0.0</em><big>)</big><a class="headerlink" href="#bcm.device.motor.RelVerticalMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.MotorBase</span></tt></a></p>
+<p>A specialized pseudo-motor for moving an x-y stage attached to a 
+rotating axis vertically. Such as a centering table attached to a goniometer.
+The current position is always zero and all moves are relative.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last">
+<li><p class="first"><cite>y1</cite> (<a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): The first motor which is moves 
+vertically when the angle of the</p>
+<blockquote>
+<div><p>axis is at zero.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><cite>y2</cite> (<a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): The second motor which is moves 
+horizontally when the angle of the axis is at zero.</p>
+</li>
+<li><p class="first"><cite>omega</cite> (<a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): The motor for the rotation axis.</p>
+</li>
+</ul>
+</dd>
+<dt>Kwargs:</dt>
+<dd><ul class="first last simple">
+<li><cite>offset</cite> (float): An angle correction to apply to the rotation 
+axis position to make <cite>y1</cite> vertical.</li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -721,7 +1015,8 @@ asynchronously.</dd>
 <dl class="class">
 <dt id="bcm.device.video.VideoSrc">
 <em class="property">class </em><tt class="descclassname">bcm.device.video.</tt><tt class="descname">VideoSrc</tt><big>(</big><em>name='Basic Camera'</em>, <em>maxfps=5.0</em><big>)</big><a class="headerlink" href="#bcm.device.video.VideoSrc" title="Permalink to this definition">¶</a></dt>
-<dd><p>Base class for all Video Sources. Maintains a list of listenners (sinks)
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>Base class for all Video Sources. Maintains a list of listenners (sinks)
 and updates each one when the video frame changes.</p>
 <p>Kwargs:
 <cite>name</cite> (str): Camera name.
@@ -776,7 +1071,8 @@ and updates each one when the video frame changes.</p>
 <span class="target" id="module-bcm.device.misc"></span><dl class="class">
 <dt id="bcm.device.misc.MotorShutter">
 <em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">MotorShutter</tt><big>(</big><em>motor</em><big>)</big><a class="headerlink" href="#bcm.device.misc.MotorShutter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Used for CMCF1 cryojet Motor</p>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>Used for CMCF1 cryojet Motor</p>
 <dl class="method">
 <dt id="bcm.device.misc.MotorShutter.is_open">
 <tt class="descname">is_open</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.misc.MotorShutter.is_open" title="Permalink to this definition">¶</a></dt>
@@ -788,7 +1084,8 @@ and updates each one when the video frame changes.</p>
 <dl class="class">
 <dt id="bcm.device.misc.DiskSpaceMonitor">
 <em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">DiskSpaceMonitor</tt><big>(</big><em>descr</em>, <em>path</em>, <em>threshold=0.9</em>, <em>freq=5.0</em><big>)</big><a class="headerlink" href="#bcm.device.misc.DiskSpaceMonitor" title="Permalink to this definition">¶</a></dt>
-<dd><p>An object which periodically monitors a given path for available space.</p>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>An object which periodically monitors a given path for available space.</p>
 <dl class="docutils">
 <dt>Args:</dt>
 <dd><cite>descr</cite> (str): A description.
@@ -806,7 +1103,8 @@ and updates each one when the video frame changes.</p>
 <span class="target" id="module-bcm.device.cryojet"></span><dl class="class">
 <dt id="bcm.device.cryojet.CryojetNozzle">
 <em class="property">class </em><tt class="descclassname">bcm.device.cryojet.</tt><tt class="descname">CryojetNozzle</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.cryojet.CryojetNozzle" title="Permalink to this definition">¶</a></dt>
-<dd><p>A specialized in-out actuator for pneumatic cryoject nozzles at the CLS.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.misc.BasicShutter</span></tt></p>
+<p>A specialized in-out actuator for pneumatic cryoject nozzles at the CLS.</p>
 <p>Args:
 name (str): Process variable root name.</p>
 </dd></dl>
@@ -814,7 +1112,8 @@ name (str): Process variable root name.</p>
 <dl class="class">
 <dt id="bcm.device.cryojet.Cryojet">
 <em class="property">class </em><tt class="descclassname">bcm.device.cryojet.</tt><tt class="descname">Cryojet</tt><big>(</big><em>cname</em>, <em>lname</em>, <em>nname=''</em><big>)</big><a class="headerlink" href="#bcm.device.cryojet.Cryojet" title="Permalink to this definition">¶</a></dt>
-<dd><p>EPICS Based cryoject device object at the CLS.</p>
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>EPICS Based cryoject device object at the CLS.</p>
 <dl class="docutils">
 <dt>Args:</dt>
 <dd>cname (str): Root name for EPICS cryojet record.
@@ -840,7 +1139,8 @@ flow rate is saved.</p>
 <span class="target" id="module-bcm.device.diagnostics"></span><dl class="class">
 <dt id="bcm.device.diagnostics.DiagnosticBase">
 <em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">DiagnosticBase</tt><big>(</big><em>descr</em><big>)</big><a class="headerlink" href="#bcm.device.diagnostics.DiagnosticBase" title="Permalink to this definition">¶</a></dt>
-<dd><p>Base class for diagnostics.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">gobject._gobject.GObject</span></tt></p>
+<p>Base class for diagnostics.</p>
 <dl class="method">
 <dt id="bcm.device.diagnostics.DiagnosticBase.get_status">
 <tt class="descname">get_status</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.diagnostics.DiagnosticBase.get_status" title="Permalink to this definition">¶</a></dt>
@@ -864,7 +1164,8 @@ of the integer corresponds to one of:</p>
 <dl class="class">
 <dt id="bcm.device.diagnostics.DeviceDiag">
 <em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">DeviceDiag</tt><big>(</big><em>device</em>, <em>descr=None</em><big>)</big><a class="headerlink" href="#bcm.device.diagnostics.DeviceDiag" title="Permalink to this definition">¶</a></dt>
-<dd><p>A diagnostic object for generic devices which emits a warning when the
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.diagnostics.DiagnosticBase" title="bcm.device.diagnostics.DiagnosticBase"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.diagnostics.DiagnosticBase</span></tt></a></p>
+<p>A diagnostic object for generic devices which emits a warning when the
 device health is not good and an error when it is disconnected or disabled.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -878,7 +1179,8 @@ monitor.</dd>
 <dl class="class">
 <dt id="bcm.device.diagnostics.ServiceDiag">
 <em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">ServiceDiag</tt><big>(</big><em>service</em>, <em>descr=None</em><big>)</big><a class="headerlink" href="#bcm.device.diagnostics.ServiceDiag" title="Permalink to this definition">¶</a></dt>
-<dd><p>A diagnostic object for generic services which emits an error when it is
+<dd><p>Bases: <a class="reference internal" href="#bcm.device.diagnostics.DiagnosticBase" title="bcm.device.diagnostics.DiagnosticBase"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.diagnostics.DiagnosticBase</span></tt></a></p>
+<p>A diagnostic object for generic services which emits an error when it is
 disconnected or disabled.</p>
 <dl class="docutils">
 <dt>Args:</dt>
