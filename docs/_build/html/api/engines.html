@@ -6,13 +6,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Engines &mdash; Beamline Control Module v4.0.185-g20fd45f documentation</title>
+    <title>Engines &mdash; Beamline Control Module v4.1.6-gedc482b documentation</title>
     <link rel="stylesheet" href="../_static/jinja.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '4.0.185-g20fd45f',
+        VERSION:     '4.1.6-gedc482b',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -21,7 +21,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="Beamline Control Module v4.0.185-g20fd45f documentation" href="../index.html" />
+    <link rel="top" title="Beamline Control Module v4.1.6-gedc482b documentation" href="../index.html" />
     <link rel="up" title="API documentation" href="index.html" />
     <link rel="next" title="&lt;no title&gt;" href="services.html" />
     <link rel="prev" title="Devices" href="devices.html" /> 
@@ -42,7 +42,7 @@
         <li class="right" >
           <a href="devices.html" title="Devices"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Beamline Control Module v4.0.185-g20fd45f documentation</a> &raquo;</li>
+        <li><a href="../index.html">Beamline Control Module v4.1.6-gedc482b documentation</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">API documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -71,43 +71,50 @@
 <dl class="exception">
 <dt id="bcm.engine.scanning.ScanError">
 <em class="property">exception </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">ScanError</tt><a class="headerlink" href="#bcm.engine.scanning.ScanError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Scan Error.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+<p>Scan Error.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="bcm.engine.scanning.AbsScan">
 <em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">AbsScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.AbsScan" title="Permalink to this definition">¶</a></dt>
-<dd><p>An absolute scan of a single motor.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.BasicScan</span></tt></p>
+<p>An absolute scan of a single motor.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="bcm.engine.scanning.AbsScan2">
 <em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">AbsScan2</tt><big>(</big><em>mtr1</em>, <em>start_pos1</em>, <em>end_pos1</em>, <em>mtr2</em>, <em>start_pos2</em>, <em>end_pos2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.AbsScan2" title="Permalink to this definition">¶</a></dt>
-<dd><p>An Absolute scan of two motors.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.BasicScan</span></tt></p>
+<p>An Absolute scan of two motors.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="bcm.engine.scanning.RelScan">
 <em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">RelScan</tt><big>(</big><em>mtr</em>, <em>start_offset</em>, <em>end_offset</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.RelScan" title="Permalink to this definition">¶</a></dt>
-<dd><p>A relative scan of a single motor.</p>
+<dd><p>Bases: <a class="reference internal" href="#bcm.engine.scanning.AbsScan" title="bcm.engine.scanning.AbsScan"><tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.AbsScan</span></tt></a></p>
+<p>A relative scan of a single motor.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="bcm.engine.scanning.CntScan">
 <em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">CntScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.CntScan" title="Permalink to this definition">¶</a></dt>
-<dd><p>A Continuous scan of a single motor.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.BasicScan</span></tt></p>
+<p>A Continuous scan of a single motor.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="bcm.engine.scanning.RelScan2">
 <em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">RelScan2</tt><big>(</big><em>mtr1</em>, <em>start_offset1</em>, <em>end_offset1</em>, <em>mtr2</em>, <em>start_offset2</em>, <em>end_offset2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.RelScan2" title="Permalink to this definition">¶</a></dt>
-<dd><p>A relative scan of a two motors.</p>
+<dd><p>Bases: <a class="reference internal" href="#bcm.engine.scanning.AbsScan2" title="bcm.engine.scanning.AbsScan2"><tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.AbsScan2</span></tt></a></p>
+<p>A relative scan of a two motors.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="bcm.engine.scanning.GridScan">
 <em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">GridScan</tt><big>(</big><em>mtr1</em>, <em>start_pos1</em>, <em>end_pos1</em>, <em>mtr2</em>, <em>start_pos2</em>, <em>end_pos2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.GridScan" title="Permalink to this definition">¶</a></dt>
-<dd><p>A absolute scan of two motors in a grid.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.BasicScan</span></tt></p>
+<p>A absolute scan of two motors in a grid.</p>
 </dd></dl>
 
 </div>
@@ -144,7 +151,8 @@ cema is center of mass</p>
 <dl class="exception">
 <dt id="bcm.engine.scripting.ScriptError">
 <em class="property">exception </em><tt class="descclassname">bcm.engine.scripting.</tt><tt class="descname">ScriptError</tt><a class="headerlink" href="#bcm.engine.scripting.ScriptError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Exceptioins for Scripting Engine.</p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+<p>Exceptioins for Scripting Engine.</p>
 </dd></dl>
 
 </div>
@@ -156,7 +164,8 @@ cema is center of mass</p>
 <dl class="class">
 <dt id="bcm.engine.optimizer.PitchOptimizer">
 <em class="property">class </em><tt class="descclassname">bcm.engine.optimizer.</tt><tt class="descname">PitchOptimizer</tt><big>(</big><em>name</em>, <em>pitch_func</em>, <em>min_count=0.0</em><big>)</big><a class="headerlink" href="#bcm.engine.optimizer.PitchOptimizer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Pitch Optimizer for 08B1-1</p>
+<dd><p>Bases: <a class="reference internal" href="devices.html#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>Pitch Optimizer for 08B1-1</p>
 </dd></dl>
 
 <span class="target" id="module-bcm.engine.snapshot"></span><p>Created on Jan 26, 2010</p>

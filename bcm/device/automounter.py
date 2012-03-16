@@ -20,7 +20,7 @@ _logger = get_module_logger(__name__)
 class AutomounterContainer(gobject.GObject):
     """An event driven object for representing an automounter container.
     
-    **Signals**:
+    Signals:
         - `changed`: Emitted when the state of the container changes. Transmits
           no data.
     """
@@ -31,12 +31,11 @@ class AutomounterContainer(gobject.GObject):
         """ Create a container at the specified location in the Automounter.
         
         Args:
-            location (str): a single character string ('L', 'R' or 'M') 
-            corresponding to 'Left', 'Right', 'Middle'.
+            - `location` (str): a single character string ('L', 'R' or 'M') 
+              corresponding to 'Left', 'Right', 'Middle'.
         
         Kwargs:
-            status_str (str or None): status string to update container with.
-        
+            - `status_str` (str or None): status string to update container with.       
         """
         
         gobject.GObject.__init__(self)
@@ -93,12 +92,11 @@ class BasicAutomounter(BaseDevice):
     
     Signals:        
         - `state`: transmits changes in automounter states. The signal data is 
-           a dictionary with three entries {'busy': <boolean>, 
-           'enabled': <boolean>, 'needs':[<str>,<str>,...]}.
-        - `message`: messages from the Automounter
+          a dictionary with three entries {'busy': <boolean>, 
+        - `enabled`: <boolean>, 'needs':[<str>,<str>,...]}.
         - `mounted`: emitted when a sample is mounted or dismounted. The data 
-           transmitted is a tuple of the form (<port no.>, <barcode>) when 
-           mounting and `None` when dismounting.
+          transmitted is a tuple of the form (<port no.>, <barcode>) when 
+          mounting and `None` when dismounting.
         - `progress`:  notifies listeners of automounter progress. Data is a 
            tuple of the form (<% complete>, <description>).
             
@@ -128,7 +126,7 @@ class BasicAutomounter(BaseDevice):
         If no status string.
         
         Args:
-            state (str): State string for container.
+            `state` (str): State string for container.
         """        
         fbstr = ''.join(state.split())
         info = {
@@ -147,14 +145,20 @@ class BasicAutomounter(BaseDevice):
     
     def mount(self, port, wash=False, wait=False):
         """Mount the sample at the specified port, optionally washing the sample
-        in the process.
+        in the process. Does nothing if the requested port is already mounted.
+        Dismounts the mounted sample prior to mounting if a another sample is 
+        already mounted.
         
         Args:
-            port (str): Address to mount.
+            - `port` (str): Address to mount.
         
         Kwargs:
-            wash (bool): Whether to wash or not (default is False)
-            wait (bool): Run asynchronously or block (default is async, False)
+            - `wash` (bool): Whether to wash or not (default is False)
+            - `wait` (bool): Run asynchronously or block (default is async, False)
+        
+        Returns:
+            bool. True if the requested sample is successfully mounted, and False
+            otherwise.
         """
         pass
     
@@ -163,9 +167,9 @@ class BasicAutomounter(BaseDevice):
         dismount it to the original port from which it was mounted.
         
         Kwargs:
-            port (str): Destination address to dismount to, default is original
-                port
-            wait (bool): Run asynchronously or block (default is async, False)
+            - `port` (str): Destination address to dismount to, default is original
+              port
+            - `wait` (bool): Run asynchronously or block (default is async, False)
         """
         pass
     
@@ -173,13 +177,12 @@ class BasicAutomounter(BaseDevice):
         """Wait for the automounter
         
         Kwargs:
-            start (bool): Wait for automounter to start.
-            stop (bool): Wait for automounter to stop.
-            timeout (int): Maximum time to wait
+            - `start` (bool): Wait for automounter to start.
+            - `stop` (bool): Wait for automounter to stop.
+            - `timeout` (int): Maximum time to wait
         
         Returns:
-            True if the wait was successful.
-            False if the wait timed-out.
+            True if the wait was successful. False if the wait timed-out.
             
         """
         poll=0.20
@@ -208,7 +211,7 @@ class BasicAutomounter(BaseDevice):
         as mountable during the last probe operation.
         
         Args:
-            port (str): The sample location to check.
+            `port` (str): The sample location to check.
         
         Returns:
             True or False.
@@ -227,7 +230,7 @@ class BasicAutomounter(BaseDevice):
         mounted. 
         
         Kwargs:
-            port (str): The sample location to check.
+            `port` (str): The sample location to check.
             
         Returns:
             True if a port is specified and is mounted or if no port is 
@@ -254,7 +257,7 @@ class BasicAutomounter(BaseDevice):
         """Obtain the detailed state of the specified sample location.
         
         Args:
-            port (str): The sample location
+            `port` (str): The sample location
         
         Returns:
             int. one of::
@@ -362,14 +365,20 @@ class Automounter(BasicAutomounter):
     
     def mount(self, port, wash=False, wait=False):
         """Mount the sample at the specified port, optionally washing the sample
-        in the process.
+        in the process. Does nothing if the requested port is already mounted.
+        Dismounts the mounted sample prior to mounting if a another sample is 
+        already mounted.
         
         Args:
-            port (str): Address to mount.
+            - `port` (str): Address to mount.
         
         Kwargs:
-            wash (bool): Whether to wash or not (default is False)
-            wait (bool): Run asynchronously or block (default is async, False)
+            - `wash` (bool): Whether to wash or not (default is False)
+            - `wait` (bool): Run asynchronously or block (default is async, False)
+        
+        Returns:
+            bool. True if the requested sample is successfully mounted, and False
+            otherwise.
         """
         enabled = self._wait_for_enable(30)
         if not enabled:
@@ -382,8 +391,21 @@ class Automounter(BasicAutomounter):
             self._wash_param.put('0')
         self._barcode_reset.put(1)
         
-        #use mount_next if something already mounted
-        if self._mounted.get().strip() != '':
+        #do nothing if sample is already mounted
+        _mounted_port = self._mounted.get().strip()
+        if _mounted_port == param:
+            _logger.info('(%s) Sample at location `%s` already mounted.' % (self.name, port))
+            return True
+        
+        # use mount_next if something already mounted
+        if _mounted_port == '':      # nothing is mounted  
+            self._mount_param.put(param)
+            self._mount_cmd.put(1)
+            ca.flush()
+            self._mount_cmd.put(0)
+            self._total_steps = 26
+            self._step_count = 0
+        else:                        # something is mounted
             dis_param = self._mounted.get()
             self._dismount_param.put(dis_param)
             self._mount_param.put(param)
@@ -391,13 +413,6 @@ class Automounter(BasicAutomounter):
             ca.flush()
             self._mount_next_cmd.put(0)
             self._total_steps = 40
-            self._step_count = 0
-        else:        
-            self._mount_param.put(param)
-            self._mount_cmd.put(1)
-            ca.flush()
-            self._mount_cmd.put(0)
-            self._total_steps = 26
             self._step_count = 0
         
         _logger.info('(%s) Mount command: %s' % (self.name, port))
@@ -412,9 +427,12 @@ class Automounter(BasicAutomounter):
         dismount it to the original port from which it was mounted.
         
         Kwargs:
-            port (str): Destination address to dismount to, default is original
-                port
-            wait (bool): Run asynchronously or block (default is async, False)
+            - `port` (str): Destination address to dismount to, default is original
+              port.
+            - `wait` (bool): Run asynchronously or block (default is async, False)
+
+        Returns:
+            bool. True if successfully dismounted, and False otherwise.
         """
         enabled = self._wait_for_enable(30)
         if not enabled:
