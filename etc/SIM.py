@@ -66,7 +66,7 @@ DEVICES = {
     'ring_current':  PV('PCT1402-01:mA:fbk'),
     'ring_mode':  PV('SYSTEM:mode:fbk'),
     'ring_status':  PV('SRStatus:injecting'),
-    'storage_ring':  StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
+    'storage_ring':  SimStorageRing('Simulated Storage Ring'),
     'psh1':  SimShutter('PSH1'),
     'ssh1':  SimShutter('SSH2'),
     'psh2':  SimShutter('PSH2'),
@@ -84,7 +84,7 @@ DEVICES = {
     'mca': SimMultiChannelAnalyzer('Simulated MCA'),
 
     #disk space monitor
-    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', freq=0.5), 
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.8, critical=0.9, freq=0.5), 
 }
 
 # lims, dpm, imagesync and other services

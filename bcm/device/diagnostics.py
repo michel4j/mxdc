@@ -49,8 +49,8 @@ class DiagnosticBase(gobject.GObject):
         
         if self._status['status'] != status and status != DIAG_STATUS_GOOD:
             _logger.warning("%s: %s." % (self.description, msg))
-
         self._status = data
+
     
     def get_status(self):
         """Check the state of the diagnostic.

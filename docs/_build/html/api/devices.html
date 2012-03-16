@@ -24,7 +24,7 @@
     <link rel="top" title="Beamline Control Module v4.1.6-gedc482b documentation" href="../index.html" />
     <link rel="up" title="API documentation" href="index.html" />
     <link rel="next" title="Engines" href="engines.html" />
-    <link rel="prev" title="API documentation" href="index.html" /> 
+    <link rel="prev" title="Interfaces" href="interfaces.html" /> 
   </head>
   <body>
     <div class="related">
@@ -40,7 +40,7 @@
           <a href="engines.html" title="Engines"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="API documentation"
+          <a href="interfaces.html" title="Interfaces"
              accesskey="P">previous</a> |</li>
         <li><a href="../index.html">Beamline Control Module v4.1.6-gedc482b documentation</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">API documentation</a> &raquo;</li> 
@@ -237,21 +237,14 @@ errors within the health registry.</p>
 <dl class="docutils">
 <dt>Signals:        </dt>
 <dd><ul class="first last">
-<li><dl class="first docutils">
-<dt><cite>state</cite>: transmits changes in automounter states. The signal data is </dt>
-<dd><p class="first last">a dictionary with three entries {&#8216;busy&#8217;: &lt;boolean&gt;, 
-&#8216;enabled&#8217;: &lt;boolean&gt;, &#8216;needs&#8217;:[&lt;str&gt;,&lt;str&gt;,...]}.</p>
-</dd>
-</dl>
+<li><p class="first"><cite>state</cite>: transmits changes in automounter states. The signal data is 
+a dictionary with three entries {&#8216;busy&#8217;: &lt;boolean&gt;,</p>
 </li>
-<li><p class="first"><cite>message</cite>: messages from the Automounter</p>
+<li><p class="first"><cite>enabled</cite>: &lt;boolean&gt;, &#8216;needs&#8217;:[&lt;str&gt;,&lt;str&gt;,...]}.</p>
 </li>
-<li><dl class="first docutils">
-<dt><cite>mounted</cite>: emitted when a sample is mounted or dismounted. The data </dt>
-<dd><p class="first last">transmitted is a tuple of the form (&lt;port no.&gt;, &lt;barcode&gt;) when 
+<li><p class="first"><cite>mounted</cite>: emitted when a sample is mounted or dismounted. The data 
+transmitted is a tuple of the form (&lt;port no.&gt;, &lt;barcode&gt;) when 
 mounting and <cite>None</cite> when dismounting.</p>
-</dd>
-</dl>
 </li>
 <li><dl class="first docutils">
 <dt><cite>progress</cite>:  notifies listeners of automounter progress. Data is a </dt>
@@ -278,13 +271,24 @@ mounting and <cite>None</cite> when dismounting.</p>
 <dt id="bcm.device.automounter.BasicAutomounter.mount">
 <tt class="descname">mount</tt><big>(</big><em>port</em>, <em>wash=False</em>, <em>wait=False</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.mount" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mount the sample at the specified port, optionally washing the sample
-in the process.</p>
+in the process. Does nothing if the requested port is already mounted.
+Dismounts the mounted sample prior to mounting if a another sample is 
+already mounted.</p>
 <dl class="docutils">
 <dt>Args:</dt>
-<dd>port (str): Address to mount.</dd>
+<dd><ul class="first last simple">
+<li><cite>port</cite> (str): Address to mount.</li>
+</ul>
+</dd>
 <dt>Kwargs:</dt>
-<dd>wash (bool): Whether to wash or not (default is False)
-wait (bool): Run asynchronously or block (default is async, False)</dd>
+<dd><ul class="first last simple">
+<li><cite>wash</cite> (bool): Whether to wash or not (default is False)</li>
+<li><cite>wait</cite> (bool): Run asynchronously or block (default is async, False)</li>
+</ul>
+</dd>
+<dt>Returns:</dt>
+<dd>bool. True if the requested sample is successfully mounted, and False
+otherwise.</dd>
 </dl>
 </dd></dl>
 
@@ -295,11 +299,11 @@ wait (bool): Run asynchronously or block (default is async, False)</dd>
 dismount it to the original port from which it was mounted.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
-<dd><dl class="first docutils">
-<dt>port (str): Destination address to dismount to, default is original</dt>
-<dd>port</dd>
-</dl>
-<p class="last">wait (bool): Run asynchronously or block (default is async, False)</p>
+<dd><ul class="first last simple">
+<li><cite>port</cite> (str): Destination address to dismount to, default is original
+port</li>
+<li><cite>wait</cite> (bool): Run asynchronously or block (default is async, False)</li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -310,12 +314,14 @@ dismount it to the original port from which it was mounted.</p>
 <dd><p>Wait for the automounter</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
-<dd>start (bool): Wait for automounter to start.
-stop (bool): Wait for automounter to stop.
-timeout (int): Maximum time to wait</dd>
+<dd><ul class="first last simple">
+<li><cite>start</cite> (bool): Wait for automounter to start.</li>
+<li><cite>stop</cite> (bool): Wait for automounter to stop.</li>
+<li><cite>timeout</cite> (int): Maximum time to wait</li>
+</ul>
+</dd>
 <dt>Returns:</dt>
-<dd>True if the wait was successful.
-False if the wait timed-out.</dd>
+<dd>True if the wait was successful. False if the wait timed-out.</dd>
 </dl>
 </dd></dl>
 
@@ -327,7 +333,7 @@ that the port is actually mountable, only that the the port was marked
 as mountable during the last probe operation.</p>
 <dl class="docutils">
 <dt>Args:</dt>
-<dd>port (str): The sample location to check.</dd>
+<dd><cite>port</cite> (str): The sample location to check.</dd>
 <dt>Returns:</dt>
 <dd>True or False.</dd>
 </dl>
@@ -340,7 +346,7 @@ as mountable during the last probe operation.</p>
 mounted.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
-<dd>port (str): The sample location to check.</dd>
+<dd><cite>port</cite> (str): The sample location to check.</dd>
 <dt>Returns:</dt>
 <dd>True if a port is specified and is mounted or if no port is 
 specified and any sample is mounted. False otherwise.</dd>
@@ -353,7 +359,7 @@ specified and any sample is mounted. False otherwise.</dd>
 <dd><p>Obtain the detailed state of the specified sample location.</p>
 <dl class="docutils">
 <dt>Args:</dt>
-<dd>port (str): The sample location</dd>
+<dd><cite>port</cite> (str): The sample location</dd>
 <dt>Returns:</dt>
 <dd><p class="first">int. one of:</p>
 <div class="last highlight-python"><div class="highlight"><pre><span class="mi">0</span> <span class="o">--</span> <span class="n">PORT_EMPTY</span>
@@ -1223,7 +1229,7 @@ monitor.</dd>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
   <li><a href="index.html">API documentation</a><ul>
-      <li>Previous: <a href="index.html" title="previous chapter">API documentation</a></li>
+      <li>Previous: <a href="interfaces.html" title="previous chapter">Interfaces</a></li>
       <li>Next: <a href="engines.html" title="next chapter">Engines</a></li>
   </ul></li>
   </ul></li>

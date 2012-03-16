@@ -572,19 +572,22 @@ class SimStorageRing(BaseDevice):
         self.name = name
         self.message = 'Sim SR Testing!'
         self.beam_available = False
-        self.set_state(beam=self.beam_available, active=True, health=(2, 'mode', self.message))
+        self.set_state(beam=False, active=True, health=(0, ''))
         gobject.timeout_add(30000, self._change_beam)
         
     def _change_beam(self):
-        self.beam_available = not self.beam_available
-        if self.beam_available: self.health = 0
-        else: self.health = 2
-        self.set_state(beam=self.beam_available, health=(self.health, 'mode', self.message), active=True)
-        _logger.warn('Sim SR Beam Available %s!' % str(self.beam_available))
+        _beam = not self.beam_state
+        if self.health_state[0] == 0:
+            _health = 4
+            _message = "Beam dump."
+        else:
+            _health = 0
+            _message = "Beam available."
+        self.set_state(beam=_beam, health=(_health, 'mode', _message), active=True)
         return True
         
     def beam_available(self):
-        return self.beam_available
+        return self.beam_state
     
     def wait_for_beam(self, timeout=60):
         while not self.beam_available() and timeout > 0:
@@ -592,25 +595,27 @@ class SimStorageRing(BaseDevice):
             timeout -= 0.05
         _logger.warn('Timed out waiting for beam!')
         
-    def get_mode(self):
-        pass
-
+        
 class DiskSpaceMonitor(BaseDevice):
     """An object which periodically monitors a given path for available space."""
-    def __init__(self, descr, path, threshold=0.9, freq=5.0):
-        """Args:
-            `descr` (str): A description.
-            `path` (str): Path to monitor.
+    def __init__(self, descr, path, warn=0.8, critical=0.9, freq=5.0):
+        """
+        Args:
+            - `descr` (str): A description.
+            - `path` (str): Path to monitor.
             
         Kwargs:
-            `threshold` (float): Warn if fraction of used space goes above this
-                value. Default (0.9).
-            `freq` (float): Frequency in minutes to check disk usage. Default (5)
+            - `warn` (float): Warn if fraction of used space goes above this
+              value.
+            - `critical` (float): Raise and error i if fraction of used space 
+              goes above this value.              
+            -`freq` (float): Frequency in minutes to check disk usage. Default (5)
         """ 
         BaseDevice.__init__(self)
         self.name = descr
         self.path = path
-        self.threshold = 0.9
+        self.warn_threshold = warn
+        self.error_threshold = critical
         self.frequency = int(freq * 60 * 1000)
         self.set_state(active=True)
         self._check_space()       
@@ -622,12 +627,15 @@ class DiskSpaceMonitor(BaseDevice):
         avail = round((fs_stat.f_frsize*fs_stat.f_bfree)/1073741824.0, 2)
         fraction = avail/total
         msg = '%0.1f %% used. %0.1f GB available.' % (fraction*100, avail)
-        if fraction < self.threshold:
+        if fraction < self.warn_threshold:
             self.set_state(health=(0, 'usage', msg))
             _logger.info(msg)
+        elif fraction < self.error_threshold:
+            self.set_state(health=(2, 'usage', msg))
+            _logger.warn(msg)            
         else:
-            self.set_state(health=(1, 'usage', msg))
-            _logger.warn(msg)
+            self.set_state(health=(4, 'usage', msg))
+            _logger.error(msg)
         
         
     
@@ -654,7 +662,7 @@ class StorageRing(BaseDevice):
         self._last_current = 0.0
         
     def beam_available(self):
-        return ( self.current.get() > 5.0 and self.mode.get() ==4 and self.control.get() == 1)
+        return self.beam_state
     
     def wait_for_beam(self, timeout=60):
         while not self.beam_available() and timeout > 0:
@@ -662,36 +670,34 @@ class StorageRing(BaseDevice):
             timeout -= 0.05
         _logger.warn('Timed out waiting for beam!')
     
+    def _check_beam(self):
+        if self.health_state[0] == 0:
+            self.set_state(beam=True)
+        else:
+            self.set_state(beam=False)
+            
     def _on_mode_change(self, obj, val):
         if val != 4:
-            self.set_state(health=(1,'mode', self.message.get()))
+            self.set_state(health=(4,'mode', self.message.get()))
         else:
             self.set_state(health=(0,'mode'))
-            
-        if self.beam_available():
-            self.set_state(beam=True)
-        else:
-            self.set_state(beam=False)
-
+        self._check_beam()
+        
     def _on_control_change(self, obj, val):
         if val != 1:
-            self.set_state(health=(4, 'control','Shutters disabled'))
+            self.set_state(health=(1, 'control','Beamlines disabled.'))
         else:
-            self.set_state(health=(0,'control'))
-            
-        if self.beam_available():
-            self.set_state(beam=True)
-        else:
-            self.set_state(beam=False)
+            self.set_state(health=(0,'control'))            
+        self._check_beam()
 
     def _on_current_change(self, obj, val):
         if val <= 5:
-            self.set_state(health=(4,'beam','No beam'))
+            if (self._last_current - val) >= 50.0 :
+                self.set_state(health=(4,'beam','Beam dumped.'))
+            else:
+                self.set_state(health=(4,'beam','No beam.'))
         else:
             self.set_state(health=(0,'beam'))
-            
-        if self.beam_available():
-            self.set_state(beam=True)
-        else:
-            self.set_state(beam=False)
+        self._last_current = val
+        self._check_beam()
         

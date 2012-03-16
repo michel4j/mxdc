@@ -10,6 +10,16 @@ import gtk.glade
 import gobject
 from twisted.python.components import globalRegistry
 from bcm.device import diagnostics
+from bcm.utils.log import get_module_logger
+
+# setup module logger with a default do-nothing handler
+_logger = get_module_logger('mxdc')
+try:
+    import pynotify
+    pynotify.init('MxDC')
+    _NOTIFY_AVAILABLE = True
+except:
+    _logger.warn('System notifications will not be available.')
 
 MSG_COLORS = {
     diagnostics.DIAG_STATUS_BAD: '#9a2b2b',
@@ -40,6 +50,8 @@ class DiagnosticDisplay(gtk.Frame):
         self._status = {'status': diagnostics.DIAG_STATUS_UNKNOWN, 'message': ''}
         self.icon.set_from_stock('mxdc-dunknown', gtk.ICON_SIZE_MENU)
         self.add(self.status_widget)
+        self._notice = None
+        self._notify_id = None
         self.show_all()
         
     def __getattr__(self, key):
@@ -56,7 +68,21 @@ class DiagnosticDisplay(gtk.Frame):
         self.icon.set_from_stock(MSG_ICONS.get(data['status'], 'mxdc-unknown'), gtk.ICON_SIZE_MENU)        
         self.info.set_markup('<span color="%s">%s</span>' % (MSG_COLORS.get(data['status'], 'black'), data['message']))
         self.info.set_alignment(1.0, 0.5)
+
+        # Only show notification if state *changes* to bad
+        if data['status'] == diagnostics.DIAG_STATUS_BAD:
+            if self._status['status'] not in [diagnostics.DIAG_STATUS_BAD, diagnostics.DIAG_STATUS_UNKNOWN]:
+                self._show_notification(data)
         self._status = data
+
+    def _show_notification(self, data):
+        if _NOTIFY_AVAILABLE:
+            self._notice = pynotify.Notification(self._diagnostic.description,
+                                      data['message'])
+            self._notice.set_urgency(pynotify.URGENCY_CRITICAL)
+            self._notice.set_timeout(20000) # 20 seconds
+            self._notice.show()
+
         
         
 
