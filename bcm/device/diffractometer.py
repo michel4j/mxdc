@@ -17,11 +17,12 @@ class Diffractometer(BaseDevice):
     implements(IDiffractometer)
     
     def __init__(self, distance, two_theta, name='Diffractometer'):
-        """Args:
-            `distance` (class::`interfaces.IMotor` provider): device which controls
-            the detector distance.
-            `two_theta` (class::`interfaces.IMotor` provider): device which controls
-            the detector swing-out angle.
+        """
+        Args:
+            - `distance` (class::`interfaces.IMotor` provider): device which controls
+              the detector distance.
+            - `two_theta` (class::`interfaces.IMotor` provider): device which controls
+              the detector swing-out angle.
         
         Kwargs:
             `name` (str): The name of the device group.

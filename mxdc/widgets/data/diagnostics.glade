@@ -55,7 +55,6 @@
             <property name="xalign">1</property>
             <property name="justify">right</property>
             <property name="wrap">True</property>
-            <property name="selectable">True</property>
             <property name="ellipsize">end</property>
           </widget>
           <packing>

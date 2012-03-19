@@ -46,6 +46,12 @@ class MotorBase(BaseDevice):
         self.units = ''
         self._move_active_value = 1
     
+    def do_changed(self, st):
+        pass
+    
+    def do_timed_change(self, st):
+        pass
+    
     def _signal_change(self, obj, value):
         self.set_state(changed=self.get_position())
 
@@ -312,8 +318,7 @@ class Motor(MotorBase):
               target is the same as the current position.        
         """
         # Do not move if motor state is not sane.
-        st = self.get_state()
-        sanity, msg = st['health']
+        sanity, msg = self.health_state
         if sanity != 0:
             _logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
             return
@@ -527,8 +532,7 @@ class BraggEnergyMotor(Motor):
         
     def move_to(self, pos, wait=False, force=False):
         # Do not move if motor state is not sane.
-        st = self.get_state()
-        sanity, msg = st['health']
+        sanity, msg = self.health_state
         if sanity != 0:
             _logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
             return

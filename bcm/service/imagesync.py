@@ -1,4 +1,3 @@
-from __future__ import nested_scopes
 from twisted.application import service
 from twisted.internet import protocol, reactor, defer, interfaces
 from twisted.web import resource, xmlrpc

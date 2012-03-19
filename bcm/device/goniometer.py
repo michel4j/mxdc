@@ -59,6 +59,10 @@ _STATE_PATTERNS = {
 class BackLight(BasicShutter):
     """A specialized in-out actuator for pneumatic OAV backlight at the CLS."""
     def __init__(self, name):
+        """
+        Args:
+            -`name` (str): Root PV name of EPICS record.
+        """
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
         state_name = "%s:in" % name
@@ -88,6 +92,14 @@ class GoniometerBase(BaseDevice):
         self.mode = mode   
 
     def wait(self, start=True, stop=True, poll=0.05, timeout=20):
+        """Wait for the goniometer busy state to change. 
+        
+        Kwargs:
+            - `start` (bool): Wait for the goniometer to become busy.
+            - `stop` (bool): Wait for the goniometer to become idle.
+            - `poll` (float): time in seconds to wait between checks.
+            - `timeout` (float): Maximum time to wait for.                  
+        """
         if (start):
             time_left = timeout
             _logger.debug('Waiting for goniometer to start moving')
@@ -112,11 +124,12 @@ class GoniometerBase(BaseDevice):
 class Goniometer(GoniometerBase):
     """EPICS based Parker-type Goniometer at the CLS 08ID-1."""
     def __init__(self, name, blname, mnt_cmd, minibeam):
-        """Args:
-            `name` (str): PV name of goniometer EPICS record.
-            `blname` (str): PV name for Backlight PV.
-            `mnt_cmd` (str): PV name for toggling mount mode.
-            `minibeam` (str): PV name for minibeam motor. 
+        """
+        Args:
+            - `name` (str): PV name of goniometer EPICS record.
+            - `blname` (str): PV name for Backlight PV.
+            - `mnt_cmd` (str): PV name for toggling mount mode.
+            - `minibeam` (str): PV name for minibeam motor. 
         """
         GoniometerBase.__init__(self, name)
         self.name = 'Goniometer'
@@ -183,7 +196,7 @@ class Goniometer(GoniometerBase):
         """Set the mode of the goniometer environment.
         
         Args:
-            `mode` (str) one of:
+            - `mode` (str) one of:
                 - "CENTERING" : Prepare for centering 
                 - "MOUNTING" : Prepare for mounting/dismounting samples
                 - "COLLECT" : Prepare for data collection
@@ -191,7 +204,7 @@ class Goniometer(GoniometerBase):
                 - "SCANNING" : Prepare for scanning and fluorescence measurements
         
         Kwargs:
-            `wait` (bool): if True, block until the mode is completely changed.
+            - `wait` (bool): if True, block until the mode is completely changed.
         """
         self._requested_mode = mode
         bl = globalRegistry.lookup([], IBeamline)
@@ -231,7 +244,7 @@ class Goniometer(GoniometerBase):
         """Perform an oscillation scan according to the currently set parameters
         
         Kwargs:
-            `wait` (bool): if True, wait until the scan is complete otherwise run
+            - `wait` (bool): if True, wait until the scan is complete otherwise run
             asynchronously.
         """
         self._scan_cmd.set('\x01')
@@ -246,7 +259,7 @@ class MD2Goniometer(GoniometerBase):
     def __init__(self, name):
         """
         Args:
-            `name` (str): Root PV name of the goniometer EPICS record.
+            - `name` (str): Root PV name of the goniometer EPICS record.
         """
         GoniometerBase.__init__(self, name)
         self.name = 'MD2 Goniometer'
@@ -307,9 +320,9 @@ class MD2Goniometer(GoniometerBase):
         """Configure the goniometer to perform an oscillation scan.
         
         Kwargs:
-            `time` (float): Exposure time in seconds
-            `delta` (float): Delta oscillation range in deg
-            `angle` (float): Starting angle of oscillation in deg
+            - `time` (float): Exposure time in seconds
+            - `delta` (float): Delta oscillation range in deg
+            - `angle` (float): Starting angle of oscillation in deg
         """ 
         for key in kwargs.keys():
             self._settings[key].put(kwargs[key])
@@ -318,7 +331,7 @@ class MD2Goniometer(GoniometerBase):
         """Set the mode of the goniometer environment.
         
         Args:
-            `mode` (str) one of:
+            - `mode` (str) one of:
                 - "CENTERING" : Prepare for centering 
                 - "MOUNTING" : Prepare for mounting/dismounting samples
                 - "COLLECT" : Prepare for data collection
@@ -326,7 +339,7 @@ class MD2Goniometer(GoniometerBase):
                 - "SCANNING" : Prepare for scanning and fluorescence measurements
         
         Kwargs:
-            `wait` (bool): if True, block until the mode is completely changed.
+            - `wait` (bool): if True, block until the mode is completely changed.
         """
 
         cmd_template = "SET_CLSMDPhasePosition=%d"
@@ -400,8 +413,8 @@ class MD2Goniometer(GoniometerBase):
         """Perform an oscillation scan according to the currently set parameters
         
         Kwargs:
-            `wait` (bool): if True, wait until the scan is complete otherwise run
-            asynchronously.
+            - `wait` (bool): if True, wait until the scan is complete otherwise run
+              asynchronously.
         """
         self._scan_cmd.set(1)
         ca.flush()

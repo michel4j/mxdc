@@ -47,7 +47,7 @@ class DiagnosticDisplay(gtk.Frame):
         self.label.set_markup("<span color='#444647'><b>%s</b></span>" % self._diagnostic.description)
         
         self._diagnostic.connect('status', self.on_status_changed)
-        self._status = {'status': diagnostics.DIAG_STATUS_UNKNOWN, 'message': ''}
+        self._status = (diagnostics.DIAG_STATUS_UNKNOWN, "")
         self.icon.set_from_stock('mxdc-dunknown', gtk.ICON_SIZE_MENU)
         self.add(self.status_widget)
         self._notice = None
@@ -65,20 +65,21 @@ class DiagnosticDisplay(gtk.Frame):
             return
         
         # Set Icon and message
-        self.icon.set_from_stock(MSG_ICONS.get(data['status'], 'mxdc-unknown'), gtk.ICON_SIZE_MENU)        
-        self.info.set_markup('<span color="%s">%s</span>' % (MSG_COLORS.get(data['status'], 'black'), data['message']))
+        _state, _msg = data 
+        self.icon.set_from_stock(MSG_ICONS.get(data[0], 'mxdc-unknown'), gtk.ICON_SIZE_MENU)        
+        self.info.set_markup('<span color="%s">%s</span>' % (MSG_COLORS.get(_state, 'black'), _msg))
         self.info.set_alignment(1.0, 0.5)
 
         # Only show notification if state *changes* to bad
-        if data['status'] == diagnostics.DIAG_STATUS_BAD:
-            if self._status['status'] not in [diagnostics.DIAG_STATUS_BAD, diagnostics.DIAG_STATUS_UNKNOWN]:
+        if _state == diagnostics.DIAG_STATUS_BAD:
+            if self._status[0] not in [diagnostics.DIAG_STATUS_BAD, diagnostics.DIAG_STATUS_UNKNOWN]:
                 self._show_notification(data)
         self._status = data
 
     def _show_notification(self, data):
         if _NOTIFY_AVAILABLE:
             self._notice = pynotify.Notification(self._diagnostic.description,
-                                      data['message'])
+                                      data[1])
             self._notice.set_urgency(pynotify.URGENCY_CRITICAL)
             self._notice.set_timeout(20000) # 20 seconds
             self._notice.show()
