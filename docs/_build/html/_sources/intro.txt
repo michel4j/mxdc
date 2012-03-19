@@ -19,25 +19,26 @@ MxDC and the BCM needs at least **Python 2.4** to run. It does not yet run under
 
 **Required modules:**
 
-- ``matplotlib`` >= 0.99
-- ``numpy`` >= 1.2
-- ``scipy`` >= 0.6
-- ``python-ctypes`` (for python < 2.5  only)
-- ``python-simplejson`` (for python < 2.5 only)
-- ``python-imaging`` >= 1.1.6
-- ``python-zope-interface`` >= 3.3
-- ``Twisted`` >= 8.2
-- ``avahi-tools`` (provides python avahi module needed by mdns module)
-- ``dbus-python``, usually installed by default on most recent distributions
-- Others: (``pygtk`` usually included with distribution)
+- `matplotlib` >= 0.99
+- `numpy` >= 1.2
+- `scipy` >= 0.6
+- `python-ctypes` (for python < 2.5  only)
+- `python-simplejson` (for python < 2.5 only)
+- `python-imaging` >= 1.1.6
+- `python-zope-interface` >= 3.3
+- `Twisted` >= 8.2
+- `avahi-tools` (provides python avahi module needed by mdns module)
+- `dbus-python`, usually installed by default on most recent distributions
+- `notify-python`
+- Others: (`pygtk` usually included with distribution)
 
-.. note:: If using Twisted >= 9.0, ``pyasn1``, and ``python-crypto`` are also required 
+.. note:: If using Twisted >= 9.0, `pyasn1`, and `python-crypto` are also required 
 
 **General tips:**
 
 - To avoid dependency nightmares, always prefer packages already available for
   your distribution. Only build where necessary.
-- For installation at the CMCF beamlines, dependencies not available as part of the distribution have been built and are available in ``/cmcf_apps/deps``. Select rpm folder matching your architechture (x86 or x86_64) and  install the packages.
+- For installation at the CMCF beamlines, dependencies not available as part of the distribution have been built and are available in `/cmcf_apps/deps`. Select rpm folder matching your architechture (x86 or x86_64) and  install the packages.
 - On Scientific Linux/RHEL/CENTOS 5+, most of the packages are available from 
   distribution repositories. Make sure you have EPEL and RPMFusion repositories
   enabled from the start. That way, doing yum install <package-name> should get
@@ -80,10 +81,10 @@ Usage
 
 To run the programs:
 
-- ``mxdc`` will launch the application.
-- ``sim-mxdc`` will lauch the application with simulated devices.
-- ``sampleviewer`` will launch the hutch sample video screen only.
-- ``hutchviewer`` will launch the hutch control screen only.
-- ``blconsole`` will lauch a beamline python console for interactive scanning and manipulation etc.
+- `mxdc` will launch the application.
+- `sim-mxdc` will lauch the application with simulated devices.
+- `sampleviewer` will launch the hutch sample video screen only.
+- `hutchviewer` will launch the hutch control screen only.
+- `blconsole` will lauch a beamline python console for interactive scanning and manipulation etc.
     	
 

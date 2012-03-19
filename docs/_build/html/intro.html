@@ -61,28 +61,29 @@
 <p>MxDC and the BCM needs at least <strong>Python 2.4</strong> to run. It does not yet run under Python 3+. It is a pure python package which requires no compilation. Additionally, several python modules are required, without which MxDC and the BCM will not run or function correctly.</p>
 <p><strong>Required modules:</strong></p>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">matplotlib</span></tt> &gt;= 0.99</li>
-<li><tt class="docutils literal"><span class="pre">numpy</span></tt> &gt;= 1.2</li>
-<li><tt class="docutils literal"><span class="pre">scipy</span></tt> &gt;= 0.6</li>
-<li><tt class="docutils literal"><span class="pre">python-ctypes</span></tt> (for python &lt; 2.5  only)</li>
-<li><tt class="docutils literal"><span class="pre">python-simplejson</span></tt> (for python &lt; 2.5 only)</li>
-<li><tt class="docutils literal"><span class="pre">python-imaging</span></tt> &gt;= 1.1.6</li>
-<li><tt class="docutils literal"><span class="pre">python-zope-interface</span></tt> &gt;= 3.3</li>
-<li><tt class="docutils literal"><span class="pre">Twisted</span></tt> &gt;= 8.2</li>
-<li><tt class="docutils literal"><span class="pre">avahi-tools</span></tt> (provides python avahi module needed by mdns module)</li>
-<li><tt class="docutils literal"><span class="pre">dbus-python</span></tt>, usually installed by default on most recent distributions</li>
-<li>Others: (<tt class="docutils literal"><span class="pre">pygtk</span></tt> usually included with distribution)</li>
+<li><cite>matplotlib</cite> &gt;= 0.99</li>
+<li><cite>numpy</cite> &gt;= 1.2</li>
+<li><cite>scipy</cite> &gt;= 0.6</li>
+<li><cite>python-ctypes</cite> (for python &lt; 2.5  only)</li>
+<li><cite>python-simplejson</cite> (for python &lt; 2.5 only)</li>
+<li><cite>python-imaging</cite> &gt;= 1.1.6</li>
+<li><cite>python-zope-interface</cite> &gt;= 3.3</li>
+<li><cite>Twisted</cite> &gt;= 8.2</li>
+<li><cite>avahi-tools</cite> (provides python avahi module needed by mdns module)</li>
+<li><cite>dbus-python</cite>, usually installed by default on most recent distributions</li>
+<li><cite>notify-python</cite></li>
+<li>Others: (<cite>pygtk</cite> usually included with distribution)</li>
 </ul>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">If using Twisted &gt;= 9.0, <tt class="docutils literal"><span class="pre">pyasn1</span></tt>, and <tt class="docutils literal"><span class="pre">python-crypto</span></tt> are also required</p>
+<p class="last">If using Twisted &gt;= 9.0, <cite>pyasn1</cite>, and <cite>python-crypto</cite> are also required</p>
 </div>
 <p><strong>General tips:</strong></p>
 <ul>
 <li><p class="first">To avoid dependency nightmares, always prefer packages already available for
 your distribution. Only build where necessary.</p>
 </li>
-<li><p class="first">For installation at the CMCF beamlines, dependencies not available as part of the distribution have been built and are available in <tt class="docutils literal"><span class="pre">/cmcf_apps/deps</span></tt>. Select rpm folder matching your architechture (x86 or x86_64) and  install the packages.</p>
+<li><p class="first">For installation at the CMCF beamlines, dependencies not available as part of the distribution have been built and are available in <cite>/cmcf_apps/deps</cite>. Select rpm folder matching your architechture (x86 or x86_64) and  install the packages.</p>
 </li>
 <li><p class="first">On Scientific Linux/RHEL/CENTOS 5+, most of the packages are available from
 distribution repositories. Make sure you have EPEL and RPMFusion repositories
@@ -125,11 +126,11 @@ to copy an existing one and modify it.</li>
 <h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
 <p>To run the programs:</p>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">mxdc</span></tt> will launch the application.</li>
-<li><tt class="docutils literal"><span class="pre">sim-mxdc</span></tt> will lauch the application with simulated devices.</li>
-<li><tt class="docutils literal"><span class="pre">sampleviewer</span></tt> will launch the hutch sample video screen only.</li>
-<li><tt class="docutils literal"><span class="pre">hutchviewer</span></tt> will launch the hutch control screen only.</li>
-<li><tt class="docutils literal"><span class="pre">blconsole</span></tt> will lauch a beamline python console for interactive scanning and manipulation etc.</li>
+<li><cite>mxdc</cite> will launch the application.</li>
+<li><cite>sim-mxdc</cite> will lauch the application with simulated devices.</li>
+<li><cite>sampleviewer</cite> will launch the hutch sample video screen only.</li>
+<li><cite>hutchviewer</cite> will launch the hutch control screen only.</li>
+<li><cite>blconsole</cite> will lauch a beamline python console for interactive scanning and manipulation etc.</li>
 </ul>
 </div>
 </div>
