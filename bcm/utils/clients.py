@@ -75,10 +75,15 @@ class DPMClient(BaseService):
         I expect to receive a remote perspective which will be used to call remote methods
         on the DPM server."""
         _logger.info('Connection to AutoProcess Server established')
-        self.service = perspective        
+        self.service = perspective
+        self.service.notifyOnDisconnect(self._disconnect_cb)     
         self._ready = True
         self.set_state(active=True)
-
+    
+    def _disconnect_cb(self, obj):
+        """Used to detect disconnections if MDNS is not being used."""
+        self.set_state(active=False)
+        
     def on_connection_failed(self, reason):
         _logger.error('Could not connect to AutoProcess Server: %', reason)
     

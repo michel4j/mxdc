@@ -397,7 +397,7 @@ class Screener(gobject.GObject):
                 _logger.debug('TASK: "%s"' % str(task))
 
                 # Making sure beam is available before trying to collect
-                if (self.last_pause != Screener.PAUSE_BEAM) and task.task_type == Screener.TASK_COLLECT and not self.beamline.storage_ring.get_state()['beam'] and not self.paused:
+                if (self.last_pause != Screener.PAUSE_BEAM) and task.task_type == Screener.TASK_COLLECT and not self.beamline.storage_ring.beam_state and not self.paused:
                     self.pause()
                     pause_dict = { 'type': Screener.PAUSE_BEAM,
                                    'object': None }
@@ -574,7 +574,7 @@ class Screener(gobject.GObject):
         self.data_collector.pause()
         
     def resume(self):
-        if self.last_pause is Screener.PAUSE_BEAM and self.beamline.storage_ring.get_state()['beam']:
+        if self.last_pause is Screener.PAUSE_BEAM and self.beamline.storage_ring.beam_state:
             self.last_pause = None
         self.paused = False
         self.data_collector.resume()

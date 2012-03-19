@@ -10,8 +10,9 @@ _logger = get_module_logger('devices')
 class CryojetNozzle(misc.BasicShutter):
     """A specialized in-out actuator for pneumatic cryoject nozzles at the CLS."""
     def __init__(self, name):
-        """Args:
-            name (str): Process variable root name.
+        """
+        Args:
+            `name` (str): Process variable root name.
         """
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
@@ -26,12 +27,13 @@ class Cryojet(BaseDevice):
     implements(ICryojet)
     
     def __init__(self, cname, lname, nname=''):
-        """Args:
-            cname (str): Root name for EPICS cryojet record.
-            lname (str): root name for EPICS cryo-level controller record.
+        """
+        Args:
+            - `cname` (str): Root name for EPICS cryojet record.
+            - `lname` (str): root name for EPICS cryo-level controller record.
         
         Kwargs:
-            nname (str): Root name of the EPICS cryoject nozzle record.
+            - `nname` (str): Root name of the EPICS cryoject nozzle record.
         """
         BaseDevice.__init__(self)
         self.name = 'Cryojet'

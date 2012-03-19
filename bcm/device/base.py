@@ -93,6 +93,15 @@ class BaseDevice(gobject.GObject):
             logger.warning( "(%s) %s" % (self.name, msg))
         return True
     
+    def do_busy(self, st):
+        pass
+    
+    def do_health(self, st):
+        pass
+    
+    def do_message(self, st):
+        pass
+    
     def do_active(self, st):
         _k = {True: 'active', False: 'inactive'}
         logger.info( "(%s) is now %s." % (self.name, _k[st]))

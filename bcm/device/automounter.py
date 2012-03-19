@@ -42,6 +42,9 @@ class AutomounterContainer(gobject.GObject):
         self.location = location
         self.samples = {}
         self.configure(status_str)
+        
+    def do_changed(self):
+        pass
     
     def configure(self, status_str=None):
         """Sets up the container type and state from a status string.
@@ -120,6 +123,18 @@ class BasicAutomounter(BaseDevice):
         self._last_warn = ''
         self.set_state(active=False, enabled=False)
         self._command_sent = False    
+    
+    def do_state(self, st):
+        pass
+    
+    def do_enabled(self, st):
+        pass
+    
+    def do_mounted(self, st):
+        pass
+    
+    def do_progress(self, st):
+        pass
     
     def _parse_states(self, state):
         """This method sets up all the container types and states from a DCSS type status string.
