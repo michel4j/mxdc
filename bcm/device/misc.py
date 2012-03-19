@@ -17,6 +17,11 @@ from bcm.utils.decorators import async
 _logger = get_module_logger(__name__)
 
 class PositionerBase(BaseDevice):
+    """Base class for a simple positioning device.
+    
+    Signals:
+        - `changed` : Data is the new value of the device.
+    """
     implements(IPositioner)
     __gsignals__ =  { 
         "changed": ( gobject.SIGNAL_RUN_FIRST, 
@@ -31,11 +36,19 @@ class PositionerBase(BaseDevice):
     def _signal_change(self, obj, value):
         self.set_state(changed=self.get())
     
-    def set(self, pos, wait=False):
-        raise exceptions.NotImplementedError
+    def set(self, value):
+        """Set the value.
+        Args:
+            - `value` : New value to set.
+        """       
+        raise NotImplementedError, 'Derived class must implement this method'
     
     def get(self):
-        raise exceptions.NotImplementedError
+        """
+        Returns:
+            - The current value.
+        """       
+        raise NotImplementedError, 'Derived class must implement this method'
 
 
 class SimPositioner(PositionerBase):
@@ -56,13 +69,21 @@ class SimPositioner(PositionerBase):
 
  
 class Positioner(PositionerBase):
-    def __init__(self, name, fbk_name=None, scale=None, units=""):
+    """Simple EPICS based positioning device.
+    """
+    def __init__(self, name, fbk_name=None, scale=100, units=""):
+        """Args:
+            - `name` (str): Name of positioner PV for setting the value
+        
+        Kwargs:
+            - `fbk_name` (str): Name of PV for getting current value. If not 
+              provided, the same PV will be used to both set and get.
+            - `scale` (float): A percentage to scale the set and get values by.
+            - `units` (str): The units of the value.
+        """
         PositionerBase.__init__(self)
         self.set_pv = self.add_pv(name)
-        try:
-            self.scale = float(scale)
-        except:
-            self.scale = None
+        self.scale = scale
         if fbk_name is None:
             self.fbk_pv = self.set_pv
         else:
@@ -99,10 +120,17 @@ class Positioner(PositionerBase):
     
          
 class PositionerMotor(MotorBase):
+    """Adapts a positioner so that it behaves like a Motor (ie, provides the
+    `IMotor` interface.
+    """
     implements(IMotor)
     __used_for__ = IPositioner
     
     def __init__(self, positioner):
+        """
+        Args:
+            - `positioner` (:class:`PositionerBase`)
+        """
         MotorBase.__init__(self, 'Positioner Motor')
         self.positioner = positioner
         self.name = positioner.name

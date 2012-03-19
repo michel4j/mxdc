@@ -273,12 +273,12 @@ class CollectManager(gtk.Frame):
             else:
                 done_text = "Manual Dismount"
         else:
-            if state is not None and obj.get_state()['health'][0] == 0:
+            if state is not None and obj.health_state[0] == 0:
                 done_text = "Mount Succeeded"
-            elif obj.get_state()['health'][0] == 0:
+            elif obj.health_state[0] == 0:
                 done_text = "Dismount Succeeded"
             else:
-                done_text = obj.get_state()['health'][1]
+                done_text = obj.health_state[1]
         self.progress_bar.idle_text(done_text)
         
     def config_user(self):
