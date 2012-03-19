@@ -1,3 +1,6 @@
+from twisted.internet import glib2reactor
+glib2reactor.install()
+
 import sys
 from twisted.application import internet, service
 from twisted.web import resource, server

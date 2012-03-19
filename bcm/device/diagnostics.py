@@ -19,7 +19,18 @@ _logger = get_module_logger('diagnostics')
 DIAG_STATUS_STRINGS = ['OK', 'WARNING', 'ERROR', 'UNKNOWN', 'DISABLED']
 
 class DiagnosticBase(gobject.GObject):
-    """Base class for diagnostics."""
+    """Base class for diagnostics.
+    
+    Signals:
+        - `status` (tuple(int,str)): Changes in status. The first entry is a 
+          represents the severity while the second is a status message. Severity
+          values can be one of::
+              0 - DIAG_STATUS_GOOD
+              1 - DIAG_STATUS_WARN
+              2 - DIAG_STATUS_BAD
+              3 - DIAG_STATUS_UNKNOWN
+              4 - DIAG_STATUS_DISABLED
+    """
     
     implements(IDiagnostic)
 
@@ -32,39 +43,35 @@ class DiagnosticBase(gobject.GObject):
         gobject.GObject.__init__(self)
         self.description = descr
         self._manager = HealthManager()
-        self._status = {'status': DIAG_STATUS_UNKNOWN, 'message':''}
+        self._status = (DIAG_STATUS_UNKNOWN, '')
         globalRegistry.subscribe([], IDiagnostic, self)
     
     def __repr__(self):
         s = "<%s:'%s', status:%s>" % (self.__class__.__name__,
                                       self.description,
-                                      DIAG_STATUS_STRINGS[self._status['status']])
+                                      DIAG_STATUS_STRINGS[self._status[0]])
         return s
     
     def _signal_status(self, status, msg):
-        data = {'status': status, 'message': msg}
-        if self._status['status'] == status and self._status['message'] == msg:
+        data = (status, msg)
+        if self._status[0] == status and self._status[1] == msg:
             return
         gobject.idle_add(self.emit,'status', data)
         
-        if self._status['status'] != status and status != DIAG_STATUS_GOOD:
-            _logger.warning("%s: %s." % (self.description, msg))
+        if self._status[0] != status and status != DIAG_STATUS_GOOD:
+            _logger.warning("%s: %s" % (self.description, msg))
         self._status = data
 
+    def do_status(self, st):
+        pass
     
     def get_status(self):
         """Check the state of the diagnostic.
         
         Returns:
             tuple(int, str). The string is a status description while the value 
-            of the integer corresponds to one of:
-            
-                0 - DIAG_STATUS_GOOD
-                1 - DIAG_STATUS_WARN
-                2 - DIAG_STATUS_BAD
-                3 - DIAG_STATUS_UNKNOWN
-                4 - DIAG_STATUS_DISABLED
-                
+            of the integer corresponds to the status severity
+         
         """
         
         return self._status
@@ -76,7 +83,8 @@ class DeviceDiag(DiagnosticBase):
     """
     
     def __init__(self, device, descr=None):
-        """Args:
+        """
+        Args:
             `device` (a class::`device.base.BaseDevice` object) the device to
             monitor.
             
@@ -110,7 +118,8 @@ class ServiceDiag(DiagnosticBase):
     """
     
     def __init__(self, service, descr=None):
-        """Args:
+        """
+        Args:
             `service` (a class::`service.base.BaseService` object) the service to
             monitor.
 
