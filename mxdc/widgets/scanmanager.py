@@ -203,6 +203,10 @@ class ScanManager(gtk.Frame):
         except:
             self.beamline = None
             loE, hiE = 4.0, 18.0
+            
+        if not self.beamline.registry.get('multi_mca', False):
+            self.exafs_btn.set_sensitive(False)
+            
         self.periodic_table = PeriodicTable(loE, hiE)
         self.periodic_table.connect('edge-selected',self.on_edge_selected)
         self.plotter = Plotter(xformat='%g')

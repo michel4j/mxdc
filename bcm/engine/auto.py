@@ -5,8 +5,7 @@ Created on Oct 25, 2010
 '''
 from bcm.engine import centering, snapshot
 from bcm.service.common import *
-from bcm.utils.decorators import ca_thread_enable
-from bcm.utils.decorators import async
+from bcm.utils.decorators import ca_thread_enable, async
 
 from bcm.utils.log import get_module_logger
 _logger = get_module_logger('bcm.engine.auto')
