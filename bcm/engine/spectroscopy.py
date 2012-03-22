@@ -478,7 +478,8 @@ class EXAFSScan(BasicScan):
             ]
             for ch in range(self.beamline.multi_mca.elements):
                 self.data_names.append(('ifluor.%d' % (ch+1), '', 'g'))
-            self.data_names.append(('icr', '', 'g'))
+                self.data_names.append(('icr.%d' % (ch+1), '', 'g'))
+                self.data_names.append(('ocr.%d' % (ch+1), '', 'g'))
                                
             # calculate k and time for each target point
             _tot_time = 0.0
@@ -519,10 +520,12 @@ class EXAFSScan(BasicScan):
                 else:
                     scale = (self.data[0][2]/i0)
                 data_point = [1000*x, y*scale, i0, k, _t] # convert KeV to eV
-                for j in range(self.beamline.multi_mca.elements):
-                    data_point.append(mca_values[j])
+
                 _rates = self.beamline.multi_mca.get_count_rates()
-                data_point.append(_rates[0])
+                for j in range(self.beamline.multi_mca.elements):
+                    data_point.append(mca_values[j]) #iflour
+                    data_point.append(_rates[j][0])  #icr
+                    data_point.append(_rates[j][1])  #ocr
                 self.data.append(data_point)
                 
                 _used_time += _t    
