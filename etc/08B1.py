@@ -94,7 +94,7 @@ DEVICES = {
     'attenuator': Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
     'mca_nozzle': Positioner('BL08B1:MD2:S:MoveFluoDetFront'),
     'mca': XFlashMCA('XFD1608-501'),
-    #'mca': VortexMCA('dxp1608-004'),
+    'multi_mca': VortexMCA('dxp1608-004'),
 
     #disk space monitor
     'disk_space' : DiskSpaceMonitor('Disk Space', '/users', freq=0.5), 
