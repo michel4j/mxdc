@@ -108,14 +108,14 @@ class Positioner(PositionerBase):
         if self.scale is None:
             self.set_pv.set(pos)
         else:
-            val = self.scale * pos/100.0
+            val = self.scale * pos/100
             self.set_pv.set(val)
           
     def get(self):
         if self.scale is None:
             return self.fbk_pv.get()
         else:
-            val = 100.0 * (self.fbk_pv.get()/self.scale)
+            val = 100 * (self.fbk_pv.get()/self.scale)
             return  val
     
          
