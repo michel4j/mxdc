@@ -35,14 +35,14 @@ class ToggleBoss:
             try:
                 boss.stop()
             except:
-                _logger.error('Could not disable BOSS')
+                _logger.warn('Could not disable BOSS')
         elif not busy:
             self.called.pop(obj)
             if not self.called.keys():
                 try:
                     boss.start()
                 except:
-                    _logger.error('Could not enable BOSS')
+                    _logger.warn('Could not enable BOSS')
 
 class HutchManager(gtk.Frame):
     __gsignals__ = {
