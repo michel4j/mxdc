@@ -163,12 +163,12 @@ class BasicMCA(BaseDevice):
         acquisition.
         
         Returns:
-            [int, int]. A list of two values. the first entry is the input count rate
-            and the second is the output count rate. If the values are not 
-            available [-1, -1] is returned.
+            [(int, int)]. A list of tuples, one for each element. the first entry
+            is the input count rate and the second is the output count rate. If 
+            the values are not available (-1, -1) is substituted
         """
         # get IRC and OCR tuple
-        return [-1, -1]
+        return [(-1, -1)]
     
     def count(self, t):
         """Integrate the detector for the specified amount of time. This method 
@@ -336,7 +336,7 @@ class XFlashMCA(BasicMCA):
 
     def get_count_rates(self):                            
         # get IRC and OCR tuple
-        return [-1, -1]
+        return [(-1, -1)]
 
 class VortexMCA(BasicMCA):
     """EPICS based 4-element Vortex ME4 detector object."""
@@ -360,8 +360,17 @@ class VortexMCA(BasicMCA):
         self.IDTIM = self.add_pv("%s:DeadTime" % pv_root, monitor=False)
         self.ACQG = self.add_pv("%s:Acquiring" % pv_root)
         self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
-        self.ICR = self.add_pv("%s:dxpSum:ICR" % pv_root)
-        self.OCR = self.add_pv("%s:dxpSum:OCR" % pv_root)
+        self.ICRS = [
+            self.add_pv("%s:dxp1:ICR" % pv_root),
+            self.add_pv("%s:dxp2:ICR" % pv_root),
+            self.add_pv("%s:dxp3:ICR" % pv_root),
+            self.add_pv("%s:dxp4:ICR" % pv_root)]
+        
+        self.OCRS = [
+            self.add_pv("%s:dxp1:OCR" % pv_root),
+            self.add_pv("%s:dxp2:OCR" % pv_root),
+            self.add_pv("%s:dxp3:OCR" % pv_root),
+            self.add_pv("%s:dxp4:OCR" % pv_root)]
         self.spectra.append(self.add_pv("%s:mcaCorrected" % pv_root, monitor=False))
         self._count_time = self.add_pv("%s:PresetReal" % pv_root)
 
@@ -373,8 +382,12 @@ class VortexMCA(BasicMCA):
         self.ACQG.connect('changed', self._monitor_state)
         
     def get_count_rates(self):                            
-        # get IRC and OCR tuple
-        return [self.ICR.get(), self.OCR.get()]
+        # get IRC and OCR tuples
+        pairs = zip(self.ICRS, self.OCRS)
+        _crs = []
+        for ICR, OCR in pairs:
+            _crs.append((ICR.get(), OCR.get()))
+        return _crs
 
 class SimMultiChannelAnalyzer(BasicMCA):
     """Simulated single channel MCA detector."""   
@@ -432,9 +445,6 @@ class SimMultiChannelAnalyzer(BasicMCA):
     
     def get_roi_counts(self):
         return [0.0]
-
-    def get_count_rates(self):
-        return [-1, -1]
         
     def stop(self):
         pass
