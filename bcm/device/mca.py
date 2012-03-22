@@ -361,16 +361,16 @@ class VortexMCA(BasicMCA):
         self.ACQG = self.add_pv("%s:Acquiring" % pv_root)
         self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
         self.ICRS = [
-            self.add_pv("%s:dxp1:ICR" % pv_root),
-            self.add_pv("%s:dxp2:ICR" % pv_root),
-            self.add_pv("%s:dxp3:ICR" % pv_root),
-            self.add_pv("%s:dxp4:ICR" % pv_root)]
+            self.add_pv("%s:dxp1.ICR" % pv_root),
+            self.add_pv("%s:dxp2.ICR" % pv_root),
+            self.add_pv("%s:dxp3.ICR" % pv_root),
+            self.add_pv("%s:dxp4.ICR" % pv_root)]
         
         self.OCRS = [
-            self.add_pv("%s:dxp1:OCR" % pv_root),
-            self.add_pv("%s:dxp2:OCR" % pv_root),
-            self.add_pv("%s:dxp3:OCR" % pv_root),
-            self.add_pv("%s:dxp4:OCR" % pv_root)]
+            self.add_pv("%s:dxp1.OCR" % pv_root),
+            self.add_pv("%s:dxp2.OCR" % pv_root),
+            self.add_pv("%s:dxp3.OCR" % pv_root),
+            self.add_pv("%s:dxp4.OCR" % pv_root)]
         self.spectra.append(self.add_pv("%s:mcaCorrected" % pv_root, monitor=False))
         self._count_time = self.add_pv("%s:PresetReal" % pv_root)
 
