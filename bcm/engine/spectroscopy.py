@@ -455,7 +455,7 @@ class EXAFSScan(BasicScan):
             self.beamline.goniometer.set_mode('SCANNING')
             gobject.idle_add(self.emit, "progress", -1, "Preparing devices ...")
             self.beamline.attenuator.set(self._attenuation)
-            self.beamline.mca.configure(retract=True, cooling=True, energy=self._roi_energy)
+            self.beamline.multi_mca.configure(retract=True, cooling=True, energy=self._roi_energy)
             gobject.idle_add(self.emit, "progress", -1, "Moving to Mid-point ...")
             _cur_energy = self.beamline.energy.get_position()
             self.beamline.energy.move_to(self._edge_energy+0.2) # for exafs optimize a 0.2 above edge
@@ -476,7 +476,7 @@ class EXAFSScan(BasicScan):
                 ('k', '', '.6f'),
                 ('time','', '.4g'),
             ]
-            for ch in range(self.beamline.mca.elements):
+            for ch in range(self.beamline.multi_mca.elements):
                 self.data_names.append(('ifluor.%d' % (ch+1), '', 'g'))
             self.data_names.append(('icr', '', 'g'))
                                
@@ -512,16 +512,16 @@ class EXAFSScan(BasicScan):
                 self.count += 1
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
                 k, _t = kt
-                y,i0 = multi_count(self.beamline.mca, self.beamline.i_0, _t)
-                mca_values = self.beamline.mca.get_roi_counts()
+                y,i0 = multi_count(self.beamline.multi_mca, self.beamline.i_0, _t)
+                mca_values = self.beamline.multi_mca.get_roi_counts()
                 if self.count == 1:
                     scale = 1.0
                 else:
                     scale = (self.data[0][2]/i0)
                 data_point = [1000*x, y*scale, i0, k, _t] # convert KeV to eV
-                for j in range(self.beamline.mca.elements):
+                for j in range(self.beamline.multi_mca.elements):
                     data_point.append(mca_values[j])
-                _rates = self.beamline.mca.get_count_rates()
+                _rates = self.beamline.multi_mca.get_count_rates()
                 data_point.append(_rates[0])
                 self.data.append(data_point)
                 
@@ -544,7 +544,7 @@ class EXAFSScan(BasicScan):
             self.beamline.monochromator.energy.move_to(self._edge_energy)
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(_saved_attenuation)
-            self.beamline.mca.configure(retract=False)
+            self.beamline.multi_mca.configure(retract=False)
             _logger.info('EXAFS scan done.')
             self.beamline.goniometer.set_mode('COLLECT')
             self.beamline.lock.release()        

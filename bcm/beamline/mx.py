@@ -166,6 +166,7 @@ class MXBeamline(object):
             _shutter_list.append(self.registry[nm])
         self.registry['all_shutters'] = ShutterGroup(*tuple(_shutter_list))
         
+        
         # Setup diagnostics on some devices
         self.diagnostics = []
         for k in ['automounter', 'goniometer', 'detector', 'cryojet', 'mca', 'all_shutters', 'storage_ring']:
