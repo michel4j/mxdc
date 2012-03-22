@@ -33,7 +33,7 @@ DEVICES = {
     'energy':   PseudoMotor('DCM1608-4-B10-01:energy:KeV'),
     'bragg_energy': BraggEnergyMotor('SMTR1608-4-B10-17:deg'),
     'dcm_pitch':  ENCMotor('SMTR1608-4-B10-15:deg'),
-    'boss': BossOptimizer('BL08B1:PicoControl'),    
+    #'boss': BossOptimizer('BL08B1:PicoControl'),    
     'mostab': PitchOptimizer('Pitch Optimizer', _energy2pitch),
     
     # Goniometer/goniometer head devices
