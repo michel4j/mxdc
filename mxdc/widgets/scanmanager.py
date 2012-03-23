@@ -186,7 +186,8 @@ class ScanManager(gtk.Frame):
             'energy': self.energy_entry,
             'time': self.time_entry,
             'attenuation': self.attenuation_entry,
-            'crystal': self.crystal_entry
+            'crystal': self.crystal_entry,
+            'scans': self.scans_entry
         }
         self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=gtk.EXPAND|gtk.FILL)
         for key in ['prefix','edge']:
@@ -375,6 +376,7 @@ class ScanManager(gtk.Frame):
                 'time': 0.5,
                 'emission': 11.2100,
                 'attenuation': 90.0,
+                'scans': 1,
             }
         for key in ['prefix','edge']:
             self.entries[key].set_text(params[key])
@@ -383,6 +385,7 @@ class ScanManager(gtk.Frame):
         self.entries['directory'].set_filename(params['directory'])
         self.entries['energy'].set_text("%0.4f" % params['energy'])
         self._emission = params['emission']
+        self.entries['scans'].set_value(params.get('scans', 1))
         if params['mode'] == 'XANES':
             self.xanes_btn.set_active(True)
         elif params['mode'] == 'XRF':
@@ -397,6 +400,7 @@ class ScanManager(gtk.Frame):
             params[key]  = self.entries[key].get_text().strip()
         for key in ['time','energy','attenuation']:
             params[key] = float(self.entries[key].get_text())
+        params['scans'] = self.entries['scans'].get_value_as_int()
         params['crystal'] = self.active_sample.get('id', '')
         params['directory']   = self.entries['directory'].get_filename()
         if params['directory'] is None:
@@ -465,7 +469,8 @@ class ScanManager(gtk.Frame):
         self.plotter.set_labels(title=title, x_label="Energy (keV)", y1_label='Fluorescence Counts')      
         self.exafs_scanner.configure(scan_parameters['edge'], scan_parameters['time'], 
                                      scan_parameters['attenuation'], scan_parameters['directory'],
-                                     scan_parameters['prefix'], scan_parameters['crystal'])
+                                     scan_parameters['prefix'], crystal=scan_parameters['crystal'],
+                                     scans=scan_parameters['scans'])
         
         self._set_scan_action(SCAN_START)
         self.scan_book.set_current_page(1)
@@ -501,15 +506,18 @@ class ScanManager(gtk.Frame):
             self.edge_entry.set_editable(False)
             self.edge_entry.set_sensitive(True)
             self.energy_entry.set_sensitive(False)
+            self.scans_entry.set_sensitive(False)
         elif mode == 'XRF':
             self.scan_help.set_markup('Identify elements present in the sample from their fluorescence')
             self.edge_entry.set_sensitive(False)
             self.energy_entry.set_sensitive(True)
+            self.scans_entry.set_sensitive(False)
         elif mode == 'EXAFS':
             self.scan_help.set_markup('Perform full EXAFS scan for the selected edge')
             self.edge_entry.set_editable(False)
             self.edge_entry.set_sensitive(True)
             self.energy_entry.set_sensitive(False)
+            self.scans_entry.set_sensitive(True)
         
         return
     
@@ -587,7 +595,6 @@ class ScanManager(gtk.Frame):
 
     def on_scan_done(self, widget):
         self._set_scan_action(SCAN_STOP)
-        self.scan_pbar.idle_text('Scan Complete!', 1.0)
         return True
     
     def on_xanes_error(self, obj, reason):
@@ -680,6 +687,7 @@ class ScanManager(gtk.Frame):
         return True
 
     def on_scan_started(self, obj):
+        self.plotter.clear()
         return True
             
     def on_xrf_done(self, obj):
