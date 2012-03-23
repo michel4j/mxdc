@@ -362,7 +362,7 @@ class EXAFSScan(BasicScan):
         self._energy_db = get_energy_database()
         self.configure(edge, t, attenuation, directory, 'exafs')
         
-    def configure(self, edge, t, attenuation, directory, prefix, crystal=None, uname=None):
+    def configure(self, edge, t, attenuation, directory, prefix, scans=1, crystal=None, uname=None):
         #FIXME: Possible race condition here if new configure is issued while previous scan is still running
         # - maybe we should use queues and have the scan constantly check and perform a scan
         try:
@@ -382,9 +382,10 @@ class EXAFSScan(BasicScan):
         self.scan_parameters['prefix'] = prefix
         self.scan_parameters['user_name'] = uname
         self.scan_parameters['targets'] = exafs_targets(self.scan_parameters['edge_energy'])
-        self.scan_parameters['filename'] = os.path.join(directory, "%s_%s.raw" % (prefix, edge))
+        self.scan_parameters['filename_template'] = os.path.join(directory, "%s_%s.raw" % (prefix, "%03d"))
         self.scan_parameters['attenuation'] = attenuation
         self.scan_parameters['crystal_id'] = crystal
+        self.scan_parameters['no_scans'] = scans
         self.meta_data = {'edge': edge, 'time': t, 'attenuation': attenuation, 'prefix': prefix, 'user_name': uname}
         
                     
@@ -445,13 +446,11 @@ class EXAFSScan(BasicScan):
         self._directory = self.scan_parameters['directory']
         self._prefix = self.scan_parameters['prefix']
         self._user_name = self.scan_parameters['user_name']
-        self._filename = self.scan_parameters['filename']
         self._crystal_id = self.scan_parameters['crystal_id']
         self.data = []
         _saved_attenuation = self.beamline.attenuator.get()
         try:
             _logger.info('EXAFS scan started.')
-            gobject.idle_add(self.emit, 'started')
             self.beamline.goniometer.set_mode('SCANNING')
             gobject.idle_add(self.emit, "progress", -1, "Preparing devices ...")
             self.beamline.attenuator.set(self._attenuation)
@@ -467,7 +466,6 @@ class EXAFSScan(BasicScan):
                 self.beamline.mostab.start()
                 self.beamline.mostab.wait()
                     
-            self.count = 0
             self.beamline.exposure_shutter.open()
             self.data_names = [  # last string in tuple is format suffix appended to end of '%n' 
                 ('energy','eV', '.2f'),
@@ -491,58 +489,65 @@ class EXAFSScan(BasicScan):
                 _k_time.append((_k, _t))
                 _tot_time += _t
             
-            _used_time = 0.0
-            gobject.idle_add(self.emit, "progress", 0.0 , "")
-            for x, kt in zip(self._targets, _k_time):
-                if self._paused:
-                    gobject.idle_add(self.emit, 'paused', True, self._notify)
-                    self._notify = False
-                    _logger.warning("EXAFS Scan paused at point %s." % str(x))
-                    while self._paused and not self._stopped:
-                        time.sleep(0.05)
-                    if self._notify:
-                        self.pause(True)
-                        continue
-                    self.beamline.goniometer.set_mode('SCANNING', wait=True)   
-                    gobject.idle_add(self.emit, 'paused', False, self._notify)
-                    _logger.info("Scan resumed.")
-                if self._stopped:
-                    _logger.info("Scan stopped!")
-                    break
+            for _pass in range(self.scan_parameters['no_scans']):
+                _used_time = 0.0
+                self.count = 0
+                gobject.idle_add(self.emit, 'started')
+                gobject.idle_add(self.emit, "progress", 0.0 , "")
+                for x, kt in zip(self._targets, _k_time):
+                    if self._paused:
+                        gobject.idle_add(self.emit, 'paused', True, self._notify)
+                        self._notify = False
+                        _logger.warning("EXAFS Scan paused at point %s." % str(x))
+                        while self._paused and not self._stopped:
+                            time.sleep(0.05)
+                        if self._notify:
+                            self.pause(True)
+                            continue
+                        self.beamline.goniometer.set_mode('SCANNING', wait=True)   
+                        gobject.idle_add(self.emit, 'paused', False, self._notify)
+                        _logger.info("Scan resumed.")
+                    if self._stopped:
+                        _logger.info("Scan stopped!")
+                        break
+                        
+                    self.count += 1
+                    self.beamline.monochromator.simple_energy.move_to(x, wait=True)
+                    k, _t = kt
+                    y,i0 = multi_count(self.beamline.multi_mca, self.beamline.i_0, _t)
+                    mca_values = self.beamline.multi_mca.get_roi_counts()
+                    if self.count == 1:
+                        scale = 1.0
+                    else:
+                        scale = (self.data[0][2]/i0)
+                    data_point = [1000*x, y*scale, i0, k, _t] # convert KeV to eV
+    
+                    _rates = self.beamline.multi_mca.get_count_rates()
+                    for j in range(self.beamline.multi_mca.elements):
+                        data_point.append(mca_values[j]) #iflour
+                        data_point.append(_rates[j][0])  #icr
+                        data_point.append(_rates[j][1])  #ocr
+                    self.data.append(data_point)
                     
-                self.count += 1
-                self.beamline.monochromator.simple_energy.move_to(x, wait=True)
-                k, _t = kt
-                y,i0 = multi_count(self.beamline.multi_mca, self.beamline.i_0, _t)
-                mca_values = self.beamline.multi_mca.get_roi_counts()
-                if self.count == 1:
-                    scale = 1.0
-                else:
-                    scale = (self.data[0][2]/i0)
-                data_point = [1000*x, y*scale, i0, k, _t] # convert KeV to eV
+                    _used_time += _t    
+                    fraction = _used_time / _tot_time
+                    gobject.idle_add(self.emit, "new-point", (x, y*scale, i0, k,  y))
+                    gobject.idle_add(self.emit, "progress", fraction , "Scan %d/%d" % (_pass+1, self.scan_parameters['no_scans']))
+                                 
+                self.scan_parameters['end_time'] = datetime.now()
+                self._filename = self.scan_parameters['filename_template'] % (_pass+1)
+                self.save(self._filename)
+                self.data = []
 
-                _rates = self.beamline.multi_mca.get_count_rates()
-                for j in range(self.beamline.multi_mca.elements):
-                    data_point.append(mca_values[j]) #iflour
-                    data_point.append(_rates[j][0])  #icr
-                    data_point.append(_rates[j][1])  #ocr
-                self.data.append(data_point)
-                
-                _used_time += _t    
-                fraction = _used_time / _tot_time
-                gobject.idle_add(self.emit, "new-point", (x, y*scale, i0, k,  y))
-                gobject.idle_add(self.emit, "progress", fraction , "")
-                             
-            self.scan_parameters['end_time'] = datetime.now()
-            if self._stopped:
-                _logger.warning("EXAFS Scan stopped.")
-                self.save(self._filename)
-                gobject.idle_add(self.emit, "stopped")
-            else:
-                _logger.info("EXAFS Scan complete.")
-                self.save(self._filename)
-                gobject.idle_add(self.emit, "done")
-                gobject.idle_add(self.emit, "progress", 1.0, "")
+                if self._stopped:
+                    _logger.warning("EXAFS Scan stopped.")    
+                    gobject.idle_add(self.emit, "stopped")
+                    break
+                else:
+                    _msg = "Scan %d/%d complete." % (_pass+1, self.scan_parameters['no_scans'])
+                    _logger.info(_msg)
+                    gobject.idle_add(self.emit, "progress", 1.0, _msg)
+            gobject.idle_add(self.emit, "done")
         finally:
             self.beamline.monochromator.energy.move_to(self._edge_energy)
             self.beamline.exposure_shutter.close()
