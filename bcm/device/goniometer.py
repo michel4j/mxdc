@@ -85,9 +85,10 @@ class GoniometerBase(BaseDevice):
                 
     def _set_and_notify_mode(self, mode_str):
         mode = _MODE_MAP.get(mode_str, 6)
+        if mode_str in ['MOVING', 'UNKNOWN']:
+            return 
         if mode != self.mode:
-            if mode_str not in ['MOVING', 'UNKNOWN']:
-                _logger.info( "(%s) mode changed to `%s`" % (self.name, mode_str))
+            _logger.info( "Mode changed to `%s`" % (mode_str))
         gobject.idle_add(self.emit, 'mode', mode_str)
         self.mode = mode   
 
@@ -281,7 +282,7 @@ class MD2Goniometer(GoniometerBase):
 
         self._mode_fbk = self.add_pv("%s:G:MDPhasePosition" % pv_root)
         self._cntr_cmd_start = self.add_pv("%s:S:StartManSampleCent" % pv_root)
-        self._cntr_cmd_stop = self.add_pv("%s:S:ManCentCmpltd" % pv_root)
+        self._cntr_cmd_complete = self.add_pv("%s:S:ManCentCmpltd" % pv_root)
         self._enabled_state = self.add_pv("%s:enabled" % pv_root)
         self._shutter_state = self.add_pv("%s:G:ShutterIsOpen" % pv_root)
         self._log = self.add_pv('%s:G:StatusMsg' % pv_root)
@@ -346,6 +347,8 @@ class MD2Goniometer(GoniometerBase):
         mode = mode.strip().upper()
 
         if mode == 'CENTERING':
+            self._cntr_cmd_complete.put(0)
+            self._cntr_cmd_complete.put(1)              
             self._mode_cmd.put(cmd_template % (2,))
             #self._mode_centering_cmd.put('\x01')
         elif mode == 'MOUNTING':
@@ -373,11 +376,21 @@ class MD2Goniometer(GoniometerBase):
                     self.wait() 
                     time.sleep(1.0)
                     dev.set(val)
-            
+        elif mode == 'CENTERING':
+            self._cntr_cmd_start.put(0)
+            self._cntr_cmd_start.put(1)
+        elif mode == 'COLLECT':
+            self._cntr_cmd_complete.put(0)
+            self._cntr_cmd_complete.put(1)      
         elif mode == 'SCANNING': 
             #self._minibeam.set(2) # may not be needed any more
             pass
-
+    
+    def _save_cntr_pos(self):
+        # toggle centering complete
+        self._cntr_cmd_complete.put(0)
+        self._cntr_cmd_complete.put(1)
+        
     def _on_mode_changed(self, pv, val):
         mode_str = _MODE_MAP_REV.get(val, ['UNKNOWN'])[0]      
         self._set_and_notify_mode(mode_str)
