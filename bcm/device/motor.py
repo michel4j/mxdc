@@ -145,7 +145,7 @@ class SimMotor(MotorBase):
                 timeout -= poll
                 time.sleep(poll)
             if timeout <= 0:
-                _logger.warning('(%s) Timed out. Did move after %d sec.' % (self.name, _orig_to))
+                _logger.warning('(%s) Timed out. Did not move after %d sec.' % (self.name, _orig_to))
                 return False                
         if (stop and self.busy_state):
             _logger.debug('(%s) Waiting to stop moving' % (self.name,))
@@ -383,18 +383,18 @@ class Motor(MotorBase):
             prec = 3
 
         if (start and self._command_sent and not self._moving):
-            _logger.debug('(%s) Waiting to start moving' % (self.name,))
+            _logger.debug('%s waiting to start moving' % (self.name,))
             while self._command_sent and not self._moving and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
                 if abs(self._target_pos - self.get_position()) < 10**-prec:
                     self._command_sent = False
-                    _logger.warning('(%s) already moved to target.' % (self.name,))
+                    _logger.debug('%s already at %g' % (self.name,self._target_pos))
             if timeout <= 0:
-                _logger.warning('Timed out waiting for (%s) to start moving.' % (self.name,))
+                _logger.warning('%s timed out moving to %g [currently %g].' % (self.name, self._target_pos, self.get_position()))
                 return False                
         if (stop and self._moving):
-            _logger.debug('(%s) Waiting to stop moving' % (self.name,))
+            _logger.debug('%s waiting to stop moving' % (self.name,))
             while self._moving:
                 time.sleep(poll)
 
