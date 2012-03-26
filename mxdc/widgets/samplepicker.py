@@ -355,6 +355,7 @@ class SamplePicker(gtk.Frame):
         # extra widgets
         #self.throbber_box.pack_end(self.throbber, expand=False, fill=False)
         #self.throbber.show_all()
+        self._old_code = None
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                                                'data/busy.gif'))
            
@@ -450,12 +451,12 @@ class SamplePicker(gtk.Frame):
     
     def on_health(self, obj, health):
         code, message = health
-        if code == 0:
+
+        if code in [0, self._old_code] or message == '' or self._old_code is None:
             pass
         else:
-            #self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
-            if message != '':
-                self.on_message(None, message)
+            self.on_message(None, message)
+        self._old_code = code 
             
     def on_enabled(self, obj, state):
         if not state:
