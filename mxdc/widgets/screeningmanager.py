@@ -169,8 +169,8 @@ class ScreenManager(gtk.Frame):
         self.TaskList = []
         self.default_tasks = [ 
                   (Screener.TASK_MOUNT, {'default': True, 'locked': False}),
-                  (Screener.TASK_ALIGN, {'default': True, 'locked': False}),
-                  (Screener.TASK_PAUSE, {'default': False, 'locked': False}), # use this line for collect labels
+                  (Screener.TASK_ALIGN, {'default': False, 'locked': False}),
+                  (Screener.TASK_PAUSE, {'default': True, 'locked': False}), # use this line for collect labels
                   (Screener.TASK_COLLECT, {'angle': 0.0, 'default': True, 'locked': False}),
                   (Screener.TASK_COLLECT, {'angle': 45.0, 'default': True, 'locked': False}),
                   (Screener.TASK_COLLECT, {'angle': 90.0, 'default': True, 'locked': False}),
@@ -432,7 +432,11 @@ class ScreenManager(gtk.Frame):
             self.distance_entry.set_text('%0.2f' % data.get('distance', 300.0))
             for idx, v in enumerate(data.get('tasks',[])):
                 self.TaskList[idx][1].set_active(v)
-                  
+        else:
+            self.folder_btn.set_current_folder(os.environ['HOME'])
+            self.time_entry.set_text('%0.2f' % self.beamline.config['default_exposure'])
+            self.delta_entry.set_text('%0.2f' % 1.0)
+            self.distance_entry.set_text('%0.2f' % 300.0)                  
         
     def _on_task_toggle(self, obj, tasklet):
         tasklet.configure(enabled=obj.get_active())
