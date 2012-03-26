@@ -151,8 +151,8 @@ class ContainerWidget(gtk.DrawingArea):
             self.y_pad = (event.height - self.height)//2
             self.coordinates, self.labels = self._puck_coordinates(self.width, self.height)
         elif self.container_type in [CONTAINER_CASSETTE, CONTAINER_CALIB_CASSETTE]:
-            self.width = min(event.width, event.height*12/9)
-            self.height = self.width*9/12.5
+            self.width = min(event.width, event.height*12/9.0)
+            self.height = self.width*9/12.0
             self.radius = (self.width)/24.0
             self.sq_rad = self.radius**2
             self.x_pad = (event.width - self.width)//2
