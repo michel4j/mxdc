@@ -232,7 +232,7 @@ class MotorEntry(ActiveEntry):
             self._action_icon.set_from_animation(self._animation)
         else:
             self.running = False
-            self.set_target(self.device.get_position())
+            #self.set_target(self.device.get_position())
             self._action_icon.set_from_stock('gtk-apply',gtk.ICON_SIZE_MENU)
         self.set_feedback(self.device.get_position())
         return True
