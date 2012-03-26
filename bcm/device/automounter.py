@@ -55,10 +55,10 @@ class AutomounterContainer(gobject.GObject):
             
         """
         if status_str is not None and len(status_str)>0:
-            if status_str[0] == 'u':
-                self.container_type = CONTAINER_UNKNOWN
-            else:
+            if re.match('\d', status_str[0]):
                 self.container_type = int(status_str[0])
+            else:
+                self.container_type = CONTAINER_UNKNOWN
         else:
             self.container_type = CONTAINER_NONE
             
