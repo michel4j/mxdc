@@ -148,7 +148,7 @@ class PitchOptimizer(BaseDevice):
             self.pitch.move_to(midp)       
             _logger.info('Pitch Optimized. MIDP=%0.4e FWHM=%0.4e YMAX=%0.4e.' % (midp, fwhm, ymax))
         else:
-            self.pitch_move_to(self._current_pitch)
+            self.pitch.move_to(self._current_pitch)
             _logger.info('Pitch Optimization failed. Moving to theoretical position %0.4e.' % (self._current_pitch))
         self.set_state(busy=False)
               
