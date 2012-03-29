@@ -416,8 +416,8 @@ class Screener(gobject.GObject):
                 
                 # Perform the screening task here
                 if task.task_type == Screener.TASK_PAUSE:
-                    self._notify_progress(Screener.TASK_STATE_RUNNING)
                     self.pause()
+                    self._notify_progress(Screener.TASK_STATE_DONE)
                     pause_dict = {'type': Screener.PAUSE_TASK,
                                   'task': self.run_list[self.pos - 1].name,
                                   'sample': self.run_list[self.pos]['sample']['name'],
@@ -518,7 +518,7 @@ class Screener(gobject.GObject):
                         _logger.debug('Collecting frames for crystal `%s`, in directory `%s`.' % (params['name'], params['directory']))
                         if not os.path.exists(params['directory']):
                             os.makedirs(params['directory']) # make sure directories exist
-                        self.data_collector.configure(params)
+                        self.data_collector.configure(params, skip_existing=False)
                         results = self.data_collector.run()
                         task.options['results'] = results
                         gobject.idle_add(self.emit, 'new-datasets', results)                       

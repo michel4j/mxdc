@@ -1,4 +1,5 @@
 import gtk, gobject
+import pango
 import sys, os, time
 
 from mxdc.widgets.dialogs import *
@@ -12,7 +13,7 @@ from bcm.utils import automounter
     SAMPLE_COLUMN_CODE,
     SAMPLE_COLUMN_NAME,
     SAMPLE_COLUMN_COMMENTS,
-    SAMPLE_COLUMN_EDITABLE,
+    SAMPLE_COLUMN_PROCESSED,
     SAMPLE_COLUMN_GROUP,
     SAMPLE_COLUMN_DATA,
     SAMPLE_COLUMN_PRIORITY,
@@ -43,6 +44,10 @@ class SampleList(gtk.ScrolledWindow):
         automounter.PORT_JAMMED: '#990000',
         automounter.PORT_MOUNTED: '#990099',
         automounter.PORT_NONE: '#990000',
+    }
+    PROCESSED_STYLE = {
+        True: pango.STYLE_ITALIC,
+        False: pango.STYLE_NORMAL,
     }
     def __init__(self):
         gtk.ScrolledWindow.__init__(self)
@@ -82,7 +87,7 @@ class SampleList(gtk.ScrolledWindow):
                 SAMPLE_COLUMN_CODE, item['barcode'],
                 SAMPLE_COLUMN_NAME, item['name'],
                 SAMPLE_COLUMN_COMMENTS, item['comments'],
-                SAMPLE_COLUMN_EDITABLE, False,
+                SAMPLE_COLUMN_PROCESSED, False,
                 SAMPLE_COLUMN_GROUP, item['group'],
                 SAMPLE_COLUMN_DATA, item,
             )
@@ -98,15 +103,19 @@ class SampleList(gtk.ScrolledWindow):
             SAMPLE_COLUMN_CODE, item.get(COLUMN_DICT[SAMPLE_COLUMN_CODE].lower(),''),
             SAMPLE_COLUMN_NAME, item.get(COLUMN_DICT[SAMPLE_COLUMN_NAME].lower(),'unknown'),
             SAMPLE_COLUMN_COMMENTS, item.get(COLUMN_DICT[SAMPLE_COLUMN_COMMENTS].lower(),''),
-            SAMPLE_COLUMN_EDITABLE, False,
+            SAMPLE_COLUMN_PROCESSED, False,
             SAMPLE_COLUMN_GROUP, item['group'],
             SAMPLE_COLUMN_DATA, item,
         )
     
-    def __set_color(self,column, renderer, model, iter):
+    def __set_format(self,column, renderer, model, iter):
         value = model.get_value(iter, SAMPLE_COLUMN_STATE)
+        proc = model.get_value(iter, SAMPLE_COLUMN_PROCESSED)
         renderer.set_property("foreground", self.STATUS_COLORS[value])
+        renderer.set_property("strikethrough", proc)
+        renderer.set_property("style", self.PROCESSED_STYLE[proc])
         return
+
 
     def __sort_func(self, model, iter1, iter2, data):
         c1v1 = model.get_value(iter1, SAMPLE_COLUMN_GROUP)
@@ -142,23 +151,26 @@ class SampleList(gtk.ScrolledWindow):
         
         for key in [SAMPLE_COLUMN_NAME, SAMPLE_COLUMN_GROUP, SAMPLE_COLUMN_CONTAINER, SAMPLE_COLUMN_PORT, SAMPLE_COLUMN_CODE, SAMPLE_COLUMN_COMMENTS]:
             renderer = gtk.CellRendererText()
-            renderer.connect("edited", self._on_cell_edited, model, key)
-            column = gtk.TreeViewColumn(COLUMN_DICT[key], renderer, text=key, editable=SAMPLE_COLUMN_EDITABLE)
-            column.set_cell_data_func(renderer, self.__set_color)
+            column = gtk.TreeViewColumn(COLUMN_DICT[key], renderer, text=key)
+            column.set_cell_data_func(renderer, self.__set_format)
             #column.set_sort_column_id(key)        
             self.listview.append_column(column)
         self.listview.set_search_column(SAMPLE_COLUMN_NAME)
         model.set_sort_func(SAMPLE_COLUMN_PRIORITY, self.__sort_func, None)
         model.set_sort_column_id(SAMPLE_COLUMN_PRIORITY, gtk.SORT_DESCENDING)
-
-    def _on_cell_edited(self, cell, path_string, new_text, model, column):
-        iter = model.get_iter_from_string(path_string)
-        model.set(iter, column, new_text)
         
-    def set_row_selected(self, pos, selected=True):
-        path = (pos,)
+    def set_row_selected(self, path, selected=True):
         iter = self.listmodel.get_iter(path)
         self.listmodel.set(iter, SAMPLE_COLUMN_SELECTED, selected)
+        
+        # reset the processed status cell if user selects it again
+        if selected:
+            self.listmodel.set(iter, SAMPLE_COLUMN_PROCESSED, False)
+        self.listview.scroll_to_cell(path, use_align=True, row_align=0.9)
+
+    def set_row_processed(self, path, processed=True):
+        iter = self.listmodel.get_iter(path)
+        self.listmodel.set(iter, SAMPLE_COLUMN_PROCESSED, True)
         self.listview.scroll_to_cell(path, use_align=True, row_align=0.9)
 
     def set_row_state(self, pos, state):
@@ -192,11 +204,11 @@ class SampleList(gtk.ScrolledWindow):
         iter = model.get_iter_first()
         items = []
         while iter:
-            item = {}
             sel = model.get_value(iter, SAMPLE_COLUMN_SELECTED)
             state = model.get_value(iter, SAMPLE_COLUMN_STATE)
             if sel and state in [automounter.PORT_GOOD, automounter.PORT_UNKNOWN, automounter.PORT_MOUNTED]:
                 item = model.get_value(iter, SAMPLE_COLUMN_DATA)
+                item['path'] = model.get_path(iter)
                 items.append(item)
             iter = model.iter_next(iter)
         return items
@@ -215,24 +227,4 @@ class SampleList(gtk.ScrolledWindow):
         model = self.listview.get_model()
         model.clear()
              
-        
-if __name__ == "__main__":
-   
-    win = gtk.Window()
-    win.connect("destroy", lambda x: gtk.main_quit())
-    win.set_default_size(600,400)
-    win.set_border_width(2)
-    win.set_title("Sample Widget Demo")
-
-    example = SampleList()
-    example.load_data(TEST_DATA)
-
-    win.add(example)
-    win.show_all()
-
-    try:
-        gtk.main()
-    except KeyboardInterrupt:
-        print "Quiting..."
-        sys.exit()
-        
+    

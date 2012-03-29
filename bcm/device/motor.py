@@ -89,11 +89,12 @@ class MotorBase(BaseDevice):
 class SimMotor(MotorBase):
     implements(IMotor)
      
-    def __init__(self, name, pos=0, units='mm', speed=1.0, active=True):
+    def __init__(self, name, pos=0, units='mm', speed=10.0, active=True):
         MotorBase.__init__(self,name)
         pos = pos
         self._speed = speed # speed
-        self._steps = 10
+        self._steps_per_second = 10
+        self._stepsize = self._speed/self._steps_per_second
         self.units = units
         self._state = 0
         self._stopped = False
@@ -110,17 +111,17 @@ class SimMotor(MotorBase):
         self._stopped = False
         self._command_sent = True
         import numpy
-        targets = numpy.linspace(self._position, target, self._steps)
+        _num_steps = max(5, int(abs(self._position - target)/self._stepsize))
+        targets = numpy.linspace(self._position, target, _num_steps)
         self.set_state(busy=True)
         self._command_sent = False
-        _time = abs(self._position - target) / self._speed
         for pos in targets:
             self._position = pos
             data = (pos, time.time())
             self._signal_timed_change(self, data)
             if self._stopped:
                 break
-            time.sleep(_time/self._steps)
+            time.sleep(1.0/self._steps_per_second)
         self.set_state(busy=False)
 
             
