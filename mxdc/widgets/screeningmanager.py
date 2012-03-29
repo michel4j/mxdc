@@ -547,20 +547,29 @@ class ScreenManager(gtk.Frame):
         model = self.listview.get_model()
         iter = model.get_iter(path)
         model.set(iter, QUEUE_COLUMN_STATUS, status)
-        self.listview.scroll_to_cell(path, use_align=True,row_align=0.9)
+        self.listview.scroll_to_cell(path, use_align=True,row_align=0.4)
         
         # determine current and next tasks
         if iter is None:
             self.lbl_current.set_text('')
         else:
-            txt = str(model.get_value(iter, QUEUE_COLUMN_TASK))
+            cur_tsk = model.get_value(iter, QUEUE_COLUMN_TASK)
+            cur_sample = cur_tsk['sample']['path'] # location in sample list
+            txt = str(cur_tsk)
             self.lbl_current.set_text(txt)
             next_iter = model.iter_next(iter)
-            if next_iter is None:
-                self.lbl_next.set_text('')
-            else:
-                txt = str(model.get_value(next_iter, QUEUE_COLUMN_TASK))
+            if next_iter is not None:
+                next_tsk = model.get_value(next_iter, QUEUE_COLUMN_TASK)
+                next_sample = next_tsk['sample']['path'] # location in sample list
+                txt = str(next_tsk)
                 self.lbl_next.set_text(txt)
+            else:
+                self.lbl_next.set_text('')
+                next_sample = None
+            if cur_sample != next_sample:
+                self.sample_list.set_row_processed(cur_sample, True)
+                self.sample_list.set_row_selected(cur_sample, False)
+                
         #self.lbl_current.set_alignment(0.5, 0.5)
         #self.lbl_next.set_alignment(0.5, 0.5)
 
