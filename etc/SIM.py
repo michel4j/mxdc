@@ -31,8 +31,8 @@ DEVICES = {
     
     # Goniometer/goniometer head devices
     'goniometer': SimGoniometer(),
-    'omega':    SimMotor('Omega', 0.0, 'deg'),
-    'chi':  SimMotor('Chi', 0.0, 'deg', 'False'),
+    'omega':    SimMotor('Omega', 0.0, 'deg', speed=120.0),
+    'chi':  SimMotor('Chi', 0.0, 'deg', active='False'),
     'sample_x':  SimMotor('Sample X', 0.0, 'mm'),
     'sample_y':  SimMotor('Sample Y', 0.0, 'mm'),
     
@@ -44,9 +44,9 @@ DEVICES = {
     'beam_h':   SimMotor('Beam H', 0.2, 'mm'),
     
     # Detector, distance & two_theta
-    'distance': SimMotor('Detector Distance', 150.0, 'mm'),
-    'detector_z':  SimMotor('Detector Z', 150.0, 'mm'),
-    'two_theta':  SimMotor('Detector Two Theta', 0.0, 'deg'),
+    'distance': SimMotor('Detector Distance', 150.0, 'mm', speed=10.0),
+    'detector_z':  SimMotor('Detector Z', 150.0, 'mm', speed=10.0),
+    'two_theta':  SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
     'detector': SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
     
     # Sample environment, beam stop, cameras, zoom, lighting

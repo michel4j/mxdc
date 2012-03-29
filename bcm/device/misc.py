@@ -682,7 +682,10 @@ class StorageRing(BaseDevice):
         self.mode = self.add_pv(pv1)
         self.current = self.add_pv(pv2)
         self.control = self.add_pv('%s:shutters' % pv3)
-        self.message = self.add_pv('%s:msg:L1' % pv3)
+        self.messages = [ 
+             self.add_pv('%s:msg:L1' % pv3),
+             self.add_pv('%s:msg:L2' % pv3),
+             self.add_pv('%s:msg:L3' % pv3)]
         
         self.mode.connect('changed', self._on_mode_change)
         self.current.connect('changed', self._on_current_change)
@@ -698,6 +701,9 @@ class StorageRing(BaseDevice):
             timeout -= 0.05
         _logger.warn('Timed out waiting for beam!')
     
+    def _get_message(self):
+        return ', '.join([pv.get() for pv in self.messages])
+    
     def _check_beam(self):
         if self.health_state[0] == 0:
             self.set_state(beam=True)
@@ -706,7 +712,7 @@ class StorageRing(BaseDevice):
             
     def _on_mode_change(self, obj, val):
         if val != 4:
-            self.set_state(health=(4,'mode', self.message.get()))
+            self.set_state(health=(4,'mode', self._get_message()))
         else:
             self.set_state(health=(0,'mode'))
         self._check_beam()
@@ -721,9 +727,9 @@ class StorageRing(BaseDevice):
     def _on_current_change(self, obj, val):
         if val <= 5:
             if (self._last_current - val) >= 50.0 :
-                self.set_state(health=(4,'beam','Beam dumped.'))
+                self.set_state(health=(4,'beam','Beam lost!'))
             else:
-                self.set_state(health=(4,'beam','No beam.'))
+                self.set_state(health=(4,'beam', self._get_message()))
         else:
             self.set_state(health=(0,'beam'))
         self._last_current = val

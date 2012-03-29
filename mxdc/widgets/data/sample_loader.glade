@@ -139,7 +139,7 @@ from spreadsheet</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
                 <property name="tooltip" translatable="yes">Import containers
-from LIMS database</property>
+from MxLIVE server</property>
                 <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">Import</property>
                 <property name="use_underline">True</property>
@@ -164,8 +164,7 @@ from LIMS database</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
-                <property name="tooltip" translatable="yes">Remove all entries
-from inventory</property>
+                <property name="tooltip" translatable="yes">Remove all containers and samples</property>
                 <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">Clear</property>
                 <property name="use_underline">True</property>
