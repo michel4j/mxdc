@@ -115,6 +115,7 @@ class SampleManager(gtk.Frame):
         self.dewar_loader.lims_btn.connect('clicked', self.on_import_lims)
         self.dewar_loader.connect('samples-changed', self.on_samples_changed)
         self.dewar_loader.connect('sample-selected', self.on_sample_selected)
+        self.sample_picker.connect('pin-hover', self.on_sample_hover)
         self.beamline.automounter.connect('mounted', self.on_sample_mounted)
         self.beamline.manualmounter.connect('mounted', self.on_sample_mounted, False)
   
@@ -124,6 +125,15 @@ class SampleManager(gtk.Frame):
     def update_data(self, sample=None):
         self.dewar_loader.mount_widget.update_data(sample)
 
+    def on_sample_hover(self, obj, cont, port):
+        if port is not None:
+            xtl = self.dewar_loader.find_crystal(port=port)
+            if xtl is not None:
+                obj.show_info(xtl['name'])
+        else:
+            obj.hide_info()
+
+    
     def on_sample_mounted(self, obj, mount_info, auto=True):
         if auto:
             if mount_info is not None: # sample mounted
