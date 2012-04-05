@@ -100,6 +100,7 @@ class ScreenManager(gtk.Frame):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self._beam_up = False
         self._intervening = False
+        self._last_sample = None
         self.scripts = get_scripts()
 
     def __getattr__(self, key):
@@ -491,6 +492,7 @@ class ScreenManager(gtk.Frame):
             # Add dismount task for last item
             if item == items[-1]:
                 tsk = Tasklet(Screener.TASK_DISMOUNT)
+                tsk.options.update(sample=item)
                 self._add_item({'status': Screener.TASK_STATE_PENDING, 'task': tsk})
                 
         # Save the configuration everytime we hit apply
@@ -566,10 +568,10 @@ class ScreenManager(gtk.Frame):
             else:
                 self.lbl_next.set_text('')
                 next_sample = None
-            if cur_sample != next_sample:
+            if cur_sample != next_sample and status == Screener.TASK_STATE_DONE:
                 self.sample_list.set_row_processed(cur_sample, True)
                 self.sample_list.set_row_selected(cur_sample, False)
-                
+       
         #self.lbl_current.set_alignment(0.5, 0.5)
         #self.lbl_next.set_alignment(0.5, 0.5)
 
