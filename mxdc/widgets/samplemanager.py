@@ -119,6 +119,9 @@ class SampleManager(gtk.Frame):
         self.beamline.manualmounter.connect('mounted', self.on_sample_mounted, False)
   
     def on_samples_changed(self, obj):
+        if self.beamline.automounter.is_mounted():
+            self.active_sample = self.dewar_loader.find_crystal(self.beamline.automounter._mounted_port) or {}
+            gobject.idle_add(self.emit, 'active-sample', self.active_sample)
         gobject.idle_add(self.emit, 'samples-changed', self.dewar_loader)
 
     def update_data(self, sample=None):
