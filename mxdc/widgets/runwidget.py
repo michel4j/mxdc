@@ -1,12 +1,11 @@
 import gtk
-import gtk.glade
 import gobject
 import sys, os
 from twisted.python.components import globalRegistry
 from bcm.beamline.mx import IBeamline
 from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.dialogs import warning, check_folder, DirectoryButton
-
+from mxdc.utils import gui
 
 (
   COLUMN_LABEL,
@@ -44,7 +43,7 @@ class RunWidget(gtk.Frame):
     def __init__(self, num=0):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/run_widget.glade'), 
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/run_widget'), 
                                   'run_widget')
         
         self.add(self.run_widget)

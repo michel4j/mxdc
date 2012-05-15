@@ -2,14 +2,13 @@ import os
 import sys
 import time
 import gtk
-import gtk.glade
 import gobject
 import pango
 from datetime import datetime
 
 from gauge import Gauge
 from dialogs import warning
-
+from mxdc.utils import gui
 from diagnostics import MSG_COLORS, MSG_ICONS
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -84,7 +83,7 @@ class ActiveEntry(gtk.VBox):
         self._sizegroup_v = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
         # create gui layout
         
-        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/active_entry.glade'), 
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/active_entry'), 
                                   'active_entry')
         
         self._active_entry = self._xml.get_widget('active_entry')
@@ -502,7 +501,7 @@ class CryojetWidget(gtk.Frame):
         gtk.Frame.__init__(self, '')
         self.set_shadow_type(gtk.SHADOW_NONE)
         self.cryojet = cryojet
-        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'cryo_widget.glade'), 
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'cryo_widget'), 
                                   'cryo_widget')
         self.cryo_widget = self._xml.get_widget('cryo_widget')
         self.add(self.cryo_widget)
