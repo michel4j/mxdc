@@ -70,6 +70,7 @@ DEVICES = {
     'psh1': Shutter('PSH1408-I00-01'),
     'psh2': Shutter('PSH1408-I00-02'),
     'ssh1': Shutter('SSH1408-I00-01'),
+    'ssh2': Shutter('SSH1608-2-I10-01'),
     'exposure_shutter': Shutter('PSH16083I1001'),
     
     # Intensity monitors,
@@ -95,7 +96,7 @@ SERVICES = {
 }
 
 # Beamline shutters in the order in which they should be opened
-BEAMLINE_SHUTTERS = ('psh1', 'psh2')  
+BEAMLINE_SHUTTERS = ('ssh1', 'psh1', 'psh2', 'ssh2')
 
 # Devices only available in the console
 CONSOLE_DEVICES = {

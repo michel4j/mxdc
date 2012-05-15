@@ -20,7 +20,7 @@ from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.dialogs import warning, error, MyDialog
 from mxdc.widgets.rundiagnostics import DiagnosticsWidget
 from mxdc.widgets.mountwidget import MountWidget
-from mxdc.utils import config
+from mxdc.utils import config, gui
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -61,7 +61,7 @@ class CollectManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/collect_widget.glade'), 
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/collect_widget'), 
                                   'collect_widget')            
         self.run_data = []
         self.run_list = []

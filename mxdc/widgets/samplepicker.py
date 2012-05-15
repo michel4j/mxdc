@@ -2,7 +2,6 @@ import os
 import math
 import numpy
 import gtk
-import gtk.glade
 import gobject
 import pango
 import time
@@ -17,6 +16,7 @@ from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.engine import auto
 from mxdc.widgets.textviewer import TextViewer
+from mxdc.utils import gui
 from bcm.beamline.interfaces import IBeamline
 from twisted.python.components import globalRegistry
 
@@ -331,7 +331,7 @@ class SamplePicker(gtk.Frame):
     def __init__(self, automounter=None):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/sample_picker.glade'), 
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/sample_picker'), 
                                   'sample_picker')
         
         try:

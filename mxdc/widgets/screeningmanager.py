@@ -1,7 +1,6 @@
 import os
 import time, datetime
 import gtk
-import gtk.glade
 import gobject
 import pango
 import logging
@@ -20,7 +19,7 @@ from bcm.utils import lims_tools
 from bcm.engine.diffraction import Screener, DataCollector
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.dialogs import warning, MyDialog
-from mxdc.utils import config
+from mxdc.utils import config, gui
 from bcm.engine.scripting import get_scripts
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -81,7 +80,7 @@ class ScreenManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                                   'screening_widget')
         self.samples_data = []
         self._create_widgets()
@@ -311,7 +310,7 @@ class ScreenManager(gtk.Frame):
         return items
     
     def _get_collect_setup(self, task):
-        _xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
+        _xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                           'collect_settings')
         tbl = _xml2.get_widget('collect_settings')
         for key in ['angle','frames']:
@@ -329,7 +328,7 @@ class ScreenManager(gtk.Frame):
         return tbl
 
     def _get_collect_labels(self):
-        _xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
+        _xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                           'collect_labels')
         tbl = _xml2.get_widget('collect_labels')
         return tbl

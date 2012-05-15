@@ -3,7 +3,6 @@ import math
 import gtk
 import gobject
 import pango
-import gtk.glade
 from mxdc.widgets.video import VideoWidget
 from mxdc.widgets.misc import ActiveEntry, HealthDisplay
 from mxdc.widgets.sampleviewer import SampleViewer
@@ -13,6 +12,7 @@ from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.utils.video import add_hc_decorations
 from bcm.device.diagnostics import *
+from mxdc.utils import gui
 
 from twisted.python.components import globalRegistry
 try:
@@ -34,9 +34,9 @@ class HCViewer(SampleViewer):
     }
     def __init__(self):
         gtk.Frame.__init__(self)
-        self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'hc_viewer.glade'), 
+        self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'hc_viewer'), 
                                   'hc_viewer')
-        self._xml_popup = gtk.glade.XML(os.path.join(_DATA_DIR, 'hc_viewer.glade'), 
+        self._xml_popup = gui.GUIFile(os.path.join(_DATA_DIR, 'hc_viewer'), 
                                   'colormap_popup')
         self.set_shadow_type(gtk.SHADOW_NONE)
         

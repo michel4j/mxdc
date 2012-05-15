@@ -1,12 +1,13 @@
 import os, sys
 import gtk
-import gtk.glade, gobject
+import gobject
 from bcm.beamline.mx import IBeamline
 from twisted.python.components import globalRegistry
 from bcm.utils.log import get_module_logger
 from bcm.engine import auto
 
 from mxdc.widgets.runmanager import RunManager
+from mxdc.utils import gui
 
 _logger = get_module_logger(__name__)
 
@@ -25,7 +26,7 @@ class MountWidget(gtk.HBox):
     }
     def __init__(self):
         gtk.HBox.__init__(self)
-        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/mount_widget.glade'), 
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/mount_widget'), 
                                   'mount_widget')
         self.add(self.mount_widget)
         
