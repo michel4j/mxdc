@@ -19,6 +19,7 @@ from mxdc.widgets.sampleloader import DewarLoader, STATUS_NOT_LOADED, STATUS_LOA
 from mxdc.widgets import dialogs
 from mxdc.widgets.misc import *
 from mxdc.widgets.plotter import Plotter
+from mxdc.utils import gui
 
 from matplotlib.dates import date2num
 
@@ -39,7 +40,7 @@ class SampleManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)       
-        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'sample_widget.glade'), 
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'sample_widget'), 
                                   'sample_widget')
 
         self.changed_hc = False
@@ -120,6 +121,9 @@ class SampleManager(gtk.Frame):
         self.beamline.manualmounter.connect('mounted', self.on_sample_mounted, False)
   
     def on_samples_changed(self, obj):
+        if self.beamline.automounter.is_mounted():
+            self.active_sample = self.dewar_loader.find_crystal(self.beamline.automounter._mounted_port) or {}
+            gobject.idle_add(self.emit, 'active-sample', self.active_sample)        
         gobject.idle_add(self.emit, 'samples-changed', self.dewar_loader)
 
     def update_data(self, sample=None):
