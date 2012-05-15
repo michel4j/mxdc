@@ -163,4 +163,4 @@ class PitchOptimizer(BaseDevice):
         while self.busy_state:
             time.sleep(poll)
             
-__all__ = ['BossOptimizer', 'MostabOptimizer', 'SimOptimizer', 'PitchOptimizer'] 
+__all__ = ['BossOptimizer', 'MostabOptimizer', 'SimOptimizer', 'PitchOptimizer']
