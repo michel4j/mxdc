@@ -2,7 +2,6 @@
 import os, sys
 import time
 import gtk
-import gtk.glade
 import gobject
 import numpy
 
@@ -10,7 +9,7 @@ from mxdc.widgets.periodictable import PeriodicTable
 from mxdc.widgets.textviewer import TextViewer
 from mxdc.widgets.plotter import Plotter
 from mxdc.widgets.dialogs import  warning, error, MyDialog
-from mxdc.utils import config
+from mxdc.utils import config, gui
 from mxdc.widgets.misc import ActiveProgressBar
 from bcm.beamline.mx import IBeamline
 from twisted.python.components import globalRegistry
@@ -90,7 +89,7 @@ class ScanManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'scan_manager.glade'), 
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'scan_manager'), 
                                   'scan_widget')            
 
         self._create_widgets()

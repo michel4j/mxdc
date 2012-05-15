@@ -1,0 +1,170 @@
+<?xml version="1.0"?>
+<interface>
+  <object class="GtkUIManager" id="uimanager1">
+    <child>
+      <object class="GtkActionGroup" id="actiongroup1">
+        <child>
+          <object class="GtkAction" id="cmap_default">
+            <property name="name">cmap_default</property>
+            <property name="label" translatable="yes">Default</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkAction" id="cmap_spectral">
+            <property name="name">cmap_spectral</property>
+            <property name="label" translatable="yes">Spectral</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkAction" id="cmap_hsv">
+            <property name="name">cmap_hsv</property>
+            <property name="label" translatable="yes">HSV</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkAction" id="cmap_jet">
+            <property name="name">cmap_jet</property>
+            <property name="label" translatable="yes">Jet</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkAction" id="cmap_ryg">
+            <property name="name">cmap_ryg</property>
+            <property name="label" translatable="yes">RYG</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkAction" id="cmap_hot">
+            <property name="name">cmap_hot</property>
+            <property name="label" translatable="yes">Hot</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkAction" id="cmap_pubu">
+            <property name="name">cmap_pubu</property>
+            <property name="label" translatable="yes">PuBu</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <ui>
+      <popup name="colormap_popup">
+        <menuitem action="cmap_default"/>
+        <separator/>
+        <menuitem action="cmap_spectral"/>
+        <menuitem action="cmap_hsv"/>
+        <menuitem action="cmap_jet"/>
+        <menuitem action="cmap_ryg"/>
+        <menuitem action="cmap_hot"/>
+        <menuitem action="cmap_pubu"/>
+      </popup>
+    </ui>
+  </object>
+  <!-- interface-requires gtk+ 2.10 -->
+  <!-- interface-naming-policy toplevel-contextual -->
+  <object class="GtkWindow" id="window1">
+    <property name="title" translatable="yes">window1</property>
+    <child>
+      <object class="GtkHBox" id="simple_video">
+        <property name="visible">True</property>
+        <property name="spacing">3</property>
+        <child>
+          <object class="GtkVBox" id="video_frame">
+            <property name="visible">True</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkAspectFrame" id="video_adjuster">
+                <property name="width_request">380</property>
+                <property name="height_request">285</property>
+                <property name="visible">True</property>
+                <property name="label_xalign">0</property>
+                <property name="shadow_type">in</property>
+                <property name="ratio">1.3333332538604736</property>
+                <property name="obey_child">False</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox2">
+                <property name="visible">True</property>
+                <property name="spacing">3</property>
+                <child>
+                  <object class="GtkLabel" id="meas_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">3</property>
+                    <property name="label" translatable="yes">FPS:</property>
+                    <property name="use_markup">True</property>
+                    <property name="selectable">True</property>
+                    <property name="ellipsize">middle</property>
+                    <property name="single_line_mode">True</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="status_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="xalign">1</property>
+                    <property name="xpad">3</property>
+                    <property name="ypad">3</property>
+                    <property name="label" translatable="yes">Image Position</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">right</property>
+                    <property name="selectable">True</property>
+                    <property name="single_line_mode">True</property>
+                  </object>
+                  <packing>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="save_btn">
+                    <property name="label">gtk-save</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="use_stock">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="pack_type">end</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="pack_type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">0</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMenu" constructor="uimanager1" id="colormap_popup">
+    
+    
+    
+    
+    
+    
+    
+    
+  </object>
+</interface>

@@ -7,10 +7,10 @@ Created on May 14, 2010
 import os
 import gobject
 import gtk
-import gtk.glade
 from mxdc.widgets import dialogs
 from mxdc.utils.xlsimport import XLSLoader
 from mxdc.utils.config import load_config, save_config
+from mxdc.utils import gui
 from bcm.utils import json
 
 #Dewar Columns
@@ -244,8 +244,8 @@ class DewarLoader(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(
-            os.path.join(os.path.dirname(__file__), 'data', 'dewar_loader.glade'),
+        self._xml = gui.GUIFile(
+            os.path.join(os.path.dirname(__file__), 'data', 'dewar_loader'),
             'dewar_loader')
 
         self.add(self.dewar_loader)

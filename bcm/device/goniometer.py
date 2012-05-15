@@ -65,10 +65,16 @@ class BackLight(BasicShutter):
         """
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
-        state_name = "%s:in" % name
+        state_name = "%s:out" % name
         BasicShutter.__init__(self, open_name, close_name, state_name)
         self._messages = ['Moving in', 'Moving out']
         self._name = 'Backlight'
+
+    def _signal_change(self, obj, value):
+        if value == 1:
+            self.set_state(changed=False)
+        else:
+            self.set_state(changed=True)
 
 
 class GoniometerBase(BaseDevice):
@@ -142,8 +148,8 @@ class Goniometer(GoniometerBase):
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
         self._bl_position = BackLight(blname)
         self._expbox_mount_cmd = self.add_pv(mnt_cmd)
-        self.add_devices(self._bl_position)
         self.minibeam = PseudoMotor(minibeam)
+        self.add_devices(self._bl_position, self.minibeam)
 
         self.minibeam.connect('changed', lambda x,y: self._check_gonio_pos())
         self.minibeam.connect('busy', lambda x,y: self._check_gonio_pos())
@@ -168,7 +174,7 @@ class Goniometer(GoniometerBase):
             self._set_and_notify_mode("MOVING")
         elif self._bl_position.changed_state:
             self._set_and_notify_mode("CENTERING")
-        elif self.minibeam.get_position()>= out_position:
+        elif abs(self.minibeam.get_position() - out_position) < 2:
             self._set_and_notify_mode("MOUNTING")
         else:
             if self._requested_mode in ['BEAM', 'COLLECT', 'SCANNING']:
@@ -219,10 +225,11 @@ class Goniometer(GoniometerBase):
             self.minibeam.move_to(in_position, wait=False)
             #put up backlight
         elif mode in ['MOUNTING']:
-            self._expbox_mount_cmd.put(1)
+            out_position = bl.config['misc']['aperture_out_position']
+            self.minibeam.move_to(out_position, wait=False)
             self._bl_position.close()
             if wait:
-                time.sleep(3);
+                self.minibeam.wait();
 
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
             self._bl_position.close()
@@ -233,10 +240,11 @@ class Goniometer(GoniometerBase):
         #self._set_and_notify_mode(mode)
         self._check_gonio_pos()
         if wait:
-            timeout = 60
+            timeout = 30
             while mode not in _MODE_MAP_REV.get(self.mode) and timeout > 0:
                 time.sleep(0.05)
                 timeout -= 0.05
+                self._check_gonio_pos()
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
 
@@ -481,4 +489,3 @@ class SimGoniometer(GoniometerBase):
    
 
 __all__ = ['Goniometer', 'MD2Goniometer', 'SimGoniometer']
-

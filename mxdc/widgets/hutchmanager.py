@@ -13,6 +13,7 @@ from mxdc.widgets.simplevideo import SimpleVideo
 from mxdc.widgets.diagnostics import DiagnosticsViewer
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.misc import *
+from mxdc.utils import gui
 
 _logger = get_module_logger('mxdc.hutchmanager')
 
@@ -50,6 +51,7 @@ class HutchManager(gtk.Frame):
     }
     def __init__(self):
         gtk.Frame.__init__(self)
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'hutch_widget'), 'hutch_widget')
         self.set_shadow_type(gtk.SHADOW_NONE)
         
         self.scripts = get_scripts()
@@ -59,18 +61,14 @@ class HutchManager(gtk.Frame):
             self.scripts[sc].connect('started', self.on_scripts_started)
             self.scripts[sc].connect('done', self.on_scripts_done)
     
-    def _create_widgets(self):
-        self.switch_boss = ToggleBoss()
-        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'hutch_widget.glade'), 
-                                  'hutch_widget')
-        self.hutch_widget = self._xml.get_widget('hutch_widget')
-        self.commands_box = self._xml.get_widget('commands_box')
-        self.settings_frame = self._xml.get_widget('settings_frame')
-        self.predictor_frame = self._xml.get_widget('predictor_frame')       
-        self.video_book = self._xml.get_widget('video_book')
-        self.tool_book = self._xml.get_widget('tool_book')        
-        self.device_box = self._xml.get_widget('device_box')
+    def __getattr__(self, key):
+        try:
+            return super(HutchManager).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
         
+    def _create_widgets(self):
+        self.switch_boss = ToggleBoss()       
         self.beamline = globalRegistry.lookup([], IBeamline)
         
         
