@@ -391,7 +391,6 @@ class MotorShutter(BaseDevice):
         self.out_pos = 50
         self.in_pos = 0
         self.motor.CW_LIM.connect('changed', self._auto_calib_nozzle)
-        #self.motor.connect('changed', self._signal_change)
 
     def _auto_calib_nozzle(self, obj, val):
         if val == 1:
@@ -544,7 +543,6 @@ class Collimator(BaseDevice):
         self.y.stop()
 
 
-
 class HumidityController(BaseDevice):
     implements(IHumidityController)
     
@@ -561,11 +559,9 @@ class HumidityController(BaseDevice):
         self.drop_coords = self.add_pv('%s:DropCoordinates' % root_name)
         self.status = self.add_pv('%s:State' % root_name)
         
-        self.add_devices(self.humidity, self.temperature)
-        
+        self.add_devices(self.humidity, self.temperature)       
         self.modbus_state.connect('changed', self.on_modbus_changed)  
         self.status.connect('changed', self.on_status_changed)
-        
         self.set_state(health=(4,'status','Disconnected'))
 
     def on_status_changed(self, obj, state):
@@ -654,7 +650,7 @@ class DiskSpaceMonitor(BaseDevice):
         total = round((fs_stat.f_frsize*fs_stat.f_blocks)/1073741824.0, 2)
         avail = round((fs_stat.f_frsize*fs_stat.f_bfree)/1073741824.0, 2)
         fraction = avail/total
-        msg = '%0.1f %% used. %0.1f GB available.' % (fraction*100, avail)
+        msg = '%0.1f %% or %0.1f GB available.' % (fraction*100, avail)
         if fraction < self.warn_threshold:
             self.set_state(health=(0, 'usage', msg))
             _logger.info(msg)
