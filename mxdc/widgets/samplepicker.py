@@ -420,12 +420,11 @@ class SamplePicker(gtk.Frame):
         if not self.command_active:
             wash = self.wash_btn.get_active()
             port = self.selected.get_text()
+            self.mount_btn.set_sensitive(False)
             if port.strip() == '':
-                self.mount_btn.set_sensitive(False)
                 return
             self.execute_mount(port, wash)
             self.selected.set_text('')
-            self.mount_btn.set_sensitive(False)
     
     @async
     def execute_mount(self, port, wash):
@@ -457,11 +456,15 @@ class SamplePicker(gtk.Frame):
         self.pbar.set_fraction(val)
         self.pbar.set_text(msg)
     
-    def on_message(self, obj, str):
-        self.message_log.add_text(str)
+    def on_message(self, obj, txt):
+        self.message_log.add_text(txt)
 
-    def on_state(self, obj, str):
-        self.status_lbl.set_text(str)
+    def on_state(self, obj, txt):
+        self.status_lbl.set_text(txt)
+        if txt == 'idle':
+            self.command_tbl.set_sensitive(True)
+        else:
+            self.command_tbl.set_sensitive(False)
     
     def on_active(self, obj, state):
         if not state:
@@ -472,11 +475,11 @@ class SamplePicker(gtk.Frame):
     def on_busy(self, obj, state):
         if state:
             self.throbber.set_from_animation(self._animation)
-            self.command_tbl.set_sensitive(False)
+            #self.command_tbl.set_sensitive(False)
         else:
             self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
             self.pbar.set_text('')
-            self.command_tbl.set_sensitive(True)
+            #self.command_tbl.set_sensitive(True)
     
     def on_health(self, obj, health):
         code, message = health
