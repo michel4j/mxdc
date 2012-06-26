@@ -489,6 +489,7 @@ class ScanPlotter(gtk.VBox):
             hh = 0.5 * (max(yo) - min(yo)) + min(yo)
             ax.plot([histo_pars[2], histo_pars[2]], [min(yo), max(yo)], 'b:')
             ax.plot([histo_pars[3], histo_pars[4]], [hh, hh], 'b:')
+            ax.set_xlim(min(xo), max(xo))
             
             # set font parameters for the ouput table
             fontpar = {}
