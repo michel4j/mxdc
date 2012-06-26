@@ -74,9 +74,9 @@ DEVICES = {
     'exposure_shutter': Shutter('PSH16083I1001'),
     
     # Intensity monitors,
-    'i_0': Counter('BL08ID1:XrayBpm:sum', -1.7e-8),
-    'i_1': Counter('BL08ID1:OxfordBpm:sum'),
-    'i_2': Counter('DCM16082I1001:DcmBpm:sum'),
+    'i_0': Counter('BPM08ID1-03:I0:fbk'),
+    'i_1': Counter('BPM08ID1-02:I0:fbk'),
+    'i_2': Counter('BPM08ID1-01:I0:fbk'),
     
     # Misc: Automounter, HC1 etc
     'automounter':  Automounter('ROB16083I', 'ROB1608-300'),
@@ -129,4 +129,6 @@ CONSOLE_DEVICES = {
     'exbox_pitch': VMEMotor('SMTR16083I1007:mm'),
     'exbox_x': VMEMotor('SMTR16083I1005:mm'),
     'exbox_y': VMEMotor('SMTR16083I1006:mm'),
+    'beamstop_x':  VMEMotor('SMTR16083I1014:mm'),
+    'beamstop_y':  VMEMotor('SMTR16083I1015:mm'),
 }
