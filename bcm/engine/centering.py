@@ -1,9 +1,3 @@
-'''
-Created on Jan 26, 2010
-
-@author: michel
-'''
-
 import os
 import time
 import tempfile
@@ -22,6 +16,7 @@ _logger = get_module_logger(__name__)
 
 
 def pre_center():
+    """Rough automatic centering of the sample pin using simple image processing."""
     try:
         beamline = globalRegistry.lookup([], IBeamline)
     except:
@@ -54,6 +49,17 @@ def pre_center():
     
 
 def auto_center(pre_align=True):
+    """More precise auto-centering of the crystal using the XREC package.
+    
+    Kwargs:
+        - `pre_align` (bool): Activates fast loop alignment. Default True.
+        
+    Returns:
+        A dictionary. With fields TARGET_ANGLE, RADIUS, Y_CENTRE, X_CENTRE,
+        PRECENTRING, RELIABILITY, corresponding to the XREC output. All fields are
+        integers. If XREC fails,  only the RELIABILITY field will be present, 
+        with a value of -99. (See the XREC 3.0 Manual).    
+    """
     try:
         beamline = globalRegistry.lookup([], IBeamline)
     except:
@@ -164,6 +170,10 @@ def auto_center(pre_align=True):
     return results
 
 def auto_center_loop():
+    """Convenience function to run automated loop centering and return the result, 
+    displaying appropriate log messages on failure.    
+    """
+
     tst = time.time()
     result = auto_center(pre_align=True)
     if result['RELIABILITY'] < 70:
@@ -176,6 +186,9 @@ def auto_center_loop():
     return result
 
 def auto_center_crystal():
+    """Convenience function to run automated crystal centering and return the result, 
+    displaying appropriate log messages on failure.    
+    """
     tst = time.time()
     result = auto_center(pre_align=True)
     if result['RELIABILITY'] < 70:
