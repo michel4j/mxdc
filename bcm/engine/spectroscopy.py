@@ -222,7 +222,7 @@ class XANESScan(BasicScan):
         res_data = {'energy': [float(v[0]) for v in self.data], 
                     'counts': [float(v[1]) for v in self.data]}
         if success:
-            _efs = self.autochooch.get_data()
+            _efs = self.autochooch.data
             efs_data = {'energy': map(float, _efs[:,0]),
                         'fp': map(float, _efs[:,2]), 
                         'fpp': map(float, _efs[:,1])
@@ -230,8 +230,8 @@ class XANESScan(BasicScan):
             self.results = {
                 'data': res_data,
                 'efs': efs_data,
-                'energies': self.autochooch.get_results(),
-                'text': self.autochooch.get_results_text(),
+                'energies': self.autochooch.results,
+                'text': self.autochooch.results_text,
                 'log': self.autochooch.log,
                 'name_template': "%s_%s" % (self._prefix, self._edge),
                 'directory': self._directory,
