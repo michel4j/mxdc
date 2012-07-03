@@ -286,7 +286,8 @@ class ScanManager(gtk.Frame):
         
         self.show_all()
         self.set_parameters()
-   
+        
+           
     def _add_xanes_energy(self, item=None): 
         iter = self.energy_store.append()        
         self.energy_store.set(iter, 

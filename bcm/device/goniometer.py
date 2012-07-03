@@ -385,11 +385,13 @@ class MD2Goniometer(GoniometerBase):
                     time.sleep(1.0)
                     dev.set(val)
         elif mode == 'CENTERING':
-            self._cntr_cmd_start.put(0)
-            self._cntr_cmd_start.put(1)
+            pass
+            #self._cntr_cmd_start.put(0)
+            #self._cntr_cmd_start.put(1)
         elif mode == 'COLLECT':
-            self._cntr_cmd_complete.put(0)
-            self._cntr_cmd_complete.put(1)      
+            pass
+            #self._cntr_cmd_complete.put(0)
+            #self._cntr_cmd_complete.put(1)      
         elif mode == 'SCANNING': 
             #self._minibeam.set(2) # may not be needed any more
             pass
