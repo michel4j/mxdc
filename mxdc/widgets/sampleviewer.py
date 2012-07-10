@@ -371,7 +371,7 @@ class SampleViewer(gtk.Frame):
     def on_decr_omega(self,widget):
         cur_omega = int(self.beamline.omega.get_position() )
         target = (cur_omega - 90)
-        target = (target < -180) and (target % 360) or target
+        target = (target < -360) and (target % 360) or target
         self.beamline.omega.move_to(target)
  
     def on_double_incr_omega(self,widget):
