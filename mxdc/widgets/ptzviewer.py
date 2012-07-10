@@ -2,10 +2,10 @@ import sys
 import time
 import os
 import gtk
-import gtk.glade
 import gobject
 from mxdc.widgets.dialogs import save_selector
 from mxdc.widgets.video import VideoWidget
+from mxdc.utils import gui
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from bcm.device.interfaces import IPTZCameraController
@@ -67,7 +67,7 @@ class AxisViewer(gtk.Frame):
         self.camera.goto(value)
                                 
     def _create_widgets(self):
-        self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'ptz_viewer.glade'), 
+        self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'ptz_viewer'), 
                                   'ptz_viewer')
         widget = self._xml.get_widget('ptz_viewer')
         

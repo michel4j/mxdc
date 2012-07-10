@@ -318,12 +318,17 @@ class ImgConsumer(object):
                         return run_command('/bin/chown',
                                            ['%d:%d' % (self.parent.settings['uid'], self.parent.settings['gid']),
                                             user_file])
+                    def cb2(res):
+                        return run_command('/bin/chown',
+                                           ['%d:%d' % (self.parent.settings['uid'], self.parent.settings['gid']),
+                                            bkup_file])
+                        
                     user_res = run_command('/bin/cp',
                                           [img_path, user_file])
                     user_res.addCallback(cb)
-                    run_command('/bin/cp',
+                    bkup_res = run_command('/bin/cp',
                                           [img_path, bkup_file])
-
+                    bkup_res.addCallback(cb2)
                     log.msg("New Frame '%s" % (user_file))
             except:
                 log.err()

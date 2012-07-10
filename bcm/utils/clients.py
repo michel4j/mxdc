@@ -168,5 +168,3 @@ class LIMSClient(BaseService):
     def is_ready(self):
         return self._ready
 
-
-   
