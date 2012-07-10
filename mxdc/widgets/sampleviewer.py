@@ -3,7 +3,6 @@ import math
 import gtk
 import gobject
 import pango
-import gtk.glade
 from mxdc.widgets.dialogs import save_selector, warning, error
 from mxdc.widgets.video import VideoWidget
 from mxdc.widgets.misc import ActiveHScale, ScriptButton
@@ -13,7 +12,7 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.utils.video import add_decorations
-
+from mxdc.utils import gui
 from bcm.utils.imgproc import get_pin_tip
 
 try:
@@ -29,12 +28,39 @@ _logger = get_module_logger('mxdc.sampleviewer')
 COLOR_MAPS = [None, 'Spectral','hsv','jet', 'RdYlGn','hot', 'PuBu']        
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
+def activate_action(action):
+    print 'Action "%s" activated' % action.get_name()
+
+POPUP_ACTIONS = (
+    ('cmap_default', None, 'Default', None, None, activate_action),
+    ('cmap_spectral', None, 'Spectral', None, None, activate_action),
+    ('cmap_hsv', None, 'HSV', None, None, activate_action),
+    ('cmap_jet', None, 'Jet', None, None, activate_action),
+    ('cmap_ryg', None, 'RdYlGn', None, None, activate_action),
+    ('cmap_hot', None, 'Hot', None, None, activate_action),
+    ('cmap_pubu', None, 'PuBu', None, None, activate_action),
+)
+POPUP_UI = """
+<ui>
+    <popup>
+          <menuitem name="Default" action="cmap_default"/>
+          <separator/>
+          <menuitem name="Spectral" action="cmap_spectral"/>
+          <menuitem name="HSV" action="cmap_hsv"/>
+          <menuitem name="Jet" action="cmap_jet"/>
+          <menuitem name="RdYlGn" action="cmap_ryg"/>
+          <menuitem name="Hot" action="cmap_hot"/>
+          <menuitem name="PuBu" action="cmap_pubu"/>
+    </popup>
+</ui>
+"""
+
 class SampleViewer(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
-        self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
+        self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'sample_viewer'), 
                                   'sample_viewer')
-        self._xml_popup = gtk.glade.XML(os.path.join(_DATA_DIR, 'sample_viewer.glade'), 
+        self._xml_popup = gui.GUIFile(os.path.join(_DATA_DIR, 'sample_viewer'), 
                                   'colormap_popup')
         self.set_shadow_type(gtk.SHADOW_NONE)
         
@@ -209,7 +235,7 @@ class SampleViewer(gtk.Frame):
             self.beamline.sample_stage.y.move_by(-ymm)
 
     def _create_widgets(self):
-
+        
         self.cmap_popup = self._xml_popup.get_widget('colormap_popup')
         self.cmap_popup.set_title('Pseudo Color Mode')
         

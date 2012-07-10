@@ -1,7 +1,6 @@
 import os
 import time, datetime
 import gtk
-import gtk.glade
 import gobject
 import pango
 import logging
@@ -20,7 +19,7 @@ from bcm.utils import lims_tools
 from bcm.engine.diffraction import Screener, DataCollector
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.dialogs import warning, MyDialog
-from mxdc.utils import config
+from mxdc.utils import config, gui
 from bcm.engine.scripting import get_scripts
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -81,7 +80,7 @@ class ScreenManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                                   'screening_widget')
         self.samples_data = []
         self._create_widgets()
@@ -100,6 +99,7 @@ class ScreenManager(gtk.Frame):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self._beam_up = False
         self._intervening = False
+        self._last_sample = None
         self.scripts = get_scripts()
 
     def __getattr__(self, key):
@@ -310,7 +310,7 @@ class ScreenManager(gtk.Frame):
         return items
     
     def _get_collect_setup(self, task):
-        _xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
+        _xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                           'collect_settings')
         tbl = _xml2.get_widget('collect_settings')
         for key in ['angle','frames']:
@@ -328,7 +328,7 @@ class ScreenManager(gtk.Frame):
         return tbl
 
     def _get_collect_labels(self):
-        _xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'screening_widget.glade'), 
+        _xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                           'collect_labels')
         tbl = _xml2.get_widget('collect_labels')
         return tbl
@@ -491,6 +491,7 @@ class ScreenManager(gtk.Frame):
             # Add dismount task for last item
             if item == items[-1]:
                 tsk = Tasklet(Screener.TASK_DISMOUNT)
+                tsk.options.update(sample=item)
                 self._add_item({'status': Screener.TASK_STATE_PENDING, 'task': tsk})
                 
         # Save the configuration everytime we hit apply
@@ -566,10 +567,10 @@ class ScreenManager(gtk.Frame):
             else:
                 self.lbl_next.set_text('')
                 next_sample = None
-            if cur_sample != next_sample:
+            if cur_sample != next_sample and status == Screener.TASK_STATE_DONE:
                 self.sample_list.set_row_processed(cur_sample, True)
                 self.sample_list.set_row_selected(cur_sample, False)
-                
+       
         #self.lbl_current.set_alignment(0.5, 0.5)
         #self.lbl_next.set_alignment(0.5, 0.5)
 
