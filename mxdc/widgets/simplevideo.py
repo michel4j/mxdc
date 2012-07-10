@@ -8,10 +8,10 @@ import math
 import gtk
 import gobject
 import pango
-import gtk.glade
 from mxdc.widgets.dialogs import save_selector
 from mxdc.widgets.video import VideoWidget
 from mxdc.widgets.misc import ActiveHScale
+from mxdc.utils import gui
 from bcm.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
 
@@ -77,9 +77,9 @@ class SimpleVideo(gtk.Frame):
         return (im_x, im_y, xmm, ymm)
 
     def _create_widgets(self):
-        self._xml = gtk.glade.XML(os.path.join(_DATA_DIR, 'simple_video.glade'), 
+        self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'simple_video'), 
                                   'simple_video')
-        self._xml_popup = gtk.glade.XML(os.path.join(_DATA_DIR, 'simple_video.glade'), 
+        self._xml_popup = gui.GUIFile(os.path.join(_DATA_DIR, 'simple_video'), 
                                   'colormap_popup')
         widget = self._xml.get_widget('simple_video')
         self.cmap_popup = self._xml_popup.get_widget('colormap_popup')

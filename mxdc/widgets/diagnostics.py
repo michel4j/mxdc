@@ -6,11 +6,11 @@ Created on Jan 19, 2010
 
 import os
 import gtk
-import gtk.glade
 import gobject
 from twisted.python.components import globalRegistry
 from bcm.device import diagnostics
 from bcm.utils.log import get_module_logger
+from mxdc.utils import gui
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger('mxdc')
@@ -41,7 +41,7 @@ class DiagnosticDisplay(gtk.Frame):
     def __init__(self, diag):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/diagnostics.glade'), 
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/diagnostics'), 
                                   'status_widget')
         self._diagnostic = diag
         self.label.set_markup("<span color='#444647'><b>%s</b></span>" % self._diagnostic.description)

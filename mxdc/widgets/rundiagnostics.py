@@ -6,11 +6,11 @@ Created on Jan 19, 2010
 
 import os
 import gtk
-import gtk.glade
 import gobject
 from mxdc.widgets.plotter import Plotter
 import logging
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
+from mxdc.utils import gui
 
 
 (
@@ -25,7 +25,7 @@ class DiagnosticsWidget(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/run_diagnostics.glade'), 
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/run_diagnostics'), 
                                   'run_diagnostics')
         self._create_widgets()
         

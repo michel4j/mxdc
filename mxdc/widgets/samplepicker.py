@@ -2,9 +2,9 @@ import os
 import math
 import numpy
 import gtk
-import gtk.glade
 import gobject
 import pango
+import time
 try:
     import cairo
     using_cairo = True
@@ -16,6 +16,7 @@ from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.engine import auto
 from mxdc.widgets.textviewer import TextViewer
+from mxdc.utils import gui
 from bcm.beamline.interfaces import IBeamline
 from twisted.python.components import globalRegistry
 
@@ -30,6 +31,8 @@ class ContainerWidget(gtk.DrawingArea):
         'pin-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                       (gobject.TYPE_STRING,)),
         'probe-select': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                      (gobject.TYPE_STRING,)),
+        'pin-hover': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                       (gobject.TYPE_STRING,)),
         'expose-event': 'override',
         'configure-event': 'override',
@@ -51,6 +54,17 @@ class ContainerWidget(gtk.DrawingArea):
                 gtk.gdk.VISIBILITY_NOTIFY_MASK)
         self.set_size_request(160,160)
         self.container.connect('changed', self.on_container_changed)
+        self._last_hover_port = None
+        self._tooltip = None
+    
+    def do_pin_selected(self, port):
+        pass
+    
+    def do_probe_select(self, data):
+        pass
+    
+    def do_pin_hover(self, port):
+        pass
     
     def on_container_changed(self, obj):
         self.setup(self.container.container_type)
@@ -210,17 +224,23 @@ class ContainerWidget(gtk.DrawingArea):
         else:
             x, y = event.x, event.y
         inside = False
+        _cur_port = None
         for label, coord in self.coordinates.items():
             xl, yl = coord
             d2 = ((x - xl)**2 + (y - yl)**2)
             if d2 < self.sq_rad:
-                if self.container.samples.get(label) is not None and self.container.samples[label][0] in [PORT_GOOD, PORT_UNKNOWN]:
+                if self.container.samples.get(label) is not None and self.container.samples[label][0] not in [PORT_EMPTY]:
                     inside = True
+                    _cur_port = '%s%s' % (self.container.location, label)
                 break  
-        if inside:
-            event.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
-        else:
-            event.window.set_cursor(None)                
+        if _cur_port != self._last_hover_port:
+            if not inside:
+                event.window.set_cursor(None)
+            else:
+                event.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
+            self.emit('pin-hover', _cur_port)
+            self._last_hover_port = _cur_port
+
         return True
 
     def draw_gdk(self, context):
@@ -299,16 +319,19 @@ class ContainerWidget(gtk.DrawingArea):
             cr.move_to(x - w/2.0 - x_b, y - h/2.0 - y_b)
             cr.show_text(label[1:])
             cr.stroke()
-
-
+            
 
                       
 
 class SamplePicker(gtk.Frame):
+    __gsignals__ = {
+        'pin-hover': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                      (gobject.TYPE_PYOBJECT, gobject.TYPE_STRING,)),
+    }
     def __init__(self, automounter=None):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(os.path.join(os.path.dirname(__file__), 'data/sample_picker.glade'), 
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/sample_picker'), 
                                   'sample_picker')
         
         try:
@@ -320,7 +343,7 @@ class SamplePicker(gtk.Frame):
             _logger.error('No registered beamline found.')
 
         self.add(self.sample_picker)
-        pango_font = pango.FontDescription('sans 7')
+        pango_font = pango.FontDescription('sans 6')
         self.status_lbl.modify_font(pango_font)
         self.lbl_port.modify_font(pango_font)
         self.lbl_ln2.modify_font(pango_font)
@@ -338,6 +361,7 @@ class SamplePicker(gtk.Frame):
             tab_label.set_padding(12,0)
             self.notebk.insert_page( self.containers[key], tab_label=tab_label )
             self.containers[key].connect('pin-selected', self.on_pick)
+            self.containers[key].connect('pin-hover', self.on_hover)
         self.mount_btn.connect('clicked', self.on_mount)
         self.dismount_btn.connect('clicked', self.on_dismount)
         self.automounter.connect('progress', self.on_progress)
@@ -374,6 +398,9 @@ class SamplePicker(gtk.Frame):
         else:
             self.lbl_ln2.set_markup('<span color="#009900">NORMAL</span>')
     
+    def do_pin_hover(self, cont, port):
+        pass
+    
     def pick_port(self, port):
         if port is not None:
             self.selected.set_text(port)
@@ -381,8 +408,10 @@ class SamplePicker(gtk.Frame):
         else:
             self.selected.set_text('')
             self.mount_btn.set_sensitive(False)
-            
-                    
+    
+    def on_hover(self, obj, port):
+        self.emit('pin-hover', obj, port)
+                        
     def on_pick(self, obj, sel):
         self.selected.set_text(sel)
         self.mount_btn.set_sensitive(True)
@@ -391,12 +420,11 @@ class SamplePicker(gtk.Frame):
         if not self.command_active:
             wash = self.wash_btn.get_active()
             port = self.selected.get_text()
+            self.mount_btn.set_sensitive(False)
             if port.strip() == '':
-                self.mount_btn.set_sensitive(False)
                 return
             self.execute_mount(port, wash)
             self.selected.set_text('')
-            self.mount_btn.set_sensitive(False)
     
     @async
     def execute_mount(self, port, wash):
@@ -428,11 +456,15 @@ class SamplePicker(gtk.Frame):
         self.pbar.set_fraction(val)
         self.pbar.set_text(msg)
     
-    def on_message(self, obj, str):
-        self.message_log.add_text(str)
+    def on_message(self, obj, txt):
+        self.message_log.add_text(txt)
 
-    def on_state(self, obj, str):
-        self.status_lbl.set_text(str)
+    def on_state(self, obj, txt):
+        self.status_lbl.set_text(txt)
+        if txt == 'idle':
+            self.command_tbl.set_sensitive(True)
+        else:
+            self.command_tbl.set_sensitive(False)
     
     def on_active(self, obj, state):
         if not state:
@@ -443,11 +475,11 @@ class SamplePicker(gtk.Frame):
     def on_busy(self, obj, state):
         if state:
             self.throbber.set_from_animation(self._animation)
-            self.command_tbl.set_sensitive(False)
+            #self.command_tbl.set_sensitive(False)
         else:
             self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
             self.pbar.set_text('')
-            self.command_tbl.set_sensitive(True)
+            #self.command_tbl.set_sensitive(True)
     
     def on_health(self, obj, health):
         code, message = health
@@ -488,3 +520,10 @@ class SamplePicker(gtk.Frame):
                 self.lbl_barcode.set_markup('')
                 self.dismount_btn.set_sensitive(False)
 
+    def show_info(self, data):
+        self.hide_info()
+        if data is not None:
+            self.info_lbl.set_markup("<span color='blue'>%s</span>" %data)
+    
+    def hide_info(self):
+        self.info_lbl.set_markup("")

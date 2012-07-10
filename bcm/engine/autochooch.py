@@ -2,34 +2,45 @@ import os, re
 import gobject
 import threading
 import commands
-import numpy
 
-from numpy import loadtxt, savetxt
+import numpy
 from bcm.utils import converter
 
 class AutoChooch(gobject.GObject):
+    """An event driven engine for performing analysis of MAD Scans with CHOOCH.
+    
+    Signals:
+        - `done`: Emitted when the analysis is complete.
+        - `error`: Emitted if an error occurs.
+    """
     __gsignals__ = {}
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     
     def __init__(self):
         gobject.GObject.__init__(self)
-        self._results_text = ""
+        self.results_text = ""
 
     def configure(self, edge, directory, prefix, uname=None):
+        """Prepare the engine for a specific CHOOCH analysis.
+        
+        Args:
+            - `edge` (str): Absorption edge used for the scan, eg 'Se-K'.
+            - `directory` (str): Directory in which to perform analysis.
+            - `prefix` (str): Input and Output file name prefix.
+        
+        Kwargs:
+            uname (str or None): Optional username for owner of input and output files.
+            
+        """       
         self.directory = directory
         self._edge = edge
         self._prefix = prefix
         self._user_name = uname
         self.results = {}
-        
-    def get_results(self):
-        return self.results
-    
-    def get_data(self):
-        return self.data
     
     def start(self):
+        """Start the analysis asynchronously. Use signals to determine completion/failure."""
         self.raw_file = None
         self.efs_file = None
         self.out_file = None
@@ -37,18 +48,13 @@ class AutoChooch(gobject.GObject):
         worker = threading.Thread(target=self.run)
         worker.setDaemon(True)
         worker.start()
-        
-    def prepare_input_data(self, raw_file, dat_file):
-        dat = loadtxt(raw_file)
-        f = open(dat_file,'w')
-        f.write('#CHOOCH INPUT DATA\n%d\n' % len(dat[:,0]))
-        dat[:,0] *= 1000    #converting to eV
-        savetxt(f, dat[:,0:2])
-        f.close()
-        return
-        
-        
+                        
     def run(self):
+        """Do the analysis synchronously. Blocks until completion/failure.
+        
+        Returns:
+            bool. True if the successful and False otherwise.
+        """
         self.results = {}
         file_root = os.path.join(self.directory, "%s_%s" % (self._prefix, self._edge))    
         self.raw_file = "%s.raw" % (file_root)
@@ -57,7 +63,7 @@ class AutoChooch(gobject.GObject):
         self.out_file = "%s.out" % (file_root)
         self.log_file = "%s.log" % (file_root)
         element, edge = self._edge.split('-')
-        self.prepare_input_data(self.raw_file, self.dat_file)
+        self._prepare_input_data(self.raw_file, self.dat_file)
         if self._user_name is not None:
             chooch_command = "su %s -c 'chooch -e %s -a %s %s -o %s'" % (self._user_name, element, edge, self.dat_file, self.efs_file)
         else:
@@ -70,17 +76,26 @@ class AutoChooch(gobject.GObject):
         f.write(self.log)
         f.close()
         
-        success = self.read_output()
+        success = self._read_output()
         if success and return_code == 0:
             gobject.idle_add(self.emit, 'done')
             return success
         else:
             gobject.idle_add(self.emit, 'error','CHOOH Failed.')
             return False
+
+    def _prepare_input_data(self, raw_file, dat_file):
+        dat = numpy.loadtxt(raw_file)
+        f = open(dat_file,'w')
+        f.write('#CHOOCH INPUT DATA\n%d\n' % len(dat[:,0]))
+        dat[:,0] *= 1000    #converting to eV
+        numpy.savetxt(f, dat[:,0:2])
+        f.close()
+        return
         
-    def read_output(self):
+    def _read_output(self):
         try:
-            self.data = loadtxt(self.efs_file, comments="#")
+            self.data = numpy.loadtxt(self.efs_file, comments="#")
         except IOError:
             return False
         
@@ -124,11 +139,9 @@ class AutoChooch(gobject.GObject):
         ofile = open(self.out_file, 'w')
         ofile.write(new_output)
         ofile.close()
-        self._results_text = new_output
+        self.results_text = new_output
         return True
 
-    def get_results_text(self):
-        return self._results_text
     
 
 

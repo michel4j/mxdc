@@ -4,11 +4,12 @@ import sys
 import re, os, time, gc, stat
 import threading
 import gtk
-import gtk.glade
 import gobject, pango
 import math, re, struct
 from dialogs import select_image
 from mxdc.widgets.imagewidget import ImageWidget, image_loadable
+from mxdc.utils import gui
+
 from matplotlib.pylab import loadtxt
 import logging
 
@@ -38,14 +39,16 @@ class ImageViewer(gtk.Frame):
         self._create_widgets()
         
     def _create_widgets(self):
-        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
                                   'image_viewer')
-        self._xml2 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+        self._xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
                                   'brightness_popup')
-        self._xml4 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+        self._xml4 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
                                   'contrast_popup')
-        self._xml5 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+        self._xml5 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
                                   'colorize_popup')
+        self._xml3 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
+                                  'info_dialog')
         
         self._widget = self._xml.get_widget('image_viewer')
         self.image_frame = self._xml.get_widget('image_frame')
@@ -96,8 +99,6 @@ class ImageViewer(gtk.Frame):
         self.back_btn.connect('clicked', self.on_go_back, False)      
         self.zoom_fit_btn.connect('clicked', self.on_go_back, True)
         
-        self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
-                                  'info_dialog')
         self.info_dialog = None
         
         self.image_canvas.connect('configure-event', self.on_configure)      
@@ -285,7 +286,7 @@ class ImageViewer(gtk.Frame):
           
     def on_image_info(self, obj):         
         if self.info_dialog is None:
-            self._xml3 = gtk.glade.XML(os.path.join(DATA_DIR, 'image_viewer.glade'), 
+            self._xml3 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
                                       'info_dialog')
             self.info_dialog = self._xml3.get_widget('info_dialog')
             self.info_close_btn = self._xml3.get_widget('info_close_btn')

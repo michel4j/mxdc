@@ -7,7 +7,6 @@ Created on Oct 27, 2010
 import os
 import time
 import gtk
-import gtk.glade
 #import gobject
 #import pango
 #import logging
@@ -15,6 +14,7 @@ import gtk.glade
 from twisted.python.components import globalRegistry
 from mxdc.widgets.resultlist import *
 from mxdc.widgets.datalist import DataList
+from mxdc.utils import gui
 from bcm.utils.log import get_module_logger
 from bcm.utils import lims_tools, runlists, json
 from bcm.beamline.mx import IBeamline
@@ -44,7 +44,7 @@ class ResultManager(gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gtk.glade.XML(os.path.join(DATA_DIR, 'result_manager.glade'), 
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'result_manager'), 
                                   'result_manager')
 
         self._create_widgets()
