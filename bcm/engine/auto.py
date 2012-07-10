@@ -1,8 +1,3 @@
-'''
-Created on Oct 25, 2010
-
-@author: michel
-'''
 from bcm.engine import centering, snapshot
 from bcm.service.common import *
 from bcm.utils.decorators import ca_thread_enable, async

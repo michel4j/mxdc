@@ -8,7 +8,6 @@ from twisted.internet import reactor
 
 import gtk
 import gobject
-import gtk.glade
 
 from bcm.beamline.mx import MXBeamline
 from bcm.utils.log import get_module_logger, log_to_console
@@ -16,6 +15,7 @@ from mxdc.widgets.hutchmanager import HutchManager
 from bcm.engine.scripting import get_scripts
 from mxdc.widgets.statuspanel import StatusPanel
 from mxdc.widgets.samplepicker import SamplePicker
+from mxdc.utils import gui
 
 #from mxdc.utils import gtkexcepthook
 
@@ -29,7 +29,7 @@ All rights reserved.
 class HutchWindow(gtk.Window):
     def __init__(self):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
-        self._xml = gtk.glade.XML(os.path.join(SHARE_DIR, 'mxdc_main.glade'), 'mxdc_main')
+        self._xml = gui.GUIFile(os.path.join(SHARE_DIR, 'mxdc_main'), 'mxdc_main')
         self.set_position(gtk.WIN_POS_CENTER)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
         self.set_title('Hutch Viewer')

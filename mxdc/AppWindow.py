@@ -1,24 +1,25 @@
-import gtk, gobject
-import gtk.glade
-import sys, os
-import logging
-import pwd
 
-from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
-from mxdc.widgets.collectmanager import CollectManager
-from mxdc.widgets.scanmanager import ScanManager
-from mxdc.widgets.hutchmanager import HutchManager
-from mxdc.widgets.screeningmanager import ScreenManager
-from mxdc.widgets.samplemanager import SampleManager
-from mxdc.widgets.resultmanager import ResultManager
-from mxdc.widgets.resultlist import RESULT_STATE_WAITING, RESULT_STATE_READY, RESULT_STATE_ERROR
+from bcm.engine.scripting import get_scripts
 from bcm.utils.log import get_module_logger, log_to_console
+from bcm.utils.misc import get_project_name
+from mxdc.utils.gui import GUIFile
+from mxdc.widgets import dialogs
+from mxdc.widgets.collectmanager import CollectManager
+from mxdc.widgets.hutchmanager import HutchManager
+from mxdc.widgets.resultlist import RESULT_STATE_WAITING, RESULT_STATE_READY, RESULT_STATE_ERROR
+from mxdc.widgets.resultmanager import ResultManager
+from mxdc.widgets.samplemanager import SampleManager
+from mxdc.widgets.scanmanager import ScanManager
+from mxdc.widgets.screeningmanager import ScreenManager
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
-from mxdc.widgets import dialogs
-from bcm.engine.scripting import get_scripts
-from bcm.utils.misc import get_project_name
+from twisted.python.components import globalRegistry
+
+import gtk, gobject
+import logging
+import pwd
+import sys, os
 
 _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
@@ -38,7 +39,7 @@ All rights reserved.
 class AppWindow(gtk.Window):
     def __init__(self, version=VERSION):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
-        self._xml = gtk.glade.XML(os.path.join(SHARE_DIR, 'mxdc_main.glade'), 'mxdc_main')
+        self._xml = GUIFile(os.path.join(SHARE_DIR, 'mxdc_main'), 'mxdc_main')
         self.set_position(gtk.WIN_POS_CENTER)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
         self.set_title('MxDC - Mx Data Collector')

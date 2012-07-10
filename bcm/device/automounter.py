@@ -319,6 +319,7 @@ class Automounter(BasicAutomounter):
         self._warning = self.add_pv('%s:status:warning' % pv_name)
         self._status = self.add_pv('%s:status:state' % pv_name)
         self._normal = self.add_pv('%s:mod:normal' % pv_name)
+        self._calib = self.add_pv('%s:mod:normal' % pv_name)
         self._dhs_off = self.add_pv('%s:mod:dhsOff' % pv_name)
         self._usr_disable = self.add_pv('%s:mnt:usrEnable' % pv_name)
         
@@ -395,6 +396,10 @@ class Automounter(BasicAutomounter):
             bool. True if the requested sample is successfully mounted, and False
             otherwise.
         """
+        if self.state_state != 'idle':
+            _logger.warning('Operation not allowed while automounter not idle.')
+            return False
+        
         enabled = self._wait_for_enable(30)
         if not enabled:
             _logger.warning('(%s) command received while disabled. Timed out waiting for enabled state.' % self.name)
@@ -449,6 +454,10 @@ class Automounter(BasicAutomounter):
         Returns:
             bool. True if successfully dismounted, and False otherwise.
         """
+        if self.state_state != 'idle':
+            _logger.warning('Operation not allowed while automounter not idle.')
+            return False
+
         enabled = self._wait_for_enable(30)
         if not enabled:
             _logger.warning('(%s) command received while disabled. Timed out waiting for enabled state.' % self.name)
@@ -519,7 +528,7 @@ class Automounter(BasicAutomounter):
     
     def _on_dhs_changed(self, obj, st):
         if st == 1:
-            self.set_state(health=(4, 'dhs-state', 'DHS offline.'))
+            self.set_state(health=(4, 'dhs-state', 'Robot offline.'))
         else:
             self.set_state(health=(0, 'dhs-state'))
 
