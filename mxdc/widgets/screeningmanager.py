@@ -102,6 +102,15 @@ class ScreenManager(gtk.Frame):
         self._last_sample = None
         self.scripts = get_scripts()
 
+        # extra widgets
+        self._full_state = []
+
+        #fix label mess:
+        self.status_lbl.connect('size-allocate', self._fix_label)
+        
+    def _fix_label(self, label, size):
+        label.set_size_request(size.width-1, -1 )
+
     def __getattr__(self, key):
         try:
             return super(ScreenManager).__getattr__(self, key)
@@ -117,17 +126,18 @@ class ScreenManager(gtk.Frame):
 
         self.screen_manager = self._xml.get_widget('screening_widget')
         self.message_log = TextViewer(self.msg_txt)
-        self.message_log.set_prefix('-')
-        self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_MENU)
+        self.message_log.set_prefix('- ')
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                            'data/busy.gif'))
         pango_font = pango.FontDescription('sans 8')
         self.lbl_current.modify_font(pango_font)
         self.lbl_next.modify_font(pango_font)
-        self.lbl_barcode.modify_font(pango_font)
-        self.lbl_state.modify_font(pango_font)
         self.lbl_sync.modify_font(pango_font)
+
+        self.status_lbl.modify_font(pango_font)
         self.lbl_port.modify_font(pango_font)
+        self.lbl_barcode.modify_font(pango_font)
+        self._set_throbber('idle')
 
         #signals
         self.clear_btn.connect('clicked', self._on_queue_clear)
@@ -141,12 +151,15 @@ class ScreenManager(gtk.Frame):
         self.start_btn.set_label('mxdc-start')
         self.stop_btn.set_label('mxdc-stop')
         
-
-        self.beamline.automounter.connect('message', self._on_message)
-        self.beamline.automounter.connect('mounted', self._on_sample_mounted)
-        self.beamline.automounter.connect('state', self._on_automounter_state)
-        self.beamline.automounter.connect('busy', self.on_busy)
-        
+        self.automounter = self.beamline.automounter
+        self.automounter.connect('message', self._on_automounter_state)
+        self.automounter.connect('mounted', self._on_sample_mounted)
+        self.automounter.connect('status', self._on_automounter_state)
+        self.automounter.connect('busy', self._on_automounter_state)
+        self.automounter.connect('health', self._on_automounter_state)   
+        self.automounter.connect('active', self._on_automounter_state)
+        self.automounter.connect('enabled', self._on_automounter_state)
+             
         self.sample_box.pack_start(self.sample_list, expand=True, fill=True)
 
         # video        
@@ -249,14 +262,67 @@ class ScreenManager(gtk.Frame):
                                                                'data/tiny-skip.png'))
         
 
-    def on_busy(self, obj, state):
-        if state:
+    def _set_throbber(self, st):
+        if st == 'error':
+            self.throbber.set_from_stock('robot-error', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        elif st == 'standby':
+            self.throbber.set_from_stock('robot-standby', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        elif st == 'warning':
+            self.throbber.set_from_stock('robot-warning', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        elif st == 'busy':
             self.throbber.set_from_animation(self._animation)
+        elif st == 'idle':
+            self.throbber.set_from_stock('robot-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        elif st == 'setup':
+            self.throbber.set_from_stock('robot-setup', gtk.ICON_SIZE_LARGE_TOOLBAR)
+
+            
+    def _on_automounter_state(self, obj, val):
+        code, h_msg = self.automounter.health_state
+        status = self.automounter.status_state
+        message = self.automounter.message_state
+        busy = self.automounter.busy_state
+        enabled = self.automounter.enabled_state
+        active = self.automounter.active_state
+        
+        # Do nothing if the state has not really changed
+        _new_state = [code, h_msg, status, message, busy, enabled, active]
+        if _new_state == self._full_state:
+            return
         else:
-            self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_MENU)
+            self._full_state = _new_state
+            
+        if code == 16: 
+            self._set_throbber('warning')
+        elif code >= 2:
+            self._set_throbber('error')
+        else:
+            if not busy:
+                self._set_throbber(status)
+            else:
+                self._set_throbber('busy') 
+        if message.strip() == "":
+            message = h_msg
+
+        message = "<span color='blue'>%s</span>" % message.strip()
+        if h_msg.strip() != '':
+            self.message_log.add_text(h_msg)
+        self.status_lbl.set_markup(message) 
+        
     
-    def _on_message(self, obj, str):
-        self.message_log.add_text(str)
+    def _on_sample_mounted(self, obj, info):
+        if info is None: # dismounting
+            self.lbl_port.set_markup('')
+            self.lbl_barcode.set_markup('')
+        else:   
+            port, barcode = info
+            if port is not None:
+                self.lbl_port.set_markup("<span color='blue'>%s</span>" % port)
+                self.lbl_barcode.set_markup("<span color='blue'>%s</span>" % barcode)
+            else:
+                self.lbl_port.set_markup('')
+                self.lbl_barcode.set_markup('')
+    
 
     def _on_sync(self, obj, st, str):
         if st:
@@ -264,29 +330,12 @@ class ScreenManager(gtk.Frame):
         else:
             self.lbl_sync.set_markup('<span color="#990000">Barcode mismatch</span>')
             self.message_log.add_text('sync: %s' % str)
-        #self.lbl_sync.set_alignment(0.5, 0.5)
+
 
     def _on_new_datasets(self, obj, datasets):
         datasets = lims_tools.upload_data(self.beamline, datasets)
         self.emit('new-datasets', datasets)
 
-    def _on_automounter_state(self, obj, state):
-        self.lbl_state.set_markup(state)
-    
-    def _on_sample_mounted(self, obj, info):
-        if info is None: # dismounting
-            self.lbl_port.set_text('')
-            self.lbl_barcode.set_text('')
-        else:   
-            port, barcode = info
-            if port is not None:
-                self.lbl_port.set_text(port)
-                self.lbl_barcode.set_text(barcode)
-                #self.lbl_port.set_alignment(0.5, 0.5)
-                #self.lbl_barcode.set_alignment(0.5, 0.5)
-            else:
-                self.lbl_port.set_text('')
-                self.lbl_barcode.set_text('')
                
         
     def refresh_samples(self):
@@ -511,11 +560,11 @@ class ScreenManager(gtk.Frame):
     
     def _on_activate(self, obj):
         if not self._screening:
-                self.start_time = time.time()
-                task_list = self.get_task_list()       
-                #FIXME: must configure user here before continuing
-                self.screen_runner.configure(task_list)
-                self.screen_runner.start()
+            self.start_time = time.time()
+            task_list = self.get_task_list()       
+            #FIXME: must configure user here before continuing
+            self.screen_runner.configure(task_list)
+            self.screen_runner.start()
         else:
             if self._screening_paused:
                 self.screen_runner.resume()

@@ -47,15 +47,16 @@ class TextViewer(object):
             end_iter = self.text_buffer.get_start_iter()
             end_iter.forward_lines(10)
             self.text_buffer.delete(start_iter, end_iter)
-        iter = self.text_buffer.get_end_iter()
+        _iter = self.text_buffer.get_end_iter()
         if log:
             tag = self.tags['DEFAULT']
             for key in ['INFO', 'DEBUG', 'ERROR', 'WARNING', 'CRITICAL']:
                 if re.search(key, text):
                     tag = self.tags[key]
-            self.text_buffer.insert_with_tags(iter, "%s%s\n" % (self.prefix, text), tag)
+            self.text_buffer.insert_with_tags(_iter, "%s%s\n" % (self.prefix, text), tag)
         else:
-            self.text_buffer.insert(iter, "%s%s\n" % (self.prefix, text) )         
-        self.view.scroll_to_iter(iter, 0, use_align=True, yalign=0.5)
+            self.text_buffer.insert(_iter, "%s%s\n" % (self.prefix, text) )         
+        _iter = self.text_buffer.get_end_iter()
+        self.view.scroll_to_iter(_iter, 0, use_align=True, yalign=0.5)
     
         

@@ -55,11 +55,15 @@
     <dt><a href="api/engines.html#bcm.engine.scanning.AbsScan">AbsScan (class in bcm.engine.scanning)</a></dt>
     <dt><a href="api/engines.html#bcm.engine.scanning.AbsScan2">AbsScan2 (class in bcm.engine.scanning)</a></dt>
     <dt><a href="api/devices.html#bcm.device.base.HealthManager.add">add() (bcm.device.base.HealthManager method)</a></dt>
-</dl></td>
-  <td style="width: 33%" valign="top"><dl>
     <dt><a href="api/devices.html#bcm.device.base.BaseDevice.add_devices">add_devices() (bcm.device.base.BaseDevice method)</a></dt>
     <dt><a href="api/devices.html#bcm.device.base.BaseDevice.add_pv">add_pv() (bcm.device.base.BaseDevice method)</a></dt>
+</dl></td>
+  <td style="width: 33%" valign="top"><dl>
     <dt><a href="api/devices.html#bcm.device.video.VideoSrc.add_sink">add_sink() (bcm.device.video.VideoSrc method)</a></dt>
+    <dt><a href="api/engines.html#bcm.engine.centering.auto_center">auto_center() (in module bcm.engine.centering)</a></dt>
+    <dt><a href="api/engines.html#bcm.engine.centering.auto_center_crystal">auto_center_crystal() (in module bcm.engine.centering)</a></dt>
+    <dt><a href="api/engines.html#bcm.engine.centering.auto_center_loop">auto_center_loop() (in module bcm.engine.centering)</a></dt>
+    <dt><a href="api/engines.html#bcm.engine.autochooch.AutoChooch">AutoChooch (class in bcm.engine.autochooch)</a></dt>
 </dl></td>
 </tr></table>
 
@@ -108,6 +112,7 @@
       <dt><a href="api/devices.html#bcm.device.goniometer.MD2Goniometer.configure">(bcm.device.goniometer.MD2Goniometer method)</a></dt>
       <dt><a href="api/devices.html#bcm.device.mca.XFlashMCA.configure">(bcm.device.mca.XFlashMCA method)</a></dt>
       <dt><a href="api/devices.html#bcm.device.motor.Motor.configure">(bcm.device.motor.Motor method)</a></dt>
+      <dt><a href="api/engines.html#bcm.engine.autochooch.AutoChooch.configure">(bcm.engine.autochooch.AutoChooch method)</a></dt>
   </dl></dd>
     <dt><a href="api/devices.html#bcm.device.counter.Counter.count">count() (bcm.device.counter.Counter method)</a></dt>
 </dl></td>
@@ -224,6 +229,7 @@
 </dl></td>
   <td style="width: 33%" valign="top"><dl>
     <dt><a href="api/devices.html#bcm.device.misc.PositionerMotor">PositionerMotor (class in bcm.device.misc)</a></dt>
+    <dt><a href="api/engines.html#bcm.engine.centering.pre_center">pre_center() (in module bcm.engine.centering)</a></dt>
     <dt><a href="api/devices.html#bcm.device.automounter.BasicAutomounter.probe">probe() (bcm.device.automounter.BasicAutomounter method)</a></dt>
     <dt><a href="api/devices.html#bcm.device.motor.PseudoMotor">PseudoMotor (class in bcm.device.motor)</a></dt>
 </dl></td>
@@ -235,11 +241,12 @@
     <dt><a href="api/devices.html#bcm.device.base.HealthManager.register_messages">register_messages() (bcm.device.base.HealthManager method)</a></dt>
     <dt><a href="api/engines.html#bcm.engine.scanning.RelScan">RelScan (class in bcm.engine.scanning)</a></dt>
     <dt><a href="api/engines.html#bcm.engine.scanning.RelScan2">RelScan2 (class in bcm.engine.scanning)</a></dt>
+    <dt><a href="api/devices.html#bcm.device.motor.RelVerticalMotor">RelVerticalMotor (class in bcm.device.motor)</a></dt>
 </dl></td>
   <td style="width: 33%" valign="top"><dl>
-    <dt><a href="api/devices.html#bcm.device.motor.RelVerticalMotor">RelVerticalMotor (class in bcm.device.motor)</a></dt>
     <dt><a href="api/devices.html#bcm.device.base.HealthManager.remove">remove() (bcm.device.base.HealthManager method)</a></dt>
     <dt><a href="api/devices.html#bcm.device.cryojet.Cryojet.resume_flow">resume_flow() (bcm.device.cryojet.Cryojet method)</a></dt>
+    <dt><a href="api/engines.html#bcm.engine.autochooch.AutoChooch.run">run() (bcm.engine.autochooch.AutoChooch method)</a></dt>
 </dl></td>
 </tr></table>
 
@@ -267,6 +274,7 @@
     <dt><a href="api/devices.html#bcm.device.detector.MXCCDImager.start">start() (bcm.device.detector.MXCCDImager method)</a></dt>
     <dd><dl>
       <dt><a href="api/devices.html#bcm.device.video.VideoSrc.start">(bcm.device.video.VideoSrc method)</a></dt>
+      <dt><a href="api/engines.html#bcm.engine.autochooch.AutoChooch.start">(bcm.engine.autochooch.AutoChooch method)</a></dt>
   </dl></dd>
     <dt><a href="api/devices.html#bcm.device.detector.MXCCDImager.stop">stop() (bcm.device.detector.MXCCDImager method)</a></dt>
     <dd><dl>
@@ -327,7 +335,7 @@
 <div id="searchbox" style="display: none">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" size="18" />
+      <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />

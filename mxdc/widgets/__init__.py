@@ -34,7 +34,8 @@ def _register_icon_reuse():
                     'sunny','cloudy','rainy','stormy','hcane',
                     'dunknown','dgood','dwarn','dbad','ddisabled'
                     ]
-
+    robot_icons = ['error', 'setup', 'idle', 'standby', 'warning']
+    
     # We're too lazy to make our own icons, so we use regular stock icons.
     icons = [
         ('mxdc-replace', gtk.STOCK_SAVE_AS),
@@ -74,6 +75,12 @@ def _register_icon_reuse():
         icon_set = gtk.IconSet(pixbuf)
         factory.add(stock_id, icon_set)
     
+    for icon in robot_icons:
+        fn = 'robot-%s.png' % icon
+        stock_id = 'robot-%s' % icon
+        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR, fn))
+        icon_set = gtk.IconSet(pixbuf)
+        factory.add(stock_id, icon_set)
 
 
 try:

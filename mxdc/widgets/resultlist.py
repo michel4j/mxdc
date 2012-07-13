@@ -13,11 +13,11 @@ from mxdc.widgets.dialogs import *
     RESULT_COLUMN_CELL,
     RESULT_COLUMN_DATA,
     RESULT_COLUMN_RESULT,    
-    RESULT_SORT_COLUMN,
+    RESULT_COLUMN_INDEX,
 ) = range(10)
 
 RESULT_TYPES = (
-    gobject.TYPE_INT,
+    gobject.TYPE_UINT,
     gobject.TYPE_STRING,
     gobject.TYPE_STRING,
     gobject.TYPE_STRING,
@@ -26,6 +26,7 @@ RESULT_TYPES = (
     gobject.TYPE_STRING,
     gobject.TYPE_PYOBJECT,
     gobject.TYPE_PYOBJECT,
+    gobject.TYPE_UINT,
 )
 
 (   RESULT_STATE_WAITING,
@@ -69,7 +70,7 @@ class ResultList(gtk.ScrolledWindow):
         self._error_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/tiny-error.png'))
         self._first = True
-
+        self._num_items = 0
 
     def add_row_activate_handler(self, func):
         return self.listview.connect('row-activated',self.on_row_activated)
@@ -86,6 +87,7 @@ class ResultList(gtk.ScrolledWindow):
     def add_item(self, item):
         iter = self.listmodel.append()
         crystal = item.get('crystal', {})
+        self._num_items += 1
         self.listmodel.set(iter,
                 RESULT_COLUMN_STATE, RESULT_STATE_WAITING,
                 RESULT_COLUMN_NAME, item['name'],
@@ -95,6 +97,7 @@ class ResultList(gtk.ScrolledWindow):
                 RESULT_COLUMN_SG, item.get('space_group', '-'),
                 RESULT_COLUMN_CELL, item.get('unit_cell', '-'),
                 RESULT_COLUMN_DATA, crystal,
+                RESULT_COLUMN_INDEX, self._num_items,
                 RESULT_COLUMN_RESULT, {})
         return iter
 
@@ -165,11 +168,14 @@ class ResultList(gtk.ScrolledWindow):
         column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         column.set_fixed_width(24)
         column.set_cell_data_func(renderer, self.__format_pixbuf)
+        column.set_sort_column_id(RESULT_COLUMN_INDEX)
+        
         self.listview.append_column(column)
         
         for key in [RESULT_COLUMN_NAME, RESULT_COLUMN_TYPE, RESULT_COLUMN_GROUP, RESULT_COLUMN_SCORE, RESULT_COLUMN_SG, RESULT_COLUMN_CELL]:
             renderer = gtk.CellRendererText()
             column = gtk.TreeViewColumn(COLUMN_DICT[key], renderer, text=key)
+            column.set_sort_column_id(key)
             if key == RESULT_COLUMN_SCORE:
                 column.set_cell_data_func(renderer, self.__format_float_cell)
             else:
@@ -180,13 +186,13 @@ class ResultList(gtk.ScrolledWindow):
             column.set_resizable(True)
             self.listview.append_column(column)
         self.listview.set_search_column(RESULT_COLUMN_NAME)
-        self.listmodel.set_sort_func(RESULT_SORT_COLUMN, self.__sort_func, None)
-        self.listmodel.set_sort_column_id(RESULT_SORT_COLUMN, gtk.SORT_DESCENDING)
+        self.listmodel.set_sort_func(RESULT_COLUMN_SCORE, self.__sort_func, None)
+
 
     def set_row_state(self, pos, state=True):
         path = (pos,)
-        iter = self.listmodel.get_iter(path)
-        self.listmodel.set(iter, RESULT_COLUMN_STATE, state)
+        _iter = self.listmodel.get_iter(path)
+        self.listmodel.set(_iter, RESULT_COLUMN_STATE, state)
         self.listview.scroll_to_cell(path, use_align=True, row_align=0.9)
         
     

@@ -343,7 +343,7 @@ class PV(gobject.GObject):
                     self._val = self.data.value
             return self._val
 
-    def _get_parameters(self):
+    def get_parameters(self):
         """Get control parameters of a Process Variable.
         """
         if self._connected != CA_OP_CONN_UP:
@@ -368,7 +368,7 @@ class PV(gobject.GObject):
                 else:
                     self._params[_k] = v
             
-            return data
+            return self._params
 
     def set(self, val, flush=False):
         """

@@ -19,6 +19,7 @@ from mxdc.widgets.textviewer import TextViewer
 from mxdc.utils import gui
 from bcm.beamline.interfaces import IBeamline
 from twisted.python.components import globalRegistry
+from mxdc.widgets.misc import ActiveProgressBar
 
 _logger = get_module_logger('mxdc.samplepicker')
 
@@ -331,7 +332,7 @@ class SamplePicker(gtk.Frame):
     def __init__(self, automounter=None):
         gtk.Frame.__init__(self)
         self.set_shadow_type(gtk.SHADOW_NONE)
-        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/sample_picker'), 
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/sample_picker'),
                                   'sample_picker')
         
         try:
@@ -343,61 +344,61 @@ class SamplePicker(gtk.Frame):
             _logger.error('No registered beamline found.')
 
         self.add(self.sample_picker)
-        pango_font = pango.FontDescription('sans 6')
+        pango_font = pango.FontDescription('sans 8')
         self.status_lbl.modify_font(pango_font)
         self.lbl_port.modify_font(pango_font)
-        self.lbl_ln2.modify_font(pango_font)
         self.lbl_barcode.modify_font(pango_font)
-        self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
-        self.pbar.modify_font(pango_font)
+        self.throbber.set_from_stock('robot-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
         self.message_log = TextViewer(self.msg_txt)
         self.message_log.set_prefix('-')
         
         self.containers = {}
-        for k in ['Left','Middle','Right']:
+        for k in ['Left', 'Middle', 'Right']:
             key = k[0]
             self.containers[key] = ContainerWidget(self.automounter.containers[key])
             tab_label = gtk.Label('%s' % k)
-            tab_label.set_padding(12,0)
-            self.notebk.insert_page( self.containers[key], tab_label=tab_label )
+            tab_label.set_padding(12, 0)
+            self.notebk.insert_page(self.containers[key], tab_label=tab_label)
             self.containers[key].connect('pin-selected', self.on_pick)
             self.containers[key].connect('pin-hover', self.on_hover)
         self.mount_btn.connect('clicked', self.on_mount)
         self.dismount_btn.connect('clicked', self.on_dismount)
         self.automounter.connect('progress', self.on_progress)
-        self.automounter.connect('message', self.on_message)
-        self.automounter.connect('state', self.on_state)
-        self.automounter.connect('active', self.on_active)
-        self.automounter.connect('busy', self.on_busy)
-        self.automounter.connect('health', self.on_health)
-        #self.automounter.connect('enabled', self.on_enabled)
+        self.automounter.connect('message', self.on_state_changed)
+        self.automounter.connect('status', self.on_state_changed)
+        self.automounter.connect('active', self.on_state_changed)
+        self.automounter.connect('busy', self.on_state_changed)
+        self.automounter.connect('health', self.on_state_changed)
+        self.automounter.connect('enabled', self.on_state_changed)
         self.automounter.connect('mounted', self.on_sample_mounted)
-        
 
-        self.automounter.nitrogen_level.connect('changed', self._on_ln2level)
+        self._full_state = []
         
         # extra widgets
-        #self.throbber_box.pack_end(self.throbber, expand=False, fill=False)
-        #self.throbber.show_all()
-        self._old_code = None
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
-                                                               'data/busy.gif'))
+                                                               'data/active_stop.gif'))
+        
+        #fix label mess:
+        self.status_lbl.connect('size-allocate', self._fix_label)
+        
+        #add progressbar
+        self.pbar = ActiveProgressBar()
+        self.pbar.set_fraction(0.0)
+        self.pbar.idle_text('')
+        self.control_box.pack_end(self.pbar, expand=False, fill=False)
+        self.pbar.modify_font(pango_font)
+        
+        
+    def _fix_label(self, label, size):
+        label.set_size_request(size.width-1, -1 )
            
-        
-        
+                
     def __getattr__(self, key):
         try:
             return super(SamplePicker).__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
-    
-    
-    def _on_ln2level(self, obj, val):
-        if val == 1:
-            self.lbl_ln2.set_markup('<span color="#990000">LOW</span>')
-        else:
-            self.lbl_ln2.set_markup('<span color="#009900">NORMAL</span>')
-    
+        
     def do_pin_hover(self, cont, port):
         pass
     
@@ -452,50 +453,66 @@ class SamplePicker(gtk.Frame):
             self.execute_dismount(port)
     
     def on_progress(self, obj, state):
-        val, msg = state
+        val, tool_pos, sample_pos, magnet_pos = state
         self.pbar.set_fraction(val)
-        self.pbar.set_text(msg)
+        self.message_log.add_text(time.strftime('-- %a %H:%M:%S --'))
+        self.message_log.add_text('Gripper: %s.' % tool_pos)
+        self.message_log.add_text('Sample: %s.' % sample_pos)
+        self.message_log.add_text('Magnet: %s.' % magnet_pos)
     
-    def on_message(self, obj, txt):
-        self.message_log.add_text(txt)
+                   
+    def _set_throbber(self, st):
+        if st == 'error':
+            self.throbber.set_from_stock('robot-error', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        elif st == 'standby':
+            self.throbber.set_from_stock('robot-standby', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        elif st == 'warning':
+            self.throbber.set_from_stock('robot-warning', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        elif st == 'busy':
+            self.throbber.set_from_animation(self._animation)
+        elif st == 'idle':
+            self.throbber.set_from_stock('robot-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        elif st == 'setup':
+            self.throbber.set_from_stock('robot-setup', gtk.ICON_SIZE_LARGE_TOOLBAR)
 
-    def on_state(self, obj, txt):
-        self.status_lbl.set_text(txt)
-        if txt == 'idle':
+            
+    def on_state_changed(self, obj, val):
+        code, h_msg = self.automounter.health_state
+        status = self.automounter.status_state
+        message = self.automounter.message_state
+        busy = self.automounter.busy_state
+        enabled = self.automounter.enabled_state
+        active = self.automounter.active_state
+        
+        # Do nothing if the state has not really changed
+        _new_state = [code, h_msg, status, message, busy, enabled, active]
+        if _new_state == self._full_state:
+            return
+        else:
+            self._full_state = _new_state
+            
+        if code == 16: 
+            self._set_throbber('warning')
+        elif code >= 2:
+            self._set_throbber('error')
+        else:
+            if not busy:
+                self._set_throbber(status)
+            else:
+                self._set_throbber('busy') 
+        if message.strip() == "":
+            message = h_msg
+
+        message = "<span color='blue'>%s</span>" % message.strip()
+        if h_msg.strip() != '':
+            self.message_log.add_text(h_msg)
+        self.status_lbl.set_markup(message) 
+
+        if status == 'idle' and code <= 2 and not busy:
             self.command_tbl.set_sensitive(True)
         else:
             self.command_tbl.set_sensitive(False)
-    
-    def on_active(self, obj, state):
-        if not state:
-            self.set_sensitive(False)
-        else:
-            self.set_sensitive(True)
-               
-    def on_busy(self, obj, state):
-        if state:
-            self.throbber.set_from_animation(self._animation)
-            #self.command_tbl.set_sensitive(False)
-        else:
-            self.throbber.set_from_stock('mxdc-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
-            self.pbar.set_text('')
-            #self.command_tbl.set_sensitive(True)
-    
-    def on_health(self, obj, health):
-        code, message = health
-
-        if code in [0, self._old_code] or message == '' or self._old_code is None:
-            pass
-        else:
-            self.on_message(None, message)
-        self._old_code = code 
-            
-    def on_enabled(self, obj, state):
-        if not state:
-            self.command_tbl.set_sensitive(False)
-            #self.throbber.set_from_stock('mxdc-bad', gtk.ICON_SIZE_LARGE_TOOLBAR)
-        else:
-            self.command_tbl.set_sensitive(True)           
+            self.pbar.set_text('')        
         
     
     def on_sample_mounted(self, obj, info):
@@ -508,8 +525,8 @@ class SamplePicker(gtk.Frame):
             port, barcode = info
             if port is not None:
                 self.mounted.set_text(port)
-                self.lbl_port.set_markup(port)
-                self.lbl_barcode.set_markup(barcode)
+                self.lbl_port.set_markup("<span color='blue'>%s</span>" % port)
+                self.lbl_barcode.set_markup("<span color='blue'>%s</span>" % barcode)
                 self.dismount_btn.set_sensitive(True)
                 if self.selected.get_text().strip() == port:
                     self.selected.set_text('')
