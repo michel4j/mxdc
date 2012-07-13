@@ -343,7 +343,7 @@ class AutomounterServer(MasterDevice):
     
     def setup_client(self, client):
         MasterDevice.setup_client(self, client)
-        self.notify_client(client, state=self.device.state_state)
+        self.notify_client(client, state=self.device.status_state)
         self.notify_client(client, message=self.device.message_state)
         self.notify_client(client, mounted=self.device.mounted_state)
         self.notify_client(client, progress=self.device.progress_state)
