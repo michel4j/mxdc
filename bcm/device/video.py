@@ -8,6 +8,7 @@ import numpy
 import re
 import socket
 import zlib
+import os
 
 # suppres scipy import warnings
 import warnings
@@ -108,20 +109,26 @@ class SimCamera(VideoSrc):
 
     implements(ICamera)    
     
-    def __init__(self, name="Camera Simulator"):
+    def __init__(self, name="Camera Simulator", img="sim_sample_video.png"):
         VideoSrc.__init__(self, name)
-        self.size = (640, 480)
-        self.resolution = 1.0
-        self._packet_size = self.size[0] * self.size[1]
-        self._fsource = open('/dev/urandom','rb')
+        if img is not None:
+            fname = '%s/data/%s' % (os.environ.get('BCM_CONFIG_PATH'), img)
+            self._frame = Image.open(fname)
+            self.size = self._frame.size
+            self.resolution = 1.0
+        else:            
+            self.size = (640, 480)
+            self.resolution = 5.34e-3 * numpy.exp(-0.18)
+            self._packet_size = self.size[0] * self.size[1]
+            self._fsource = open('/dev/urandom','rb')
+            data = self._fsource.read(self._packet_size)
+            self._frame = toimage(numpy.fromstring(data, 'B').reshape(
+                                                        self.size[1], 
+                                                        self.size[0]))
         self.set_state(active=True, health=(0,''))
         
     def get_frame(self):
-        data = self._fsource.read(self._packet_size)
-        frame = toimage(numpy.fromstring(data, 'B').reshape(
-                                                    self.size[1], 
-                                                    self.size[0]))
-        return frame
+        return self._frame
 
 
 class SimZoomableCamera(SimCamera):
@@ -140,6 +147,27 @@ class SimZoomableCamera(SimCamera):
 
     def _on_zoom_change(self, obj, val):
         self.resolution = 5.34e-3 * numpy.exp( -0.18 * val)
+
+class SimPTZCamera(SimCamera):
+    implements(IPTZCameraController)
+
+    def __init__(self):
+        SimCamera.__init__(self, img="sim_hutch_video.png")
+    
+    def zoom(self, value):
+        pass
+
+    def center(self, x, y):
+        pass
+    
+    def goto(self, position):
+        pass
+
+    def get_presets(self):
+        presets = ["Hutch", "Detector", "Robot", "Goniometer", "Sample", "Panel"]
+        return presets
+
+
 
 class CACamera(VideoSrc):
 

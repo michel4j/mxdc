@@ -63,8 +63,44 @@
 </div>
 <div class="section" id="module-bcm.engine.centering">
 <span id="centering-engine"></span><h2>Centering Engine<a class="headerlink" href="#module-bcm.engine.centering" title="Permalink to this headline">¶</a></h2>
-<p>Created on Jan 26, 2010</p>
-<p>&#64;author: michel</p>
+<dl class="function">
+<dt id="bcm.engine.centering.pre_center">
+<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">pre_center</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.pre_center" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rough automatic centering of the sample pin using simple image processing.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="bcm.engine.centering.auto_center">
+<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">auto_center</tt><big>(</big><em>pre_align=True</em><big>)</big><a class="headerlink" href="#bcm.engine.centering.auto_center" title="Permalink to this definition">¶</a></dt>
+<dd><p>More precise auto-centering of the crystal using the XREC package.</p>
+<dl class="docutils">
+<dt>Kwargs:</dt>
+<dd><ul class="first last simple">
+<li><cite>pre_align</cite> (bool): Activates fast loop alignment. Default True.</li>
+</ul>
+</dd>
+<dt>Returns:</dt>
+<dd>A dictionary. With fields TARGET_ANGLE, RADIUS, Y_CENTRE, X_CENTRE,
+PRECENTRING, RELIABILITY, corresponding to the XREC output. All fields are
+integers. If XREC fails,  only the RELIABILITY field will be present, 
+with a value of -99. (See the XREC 3.0 Manual).</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="bcm.engine.centering.auto_center_loop">
+<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">auto_center_loop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.auto_center_loop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function to run automated loop centering and return the result, 
+displaying appropriate log messages on failure.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="bcm.engine.centering.auto_center_crystal">
+<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">auto_center_crystal</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.auto_center_crystal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function to run automated crystal centering and return the result, 
+displaying appropriate log messages on failure.</p>
+</dd></dl>
+
 </div>
 <div class="section" id="module-bcm.engine.scanning">
 <span id="scanning-engine"></span><h2>Scanning Engine<a class="headerlink" href="#module-bcm.engine.scanning" title="Permalink to this headline">¶</a></h2>
@@ -158,9 +194,55 @@ cema is center of mass</p>
 </div>
 <div class="section" id="module-bcm.engine.auto">
 <span id="miscelaneous-engines"></span><h2>Miscelaneous Engines<a class="headerlink" href="#module-bcm.engine.auto" title="Permalink to this headline">¶</a></h2>
-<p>Created on Oct 25, 2010</p>
-<p>&#64;author: michel</p>
-<span class="target" id="module-bcm.engine.autochooch"></span><span class="target" id="module-bcm.engine.optimizer"></span><p>This module defines classes for Optimizers.</p>
+<span class="target" id="module-bcm.engine.autochooch"></span><dl class="class">
+<dt id="bcm.engine.autochooch.AutoChooch">
+<em class="property">class </em><tt class="descclassname">bcm.engine.autochooch.</tt><tt class="descname">AutoChooch</tt><a class="headerlink" href="#bcm.engine.autochooch.AutoChooch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">gobject._gobject.GObject</span></tt></p>
+<p>An event driven engine for performing analysis of MAD Scans with CHOOCH.</p>
+<dl class="docutils">
+<dt>Signals:</dt>
+<dd><ul class="first last simple">
+<li><cite>done</cite>: Emitted when the analysis is complete.</li>
+<li><cite>error</cite>: Emitted if an error occurs.</li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="bcm.engine.autochooch.AutoChooch.configure">
+<tt class="descname">configure</tt><big>(</big><em>edge</em>, <em>directory</em>, <em>prefix</em>, <em>uname=None</em><big>)</big><a class="headerlink" href="#bcm.engine.autochooch.AutoChooch.configure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare the engine for a specific CHOOCH analysis.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last simple">
+<li><cite>edge</cite> (str): Absorption edge used for the scan, eg &#8216;Se-K&#8217;.</li>
+<li><cite>directory</cite> (str): Directory in which to perform analysis.</li>
+<li><cite>prefix</cite> (str): Input and Output file name prefix.</li>
+</ul>
+</dd>
+<dt>Kwargs:</dt>
+<dd>uname (str or None): Optional username for owner of input and output files.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.engine.autochooch.AutoChooch.start">
+<tt class="descname">start</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.autochooch.AutoChooch.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start the analysis asynchronously. Use signals to determine completion/failure.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="bcm.engine.autochooch.AutoChooch.run">
+<tt class="descname">run</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.autochooch.AutoChooch.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do the analysis synchronously. Blocks until completion/failure.</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>bool. True if the successful and False otherwise.</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-bcm.engine.optimizer"></span><p>This module defines classes for Optimizers.</p>
 <dl class="class">
 <dt id="bcm.engine.optimizer.PitchOptimizer">
 <em class="property">class </em><tt class="descclassname">bcm.engine.optimizer.</tt><tt class="descname">PitchOptimizer</tt><big>(</big><em>name</em>, <em>pitch_func</em>, <em>min_count=0.0</em><big>)</big><a class="headerlink" href="#bcm.engine.optimizer.PitchOptimizer" title="Permalink to this definition">¶</a></dt>
@@ -211,7 +293,7 @@ cema is center of mass</p>
 <div id="searchbox" style="display: none">
   <h3>Quick search</h3>
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" size="18" />
+      <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
