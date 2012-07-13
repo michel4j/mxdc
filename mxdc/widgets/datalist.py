@@ -11,7 +11,8 @@ import gobject
     DATA_COLUMN_WAVELENGTH,
     DATA_COLUMN_FRAMES,
     DATA_COLUMN_DATA,
-) = range(8)
+    DATA_COLUMN_INDEX,
+) = range(9)
 
 DATA_TYPES = (
     gobject.TYPE_BOOLEAN,
@@ -22,6 +23,7 @@ DATA_TYPES = (
     gobject.TYPE_FLOAT,
     gobject.TYPE_STRING,
     gobject.TYPE_PYOBJECT,
+    gobject.TYPE_UINT,
 )
 
 DATA_COLUMN_DICT = {
@@ -46,6 +48,7 @@ class DataList(gtk.ScrolledWindow):
         self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.add(self.listview)
         self._first = True
+        self._num_items = 0
 
     def load_data(self, data):
         self.clear()
@@ -57,21 +60,22 @@ class DataList(gtk.ScrolledWindow):
         
         # check if item exists and replace that one if it does otherwise
         # add a new one (Names should be unique)
-        iter = self.listmodel.get_iter_first()
+        _iter = self.listmodel.get_iter_first()
         matches = False
-        while iter and not matches:
-            name = self.listmodel.get_value(iter, DATA_COLUMN_NAME)
+        while _iter and not matches:
+            name = self.listmodel.get_value(_iter, DATA_COLUMN_NAME)
             matches = (name == item['name'])
-            if not matches: #prevent incrementing iter if there is a match
-                iter = self.listmodel.iter_next(iter)
+            if not matches: #prevent incrementing _iter if there is a match
+                _iter = self.listmodel.iter_next(_iter)
         
         if not matches:
-            iter = self.listmodel.append() #None found, insert new one            
+            _iter = self.listmodel.append() #None found, insert new one            
             
         crystal = item.get('crystal')
         if crystal is None:
             crystal = {}
-        self.listmodel.set(iter,
+        self._num_items += 1
+        self.listmodel.set(_iter,
                 DATA_COLUMN_SELECT, False,
                 DATA_COLUMN_NAME, item['name'],
                 DATA_COLUMN_CRYSTAL, crystal,
@@ -79,7 +83,8 @@ class DataList(gtk.ScrolledWindow):
                 DATA_COLUMN_ANGLE, item.get('delta_angle'),
                 DATA_COLUMN_WAVELENGTH, item.get('wavelength'),
                 DATA_COLUMN_FRAMES, item.get('frame_sets'),
-                DATA_COLUMN_DATA, item
+                DATA_COLUMN_INDEX, self._num_items,
+                DATA_COLUMN_DATA, item,
                 )
     
     def __format_float_cell(self, column, renderer, model, iter):
@@ -97,11 +102,20 @@ class DataList(gtk.ScrolledWindow):
     
                         
     def __add_columns(self):        
+        # Pending Column
+        renderer = gtk.CellRendererPixbuf()
+        column = gtk.TreeViewColumn('', renderer)
+        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        column.set_fixed_width(24)
+        column.set_sort_column_id(DATA_COLUMN_INDEX)
+        self.listview.append_column(column)
+        
         for key in [DATA_COLUMN_NAME, DATA_COLUMN_GROUP, DATA_COLUMN_ANGLE, DATA_COLUMN_WAVELENGTH, DATA_COLUMN_FRAMES]:
             renderer = gtk.CellRendererText()
             renderer.set_data('column', key)
             column = gtk.TreeViewColumn(DATA_COLUMN_DICT[key], renderer, text=key)
-            if key in [DATA_COLUMN_ANGLE,DATA_COLUMN_WAVELENGTH]:
+            column.set_sort_column_id(key)
+            if key in [DATA_COLUMN_ANGLE, DATA_COLUMN_WAVELENGTH]:
                 column.set_cell_data_func(renderer, self.__format_float_cell)
             column.set_resizable(True)
             self.listview.append_column(column)

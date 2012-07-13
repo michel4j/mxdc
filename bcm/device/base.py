@@ -71,7 +71,7 @@ class BaseDevice(gobject.GObject):
         self.pending_devs = [] # inactive child devices or process variables
         self.health_manager = HealthManager() # manages the health states
         self.state_info = {'active': False, 'busy': False, 
-                             'health': None, 'message': ''}
+                             'health': (99,''), 'message': ''}
         self.name = self.__class__.__name__ + ' Device'
         self._dev_state_patt = re.compile('^(\w+)_state$')
         self._dev_bool_patt = re.compile('^is_(\w+)$')

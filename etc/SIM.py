@@ -57,10 +57,10 @@ DEVICES = {
     'camera_center_x':  SimPositioner('Camera Center x', 388),
     'camera_center_y':  SimPositioner('Camera Center y', 288),
     'cryojet':  SimCryojet('Simulated Cryojet'),
-    'sample_camera': AxisCamera('V2E1608-400', 1),
+    'sample_camera': SimCamera(),
     'sample_backlight': SimPositioner('Back light', 45.0, '%'),
     'sample_frontlight': SimPositioner('Front light', 55.0, '%'),    
-    'hutch_video':  AxisPTZCamera('ccd1608-500'),
+    'hutch_video':  SimPTZCamera(),
     
     # Facility, storage-ring, shutters, etc
     'ring_current':  PV('PCT1402-01:mA:fbk'),
