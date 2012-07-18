@@ -271,7 +271,7 @@ class PV(gobject.GObject):
         self._time_changes = timed
         self._connected = CA_OP_CONN_DOWN
         self._val       = None
-        self._time      = None
+        self._time      = 0.0
         self._count     = None
         self._host      = None
         self._access    = None
