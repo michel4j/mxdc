@@ -392,12 +392,12 @@ class ScanManager(gtk.Frame):
         self.entries['energy'].set_text("%0.4f" % params['energy'])
         self._emission = params['emission']
         self.entries['scans'].set_value(params.get('scans', 1))
-        if params['mode'] == 'XANES' and self.exafs_btn.get_sensitive():
+        if params['mode'] == 'XANES' and params['mode']:
             self.xanes_btn.set_active(True)
-        elif params['mode'] == 'XRF' and self.exafs_btn.get_sensitive():
+        elif params['mode'] == 'XRF' and params['mode']:
             self.xrf_btn.set_active(True)
-        elif params['mode'] == 'EXAFS' and self.exafs_btn.get_sensitive():
-            self.exafs_btn.set_active(True)
+        #elif params['mode'] == 'EXAFS':
+        #    self.exafs_btn.set_active(True)
         return True
         
     def get_parameters(self):
