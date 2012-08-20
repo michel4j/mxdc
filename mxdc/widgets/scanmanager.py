@@ -208,7 +208,7 @@ class ScanManager(gtk.Frame):
         # or MULTI-MCA is available but inactive
         if not self.beamline.registry.get('multi_mca', False):
             self.exafs_btn.set_sensitive(False)
-        #elif not self.beamline.multi_mca.is_active():
+        elif not self.beamline.multi_mca.is_active():
             self.exafs_btn.set_sensitive(False)
         
         # Disable EXAFS is MULTI-MCA is available but inactive
