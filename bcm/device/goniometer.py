@@ -282,11 +282,11 @@ class MD2Goniometer(GoniometerBase):
         self._dev_cnct = self.add_pv("%s:G:MachAppState:asyn.CNCT" % pv_root)
         self._dev_enabled = self.add_pv("%s:usrEnable" % pv_root)
         
-        # Does not work reliably yet
-        #self._mode_mounting_cmd = self.add_pv("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
-        #self._mode_centering_cmd = self.add_pv("%s:S:centering:phase.PROC" % pv_root, monitor=False)
-        #self._mode_collect_cmd = self.add_pv("%s:S:scan:phase.PROC" % pv_root, monitor=False)
-        #self._mode_beam_cmd = self.add_pv("%s:S:locate:phase.PROC" % pv_root, monitor=False)
+        # FIXME: Does not work reliably yet
+        self._mode_mounting_cmd = self.add_pv("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
+        self._mode_centering_cmd = self.add_pv("%s:S:centering:phase.PROC" % pv_root, monitor=False)
+        self._mode_collect_cmd = self.add_pv("%s:S:scan:phase.PROC" % pv_root, monitor=False)
+        self._mode_beam_cmd = self.add_pv("%s:S:locate:phase.PROC" % pv_root, monitor=False)
 
         self._mode_fbk = self.add_pv("%s:G:MDPhasePosition" % pv_root)
         self._cntr_cmd_start = self.add_pv("%s:S:StartManSampleCent" % pv_root)
@@ -353,27 +353,29 @@ class MD2Goniometer(GoniometerBase):
 
         cmd_template = "SET_CLSMDPhasePosition=%d"
         mode = mode.strip().upper()
-
         if mode == 'CENTERING':
-            self._cntr_cmd_complete.put(0)
-            self._cntr_cmd_complete.put(1)              
-            self._mode_cmd.put(cmd_template % (2,))
+            self._cntr_cmd_start.toggle(1,0)      
+            #self._mode_cmd.put(cmd_template % (2,))
             #self._mode_centering_cmd.put('\x01')
         elif mode == 'MOUNTING':
-            self._mode_cmd.put(cmd_template % (1,))
+            self._mode_mounting_cmd.put(1)
+            #self._mode_cmd.put(cmd_template % (1,))
             #self._mode_mounting_cmd.put('\x01')
         elif mode in ['COLLECT', 'SCANNING']:
-            self._mode_cmd.put(cmd_template % (5,))
+            self._cntr_cmd_complete.toggle(1,0)
+            self._mode_collect_cmd.put(1)
+            #self._mode_cmd.put(cmd_template % (5,))
             #self._mode_collect_cmd.put('\x01')
         elif mode == 'BEAM':
-            self._mode_cmd.put(cmd_template % (3,))
+            self._mode_beam_cmd.put(1)
+            #self._mode_cmd.put(cmd_template % (3,))
             #self._mode_beam_cmd.put('\x01')
                     
         if wait:
             timeout = 60
             while mode not in _MODE_MAP_REV.get(self.mode)  and timeout > 0:
-                time.sleep(0.05)
-                timeout -= 0.05
+                time.sleep(0.01)
+                timeout -= 0.01
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
         
@@ -383,23 +385,10 @@ class MD2Goniometer(GoniometerBase):
                 if abs(dev.get() - val) > 0.01:              
                     self.wait() 
                     time.sleep(1.0)
-                    dev.set(val)
-        elif mode == 'CENTERING':
-            pass
-            #self._cntr_cmd_start.put(0)
-            #self._cntr_cmd_start.put(1)
-        elif mode == 'COLLECT':
-            pass
-            #self._cntr_cmd_complete.put(0)
-            #self._cntr_cmd_complete.put(1)      
+                    dev.set(val) 
         elif mode == 'SCANNING': 
             #self._minibeam.set(2) # may not be needed any more
             pass
-    
-    def _save_cntr_pos(self):
-        # toggle centering complete
-        self._cntr_cmd_complete.put(0)
-        self._cntr_cmd_complete.put(1)
         
     def _on_mode_changed(self, pv, val):
         mode_str = _MODE_MAP_REV.get(val, ['UNKNOWN'])[0]      

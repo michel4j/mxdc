@@ -416,6 +416,12 @@ class PV(gobject.GObject):
     # set makes more sense
     def put(self, val):
         self.set(val)
+    
+    def toggle(self, val1, val2, delay=0.001):
+        """Rapidly switch between two values with a maximum delay between."""
+        self.set(val1)
+        libca.ca_pend_event(delay)
+        self.set(val2)
 
     def _on_change(self, event):
         if self._chid != event.chid or event.type != self._ttype:
