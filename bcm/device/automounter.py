@@ -427,18 +427,14 @@ class Automounter(BasicAutomounter):
         # use mount_next if something already mounted
         if _mounted_port == '':      # nothing is mounted  
             self._mount_param.put(param)
-            self._mount_cmd.put(1)
-            ca.flush()
-            self._mount_cmd.put(0)
+            self._mount_cmd.toggle(1,0)
             self._total_steps = 26
             self._step_count = 0
         else:                        # something is mounted
             dis_param = self._mounted.get()
             self._dismount_param.put(dis_param)
             self._mount_param.put(param)
-            self._mount_next_cmd.put(1)
-            ca.flush()
-            self._mount_next_cmd.put(0)
+            self._mount_next_cmd.toggle(1,0)
             self._total_steps = 40
             self._step_count = 0
         
@@ -482,10 +478,7 @@ class Automounter(BasicAutomounter):
             param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
             
         self._dismount_param.put(param)
-        self._dismount_cmd.put(1)
-        ca.flush()
-        time.sleep(0.01)
-        self._dismount_cmd.put(0)
+        self._dismount_cmd.toggle(1,0)
         self._total_steps = 25
         self._step_count = 0
         
@@ -502,6 +495,7 @@ class Automounter(BasicAutomounter):
             timeout -= 0.05
             time.sleep(0.05)
         if timeout <= 0:
+            self.set_state(status='fault', message="Mount mode timed out.")
             return False
         else:
             return True       
