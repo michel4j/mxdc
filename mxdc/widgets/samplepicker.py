@@ -424,6 +424,9 @@ class SamplePicker(gtk.Frame):
             self.mount_btn.set_sensitive(False)
             if port.strip() == '':
                 return
+            self._set_throbber("busy")
+            message = "<span color='blue'>Preparing to mount %s.</span>" % port
+            self.status_lbl.set_markup(message)
             self.execute_mount(port, wash)
             self.selected.set_text('')
     
@@ -450,6 +453,9 @@ class SamplePicker(gtk.Frame):
         if not self.command_active:
             port = self.mounted.get_text().strip()
             self.mount_btn.set_sensitive(False)
+            self._set_throbber("busy")
+            message = "<span color='blue'>Preparing to dismount %s.</span>" % port
+            self.status_lbl.set_markup(message)            
             self.execute_dismount(port)
     
     def on_progress(self, obj, state):
