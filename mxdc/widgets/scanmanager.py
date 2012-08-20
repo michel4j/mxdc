@@ -203,9 +203,15 @@ class ScanManager(gtk.Frame):
         except:
             self.beamline = None
             loE, hiE = 4.0, 18.0
-            
+        
+        # Disable EXAFS is Multi-MCA is not available
+        # or MULTI-MCA is available but inactive
         if not self.beamline.registry.get('multi_mca', False):
             self.exafs_btn.set_sensitive(False)
+        #elif not self.beamline.multi_mca.is_active():
+            self.exafs_btn.set_sensitive(False)
+        
+        # Disable EXAFS is MULTI-MCA is available but inactive
             
         self.periodic_table = PeriodicTable(loE, hiE)
         self.periodic_table.connect('edge-selected',self.on_edge_selected)
@@ -386,11 +392,11 @@ class ScanManager(gtk.Frame):
         self.entries['energy'].set_text("%0.4f" % params['energy'])
         self._emission = params['emission']
         self.entries['scans'].set_value(params.get('scans', 1))
-        if params['mode'] == 'XANES':
+        if params['mode'] == 'XANES' and self.exafs_btn.get_sensitive():
             self.xanes_btn.set_active(True)
-        elif params['mode'] == 'XRF':
+        elif params['mode'] == 'XRF' and self.exafs_btn.get_sensitive():
             self.xrf_btn.set_active(True)
-        elif params['mode'] == 'EXAFS':
+        elif params['mode'] == 'EXAFS' and self.exafs_btn.get_sensitive():
             self.exafs_btn.set_active(True)
         return True
         
