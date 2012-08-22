@@ -253,7 +253,7 @@ def _all_files(root, patterns='*'):
 
 def get_disk_frameset(run):
     # Given a run, determine the collected frame set and number of frames based on images on disk
-    file_wcard = "%s_??{?,??}.img" % (run['name']) # Matches both 3 and 4 digit file numbers
+    file_wcard = "%s_???.img;%s_????.img" % (run['name'], run['name']) # Matches both 3 and 4 digit file numbers
     file_pattern = '%s_(\d+).img' % (run['name'])
     filetxt = ' '.join(_all_files(run['directory'], file_wcard))
     full_set = map(int, re.findall(file_pattern, filetxt))
