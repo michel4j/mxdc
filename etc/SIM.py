@@ -32,7 +32,6 @@ DEVICES = {
     # Goniometer/goniometer head devices
     'goniometer': SimGoniometer(),
     'omega':    SimMotor('Omega', 0.0, 'deg', speed=120.0),
-    'chi':  SimMotor('Chi', 0.0, 'deg', active='False'),
     'sample_x':  SimMotor('Sample X', 0.0, 'mm'),
     'sample_y':  SimMotor('Sample Y', 0.0, 'mm'),
     
