@@ -71,7 +71,12 @@ class HutchManager(gtk.Frame):
         self.switch_boss = ToggleBoss()       
         self.beamline = globalRegistry.lookup([], IBeamline)
         
-        
+        # diagram file name if one exists
+        diagram_file = os.path.join(os.environ.get('BCM_CONFIG_PATH'), 'data', self.beamline.name, 'diagram.png')
+        if not os.path.exists(diagram_file):
+            diagram_file = os.path.join(DATA_DIR, 'diagram.png')
+        self.hutch_diagram.set_from_file(diagram_file)
+
         # video
         def _mk_lbl(txt):
             lbl = gtk.Label(txt)
@@ -89,25 +94,39 @@ class HutchManager(gtk.Frame):
 
         
         # create and pack devices into settings frame
+        _entry_locs = {
+            'energy': (2,0),
+            'attenuation': (3,0),
+            'omega': (3,2),
+            'distance': (4,0),
+            'beam_stop': (3,1),
+            'two_theta': (4,1),
+            'beam_size': (4,2),
+            'phi': (3,3),
+            'kappa': (4,3),
+            'chi': (4,2)
+        }
         self.entries = {
             'energy':       MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.3f"),
             'attenuation':  ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
-            'omega':        MotorEntry(self.beamline.omega, 'Goniometer Omega', format="%0.2f"),
-            'beam_size':     MotorEntry(self.beamline.aperture, 'Beam Size', format="%0.2f"),
+            'omega':        MotorEntry(self.beamline.omega, 'Gonio Omega', format="%0.2f"),
             'distance':     MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.1f"),
             'beam_stop':    MotorEntry(self.beamline.beamstop_z, 'Beam-stop', format="%0.1f"),
             'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f"),
-            'chi':          MotorEntry(self.beamline.chi, 'Goniometer Chi', format="%0.1f")
+            'beam_size':     MotorEntry(self.beamline.aperture, 'Beam Aperture', format="%0.2f"),
         }
-                
-        motor_box1 = gtk.VBox(False,0)
-        for key in ['energy','attenuation','omega', 'chi']:
-            motor_box1.pack_start(self.entries[key], expand=True, fill=False)
-        motor_box2 = gtk.VBox(False,0)        
-        for key in ['beam_size','beam_stop','distance', 'two_theta']:
-            motor_box2.pack_start(self.entries[key], expand=True, fill=False)
-        self.device_box.pack_start(motor_box1, expand=True, fill=True)
-        self.device_box.pack_start(motor_box2, expand=True, fill=True)
+        if 'phi' in self.beamline.registry:
+            self.entries['phi'] = MotorEntry(self.beamline.chi, 'Gonio Phi', format="%0.2f")
+        if 'chi' in self.beamline.registry:
+            self.entries['chi'] = MotorEntry(self.beamline.chi, 'Gonio Chi', format="%0.2f")
+            del self.entries['beam_size']
+        if 'kappa' in self.beamline.registry:
+            self.entries['kappa'] = MotorEntry(self.beamline.chi, 'Gonio Kappa', format="%0.2f")
+
+               
+        for key in self.entries.keys():
+            l, t = _entry_locs[key]
+            self.device_box.attach(self.entries[key], l, l+1, t, t+1)
 
         # Predictor
         self.predictor = Predictor(self.beamline.detector.resolution, 
