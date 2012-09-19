@@ -316,8 +316,9 @@ class ScriptButton(gtk.Button):
         self.tooltip.set_tip(self, self.script.description)
         self._set_off()
         self.set_property('can-focus', False)
-        self.script.connect('done', self._on_state_change)
-        self.script.connect('error', self._on_state_change)
+        self.script.connect('done', lambda x,y: self._set_off())
+        self.script.connect('error', lambda x: self._set_err())
+        self.script.connect('started',lambda x: self._set_on())
         self.connect('clicked', self._on_clicked)
             
     def _on_clicked(self, widget):
@@ -328,21 +329,18 @@ class ScriptButton(gtk.Button):
                 self._set_on()  
         elif not self.script.is_active():
             self.script.start()
-            self._set_on()  
-        
-    def _on_state_change(self, obj, value=None):
-        self._set_off()
-        return True
-            
+                    
     def _set_on(self):
         self.image.set_from_animation(self._animation)
         self.label.set_sensitive(False)
-        #self.set_relief(gtk.RELIEF_NONE)
     
     def _set_off(self):
         self.image.set_from_stock('gtk-execute', gtk.ICON_SIZE_SMALL_TOOLBAR)
         self.label.set_sensitive(True)
-        #self.set_relief(gtk.RELIEF_NORMAL)
+
+    def _set_err(self):
+        self.image.set_from_stock('gtk-warning', gtk.ICON_SIZE_SMALL_TOOLBAR)
+        self.label.set_sensitive(True)
 
 
 class TextStatusDisplay(gtk.Label):

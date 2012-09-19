@@ -93,7 +93,7 @@ class SimMotor(MotorBase):
         MotorBase.__init__(self,name)
         pos = pos
         self._speed = speed # speed
-        self._steps_per_second = 10
+        self._steps_per_second = 20
         self._stepsize = self._speed/self._steps_per_second
         self.units = units
         self._state = 0

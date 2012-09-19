@@ -4,12 +4,12 @@ class SetMountMode(Script):
     description = "Prepare for manual sample mounting."
     def run(self):
         #if not self.beamline.automounter.is_busy():
-        safe_distance = 700
+        safe_distance = self.beamline.config['safe_distance']
+        self.beamline.config['_prev_distance'] = self.beamline.detector_z.get_position()
         if self.beamline.detector_z.get_position() < safe_distance:
             self.beamline.detector_z.move_to(safe_distance)
-        safe_beamstop = self.beamline.config['safe_beamstop']
         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
-        self.beamline.beamstop_z.move_to(safe_beamstop)
+        self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'])
         self.beamline.cryojet.nozzle.open()
         self.beamline.beamstop_z.wait()
         
@@ -20,14 +20,11 @@ class SetCenteringMode(Script):
     def run(self):
         if not self.beamline.automounter.is_busy():
             safe_beamstop = self.beamline.config['default_beamstop']
-            safe_distance = 300
-            
-            mount_distance = 700 # Should be the same as the 'safe_distance' from SetMountMode
-            
+            restore_distance = self.beamline.config.get('_prev_distance', self.beamline.config['default_distance'])
+            if self.beamline.detector_z.get_position() > restore_distance:
+                self.beamline.detector_z.move_to(restore_distance)
             self.beamline.beamstop_z.move_to(safe_beamstop, wait=True)
             self.beamline.goniometer.set_mode('CENTERING', wait=False)
-            if abs(self.beamline.detector_z.get_position() - mount_distance) < 1:
-                self.beamline.detector_z.move_to(safe_distance)
             self.beamline.cryojet.nozzle.close()
         
 
