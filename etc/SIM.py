@@ -10,6 +10,8 @@ BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
 DEFAULT_EXPOSURE    = 1.0
 DEFAULT_ATTENUATION = 50.0              # attenuation in %
 DEFAULT_BEAMSTOP    = 30.0
+DEFAULT_DISTANCE    = 250.0
+SAFE_DISTANCE       = 400.0
 SAFE_BEAMSTOP       = 50.0
 XRF_BEAMSTOP        = 90.0
 
@@ -21,6 +23,7 @@ def _energy2pitch(x):
     return 0.0
 
 # maps names to device objects
+_tmp1 = SimMotor('Detector Distance', 150.0, 'mm', speed=10.0) # use the same motor for distance and z
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
     'energy':   SimMotor('Energy', 12.5, 'keV'),
@@ -31,7 +34,7 @@ DEVICES = {
     
     # Goniometer/goniometer head devices
     'goniometer': SimGoniometer(),
-    'omega':    SimMotor('Omega', 0.0, 'deg', speed=120.0),
+    'omega':    SimMotor('Omega', 0.0, 'deg', speed=30.0),
     'sample_x':  SimMotor('Sample X', 0.0, 'mm'),
     'sample_y':  SimMotor('Sample Y', 0.0, 'mm'),
     
@@ -43,8 +46,8 @@ DEVICES = {
     'beam_h':   SimMotor('Beam H', 0.2, 'mm'),
     
     # Detector, distance & two_theta
-    'distance': SimMotor('Detector Distance', 150.0, 'mm', speed=10.0),
-    'detector_z':  SimMotor('Detector Z', 150.0, 'mm', speed=10.0),
+    'distance': _tmp1,
+    'detector_z':  _tmp1,
     'two_theta':  SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
     'detector': SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
     

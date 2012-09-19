@@ -10,7 +10,9 @@ BEAMLINE_GONIO_POSITION = 3             # Goniometer orientation (XREC) 1,2,3
 DEFAULT_EXPOSURE    = 1.0
 DEFAULT_ATTENUATION = 0.0              # attenuation in %
 DEFAULT_BEAMSTOP    = 30.0
+DEFAULT_DISTANCE    = 250.0
 SAFE_BEAMSTOP       = 50.0
+SAFE_DISTANCE       = 400.0
 XRF_BEAMSTOP        = 30.0
 
 # miscellaneous settings
@@ -69,7 +71,8 @@ DEVICES = {
     'psh1': Shutter('PSH1408-I00-01'),
     'psh2': Shutter('PSH1408-I00-02'),
     'ssh1': Shutter('SSH1408-I00-01'),
-    'ssh2': Shutter('SSH1608-2-I10-01'),
+    #'ssh2': Shutter('SSH1608-2-I10-01'),
+    'ssh2': StateLessShutter('SSH1608-2-I10-01:opr:open', 'SSH1608-2-I10-01:opr:close'),
     'exposure_shutter': Shutter('PSH16083I1001'),
     
     # Intensity monitors,

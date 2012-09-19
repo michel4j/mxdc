@@ -34,7 +34,6 @@ COPYRIGHT = """
 Copyright (c) 2006-2010, Canadian Light Source, Inc
 All rights reserved.
 """
-
     
 class AppWindow(gtk.Window):
     def __init__(self, version=VERSION):

@@ -322,12 +322,52 @@ class BasicShutter(BaseDevice):
         self._close_cmd.set(1)
         ca.flush()
         self._close_cmd.set(0)
+    
+    def wait(self, state=True, timeout=5.0):
+        while self.changed_state != state and timeout > 0:
+            time.sleep(0.1)
+            timeout -= 0.1
+        if timeout <= 0:
+            _logger.warning('Timed-out waiting for %s.' % (self.name))
+        
 
     def _signal_change(self, obj, value):
         if value == 1:
             self.set_state(changed=True)
         else:
             self.set_state(changed=False)
+
+
+class StateLessShutter(BaseDevice):
+
+    implements(IShutter)
+    
+    __gsignals__ =  { 
+        "changed": ( gobject.SIGNAL_RUN_FIRST, 
+                     gobject.TYPE_NONE, 
+                     (gobject.TYPE_BOOLEAN,)  ),
+        }
+          
+    def __init__(self, open_name, close_name):
+        BaseDevice.__init__(self)
+        # initialize variables
+        self._open_cmd = self.add_pv(open_name)
+        self._close_cmd = self.add_pv(close_name)
+        self._messages = ['Opening', 'Closing']
+        self.name  = open_name.split(':')[0]
+    
+    def is_open(self):
+        """Convenience function for open state"""
+        return self.changed_state
+    
+    def open(self):
+        _logger.debug(' '.join([self._messages[0], self.name]))
+        self._open_cmd.toggle(1, 0)
+    
+    def close(self):
+        _logger.debug(' '.join([self._messages[1], self.name]))
+        self._close_cmd.toggle(1, 0)
+
 
 
 class ShutterGroup(BaseDevice):
@@ -359,16 +399,18 @@ class ShutterGroup(BaseDevice):
             self.set_state(changed=False, health=(2, 'state', 'Not Open!'))
     @async
     def open(self):
-        for dev in self._dev_list:
-            if dev.changed_state == False:
-                dev.open()
-                while not dev.changed_state:
-                    time.sleep(0.1)
+        for i,dev in enumerate(self._dev_list):
+            if i > 0:
+                self._dev_list[i-1].wait(True)  # Wait for prev to open
+            dev.open()
+
     @async
     def close(self):
         newlist = self._dev_list[:]
         newlist.reverse()
-        for dev in newlist:
+        for i,dev in enumerate(newlist):
+            if i > 0:
+                self._dev_list[i-1].wait(False)  # Wait for prev to close
             dev.close()
             while dev.changed_state:
                 time.sleep(0.1)
