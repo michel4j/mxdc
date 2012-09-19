@@ -149,8 +149,11 @@ class HutchManager(gtk.Frame):
         self.optimize_btn = ScriptButton(self.scripts['OptimizeBeam'], 'Optimize Beam')
         self.mount_btn = ScriptButton(self.scripts['SetMountMode'], 'Mounting Mode')
         self.cent_btn = ScriptButton(self.scripts['SetCenteringMode'], 'Centering Mode')
-        self.collect_btn = ScriptButton(self.scripts['SetCollectMode'], 'Collect Mode')        
-        self.beam_btn = ScriptButton(self.scripts['SetBeamMode'], 'Beam Mode') # Not currently displayed but used      
+        
+        # Not currently displayed but used      
+        #self.collect_btn = ScriptButton(self.scripts['SetCollectMode'], 'Collect Mode')        
+        #self.beam_btn = ScriptButton(self.scripts['SetBeamMode'], 'Beam Mode')
+        
         self.commands_box.pack_start(self.front_end_btn)
         self.commands_box.pack_start(self.optimize_btn)
         
@@ -161,8 +164,9 @@ class HutchManager(gtk.Frame):
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
         
         self.commands_box.pack_start(gtk.Label(''))
+        self.commands_box.pack_start(gtk.Label(''))
         
-        for btn in [self.mount_btn, self.cent_btn, self.collect_btn]:
+        for btn in [self.mount_btn, self.cent_btn]:
             self.commands_box.pack_end(btn)
         
         # tool book, diagnostics  etc
@@ -189,8 +193,8 @@ class HutchManager(gtk.Frame):
     def on_automounter_busy(self, obj, state):
         self.mount_btn.set_sensitive(not state)
         self.cent_btn.set_sensitive(not state)
-        self.collect_btn.set_sensitive(not state)  
-        self.beam_btn.set_sensitive(not state)  
+        #self.collect_btn.set_sensitive(not state)  
+        #self.beam_btn.set_sensitive(not state)  
         
     
     def on_beam_change(self, obj, beam_available):
@@ -201,27 +205,30 @@ class HutchManager(gtk.Frame):
         script.start()
     
     def on_mounting(self, obj):
-        self.mount_btn.clicked()
+        script = self.scripts['SetMountMode']
+        script.start()
     
     def on_beam_mode(self, obj):
-        self.beam_btn.clicked()
+        script = self.scripts['SetBeamMode']
+        script.start()
 
     def on_centering(self, obj):
-        self.cent_btn.clicked()
+        script = self.scripts['SetCenteringMode']
+        script.start()
     
     def on_collection(self, obj):
-        self.collect_btn.clicked()
-    
-    def on_scripts_started(self, obj, event=None):
-        self.device_box.set_sensitive(False)
-        self.commands_box.set_sensitive(False)
+        script = self.scripts['SetCollectMode']
+        script.start()
     
     def on_open_shutter(self, obj):
         self.beamline.exposure_shutter.open()
     
     def on_close_shutter(self, obj):
         self.beamline.exposure_shutter.close()
-    
+
+    def on_scripts_started(self, obj, event=None):
+        self.device_box.set_sensitive(False)
+        self.commands_box.set_sensitive(False)    
     
     def on_scripts_done(self, obj, event=None):
         self.device_box.set_sensitive(True)
