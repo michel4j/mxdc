@@ -120,12 +120,12 @@ class AppWindow(gtk.Window):
         notebook.append_page(self.screen_manager, tab_label=_mk_lbl('Screening'))
         notebook.append_page(self.scan_manager, tab_label=_mk_lbl('Fluorescence Scans'))
         notebook.append_page(self.result_manager, tab_label=_mk_lbl('Processing Results'))
-        notebook.set_border_width(6)
+        notebook.set_border_width(3)
         self.notebook = notebook
         self.notebook.connect('switch-page', self.on_page_switch)
 
         self.main_frame.add(notebook)
-        self.mxdc_main.pack_start(self.status_panel, expand = False, fill = False)
+        self.mxdc_main.pack_end(self.status_panel, expand = False, fill = False)
         self.add(self.mxdc_main)
         self.scripts = get_scripts()
         # register menu events
