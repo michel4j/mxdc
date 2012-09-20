@@ -21,7 +21,6 @@
               <widget class="GtkVButtonBox" id="commands_box">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="spacing">3</property>
                 <property name="homogeneous">True</property>
                 <property name="layout_style">edge</property>
                 <child>
@@ -56,6 +55,21 @@
                 <property name="n_rows">4</property>
                 <property name="n_columns">6</property>
                 <property name="homogeneous">True</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
                 <child>
                   <placeholder/>
                 </child>
@@ -160,7 +174,7 @@
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
+            <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
         </child>
