@@ -152,9 +152,9 @@ class CollectManager(gtk.Frame):
         self.beamline.manualmounter.connect('mounted', self.on_mount_done)
         
         #diagnostics
-        self.diagnostics = DiagnosticsWidget()
-        self.tool_book.append_page(self.diagnostics, tab_label=gtk.Label('Run Diagnostics'))
-        self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(0))
+        #self.diagnostics = DiagnosticsWidget()
+        #self.tool_book.append_page(self.diagnostics, tab_label=gtk.Label('Run Diagnostics'))
+        #self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(0))
         #self.diagnostics.set_sensitive(False)
         
         self.listview.connect('row-activated',self.on_row_activated)

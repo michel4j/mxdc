@@ -22,7 +22,7 @@ FILE_PATTERN = re.compile('^(?P<base>[\w-]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.
 class ImageViewer(gtk.Frame):
     def __init__(self, size=512):
         gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        self.set_shadow_type(gtk.SHADOW_OUT)
         self._canvas_size = size
         self._brightness = 1.0
         self._contrast = 1.0
