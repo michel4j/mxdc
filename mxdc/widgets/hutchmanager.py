@@ -116,12 +116,12 @@ class HutchManager(gtk.Frame):
             'beam_size':     MotorEntry(self.beamline.aperture, 'Beam Aperture', format="%0.2f"),
         }
         if 'phi' in self.beamline.registry:
-            self.entries['phi'] = MotorEntry(self.beamline.chi, 'Gonio Phi', format="%0.2f")
+            self.entries['phi'] = MotorEntry(self.beamline.phi, 'Gonio Phi', format="%0.2f")
         if 'chi' in self.beamline.registry:
             self.entries['chi'] = MotorEntry(self.beamline.chi, 'Gonio Chi', format="%0.2f")
             del self.entries['beam_size']
         if 'kappa' in self.beamline.registry:
-            self.entries['kappa'] = MotorEntry(self.beamline.chi, 'Gonio Kappa', format="%0.2f")
+            self.entries['kappa'] = MotorEntry(self.beamline.kappa, 'Gonio Kappa', format="%0.2f")
 
                
         for key in self.entries.keys():
