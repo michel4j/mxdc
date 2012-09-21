@@ -21,7 +21,7 @@ class SetCenteringMode(Script):
         if not self.beamline.automounter.is_busy():
             safe_beamstop = self.beamline.config['default_beamstop']
             restore_distance = self.beamline.config.get('_prev_distance', self.beamline.config['default_distance'])
-            if self.beamline.detector_z.get_position() > restore_distance:
+            if restore_distance:
                 self.beamline.detector_z.move_to(restore_distance)
             self.beamline.beamstop_z.move_to(safe_beamstop, wait=True)
             self.beamline.goniometer.set_mode('CENTERING', wait=False)
@@ -33,6 +33,7 @@ class SetCollectMode(Script):
     def run(self):
         if not self.beamline.automounter.is_busy():
             self.beamline.goniometer.set_mode('COLLECT', wait=True)
+            self.beamline.config['_prev_distance'] = None
             beamstop_pos = self.beamline.config['default_beamstop']
             self.beamline.beamstop_z.move_to(beamstop_pos)
             self.beamline.cryojet.nozzle.close()
