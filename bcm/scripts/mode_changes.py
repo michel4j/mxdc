@@ -21,8 +21,8 @@ class SetCenteringMode(Script):
             self.beamline.cryojet.nozzle.close()
             self.beamline.goniometer.set_mode('CENTERING', wait=True)
             safe_beamstop = self.beamline.config['default_beamstop']
-            restore_distance = self.beamline.config.get('_prev_distance', self.beamline.config['default_distance'])
-            if self.beamline.detector_z.get_position() > restore_distance:
+            restore_distance = self.beamline.config.get('_prev_distance')
+            if restore_distance:
                 self.beamline.detector_z.move_to(restore_distance, wait=False)
             #self.beamline.beamstop_z.move_to(safe_beamstop, wait=False)
         
