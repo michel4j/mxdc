@@ -372,23 +372,26 @@ class MD2Goniometer(GoniometerBase):
             #self._mode_beam_cmd.put('\x01')
                     
         if wait:
-            timeout = 60
+            timeout = 30
+            self.wait()
             while mode not in _MODE_MAP_REV.get(self.mode)  and timeout > 0:
-                time.sleep(0.01)
-                timeout -= 0.01
+                time.sleep(0.05)
+                timeout -= 0.05
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
+            time.sleep(1.0)
         
         #FIXME: compensate for broken presets in mounting mode
         if mode == 'MOUNTING':
             for dev,val in self._mount_setpoints.items():
                 if abs(dev.get() - val) > 0.01:              
                     self.wait() 
-                    time.sleep(1.0)
+                    time.sleep(0.5)
                     dev.set(val) 
         elif mode == 'SCANNING': 
             #self._minibeam.set(2) # may not be needed any more
             pass
+        
         
     def _on_mode_changed(self, pv, val):
         mode_str = _MODE_MAP_REV.get(val, ['UNKNOWN'])[0]      
