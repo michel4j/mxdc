@@ -118,7 +118,7 @@ class MXBeamline(object):
             'default_attenuation': getattr(l_settings, 'DEFAULT_ATTENUATION', getattr(g_settings, 'DEFAULT_ATTENUATION', 90.0)),
             'default_exposure': getattr(l_settings, 'DEFAULT_EXPOSURE', getattr(g_settings, 'DEFAULT_EXPOSURE', 1.0)),
             'default_beamstop': getattr(l_settings, 'DEFAULT_BEAMSTOP', getattr(g_settings, 'DEFAULT_BEAMSTOP', 25.0)),
-            'default_distance': getattr(l_settings, 'DEFAULT_DISTANCE', getattr(g_settings, 'DEFAULT_DISTANCE', 250.0)),
+            'default_distance': getattr(l_settings, 'DEFAULT_DISTANCE', getattr(g_settings, 'DEFAULT_DISTANCE', None)),
             'safe_beamstop': getattr(l_settings, 'SAFE_BEAMSTOP', getattr(g_settings, 'SAFE_BEAMSTOP', 25.0)),
             'safe_distance': getattr(l_settings, 'SAFE_DISTANCE', getattr(g_settings, 'SAFE_DISTANCE', 700.0)),
             'xrf_beamstop': getattr(l_settings, 'XRF_BEAMSTOP', getattr(g_settings, 'XRF_BEAMSTOP', 50.0)),           
