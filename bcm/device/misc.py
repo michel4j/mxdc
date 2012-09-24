@@ -664,7 +664,7 @@ class SimStorageRing(BaseDevice):
         
 class DiskSpaceMonitor(BaseDevice):
     """An object which periodically monitors a given path for available space."""
-    def __init__(self, descr, path, warn=0.8, critical=0.9, freq=5.0):
+    def __init__(self, descr, path, warn=0.05, critical=0.025, freq=5.0):
         """
         Args:
             - `descr` (str): A description.
@@ -692,16 +692,16 @@ class DiskSpaceMonitor(BaseDevice):
         total = round((fs_stat.f_frsize*fs_stat.f_blocks)/1073741824.0, 2)
         avail = round((fs_stat.f_frsize*fs_stat.f_bfree)/1073741824.0, 2)
         fraction = avail/total
-        msg = '%0.1f %% or %0.1f GB available.' % (fraction*100, avail)
-        if fraction < self.warn_threshold:
-            self.set_state(health=(0, 'usage', msg))
-            _logger.info(msg)
-        elif fraction < self.error_threshold:
+        msg = '%0.1f GB (%0.1f %%) available.' % (avail, fraction*100)
+        if fraction < self.error_threshold:
+            self.set_state(health=(4, 'usage', msg))
+            _logger.error(msg)
+        elif fraction < self.warn_threshold:
             self.set_state(health=(2, 'usage', msg))
             _logger.warn(msg)            
         else:
-            self.set_state(health=(4, 'usage', msg))
-            _logger.error(msg)
+            self.set_state(health=(0, 'usage', msg))
+            _logger.info(msg)
         
         
     
