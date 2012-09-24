@@ -3,7 +3,6 @@ from bcm.engine.scripting import Script
 class SetMountMode(Script):
     description = "Prepare for manual sample mounting."
     def run(self):
-        #if not self.beamline.automounter.is_busy():
         safe_distance = self.beamline.config['safe_distance']
         self.beamline.config['_prev_distance'] = self.beamline.detector_z.get_position()
         if self.beamline.detector_z.get_position() < safe_distance:
@@ -19,13 +18,13 @@ class SetCenteringMode(Script):
     description = "Prepare for crystal centering."
     def run(self):
         if not self.beamline.automounter.is_busy():
+            self.beamline.cryojet.nozzle.close()
+            self.beamline.goniometer.set_mode('CENTERING', wait=True)
             safe_beamstop = self.beamline.config['default_beamstop']
             restore_distance = self.beamline.config.get('_prev_distance', self.beamline.config['default_distance'])
             if self.beamline.detector_z.get_position() > restore_distance:
-                self.beamline.detector_z.move_to(restore_distance)
-            self.beamline.beamstop_z.move_to(safe_beamstop, wait=True)
-            self.beamline.goniometer.set_mode('CENTERING', wait=False)
-            self.beamline.cryojet.nozzle.close()
+                self.beamline.detector_z.move_to(restore_distance, wait=False)
+            #self.beamline.beamstop_z.move_to(safe_beamstop, wait=False)
         
 
 class SetCollectMode(Script):
