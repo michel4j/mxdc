@@ -98,7 +98,7 @@ DEVICES = {
     'multi_mca': VortexMCA('dxp1608-004'),
 
     #disk space monitor
-    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', freq=0.5), 
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users'), 
 }
 
 # lims, dpm, imagesync and other services

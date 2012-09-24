@@ -86,7 +86,7 @@ DEVICES = {
     'mca': XFlashMCA('XFD1608-101'),
     
     #disk space monitor
-    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', freq=0.5), 
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users'), 
 }
 
 # lims, dpm, imagesync and other services
