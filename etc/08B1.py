@@ -9,7 +9,7 @@ BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
 
 DEFAULT_EXPOSURE    = 5.0
 DEFAULT_ATTENUATION = 0.0              # attenuation in %
-DEFAULT_BEAMSTOP    = 70.0
+DEFAULT_BEAMSTOP    = 60.0
 SAFE_DISTANCE       = 400.0
 SAFE_BEAMSTOP       = 80.0
 XRF_BEAMSTOP        = 100.0

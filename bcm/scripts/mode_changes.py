@@ -1,4 +1,5 @@
 from bcm.engine.scripting import Script
+import time
 
 class SetMountMode(Script):
     description = "Prepare for manual sample mounting."
@@ -20,11 +21,11 @@ class SetCenteringMode(Script):
         if not self.beamline.automounter.is_busy():
             self.beamline.cryojet.nozzle.close()
             self.beamline.goniometer.set_mode('CENTERING', wait=True)
-            safe_beamstop = self.beamline.config['default_beamstop']
+            default_beamstop = self.beamline.config['default_beamstop']
             restore_distance = self.beamline.config.get('_prev_distance')
             if restore_distance:
                 self.beamline.detector_z.move_to(restore_distance, wait=False)
-            #self.beamline.beamstop_z.move_to(safe_beamstop, wait=False)
+            self.beamline.beamstop_z.move_to(default_beamstop, wait=False)
         
 
 class SetCollectMode(Script):
