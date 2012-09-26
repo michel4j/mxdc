@@ -234,10 +234,12 @@ class MotorEntry(ActiveEntry):
         if motion:
             self.running = True
             self._action_icon.set_from_animation(self._animation)
+            self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#0000ff"))
         else:
             self.running = False
             #self.set_target(self.device.get_position())
             self._action_icon.set_from_stock('gtk-apply',gtk.ICON_SIZE_MENU)
+            self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000066"))
         self.set_feedback(self.device.get_position())
         return True
 
