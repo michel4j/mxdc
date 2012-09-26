@@ -38,7 +38,7 @@ DEVICES = {
     'sample_y':  SimMotor('Sample Y', 0.0, 'mm'),
     
     # Beam position & Size
-    'aperture': SimPositioner('Aperture', 150.0, 'um', False),
+    'aperture': SimPositioner('Aperture', 150.0, 'um', active=False),
     'beam_x':   SimMotor('Beam X', 0.0, 'mm'),
     'beam_y':   SimMotor('Beam Y', 0.0, 'mm'),
     'beam_w':   SimMotor('Beam W', 0.2, 'mm'),
@@ -87,7 +87,7 @@ DEVICES = {
     'multi_mca' : SimMultiChannelAnalyzer('Simulated MCA'),
 
     #disk space monitor
-    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.8, critical=0.9, freq=0.5), 
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.8, critical=0.5, freq=0.5), 
 }
 
 # lims, dpm, imagesync and other services
