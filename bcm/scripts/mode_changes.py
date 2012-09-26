@@ -5,7 +5,6 @@ class SetMountMode(Script):
     description = "Prepare for manual sample mounting."
     def run(self):
         safe_distance = self.beamline.config['safe_distance']
-        self.beamline.config['_prev_distance'] = self.beamline.detector_z.get_position()
         if self.beamline.detector_z.get_position() < safe_distance:
             self.beamline.detector_z.move_to(safe_distance)
         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
@@ -23,7 +22,7 @@ class SetCenteringMode(Script):
             self.beamline.goniometer.set_mode('CENTERING', wait=True)
             default_beamstop = self.beamline.config['default_beamstop']
             restore_distance = self.beamline.config.get('_prev_distance')
-            if restore_distance:
+            if restore_distance and restore_distance < self.beamline.detector_z.get_position():
                 self.beamline.detector_z.move_to(restore_distance, wait=False)
             self.beamline.beamstop_z.move_to(default_beamstop, wait=False)
         

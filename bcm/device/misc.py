@@ -57,8 +57,10 @@ class SimPositioner(PositionerBase):
         self.name = name
         self._pos = float(pos)
         self.units = units
-        self.set_state(changed=self._pos)
-        self.set_state(active=active)
+        if active:
+            self.set_state(changed=self._pos, active=active, health=(0,''))
+        else:
+            self.set_state(changed=self._pos, active=active, health=(16,'disabled'))
         
     def set(self, pos, wait=False):
         self._pos = pos

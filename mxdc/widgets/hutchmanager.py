@@ -113,7 +113,7 @@ class HutchManager(gtk.Frame):
             'distance':     MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.1f"),
             'beam_stop':    MotorEntry(self.beamline.beamstop_z, 'Beam-stop', format="%0.1f"),
             'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f"),
-            'beam_size':     MotorEntry(self.beamline.aperture, 'Beam Aperture', format="%0.2f"),
+            'beam_size':    ActiveEntry(self.beamline.aperture, 'Beam Aperture', format="%0.2f"),
         }
         if 'phi' in self.beamline.registry:
             self.entries['phi'] = MotorEntry(self.beamline.phi, 'Gonio Phi', format="%0.2f")
@@ -136,7 +136,8 @@ class HutchManager(gtk.Frame):
         self.beamline.diffractometer.distance.connect('changed', self.update_predictor)
         self.beamline.diffractometer.two_theta.connect('changed', self.update_predictor)
         self.beamline.monochromator.energy.connect('changed', self.update_predictor)
-
+        self.beamline.detector_z.connect('target-changed', self._track_ztarget)
+        
         # BOSS enable/disable if a boss has been defined
         if 'boss' in self.beamline.registry:
             self.beamline.monochromator.energy.connect('busy', self.switch_boss, self.beamline.boss)
@@ -189,6 +190,10 @@ class HutchManager(gtk.Frame):
         
         self.add(self.hutch_widget)
         self.show_all()
+    
+    def _track_ztarget(self, obj, targets):
+        prev, this = targets
+        self.beamline.config['_prev_distance'] = prev
     
     def on_automounter_busy(self, obj, state):
         self.mount_btn.set_sensitive(not state)
