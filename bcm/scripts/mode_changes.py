@@ -7,6 +7,8 @@ class SetMountMode(Script):
         safe_distance = self.beamline.config['safe_distance']
         if self.beamline.detector_z.get_position() < safe_distance:
             self.beamline.detector_z.move_to(safe_distance)
+        else:
+            self.beamline.config['_prev_distance'] =  self.beamline.detector_z.get_position()
         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
         self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'])
         self.beamline.cryojet.nozzle.open()
@@ -32,7 +34,6 @@ class SetCollectMode(Script):
     def run(self):
         if not self.beamline.automounter.is_busy():
             self.beamline.goniometer.set_mode('COLLECT', wait=True)
-            self.beamline.config['_prev_distance'] = None
             beamstop_pos = self.beamline.config['default_beamstop']
             self.beamline.beamstop_z.move_to(beamstop_pos)
             self.beamline.cryojet.nozzle.close()

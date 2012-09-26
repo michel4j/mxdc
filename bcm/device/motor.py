@@ -276,8 +276,7 @@ class Motor(MotorBase):
         self.CALIB.connect('changed', self._on_calib_changed)
         self.ENAB.connect('changed', self._signal_enable)
         self.DESC.connect('changed', self._on_desc_change)
-
-
+            
     def _on_desc_change(self, pv, val):
         self.name = val
 
