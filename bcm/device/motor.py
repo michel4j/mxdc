@@ -23,6 +23,8 @@ class MotorBase(BaseDevice):
     Signals:
         - `changed` (float): Emitted everytime the position of the motor changes.
           Data contains the current position of the motor.
+        - `target-changed` (float): Emitted everytime the requested position of the motor changes.
+          Data is a tuple containing the previous set point and the current one.
         - `timed-change` (tuple(float, float)): Emitted everytime the motor changes.
           Data is a 2-tuple with the current position and the timestamp of the last change.
         
@@ -32,6 +34,7 @@ class MotorBase(BaseDevice):
     # Motor signals
     __gsignals__ =  { 
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        "target-changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),        
         "timed-change": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         }  
 
@@ -42,6 +45,7 @@ class MotorBase(BaseDevice):
         self._moving = False
         self._command_sent = False
         self._target_pos = 0
+        self._prev_target = None
         self._motor_type = 'basic'
         self.units = ''
         self._move_active_value = 1
@@ -54,6 +58,10 @@ class MotorBase(BaseDevice):
     
     def _signal_change(self, obj, value):
         self.set_state(changed=self.get_position())
+
+    def _signal_target(self, obj, value):
+        self.set_state(target_changed=(self._prev_target, value))
+        self._prev_target = value
 
     def _signal_timed_change(self, obj, data):
         self.set_state(timed_change=data, changed=data[0])
@@ -102,6 +110,7 @@ class SimMotor(MotorBase):
         self._command_sent = False
         self.set_state(health=(0,''), active=active, changed=pos)
         self._position = pos
+        self._target = None
 
     def get_position(self):
         return self._position
@@ -111,6 +120,8 @@ class SimMotor(MotorBase):
         self._stopped = False
         self._command_sent = True
         import numpy
+        self.set_state(target_changed=(self._target, target))
+        self._target = target
         _num_steps = max(5, int(abs(self._position - target)/self._stepsize))
         targets = numpy.linspace(self._position, target, _num_steps)
         self.set_state(busy=True)
@@ -259,6 +270,8 @@ class Motor(MotorBase):
                      
         # connect monitors
         self._rbid = self.RBV.connect('timed-change', self._signal_timed_change)
+        self._vid = self.VAL.connect('changed', self._signal_target)
+
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
         self.ENAB.connect('changed', self._signal_enable)
@@ -479,6 +492,7 @@ class EnergyMotor(Motor):
         
         # connect monitors
         self._rbid = self.RBV.connect('timed-change', self._signal_timed_change)
+        self._vid = self.VAL.connect('changed', self._signal_target)
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
         self.ENAB.connect('changed', self._signal_enable)
@@ -519,6 +533,7 @@ class BraggEnergyMotor(Motor):
             self.RBV = self.add_pv(enc, timed=True)
             gobject.source_remove(self._rbid)
             self.RBV.connect('timed-change', self._signal_timed_change)
+        gobject.source_remove(self._vid) # Not needed for Bragg
         self.name = 'Bragg Energy'
         self._motor_type = 'vmeenc'
 
@@ -552,6 +567,7 @@ class BraggEnergyMotor(Motor):
         self._command_sent = True
         self._target_pos = pos
         self.VAL.put(deg_target)
+        self._signal_target(None, pos)
         _logger.info( "(%s) moving to %f" % (self.name, pos) )
         
         if wait:

@@ -170,10 +170,11 @@ class Goniometer(GoniometerBase):
         if bl is None:
             _logger.error('Beamline is not available.')
             return
-        if self.minibeam.busy_state:
-            self._set_and_notify_mode("MOVING")
-        elif self._bl_position.changed_state:
+        
+        if self._bl_position.changed_state:
             self._set_and_notify_mode("CENTERING")
+        elif self.minibeam.busy_state or self.minibeam._command_sent:
+            self._set_and_notify_mode("MOVING")
         elif abs(self.minibeam.get_position() - out_position) < 2:
             self._set_and_notify_mode("MOUNTING")
         else:

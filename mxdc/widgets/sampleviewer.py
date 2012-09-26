@@ -43,6 +43,12 @@ POPUP_ACTIONS = (
 POPUP_UI = """
 <ui>
     <popup>
+        <menu name="Grid" action="grid_action">
+          <menuitem name="Clear Grid" action="grid_clear"/>
+          <separator/>
+          <menuitem name="Reset Grid" action="grid_reset"/>
+        </menu>
+        <menu name="Color Mapping" action="cmap_action">
           <menuitem name="Default" action="cmap_default"/>
           <separator/>
           <menuitem name="Spectral" action="cmap_spectral"/>
@@ -51,6 +57,8 @@ POPUP_UI = """
           <menuitem name="RdYlGn" action="cmap_ryg"/>
           <menuitem name="Hot" action="cmap_hot"/>
           <menuitem name="PuBu" action="cmap_pubu"/>
+        </menu>
+        
     </popup>
 </ui>
 """
