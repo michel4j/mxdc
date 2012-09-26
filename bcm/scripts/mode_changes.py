@@ -7,8 +7,7 @@ class SetMountMode(Script):
         safe_distance = self.beamline.config['safe_distance']
         if self.beamline.detector_z.get_position() < safe_distance:
             self.beamline.detector_z.move_to(safe_distance)
-        else:
-            self.beamline.config['_prev_distance'] =  self.beamline.detector_z.get_position()
+
         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
         self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'])
         self.beamline.cryojet.nozzle.open()
@@ -23,7 +22,7 @@ class SetCenteringMode(Script):
             self.beamline.cryojet.nozzle.close()
             self.beamline.goniometer.set_mode('CENTERING', wait=True)
             default_beamstop = self.beamline.config['default_beamstop']
-            restore_distance = self.beamline.config.get('_prev_distance')
+            restore_distance = self.beamline.distance.target_changed_state[1]
             if restore_distance and restore_distance < self.beamline.detector_z.get_position():
                 self.beamline.detector_z.move_to(restore_distance, wait=False)
             self.beamline.beamstop_z.move_to(default_beamstop, wait=False)
