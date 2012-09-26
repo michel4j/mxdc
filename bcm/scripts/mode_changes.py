@@ -32,6 +32,7 @@ class SetCollectMode(Script):
     def run(self):
         if not self.beamline.automounter.is_busy():
             self.beamline.goniometer.set_mode('COLLECT', wait=True)
+            self.beamline.config['_prev_distance'] = None
             beamstop_pos = self.beamline.config['default_beamstop']
             self.beamline.beamstop_z.move_to(beamstop_pos)
             self.beamline.cryojet.nozzle.close()
