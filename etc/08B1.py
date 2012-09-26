@@ -8,7 +8,7 @@ BEAMLINE_ENERGY_RANGE = (4.0, 18.5)
 BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
 
 DEFAULT_EXPOSURE    = 5.0
-DEFAULT_ATTENUATION = 0.0              # attenuation in %
+DEFAULT_ATTENUATION = 0.0               # attenuation in %
 DEFAULT_BEAMSTOP    = 60.0
 SAFE_DISTANCE       = 400.0
 SAFE_BEAMSTOP       = 80.0
@@ -40,7 +40,6 @@ DEVICES = {
     # Goniometer/goniometer head devices
     'goniometer': MD2Goniometer('BL08B1:MD2'),
     'omega':    PseudoMotor('PSMTR1608-5-B10-06:pm:deg'),
-    #'chi':  SimMotor('Chi', 0.0, 'deg', False),
     'phi': PseudoMotor('PSMTR1608-5-B10-12:pm:deg'),
     'chi': PseudoMotor('PSMTR1608-5-B10-13:pm:deg'),
     'kappa': PseudoMotor('PSMTR1608-5-B10-11:pm:deg'),

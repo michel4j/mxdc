@@ -39,7 +39,7 @@ DEVICES = {
     'sample_y2':  VMEMotor('SMTR16083I1013:mm'), # orthogonal sample_y1 AND sample_y2
     
     # Beam position & Size
-    'aperture': SimPositioner('Aperture', 50.0, 'um', False),
+    'aperture': SimPositioner('Aperture', 50.0, 'um', active=False),
     'beam_x':   VMEMotor('SMTR16083I1002:mm'),
     'beam_y':   VMEMotor('SMTR16083I1004:mm'),
     'beam_w':   VMEMotor('SMTR16083I1001:mm'),
