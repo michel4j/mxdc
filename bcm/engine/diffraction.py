@@ -233,8 +233,7 @@ class DataCollector(gobject.GObject):
                     self.beamline.mostab.start()
                     self.beamline.mostab.wait()
 
-                self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)
-                self.beamline.config['_prev_distance'] = None 
+                self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True) 
                 self.beamline.attenuator.set(frame['attenuation'], wait=True)               
                 
                 # Prepare image header

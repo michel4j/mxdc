@@ -136,7 +136,6 @@ class HutchManager(gtk.Frame):
         self.beamline.diffractometer.distance.connect('changed', self.update_predictor)
         self.beamline.diffractometer.two_theta.connect('changed', self.update_predictor)
         self.beamline.monochromator.energy.connect('changed', self.update_predictor)
-        self.beamline.detector_z.connect('target-changed', self._track_ztarget)
         
         # BOSS enable/disable if a boss has been defined
         if 'boss' in self.beamline.registry:
@@ -191,9 +190,6 @@ class HutchManager(gtk.Frame):
         self.add(self.hutch_widget)
         self.show_all()
     
-    def _track_ztarget(self, obj, targets):
-        prev, this = targets
-        self.beamline.config['_prev_distance'] = prev
     
     def on_automounter_busy(self, obj, state):
         self.mount_btn.set_sensitive(not state)
