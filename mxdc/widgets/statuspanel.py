@@ -5,7 +5,7 @@ import pango
 
 from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
-from mxdc.widgets.misc import ActiveLabel, TextStatusDisplay, ShutterButton
+from mxdc.widgets.misc import ActiveLabel, TextStatusDisplay, ShutterButton, StatusBox
 
 class StatusPanel(gtk.Statusbar):
     def __init__(self):
@@ -38,21 +38,23 @@ class StatusPanel(gtk.Statusbar):
         self.i0 = ActiveLabel(beamline.i_0.value, format="%+0.2e")
         self.layout_table.attach(self._frame_control('I0', self.i0, gtk.SHADOW_IN), 4, 5 , 0, 1, **options)
         
-        _map = {True:'<span color="#009900">OPEN</span>',
-                False:'<span color="#990000">CLOSED</span>'}
-        self.sh_stat = TextStatusDisplay(beamline.registry['exposure_shutter'], text_map=_map)
+        _cmap = {True:'green',  False:'red'}
+        _vmap = {True:'OPEN',  False:'CLOSED'}
+        self.sh_stat = StatusBox(beamline.registry['exposure_shutter'], color_map=_cmap, value_map=_vmap)
         self.layout_table.attach(self._frame_control('Shutter', self.sh_stat, gtk.SHADOW_IN), 3, 4 , 0, 1, **options)
       
-        _map = {'MOUNTING':'<span color="#009999">MOUNTING</span>',
-                'CENTERING':'<span color="#999900">CENTERING</span>',
-                'SCANNING':'<span color="#009999">SCANNING</span>',
-                'COLLECT': '<span color="#009900">COLLECT</span>',
-                'BEAM': '<span color="#990000">BEAM</span>',
-                'MOVING': '<span color="#000099">MOVING</span>',
-                'INIT':'<span color="#000099">INIT</span>',
-                'ALIGN': '<span color="#000099">ALIGN</span>',
-                }
-        self.gonio_mode = TextStatusDisplay(beamline.goniometer, sig='mode', text_map=_map)
+
+        _cmap = {'MOUNTING':'blue',
+            'CENTERING':'orange',
+            'SCANNING':'green',
+            'COLLECT': 'green',
+            'BEAM': 'red',
+            'MOVING': 'gray',
+            'INIT':'gray',
+            'ALIGN': 'gray',
+            }
+
+        self.gonio_mode = StatusBox(beamline.goniometer, signal='mode', color_map=_cmap)
         self.layout_table.attach(self._frame_control('Mode', self.gonio_mode, gtk.SHADOW_IN), 2, 3 , 0, 1, **options)
         #self.progress_bar = gtk.ProgressBar()
         #self.progress_bar.set_size_request(50,-1)
@@ -68,7 +70,7 @@ class StatusPanel(gtk.Statusbar):
         self.layout_table.attach(self._frame_control(None, label, gtk.SHADOW_NONE), 0,2,0,1, **options)
         frame.add(self.layout_table)
 
-        for lbl in [self.cur, self.i2, self.i1, self.i0, self.gonio_mode, self.sh_stat]:
+        for lbl in [self.cur, self.i2, self.i1, self.i0]:
             lbl.modify_font(pango_font)
 
         self.show_all()    
@@ -78,13 +80,13 @@ class StatusPanel(gtk.Statusbar):
         
     def _frame_control(self, label, widget, shadow):
         hbox = gtk.HBox(False, 2)
-        hbox.pack_end(widget, expand=True, fill=False)
+        hbox.pack_end(widget, expand=True, fill=True)
         if label is not None:
-            descr = gtk.Label('<span color="#333333"><i>%s:</i></span>' % label)
+            descr = gtk.Label('<i><span color="#333333">%s:</span></i>' % label)
             descr.set_sensitive(False)
             descr.set_use_markup(True)
-            hbox.pack_start(gtk.VSeparator(), expand=False, fill=False)
-            hbox.pack_start(descr, expand=False, fill=False)
+            hbox.pack_start(gtk.VSeparator(), expand=False, fill=True)
+            hbox.pack_start(descr, expand=False, fill=True)
         #frame = gtk.Frame()
         #frame.set_shadow_type(shadow)
         #frame.add(hbox)
