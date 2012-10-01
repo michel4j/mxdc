@@ -1,8 +1,9 @@
 import os
 import sys
+import re
 import math, time
-#import gtk
 import gobject
+import string, unicodedata
 import pwd
 import threading
 from bcm.protocol import ca
@@ -65,3 +66,18 @@ def multi_count(*args):
     [th.join() for th in threads]
     return tuple(counts)
 
+
+def slugify(s, empty=""):
+    valid_chars = "-_.()%s%s" % (string.ascii_letters, string.digits)
+    ns = ''.join([c for c in s if c in valid_chars])
+    if ns == "":
+        ns = empty
+    return ns
+
+_COLOR_PATTERN = re.compile('#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2}).*')
+def lighten_color(s, step=51):    
+    R,G,B = [min(max(int('0x'+v,0)+step,0),255) for v in _COLOR_PATTERN.match(s.upper()).groups()]
+    return "#%02x%02x%02x" % (R,G,B)
+
+def darken_color(s, step=51):
+    return lighten_color(s, step=-step)

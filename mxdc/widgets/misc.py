@@ -9,6 +9,7 @@ from datetime import datetime
 from gauge import Gauge
 from dialogs import warning
 from mxdc.utils import gui
+from bcm.utils.misc import lighten_color, darken_color
 from diagnostics import MSG_COLORS, MSG_ICONS
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -124,7 +125,7 @@ class ActiveEntry(gtk.VBox):
         self._first_change = True
         self._last_signal = 0
         self.running = False
-        self.action_active = False
+        self.action_active = True
         self.width = width
         self.number_format = format
         self.format = self.number_format
@@ -354,6 +355,43 @@ class ScriptButton(gtk.Button):
         self.label.set_sensitive(True)
 
 
+class StatusBox(gtk.EventBox):
+    COLOR_MAP = {
+        'blue':'#6495ED',
+        'orange': '#DAA520',
+        'red': '#CD5C5C',
+        'green': '#8cd278',
+        'gray' : '#708090',
+        'violet': '#9400D3',
+    }
+
+    def __init__(self, device, color_map={}, value_map={}, signal="changed", markup="<small><b>%s</b></small>", background=False):
+        gtk.EventBox.__init__(self)
+        hbox = gtk.HBox()
+        self.state_map = color_map
+        self.value_map = value_map
+        self.markup = markup
+        self.background = background
+        self.label = gtk.Label('')
+        self.label.set_alignment(0.5, 0.5)
+        self.device = device
+        self.device.connect(signal, self._on_signal)
+        hbox.pack_start(self.label, expand=True, fill=False)
+        self.add(hbox)
+        self.show_all()
+                
+    def _on_signal(self, obj, state):
+        self.label.set_markup(self.markup % self.value_map.get(state, state))
+        color = self.COLOR_MAP.get(self.state_map.get(state, 'gray'), '#708090')
+        if self.background:
+            fg_color = lighten_color(color, step=153)
+            self.label.modify_fg(gtk.STATE_NORMAL,gtk.gdk.color_parse(fg_color))
+            self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(color))
+        else:
+            self.label.modify_fg(gtk.STATE_NORMAL,gtk.gdk.color_parse(color))
+        return True
+
+
 class TextStatusDisplay(gtk.Label):
     def __init__(self, device, text_map={}, sig='changed'):
         self.text_map = text_map
@@ -364,6 +402,7 @@ class TextStatusDisplay(gtk.Label):
                     
     def _on_signal(self, obj, state):
         self.set_markup(self.text_map.get(state, state))
+        self.set_alignment(0.5, 0.5)
         return True
 
 class HealthDisplay(gtk.HBox):
