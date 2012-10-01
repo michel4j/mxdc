@@ -2,16 +2,18 @@ import gtk
 import gobject
 import sys, os
 from twisted.python.components import globalRegistry
+from bcm.utils import science, misc
 from bcm.beamline.mx import IBeamline
 from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.dialogs import warning, check_folder, DirectoryButton
 from mxdc.utils import gui
 
+
 (
   COLUMN_LABEL,
   COLUMN_ENERGY,
   COLUMN_EDITABLE,
-  COLUMN_CHANGED
+  COLUMN_CHANGED,
 ) = range(4)
 
 DEFAULT_PARAMETERS = {
@@ -38,6 +40,7 @@ DEFAULT_PARAMETERS = {
     'scattering_factors': None,
 }
 
+_ENERGY_DB = science.get_energy_database()
 
 class RunWidget(gtk.Frame):
     def __init__(self, num=0):
@@ -61,9 +64,11 @@ class RunWidget(gtk.Frame):
                 self.entry[e].set_alignment(1)
         
         
+        self.beamline = globalRegistry.lookup([], IBeamline)      
+
         # Set directory field non-editable, must use directory selector
         self.entry['directory'] = self.directory_btn 
-        
+
         #self.entry['directory'] = DirectoryButton()
         #self.layout_table.attach(self.entry['directory'], 1,4,1,2, xoptions=gtk.EXPAND|gtk.FILL)
 
@@ -96,38 +101,54 @@ class RunWidget(gtk.Frame):
         # Energy
         self.energy_store = gtk.ListStore(
             gobject.TYPE_STRING,
-            gobject.TYPE_FLOAT,
+            gobject.TYPE_PYOBJECT,
             gobject.TYPE_BOOLEAN,
-            gobject.TYPE_BOOLEAN
+            gobject.TYPE_BOOLEAN,
         )
         self.energy_list = gtk.TreeView(model=self.energy_store)
-        self.energy_list.connect('focus-out-event', lambda x, y: self.check_changes())
+        self.energy_list.set_hover_selection(True)
+        self.energy_list.connect('focus-out-event', self.on_energy_changed)
+        self.energy_list.connect('button-press-event', self.on_delete_clicked)
+
         self.energy_list.set_rules_hint(True)
-        self.energy_view.add(self.energy_list)
-        
-        
-        #Label column
-        renderer = gtk.CellRendererText()
-        renderer.set_data('column',COLUMN_LABEL)
-        renderer.connect("edited", self.on_energy_edited, self.energy_store)
-        column1 = gtk.TreeViewColumn('Label', renderer, text=COLUMN_LABEL, editable=COLUMN_EDITABLE)
-        column1.set_cell_data_func(renderer, self._cell_format, COLUMN_LABEL)
-        column1.set_fixed_width(5)
+        self.energy_view.add(self.energy_list)       
 
         #Energy column
         renderer = gtk.CellRendererText()
         renderer.set_data('column',COLUMN_ENERGY)
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
-        column2 = gtk.TreeViewColumn('Energy', renderer, text=COLUMN_ENERGY, editable=COLUMN_EDITABLE)
-        column2.set_cell_data_func(renderer, self._cell_format, COLUMN_ENERGY)
-        column2.set_fixed_width(10)
-        
+        renderer.connect("editing-started", self.on_editing_started)
+        renderer.set_property('xalign', 0.5)
+        column1 = gtk.TreeViewColumn('Energy (KeV)', renderer, text=COLUMN_ENERGY, editable=COLUMN_EDITABLE)
+        column1.set_cell_data_func(renderer, self._cell_format, COLUMN_ENERGY)
+        column1.set_expand(True)
+        column1.set_alignment(0.0)
         self.energy_list.append_column(column1)
-        self.energy_list.append_column(column2)
+
+        #Label column
+        renderer = gtk.CellRendererText()
+        renderer.set_data('column',COLUMN_LABEL)
+        renderer.connect("edited", self.on_energy_edited, self.energy_store)
+        renderer.set_property('xalign', 0.5)
+        column1 = gtk.TreeViewColumn('Label', renderer, text=COLUMN_LABEL, editable=COLUMN_EDITABLE)
+        column1.set_cell_data_func(renderer, self._cell_format, COLUMN_LABEL)
+        column1.set_min_width(80)
+        column1.set_expand(False)
+        column1.set_alignment(0.5)
+        self.energy_list.append_column(column1)
+       
         
-        # buttons for adding and removing energy
-        self.add_e_btn.connect("clicked", self.on_add_energy_clicked)
-        self.del_e_btn.connect("clicked", self.on_remove_energy_clicked)
+        #Delete column
+        renderer = gtk.CellRendererPixbuf()
+        renderer.set_property("stock-size", gtk.ICON_SIZE_MENU)
+        renderer.set_property('xalign', 0.7)
+        column1 = gtk.TreeViewColumn('', renderer)
+        column1.set_cell_data_func(renderer, self._icon_format)
+        column1.set_min_width(20)
+        column1.set_expand(False)
+        self.energy_list.append_column(column1)
+        self._delete_column = column1 # need to remember its reference
+        
         self.predictor = None
 
         # connect signals
@@ -152,91 +173,157 @@ class RunWidget(gtk.Frame):
             return super(RunWidget).__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
+    
+    def _set_energies(self, edict):
+        self.energy_store.clear()
+        if edict == {}:
+            _e_value = self.beamline.energy.get_position()
+            edict = {'energy': [_e_value], 'energy_label': ['E0']}
 
-    def __add_energy(self, item=None): 
-        model = self.energy_store
-        iter = model.get_iter_first()
-        _e_names = []
-        if item==None:
-            while iter:
-                _e_names.append(model.get_value(iter, COLUMN_LABEL))
-                iter = model.iter_next(iter)
-            index = len(_e_names)
-            name = "E%d" % (index)
-            while name in _e_names:
-                index += 1
-                name = "E%d" % (index)
-            #try to get value from beamline if one is registered
-            try:
-                beamline = globalRegistry.lookup([], IBeamline)
-                _e_value = beamline.monochromator.energy.get_position()
-            except:
-                _e_value = 12.6580
-
-            item = [name, _e_value, True, True]
-            
+        for i in range(len(edict['energy'])):
+            item = [edict['energy_label'][i], edict['energy'][i], True, False]                
+            iter = self.energy_store.append()
+            self.energy_store.set(iter, 
+                COLUMN_LABEL, item[COLUMN_LABEL], 
+                COLUMN_ENERGY, item[COLUMN_ENERGY],
+                COLUMN_EDITABLE, item[COLUMN_EDITABLE],
+                COLUMN_CHANGED, item[COLUMN_CHANGED],
+            )
         iter = self.energy_store.append()
         self.energy_store.set(iter, 
-            COLUMN_LABEL, item[COLUMN_LABEL], 
-            COLUMN_ENERGY, item[COLUMN_ENERGY],
-            COLUMN_EDITABLE, item[COLUMN_EDITABLE],
-            COLUMN_CHANGED, item[COLUMN_CHANGED]
+            COLUMN_LABEL, '', 
+            COLUMN_ENERGY, None,
+            COLUMN_EDITABLE, True,
+            COLUMN_CHANGED, False,
         )
         
-    def _cell_format(self, cell, renderer, model, iter, column):
-        if column == COLUMN_ENERGY:
-            value = model.get_value(iter, column)
-            renderer.set_property('text', '%0.4f' % value)
-        value2 = model.get_value(iter, COLUMN_CHANGED)
-        if value2:
-            renderer.set_property("foreground", '#cc00cc')
-        else:
-            renderer.set_property("foreground", None)
-        return
+
         
-    
+    def _cell_format(self, cell, renderer, model, iter, column):
+        value = model.get_value(iter, COLUMN_ENERGY)
+        if column == COLUMN_ENERGY:
+            if value:
+                txt = '%0.4f' % value
+                renderer.set_property('text', txt)
+            else:
+                renderer.set_property('markup', '<i>Click to add</i>')      
+        if value and model.get_value(iter, COLUMN_CHANGED):
+            renderer.set_property("foreground", '#cc00cc')
+        elif value:
+            renderer.set_property("foreground", None)
+        else:
+            renderer.set_property("foreground", '#cccccc')
+        return
+
+    def _icon_format(self, cell, renderer, model, iter):
+        value = model.get_value(iter, COLUMN_ENERGY)
+        path = model.get_path(iter)
+        size = model.iter_n_children(None)
+        if path == (0,) and size == 2:
+            renderer.set_property('stock-id', 'gtk-refresh')
+            renderer.set_property('sensitive', True)
+        elif value:
+            renderer.set_property('stock-id', 'gtk-remove')
+            renderer.set_property('sensitive', True)
+        else:
+            renderer.set_property('stock-id', 'gtk-add')
+            renderer.set_property('sensitive', False)
+        
+                    
     def _set_energy_changed(self, state=False):
         model = self.energy_list.get_model()
         iter = model.get_iter_first()
         while iter:
             model.set(iter, COLUMN_CHANGED, state)
             iter = model.iter_next(iter)
-            
+    
+    def _delete_energy_row(self, iter):
+        size = self.energy_store.iter_n_children(None)
+        path = self.energy_store.get_path(iter)
+        last_row = (path[0] == size - 1)
+        last_iter = self.energy_store.get_iter((size-1,))
+        last_val = self.energy_store.get_value(last_iter, COLUMN_ENERGY)
+        
+        if not last_row:
+            self.energy_store.remove(iter)
+            if last_val:
+                last_iter = self.energy_store.append()
+
+        self.energy_store.set(last_iter, COLUMN_EDITABLE, True)           
+        self.energy_store.set(last_iter, COLUMN_ENERGY, None)
+        self.energy_store.set(last_iter, COLUMN_LABEL, "")
+
+    def _reset_energy_row(self, iter):
+        cur_e = self.beamline.energy.get_position()
+        path = self.energy_store.get_path(iter)   
+        self.energy_store.set(iter, COLUMN_ENERGY, cur_e)
+
+        
+    def on_delete_clicked(self, treeview, event):
+        if event.button == 1:
+            path, column = treeview.get_path_at_pos(int(event.x), int(event.y))[:2]
+            if column == self._delete_column:
+                size = self.energy_store.iter_n_children(None)
+                iter = self.energy_store.get_iter(path)
+                last_row = (path[0] == size - 1)
+                if path == (0,) and size == 2:
+                    self._reset_energy_row(iter)
+                else:
+                    self._delete_energy_row(iter)
+
+    def on_editing_started(self, cell, editable, path):
+        model = self.energy_store
+        iter = model.get_iter(path)
+        value = model.get_value(iter, COLUMN_ENERGY)
+        #editable.connect('focus-out-event', self.on_editing_finished)
+        if not value:
+            editable.delete_selection()
+
+    def on_editing_finished(self, editable, event):
+        editable.editing_done()
+                            
     def on_energy_edited(self, cell, path_string, new_text, model):
-        iter = model.get_iter_from_string(path_string)
+        iter = model.get_iter_from_string(path_string)     
         column = cell.get_data("column")
+        new_text = new_text.strip()
+        path = model.get_path(iter)
+        size = model.iter_n_children(None)
+        last_row = (path[0] == size - 1)
+        e_value = model.get_value(iter, COLUMN_ENERGY)
 
         if column == COLUMN_ENERGY:
-            model.set(iter, column, float(new_text))
-        elif column == COLUMN_LABEL:
-            model.set(iter, column, new_text)
-            
-    def __reset_e_btn_states(self):
-        size = len(self.energy_store)
-        if size > 1:
-            self.del_e_btn.set_sensitive(True)
-            if size > 4:
-                self.add_e_btn.set_sensitive(False)
+            if new_text == "":
+                if path == (0,) and size == 2:
+                    self._reset_energy_row(iter)                 
+                else:
+                    self._delete_energy_row(iter)             
             else:
-                self.add_e_btn.set_sensitive(True)
-        else:
-            self.del_e_btn.set_sensitive(False)
-            self.add_e_btn.set_sensitive(True)
-                       
+                try:
+                    _e = float(new_text)
+                except:
+                    # Allow using edge name such as "Se-K"
+                    _e = _ENERGY_DB.get(new_text, (e_value,))[0]
+                    
+                model.set(iter, COLUMN_ENERGY, _e)
+                if _e is not None:
+                    lbl = model.get_value(iter, COLUMN_LABEL)
+                    if not lbl:
+                        model.set(iter, COLUMN_LABEL, 'E%d'%path)
+                    
+                    if last_row and size < 4:
+                        # Add a new row if we add to the last row
+                        tail = model.append()
+                        model.set(tail, COLUMN_EDITABLE, True)
+                        model.set(tail, COLUMN_ENERGY, None)
+                        model.set(tail, COLUMN_LABEL, "")
 
-    def on_add_energy_clicked(self, button):
-        if len(self.energy_list.get_model()) < 5:
-            self.__add_energy()
-        self.__reset_e_btn_states()
-
-    def on_remove_energy_clicked(self, button):
-        if len(self.energy_list.get_model()) > 1:
-            selection = self.energy_list.get_selection()
-            model, iter = selection.get_selected()
-            if iter:
-                model.remove(iter)
-        self.__reset_e_btn_states()
-            
+        elif column == COLUMN_LABEL:
+            if not e_value:
+                model.set(iter, COLUMN_LABEL, "")
+            else:
+                new_text = misc.slugify(new_text, empty='E%d'%path)
+                model.set(iter, COLUMN_LABEL, new_text)
+                                               
     def set_parameters(self, dict):
         for key in  ['distance','delta_angle','start_angle','total_angle','wedge','exposure_time', 'attenuation']:
             if key in dict:
@@ -271,11 +358,10 @@ class RunWidget(gtk.Frame):
             
         self.set_number(dict['number'])
         self.entry['inverse_beam'].set_active(dict['inverse_beam'])
-        self.energy_store.clear()
         
-        for i in range(len(dict['energy'])):
-            self.__add_energy([dict['energy_label'][i], dict['energy'][i], True, False] )
-        self.__reset_e_btn_states()
+        # Add energy entries
+        self._set_energies(dict)
+        
         self.entry['skip'].set_text(dict.get('skip',''))
       
         _cmt_buf =  self.comments_entry.get_buffer()
@@ -294,8 +380,12 @@ class RunWidget(gtk.Frame):
         model = self.energy_list.get_model()
         iter = model.get_iter_first()
         while iter:
-            energy.append(model.get_value(iter, COLUMN_ENERGY))
-            energy_label.append(model.get_value(iter, COLUMN_LABEL))
+            e = model.get_value(iter, COLUMN_ENERGY)
+            n = model.get_value(iter, COLUMN_LABEL)
+            if e is None:
+                break
+            energy.append(e)
+            energy_label.append(n)
             iter = model.iter_next(iter)
         
         run_data['energy']  =    energy
@@ -333,19 +423,14 @@ class RunWidget(gtk.Frame):
         if num == 0:
 #            for key in ['total_angle','num_frames','wedge','inverse_beam', 'skip']:
 #                self.entry[key].set_sensitive(False)
-            self.energy_btn_box.hide()
             self.energy_list.set_sensitive(False)
             self.comments_frame.hide()
             self.energy_view.hide()    
             self.delete_btn.set_sensitive(False)
             if self.predictor is None:    
-                #add Predictor
-                try:
-                    beamline = globalRegistry.lookup([], IBeamline)      
-                    self.predictor = Predictor(beamline.detector.resolution, 
-                                   beamline.detector.size)
-                except:
-                    self.predictor = Predictor()
+                #add Predictor    
+                self.predictor = Predictor(self.beamline.detector.resolution, 
+                                   self.beamline.detector.size)
                 self.predictor.set_size_request(200,200)
                 self.predictor.set_border_width(12)
                 self.run_widget.pack_end( self.predictor, expand=True, fill=True)
@@ -369,9 +454,8 @@ class RunWidget(gtk.Frame):
     def check_changes(self):
         new_values = self.get_parameters()
         if self.predictor is not None and self.number == 0:
-            beamline = globalRegistry.lookup([], IBeamline)
             self.predictor.configure(distance=new_values['distance'], 
-                                     energy=beamline.energy.get_position(),
+                                     energy=self.beamline.energy.get_position(),
                                      two_theta=new_values['two_theta'])
 
         for key in self.parameters.keys():
@@ -410,14 +494,17 @@ class RunWidget(gtk.Frame):
                 widget.modify_fg(gtk.STATE_NORMAL, None)
                 self._changes_pending = False
         
+    def on_energy_changed(self, widget, event=None):
+        selection = self.energy_list.get_selection()
+        selection.unselect_all()
+        self.check_changes()
+
 
     def on_prefix_changed(self, widget, event=None):
         prefix = self.entry['name'].get_text()
-        for c in [' ','*','#','@','&','[','[']:   
-            prefix = prefix.replace(c,'')
+        prefix = misc.slugify(prefix.strip(), empty="data")
         self.entry['name'].set_text(prefix)
         self.check_changes()
-        return False
     
 
     def on_start_angle_changed(self,widget,event=None):
@@ -469,9 +556,8 @@ class RunWidget(gtk.Frame):
         return False
 
     def on_delta_changed(self,widget,event=None):
-        beamline = globalRegistry.lookup([], IBeamline)
 
-        max_dps = beamline.config.get('max_omega_velocity', 20.0)
+        max_dps = self.beamline.config.get('max_omega_velocity', 20.0)
         try:
             delta = float(self.entry['delta_angle'].get_text())
             time = float(self.entry['exposure_time'].get_text())
@@ -493,9 +579,8 @@ class RunWidget(gtk.Frame):
         """Check the validity of the exposure time and adjust both 
            time and delta to be compatible with the beamline maximum 
            omega velocity"""
-        
-        beamline = globalRegistry.lookup([], IBeamline)
-        max_dps = beamline.config.get('max_omega_velocity', 20.0)
+
+        max_dps =  self.beamline.config.get('max_omega_velocity', 20.0)
         try:
             time = float(self.entry['exposure_time'].get_text())
             delta = float(self.entry['delta_angle'].get_text())
@@ -595,11 +680,10 @@ class RunWidget(gtk.Frame):
         
     def on_reset_parameters(self, obj):
         params = self.get_parameters()
-        beamline = globalRegistry.lookup([], IBeamline)
         for k in ['attenuation', 'distance', 'two_theta', 'energy', 'energy_label',
                   'start_angle', 'delta_angle', 'total_angle', 'first_frame', 'skip', 'wedge', 'inverse_beam']:
             params[k] = DEFAULT_PARAMETERS[k]
-        params['exposure_time'] = beamline.config['default_exposure']
+        params['exposure_time'] =  self.beamline.config['default_exposure']
         params['crystal_id'] = self.active_sample.get('id', None)
         
         self.set_parameters(params)
@@ -608,17 +692,16 @@ class RunWidget(gtk.Frame):
         
     def on_update_parameters(self, obj):
         params = self.get_parameters()
-        beamline = globalRegistry.lookup([], IBeamline)
         if self.active_sample:
             params['name'] = self.active_sample.get('name', params['name']) 
-        params['distance'] = self.active_strategy.get('distance', beamline.distance.get_position())
-        params['attenuation'] = self.active_strategy.get('attenuation', beamline.attenuator.get())
-        params['two_theta'] =  beamline.two_theta.get_position()
-        params['energy'] = self.active_strategy.get('energy', [beamline.energy.get_position()])
+        params['distance'] = self.active_strategy.get('distance',  self.beamline.distance.get_position())
+        params['attenuation'] = self.active_strategy.get('attenuation',  self.beamline.attenuator.get())
+        params['two_theta'] =   self.beamline.two_theta.get_position()
+        params['energy'] = self.active_strategy.get('energy', [ self.beamline.energy.get_position()])
         params['energy_label'] = self.active_strategy.get('energy_label', ['E0'])
-        params['start_angle'] = self.active_strategy.get('start_angle', beamline.omega.get_position())
+        params['start_angle'] = self.active_strategy.get('start_angle',  self.beamline.omega.get_position())
         params['delta_angle'] = self.active_strategy.get('delta_angle', 1.0)
-        params['exposure_time'] = self.active_strategy.get('exposure_time', beamline.config['default_exposure'])
+        params['exposure_time'] = self.active_strategy.get('exposure_time',  self.beamline.config['default_exposure'])
         params['total_angle'] = self.active_strategy.get('total_angle', 180.0)
         params['first_frame'] = 1
         params['skip'] = ""
@@ -628,3 +711,4 @@ class RunWidget(gtk.Frame):
         self.set_parameters(params)
         self.check_changes()
         return True  
+        

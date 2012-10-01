@@ -164,7 +164,19 @@ class HutchManager(gtk.Frame):
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
         
         self.commands_box.pack_start(gtk.Label(''))
-        self.commands_box.pack_start(gtk.Label(''))
+        _map = {'MOUNTING':'blue',
+                'CENTERING':'orange',
+                'SCANNING':'green',
+                'COLLECT': 'green',
+                'BEAM': 'red',
+                'MOVING': 'gray',
+                'INIT':'gray',
+                'ALIGN': 'gray',
+                }
+        gonio_mode = StatusBox(self.beamline.goniometer, signal='mode', color_map=_map, background=True)
+        gonio_mode.set_border_width(3)
+        self.commands_box.pack_start(gonio_mode, expand=True, fill=True)
+        #self.commands_box.pack_start(gtk.Label(''))
         
         for btn in [self.mount_btn, self.cent_btn]:
             self.commands_box.pack_end(btn)
