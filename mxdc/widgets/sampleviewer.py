@@ -42,24 +42,23 @@ POPUP_ACTIONS = (
 )
 POPUP_UI = """
 <ui>
-    <popup>
-        <menu name="Grid" action="grid_action">
-          <menuitem name="Clear Grid" action="grid_clear"/>
-          <separator/>
-          <menuitem name="Reset Grid" action="grid_reset"/>
-        </menu>
-        <menu name="Color Mapping" action="cmap_action">
-          <menuitem name="Default" action="cmap_default"/>
-          <separator/>
-          <menuitem name="Spectral" action="cmap_spectral"/>
-          <menuitem name="HSV" action="cmap_hsv"/>
-          <menuitem name="Jet" action="cmap_jet"/>
-          <menuitem name="RdYlGn" action="cmap_ryg"/>
-          <menuitem name="Hot" action="cmap_hot"/>
-          <menuitem name="PuBu" action="cmap_pubu"/>
-        </menu>
-        
-    </popup>
+<popup name="PopupMenu">
+    <menu name="Grid" action="grid_action">
+      <menuitem name="Clear Grid" action="grid_clear"/>
+      <separator/>
+      <menuitem name="Reset Grid" action="grid_reset"/>
+    </menu>
+    <menu name="Color Mapping" action="cmap_action">
+      <menuitem name="Default" action="cmap_default"/>
+      <separator/>
+      <menuitem name="Spectral" action="cmap_spectral"/>
+      <menuitem name="HSV" action="cmap_hsv"/>
+      <menuitem name="Jet" action="cmap_jet"/>
+      <menuitem name="RdYlGn" action="cmap_ryg"/>
+      <menuitem name="Hot" action="cmap_hot"/>
+      <menuitem name="PuBu" action="cmap_pubu"/>
+    </menu>
+</popup>
 </ui>
 """
 
@@ -93,6 +92,10 @@ class SampleViewer(gtk.Frame):
         self.measure_x2 = 0
         self.measure_y1 = 0
         self.measure_y2 = 0
+        
+        #initialize grid variables
+        self.dragging = False
+        self.grid_box = [0,0,0,0]
         
         self.video.connect('motion_notify_event', self.on_mouse_motion)
         self.video.connect('button_press_event', self.on_image_click)
@@ -164,16 +167,6 @@ class SampleViewer(gtk.Frame):
             cr.set_source_rgba(1, 0.2, 0.1, 1.0)
             cr.set_line_width(max(cr.device_to_user_distance(0.5, 0.5)))
             cr.set_dash([], 0)
-
-
-            # cross center
-            #cr.move_to(x-tick, y)
-            #cr.line_to(x+tick, y)
-            #cr.stroke()
-            #cr.move_to(x, y+tick)
-            #cr.line_to(x, y-tick)
-            #cr.stroke()
-            
             
             # beam size
             cr.set_dash([1,1])
@@ -201,7 +194,7 @@ class SampleViewer(gtk.Frame):
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             if using_cairo:
                 cr = pixmap.cairo_create()
-                cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
+                cr.set_source_rgba(0.1, 1.0, 0.0, 2.0)
                 cr.set_line_width(0.5)
                 cr.move_to(x1, y1)
                 cr.line_to(x2, y2)
@@ -209,6 +202,17 @@ class SampleViewer(gtk.Frame):
             else:
                 pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y2)            
             self.meas_label.set_markup("Length: %0.2g mm" % dist)
+        elif self.dragging:
+            x1, y1, x2, y2 = self.grid_box
+            if using_cairo:
+                cr = pixmap.cairo_create()
+                cr.set_source_rgba(0.1, 0.1, 1.0, 0.2)
+                cr.set_line_width(1)
+                cr.rectangle(x1, y1, x2-x1, y2-y1)
+                cr.fill()
+                cr.set_source_rgba(0.0, 0.0, 8.0, 0.6)
+                cr.rectangle(x1, y1, x2-x1, y2-y1)
+                cr.stroke()            
         else:
             self.meas_label.set_markup("FPS: %0.1f" % self.video.fps)
         return True
@@ -245,7 +249,12 @@ class SampleViewer(gtk.Frame):
     def _create_widgets(self):
         
         self.cmap_popup = self._xml_popup.get_widget('colormap_popup')
-        self.cmap_popup.set_title('Pseudo Color Mode')
+        #ui = gtk.UIManager()
+        #ui.insert_action_group(actions, 0)
+        #self.add_accel_group(ui.get_accel_group())
+        #ui.add_ui_from_string(POPUP_UI)
+        #self.cmap_popup = ui.get_widget('/PopupMenu')
+        #self.cmap_popup.set_title('Pseudo Color Mode')
         
         # connect colormap signals
         cmap_items = ['cmap_default', 'cmap_spectral','cmap_hsv','cmap_jet', 'cmap_ryg','cmap_hot', 'cmap_pubu']
@@ -422,16 +431,22 @@ class SampleViewer(gtk.Frame):
         im_x, im_y, xmm, ymm = self._img_position(x,y)
         self.pos_label.set_markup("%4d,%4d [%6.3f, %6.3f mm]" % (im_x, im_y, xmm, ymm))
         #print event.state.value_names
-        if 'GDK_BUTTON2_MASK' in event.state.value_names:
+        if  'GDK_BUTTON1_MASK' in event.state.value_names:
+            self.grid_box = [self.grid_box[0], self.grid_box[1], event.x, event.y] 
+        elif 'GDK_BUTTON2_MASK' in event.state.value_names:
             self.measure_x2, self.measure_y2, = event.x, event.y
         else:
             self.measuring = False
+            self.dragging = False
 
     def on_image_click(self, widget, event):
         if event.button == 1:
-            if self._click_centering == False:
-                return True
-            self.center_pixel(event.x, event.y)
+            if self._click_centering:
+                self.center_pixel(event.x, event.y)
+            else:
+                self.dragging = False #True
+                self.grid_box = [event.x, event.y, event.x, event.y]
+
         elif event.button == 2:
             self.measuring = True
             self.measure_x1, self.measure_y1 = event.x, event.y

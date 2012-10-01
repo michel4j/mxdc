@@ -3,86 +3,116 @@
   <!-- interface-requires gtk+ 2.10 -->
   <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkMenu" id="colormap_popup">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
     <child>
-      <widget class="GtkMenuItem" id="cmap_default">
+      <widget class="GtkRadioMenuItem" id="cmap_default">
         <property name="visible">True</property>
+        <property name="can_focus">False</property>
         <property name="label" translatable="yes">Default</property>
-        <property name="use_underline">True</property>
+        <property name="active">True</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_spectral</property>
       </widget>
     </child>
     <child>
       <widget class="GtkSeparatorMenuItem" id="separator1">
         <property name="visible">True</property>
+        <property name="can_focus">False</property>
       </widget>
     </child>
     <child>
-      <widget class="GtkMenuItem" id="cmap_spectral">
+      <widget class="GtkRadioMenuItem" id="cmap_spectral">
         <property name="visible">True</property>
+        <property name="can_focus">False</property>
         <property name="label" translatable="yes">Spectral</property>
-        <property name="use_underline">True</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
       </widget>
     </child>
     <child>
-      <widget class="GtkMenuItem" id="cmap_hsv">
+      <widget class="GtkRadioMenuItem" id="cmap_hsv">
         <property name="visible">True</property>
+        <property name="can_focus">False</property>
         <property name="label" translatable="yes">HSV</property>
-        <property name="use_underline">True</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
       </widget>
     </child>
     <child>
-      <widget class="GtkMenuItem" id="cmap_jet">
+      <widget class="GtkRadioMenuItem" id="cmap_jet">
         <property name="visible">True</property>
-        <property name="label" translatable="yes">Jet</property>
-        <property name="use_underline">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">JET</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
       </widget>
     </child>
     <child>
-      <widget class="GtkMenuItem" id="cmap_ryg">
+      <widget class="GtkRadioMenuItem" id="cmap_ryg">
         <property name="visible">True</property>
+        <property name="can_focus">False</property>
         <property name="label" translatable="yes">RYG</property>
-        <property name="use_underline">True</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
       </widget>
     </child>
     <child>
-      <widget class="GtkMenuItem" id="cmap_hot">
+      <widget class="GtkRadioMenuItem" id="cmap_hot">
         <property name="visible">True</property>
-        <property name="label" translatable="yes">Hot</property>
-        <property name="use_underline">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">HOT</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
       </widget>
     </child>
     <child>
-      <widget class="GtkMenuItem" id="cmap_pubu">
+      <widget class="GtkRadioMenuItem" id="cmap_pubu">
         <property name="visible">True</property>
+        <property name="can_focus">False</property>
         <property name="label" translatable="yes">PuBu</property>
-        <property name="use_underline">True</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
       </widget>
     </child>
   </widget>
   <widget class="GtkWindow" id="window1">
+    <property name="can_focus">False</property>
     <property name="title" translatable="yes">window1</property>
     <child>
       <widget class="GtkHBox" id="sample_viewer">
         <property name="visible">True</property>
+        <property name="can_focus">False</property>
         <property name="border_width">6</property>
         <property name="spacing">6</property>
         <child>
           <widget class="GtkVBox" id="side_panel">
             <property name="visible">True</property>
+            <property name="can_focus">False</property>
             <property name="spacing">3</property>
             <child>
               <widget class="GtkFrame" id="frame5">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
                   <widget class="GtkAlignment" id="alignment6">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="left_padding">1</property>
                     <child>
                       <widget class="GtkTable" id="mode_tbl">
                         <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <property name="n_columns">2</property>
                         <property name="homogeneous">True</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
                         <child>
                           <placeholder/>
                         </child>
@@ -96,6 +126,7 @@
                 <child>
                   <widget class="GtkLabel" id="mode_lbl">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">&lt;b&gt;Beamline Mode:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
@@ -106,30 +137,36 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
             </child>
             <child>
               <widget class="GtkHSeparator" id="hseparator1">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="fill">True</property>
                 <property name="position">1</property>
               </packing>
             </child>
             <child>
               <widget class="GtkFrame" id="frame1">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
                   <widget class="GtkAlignment" id="alignment1">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="left_padding">12</property>
                     <child>
                       <widget class="GtkTable" id="table4">
                         <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <property name="n_columns">3</property>
                         <property name="homogeneous">True</property>
                         <child>
@@ -140,6 +177,7 @@
                             <child>
                               <widget class="GtkImage" id="image8">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <property name="stock">gtk-zoom-out</property>
                                 <property name="icon-size">1</property>
                               </widget>
@@ -157,6 +195,7 @@
                             <child>
                               <widget class="GtkImage" id="image10">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <property name="stock">gtk-zoom-in</property>
                                 <property name="icon-size">1</property>
                               </widget>
@@ -176,6 +215,7 @@
                             <child>
                               <widget class="GtkImage" id="image9">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <property name="stock">gtk-zoom-100</property>
                                 <property name="icon-size">1</property>
                               </widget>
@@ -194,6 +234,7 @@
                 <child>
                   <widget class="GtkLabel" id="label1">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">&lt;b&gt;Zoom Level:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
@@ -204,21 +245,25 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="fill">True</property>
                 <property name="position">2</property>
               </packing>
             </child>
             <child>
               <widget class="GtkFrame" id="frame2">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
                   <widget class="GtkAlignment" id="alignment2">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="left_padding">12</property>
                     <child>
                       <widget class="GtkTable" id="table3">
                         <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <property name="n_rows">2</property>
                         <property name="n_columns">3</property>
                         <property name="homogeneous">True</property>
@@ -231,6 +276,7 @@
                             <child>
                               <widget class="GtkImage" id="image5">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <property name="stock">gtk-go-forward</property>
                                 <property name="icon-size">1</property>
                               </widget>
@@ -252,6 +298,7 @@
                             <child>
                               <widget class="GtkImage" id="image7">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <property name="stock">gtk-home</property>
                                 <property name="icon-size">1</property>
                               </widget>
@@ -272,6 +319,7 @@
                             <child>
                               <widget class="GtkImage" id="image6">
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <property name="stock">gtk-go-back</property>
                                 <property name="icon-size">1</property>
                               </widget>
@@ -337,6 +385,7 @@
                 <child>
                   <widget class="GtkLabel" id="label2">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">&lt;b&gt;Move Sample:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
@@ -347,21 +396,25 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="fill">True</property>
                 <property name="position">3</property>
               </packing>
             </child>
             <child>
               <widget class="GtkFrame" id="frame4">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
                   <widget class="GtkAlignment" id="alignment4">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="left_padding">12</property>
                     <child>
                       <widget class="GtkTable" id="table1">
                         <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <property name="n_columns">3</property>
                         <property name="homogeneous">True</property>
                         <child>
@@ -411,6 +464,7 @@
                 <child>
                   <widget class="GtkLabel" id="label4">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">&lt;b&gt;Centering&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
@@ -421,26 +475,37 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="fill">True</property>
                 <property name="position">4</property>
               </packing>
             </child>
             <child>
               <widget class="GtkFrame" id="frame6">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
                   <widget class="GtkAlignment" id="alignment5">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="left_padding">12</property>
                     <child>
                       <widget class="GtkTable" id="lighting_box">
                         <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <property name="n_rows">2</property>
                         <property name="n_columns">2</property>
                         <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
                           <widget class="GtkLabel" id="label7">
                             <property name="visible">True</property>
+                            <property name="can_focus">False</property>
                             <property name="xalign">0</property>
                             <property name="label" translatable="yes">Front:</property>
                           </widget>
@@ -452,6 +517,7 @@
                         <child>
                           <widget class="GtkLabel" id="label8">
                             <property name="visible">True</property>
+                            <property name="can_focus">False</property>
                             <property name="xalign">0</property>
                             <property name="label" translatable="yes">Back:</property>
                           </widget>
@@ -462,12 +528,6 @@
                             <property name="y_options"></property>
                           </packing>
                         </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
                       </widget>
                     </child>
                   </widget>
@@ -475,6 +535,7 @@
                 <child>
                   <widget class="GtkLabel" id="label5">
                     <property name="visible">True</property>
+                    <property name="can_focus">False</property>
                     <property name="label" translatable="yes">&lt;b&gt;Lighting:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
                   </widget>
@@ -499,6 +560,7 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="fill">True</property>
                 <property name="pack_type">end</property>
                 <property name="position">6</property>
               </packing>
@@ -506,17 +568,20 @@
           </widget>
           <packing>
             <property name="expand">False</property>
+            <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
         </child>
         <child>
           <widget class="GtkVBox" id="video_frame">
             <property name="visible">True</property>
+            <property name="can_focus">False</property>
             <child>
               <widget class="GtkAspectFrame" id="video_adjuster">
                 <property name="width_request">400</property>
                 <property name="height_request">300</property>
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">in</property>
                 <property name="xalign">1</property>
@@ -528,12 +593,15 @@
                 </child>
               </widget>
               <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
             </child>
             <child>
               <widget class="GtkTable" id="table5">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="n_columns">5</property>
                 <property name="homogeneous">True</property>
                 <child>
@@ -578,6 +646,8 @@
             </child>
           </widget>
           <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
         </child>

@@ -25,6 +25,11 @@ class RunManager(gtk.Notebook):
         
     def add_new_run(self, data=None):
         number = len(self.runs)
+        
+        #Maximum of 20 runs
+        if number > 19:
+            return
+        
         newrun = RunWidget(num=number)
         if data:
             if data['number'] == 0:
