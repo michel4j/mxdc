@@ -374,10 +374,10 @@ class MD2Goniometer(GoniometerBase):
                     
         if wait:
             timeout = 30
-            self.wait()
+            #self.wait()
             while mode not in _MODE_MAP_REV.get(self.mode)  and timeout > 0:
-                time.sleep(0.05)
-                timeout -= 0.05
+                time.sleep(0.01)
+                timeout -= 0.01
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
             time.sleep(1.0)
