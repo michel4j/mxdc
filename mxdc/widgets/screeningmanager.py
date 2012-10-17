@@ -104,12 +104,7 @@ class ScreenManager(gtk.Frame):
 
         # extra widgets
         self._full_state = []
-
-        #fix label mess:
-        self.status_lbl.connect('size-allocate', self._fix_label)
         
-    def _fix_label(self, label, size):
-        label.set_size_request(size.width-1, -1 )
 
     def __getattr__(self, key):
         try:
