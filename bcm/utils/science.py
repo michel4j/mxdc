@@ -68,13 +68,12 @@ def xanes_targets(energy):
         
     return targets
 
-def exafs_targets(energy, regions=[-0.2, -0.005, 0.006, 14], pe_factor=10.0, e_step=0.0005, k_step=0.05):
+def exafs_targets(energy, start=-0.2, edge=-0.005, exafs=0.006, kmax=14, pe_factor=10.0, e_step=0.0005, k_step=0.05):
     # Calculate energy positions for exafs scans
     
-    start = regions[0]
-    pre_edge_end = regions[1]
-    edge_end = regions[2]
-    exafs_end = regions[3] # in K
+    pre_edge_end = edge
+    edge_end = exafs
+    exafs_end = kmax
     
     targets = []
     

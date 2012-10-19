@@ -378,9 +378,6 @@ class SamplePicker(gtk.Frame):
         self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                                                'data/active_stop.gif'))
         
-        #fix label mess:
-        self.status_lbl.connect('size-allocate', self._fix_label)
-        
         #add progressbar
         self.pbar = ActiveProgressBar()
         self.pbar.set_fraction(0.0)
@@ -388,10 +385,7 @@ class SamplePicker(gtk.Frame):
         self.control_box.pack_end(self.pbar, expand=False, fill=False)
         self.pbar.modify_font(pango_font)
         
-        
-    def _fix_label(self, label, size):
-        label.set_size_request(size.width-1, -1 )
-           
+               
                 
     def __getattr__(self, key):
         try:
