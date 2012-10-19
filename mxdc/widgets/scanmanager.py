@@ -186,7 +186,8 @@ class ScanManager(gtk.Frame):
             'time': self.time_entry,
             'attenuation': self.attenuation_entry,
             'crystal': self.crystal_entry,
-            'scans': self.scans_entry
+            'scans': self.scans_entry,
+            'kmax': self.kmax_entry,
         }
         self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=gtk.EXPAND|gtk.FILL)
         for key in ['prefix','edge']:
@@ -383,6 +384,7 @@ class ScanManager(gtk.Frame):
                 'emission': 11.2100,
                 'attenuation': 90.0,
                 'scans': 1,
+                'kmax': 12,
             }
         for key in ['prefix','edge']:
             self.entries[key].set_text(params[key])
@@ -392,12 +394,12 @@ class ScanManager(gtk.Frame):
         self.entries['energy'].set_text("%0.4f" % params['energy'])
         self._emission = params['emission']
         self.entries['scans'].set_value(params.get('scans', 1))
+        self.entries['kmax'].set_value(params.get('kmax', 12))
         if params['mode'] == 'XANES' and params['mode']:
             self.xanes_btn.set_active(True)
         elif params['mode'] == 'XRF' and params['mode']:
             self.xrf_btn.set_active(True)
-        #elif params['mode'] == 'EXAFS':
-        #    self.exafs_btn.set_active(True)
+
         return True
         
     def get_parameters(self):
@@ -407,6 +409,7 @@ class ScanManager(gtk.Frame):
         for key in ['time','energy','attenuation']:
             params[key] = float(self.entries[key].get_text())
         params['scans'] = self.entries['scans'].get_value_as_int()
+        params['kmax'] = self.entries['kmax'].get_value_as_int()
         params['crystal'] = self.active_sample.get('id', '')
         params['directory']   = self.entries['directory'].get_filename()
         if params['directory'] is None:
@@ -476,7 +479,8 @@ class ScanManager(gtk.Frame):
         self.exafs_scanner.configure(scan_parameters['edge'], scan_parameters['time'], 
                                      scan_parameters['attenuation'], scan_parameters['directory'],
                                      scan_parameters['prefix'], crystal=scan_parameters['crystal'],
-                                     scans=scan_parameters['scans'])
+                                     scans=scan_parameters['scans'],
+                                     kmax=scan_parameters['kmax'])
         
         self._set_scan_action(SCAN_START)
         self.scan_book.set_current_page(1)
@@ -513,17 +517,20 @@ class ScanManager(gtk.Frame):
             self.edge_entry.set_sensitive(True)
             self.energy_entry.set_sensitive(False)
             self.scans_entry.set_sensitive(False)
+            self.kmax_entry.set_sensitive(False)
         elif mode == 'XRF':
             self.scan_help.set_markup('Identify elements present in the sample from their fluorescence')
             self.edge_entry.set_sensitive(False)
             self.energy_entry.set_sensitive(True)
             self.scans_entry.set_sensitive(False)
+            self.kmax_entry.set_sensitive(False)
         elif mode == 'EXAFS':
             self.scan_help.set_markup('Perform full EXAFS scan for the selected edge')
             self.edge_entry.set_editable(False)
             self.edge_entry.set_sensitive(True)
             self.energy_entry.set_sensitive(False)
             self.scans_entry.set_sensitive(True)
+            self.kmax_entry.set_sensitive(True)
         
         return
     
