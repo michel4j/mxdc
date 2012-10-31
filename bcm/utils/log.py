@@ -6,7 +6,7 @@ import types
 from twisted.python import log
 import os
 
-if os.environ.get('MXDC_DEBUG', False):
+if os.environ.get('BCM_DEBUG', False):
     LOG_LEVEL = logging.DEBUG
 else:   
     LOG_LEVEL = logging.INFO

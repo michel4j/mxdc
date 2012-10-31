@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import numpy
 import math, time
 import gobject
 import string, unicodedata
@@ -17,7 +18,10 @@ else:
 def get_short_uuid():
     return str(uuid.uuid1()).split('-')[0]
 
-    
+
+def same_value(a, b, prec):
+    return abs(round(a-b, prec)) <= 10**-prec
+        
 #def gtk_idle(sleep=None):
 #    while gtk.events_pending():
 #        gtk.main_iteration()
@@ -48,7 +52,7 @@ def all(iterable):
 
 def get_project_name():
     if os.environ.get('BCM_DEBUG') is not None:
-        return os.environ.get('BCM_DEBUG_USER', 'testuser')
+        return os.environ.get('BCM_DEBUG_USER', 'fodje')
     else:
         return pwd.getpwuid(os.geteuid())[0]
 
@@ -81,3 +85,5 @@ def lighten_color(s, step=51):
 
 def darken_color(s, step=51):
     return lighten_color(s, step=-step)
+
+    
