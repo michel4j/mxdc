@@ -7,7 +7,7 @@ BEAMLINE_TYPE = 'MX'
 BEAMLINE_ENERGY_RANGE = (4.0, 18.5)
 BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
 
-DEFAULT_EXPOSURE    = 1.0
+DEFAULT_EXPOSURE    = 2.0
 DEFAULT_ATTENUATION = 50.0              # attenuation in %
 DEFAULT_BEAMSTOP    = 30.0
 SAFE_DISTANCE       = 400.0
@@ -38,7 +38,7 @@ DEVICES = {
     'sample_y':  SimMotor('Sample Y', 0.0, 'mm'),
     
     # Beam position & Size
-    'aperture': SimPositioner('Aperture', 150.0, 'um', active=False),
+    'aperture': SimPositioner('Aperture', 25.0, 'um', active=False),
     'beam_x':   SimMotor('Beam X', 0.0, 'mm'),
     'beam_y':   SimMotor('Beam Y', 0.0, 'mm'),
     'beam_w':   SimMotor('Beam W', 0.2, 'mm'),
