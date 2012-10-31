@@ -200,7 +200,7 @@ class DataCollector(gobject.GObject):
             self.pos = 0
             header = {}
             pause_dict = {}
-            _first = True
+            self._first = True
             self.total_items = len(self.run_list)
             while self.pos < self.total_items :
                 if self.paused:
@@ -259,13 +259,13 @@ class DataCollector(gobject.GObject):
                                                    delta=frame['delta_angle'],
                                                    angle=frame['start_angle'])
 
-                self.beamline.detector.start(first=_first)
+                self.beamline.detector.start(first=self._first)
                 self.beamline.detector.set_parameters(header)
                 self.beamline.goniometer.scan()
                 self.beamline.detector.save()
                 
                 #frame['saved'] = True
-                _first = False
+                self._first = False
                     
                 _logger.info("Image Collected: %s" % (frame['file_name']))
                 gobject.idle_add(self.emit, 'new-image', self.pos, "%s/%s" % (frame['directory'], frame['file_name']))
@@ -289,7 +289,7 @@ class DataCollector(gobject.GObject):
             self.beamline.attenuator.set(_current_attenuation)
             self.beamline.lock.release()
         return self.results
-
+            
     def set_position(self, pos):
         for i, frame in enumerate(self.run_list):
             if i < pos and len(self.run_list) > pos:

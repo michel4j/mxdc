@@ -17,6 +17,8 @@ from bcm.utils.runlists import determine_skip, summarize_frame_set
 from bcm.utils import automounter
 from bcm.utils import lims_tools
 from bcm.engine.diffraction import Screener, DataCollector
+from bcm.engine.rastering import RasterCollector
+from mxdc.widgets.rasterwidget import RasterWidget
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from mxdc.widgets.dialogs import warning, MyDialog
 from mxdc.utils import config, gui
@@ -160,18 +162,28 @@ class ScreenManager(gtk.Frame):
         # video        
         self.sample_viewer = SampleViewer()
         self.image_viewer = ImageViewer()
+        self.image_viewer.set_collect_mode(True)
+        self.image_viewer.set_shadow_type(gtk.SHADOW_NONE)
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
         self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
-        self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))
-        
-        self.video_book.connect('realize', lambda x: self.video_book.set_current_page(0))       
-        
-        
+        self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))    
+        self.video_book.connect('realize', lambda x: self.video_book.set_current_page(0))
+                
         #create a data collector and attach it to diffraction viewer
         self.data_collector = DataCollector()
-        self.data_collector.connect('new-image', self.on_diffraction_image)
+        self.data_collector.connect('new-image', self._on_diffraction_image)
         globalRegistry.register([], IDataCollector, 'mxdc.screening', self.data_collector)
         self.screen_ntbk.append_page(self.image_viewer, tab_label=gtk.Label('Diffraction Viewer'))
+        self.screen_ntbk.connect('switch-page', self._on_page_switch)
+
+        # raster screening
+        self.raster_collector = RasterCollector()
+        self.raster_collector.connect('new-image', self._on_diffraction_image)
+        self.raster_widget = RasterWidget()
+        self.raster_widget.link_viewer(self.sample_viewer)
+        self.raster_widget.link_collector(self.raster_collector)
+        self.raster_widget.connect('show-raster', self._on_show_raster)
+        self.activity_ntbk.append_page(self.raster_widget, tab_label=gtk.Label('Raster Screening'))
         
         # Task Configuration
         self.TaskList = []
@@ -255,7 +267,6 @@ class ScreenManager(gtk.Frame):
                                                                'data/tiny-error.png'))
         self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/tiny-skip.png'))
-        
 
     def _set_throbber(self, st):
         if st == 'error':
@@ -389,14 +400,13 @@ class ScreenManager(gtk.Frame):
         task.options[key] = val
     
     def _on_entry_changed(self, obj, event, data):
-        _min, _max, _default = data
+        min_val, max_val, default = data
         try:
             val = float( obj.get_text() )
-            val = min(_max, max(_min, val))
-            obj.set_text( '%0.2f' % val )
+            val = min(max_val, max(min_val, val))
         except:
-            val = _default
-            obj.set_text( '%0.2f' % val )
+            val = default
+        obj.set_text( '%0.2f' % val )
             
         
        
@@ -460,7 +470,7 @@ class ScreenManager(gtk.Frame):
     
     def _save_config(self):
         data = {
-            "directory": self.folder_btn.get_current_folder(),
+            "directory": self.folder_btn.get_filename(),
             "delta": float(self.delta_entry.get_text()),
             "time": float(self.time_entry.get_text()),
             "distance": float(self.distance_entry.get_text()),
@@ -470,14 +480,14 @@ class ScreenManager(gtk.Frame):
     def _load_config(self):
         data = config.load_config(SCREEN_CONFIG_FILE)
         if data is not None:
-            self.folder_btn.set_current_folder(data.get('directory',os.environ['HOME']))
+            self.folder_btn.select_filename(data.get('directory', os.environ['HOME']))
             self.time_entry.set_text('%0.2f' % data.get('time', self.beamline.config['default_exposure']))
             self.delta_entry.set_text('%0.2f' % data.get('delta', 1.0))
             self.distance_entry.set_text('%0.2f' % data.get('distance', 300.0))
             for idx, v in enumerate(data.get('tasks',[])):
                 self.TaskList[idx][1].set_active(v)
         else:
-            self.folder_btn.set_current_folder(os.environ['HOME'])
+            self.folder_btn.select_filename(os.environ['HOME'])
             self.time_entry.set_text('%0.2f' % self.beamline.config['default_exposure'])
             self.delta_entry.set_text('%0.2f' % 1.0)
             self.distance_entry.set_text('%0.2f' % 300.0)                  
@@ -497,7 +507,7 @@ class ScreenManager(gtk.Frame):
                 if t.options['enabled']:
                     tsk = Tasklet(t.task_type, **t.options)
                     tsk.options.update({
-                        'directory' : self.folder_btn.get_current_folder(),
+                        'directory' : self.folder_btn.get_filename(),
                         'sample':  item})
                     if tsk.task_type == Screener.TASK_COLLECT:
                         for n in range(int(t.options['frames'])):
@@ -707,6 +717,20 @@ class ScreenManager(gtk.Frame):
         self.action_frame.set_sensitive(True)
         self.clear_btn.set_sensitive(True)
 
-    def on_diffraction_image(self, obj, pos, filename):
-        self.image_viewer.add_frame(filename)
+    def _on_diffraction_image(self, obj, pos, filename):
+        self.image_viewer.add_frame(filename)       
+        # make tab label bold if image is loaded while hidden
+        if self.screen_ntbk.get_current_page() != self.screen_ntbk.page_num(self.image_viewer):
+            lbl = self.screen_ntbk.get_tab_label(self.image_viewer)
+            lbl.set_markup("<b>%s</b>"% lbl.get_text())
     
+    def _on_page_switch(self, obj, pg, pgn):
+        # restore label to normal
+        wdg = obj.get_nth_page(pgn)
+        tab_lbl = obj.get_tab_label(wdg)
+        tab_lbl.set_text(tab_lbl.get_text())
+        
+    def _on_show_raster(self, obj):
+        # switch video tab to sample viewer
+        self.video_book.set_current_page(self.video_book.page_num(self.sample_viewer))
+
