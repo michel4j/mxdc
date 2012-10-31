@@ -43,8 +43,9 @@ DEVICES = {
     'phi': PseudoMotor('PSMTR1608-5-B10-12:pm:deg'),
     'chi': PseudoMotor('PSMTR1608-5-B10-13:pm:deg'),
     'kappa': PseudoMotor('PSMTR1608-5-B10-11:pm:deg'),
-    'sample_x':  PseudoMotor('PSMTR1608-5-B10-02:pm:mm'),
-    'sample_y':  PseudoMotor('PSMTR1608-5-B10-07:pm:mm'),
+    'sample_x':  PseudoMotor('PSMTR1608-5-B10-02:pm:mm', precision=3),
+    'sample_y':  PseudoMotor('PSMTR1608-5-B10-07:pm:mm', precision=3),
+    
     
     # Beam position & Size
     'aperture': Positioner('BL08B1:MD2:G:BeamSizeHor', 'BL08B1:MD2:G:BeamSizeHor', 100.0, 'um'),
@@ -54,8 +55,8 @@ DEVICES = {
     'beam_h':   VMEMotor('SMTR1608-5-B10-05:mm'),
     
     # Detector, distance & two_theta
-    'distance': PseudoMotor('BL08B1:det:dist:mm'),
-    'detector_z':  ENCMotor('SMTR1608-5-B10-14:mm'),
+    'distance': PseudoMotor('BL08B1:det:dist:mm', precision=2),
+    'detector_z':  ENCMotor('SMTR1608-5-B10-14:mm', precision=2),
     'two_theta':  PseudoMotor('BL08B1:det:2theta:deg'),
     'detector': MXCCDImager('BL08B1-01:CCD', 4096, 0.07243, 'MX300HE'),
     

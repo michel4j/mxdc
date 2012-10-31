@@ -35,7 +35,7 @@ DEVICES = {
     'goniometer': Goniometer('GV6K1608-001', 'OAV1608-3-I10-01', 'ROB16083I:mnt:gotoMount', 'PM1608-3-I10-02:pm:mm'),
     'omega':    VMEMotor('GV6K1608-001:deg'),
     'sample_x':  VMEMotor('SMTR16083I1011:mm'),
-    'sample_y1':  VMEMotor('SMTR16083I1012:mm'), # if no sample_y, provide
+    'sample_y1':  VMEMotor('SMTR16083I1012:mm'), # if no sample_y, it will be determined from
     'sample_y2':  VMEMotor('SMTR16083I1013:mm'), # orthogonal sample_y1 AND sample_y2
     
     # Beam position & Size

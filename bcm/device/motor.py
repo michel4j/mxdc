@@ -5,7 +5,7 @@ from zope.interface import implements
 from bcm.device.interfaces import IMotor
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
-from bcm.utils import converter
+from bcm.utils import converter, misc
 from bcm import registry
 from bcm.device.base import BaseDevice
 
@@ -49,6 +49,7 @@ class MotorBase(BaseDevice):
         self._motor_type = 'basic'
         self.units = ''
         self._move_active_value = 1
+        self.default_precision = 2
     
     def do_changed(self, st):
         pass
@@ -97,12 +98,10 @@ class MotorBase(BaseDevice):
 class SimMotor(MotorBase):
     implements(IMotor)
      
-    def __init__(self, name, pos=0, units='mm', speed=10.0, active=True):
+    def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=3):
         MotorBase.__init__(self,name)
         pos = pos
-        self._speed = speed # speed
-        self._steps_per_second = 20
-        self._stepsize = self._speed/self._steps_per_second
+        self._set_speed(speed)
         self.units = units
         self._state = 0
         self._stopped = False
@@ -111,10 +110,16 @@ class SimMotor(MotorBase):
         self.set_state(health=(0,''), active=active, changed=pos)
         self._position = pos
         self._target = None
-
+        self.default_precision = precision
+        
     def get_position(self):
         return self._position
     
+    def _set_speed(self, val):
+        self._speed = val # speed
+        self._steps_per_second = 20
+        self._stepsize = self._speed/self._steps_per_second
+        
     @async
     def _move_action(self, target):
         self._stopped = False
@@ -188,7 +193,7 @@ class Motor(MotorBase):
     """Motor object for EPICS based motor records."""  
     implements(IMotor) 
        
-    def __init__(self, pv_name, motor_type):
+    def __init__(self, pv_name, motor_type, precision=4):
         """  
         Args:
             - `pv_name` (str): Root PV name for the EPICS record.
@@ -198,9 +203,12 @@ class Motor(MotorBase):
                "vmeenc" - CLS VME58 and MaxV motor record with encoder support.
                "cls" - OLD CLS motor record.
                "pseudo" - CLS PseutoMotor record.
+            - `precision` (int): Default value to use for precision if not properly
+                set in EPICS
         """
         MotorBase.__init__(self, pv_name)
         pv_parts = pv_name.split(':')
+        self.default_precision = precision
         if len(pv_parts)<2:
             _logger.error("Unable to create motor '%s' of type '%s'." %
                              (pv_name, motor_type) )
@@ -340,11 +348,10 @@ class Motor(MotorBase):
         # Do not move if requested position is within precision error
         # from current position.
         prec = self.PREC.get()
-        if prec == 0:
-            prec = 3
+        if prec == 0: prec = self.default_precision
         _pos_format = "%%0.%df" % prec
         _pos_to = _pos_format % pos
-        if abs(self.get_position() - pos) <  10**-prec and not force:
+        if misc.same_value(pos, self.get_position(), prec) and not force:
             _logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
             return
         
@@ -392,19 +399,21 @@ class Motor(MotorBase):
         
         #initialize precision
         prec = self.PREC.get()
-        if prec == 0 or prec is None:
-            prec = 3
+        if prec == 0: prec = self.default_precision
+        _pos_format = "%%0.%df" % prec
 
         if (start and self._command_sent and not self._moving):
             _logger.debug('%s waiting to start moving' % (self.name,))
             while self._command_sent and not self._moving and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
-                if abs(self._target_pos - self.get_position()) < 10**-prec:
+                if misc.same_value(self.get_position(), self._target_pos, prec):
                     self._command_sent = False
                     _logger.debug('%s already at %g' % (self.name,self._target_pos))
             if timeout <= 0:
-                _logger.warning('%s timed out moving to %g [currently %g].' % (self.name, self._target_pos, self.get_position()))
+                tgt = _pos_format % self._target_pos
+                cur = _pos_format % self.get_position()
+                _logger.warning('%s timed out moving to %s [currently %s].' % (self.name, tgt, cur))
                 return False                
         if (stop and self._moving):
             _logger.debug('%s waiting to stop moving' % (self.name,))
@@ -426,44 +435,47 @@ class Motor(MotorBase):
         
 class VMEMotor(Motor):
     """Convenience class for "vme" type motors."""
-    def __init__(self, name):
+    def __init__(self, name, precision=3):
         """  
         Args:        
             - `name` (str): Root PV name of the motor record.
+            - `precision` (int)
         """
-        Motor.__init__(self, name, motor_type = 'vme')
+        Motor.__init__(self, name, motor_type = 'vme', precision=precision)
 
 class ENCMotor(Motor):
     """Convenience class for "vmeenc" type motors."""
-    def __init__(self, name):
+    def __init__(self, name, precision=3):
         """  
-        Args:       
+        Args:        
             - `name` (str): Root PV name of the motor record.
+            - `precision` (int)
         """
-        Motor.__init__(self, name, motor_type = 'vmeenc')
+        Motor.__init__(self, name, motor_type = 'vmeenc', precision=precision)
 
 class CLSMotor(Motor):
     """Convenience class for "cls" type motors."""
-    def __init__(self, name):
+    def __init__(self, name, precision=3):
         """  
-        Args:       
+        Args:        
             - `name` (str): Root PV name of the motor record.
+            - `precision` (int)
         """
-        Motor.__init__(self, name, motor_type = 'cls')
+        Motor.__init__(self, name, motor_type = 'cls', precision=precision)
 
 class PseudoMotor(Motor):
     """Convenience class for "pseudo" type motors."""
-    def __init__(self, name):
+    def __init__(self, name, precision=3):
         """  
-        Args:       
+        Args:        
             - `name` (str): Root PV name of the motor record.
-            
+            - `precision` (int)
         """
-        Motor.__init__(self, name, motor_type = 'pseudo')
+        Motor.__init__(self, name, motor_type = 'pseudo', precision=precision)
 
 class PseudoMotor2(Motor):
-    def __init__(self, name):
-        Motor.__init__(self, name, motor_type = 'oldpseudo')
+    def __init__(self, name, precision=3):
+        Motor.__init__(self, name, motor_type = 'oldpseudo', precision=precision)
    
 class EnergyMotor(Motor):
 
@@ -510,7 +522,7 @@ class BraggEnergyMotor(Motor):
 
     implements(IMotor)
     
-    def __init__(self, name, enc=None, motor_type="vme"):
+    def __init__(self, name, enc=None, motor_type="vme", precision=3):
         """  
         Args:
             - `name` (str): Root PV name of motor record.
@@ -524,8 +536,9 @@ class BraggEnergyMotor(Motor):
                "vmeenc" - CLS VME58 and MaxV motor record with encoder support.
                "cls" - OLD CLS motor record.
                "pseudo" - CLS PseutoMotor record.
+            - `precision` (int)
         """
-        Motor.__init__(self, name, motor_type=motor_type)
+        Motor.__init__(self, name, motor_type=motor_type, precision=precision)
         del self.DESC
         if enc is not None:
             del self.RBV          
@@ -556,10 +569,11 @@ class BraggEnergyMotor(Motor):
         # Do not move if requested position is within precision error
         # from current position.
         prec = self.PREC.get()
-        if prec == 0:
-            prec = 3
-        if abs(self.get_position() - pos) <  10**-prec and not force:
-            _logger.info( "(%s) is already at %f" % (self.name, pos) )
+        if prec == 0: prec = self.default_precision
+        _pos_format = "%%0.%df" % prec
+        _pos_to = _pos_format % pos
+        if misc.same_value(pos, self.get_position(), prec) and not force:
+            _logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
             return
         
         deg_target = converter.energy_to_bragg(pos)

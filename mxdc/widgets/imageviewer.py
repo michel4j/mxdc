@@ -181,9 +181,6 @@ class ImageViewer(gtk.Frame):
         img_logger.info("Loading image %s" % (filename))
         self.image_canvas.load_frame(filename)
 
-            
-
-        
     def set_collect_mode(self, state=True):
         self._collecting = state
         self.follow_tbtn.set_active(state)
