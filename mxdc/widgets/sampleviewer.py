@@ -109,13 +109,14 @@ class SampleViewer(gtk.Frame):
         script = self._scripts['CenterSample']
         script.connect('done', self.done_centering)
         script.connect('error', self.error_centering)
+        
 
     def __getattr__(self, key):
         try:
             return super(SampleViewer).__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
-                                        
+    
     def save_image(self, filename):
 #        img = self.beamline.sample_video.get_frame()
 #        pix_size = self.beamline.sample_video.resolution      
@@ -264,7 +265,7 @@ class SampleViewer(gtk.Frame):
                             if self.edit_grid:                               
                                 cr.set_source_rgba(0.0, 0.0, 1, 0.2)
                             elif score is None:
-                                cr.set_source_rgba(0.1, 0.1, 0.1, 0.3)
+                                cr.set_source_rgba(0.9, 0.9, 0.9, 0.3)
                             else:
                                 R,G,B = self._grid_colormap.get_rgb(score)
                                 cr.set_source_rgba(R, G, B, 0.3)
@@ -287,6 +288,7 @@ class SampleViewer(gtk.Frame):
         self.grid_params['origin'] = (sx, sy)
         self.grid_params['angle'] = self.beamline.omega.get_position()
         self.grid_params['scores'] = {}
+        self.grid_params['details'] = {}
         self.show_grid = True
         self.edit_grid = True
 
@@ -443,7 +445,7 @@ class SampleViewer(gtk.Frame):
         self.click_btn.connect('clicked', self.toggle_click_centering)
         self.loop_btn.connect('clicked', self.on_center_loop)
         self.crystal_btn.connect('clicked', self.on_center_crystal)
-
+        self.beamline.goniometer.connect('mode', self.on_gonio_mode)
 
         # status, save, etc
         self.save_btn.connect('clicked', self.on_save)
@@ -479,7 +481,7 @@ class SampleViewer(gtk.Frame):
         self.beamline.automounter.connect('busy', self.on_automounter_busy)
               
         # disable key controls while scripts are running
-        for sc in ['SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'SetBeamMode']:
+        for sc in ['SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'SetBeamMode', 'CenterSample']:
             self.scripts[sc].connect('started', self.on_scripts_started)
             self.scripts[sc].connect('done', self.on_scripts_done)
     
@@ -491,6 +493,15 @@ class SampleViewer(gtk.Frame):
         
     
     # callbacks
+    def on_gonio_mode(self, obj, mode):
+        if mode != 'CENTERING':
+            self.loop_btn.set_sensitive(False)
+            self.crystal_btn.set_sensitive(False)
+        else:
+            self.loop_btn.set_sensitive(True)
+            self.crystal_btn.set_sensitive(True)
+                                               
+
     def on_automounter_busy(self, obj, state):
         self.cent_btn.set_sensitive(not state)
         self.beam_btn.set_sensitive(not state)
@@ -518,31 +529,19 @@ class SampleViewer(gtk.Frame):
     
     def on_center_loop(self,widget):
         script = self._scripts['CenterSample']
-        self.side_panel.set_sensitive(False)
         script.start(crystal=False)
         return True
               
     def on_center_crystal(self, widget):
         script = self._scripts['CenterSample']
-        self.side_panel.set_sensitive(False)
         script.start(crystal=True)
         return True
 
     def done_centering(self, obj, result):
-        #make signal is handled only once
-        obj.emit_stop_by_name('done')
-        
-        if result['RELIABILITY'] < 70:
-            msg = 'Automatic centering was not reliable enough [reliability=%d%%], please repeat.' % result['RELIABILITY']
-            warning('Poor Centering', msg)            
-        self.side_panel.set_sensitive(True)
+        pass
     
     def error_centering(self, obj):
-        #make signal is handled only once
-        obj.emit_stop_by_name('error')
-        if result is None: # error:
-            msg = 'There was an error centering automatically. Please try centering manually.'
-            error('Automatic Centering Failed', msg)
+        pass
                 
     def on_unmap(self, widget):
         self.videothread.pause()

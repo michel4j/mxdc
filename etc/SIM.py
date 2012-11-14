@@ -59,8 +59,8 @@ DEVICES = {
     'camera_center_y':  SimPositioner('Camera Center y', 288),
     'cryojet':  SimCryojet('Simulated Cryojet'),
     'sample_camera': SimCamera(),
-    'sample_backlight': SimPositioner('Back light', 45.0, '%'),
-    'sample_frontlight': SimPositioner('Front light', 55.0, '%'),    
+    'sample_backlight': SimLight('Back light', 45.0, '%'),
+    'sample_frontlight': SimLight('Front light', 55.0, '%'),    
     'hutch_video':  SimPTZCamera(),
     
     # Facility, storage-ring, shutters, etc
