@@ -479,7 +479,7 @@ class Screener(gobject.GObject):
                                           'port': self.run_list[self.pos]['sample']['port'] }
                             self.pause()
                             self._notify_progress(Screener.TASK_STATE_ERROR)            
-                        elif _out.get('RELIABILITY') < 70:
+                        elif _out < 70:
                             pause_dict = {'type': Screener.PAUSE_UNRELIABLE,
                                           'task': self.run_list[self.pos - 1].name,
                                           'sample': self.run_list[self.pos]['sample']['name'],

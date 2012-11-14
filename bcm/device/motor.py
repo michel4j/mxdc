@@ -351,7 +351,7 @@ class Motor(MotorBase):
         if prec == 0: prec = self.default_precision
         _pos_format = "%%0.%df" % prec
         _pos_to = _pos_format % pos
-        if misc.same_value(pos, self.get_position(), prec) and not force:
+        if misc.same_value(pos, self.get_position(), prec, self.units=='deg') and not force:
             _logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
             return
         
@@ -407,7 +407,7 @@ class Motor(MotorBase):
             while self._command_sent and not self._moving and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
-                if misc.same_value(self.get_position(), self._target_pos, prec):
+                if misc.same_value(self.get_position(), self._target_pos, prec, self.units=='deg'):
                     self._command_sent = False
                     _logger.debug('%s already at %g' % (self.name,self._target_pos))
             if timeout <= 0:
@@ -435,47 +435,32 @@ class Motor(MotorBase):
         
 class VMEMotor(Motor):
     """Convenience class for "vme" type motors."""
-    def __init__(self, name, precision=3):
-        """  
-        Args:        
-            - `name` (str): Root PV name of the motor record.
-            - `precision` (int)
-        """
-        Motor.__init__(self, name, motor_type = 'vme', precision=precision)
+    def __init__(self, *args, **kwargs ):
+        kwargs['motor_type'] = 'vme'
+        Motor.__init__(self, *args, **kwargs)
 
 class ENCMotor(Motor):
     """Convenience class for "vmeenc" type motors."""
-    def __init__(self, name, precision=3):
-        """  
-        Args:        
-            - `name` (str): Root PV name of the motor record.
-            - `precision` (int)
-        """
-        Motor.__init__(self, name, motor_type = 'vmeenc', precision=precision)
+    def __init__(self, *args, **kwargs ):
+        kwargs['motor_type'] = 'vmeenc'
+        Motor.__init__(self, *args, **kwargs)
 
 class CLSMotor(Motor):
     """Convenience class for "cls" type motors."""
-    def __init__(self, name, precision=3):
-        """  
-        Args:        
-            - `name` (str): Root PV name of the motor record.
-            - `precision` (int)
-        """
-        Motor.__init__(self, name, motor_type = 'cls', precision=precision)
+    def __init__(self, *args, **kwargs ):
+        kwargs['motor_type'] = 'cls'
+        Motor.__init__(self, *args, **kwargs)
 
 class PseudoMotor(Motor):
     """Convenience class for "pseudo" type motors."""
-    def __init__(self, name, precision=3):
-        """  
-        Args:        
-            - `name` (str): Root PV name of the motor record.
-            - `precision` (int)
-        """
-        Motor.__init__(self, name, motor_type = 'pseudo', precision=precision)
+    def __init__(self, *args, **kwargs ):
+        kwargs['motor_type'] = 'pseudo'
+        Motor.__init__(self, *args, **kwargs)
 
 class PseudoMotor2(Motor):
-    def __init__(self, name, precision=3):
-        Motor.__init__(self, name, motor_type = 'oldpseudo', precision=precision)
+    def __init__(self, *args, **kwargs ):
+        kwargs['motor_type'] = 'oldpseudo'
+        Motor.__init__(self, *args, **kwargs)
    
 class EnergyMotor(Motor):
 
@@ -572,7 +557,7 @@ class BraggEnergyMotor(Motor):
         if prec == 0: prec = self.default_precision
         _pos_format = "%%0.%df" % prec
         _pos_to = _pos_format % pos
-        if misc.same_value(pos, self.get_position(), prec) and not force:
+        if misc.same_value(pos, self.get_position(), prec, self.units=='deg') and not force:
             _logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
             return
         

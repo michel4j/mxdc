@@ -67,8 +67,8 @@ DEVICES = {
     'camera_center_y':  Positioner('BL08B1:MD2:cam:y'),
     'cryojet':  Cryojet('CSC1608-5-01', 'CSCLVM1608-5-01', 'CSC1608-5-B10-01'),
     'sample_camera': AxisCamera('V2E1608-400', 1),
-    'sample_backlight': Positioner('BL08B1:MD2:S:BlightLevel', 'BL08B1:MD2:G:BlightLevel', 100.0),
-    'sample_frontlight': Positioner('BL08B1:MD2:S:FlightLevel', 'BL08B1:MD2:G:FlightLevel', 100.0),    
+    'sample_backlight': SampleLight('BL08B1:MD2:S:BlightLevel', 'BL08B1:MD2:G:BlightLevel', 'BL08B1:MD2:S:BlightOnOff', 100.0),
+    'sample_frontlight': SampleLight('BL08B1:MD2:S:FlightLevel', 'BL08B1:MD2:G:FlightLevel', 'BL08B1:MD2:S:FlightOnOff',100.0),    
     'hutch_video':  AxisPTZCamera('ccd1608-500'),
     
     # Facility, storage-ring, shutters, etc

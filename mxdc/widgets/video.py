@@ -70,7 +70,7 @@ class VideoWidget(gtk.DrawingArea):
             width = int(ratio * height)
         self.scale = float(width)/self.camera.size[0]
         self._img_width, self._img_height = width, height
-        self.set_size_request(-1,-1)
+        self.set_size_request(width, height)
         return True
     
     def set_overlay_func(self, func):

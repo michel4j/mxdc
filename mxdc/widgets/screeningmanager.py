@@ -183,6 +183,7 @@ class ScreenManager(gtk.Frame):
         self.raster_widget.link_viewer(self.sample_viewer)
         self.raster_widget.link_collector(self.raster_collector)
         self.raster_widget.connect('show-raster', self._on_show_raster)
+        self.raster_widget.connect('show-image', self._on_diffraction_image)
         self.activity_ntbk.append_page(self.raster_widget, tab_label=gtk.Label('Raster Screening'))
         
         # Task Configuration
