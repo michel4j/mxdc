@@ -11,8 +11,10 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="border_width">3</property>
+        <property name="spacing">6</property>
         <child>
           <widget class="GtkNotebook" id="screen_ntbk">
+            <property name="width_request">640</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <child>
@@ -193,19 +195,6 @@
             <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkVSeparator" id="vseparator1">
-            <property name="width_request">3</property>
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="padding">3</property>
-            <property name="position">1</property>
           </packing>
         </child>
         <child>
@@ -1092,7 +1081,7 @@
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">1</property>
           </packing>
         </child>
       </widget>
@@ -1117,6 +1106,12 @@
         <property name="n_columns">6</property>
         <property name="column_spacing">2</property>
         <property name="homogeneous">True</property>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
         <child>
           <placeholder/>
         </child>
@@ -1228,6 +1223,12 @@ to collect</property>
         <property name="n_columns">6</property>
         <property name="column_spacing">2</property>
         <property name="homogeneous">True</property>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
         <child>
           <placeholder/>
         </child>

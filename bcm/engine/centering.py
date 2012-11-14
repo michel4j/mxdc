@@ -6,49 +6,127 @@ from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_short_uuid
-from bcm.utils.imgproc import get_pin_tip
-import Image
+from bcm.engine import fitting
+from bcm.utils import imgproc
+import Image, ImageChops
 import commands
 import shutil
+import numpy
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
+_SAMPLE_SHIFT_STEP = 0.2 # mm
+_CENTERING_ZOOM = 2
+_CENTERING_BLIGHT = 65.0
+_CENTERING_FLIGHT = 0
+_MAX_TRIES = 8
 
-def pre_center():
-    """Rough automatic centering of the sample pin using simple image processing."""
+
+def get_current_bkg():
+    """Move Sample back and capture background image 
+    to be used for auto centering
+    
+    """
     try:
         beamline = globalRegistry.lookup([], IBeamline)
     except:
         _logger.warning('No registered beamline found')
-        return {'RELIABILITY': -99}
+        return
+               
+    # set lighting and zoom
+    _t = time.time()
+    dev = 100
     
-    beamline.sample_frontlight.set(100)
-    zoom = beamline.sample_zoom.get()
-    blight = beamline.sample_backlight.get()
-    back_filename = '%s/data/%s/bg-%d_%d.png' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, int(zoom), int(blight))
-    if os.path.exists(back_filename):
-        bkg = Image.open(back_filename)
-    else:
-        bkg = None
+    # Save current position to return to
+    start_x = beamline.sample_x.get_position()
+    
+    while dev > 1.0:
+        img1 = beamline.sample_video.get_frame()
+        beamline.sample_x.move_by(0.5, wait=True)
+        img2 = beamline.sample_video.get_frame()
+        dev = imgproc.image_deviation(img1, img2)
+    bkg = beamline.sample_video.get_frame()
+    beamline.sample_x.move_to(start_x, wait=True)
+    return bkg
 
+def center_loop():
+    """Automatic centering of the sample pin using simple image processing."""
+    beamline = globalRegistry.lookup([], IBeamline)
+    
+    # set lighting and zoom
+    beamline.sample_frontlight.set_off()
+    backlt = beamline.sample_backlight.get()
+    frontlt = beamline.sample_frontlight.get()
+    beamline.sample_zoom.set(_CENTERING_ZOOM)
+    beamline.sample_backlight.set(_CENTERING_BLIGHT)
+    beamline.sample_frontlight.set(_CENTERING_FLIGHT)
+       
     cx = beamline.camera_center_x.get()
     cy = beamline.camera_center_y.get()
-    for _ in range(3):
-        img = beamline.sample_video.get_frame()
-        x, y = get_pin_tip(img, bkg, orientation=int(beamline.config['orientation']))
-   
-        # calculate motor positions and move
+    
+    bkg_img = get_current_bkg()
+    
+    # check if there is something on the screen
+    img1 = beamline.sample_video.get_frame()
+    dev = imgproc.image_deviation(bkg_img, img1)
+    if dev < 1.0:
+        # Nothing on screen, go to default start
+        beamline.sample_x.move_to(0.0, wait=True)
+        beamline.sample_y.move_to(0.0, wait=True)
+        beamline.omega.move_by(90.0, wait=True)
+        beamline.sample_y.move_to(0.0, wait=True)
 
-        xmm = (cx - x) * beamline.sample_video.resolution
-        beamline.sample_stage.x.move_by(-xmm, wait=True)
+    _logger.debug('Attempting to center loop')
+    
+    ANGLE_STEP = 90.0
+    count = 0
+    max_width = 0.0
+    adj_devs = []
+
+    while count < _MAX_TRIES:
+        count += 1
+        img = beamline.sample_video.get_frame()
+        x, y, w = imgproc.get_loop_center(img, bkg_img, orientation=int(beamline.config['orientation']))
+        
+        # calculate motor positions and move
+        loop_w = w * beamline.sample_video.resolution
+        if count > _MAX_TRIES//2:
+            max_width = max(loop_w, max_width)
 
         ymm = (cy - y) * beamline.sample_video.resolution
+        if count <= _MAX_TRIES//2 or loop_w > 0.6 * max_width or loop_w < 0:
+            xmm = (cx - x) * beamline.sample_video.resolution
+            beamline.sample_stage.x.move_by(-xmm, wait=True)
+            _logger.info("Loop: %0.3f, Change: %0.3f, %0.3f" % (loop_w, xmm, ymm))
+            adj_devs.append((xmm, ymm))
+        else:
+            _logger.warning("Loop: %0.3f, Change: %0.3f, %0.3f" % (loop_w, 0.0, ymm))
+            adj_devs.append((0.0, ymm))
+
         beamline.sample_stage.y.move_by(-ymm, wait=True)
-        beamline.omega.move_by(60.0, wait=True)
+        beamline.omega.move_by(ANGLE_STEP, wait=True)
+    
+    # check quality of fit
+    adj_a = numpy.array(adj_devs)
+    adj_x = numpy.arange(adj_a.shape[0])
+    fit = fitting.PeakFitter()
+    fit(adj_x, adj_a[:,0], 'decay')
+    _logger.warning("Centering quality (Horiz): %0.3f,  %0.3f, %d" % (fit.residual, fit.coeffs[2], fit.ier))
+    fit(adj_x, adj_a[:,1], 'decay')
+    _logger.warning("Centering quality (Vert): %0.3f,  %0.3f, %d" % (fit.residual, fit.coeffs[2], fit.ier))
+    
+    # print adj_a[:,0], adj_a[:,0]
+    # Return lights to previous settings
+    beamline.sample_frontlight.set_on()
+    beamline.sample_backlight.set(backlt)
+    beamline.sample_frontlight.set(frontlt)            
+
+    #FIXME: Better return value
+    return 99.9    
     
 
-def auto_center(pre_align=True):
+def center_crystal():
     """More precise auto-centering of the crystal using the XREC package.
     
     Kwargs:
@@ -66,39 +144,39 @@ def auto_center(pre_align=True):
         _logger.warning('No registered beamline found')
         return {'RELIABILITY': -99}
                
+
+    # set lighting and zoom
+    beamline.sample_frontlight.set_off()
+    backlt = beamline.sample_backlight.get()
+    frontlt = beamline.sample_frontlight.get()
+    beamline.sample_zoom.set(_CENTERING_ZOOM)
+    beamline.sample_backlight.set(_CENTERING_BLIGHT)
+    beamline.sample_frontlight.set(_CENTERING_FLIGHT)
+
+    # get images
     # determine direction based on current omega
+    bkg_img = get_current_bkg()
     angle = beamline.omega.get_position()
     if angle >  270:
         direction = -1.0
     else:
         direction = 1.0
 
-    # set lighting and zoom
-    ZOOM = 2
-    BLIGHT = 65
-    FLIGHT = 0
-    backlt = beamline.sample_backlight.get()
-    frontlt = beamline.sample_frontlight.get()
-    beamline.sample_zoom.set(ZOOM)
-    beamline.sample_backlight.set(BLIGHT)
-
-    pre_center();
-    beamline.sample_frontlight.set(FLIGHT)
-
-    # get images
     prefix = get_short_uuid()
     directory = tempfile.mkdtemp(prefix='centering')
     angles = [angle]
+    STEPS=_MAX_TRIES
+    ANGLE_STEP = 360.0/STEPS
     count = 1
-    while count < 8:
+    while count < STEPS:
         count += 1
-        angle = (angle + (direction * 40.0)) % 360
+        angle = (angle + (direction * ANGLE_STEP)) % 360
         angles.append(angle)
     imglist = take_sample_snapshots(prefix, directory, angles, decorate=False)
-
+    
     # determine zoom level to select appropriate background image
-    zoom = beamline.sample_zoom.get()
-    back_filename = '%s/data/%s/bg-%d_%d.png' % (os.environ.get('BCM_CONFIG_PATH'), beamline.name, int(zoom), BLIGHT)
+    back_filename = os.path.join(directory, "%s-bg.png" % prefix)
+    bkg_img.save(back_filename)
 
     # create XREC input
     infile_name = os.path.join(directory, '%s.inp' % prefix)
@@ -110,8 +188,7 @@ def auto_center(pre_align=True):
     in_data+= 'BORDER 4\n'
     if os.path.exists(back_filename):
         in_data+= 'BACK %s\n' % (back_filename) 
-    if pre_align:
-        in_data+= 'PREALIGN\n'
+    #in_data+= 'PREALIGN\n'
     in_data+= 'DATA_START\n'
     for angle,img in imglist:
         in_data+= '%d  %s \n' % (angle, img)
@@ -159,7 +236,8 @@ def auto_center(pre_align=True):
             beamline.sample_stage.y.move_by(ymm)
         else:
             beamline.sample_stage.y.move_by(-ymm)
-
+            
+    beamline.sample_frontlight.set_on()
     beamline.sample_backlight.set(backlt)
     beamline.sample_frontlight.set(frontlt)            
 
@@ -175,30 +253,23 @@ def auto_center_loop():
     """
 
     tst = time.time()
-    result = auto_center(pre_align=True)
-    if result['RELIABILITY'] < 70:
-        if (result.get('X_CENTRE', -1) == -1) and  (result.get('Y_CENTRE', -1) == -1):
-            _logger.error('Loop centering failed. No loop detected.')
-        else:
-            _logger.info('Loop centering was not reliable enough.')
-            #result = auto_center(pre_align=True)
-    _logger.debug('Loop centering complete in %d seconds.' % (time.time() - tst))
-    return result
+    quality = center_loop()
+
+    if quality < 70:
+        _logger.error('Loop centering failed. No loop detected.')
+
+    _logger.info('Loop centering complete in %d seconds.' % (time.time() - tst))
+    return quality
 
 def auto_center_crystal():
     """Convenience function to run automated crystal centering and return the result, 
     displaying appropriate log messages on failure.    
     """
     tst = time.time()
-    result = auto_center(pre_align=True)
+    result = center_crystal()
     if result['RELIABILITY'] < 70:
-        if (result.get('X_CENTRE', -1) == -1) and  (result.get('Y_CENTRE', -1) == -1):
-            _logger.error('Initial Loop centering failed. No loop detected.')
-        else:
-            _logger.info('Loop centering was not reliable enough. Repeating ')
-            result = auto_center(pre_align=True)
-    result = auto_center(pre_align=False)
-    _logger.debug('Crystal centering complete in %d seconds.' % (time.time() - tst))
-    return result
+        _logger.info('Loop centering was not reliable enough.')
+    _logger.info('Crystal centering complete in %d seconds.' % (time.time() - tst))
+    return result['RELIABILITY']
 
         

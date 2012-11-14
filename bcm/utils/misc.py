@@ -19,7 +19,10 @@ def get_short_uuid():
     return str(uuid.uuid1()).split('-')[0]
 
 
-def same_value(a, b, prec):
+def same_value(a, b, prec, deg=False):
+    if deg:
+        a = a % 360.0
+        b = b % 360.0
     return abs(round(a-b, prec)) <= 10**-prec
         
 #def gtk_idle(sleep=None):
