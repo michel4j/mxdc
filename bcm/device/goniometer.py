@@ -322,8 +322,8 @@ class MD2Goniometer(GoniometerBase):
         
         # device set points for mount mode
         self._mount_setpoints = {
-            self._cnt_x: 0.0,
-            self._cnt_y: 0.0,
+            #self._cnt_x: 0.0,
+            #self._cnt_y: 0.0,
         }                    
 
     def configure(self, **kwargs):

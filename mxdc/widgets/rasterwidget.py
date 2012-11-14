@@ -5,6 +5,7 @@ import time
 import numpy
 
 from datetime import datetime
+from bcm.utils.decorators import async
 from bcm.utils import misc
 from mxdc.widgets import dialogs
 from mxdc.utils.xlsimport import XLSLoader
@@ -67,21 +68,25 @@ class DetailStore(gtk.ListStore):
             gobject.TYPE_STRING,
             gobject.TYPE_PYOBJECT,
             )
+        self.set_sort_column_id(self.SCORE, gtk.SORT_DESCENDING)
+        self.set_default_sort_func(None )
+
       
     def add_item(self, item):
         iter = self.append()
         self.set(iter,
-            self.NAME, item['name'],
+            self.NAME, "(%d,%d)" % item['cell'],
             self.XPOS, "%0.3f" % item['xpos'],
             self.YPOS, "%0.3f" % item['ypos'],
-            self.SCORE, "%0.2f" % item['score'])
+            self.SCORE, "%0.2f" % item['score'],
+            self.DATA, item)
             
     def add_items(self, results):
         self.clear()
         for cell, score in results.get('scores', {}).items():
             loc = results['cells'][cell]
             self.add_item({
-                'name': '(%d,%d)' % cell,
+                'cell': cell,
                 'xpos': loc[2],
                 'ypos': loc[3],
                 'score': score})
@@ -179,7 +184,6 @@ class RasterWidget(gtk.Frame):
                
         renderer = gtk.CellRendererText()
         column = gtk.TreeViewColumn('Angle', renderer, text=model.ANGLE)
-        column.set_cell_data_func(renderer, self.__set_format)
         treeview.append_column(column)
         
         treeview.connect('row-activated',self.on_result_activated)
@@ -197,11 +201,11 @@ class RasterWidget(gtk.Frame):
         treeview.append_column(column)
 
         renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("X", renderer, text=model.XPOS)
+        column = gtk.TreeViewColumn("X-pos", renderer, text=model.XPOS)
         treeview.append_column(column)
         
         renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Y", renderer, text=model.YPOS)
+        column = gtk.TreeViewColumn("Y-pos", renderer, text=model.YPOS)
         treeview.append_column(column)
 
         # column for score
@@ -209,8 +213,22 @@ class RasterWidget(gtk.Frame):
         column = gtk.TreeViewColumn("Score", renderer, text=model.SCORE)
         treeview.append_column(column)
 
+        # column for score
+        renderer = gtk.CellRendererText()
+        renderer.set_fixed_size(14,14)
+        column = gtk.TreeViewColumn("", renderer)
+        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        column.set_fixed_width(16)
+        column.set_cell_data_func(renderer, self.__score_colors)
+        treeview.append_column(column)
+
         return treeview
-    
+
+    def __score_colors(self, column, renderer, model, iter):
+        value = model.get_value(iter, self.details.SCORE)
+        color = self.sample_viewer._grid_colormap.get_hex(value)
+        renderer.set_property('cell-background', color)
+            
     def _validate_float(self, entry, default, min_val, max_val):
         try:
             value = float(entry.get_text().split()[0])
@@ -297,8 +315,25 @@ class RasterWidget(gtk.Frame):
     def _save_config(self, parameters):
         config.save_config(_CONFIG_FILE, parameters)
 
-    def on_detail_activated(self, treeview, path, column=None):
-        pass
+    def on_detail_activated(self, treeview, path, column=None):        
+        iter = self.details.get_iter(path)
+        info = self.details.get_value(iter, DetailStore.DATA)
+        ox, oy = self._result_info['origin']
+        angle = self._result_info['angle']
+        cell_x = ox - info['xpos']
+        cell_y = oy - info['ypos']
+        filename = os.path.join(self._result_info['directory'], 
+                                self._result_info['details'][info['cell']]['file'])
+        gobject.idle_add(self.emit, 'show-image', info['cell'], filename)
+        self._center_xyz(angle, cell_x, cell_y)
+
+    @async
+    def _center_xyz(self, angle, x, y):
+        self.beamline.omega.move_to(angle, wait=True)
+        if not self.beamline.sample_stage.x.is_busy():
+            self.beamline.sample_stage.x.move_to(x, wait=True)
+        if not self.beamline.sample_stage.y.is_busy():
+            self.beamline.sample_stage.y.move_to(y)        
        
     def on_result_activated(self, cell, path, column=None):
         iter = self.results.get_iter_first()
@@ -307,10 +342,10 @@ class RasterWidget(gtk.Frame):
             iter = self.results.iter_next(iter)
         iter = self.results.get_iter(path)
         self.results.set_value(iter, ResultStore.ACTIVE, True)
-        data = self.results.get_value(iter, ResultStore.DATA)
-        self.details.add_items(data)
-        self.beamline.omega.move_to(data['angle'], wait=False)
-        self.sample_viewer.apply_grid_results(data)
+        self._result_info = self.results.get_value(iter, ResultStore.DATA)
+        self.details.add_items(self._result_info)
+        self.beamline.omega.move_to(self._result_info['angle'], wait=False)
+        self.sample_viewer.apply_grid_results(self._result_info)
         return True
     
     def on_apply(self, btn):
@@ -430,6 +465,7 @@ class RasterWidget(gtk.Frame):
 
         self.sample_viewer.add_grid_score(cell, score)
         self._result_info['scores'][cell] = score
+        self._result_info['details'][cell] = results
         
         
     def on_new_fluor(self, obj, cell, counts):
