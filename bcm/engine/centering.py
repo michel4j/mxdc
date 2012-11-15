@@ -1,17 +1,18 @@
-import os
-import time
-import tempfile
-from bcm.engine.snapshot import take_sample_snapshots
-from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
+from bcm.engine import fitting
+from bcm.engine.snapshot import take_sample_snapshots
+from bcm.utils import imgproc
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_short_uuid
-from bcm.engine import fitting
-from bcm.utils import imgproc
-import Image, ImageChops
+from twisted.python.components import globalRegistry
+import Image
+import ImageChops
 import commands
-import shutil
 import numpy
+import os
+import shutil
+import tempfile
+import time
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
