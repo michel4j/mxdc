@@ -1,10 +1,10 @@
 """This module implements utility classes and functions for logging."""
 
+from twisted.python import log
 import logging
+import os
 import termcolor
 import types
-from twisted.python import log
-import os
 
 if os.environ.get('BCM_DEBUG', 'False').lower() == 'true':
     LOG_LEVEL = logging.DEBUG

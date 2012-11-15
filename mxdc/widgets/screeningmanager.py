@@ -117,7 +117,8 @@ class ScreenManager(gtk.Frame):
     def do_new_datasets(self, datasets):
         pass
 
-    def _create_widgets(self):        
+    def _create_widgets(self):
+     
         self.sample_list = SampleList()
         self.beamline = globalRegistry.lookup([], IBeamline)
 
@@ -173,7 +174,7 @@ class ScreenManager(gtk.Frame):
         self.data_collector = DataCollector()
         self.data_collector.connect('new-image', self._on_diffraction_image)
         globalRegistry.register([], IDataCollector, 'mxdc.screening', self.data_collector)
-        self.screen_ntbk.append_page(self.image_viewer, tab_label=gtk.Label('Diffraction Viewer'))
+        self.screen_ntbk.append_page(self.image_viewer, tab_label=gui.make_icon_label('Diffraction Viewer'))
         self.screen_ntbk.connect('switch-page', self._on_page_switch)
 
         # raster screening
@@ -184,7 +185,7 @@ class ScreenManager(gtk.Frame):
         self.raster_widget.link_collector(self.raster_collector)
         self.raster_widget.connect('show-raster', self._on_show_raster)
         self.raster_widget.connect('show-image', self._on_diffraction_image)
-        self.activity_ntbk.append_page(self.raster_widget, tab_label=gtk.Label('Raster Screening'))
+        self.activity_ntbk.append_page(self.raster_widget, tab_label=gui.make_tab_label('Raster Screening'))
         
         # Task Configuration
         self.TaskList = []
@@ -260,14 +261,12 @@ class ScreenManager(gtk.Frame):
         self.show_all()
         
         #prepare pixbufs for status icons
-        self._wait_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
-                                                               'data/tiny-wait.png'))
-        self._ready_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
-                                                               'data/tiny-ready.png'))
-        self._error_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
-                                                               'data/tiny-error.png'))
-        self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
-                                                               'data/tiny-skip.png'))
+        self._wait_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-wait.png'))
+        self._ready_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-ready.png'))
+        self._error_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR, 'tiny-error.png'))
+        self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-skip.png'))
+        self._info_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-info.png'))
+
 
     def _set_throbber(self, st):
         if st == 'error':
@@ -722,16 +721,19 @@ class ScreenManager(gtk.Frame):
         self.image_viewer.add_frame(filename)       
         # make tab label bold if image is loaded while hidden
         if self.screen_ntbk.get_current_page() != self.screen_ntbk.page_num(self.image_viewer):
-            lbl = self.screen_ntbk.get_tab_label(self.image_viewer)
-            lbl.set_markup("<b>%s</b>"% lbl.get_text())
+            tab = self.screen_ntbk.get_tab_label(self.image_viewer)
+            tab.label.set_markup("<b>%s</b>"% tab.label.get_text())
+            tab.icon.set_from_pixbuf(self._info_img)
     
     def _on_page_switch(self, obj, pg, pgn):
-        # restore label to normal
-        wdg = obj.get_nth_page(pgn)
-        tab_lbl = obj.get_tab_label(wdg)
-        tab_lbl.set_text(tab_lbl.get_text())
+        if pgn == self.screen_ntbk.page_num(self.image_viewer):
+            # restore label to normal
+            wdg = obj.get_nth_page(pgn)
+            tab = obj.get_tab_label(wdg)
+            tab.label.set_text(tab.label.get_text())
+            tab.icon.set_from_pixbuf(None)
         
     def _on_show_raster(self, obj):
         # switch video tab to sample viewer
         self.video_book.set_current_page(self.video_book.page_num(self.sample_viewer))
-
+        

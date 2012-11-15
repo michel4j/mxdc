@@ -1,11 +1,10 @@
 
-import numpy
+
+from bcm.utils.science import savitzky_golay, find_peaks
 from scipy.stats import mstats
 import Image
 import ImageChops
-import cv
-
-from bcm.utils.science import savitzky_golay, find_peaks
+import numpy
 
 THRESHOLD = 40
 BORDER = 10
@@ -126,7 +125,7 @@ def _normalize(data):
     return (100.0 * data)/data.max()
 
 def get_pin_cv(img, bkg=None, orientation=2):
-
+    import cv
     cv_img = cv.CreateImageHeader(img.size, cv.IPL_DEPTH_8U, 3)
     cv.SetData(cv_img, img.tostring())
     
