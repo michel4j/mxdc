@@ -1,7 +1,7 @@
 
 
 from bcm.utils.science import savitzky_golay, find_peaks
-from scipy.stats import mstats
+from scipy import stats
 import Image
 import ImageChops
 import numpy
@@ -68,7 +68,7 @@ def get_loop_center(orig, bkg, orientation=2):
         le = peaks[-1][0]
         loop = spans[ls:le]
         lx = numpy.array(range(len(loop)))
-        xmid = le - mstats.gmean(lx)
+        xmid = le - stats.gmean(lx)
         width = loop.mean()
         if xmid > 0:
             ymid = mids[xmid]
