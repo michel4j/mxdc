@@ -443,7 +443,7 @@ class FileChooserDialog(gtk.FileChooserDialog):
         self.hide()
         return filename
 
-class DirectoryButton(gtk.Button):
+class FolderChooserButton(gtk.Button):
     def __init__(self):
         gtk.Button.__init__(self)
         self.dir_label = gtk.Label(os.environ['HOME'])
