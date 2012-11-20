@@ -1,28 +1,26 @@
-import sys
-import os
-import logging
-import warnings
-import time
-import gtk
-import gobject
-import gc
-
-warnings.simplefilter("ignore")
-
 from twisted.internet import gtk2reactor
 gtk2reactor.install()
-from twisted.internet import reactor
 
-from bcm.beamline.mx import MXBeamline
-from twisted.spread import pb
-from bcm.beamline.remote import BeamlineClient
-from bcm.utils.log import get_module_logger, log_to_console, log_to_file
-from mxdc.widgets.dialogs import error
-from bcm.utils import mdns
-from bcm.utils.misc import get_project_name
 #from mxdc.utils import gtkexcepthook
+from bcm.beamline.mx import MXBeamline
+from bcm.beamline.remote import BeamlineClient
+from bcm.utils import mdns
+from bcm.utils.log import get_module_logger, log_to_console, log_to_file
+from bcm.utils.misc import get_project_name
 from mxdc.AppWindow import AppWindow
+from mxdc.widgets.dialogs import error
+from twisted.internet import reactor
+from twisted.spread import pb
+import gc
+import gobject
+import gtk
+import logging
+import os
+import sys
+import time
+import warnings
 
+warnings.simplefilter("ignore")
 _logger = get_module_logger('mxdc')
 
 class MXDCApp(object):
@@ -93,6 +91,7 @@ def main():
 
 if __name__ == "__main__":
     log_to_console()
+    log_to_file(os.path.join(os.environ['HOME'], 'mxdc.log'))
         
     reactor.callWhenRunning(main)
     reactor.run()
