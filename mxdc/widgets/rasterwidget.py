@@ -152,6 +152,7 @@ class RasterWidget(gtk.Frame):
         self.entries['loop_size'].connect('focus-out-event', lambda x,y: self._validate_float(x, 200.0, 20.0, 1000.0))
         self.entries['distance'].connect('focus-out-event', lambda x,y: self._validate_float(x, 250.0, 100.0, 1000.0))
         self.entries['time'].connect('focus-out-event', lambda x,y: self._validate_float(x, 1.0, 0.1, 500))
+        self.entries['directory'].connect('current-folder-changed', self.on_folder_changed)
         self.beamline.aperture.connect('changed', self._set_aperture)
         
     def __getattr__(self, key):
@@ -281,7 +282,7 @@ class RasterWidget(gtk.Frame):
             }
         self.entries['prefix'].set_text(params['prefix'])
         if params.get('directory') is not None:
-            self.entries['directory'].select_filename("%s" % params['directory'])
+            self.entries['directory'].set_current_folder("%s" % params['directory'])
         for key in ['time','loop_size', 'distance', 'aperture']:
             self.entries[key].set_text("%0.1f" % params[key])
             
@@ -295,7 +296,7 @@ class RasterWidget(gtk.Frame):
     def get_parameters(self):
         params = {}
         params['prefix']  = self.entries['prefix'].get_text().strip()
-        params['directory']   = self.entries['directory'].get_filename()
+        params['directory']   = self.entries['directory']._selected_folder
         
         for key in ['time','loop_size','distance', 'aperture']:
             params[key] = float(self.entries[key].get_text())
@@ -314,6 +315,15 @@ class RasterWidget(gtk.Frame):
 
     def _save_config(self, parameters):
         config.save_config(_CONFIG_FILE, parameters)
+
+    def on_folder_changed(self, obj):
+        _new_folder = obj.get_current_folder()
+        _new_filename = obj.get_filename()
+        if  _new_folder != _new_filename:
+            obj._selected_folder = _new_filename
+            #obj.set_current_folder(obj._selected_folder)
+        else:
+            obj._selected_folder = _new_folder
 
     def on_detail_activated(self, treeview, path, column=None):        
         iter = self.details.get_iter(path)
@@ -349,6 +359,7 @@ class RasterWidget(gtk.Frame):
         return True
     
     def on_apply(self, btn):
+        self.entries['directory'].set_current_folder(self.entries['directory']._selected_folder)
         if self.sample_viewer:
             gobject.idle_add(self.emit, 'show-raster')
             params = self.get_parameters()
