@@ -4,14 +4,16 @@ from bcm.utils.science import savitzky_golay, find_peaks
 from scipy import stats
 import Image
 import ImageChops
+import ImageFilter
 import numpy
+import bisect
 
-THRESHOLD = 40
+THRESHOLD = 20
 BORDER = 10
 
 
 def image_deviation(img1, img2):
-    img = ImageChops.difference(img1, img2)
+    img = ImageChops.difference(img1, img2).filter(ImageFilter.BLUR)
     ab = numpy.asarray(img.convert('L'))
     return ab.std()
 
@@ -31,11 +33,11 @@ def _get_object(a):
         span = abs(pr-pl)
         mid = (pr+pl)*0.5
     else:
-        mid, span = -1, 0
-    return mid, span
+        mid, span = -1, 1
+    return mid, max(span, 1)
     
 def get_loop_center(orig, bkg, orientation=2):
-    img = ImageChops.difference(orig, bkg)
+    img = ImageChops.difference(orig, bkg).filter(ImageFilter.BLUR)
     ab = numpy.asarray(img.convert('L'))
     x = numpy.max(ab, 0)
     y = numpy.max(ab, 1)[::-1]
@@ -67,7 +69,7 @@ def get_loop_center(orig, bkg, orientation=2):
         ls = peaks[-2][0]
         le = peaks[-1][0]
         loop = spans[ls:le]
-        lx = numpy.array(range(len(loop)))
+        lx = 1+numpy.array(range(len(loop)))
         xmid = le - stats.gmean(lx)
         width = loop.mean()
         if xmid > 0:
@@ -76,49 +78,9 @@ def get_loop_center(orig, bkg, orientation=2):
     else:
         xmid = xtip
         width = -1
-
-        
-        
     
     return xmid, len(y)-ymid, width
     
-def get_pin_tip(img, bkg=None, orientation=2):
-    SCALE = 2
-    w,h = img.size
-    img = img.resize((w//SCALE,h//SCALE), Image.BICUBIC)
-    
-    if bkg is not None:
-        bkg = bkg.resize((w//SCALE,h//SCALE), Image.BICUBIC)
-        a = numpy.asarray(img.convert('L'))
-        b = numpy.asarray(bkg.convert('L'))
-        ab = numpy.abs((a-b))
-        ab -= ab.mean()
-    else:
-        ab = numpy.asarray(img.convert('L'))
-        
-    x1 = numpy.amax(ab, 0) - numpy.amin(ab, 0)
-    y1 = numpy.amax(ab, 1) - numpy.amin(ab, 1)
-    
-
-    x = savitzky_golay(x1, 15, 0)
-    y = savitzky_golay(y1, 15, 0)
-    
-    xp = list(x > THRESHOLD)
-    try:
-        if orientation == 2:
-            xp.reverse()
-            x_tip = len(xp) - xp.index(True)
-        else:
-            x_tip = xp.index(True)
-    except ValueError:
-        x_tip = 0
-    
-    y_max = y.max()
-    if y.max() < 2 * THRESHOLD:
-        y_mid = len(y)//2
-    else:
-        y_mid = list(y).index(y_max)
-    return (x_tip*SCALE, y_mid*SCALE)
 
 def _normalize(data):
     data = data - data.min()

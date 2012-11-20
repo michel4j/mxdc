@@ -208,7 +208,8 @@ class ScreenManager(gtk.Frame):
         self.time_entry.connect('activate', self._on_entry_changed, None, (0.1, 360.0, self.beamline.config['default_exposure']))
         self.time_entry.connect('focus-out-event', self._on_entry_changed, (0.1, 360.0, self.beamline.config['default_exposure']))
         self.beamline.energy.connect('changed', lambda obj, val: self.energy_entry.set_text('%0.4f' % val))
-        
+        self.folder_btn.connect('current-folder-changed', self._on_folder_changed)
+
         for pos, tasklet in enumerate(self.default_tasks):
             key, options = tasklet
             options.update(enabled=options['default'])
@@ -266,6 +267,9 @@ class ScreenManager(gtk.Frame):
         self._error_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR, 'tiny-error.png'))
         self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-skip.png'))
         self._info_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-info.png'))
+        
+    
+    
 
 
     def _set_throbber(self, st):
@@ -388,6 +392,15 @@ class ScreenManager(gtk.Frame):
         tbl = _xml2.get_widget('collect_labels')
         return tbl
     
+    def _on_folder_changed(self, obj):
+        _new_folder = obj.get_current_folder()
+        _new_filename = obj.get_filename()
+        if  _new_folder != _new_filename:
+            obj._selected_folder = _new_filename
+            #obj.set_current_folder(obj._selected_folder)
+        else:
+            obj._selected_folder = _new_folder
+
     def _on_settings_changed(self, obj, event, task, key):
         try:
             val = float( obj.get_text() )
@@ -470,7 +483,7 @@ class ScreenManager(gtk.Frame):
     
     def _save_config(self):
         data = {
-            "directory": self.folder_btn.get_filename(),
+            "directory": self.folder_btn._selected_folder,
             "delta": float(self.delta_entry.get_text()),
             "time": float(self.time_entry.get_text()),
             "distance": float(self.distance_entry.get_text()),
@@ -480,14 +493,14 @@ class ScreenManager(gtk.Frame):
     def _load_config(self):
         data = config.load_config(SCREEN_CONFIG_FILE)
         if data is not None:
-            self.folder_btn.select_filename(data.get('directory', os.environ['HOME']))
+            self.folder_btn.set_current_folder(data.get('directory', os.environ['HOME']))
             self.time_entry.set_text('%0.2f' % data.get('time', self.beamline.config['default_exposure']))
             self.delta_entry.set_text('%0.2f' % data.get('delta', 1.0))
             self.distance_entry.set_text('%0.2f' % data.get('distance', 300.0))
             for idx, v in enumerate(data.get('tasks',[])):
                 self.TaskList[idx][1].set_active(v)
         else:
-            self.folder_btn.select_filename(os.environ['HOME'])
+            self.folder_btn.set_current_folder(os.environ['HOME'])
             self.time_entry.set_text('%0.2f' % self.beamline.config['default_exposure'])
             self.delta_entry.set_text('%0.2f' % 1.0)
             self.distance_entry.set_text('%0.2f' % 300.0)                  
@@ -500,6 +513,7 @@ class ScreenManager(gtk.Frame):
         model.clear()
         items = self.sample_list.get_selected()
         delta = float(self.delta_entry.get_text())
+        self.folder_btn.set_current_folder(self.folder_btn._selected_folder)
         for item in items:
             collect_task = None
             collect_frames = []
@@ -507,7 +521,7 @@ class ScreenManager(gtk.Frame):
                 if t.options['enabled']:
                     tsk = Tasklet(t.task_type, **t.options)
                     tsk.options.update({
-                        'directory' : self.folder_btn.get_filename(),
+                        'directory' : self.folder_btn._selected_folder,
                         'sample':  item})
                     if tsk.task_type == Screener.TASK_COLLECT:
                         for n in range(int(t.options['frames'])):
@@ -590,10 +604,11 @@ class ScreenManager(gtk.Frame):
         
         eta_time = time_unit * (1 - fraction)
         percent = fraction * 100
-        if position > 0:
+        if fraction < 1 :
             text = "%0.0f %%, ETA %s" % (percent, time.strftime('%H:%M:%S',time.gmtime(eta_time)))
         else:
             text = "Total: %s sec" % (time.strftime('%H:%M:%S',time.gmtime(elapsed_time)))
+        
         self.scan_pbar.set_fraction(fraction)
         self.scan_pbar.set_text(text)
 
