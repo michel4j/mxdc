@@ -41,12 +41,13 @@ def get_current_bkg():
     
     # Save current position to return to
     start_x = beamline.sample_x.get_position()
-    
-    while dev > 1.0:
+    number_left = 10
+    while dev > 1.0 and number_left > 0:
         img1 = beamline.sample_video.get_frame()
         beamline.sample_x.move_by(0.5, wait=True)
         img2 = beamline.sample_video.get_frame()
         dev = imgproc.image_deviation(img1, img2)
+        number_left = number_left - 1
     bkg = beamline.sample_video.get_frame()
     beamline.sample_x.move_to(start_x, wait=True)
     return bkg
