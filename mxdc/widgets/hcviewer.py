@@ -54,6 +54,8 @@ class HCViewer(SampleViewer):
             _logger.warning('No registered beamline found.')
             return
         
+        self.labels = ['Temp','Drop Size']
+        
         self.entries = {
             'state':           HealthDisplay(self.hc), 
             'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', format="%0.2f", width=20),
@@ -147,6 +149,7 @@ class HCViewer(SampleViewer):
         self.mode_tbl.attach(self.cent_btn, 0, 1, 0, 1)
         self.mode_tbl.attach(self.freeze_btn, 1, 2, 0, 1)
             
+        self.temp_btn.set_label(self.labels[0])    
         self.roi_btn.set_label('Define ROI')
         self.reset_btn.set_label('Reset ROI')
         self.roi_btn.tooltip = gtk.Tooltips()
@@ -156,12 +159,12 @@ class HCViewer(SampleViewer):
         
         
     def on_plot_change(self, widget):
-        if widget.get_label() == 'Temperature':
+        if widget.get_label() == self.labels[0]:
             state = True
-            label = 'Drop Size'
+            label = self.labels[1]
         else:
             state = False
-            label = 'Temperature'
+            label = self.labels[0]
         gobject.idle_add(self.emit, 'plot-changed', widget, state)
         self.temp_btn.set_label(label)
 
