@@ -687,7 +687,7 @@ Datasets will be linked to it</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="no_show_all">True</property>
-                <property name="tooltip" translatable="yes">Diffraction Anomalous Fine Structure</property>
+                <property name="tooltip" translatable="yes">Enable Diffraction Anomalous Fine Structure mode.</property>
                 <property name="use_underline">True</property>
                 <property name="draw_indicator">True</property>
               </widget>

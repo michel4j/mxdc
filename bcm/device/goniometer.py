@@ -4,7 +4,7 @@ import warnings
 import gobject
 
 warnings.simplefilter("ignore")
-
+from datetime import datetime
 from zope.interface import implements
 from bcm.device.interfaces import IGoniometer
 from twisted.python.components import globalRegistry
@@ -322,8 +322,8 @@ class MD2Goniometer(GoniometerBase):
         
         # device set points for mount mode
         self._mount_setpoints = {
-            self._cnt_x: 0.0,
-            self._cnt_y: 0.0,
+            #self._cnt_x: 0.0,
+            #self._cnt_y: 0.0,
         }                    
 
     def configure(self, **kwargs):
@@ -465,9 +465,15 @@ class SimGoniometer(GoniometerBase):
     def _start_scan(self):
         self._scanning = True
         bl = globalRegistry.lookup([], IBeamline)
+        st = time.time()
+        _logger.debug('Starting scan at: %s' % datetime.now().isoformat())
         bl.omega.move_to(self._settings['angle'] - 0.05, wait=True)
-        bl.omega._time = 1.1 * self._settings['time']
-        bl.omega.move_to(self._settings['angle'] + self._settings['delta'] + 0.05, wait=True)        
+        old_speed = bl.omega._speed
+        bl.omega._set_speed(self._settings['delta']/self._settings['time'])
+        bl.omega.move_to(self._settings['angle'] + self._settings['delta'] + 0.05, wait=True)
+        bl.omega._set_speed(old_speed)
+        time.sleep(max(0, self._settings['time'] - (time.time() - st)))
+        _logger.debug('Scan done at: %s' % datetime.now().isoformat())
         self._scanning = False
         
     def scan(self, wait=True):

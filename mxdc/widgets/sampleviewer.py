@@ -1,5 +1,7 @@
 import sys, time, os
 import math
+import numpy
+import random
 import gtk
 import gobject
 import pango
@@ -12,9 +14,9 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.utils.video import add_decorations
-from mxdc.utils import gui
+from mxdc.utils import gui, colors
 from bcm.utils.imgproc import get_pin_tip
-
+from bcm.utils.ordereddict import OrderedDict
 try:
     import cairo
     using_cairo = True
@@ -93,9 +95,11 @@ class SampleViewer(gtk.Frame):
         self.measure_y1 = 0
         self.measure_y2 = 0
         
-        #initialize grid variables
-        self.dragging = False
-        self.grid_box = [0,0,0,0]
+        # initialize grid variables
+        self.grid_params = {}
+        self.show_grid = False
+        self.edit_grid = True
+        self._grid_colormap = colors.ColorMapper(color_map='jet', min_val=0.2, max_val=0.8)
         
         self.video.connect('motion_notify_event', self.on_mouse_motion)
         self.video.connect('button_press_event', self.on_image_click)
@@ -105,36 +109,39 @@ class SampleViewer(gtk.Frame):
         script = self._scripts['CenterSample']
         script.connect('done', self.done_centering)
         script.connect('error', self.error_centering)
+        
 
     def __getattr__(self, key):
         try:
             return super(SampleViewer).__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
-                                        
+    
     def save_image(self, filename):
-        img = self.beamline.sample_video.get_frame()
-        pix_size = self.beamline.sample_video.resolution      
-        try:
-            bw = self.beamline.aperture.get() * 0.001 # convert to mm
-            bh = self.beamline.aperture.get() * 0.001
-            bx = 0 #self.beamline.beam_x.get_position()
-            by = 0 #self.beamline.beam_y.get_position()
-            cx = self.beamline.camera_center_x.get()
-            cy = self.beamline.camera_center_y.get()
-        except:
-            w, h = img.size
-            cx = w//2
-            bw = bh = 1.0
-            bx = by = 0
-            cy = h//2
-        
-        sw = bw / pix_size 
-        sh = bh / pix_size
-        x = int(cx - (bx / pix_size))
-        y = int(cy - (by / pix_size))
-        img = add_decorations(img, x, y, sw, sh)
-        img.save(filename)
+#        img = self.beamline.sample_video.get_frame()
+#        pix_size = self.beamline.sample_video.resolution      
+#        try:
+#            bw = self.beamline.aperture.get() * 0.001 # convert to mm
+#            bh = self.beamline.aperture.get() * 0.001
+#            bx = 0 #self.beamline.beam_x.get_position()
+#            by = 0 #self.beamline.beam_y.get_position()
+#            cx = self.beamline.camera_center_x.get()
+#            cy = self.beamline.camera_center_y.get()
+#        except:
+#            w, h = img.size
+#            cx = w//2
+#            bw = bh = 1.0
+#            bx = by = 0
+#            cy = h//2
+#        
+#        sw = bw / pix_size 
+#        sh = bh / pix_size
+#        x = int(cx - (bx / pix_size))
+#        y = int(cy - (by / pix_size))
+#        img = add_decorations(img, x, y, sw, sh)
+#        img.save(filename)
+        self.video.save_image(filename)
+
                     
     def draw_beam_overlay(self, pixmap):
         w, h = pixmap.get_size()
@@ -164,13 +171,13 @@ class SampleViewer(gtk.Frame):
         
         if using_cairo:
             cr = pixmap.cairo_create()
-            cr.set_source_rgba(1, 0.2, 0.1, 1.0)
-            cr.set_line_width(max(cr.device_to_user_distance(0.5, 0.5)))
-            cr.set_dash([], 0)
+            cr.set_source_rgba(1, 0.2, 0.1, 0.3)
+            cr.set_line_width(2.0)
+            #cr.set_dash([], 0)
             
             # beam size
-            cr.set_dash([1,1])
-            cr.arc(x, y, hh-1.0, 0, 2.0 * 3.14)
+            #cr.set_dash([1,1])
+            cr.arc(x, y, hh, 0, 2.0 * 3.14)
             cr.stroke()
             
 
@@ -194,29 +201,184 @@ class SampleViewer(gtk.Frame):
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             if using_cairo:
                 cr = pixmap.cairo_create()
-                cr.set_source_rgba(0.1, 1.0, 0.0, 2.0)
-                cr.set_line_width(0.5)
+                cr.set_source_rgba(0.2, 1.0, 0.2, 0.3)
+                cr.set_line_width(4.0)
                 cr.move_to(x1, y1)
                 cr.line_to(x2, y2)
                 cr.stroke()
             else:
                 pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y2)            
             self.meas_label.set_markup("Length: %0.2g mm" % dist)
-        elif self.dragging:
-            x1, y1, x2, y2 = self.grid_box
-            if using_cairo:
-                cr = pixmap.cairo_create()
-                cr.set_source_rgba(0.1, 0.1, 1.0, 0.2)
-                cr.set_line_width(1)
-                cr.rectangle(x1, y1, x2-x1, y2-y1)
-                cr.fill()
-                cr.set_source_rgba(0.0, 0.0, 8.0, 0.6)
-                cr.rectangle(x1, y1, x2-x1, y2-y1)
-                cr.stroke()            
         else:
             self.meas_label.set_markup("FPS: %0.1f" % self.video.fps)
         return True
 
+    def _calc_grid_params(self):
+        pix_size = self.beamline.sample_video.resolution
+        gw = 0.001*self.grid_params.get('loop_size', 200)
+        cw = 0.001*self.grid_params.get('aperture', 25)
+        nX = nY = int(math.ceil(gw/cw))
+        gw = nX*cw
+
+        cx = self.beamline.camera_center_x.get()
+        cy = self.beamline.camera_center_y.get()
+        sx, sy = self.grid_params.get('origin', (0.0, 0.0))
+        ox = self.beamline.sample_stage.x.get_position() - sx
+        oy = self.beamline.sample_stage.y.get_position() - sy
+        
+        # grid xY origin
+        bx = ox/pix_size
+        by = oy/pix_size
+        
+        # grid sizes in pixels
+        hgw = int(0.5*gw * self.video.scale/pix_size)
+        grid_size = self.video.scale * gw / pix_size 
+        cell_size = self.video.scale * cw / pix_size
+        x0 = int((cx-bx) * self.video.scale) - hgw
+        #y0 = int((cy-by) * self.video.scale) - hgw
+        y0 = int((cy-by) * self.video.scale) - hgw * numpy.sqrt(1-0.5**2)
+        
+        return (x0, y0, grid_size, cell_size, nX, nY)
+    
+    def draw_grid_overlay(self, pixmap):
+        if self.show_grid:
+            
+            x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()
+            if using_cairo:
+                cr = pixmap.cairo_create()
+                cr.set_line_width(0.5)
+                cr.set_source_rgba(0.5, 0.5, 0.5, 0.5)
+                for i in range(nX):
+                    for j in range(nY):
+
+                        #x1 = x0 + i*cell_size
+                        #y1 = y0 + j*cell_size
+                        cell = (i,j)
+                        loc = self._get_grid_center(cell)
+                        if cell in self.grid_params['ignore']:
+                            #cr.rectangle(x1, y1, cell_size, cell_size)
+                            cr.arc(loc[0], loc[1], cell_size/2, 0, 2.0 * 3.14)
+                            cr.set_source_rgba(0.0, 0.0, 0.0, 0.5)
+                            cr.stroke()
+                        else:
+                            score = self.grid_params['scores'].get(cell, None)
+                            if self.edit_grid:                               
+                                cr.set_source_rgba(0.0, 0.0, 1, 0.2)
+                            elif score is None:
+                                cr.set_source_rgba(0.9, 0.9, 0.9, 0.3)
+                            else:
+                                R,G,B = self._grid_colormap.get_rgb(score)
+                                cr.set_source_rgba(R, G, B, 0.3)
+                            #cr.rectangle(x1, y1, cell_size, cell_size)
+                            cr.arc(loc[0], loc[1], cell_size/2, 0, 2.0 * 3.14)
+                            cr.fill()
+                            
+                            #cr.rectangle(x1, y1, cell_size, cell_size)
+                            cr.arc(loc[0], loc[1], cell_size/2, 0, 2.0 * 3.14)
+
+                            cr.set_source_rgba(0.1, 0.1, 0.1, 0.5)
+                            cr.stroke()
+        return True        
+        
+    def apply_grid_settings(self, params):
+        self.grid_params = params
+        self.grid_params['ignore'] = []
+        sx = self.beamline.sample_stage.x.get_position()
+        sy = self.beamline.sample_stage.y.get_position()
+        self.grid_params['origin'] = (sx, sy)
+        self.grid_params['angle'] = self.beamline.omega.get_position()
+        self.grid_params['scores'] = {}
+        self.grid_params['details'] = {}
+        self.show_grid = True
+        self.edit_grid = True
+
+    def add_grid_score(self, cell, score):
+        self.grid_params['scores'][cell] = score
+        
+    def apply_grid_results(self, data):
+        self.grid_params = data
+        self.show_grid = True
+        self.edit_grid = False
+        
+    def select_grid_pixel(self, data):
+        self.show_grid = True
+        self.edit_grid = False
+
+    def clear_grid(self):
+        self.grid_params = {}
+        self.show_grid = False
+        self.edit_grid = False
+
+    def lock_grid(self):
+        self.show_grid = True
+        self.edit_grid = False        
+
+    def get_grid_settings(self):
+        info = {}
+        info.update(self.grid_params)
+        x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()
+        info['size'] = nX
+        info['cells'] = OrderedDict()
+        i_range = range(nX)
+        for j in range(nY):
+            for i in i_range:
+                cell = i,j
+                if cell in self.grid_params['ignore']: continue
+                loc = self._get_grid_center(cell)
+                info['cells'][cell] = loc
+            i_range = i_range[::-1]
+        return info
+            
+    def _get_grid_cell(self, x, y):
+        
+        x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()
+        #i = int((x - x0)/cell_size) 
+        #j = int((y - y0)/cell_size)
+        
+        yd = cell_size * numpy.sqrt(1-0.5**2)
+        j = int((y - y0)/yd)
+        x0adj = x0 + cell_size*0.25*((-1)**j)
+        if x < x0adj or y < y0:
+            return None
+        
+        i = int((x - x0adj)/cell_size)
+
+        if (0 <= i <= nX) and (0 <= i <= nX):
+            return (i,j)
+        else:
+            return None
+
+    def _get_grid_center(self, cell):
+        i,j = cell
+        x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()
+
+#        x = (i * cell_size) + cell_size/2 + x0 
+#        y = (j * cell_size) + cell_size/2 + y0
+ 
+        yd = cell_size * numpy.sqrt(1-0.5**2)
+        x = (i * cell_size + cell_size*0.25*((-1)**j)) + cell_size/2 + x0 
+        y = (j * yd) + cell_size/2 + y0
+        
+        im_x, im_y, dx, dy = self._img_position(x, y) 
+        return int(round(x)), int(round(y)),dx,dy
+    
+    def toggle_grid_cell(self, x, y):
+        if self.edit_grid and not self._click_centering:
+            cell = self._get_grid_cell(x,y)     
+            if cell is not None:       
+                if cell in self.grid_params['ignore']:
+                    self.grid_params['ignore'].remove(cell)
+                else:
+                    self.grid_params['ignore'].append(cell)
+                
+    def clear_grid_cell(self, x, y):
+        if self.edit_grid:
+            cell = self._get_grid_cell(x,y)
+            if cell is not None:       
+                if not cell in self.grid_params['ignore']:
+                    self.grid_params['ignore'].append(cell)
+         
+        
     def _img_position(self,x,y):
         im_x = int(float(x) / self.video.scale)
         im_y = int(float(y) / self.video.scale)
@@ -283,7 +445,7 @@ class SampleViewer(gtk.Frame):
         self.click_btn.connect('clicked', self.toggle_click_centering)
         self.loop_btn.connect('clicked', self.on_center_loop)
         self.crystal_btn.connect('clicked', self.on_center_crystal)
-
+        self.beamline.goniometer.connect('mode', self.on_gonio_mode)
 
         # status, save, etc
         self.save_btn.connect('clicked', self.on_save)
@@ -319,17 +481,27 @@ class SampleViewer(gtk.Frame):
         self.beamline.automounter.connect('busy', self.on_automounter_busy)
               
         # disable key controls while scripts are running
-        for sc in ['SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'SetBeamMode']:
+        for sc in ['SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'SetBeamMode', 'CenterSample']:
             self.scripts[sc].connect('started', self.on_scripts_started)
             self.scripts[sc].connect('done', self.on_scripts_done)
     
     def _overlay_function(self, pixmap):
         self.draw_beam_overlay(pixmap)
         self.draw_meas_overlay(pixmap)
+        self.draw_grid_overlay(pixmap)
         return True        
         
     
     # callbacks
+    def on_gonio_mode(self, obj, mode):
+        if mode != 'CENTERING':
+            self.loop_btn.set_sensitive(False)
+            self.crystal_btn.set_sensitive(False)
+        else:
+            self.loop_btn.set_sensitive(True)
+            self.crystal_btn.set_sensitive(True)
+                                               
+
     def on_automounter_busy(self, obj, state):
         self.cent_btn.set_sensitive(not state)
         self.beam_btn.set_sensitive(not state)
@@ -357,31 +529,19 @@ class SampleViewer(gtk.Frame):
     
     def on_center_loop(self,widget):
         script = self._scripts['CenterSample']
-        self.side_panel.set_sensitive(False)
         script.start(crystal=False)
         return True
               
     def on_center_crystal(self, widget):
         script = self._scripts['CenterSample']
-        self.side_panel.set_sensitive(False)
         script.start(crystal=True)
         return True
 
     def done_centering(self, obj, result):
-        #make signal is handled only once
-        obj.emit_stop_by_name('done')
-        
-        if result['RELIABILITY'] < 70:
-            msg = 'Automatic centering was not reliable enough [reliability=%d%%], please repeat.' % result['RELIABILITY']
-            warning('Poor Centering', msg)            
-        self.side_panel.set_sensitive(True)
+        pass
     
     def error_centering(self, obj):
-        #make signal is handled only once
-        obj.emit_stop_by_name('error')
-        if result is None: # error:
-            msg = 'There was an error centering automatically. Please try centering manually.'
-            error('Automatic Centering Failed', msg)
+        pass
                 
     def on_unmap(self, widget):
         self.videothread.pause()
@@ -430,22 +590,21 @@ class SampleViewer(gtk.Frame):
             x = event.x; y = event.y
         im_x, im_y, xmm, ymm = self._img_position(x,y)
         self.pos_label.set_markup("%4d,%4d [%6.3f, %6.3f mm]" % (im_x, im_y, xmm, ymm))
-        #print event.state.value_names
-        if  'GDK_BUTTON1_MASK' in event.state.value_names:
-            self.grid_box = [self.grid_box[0], self.grid_box[1], event.x, event.y] 
-        elif 'GDK_BUTTON2_MASK' in event.state.value_names:
+        if 'GDK_BUTTON2_MASK' in event.state.value_names:
             self.measure_x2, self.measure_y2, = event.x, event.y
+        elif 'GDK_BUTTON1_MASK' in event.state.value_names:
+            if self.show_grid and self.edit_grid and not self._click_centering:
+                self.clear_grid_cell(event.x, event.y)
         else:
             self.measuring = False
-            self.dragging = False
+        
 
     def on_image_click(self, widget, event):
         if event.button == 1:
             if self._click_centering:
                 self.center_pixel(event.x, event.y)
-            else:
-                self.dragging = False #True
-                self.grid_box = [event.x, event.y, event.x, event.y]
+            elif self.show_grid and self.edit_grid:
+                self.toggle_grid_cell(event.x, event.y)
 
         elif event.button == 2:
             self.measuring = True
