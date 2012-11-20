@@ -169,6 +169,18 @@ class IPositioner(IDevice):
     def get():
         """Return the current position of the device."""
 
+class IOnOff(IDevice):
+    """A with on off toggle""" 
+
+    def set_on():
+        """Turn On."""
+        
+    def set_off():
+        """Turn Off."""
+    
+    def is_on():
+        """Return the on/off state"""
+
 
 class IDiffractometer(IDevice):
     """A diffractometer device object."""
