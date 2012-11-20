@@ -1,16 +1,11 @@
-'''
-Created on Jan 26, 2010
 
-@author: michel
-'''
-import sys
-import os
-
-from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
+from bcm.utils.decorators import ca_thread_enable
 from bcm.utils.log import get_module_logger
 from bcm.utils.video import add_decorations
-from bcm.utils.decorators import ca_thread_enable
+from twisted.python.components import globalRegistry
+import os
+import sys
 
 
 # setup module logger with a default do-nothing handler
@@ -45,7 +40,7 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
         img = beamline.sample_video.get_frame()
         if decorate:
             img = add_decorations(img, x, y, w, h)
-        imgname = os.path.join(directory, '%s_%0.1f.png' % (prefix, angle))
+        imgname = os.path.join(directory, '%s_%0.0f.png' % (prefix, angle))
         img.save(imgname)
         results.append((angle, imgname))
         _logger.debug('Saving video snapshot `%s` at omega angle `%0.1f`' % (imgname, angle))

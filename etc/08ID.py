@@ -35,7 +35,7 @@ DEVICES = {
     'goniometer': Goniometer('GV6K1608-001', 'OAV1608-3-I10-01', 'ROB16083I:mnt:gotoMount', 'PM1608-3-I10-02:pm:mm'),
     'omega':    VMEMotor('GV6K1608-001:deg'),
     'sample_x':  VMEMotor('SMTR16083I1011:mm'),
-    'sample_y1':  VMEMotor('SMTR16083I1012:mm'), # if no sample_y, provide
+    'sample_y1':  VMEMotor('SMTR16083I1012:mm'), # if no sample_y, it will be determined from
     'sample_y2':  VMEMotor('SMTR16083I1013:mm'), # orthogonal sample_y1 AND sample_y2
     
     # Beam position & Size
@@ -58,8 +58,8 @@ DEVICES = {
     'camera_center_y':  Positioner('BL08ID1:video:sample:y'),
     'cryojet':  Cryojet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
     'sample_camera': AxisCamera('V2E1608-001', 4),
-    'sample_backlight': Positioner('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk', 100.0),
-    'sample_frontlight': Positioner('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk', 100.0),    
+    'sample_backlight': SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk','ILC1608-3-I10-02:on', 100.0),
+    'sample_frontlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk','ILC1608-3-I10-01:on', 100.0),    
     'hutch_video':  AxisPTZCamera('CCD1608-301'),
     
     # Facility, storage-ring, shutters, etc

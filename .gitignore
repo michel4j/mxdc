@@ -11,3 +11,5 @@ etc/*_local.py
 mxdc/VERSION
 docs/_build/latex
 docs/_build/doctrees
+.pydevproject
+*bcm.csh
