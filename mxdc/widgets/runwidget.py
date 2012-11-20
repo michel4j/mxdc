@@ -5,7 +5,7 @@ from twisted.python.components import globalRegistry
 from bcm.utils import science, misc
 from bcm.beamline.mx import IBeamline
 from mxdc.widgets.predictor import Predictor
-from mxdc.widgets.dialogs import warning, check_folder, DirectoryButton
+from mxdc.widgets.dialogs import warning, check_folder
 from mxdc.utils import gui
 
 
@@ -67,14 +67,12 @@ class RunWidget(gtk.Frame):
         self.beamline = globalRegistry.lookup([], IBeamline)      
 
         # Set directory field non-editable, must use directory selector
-        self.entry['directory'] = self.directory_btn 
-
-        #self.entry['directory'] = DirectoryButton()
-        #self.layout_table.attach(self.entry['directory'], 1,4,1,2, xoptions=gtk.EXPAND|gtk.FILL)
+        self.entry['directory'] = self.directory_btn
+        self.entry['directory']._selected_folder = os.environ['HOME']
+        self.entry['directory'].connect('current-folder-changed', self.on_folder_changed)
 
         # entry signals
         self.entry['name'].connect('focus-out-event', self.on_prefix_changed)
-        self.entry['directory'].connect('focus-out-event', self.on_directory_changed)
         self.entry['start_angle'].connect('focus-out-event', self.on_start_angle_changed)
         self.entry['delta_angle'].connect('focus-out-event', self.on_delta_changed)
         self.entry['total_angle'].connect('focus-out-event', self.on_total_angle_changed)
@@ -343,7 +341,7 @@ class RunWidget(gtk.Frame):
         if dict.get('directory') is not None and os.path.exists(dict['directory']):
             self.entry['directory'].set_current_folder("%s" % dict['directory'])
         else:
-            #self.entry['directory'].set_current_folder(os.environ['HOME'])
+            self.entry['directory'].set_current_folder(os.environ['HOME'])
             dict['directory'] = os.environ['HOME']
         
         # always display up to date active crystal
@@ -374,7 +372,7 @@ class RunWidget(gtk.Frame):
         run_data = self.parameters.copy()
                 
         run_data['name']      = self.entry['name'].get_text().strip()
-        run_data['directory']   = self.entry['directory'].get_filename()
+        run_data['directory']   = self.entry['directory']._selected_folder
         energy = []
         energy_label = []
         model = self.energy_list.get_model()
@@ -668,14 +666,20 @@ class RunWidget(gtk.Frame):
         self.check_changes()
         return False
         
-    def on_directory_changed(self,widget=None, event=None):
+    def on_folder_changed(self, obj):
+        _new_folder = obj.get_current_folder()
+        _new_filename = obj.get_filename()
+        if  _new_folder != _new_filename:
+            obj._selected_folder = _new_filename
+        else:
+            obj._selected_folder = _new_folder
         self.check_changes()
-        return False        
 
     def on_save(self, widget):
         self.enable_btn.set_active(True)
         self.parameters = self.get_parameters()
         self.check_changes()
+        self.entry['directory'].set_current_folder(self.entry['directory']._selected_folder)
         return True
         
     def on_reset_parameters(self, obj):
