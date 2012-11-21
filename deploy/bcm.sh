@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ## ---- Setup Top level directory of BCM installation ----
-export BCM_PATH=/home/kathryn/sandbox/beamline-control-module
+export BCM_PATH=/home/michel/Code/eclipse-ws/beamline-control-module
 
 
 ## ---- Setup Beamline Configuration by network ----
