@@ -15,7 +15,6 @@ from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
 from bcm.utils.video import add_decorations
 from mxdc.utils import gui, colors
-from bcm.utils.imgproc import get_pin_tip
 from bcm.utils.ordereddict import OrderedDict
 try:
     import cairo
