@@ -1,7 +1,6 @@
 
 
 from bcm.utils.science import savitzky_golay, find_peaks
-from scipy import stats
 import Image
 import ImageChops
 import ImageFilter
@@ -11,6 +10,8 @@ import bisect
 THRESHOLD = 20
 BORDER = 10
 
+def get_pin_tip():
+    pass
 
 def image_deviation(img1, img2):
     img = ImageChops.difference(img1, img2).filter(ImageFilter.BLUR)
@@ -70,7 +71,7 @@ def get_loop_center(orig, bkg, orientation=2):
         le = peaks[-1][0]
         loop = spans[ls:le]
         lx = 1+numpy.array(range(len(loop)))
-        xmid = le - stats.gmean(lx)
+        xmid = le - int(numpy.exp(numpy.log(lx).mean()))
         width = loop.mean()
         if xmid > 0:
             ymid = mids[xmid]
