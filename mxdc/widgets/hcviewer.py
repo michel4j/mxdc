@@ -57,7 +57,7 @@ class HCViewer(SampleViewer):
         self.labels = ['Temp','Drop Size']
         
         self.entries = {
-            'state':           HealthDisplay(self.hc), 
+            'state':           HealthDisplay(self.hc, label='Status'), 
             'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', format="%0.2f", width=20),
             'dewpoint_temp':   ActiveEntry(self.hc.dew_point, 'Dew Point Temperature', format="%0.1f"),
         }
