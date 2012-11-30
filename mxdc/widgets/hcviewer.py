@@ -4,8 +4,9 @@ import gtk
 import gobject
 import pango
 from mxdc.widgets.video import VideoWidget
-from mxdc.widgets.misc import ActiveEntry, HealthDisplay
+from mxdc.widgets.misc import ActiveEntry, HealthDisplay, ScriptButton
 from mxdc.widgets.sampleviewer import SampleViewer
+from bcm.engine.scripting import get_scripts 
 from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
 from bcm.utils.log import get_module_logger
@@ -53,13 +54,15 @@ class HCViewer(SampleViewer):
             _logger.warning('No registered beamline found.')
             return
         
+        self.labels = ['Temp','Drop Size']
+        
         self.entries = {
-            'state':           HealthDisplay(self.hc), 
+            'state':           HealthDisplay(self.hc, label='Status'), 
             'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', format="%0.2f", width=20),
-            'sample_temp':     ActiveEntry(self.hc.temperature, 'Sample Temperature', format="%0.2f"),
             'dewpoint_temp':   ActiveEntry(self.hc.dew_point, 'Dew Point Temperature', format="%0.1f"),
         }
                        
+        self.scripts = get_scripts()
         self._create_widgets()
         
         self.video.connect('realize', self.on_realize)
@@ -123,7 +126,7 @@ class HCViewer(SampleViewer):
         stat_box = gtk.VBox(True,0)
         for key in ['state']:
             stat_box.pack_start(self.entries[key], expand=True, fill=False)
-        for key in ['rel_humidity','sample_temp']:
+        for key in ['rel_humidity']:
             entry_box.pack_start(self.entries[key], expand=True, fill=False)
         self.stat_panel.pack_start(stat_box, expand=True, fill=False) 
         self.hc_panel.pack_start(entry_box, expand=True, fill=False)
@@ -137,15 +140,31 @@ class HCViewer(SampleViewer):
         self.time_btn.pack_start(cell, True)
         self.time_btn.add_attribute(cell, 'text', 0)
         self.time_btn.set_active(0)
+        
+        self.cent_btn = ScriptButton(self.scripts['SetCenteringMode'], 'Center')
+        msg = "This procedure involves both switching the endstation to Mounting Mode and moving"
+        msg += " the mounted sample to a near-vertical orientation.  Be aware that the sample can fall "
+        msg += " out of the drop if the drop size is too large. Are you sure you want to proceed?"
+        self.freeze_btn = ScriptButton(self.scripts['SetFreezeMode'], 'Freeze', confirm=True, message=msg)
+        self.mode_tbl.attach(self.cent_btn, 0, 1, 0, 1)
+        self.mode_tbl.attach(self.freeze_btn, 1, 2, 0, 1)
             
+        self.temp_btn.set_label(self.labels[0])    
+        self.roi_btn.set_label('Define ROI')
+        self.reset_btn.set_label('Reset ROI')
+        self.roi_btn.tooltip = gtk.Tooltips()
+        self.roi_btn.tooltip.set_tip(self.roi_btn, 'Click and drag on the image to define a Region of Interest.')
+        self.reset_btn.tooltip = gtk.Tooltips()
+        self.reset_btn.tooltip.set_tip(self.reset_btn, 'Reset the current Region of Interest')
+        
         
     def on_plot_change(self, widget):
-        if widget.get_label() == 'Temperature':
+        if widget.get_label() == self.labels[0]:
             state = True
-            label = 'Drop Size'
+            label = self.labels[1]
         else:
             state = False
-            label = 'Temperature'
+            label = self.labels[0]
         gobject.idle_add(self.emit, 'plot-changed', widget, state)
         self.temp_btn.set_label(label)
 
@@ -155,7 +174,6 @@ class HCViewer(SampleViewer):
             self.paused = True
             self.on_pause()
         self.side_panel.set_sensitive(active)
-        self.stat_lbl.set_sensitive(active)
         
     def on_pause(self, widget=None):
         if self.paused:
