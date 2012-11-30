@@ -45,8 +45,21 @@ class SetBeamMode(Script):
             #FIXME: should we open the shutter here? Who is responsible for
             # closing it
 
-        
+class SetFreezeMode(Script):
+    description = "Orient Sample for Manual Freezing."
+    def run(self):
+        safe_distance = self.beamline.config['safe_distance']
+        if self.beamline.detector_z.get_position() < safe_distance:
+            self.beamline.detector_z.move_to(safe_distance)
+
+        self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+        self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=True)
+        if 'kappa' in self.beamline.registry:
+            self.beamline.omega.move_to(305, wait=True)
+            self.beamline.kappa.move_to(180)
+
 myscript0 = SetCenteringMode()
 myscript1 = SetMountMode()
 myscript2 = SetCollectMode()
 myscript3 = SetBeamMode()
+myscript4 = SetFreezeMode()
