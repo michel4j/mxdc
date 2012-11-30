@@ -26,9 +26,6 @@ else
 endif
 
 # Setup MOZEMBED XUL PATH
-set gre_version=`xulrunner --gre-version`
-set xul_lib=`xulrunner --find-gre ${gre_version}`
-if ( ! $?MOZILLA_FIVE_HOME) then
-	setenv MOZILLA_FIVE_HOME `dirname ${xul_lib}`
-endif
+set xul_lib=`rpm -q xulrunner.x86_64 --list | grep libxul.so`
+setenv MOZILLA_FIVE_HOME `dirname ${xul_lib}`
 
