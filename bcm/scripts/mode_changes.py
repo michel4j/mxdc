@@ -55,8 +55,8 @@ class SetFreezeMode(Script):
         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
         self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=True)
         if 'kappa' in self.beamline.registry:
-            self.beamline.omega.move_to(305, wait=True)
-            self.beamline.kappa.move_to(180)
+            self.beamline.omega.move_to(32.5, wait=True)
+            self.beamline.chi.move_to(45)
 
 myscript0 = SetCenteringMode()
 myscript1 = SetMountMode()
