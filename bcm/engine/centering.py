@@ -60,7 +60,7 @@ def center_loop():
     beamline.sample_frontlight.set_off()
     backlt = beamline.sample_backlight.get()
     frontlt = beamline.sample_frontlight.get()
-    beamline.sample_zoom.set(_CENTERING_ZOOM)
+    beamline.sample_video.zoom(_CENTERING_ZOOM)
     beamline.sample_backlight.set(_CENTERING_BLIGHT)
     beamline.sample_frontlight.set(_CENTERING_FLIGHT)
        
@@ -151,7 +151,7 @@ def center_crystal():
     beamline.sample_frontlight.set_off()
     backlt = beamline.sample_backlight.get()
     frontlt = beamline.sample_frontlight.get()
-    beamline.sample_zoom.set(_CENTERING_ZOOM)
+    beamline.sample_video.zoom(_CENTERING_ZOOM)
     beamline.sample_backlight.set(_CENTERING_BLIGHT)
     beamline.sample_frontlight.set(_CENTERING_FLIGHT)
 
