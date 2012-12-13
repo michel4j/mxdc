@@ -10,9 +10,6 @@ import bisect
 THRESHOLD = 20
 BORDER = 10
 
-def get_pin_tip():
-    pass
-
 def image_deviation(img1, img2):
     img = ImageChops.difference(img1, img2).filter(ImageFilter.BLUR)
     ab = numpy.asarray(img.convert('L'))
