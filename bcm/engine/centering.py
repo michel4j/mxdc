@@ -42,9 +42,17 @@ def get_current_bkg():
     # Save current position to return to
     start_x = beamline.sample_x.get_position()
     number_left = 10
+    
+    if beamline.config['orientation'] == 2:
+        offset = 0.5
+    elif beamline.config['orientation'] == 3:
+        offset = -0.5
+    else:
+        offset = 0.0
+            
     while dev > 1.0 and number_left > 0:
         img1 = beamline.sample_video.get_frame()
-        beamline.sample_x.move_by(0.5, wait=True)
+        beamline.sample_x.move_by(offset, wait=True)
         img2 = beamline.sample_video.get_frame()
         dev = imgproc.image_deviation(img1, img2)
         number_left = number_left - 1
