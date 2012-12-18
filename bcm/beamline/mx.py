@@ -125,6 +125,7 @@ class MXBeamline(object):
             'lims_api_key': getattr(l_settings, 'LIMS_API_KEY', getattr(g_settings, 'LIMS_API_KEY', '')),
             'shutter_sequence': getattr(l_settings, 'BEAMLINE_SHUTTERS', getattr(g_settings, 'BEAMLINE_SHUTTERS')),
             'orientation': getattr(l_settings, 'BEAMLINE_GONIO_POSITION', getattr(g_settings, 'BEAMLINE_GONIO_POSITION')),
+            'centering_backlight': getattr(l_settings, 'CENTERING_BACKLIGHT', getattr(g_settings, 'CENTERING_BACKLIGHT')),
             'misc': _misc,        
             })
                     
