@@ -40,7 +40,7 @@ def get_current_bkg():
     dev = 100
     
     # Save current position to return to
-    start_x = beamline.sample_x.get_position()
+    start_x = beamline.sample_stage.x.get_position()
     number_left = 10
     
     if beamline.config['orientation'] == 2:
@@ -52,12 +52,12 @@ def get_current_bkg():
             
     while dev > 1.0 and number_left > 0:
         img1 = beamline.sample_video.get_frame()
-        beamline.sample_x.move_by(offset, wait=True)
+        beamline.sample_stage.x.move_by(offset, wait=True)
         img2 = beamline.sample_video.get_frame()
         dev = imgproc.image_deviation(img1, img2)
         number_left = number_left - 1
     bkg = beamline.sample_video.get_frame()
-    beamline.sample_x.move_to(start_x, wait=True)
+    beamline.sample_stage.x.move_to(start_x, wait=True)
     return bkg
 
 def center_loop():
@@ -82,10 +82,10 @@ def center_loop():
     dev = imgproc.image_deviation(bkg_img, img1)
     if dev < 1.0:
         # Nothing on screen, go to default start
-        beamline.sample_x.move_to(0.0, wait=True)
-        beamline.sample_y.move_to(0.0, wait=True)
+        beamline.sample_stage.x.move_to(0.0, wait=True)
+        beamline.sample_stage.y.move_to(0.0, wait=True)
         beamline.omega.move_by(90.0, wait=True)
-        beamline.sample_y.move_to(0.0, wait=True)
+        beamline.sample_stage.y.move_to(0.0, wait=True)
 
     _logger.debug('Attempting to center loop')
     
