@@ -99,6 +99,7 @@ def exafs_targets(energy, start=-0.2, edge=-0.005, exafs=0.006, kmax=14, pe_fact
             
     return energy + numpy.array(targets)
 
+
 def exafs_time_func(t, k, n=2, kmin=3.0, kmax=14.0):
     
     if k < kmin: # anything below kmin gets min time = t
