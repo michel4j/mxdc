@@ -457,7 +457,7 @@ class RasterWidget(gtk.Frame):
         self._state = RASTER_STATE_RUNNING
         
         # Demo grid scores based on size
-        self._scores_for_demo = _demo_scores(self._result_info['size'])
+        # self._scores_for_demo = _demo_scores(self._result_info['size'])
     
     def on_raster_completed(self, obj):
         self.stop_btn.set_sensitive(False)
@@ -471,8 +471,9 @@ class RasterWidget(gtk.Frame):
         
     def on_new_result(self, obj, cell, results):
         score = _score_diff(results)
+        
         # demo override
-        score = self._scores_for_demo[cell[0], cell[1]]
+        # score = self._scores_for_demo[cell[0], cell[1]]
 
         self.sample_viewer.add_grid_score(cell, score)
         self._result_info['scores'][cell] = score

@@ -57,7 +57,7 @@ class RunWidget(gtk.Frame):
         # Data for entries (name: (col, row, length, [unit]))
         entries = ['name', 'distance','delta_angle','exposure_time','first_frame', 
                    'start_angle','num_frames','total_angle','wedge',
-                   'attenuation','inverse_beam','skip']
+                   'attenuation','inverse_beam','skip', 'dafs']
         for e in entries:
             self.entry[e] = self._xml.get_widget(e)
             if isinstance(self.entry[e], gtk.Entry) and e not in ['name',]:
@@ -255,6 +255,8 @@ class RunWidget(gtk.Frame):
         cur_e = self.beamline.energy.get_position()
         path = self.energy_store.get_path(iter)   
         self.energy_store.set(iter, COLUMN_ENERGY, cur_e)
+        self.dafs.set_active(False)
+        self.dafs.set_visible(False)
 
         
     def on_delete_clicked(self, treeview, event):
@@ -301,6 +303,11 @@ class RunWidget(gtk.Frame):
                 except:
                     # Allow using edge name such as "Se-K"
                     _e = _ENERGY_DB.get(new_text, (e_value,))[0]
+                    
+                    # Show DAFS button if this is the case
+                    self.dafs.set_visible(True)
+                    
+                    
                     
                 model.set(iter, COLUMN_ENERGY, _e)
                 if _e is not None:
@@ -356,6 +363,7 @@ class RunWidget(gtk.Frame):
             
         self.set_number(dict['number'])
         self.entry['inverse_beam'].set_active(dict['inverse_beam'])
+        self.entry['dafs'].set_active(dict.get('dafs', False))
         
         # Add energy entries
         self._set_energies(dict)
@@ -389,6 +397,7 @@ class RunWidget(gtk.Frame):
         run_data['energy']  =    energy
         run_data['energy_label'] = energy_label
         run_data['inverse_beam'] = self.entry['inverse_beam'].get_active()
+        run_data['dafs'] =self.entry['dafs'].get_active()
         run_data['number'] = self.number
             
         for key in ['distance','delta_angle','start_angle','total_angle', 'wedge', 'exposure_time', 'attenuation', 'num_frames']:
