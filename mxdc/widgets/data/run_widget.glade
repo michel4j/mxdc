@@ -682,7 +682,7 @@ Datasets will be linked to it</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkCheckButton" id="dafs_btn">
+              <widget class="GtkCheckButton" id="dafs">
                 <property name="label" translatable="yes">DAFS</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
