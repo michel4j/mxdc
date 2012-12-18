@@ -69,8 +69,8 @@ def center_loop():
     backlt = beamline.sample_backlight.get()
     frontlt = beamline.sample_frontlight.get()
     beamline.sample_video.zoom(_CENTERING_ZOOM)
-    beamline.sample_backlight.set(_CENTERING_BLIGHT)
-    beamline.sample_frontlight.set(_CENTERING_FLIGHT)
+    beamline.sample_backlight.set(beamline.config.get('centering_backlight', _CENTERING_BLIGHT))
+    #beamline.sample_frontlight.set(_CENTERING_FLIGHT)
        
     cx = beamline.camera_center_x.get()
     cy = beamline.camera_center_y.get()
@@ -160,8 +160,8 @@ def center_crystal():
     backlt = beamline.sample_backlight.get()
     frontlt = beamline.sample_frontlight.get()
     beamline.sample_video.zoom(_CENTERING_ZOOM)
-    beamline.sample_backlight.set(_CENTERING_BLIGHT)
-    beamline.sample_frontlight.set(_CENTERING_FLIGHT)
+    beamline.sample_backlight.set(beamline.config.get('centering_backlight', _CENTERING_BLIGHT))
+    #beamline.sample_frontlight.set(_CENTERING_FLIGHT)
 
     # get images
     # determine direction based on current omega
