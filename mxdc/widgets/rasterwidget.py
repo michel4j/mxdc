@@ -507,7 +507,7 @@ def _score_diff(results):
     inres = results['resolution_spots']
     ice = 1/(1.0 + results['ice_rings'])
     saturation = results['saturation'][1];
-    sc_x = numpy.array([bragg, saturation])
+    sc_x = numpy.array([bragg, saturation, ice])
     sc_w = numpy.array([5, 10, 0.2])
     score = numpy.exp((sc_w*numpy.log(sc_x)).sum()/sc_w.sum())
         
