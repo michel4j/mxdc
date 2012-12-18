@@ -498,30 +498,17 @@ def _demo_scores(N):
            
 
 def _score_diff(results):
-
-    def score_penalty(x, best, worst):
-        if best > worst:
-            x = min(best, max(worst, x))
-        else:
-            x = max(best, min(worst, x))
-        
-        x = (x-worst)/float(best-worst)
-        return numpy.sqrt(1 - x*x)
     
     if not results:
         return 0.0
     
     resolution = max(results['resolution'], results['alt_resolution'])
-    bragg = results['bragg_spots']/float(results['total_spots'])
-    inres = results['resolution_spots']/float(results['total_spots'])
+    bragg = results['bragg_spots']
+    inres = results['resolution_spots']
+    ice = 1/(1.0 + results['ice_rings'])
     saturation = results['saturation'][1];
-    
-    score = [ 1.0,
-        -0.30 * score_penalty(resolution, 1.0, 10.0),
-        -0.20 * score_penalty(bragg, 1.0, 0.0),
-        -0.10 * score_penalty(inres, 1.0, 0.0),
-        -0.10 * score_penalty(saturation, 50.0, 0.0),
-        -0.10 * score_penalty(results['ice_rings'], 0, 8),
-        ]
+    sc_x = numpy.array([bragg, saturation])
+    sc_w = numpy.array([5, 10, 0.2])
+    score = numpy.exp((sc_w*numpy.log(sc_x)).sum()/sc_w.sum())
         
-    return sum(score)
+    return score
