@@ -14,6 +14,9 @@ SAFE_BEAMSTOP       = 50.0
 SAFE_DISTANCE       = 400.0
 XRF_BEAMSTOP        = 30.0
 
+CENTERING_BACKLIGHT = 37.0
+
+
 # miscellaneous settings
 MISC_SETTINGS = {
     'aperture_in_position': 3.63,
