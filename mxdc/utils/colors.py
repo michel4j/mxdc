@@ -45,6 +45,9 @@ class ColorMapper(object):
         #self.cmap = cmap_discretize(cmap_name=color_map, N=20)
         self.norm = colors.Normalize(vmin=min_val, vmax=max_val)
     
+    def autoscale(self, values):
+        self.norm.autoscale(values)
+         
     def get_rgb(self, val):
         R,G,B,A = self.cmap(self.norm(val))
         return R,G,B

@@ -95,9 +95,7 @@ class SampleViewer(gtk.Frame):
         self.measure_y2 = 0
         
         # initialize grid variables
-        self.grid_params = {}
-        self.show_grid = False
-        self.edit_grid = True
+        self.init_grid_settings()
         self._grid_colormap = colors.ColorMapper(color_map='jet', min_val=0.2, max_val=0.8)
         
         self.video.connect('motion_notify_event', self.on_mouse_motion)
@@ -278,7 +276,20 @@ class SampleViewer(gtk.Frame):
                             cr.set_source_rgba(0.1, 0.1, 0.1, 0.5)
                             cr.stroke()
         return True        
+
+    def init_grid_settings(self):
+        self.grid_params = {}
+        self.grid_params['ignore'] = []
+        sx = self.beamline.sample_stage.x.get_position()
+        sy = self.beamline.sample_stage.y.get_position()
+        self.grid_params['origin'] = (sx, sy)
+        self.grid_params['angle'] = self.beamline.omega.get_position()
+        self.grid_params['scores'] = {}
+        self.grid_params['details'] = {}
+        self.show_grid = False
+        self.edit_grid = False
         
+      
     def apply_grid_settings(self, params):
         self.grid_params = params
         self.grid_params['ignore'] = []
@@ -293,6 +304,8 @@ class SampleViewer(gtk.Frame):
 
     def add_grid_score(self, cell, score):
         self.grid_params['scores'][cell] = score
+        values = [v for v in self.grid_params['scores'].values()]
+        self._grid_colormap.autoscale(values)
         
     def apply_grid_results(self, data):
         self.grid_params = data
