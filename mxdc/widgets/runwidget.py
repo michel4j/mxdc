@@ -256,7 +256,7 @@ class RunWidget(gtk.Frame):
         path = self.energy_store.get_path(iter)   
         self.energy_store.set(iter, COLUMN_ENERGY, cur_e)
         self.dafs.set_active(False)
-        self.dafs.set_visible(False)
+        self.dafs.hide()
 
         
     def on_delete_clicked(self, treeview, event):
@@ -305,7 +305,7 @@ class RunWidget(gtk.Frame):
                     _e = _ENERGY_DB.get(new_text, (e_value,))[0]
                     
                     # Show DAFS button if this is the case
-                    self.dafs.set_visible(True)
+                    self.dafs.show()
                     
                     
                     
@@ -363,7 +363,7 @@ class RunWidget(gtk.Frame):
             
         self.set_number(dict['number'])
         self.entry['inverse_beam'].set_active(dict['inverse_beam'])
-        self.entry['dafs'].set_active(dict.get('dafs', False))
+        #self.entry['dafs'].set_active(dict.get('dafs', False))
         
         # Add energy entries
         self._set_energies(dict)
