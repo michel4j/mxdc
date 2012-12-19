@@ -8,6 +8,7 @@ from datetime import datetime
 from bcm.utils.decorators import async
 from bcm.utils import misc
 from mxdc.widgets import dialogs
+from mxdc.widgets.misc import MotorEntry, ActiveEntry
 from mxdc.utils.xlsimport import XLSLoader
 from mxdc.utils import gui, config
 
@@ -65,11 +66,10 @@ class DetailStore(gtk.ListStore):
             gobject.TYPE_STRING, 
             gobject.TYPE_STRING, 
             gobject.TYPE_STRING,
-            gobject.TYPE_STRING,
+            gobject.TYPE_FLOAT,
             gobject.TYPE_PYOBJECT,
             )
         self.set_sort_column_id(self.SCORE, gtk.SORT_DESCENDING)
-        self.set_default_sort_func(None )
 
       
     def add_item(self, item):
@@ -78,7 +78,7 @@ class DetailStore(gtk.ListStore):
             self.NAME, "(%d,%d)" % item['cell'],
             self.XPOS, "%0.3f" % item['xpos'],
             self.YPOS, "%0.3f" % item['ypos'],
-            self.SCORE, "%0.2f" % item['score'],
+            self.SCORE, round(item['score'],1),
             self.DATA, item)
             
     def add_items(self, results):
@@ -120,6 +120,7 @@ class RasterWidget(gtk.Frame):
         #details pane
         self.details_view = self.__create_detail_view()
         self.details_view.connect('row-activated',self.on_detail_activated)
+        self.details_view.connect('cursor-changed', self.on_detail_selected)
         self.details_sw.add(self.details_view)
                 
         #btn commands
@@ -141,10 +142,18 @@ class RasterWidget(gtk.Frame):
         self.entries = {
             'prefix': self.prefix_entry,
             'directory': self.folder_btn,
-            'aperture': self.aperture_entry,
             'loop_size': self.loop_entry,
             'time': self.time_entry,
             'distance': self.distance_entry,
+        }
+        
+        self.labels = {
+            'saturation': self.saturation_lbl,
+            'total_spots': self.total_spots_lbl,
+            'bragg_spots': self.bragg_spots_lbl,
+            'ice_rings': self.ice_rings_lbl,
+            'resolution': self.resolution_lbl,
+            'max_cell': self.max_cell_lbl
         }
 
         self._load_config()
@@ -153,17 +162,22 @@ class RasterWidget(gtk.Frame):
         self.entries['distance'].connect('focus-out-event', lambda x,y: self._validate_float(x, 250.0, 100.0, 1000.0))
         self.entries['time'].connect('focus-out-event', lambda x,y: self._validate_float(x, 1.0, 0.1, 500))
         self.entries['directory'].connect('current-folder-changed', self.on_folder_changed)
-        self.beamline.aperture.connect('changed', self._set_aperture)
+        
+        omega = MotorEntry(self.beamline.omega, 'Gonio Omega', format="%0.2f")
+        aperture = ActiveEntry(self.beamline.aperture, 'Beam Aperture', format="%0.2f")
+        self.param_tbl.attach(omega, 1, 2, 3, 5)
+        self.param_tbl.attach(aperture, 2, 4, 3, 5)
+        
+        sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        sg.add_widget(omega)
+        sg.add_widget(aperture)
         
     def __getattr__(self, key):
         try:
             return super(RasterWidget).__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
-    
-    def _set_aperture(self, ap, val):
-        self.entries['aperture'].set_text('%0.1f' % val)
-        
+            
     def __create_result_view(self):
         self.results = ResultStore()
         model = self.results
@@ -212,6 +226,8 @@ class RasterWidget(gtk.Frame):
         # column for score
         renderer = gtk.CellRendererText()
         column = gtk.TreeViewColumn("Score", renderer, text=model.SCORE)
+        column.set_sort_column_id(model.SCORE)
+        column.set_cell_data_func(renderer, self.__float_format)
         treeview.append_column(column)
 
         # column for score
@@ -225,10 +241,15 @@ class RasterWidget(gtk.Frame):
 
         return treeview
 
+    def __float_format(self, column, renderer, model, iter):
+        value = model.get_value(iter, self.details.SCORE)
+        renderer.set_property('text', "%0.2f" % value)
+
     def __score_colors(self, column, renderer, model, iter):
         value = model.get_value(iter, self.details.SCORE)
         color = self.sample_viewer._grid_colormap.get_hex(value)
         renderer.set_property('cell-background', color)
+
             
     def _validate_float(self, entry, default, min_val, max_val):
         try:
@@ -272,7 +293,7 @@ class RasterWidget(gtk.Frame):
             # load defaults
             params = {
                 'mode': 'Diffraction',
-                'prefix': 'test',
+                'prefix': 'testgrid',
                 'directory': os.environ['HOME'],
                 'distance': self.beamline.distance.get_position(),
                 'loop_size': 200,
@@ -283,13 +304,13 @@ class RasterWidget(gtk.Frame):
         self.entries['prefix'].set_text(params['prefix'])
         if params.get('directory') is not None:
             self.entries['directory'].set_current_folder("%s" % params['directory'])
-        for key in ['time','loop_size', 'distance', 'aperture']:
+        for key in ['time','loop_size', 'distance']:
             self.entries[key].set_text("%0.1f" % params[key])
             
         if params['mode'] == 'Diffraction':
-            self.diff_btn.set_active(True)
+            self.score_cbx.set_active(0)
         else:
-            self.fluor_btn.set_active(True)
+            self.score_cbx.set_active(1)
 
 
         
@@ -298,11 +319,12 @@ class RasterWidget(gtk.Frame):
         params['prefix']  = self.entries['prefix'].get_text().strip()
         params['directory']   = self.entries['directory']._selected_folder
         
-        for key in ['time','loop_size','distance', 'aperture']:
+        for key in ['time','loop_size','distance']:
             params[key] = float(self.entries[key].get_text())
+        params['aperture'] = self.beamline.aperture.get()
         if params['directory'] is None:
             params['directory'] = os.environ['HOME']
-        if self.diff_btn.get_active():
+        if self.score_cbx.get_active() == 0:
             params['mode'] = 'Diffraction'
         else:
             params['mode'] = 'Fluorescence'
@@ -336,6 +358,14 @@ class RasterWidget(gtk.Frame):
                                 self._result_info['details'][info['cell']]['file'])
         gobject.idle_add(self.emit, 'show-image', info['cell'], filename)
         self._center_xyz(angle, cell_x, cell_y)
+
+    def on_detail_selected(self, treeview):
+        sel = treeview.get_selection()
+        model, iter = sel.get_selected()
+        cell = model.get_value(iter, DetailStore.DATA)['cell']
+        info = self._result_info['details'][cell]
+        for k, w in self.labels.items():
+            w.set_text(str(info[k]))
 
     @async
     def _center_xyz(self, angle, x, y):
@@ -431,7 +461,6 @@ class RasterWidget(gtk.Frame):
         self.action_btn.set_label('mxdc-start')
         self.pbar.set_text("Stopped!")
         self.control_box.set_sensitive(True)
-        self.score_options.set_sensitive(True)
         self.results.add_item(self._result_info)
         self.details.add_items(self._result_info)           
         self.result_box.set_sensitive(True)          
@@ -448,7 +477,6 @@ class RasterWidget(gtk.Frame):
         
     def on_raster_started(self, obj):
         self.control_box.set_sensitive(False)
-        self.score_options.set_sensitive(False)
         self.start_time = time.time()
         self.action_btn.set_label('mxdc-pause')
         self.stop_btn.set_sensitive(True)
@@ -463,7 +491,6 @@ class RasterWidget(gtk.Frame):
         self.stop_btn.set_sensitive(False)
         self.action_btn.set_label('mxdc-start')
         self.control_box.set_sensitive(True)
-        self.score_options.set_sensitive(True)
         self._state = RASTER_STATE_IDLE
         self.results.add_item(self._result_info)
         self.details.add_items(self._result_info)
