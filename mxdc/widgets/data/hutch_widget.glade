@@ -150,6 +150,21 @@
                   <placeholder/>
                 </child>
                 <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
                   <widget class="GtkAlignment" id="predictor_frame">
                     <property name="width_request">120</property>
                     <property name="height_request">120</property>

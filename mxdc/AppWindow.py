@@ -111,7 +111,6 @@ class AppWindow(gtk.Window):
             box.pack_start(aln.image, expand=False, fill=False)
             aln.add(box)
             aln.show_all()
-            #box.show_all()
             return aln
             
         notebook.append_page(self.hutch_manager, tab_label=_mk_lbl('Beamline Setup'))
