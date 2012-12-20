@@ -134,6 +134,7 @@ class RunWidget(gtk.Frame):
         column1.set_expand(False)
         column1.set_alignment(0.5)
         self.energy_list.append_column(column1)
+        self.expand_separator.set_expand(True)
        
         
         #Delete column
@@ -438,7 +439,7 @@ class RunWidget(gtk.Frame):
                 #add Predictor    
                 self.predictor = Predictor(self.beamline.detector.resolution, 
                                    self.beamline.detector.size)
-                self.predictor.set_size_request(200,200)
+                self.predictor.set_size_request(180,180)
                 self.predictor.set_border_width(12)
                 self.run_widget.pack_end( self.predictor, expand=True, fill=True)
     

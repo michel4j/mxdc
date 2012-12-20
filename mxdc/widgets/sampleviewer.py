@@ -107,6 +107,7 @@ class SampleViewer(gtk.Frame):
         script.connect('done', self.done_centering)
         script.connect('error', self.error_centering)
         
+        
 
     def __getattr__(self, key):
         try:
@@ -423,13 +424,6 @@ class SampleViewer(gtk.Frame):
     def _create_widgets(self):
         
         self.cmap_popup = self._xml_popup.get_widget('colormap_popup')
-        #ui = gtk.UIManager()
-        #ui.insert_action_group(actions, 0)
-        #self.add_accel_group(ui.get_accel_group())
-        #ui.add_ui_from_string(POPUP_UI)
-        #self.cmap_popup = ui.get_widget('/PopupMenu')
-        #self.cmap_popup.set_title('Pseudo Color Mode')
-        
         # connect colormap signals
         cmap_items = ['cmap_default', 'cmap_spectral','cmap_hsv','cmap_jet', 'cmap_ryg','cmap_hot', 'cmap_pubu']
         for i in range(len(cmap_items)):
