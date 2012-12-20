@@ -38,6 +38,12 @@ class ImageViewer(gtk.Frame):
         self.all_spots = []
         self._create_widgets()
         
+    def __getattr__(self, key):
+        try:
+            return super(ImageViewer).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
+
     def _create_widgets(self):
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
                                   'image_viewer')
@@ -51,37 +57,28 @@ class ImageViewer(gtk.Frame):
                                   'info_dialog')
         
         self._widget = self._xml.get_widget('image_viewer')
-        self.image_frame = self._xml.get_widget('image_frame')
         self.image_canvas = ImageWidget(self._canvas_size)
         self.image_canvas.connect('image-loaded', self._update_info)
         self.image_frame.add(self.image_canvas)
         self.image_canvas.connect('motion_notify_event', self.on_mouse_motion)
         
-        self.open_btn = self._xml.get_widget('open_btn')
-        self.image_label = self._xml.get_widget('image_label')
-        self.next_btn = self._xml.get_widget('next_btn')
-        self.prev_btn = self._xml.get_widget('prev_btn')
-        self.back_btn = self._xml.get_widget('back_btn')
-        self.zoom_fit_btn = self._xml.get_widget('zoom_fit_btn')
-        self.follow_tbtn = self._xml.get_widget('follow_tbtn')
-        self.reset_btn = self._xml.get_widget('reset_btn')
-        self.info_btn = self._xml.get_widget('info_btn')
+
         self.info_btn.connect('clicked', self.on_image_info)
         self.follow_tbtn.connect('toggled', self.on_follow_toggled)
         
-        self.contrast_tbtn = self._xml.get_widget('contrast_tbtn')
+
         self.contrast_popup = self._xml4.get_widget('contrast_popup')
         self.contrast = self._xml4.get_widget('contrast')
         self.contrast_tbtn.connect('toggled', self.on_contrast_toggled)     
         self.contrast.connect('value-changed', self.on_contrast_changed)
         
-        self.brightness_tbtn = self._xml.get_widget('brightness_tbtn')
+
         self.brightness_popup = self._xml2.get_widget('brightness_popup')
         self.brightness = self._xml2.get_widget('brightness')
         self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)
         self.brightness.connect('value-changed', self.on_brightness_changed)
 
-        self.colorize_tbtn = self._xml.get_widget('colorize_tbtn')
+
         self.colorize_popup = self._xml5.get_widget('colorize_popup')
         self.colormap = self._xml5.get_widget('colormap')
         self.colorize_tbtn.connect('toggled', self.on_colorize_toggled)
@@ -100,7 +97,8 @@ class ImageViewer(gtk.Frame):
         self.zoom_fit_btn.connect('clicked', self.on_go_back, True)
         
         self.info_dialog = None
-        
+        self.expand_separator.set_expand(True)
+
         self.image_canvas.connect('configure-event', self.on_configure)      
         self.add(self._widget)         
         self.show_all()
@@ -161,7 +159,6 @@ class ImageViewer(gtk.Frame):
             self.prev_btn.set_sensitive(False)
         else:
             self.prev_btn.set_sensitive(True)
-        self.image_label.set_markup('<small>%s</small>' % self.filename)
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
         self.contrast_tbtn.set_sensitive(True)

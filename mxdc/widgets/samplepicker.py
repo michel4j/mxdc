@@ -193,6 +193,7 @@ class ContainerWidget(gtk.DrawingArea):
             context.clip()
             pcontext = self.get_pango_context()
             font_desc = pcontext.get_font_description()
+            context.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
             style = self.get_style()
             context.set_source_color(style.fg[self.state])
             context.set_font_size( font_desc.get_size()/pango.SCALE )
