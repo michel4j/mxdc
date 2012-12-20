@@ -9,6 +9,7 @@ import pickle
 import gtk
 import logging
 import gobject
+import pango
 import time
 import threading
 import Queue
@@ -478,6 +479,17 @@ class ImageWidget(gtk.DrawingArea):
             cr.move_to(self.meas_x0, self.meas_y0)
             cr.line_to(self.meas_x1, self.meas_y1)
             cr.stroke()
+        
+        # Filename
+        pcontext = self.get_pango_context()
+        x, y, w, h = self.get_allocation()
+        font_desc = pcontext.get_font_description()
+        cr.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+        cr.set_font_size(12)
+        cr.set_line_width(0.85)
+        cr.move_to(6, h-6)
+        cr.show_text(os.path.basename(self.filename))
+
 
     def draw_spots(self, cr):
         # draw spots
@@ -731,6 +743,13 @@ class ImageWidget(gtk.DrawingArea):
                 context = self.window.cairo_create()
                 context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
                 context.clip()
+                
+                pcontext = self.get_pango_context()
+                font_desc = pcontext.get_font_description()
+                style = self.get_style()
+                context.set_source_color(style.fg[self.state])
+                context.set_font_size( font_desc.get_size()/pango.SCALE )
+                
                 self.draw_overlay_cairo(context)
                 self.draw_spots(context)
             else:

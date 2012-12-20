@@ -171,6 +171,7 @@ class RasterWidget(gtk.Frame):
         sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
         sg.add_widget(omega)
         sg.add_widget(aperture)
+        self.expand_separator.set_expand(True)
         
     def __getattr__(self, key):
         try:
