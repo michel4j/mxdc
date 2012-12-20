@@ -283,6 +283,7 @@ Fluorescence</property>
                     <property name="right_attach">4</property>
                     <property name="top_attach">5</property>
                     <property name="bottom_attach">6</property>
+                    <property name="y_options">GTK_EXPAND</property>
                   </packing>
                 </child>
               </widget>
