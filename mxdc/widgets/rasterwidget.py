@@ -148,12 +148,12 @@ class RasterWidget(gtk.Frame):
         }
         
         self.labels = {
-            'saturation': self.saturation_lbl,
-            'total_spots': self.total_spots_lbl,
-            'bragg_spots': self.bragg_spots_lbl,
-            'ice_rings': self.ice_rings_lbl,
-            'resolution': self.resolution_lbl,
-            'max_cell': self.max_cell_lbl
+            'saturation': (self.saturation_lbl, "%0.2f"),
+            'total_spots': (self.total_spots_lbl,"%d" ),
+            'bragg_spots': (self.bragg_spots_lbl, "%d"),
+            'ice_rings': (self.ice_rings_lbl, "%d"),
+            'resolution': (self.resolution_lbl, "%0.2f"),
+            'max_cell': (self.max_cell_lbl, "%0.2f")
         }
 
         self._load_config()
@@ -364,8 +364,9 @@ class RasterWidget(gtk.Frame):
         model, iter = sel.get_selected()
         cell = model.get_value(iter, DetailStore.DATA)['cell']
         info = self._result_info['details'][cell]
-        for k, w in self.labels.items():
-            w.set_text(str(info[k]))
+        for k, wi in self.labels.items():
+            w, fmt = wi
+            w.set_text(fmt % info[k])
 
     @async
     def _center_xyz(self, angle, x, y):
@@ -497,6 +498,7 @@ class RasterWidget(gtk.Frame):
         self.result_box.set_sensitive(True)          
         
     def on_new_result(self, obj, cell, results):
+        results['saturation'] = results['saturation'][1]
         score = _score_diff(results)
         
         # demo override
@@ -533,7 +535,7 @@ def _score_diff(results):
     bragg = results['bragg_spots']
     inres = results['resolution_spots']
     ice = 1/(1.0 + results['ice_rings'])
-    saturation = results['saturation'][1];
+    saturation = results['saturation']
     sc_x = numpy.array([bragg, saturation, ice])
     sc_w = numpy.array([5, 10, 0.2])
     score = numpy.exp((sc_w*numpy.log(sc_x)).sum()/sc_w.sum())
