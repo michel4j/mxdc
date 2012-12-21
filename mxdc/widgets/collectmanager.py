@@ -407,7 +407,6 @@ class CollectManager(gtk.Frame):
     def create_runlist(self):
 
         self.run_list = runlists.generate_run_list(self.run_data)
-
         self.frame_pos = 0
         self.gen_sequence()
                                                                         
