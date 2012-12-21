@@ -5,7 +5,9 @@ import logging
 import numpy
 import gobject
 import shutil
+import random
 
+from datetime import datetime
 from zope.interface import implements
 from bcm.device.interfaces import IImagingDetector
 from bcm.protocol import ca
@@ -260,14 +262,7 @@ class SimCCDImager(BaseDevice):
         self._state = 'idle'
         self._bg_taken = False
         
-        _src_dir1 = os.path.join(os.environ['BCM_PATH'], 'test','images')
-        _src_dir2 = '/archive/staff/reference/CLS/SIM'
-        if os.path.exists(_src_dir2):
-            self._src_dir = _src_dir2
-            self._num_frames = 180
-        else:
-            self._src_dir = _src_dir1
-            self._num_frames = 2
+        self._select_dir()
         self.set_state(active=True, health=(0,''))
         
     def initialize(self, wait=True):
@@ -286,7 +281,19 @@ class SimCCDImager(BaseDevice):
     def get_origin(self):
         return self.size//2, self.size//2
     
+    def _select_dir(self):
+        dirlist = []
+        for i in range(5):
+            src_dir = '/archive/staff/reference/CLS/SIM-%d' % i
+            if os.path.exists(src_dir): 
+                dirlist.append(src_dir)
+        dirlist.append(os.path.join(os.environ['BCM_PATH'], 'test','images'))
+        self._src_dir = random.choice(dirlist)
+        self._num_frames = len([name for name in os.listdir(self._src_dir) if os.path.isfile(os.path.join(self._src_dir,name))])
+    
+
     def _copy_frame(self):
+        _logger.debug('Saving frame: %s' % datetime.now().isoformat())
         num = 1 + (self.parameters['frame_number']-1) % self._num_frames
         src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
         dst_img = os.path.join(self.parameters['directory'], 
@@ -297,6 +304,7 @@ class SimCCDImager(BaseDevice):
         dst_img = '/'.join(dst_parts)
         shutil.copyfile(src_img, dst_img)
         os.system('/usr/bin/gunzip -f %s' % dst_img)
+        _logger.debug('Frame saved: %s' % datetime.now().isoformat())
         
     def save(self, wait=False):
         self._copy_frame()
@@ -306,5 +314,7 @@ class SimCCDImager(BaseDevice):
                                       
     def set_parameters(self, data):
         self.parameters = data
+        if self.parameters['frame_number'] == 1:
+            self._select_dir()
 
 __all__ = ['MXCCDImager', 'SimCCDImager']  

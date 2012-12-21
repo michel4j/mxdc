@@ -13,8 +13,8 @@
           <widget class="GtkLabel" id="run_title">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="ypad">3</property>
-            <property name="label" translatable="yes">&lt;big&gt;Run 0&lt;/big&gt;</property>
+            <property name="ypad">1</property>
+            <property name="label" translatable="yes">&lt;b&gt;Run 0&lt;/b&gt;</property>
             <property name="use_markup">True</property>
           </widget>
           <packing>
@@ -92,6 +92,17 @@
               </packing>
             </child>
             <child>
+              <widget class="GtkSeparatorToolItem" id="expand_separator">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="draw">False</property>
+              </widget>
+              <packing>
+                <property name="expand">True</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
               <widget class="GtkToolButton" id="delete_btn">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -108,7 +119,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="padding">6</property>
+            <property name="padding">3</property>
             <property name="position">1</property>
           </packing>
         </child>
@@ -131,17 +142,10 @@
               <placeholder/>
             </child>
             <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
               <widget class="GtkScrolledWindow" id="energy_view">
                 <property name="width_request">100</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="border_width">6</property>
                 <property name="hscrollbar_policy">never</property>
                 <property name="vscrollbar_policy">never</property>
                 <property name="shadow_type">etched-in</property>
@@ -153,6 +157,7 @@
                 <property name="right_attach">4</property>
                 <property name="top_attach">13</property>
                 <property name="bottom_attach">16</property>
+                <property name="x_padding">6</property>
               </packing>
             </child>
             <child>
@@ -263,7 +268,7 @@
               <widget class="GtkEntry" id="start_angle">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">0</property>
+                <property name="width_chars">5</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
                 <property name="primary_icon_sensitive">True</property>
@@ -281,7 +286,7 @@
               <widget class="GtkEntry" id="first_frame">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">0</property>
+                <property name="width_chars">5</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
                 <property name="primary_icon_sensitive">True</property>
@@ -377,10 +382,11 @@
                 <property name="draw_indicator">True</property>
               </widget>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">3</property>
+                <property name="right_attach">2</property>
                 <property name="top_attach">12</property>
                 <property name="bottom_attach">13</property>
+                <property name="x_padding">6</property>
+                <property name="y_padding">3</property>
               </packing>
             </child>
             <child>
@@ -686,6 +692,25 @@ Datasets will be linked to it</property>
                 <property name="y_options"></property>
               </packing>
             </child>
+            <child>
+              <widget class="GtkCheckButton" id="dafs">
+                <property name="label" translatable="yes">DAFS</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="no_show_all">True</property>
+                <property name="tooltip" translatable="yes">Enable Diffraction Anomalous Fine Structure mode.</property>
+                <property name="use_underline">True</property>
+                <property name="draw_indicator">True</property>
+              </widget>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="right_attach">4</property>
+                <property name="top_attach">12</property>
+                <property name="bottom_attach">13</property>
+                <property name="x_padding">6</property>
+                <property name="y_padding">3</property>
+              </packing>
+            </child>
           </widget>
           <packing>
             <property name="expand">False</property>
@@ -704,7 +729,7 @@ Datasets will be linked to it</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="left_padding">12</property>
-                <property name="right_padding">6</property>
+                <property name="right_padding">9</property>
                 <child>
                   <widget class="GtkScrolledWindow" id="comments_sw">
                     <property name="width_request">194</property>
@@ -742,13 +767,10 @@ Datasets will be linked to it</property>
             </child>
           </widget>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">4</property>
           </packing>
-        </child>
-        <child>
-          <placeholder/>
         </child>
       </widget>
     </child>

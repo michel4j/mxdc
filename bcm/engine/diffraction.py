@@ -1,20 +1,20 @@
+
+
 from bcm.beamline.interfaces import IBeamline
 from bcm.engine import centering, snapshot
 from bcm.engine.interfaces import IDataCollector
 from bcm.protocol import ca
+from bcm.utils import json, runlists
 from bcm.utils.converter import energy_to_wavelength, dist_to_resol
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_project_name
-from bcm.utils import json, runlists
-
 from twisted.python.components import globalRegistry
 from zope.interface import implements
-
 import gobject
 import os
+import pwd
 import threading
 import time
-import pwd
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -62,7 +62,7 @@ class DataCollector(gobject.GObject):
         self._last_initialized = 0
         
             
-    def configure(self, run_data, skip_existing=True):
+    def configure(self, run_data, skip_existing=True, take_snapshots=True):
         #associate beamline devices
         
         try:
@@ -79,6 +79,7 @@ class DataCollector(gobject.GObject):
          
         self.collect_parameters = {}
         self.collect_parameters['skip_existing'] = skip_existing
+        self.collect_parameters['take_snapshots'] = take_snapshots
 
         if not isinstance(run_data, list):
             self.collect_parameters['runs'] = [run_data]
@@ -100,7 +101,7 @@ class DataCollector(gobject.GObject):
     def _on_beam_change(self, obj, beam_available):
         if not beam_available and (not self.paused) and (not self.stopped):
             self.pause()
-            pause_dict = { 'type': Screener.PAUSE_BEAM, 
+            pause_dict = { 'type': Screener.PAUSE_BEAM,
                            'collector': True,
                            'position': self.pos - 1 }
             gobject.idle_add(self.emit, 'paused', True, pause_dict)
@@ -108,7 +109,7 @@ class DataCollector(gobject.GObject):
 
     def _notify_progress(self, status):
         # Notify progress
-        fraction = float(self.pos) / self.total_items
+        fraction = float(self.pos + 1) / self.total_items
         gobject.idle_add(self.emit, 'progress', fraction, self.pos, status)                
     
     def get_dataset_info(self, data_list):
@@ -125,14 +126,14 @@ class DataCollector(gobject.GObject):
             data['id'] = None
             data['frame_sets'], data['num_frames'] = runlists.get_disk_frameset(data)
             data['wavelength'] = energy_to_wavelength(data['energy'])
-            data['resolution'] = dist_to_resol(data['distance'], 
+            data['resolution'] = dist_to_resol(data['distance'],
                                 self.beamline.detector.resolution,
                                 self.beamline.detector.size,
                                 data['energy'])
             data['beamline_name'] = self.beamline.name
             data['detector_size'] = self.beamline.detector.size
             data['pixel_size'] = self.beamline.detector.resolution
-            data['beam_x'],  data['beam_y'] = self.beamline.detector.get_origin()
+            data['beam_x'], data['beam_y'] = self.beamline.detector.get_origin()
             data['detector'] = self.beamline.detector.detector_type
             filename = os.path.join(data['directory'], '%s.SUMMARY' % data['name'])
             if os.path.exists(filename):
@@ -144,7 +145,7 @@ class DataCollector(gobject.GObject):
                 if data.get('experiment_id') is None:
                     data['experiment_id'] = old_data.get('experiment_id', None)
             
-            fh = open(filename,'w')
+            fh = open(filename, 'w')
             json.dump(data, fh, indent=4)
             fh.close()
             results.append(data)
@@ -183,12 +184,12 @@ class DataCollector(gobject.GObject):
         self.paused = False
         self.stopped = False           
         # Take snapshots before beginning collection
-        if len(self.run_list) >= 4:
+        if len(self.run_list) >= 4 and self.collect_parameters['take_snapshots']:
             prefix = '%s-pic' % (self.run_list[0]['name'])
             a1 = self.run_list[0]['start_angle']
-            a2 = a1 < 270 and a1 + 90 or a1 - 270
+            a2 = (a1 + 90.0) % 360.0
             if not os.path.exists(os.path.join(self.run_list[0]['directory'], '%s_%0.1f.png' % (prefix, a1))):
-                _logger.info('Taking snapshots of crystal at %0.1f and %0.1f' %(a1, a2))
+                _logger.info('Taking snapshots of crystal at %0.1f and %0.1f' % (a1, a2))
                 snapshot.take_sample_snapshots(prefix, os.path.join(self.run_list[0]['directory']), [a2, a1], decorate=True)
         self.beamline.goniometer.set_mode('COLLECT', wait=True) # move goniometer to collect mode
         gobject.idle_add(self.emit, 'started')
@@ -200,7 +201,7 @@ class DataCollector(gobject.GObject):
             self.pos = 0
             header = {}
             pause_dict = {}
-            _first = True
+            self._first = True
             self.total_items = len(self.run_list)
             while self.pos < self.total_items :
                 if self.paused:
@@ -259,13 +260,13 @@ class DataCollector(gobject.GObject):
                                                    delta=frame['delta_angle'],
                                                    angle=frame['start_angle'])
 
-                self.beamline.detector.start(first=_first)
+                self.beamline.detector.start(first=self._first)
                 self.beamline.detector.set_parameters(header)
                 self.beamline.goniometer.scan()
                 self.beamline.detector.save()
                 
                 #frame['saved'] = True
-                _first = False
+                self._first = False
                     
                 _logger.info("Image Collected: %s" % (frame['file_name']))
                 gobject.idle_add(self.emit, 'new-image', self.pos, "%s/%s" % (frame['directory'], frame['file_name']))
@@ -289,7 +290,7 @@ class DataCollector(gobject.GObject):
             self.beamline.attenuator.set(_current_attenuation)
             self.beamline.lock.release()
         return self.results
-
+            
     def set_position(self, pos):
         for i, frame in enumerate(self.run_list):
             if i < pos and len(self.run_list) > pos:
@@ -373,7 +374,10 @@ class Screener(gobject.GObject):
             
     def _notify_progress(self, status):
         # Notify progress
-        fraction = float(self.pos) / self.total_items
+        if status == self.TASK_STATE_DONE:
+            fraction = float(self.pos+1) / self.total_items
+        else:
+            fraction = float(self.pos) / self.total_items
         gobject.idle_add(self.emit, 'progress', fraction, self.pos, status)                
         
     def run(self):
@@ -479,7 +483,7 @@ class Screener(gobject.GObject):
                                           'port': self.run_list[self.pos]['sample']['port'] }
                             self.pause()
                             self._notify_progress(Screener.TASK_STATE_ERROR)            
-                        elif _out.get('RELIABILITY') < 70:
+                        elif _out < 70:
                             pause_dict = {'type': Screener.PAUSE_UNRELIABLE,
                                           'task': self.run_list[self.pos - 1].name,
                                           'sample': self.run_list[self.pos]['sample']['name'],
@@ -491,7 +495,10 @@ class Screener(gobject.GObject):
                         directory = os.path.join(task['directory'], task['sample']['name'], 'test')
                         if not os.path.exists(directory):
                             os.makedirs(directory) # make sure directories exist
-                        snapshot.take_sample_snapshots('snapshot', directory, [0, 90, 180], True)
+                        prefix = '%s-pic' % ( task['sample']['name'])
+                        if not os.path.exists(os.path.join(directory, '%s_%0.1f.png' % (prefix, 0.0))):
+                            _logger.info('Taking snapshots of crystal at %0.1f and %0.1f' % (0.0, 90.0))
+                            snapshot.take_sample_snapshots(prefix, directory, [0.0, 90.0], decorate=True)
                     else:
                         self._notify_progress(Screener.TASK_STATE_SKIPPED)
                         _logger.warn('Skipping task because given sample is not mounted')
@@ -515,7 +522,7 @@ class Screener(gobject.GObject):
                         _logger.debug('Collecting frames for crystal `%s`, in directory `%s`.' % (params['name'], params['directory']))
                         if not os.path.exists(params['directory']):
                             os.makedirs(params['directory']) # make sure directories exist
-                        self.data_collector.configure(params, skip_existing=False)
+                        self.data_collector.configure(params, skip_existing=False, take_snapshots=False)
                         results = self.data_collector.run()
                         task.options['results'] = results
                         gobject.idle_add(self.emit, 'new-datasets', results)                       
@@ -534,7 +541,7 @@ class Screener(gobject.GObject):
                                                         "%s_%03d.img" % (collect_results[0]['name'], frame_list[0]))
                             _a_params = {'directory': os.path.join(task['directory'], task['sample']['name'], 'scrn'),
                                          'info': {'anomalous': False,
-                                                  'file_names': [_first_frame,]                                             
+                                                  'file_names': [_first_frame, ]                                             
                                                   },
                                          'type': 'SCRN',
                                          'crystal': task.options['sample'],

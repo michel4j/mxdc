@@ -362,7 +362,7 @@ class EXAFSScan(BasicScan):
         self._energy_db = get_energy_database()
         self.configure(edge, t, attenuation, directory, 'exafs')
         
-    def configure(self, edge, t, attenuation, directory, prefix, scans=1, crystal=None, uname=None):
+    def configure(self, edge, t, attenuation, directory, prefix, scans=1, kmax=12, crystal=None, uname=None):
         #FIXME: Possible race condition here if new configure is issued while previous scan is still running
         # - maybe we should use queues and have the scan constantly check and perform a scan
         try:
@@ -381,12 +381,12 @@ class EXAFSScan(BasicScan):
         self.scan_parameters['directory'] = directory
         self.scan_parameters['prefix'] = prefix
         self.scan_parameters['user_name'] = uname
-        self.scan_parameters['targets'] = exafs_targets(self.scan_parameters['edge_energy'])
+        self.scan_parameters['targets'] = exafs_targets(self.scan_parameters['edge_energy'], kmax=kmax)
         self.scan_parameters['filename_template'] = os.path.join(directory, "%s_%s.raw" % (prefix, "%03d"))
         self.scan_parameters['attenuation'] = attenuation
         self.scan_parameters['crystal_id'] = crystal
         self.scan_parameters['no_scans'] = scans
-        self.meta_data = {'edge': edge, 'time': t, 'attenuation': attenuation, 'prefix': prefix, 'user_name': uname}
+        self.meta_data = {'edge': edge, 'time': t, 'attenuation': attenuation, 'scans': scans, 'kmax': kmax, 'prefix': prefix, 'user_name': uname}
         
                     
     def save(self, filename):
