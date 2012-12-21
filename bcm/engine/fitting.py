@@ -51,13 +51,53 @@ def lorentz(x, coeffs):
     H, L, P, O = coeffs[:4]
     return abs(H) * ((L/2.0)**2 / ((x-P)**2 + (L/2.0)**2)) + O
 
+def decay_func(x, coeffs):
+    A, B, O = coeffs[:3]
+    return O + A * numpy.exp(-B*x)
+
 TARGET_FUNC = {
     'gaussian': gauss,
     'lorentzian': lorentz,
     'voigt': voigt,
     'step': step_func,
-}
+    'decay': decay_func,
+    }
 
+class PeakFitter(object):
+    def __init__(self, default=[1.,1.,0.,0.]):
+        self.success = False
+        self.default = default
+    
+    def __call__(self, x, y, target="gaussian"):
+
+        if target not in ['step', 'decay']:
+            pars, success = histogram_fit(x,y)
+            coeffs = [pars[0], pars[1], pars[2], 0, 0]
+        else:
+            coeffs = self.default
+        
+        def _err(p, x, y):
+            vals = TARGET_FUNC[target](x,p)
+            err=(y-vals)
+            return err
+        
+        new_coeffs, cov_x, info, mesg, ier = scipy.optimize.leastsq(_err, coeffs[:], args=(x,y), maxfev=10000, full_output=1)
+        if 1 <= ier <= 4:
+            success = True
+        else:
+            success = False
+        
+        self.success = success
+        self.coeffs = new_coeffs
+        self.cov = cov_x
+        self.info = info
+        self.msg = mesg
+        self.ier = ier
+        self.residual = (_err(self.coeffs, x, y)**2).sum()
+        self.ycalc = TARGET_FUNC[target](x, self.coeffs)
+        
+        return new_coeffs, success
+        
 def peak_fit(x,y,target='gaussian'):
     """
     Returns the coefficients for the target function

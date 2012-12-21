@@ -3,138 +3,69 @@
   <!-- interface-requires gtk+ 2.10 -->
   <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkMenu" id="colormap_popup">
+    <property name="visible">True</property>
     <property name="can_focus">False</property>
     <child>
-      <widget class="GtkMenuItem" id="gridMenu">
+      <widget class="GtkRadioMenuItem" id="cmap_default">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Grid</property>
-        <property name="use_underline">True</property>
-        <child>
-          <widget class="GtkMenu" id="menu1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <widget class="GtkMenuItem" id="grid_clear">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Clear Grid</property>
-                <property name="use_underline">True</property>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkMenuItem" id="grid_reset">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Reset Grid</property>
-                <property name="use_underline">True</property>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkSeparatorMenuItem" id="separatormenuitem1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkCheckMenuItem" id="grid_enable">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Enable Grid</property>
-                <property name="use_underline">True</property>
-              </widget>
-            </child>
-          </widget>
-        </child>
+        <property name="active">True</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_spectral</property>
       </widget>
     </child>
     <child>
-      <widget class="GtkMenuItem" id="colorMenu">
+      <widget class="GtkSeparatorMenuItem" id="separator1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Color Mapping</property>
-        <property name="use_underline">True</property>
-        <child>
-          <widget class="GtkMenu" id="menu2">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <widget class="GtkRadioMenuItem" id="cmap_default1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Default</property>
-                <property name="use_underline">True</property>
-                <property name="draw_as_radio">True</property>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkSeparatorMenuItem" id="separator1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkRadioMenuItem" id="cmap_spectral">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Spectral</property>
-                <property name="use_underline">True</property>
-                <property name="draw_as_radio">True</property>
-                <property name="group">cmap_default1</property>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkRadioMenuItem" id="cmap_hsv">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">HSV</property>
-                <property name="use_underline">True</property>
-                <property name="draw_as_radio">True</property>
-                <property name="group">cmap_default1</property>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkRadioMenuItem" id="cmap_jet">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Jet</property>
-                <property name="use_underline">True</property>
-                <property name="draw_as_radio">True</property>
-                <property name="group">cmap_default1</property>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkRadioMenuItem" id="cmap_ryg">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">RYG</property>
-                <property name="use_underline">True</property>
-                <property name="draw_as_radio">True</property>
-                <property name="group">cmap_default1</property>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkRadioMenuItem" id="cmap_hot">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Hot</property>
-                <property name="use_underline">True</property>
-                <property name="draw_as_radio">True</property>
-                <property name="group">cmap_default1</property>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkRadioMenuItem" id="cmap_pubu">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">PuBu</property>
-                <property name="use_underline">True</property>
-                <property name="draw_as_radio">True</property>
-                <property name="group">cmap_default1</property>
-              </widget>
-            </child>
-          </widget>
-        </child>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkRadioMenuItem" id="cmap_spectral">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkRadioMenuItem" id="cmap_hsv">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkRadioMenuItem" id="cmap_jet">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkRadioMenuItem" id="cmap_ryg">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkRadioMenuItem" id="cmap_hot">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkRadioMenuItem" id="cmap_pubu">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="draw_as_radio">True</property>
+        <property name="group">cmap_default</property>
       </widget>
     </child>
   </widget>
@@ -151,15 +82,9 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <widget class="GtkAspectFrame" id="video_adjuster">
-                <property name="width_request">380</property>
-                <property name="height_request">285</property>
+              <widget class="GtkAlignment" id="video_adjuster">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label_xalign">0</property>
-                <property name="shadow_type">in</property>
-                <property name="ratio">1.3333332538604736</property>
-                <property name="obey_child">False</property>
                 <child>
                   <placeholder/>
                 </child>

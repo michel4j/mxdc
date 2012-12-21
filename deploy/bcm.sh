@@ -28,8 +28,6 @@ else
 fi
 
 # Setup MOZEMBED XUL PATH
-gre_version=`xulrunner --gre-version`
-xul_lib=`xulrunner --find-gre ${gre_version}`
-if [ ! $MOZILLA_FIVE_HOME ]; then
-	export MOZILLA_FIVE_HOME=`dirname ${xul_lib}`
-fi
+xul_lib=`rpm -q xulrunner.x86_64 --list | grep libxul.so`
+export MOZILLA_FIVE_HOME=`dirname ${xul_lib}`
+
