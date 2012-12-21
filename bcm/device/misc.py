@@ -119,7 +119,37 @@ class Positioner(PositionerBase):
         else:
             val = 100 * (self.fbk_pv.get()/self.scale)
             return  val
+ 
+
+class SampleLight(Positioner):
+    implements(IOnOff)
+    def __init__(self, set_name, fbk_name, onoff_name, scale=100, units=""):
+        Positioner.__init__(self, set_name, fbk_name, scale, units)
+        self.onoff_cmd = self.add_pv(onoff_name)
+        
+    def set_on(self):
+        self.onoff_cmd.put(1)
     
+    def set_off(self):
+        self.onoff_cmd.put(0)
+
+    def is_on(self):
+        return self.onoff_cmd.get() == 1
+
+class SimLight(SimPositioner):
+    implements(IOnOff)
+    def __init__(self, name, pos=0, units="", active=True):
+        SimPositioner.__init__(self, name, pos, units, active)
+        self._on = 0
+        
+    def set_on(self):
+        self._on = 1
+    
+    def set_off(self):
+        self._on = 0
+
+    def is_on(self):
+        return self._on == 1
          
 class PositionerMotor(MotorBase):
     """Adapts a positioner so that it behaves like a Motor (ie, provides the

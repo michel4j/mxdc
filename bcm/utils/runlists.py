@@ -6,6 +6,7 @@ Created on Nov 10, 2010
 import os
 import fnmatch
 import re
+from bcm.utils.science import exafs_targets, exafs_time_func
 
 FULL_PARAMETERS = {
     'name': 'test',
@@ -29,8 +30,15 @@ FULL_PARAMETERS = {
 def prepare_run(run_data):
     runs = []
     run_data = run_data.copy()
-    e_values = run_data.pop('energy')
-    e_names = run_data.pop('energy_label')
+    if run_data.get('dafs', False):
+        e_list = run_data.pop('energy')
+        e_values = list(exafs_targets(e_list[0], start=-0.1, edge=-0.005, exafs=0.006, kmax=8, 
+                                 pe_factor=10.0, e_step=0.001, k_step=0.2))
+        e_names = ["%0.4f" % (e) for e in e_values]
+        
+    else:
+        e_values = run_data.pop('energy')
+        e_names = run_data.pop('energy_label')
     scat_d = None
     if 'scattering_factors' in run_data:
         scat_d = run_data.pop('scattering_factors')

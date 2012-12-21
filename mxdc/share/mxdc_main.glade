@@ -6,7 +6,6 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">MX Data Collector</property>
-    <property name="resizable">False</property>
     <property name="icon">icon.png</property>
     <child>
       <widget class="GtkVBox" id="mxdc_main">
@@ -20,7 +19,6 @@
               <widget class="GtkMenuItem" id="menuitem1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_File</property>
                 <property name="use_underline">True</property>
                 <child>
@@ -32,7 +30,6 @@
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </widget>
@@ -43,7 +40,6 @@
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_save1_activate" swapped="no"/>
@@ -60,7 +56,6 @@
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </widget>
@@ -73,7 +68,6 @@
               <widget class="GtkMenuItem" id="menuitem3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">Beamline _Control</property>
                 <property name="use_underline">True</property>
                 <child>
@@ -84,7 +78,6 @@
                       <widget class="GtkMenuItem" id="open_shutter_mnu">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="label" translatable="yes">Open Shutter</property>
                         <property name="use_underline">True</property>
                       </widget>
@@ -93,7 +86,6 @@
                       <widget class="GtkMenuItem" id="close_shutter_mnu">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="label" translatable="yes">Close Shutter</property>
                         <property name="use_underline">True</property>
                       </widget>
@@ -108,7 +100,6 @@
                       <widget class="GtkMenuItem" id="menuitem2">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="label" translatable="yes">Switch _Mode</property>
                         <property name="use_underline">True</property>
                         <child>
@@ -120,7 +111,6 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip" translatable="yes">Prepare beamline for mounting</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="label" translatable="yes">Mounting</property>
                                 <property name="use_underline">True</property>
                               </widget>
@@ -130,7 +120,6 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip" translatable="yes">Prepare beamline for crystal centering</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="label" translatable="yes">Centering</property>
                                 <property name="use_underline">True</property>
                               </widget>
@@ -140,7 +129,6 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip" translatable="yes">Prepare for data collection</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="label" translatable="yes">Collection</property>
                                 <property name="use_underline">True</property>
                               </widget>
@@ -150,7 +138,6 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip" translatable="yes">Switch to Beam Inspection mode</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="label" translatable="yes">Beam</property>
                                 <property name="use_underline">True</property>
                               </widget>
@@ -167,7 +154,6 @@
               <widget class="GtkMenuItem" id="menuitem4">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Help</property>
                 <property name="use_underline">True</property>
                 <child>
@@ -177,7 +163,6 @@
                       <widget class="GtkMenuItem" id="about_cmd">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="label" translatable="yes">_About</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_about1_activate" swapped="no"/>

@@ -1,45 +1,85 @@
 
-import numpy
+
+from bcm.utils.science import savitzky_golay, find_peaks
 import Image
-from bcm.utils.science import savitzky_golay
+import ImageChops
+import ImageFilter
+import numpy
+import bisect
 
 THRESHOLD = 20
+BORDER = 10
 
-    
-def get_pin_tip(img, bkg=None, orientation=2):
-    SCALE = 4
-    w,h = img.size
-    img = img.resize((w//SCALE,h//SCALE), Image.BICUBIC)
-    
-    if bkg is not None:
-        bkg = bkg.resize((w//SCALE,h//SCALE), Image.BICUBIC)
-        a = numpy.asarray(img.convert('L'))
-        b = numpy.asarray(bkg.convert('L'))
-        ab = numpy.abs((a-b))
-        ab -= ab.mean()
+def image_deviation(img1, img2):
+    img = ImageChops.difference(img1, img2).filter(ImageFilter.BLUR)
+    ab = numpy.asarray(img.convert('L'))
+    return ab.std()
+
+def _centroid(a):
+    if a.sum() == 0.0:
+        return -1
     else:
-        ab = numpy.asarray(img.convert('L'))
-        
-    x1 = numpy.amax(ab, 0) - numpy.amin(ab, 0)
-    y1 = numpy.amax(ab, 1) - numpy.amin(ab, 1)
-    
+        return int((numpy.array(range(len(a))) * a).sum()/a.sum())
 
-    x = savitzky_golay(x1, 15, 0)
-    y = savitzky_golay(y1, 15, 0)
+def _get_object(a):
+    p = list(a > THRESHOLD)
     
+    if True in p:
+        mid = _centroid(a)
+        pl = p.index(True)
+        pr = len(p) - p[::-1].index(True)  - 1
+        span = abs(pr-pl)
+        mid = (pr+pl)*0.5
+    else:
+        mid, span = -1, 1
+    return mid, max(span, 1)
+    
+def get_loop_center(orig, bkg, orientation=2):
+    img = ImageChops.difference(orig, bkg).filter(ImageFilter.BLUR)
+    if orientation == 3:
+        img = img.transpose(Image.FLIP_LEFT_RIGHT)
+    ab = numpy.asarray(img.convert('L'))
+    
+    x = numpy.max(ab, 0)
+    y = numpy.max(ab, 1)[::-1]
+    quality = 0
     xp = list(x > THRESHOLD)
-    try:
-        if orientation == 2:
-            xp.reverse()
-            x_tip = len(xp) - xp.index(True)
-        else:
-            x_tip = xp.index(True)
-    except ValueError:
-        x_tip = 0
-    
-    y_max = y.max()
-    if y.max() < 2 * THRESHOLD:
-        y_mid = len(y)//2
+    if True in xp:
+        xtip = len(xp) - xp[::-1].index(True)  - 1
     else:
-        y_mid = list(y).index(y_max)
-    return (x_tip*SCALE, y_mid*SCALE)
+        xtip = 0
+        quality -= 1
+    ymid = _centroid(y)
+    
+    spans = numpy.zeros(x.shape)
+    mids = numpy.zeros(x.shape)
+    for i in range(xtip):
+        yl = ab[:,i][::-1]
+        mid, span = _get_object(yl)
+        spans[i] = span
+        mids[i] = mid
+    peaks = find_peaks(range(len(spans)), 255-spans, sensitivity=0.05)
+    if len(peaks) > 1:
+        ls = peaks[-2][0]
+        le = peaks[-1][0]        
+        loop = spans[ls:le]
+        lx = 1+numpy.array(range(len(loop)))
+        xmid = le - int(numpy.exp(numpy.log(lx).mean()))
+        width = loop.mean()
+        if xmid > 0:
+            ymid = mids[xmid]
+
+    else:
+        xmid = xtip
+        width = -1
+        
+    if orientation == 3:
+        xmid = len(x) - xmid
+        
+    return xmid, len(y)-ymid, width
+    
+
+def _normalize(data):
+    data = data - data.min()
+    return (100.0 * data)/data.max()
+

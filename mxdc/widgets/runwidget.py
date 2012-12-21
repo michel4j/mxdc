@@ -5,7 +5,7 @@ from twisted.python.components import globalRegistry
 from bcm.utils import science, misc
 from bcm.beamline.mx import IBeamline
 from mxdc.widgets.predictor import Predictor
-from mxdc.widgets.dialogs import warning, check_folder, DirectoryButton
+from mxdc.widgets.dialogs import warning, check_folder
 from mxdc.utils import gui
 
 
@@ -57,7 +57,7 @@ class RunWidget(gtk.Frame):
         # Data for entries (name: (col, row, length, [unit]))
         entries = ['name', 'distance','delta_angle','exposure_time','first_frame', 
                    'start_angle','num_frames','total_angle','wedge',
-                   'attenuation','inverse_beam','skip']
+                   'attenuation','inverse_beam','skip', 'dafs']
         for e in entries:
             self.entry[e] = self._xml.get_widget(e)
             if isinstance(self.entry[e], gtk.Entry) and e not in ['name',]:
@@ -67,14 +67,12 @@ class RunWidget(gtk.Frame):
         self.beamline = globalRegistry.lookup([], IBeamline)      
 
         # Set directory field non-editable, must use directory selector
-        self.entry['directory'] = self.directory_btn 
-
-        #self.entry['directory'] = DirectoryButton()
-        #self.layout_table.attach(self.entry['directory'], 1,4,1,2, xoptions=gtk.EXPAND|gtk.FILL)
+        self.entry['directory'] = self.directory_btn
+        self.entry['directory']._selected_folder = os.environ['HOME']
+        self.entry['directory'].connect('current-folder-changed', self.on_folder_changed)
 
         # entry signals
         self.entry['name'].connect('focus-out-event', self.on_prefix_changed)
-        self.entry['directory'].connect('focus-out-event', self.on_directory_changed)
         self.entry['start_angle'].connect('focus-out-event', self.on_start_angle_changed)
         self.entry['delta_angle'].connect('focus-out-event', self.on_delta_changed)
         self.entry['total_angle'].connect('focus-out-event', self.on_total_angle_changed)
@@ -136,6 +134,7 @@ class RunWidget(gtk.Frame):
         column1.set_expand(False)
         column1.set_alignment(0.5)
         self.energy_list.append_column(column1)
+        self.expand_separator.set_expand(True)
        
         
         #Delete column
@@ -257,6 +256,8 @@ class RunWidget(gtk.Frame):
         cur_e = self.beamline.energy.get_position()
         path = self.energy_store.get_path(iter)   
         self.energy_store.set(iter, COLUMN_ENERGY, cur_e)
+        self.dafs.set_active(False)
+        self.dafs.hide()
 
         
     def on_delete_clicked(self, treeview, event):
@@ -304,6 +305,11 @@ class RunWidget(gtk.Frame):
                     # Allow using edge name such as "Se-K"
                     _e = _ENERGY_DB.get(new_text, (e_value,))[0]
                     
+                    # Show DAFS button if this is the case
+                    self.dafs.show()
+                    
+                    
+                    
                 model.set(iter, COLUMN_ENERGY, _e)
                 if _e is not None:
                     lbl = model.get_value(iter, COLUMN_LABEL)
@@ -343,7 +349,7 @@ class RunWidget(gtk.Frame):
         if dict.get('directory') is not None and os.path.exists(dict['directory']):
             self.entry['directory'].set_current_folder("%s" % dict['directory'])
         else:
-            #self.entry['directory'].set_current_folder(os.environ['HOME'])
+            self.entry['directory'].set_current_folder(os.environ['HOME'])
             dict['directory'] = os.environ['HOME']
         
         # always display up to date active crystal
@@ -358,6 +364,7 @@ class RunWidget(gtk.Frame):
             
         self.set_number(dict['number'])
         self.entry['inverse_beam'].set_active(dict['inverse_beam'])
+        #self.entry['dafs'].set_active(dict.get('dafs', False))
         
         # Add energy entries
         self._set_energies(dict)
@@ -374,7 +381,7 @@ class RunWidget(gtk.Frame):
         run_data = self.parameters.copy()
                 
         run_data['name']      = self.entry['name'].get_text().strip()
-        run_data['directory']   = self.entry['directory'].get_filename()
+        run_data['directory']   = self.entry['directory']._selected_folder
         energy = []
         energy_label = []
         model = self.energy_list.get_model()
@@ -391,6 +398,7 @@ class RunWidget(gtk.Frame):
         run_data['energy']  =    energy
         run_data['energy_label'] = energy_label
         run_data['inverse_beam'] = self.entry['inverse_beam'].get_active()
+        run_data['dafs'] =self.entry['dafs'].get_active()
         run_data['number'] = self.number
             
         for key in ['distance','delta_angle','start_angle','total_angle', 'wedge', 'exposure_time', 'attenuation', 'num_frames']:
@@ -431,7 +439,7 @@ class RunWidget(gtk.Frame):
                 #add Predictor    
                 self.predictor = Predictor(self.beamline.detector.resolution, 
                                    self.beamline.detector.size)
-                self.predictor.set_size_request(200,200)
+                self.predictor.set_size_request(180,180)
                 self.predictor.set_border_width(12)
                 self.run_widget.pack_end( self.predictor, expand=True, fill=True)
     
@@ -668,14 +676,20 @@ class RunWidget(gtk.Frame):
         self.check_changes()
         return False
         
-    def on_directory_changed(self,widget=None, event=None):
+    def on_folder_changed(self, obj):
+        _new_folder = obj.get_current_folder()
+        _new_filename = obj.get_filename()
+        if  _new_folder != _new_filename:
+            obj._selected_folder = _new_filename
+        else:
+            obj._selected_folder = _new_folder
         self.check_changes()
-        return False        
 
     def on_save(self, widget):
         self.enable_btn.set_active(True)
         self.parameters = self.get_parameters()
         self.check_changes()
+        self.entry['directory'].set_current_folder(self.entry['directory']._selected_folder)
         return True
         
     def on_reset_parameters(self, obj):
