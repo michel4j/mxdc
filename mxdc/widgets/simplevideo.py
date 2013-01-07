@@ -102,7 +102,9 @@ class SimpleVideo(gtk.Frame):
         #Video Area
         self.video_frame = self._xml.get_widget('video_adjuster')
         self.video = VideoWidget(self.camera)
-        self.video.set_size_request(480,360)
+        w, h = map(float, self.camera)
+        self.video_frame.set(xalign=0.5, yalign=0.5, ratio=(w/h), obey_child=False)
+        self.video_frame.set_size_request(480,360)
         self.video_frame.add(self.video)
         
     def _overlay_function(self, pixmap):
