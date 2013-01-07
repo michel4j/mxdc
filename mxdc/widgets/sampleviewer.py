@@ -458,6 +458,8 @@ class SampleViewer(gtk.Frame):
         
         #Video Area
         self.video_frame = self.video_adjuster
+        w, h = map(float, self.beamline.sample_video.size)
+        self.video_frame.set(xalign=0.5, yalign=0.5, ratio=(w/h), obey_child=False)
         self.video = VideoWidget(self.beamline.sample_video)
         self.video_frame.add(self.video)
         
