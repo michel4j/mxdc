@@ -27,6 +27,7 @@ class VideoWidget(gtk.DrawingArea):
     def __init__(self, camera):
         gtk.DrawingArea.__init__(self)
         self.camera = camera
+        self.scale = 1
         self.pixbuf = None
         self.stopped = False
         self._colorize = False
@@ -59,18 +60,19 @@ class VideoWidget(gtk.DrawingArea):
         self.camera.del_sink(self)
         self.camera.stop()
         
-    def on_configure(self, widget, event):
+    def on_configure(self, widget, event):        
         width, height = event.width, event.height
-        ratio = float(self.camera.size[0])/self.camera.size[1]
-        if width < 50: width = 50
-        if height < 50: height = 50
+        w, h = map(float, self.camera.size)
+        ratio = w/h
+        if width < w/4: width = w/4
+        if height < h/4: height = h/4
         if width < ratio * height:
             height = int(width/ratio)
         else:
             width = int(ratio * height)
         self.scale = float(width)/self.camera.size[0]
         self._img_width, self._img_height = width, height
-        self.set_size_request(width, height)
+        self.set_size_request(width, height)       
         return True
     
     def set_overlay_func(self, func):
