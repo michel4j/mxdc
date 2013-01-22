@@ -7,6 +7,7 @@ import os
 import fnmatch
 import re
 from bcm.utils.science import exafs_targets, exafs_time_func
+from bcm.utils import converter
 
 FULL_PARAMETERS = {
     'name': 'test',
@@ -35,9 +36,9 @@ def prepare_run(run_data):
         e_values = list(exafs_targets(e_list[0], start=-0.1, edge=-0.005, exafs=0.006, kmax=8, 
                                  pe_factor=10.0, e_step=0.001, k_step=0.2))
         e_names = ["%0.4f" % (e) for e in e_values]
-        
     else:
-        e_values = run_data.pop('energy')
+        e_list = run_data.pop('energy')
+        e_values = e_list
         e_names = run_data.pop('energy_label')
     scat_d = None
     if 'scattering_factors' in run_data:
@@ -48,7 +49,15 @@ def prepare_run(run_data):
         energies = zip(e_values, e_names, scat_d)
         for e_v, e_n, e_s in energies:
             param = run_data.copy()
+
+            # Variable Exposure Time for DAFS
+            if param.get('dafs', False):
+                delta_e = e_v - e_list[0]
+                param['exposure_time'] = exafs_time_func(param['exposure_time'],
+                                            round(converter.energy_to_kspace(delta_e),2))
+                
             param['energy'] = e_v
+            param['energy_label'] = e_n
             if e_s is not None:
                 param['scattering_factors'] = e_s
             if len(e_values) > 1:
@@ -137,6 +146,7 @@ def generate_frame_list(run, frame_set):
             'two_theta': run.get('two_theta', 0.0),
             'attenuation': run.get('attenuation', 0.0),
             'directory': run['directory'],
+            'dafs': run.get('dafs', False),
         }
         frame_list.append(frame)           
 
