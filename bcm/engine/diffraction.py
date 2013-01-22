@@ -119,7 +119,7 @@ class DataCollector(gobject.GObject):
             
             if len(data['frame_sets']) == 0:
                 continue
-            if len(data['frame_sets'][0]) < 4:
+            if len(data['frame_sets'][0]) < 2:
                 continue
             # Remove frames from the list that were not collected
             #FIXME
@@ -230,7 +230,7 @@ class DataCollector(gobject.GObject):
                 self.beamline.energy.move_to(frame['energy'], wait=True)
                 
                 # if energy changes by more than 5 eV, Optimize
-                if  abs(frame['energy'] - _cur_energy) >= 0.005:                                    
+                if  not frame.get('dafs', False) and abs(frame['energy'] - _cur_energy) >= 0.005:                                    
                     self.beamline.mostab.start()
                     self.beamline.mostab.wait()
 
