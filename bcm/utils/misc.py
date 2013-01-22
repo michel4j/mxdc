@@ -89,8 +89,6 @@ def lighten_color(s, step=51):
 def darken_color(s, step=51):
     return lighten_color(s, step=-step)
 
-
-def logistic_score(val, vmin, vmax):
-    t = 12.0*(val - vmin)/(vmax - vmin) - 6.0
-    return 1.0/(1.0 + numpy.exp(-t))
-
+def logistic_score(x, best=1, fair=0.5):
+    t = 3*(x - fair)/(best - fair)
+    return 1/(1+numpy.exp(-t))
