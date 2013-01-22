@@ -3,7 +3,7 @@ from bcm.engine import fitting
 from bcm.engine.snapshot import take_sample_snapshots
 from bcm.utils import imgproc
 from bcm.utils.log import get_module_logger
-from bcm.utils.misc import get_short_uuid
+from bcm.utils.misc import get_short_uuid, logistic_score
 from twisted.python.components import globalRegistry
 import Image
 import ImageChops
@@ -92,9 +92,11 @@ def center_loop():
     ANGLE_STEP = 90.0
     count = 0
     max_width = 0.0
-    adj_devs = []
+    adj_mm = []
+    avg_devs = []
+    converged = False
 
-    while count < _MAX_TRIES:
+    while count < _MAX_TRIES and not converged:
         count += 1
         img = beamline.sample_video.get_frame()
         x, y, w = imgproc.get_loop_center(img, bkg_img, orientation=int(beamline.config['orientation']))
@@ -108,32 +110,41 @@ def center_loop():
         if count <= _MAX_TRIES//2 or loop_w > 0.6 * max_width or loop_w < 0:
             xmm = (cx - x) * beamline.sample_video.resolution
             beamline.sample_stage.x.move_by(-xmm, wait=True)
-            _logger.info("Loop: %0.3f, Change: %0.3f, %0.3f" % (loop_w, xmm, ymm))
-            adj_devs.append((xmm, ymm))
-        else:
-            _logger.warning("Loop: %0.3f, Change: %0.3f, %0.3f" % (loop_w, 0.0, ymm))
-            adj_devs.append((0.0, ymm))
+        adj_mm.append((xmm, ymm))
 
         beamline.sample_stage.y.move_by(-ymm, wait=True)
         beamline.omega.move_by(ANGLE_STEP, wait=True)
+        
+        # check progress quality
+        if count > 2:
+            adj_a = numpy.array(adj_mm[-2:])
+        else:
+            adj_a = numpy.array(adj_mm)
+        _dev = numpy.array([adj_a[:,0].mean(), adj_a[:,1].mean()])
+        avg_devs.append(_dev)
+        
+        # converges if last two H/V adjustments are all less than 5 image pixels 
+        if len(avg_devs) >= 2:
+            _prev2 = avg_devs[-2:]
+            if (numpy.abs(_prev2) <= 5*beamline.sample_video.resolution).sum() == 4:
+                converged = True
+        _logger.info("Centering ... [%d] (H): %0.3f, (V): %0.3f, Converged: %s" % (count, _dev[0], _dev[1], converged))
     
-    # check quality of fit
-    adj_a = numpy.array(adj_devs)
-    adj_x = numpy.arange(adj_a.shape[0])
-    fit = fitting.PeakFitter()
-    fit(adj_x, adj_a[:,0], 'decay')
-    _logger.warning("Centering quality (Horiz): %0.3f,  %0.3f, %d" % (fit.residual, fit.coeffs[2], fit.ier))
-    fit(adj_x, adj_a[:,1], 'decay')
-    _logger.warning("Centering quality (Vert): %0.3f,  %0.3f, %d" % (fit.residual, fit.coeffs[2], fit.ier))
-    
-    # print adj_a[:,0], adj_a[:,0]
-    # Return lights to previous settings
+    # calcualte score based on average and maximum of last two adjustments a
+    # an average of 20 pixels and a max of 20 pixels will give a score of 50%
+    # while an average of 2 pixel and a max of 2 pixel will score 100%
+    _dev = numpy.abs(avg_devs[-2:])/beamline.sample_video.resolution
+    scores = numpy.array([
+        logistic_score(_dev.mean(), 2., 20.),
+        logistic_score(_dev.max(), 2., 20.),
+    ])
+    quality = 100*scores.mean()
+        
     beamline.sample_frontlight.set_on()
     beamline.sample_backlight.set(backlt)
-    beamline.sample_frontlight.set(frontlt)            
+    beamline.sample_frontlight.set(frontlt)         
 
-    #FIXME: Better return value
-    return 99.9    
+    return quality   
     
 
 def center_crystal():
@@ -265,10 +276,10 @@ def auto_center_loop():
     tst = time.time()
     quality = center_loop()
 
-    if quality < 70:
-        _logger.error('Loop centering failed. No loop detected.')
+    if quality < 75:
+        _logger.error('Loop centering not reliable enough.')
 
-    _logger.info('Loop centering complete in %d seconds.' % (time.time() - tst))
+    _logger.info('Loop centering complete in %d seconds. [%0.0f %% reliable]' % (time.time() - tst, quality))
     return quality
 
 def auto_center_crystal():
@@ -277,8 +288,8 @@ def auto_center_crystal():
     """
     tst = time.time()
     result = center_crystal()
-    if result['RELIABILITY'] < 70:
-        _logger.info('Loop centering was not reliable enough.')
+    if result['RELIABILITY'] < 75:
+        _logger.info('Crystal centering was not reliable enough.')
     _logger.info('Crystal centering complete in %d seconds.' % (time.time() - tst))
     return result['RELIABILITY']
 
