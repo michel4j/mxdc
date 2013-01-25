@@ -67,8 +67,10 @@ class MostabOptimizer(BaseDevice):
         self._start = self.add_pv('%s:Mostab:opt:cmd' % name)
         self._stop = self.add_pv('%s:abortFlag' % name)
         self._state = self.add_pv('%s:Mostab:opt:sts'% name)
+        self._enabled = self.add_pv('%s:Mostab:opt:enabled'% name)
         self._command_active = False
         self._state.connect('changed', self._state_change)
+        self._enabled.connect('changed', self._on_enable)
         
         
     def _state_change(self, obj, val):
@@ -77,10 +79,19 @@ class MostabOptimizer(BaseDevice):
         else:
             self._command_active = False
             self.set_state(busy=False)
+    
+    def _on_enable(self, obj, val):
+        if val == 0:
+            self.set_state(health=(16, 'srcheck', "No Beam"))
+        else:
+            self.set_state(health=(0, 'srcheck'))
         
     def start(self):
-        self._command_active = True
-        self._start.put(1)
+        if self.health_state[0] == 0:
+            self._command_active = True
+            self._start.put(1)
+        else:
+            _logger.warning('Not enough beam to optimize.')
         
     
     def stop(self):
