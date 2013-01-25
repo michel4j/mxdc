@@ -484,6 +484,7 @@ class EnergyMotor(Motor):
         self.STOP = self.add_pv("%s:stop" % pv1)
         self.CALIB =  self.add_pv("%s:calibDone" % pv2_root)
         self.STAT =  self.add_pv("%s:status" % pv2_root)
+        self.LOG = self.add_pv("%s:stsLog" % pv1)
         self.ENAB = self.CALIB
         
         # connect monitors
@@ -492,11 +493,15 @@ class EnergyMotor(Motor):
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
         self.ENAB.connect('changed', self._signal_enable)
+        self.LOG.connect('changed', self._send_log)
     
     def _signal_timed_change(self, obj, data):
         val = converter.bragg_to_energy(data[0])
         self.set_state(timed_change=(val, data[1]), changed=val)
-                            
+
+    def _send_log(self, obj, msg):
+        _logger.info("(%s) %s" % (self.name, msg))
+                                 
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())           
 

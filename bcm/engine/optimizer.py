@@ -66,20 +66,17 @@ class MostabOptimizer(BaseDevice):
         self.name = name
         self._start = self.add_pv('%s:Mostab:opt:cmd' % name)
         self._stop = self.add_pv('%s:abortFlag' % name)
-        self._state1 = self.add_pv('%s:optRun'% name)
-        self._state2 = self.add_pv('%s:optDone'% name)
-        self._status = 0
+        self._state = self.add_pv('%s:Mostab:opt:sts'% name)
         self._command_active = False
-        self._state1.connect('changed', self._state_change)
-        self._state2.connect('changed', self._state_change)
+        self._state.connect('changed', self._state_change)
         
         
     def _state_change(self, obj, val):
-        if self._state1.get() > 0:
-            self._status =  1
+        if val == 1:
+            self.set_state(busy=True)
+        else:
             self._command_active = False
-        elif self._state2.get() >0:
-            self._status = 0
+            self.set_state(busy=False)
         
     def start(self):
         self._command_active = True
@@ -91,7 +88,7 @@ class MostabOptimizer(BaseDevice):
     
     def wait(self):
         poll=0.05
-        while self._status == 1 or self._command_active:
+        while self.busy_state or self._command_active:
             time.sleep(poll)
 
 
