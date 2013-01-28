@@ -17,8 +17,6 @@ from mxdc.widgets.statuspanel import StatusPanel
 from mxdc.widgets.samplepicker import SamplePicker
 from mxdc.utils import gui
 
-#from mxdc.utils import gtkexcepthook
-
 _logger = get_module_logger('hutchviewer')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
 COPYRIGHT = """

@@ -1,7 +1,6 @@
 from twisted.internet import gtk2reactor
 gtk2reactor.install()
 
-#from mxdc.utils import gtkexcepthook
 from bcm.beamline.mx import MXBeamline
 from bcm.beamline.remote import BeamlineClient
 from bcm.utils import mdns

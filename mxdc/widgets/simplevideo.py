@@ -138,8 +138,9 @@ class SimpleVideo(gtk.Frame):
         self.videothread.stop()
         return True
         
-    def on_expose(self, videoarea, event):        
-        videoarea.window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
+    def on_expose(self, videoarea, event):
+        window = videoarea.get_window()     
+        window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
             self.width, self.height)
         return True
                     
