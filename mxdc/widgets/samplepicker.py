@@ -140,6 +140,7 @@ class ContainerWidget(gtk.DrawingArea):
         return final_loc, labels
        
     def on_realize(self, obj):
+        window = self.get_window()
         style = self.get_style()
         self.port_colors = {
             PORT_EMPTY: gtk.gdk.color_parse("#aaaaaa"),
@@ -151,7 +152,7 @@ class ContainerWidget(gtk.DrawingArea):
             }     
         self.state_gc = {}  
         for key, spec in self.port_colors.items():
-            self.state_gc[key] = self.window.new_gc()
+            self.state_gc[key] = window.new_gc()
             self.state_gc[key].foreground = self.get_colormap().alloc_color( spec )
         self._realized = True 
            
@@ -186,8 +187,9 @@ class ContainerWidget(gtk.DrawingArea):
 
     
     def do_expose_event(self, event):
+        window = self.get_window()
         if using_cairo:
-            context = self.window.cairo_create()
+            context = window.cairo_create()
             context.rectangle(event.area.x, event.area.y,
                               event.area.width, event.area.height)
             context.clip()
@@ -199,7 +201,7 @@ class ContainerWidget(gtk.DrawingArea):
             context.set_font_size( font_desc.get_size()/pango.SCALE )
             self.draw_cairo(context)
         else:
-            context = self.window.new_gc()
+            context = window.new_gc()
             style = self.get_style()
             context.foreground = style.fg[self.state]
             context.set_clip_origin(event.area.x, event.area.y)

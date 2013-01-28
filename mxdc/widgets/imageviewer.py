@@ -192,8 +192,8 @@ class ImageViewer(gtk.Frame):
         return last_parent
 
     def _position_popups(self):
-        ox, oy = self.window.get_origin()
-        ix,iy,iw,ih,ib = self.image_canvas.window.get_geometry()
+        ox, oy = self.get_window().get_origin()
+        ix,iy,iw,ih,ib = self.image_canvas.get_window().get_geometry()
         cx = ox + ix + iw/2 - 100
         cy = oy + iy + ih/2 + 50
         self.contrast_popup.move(cx, cy)
