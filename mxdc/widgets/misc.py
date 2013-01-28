@@ -507,9 +507,10 @@ class LinearProgress(gtk.DrawingArea):
            
     
     def on_expose(self, obj, event):
+        window = obj.get_window()
         if self.bar_gc is None:
-            obj.window.clear()
-            self.bar_gc = obj.window.new_gc()
+            window.clear()
+            self.bar_gc = window.new_gc()
             style = self.get_style()
             if self.color_spec:
                 self.bar_gc.foreground = self.get_colormap().alloc_color(self.color_spec)
@@ -524,12 +525,13 @@ class LinearProgress(gtk.DrawingArea):
         return False
 
     def draw_gdk(self):
-        self.window.set_back_pixmap(None, True)
+        window = self.get_window()
+        window.set_back_pixmap(None, True)
         bar_width = int(self.allocation.width * self.fraction - 3.0)       
-        self.window.draw_rectangle(self.bar_gc, False, 0, 0, self.allocation.width-1,
+        window.draw_rectangle(self.bar_gc, False, 0, 0, self.allocation.width-1,
             self.allocation.height-1)
         if bar_width > 0:
-            self.window.draw_rectangle(self.bar_gc, True, 2, 2, bar_width-1, 
+            window.draw_rectangle(self.bar_gc, True, 2, 2, bar_width-1, 
                 self.allocation.height - 4)
              
     def set_fraction(self, fraction):
