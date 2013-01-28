@@ -560,8 +560,9 @@ class SampleViewer(gtk.Frame):
     def on_delete(self,widget):
         self.videothread.stop()
         
-    def on_expose(self, videoarea, event):        
-        videoarea.window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
+    def on_expose(self, videoarea, event):
+        window = videoarea.get_window()   
+        window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
             self.width, self.height)
     
     def on_zoom_in(self,widget):

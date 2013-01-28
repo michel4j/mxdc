@@ -110,7 +110,7 @@ class PeriodicTable(gtk.Alignment):
         return True
 
     def set_area_cursor(self,widget):
-        widget.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
+        widget.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
         return True
 
 gobject.type_register(PeriodicTable)

@@ -69,7 +69,7 @@ class Gauge(gtk.DrawingArea):
                     
     def on_expose(self, widget, event):
         if using_cairo:
-            context = widget.window.cairo_create()
+            context = widget.get_window().cairo_create()
             context.rectangle(event.area.x, event.area.y,
                               event.area.width, event.area.height)
             context.clip()
@@ -80,7 +80,7 @@ class Gauge(gtk.DrawingArea):
             context.set_font_size( font_desc.get_size()/pango.SCALE )
             widget.draw_cairo(context)
         else:       
-            gcontext = widget.window.new_gc()
+            gcontext = widget.get_window().new_gc()
             style = self.get_style()
             gcontext.foreground = style.fg[gtk.STATE_NORMAL]
             gcontext.set_clip_origin(event.area.x, event.area.y)
@@ -162,7 +162,7 @@ class Gauge(gtk.DrawingArea):
         context.restore()
 
     def draw_gdk(self, context):
-        area = self.window
+        area = self.get_window()
         rect = self.get_allocation()
         minimum = self.minimum
         maximum = self.maximum

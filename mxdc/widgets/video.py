@@ -103,19 +103,21 @@ class VideoWidget(gtk.DrawingArea):
             self._colorize = False
         
     def on_expose(self, widget, event):
+        window = self.get_window()
         w, h = self.get_size_request()
         if self.pixbuf is not None:
-            self.window.draw_pixbuf(self.gc, self.pixbuf, 0, 0, 0, 0, w, h, 0,0,0)
+            window.draw_pixbuf(self.gc, self.pixbuf, 0, 0, 0, 0, w, h, 0,0,0)
             if self.overlay_func is not None:
-                    self.overlay_func(self.window)
+                    self.overlay_func(window)
             self.fps = 1.0/(time.time() - self._last_frame)
             self._last_frame = time.time()
     
     def on_realized(self, obj):
-        self.gc = self.window.new_gc()
-        self.pl_gc = self.window.new_gc()
+        window = self.get_window()
+        self.gc = window.new_gc()
+        self.pl_gc = window.new_gc()
         self.pl_gc.foreground = self.get_colormap().alloc_color("#ffaaff")
-        self.ol_gc = self.window.new_gc()
+        self.ol_gc = window.new_gc()
         self.ol_gc.foreground = self.get_colormap().alloc_color("green")
         #self.ol_gc.set_function(gtk.gdk.XOR)
         self.ol_gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
@@ -133,9 +135,10 @@ class VideoWidget(gtk.DrawingArea):
         self.stopped = True
         
     def save_image(self, filename):
-        colormap = self.window.get_colormap()
-        pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, 0, 8, *self.window.get_size())
-        pixbuf = pixbuf.get_from_drawable(self.window, colormap, 0,0,0,0, *self.window.get_size())
+        window = self.get_window()
+        colormap = window.get_colormap()
+        pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, 0, 8, *window.get_size())
+        pixbuf = pixbuf.get_from_drawable(window, colormap, 0,0,0,0, *window.get_size())
         ftype = os.path.splitext(filename)[-1]
         ftype = ftype.lower()
         if ftype in ['.jpg', '.jpeg']: 

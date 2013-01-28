@@ -427,7 +427,7 @@ class ImageWidget(gtk.DrawingArea):
         return rpal
 
     def draw_overlay(self):
-        drawable = self.window
+        drawable = self.get_window()
         gc = self.pl_gc        
         if self._rubber_band:
             x, y, w, h = self._calc_bounds(self.rubber_x0,
@@ -577,16 +577,17 @@ class ImageWidget(gtk.DrawingArea):
         return Ix, Iy, Res, self.pixel_data[Ix, Iy]
 
     def _set_cursor_mode(self, cursor=None ):
-        if self.window is None:
+        window = self.get_window()
+        if window is None:
             return
         if cursor is None:
-            self.window.set_cursor(None)
+            window.set_cursor(None)
         else:
             if cursor == gtk.gdk.WATCH:
                 _cur = LEFT_PTR_WATCH
             else:
                 _cur = gtk.gdk.Cursor(cursor)
-            self.window.set_cursor(_cur)
+            window.set_cursor(_cur)
         gtk.main_iteration()
             
     def _clear_extents(self):
@@ -737,10 +738,10 @@ class ImageWidget(gtk.DrawingArea):
                                            (w-hw-6), (h-hh-6), hw, hh, 
                                            (w-hw-6), (h-hh-6), 1.0, 1.0, self._best_interp,
                                            150)
-
-            self.window.draw_pixbuf(self.gc, disp_pixbuf, 0, 0, 0, 0)
+            window = self.get_window()
+            window.draw_pixbuf(self.gc, disp_pixbuf, 0, 0, 0, 0)
             if USE_CAIRO:
-                context = self.window.cairo_create()
+                context = window.cairo_create()
                 context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
                 context.clip()
                 
@@ -756,10 +757,11 @@ class ImageWidget(gtk.DrawingArea):
                 self.draw_overlay()
                 
     def on_realized(self, obj):
-        self.gc = self.window.new_gc()
-        self.pl_gc = self.window.new_gc()
+        window = self.get_window()
+        self.gc = window.new_gc()
+        self.pl_gc = window.new_gc()
         self.pl_gc.foreground = self.get_colormap().alloc_color("#007fff")
-        self.ol_gc = self.window.new_gc()
+        self.ol_gc = window.new_gc()
         self.ol_gc.foreground = self.get_colormap().alloc_color("green")
         self.ol_gc.set_function(gtk.gdk.XOR)
         self.ol_gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
