@@ -1,7 +1,7 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <!-- interface-requires gtk+ 2.10 -->
-  <!-- interface-naming-policy project-wide -->
+  <requires lib="gtk+" version="2.24"/>
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <child>
@@ -80,7 +80,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="has_tooltip">True</property>
-                    <property name="tooltip-text" translatable="yes">Double-click a crystal to
+                    <property name="tooltip_text" translatable="yes">Double-click a crystal to
 to select it for mounting</property>
                     <property name="hscrollbar_policy">never</property>
                     <property name="vscrollbar_policy">automatic</property>
@@ -117,12 +117,12 @@ to select it for mounting</property>
             <property name="icon_size_set">True</property>
             <child>
               <object class="GtkToolButton" id="file_btn">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
-                <property name="tooltip-text" translatable="yes">Import containers
+                <property name="tooltip_text" translatable="yes">Import containers
 from spreadsheet</property>
-                <property name="use_action_appearance">False</property>
                 <property name="is_important">True</property>
                 <property name="label" translatable="yes">Import</property>
                 <property name="use_underline">True</property>
@@ -135,12 +135,12 @@ from spreadsheet</property>
             </child>
             <child>
               <object class="GtkToolButton" id="lims_btn">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
-                <property name="tooltip-text" translatable="yes">Import containers
+                <property name="tooltip_text" translatable="yes">Import containers
 from MxLIVE server</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">Import</property>
                 <property name="use_underline">True</property>
                 <property name="icon_name">applications-internet</property>
@@ -161,11 +161,11 @@ from MxLIVE server</property>
             </child>
             <child>
               <object class="GtkToolButton" id="clear_btn">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
-                <property name="tooltip-text" translatable="yes">Remove all containers and samples</property>
-                <property name="use_action_appearance">False</property>
+                <property name="tooltip_text" translatable="yes">Remove all containers and samples</property>
                 <property name="label" translatable="yes">Clear</property>
                 <property name="use_underline">True</property>
                 <property name="stock_id">gtk-clear</property>
@@ -189,9 +189,9 @@ from MxLIVE server</property>
             </child>
             <child>
               <object class="GtkToolItem" id="mount_tbtn2">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="is_important">True</property>
                 <child>
                   <object class="GtkHBox" id="mnt_hbox">
