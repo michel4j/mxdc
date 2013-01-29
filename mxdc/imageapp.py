@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+#import gi
+#import gi.pygtkcompat
+
+#gi.pygtkcompat.enable() 
+#gi.pygtkcompat.enable_gtk(version='3.0')
+
 import warnings
 warnings.simplefilter("ignore")
 import sys, os
