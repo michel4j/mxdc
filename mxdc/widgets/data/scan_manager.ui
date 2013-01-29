@@ -1,15 +1,21 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <object class="GtkAdjustment" id="adjustment1">
-    <property name="upper">32</property>
-    <property name="lower">1</property>
-    <property name="page_increment">10</property>
-    <property name="step_increment">1</property>
-    <property name="page_size">0</property>
-    <property name="value">1</property>
-  </object>
-  <!-- interface-requires gtk+ 2.10 -->
+  <requires lib="gtk+" version="2.24"/>
   <!-- interface-naming-policy toplevel-contextual -->
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="lower">1</property>
+    <property name="upper">32</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment2">
+    <property name="lower">10</property>
+    <property name="upper">16</property>
+    <property name="value">12</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">1</property>
+  </object>
   <object class="GtkWindow" id="window1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -44,10 +50,10 @@
                         <child>
                           <object class="GtkRadioButton" id="xanes_btn">
                             <property name="label" translatable="yes">MAD Scan</property>
+                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="use_underline">True</property>
                             <property name="active">True</property>
                             <property name="draw_indicator">True</property>
@@ -61,10 +67,10 @@
                         <child>
                           <object class="GtkRadioButton" id="xrf_btn">
                             <property name="label" translatable="yes">Excitation Scan</property>
+                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="use_underline">True</property>
                             <property name="draw_indicator">True</property>
                             <property name="group">xanes_btn</property>
@@ -78,10 +84,10 @@
                         <child>
                           <object class="GtkRadioButton" id="exafs_btn">
                             <property name="label" translatable="yes">EXAFS Scan</property>
+                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="draw_indicator">True</property>
                             <property name="group">xanes_btn</property>
                           </object>
@@ -161,17 +167,22 @@
                   <object class="GtkAlignment" id="alignment3">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="left_padding">12</property>
                     <child>
                       <object class="GtkTable" id="layout_table">
                         <property name="width_request">220</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="n_rows">7</property>
-                        <property name="n_columns">3</property>
+                        <property name="n_columns">6</property>
                         <property name="column_spacing">2</property>
                         <property name="row_spacing">2</property>
                         <property name="homogeneous">True</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
                         <child>
                           <object class="GtkLabel" id="label5">
                             <property name="visible">True</property>
@@ -180,10 +191,11 @@
                             <property name="label" translatable="yes">Prefix:</property>
                           </object>
                           <packing>
+                            <property name="right_attach">2</property>
                             <property name="top_attach">1</property>
                             <property name="bottom_attach">2</property>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -194,10 +206,11 @@
                             <property name="label" translatable="yes">Folder:</property>
                           </object>
                           <packing>
+                            <property name="right_attach">2</property>
                             <property name="top_attach">2</property>
                             <property name="bottom_attach">3</property>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -208,10 +221,11 @@
                             <property name="label" translatable="yes">Edge/Energy:</property>
                           </object>
                           <packing>
+                            <property name="right_attach">2</property>
                             <property name="top_attach">3</property>
                             <property name="bottom_attach">4</property>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -222,10 +236,11 @@
                             <property name="label" translatable="yes">Time:</property>
                           </object>
                           <packing>
+                            <property name="right_attach">2</property>
                             <property name="top_attach">4</property>
                             <property name="bottom_attach">5</property>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -236,10 +251,11 @@
                             <property name="label" translatable="yes">Attenuation:</property>
                           </object>
                           <packing>
+                            <property name="right_attach">2</property>
                             <property name="top_attach">5</property>
                             <property name="bottom_attach">6</property>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -251,12 +267,12 @@
                             <property name="label" translatable="yes">%</property>
                           </object>
                           <packing>
-                            <property name="left_attach">2</property>
-                            <property name="right_attach">3</property>
+                            <property name="left_attach">4</property>
+                            <property name="right_attach">5</property>
                             <property name="top_attach">5</property>
                             <property name="bottom_attach">6</property>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -268,12 +284,12 @@
                             <property name="label" translatable="yes">sec</property>
                           </object>
                           <packing>
-                            <property name="left_attach">2</property>
-                            <property name="right_attach">3</property>
+                            <property name="left_attach">4</property>
+                            <property name="right_attach">5</property>
                             <property name="top_attach">4</property>
                             <property name="bottom_attach">5</property>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -288,11 +304,11 @@
                             <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">4</property>
                             <property name="top_attach">3</property>
                             <property name="bottom_attach">4</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -307,18 +323,18 @@
                             <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">4</property>
                             <property name="top_attach">3</property>
                             <property name="bottom_attach">6</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
                           <object class="GtkEntry" id="attenuation_entry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="width_chars">1</property>
+                            <property name="width_chars">5</property>
                             <property name="xalign">1</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
@@ -326,11 +342,11 @@
                             <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">4</property>
                             <property name="top_attach">5</property>
                             <property name="bottom_attach">6</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -345,11 +361,11 @@
                             <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">3</property>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">6</property>
                             <property name="top_attach">1</property>
                             <property name="bottom_attach">2</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -361,8 +377,8 @@
                             <property name="width_chars">10</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">3</property>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">6</property>
                             <property name="top_attach">2</property>
                             <property name="bottom_attach">3</property>
                             <property name="x_options">GTK_FILL</property>
@@ -376,8 +392,9 @@
                             <property name="label" translatable="yes">Crystal:</property>
                           </object>
                           <packing>
+                            <property name="right_attach">2</property>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -386,10 +403,10 @@
                             <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="has_tooltip">True</property>
-                            <property name="tooltip-text" translatable="yes">Scans will be associated 
+                            <property name="tooltip_text" translatable="yes">Scans will be associated 
 with this crystal</property>
                             <property name="editable">False</property>
-                            <property name="invisible_char">&#x2022;</property>
+                            <property name="invisible_char">•</property>
                             <property name="width_chars">0</property>
                             <property name="text" translatable="yes">[Unknown]</property>
                             <property name="xalign">0.5</property>
@@ -399,9 +416,9 @@ with this crystal</property>
                             <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">3</property>
-                            <property name="y_options"/>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">6</property>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -409,13 +426,14 @@ with this crystal</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="xalign">1</property>
-                            <property name="label" translatable="yes">No. of Scans:</property>
+                            <property name="label" translatable="yes">Scans:</property>
                           </object>
                           <packing>
+                            <property name="right_attach">2</property>
                             <property name="top_attach">6</property>
                             <property name="bottom_attach">7</property>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
@@ -423,7 +441,7 @@ with this crystal</property>
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
-                            <property name="invisible_char">&#x25CF;</property>
+                            <property name="invisible_char">●</property>
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
@@ -434,8 +452,8 @@ with this crystal</property>
                             <property name="numeric">True</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">4</property>
                             <property name="top_attach">6</property>
                             <property name="bottom_attach">7</property>
                           </packing>
@@ -445,8 +463,8 @@ with this crystal</property>
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Energy in keV</property>
-                            <property name="invisible_char">&#x25CF;</property>
+                            <property name="tooltip_text" translatable="yes">Energy in keV</property>
+                            <property name="invisible_char">●</property>
                             <property name="width_chars">1</property>
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
@@ -455,15 +473,50 @@ with this crystal</property>
                             <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
-                            <property name="left_attach">2</property>
-                            <property name="right_attach">3</property>
+                            <property name="left_attach">4</property>
+                            <property name="right_attach">6</property>
                             <property name="top_attach">3</property>
                             <property name="bottom_attach">4</property>
-                            <property name="y_options"/>
+                            <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
-                          <placeholder/>
+                          <object class="GtkLabel" id="label8">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="xalign">1</property>
+                            <property name="label" translatable="yes">k&lt;sub&gt;&lt;small&gt;max&lt;/small&gt;&lt;/sub&gt;:</property>
+                            <property name="use_markup">True</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">4</property>
+                            <property name="right_attach">5</property>
+                            <property name="top_attach">6</property>
+                            <property name="bottom_attach">7</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="kmax_entry">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">True</property>
+                            <property name="invisible_char">●</property>
+                            <property name="xalign">0.5</property>
+                            <property name="invisible_char_set">True</property>
+                            <property name="primary_icon_activatable">False</property>
+                            <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">True</property>
+                            <property name="secondary_icon_sensitive">True</property>
+                            <property name="adjustment">adjustment2</property>
+                            <property name="snap_to_ticks">True</property>
+                            <property name="numeric">True</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">5</property>
+                            <property name="right_attach">6</property>
+                            <property name="top_attach">6</property>
+                            <property name="bottom_attach">7</property>
+                          </packing>
                         </child>
                       </object>
                     </child>
@@ -528,11 +581,11 @@ with this crystal</property>
                     <property name="homogeneous">True</property>
                     <child>
                       <object class="GtkButton" id="create_run_btn">
+                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="tooltip-text" translatable="yes">Add a new data collection Run</property>
-                        <property name="use_action_appearance">False</property>
+                        <property name="tooltip_text" translatable="yes">Add a new data collection Run</property>
                         <child>
                           <object class="GtkAlignment" id="alignment5">
                             <property name="visible">True</property>
@@ -583,11 +636,11 @@ with this crystal</property>
                     <child>
                       <object class="GtkButton" id="update_strategy_btn">
                         <property name="label" translatable="yes">Update Strategy</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="tooltip-text" translatable="yes">Update Active Strategy</property>
-                        <property name="use_action_appearance">False</property>
+                        <property name="tooltip_text" translatable="yes">Update Active Strategy</property>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -622,10 +675,10 @@ with this crystal</property>
                     <property name="layout_style">edge</property>
                     <child>
                       <object class="GtkButton" id="scan_btn">
+                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_stock">True</property>
                       </object>
                       <packing>
@@ -636,11 +689,11 @@ with this crystal</property>
                     </child>
                     <child>
                       <object class="GtkButton" id="stop_btn">
+                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="use_stock">True</property>
                       </object>
                       <packing>
@@ -766,6 +819,9 @@ with this crystal</property>
                   <placeholder/>
                 </child>
               </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
             </child>
             <child type="tab">
               <object class="GtkLabel" id="label15">
@@ -792,6 +848,9 @@ with this crystal</property>
                   </object>
                 </child>
               </object>
+              <packing>
+                <property name="position">2</property>
+              </packing>
             </child>
             <child type="tab">
               <object class="GtkLabel" id="label16">
