@@ -26,7 +26,7 @@ import matplotlib, matplotlib.backends.backend_agg
 from mpl_toolkits.axes_grid.axislines import SubplotZero
 from matplotlib.pylab import loadtxt
 from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
-from bcm.utils.science import peak_search
+from bcm.utils.science import peak_search, find_peaks
 from bcm.utils.imageio import read_image
 from bcm.utils.imageio.utils import stretch, calc_gamma
 
@@ -78,7 +78,7 @@ def _load_frame_image(filename, gamma_offset = 0.0):
     image_info = {}
     image_obj = read_image(filename)
     image_info['header'] = image_obj.header
-    image_info['data'] = image_obj.image.load()
+    image_info['data'] = numpy.transpose(numpy.asarray(image_obj.image)) #image_obj.image.load()
     hist = image_obj.image.histogram()
         
     disp_gamma = image_info['header']['gamma'] * numpy.exp(-gamma_offset + _GAMMA_SHIFT)/30.0
@@ -311,7 +311,7 @@ class ImageWidget(gtk.DrawingArea):
         h = int(abs(y0 - y1))
         return (x,y,w,h)
           
-    def _get_intensity_line(self, x,y,x2,y2):
+    def _get_intensity_line(self, x,y,x2,y2, lw=1):
         """Bresenham's line algorithm"""
         
         x, y, res0, val0 = self.get_position(x, y)
@@ -347,57 +347,76 @@ class ImageWidget(gtk.DrawingArea):
             ix = max(1, ix)
             iy = max(1, iy)
             data[n][0] = n
-            data[n][2] = (self.pixel_data[ix, iy] + self.pixel_data[ix-1, iy] +
-                          self.pixel_data[ix+1, iy] + self.pixel_data[ix, iy-1]+
-                          self.pixel_data[ix, iy+1])
+            val = self.pixel_data[ix-lw:ix+lw, iy-lw:iy+lw].mean()
+            data[n][2] = val
             data[n][1] = self._rdist(ix, iy, coords[0][0], coords[0][1])
             n += 1
         return data
 
-
     def _plot_histogram(self, data, show_axis=None, distance=True):
-        figure = matplotlib.figure.Figure(frameon=False,figsize=(3.5, 2.6), dpi=72, facecolor='w' )
-        plot = SubplotZero(figure,1,1,1)
-        figure.add_subplot(plot)
-        formatter = FormatStrFormatter('%g')
-        plot.xaxis.set_major_formatter(formatter)
-        plot.yaxis.set_major_formatter(formatter)
-        plot.xaxis.set_major_locator(MaxNLocator(5, prune='upper'))
-        plot.yaxis.set_major_locator(MaxNLocator(5))
-        for n in ['xzero','yzero','bottom','top','right','left']:
-            plot.axis[n].set_visible(False)
-        if show_axis is not None:
-            for n in show_axis:
-                plot.axis[n].set_visible(True)
+        def _adjust_spines(ax,spines):
+            for loc, spine in ax.spines.items():
+                if loc in spines:
+                    spine.set_position(('outward',10)) # outward by 10 points
+                    spine.set_smart_bounds(True)
+                else:
+                    spine.set_color('none') # don't draw spine
         
+            # turn off ticks where there is no spine
+            if 'left' in spines:
+                ax.yaxis.set_ticks_position('left')
+            else:
+                # no yaxis ticks
+                ax.yaxis.set_ticks([])
+        
+            if 'bottom' in spines:
+                ax.xaxis.set_ticks_position('bottom')
+            else:
+                # no xaxis ticks
+                ax.xaxis.set_ticks([])
+
+        old_fontsize = matplotlib.rcParams['font.size']
+        matplotlib.rcParams.update({'font.size': 8.5})
+        figure = matplotlib.figure.Figure(frameon=False,figsize=(4, 2), dpi=80, facecolor='w' )
+        plot = figure.add_subplot(111)
+        _adjust_spines(plot, ['left'])
+        figure.subplots_adjust(left=0.18, right=0.95)
+        formatter = FormatStrFormatter('%g')
+        plot.yaxis.set_major_formatter(formatter)
+        plot.yaxis.set_major_locator(MaxNLocator(5))
+
         if distance:
             plot.plot(data[:,1], data[:,2])
         else:
             plot.vlines(data[:,1], 0, data[:,2])
-        
+
         if distance:
-            peaks = peak_search(data[:,1], data[:,2], w=9, threshold=0.2, min_peak=0.1)
-    
+            peaks = find_peaks(data[:,1], data[:,2], sensitivity=0.05)            
             if len(peaks) > 1:
                 d1 = peaks[1][0] - peaks[0][0]
-                y1 = max(peaks[0][1], peaks[1][1])/2
+                y1 = max(peaks[0][1], peaks[1][1])
                 r1 = (self.wavelength * self.distance/d1)
                 x1 = (peaks[1][0] + peaks[0][0])/2
-                plot.text((peaks[1][0]+peaks[0][0])/2, y1, '% 0.1f A' % r1,
-                          horizontalalignment='center', 
+                plot.text((peaks[1][0]+peaks[0][0])/2, y1, '%0.0f A' % r1,
+                          horizontalalignment='center',
+                          verticalalignment='bottom',
                           color='black', rotation=90)        
             
             if len(peaks) > 2:
                 d2 = peaks[2][0] - peaks[1][0]
                 r2 = (self.wavelength * self.distance/d2)
+                y2 = max(peaks[1][1], peaks[2][1])
                 x2 = (peaks[2][0] + peaks[1][0])/2
-                plot.text((peaks[2][0]+peaks[1][0])/2, y1, '% 0.1f' % r2,
+                plot.text((peaks[2][0]+peaks[1][0])/2, y2, '%0.0f A' % r2,
                           horizontalalignment='center', 
+                          verticalalignment='bottom',
                           color='black', rotation=90)
             
         # Ask matplotlib to render the figure to a bitmap using the Agg backend
+        plot.set_xlim(min(data[:,1]), max(data[:,1]))
         canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(figure)
         canvas.draw()
+        matplotlib.rcParams.update({'font.size': old_fontsize})
         
         # Get the buffer from the bitmap
         stringImage = canvas.tostring_rgb()
@@ -476,6 +495,8 @@ class ImageWidget(gtk.DrawingArea):
             cr.stroke()
         # measuring
         if self._measuring:
+            cr.set_source_rgba(0.0, 0.5, 1.0,0.5)
+            cr.set_line_width(4)
             cr.move_to(self.meas_x0, self.meas_y0)
             cr.line_to(self.meas_x1, self.meas_y1)
             cr.stroke()
@@ -706,7 +727,7 @@ class ImageWidget(gtk.DrawingArea):
             self._measuring = False
             # prevent zero-length lines
             self._histogram_data = self._get_intensity_line(self.meas_x0, self.meas_y0, 
-                                           self.meas_x1, self.meas_y1)
+                                           self.meas_x1, self.meas_y1, 2)
             if len(self._histogram_data) > 4:
                 self._plot_histogram(self._histogram_data, show_axis=['left',])
                 self.queue_draw()

@@ -194,7 +194,7 @@ def smooth_data(data, times=1, window=11, order=1):
         ys = savitzky_golay(ys, kernel=window, order=order)
     return ys
     
-def find_peaks(x, y, w=21, sensitivity=0.01, smooth=True):
+def find_peaks(x, y, w=9, sensitivity=0.01, smooth=True):
     hw = w//3
     if smooth:
         ys = savitzky_golay(y,  w, 1)

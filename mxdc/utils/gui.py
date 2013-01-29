@@ -1,9 +1,9 @@
 import os
 import gtk
 
-USE_GLADE = True
-if gtk.gtk_version < 2.14:
-    USE_GLADE = True
+USE_GLADE = False
+#if gtk.gtk_version < (2,14,0):
+#    USE_GLADE = True
 
 if USE_GLADE:
     import gtk.glade

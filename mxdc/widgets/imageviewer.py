@@ -99,7 +99,7 @@ class ImageViewer(gtk.Frame):
         self.info_dialog = None
         self.expand_separator.set_expand(True)
 
-        self.image_canvas.connect('configure-event', self.on_configure)      
+        self.image_canvas.connect('configure-event', self.on_configure)
         self.add(self._widget)         
         self.show_all()
 
@@ -192,10 +192,11 @@ class ImageViewer(gtk.Frame):
         return last_parent
 
     def _position_popups(self):
-        ox, oy = self.get_window().get_origin()
+        window = self._get_parent_window().get_window()
+        ox, oy = window.get_origin()
         ix,iy,iw,ih,ib = self.image_canvas.get_window().get_geometry()
         cx = ox + ix + iw/2 - 100
-        cy = oy + iy + ih/2 + 50
+        cy = oy + iy + ih - 50
         self.contrast_popup.move(cx, cy)
         self.brightness_popup.move(cx, cy)
         self.colorize_popup.move(cx, cy)
@@ -213,19 +214,19 @@ class ImageViewer(gtk.Frame):
         self.image_canvas.set_brightness(obj.get_value())
         if self._br_hide_id is not None:
             gobject.source_remove(self._br_hide_id)
-            self._br_hide_id = gobject.timeout_add(6000, self._timed_hide, self.brightness_tbtn)
+            self._br_hide_id = gobject.timeout_add(12000, self._timed_hide, self.brightness_tbtn)
     
     def on_contrast_changed(self, obj):
         self.image_canvas.set_contrast(obj.get_value())
         if self._co_hide_id is not None:
             gobject.source_remove(self._co_hide_id)
-            self._co_hide_id = gobject.timeout_add(6000, self._timed_hide, self.contrast_tbtn)
+            self._co_hide_id = gobject.timeout_add(12000, self._timed_hide, self.contrast_tbtn)
 
     def on_colormap_changed(self, obj):
         self.image_canvas.colorize(obj.get_value())
         if self._cl_hide_id is not None:
             gobject.source_remove(self._cl_hide_id)
-            self._cl_hide_id = gobject.timeout_add(6000, self._timed_hide, self.colorize_tbtn)
+            self._cl_hide_id = gobject.timeout_add(12000, self._timed_hide, self.colorize_tbtn)
     
     def on_reset_filters(self,widget):
         self.contrast_tbtn.set_active(False)
@@ -333,7 +334,7 @@ class ImageViewer(gtk.Frame):
             self._position_popups()
             self.brightness_popup.set_transient_for(self._get_parent_window())
             self.brightness_popup.show_all()
-            self._br_hide_id = gobject.timeout_add(5000, self._timed_hide, self.brightness_tbtn)
+            self._br_hide_id = gobject.timeout_add(12000, self._timed_hide, self.brightness_tbtn)
         else:
             if self._br_hide_id is not None:
                 gobject.source_remove(self._br_hide_id)
@@ -347,7 +348,7 @@ class ImageViewer(gtk.Frame):
             self._position_popups()
             self.contrast_popup.set_transient_for(self._get_parent_window())
             self.contrast_popup.show_all()
-            self._co_hide_id = gobject.timeout_add(5000, self._timed_hide, self.contrast_tbtn)
+            self._co_hide_id = gobject.timeout_add(12000, self._timed_hide, self.contrast_tbtn)
             
         else:
             if self._co_hide_id is not None:
@@ -362,13 +363,14 @@ class ImageViewer(gtk.Frame):
             self._position_popups()
             self.colorize_popup.set_transient_for(self._get_parent_window())
             self.colorize_popup.show_all()
-            self._cl_hide_id = gobject.timeout_add(5000, self._timed_hide, self.colorize_tbtn)
+            self._cl_hide_id = gobject.timeout_add(12000, self._timed_hide, self.colorize_tbtn)
             
         else:
             if self._cl_hide_id is not None:
                 gobject.source_remove(self._cl_hide_id)
                 self._cl_hide_id = None
             self.colorize_popup.hide()
+    
         
     def on_follow_toggled(self,widget):
         self._following = widget.get_active()
