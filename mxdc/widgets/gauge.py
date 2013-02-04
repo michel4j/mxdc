@@ -239,4 +239,4 @@ class Gauge(gtk.DrawingArea):
             
         area.draw_polygon(context, True, [(int(xa), int(ya)), (int(xp), int(yp)), (int(xb), int(yb))])
 
-gobject.type_register(Gauge)
+
