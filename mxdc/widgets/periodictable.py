@@ -113,4 +113,3 @@ class PeriodicTable(gtk.Alignment):
         widget.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
         return True
 
-gobject.type_register(PeriodicTable)

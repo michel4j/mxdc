@@ -8,7 +8,7 @@ from bcm.protocol import ca
 from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
 from bcm.utils.automounter import *
-import gobject
+import gobject as GObject
 import time
 import re
 
@@ -17,7 +17,7 @@ _logger = get_module_logger(__name__)
 
 
 
-class AutomounterContainer(gobject.GObject):
+class AutomounterContainer(GObject.GObject):
     """An event driven object for representing an automounter container.
     
     Signals:
@@ -25,7 +25,7 @@ class AutomounterContainer(gobject.GObject):
           no data.
     """
     __gsignals__ = {
-        'changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+        'changed': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, []),
     }
     def __init__(self, location, status_str=None):
         """ Create a container at the specified location in the Automounter.
@@ -38,7 +38,7 @@ class AutomounterContainer(gobject.GObject):
             - `status_str` (str or None): status string to update container with.       
         """
         
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
         self.location = location
         self.samples = {}
         self.configure(status_str)
@@ -64,7 +64,7 @@ class AutomounterContainer(gobject.GObject):
             
         if self.container_type in [CONTAINER_NONE, CONTAINER_UNKNOWN, CONTAINER_EMPTY]:
             self.samples = {}
-            gobject.idle_add(self.emit, 'changed')
+            GObject.idle_add(self.emit, 'changed')
             return
         elif self.container_type == CONTAINER_PUCK_ADAPTER:
             self.keys = 'ABCD'
@@ -82,7 +82,7 @@ class AutomounterContainer(gobject.GObject):
                 else:
                     self.samples[id_str] = [PORT_NONE, '']
                 count +=1
-        gobject.idle_add(self.emit, 'changed')
+        GObject.idle_add(self.emit, 'changed')
 
     def __getitem__(self, key):
         return self.samples.get(key, None)
@@ -106,10 +106,10 @@ class BasicAutomounter(BaseDevice):
     """
     implements(IAutomounter)
     __gsignals__ = {
-        'status': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
-        'enabled': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
-        'mounted': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'progress': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'status': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_STRING,)),
+        'enabled': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_BOOLEAN,)),
+        'mounted': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_PYOBJECT,)),
+        'progress': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_PYOBJECT,)),
     }
 
     def __init__(self):
@@ -658,7 +658,7 @@ class SimAutomounter(BasicAutomounter):
         if self.is_busy():
             return False
         self._sim_mount_start(port)
-        gobject.timeout_add(5000, self._sim_mount_done, port)
+        GObject.timeout_add(5000, self._sim_mount_done, port)
         self._command_sent = True
         if wait:
             return self.wait(start=True, stop=True)
@@ -669,7 +669,7 @@ class SimAutomounter(BasicAutomounter):
             return False
         if self._mounted_port is not None:
             self._sim_mount_start(None)
-            gobject.timeout_add(10000, self._sim_dismount_done)
+            GObject.timeout_add(10000, self._sim_dismount_done)
         self._command_sent = True
         if wait:
             return self.wait(start=True, stop=True)
@@ -679,13 +679,13 @@ class SimAutomounter(BasicAutomounter):
         self.set_state(busy=False, status='standby', enabled=True, message="Sample mounted. Drying gripper.", mounted=(port,''))
         self._mounted_port = port
         self.set_state(progress=(1.0, 'unknown', 'on gonio', 'in cradle'))
-        gobject.timeout_add(10000, self._sim_dry_done)
+        GObject.timeout_add(10000, self._sim_dry_done)
 
     def _sim_dismount_done(self):
         self.set_state(busy=False, status='standby', enabled=True, message="Sample dismounted. Drying gripper.", mounted=None)
         self._mounted_port = None
         self.set_state(progress=(1.0, 'unknown', 'in port', 'in cradle'))
-        gobject.timeout_add(10000, self._sim_dry_done)
+        GObject.timeout_add(10000, self._sim_dry_done)
 
     def _sim_mount_start(self, port=None):
         if port is None:

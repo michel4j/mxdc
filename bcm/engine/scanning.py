@@ -541,6 +541,3 @@ class GridScan(BasicScan):
         gobject.idle_add(self.emit, "done")
 
 
-
-gobject.type_register(BasicScan)
-

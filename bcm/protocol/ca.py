@@ -29,13 +29,14 @@ import os
 import time
 import threading
 import atexit
-import gobject
 import logging
 from ctypes import *
-import gobject
 import numpy
 import array
 import re
+
+#from gi.repository import GObject
+import gobject as GObject
 
 from zope.interface import implements
 from bcm.protocol.interfaces import IProcessVariable
@@ -204,7 +205,7 @@ _PV_REPR_FMT = """<ProcessVariable
     Connection: %s
 >"""
 
-class PV(gobject.GObject):
+class PV(GObject.GObject):
     
     """A Process Variable 
     
@@ -250,18 +251,14 @@ class PV(gobject.GObject):
     
     implements(IProcessVariable)
     __gsignals__ = {
-        'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                    (gobject.TYPE_PYOBJECT,)),
-        'timed-change' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                    (gobject.TYPE_PYOBJECT,)),
-        'active' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, 
-                    (gobject.TYPE_BOOLEAN,)),
-        'alarm' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                  (gobject.TYPE_PYOBJECT,))
+        'changed' : (GObject.SIGNAL_RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
+        'timed-change' : (GObject.SIGNAL_RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
+        'active' : (GObject.SIGNAL_RUN_LAST, None, (GObject.TYPE_BOOLEAN,)),
+        'alarm' : (GObject.SIGNAL_RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
     }
     
     def __init__(self, name, monitor=True, connect=False, timed=False):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
         self.state_info = {'active': False, 'changed': 0, 
                              'timed-change': (0,0), 'alarm': (0,0)}
@@ -311,7 +308,7 @@ class PV(gobject.GObject):
     def __del__(self):
         for key,val in self._callbacks:
             self._del_handler(val[2])
-    
+        
     def get(self):
         """Get the value of a Process Variable.
         If monitoring is enabled, this returns the most recently update value,
@@ -455,7 +452,7 @@ class PV(gobject.GObject):
         for st, val in kwargs.items():
             st = st.replace('_','-')
             self.state_info.update({st: val})
-            gobject.idle_add(self.emit, st, val)
+            GObject.idle_add(self.emit, st, val)
     
     def connected(self):
         """Returns True if the channel is active"""
@@ -571,8 +568,6 @@ class PV(gobject.GObject):
 
     value=property(fset=put, fget=get)
                   
-gobject.type_register(PV)
-
     
 def epics_to_posixtime(time_stamp):
     """
@@ -586,19 +581,14 @@ def epics_to_posixtime(time_stamp):
 def threads_init():
     if libca.ca_current_context() != libca.context:
         libca.ca_attach_context(libca.context)
-        #_logger.debug('New Thread joined CA context.')
     else:
-        #_logger.debug('CA context is already current.')
         pass
-
-
 
 
 def flush():
     ret = libca.ca_flush_io()
     libca.ca_pend_event(0.005)
     return ret
-
 
 def ca_exception_handler(event):
     
@@ -631,7 +621,6 @@ def _heart_beat(duration=0.001):
     return True
 
 def _heart_beat_loop():
-    _logger.info('Starting EPICS Heartbeat Thread')
     threads_init()
     while libca.active:
         libca.ca_pend_event(0.001)
@@ -642,7 +631,7 @@ try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'],os.environ['EPICS_HOST_ARCH'])
     libca = cdll.LoadLibrary(libca_file)
 except:
-    _logger.error("EPICS run-time libraries (%s) could not be loaded!" % (libca_file,) )   
+    print "EPICS run-time libraries could not be loaded!"
     sys.exit(1)
 
 libca.last_heart_beat = time.time()
@@ -687,7 +676,6 @@ libca.ca_attach_context.restype = c_int
 
 libca.ca_client_status.argtypes = [c_uint]
 
-
 libca.ca_write_access.argtypes = [c_ulong]
 libca.ca_write_access.restype = c_uint
 
@@ -711,7 +699,6 @@ libca.channel_registry = []
 # cleanup gracefully at termination
 @atexit.register
 def ca_cleanup():
-    print 'Cleaning up ...'
     libca.active = False
     for cid in libca.channel_registry:
         libca.ca_clear_channel(cid)
@@ -721,7 +708,7 @@ __all__ = ['PV', 'threads_init', 'flush', ]
 
 
 #Make sure you get the events on time.
-#gobject.timeout_add(20, _heart_beat, 0.005)
+GObject.timeout_add(10, _heart_beat, 0.001)
 #_ca_heartbeat_thread = threading.Thread(target=_heart_beat_loop)
 #_ca_heartbeat_thread.setDaemon(True)
 #_ca_heartbeat_thread.setName('ca.heartbeat')
