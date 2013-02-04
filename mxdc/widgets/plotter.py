@@ -43,28 +43,22 @@ class PlotterToolbar(NavigationToolbar):
             ('Home', 'Reset original view', gtk.STOCK_HOME, 'home'),
             ('Back', 'Back to  previous view',gtk.STOCK_GO_BACK, 'back'),
             ('Forward', 'Forward to next view',gtk.STOCK_GO_FORWARD, 'forward'),
-            ('Pan', 'Pan axes with left mouse, zoom with right', 'stock-tool-move.png','pan'),
+            ('Pan', 'Pan axes with left mouse, zoom with right', gtk.STOCK_FULLSCREEN,'pan'),
             ('Zoom', 'Zoom to rectangle',gtk.STOCK_ZOOM_FIT, 'zoom'),
             (None, None, None, None),
             ('Save', 'Save the figure',gtk.STOCK_SAVE, 'save_figure'),
-            ('Print', 'Print the figure', 'stock_print.png', 'print_figure'),
+            #('Print', 'Print the figure', 'stock_print.png', 'print_figure'),
             )
         NavigationToolbar.__init__(self, canvas, None)
     
     def _init_toolbar2_2(self):
-        basedir = matplotlib.rcParams['datapath']
 
         for text, tooltip_text, image_file, callback in self.toolitems:
             if text is None:
                 self.append_space()
                 continue
-            if text in ['Pan','Print']:
-                fname = os.path.join(DATA_DIR, image_file)
-                image = gtk.Image()
-                image.set_from_file(fname)
-            else:
-                image = gtk.Image()
-                image.set_from_stock(image_file, gtk.ICON_SIZE_BUTTON)
+            image = gtk.Image()
+            image.set_from_stock(image_file, gtk.ICON_SIZE_BUTTON)
                 
             w = self.append_item(text,
                                  tooltip_text,
@@ -92,13 +86,8 @@ class PlotterToolbar(NavigationToolbar):
                 self.insert( gtk.SeparatorToolItem(), -1 )
                 continue
             tbutton = gtk.ToolButton()
-            if text in ['Pan', 'Print']:
-                fname = os.path.join(DATA_DIR, stock)
-                image = gtk.Image()
-                image.set_from_file(fname)
-            else:
-                image = gtk.Image()
-                image.set_from_stock(stock, gtk.ICON_SIZE_BUTTON)
+            image = gtk.Image()
+            image.set_from_stock(stock, gtk.ICON_SIZE_BUTTON)
             tbutton.set_label_widget(image)
             self.insert(tbutton, -1)
             tbutton.connect('clicked', getattr(self, callback))
