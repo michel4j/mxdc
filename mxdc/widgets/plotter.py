@@ -51,7 +51,6 @@ class PlotterToolbar(NavigationToolbar):
         NavigationToolbar.__init__(self, canvas, None)
     
     def _init_toolbar2_2(self):
-        basedir = matplotlib.rcParams['datapath']
 
         for text, tooltip_text, image_file, callback in self.toolitems:
             if text is None:
