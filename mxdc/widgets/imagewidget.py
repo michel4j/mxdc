@@ -796,9 +796,6 @@ class ImageWidget(gtk.DrawingArea):
     def on_unmap(self, obj):
         self.stopped = True
         
-gobject.type_register(FileLoader)
-gobject.type_register(ImageWidget)
-
       
 def main():
     win = gtk.Window()
