@@ -10,7 +10,7 @@ from bcm.device.interfaces import IGoniometer
 from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.protocol import ca
-from bcm.device.motor import PseudoMotor, SimMotor
+from bcm.device.motor import PseudoMotor
 from bcm.device.misc import Positioner, BasicShutter
 from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
@@ -130,12 +130,12 @@ class GoniometerBase(BaseDevice):
     
 class Goniometer(GoniometerBase):
     """EPICS based Parker-type Goniometer at the CLS 08ID-1."""
-    def __init__(self, name, blname, mnt_cmd, minibeam):
+    def __init__(self, name, blname, mntname, minibeam):
         """
         Args:
             - `name` (str): PV name of goniometer EPICS record.
             - `blname` (str): PV name for Backlight PV.
-            - `mnt_cmd` (str): PV name for toggling mount mode.
+            - `mntname` (str): PV root name for mount status mode.
             - `minibeam` (str): PV name for minibeam motor. 
         """
         GoniometerBase.__init__(self, name)
@@ -147,14 +147,20 @@ class Goniometer(GoniometerBase):
         self._state.connect('changed', self._on_busy)
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
         self._bl_position = BackLight(blname)
-        self._expbox_mount_cmd = self.add_pv(mnt_cmd)
+
+        self._goto_mount_cmd = self.add_pv("%s:mnt:gotoMount" % mntname)
+        self._goto_mount_state = self.add_pv("%s:mntpos:moving" % mntname)
+        self._gonio_state = self.add_pv("%s:goniPos:mntEn" % mntname)
+        self._table_state = self.add_pv("%s:tbl:mntEn" % mntname)
+
         self.minibeam = PseudoMotor(minibeam)
         self.add_devices(self._bl_position, self.minibeam)
 
         self.minibeam.connect('changed', lambda x,y: self._check_gonio_pos())
         self.minibeam.connect('busy', lambda x,y: self._check_gonio_pos())
         self._bl_position.connect('changed', lambda x,y: self._check_gonio_pos())
-         
+        self._goto_mount_state.connect('changed', lambda x,y: self._check_gonio_pos())
+        
         #parameters
         self._settings = {
             'time' : self.add_pv("%s:expTime" % pv_root, monitor=False),
@@ -173,9 +179,9 @@ class Goniometer(GoniometerBase):
         
         if self._bl_position.changed_state:
             self._set_and_notify_mode("CENTERING")
-        elif self.minibeam.busy_state or self.minibeam._command_sent:
+        elif self._goto_mount_state.get() == 1:
             self._set_and_notify_mode("MOVING")
-        elif abs(self.minibeam.get_position() - out_position) < 2:
+        elif (self._gonio_state.get() + self._table_state.get()) == 2:
             self._set_and_notify_mode("MOUNTING")
         else:
             if self._requested_mode in ['BEAM', 'COLLECT', 'SCANNING']:
@@ -226,11 +232,10 @@ class Goniometer(GoniometerBase):
             self.minibeam.move_to(in_position, wait=False)
             #put up backlight
         elif mode in ['MOUNTING']:
-            out_position = bl.config['misc']['aperture_out_position']
-            self.minibeam.move_to(out_position, wait=False)
-            self._bl_position.close()
-            if wait:
-                self.minibeam.wait();
+            #out_position = bl.config['misc']['aperture_out_position']
+            #self.minibeam.move_to(out_position, wait=False)
+            #self._bl_position.close()
+            self._goto_mount_cmd.put(1)
 
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
             self._bl_position.close()
