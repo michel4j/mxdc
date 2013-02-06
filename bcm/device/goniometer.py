@@ -159,7 +159,8 @@ class Goniometer(GoniometerBase):
         self.minibeam.connect('changed', lambda x,y: self._check_gonio_pos())
         self.minibeam.connect('busy', lambda x,y: self._check_gonio_pos())
         self._bl_position.connect('changed', lambda x,y: self._check_gonio_pos())
-        self._goto_mount_state.connect('changed', lambda x,y: self._check_gonio_pos())
+        self._gonio_state.connect('changed', lambda x,y: self._check_gonio_pos())
+        self._table_state.connect('changed', lambda x,y: self._check_gonio_pos())
         
         #parameters
         self._settings = {
@@ -173,21 +174,21 @@ class Goniometer(GoniometerBase):
     def _check_gonio_pos(self):
         bl = globalRegistry.lookup([], IBeamline)
         out_position = bl.config['misc']['aperture_out_position']
-        if bl is None:
-            _logger.error('Beamline is not available.')
-            return
         
         if self._bl_position.changed_state:
             self._set_and_notify_mode("CENTERING")
-        elif self._goto_mount_state.get() == 1:
-            self._set_and_notify_mode("MOVING")
         elif (self._gonio_state.get() + self._table_state.get()) == 2:
             self._set_and_notify_mode("MOUNTING")
-        else:
+        elif self.minibeam.get_position() < out_position and self._goto_mount_state.get() != 1:
             if self._requested_mode in ['BEAM', 'COLLECT', 'SCANNING']:
                 self._set_and_notify_mode(self._requested_mode)
             else:
-                self._set_and_notify_mode("UNKNOWN")    
+                self._set_and_notify_mode("UNKNOWN")
+        elif self._goto_mount_state.get() == 1:
+            self._set_and_notify_mode("MOVING")
+        else:
+            self._set_and_notify_mode("UNKNOWN")
+           
             
     def _on_busy(self, obj, st):
         if st == 0:
@@ -234,7 +235,7 @@ class Goniometer(GoniometerBase):
         elif mode in ['MOUNTING']:
             #out_position = bl.config['misc']['aperture_out_position']
             #self.minibeam.move_to(out_position, wait=False)
-            #self._bl_position.close()
+            self._bl_position.close()
             self._goto_mount_cmd.put(1)
 
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
@@ -357,7 +358,7 @@ class MD2Goniometer(GoniometerBase):
             - `wait` (bool): if True, block until the mode is completely changed.
         """
 
-        cmd_template = "SET_CLSMDPhasePosition=%d"
+        #cmd_template = "SET_CLSMDPhasePosition=%d"
         mode = mode.strip().upper()
         if mode == 'CENTERING':
             self._cntr_cmd_start.toggle(1,0)      
