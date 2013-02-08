@@ -623,7 +623,7 @@ class CollectManager(gtk.Frame):
                 text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format, time.gmtime(eta_time)), self.frame_time)
             else:
                 if fraction: 
-                    self.ntot = int(round(position / fraction))
+                    self.ntot = int(round((position + 1) / fraction))
                 text = "Calculating ETA..."
             self.progress_bar.set_complete(fraction, text)
         elif state == FRAME_STATE_SKIPPED: # skipping this frame
