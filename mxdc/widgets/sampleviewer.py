@@ -63,14 +63,13 @@ POPUP_UI = """
 </ui>
 """
 
-class SampleViewer(gtk.Frame):
+class SampleViewer(gtk.Alignment):
     def __init__(self):
-        gtk.Frame.__init__(self)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'sample_viewer'), 
                                   'sample_viewer')
         self._xml_popup = gui.GUIFile(os.path.join(_DATA_DIR, 'sample_viewer'), 
                                   'colormap_popup')
-        self.set_shadow_type(gtk.SHADOW_NONE)
         
         self._timeout_id = None
         self._disp_time = 0

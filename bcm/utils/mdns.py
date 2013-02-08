@@ -168,12 +168,18 @@ class Browser(gobject.GObject):
                 local = True
         except dbus.DBusException:
             pass
+        
+        try:
+            hostname = socket.gethostbyaddr(str(address))[0].lower()
+        except:
+            hostname = address
+
         self._services[(str(name), str(service_type))] = {
             'interface': int(interface), 
             'protocol': int(protocol), 
             'name': str(name),
             'domain':  str(domain),
-            'host':  socket.gethostbyaddr(str(address))[0].lower(), 
+            'host':  hostname, 
             'address': str(address), 
             'port': int(port),
             'local': local,

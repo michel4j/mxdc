@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.24"/>
-  <!-- interface-naming-policy toplevel-contextual -->
+  <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkAdjustment" id="brightness_adj">
     <property name="upper">100</property>
     <property name="step_increment">1</property>
@@ -37,7 +36,6 @@
         <child>
           <object class="GtkHScale" id="brightness">
             <property name="can_focus">True</property>
-            <property name="update_policy">delayed</property>
             <property name="adjustment">brightness_adj</property>
             <property name="draw_value">False</property>
           </object>
@@ -83,7 +81,6 @@
         <child>
           <object class="GtkHScale" id="colormap">
             <property name="can_focus">True</property>
-            <property name="update_policy">delayed</property>
             <property name="adjustment">color_adj</property>
             <property name="draw_value">False</property>
           </object>
@@ -151,7 +148,7 @@
     <property name="destroy_with_parent">True</property>
     <property name="type_hint">dialog</property>
     <child internal-child="vbox">
-      <object class="GtkVBox" id="dialog-vbox">
+      <object class="GtkBox" id="dialog-vbox">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="spacing">2</property>
@@ -664,14 +661,13 @@
           </packing>
         </child>
         <child internal-child="action_area">
-          <object class="GtkHButtonBox" id="dialog-action_area1">
+          <object class="GtkButtonBox" id="dialog-action_area1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="info_close_btn">
                 <property name="label">gtk-close</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -709,6 +705,8 @@
           <object class="GtkAspectFrame" id="image_frame">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
             <property name="label_xalign">0</property>
             <property name="shadow_type">none</property>
             <property name="obey_child">False</property>
@@ -728,10 +726,8 @@
             <property name="can_focus">False</property>
             <property name="toolbar_style">icons</property>
             <property name="show_arrow">False</property>
-            <property name="icon_size_set">True</property>
             <child>
               <object class="GtkToolButton" id="open_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="use_underline">True</property>
@@ -753,7 +749,6 @@
             </child>
             <child>
               <object class="GtkToolButton" id="back_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
@@ -768,7 +763,6 @@
             </child>
             <child>
               <object class="GtkToolButton" id="zoom_fit_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
@@ -782,7 +776,6 @@
             </child>
             <child>
               <object class="GtkToggleToolButton" id="contrast_tbtn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
@@ -796,7 +789,6 @@
             </child>
             <child>
               <object class="GtkToggleToolButton" id="brightness_tbtn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
@@ -810,7 +802,6 @@
             </child>
             <child>
               <object class="GtkToggleToolButton" id="colorize_tbtn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
@@ -824,7 +815,6 @@
             </child>
             <child>
               <object class="GtkToolButton" id="reset_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
@@ -838,7 +828,6 @@
             </child>
             <child>
               <object class="GtkToolButton" id="prev_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
@@ -852,7 +841,6 @@
             </child>
             <child>
               <object class="GtkToolButton" id="next_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
@@ -866,7 +854,6 @@
             </child>
             <child>
               <object class="GtkToggleToolButton" id="follow_tbtn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
@@ -880,7 +867,6 @@
             </child>
             <child>
               <object class="GtkToolButton" id="info_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
@@ -903,7 +889,6 @@
             </child>
             <child>
               <object class="GtkToolItem" id="toolitem1">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
@@ -923,8 +908,7 @@
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="pack_type">end</property>
+            <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
         </child>

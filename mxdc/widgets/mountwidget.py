@@ -19,13 +19,13 @@ _logger = get_module_logger(__name__)
     MOUNT_ACTION_MANUAL_MOUNT
 ) = range(5)
 
-class MountWidget(gtk.HBox):
+class MountWidget(gtk.Alignment):
     __gsignals__ = {
         'active-sample': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
         'mount-action-progress': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT, gobject.TYPE_BOOLEAN]),
     }
     def __init__(self):
-        gtk.HBox.__init__(self)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/mount_widget'), 
                                   'mount_widget')
         self.add(self.mount_widget)
