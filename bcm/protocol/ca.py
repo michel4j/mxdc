@@ -2,7 +2,7 @@
 This module provides an object oriented interface to EPICS Channel Access.
 The main interface to EPICS in this module is the PV object,
 which holds an EPICS Process Variable (aka a 'channel'). This module
-makes use of the GObject system.
+makes use of the gobject system.
 
 Here's a simple example of using a PV:
 
@@ -16,7 +16,7 @@ Here's a simple example of using a PV:
 beyond getting and setting a pv's value, a pv includes  these features: 
   1. Automatic connection management. A PV will automatically reconnect
      if the CA server restarts.
-  2. Each PV is a GObject and thus benefits from all its features
+  2. Each PV is a gobject and thus benefits from all its features
      such as signals and callback connection.
   3. For use in multi-threaded applications, the threads_init() function is
      provided.
@@ -35,8 +35,8 @@ import numpy
 import array
 import re
 
-#from gi.repository import GObject
-import gobject as GObject
+#from gi.repository import gobject
+import gobject
 
 from zope.interface import implements
 from bcm.protocol.interfaces import IProcessVariable
@@ -205,7 +205,7 @@ _PV_REPR_FMT = """<ProcessVariable
     Connection: %s
 >"""
 
-class PV(GObject.GObject):
+class PV(gobject.gobject):
     
     """A Process Variable 
     
@@ -229,7 +229,7 @@ class PV(GObject.GObject):
     network traffic, so that calls to get() fetches the cached value,
     which is automatically updated.  
 
-    Note that GObject, derived features are available only when a gobject
+    Note that gobject, derived features are available only when a gobject
     or compatible main-loop is running.
 
     In order to communicate with the corresponding channel on the IOC, a PV 
@@ -251,14 +251,14 @@ class PV(GObject.GObject):
     
     implements(IProcessVariable)
     __gsignals__ = {
-        'changed' : (GObject.SIGNAL_RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-        'timed-change' : (GObject.SIGNAL_RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-        'active' : (GObject.SIGNAL_RUN_LAST, None, (GObject.TYPE_BOOLEAN,)),
-        'alarm' : (GObject.SIGNAL_RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
+        'changed' : (gobject.SIGNAL_RUN_LAST, None, (gobject.TYPE_PYOBJECT,)),
+        'timed-change' : (gobject.SIGNAL_RUN_LAST, None, (gobject.TYPE_PYOBJECT,)),
+        'active' : (gobject.SIGNAL_RUN_LAST, None, (gobject.TYPE_BOOLEAN,)),
+        'alarm' : (gobject.SIGNAL_RUN_LAST, None, (gobject.TYPE_PYOBJECT,))
     }
     
     def __init__(self, name, monitor=True, connect=False, timed=False):
-        GObject.GObject.__init__(self)
+        gobject.gobject.__init__(self)
 
         self.state_info = {'active': False, 'changed': 0, 
                              'timed-change': (0,0), 'alarm': (0,0)}
@@ -452,7 +452,7 @@ class PV(GObject.GObject):
         for st, val in kwargs.items():
             st = st.replace('_','-')
             self.state_info.update({st: val})
-            GObject.idle_add(self.emit, st, val)
+            gobject.idle_add(self.emit, st, val)
     
     def connected(self):
         """Returns True if the channel is active"""
@@ -708,7 +708,7 @@ __all__ = ['PV', 'threads_init', 'flush', ]
 
 
 #Make sure you get the events on time.
-GObject.timeout_add(10, _heart_beat, 0.001)
+gobject.timeout_add(10, _heart_beat, 0.001)
 #_ca_heartbeat_thread = threading.Thread(target=_heart_beat_loop)
 #_ca_heartbeat_thread.setDaemon(True)
 #_ca_heartbeat_thread.setName('ca.heartbeat')
