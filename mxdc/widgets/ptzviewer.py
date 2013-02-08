@@ -14,10 +14,9 @@ _logger = get_module_logger('mxdc.ptzviewer')
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
         
-class AxisViewer(gtk.Frame):
+class AxisViewer(gtk.Alignment):
     def __init__(self, ptz_camera):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         
         self.timeout_id = None
         self.max_fps = 20     
@@ -25,6 +24,12 @@ class AxisViewer(gtk.Frame):
         
         self._create_widgets()                  
         self.video.set_overlay_func(self._overlay_function)
+
+    def __getattr__(self, key):
+        try:
+            return super(AxisViewer).__getattr__(self, key)
+        except AttributeError:
+            return self._xml.get_widget(key)
                                         
     def save_image(self, filename):
         ftype = filename.split('.')[-1]
@@ -72,28 +77,18 @@ class AxisViewer(gtk.Frame):
         widget = self._xml.get_widget('ptz_viewer')
         
         self.add(widget)
-        
-        self.side_panel = self._xml.get_widget('side_panel')
+
         
         #zoom
-        self.zoom_out_btn = self._xml.get_widget('zoom_out_btn')
-        self.zoom_in_btn = self._xml.get_widget('zoom_in_btn')
-        self.zoom_100_btn = self._xml.get_widget('zoom_100_btn')
         self.zoom_out_btn.connect('clicked', self.on_zoom_out)
         self.zoom_in_btn.connect('clicked', self.on_zoom_in)
         self.zoom_100_btn.connect('clicked', self.on_unzoom)
         
         #Video Area
-        self.video_frame = self._xml.get_widget('video_adjuster')
         self.video = VideoWidget(self.camera)
-        w, h = map(float, self.camera.size)
-        self.video_frame.set(xalign=0.5, yalign=0.5, ratio=(w/h), obey_child=False)
-        #self.video.set_size_request(416,312)
         self.video_frame.add(self.video)
 
         # presets
-        presets_frame = self._xml.get_widget('presets_frame')
-        zoom_frame = self._xml.get_widget('zoom_frame')
         self.presets_btn = gtk.combo_box_new_text()
         if IPTZCameraController.providedBy(self.camera):
             self.video.connect('button_press_event', self.on_image_click)
@@ -101,15 +96,12 @@ class AxisViewer(gtk.Frame):
                 self.presets_btn.append_text(val)
             self.presets_btn.connect('changed', self.on_view_changed)
         else:
-            self._xml.get_widget('preset_box').set_sensitive(False)
-            self._xml.get_widget('zoom_box').set_sensitive(False)
-        presets_frame.pack_start(self.presets_btn, expand=False, fill=False)
+            self.preset_box.set_sensitive(False)
+            self.zoom_box.set_sensitive(False)
+        self.presets_frame.pack_start(self.presets_btn, expand=False, fill=False)
                 
 
         # status, save, etc
-        self.pos_label = self._xml.get_widget('status_label')
-        self.meas_label = self._xml.get_widget('meas_label')
-        self.save_btn = self._xml.get_widget('save_btn')
         self.save_btn.connect('clicked', self.on_save)
         
         self.show_all()

@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.24"/>
-  <!-- interface-naming-policy toplevel-contextual -->
+  <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkMenu" id="colormap_popup">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_default">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">Default</property>
@@ -24,7 +22,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_spectral">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">Spectral</property>
@@ -34,7 +31,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_hsv">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">HSV</property>
@@ -44,7 +40,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_jet">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">JET</property>
@@ -54,7 +49,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_ryg">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">RYG</property>
@@ -64,7 +58,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_hot">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">HOT</property>
@@ -74,7 +67,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_pubu">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">PuBu</property>
@@ -114,6 +106,18 @@
                         <property name="can_focus">False</property>
                         <property name="n_columns">2</property>
                         <property name="homogeneous">True</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
                         <child>
                           <placeholder/>
                         </child>
@@ -217,7 +221,6 @@
                         <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkButton" id="zoom_out_btn">
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -237,7 +240,6 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="zoom_in_btn">
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -258,7 +260,6 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="zoom_100_btn">
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -316,7 +317,6 @@
                         <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkButton" id="right_btn">
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -338,7 +338,6 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="home_btn">
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
@@ -361,7 +360,6 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="left_btn">
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -382,7 +380,6 @@
                         <child>
                           <object class="GtkButton" id="decr_90_btn">
                             <property name="label" translatable="yes">-90°</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -398,7 +395,6 @@
                         <child>
                           <object class="GtkButton" id="incr_90_btn">
                             <property name="label" translatable="yes">+90°</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -416,7 +412,6 @@
                         <child>
                           <object class="GtkButton" id="incr_180_btn">
                             <property name="label" translatable="yes">180°</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -470,7 +465,6 @@
                         <child>
                           <object class="GtkButton" id="loop_btn">
                             <property name="label" translatable="yes">Loop</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -483,7 +477,6 @@
                         <child>
                           <object class="GtkButton" id="crystal_btn">
                             <property name="label" translatable="yes">Crystal</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -498,7 +491,6 @@
                         <child>
                           <object class="GtkToggleButton" id="click_btn">
                             <property name="label" translatable="yes">Click</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -561,7 +553,7 @@
                           </object>
                           <packing>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
+                            <property name="y_options"/>
                           </packing>
                         </child>
                         <child>
@@ -575,7 +567,7 @@
                             <property name="top_attach">1</property>
                             <property name="bottom_attach">2</property>
                             <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
+                            <property name="y_options"/>
                           </packing>
                         </child>
                       </object>
@@ -600,7 +592,6 @@
             <child>
               <object class="GtkButton" id="save_btn">
                 <property name="label">gtk-save</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -630,6 +621,7 @@
                 <property name="can_focus">False</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
+                <property name="xalign">1</property>
                 <property name="ratio">1.3300000429153442</property>
                 <property name="obey_child">False</property>
                 <child>

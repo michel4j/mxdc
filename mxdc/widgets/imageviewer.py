@@ -1,11 +1,11 @@
 # -*- coding: UTF8 -*-
 
 import sys
-import re, os, time, gc, stat
-import threading
+import os
+import re
 import gtk
-import gobject, pango
-import math, re, struct
+import gobject
+import math
 from dialogs import select_image
 from mxdc.widgets.imagewidget import ImageWidget, image_loadable
 from mxdc.utils import gui
@@ -19,10 +19,9 @@ img_logger = logging.getLogger(__log_section__)
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
 FILE_PATTERN = re.compile('^(?P<base>[\w-]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.?[\w.]+)?$')
 
-class ImageViewer(gtk.Frame):
+class ImageViewer(gtk.Alignment):
     def __init__(self, size=512):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_OUT)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._canvas_size = size
         self._brightness = 1.0
         self._contrast = 1.0
@@ -39,10 +38,7 @@ class ImageViewer(gtk.Frame):
         self._create_widgets()
         
     def __getattr__(self, key):
-        try:
-            return super(ImageViewer).__getattr__(self, key)
-        except AttributeError:
-            return self._xml.get_widget(key)
+        return self._xml.get_widget(key)
 
     def _create_widgets(self):
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
@@ -194,7 +190,7 @@ class ImageViewer(gtk.Frame):
     def _position_popups(self):
         window = self._get_parent_window().get_window()
         ox, oy = window.get_origin()
-        ix,iy,iw,ih,ib = self.image_canvas.get_window().get_geometry()
+        ix,iy,iw,ih,_ = self.image_canvas.get_window().get_geometry()
         cx = ox + ix + iw/2 - 100
         cy = oy + iy + ih - 50
         self.contrast_popup.move(cx, cy)
@@ -236,7 +232,7 @@ class ImageViewer(gtk.Frame):
         return True    
     
     def on_go_back(self, widget, full):
-        b = self.image_canvas.go_back(full)
+        self.image_canvas.go_back(full)
         return True
     
     def on_mouse_motion(self,widget,event):
@@ -254,7 +250,7 @@ class ImageViewer(gtk.Frame):
             if not w:
                 continue
             if key == "two_theta":
-            	val = val * 180.0 / math.pi
+                val = val * 180.0 / math.pi
             if key in ['detector_size', 'beam_center']:
                 txt = "%0.0f, %0.0f" % (val[0], val[1])
             elif key in ['filename']:
@@ -298,20 +294,20 @@ class ImageViewer(gtk.Frame):
         if os.access(self.next_filename, os.R_OK):
             self.open_image(self.next_filename)
         else:
-            img_logger.warning("File not found: %s" % (filename))
+            img_logger.warning("File not found: %s" % (self.next_filename))
         return True
 
     def on_prev_frame(self,widget):
         if os.access(self.prev_filename, os.R_OK):
             self.open_image(self.prev_filename)
         else:
-            img_logger.warning("File not found: %s" % (filename))
+            img_logger.warning("File not found: %s" % (self.next_filename))
         return True
 
     def on_file_open(self,widget):
-        filter, filename = select_image()
+        flt, filename = select_image()
         if filename is not None and os.path.isfile(filename):
-            if filter.get_name() == 'XDS SPOT Files':
+            if flt.get_name() == 'XDS SPOT Files':
                 self._load_spots(filename)
                 # if spot information is available  and an image is loaded display it
                 if self.image_canvas.image_loaded:

@@ -138,3 +138,5 @@ class ServiceDiag(DiagnosticBase):
         else:
             _diag = (DIAG_STATUS_BAD,'Service unavailable!')            
         self._signal_status(*_diag)
+
+__all__ = ['DeviceDiag', 'ServiceDiag']

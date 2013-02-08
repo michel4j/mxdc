@@ -26,9 +26,13 @@ SPACE_GROUP_NAMES = {
     211:'I432', 214:'I4(1)32'             
     }
 
+EMISSIONS_DATA = {}
+PERIODIC_TABLE = {}
+
 # load data tables
 # Data was compiled from the NIST database
 # Emission rates were compiled using the PyMCA tables
+
 EMISSIONS_DATA = json.load(file(os.path.join(os.path.dirname(__file__), 'data','emissions.json')))
 PERIODIC_TABLE = json.load(file(os.path.join(os.path.dirname(__file__), 'data', 'periodictable.json')))
 
