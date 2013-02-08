@@ -3,7 +3,7 @@ from bcm.engine.scripting import get_scripts
 from bcm.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.widgets.diagnostics import DiagnosticsViewer
-from mxdc.widgets.misc import *
+from mxdc.widgets import misc
 from mxdc.widgets.predictor import Predictor
 from mxdc.widgets.ptzviewer import AxisViewer
 from mxdc.widgets.sampleviewer import SampleViewer
@@ -13,7 +13,6 @@ from twisted.python.components import globalRegistry
 import gtk
 import gobject
 import logging
-import sys
 import os
 
 
@@ -47,14 +46,13 @@ class ToggleBoss:
                 except:
                     _logger.warn('Could not enable BOSS')
 
-class HutchManager(gtk.Frame):
+class HutchManager(gtk.Alignment):
     __gsignals__ = {
         'beam-change': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_BOOLEAN,]),
     }
     def __init__(self):
-        gtk.Frame.__init__(self)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'hutch_widget'), 'hutch_widget')
-        self.set_shadow_type(gtk.SHADOW_NONE)
         
         self.scripts = get_scripts()
         self._create_widgets()
@@ -109,21 +107,21 @@ class HutchManager(gtk.Frame):
             'chi': (4,2)
         }
         self.entries = {
-            'energy':       MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.3f"),
-            'attenuation':  ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
-            'omega':        MotorEntry(self.beamline.omega, 'Gonio Omega', format="%0.2f"),
-            'distance':     MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.1f"),
-            'beam_stop':    MotorEntry(self.beamline.beamstop_z, 'Beam-stop', format="%0.1f"),
-            'two_theta':    MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f"),
-            'beam_size':    ActiveEntry(self.beamline.aperture, 'Beam Aperture', format="%0.2f"),
+            'energy':       misc.MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.3f"),
+            'attenuation':  misc.ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
+            'omega':        misc.MotorEntry(self.beamline.omega, 'Gonio Omega', format="%0.2f"),
+            'distance':     misc.MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.1f"),
+            'beam_stop':    misc.MotorEntry(self.beamline.beamstop_z, 'Beam-stop', format="%0.1f"),
+            'two_theta':    misc.MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f"),
+            'beam_size':    misc.ActiveEntry(self.beamline.aperture, 'Beam Aperture', format="%0.2f"),
         }
         if 'phi' in self.beamline.registry:
-            self.entries['phi'] = MotorEntry(self.beamline.phi, 'Gonio Phi', format="%0.2f")
+            self.entries['phi'] = misc.MotorEntry(self.beamline.phi, 'Gonio Phi', format="%0.2f")
         if 'chi' in self.beamline.registry:
-            self.entries['chi'] = MotorEntry(self.beamline.chi, 'Gonio Chi', format="%0.2f")
+            self.entries['chi'] = misc.MotorEntry(self.beamline.chi, 'Gonio Chi', format="%0.2f")
             del self.entries['beam_size']
         if 'kappa' in self.beamline.registry:
-            self.entries['kappa'] = MotorEntry(self.beamline.kappa, 'Gonio Kappa', format="%0.2f")
+            self.entries['kappa'] = misc.MotorEntry(self.beamline.kappa, 'Gonio Kappa', format="%0.2f")
 
                
         for key in self.entries.keys():
@@ -145,16 +143,16 @@ class HutchManager(gtk.Frame):
             self.beamline.mostab.connect('busy', self.switch_boss, self.beamline.boss)
        
         # Button commands
-        self.front_end_btn = ShutterButton(self.beamline.all_shutters, 'Restore Beam', open_only=True)
+        self.front_end_btn = misc.ShutterButton(self.beamline.all_shutters, 'Restore Beam', open_only=True)
         self.front_end_btn.connect('clicked', self.on_restore_beam)
         
-        self.optimize_btn = ScriptButton(self.scripts['OptimizeBeam'], 'Optimize Beam')
-        self.mount_btn = ScriptButton(self.scripts['SetMountMode'], 'Mounting Mode')
-        self.cent_btn = ScriptButton(self.scripts['SetCenteringMode'], 'Centering Mode')
+        self.optimize_btn = misc.ScriptButton(self.scripts['OptimizeBeam'], 'Optimize Beam')
+        self.mount_btn = misc.ScriptButton(self.scripts['SetMountMode'], 'Mounting Mode')
+        self.cent_btn = misc.ScriptButton(self.scripts['SetCenteringMode'], 'Centering Mode')
         
         # Not currently displayed but used      
-        #self.collect_btn = ScriptButton(self.scripts['SetCollectMode'], 'Collect Mode')        
-        #self.beam_btn = ScriptButton(self.scripts['SetBeamMode'], 'Beam Mode')
+        #self.collect_btn = misc.ScriptButton(self.scripts['SetCollectMode'], 'Collect Mode')        
+        #self.beam_btn = misc.ScriptButton(self.scripts['SetBeamMode'], 'Beam Mode')
         
         self.commands_box.pack_start(self.front_end_btn)
         self.commands_box.pack_start(self.optimize_btn)
@@ -175,7 +173,7 @@ class HutchManager(gtk.Frame):
                 'INIT':'gray',
                 'ALIGN': 'gray',
                 }
-        gonio_mode = StatusBox(self.beamline.goniometer, signal='mode', color_map=_map, background=True)
+        gonio_mode = misc.StatusBox(self.beamline.goniometer, signal='mode', color_map=_map, background=True)
         gonio_mode.set_border_width(3)
         self.commands_box.pack_start(gonio_mode, expand=True, fill=True)
         #self.commands_box.pack_start(gtk.Label(''))
@@ -188,7 +186,7 @@ class HutchManager(gtk.Frame):
         self.tool_book.append_page(self.diagnostics, tab_label=gtk.Label(' Beamline Status Checks '))
         self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(0))       
         
-        self.cryo_controller = CryojetWidget(self.beamline.cryojet)
+        self.cryo_controller = misc.CryojetWidget(self.beamline.cryojet)
         self.tool_book.append_page(self.cryo_controller, tab_label=gtk.Label(' Cryojet Stream '))
 
         
@@ -208,8 +206,6 @@ class HutchManager(gtk.Frame):
     def on_automounter_busy(self, obj, state):
         self.mount_btn.set_sensitive(not state)
         self.cent_btn.set_sensitive(not state)
-        #self.collect_btn.set_sensitive(not state)  
-        #self.beam_btn.set_sensitive(not state)  
         
     
     def on_beam_change(self, obj, beam_available):
@@ -254,22 +250,3 @@ class HutchManager(gtk.Frame):
                                  distance=self.beamline.diffractometer.distance.get_position(),
                                  two_theta=self.beamline.diffractometer.two_theta.get_position())
         
-                        
-def junk():
-    import bcm.beamline.mx
-    win = gtk.Window()
-    win.connect("destroy", lambda x: gtk.main_quit())
-    win.set_border_width(0)
-    win.set_title("Hutch Demo")
-    bl = bcm.beamline.mx.MXBeamline()
-    hutch = HutchManager()
-    win.add(hutch)    
-    win.show_all()
-
-    try:
-        gtk.main()
-    finally: 
-        print "Quiting..."
-
-if __name__ == '__main__':
-    junk()

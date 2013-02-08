@@ -327,14 +327,13 @@ class ContainerWidget(gtk.DrawingArea):
 
                       
 
-class SamplePicker(gtk.Frame):
+class SamplePicker(gtk.HBox):
     __gsignals__ = {
         'pin-hover': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                       (gobject.TYPE_PYOBJECT, gobject.TYPE_STRING,)),
     }
     def __init__(self, automounter=None):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.HBox.__init__(self)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/sample_picker'),
                                   'sample_picker')
         
@@ -346,7 +345,7 @@ class SamplePicker(gtk.Frame):
             self.automounter = automounter
             _logger.error('No registered beamline found.')
 
-        self.add(self.sample_picker)
+        self.pack_start(self.sample_picker, True, True, 0)
         pango_font = pango.FontDescription('sans 8')
         self.status_lbl.modify_font(pango_font)
         self.lbl_port.modify_font(pango_font)

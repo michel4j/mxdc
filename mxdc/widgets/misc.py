@@ -546,10 +546,9 @@ class LinearProgress(gtk.DrawingArea):
         self.bg_spec = bg_spec
         
            
-class CryojetWidget(gtk.Frame):
+class CryojetWidget(gtk.Alignment):
     def __init__(self, cryojet):
-        gtk.Frame.__init__(self, '')
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self.cryojet = cryojet
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'cryo_widget'), 
                                   'cryo_widget')
@@ -558,8 +557,9 @@ class CryojetWidget(gtk.Frame):
         self.noz_img.set_from_file(os.path.join(DATA_DIR, 'icons', 'cryojet_out.png'))
         
         # layout the gauge section
-        self.level_gauge = Gauge(0,100,5,3)
-        self.level_gauge.set_property('units','%')
+        self.level_gauge = Gauge(0, 100, 6, 4)
+        self.level_gauge.set_property('label',"LN%s Level" % (u"\u2082"))
+        self.level_gauge.set_property('units',"[%]")
         self.level_gauge.set_property('low', 20.0)
         self.level_frame.add(self.level_gauge)
         self.cryojet.level.connect('changed', self._on_level)

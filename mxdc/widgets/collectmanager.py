@@ -1,26 +1,22 @@
-import gtk
-import gobject
-import pango
-import sys, os, time, datetime
-
-from twisted.python.components import globalRegistry
+   
 from bcm.beamline.interfaces import IBeamline
 from bcm.engine.diffraction import DataCollector
 from bcm.engine.scripting import get_scripts
-from bcm.utils.decorators import async
-
-    
 from bcm.utils import runlists, lims_tools
 from bcm.utils.log import get_module_logger
-from bcm.engine import auto
-
-from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
-from mxdc.widgets.runmanager import RunManager
-from mxdc.widgets.imageviewer import ImageViewer
-from mxdc.widgets.dialogs import warning, error, MyDialog
-from mxdc.widgets.rundiagnostics import DiagnosticsWidget
-from mxdc.widgets.mountwidget import MountWidget
 from mxdc.utils import config, gui
+from mxdc.widgets.dialogs import warning, error, MyDialog
+from mxdc.widgets.imageviewer import ImageViewer
+from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
+from mxdc.widgets.mountwidget import MountWidget
+from mxdc.widgets.runmanager import RunManager
+from twisted.python.components import globalRegistry
+import gobject
+import gtk
+import pango
+import sys
+import os
+import time
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -54,13 +50,12 @@ FRAME_STATE_SKIPPED = DataCollector.STATE_SKIPPED
 
 RUN_CONFIG_FILE = 'run_config.json'
 
-class CollectManager(gtk.Frame):
+class CollectManager(gtk.Alignment):
     __gsignals__ = {
         'new-datasets': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/collect_widget'), 
                                   'collect_widget')            
         self.run_data = []
@@ -144,7 +139,7 @@ class CollectManager(gtk.Frame):
             pos_table.attach(ActiveLabel(self.beamline.attenuator, format='%7.2f'), 1,2,4,5)        
         # Image Viewer
         self.frame_book.add(self.image_viewer)
-        self.setup_box.pack_end(self.run_manager, expand = True, fill = True)
+        self.collect_widget.pack_end(self.run_manager, expand = True, fill = True)
         
         #automounter signals
         self.beamline.automounter.connect('busy', self.on_mount_busy)
@@ -298,12 +293,12 @@ class CollectManager(gtk.Frame):
 
 
     def _add_item(self, item):
-        iter = self.listmodel.append()
+        itr = self.listmodel.append()
         if item['saved']:
             status = FRAME_STATE_DONE
         else:
             status = FRAME_STATE_PENDING
-        self.listmodel.set(iter, 
+        self.listmodel.set(itr, 
             COLLECT_COLUMN_STATUS, status, 
             COLLECT_COLUMN_ANGLE, item['start_angle'],
             COLLECT_COLUMN_RUN, item['number'],
@@ -311,8 +306,8 @@ class CollectManager(gtk.Frame):
         )
             
 
-    def _saved_pixbuf(self, column, renderer, model, iter):
-        value = model.get_value(iter, COLLECT_COLUMN_STATUS)
+    def _saved_pixbuf(self, column, renderer, model, itr):
+        value = model.get_value(itr, COLLECT_COLUMN_STATUS)
         if value == FRAME_STATE_PENDING:
             renderer.set_property('pixbuf', None)
         elif value == FRAME_STATE_RUNNING:
@@ -324,8 +319,8 @@ class CollectManager(gtk.Frame):
         else:
             renderer.set_property('pixbuf', None)
 
-    def _saved_color(self,column, renderer, model, iter):
-        status = model.get_value(iter, COLLECT_COLUMN_STATUS)
+    def _saved_color(self,column, renderer, model, itr):
+        status = model.get_value(itr, COLLECT_COLUMN_STATUS)
         _state_colors = {
             FRAME_STATE_PENDING : None,
             FRAME_STATE_RUNNING : '#990099',
@@ -335,10 +330,10 @@ class CollectManager(gtk.Frame):
         renderer.set_property("foreground", _state_colors.get(status))
         return      
 
-    def _float_format(self, column, renderer, model, iter, format):
-        value = model.get_value(iter, COLLECT_COLUMN_ANGLE)
-        renderer.set_property('text', format % value)
-        self._saved_color(column, renderer, model, iter)
+    def _float_format(self, column, renderer, model, itr, fmt):
+        value = model.get_value(itr, COLLECT_COLUMN_ANGLE)
+        renderer.set_property('text', fmt % value)
+        self._saved_color(column, renderer, model, itr)
         return
                 
     def _add_columns(self):
@@ -443,8 +438,8 @@ class CollectManager(gtk.Frame):
     def set_row_state(self, pos, status):
         path = (pos,)
         try:
-            iter = self.listmodel.get_iter(path)
-            self.listmodel.set(iter, COLLECT_COLUMN_STATUS, status)
+            itr = self.listmodel.get_iter(path)
+            self.listmodel.set(itr, COLLECT_COLUMN_STATUS, status)
             self.listview.scroll_to_cell(path, use_align=True, row_align=0.7)
         except ValueError:
             #only change valid positions
@@ -454,23 +449,23 @@ class CollectManager(gtk.Frame):
         if self.collect_state != COLLECT_STATE_PAUSED:
             return True
         model = treeview.get_model()
-        iter = model.get_iter_first()
+        itr = model.get_iter_first()
         pos = model.get_iter(path)
         self.frame_pos = model.get_path(pos)[0]             
-        while iter:
-            i = model.get_path(iter)[0]
+        while itr:
+            i = model.get_path(itr)[0]
             if i < self.frame_pos:
-                status = model.get_value(iter, COLLECT_COLUMN_STATUS)
+                status = model.get_value(itr, COLLECT_COLUMN_STATUS)
                 if status != FRAME_STATE_DONE:
-                    model.set(iter, COLLECT_COLUMN_STATUS, FRAME_STATE_SKIPPED)
+                    model.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_SKIPPED)
                 self.run_list[i]['saved'] = True
             elif i == self.frame_pos:
-                model.set(iter, COLLECT_COLUMN_STATUS, FRAME_STATE_RUNNING)
+                model.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_RUNNING)
                 self.run_list[i]['saved'] = False
             else:
-                model.set(iter, COLLECT_COLUMN_STATUS, FRAME_STATE_PENDING)
+                model.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_PENDING)
                 self.run_list[i]['saved'] = False
-            iter = model.iter_next(iter)
+            itr = model.iter_next(itr)
             
         if self.collect_state == COLLECT_STATE_PAUSED:
             self.collector.set_position( self.frame_pos )
@@ -480,14 +475,14 @@ class CollectManager(gtk.Frame):
         if self.collect_state != COLLECT_STATE_PAUSED:
             return True
         model = treeview.get_model()
-        iter = model.get_iter_first()
+        itr = model.get_iter_first()
         pos = model.get_iter(path)
         i = model.get_path(pos)[0]             
         if self.run_list[i]['saved'] :
-            model.set(iter, COLLECT_COLUMN_STATUS, False)
+            model.set(itr, COLLECT_COLUMN_STATUS, False)
             self.run_list[i]['saved'] = False
         else:
-            model.set(iter, COLLECT_COLUMN_STATUS, True)
+            model.set(itr, COLLECT_COLUMN_STATUS, True)
             self.run_list[i]['saved'] = True
         return True
 
@@ -635,9 +630,9 @@ class CollectManager(gtk.Frame):
         data['energy'] = [ val ]
         run_zero.set_parameters(data)
 
-    def update_values(self,dict):        
-        for key in dict.keys():
-            self.labels[key].set_text(dict[key])
+    def update_values(self, dct):        
+        for key in dct.keys():
+            self.labels[key].set_text(dct[key])
 
     def start_collection(self):
         self.init_time = time.time()

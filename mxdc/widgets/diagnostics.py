@@ -1,16 +1,9 @@
-'''
-Created on Jan 19, 2010
-
-@author: michel
-'''
-
-import os
-import gtk
-import gobject
-from twisted.python.components import globalRegistry
 from bcm.device import diagnostics
 from bcm.utils.log import get_module_logger
 from mxdc.utils import gui
+from twisted.python.components import globalRegistry
+import gtk
+import os
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger('mxdc')
@@ -37,10 +30,9 @@ MSG_ICONS = {
     diagnostics.DIAG_STATUS_DISABLED: 'mxdc-ddisabled',
 }
 
-class DiagnosticDisplay(gtk.Frame):
+class DiagnosticDisplay(gtk.Alignment):
     def __init__(self, diag):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/diagnostics'), 
                                   'status_widget')
         self._diagnostic = diag

@@ -74,14 +74,13 @@ class Tasklet(object):
     def __getitem__(self, key):
         return self.options[key]
 
-class ScreenManager(gtk.Frame):
+class ScreenManager(gtk.Alignment):
     __gsignals__ = {
         'new-datasets': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
 
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                                   'screening_widget')
         self.samples_data = []
@@ -164,7 +163,7 @@ class ScreenManager(gtk.Frame):
         self.sample_viewer = SampleViewer()
         self.image_viewer = ImageViewer()
         self.image_viewer.set_collect_mode(True)
-        self.image_viewer.set_shadow_type(gtk.SHADOW_NONE)
+        #self.image_viewer.set_shadow_type(gtk.SHADOW_NONE)
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
         self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
         self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))    

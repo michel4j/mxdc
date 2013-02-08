@@ -35,15 +35,14 @@ except:
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 
-class ResultManager(gtk.Frame):
+class ResultManager(gtk.Alignment):
     __gsignals__ = {
         'sample-selected': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
         'update-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
     
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0, 0, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'result_manager'), 
                                   'result_manager')
 

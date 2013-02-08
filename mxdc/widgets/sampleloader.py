@@ -90,20 +90,19 @@ class ContainerStore(gtk.ListStore):
             self.EDITABLE, (item['type'] in ['Uni-Puck','Cassette']))
             
          
-class DewarLoader(gtk.Frame):
+class DewarLoader(gtk.HBox):
     __gsignals__ = {
             'samples-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
             'sample-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
     
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.HBox.__init__(self)
         self._xml = gui.GUIFile(
             os.path.join(os.path.dirname(__file__), 'data', 'sample_loader'),
             'sample_loader')
 
-        self.add(self.sample_loader)
+        self.pack_start(self.sample_loader, True, True, 0)
         self.selected_crystal = None
 
         #containers pane
