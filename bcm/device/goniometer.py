@@ -234,7 +234,7 @@ class Goniometer(GoniometerBase):
         elif mode in ['MOUNTING']:
             #out_position = bl.config['misc']['aperture_out_position']
             #self.minibeam.move_to(out_position, wait=False)
-            #self._bl_position.close()
+            self._bl_position.close()
             self._goto_mount_cmd.put(1)
 
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:

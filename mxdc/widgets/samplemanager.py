@@ -31,15 +31,14 @@ _HCPLOT_INFO = {
     'relhs': {'title': 'Relative Humidity', 'units': 'h', 'color': 'b'}
 }
 
-class SampleManager(gtk.Frame):
+class SampleManager(gtk.Alignment):
     __gsignals__ = {
         'samples-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'active-sample': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
         'sample-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }    
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)       
+        gtk.Alignment.__init__(self, 0, 0, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'sample_widget'), 
                                   'sample_widget')
 
@@ -71,7 +70,7 @@ class SampleManager(gtk.Frame):
         # make video and cryo notebooks same vertical size
         self._szgrp1 = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
         self._szgrp1.add_widget(self.loader_frame)
-        self._szgrp1.add_widget(self.robot_ntbk)
+        self._szgrp1.add_widget(self.robot_frame)
             
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
@@ -109,8 +108,7 @@ class SampleManager(gtk.Frame):
                 
             self.beamline.humidifier.connect('active', self.on_hc1_active)
         
-        self.robot_ntbk.append_page(self.sample_picker, tab_label=_mk_lbl('Automounter '))
-        self.dewar_loader.set_border_width(3)     
+        self.robot_frame.add(self.sample_picker)    
         self.loader_frame.add(self.dewar_loader)
         self.add(self.sample_widget)
         self.dewar_loader.lims_btn.connect('clicked', self.on_import_lims)

@@ -42,10 +42,9 @@ DEFAULT_PARAMETERS = {
 
 _ENERGY_DB = science.get_energy_database()
 
-class RunWidget(gtk.Frame):
+class RunWidget(gtk.Alignment):
     def __init__(self, num=0):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/run_widget'), 
                                   'run_widget')
         

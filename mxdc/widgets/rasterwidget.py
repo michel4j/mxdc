@@ -104,7 +104,7 @@ class RasterWidget(gtk.Frame):
         pass
     
     def __init__(self):
-        gtk.Frame.__init__(self)
+        gtk.Frame.__init__(self, '')
         self.set_shadow_type(gtk.SHADOW_NONE)
         self._xml = gui.GUIFile(
                         os.path.join(os.path.dirname(__file__), 'data', 'raster_widget'),

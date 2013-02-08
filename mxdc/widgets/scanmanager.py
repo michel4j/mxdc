@@ -81,14 +81,13 @@ XRF_COLOR_LIST = ['#800080','#FF0000','#008000',
                   '#008080','#00FF00','#000080',
                   '#00FFFF','#0000FF','#000000']
 
-class ScanManager(gtk.Frame):
+class ScanManager(gtk.Alignment):
     __gsignals__ = {
         'create-run': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
         'update-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0, 0, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'scan_manager'), 
                                   'scan_widget')            
 
@@ -315,11 +314,11 @@ class ScanManager(gtk.Frame):
             COLUMN_PERCENT, item[1]
         )
         
-    def _float_format(self, cell, renderer, model, iter, data):
-        format, column = data
-        value = model.get_value(iter, column)
-        index = model.get_path(iter)[0]
-        renderer.set_property('text', format % value)
+    def _float_format(self, cell, renderer, model, itr, data):
+        fmt, column = data
+        value = model.get_value(itr, column)
+        index = model.get_path(itr)[0]
+        renderer.set_property('text', fmt % value)
         if model == self.xrf_store:
             renderer.set_property("foreground", XRF_COLOR_LIST[index])
         return
