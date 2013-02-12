@@ -1,27 +1,24 @@
-import os
-import sys
-import time
-import gtk
-import gobject
-import pango
-from datetime import datetime
 
-from gauge import Gauge
-from dialogs import warning
-from mxdc.utils import gui
-from bcm.utils.misc import lighten_color, darken_color
+from bcm.utils.misc import lighten_color
 from diagnostics import MSG_COLORS, MSG_ICONS
+from dialogs import warning
+from gauge import Gauge
+from mxdc.utils import gui
+import gobject
+import gtk
+import os
+import time
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class ActiveHScale(gtk.HScale):
-    def __init__( self, context, min=0.0, max=100.0):
+    def __init__( self, context, min_val=0.0, max_val=100.0):
         gtk.HScale.__init__(self)
         self.context = context
         self.set_value_pos(gtk.POS_RIGHT)
         self.set_digits(1)
-        self.set_range(min, max)
-        self.set_adjustment(gtk.Adjustment(0.0, min, max, (max-min)/100.0, 0, 0))
+        self.set_range(min_val, max_val)
+        self.set_adjustment(gtk.Adjustment(0.0, min_val, max_val, (max_val-min_val)/100.0, 0, 0))
         self.set_update_policy(gtk.UPDATE_CONTINUOUS)
         self._handler_id = self.connect('value-changed', self._on_scale_changed)
         self.context.connect('changed', self._on_feedback_changed)
@@ -46,14 +43,14 @@ class ActiveHScale(gtk.HScale):
         #self.context.handler_unblock(self._handler_id)
         
 class ActiveLabel(gtk.Label):
-    def __init__( self, context, format="%s", show_units=True, range=None):
+    def __init__( self, context, fmt="%s", show_units=True, rng=None):
         gtk.Label.__init__(self, '')
 
         self.set_alignment(0.5,0.5)
-        self.format = format
+        self.format = fmt
         self.context = context
         self.context.connect('changed', self._on_value_change )
-        self.range = range
+        self.range = rng
         try:
             self.context.connect('alarm', self._on_alarm )
         except:
@@ -78,7 +75,7 @@ class ActiveLabel(gtk.Label):
         
 class ActiveEntry(gtk.VBox):
     #_border = gtk.Border(3,3,4,4)
-    def __init__( self, device, label=None,  format="%g",  width=10):
+    def __init__( self, device, label=None,  fmt="%g",  width=10):
         gtk.VBox.__init__(self, label)
         self._sizegroup_h = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
         self._sizegroup_v = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
@@ -127,7 +124,7 @@ class ActiveEntry(gtk.VBox):
         self.running = False
         self.action_active = True
         self.width = width
-        self.number_format = format
+        self.number_format = fmt
         self.format = self.number_format
         
         if label is None:
@@ -170,7 +167,7 @@ class ActiveEntry(gtk.VBox):
         return target
     
     def _on_health_changed(self, obj, health):
-        state, msg = health
+        state, _ = health
         
         if state == 0:
             self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000066"))
@@ -217,8 +214,8 @@ class ActiveEntry(gtk.VBox):
     
             
 class MotorEntry(ActiveEntry):
-    def __init__(self, mtr, label=None, format="%0.3f", width=8):
-        ActiveEntry.__init__(self, mtr, label=label, format=format, width=width)
+    def __init__(self, mtr, label=None, fmt="%0.3f", width=8):
+        ActiveEntry.__init__(self, mtr, label=label, fmt=fmt, width=width)
         self._set_active(False)
         self.device.connect('busy', self._on_motion_changed)
         self.device.connect('target-changed', self._on_target_changed)
@@ -570,7 +567,7 @@ class CryojetWidget(gtk.Alignment):
             'smpl': (1, self.cryojet.sample_flow),
             'shld': (2, self.cryojet.shield_flow),
             }
-        for k,v in tbl_data.items():
+        for v in tbl_data.values():
             lb = ActiveLabel(v[1])
             lb.set_alignment(0.5, 0.5)
             self.status_table.attach(lb, 1, 2, v[0], v[0]+1)

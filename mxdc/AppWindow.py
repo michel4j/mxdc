@@ -114,7 +114,7 @@ class AppWindow(gtk.Window):
         notebook.append_page(self.screen_manager, tab_label=_mk_lbl('Screening'))
         notebook.append_page(self.scan_manager, tab_label=_mk_lbl('Fluorescence Scans'))
         notebook.append_page(self.result_manager, tab_label=_mk_lbl('Processing Results'))
-        notebook.set_border_width(9)
+        notebook.set_border_width(3)
         self.notebook = notebook
         self.notebook.connect('switch-page', self.on_page_switch)
 

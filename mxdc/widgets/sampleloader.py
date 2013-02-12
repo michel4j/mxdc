@@ -1,18 +1,11 @@
-'''
-Created on May 14, 2010
-
-@author: michel
-'''
-
-import os
+from mxdc.utils import gui
+from mxdc.utils.config import load_config, save_config
+from mxdc.utils.xlsimport import XLSLoader
+from mxdc.widgets import dialogs
+from mxdc.widgets.mountwidget import MountWidget
 import gobject
 import gtk
-import time
-from mxdc.widgets import dialogs
-from mxdc.utils.xlsimport import XLSLoader
-from mxdc.utils.config import load_config, save_config
-from mxdc.widgets.mountwidget import MountWidget
-from mxdc.utils import gui
+import os
 
 SAMPLES_DB_CONFIG = 'samples_db.json'
 XTALS_DB_CONFIG = 'crystals_db.json'
@@ -49,8 +42,8 @@ class CrystalStore(gtk.ListStore):
             
     
     def add_crystal(self, item):
-        iter = self.append()
-        self.set(iter, 
+        itr = self.append()
+        self.set(itr, 
             self.NAME, item['name'],
             self.GROUP, item['group'],
             self.PORT, item['port'],
@@ -80,8 +73,8 @@ class ContainerStore(gtk.ListStore):
             
         
     def add_container(self, item):
-        iter = self.append()
-        self.set(iter,
+        itr = self.append()
+        self.set(itr,
             self.NAME, item['name'],
             self.TYPE, item['type'],
             self.STALL, item['load_position'],
@@ -196,8 +189,8 @@ class DewarLoader(gtk.HBox):
         treeview.append_column(column)                        
         return treeview
 
-    def _row_color(self, column, renderer, model, iter):
-        value = model.get_value(iter, model.STATUS)
+    def _row_color(self, column, renderer, model, itr):
+        value = model.get_value(itr, model.STATUS)
         color = STATUS_COLORS.get(value)
         renderer.set_property("foreground", color)
 
@@ -205,8 +198,8 @@ class DewarLoader(gtk.HBox):
         gobject.idle_add(self.emit, 'samples-changed')
         #txt = "The list of crystals in the Screening tab has been updated."
         if self.selected_crystal is not None:
-            iter = self.crystals.get_iter(self.selected_crystal)
-            crystal_data = self.crystals.get_value(iter, self.crystals.DATA)        
+            itr = self.crystals.get_iter(self.selected_crystal)
+            crystal_data = self.crystals.get_value(itr, self.crystals.DATA)        
             gobject.idle_add(self.emit, 'sample-selected', crystal_data)
             #txt = "Crystal information has been updated in the Screening & Collection tabs"
         #self.selected_lbl.set_markup(txt)
@@ -218,24 +211,24 @@ class DewarLoader(gtk.HBox):
         pass
 
     def on_stall_edited(self, cell, path_string, new_text):
-        iter = self.containers.get_iter_from_string(path_string)
+        itr = self.containers.get_iter_from_string(path_string)
         new_stall = new_text.strip().upper()
-        old_stall = self.containers.get_value(iter, self.containers.STALL)
-        cnt_detail = self.containers.get_value(iter, self.containers.DATA)
+        old_stall = self.containers.get_value(itr, self.containers.STALL)
+        cnt_detail = self.containers.get_value(itr, self.containers.DATA)
         
         if new_stall == old_stall.strip().upper():
             return 
         
-        container_type = self.containers.get_value(iter, self.containers.TYPE)
+        container_type = self.containers.get_value(itr, self.containers.TYPE)
         VALID_STALLS = {
             'Uni-Puck': ['RA', 'RB', 'RC', 'RD','MA', 'MB', 'MC', 'MD', 'LA', 'LB', 'LC', 'LD', ''],
             'Cassette': ['R','M', 'L',''],
         }
         
         data = {'stall': new_stall, 'exists': False, 'used': set()}
-        def validate(model, path, iter, data):
-            if iter is not None:
-                pos = model.get_value(iter, model.STALL).strip().upper()
+        def validate(model, path, itr, data):
+            if itr is not None:
+                pos = model.get_value(itr, model.STALL).strip().upper()
                 # check if position is occupied. Take care of cassettes and uni-pucks
                 if pos == data['stall'] and pos != "":
                     data['exists'] = True
@@ -252,7 +245,7 @@ class DewarLoader(gtk.HBox):
         if new_stall in VALID_STALLS.get(container_type,[]):
             self.containers.foreach(validate, data)
             if not data['exists']:
-                self.containers.set_value(iter, self.containers.STALL, new_stall)
+                self.containers.set_value(itr, self.containers.STALL, new_stall)
                 cnt_detail['load_position'] = new_stall
                 if cnt_detail.get('id') is not None:
                     self.samples_database['containers'][str(cnt_detail['id'])]['load_position'] = new_stall
@@ -279,8 +272,8 @@ class DewarLoader(gtk.HBox):
     def on_crystal_activated(self, treeview, path, column):
         model = treeview.get_model()
         self.selected_crystal = path
-        iter = model.get_iter(path)
-        crystal_data = model.get_value(iter, model.DATA)        
+        itr = model.get_iter(path)
+        crystal_data = model.get_value(itr, model.DATA)        
         gobject.idle_add(self.emit, 'sample-selected', crystal_data)
         #txt = "The selected crystal in the Collection tab has been updated."
         #self.selected_lbl.set_markup(txt)
@@ -354,13 +347,13 @@ class DewarLoader(gtk.HBox):
             return []
         loaded_samples = []
         
-        iter = self.crystals.get_iter_first()
-        while iter:
-            _cr_loaded = self.crystals.get_value(iter, self.crystals.STATUS)
+        itr = self.crystals.get_iter_first()
+        while itr:
+            _cr_loaded = self.crystals.get_value(itr, self.crystals.STATUS)
             if _cr_loaded >= STATUS_LOADED:
-                _cr = self.crystals.get_value(iter, self.crystals.DATA)
+                _cr = self.crystals.get_value(itr, self.crystals.DATA)
                 loaded_samples.append(_cr)
-            iter = self.crystals.iter_next(iter)          
+            itr = self.crystals.iter_next(itr)          
         return loaded_samples
                 
     def clear_inventory(self):
@@ -406,7 +399,6 @@ class DewarLoader(gtk.HBox):
                                        gtk.FILE_CHOOSER_ACTION_OPEN,
                                        filters=filters)
         filename = import_selector.run()
-        filter = import_selector.get_filter()
         if filename is None:
             return
         xls_loader = XLSLoader(filename)
@@ -441,24 +433,3 @@ class DewarLoader(gtk.HBox):
             else:
                 dialogs.info(header, subhead)
         
-def main():
-    w = gtk.Window()
-    w.set_default_size(640, 400)
-    w.connect('destroy', lambda *w: gtk.main_quit())
-    rd = DewarLoader()
-    w.add(rd)
-    w.show_all()
-    from jsonrpclib.jsonrpc import ServerProxy
-    server = ServerProxy('https://cmcf.lightsource.ca/json/')
-    params = {'project_name':'testuser', 'beamline_name': '08B1-1'}
-    reply = server.lims.get_onsite_samples('3B7FF046-2726-4195-AC8A-9AE09B207765', params)
-    #reply = server.lims.get_active_runlist('8CABA1A7-3FD9-494F-8D14-62A6876B2BC7')
-    import pprint
-    pprint.pprint(reply, indent=2, depth=5)
-    rd.import_lims(reply)
-    #rd.load_saved_database()
-    gtk.main()
-          
-
-if __name__ == '__main__':
-    main()

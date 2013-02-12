@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkWindow" id="window1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -10,10 +11,10 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="border_width">9</property>
-        <property name="spacing">6</property>
+        <property name="spacing">9</property>
         <child>
           <object class="GtkNotebook" id="screen_ntbk">
-            <property name="width_request">640</property>
+            <property name="width_request">600</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <child>
@@ -387,6 +388,8 @@
                                         <property name="invisible_char_set">True</property>
                                         <property name="primary_icon_activatable">False</property>
                                         <property name="secondary_icon_activatable">False</property>
+                                        <property name="primary_icon_sensitive">True</property>
+                                        <property name="secondary_icon_sensitive">True</property>
                                       </object>
                                       <packing>
                                         <property name="left_attach">1</property>
@@ -408,6 +411,8 @@
                                         <property name="invisible_char_set">True</property>
                                         <property name="primary_icon_activatable">False</property>
                                         <property name="secondary_icon_activatable">False</property>
+                                        <property name="primary_icon_sensitive">True</property>
+                                        <property name="secondary_icon_sensitive">True</property>
                                       </object>
                                       <packing>
                                         <property name="left_attach">1</property>
@@ -429,6 +434,8 @@
                                         <property name="invisible_char_set">True</property>
                                         <property name="primary_icon_activatable">False</property>
                                         <property name="secondary_icon_activatable">False</property>
+                                        <property name="primary_icon_sensitive">True</property>
+                                        <property name="secondary_icon_sensitive">True</property>
                                       </object>
                                       <packing>
                                         <property name="left_attach">4</property>
@@ -452,6 +459,8 @@
                                         <property name="invisible_char_set">True</property>
                                         <property name="primary_icon_activatable">False</property>
                                         <property name="secondary_icon_activatable">False</property>
+                                        <property name="primary_icon_sensitive">True</property>
+                                        <property name="secondary_icon_sensitive">True</property>
                                       </object>
                                       <packing>
                                         <property name="left_attach">4</property>
@@ -748,9 +757,9 @@
                                   <object class="GtkProgressBar" id="scan_pbar">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
+                                    <property name="show_text">True</property>
                                     <property name="pulse_step">0.10000000149</property>
                                     <property name="text" translatable="yes">0.0 %</property>
-                                    <property name="show_text">True</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -1118,6 +1127,12 @@
           <placeholder/>
         </child>
         <child>
+          <placeholder/>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
           <object class="GtkEntry" id="frames_entry">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -1129,6 +1144,8 @@ to collect</property>
             <property name="xalign">1</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="left_attach">2</property>
@@ -1147,6 +1164,8 @@ to collect</property>
             <property name="xalign">1</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="left_attach">3</property>
@@ -1191,6 +1210,12 @@ to collect</property>
         <property name="n_columns">6</property>
         <property name="column_spacing">2</property>
         <property name="homogeneous">True</property>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
         <child>
           <placeholder/>
         </child>
