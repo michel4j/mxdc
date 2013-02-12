@@ -1,17 +1,17 @@
-import os
-import math
-import gtk
-import gobject
-import pango
-from twisted.python.components import globalRegistry
-from mxdc.widgets.video import VideoWidget
-from mxdc.widgets.misc import ActiveEntry, HealthDisplay, ScriptButton
-from mxdc.widgets.sampleviewer import SampleViewer
-from bcm.engine.scripting import get_scripts 
 from bcm.beamline.interfaces import IBeamline
+from bcm.engine.scripting import get_scripts 
 from bcm.utils.log import get_module_logger
 from bcm.utils.video import add_hc_decorations
 from mxdc.utils import gui
+from mxdc.widgets.misc import ActiveEntry, HealthDisplay, ScriptButton
+from mxdc.widgets.sampleviewer import SampleViewer
+from mxdc.widgets.video import VideoWidget
+from twisted.python.components import globalRegistry
+import gobject
+import gtk
+import math
+import os
+import pango
 
 
 _logger = get_module_logger('mxdc.hcviewer')
@@ -48,8 +48,8 @@ class HCViewer(SampleViewer):
         
         self.entries = {
             'state':           HealthDisplay(self.hc, label='Status'), 
-            'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', format="%0.2f", width=20),
-            'dewpoint_temp':   ActiveEntry(self.hc.dew_point, 'Dew Point Temperature', format="%0.1f"),
+            'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', fmt="%0.2f", width=20),
+            'dewpoint_temp':   ActiveEntry(self.hc.dew_point, 'Dew Point Temperature', fmt="%0.1f"),
         }
                        
         self.scripts = get_scripts()

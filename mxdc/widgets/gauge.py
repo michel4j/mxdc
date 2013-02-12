@@ -15,7 +15,7 @@ class Gauge(gtk.DrawingArea):
     }
     def __init__(self, min_val, max_val, maj_ticks, min_ticks):
         """
-        min_val, max_val: min_val and max_val of range
+        min_val, max_val: min_val and max_val of rng
         maj_ticks: number of major divisions, equal to number of major ticks
         plus one
         min_ticks: number of minor tick marks per major tick mark
@@ -80,21 +80,30 @@ class Gauge(gtk.DrawingArea):
     def draw_cairo(self, context):
         rect = self.get_allocation()
         pcontext = self.get_pango_context()
+        style = self.get_style()
         font_desc = pcontext.get_font_description()
-        context.set_font_size( 11 ) #font_desc.get_size()/pango.SCALE
+        context.set_font_size(font_desc.get_size()/pango.SCALE)
 
         maximum = self.maximum
         frmstrg = '%%.%df' % self.get_property('digits')
         pads = context.text_extents(frmstrg % maximum)
         #radius = min((rect.width- 2.5*pads[2])/2, rect.height-(2.5*pads[3]))
-        radius = min((rect.width- 2.5*pads[2])/2, (rect.height-(4*pads[3]))/2)
+        radius = min((rect.width- 2.5*pads[2])/2, (rect.height-(3*pads[3]))/2)
         x =  rect.width / 2
         y =  (pads[3] + rect.height)/2 # - (rect.height-radius-0.8*pads[3])/2
+        offset = 0.25*math.pi
         
+        # empty region
+        context.set_source_rgba(0.9, 0.5, 0.5, 0.4)
+        context.set_line_width(0.2*radius)
+        empty_ang = 1.5 * math.pi * self.get_property('low') / 100.0
+        context.arc(x, y, 0.9*radius, math.pi - offset, math.pi - offset + empty_ang)
+        context.stroke()
+
         # Draw ticks
+        context.set_source_color(style.fg[gtk.STATE_NORMAL])
         num_ticks = self.majticks * (self.minticks + 1) + 1
         tick_step = 1.5*math.pi / (num_ticks-1)
-        offset = 0.25*math.pi
         label_radius = radius + 0.5 * pads[2]
         context.set_line_width(1.2)
         for i in range(num_ticks):
@@ -124,8 +133,6 @@ class Gauge(gtk.DrawingArea):
             context.restore()
 
         # show units
-        #context.select_font_face("Sans", cairo.FONT_SLANT_NORMAL,  cairo.FONT_WEIGHT_BOLD)
-        #context.set_font_size(12)
         xbearing, ybearing, width, height = context.text_extents(self.get_property('label'))[:4]
         context.move_to(x + 0.5 - xbearing-width/2, y + 0.25*radius + 0.5-ybearing-height/2)
         context.show_text(self.get_property('label'))
@@ -134,7 +141,7 @@ class Gauge(gtk.DrawingArea):
         context.show_text(self.get_property('units'))
         
         
-        # needle position
+        # needle
         f = (radius/20)**2
         pointer = self.get_property('percent')/100.0
         context.save()
@@ -153,15 +160,25 @@ class Gauge(gtk.DrawingArea):
         if xp - x < 0:
             yb = ya
             ya = (2 * y) - yb
+        context.set_line_width(1.5)
+        if self.get_property('percent') < self.get_property('low'):
+            context.set_source_rgb(0.8, 0.0, 0.0)
+        elif self.get_property('percent') > self.get_property('high'):
+            context.set_source_rgb(0.8, 0.0, 0.0)
+        else:
+            context.set_source_rgb(0.0, 0.6, 0.0)
         context.move_to(xa, ya)
         context.line_to(xb, yb)
         context.line_to(xp, yp)
         context.line_to(xa, ya)
-        if self.get_property('percent') < self.get_property('low'):
-            context.set_source_rgba(0.8, 0.0, 0.0, 0.8)
-        elif self.get_property('percent') > self.get_property('high'):
-            context.set_source_rgba(0.8, 0.0, 0.0, 0.8)
-        else:
-            context.set_source_rgba(0.0, 0.6, 0.0, 0.8)
         context.fill()
+
+        context.move_to(xa, ya)
+        context.line_to(xb, yb)
+        context.line_to(xp, yp)
+        context.line_to(xa, ya)
+        context.fill()
+        context.arc(x, y, radius*0.1, 0, 2.0 * math.pi)
+        context.fill()
+          
         context.restore()

@@ -1,27 +1,21 @@
-import time
-import threading
-import urllib
-import cStringIO
-import httplib
-import Image
-import numpy
-import re
-import socket
-import zlib
-import os
 
-# suppres scipy import warnings
-import warnings
-warnings.simplefilter("ignore")
-
+from bcm.device.base import BaseDevice
+from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
+from bcm.protocol import ca
+from bcm.utils.log import get_module_logger
 from scipy.misc import toimage
 from zope.interface import implements
-from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
-from bcm.protocol.ca import PV
-from bcm.protocol import ca
-from bcm.device.base import BaseDevice
-from bcm.utils.log import get_module_logger
-from bcm import registry
+import Image
+import cStringIO
+import httplib
+import numpy
+import os
+import re
+import socket
+import threading
+import time
+import urllib
+import zlib
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -213,13 +207,13 @@ class AxisCamera(VideoSrc):
 
     implements(ICamera)  
       
-    def __init__(self, hostname,  id=None, name='Axis Camera'):
+    def __init__(self, hostname,  idx=None, name='Axis Camera'):
         VideoSrc.__init__(self, name, maxfps=20.0)
         self.size = (768, 576)
-        if id is None:
+        if idx is None:
             self.url = 'http://%s/jpg/image.jpg' % hostname
         else:
-            self.url = 'http://%s/jpg/%s/image.jpg' % (hostname,id)
+            self.url = 'http://%s/jpg/%s/image.jpg' % (hostname,idx)
         self._last_frame = time.time()
         self.set_state(active=True)
 
@@ -238,8 +232,8 @@ class ZoomableAxisCamera(AxisCamera):
     
     implements(IZoomableCamera)
     
-    def __init__(self, hostname, zoom_motor, id=None, name="Zoomable Axis Camera"):
-        AxisCamera.__init__(self, hostname, id=id, name=name)
+    def __init__(self, hostname, zoom_motor, idx=None, name="Zoomable Axis Camera"):
+        AxisCamera.__init__(self, hostname, idx=idx, name=name)
         self._zoom = IMotor(zoom_motor)
         self.resolution = 1.0
         self._zoom.connect('changed', self._on_zoom_change)
@@ -282,8 +276,8 @@ class AxisPTZCamera(AxisCamera):
 
     implements(IPTZCameraController)  
       
-    def __init__(self, hostname, id=None, name='Axis PTZ Camera'):
-        AxisCamera.__init__(self, hostname, id, name)
+    def __init__(self, hostname, idx=None, name='Axis PTZ Camera'):
+        AxisCamera.__init__(self, hostname, idx, name)
         self._server = httplib.HTTPConnection(hostname)
         self._rzoom = 0
        

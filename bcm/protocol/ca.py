@@ -205,7 +205,7 @@ _PV_REPR_FMT = """<ProcessVariable
     Connection: %s
 >"""
 
-class PV(gobject.gobject):
+class PV(gobject.GObject):
     
     """A Process Variable 
     
@@ -258,7 +258,7 @@ class PV(gobject.gobject):
     }
     
     def __init__(self, name, monitor=True, connect=False, timed=False):
-        gobject.gobject.__init__(self)
+        gobject.GObject.__init__(self)
 
         self.state_info = {'active': False, 'changed': 0, 
                              'timed-change': (0,0), 'alarm': (0,0)}
