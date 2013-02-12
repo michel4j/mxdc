@@ -1,19 +1,15 @@
-import os
+from bcm.beamline.mx import IBeamline
+from bcm.utils import misc
+from bcm.utils.decorators import async
+from datetime import datetime
+from mxdc.utils import gui, config
+from mxdc.widgets.misc import MotorEntry, ActiveEntry
+from twisted.python.components import globalRegistry
 import gobject
 import gtk
-import time
 import numpy
-
-from datetime import datetime
-from bcm.utils.decorators import async
-from bcm.utils import misc
-from mxdc.widgets import dialogs
-from mxdc.widgets.misc import MotorEntry, ActiveEntry
-from mxdc.utils.xlsimport import XLSLoader
-from mxdc.utils import gui, config
-
-from twisted.python.components import globalRegistry
-from bcm.beamline.mx import IBeamline
+import os
+import time
 
 _CONFIG_FILE = 'raster_config.json'
 
@@ -163,8 +159,8 @@ class RasterWidget(gtk.Frame):
         self.entries['time'].connect('focus-out-event', lambda x,y: self._validate_float(x, 1.0, 0.1, 500))
         self.entries['directory'].connect('current-folder-changed', self.on_folder_changed)
         
-        omega = MotorEntry(self.beamline.omega, 'Gonio Omega', format="%0.2f")
-        aperture = ActiveEntry(self.beamline.aperture, 'Beam Aperture', format="%0.2f")
+        omega = MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f")
+        aperture = ActiveEntry(self.beamline.aperture, 'Beam Aperture', fmt="%0.2f")
         self.param_tbl.attach(omega, 1, 2, 3, 5)
         self.param_tbl.attach(aperture, 2, 4, 3, 5)
         

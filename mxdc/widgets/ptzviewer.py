@@ -1,14 +1,11 @@
-import sys
-import time
-import os
-import gtk
-import gobject
+from bcm.device.interfaces import IPTZCameraController
+from bcm.utils.log import get_module_logger
+from mxdc.utils import gui
 from mxdc.widgets.dialogs import save_selector
 from mxdc.widgets.video import VideoWidget
-from mxdc.utils import gui
-from bcm.protocol import ca
-from bcm.utils.log import get_module_logger
-from bcm.device.interfaces import IPTZCameraController
+import gtk
+import os
+
 
 _logger = get_module_logger('mxdc.ptzviewer')
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -66,9 +63,9 @@ class AxisViewer(gtk.Alignment):
         return True
 
     def on_view_changed(self, widget):
-        iter = widget.get_active_iter()
+        itr = widget.get_active_iter()
         model = widget.get_model()
-        value = model.get_value(iter,0)
+        value = model.get_value(itr,0)
         self.camera.goto(value)
                                 
     def _create_widgets(self):

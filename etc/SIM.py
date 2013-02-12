@@ -1,6 +1,6 @@
 # BCM GLOBAL Settings for SIM Beamline
-import os
 from bcm.settings import *
+import os
 
 BEAMLINE_NAME = 'SIM-1'
 BEAMLINE_TYPE = 'MX'
