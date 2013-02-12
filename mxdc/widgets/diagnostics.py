@@ -79,16 +79,17 @@ class DiagnosticDisplay(gtk.Alignment):
         
         
 
-class DiagnosticsViewer(gtk.VBox):
+class DiagnosticsViewer(gtk.Alignment):
     def __init__(self):
-        gtk.VBox.__init__(self, False, 3)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 0.75, 0)
+        self.box = gtk.VBox(False, 2)
+        self.add(self.box)
         self._num = 0
         #fetch and add diagnostics
         _dl = globalRegistry.subscriptions([], diagnostics.IDiagnostic)
         for diag in _dl:
             self.add_diagnostic(diag)
-        self.set_border_width(24)
-        self.pack_end(gtk.Label(''), expand=True, fill=True)
+        self.set_border_width(12)
         self.show_all()
         
 
@@ -96,8 +97,8 @@ class DiagnosticsViewer(gtk.VBox):
     def add_diagnostic(self, diag):
         if self._num > 0:
             hs = gtk.HSeparator()
-            hs.set_sensitive(False)
-            self.pack_start(hs, expand=False, fill=False)
-        self.pack_start(DiagnosticDisplay(diag), expand=False, fill=False)
+            hs.set_size_request(-1,3)
+            self.box.pack_start(hs, False, False, 0)
+        self.box.pack_start(DiagnosticDisplay(diag), False, False, 0)
         self._num += 1
         

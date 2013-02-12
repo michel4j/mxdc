@@ -1,17 +1,16 @@
 # -*- coding: UTF8 -*-
 
-import sys
+from dialogs import select_image
+from mxdc.utils import gui
+from mxdc.widgets.imagewidget import ImageWidget, image_loadable
+import gobject
+import gtk
+import logging
+import math
+import numpy
 import os
 import re
-import gtk
-import gobject
-import math
-from dialogs import select_image
-from mxdc.widgets.imagewidget import ImageWidget, image_loadable
-from mxdc.utils import gui
-
-from matplotlib.pylab import loadtxt
-import logging
+import sys
 
 __log_section__ = 'mxdc.imageviewer'
 img_logger = logging.getLogger(__log_section__)
@@ -104,7 +103,7 @@ class ImageViewer(gtk.Alignment):
        
     def _load_spots(self, filename):
         try:
-            self.all_spots = loadtxt(filename)
+            self.all_spots = numpy.loadtxt(filename)
         except:
             img_logger.error('Could not load spots from %s' % filename)
    

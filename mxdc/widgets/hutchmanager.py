@@ -107,21 +107,21 @@ class HutchManager(gtk.Alignment):
             'chi': (4,2)
         }
         self.entries = {
-            'energy':       misc.MotorEntry(self.beamline.monochromator.energy, 'Energy', format="%0.3f"),
-            'attenuation':  misc.ActiveEntry(self.beamline.attenuator, 'Attenuation', format="%0.1f"),
-            'omega':        misc.MotorEntry(self.beamline.omega, 'Gonio Omega', format="%0.2f"),
-            'distance':     misc.MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', format="%0.1f"),
-            'beam_stop':    misc.MotorEntry(self.beamline.beamstop_z, 'Beam-stop', format="%0.1f"),
-            'two_theta':    misc.MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', format="%0.1f"),
-            'beam_size':    misc.ActiveEntry(self.beamline.aperture, 'Beam Aperture', format="%0.2f"),
+            'energy':       misc.MotorEntry(self.beamline.monochromator.energy, 'Energy', fmt="%0.3f"),
+            'attenuation':  misc.ActiveEntry(self.beamline.attenuator, 'Attenuation', fmt="%0.1f"),
+            'omega':        misc.MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f"),
+            'distance':     misc.MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', fmt="%0.1f"),
+            'beam_stop':    misc.MotorEntry(self.beamline.beamstop_z, 'Beam-stop', fmt="%0.1f"),
+            'two_theta':    misc.MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', fmt="%0.1f"),
+            'beam_size':    misc.ActiveEntry(self.beamline.aperture, 'Beam Aperture', fmt="%0.2f"),
         }
         if 'phi' in self.beamline.registry:
-            self.entries['phi'] = misc.MotorEntry(self.beamline.phi, 'Gonio Phi', format="%0.2f")
+            self.entries['phi'] = misc.MotorEntry(self.beamline.phi, 'Gonio Phi', fmt="%0.2f")
         if 'chi' in self.beamline.registry:
-            self.entries['chi'] = misc.MotorEntry(self.beamline.chi, 'Gonio Chi', format="%0.2f")
+            self.entries['chi'] = misc.MotorEntry(self.beamline.chi, 'Gonio Chi', fmt="%0.2f")
             del self.entries['beam_size']
         if 'kappa' in self.beamline.registry:
-            self.entries['kappa'] = misc.MotorEntry(self.beamline.kappa, 'Gonio Kappa', format="%0.2f")
+            self.entries['kappa'] = misc.MotorEntry(self.beamline.kappa, 'Gonio Kappa', fmt="%0.2f")
 
                
         for key in self.entries.keys():

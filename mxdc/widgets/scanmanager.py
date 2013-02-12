@@ -1,22 +1,19 @@
 
+from bcm.beamline.mx import IBeamline
+from bcm.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
+from bcm.utils import lims_tools
+from bcm.utils.log import get_module_logger
+from mxdc.utils import config, gui
+from mxdc.widgets.dialogs import  warning, MyDialog
+from mxdc.widgets.misc import ActiveProgressBar
+from mxdc.widgets.periodictable import PeriodicTable
+from mxdc.widgets.plotter import Plotter
+from mxdc.widgets.textviewer import TextViewer
+from twisted.python.components import globalRegistry
+import gobject
+import gtk
 import os, sys
 import time
-import gtk
-import gobject
-import numpy
-
-from mxdc.widgets.periodictable import PeriodicTable
-from mxdc.widgets.textviewer import TextViewer
-from mxdc.widgets.plotter import Plotter
-from mxdc.widgets.dialogs import  warning, error, MyDialog
-from mxdc.utils import config, gui
-from mxdc.widgets.misc import ActiveProgressBar
-from bcm.beamline.mx import IBeamline
-from twisted.python.components import globalRegistry
-from bcm.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
-from bcm.utils import science, lims_tools
-from bcm.utils.log import get_module_logger
-
 
 _logger = get_module_logger('mxdc.scanmanager')
 
@@ -295,8 +292,8 @@ class ScanManager(gtk.Alignment):
         
            
     def _add_xanes_energy(self, item=None): 
-        iter = self.energy_store.append()        
-        self.energy_store.set(iter, 
+        itr = self.energy_store.append()        
+        self.energy_store.set(itr, 
             COLUMN_LABEL, item[COLUMN_LABEL], 
             COLUMN_ENERGY, item[COLUMN_ENERGY],
             COLUMN_FP, item[COLUMN_FP],
@@ -307,8 +304,8 @@ class ScanManager(gtk.Alignment):
         self.scattering_factors.append({'fp':item[COLUMN_FP], 'fpp':item[COLUMN_FPP]})
 
     def _add_xrf_element(self, item=None): 
-        iter = self.xrf_store.append()        
-        self.xrf_store.set(iter, 
+        itr = self.xrf_store.append()        
+        self.xrf_store.set(itr, 
             COLUMN_DRAW, False, 
             COLUMN_ELEMENT, item[0],
             COLUMN_PERCENT, item[1]
@@ -323,8 +320,8 @@ class ScanManager(gtk.Alignment):
             renderer.set_property("foreground", XRF_COLOR_LIST[index])
         return
 
-    def _color_element(self, cell, renderer, model, iter, column):
-        index = model.get_path(iter)[0]
+    def _color_element(self, cell, renderer, model, itr, column):
+        index = model.get_path(itr)[0]
         renderer.set_property("foreground", XRF_COLOR_LIST[index])
         return
 
@@ -592,7 +589,7 @@ class ScanManager(gtk.Alignment):
                                              title, msg,
                                              buttons=( ('OK', gtk.RESPONSE_ACCEPT),) )
                 self._intervening = False
-                response = self.resp()
+                self.resp()
         return True
             
     def on_scan_stopped(self, widget):
@@ -648,8 +645,8 @@ class ScanManager(gtk.Alignment):
         self.output_log.add_text(info_log)
         self.create_run_btn.set_sensitive(True) 
         try:
-	    result = list()
-	    result.append(obj.results)
+            result = list()
+            result.append(obj.results)
             lims_tools.upload_scan(self.beamline, result)
         except:
             print sys.exc_info()
@@ -755,14 +752,14 @@ class ScanManager(gtk.Alignment):
         return True
         
     def on_element_toggled(self, cell, path, model):
-        iter = model.get_iter(path)
-        index = model.get_path(iter)[0]
+        itr = model.get_iter(path)
+        index = model.get_path(itr)[0]
         _color = XRF_COLOR_LIST[index]
 
-        element = model.get_value(iter, COLUMN_ELEMENT)                 
+        element = model.get_value(itr, COLUMN_ELEMENT)                 
         element_info = self.xrf_results.get(element)
-        state = model.get_value(iter, COLUMN_DRAW)
-        model.set(iter, COLUMN_DRAW, (not state) )
+        state = model.get_value(itr, COLUMN_DRAW)
+        model.set(itr, COLUMN_DRAW, (not state) )
         ax = self.plotter.axis[0]
         ax.axis('tight')
         alims = ax.axis()

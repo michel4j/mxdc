@@ -132,11 +132,11 @@ class CollectManager(gtk.Alignment):
         # Current Position
         pos_table = self._xml.get_widget('position_table')
         if self.beamline is not None:
-            pos_table.attach(ActiveLabel(self.beamline.omega, format='%7.2f'), 1,2,0,1)
-            pos_table.attach(ActiveLabel(self.beamline.diffractometer.two_theta, format='%7.2f'), 1,2,1,2)
-            pos_table.attach(ActiveLabel(self.beamline.diffractometer.distance, format='%7.2f'), 1,2,2,3)
-            pos_table.attach(ActiveLabel(self.beamline.monochromator.energy, format='%7.4f'), 1,2,3,4)
-            pos_table.attach(ActiveLabel(self.beamline.attenuator, format='%7.2f'), 1,2,4,5)        
+            pos_table.attach(ActiveLabel(self.beamline.omega, fmt='%7.2f'), 1,2,0,1)
+            pos_table.attach(ActiveLabel(self.beamline.diffractometer.two_theta, fmt='%7.2f'), 1,2,1,2)
+            pos_table.attach(ActiveLabel(self.beamline.diffractometer.distance, fmt='%7.2f'), 1,2,2,3)
+            pos_table.attach(ActiveLabel(self.beamline.monochromator.energy, fmt='%7.4f'), 1,2,3,4)
+            pos_table.attach(ActiveLabel(self.beamline.attenuator, fmt='%7.2f'), 1,2,4,5)        
         # Image Viewer
         self.frame_book.add(self.image_viewer)
         self.collect_widget.pack_end(self.run_manager, expand = True, fill = True)
