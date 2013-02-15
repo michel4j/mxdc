@@ -495,7 +495,7 @@ class Screener(gobject.GObject):
                         directory = os.path.join(task['directory'], task['sample']['name'], 'test')
                         if not os.path.exists(directory):
                             os.makedirs(directory) # make sure directories exist
-                        prefix = '%s-pic' % ( task['sample']['name'])
+                        prefix = '%s_test-pic' % ( task['sample']['name'])
                         if not os.path.exists(os.path.join(directory, '%s_%0.1f.png' % (prefix, 0.0))):
                             _logger.info('Taking snapshots of crystal at %0.1f and %0.1f' % (0.0, 90.0))
                             snapshot.take_sample_snapshots(prefix, directory, [0.0, 90.0], decorate=True)
