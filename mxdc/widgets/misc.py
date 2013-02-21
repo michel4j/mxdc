@@ -622,7 +622,7 @@ class CryojetWidget(gtk.Alignment):
             self.stop_anneal_btn.set_sensitive(True)
             self._annealed_time = 0
             self.cryojet.stop_flow()
-            dur = max(0.0, (duration-0.5*1000))
+            #dur = max(0.0, (duration-0.5*1000))
             self._restore_anneal_id = gobject.timeout_add(int(duration*1000), self._stop_anneal)
             self._progress_id = gobject.timeout_add(1000, self._update_progress, duration)
             

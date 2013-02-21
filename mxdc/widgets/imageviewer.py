@@ -40,18 +40,12 @@ class ImageViewer(gtk.Alignment):
         return self._xml.get_widget(key)
 
     def _create_widgets(self):
-        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
-                                  'image_viewer')
-        self._xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
-                                  'brightness_popup')
-        self._xml4 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
-                                  'contrast_popup')
-        self._xml5 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
-                                  'colorize_popup')
-        self._xml3 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
-                                  'info_dialog')
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 'image_viewer')
+        self._xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 'brightness_popup')
+        self._xml4 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 'contrast_popup')
+        self._xml5 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'),  'colorize_popup')
+        self._xml3 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 'info_dialog')
         
-        self._widget = self._xml.get_widget('image_viewer')
         self.image_canvas = ImageWidget(self._canvas_size)
         self.image_canvas.connect('image-loaded', self._update_info)
         self.image_frame.add(self.image_canvas)
@@ -64,18 +58,21 @@ class ImageViewer(gtk.Alignment):
 
         self.contrast_popup = self._xml4.get_widget('contrast_popup')
         self.contrast = self._xml4.get_widget('contrast')
+        self.contrast.set_adjustment(gtk.Adjustment(0, 0, 100, 1, 10, 0))
         self.contrast_tbtn.connect('toggled', self.on_contrast_toggled)     
         self.contrast.connect('value-changed', self.on_contrast_changed)
         
 
         self.brightness_popup = self._xml2.get_widget('brightness_popup')
         self.brightness = self._xml2.get_widget('brightness')
+        self.brightness.set_adjustment(gtk.Adjustment(0, 0, 100, 1, 10, 0))
         self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)
         self.brightness.connect('value-changed', self.on_brightness_changed)
 
 
         self.colorize_popup = self._xml5.get_widget('colorize_popup')
         self.colormap = self._xml5.get_widget('colormap')
+        self.colormap.set_adjustment(gtk.Adjustment(0, 0, 100, 1, 10, 0))
         self.colorize_tbtn.connect('toggled', self.on_colorize_toggled)
         self.colormap.connect('value-changed', self.on_colormap_changed)
        
@@ -95,7 +92,7 @@ class ImageViewer(gtk.Alignment):
         self.expand_separator.set_expand(True)
 
         self.image_canvas.connect('configure-event', self.on_configure)
-        self.add(self._widget)         
+        self.add(self.image_viewer)         
         self.show_all()
 
     def log(self, msg):

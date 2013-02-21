@@ -315,6 +315,7 @@ class Automounter(BasicAutomounter):
         
         self.port_states = self.add_pv('%s:cassette:fbk' % pv_name)
         self.nitrogen_level = self.add_pv('%s:LN2Fill:start:in' % pv_name2)
+        self.nitrogen_valve = self.add_pv('%s:LN2Fill:valve:in' % pv_name2)
         self.status_msg = self.add_pv('%s:sample:msg' % pv_name)
         self.needs_val = self.add_pv('%s:status:val' % pv_name)
         
@@ -505,7 +506,8 @@ class Automounter(BasicAutomounter):
         self.set_state(enabled=(st==1))
 
     def _on_ln2level_changed(self, pv, st):
-        if st == 1:
+        filling = self.nitrogen_valve.get() == 1
+        if st == 1 and not filling:
             self.set_state(health=(2, 'ln2-level', 'LN2 level is low.'))
         else:
             self.set_state(health=(0, 'ln2-level'))
