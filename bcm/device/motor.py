@@ -1,13 +1,13 @@
-import time
-import math
-import gobject
-from zope.interface import implements
-from bcm.device.interfaces import IMotor
-from bcm.utils.log import get_module_logger
-from bcm.utils.decorators import async
-from bcm.utils import converter, misc
-from bcm import registry
 from bcm.device.base import BaseDevice
+from bcm.device.interfaces import IMotor
+from bcm.utils import converter, misc
+from bcm.utils.decorators import async
+from bcm.utils.log import get_module_logger
+from zope.interface import implements
+from bcm.protocol import ca
+import gobject
+import math
+import time
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger('devices')
@@ -298,7 +298,11 @@ class Motor(MotorBase):
         Returns:
             float.
         """
-        return self.RBV.get()
+        try:
+            val = self.RBV.get()
+        except ca.ChannelAccessError:
+            val = 0.0001
+        return val
 
     def configure(self, **kwargs):
         """Configure the motor. Currently only allows changing the calibration

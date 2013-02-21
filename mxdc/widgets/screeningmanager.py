@@ -1,28 +1,27 @@
-import os
-import time, datetime
-import gtk
-import gobject
-import pango
-import logging
 
-from twisted.python.components import globalRegistry
+from bcm.beamline.mx import IBeamline
+from bcm.engine.diffraction import Screener, DataCollector
+from bcm.engine.interfaces import IDataCollector
+from bcm.engine.rastering import RasterCollector
+from bcm.engine.scripting import get_scripts
+from bcm.utils import lims_tools
+from bcm.utils.runlists import determine_skip, summarize_frame_set
+from mxdc.utils import config, gui
+from mxdc.widgets.dialogs import MyDialog
+from mxdc.widgets.imageviewer import ImageViewer
+from mxdc.widgets.ptzviewer import AxisViewer
+from mxdc.widgets.rasterwidget import RasterWidget
 from mxdc.widgets.samplelist import SampleList
 from mxdc.widgets.sampleviewer import SampleViewer
-from mxdc.widgets.imageviewer import ImageViewer
-from mxdc.widgets import dialogs
-from mxdc.widgets.ptzviewer import AxisViewer
-from bcm.beamline.mx import IBeamline
-from bcm.engine.interfaces import IDataCollector
-from bcm.utils.runlists import determine_skip, summarize_frame_set
-from bcm.utils import automounter
-from bcm.utils import lims_tools
-from bcm.engine.diffraction import Screener, DataCollector
-from bcm.engine.rastering import RasterCollector
-from mxdc.widgets.rasterwidget import RasterWidget
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
-from mxdc.widgets.dialogs import warning, MyDialog
-from mxdc.utils import config, gui
-from bcm.engine.scripting import get_scripts
+from twisted.python.components import globalRegistry
+
+import gobject
+import gtk
+import logging
+import os
+import pango
+import time
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -333,12 +332,12 @@ class ScreenManager(gtk.Alignment):
                 self.lbl_barcode.set_markup('')
     
 
-    def _on_sync(self, obj, st, str):
+    def _on_sync(self, obj, st, txt):
         if st:
             self.lbl_sync.set_markup('<span color="#009900">Barcode match</span>')
         else:
             self.lbl_sync.set_markup('<span color="#990000">Barcode mismatch</span>')
-            self.message_log.add_text('sync: %s' % str)
+            self.message_log.add_text('sync: %s' % txt)
 
 
     def _on_new_datasets(self, obj, datasets):
@@ -359,12 +358,12 @@ class ScreenManager(gtk.Alignment):
             
     def get_task_list(self):
         model = self.listview.get_model()
-        iter = model.get_iter_first()
+        itr = model.get_iter_first()
         items = []
-        while iter:
-            tsk = model.get_value(iter, QUEUE_COLUMN_TASK)
+        while itr:
+            tsk = model.get_value(itr, QUEUE_COLUMN_TASK)
             items.append(tsk)
-            iter = model.iter_next(iter)
+            itr = model.iter_next(itr)
         return items
     
     def _get_collect_setup(self, task):
@@ -423,9 +422,9 @@ class ScreenManager(gtk.Alignment):
         
        
     def _add_item(self, item):
-        iter = self.listmodel.append()
+        itr = self.listmodel.append()
         sample = item['task'].options.get('sample', {}) # dismount does not have a sample
-        self.listmodel.set(iter, 
+        self.listmodel.set(itr, 
             QUEUE_COLUMN_STATUS, item.get('status', Screener.TASK_STATE_PENDING), 
             QUEUE_COLUMN_ID, sample.get('name', '[LAST]'), # use [LAST] as sample name
             QUEUE_COLUMN_NAME, item['task'].name,
@@ -433,8 +432,8 @@ class ScreenManager(gtk.Alignment):
         )
         self.start_btn.set_sensitive(True)
         
-    def _done_color(self, column, renderer, model, iter):
-        status = model.get_value(iter, QUEUE_COLUMN_STATUS)
+    def _done_color(self, column, renderer, model, itr):
+        status = model.get_value(itr, QUEUE_COLUMN_STATUS)
         _state_colors = {
             Screener.TASK_STATE_PENDING : None,
             Screener.TASK_STATE_RUNNING : '#990099',
@@ -444,8 +443,8 @@ class ScreenManager(gtk.Alignment):
             }
         renderer.set_property("foreground", _state_colors.get(status))
         
-    def _done_pixbuf(self, column, renderer, model, iter):
-        value = model.get_value(iter, QUEUE_COLUMN_STATUS)
+    def _done_pixbuf(self, column, renderer, model, itr):
+        value = model.get_value(itr, QUEUE_COLUMN_STATUS)
         if value == Screener.TASK_STATE_PENDING:
             renderer.set_property('pixbuf', None)
         elif value == Screener.TASK_STATE_RUNNING:
@@ -614,19 +613,19 @@ class ScreenManager(gtk.Alignment):
         # Update Queue state
         path = (position,)
         model = self.listview.get_model()
-        iter = model.get_iter(path)
-        model.set(iter, QUEUE_COLUMN_STATUS, status)
+        itr = model.get_iter(path)
+        model.set(itr, QUEUE_COLUMN_STATUS, status)
         self.listview.scroll_to_cell(path, use_align=True,row_align=0.4)
         
         # determine current and next tasks
-        if iter is None:
+        if itr is None:
             self.lbl_current.set_text('')
         else:
-            cur_tsk = model.get_value(iter, QUEUE_COLUMN_TASK)
+            cur_tsk = model.get_value(itr, QUEUE_COLUMN_TASK)
             cur_sample = cur_tsk['sample']['path'] # location in sample list
             txt = str(cur_tsk)
             self.lbl_current.set_text(txt)
-            next_iter = model.iter_next(iter)
+            next_iter = model.iter_next(itr)
             if next_iter is not None:
                 next_tsk = model.get_value(next_iter, QUEUE_COLUMN_TASK)
                 next_sample = next_tsk['sample']['path'] # location in sample list

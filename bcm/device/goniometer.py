@@ -91,9 +91,9 @@ class GoniometerBase(BaseDevice):
                 
     def _set_and_notify_mode(self, mode_str):
         mode = _MODE_MAP.get(mode_str, 6)
-        if mode_str in ['MOVING', 'UNKNOWN']:
-            return 
-        if mode != self.mode:
+        #if mode_str in ['MOVING', 'UNKNOWN']:
+        #    return 
+        if mode not in [self.mode, 'MOVING', 'UNKNOWN']:
             _logger.info( "Mode changed to `%s`" % (mode_str))
         gobject.idle_add(self.emit, 'mode', mode_str)
         self.mode = mode   
