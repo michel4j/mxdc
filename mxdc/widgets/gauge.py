@@ -1,4 +1,3 @@
-import cairo
 import gobject
 import gtk
 import math
@@ -143,10 +142,11 @@ class Gauge(gtk.DrawingArea):
         
         # needle
         f = (radius/20)**2
-        pointer = self.get_property('percent')/100.0
+        pointer = (1.5*math.pi*self.get_property('percent')/100.0) - offset
+        
         context.save()
-        xp = x + (radius * 0.75 * -math.cos(math.pi * pointer))
-        yp = y + (radius * 0.75 * -math.sin(math.pi * pointer))
+        xp = x + (radius * 0.75 * -math.cos(pointer))
+        yp = y + (radius * 0.75 * -math.sin(pointer))
         if abs(yp - y) < 0.01:
             xa = x
         else:
@@ -160,7 +160,7 @@ class Gauge(gtk.DrawingArea):
         if xp - x < 0:
             yb = ya
             ya = (2 * y) - yb
-        context.set_line_width(1.5)
+        context.set_line_width(2)
         if self.get_property('percent') < self.get_property('low'):
             context.set_source_rgb(0.8, 0.0, 0.0)
         elif self.get_property('percent') > self.get_property('high'):
