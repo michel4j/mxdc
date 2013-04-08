@@ -43,9 +43,9 @@ def call_and_print_output(cmd):
 
 def get_directory_size(start_path = '.'):
 
-    def _dir_size(arg, dir, files):
-        for file in files:
-            stats = os.stat(os.path.join(dir, file))
+    def _dir_size(arg, folder, files):
+        for f in files:
+            stats = os.stat(os.path.join(folder, f))
             size = stats[6]
             arg.append(size)
     
@@ -80,9 +80,9 @@ class RsyncApp(object):
 
     def get_disk_stats(self):
         src_sz = self._humanize(get_directory_size(self.src))
-        dst_sz, dst_avl, dst_pct = self._check_space(self.dest)
+        dst_avl, dst_pct = self._check_space(self.dest)[1:]
         tgt_sz = self._humanize(get_directory_size(self.tgt))
-        dst_sz = self._humanize(get_directory_size(self.dest))   
+        #dst_sz = self._humanize(get_directory_size(self.dest))   
         return src_sz, tgt_sz, dst_avl, dst_pct
         
     def run(self):
