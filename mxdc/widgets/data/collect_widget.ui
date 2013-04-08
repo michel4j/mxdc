@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <!-- interface-requires gtk+ 3.0 -->
+  <requires lib="gtk+" version="2.18"/>
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkWindow" id="window1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -15,8 +16,6 @@
           <object class="GtkAlignment" id="frame_book">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="hexpand">True</property>
-            <property name="vexpand">True</property>
             <child>
               <placeholder/>
             </child>
@@ -31,8 +30,6 @@
           <object class="GtkVBox" id="control_box">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="hexpand">True</property>
-            <property name="vexpand">True</property>
             <property name="spacing">6</property>
             <child>
               <object class="GtkHButtonBox" id="hbuttonbox1">
@@ -281,7 +278,6 @@
                     <property name="can_focus">True</property>
                     <property name="hscrollbar_policy">never</property>
                     <property name="shadow_type">in</property>
-                    <property name="min_content_height">70</property>
                     <child>
                       <object class="GtkTextView" id="strategy_view">
                         <property name="visible">True</property>
