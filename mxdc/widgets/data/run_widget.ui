@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.24"/>
+  <requires lib="gtk+" version="2.18"/>
   <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
@@ -30,7 +30,6 @@
             <property name="toolbar_style">both-horiz</property>
             <child>
               <object class="GtkToolButton" id="save_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="has_tooltip">True</property>
@@ -44,7 +43,6 @@
             </child>
             <child>
               <object class="GtkToolButton" id="update_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
@@ -58,7 +56,6 @@
             </child>
             <child>
               <object class="GtkToolButton" id="reset_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
@@ -83,7 +80,6 @@
             </child>
             <child>
               <object class="GtkToggleToolButton" id="enable_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
@@ -108,7 +104,6 @@
             </child>
             <child>
               <object class="GtkToolButton" id="delete_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
@@ -177,8 +172,8 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">7</property>
                 <property name="bottom_attach">8</property>
-                <property name="x_options"></property>
-                <property name="y_options"></property>
+                <property name="x_options"/>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -193,8 +188,8 @@
                 <property name="right_attach">2</property>
                 <property name="top_attach">7</property>
                 <property name="bottom_attach">8</property>
-                <property name="x_options"></property>
-                <property name="y_options"></property>
+                <property name="x_options"/>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -212,7 +207,7 @@
                 <property name="right_attach">4</property>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -230,7 +225,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">3</property>
                 <property name="bottom_attach">4</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -248,7 +243,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">4</property>
                 <property name="bottom_attach">5</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -266,7 +261,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">5</property>
                 <property name="bottom_attach">6</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -284,7 +279,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">8</property>
                 <property name="bottom_attach">9</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -302,7 +297,7 @@
                 <property name="right_attach">2</property>
                 <property name="top_attach">8</property>
                 <property name="bottom_attach">9</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -320,7 +315,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">9</property>
                 <property name="bottom_attach">10</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -338,7 +333,7 @@
                 <property name="right_attach">2</property>
                 <property name="top_attach">9</property>
                 <property name="bottom_attach">10</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -356,7 +351,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">11</property>
                 <property name="bottom_attach">12</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -374,13 +369,12 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">6</property>
                 <property name="bottom_attach">7</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
               <object class="GtkCheckButton" id="inverse_beam">
                 <property name="label" translatable="yes">Inverse Beam</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -650,7 +644,7 @@ skip (e.g. 1, 5-30, 55, 90-98)</property>
                 <property name="right_attach">3</property>
                 <property name="top_attach">10</property>
                 <property name="bottom_attach">11</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
@@ -695,13 +689,12 @@ Datasets will be linked to it</property>
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">4</property>
-                <property name="y_options"></property>
+                <property name="y_options"/>
               </packing>
             </child>
             <child>
               <object class="GtkCheckButton" id="dafs">
                 <property name="label" translatable="yes">DAFS</property>
-                <property name="use_action_appearance">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="no_show_all">True</property>
