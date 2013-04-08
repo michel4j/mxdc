@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.24"/>
+  <requires lib="gtk+" version="2.18"/>
   <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkMenu" id="colormap_popup">
     <property name="can_focus">False</property>
     <child>
       <object class="GtkMenuItem" id="cmap_default">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
@@ -19,42 +18,36 @@
     </child>
     <child>
       <object class="GtkMenuItem" id="cmap_spectral">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
     </child>
     <child>
       <object class="GtkMenuItem" id="cmap_hsv">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
     </child>
     <child>
       <object class="GtkMenuItem" id="cmap_jet">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
     </child>
     <child>
       <object class="GtkMenuItem" id="cmap_ryg">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
     </child>
     <child>
       <object class="GtkMenuItem" id="cmap_hot">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
     </child>
     <child>
       <object class="GtkMenuItem" id="cmap_pubu">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
@@ -110,6 +103,12 @@
                     <property name="can_focus">False</property>
                     <property name="n_columns">2</property>
                     <property name="homogeneous">True</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
                     <child>
                       <placeholder/>
                     </child>
@@ -309,7 +308,6 @@
                         <child>
                           <object class="GtkButton" id="reset_btn">
                             <property name="label" translatable="yes">Reset</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -324,7 +322,6 @@
                         <child>
                           <object class="GtkToggleButton" id="roi_btn">
                             <property name="label" translatable="yes">Define</property>
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -393,7 +390,6 @@
                             <child>
                               <object class="GtkButton" id="temp_btn">
                                 <property name="label" translatable="yes">Temperature</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="width_request">98</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
@@ -462,7 +458,6 @@
                         <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkButton" id="pause_btn">
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -506,7 +501,6 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="clear_btn">
-                            <property name="use_action_appearance">False</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -565,7 +559,6 @@
                 <child>
                   <object class="GtkButton" id="save_btn">
                     <property name="label">gtk-save</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
@@ -636,7 +629,7 @@
                   </object>
                   <packing>
                     <property name="right_attach">3</property>
-                    <property name="x_options"></property>
+                    <property name="x_options"/>
                   </packing>
                 </child>
                 <child>

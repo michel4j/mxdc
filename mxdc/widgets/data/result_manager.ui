@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <!-- interface-requires gtk+ 3.0 -->
+  <requires lib="gtk+" version="2.18"/>
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <child>
@@ -112,7 +113,6 @@
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
                             <property name="tooltip_text" translatable="yes">Process all selected datasets as MAD data</property>
-                            <property name="xalign">0.5</property>
                             <property name="image_position">right</property>
                             <property name="draw_indicator">True</property>
                           </object>
@@ -128,7 +128,6 @@
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
                             <property name="tooltip_text" translatable="yes">Process as Anomalous data</property>
-                            <property name="xalign">0.5</property>
                             <property name="draw_indicator">True</property>
                           </object>
                           <packing>
@@ -144,7 +143,6 @@
                             <property name="receives_default">False</property>
                             <property name="has_tooltip">True</property>
                             <property name="tooltip_text" translatable="yes">Process and merge selected datasets</property>
-                            <property name="xalign">0.5</property>
                             <property name="image_position">right</property>
                             <property name="draw_indicator">True</property>
                           </object>

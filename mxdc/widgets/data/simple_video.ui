@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.24"/>
+  <requires lib="gtk+" version="2.18"/>
   <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkMenu" id="colormap_popup">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_default">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="active">True</property>
@@ -23,7 +22,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_spectral">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="draw_as_radio">True</property>
@@ -32,7 +30,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_hsv">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="draw_as_radio">True</property>
@@ -41,7 +38,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_jet">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="draw_as_radio">True</property>
@@ -50,7 +46,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_ryg">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="draw_as_radio">True</property>
@@ -59,7 +54,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_hot">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="draw_as_radio">True</property>
@@ -68,7 +62,6 @@
     </child>
     <child>
       <object class="GtkRadioMenuItem" id="cmap_pubu">
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="draw_as_radio">True</property>
@@ -151,7 +144,6 @@
                 <child>
                   <object class="GtkButton" id="save_btn">
                     <property name="label">gtk-save</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
