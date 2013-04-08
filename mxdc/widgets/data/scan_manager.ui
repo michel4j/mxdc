@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <!-- interface-requires gtk+ 3.0 -->
+  <requires lib="gtk+" version="2.18"/>
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkAdjustment" id="adjustment1">
     <property name="lower">1</property>
     <property name="upper">32</property>
@@ -52,7 +53,6 @@
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
                             <property name="use_underline">True</property>
-                            <property name="xalign">0.5</property>
                             <property name="active">True</property>
                             <property name="draw_indicator">True</property>
                           </object>
@@ -69,7 +69,6 @@
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
                             <property name="use_underline">True</property>
-                            <property name="xalign">0.5</property>
                             <property name="draw_indicator">True</property>
                             <property name="group">xanes_btn</property>
                           </object>
@@ -85,7 +84,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
-                            <property name="xalign">0.5</property>
                             <property name="draw_indicator">True</property>
                             <property name="group">xanes_btn</property>
                           </object>
@@ -131,8 +129,6 @@
                         <property name="width_request">250</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="margin_right">74</property>
-                        <property name="margin_top">48</property>
                         <property name="xalign">0</property>
                         <property name="label" translatable="yes">Find peak, inflection and remote energies for MAD experiments</property>
                         <property name="use_markup">True</property>
@@ -283,6 +279,8 @@
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">True</property>
+                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -302,6 +300,8 @@
                             <property name="xalign">1</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">True</property>
+                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -320,6 +320,8 @@
                             <property name="xalign">1</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">True</property>
+                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -338,6 +340,8 @@
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">True</property>
+                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -388,6 +392,8 @@ with this crystal</property>
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">True</property>
+                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -419,6 +425,8 @@ with this crystal</property>
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">True</property>
+                            <property name="secondary_icon_sensitive">True</property>
                             <property name="adjustment">adjustment1</property>
                             <property name="snap_to_ticks">True</property>
                             <property name="numeric">True</property>
@@ -443,6 +451,8 @@ with this crystal</property>
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">True</property>
+                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">3</property>
@@ -480,6 +490,8 @@ with this crystal</property>
                             <property name="invisible_char_set">True</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">True</property>
+                            <property name="secondary_icon_sensitive">True</property>
                             <property name="adjustment">adjustment2</property>
                             <property name="snap_to_ticks">True</property>
                             <property name="numeric">True</property>
@@ -820,7 +832,6 @@ with this crystal</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="border_width">12</property>
-                <property name="vscrollbar_policy">always</property>
                 <property name="shadow_type">in</property>
                 <child>
                   <object class="GtkTextView" id="output_text">
