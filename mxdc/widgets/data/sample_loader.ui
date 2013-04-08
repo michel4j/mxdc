@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.24"/>
+  <requires lib="gtk+" version="2.18"/>
   <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
@@ -117,7 +117,6 @@ to select it for mounting</property>
             <property name="icon_size_set">True</property>
             <child>
               <object class="GtkToolButton" id="file_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
@@ -135,7 +134,6 @@ from spreadsheet</property>
             </child>
             <child>
               <object class="GtkToolButton" id="lims_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
@@ -161,7 +159,6 @@ from MxLIVE server</property>
             </child>
             <child>
               <object class="GtkToolButton" id="clear_btn">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
@@ -189,7 +186,6 @@ from MxLIVE server</property>
             </child>
             <child>
               <object class="GtkToolItem" id="mount_tbtn2">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="is_important">True</property>
