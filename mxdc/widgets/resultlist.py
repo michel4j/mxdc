@@ -1,7 +1,7 @@
-import gtk, gobject
-import sys, os, time
-from bcm.utils.configobj import ConfigObj
-from mxdc.widgets.dialogs import *
+import gobject
+import gtk
+import os
+
 
 (
     RESULT_COLUMN_STATE,
@@ -75,8 +75,8 @@ class ResultList(gtk.ScrolledWindow):
     def add_row_activate_handler(self, func):
         return self.listview.connect('row-activated',self.on_row_activated)
     
-    def del_row_activate_handler(self, id):
-        self.listview.disconnect(id)
+    def del_row_activate_handler(self, _id):
+        self.listview.disconnect(_id)
 
     def load_data(self, data):
         self.clear()
@@ -85,10 +85,10 @@ class ResultList(gtk.ScrolledWindow):
             
 
     def add_item(self, item):
-        iter = self.listmodel.append()
+        itr = self.listmodel.append()
         crystal = item.get('crystal', {})
         self._num_items += 1
-        self.listmodel.set(iter,
+        self.listmodel.set(itr,
                 RESULT_COLUMN_STATE, RESULT_STATE_WAITING,
                 RESULT_COLUMN_NAME, item['name'],
                 RESULT_COLUMN_TYPE, item.get('type','Screen'),
@@ -99,10 +99,10 @@ class ResultList(gtk.ScrolledWindow):
                 RESULT_COLUMN_DATA, crystal,
                 RESULT_COLUMN_INDEX, self._num_items,
                 RESULT_COLUMN_RESULT, {})
-        return iter
+        return itr
 
-    def update_item(self, iter, data):
-        self.listmodel.set(iter,
+    def update_item(self, itr, data):
+        self.listmodel.set(itr,
                 RESULT_COLUMN_STATE, data.get('state'),
                 RESULT_COLUMN_SCORE, data.get('score', -1),
                 RESULT_COLUMN_SG, data.get('space_group', '-'),
@@ -110,15 +110,15 @@ class ResultList(gtk.ScrolledWindow):
                 RESULT_COLUMN_RESULT, data.get('detail', {}),
         )
     
-    def __format_cell(self, column, renderer, model, iter):
-        value = model.get_value(iter, RESULT_COLUMN_STATE)
+    def __format_cell(self, column, renderer, model, itr):
+        value = model.get_value(itr, RESULT_COLUMN_STATE)
         renderer.set_property("foreground", STATE_DICT[value])
         return
 
-    def __format_float_cell(self, column, renderer, model, iter):
-        value = model.get_value(iter, RESULT_COLUMN_STATE)
+    def __format_float_cell(self, column, renderer, model, itr):
+        value = model.get_value(itr, RESULT_COLUMN_STATE)
         renderer.set_property("foreground", STATE_DICT[value])
-        value = model.get_value(iter, RESULT_COLUMN_SCORE)
+        value = model.get_value(itr, RESULT_COLUMN_SCORE)
         # Hide negative values
         if value < 0:
             renderer.set_property('text', '-')
@@ -128,8 +128,8 @@ class ResultList(gtk.ScrolledWindow):
             renderer.set_property('xalign', 1.0)
         return
     
-    def __format_pixbuf(self, column, renderer, model, iter):
-        value = model.get_value(iter, RESULT_COLUMN_STATE)
+    def __format_pixbuf(self, column, renderer, model, itr):
+        value = model.get_value(itr, RESULT_COLUMN_STATE)
         if value == RESULT_STATE_WAITING:
             renderer.set_property('pixbuf', self._wait_img)
         elif value == RESULT_STATE_READY:

@@ -12,6 +12,7 @@ try:
     pynotify.init('MxDC')
     _NOTIFY_AVAILABLE = True
 except:
+    _NOTIFY_AVAILABLE = False
     _logger.warn('System notifications will not be available.')
 
 MSG_COLORS = {
@@ -73,7 +74,7 @@ class DiagnosticDisplay(gtk.Alignment):
             self._notice = pynotify.Notification(self._diagnostic.description,
                                       data[1])
             self._notice.set_urgency(pynotify.URGENCY_CRITICAL)
-            self._notice.set_timeout(20000) # 20 seconds
+            self._notice.set_timeout(6000) # 20 seconds
             self._notice.show()
 
         

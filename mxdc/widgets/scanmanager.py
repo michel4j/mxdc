@@ -4,7 +4,7 @@ from bcm.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
 from bcm.utils import lims_tools
 from bcm.utils.log import get_module_logger
 from mxdc.utils import config, gui
-from mxdc.widgets.dialogs import  warning, MyDialog
+from mxdc.widgets import dialogs
 from mxdc.widgets.misc import ActiveProgressBar
 from mxdc.widgets.periodictable import PeriodicTable
 from mxdc.widgets.plotter import Plotter
@@ -176,7 +176,7 @@ class ScanManager(gtk.Alignment):
         self.exafs_btn.connect('toggled', self.on_mode_change, 'EXAFS')
         self.entries = {
             'prefix': self.prefix_entry,
-            'directory': self.directory_btn,
+            'directory': dialogs.FolderSelector(self.directory_btn),
             'edge': self.edge_entry,
             'energy': self.energy_entry,
             'time': self.time_entry,
@@ -185,7 +185,7 @@ class ScanManager(gtk.Alignment):
             'scans': self.scans_entry,
             'kmax': self.kmax_entry,
         }
-        self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=gtk.EXPAND|gtk.FILL)
+        #self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=gtk.EXPAND|gtk.FILL)
         for key in ['prefix','edge']:
             self.entries[key].set_alignment(0.5)
         for key in ['energy','time','attenuation']:
@@ -373,7 +373,7 @@ class ScanManager(gtk.Alignment):
             params = {
                 'mode': 'XANES',
                 'prefix': 'test_scan',
-                'directory': os.environ['HOME'],
+                'directory': gui.SESSION_INFO.get('current_path', gui.SESSION_INFO['path']),
                 'energy': 12.6580,
                 'edge': 'Se-K',
                 'time': 0.5,
@@ -386,7 +386,7 @@ class ScanManager(gtk.Alignment):
             self.entries[key].set_text(params[key])
         for key in ['time','attenuation']:
             self.entries[key].set_text("%0.1f" % params[key])
-        self.entries['directory'].set_filename(params['directory'])
+        self.entries['directory'].set_current_folder(params['directory'])
         self.entries['energy'].set_text("%0.4f" % params['energy'])
         self._emission = params['emission']
         self.entries['scans'].set_value(params.get('scans', 1))
@@ -407,9 +407,7 @@ class ScanManager(gtk.Alignment):
         params['scans'] = self.entries['scans'].get_value_as_int()
         params['kmax'] = self.entries['kmax'].get_value_as_int()
         params['crystal'] = self.active_sample.get('id', '')
-        params['directory']   = self.entries['directory'].get_filename()
-        if params['directory'] is None:
-            params['directory'] = os.environ['HOME']
+        params['directory']   = self.entries['directory'].get_current_folder()
         if self.xanes_btn.get_active():
             params['mode'] = 'XANES'
         elif self.xrf_btn.get_active():
@@ -585,8 +583,9 @@ class ScanManager(gtk.Alignment):
             if warning:
                 msg = "Beam not Available. When the beam is available again, resume your scan." 
                 title = 'Attention Required'
-                self.resp = MyDialog(gtk.MESSAGE_WARNING, 
+                self.resp = dialogs.MyDialog(gtk.MESSAGE_WARNING, 
                                              title, msg,
+                                             parent=self.get_toplevel(),
                                              buttons=( ('OK', gtk.RESPONSE_ACCEPT),) )
                 self._intervening = False
                 self.resp()
@@ -617,7 +616,7 @@ class ScanManager(gtk.Alignment):
         self.scan_book.set_current_page(1)
         results = obj.results.get('energies')
         if results is None:
-            warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed')
+            dialogs.warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed', parent=self.get_toplevel())
             return True
         
         self.xanes_box.show()

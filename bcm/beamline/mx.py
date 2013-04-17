@@ -3,20 +3,17 @@
 """
 
 
-import os
-import threading
-import time
-import re
-import imp
-from ConfigParser import ConfigParser
-from zope.interface import implements
-from twisted.python.components import globalRegistry
 
-from bcm.protocol import ca
 from bcm.beamline.interfaces import IBeamline
-from bcm.utils.log import get_module_logger, log_to_console
+from bcm.protocol import ca
 from bcm.settings import *
-
+from bcm.utils import json
+from bcm.utils.log import get_module_logger, log_to_console
+from twisted.python.components import globalRegistry
+from zope.interface import implements
+import imp
+import os
+import re
        
 class MXBeamline(object):
     """MX Beamline(Macromolecular Crystallography Beamline) objects
@@ -85,7 +82,7 @@ class MXBeamline(object):
             return super(MXBeamline).__getattr__(self, key)
         except AttributeError:
             return self.registry[key]
-    
+            
     def setup(self):
         """Setup and register the beamline devices from configuration files."""
         ca.threads_init()
