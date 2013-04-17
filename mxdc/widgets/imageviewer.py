@@ -1,7 +1,7 @@
 # -*- coding: UTF8 -*-
 
-from dialogs import select_image
 from mxdc.utils import gui
+from mxdc.widgets import dialogs
 from mxdc.widgets.imagewidget import ImageWidget, image_loadable
 import gobject
 import gtk
@@ -301,9 +301,9 @@ class ImageViewer(gtk.Alignment):
         return True
 
     def on_file_open(self,widget):
-        flt, filename = select_image()
+        filename, flt = dialogs.select_open_image(parent=self.get_toplevel())
         if filename is not None and os.path.isfile(filename):
-            if flt.get_name() == 'XDS SPOT Files':
+            if flt.get_name() == 'XDS Spot files':
                 self._load_spots(filename)
                 # if spot information is available  and an image is loaded display it
                 if self.image_canvas.image_loaded:

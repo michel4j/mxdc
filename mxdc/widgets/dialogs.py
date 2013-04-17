@@ -1,6 +1,8 @@
 import os
 import gtk
+import pango
 import re
+from mxdc.utils import gui
 
 MAIN_WINDOW = None
 
@@ -10,10 +12,6 @@ _IMAGE_TYPES = {
     gtk.MESSAGE_QUESTION : gtk.STOCK_DIALOG_QUESTION,
     gtk.MESSAGE_ERROR : gtk.STOCK_DIALOG_ERROR,
 }
-
-IMAGE_FORMAT = ['jpg', 'png']
-IMAGE_FORMAT.sort()
-IMAGE_FORMAT_DEFAULT  = 'png'
 
 _BUTTON_TYPES = {
     gtk.BUTTONS_NONE: (),
@@ -28,10 +26,10 @@ _BUTTON_TYPES = {
     
 class AlertDialog(gtk.Dialog):
     def __init__(self, parent, flags,
-                 type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_NONE):
-        if not type in _IMAGE_TYPES:
+                 dialog_type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_NONE):
+        if not dialog_type in _IMAGE_TYPES:
             raise TypeError(
-                "type must be one of: %s", ', '.join(_IMAGE_TYPES.keys()))
+                "dialog_type must be one of: %s", ', '.join(_IMAGE_TYPES.keys()))
         if not buttons in _BUTTON_TYPES:
             raise TypeError(
                 "buttons be one of: %s", ', '.join(_BUTTON_TYPES.keys()))
@@ -49,7 +47,7 @@ class AlertDialog(gtk.Dialog):
 
         self._primary_label = gtk.Label()
         self._secondary_label = gtk.Label()
-        self._image = gtk.image_new_from_stock(_IMAGE_TYPES[type],
+        self._image = gtk.image_new_from_stock(_IMAGE_TYPES[dialog_type],
                                                gtk.ICON_SIZE_DIALOG)
         self._image.set_alignment(0.5, 0.0)
 
@@ -97,8 +95,8 @@ class AlertDialog(gtk.Dialog):
         self._secondary_label.set_markup(text)
 
     def set_details(self, text):
-        iter = self.details_buffer.get_end_iter()
-        self.details_buffer.insert(iter, text)
+        itr = self.details_buffer.get_end_iter()
+        self.details_buffer.insert(itr, text)
         self._expander.show()
 
 class MyDialog(object):
@@ -141,12 +139,12 @@ class MyDialog(object):
             dialog_buttons = gtk.BUTTONS_NONE
         if parent is None:
             parent = MAIN_WINDOW
-            
+
         if parent and not isinstance(parent, gtk.Window):
             raise TypeError("parent must be a gtk.Window subclass")
     
         self.dialog = AlertDialog(parent=parent, flags=gtk.DIALOG_MODAL,
-                           type=dialog_type, buttons=dialog_buttons)
+                           dialog_type=dialog_type, buttons=dialog_buttons)
         if buttons:
             for text, response in buttons:
                 self.dialog.add_buttons(text, response)
@@ -190,11 +188,11 @@ class MyDialog(object):
         self.dialog.destroy()
     
 
-def _simple(type, header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK,
+def _simple(dialog_type, header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK,
           default=-1, extra_widgets=None):
     if buttons == gtk.BUTTONS_OK:
         default = gtk.RESPONSE_OK
-    messagedialog = MyDialog(type, header, sub_header, details,
+    messagedialog = MyDialog(dialog_type, header, sub_header, details,
                          parent=parent, buttons=buttons,
                          default=default, extra_widgets=extra_widgets)
     return messagedialog()
@@ -222,289 +220,214 @@ def yesno(header, sub_header=None, details=None, parent=None, default=gtk.RESPON
     return messagedialog()
 
 def check_folder(directory, parent=None, warn=True):
-    print directory
     if directory is None:
         return False
     if not os.path.exists(directory):
         header = "The folder '%s' does not exist!" % directory
         sub_header = "Please select a valid folder and try again."
         if warn:
-            response = warning(header, sub_header)
+            warning(header, sub_header, parent=parent)
         return False
     elif not os.access(directory,os.W_OK):
         header = "The folder %s can not be written to!" % directory
         sub_header = "Please select a valid folder and try again."
         if warn:
-            response = warning(header, sub_header)
+            warning(header, sub_header, parent=parent)
         return False
     return True
-    
-class FolderSelector(object):
-    def __init__(self, path=None):
-        self.set_path(path)
-        
-    def set_path(self, path):
-        if path is None or not os.path.exists(path):
-            self.path = os.environ['HOME']
+
+def select_opensave_file(title, action, parent=None, filters=[], formats=[]):
+        if action in [gtk.FILE_CHOOSER_ACTION_OPEN, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER]:
+            _stock = gtk.STOCK_OPEN        
         else:
-            self.path = path
-            
-    def __call__(self,path=None):
-        file_open = gtk.FileChooserDialog(title="Select Folder"
-            , action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER
-            , buttons=(gtk.STOCK_CANCEL
-                , gtk.RESPONSE_CANCEL
-                , gtk.STOCK_OPEN
-                , gtk.RESPONSE_OK))
-        if path: 
-            self.path = path
-        file_open.set_current_folder (self.path)
-        #file_open.set_uri('file:/%s' % self.path)
-        result = None
-        if file_open.run() == gtk.RESPONSE_OK:
-            result = file_open.get_filename()
-            self.path = result
-        file_open.destroy()    
-        return result
-
-class ImageSelector(object):
-    def __init__(self, path=None):
-        if path is None or not os.path.exists(path):
-            self.path = os.environ['HOME']
-        else:
-            self.path = path
-        #self.path = "/data" + os.sep
-        self.img_filter = gtk.FileFilter()
-        self.img_filter.set_name("Diffraction Frames")
-        self.img_filter.add_pattern("*.img")
-        self.img_filter.add_pattern("*.marccd")
-        self.img_filter.add_pattern("*.mccd")
-        self.img_filter.add_pattern("*.pck")
-        self.img_filter.add_pattern("*.cbf")
-        self.img_filter.add_pattern("*.smv")
-        self.img_filter.add_pattern("*.[0-9][0-9][0-9]")
-        self.img_filter.add_pattern("*.[0-9][0-9][0-9][0-9]")
-        
-        self.spot_filter = gtk.FileFilter()
-        self.spot_filter.set_name("XDS SPOT Files")
-        self.spot_filter.add_pattern("SPOT.XDS*")
-        self.spot_filter.add_pattern("*.HKL*")
-
-        self.all_filter = gtk.FileFilter()
-        self.all_filter.set_name("All Files")
-        self.all_filter.add_pattern("*.*")
-    
-    def set_path(self, path):
-        if path is None or not os.path.exists(path):
-            self.path = os.environ['HOME']
-        else:
-            self.path = path
-        
-    
-    def __call__(self,path=None):
-        file_open = gtk.FileChooserDialog(title="Select Image"
-                , action=gtk.FILE_CHOOSER_ACTION_OPEN
-                , buttons=(gtk.STOCK_CANCEL
-                            , gtk.RESPONSE_CANCEL
-                            , gtk.STOCK_OPEN
-                            , gtk.RESPONSE_OK))
-   
-        file_open.add_filter(self.img_filter)
-        file_open.add_filter(self.spot_filter)
-        file_open.add_filter(self.all_filter)
-        
-        if path: 
-            self.path = path
-        file_open.set_current_folder (self.path)
-
-        result = (None, None)
-        if file_open.run() == gtk.RESPONSE_OK:
-            result = (file_open.get_filter(), file_open.get_filename())
-            self.path = os.path.dirname(result[1])
-        file_open.destroy()   
-        return result
-
-class FileSelector(object):
-    path = os.environ['HOME']
-    
-    def __init__(self, title, action, filters):
-        self.set_path(os.environ['HOME'])
+            _stock = gtk.STOCK_SAVE
+        dialog = gtk.FileChooserDialog(
+                    title=title, 
+                    action=action,
+                    parent=parent,
+                    buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, _stock,   gtk.RESPONSE_OK))
+        dialog.set_current_folder(gui.SESSION_INFO.get('current_path', gui.SESSION_INFO['path']))
+        print parent
+        dialog.set_do_overwrite_confirmation(True)
         if action == gtk.FILE_CHOOSER_ACTION_OPEN:
-            resp_stock = gtk.STOCK_OPEN        
-        else:
-            resp_stock = gtk.STOCK_SAVE
-        self.file_open = gtk.FileChooserDialog(title=title, 
-                action=action,
-                buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                         resp_stock,   gtk.RESPONSE_OK))
-        for name, patterns in filters:
-            fil = gtk.FileFilter()
-            fil.set_name(name)
-            for pat in patterns:
-                fil.add_pattern(pat)
-            self.file_open.add_filter(fil)
-            self.file_open.set_current_folder(self.path)
-        self.file_open.set_do_overwrite_confirmation(True)    
-
-    def set_path(self, path):
-        if path is None or not os.path.exists(path):
-            self.__class__.path = os.environ['HOME'] 
-        else:
-            self.__class__.path = os.path.abspath(path)
+            for name, patterns in filters:
+                fil = gtk.FileFilter()
+                fil.set_name(name)
+                for pat in patterns:
+                    fil.add_pattern(pat)
+                dialog.add_filter(fil)
+        elif action == gtk.FILE_CHOOSER_ACTION_SAVE:
+            format_info = dict(formats)
+            hbox = gtk.HBox(spacing=10)
+            hbox.pack_start(gtk.Label ("Format:"), False, False, 0)
+            cbox = gtk.combo_box_new_text()
+            hbox.pack_start(cbox, True, True, 0)
+            for fmt in formats:
+                cbox.append_text(fmt[0])
+            cbox.set_active(0)            
+            hbox.show_all()
+            dialog.set_extra_widget(hbox)
             
-    def run(self):
-        if self.file_open.run() == gtk.RESPONSE_OK:
-            self.filename = self.file_open.get_filename()
-            self.filter = self.file_open.get_filter()
-            self.set_path(os.path.dirname(self.filename))
-        else:
-            self.filename = None
-            self.filter = None
-        self.file_open.destroy()
-        return self.filename
-    
-    def get_filename(self):
-        return self.filename
-    
-    def get_filter(self):
-        return self.filter
-
-
-class FileChooserDialog(gtk.FileChooserDialog):
-    def __init__ (self,
-                  title   = 'Save Image',
-                  parent  = None,
-                  action  = gtk.FILE_CHOOSER_ACTION_SAVE,
-                  buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                             gtk.STOCK_SAVE,   gtk.RESPONSE_OK),
-                  path    = None,
-                  ):
-        super (FileChooserDialog, self).__init__ (title, parent, action,
-                                                  buttons)
-        self.set_default_response (gtk.RESPONSE_OK)
-        if path: self.path = path
-        else:    
-            self.path = os.environ['HOME']
-            #self.path = "/data" + os.sep
-        # create an extra widget to list supported image formats
-        self.set_current_folder (self.path)
-        self.set_current_name ('image.' + IMAGE_FORMAT_DEFAULT)
-        hbox = gtk.HBox (spacing=10)
-        hbox.pack_start (gtk.Label ("Image Format:"), expand=False)
-
-        self.cbox = gtk.combo_box_new_text()
-        hbox.pack_start (self.cbox)
-
-        for item in IMAGE_FORMAT:
-            self.cbox.append_text (item)
-        self.cbox.set_active (IMAGE_FORMAT.index (IMAGE_FORMAT_DEFAULT))
-
-        def cb_cbox_changed (cbox, data=None):
-            """File extension changed"""
-            head, filename = os.path.split(self.get_filename())
-            root, ext = os.path.splitext(filename)
-            ext = ext[1:]
-            new_ext = IMAGE_FORMAT[cbox.get_active()]
-
-            if ext in IMAGE_FORMAT:
-                filename = filename.replace(ext, new_ext)
-            elif ext == '':
-                filename = filename.rstrip('.') + '.' + new_ext
-
-            self.set_current_name (filename)
-        self.cbox.connect ("changed", cb_cbox_changed)
-
-        hbox.show_all()
-        self.set_extra_widget(hbox)
-
-
-    def __call__(self):
-        while True:
-            filename = None
-            if self.run() != gtk.RESPONSE_OK:
-                break
-            filename = self.get_filename()
-            menu_ext  = IMAGE_FORMAT[self.cbox.get_active()]
-            root, ext = os.path.splitext (filename)
-            ext = ext[1:]
-            if ext == '':
-                ext = menu_ext
-                filename += '.' + ext
-
-            if ext in IMAGE_FORMAT:
-                self.path = filename
-                break
+            def _cb(obj, dlg, info):
+                fname = "%s.%s" % (os.path.splitext(dlg.get_filename())[0],
+                            info.get(obj.get_active_text()))
+                dlg.set_current_name(os.path.basename(fname))
+            cbox.connect('changed', _cb, dialog, format_info)
+            
+        if dialog.run() == gtk.RESPONSE_OK:
+            filename = dialog.get_filename()
+            if action == gtk.FILE_CHOOSER_ACTION_SAVE:
+                txt = cbox.get_active_text()
+                fext = os.path.splitext(filename)[1].lstrip('.').lower()
+                if fext == '':
+                    fext = format_info.values()[0]
+                fltr = format_info.get(txt, fext)
+                filename = "%s.%s" % (os.path.splitext(filename)[0], fltr)
             else:
-                error_msg_gtk ('Image format "%s" is not supported' % ext,
-                                parent=self)
-                self.set_current_name (os.path.split(root)[1] + '.' +
-                                        menu_ext)
+                fltr = dialog.get_filter()
+        else:
+            filename = None
+            fltr = None
+        dialog.destroy()
+        return filename, fltr
+                
 
-        self.hide()
-        return filename
+def select_save_file(title, parent=None, formats=[]):
+    return select_opensave_file(title, gtk.FILE_CHOOSER_ACTION_SAVE, parent=parent, formats=formats)
 
-class FolderChooserButton(gtk.Button):
-    def __init__(self):
-        gtk.Button.__init__(self)
-        self.dir_label = gtk.Label(os.environ['HOME'])
+def select_open_file(title, parent=None, filters=[]):
+    return select_opensave_file(title, gtk.FILE_CHOOSER_ACTION_OPEN, parent=parent, filters=filters)
+
+def select_open_image(parent=None):
+    filters = [
+        ('Diffraction Frames', ["*.img", "*.marccd","*.mccd", "*.pck", "*.cbf","*.[0-9][0-9][0-9]", "*.[0-9][0-9][0-9][0-9]" ]),
+        ('XDS Spot files', ["SPOT.XDS*", "*.HKL*"] ),
+        ('All files', ["*.*"])
+    ]
+    return select_opensave_file('Select Image', gtk.FILE_CHOOSER_ACTION_OPEN, parent=parent, filters=filters)
+
+class FolderSelector(object):
+    def __init__(self, button):
+        self.button = button
+        self.path = gui.SESSION_INFO.get('current_path', gui.SESSION_INFO['path'])
+        self.dir_label = gtk.Label('')
         self.dir_label.set_alignment(0,0.5)
+        self.folders = gui.SESSION_INFO.get('directories', [self.path])
         self.icon = gtk.image_new_from_stock('gtk-directory', gtk.ICON_SIZE_MENU)
         hbox = gtk.HBox(False,3)
-        hbox.pack_start(self.icon, expand=False, fill=False)
-        hbox.pack_start(self.dir_label, expand=True, fill=True)
-        hbox.pack_start(gtk.VSeparator(), expand=False, fill=False)
-        hbox.pack_end(gtk.Label('...'), expand=False, fill=False)
+        hbox.pack_end(self.icon, False, False, 2)
+        hbox.pack_start(self.dir_label, True, True, 0)
+        hbox.pack_start(gtk.VSeparator(), False, False, 0)
         hbox.show_all()
-        self.add(hbox)
-        self.path = os.environ['HOME']
-        self.connect('clicked', self.on_select_dir)
+        self.button.add(hbox)
         self.tooltips = gtk.Tooltips()
         self.tooltips.enable()
-
-    def on_select_dir(self, widget):
-        directory = select_folder(self.path)
-        if directory:
-            if len(directory) > 255:
-                msg1 = "Directory path too long!"
-                msg2 = "The path should be less than 256 characters. Yours '%s' is %d characters long. Please use shorter names, and/or fewer levels of subdirectories." % (directory, len(directory))
-                result = warning(msg1, msg2)
-                self.set_filenamet(self.path)
-            elif not re.compile('^[\w/]+$').match(directory):
-                msg1 = "Directory name has special characters!"
-                msg2 = "The path name must be free from spaces and other special characters. Please select another directory."
-                result = warning(msg1, msg2)
-                self.set_filename(self.path)
-            else:
-                self.set_filename(directory)
-                return True
-
-        return True
+        self.set_current_folder(self.path)
+           
+        self.button.connect('button-press-event', self._on_activate)
+        self.button.connect('clicked', self._on_activate)
         
-    def ellipsize(self,text):
-        maxlen = 15
-        l = maxlen/2 - 2
-        r = maxlen/2 - 1
-        if len(text) < maxlen:
-            return text
-        else:
-            return text[:l] + '...' + text[-r:]
-        
+        # housekeeping
+        self._last_press_button = 1
+        self._last_press_time = 0
 
-    def set_filename(self,text):
-        self.path = text
-        self.tooltips.set_tip(self.dir_label, text)
-        dir_txt = os.path.basename(self.path)
-        self.dir_label.set_text(self.ellipsize(dir_txt))
-
-    def get_filename(self):
-        text = self.path
-        if text == '(None)':
-            return None
-        else:
-            return text
+    def __getattr__(self, key):
+        return getattr(self.button, key)
     
-select_folder = FolderSelector(os.getcwd())
-select_image = ImageSelector(os.getcwd())
-save_selector = FileChooserDialog()
-ImageSelector = None
-FolderSelector = None
+    def _create_popup(self):
+        # Create Popup menu
+        self.menu = gtk.Menu()
+        self.menu_items = []
+        for idx, folder in enumerate(self.folders[:min(len(self.folders), 10)]):
+            if not os.path.exists(folder): continue
+            itm = gtk.ImageMenuItem(gtk.STOCK_DIRECTORY)
+            name = os.path.relpath(folder, os.environ['HOME'])
+            if len(name) > len(folder):
+                name = folder
+            itm.set_label(name)
+            itm.set_always_show_image(True)
+            itm.connect("activate", self._on_select_folder, idx)
+            itm.show()
+            self.menu.append(itm)
+            self.menu_items.append(itm)
+        sep = gtk.SeparatorMenuItem()
+        sep.show()
+        self.menu.append(sep)
+        itm = gtk.MenuItem('Other ...')
+        itm.show()
+        itm.connect("activate", self._on_select_other)
+        self.menu.append(itm)
+
+    def _on_select_folder(self, obj, idx):
+        folder = self.folders[idx]
+        self.set_current_folder(folder)
+
+    def _on_select_other(self, obj):
+        print self.button.get_toplevel()
+        file_open = gtk.FileChooserDialog(
+                        title="Select Folder",
+                        parent=self.button.get_toplevel(),
+                        action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                        buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        file_open.set_current_folder(self.path)
+        file_open.set_modal(True)
+        file_open.connect('response', self._on_dialog_action)
+        self.button.set_sensitive(False)
+        file_open.show()
+        
+    def _on_dialog_action(self, dialog, response_id):
+        if response_id == gtk.RESPONSE_OK:
+            result = dialog.get_filename()
+            if result is not None:
+                _error_flag = False
+                if len(result) > 255:
+                    _error_flag = True
+                    msg = "The path should be less than 256 characters. Yours '%s' is %d characters long." % (result, len(result))
+                elif not re.match('^[\w\-_/]+$', result):
+                    _error_flag = True
+                    msg = "The path name must be free from spaces and other special characters. Please select another directory."
+                else:
+                    self.path = result
+                    if self.path not in self.folders:
+                        self.folders.insert(0, self.path)
+                    self.set_current_folder(self.path)
+                if _error_flag:
+                    warning("Invalid Directory", msg, parent=dialog)
+                else:
+                    dialog.destroy()
+                    self.button.set_sensitive(True)
+        else:
+            dialog.destroy()
+            self.button.set_sensitive(True)
+                
+    def _on_activate(self, obj, event=None):
+        if event is None:
+            self.menu.popup(None, None, None, self._last_press_button, self._last_press_time)
+        else:
+            self._last_press_button = event.button
+            self._last_press_time = event.time
+                 
+    def get_current_folder(self):
+        return self.path
+
+    def set_current_folder(self, path):
+        if os.path.exists(path):
+            self.path = path
+        gui.SESSION_INFO['current_path'] = self.path
+        self._create_popup()
+        self.dir_label.set_text(self.path)
+        self.tooltips.set_tip(self.button, self.path)
+        self.dir_label.set_ellipsize(pango.ELLIPSIZE_START)
+ 
+
+class FolderSelectorButton(gtk.Button):
+    def __init__(self):
+        gtk.Button.__init__(self)
+        self.selector = FolderSelector(self)
+    
+    def set_current_folder(self, path):
+        self.selector.set_current_folder(path)
+    
+    def get_current_folder(self):
+        return self.selector.get_current_folder()
+ 

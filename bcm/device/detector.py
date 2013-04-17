@@ -33,7 +33,7 @@ class MXCCDImager(BaseDevice):
             `resolueion` (float): The pixel size in 
         
         Kwargs:
-            `detector_type` (str): The type of detector. e.g. "MX300" for Rayonix
+            `detector_type` (str): The dialog_type of detector. e.g. "MX300" for Rayonix
             MX CCD 300.
         """
              
@@ -158,7 +158,7 @@ class MXCCDImager(BaseDevice):
         """Set the detector parameters for the image header and file names.
         
         Args:
-            `data` (dict): A dictionary of key value pairs for the parameters.
+            `data` (info): A dictionary of key value pairs for the parameters.
             supported parameters are:
             
                 - `filename` (str), Output file name of the image.

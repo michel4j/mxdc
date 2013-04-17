@@ -7,7 +7,7 @@ from bcm.engine.scripting import get_scripts
 from bcm.utils import lims_tools
 from bcm.utils.runlists import determine_skip, summarize_frame_set
 from mxdc.utils import config, gui
-from mxdc.widgets.dialogs import MyDialog
+from mxdc.widgets import dialogs
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.ptzviewer import AxisViewer
 from mxdc.widgets.rasterwidget import RasterWidget
@@ -85,7 +85,7 @@ class ScreenManager(gtk.Alignment):
         self.samples_data = []
         self._create_widgets()
         self.screen_runner = Screener()
-        
+
         self._screening = False
         self._screening_paused = False
         self.screen_runner.connect('progress', self._on_progress)
@@ -134,7 +134,7 @@ class ScreenManager(gtk.Alignment):
         self.lbl_port.modify_font(pango_font)
         self.lbl_barcode.modify_font(pango_font)
         self._set_throbber('idle')
-
+        self.dir_btn = dialogs.FolderSelector(self.folder_btn)
         #signals
         self.clear_btn.connect('clicked', self._on_queue_clear)
         self.apply_btn.connect('clicked', self._on_sequence_apply)
@@ -206,7 +206,6 @@ class ScreenManager(gtk.Alignment):
         self.time_entry.connect('activate', self._on_entry_changed, None, (0.1, 360.0, self.beamline.config['default_exposure']))
         self.time_entry.connect('focus-out-event', self._on_entry_changed, (0.1, 360.0, self.beamline.config['default_exposure']))
         self.beamline.energy.connect('changed', lambda obj, val: self.energy_entry.set_text('%0.4f' % val))
-        self.folder_btn.connect('current-folder-changed', self._on_folder_changed)
 
         for pos, tasklet in enumerate(self.default_tasks):
             key, options = tasklet
@@ -390,15 +389,6 @@ class ScreenManager(gtk.Alignment):
         tbl = _xml2.get_widget('collect_labels')
         return tbl
     
-    def _on_folder_changed(self, obj):
-        _new_folder = obj.get_current_folder()
-        _new_filename = obj.get_filename()
-        if  _new_folder != _new_filename:
-            obj._selected_folder = _new_filename
-            #obj.set_current_folder(obj._selected_folder)
-        else:
-            obj._selected_folder = _new_folder
-
     def _on_settings_changed(self, obj, event, task, key):
         try:
             val = float( obj.get_text() )
@@ -481,7 +471,7 @@ class ScreenManager(gtk.Alignment):
     
     def _save_config(self):
         data = {
-            "directory": self.folder_btn._selected_folder,
+            "directory": self.dir_btn.get_current_folder(),
             "delta": float(self.delta_entry.get_text()),
             "time": float(self.time_entry.get_text()),
             "distance": float(self.distance_entry.get_text()),
@@ -491,14 +481,14 @@ class ScreenManager(gtk.Alignment):
     def _load_config(self):
         data = config.load_config(SCREEN_CONFIG_FILE)
         if data is not None:
-            self.folder_btn.set_current_folder(data.get('directory', os.environ['HOME']))
+            self.dir_btn.set_current_folder(data.get('directory'))
             self.time_entry.set_text('%0.2f' % data.get('time', self.beamline.config['default_exposure']))
             self.delta_entry.set_text('%0.2f' % data.get('delta', 1.0))
             self.distance_entry.set_text('%0.2f' % data.get('distance', 300.0))
             for idx, v in enumerate(data.get('tasks',[])):
                 self.TaskList[idx][1].set_active(v)
         else:
-            self.folder_btn.set_current_folder(os.environ['HOME'])
+            self.dir_btn.set_current_folder(gui.SESSION_INFO.get('current_folder', gui.SESSION_INFO['path']))
             self.time_entry.set_text('%0.2f' % self.beamline.config['default_exposure'])
             self.delta_entry.set_text('%0.2f' % 1.0)
             self.distance_entry.set_text('%0.2f' % 300.0)                  
@@ -511,7 +501,6 @@ class ScreenManager(gtk.Alignment):
         model.clear()
         items = self.sample_list.get_selected()
         delta = float(self.delta_entry.get_text())
-        self.folder_btn.set_current_folder(self.folder_btn._selected_folder)
         for item in items:
             collect_task = None
             collect_frames = []
@@ -519,7 +508,7 @@ class ScreenManager(gtk.Alignment):
                 if t.options['enabled']:
                     tsk = Tasklet(t.task_type, **t.options)
                     tsk.options.update({
-                        'directory' : self.folder_btn._selected_folder,
+                        'directory' : self.dir_btn.get_current_folder(),
                         'sample':  item})
                     if tsk.task_type == Screener.TASK_COLLECT:
                         for n in range(int(t.options['frames'])):
@@ -669,8 +658,9 @@ class ScreenManager(gtk.Alignment):
         self.scan_pbar.set_text("Paused")
         if msg:
             title = 'Attention Required'
-            self.resp = MyDialog(gtk.MESSAGE_WARNING, 
+            self.resp = dialogs.MyDialog(gtk.MESSAGE_WARNING, 
                                          title, msg,
+                                         parent=self.get_toplevel(),
                                          buttons=( ('Intervene', gtk.RESPONSE_ACCEPT),) )
             self._intervening = False
             if pause_dict['type'] is Screener.PAUSE_BEAM: 

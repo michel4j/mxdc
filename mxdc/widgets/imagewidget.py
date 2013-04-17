@@ -20,7 +20,6 @@ import ImageFont
 import numpy
 import ctypes
 from scipy.misc import toimage, fromimage
-from dialogs import select_image
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib, matplotlib.backends.backend_agg
 from mpl_toolkits.axes_grid.axislines import SubplotZero
@@ -261,7 +260,6 @@ class ImageWidget(gtk.DrawingArea):
         self.raw_img = self.img_info['image']
         self.filename = self.img_info['header']['filename']
         self._create_pixbuf()
-        select_image.set_path(os.path.dirname(self.filename))
         self.queue_draw()
         self.image_loaded = True
         self.emit('image-loaded')

@@ -204,7 +204,7 @@ class FileTailProducer(object):
     def __init__(self, filename):
         """Initialize Producer
 
-        @type filename: A string
+        @dialog_type filename: A string
         @param filename: The file to read data from
         """
         self.filename = filename

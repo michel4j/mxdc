@@ -1,14 +1,50 @@
-'''
-Created on May 26, 2010
-
-@author: michel
-'''
-
 import os
+from datetime import date, datetime
 from bcm.utils import json
+try:
+    import pynotify
+    pynotify.init('MxDC')
+    _NOTIFY_AVAILABLE = True
+except:
+    _NOTIFY_AVAILABLE = False
+
 
 CONFIG_DIR = os.path.join(os.environ['HOME'], '.mxdc-%s' % os.environ['BCM_BEAMLINE'])
+SESSION_CONFIG_FILE = 'session_config.json'
 
+def get_session():
+    config_file = os.path.join(CONFIG_DIR, SESSION_CONFIG_FILE)
+    today = date.today()
+    _path = os.path.join(os.environ['HOME'], "CLS%s-%s" % (os.environ['BCM_BEAMLINE'], today.strftime('%Y%b%d').upper()))
+    session = {
+        'path' : _path,
+        'current_path': _path,
+        'date' : today.isoformat(),
+        'directories': [_path],
+        'new' : True
+    }
+    if os.access(config_file, os.R_OK):
+        prev_session = json.loads(file(config_file).read())
+    else:
+        prev_session = {'date': '1990-01-01'}
+    
+    prev_date = datetime.strptime(prev_session['date'], '%Y-%m-%d').date()
+    if (today - prev_date).days > 7:  # Use new session if last was modified more than a week agao
+        new_session = session
+        if _NOTIFY_AVAILABLE:
+            _notice = pynotify.Notification('New Session Directory', _path)
+            _notice.show()
+
+    else:
+        new_session = prev_session
+    if not os.path.exists(new_session['path']):
+        os.makedirs(new_session['path'])
+    return new_session
+
+def save_session(session):
+    session['date'] = date.today().isoformat()
+    session['new'] = False
+    return save_config(SESSION_CONFIG_FILE, session)
 
 def load_config(fname):
     config_file = os.path.join(CONFIG_DIR, fname)
@@ -28,5 +64,4 @@ def save_config(fname, config):
         return True
     else:
         return False
-        
-    
+
