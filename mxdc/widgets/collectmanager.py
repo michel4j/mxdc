@@ -277,12 +277,12 @@ class CollectManager(gtk.Alignment):
         self.progress_bar.idle_text(done_text)
         
     def config_user(self):
-        username = os.environ['USER']
-        userid = os.getuid()
-        groupid = os.getgid()
+        #username = os.environ['USER']
+        #userid = os.getuid()
+        #groupid = os.getgid()
         try:
             assert(self.beamline.image_server.is_active()==True)
-            self.beamline.image_server.set_user(username, userid, groupid)
+            #self.beamline.image_server.set_user(username, userid, groupid)
             return True
         except:
             msg_title = 'Image Synchronization Server Error'
@@ -367,7 +367,7 @@ class CollectManager(gtk.Alignment):
             assert(self.beamline.image_server.is_active())            
             for run in self.run_manager.runs:
                 data = run.get_parameters()                
-                self.beamline.image_server.setup_folder(data['directory'])
+                #self.beamline.image_server.setup_folder(data['directory'])
                 if run_num == 0 and data['number'] == 0:
                     data['energy'] = [self.beamline.monochromator.energy.get_position()]
                     data['energy_label'] = ['E0']

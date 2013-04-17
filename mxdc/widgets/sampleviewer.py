@@ -6,7 +6,7 @@ from bcm.utils.log import get_module_logger
 from bcm.utils.ordereddict import OrderedDict
 #from bcm.utils.video import add_decorations
 from mxdc.utils import gui, colors
-from mxdc.widgets.dialogs import save_selector
+from mxdc.widgets import dialogs
 from mxdc.widgets.misc import ActiveHScale, ScriptButton
 from mxdc.widgets.video import VideoWidget
 from twisted.python.components import globalRegistry
@@ -107,28 +107,6 @@ class SampleViewer(gtk.Alignment):
             return self._xml.get_widget(key)
     
     def save_image(self, filename):
-#        img = self.beamline.sample_video.get_frame()
-#        pix_size = self.beamline.sample_video.resolution      
-#        try:
-#            bw = self.beamline.aperture.get() * 0.001 # convert to mm
-#            bh = self.beamline.aperture.get() * 0.001
-#            bx = 0 #self.beamline.beam_x.get_position()
-#            by = 0 #self.beamline.beam_y.get_position()
-#            cx = self.beamline.camera_center_x.get()
-#            cy = self.beamline.camera_center_y.get()
-#        except:
-#            w, h = img.size
-#            cx = w//2
-#            bw = bh = 1.0
-#            bx = by = 0
-#            cy = h//2
-#        
-#        sw = bw / pix_size 
-#        sh = bh / pix_size
-#        x = int(cx - (bx / pix_size))
-#        y = int(cy - (by / pix_size))
-#        img = add_decorations(img, x, y, sw, sh)
-#        img.save(filename)
         self.video.save_image(filename)
 
                     
@@ -501,7 +479,10 @@ class SampleViewer(gtk.Alignment):
         self.pango_layout.set_font_description(pango.FontDescription('Monospace 8'))
         
     def on_save(self, obj=None, arg=None):
-        img_filename = save_selector()
+        img_filename, _ = dialogs.select_save_file(
+                                'Save Video Snapshot',
+                                parent=self.get_toplevel(),
+                                formats=[('PNG Image', 'png'), ('JPEG Image', 'jpg')])
         if not img_filename:
             return
         if os.access(os.path.split(img_filename)[0], os.W_OK):

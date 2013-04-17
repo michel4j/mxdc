@@ -1,5 +1,9 @@
 import os
 import gtk
+import config
+import atexit
+
+SESSION_INFO = config.get_session()
 
 class GUIFile(object):
     def __init__(self, name, root=None):
@@ -35,3 +39,5 @@ def make_tab_label(txt):
     label = gtk.Label(txt)
     label.set_padding(6, 0)
     return label
+
+atexit.register(config.save_session, SESSION_INFO)
