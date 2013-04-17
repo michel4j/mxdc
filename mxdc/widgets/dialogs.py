@@ -247,7 +247,6 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[]):
                     parent=parent,
                     buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, _stock,   gtk.RESPONSE_OK))
         dialog.set_current_folder(gui.SESSION_INFO.get('current_path', gui.SESSION_INFO['path']))
-        print parent
         dialog.set_do_overwrite_confirmation(True)
         if action == gtk.FILE_CHOOSER_ACTION_OPEN:
             for name, patterns in filters:
@@ -363,7 +362,6 @@ class FolderSelector(object):
         self.set_current_folder(folder)
 
     def _on_select_other(self, obj):
-        print self.button.get_toplevel()
         file_open = gtk.FileChooserDialog(
                         title="Select Folder",
                         parent=self.button.get_toplevel(),

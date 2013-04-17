@@ -183,14 +183,14 @@ class CollectManager(gtk.Alignment):
         self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/tiny-skip.png'))
 
-    def _load_config(self):        
-        data = config.load_config(RUN_CONFIG_FILE)
-        if data is None:
-            return
-        for section in data.keys():
-            run = int(section)
-            data[run] = data[section]
-            self.add_run(data[run])
+    def _load_config(self):
+        if gui.SESSION_INFO.get('new', False):
+            data = config.load_config(RUN_CONFIG_FILE)
+            if data is not None:
+                for section in data.keys():
+                    run = int(section)
+                    data[run] = data[section]
+                    self.add_run(data[run])
 
     def _save_config(self):
         save_data = {}
