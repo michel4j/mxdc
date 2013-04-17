@@ -332,12 +332,14 @@ class DewarLoader(gtk.HBox):
         self._notify_changes()
 
     def load_saved_database(self):
-        #load samples database
-        try:
-            self.samples_database  = load_config(SAMPLES_DB_CONFIG)
-            self.load_database(self.samples_database)
-            self.selected_crystal = None
-        except:
+        if gui.SESSION_INFO.get('new', False):
+            try:
+                self.samples_database  = load_config(SAMPLES_DB_CONFIG)
+                self.load_database(self.samples_database)
+                self.selected_crystal = None
+            except:
+                self.samples_database = {}
+        else:
             self.samples_database = {}
 
 
@@ -395,7 +397,7 @@ class DewarLoader(gtk.HBox):
             (_XLS, ['*.xls']),
             (_ALL, ['*']),
         ]
-        import_selector = dialogs.FileSelector('Import Spreadsheet',
+        filename = dialogs.select_('Import Spreadsheet',
                                        gtk.FILE_CHOOSER_ACTION_OPEN,
                                        filters=filters)
         filename = import_selector.run()

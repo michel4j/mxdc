@@ -328,8 +328,10 @@ class RasterWidget(gtk.Frame):
         return params
 
     def _load_config(self):
-        data = config.load_config(_CONFIG_FILE)
-        self.set_parameters(data)
+        if gui.SESSION_INFO.get('new', False):
+            data = config.load_config(_CONFIG_FILE)
+            if data is not None:
+                self.set_parameters(data)
 
     def _save_config(self, parameters):
         config.save_config(_CONFIG_FILE, parameters)
