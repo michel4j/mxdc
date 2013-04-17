@@ -4,6 +4,7 @@ from bcm.utils.decorators import async
 from datetime import datetime
 from mxdc.utils import gui, config
 from mxdc.widgets.misc import MotorEntry, ActiveEntry
+from mxdc.widgets import dialogs
 from twisted.python.components import globalRegistry
 import gobject
 import gtk
@@ -137,7 +138,7 @@ class RasterWidget(gtk.Frame):
 
         self.entries = {
             'prefix': self.prefix_entry,
-            'directory': self.folder_btn,
+            'directory': dialogs.FolderSelector(self.folder_btn),
             'loop_size': self.loop_entry,
             'time': self.time_entry,
             'distance': self.distance_entry,
@@ -157,7 +158,6 @@ class RasterWidget(gtk.Frame):
         self.entries['loop_size'].connect('focus-out-event', lambda x,y: self._validate_float(x, 200.0, 20.0, 1000.0))
         self.entries['distance'].connect('focus-out-event', lambda x,y: self._validate_float(x, 250.0, 100.0, 1000.0))
         self.entries['time'].connect('focus-out-event', lambda x,y: self._validate_float(x, 1.0, 0.1, 500))
-        self.entries['directory'].connect('current-folder-changed', self.on_folder_changed)
         
         omega = MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f")
         aperture = ActiveEntry(self.beamline.aperture, 'Beam Aperture', fmt="%0.2f")
@@ -291,7 +291,7 @@ class RasterWidget(gtk.Frame):
             params = {
                 'mode': 'Diffraction',
                 'prefix': 'testgrid',
-                'directory': os.environ['HOME'],
+                'directory': gui.SESSION_INFO.get('current_path', gui.SESSION_INFO['path']),
                 'distance': self.beamline.distance.get_position(),
                 'loop_size': 200,
                 'aperture': self.beamline.aperture.get(),
@@ -314,13 +314,12 @@ class RasterWidget(gtk.Frame):
     def get_parameters(self):
         params = {}
         params['prefix']  = self.entries['prefix'].get_text().strip()
-        params['directory']   = self.entries['directory']._selected_folder
+        params['directory']   = self.entries['directory'].get_current_folder()
         
         for key in ['time','loop_size','distance']:
             params[key] = float(self.entries[key].get_text())
         params['aperture'] = self.beamline.aperture.get()
-        if params['directory'] is None:
-            params['directory'] = os.environ['HOME']
+
         if self.score_cbx.get_active() == 0:
             params['mode'] = 'Diffraction'
         else:
@@ -334,15 +333,6 @@ class RasterWidget(gtk.Frame):
 
     def _save_config(self, parameters):
         config.save_config(_CONFIG_FILE, parameters)
-
-    def on_folder_changed(self, obj):
-        _new_folder = obj.get_current_folder()
-        _new_filename = obj.get_filename()
-        if  _new_folder != _new_filename:
-            obj._selected_folder = _new_filename
-            #obj.set_current_folder(obj._selected_folder)
-        else:
-            obj._selected_folder = _new_folder
 
     def on_detail_activated(self, treeview, path, column=None):        
         iter = self.details.get_iter(path)
@@ -387,7 +377,6 @@ class RasterWidget(gtk.Frame):
         return True
     
     def on_apply(self, btn):
-        self.entries['directory'].set_current_folder(self.entries['directory']._selected_folder)
         if self.sample_viewer:
             gobject.idle_add(self.emit, 'show-raster')
             params = self.get_parameters()

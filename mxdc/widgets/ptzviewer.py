@@ -1,7 +1,7 @@
 from bcm.device.interfaces import IPTZCameraController
 from bcm.utils.log import get_module_logger
 from mxdc.utils import gui
-from mxdc.widgets.dialogs import save_selector
+from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget
 import gtk
 import os
@@ -29,20 +29,19 @@ class AxisViewer(gtk.Alignment):
             return self._xml.get_widget(key)
                                         
     def save_image(self, filename):
-        ftype = filename.split('.')[-1]
-        if ftype == 'jpg': 
-            ftype = 'jpeg'
         img = self.camera.get_frame()
         img.save(filename)
         
     # callbacks
     def on_save(self, obj=None, arg=None):
-        img_filename = save_selector()
+        img_filename, _ = dialogs.select_save_file(
+                                'Save Video Snapshot',
+                                parent=self.get_toplevel(),
+                                formats=[('PNG Image', 'png'), ('JPEG Image', 'jpg')])
+        if not img_filename:
+            return
         if os.access(os.path.split(img_filename)[0], os.W_OK):
-            _logger.info('Saving sample image to: %s' % img_filename)
             self.save_image(img_filename)
-        else:
-            _logger.error("Could not save %s." % img_filename)
                     
     def on_zoom_in(self,widget):
         self.camera.zoom(600)
