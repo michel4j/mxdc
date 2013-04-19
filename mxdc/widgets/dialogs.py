@@ -25,8 +25,7 @@ _BUTTON_TYPES = {
     }
     
 class AlertDialog(gtk.Dialog):
-    def __init__(self, parent, flags,
-                 dialog_type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_NONE):
+    def __init__(self, parent, flags, dialog_type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_NONE):
         if not dialog_type in _IMAGE_TYPES:
             raise TypeError(
                 "dialog_type must be one of: %s", ', '.join(_IMAGE_TYPES.keys()))
@@ -35,15 +34,12 @@ class AlertDialog(gtk.Dialog):
                 "buttons be one of: %s", ', '.join(_BUTTON_TYPES.keys()))
 
         gtk.Dialog.__init__(self, '', parent, flags)
+        self.set_position(gtk.WIN_POS_CENTER_ALWAYS)
         self.set_border_width(5)
         self.set_resizable(False)
         self.set_has_separator(False)
-        # Some window managers (ION) displays a default title (???) if
-        # the specified one is empty, workaround this by setting it
-        # to a single space instead
         self.set_title(" ")
         self.set_skip_taskbar_hint(True)
-        self.vbox.set_spacing(14)
 
         self._primary_label = gtk.Label()
         self._secondary_label = gtk.Label()
@@ -58,46 +54,57 @@ class AlertDialog(gtk.Dialog):
             label.set_alignment(0.0, 0.5)
 
         hbox = gtk.HBox(False, 12)
-        hbox.set_border_width(5)
-        hbox.pack_start(self._image, False, False)
-
         vbox = gtk.VBox(False, 12)
-        hbox.pack_start(vbox, False, False)
-        vbox.pack_start(self._primary_label, False, False)
-        vbox.pack_start(self._secondary_label, False, False)
-
+        hbox.pack_start(self._image, False, False, 0)
+        vbox.pack_start(self._primary_label, False, False, 0)
+        vbox.pack_start(self._secondary_label, False, False, 0)
+        hbox.pack_start(vbox, False, False, 0)
+        hbox.set_border_width(5)
+        hbox.show_all()
+        
         self.details_buffer = gtk.TextBuffer()
         self.details_view = gtk.TextView(self.details_buffer)
         self.details_view.set_editable(False)
+        self.details_view.set_can_focus(False)
+        pf = self.details_view.get_pango_context().get_font_description()        
+        pf.set_size(int(pf.get_size() * 0.85))
+        self.details_view.modify_font(pf)
+        
         sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_NEVER,gtk.POLICY_AUTOMATIC)
+        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         sw.add(self.details_view)
+        sw.set_size_request(-1, 200)
+        sw.set_can_focus(False)
         
-        self._expander = gtk.expander_new_with_mnemonic("Show more _details")
-        self._expander.set_spacing(6)
+        self._expander = gtk.Expander("Details")
         self._expander.add(sw)
-        vbox.pack_start(self._expander, False, False)
-        self.vbox.pack_start(hbox, False, False)
-        hbox.show_all()
+        self._expander.set_border_width(5)
+        self._expander.show_all()
+        
         self._expander.hide()
+        self._expander.set_expanded(False)
+        self._expander.set_spacing(3)
+        #self._expander.set_can_focus(False)
         self.add_buttons(*_BUTTON_TYPES[buttons])
-        self.label_vbox = vbox
+        
+        self.vbox.pack_start(hbox, False, False, 0)
+        self.vbox.pack_start(self._expander, True, True, 1)
+        self.set_default(self.get_action_area())
 
+        
     def set_primary(self, text):
-        self._primary_label.set_markup(
-            "<span weight=\"bold\" size=\"larger\">%s</span>" % text)
+        self._primary_label.set_markup('<span weight="bold" size="large">%s</span>' % text)
         
     def add_widget(self, widget):
-        self.label_vbox.pack_start(widget)
+        self.vbox.pack_start(widget, False, False, 0)
         
     def set_secondary(self, text):
         self._secondary_label.set_markup(text)
 
     def set_details(self, text):
-        itr = self.details_buffer.get_end_iter()
-        self.details_buffer.insert(itr, text)
-        self._expander.show()
+        self.details_buffer.set_text(text)
+        self._expander.show_all()
 
 class MyDialog(object):
     """Create and show a MessageDialog.
@@ -133,22 +140,19 @@ class MyDialog(object):
             dialog_buttons = buttons
             buttons = []
         else:
-            if buttons is not None and type(buttons) != tuple:
-                raise TypeError(
-                    "buttons must be a GtkButtonsTypes constant or a tuple")
             dialog_buttons = gtk.BUTTONS_NONE
+
         if parent is None:
             parent = MAIN_WINDOW
 
-        if parent and not isinstance(parent, gtk.Window):
-            raise TypeError("parent must be a gtk.Window subclass")
-    
         self.dialog = AlertDialog(parent=parent, flags=gtk.DIALOG_MODAL,
                            dialog_type=dialog_type, buttons=dialog_buttons)
-        if buttons:
-            for text, response in buttons:
-                self.dialog.add_buttons(text, response)
-    
+        for text, response in buttons:
+            btn = self.dialog.add_button(text, response)
+            if response == default:
+                self.dialog.set_default(btn)
+                btn.set_can_default(True)
+                    
         self.dialog.set_primary(header)
         if sub_header:
             self.dialog.set_secondary(sub_header)
@@ -158,12 +162,6 @@ class MyDialog(object):
                 self.dialog.set_details_widget(details)
             elif isinstance(details, basestring):
                 self.dialog.set_details(details)
-            else:
-                raise TypeError(
-                    "long must be a gtk.Widget or a string, not %r" % details)
-    
-        if default != -1:
-            self.dialog.set_default_response(default)
     
         if parent:
             self.dialog.set_transient_for(parent)
@@ -180,9 +178,7 @@ class MyDialog(object):
         return response
 
     def show(self):
-        response = self.dialog.run()
-        self.dialog.destroy()
-        return response
+        self.dialog.show()
         
     def close(self):
         self.dialog.destroy()
@@ -309,13 +305,13 @@ class FolderSelector(object):
     def __init__(self, button):
         self.button = button
         self.path = gui.SESSION_INFO.get('current_path', gui.SESSION_INFO['path'])
-        self.dir_label = gtk.Label('')
-        self.dir_label.set_alignment(0,0.5)
+        self.label = gtk.Label('')
+        self.label.set_alignment(0,0.5)
         self.folders = gui.SESSION_INFO.get('directories', [self.path])
         self.icon = gtk.image_new_from_stock('gtk-directory', gtk.ICON_SIZE_MENU)
         hbox = gtk.HBox(False,3)
         hbox.pack_end(self.icon, False, False, 2)
-        hbox.pack_start(self.dir_label, True, True, 0)
+        hbox.pack_start(self.label, True, True, 0)
         hbox.pack_start(gtk.VSeparator(), False, False, 0)
         hbox.show_all()
         self.button.add(hbox)
@@ -413,9 +409,9 @@ class FolderSelector(object):
             self.path = path
         gui.SESSION_INFO['current_path'] = self.path
         self._create_popup()
-        self.dir_label.set_text(self.path)
+        self.label.set_text(self.path)
         self.tooltips.set_tip(self.button, self.path)
-        self.dir_label.set_ellipsize(pango.ELLIPSIZE_START)
+        self.label.set_ellipsize(pango.ELLIPSIZE_START)
  
 
 class FolderSelectorButton(gtk.Button):
