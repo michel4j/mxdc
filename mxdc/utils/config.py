@@ -33,7 +33,10 @@ def get_session():
         new_session = session
         if _NOTIFY_AVAILABLE:
             _notice = pynotify.Notification('New Session Directory', _path)
-            _notice.show()
+            try:
+                _notice.show()
+            except:
+                pass
 
     else:
         new_session = prev_session
