@@ -65,7 +65,6 @@ class AlertDialog(gtk.Dialog):
         self.details_buffer = gtk.TextBuffer()
         self.details_view = gtk.TextView(self.details_buffer)
         self.details_view.set_editable(False)
-        self.details_view.set_can_focus(False)
         pf = self.details_view.get_pango_context().get_font_description()        
         pf.set_size(int(pf.get_size() * 0.85))
         self.details_view.modify_font(pf)
@@ -75,7 +74,6 @@ class AlertDialog(gtk.Dialog):
         sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         sw.add(self.details_view)
         sw.set_size_request(-1, 200)
-        sw.set_can_focus(False)
         
         self._expander = gtk.Expander("Details")
         self._expander.add(sw)
@@ -85,7 +83,6 @@ class AlertDialog(gtk.Dialog):
         self._expander.hide()
         self._expander.set_expanded(False)
         self._expander.set_spacing(3)
-        #self._expander.set_can_focus(False)
         self.add_buttons(*_BUTTON_TYPES[buttons])
         
         self.vbox.pack_start(hbox, False, False, 0)
