@@ -202,12 +202,13 @@ class HutchManager(gtk.Alignment):
         self.add(self.hutch_widget)
         self.show_all()
     
+    #def do_beam_change(self, state):
+    #    pass
     
     def on_automounter_busy(self, obj, state):
         self.mount_btn.set_sensitive(not state)
         self.cent_btn.set_sensitive(not state)
         
-    
     def on_beam_change(self, obj, beam_available):
         self.emit('beam-change', beam_available)
     

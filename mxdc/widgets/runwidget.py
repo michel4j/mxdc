@@ -66,8 +66,6 @@ class RunWidget(gtk.Alignment):
         self.beamline = globalRegistry.lookup([], IBeamline)      
         self.folder_entry = dialogs.FolderSelector(self.directory_btn)
         self.entry['directory'] = self.folder_entry
-        #self.entry['directory']._selected_folder = gui.SESSION_INFO['path']
-        #self.entry['directory'].connect('current-folder-changed', self.on_folder_changed)
 
         # entry signals
         self.entry['name'].connect('focus-out-event', self.on_prefix_changed)
@@ -133,8 +131,7 @@ class RunWidget(gtk.Alignment):
         column1.set_alignment(0.5)
         self.energy_list.append_column(column1)
         self.expand_separator.set_expand(True)
-       
-        
+               
         #Delete column
         renderer = gtk.CellRendererPixbuf()
         renderer.set_property("stock-size", gtk.ICON_SIZE_MENU)
@@ -674,9 +671,11 @@ class RunWidget(gtk.Alignment):
 
     def on_save(self, widget):
         self.enable_btn.set_active(True)
+        entry = self.get_toplevel().get_focus()
+        if isinstance(entry, gtk.Entry):
+            entry.activate()
         self.parameters = self.get_parameters()
         self.check_changes()
-        self.entry['directory'].set_current_folder(self.entry['directory']._selected_folder)
         return True
         
     def on_reset_parameters(self, obj):
