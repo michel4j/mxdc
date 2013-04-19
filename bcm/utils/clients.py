@@ -113,7 +113,7 @@ class LIMSClient(BaseService):
                     port = {'http':80, 'https':443}[m.group(1)]
                 else:
                     port = int(m.group(4))
-                data = {'name': 'LIMS JSONRPC Service',
+                data = {'name': 'MxLIVE JSONRPC Service',
                         'host': m.group(2),
                         'port': port,
                         'data': {'path': m.group(5)},

@@ -114,6 +114,15 @@ class SampleManager(gtk.Alignment):
         self.sample_picker.connect('pin-hover', self.on_sample_hover)
         self.beamline.automounter.connect('mounted', self.on_sample_mounted)
         self.beamline.manualmounter.connect('mounted', self.on_sample_mounted, False)
+
+        # Load MxLIVE Samples if a new session
+        if gui.SESSION_INFO.get('new', False):
+            reply = lims_tools.get_onsite_samples(self.beamline)
+            if reply.get('error'):
+                _logger.error('Containers and Samples could not be imported from MxLIVE.')
+            else:
+                self.dewar_loader.import_lims(reply)
+            
   
     def on_samples_changed(self, obj):
         if self.beamline.automounter.is_mounted():
@@ -182,11 +191,12 @@ class SampleManager(gtk.Alignment):
     
     def get_database(self):
         return self.dewar_loader.samples_database
+    
 
     def on_import_lims(self, obj):
         reply = lims_tools.get_onsite_samples(self.beamline)
         if reply.get('error') is not None:
-            header = 'Error Connecting to the LIMS'
+            header = 'Error Connecting to the MxLIVE'
             subhead = 'Containers and Samples could not be imported.'
             details = reply['error'].get('message')
             dialogs.error(header, subhead, details=details)
