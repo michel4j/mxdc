@@ -1,11 +1,14 @@
 from mxdc.utils import gui
 from mxdc.utils.config import load_config, save_config
+from bcm.utils.log import get_module_logger
 from mxdc.utils.xlsimport import XLSLoader
 from mxdc.widgets import dialogs
 from mxdc.widgets.mountwidget import MountWidget
 import gobject
 import gtk
 import os
+
+_logger = get_module_logger('mxdc')
 
 SAMPLES_DB_CONFIG = 'samples_db.json'
 XTALS_DB_CONFIG = 'crystals_db.json'
@@ -371,22 +374,17 @@ class DewarLoader(gtk.HBox):
         self.samples_database = lims_loader.get('result',{})
             
         if lims_loader.get('error'):
-            header = 'Error Importing from LIMS'
-            subhead = 'Containers and Samples could not be imported.\n\nSee detailed errors below.'
-            details = lims_loader['error']
-            dialogs.error(header, subhead, details=details)
+            _logger.error('Error Importing containers from MxLIVE')
+            _logger.error(lims_loader['error'])
         elif len(self.samples_database.get('containers', {}).keys()) > 0:
-            header = 'Import Successful'
-            subhead = 'Loaded %d containers, with a total of %d samples.' % (
-                                len(self.samples_database['containers']),
-                                len(self.samples_database['crystals']))
             self.load_database(self.samples_database)
             self.save_database()
-            dialogs.info(header, subhead)
+            msg = 'Successfully imported %d containers, with a total of %d samples from MxLIVE.' % (
+                                len(self.samples_database['containers']),
+                                len(self.samples_database['crystals']))
+            _logger.info(msg)
         else:
-            header = 'No Containers Available'
-            subhead = 'Could not find any valid containers to import.'
-            dialogs.warning(header, subhead)
+            _logger.warning('Could not find any valid containers to import from MxLIVE.')
             
 
     def on_import_file(self, obj):
@@ -397,41 +395,44 @@ class DewarLoader(gtk.HBox):
             (_XLS, ['*.xls']),
             (_ALL, ['*']),
         ]
-        filename = dialogs.select_('Import Spreadsheet',
-                                       gtk.FILE_CHOOSER_ACTION_OPEN,
-                                       filters=filters)
-        filename = import_selector.run()
+        filename = dialogs.select_open_file('Import Spreadsheet', filters=filters)[0]
         if filename is None:
             return
-        xls_loader = XLSLoader(filename)
-        loaded_db = xls_loader.get_database()
         
-        self.selected_crystal = None
-        if self.samples_database is None or self.samples_database == {}:
-            self.samples_database = loaded_db
-        else:
-            self.samples_database['containers'].update(loaded_db.get('containers'))
-            self.samples_database['crystals'].update(loaded_db.get('crystals'))
-            self.samples_database['experiments'].update(loaded_db.get('experiments'))
-        
-        if len(xls_loader.errors) > 0:
+        try:
+            xls_loader = XLSLoader(filename)
+            loaded_db = xls_loader.get_database()
+        except:
             header = 'Error Importing Spreadsheet'
-            subhead = 'The file "%s" could not be opened.\n\nSee detailed errors below.' % filename
-            details = '\n'.join(xls_loader.errors)
-            dialogs.error(header, subhead, details=details)
-        else:
-            header = 'Import Successful'
-            subhead = 'Loaded %d containers, with a total of %d samples.' % (
-                                len(loaded_db['containers']),
-                                len(loaded_db['crystals']))
-
-            self.load_database(self.samples_database)
-            self.save_database()            
-            if len(xls_loader.warnings) > 0:
-                header = 'Imported with warnings.'
-                subhead += '\n\nSee detailed warnings below.'
-                details = '\n'.join(xls_loader.warnings)
-                dialogs.warning(header, subhead, details=details)
+            subhead = 'The file "%s" could not be opened.' % filename
+            dialogs.error(header, subhead)           
+        else:   
+            self.selected_crystal = None
+            if self.samples_database is None or self.samples_database == {}:
+                self.samples_database = loaded_db
             else:
-                dialogs.info(header, subhead)
+                self.samples_database['containers'].update(loaded_db.get('containers'))
+                self.samples_database['crystals'].update(loaded_db.get('crystals'))
+                self.samples_database['experiments'].update(loaded_db.get('experiments'))
+            
+            if len(xls_loader.errors) > 0:
+                header = 'Error Importing Spreadsheet'
+                subhead = 'The file "%s" could not be opened.\n\nSee detailed errors below.' % filename
+                details = '\n'.join(xls_loader.errors)
+                dialogs.error(header, subhead, details=details)
+            else:
+                header = 'Import Successful'
+                subhead = 'Loaded %d containers, with a total of %d samples.' % (
+                                    len(loaded_db['containers']),
+                                    len(loaded_db['crystals']))
+    
+                self.load_database(self.samples_database)
+                self.save_database()            
+                if len(xls_loader.warnings) > 0:
+                    header = 'Imported with warnings.'
+                    subhead += '\n\nSee detailed warnings below.'
+                    details = '\n'.join(xls_loader.warnings)
+                    dialogs.warning(header, subhead, details=details)
+                else:
+                    dialogs.info(header, subhead)
         

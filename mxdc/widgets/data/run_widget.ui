@@ -31,7 +31,7 @@
             <child>
               <object class="GtkToolButton" id="save_btn">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
+                <property name="can_focus">False</property>
                 <property name="has_tooltip">True</property>
                 <property name="tooltip_text" translatable="yes">Apply Run Settings</property>
                 <property name="stock_id">gtk-apply</property>

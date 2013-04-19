@@ -11,12 +11,12 @@ from mxdc.widgets.dialogs import error
 from mxdc.utils import excepthook
 from twisted.internet import reactor
 from twisted.spread import pb
-import gc
 import os
 import time
 import warnings
 
 warnings.simplefilter("ignore")
+excepthook.install()
 _logger = get_module_logger('mxdc')
 
 class MXDCApp(object):
@@ -70,7 +70,6 @@ class MXDCApp(object):
     def do_quit(self, obj=None):
         _logger.info('Stopping...')
         reactor.stop()
-        gc.collect()
         
 def main():
     try:
