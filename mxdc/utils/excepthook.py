@@ -1,199 +1,109 @@
-# vim: sw=4 ts=4:
-#
-# (c) 2003 Gustavo J A M Carneiro gjc at inescporto.pt
-#     2004-2005 Filip Van Raemdonck
-#
-# http://www.daa.com.au/pipermail/pygtk/2003-August/005775.html
-# Message-ID: <1062087716.1196.5.camel@emperor.homelinux.net>
-#     "The license is whatever you want."
+##    excepthook.py
+##
+## Copyright (C) 2013 Michel Fodje <michel.fodje@lightsouce.ca>
+## Copyright (C) 2006 Paul Walker <paul@blacksun.org.uk>
+## Copyright (C) 2005-2006 Yann Le Boulanger <asterix@lagaule.org>
+## Copyright (C) 2005-2006 Nikos Kouremenos <kourem@gmail.com>
+##
+## Initially written and submitted by Gustavo J. A. M. Carneiro
+##
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published
+## by the Free Software Foundation; version 2 only.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
 
-import inspect, linecache, pydoc, sys, traceback
-from cStringIO import StringIO
-from gettext import gettext as _
-from smtplib import SMTP
+from mxdc.widgets import dialogs
+from bcm.utils.log import get_module_logger
+from twisted.internet import reactor
+from email.mime.text import MIMEText
+import smtplib
+import gtk
+import sys
+import threading
+import traceback
+import getpass
+import socket
 
-import pygtk
-pygtk.require ('2.0')
-import gtk, pango
+_logger = get_module_logger('mxdc')
+_exception_in_progress = threading.Lock()
 
-#def analyse (exctyp, value, tb):
-#    trace = StringIO()
-#    traceback.print_exception (exctyp, value, tb, None, trace)
-#    return trace
-
-def lookup (name, frame, lcls):
-    '''Find the value for a given name in the given frame'''
-    if name in lcls:
-        return 'local', lcls[name]
-    elif name in frame.f_globals:
-        return 'global', frame.f_globals[name]
-    elif '__builtins__' in frame.f_globals:
-        builtins = frame.f_globals['__builtins__']
-        if type (builtins) is dict:
-            if name in builtins:
-                return 'builtin', builtins[name]
-        else:
-            if hasattr (builtins, name):
-                return 'builtin', getattr (builtins, name)
-    return None, []
-
-def analyse (exctyp, value, tb):
-    import tokenize, keyword
-
-    trace = StringIO()
-    nlines = 3
-    frecs = inspect.getinnerframes (tb, nlines)
-    trace.write ('Traceback (most recent call last):\n')
-    for frame, fname, lineno, funcname, context, cindex in frecs:
-        trace.write ('  File "%s", line %d, ' % (fname, lineno))
-        args, varargs, varkw, lcls = inspect.getargvalues (frame)
-
-        def readline (lno=[lineno], *args):
-            if args: print args
-            try: return linecache.getline (fname, lno[0])
-            finally: lno[0] += 1
-        all, prev, name, scope = {}, None, '', None
-        for ttype, tstr, stup, etup, line in tokenize.generate_tokens (readline):
-            if ttype == tokenize.NAME and tstr not in keyword.kwlist:
-                if name:
-                    if name[-1] == '.':
-                        try:
-                            val = getattr (prev, tstr)
-                        except AttributeError:
-                            # XXX skip the rest of this identifier only
-                            break
-                        name += tstr
-                else:
-                    assert not name and not scope
-                    scope, val = lookup (tstr, frame, lcls)
-                    name = tstr
-                if val:
-                    prev = val
-                #print '  found', scope, 'name', name, 'val', val, 'in', prev, 'for token', tstr
-            elif tstr == '.':
-                if prev:
-                    name += '.'
-            else:
-                if name:
-                    all[name] = (scope, prev)
-                prev, name, scope = None, '', None
-                if ttype == tokenize.NEWLINE:
-                    break
-
-        trace.write (funcname + 
-          inspect.formatargvalues (args, varargs, varkw, lcls, formatvalue=lambda v: '=' + pydoc.text.repr (v)) + '\n')
-        trace.write (''.join (['    ' + x.replace ('\t', '  ') for x in filter (lambda a: a.strip(), context)]))
-        if len (all):
-            trace.write ('  variables: %s\n' % str (all))
-
-    trace.write ('%s: %s' % (exctyp.__name__, value))
-    return trace
-
-def _info (exctyp, value, tb):
-    trace = None
-    dialog = gtk.MessageDialog (parent=None, flags=0, type=gtk.MESSAGE_WARNING, buttons=gtk.BUTTONS_NONE)
-    dialog.set_title (_("Bug Detected"))
-    if gtk.check_version (2, 4, 0) is not None:
-        dialog.set_has_separator (False)
-
-    primary = _("<big><b>A programming error has been detected during the execution of this program.</b></big>")
-    secondary = _("It probably isn't fatal, but should be reported to the developers nonetheless.")
-
+def _send_email(address, subject, message):
+    from_addr = '%s@%s' % (getpass.getuser(), socket.gethostname())
+    to_addr = [address,]
+    msg = MIMEText(message)
+    msg['Subject'] = 'MxDC Bug Report (%s) - %s' % (getpass.getuser(), subject)
+    msg['From'] =  from_addr
+    msg['To'] = ', '.join(to_addr)
+    
     try:
-        setsec = dialog.format_secondary_text
-    except AttributeError:
-        raise
-        dialog.vbox.get_children()[0].get_children()[1].set_markup ('%s\n\n%s' % (primary, secondary))
-        #lbl.set_property ("use-markup", True)
+        server = smtplib.SMTP('localhost')
+        server.sendmail(from_addr, to_addr, msg.as_string())
+        server.quit()
+    except:
+        return False
+    return True
+
+def _custom_excepthook(exctyp, value, tb):   
+    if not _exception_in_progress.acquire(False):
+        # Exceptions have piled up, so we use the default exception
+        # handler for such exceptions
+        _excepthook_save(exctyp, value, tb)
+        return
+    
+    if tb is None:
+        trace_list = traceback.extract_stack()[:-1]
     else:
-        del setsec
-        dialog.set_markup (primary)
-        dialog.format_secondary_text (secondary)
-
-    try:
-        #email = feedback
-        dialog.add_button (_("Report..."), 3)
-    except NameError:
-        # could ask for an email address instead...
-        pass
-    dialog.add_button (_("Details..."), 2)
-    dialog.add_button (gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE)
-    dialog.add_button (gtk.STOCK_QUIT, 1)
-
-    while True:
-        resp = dialog.run()
-        if resp == 3:
-            if trace == None:
-                trace = analyse (exctyp, value, tb)
-
-            # TODO: prettyprint, deal with problems in sending feedback, &tc
-            try:
-                server = smtphost
-            except NameError:
-                server = 'localhost'
-
-            message = 'From: buggy_application"\nTo: bad_programmer\nSubject: Exception feedback\n\n%s' % trace.getvalue()
-
-            s = SMTP()
-            s.connect (server)
-            s.sendmail (email, (email,), message)
-            s.quit()
-            break
-
-        elif resp == 2:
-            if trace == None:
-                trace = analyse (exctyp, value, tb)
-
-            # Show details...
-            details = gtk.Dialog (_("Bug Details"), dialog,
-              gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-              (gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE,))
-            details.set_property ("has-separator", False)
-
-            textview = gtk.TextView(); textview.show()
-            textview.set_editable (False)
-            textview.modify_font (pango.FontDescription ("Monospace"))
-
-            sw = gtk.ScrolledWindow(); sw.show()
-            sw.set_policy (gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-            sw.add (textview)
-            details.vbox.add (sw)
-            textbuffer = textview.get_buffer()
-            textbuffer.set_text (trace.getvalue())
-
-            monitor = gtk.gdk.screen_get_default ().get_monitor_at_window (dialog.window)
-            area = gtk.gdk.screen_get_default ().get_monitor_geometry (monitor)
-            try:
-                w = area.width // 1.6
-                h = area.height // 1.6
-            except SyntaxError:
-                # python < 2.2
-                w = area.width / 1.6
-                h = area.height / 1.6
-            details.set_default_size (int (w), int (h))
-
-            details.run()
-            details.destroy()
-
-        elif resp == 1 and gtk.main_level() > 0:
-            gtk.main_quit()
-            break
+        trace_list = traceback.extract_tb(tb)
+    trace_info = traceback.format_list(trace_list)
+    trace = "".join(trace_info)
+    
+    primary = "MxDC has stopped working"
+    secondary  = "An unexpected problem has been detected. "
+    secondary += "You can ignore the problem and attempt to continue "
+    secondary += "or quit the program."
+    
+    buttons = (("Report...", gtk.RESPONSE_HELP),
+               ('Ignore', gtk.RESPONSE_CANCEL), 
+               (gtk.STOCK_QUIT, gtk.RESPONSE_CLOSE))
+    
+    dialog = dialogs.AlertDialog(dialogs.MAIN_WINDOW, gtk.DIALOG_MODAL, dialog_type=gtk.MESSAGE_ERROR)
+    for text, response in buttons:
+        btn = dialog.add_button(text, response)
+        if response == gtk.RESPONSE_HELP:
+            dialog.set_default(btn)
+            dialog.set_default_response(gtk.RESPONSE_HELP)
+                    
+    dialog.set_primary(primary)
+    dialog.set_secondary(secondary)
+    dialog.set_details(trace)
+    
+    def _dlg_cb(dlg, response):
+        if response == gtk.RESPONSE_HELP:
+            _out = _send_email('cmcf-support@lightsource.ca', exctyp, trace)
+            if _out:
+                _logger.warning("Bug report has been sent to developers.")
+            else:
+                _logger.error("Bug report could not be submitted.")
+        elif response == gtk.RESPONSE_CLOSE:
+            _exception_in_progress.release()
+            reactor.stop()
         else:
-            break
+            dlg.destroy()
+            _exception_in_progress.release()
+    
+    dialog.connect('response', _dlg_cb)
+    dialog.show()
 
-    dialog.destroy()
+_excepthook_save = sys.excepthook
 
-sys.excepthook = _info
+def install():
+    sys.excepthook = _custom_excepthook
 
-if __name__ == '__main__':
-    class X (object):
-        pass
-    x = X()
-    x.y = 'Test'
-    x.z = x
-    w = ' e'
-    #feedback = 'developer@bigcorp.com'
-    #smtphost = 'mx.bigcorp.comp'
-    1, x.z.y, f, w
-    raise Exception (x.z.y + w)
-
+def uninstall():
+    sys.excepthook = _excepthook_save
+   

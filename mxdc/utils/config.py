@@ -29,7 +29,7 @@ def get_session():
         prev_session = {'date': '1990-01-01'}
     
     prev_date = datetime.strptime(prev_session['date'], '%Y-%m-%d').date()
-    if (today - prev_date).days > 7:  # Use new session if last was modified more than a week agao
+    if (today - prev_date).days > 7:  # Use new session if last was modified more than a week ago
         new_session = session
         if _NOTIFY_AVAILABLE:
             _notice = pynotify.Notification('New Session Directory', _path)
