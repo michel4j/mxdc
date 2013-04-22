@@ -114,16 +114,28 @@ class SampleManager(gtk.Alignment):
         self.sample_picker.connect('pin-hover', self.on_sample_hover)
         self.beamline.automounter.connect('mounted', self.on_sample_mounted)
         self.beamline.manualmounter.connect('mounted', self.on_sample_mounted, False)
-
-        # Load MxLIVE Samples if a new session
-        if gui.SESSION_INFO.get('new', False):
-            reply = lims_tools.get_onsite_samples(self.beamline)
-            if reply.get('error'):
-                _logger.error('Containers and Samples could not be imported from MxLIVE.')
+        self.beamline.lims.connect('active', self.on_lims_connect)
+        
+        # make sure previously  loaded samples are loaded from disk if lims fails to connect
+        gobject.timeout_add(5000, self._load_without_lims) 
+    
+    def on_lims_connect(self, obj, state):
+        if state:
+            # Load MxLIVE Samples if a new session
+            if gui.SESSION_INFO.get('new', False):
+                reply = lims_tools.get_onsite_samples(self.beamline)
+                if reply.get('error'):
+                    _logger.error('Containers and Samples could not be imported from MxLIVE.')
+                else:
+                    self.dewar_loader.import_lims(reply)
             else:
-                self.dewar_loader.import_lims(reply)
+                self.dewar_loader.load_saved_database()
+                
+    def _load_without_lims(self):
+        # Called only if lims fails to connect to get previously loaded samples from disk
+        if self.beamline.lims.active_state != True:
+            self.dewar_loader.load_saved_database()
             
-  
     def on_samples_changed(self, obj):
         if self.beamline.automounter.is_mounted():
             self.active_sample = self.dewar_loader.find_crystal(self.beamline.automounter._mounted_port) or {}

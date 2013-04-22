@@ -1,13 +1,7 @@
-"""
-
-"""
-
-
 
 from bcm.beamline.interfaces import IBeamline
 from bcm.protocol import ca
 from bcm.settings import *
-from bcm.utils import json
 from bcm.utils.log import get_module_logger, log_to_console
 from twisted.python.components import globalRegistry
 from zope.interface import implements
