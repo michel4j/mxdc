@@ -2,26 +2,27 @@
 A Plotting widget using matplotlib - several lines can be added to multiple axes
 points can be added to each line and the plot is automatically updated.
 """
-import gtk
-import time, os
-import pango
-from matplotlib.figure import Figure
-import numpy
-from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
-from matplotlib.dates import MinuteLocator, SecondLocator
-from matplotlib import rcParams
 
-from zope.interface import implements
-from twisted.python.components import globalRegistry
+from bcm.engine import fitting
 from bcm.engine.scanning import IScanPlotter
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
+from matplotlib import rcParams
 from matplotlib.colors import Normalize
+from matplotlib.dates import MinuteLocator, SecondLocator
+from matplotlib.figure import Figure
+from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
+from misc import ActiveProgressBar
+from mpl_toolkits.mplot3d import axes3d
+from twisted.python.components import globalRegistry
+from zope.interface import implements
+import gtk
+import numpy
+import pango
+import time, os
+
+from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 from matplotlib.backends.backend_gtk import FileChooserDialog
-from mpl_toolkits.mplot3d import axes3d
 
-from misc import ActiveProgressBar
-from bcm.engine import fitting
 
 rcParams['legend.loc'] = 'best'
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')

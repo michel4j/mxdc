@@ -424,7 +424,7 @@ class ShutterGroup(BaseDevice):
     
     def _on_change(self, obj, val):
         if val:
-            if misc.all([dev.changed_state for dev in self._dev_list]):
+            if misc.every([dev.changed_state for dev in self._dev_list]):
                 self.set_state(changed=True, health=(0, 'state'))
                 
         else:
