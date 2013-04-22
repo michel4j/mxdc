@@ -1,5 +1,4 @@
 from bcm.engine.scripting import Script
-import time
 
 class SetMountMode(Script):
     description = "Prepare for manual sample mounting."
@@ -12,16 +11,20 @@ class SetMountMode(Script):
         self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'])
         self.beamline.cryojet.nozzle.open()
         self.beamline.beamstop_z.wait()
-        
-        
+              
         
 class SetCenteringMode(Script):
     description = "Prepare for crystal centering."
     def run(self):
         if not self.beamline.automounter.is_busy():
             self.beamline.cryojet.nozzle.close()
-            self.beamline.goniometer.set_mode('CENTERING', wait=False)
             default_beamstop = self.beamline.config['default_beamstop']
+            
+            # needed by 08ID
+            if self.beamline.beamstop_z.get_position() < default_beamstop:
+                self.beamline.beamstop_z.move_to(default_beamstop, wait=True)
+                
+            self.beamline.goniometer.set_mode('CENTERING', wait=False)
             restore_distance = self.beamline.distance.target_changed_state[1]
             if restore_distance and restore_distance < self.beamline.detector_z.get_position():
                 self.beamline.detector_z.move_to(restore_distance, wait=False)
@@ -33,8 +36,6 @@ class SetCollectMode(Script):
     def run(self):
         if not self.beamline.automounter.is_busy():
             self.beamline.goniometer.set_mode('COLLECT', wait=True)
-            beamstop_pos = self.beamline.config['default_beamstop']
-            self.beamline.beamstop_z.move_to(beamstop_pos)
             self.beamline.cryojet.nozzle.close()
 
 class SetBeamMode(Script):
