@@ -57,11 +57,11 @@ def _custom_excepthook(exctyp, value, tb):
     
     if tb is None:
         trace_list = traceback.extract_stack()[:-1]
+        trace_info = traceback.format_list(trace_list)
     else:
-        trace_list = traceback.extract_tb(tb)
-    trace_info = traceback.format_list(trace_list)
+        #trace_list = traceback.extract_tb(tb)
+        trace_info = traceback.format_exception(exctyp, value, tb)
     trace = "".join(trace_info)
-    
     primary = "MxDC has stopped working"
     secondary  = "An unexpected problem has been detected. "
     secondary += "You can ignore the problem and attempt to continue "
@@ -98,6 +98,7 @@ def _custom_excepthook(exctyp, value, tb):
     
     dialog.connect('response', _dlg_cb)
     dialog.show()
+
 
 _excepthook_save = sys.excepthook
 
