@@ -28,7 +28,11 @@ class SetCenteringMode(Script):
             restore_distance = self.beamline.distance.target_changed_state[1]
             if restore_distance and restore_distance < self.beamline.detector_z.get_position():
                 self.beamline.detector_z.move_to(restore_distance, wait=False)
-            self.beamline.beamstop_z.move_to(default_beamstop, wait=False)
+    
+    def run_after(self):
+        default_beamstop = self.beamline.config['default_beamstop']
+        self.beamline.goniometer.wait(start=False, stop=True, timeout=20)
+        self.beamline.beamstop_z.move_to(default_beamstop, wait=False)
         
 
 class SetCollectMode(Script):
