@@ -60,10 +60,14 @@ class Script(gobject.GObject):
             _logger.info('Script `%s` terminated successfully' % (self.name) )
         finally:
             gobject.idle_add(self.emit, "done", self.output)
+            self.run_after(*args, **kwargs)
             self._active = False
                 
     def run(self, *args, **kwargs):
         raise ScriptError('`run()` not implemented!')
+
+    def run_after(self, *args, **kwargs):
+        pass
 
     def wait(self):
         while self._active:
