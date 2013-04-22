@@ -6,7 +6,6 @@ Created on Oct 28, 2010
 
 from twisted.spread import pb
 from twisted.internet import reactor
-from twisted.python import log
 
 from bcm.utils import mdns
 from bcm.utils.log import get_module_logger

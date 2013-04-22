@@ -101,6 +101,7 @@ class DewarLoader(gtk.HBox):
         self.pack_start(self.sample_loader, True, True, 0)
         self.selected_crystal = None
 
+
         #containers pane
         self.containers_view = self.__create_containers_view()
         self.inventory_sw.add(self.containers_view)
@@ -120,7 +121,6 @@ class DewarLoader(gtk.HBox):
 
         #btn signals
         self.file_btn.connect('clicked', self.on_import_file)
-        self.load_saved_database()
         
     def __getattr__(self, key):
         try:
@@ -335,7 +335,7 @@ class DewarLoader(gtk.HBox):
         self._notify_changes()
 
     def load_saved_database(self):
-        if gui.SESSION_INFO.get('new', False):
+        if not gui.SESSION_INFO.get('new', False):
             try:
                 self.samples_database  = load_config(SAMPLES_DB_CONFIG)
                 self.load_database(self.samples_database)
