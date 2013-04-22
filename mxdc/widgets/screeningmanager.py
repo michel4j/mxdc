@@ -479,7 +479,7 @@ class ScreenManager(gtk.Alignment):
         config.save_config(SCREEN_CONFIG_FILE, data)
     
     def _load_config(self):
-        if gui.SESSION_INFO.get('new', False):
+        if not gui.SESSION_INFO.get('new', False):
             data = config.load_config(SCREEN_CONFIG_FILE)
             if data is not None:
                 self.dir_btn.set_current_folder(data.get('directory'))
