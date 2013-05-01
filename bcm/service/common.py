@@ -40,15 +40,15 @@ def get_user_properties(user_name):
         pwdb = pwd.getpwnam(user_name)
         uid = pwdb.pw_uid
         gid = pwdb.pw_gid
-        dir = pwdb.pw_dir
+        direc = pwdb.pw_dir
     except:
         raise InvalidUser('Unknown user `%s`' % user_name)
-    return uid, gid, dir
+    return uid, gid, direc
 
 
-def validate_directory(dir):
-    if not os.path.exists(dir):
-        raise InvalidDirectory('Directory `%s` does not exist.' % dir)
+def validate_directory(direc):
+    if not os.path.exists(direc):
+        raise InvalidDirectory('Directory `%s` does not exist.' % direc)
     if not os.access(dir, os.W_OK):
-        raise InvalidDirectory('Permission denied for directory `%s`.' % dir)
+        raise InvalidDirectory('Permission denied for directory `%s`.' % direc)
     

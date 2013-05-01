@@ -253,7 +253,7 @@ class ResultManager(gtk.Alignment):
 
     def on_result_row_activated(self, treeview, path, column):
         model = treeview.get_model()
-        itr = model.get_ietr(path)
+        itr = model.get_iter(path)
         result_data = model.get_value(itr, resultlist.RESULT_COLUMN_RESULT)
         sample_data = model.get_value(itr, resultlist.RESULT_COLUMN_DATA)
 
