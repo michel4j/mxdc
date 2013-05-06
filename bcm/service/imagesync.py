@@ -173,11 +173,12 @@ class CommandProtocol(protocol.ProcessProtocol):
         pass
     
     def processEnded(self, reason):
-        rc = reason.value.exitCode
-        if rc == 0:
-            self.deferred.callback(self.output)
-        else:
-            self.deferred.errback(rc)
+        #rc = reason.value.exitCode
+        #if rc == 0:
+        #    self.deferred.callback(self.output)
+        #else:
+        #    self.deferred.errback(rc)
+        pass
 
 def run_command(command, args, path='/tmp', uid=0, gid=0):
     """Run an external or system command asynchronously.
