@@ -186,7 +186,7 @@ def run_command(command, args, path='/tmp', uid=0, gid=0):
     """
     prot = CommandProtocol(path)
     prot.deferred = defer.Deferred()
-    args = [command,] + args
+    args = [command,] + map(str, args)
     p = reactor.spawnProcess(
         prot,
         args[0],
