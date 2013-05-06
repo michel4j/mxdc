@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter("ignore")
+
 from twisted.internet import glib2reactor
 glib2reactor.install()
 
