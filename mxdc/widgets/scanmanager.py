@@ -206,9 +206,9 @@ class ScanManager(gtk.Alignment):
         if not self.beamline.registry.get('multi_mca', False):
             self.exafs_btn.set_sensitive(False)
         elif not self.beamline.multi_mca.is_active():
-            self.exafs_btn.set_sensitive(False)
-        
-        # Disable EXAFS is MULTI-MCA is available but inactive
+            self.beamline.multi_mca.connect('active', lambda x,y: self.exafs_btn.set_sensitive(y))
+        else:
+            self.exafs_btn.set_sensitive(True)
             
         self.periodic_table = PeriodicTable(loE, hiE)
         self.periodic_table.connect('edge-selected',self.on_edge_selected)
@@ -286,6 +286,13 @@ class ScanManager(gtk.Alignment):
         column.set_cell_data_func(renderer, self._float_format, ('%5.2f', COLUMN_PERCENT))
         self.xrf_list.append_column(column)
         self.xrf_sw.show_all()
+
+        #fix adjustments
+        if self.kmax_adj is None:
+            self.kmax_adj = gtk.Adjustment(12, 1, 18, 1, 1, 0)
+            self.kmax_entry.set_adjustment(self.kmax_adj)
+            self.scans_adj = gtk.Adjustment(1, 1, 128, 1, 10, 0)
+            self.scans_entry.set_adjustment(self.scans_adj)
         
         self.show_all()
         self.set_parameters()
