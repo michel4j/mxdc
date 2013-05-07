@@ -288,6 +288,7 @@ class MD2Goniometer(GoniometerBase):
         self._mode_cmd = self.add_pv("%s:S:MDPhasePosition:asyn.AOUT" % pv_root, monitor=False)
         self._dev_cnct = self.add_pv("%s:G:MachAppState:asyn.CNCT" % pv_root)
         self._dev_enabled = self.add_pv("%s:usrEnable" % pv_root)
+        self._mca_act = self.add_pv("%s:S:MoveFluoDetFront")
         
         # FIXME: Does not work reliably yet
         self._mode_mounting_cmd = self.add_pv("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
@@ -395,9 +396,12 @@ class MD2Goniometer(GoniometerBase):
                     self.wait() 
                     time.sleep(0.5)
                     dev.set(val) 
-        elif mode == 'SCANNING': 
+        elif mode == 'SCANNING':
+            bl = globalRegistry.lookup([], IBeamline)
+            #self._mca_act.toggle(0, 1)
+            bl.beamstop_z.move_to(120, wait=True)
             #self._minibeam.set(2) # may not be needed any more
-            pass
+            
         
         
     def _on_mode_changed(self, pv, val):
