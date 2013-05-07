@@ -104,10 +104,10 @@ class BasicMCA(BaseDevice):
             return
         if out:
             _logger.debug('(%s) Moving nozzle closer to sample' % (self.name,))
-            self.nozzle.toggle(1, 0)
+            self.nozzle.set(0)
         else:
             _logger.debug('(%s) Moving nozzle away from sample' % (self.name,))
-            self.nozzle.set(0, 1)
+            self.nozzle.set(1)
         ca.flush()
         time.sleep(2)
                 
