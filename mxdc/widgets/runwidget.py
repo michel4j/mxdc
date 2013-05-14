@@ -585,7 +585,7 @@ class RunWidget(gtk.Alignment):
         except:
             time = 1.0
         time = max(0.1, time)
-        self.entry['exposure_time'].set_text('%0.1f' % time)
+        self.entry['exposure_time'].set_text('%0.1f' % round(time, 1))
         new_delta = round(time * min(max_dps, delta/time), 2)
         if new_delta != delta:
             self.entry['delta_angle'].set_text('%0.2f' % new_delta)
