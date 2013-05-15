@@ -1,21 +1,14 @@
 from bcm.utils import json
+from bcm.utils.log import get_module_logger
 from datetime import date, datetime
 import os
 import atexit
 
-try:
-    import pynotify
-    pynotify.init('MxDC')
-    _NOTIFY_AVAILABLE = True
-except:
-    _NOTIFY_AVAILABLE = False
-
+_logger = get_module_logger('mxdc.config')
 
 CONFIG_DIR = os.path.join(os.environ['HOME'], '.mxdc-%s' % os.environ['BCM_BEAMLINE'])
 SESSION_CONFIG_FILE = 'session_config.json'
 SESSION_INFO = {'path': os.environ['HOME']} # Default, update with get_session()
-
-
 
 def save_session(session):
     session['date'] = date.today().isoformat()
@@ -60,13 +53,7 @@ def get_session():
     prev_date = datetime.strptime(prev_session['date'], '%Y-%m-%d').date()
     if (today - prev_date).days > 7:  # Use new session if last was modified more than a week ago
         new_session = session
-        if _NOTIFY_AVAILABLE:
-            _notice = pynotify.Notification('New Session Directory', _path)
-            try:
-                _notice.show()
-            except:
-                pass
-
+        _logger.info('New Session Directory: %s' % _path)
     else:
         new_session = prev_session
     if not os.path.exists(new_session['path']):
