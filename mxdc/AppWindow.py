@@ -1,4 +1,5 @@
-
+from mxdc.utils import config
+config.get_session() # update the session configuration
 
 from bcm.engine.scripting import get_scripts
 from bcm.utils.log import get_module_logger

@@ -184,7 +184,7 @@ class CollectManager(gtk.Alignment):
                                                                'data/tiny-skip.png'))
 
     def _load_config(self):
-        if not gui.SESSION_INFO.get('new', False):
+        if not config.SESSION_INFO.get('new', False):
             data = config.load_config(RUN_CONFIG_FILE)
             if data is not None:
                 for section in data.keys():
