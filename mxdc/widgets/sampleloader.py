@@ -1,4 +1,4 @@
-from mxdc.utils import gui
+from mxdc.utils import gui, config
 from mxdc.utils.config import load_config, save_config
 from bcm.utils.log import get_module_logger
 from mxdc.utils.xlsimport import XLSLoader
@@ -335,7 +335,7 @@ class DewarLoader(gtk.HBox):
         self._notify_changes()
 
     def load_saved_database(self):
-        if not gui.SESSION_INFO.get('new', False):
+        if not config.SESSION_INFO.get('new', False):
             try:
                 self.samples_database  = load_config(SAMPLES_DB_CONFIG)
                 self.load_database(self.samples_database)

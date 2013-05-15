@@ -4,7 +4,7 @@ from bcm.utils import lims_tools
 from bcm.utils.log import get_module_logger
 from datetime import datetime
 from matplotlib.dates import date2num
-from mxdc.utils import gui
+from mxdc.utils import gui, config
 from mxdc.widgets import dialogs, misc
 from mxdc.widgets.hcviewer import HCViewer
 from mxdc.widgets.plotter import Plotter
@@ -122,7 +122,7 @@ class SampleManager(gtk.Alignment):
     def on_lims_connect(self, obj, state):
         if state:
             # Load MxLIVE Samples if a new session
-            if gui.SESSION_INFO.get('new', False):
+            if config.SESSION_INFO.get('new', False):
                 reply = lims_tools.get_onsite_samples(self.beamline)
                 if reply.get('error'):
                     _logger.error('Containers and Samples could not be imported from MxLIVE.')

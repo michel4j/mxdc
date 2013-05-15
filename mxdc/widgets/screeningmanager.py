@@ -479,7 +479,7 @@ class ScreenManager(gtk.Alignment):
         config.save_config(SCREEN_CONFIG_FILE, data)
     
     def _load_config(self):
-        if not gui.SESSION_INFO.get('new', False):
+        if not config.SESSION_INFO.get('new', False):
             data = config.load_config(SCREEN_CONFIG_FILE)
             if data is not None:
                 self.dir_btn.set_current_folder(data.get('directory'))
@@ -489,7 +489,7 @@ class ScreenManager(gtk.Alignment):
                 for idx, v in enumerate(data.get('tasks',[])):
                     self.TaskList[idx][1].set_active(v)
             else:
-                self.dir_btn.set_current_folder(gui.SESSION_INFO.get('current_folder', gui.SESSION_INFO['path']))
+                self.dir_btn.set_current_folder(config.SESSION_INFO.get('current_folder', config.SESSION_INFO['path']))
                 self.time_entry.set_text('%0.2f' % self.beamline.config['default_exposure'])
                 self.delta_entry.set_text('%0.2f' % 1.0)
                 self.distance_entry.set_text('%0.2f' % 300.0)                  

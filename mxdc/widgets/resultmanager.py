@@ -4,7 +4,7 @@ from bcm.utils import lims_tools, runlists, json
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_project_name
 from bcm.utils.science import SPACE_GROUP_NAMES
-from mxdc.utils import gui
+from mxdc.utils import gui, config
 from mxdc.widgets.datalist import DataList
 from mxdc.widgets import resultlist
 from twisted.python.components import globalRegistry
@@ -34,7 +34,7 @@ class ResultManager(gtk.Alignment):
         self._create_widgets()
         self.active_sample = None
         self.active_strategy = None
-        self._dataset_path = gui.SESSION_INFO['path']
+        self._dataset_path = config.SESSION_INFO['path']
 
     def __getattr__(self, key):
         try:
