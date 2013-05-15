@@ -5,12 +5,11 @@ Scanf: Small scanf-implementation.
   
 """
 
-import re
-import sys
-from scipy import interpolate
 from configobj import ConfigObj
+from scipy import interpolate
 import numpy
 import os
+import re
 
 INI_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -19,7 +18,6 @@ DEBUG = False
 # Cache formats
 SCANF_CACHE_SIZE = 3000
 scanf_cache = {}
-
 
 scanf_translate = [
     (re.compile(_token, re.DOTALL), _pattern, _cast) for _token, _pattern, _cast in [
@@ -38,10 +36,9 @@ scanf_translate = [
     ("%\{\{(.+)\}\}", "%s", lambda x:x),
     ]]
 
-
-def _scanf_compile(format):
+def _scanf_compile(fmt):
     """
-    This is an internal function which translates the format into regular expressions
+    This is an internal function which translates the fmt into regular expressions
     
     For example:
     >>> format_re, casts = _scanf_compile('%s - %d errors, %d warnings')
@@ -51,18 +48,18 @@ def _scanf_compile(format):
     Translated formats are cached for faster use
     
     """
-    compiled = scanf_cache.get(format)
+    compiled = scanf_cache.get(fmt)
     if compiled:
         return compiled
 
     format_pat = ""
     cast_list = []
     i = 0
-    length = len(format)
+    length = len(fmt)
     while i < length:
         found = None
         for token, pattern, cast in scanf_translate:
-            found = token.match(format, i)
+            found = token.match(fmt, i)
             if found:
                 cast_list.append(cast)
                 groups = found.groupdict() or found.groups()
@@ -72,21 +69,19 @@ def _scanf_compile(format):
                 i = found.end()
                 break
         if not found:
-            char = format[i]
+            char = fmt[i]
             # escape special characters
             if char in "$()|[]-.+*?{}<>!\\^":
                 format_pat += "\\"
             format_pat += char
             i += 1
     if DEBUG:
-        print "DEBUG: %r -> '%s'" % (format, format_pat)
+        print "DEBUG: %r -> '%s'" % (fmt, format_pat)
     format_re = re.compile(format_pat, re.DOTALL)
     if len(scanf_cache) > SCANF_CACHE_SIZE:
         scanf_cache.clear()
-    scanf_cache[format] = (format_re, cast_list)
+    scanf_cache[fmt] = (format_re, cast_list)
     return format_re, cast_list
-
-
 
 def scanf(format, s, position=0):
     """
@@ -129,7 +124,6 @@ def scanf(format, s, position=0):
         return result, found.end()
     else:
         return None, position
-
 
 def load_file(filename):
     """ 

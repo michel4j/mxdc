@@ -1,6 +1,6 @@
 from bcm.beamline.mx import IBeamline
 from bcm.utils import science, misc
-from mxdc.utils import gui
+from mxdc.utils import gui, config
 from mxdc.widgets import dialogs
 from mxdc.widgets.predictor import Predictor
 from twisted.python.components import globalRegistry
@@ -18,7 +18,7 @@ import os
 
 DEFAULT_PARAMETERS = {
     'name': 'test',
-    'directory': gui.SESSION_INFO.get('current_path', gui.SESSION_INFO['path']),
+    'directory': config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']),
     'distance': 250.0,
     'delta_angle': 1.0,
     'exposure_time': 1.0,
