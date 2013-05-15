@@ -291,7 +291,7 @@ class RasterWidget(gtk.Frame):
             params = {
                 'mode': 'Diffraction',
                 'prefix': 'testgrid',
-                'directory': gui.SESSION_INFO.get('current_path', gui.SESSION_INFO['path']),
+                'directory': config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']),
                 'distance': self.beamline.distance.get_position(),
                 'loop_size': 200,
                 'aperture': self.beamline.aperture.get(),
@@ -328,7 +328,7 @@ class RasterWidget(gtk.Frame):
         return params
 
     def _load_config(self):
-        if not gui.SESSION_INFO.get('new', False):
+        if not config.SESSION_INFO.get('new', False):
             data = config.load_config(_CONFIG_FILE)
             if data is not None:
                 self.set_parameters(data)

@@ -2,7 +2,7 @@ import os
 import gtk
 import pango
 import re
-from mxdc.utils import gui
+from mxdc.utils import gui, config
 
 MAIN_WINDOW = None
 
@@ -239,7 +239,7 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[]):
                     action=action,
                     parent=parent,
                     buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, _stock,   gtk.RESPONSE_OK))
-        dialog.set_current_folder(gui.SESSION_INFO.get('current_path', gui.SESSION_INFO['path']))
+        dialog.set_current_folder(config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']))
         dialog.set_do_overwrite_confirmation(True)
         if action == gtk.FILE_CHOOSER_ACTION_OPEN:
             for name, patterns in filters:
@@ -301,10 +301,10 @@ def select_open_image(parent=None):
 class FolderSelector(object):
     def __init__(self, button):
         self.button = button
-        self.path = gui.SESSION_INFO.get('current_path', gui.SESSION_INFO['path'])
+        self.path = config.SESSION_INFO.get('current_path', config.SESSION_INFO['path'])
         self.label = gtk.Label('')
         self.label.set_alignment(0,0.5)
-        self.folders = gui.SESSION_INFO.get('directories', [self.path])
+        self.folders = config.SESSION_INFO.get('directories', [self.path])
         self.icon = gtk.image_new_from_stock('gtk-directory', gtk.ICON_SIZE_MENU)
         hbox = gtk.HBox(False,3)
         hbox.pack_end(self.icon, False, False, 2)
@@ -404,7 +404,7 @@ class FolderSelector(object):
     def set_current_folder(self, path):
         if os.path.exists(path):
             self.path = path
-        gui.SESSION_INFO['current_path'] = self.path
+        config.SESSION_INFO['current_path'] = self.path
         self._create_popup()
         self.label.set_text(self.path)
         self.tooltips.set_tip(self.button, self.path)

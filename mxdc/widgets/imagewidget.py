@@ -1,39 +1,24 @@
 # -*- coding: UTF8 -*-
-import os
-import sys
-import math
-import re
+from bcm.utils.imageio import read_image
+from bcm.utils.imageio.utils import stretch
+from bcm.utils.science import find_peaks
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.ticker import FormatStrFormatter, MaxNLocator
+import Queue
+import cairo
 import gc
-import struct
-import pickle
+import gobject
 import gtk
 import logging
-import gobject
-import pango
-import time
-import threading
-import Queue
-import Image 
-import ImageOps
-import ImageDraw
-import ImageFont
+import math
+import matplotlib.backends.backend_agg
 import numpy
-import ctypes
-from scipy.misc import toimage, fromimage
-from matplotlib.colors import LinearSegmentedColormap
-import matplotlib, matplotlib.backends.backend_agg
-from mpl_toolkits.axes_grid.axislines import SubplotZero
-from matplotlib.pylab import loadtxt
-from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
-from bcm.utils.science import peak_search, find_peaks
-from bcm.utils.imageio import read_image
-from bcm.utils.imageio.utils import stretch, calc_gamma
-
-try:
-    import cairo
-    USE_CAIRO = True
-except:
-    USE_CAIRO = False
+import os
+import pango
+import pickle
+import sys
+import threading
+import time
 
 __log_section__ = 'mxdc.imagewidget'
 img_logger = logging.getLogger(__log_section__)
@@ -48,12 +33,7 @@ COLORMAPS['gist_yarg'][-1] = 0
 COLORMAPS['gist_yarg'][-2] = 0
 COLORMAPS['gist_yarg'][-3] = 255
 
-#COLORMAPS['gist_yarg'][0] = 0
-#COLORMAPS['gist_yarg'][1] = 0
-#COLORMAPS['gist_yarg'][2] = 255
-
 _GAMMA_SHIFT = 3.5        
-
 
 _BUSY_CURSOR_BITS_ = "\
 \x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\
@@ -72,7 +52,7 @@ _c_pix = gtk.gdk.bitmap_create_from_data(None, _BUSY_CURSOR_BITS_, 32, 32)
 _c_color = gtk.gdk.Color()
 LEFT_PTR_WATCH=gtk.gdk.Cursor(_c_pix, _c_pix, _c_color, _c_color, 2, 2)
 
-   
+  
 def _load_frame_image(filename, gamma_offset = 0.0):
     image_info = {}
     image_obj = read_image(filename)
@@ -443,31 +423,6 @@ class ImageWidget(gtk.DrawingArea):
         rpal = [int(round(v[0]*255)) for v in tpal]
         return rpal
 
-    def draw_overlay(self):
-        drawable = self.get_window()
-        gc = self.pl_gc        
-        if self._rubber_band:
-            x, y, w, h = self._calc_bounds(self.rubber_x0,
-                                      self.rubber_y0,
-                                      self.rubber_x1,
-                                      self.rubber_y1)    
-            drawable.draw_rectangle(gc, False, x, y, w, h)
-        
-        # cross
-        x, y, w, h = self.extents
-        if (0 < (self.beam_x-x) < x+w) and (0 < (self.beam_y-y) < y+h):
-            cx = int((self.beam_x-x)*self.scale)
-            cy = int((self.beam_y-y)*self.scale)
-            drawable.draw_line(gc, cx-4, cy, cx+4, cy)
-            drawable.draw_line(gc, cx, cy-4, cx, cy+4)
-                   
-        # measuring
-        if self._measuring:
-            drawable.draw_line(gc, self.meas_x0, self.meas_y0,
-                               self.meas_x1, self.meas_y1)
-        return True
-
-
     def draw_overlay_cairo(self, cr):
         # rubberband
         cr.set_line_width(1.5)
@@ -759,21 +714,19 @@ class ImageWidget(gtk.DrawingArea):
                                            150)
             window = self.get_window()
             window.draw_pixbuf(self.gc, disp_pixbuf, 0, 0, 0, 0)
-            if USE_CAIRO:
-                context = window.cairo_create()
-                context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
-                context.clip()
-                
-                pcontext = self.get_pango_context()
-                font_desc = pcontext.get_font_description()
-                style = self.get_style()
-                context.set_source_color(style.fg[self.state])
-                context.set_font_size( font_desc.get_size()/pango.SCALE )
-                
-                self.draw_overlay_cairo(context)
-                self.draw_spots(context)
-            else:
-                self.draw_overlay()
+
+            context = window.cairo_create()
+            context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
+            context.clip()
+            
+            pcontext = self.get_pango_context()
+            font_desc = pcontext.get_font_description()
+            style = self.get_style()
+            context.set_source_color(style.fg[self.state])
+            context.set_font_size( font_desc.get_size()/pango.SCALE )
+            
+            self.draw_overlay_cairo(context)
+            self.draw_spots(context)
                 
     def on_realized(self, obj):
         window = self.get_window()

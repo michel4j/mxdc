@@ -5,8 +5,6 @@ Overview
     This module provides an object oriented interface to CBFlib.
 """
 
-
-
 from bcm.utils import parse_tools
 from bcm.utils.imageio import common
 from bcm.utils.imageio.utils import calc_gamma
@@ -20,8 +18,6 @@ import re
 
 # Configure Logging
 _logger = get_module_logger('imageio.cbf')
-
-
 
 # Define CBF Error Code constants
 CBF_FORMAT         = 0x00000001  #      1
