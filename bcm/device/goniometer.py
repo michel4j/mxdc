@@ -247,7 +247,7 @@ class Goniometer(GoniometerBase):
         #self._set_and_notify_mode(mode)
         self._check_gonio_pos()
         if wait:
-            timeout = 30
+            timeout = 60
             while mode not in _MODE_MAP_REV.get(self.mode) and timeout > 0:
                 time.sleep(0.05)
                 timeout -= 0.05
