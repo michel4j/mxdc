@@ -323,6 +323,7 @@ class XANESScan(BasicScan):
                     scale = 1.0
                 else:
                     scale = (self.data[0][2]/i0)
+                x = self.beamline.monochromator.simple_energy.get_position()
                 self.data.append( [x, y*scale, i0, y] )
                     
                 fraction = float(self.count) / len(self._targets)
@@ -520,6 +521,8 @@ class EXAFSScan(BasicScan):
                         scale = 1.0
                     else:
                         scale = (self.data[0][2]/i0)
+                        
+                    x = self.beamline.monochromator.simple_energy.get_position()
                     data_point = [1000*x, y*scale, i0, k, _t] # convert KeV to eV
     
                     _rates = self.beamline.multi_mca.get_count_rates()
