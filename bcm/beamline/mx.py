@@ -105,7 +105,7 @@ class MXBeamline(object):
         _misc.update(getattr(l_settings, 'MISC_SETTINGS', {}))
         self.config.update({
             'name': self.name,
-            'energy_range': getattr(l_settings, 'ENERGY_RANGE', getattr(g_settings, 'ENERGY_RANGE', (6.0, 18.0))),
+            'energy_range': getattr(l_settings, 'BEAMLINE_ENERGY_RANGE', getattr(g_settings, 'BEAMLINE_ENERGY_RANGE', (6.0, 18.0))),
             'default_attenuation': getattr(l_settings, 'DEFAULT_ATTENUATION', getattr(g_settings, 'DEFAULT_ATTENUATION', 90.0)),
             'default_exposure': getattr(l_settings, 'DEFAULT_EXPOSURE', getattr(g_settings, 'DEFAULT_EXPOSURE', 1.0)),
             'default_beamstop': getattr(l_settings, 'DEFAULT_BEAMSTOP', getattr(g_settings, 'DEFAULT_BEAMSTOP', 25.0)),
