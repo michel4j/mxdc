@@ -229,6 +229,7 @@ class AbsScan(BasicScan):
             else:
                 y = self._counter.count(self._duration)
                 i0 = 1.0
+            x = self._motor.get_position()
             self.data.append( [x, y/i0, i0, y] )
             _logger.info("%4d %8g %8g %8g %8g" % (i, x, y/i0, i0, y))
             gobject.idle_add(self.emit, "new-point", (x, y/i0, i0, y) )
@@ -301,6 +302,8 @@ class AbsScan2(BasicScan):
             else:
                 y = self._counter.count(self._duration)  
                 i0 = 1.0
+            x1 = self._motor1.get_position()
+            x2 = self._motor2.get_position()
             self.data.append( [x1, x2, y/i0, i0, y] )
             _logger.info("%4d %15g %15g %15g %15g %15g" % (i, x1, x2, y/i0, i0, y))
             gobject.idle_add(self.emit, "new-point", (x1, x2, y/i0, i0, y) )
