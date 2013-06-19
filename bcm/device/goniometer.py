@@ -399,7 +399,7 @@ class MD2Goniometer(GoniometerBase):
         elif mode == 'SCANNING':
             bl = globalRegistry.lookup([], IBeamline)
             #self._mca_act.toggle(0, 1)
-            bl.beamstop_z.move_to(120, wait=True)
+            bl.beamstop_z.move_to(bl.config['xrf_beamstop'], wait=True)
             #self._minibeam.set(2) # may not be needed any more
             
         
