@@ -203,7 +203,7 @@ class BasicAutomounter(BaseDevice):
         poll=0.20
         
         if (start and not self.is_busy()):
-            _logger.warning('Waiting for (%s) to start' % (self.name,))
+            _logger.debug('Waiting for (%s) to start' % (self.name,))
             while not self.is_busy() and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
@@ -335,7 +335,7 @@ class Automounter(BasicAutomounter):
         self._bar_code = self.add_pv('%s:bcode:barcode' % pv_name)
         self._barcode_reset = self.add_pv('%s:bcode:clear' % pv_name)
         self._enabled = self.add_pv('%s:mntEn' % pv_name)
-        self._sample_busy = self.add_pv('%s:sample:sts' % pv_name)
+        self._sample_busy = self.add_pv('%s:bot:mntEn' % pv_name)
         self._probe_param = self.add_pv('%s:probe:wvParam' % pv_name)
         
         self.port_states.connect('changed', lambda x, y: self._parse_states(y))
@@ -532,16 +532,14 @@ class Automounter(BasicAutomounter):
 
     def _on_state_changed(self, pv, st):
         state = self._status.get()
-        busy = (self._sample_busy.get() == 1)
+        busy = (self._sample_busy.get() == 0)
         try:
             state = state.split()[0].strip()
         except IndexError:
             return
         
-        if state  == 'robot_standby':
-            self.set_state(busy=busy, status="standby")
-        elif state  == 'idle':
-            self.set_state(busy=False, status="idle")
+        if state  in ['robot_standby', 'idle']:
+            self.set_state(busy=busy, status=state)
         elif state == 'robot_config':
             self.set_state(busy=busy, status="setup")
         else:
