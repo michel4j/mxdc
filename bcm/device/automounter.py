@@ -122,8 +122,7 @@ class BasicAutomounter(BaseDevice):
         self._total_steps = 0
         self._step_count = 0
         self._last_warn = ''
-        self.set_state(active=False, enabled=False)
-        self._command_sent = False    
+        self.set_state(active=False, enabled=False) 
     
     def do_state(self, st):
         pass
@@ -203,12 +202,11 @@ class BasicAutomounter(BaseDevice):
         """
         poll=0.20
         
-        if (start and self._command_sent and not self.is_busy()):
-            _logger.debug('Waiting for (%s) to start' % (self.name,))
-            while self._command_sent and not self.is_busy() and timeout > 0:
+        if (start and not self.is_busy()):
+            _logger.warning('Waiting for (%s) to start' % (self.name,))
+            while not self.is_busy() and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
-            self._command_sent = False               
             if timeout <= 0:
                 _logger.warning('Timed out waiting for (%s) to start.' % (self.name,))
                 return False
@@ -309,7 +307,6 @@ class Automounter(BasicAutomounter):
         BasicAutomounter.__init__(self)
         self.name = 'SAM Automounter'
         self._pv_name = pv_name
-        self._command_sent = False
         self._ful_pos = []
         #initialize housekeeping vars
         
@@ -440,7 +437,6 @@ class Automounter(BasicAutomounter):
             self._step_count = 0
         
         _logger.info('(%s) Mount command: %s' % (self.name, port))
-        self._command_sent = True
         if wait:
             return self.wait(start=True, stop=True, timeout=240)
         return True
@@ -484,7 +480,6 @@ class Automounter(BasicAutomounter):
         self._step_count = 0
         
         _logger.info('(%s) Dismount command: %s' % (self.name, port))
-        self._command_sent = True
         if wait:
             return self.wait(start=True, stop=True, timeout=240)
         return True
@@ -551,7 +546,6 @@ class Automounter(BasicAutomounter):
             self.set_state(busy=busy, status="setup")
         else:
             self.set_state(busy=busy, status="busy")
-
 
     def _on_mount_changed(self, pv, val):
         vl = val.split()
@@ -661,7 +655,6 @@ class SimAutomounter(BasicAutomounter):
             return False
         self._sim_mount_start(port)
         GObject.timeout_add(5000, self._sim_mount_done, port)
-        self._command_sent = True
         if wait:
             return self.wait(start=True, stop=True)
         return True
@@ -672,7 +665,6 @@ class SimAutomounter(BasicAutomounter):
         if self._mounted_port is not None:
             self._sim_mount_start(None)
             GObject.timeout_add(10000, self._sim_dismount_done)
-        self._command_sent = True
         if wait:
             return self.wait(start=True, stop=True)
         return True

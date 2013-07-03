@@ -347,6 +347,8 @@ class SamplePicker(gtk.HBox):
         self.control_box.pack_end(self.pbar, expand=False, fill=False)
         self.pbar.modify_font(pango_font)
         
+        # initialization
+        self.command_active = False
                
                 
     def __getattr__(self, key):

@@ -382,25 +382,27 @@ class MD2Goniometer(GoniometerBase):
         if wait:
             timeout = 30
             #self.wait()
+
             while mode not in _MODE_MAP_REV.get(self.mode)  and timeout > 0:
                 time.sleep(0.01)
                 timeout -= 0.01
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
             time.sleep(1.0)
-        
+            
         #FIXME: compensate for broken presets in mounting mode
-        if mode == 'MOUNTING':
-            for dev,val in self._mount_setpoints.items():
-                if abs(dev.get() - val) > 0.01:              
-                    self.wait() 
-                    time.sleep(0.5)
-                    dev.set(val) 
-        elif mode == 'SCANNING':
+        #if mode == 'MOUNTING':
+        #    for dev,val in self._mount_setpoints.items():
+        #        if abs(dev.get() - val) > 0.01:              
+        #            self.wait() 
+        #            time.sleep(0.5)
+        #            dev.set(val) 
+        if mode == 'SCANNING':
             bl = globalRegistry.lookup([], IBeamline)
             #self._mca_act.toggle(0, 1)
             bl.beamstop_z.move_to(bl.config['xrf_beamstop'], wait=True)
             #self._minibeam.set(2) # may not be needed any more
+        
             
         
         
