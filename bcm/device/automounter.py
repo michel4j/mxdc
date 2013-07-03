@@ -200,14 +200,15 @@ class BasicAutomounter(BaseDevice):
             True if the wait was successful. False if the wait timed-out.
             
         """
-        poll=0.20
+        poll=0.10
         
         if (start and not self.is_busy()):
             _logger.debug('Waiting for (%s) to start' % (self.name,))
-            while not self.is_busy() and timeout > 0:
-                timeout -= poll
+            _start_timeout = 5
+            while not self.is_busy() and _start_timeout > 0:
+                _start_timeout -= poll
                 time.sleep(poll)
-            if timeout <= 0:
+            if _start_timeout <= 0:
                 _logger.warning('Timed out waiting for (%s) to start.' % (self.name,))
                 return False
         if (stop and self.is_busy()):
@@ -438,7 +439,10 @@ class Automounter(BasicAutomounter):
         
         _logger.info('(%s) Mount command: %s' % (self.name, port))
         if wait:
-            return self.wait(start=True, stop=True, timeout=240)
+            success = self.wait(start=True, stop=True, timeout=240)
+            if not success:
+                self.set_state(status='idle', message="Mounting timed out!")
+            return success
         return True
         
     
@@ -481,7 +485,10 @@ class Automounter(BasicAutomounter):
         
         _logger.info('(%s) Dismount command: %s' % (self.name, port))
         if wait:
-            return self.wait(start=True, stop=True, timeout=240)
+            success = self.wait(start=True, stop=True, timeout=240)
+            if not success:
+                self.set_state(status='idle', message="Dismounting timed out!")
+            return success
         return True
  
 
