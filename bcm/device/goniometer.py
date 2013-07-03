@@ -143,7 +143,8 @@ class Goniometer(GoniometerBase):
         pv_root = name.split(':')[0]
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:scanFrame.PROC" % pv_root, monitor=False)
-        self._state = self.add_pv("%s:scanFrame:status" % pv_root)
+        #self._state = self.add_pv("%s:scanFrame:status" % pv_root)
+        self._state = self.add_pv("%s:mntpos:moving" % mntname)
         self._state.connect('changed', self._on_busy)
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
         self._bl_position = BackLight(blname)
