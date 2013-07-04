@@ -347,6 +347,8 @@ class SamplePicker(gtk.HBox):
         self.control_box.pack_end(self.pbar, expand=False, fill=False)
         self.pbar.modify_font(pango_font)
         
+        # initialization
+        self.command_active = False
                
                 
     def __getattr__(self, key):
@@ -388,20 +390,18 @@ class SamplePicker(gtk.HBox):
     
     @async
     def execute_mount(self, port, wash):
-        try:
-            self.command_active = True
-            auto.auto_mount_manual(self.beamline, port, wash)
-        except:
-            _logger.error('Sample mounting failed')
+        self.command_active = True
+        success = auto.auto_mount_manual(self.beamline, port, wash)
+        if not success:
+            gobject.idle_add(self.mount_btn.set_sensitive, True)  
         self.command_active = False
         
     @async
     def execute_dismount(self, port):
-        try:
-            self.command_active = True
-            auto.auto_dismount_manual(self.beamline, port)
-        except:
-            _logger.error('Sample dismounting failed')
+        self.command_active = True
+        success = auto.auto_dismount_manual(self.beamline, port)
+        if not success:
+            gobject.idle_add(self.dismount_btn.set_sensitive, True) 
         self.command_active = False
                 
 

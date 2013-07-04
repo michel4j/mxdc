@@ -34,7 +34,7 @@ def _energy2pitch(x):
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
     'energy':   PseudoMotor('DCM1608-4-B10-01:energy:KeV'),
-    'bragg_energy': BraggEnergyMotor('SMTR1608-4-B10-17:deg'),
+    'bragg_energy': BraggEnergyMotor('SMTR1608-4-B10-17:deg', motor_type="vmeenc"),
     'dcm_pitch':  ENCMotor('SMTR1608-4-B10-15:deg'),
     #'boss': BossOptimizer('BL08B1:PicoControl'),    
     'mostab': PitchOptimizer('Pitch Optimizer', _energy2pitch),

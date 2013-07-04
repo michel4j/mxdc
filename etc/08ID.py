@@ -30,7 +30,7 @@ LIMS_API_KEY    = "DE5C410E-6D59-4DE8-AFFC-3FF5F367359E"
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
     'energy':   EnergyMotor('BL08ID1:energy', 'SMTR16082I1005:deg'),
-    'bragg_energy': BraggEnergyMotor('SMTR16082I1005:deg'),
+    'bragg_energy': BraggEnergyMotor('SMTR16082I1005:deg', motor_type="vme"),
     'dcm_pitch':  VMEMotor('SMTR16082I1010:deg'),
     'mostab': MostabOptimizer('MOS16082I1001'),
     

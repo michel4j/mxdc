@@ -71,7 +71,7 @@ class ActiveLabel(gtk.Label):
 
     def _on_alarm(self, obj, alrm):
         alarm, severity = alrm
-        print alarm, severity
+        #print alarm, severity
         
 class ActiveEntry(gtk.VBox):
     #_border = gtk.Border(3,3,4,4)
@@ -328,6 +328,7 @@ class ScriptButton(gtk.Button):
         self.script.connect('done', lambda x,y: self._set_off())
         self.script.connect('error', lambda x: self._set_err())
         self.script.connect('started',lambda x: self._set_on())
+        self.script.connect('enabled', self._on_enabled)
         self.connect('clicked', self._on_clicked)
             
     def _on_clicked(self, widget):
@@ -351,7 +352,12 @@ class ScriptButton(gtk.Button):
         self.image.set_from_stock('gtk-warning', gtk.ICON_SIZE_SMALL_TOOLBAR)
         self.label.set_sensitive(True)
 
-
+    def _on_enabled(self, obj, state):
+        if state:
+            self.set_sensitive(True)
+        else:
+            self.set_sensitive(False)
+                    
 class StatusBox(gtk.EventBox):
     COLOR_MAP = {
         'blue':'#6495ED',
