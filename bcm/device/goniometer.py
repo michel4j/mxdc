@@ -143,9 +143,10 @@ class Goniometer(GoniometerBase):
         pv_root = name.split(':')[0]
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:scanFrame.PROC" % pv_root, monitor=False)
-        #self._state = self.add_pv("%s:scanFrame:status" % pv_root)
-        self._state = self.add_pv("%s:mntpos:moving" % mntname)
+        self._state = self.add_pv("%s:scanFrame:status" % pv_root)
+        self._mode_state = self.add_pv("%s:mntpos:moving" % mntname)
         self._state.connect('changed', self._on_busy)
+        self._mode_state.connect('changed', self._on_busy)
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
         self._bl_position = BackLight(blname)
 
@@ -176,7 +177,9 @@ class Goniometer(GoniometerBase):
         bl = globalRegistry.lookup([], IBeamline)
         out_position = bl.config['misc']['aperture_out_position']
         
-        if self._bl_position.changed_state:
+        if (self._mode_state.get() == 1) or (self._state.get() == 1):
+            self._set_and_notify_mode("MOVING")
+        elif self._bl_position.changed_state:
             self._set_and_notify_mode("CENTERING")
         elif (self._gonio_state.get() + self._table_state.get()) == 2:
             self._set_and_notify_mode("MOUNTING")
@@ -185,17 +188,17 @@ class Goniometer(GoniometerBase):
                 self._set_and_notify_mode(self._requested_mode)
             else:
                 self._set_and_notify_mode("UNKNOWN")
-        elif self._goto_mount_state.get() == 1:
-            self._set_and_notify_mode("MOVING")
         else:
             self._set_and_notify_mode("UNKNOWN")
            
             
     def _on_busy(self, obj, st):
-        if st == 0:
-            self.set_state(busy=False)
-        else:
+        if self._state.get() == 1 or self._mode_state.get() == 1:
             self.set_state(busy=True)
+        else:
+            self.set_state(busy=False)
+        self._check_gonio_pos()
+
                    
     def configure(self, **kwargs):
         """Configure the goniometer to perform an oscillation scan.
