@@ -5,6 +5,7 @@ from bcm.beamline.mx import IBeamline
 from twisted.python.components import globalRegistry
 from bcm.utils.log import get_module_logger
 from bcm.engine import auto
+from bcm.utils.decorators import async
 
 from mxdc.widgets.runmanager import RunManager
 from mxdc.utils import gui
@@ -83,22 +84,17 @@ class MountWidget(gtk.Alignment):
         else:
             self.active_sample = {}
         self.update_display()
-        
+    
+    @async  
     def execute_mount_action(self, obj):
         if self.selected_sample:
             if self.selected_sample.get('load_status', 0) == 1: # Sample Loaded
                 if self.beamline.automounter.is_mounted(self.selected_sample['port']): # AUTO DISMOUNT
-                    try:  
-                        self.sel_mounting = True
-                        auto.auto_dismount_manual(self.beamline, self.selected_sample['port'])
-                    except:
-                        _logger.error('Sample dismounting failed')
+                    self.sel_mounting = True
+                    success = auto.auto_dismount_manual(self.beamline, self.selected_sample['port'])
                 elif self.beamline.automounter.is_mountable(self.selected_sample['port']): # AUTO MOUNT
-                    try:
-                        self.sel_mounting = True
-                        auto.auto_mount_manual(self.beamline, self.selected_sample['port'])
-                    except:
-                        _logger.error('Sample mounting failed')
+                    self.sel_mounting = True
+                    success = auto.auto_mount_manual(self.beamline, self.selected_sample['port'])
                 else: # NOTHING
                     pass
             else:
