@@ -236,7 +236,7 @@ class Goniometer(GoniometerBase):
         elif mode in ['MOUNTING']:
             #out_position = bl.config['misc']['aperture_out_position']
             #self.minibeam.move_to(out_position, wait=False)
-            self._bl_position.close()
+            #self._bl_position.close()
             self._goto_mount_cmd.put(1)
 
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
@@ -248,13 +248,14 @@ class Goniometer(GoniometerBase):
         #self._set_and_notify_mode(mode)
         self._check_gonio_pos()
         if wait:
-            timeout = 60
-            while mode not in _MODE_MAP_REV.get(self.mode) and timeout > 0:
-                time.sleep(0.05)
-                timeout -= 0.05
+            timeout = 30
+            while mode not in _MODE_MAP_REV.get(self.mode)  and timeout > 0:
+                time.sleep(0.01)
+                timeout -= 0.01
                 self._check_gonio_pos()
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
+            time.sleep(1.0)
 
     
     def scan(self, wait=True):
@@ -503,3 +504,4 @@ class SimGoniometer(GoniometerBase):
    
 
 __all__ = ['Goniometer', 'MD2Goniometer', 'SimGoniometer']
+
