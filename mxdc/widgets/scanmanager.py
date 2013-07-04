@@ -385,7 +385,7 @@ class ScanManager(gtk.Alignment):
                 'edge': 'Se-K',
                 'time': 0.5,
                 'emission': 11.2100,
-                'attenuation': 90.0,
+                'attenuation': self.beamline.config['default_attenuation'],
                 'scans': 1,
                 'kmax': 12,
             }
