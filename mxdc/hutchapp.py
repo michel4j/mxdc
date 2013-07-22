@@ -17,8 +17,6 @@ from mxdc.widgets.statuspanel import StatusPanel
 from mxdc.widgets.samplepicker import SamplePicker
 from mxdc.utils import gui
 
-#from mxdc.utils import gtkexcepthook
-
 _logger = get_module_logger('hutchviewer')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
 COPYRIGHT = """
@@ -55,6 +53,7 @@ class HutchWindow(gtk.Window):
         _lbl = gtk.Label('Automounter')
         _lbl.set_padding(6, 0)
         self.hutch_manager.video_book.append_page(self.sample_picker, tab_label=_lbl)
+        self.sample_picker.set_border_width(9)
 
         self.main_frame.add(self.hutch_manager)
         self.mxdc_main.pack_start(self.status_panel, expand = False, fill = False)

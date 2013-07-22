@@ -1,27 +1,24 @@
-import os
-import sys
-import time
-import gtk
-import gobject
-import pango
-from datetime import datetime
 
-from gauge import Gauge
-from dialogs import warning
-from mxdc.utils import gui
-from bcm.utils.misc import lighten_color, darken_color
+from bcm.utils.misc import lighten_color
 from diagnostics import MSG_COLORS, MSG_ICONS
+from dialogs import warning
+from gauge import Gauge
+from mxdc.utils import gui
+import gobject
+import gtk
+import os
+import time
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class ActiveHScale(gtk.HScale):
-    def __init__( self, context, min=0.0, max=100.0):
+    def __init__( self, context, min_val=0.0, max_val=100.0):
         gtk.HScale.__init__(self)
         self.context = context
         self.set_value_pos(gtk.POS_RIGHT)
         self.set_digits(1)
-        self.set_range(min, max)
-        self.set_adjustment(gtk.Adjustment(0.0, min, max, (max-min)/100.0, 0, 0))
+        self.set_range(min_val, max_val)
+        self.set_adjustment(gtk.Adjustment(0.0, min_val, max_val, (max_val-min_val)/100.0, 0, 0))
         self.set_update_policy(gtk.UPDATE_CONTINUOUS)
         self._handler_id = self.connect('value-changed', self._on_scale_changed)
         self.context.connect('changed', self._on_feedback_changed)
@@ -46,14 +43,14 @@ class ActiveHScale(gtk.HScale):
         #self.context.handler_unblock(self._handler_id)
         
 class ActiveLabel(gtk.Label):
-    def __init__( self, context, format="%s", show_units=True, range=None):
+    def __init__( self, context, fmt="%s", show_units=True, rng=None):
         gtk.Label.__init__(self, '')
 
         self.set_alignment(0.5,0.5)
-        self.format = format
+        self.format = fmt
         self.context = context
         self.context.connect('changed', self._on_value_change )
-        self.range = range
+        self.range = rng
         try:
             self.context.connect('alarm', self._on_alarm )
         except:
@@ -74,11 +71,11 @@ class ActiveLabel(gtk.Label):
 
     def _on_alarm(self, obj, alrm):
         alarm, severity = alrm
-        print alarm, severity
+        #print alarm, severity
         
 class ActiveEntry(gtk.VBox):
     #_border = gtk.Border(3,3,4,4)
-    def __init__( self, device, label=None,  format="%g",  width=10):
+    def __init__( self, device, label=None,  fmt="%g",  width=10):
         gtk.VBox.__init__(self, label)
         self._sizegroup_h = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
         self._sizegroup_v = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
@@ -127,7 +124,7 @@ class ActiveEntry(gtk.VBox):
         self.running = False
         self.action_active = True
         self.width = width
-        self.number_format = format
+        self.number_format = fmt
         self.format = self.number_format
         
         if label is None:
@@ -170,7 +167,7 @@ class ActiveEntry(gtk.VBox):
         return target
     
     def _on_health_changed(self, obj, health):
-        state, msg = health
+        state, _ = health
         
         if state == 0:
             self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000066"))
@@ -217,8 +214,8 @@ class ActiveEntry(gtk.VBox):
     
             
 class MotorEntry(ActiveEntry):
-    def __init__(self, mtr, label=None, format="%0.3f", width=8):
-        ActiveEntry.__init__(self, mtr, label=label, format=format, width=width)
+    def __init__(self, mtr, label=None, fmt="%0.3f", width=8):
+        ActiveEntry.__init__(self, mtr, label=label, fmt=fmt, width=width)
         self._set_active(False)
         self.device.connect('busy', self._on_motion_changed)
         self.device.connect('target-changed', self._on_target_changed)
@@ -331,6 +328,7 @@ class ScriptButton(gtk.Button):
         self.script.connect('done', lambda x,y: self._set_off())
         self.script.connect('error', lambda x: self._set_err())
         self.script.connect('started',lambda x: self._set_on())
+        self.script.connect('enabled', self._on_enabled)
         self.connect('clicked', self._on_clicked)
             
     def _on_clicked(self, widget):
@@ -354,7 +352,12 @@ class ScriptButton(gtk.Button):
         self.image.set_from_stock('gtk-warning', gtk.ICON_SIZE_SMALL_TOOLBAR)
         self.label.set_sensitive(True)
 
-
+    def _on_enabled(self, obj, state):
+        if state:
+            self.set_sensitive(True)
+        else:
+            self.set_sensitive(False)
+                    
 class StatusBox(gtk.EventBox):
     COLOR_MAP = {
         'blue':'#6495ED',
@@ -507,9 +510,10 @@ class LinearProgress(gtk.DrawingArea):
            
     
     def on_expose(self, obj, event):
+        window = obj.get_window()
         if self.bar_gc is None:
-            obj.window.clear()
-            self.bar_gc = obj.window.new_gc()
+            window.clear()
+            self.bar_gc = window.new_gc()
             style = self.get_style()
             if self.color_spec:
                 self.bar_gc.foreground = self.get_colormap().alloc_color(self.color_spec)
@@ -524,12 +528,13 @@ class LinearProgress(gtk.DrawingArea):
         return False
 
     def draw_gdk(self):
-        self.window.set_back_pixmap(None, True)
+        window = self.get_window()
+        window.set_back_pixmap(None, True)
         bar_width = int(self.allocation.width * self.fraction - 3.0)       
-        self.window.draw_rectangle(self.bar_gc, False, 0, 0, self.allocation.width-1,
+        window.draw_rectangle(self.bar_gc, False, 0, 0, self.allocation.width-1,
             self.allocation.height-1)
         if bar_width > 0:
-            self.window.draw_rectangle(self.bar_gc, True, 2, 2, bar_width-1, 
+            window.draw_rectangle(self.bar_gc, True, 2, 2, bar_width-1, 
                 self.allocation.height - 4)
              
     def set_fraction(self, fraction):
@@ -544,10 +549,9 @@ class LinearProgress(gtk.DrawingArea):
         self.bg_spec = bg_spec
         
            
-class CryojetWidget(gtk.Frame):
+class CryojetWidget(gtk.Alignment):
     def __init__(self, cryojet):
-        gtk.Frame.__init__(self, '')
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self.cryojet = cryojet
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'cryo_widget'), 
                                   'cryo_widget')
@@ -556,8 +560,9 @@ class CryojetWidget(gtk.Frame):
         self.noz_img.set_from_file(os.path.join(DATA_DIR, 'icons', 'cryojet_out.png'))
         
         # layout the gauge section
-        self.level_gauge = Gauge(0,100,5,3)
-        self.level_gauge.set_property('units','%')
+        self.level_gauge = Gauge(0, 100, 6, 4)
+        self.level_gauge.set_property('label',"LN%s Level" % (u"\u2082"))
+        self.level_gauge.set_property('units',"[%]")
         self.level_gauge.set_property('low', 20.0)
         self.level_frame.add(self.level_gauge)
         self.cryojet.level.connect('changed', self._on_level)
@@ -568,7 +573,7 @@ class CryojetWidget(gtk.Frame):
             'smpl': (1, self.cryojet.sample_flow),
             'shld': (2, self.cryojet.shield_flow),
             }
-        for k,v in tbl_data.items():
+        for v in tbl_data.values():
             lb = ActiveLabel(v[1])
             lb.set_alignment(0.5, 0.5)
             self.status_table.attach(lb, 1, 2, v[0], v[0]+1)
@@ -623,7 +628,7 @@ class CryojetWidget(gtk.Frame):
             self.stop_anneal_btn.set_sensitive(True)
             self._annealed_time = 0
             self.cryojet.stop_flow()
-            dur = max(0.0, (duration-0.5*1000))
+            #dur = max(0.0, (duration-0.5*1000))
             self._restore_anneal_id = gobject.timeout_add(int(duration*1000), self._stop_anneal)
             self._progress_id = gobject.timeout_add(1000, self._update_progress, duration)
             

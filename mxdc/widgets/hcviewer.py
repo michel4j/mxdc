@@ -1,26 +1,17 @@
-import sys, time, os
-import math
-import gtk
-import gobject
-import pango
-from mxdc.widgets.video import VideoWidget
+from bcm.beamline.interfaces import IBeamline
+from bcm.engine.scripting import get_scripts 
+from bcm.utils.log import get_module_logger
+from bcm.utils.video import add_hc_decorations
+from mxdc.utils import gui
 from mxdc.widgets.misc import ActiveEntry, HealthDisplay, ScriptButton
 from mxdc.widgets.sampleviewer import SampleViewer
-from bcm.engine.scripting import get_scripts 
-from bcm.protocol import ca
-from bcm.beamline.interfaces import IBeamline
-from bcm.utils.log import get_module_logger
-from bcm.utils.decorators import async
-from bcm.utils.video import add_hc_decorations
-from bcm.device.diagnostics import *
-from mxdc.utils import gui
-
+from mxdc.widgets.video import VideoWidget
 from twisted.python.components import globalRegistry
-try:
-    import cairo
-    using_cairo = True
-except:
-    using_cairo = False
+import gobject
+import gtk
+import math
+import os
+import pango
 
 
 _logger = get_module_logger('mxdc.hcviewer')
@@ -34,12 +25,11 @@ class HCViewer(SampleViewer):
         'plot-cleared': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT]),
     }
     def __init__(self):
-        gtk.Frame.__init__(self)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'hc_viewer'), 
                                   'hc_viewer')
         self._xml_popup = gui.GUIFile(os.path.join(_DATA_DIR, 'hc_viewer'), 
                                   'colormap_popup')
-        self.set_shadow_type(gtk.SHADOW_NONE)
         
         self._timeout_id = None
         self._disp_time = 0
@@ -58,8 +48,8 @@ class HCViewer(SampleViewer):
         
         self.entries = {
             'state':           HealthDisplay(self.hc, label='Status'), 
-            'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', format="%0.2f", width=20),
-            'dewpoint_temp':   ActiveEntry(self.hc.dew_point, 'Dew Point Temperature', format="%0.1f"),
+            'rel_humidity':    ActiveEntry(self.hc.humidity, 'Relative Humidity', fmt="%0.2f", width=20),
+            'dewpoint_temp':   ActiveEntry(self.hc.dew_point, 'Dew Point Temperature', fmt="%0.1f"),
         }
                        
         self.scripts = get_scripts()
@@ -216,7 +206,7 @@ class HCViewer(SampleViewer):
       
     def on_mouse_motion(self, widget, event):
         if event.is_hint:
-            x, y, state = event.window.get_pointer()
+            x, y, _ = event.window.get_pointer()
         else:
             x = event.x; y = event.y
         im_x, im_y, xmm, ymm = self._img_position(x,y)
@@ -268,17 +258,11 @@ class HCViewer(SampleViewer):
             coords.append(int(self.roi[i] * float(self.video.scale)))
         [x1, y1, x2, y2] = coords
 
-        if using_cairo:
-            cr = pixmap.cairo_create()
-            cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
-            cr.set_line_width(0.5)
-            cr.rectangle(x1, y1, x2-x1, y2-y1)
-            cr.stroke()
-        else:
-            pixmap.draw_line(self.video.ol_gc, x1, y1, x1, y2)
-            pixmap.draw_line(self.video.ol_gc, x2, y1, x2, y2)
-            pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y1)
-            pixmap.draw_line(self.video.ol_gc, x1, y2, x2, y2)
+        cr = pixmap.cairo_create()
+        cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
+        cr.set_line_width(0.5)
+        cr.rectangle(x1, y1, x2-x1, y2-y1)
+        cr.stroke()
         self.meas_label.set_markup("FPS: %0.1f" % self.video.fps)
 
         return True
@@ -293,30 +277,24 @@ class HCViewer(SampleViewer):
         
             dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale * 1000
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            if using_cairo:
-                cr = pixmap.cairo_create()
-                cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
-                cr.set_line_width(0.5)
-                cr.move_to(x1, y1)
-                cr.line_to(x2, y2)
-                cr.stroke()
-            else:
-                pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y2)       
+            cr = pixmap.cairo_create()
+            cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
+            cr.set_line_width(0.5)
+            cr.move_to(x1, y1)
+            cr.line_to(x2, y2)
+            cr.stroke()
             self.meas_label.set_markup("Length: %0.1f um" % dist)
             
     def draw_drop_coords(self, pixmap):
         if self.drop_coords and self.drop_size > 0:
             [x1, y1, x2, y2] = [val * float(self.video.scale) for val in self.drop_coords]
 
-            if using_cairo:
-                cr = pixmap.cairo_create()
-                cr.set_source_rgba(0.0, 0.0, 1.0, 1.0)
-                cr.set_line_width(1)
-                cr.move_to(x1, y1)
-                cr.line_to(x2, y2)
-                cr.stroke()
-            else:
-                pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y2)            
+            cr = pixmap.cairo_create()
+            cr.set_source_rgba(0.0, 0.0, 1.0, 1.0)
+            cr.set_line_width(1)
+            cr.move_to(x1, y1)
+            cr.line_to(x2, y2)
+            cr.stroke()
 
         pix_size = self.beamline.sample_video.resolution
         dist = pix_size * self.drop_size * 1000

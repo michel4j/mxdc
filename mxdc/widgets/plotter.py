@@ -2,37 +2,27 @@
 A Plotting widget using matplotlib - several lines can be added to multiple axes
 points can be added to each line and the plot is automatically updated.
 """
-import gtk, gobject
-import sys, time, os
-import pango
-from matplotlib.artist import Artist
-from matplotlib.axes import Subplot
-from matplotlib.figure import Figure
-import numpy
-from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
-from matplotlib.dates import date2num, MinuteLocator, SecondLocator
-from matplotlib import rcParams
 
-from zope.interface import implements
-from twisted.python.components import globalRegistry
+from bcm.engine import fitting
 from bcm.engine.scanning import IScanPlotter
-#try:
-#    from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
-#except:
-#    from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
-#FIXME GTKCairo crashes sometimes on SL5.3 when that is sorted out, replace the following line with commented ones above
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
-from matplotlib import cm
+from matplotlib import rcParams
 from matplotlib.colors import Normalize
+from matplotlib.dates import MinuteLocator, SecondLocator
+from matplotlib.figure import Figure
+from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
+from misc import ActiveProgressBar
+from mpl_toolkits.mplot3d import axes3d
+from twisted.python.components import globalRegistry
+from zope.interface import implements
+import gtk
+import numpy
+import pango
+import time, os
+
+from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
 from matplotlib.backends.backend_gtk import FileChooserDialog
-try:
-    from matplotlib import axes3d
-except:
-    from mpl_toolkits.mplot3d import axes3d
 
-from misc import ActiveProgressBar
-from bcm.engine import fitting
 
 rcParams['legend.loc'] = 'best'
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -47,37 +37,9 @@ class PlotterToolbar(NavigationToolbar):
             ('Zoom', 'Zoom to rectangle',gtk.STOCK_ZOOM_FIT, 'zoom'),
             (None, None, None, None),
             ('Save', 'Save the figure',gtk.STOCK_SAVE, 'save_figure'),
-            #('Print', 'Print the figure', 'stock_print.png', 'print_figure'),
             )
         NavigationToolbar.__init__(self, canvas, None)
     
-    def _init_toolbar2_2(self):
-
-        for text, tooltip_text, image_file, callback in self.toolitems:
-            if text is None:
-                self.append_space()
-                continue
-            image = gtk.Image()
-            image.set_from_stock(image_file, gtk.ICON_SIZE_BUTTON)
-                
-            w = self.append_item(text,
-                                 tooltip_text,
-                                 'Private',
-                                 image,
-                                 getattr(self, callback)
-                                 )
-
-        self.append_space()
-
-        self.message = gtk.Label()
-        self.append_widget(self.message, None, None)
-        self.message.show()
-
-        self.fileselect = FileSelection(title='Save the figure',
-                                        parent=self.win,)
-
-
-
     def _init_toolbar2_4(self):
         self.tooltips = gtk.Tooltips()
 
@@ -118,9 +80,9 @@ class PlotterToolbar(NavigationToolbar):
         print 'No printing implemented'
 
         
-class Plotter( gtk.Frame ):
-    def __init__( self, loop=False, buffer_size=2500, xformat='%g', dpi=96 ):
-        gtk.Frame.__init__(self)
+class Plotter( gtk.Alignment ):
+    def __init__(self, loop=False, buffer_size=2500, xformat='%g', dpi=96 ):
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         _fd = self.get_pango_context().get_font_description()
         rcParams['font.family'] = 'serif'
         rcParams['font.sans-serif'] = _fd.get_family()
@@ -152,7 +114,6 @@ class Plotter( gtk.Frame ):
         self.simulate_ring_buffer = loop
         self.buffer_size = buffer_size
         self.add(self.vbox)
-        self.set_shadow_type(gtk.SHADOW_NONE)
         self.show_all()
         
         
@@ -212,12 +173,12 @@ class Plotter( gtk.Frame ):
         self.axis[0].set_xlabel(x_label)
         self.axis[0].set_ylabel(y1_label)
         
-    def set_time_labels(self, labels, format, maj_int, min_int):
+    def set_time_labels(self, labels, fmt, maj_int, min_int):
         self.axis[0].xaxis.set_major_locator(MinuteLocator(interval=maj_int))
         self.axis[0].xaxis.set_minor_locator(SecondLocator(interval=min_int))
         if len(self.axis[0].xaxis.get_major_ticks()) < len(labels):
             labels.pop(0)
-        self.axis[0].set_xticklabels([d is not ' ' and d.strftime(format) or '' for d in labels])   
+        self.axis[0].set_xticklabels([d is not ' ' and d.strftime(fmt) or '' for d in labels])   
 
     def clear(self, grid=False):
         self.fig.clear()
@@ -238,8 +199,7 @@ class Plotter( gtk.Frame ):
         self.grid_specs = data
         bounds = [data['start_1'], data['end_1'], data['start_2'], data['end_2']]
         self.grid_plot = self.axis[0].imshow(self.grid_data, interpolation='bicubic', 
-                                             origin='lower', extent=bounds, aspect="auto",
-                                             cmap=cm.jet)
+                                             origin='lower', extent=bounds, aspect="auto")
        
     def add_grid_point(self, xv, yv, z, redraw=True):
         if self.grid_data is not None and self.grid_specs is not None:
@@ -280,7 +240,7 @@ class Plotter( gtk.Frame ):
             
             #only update limits if they are wider than current limits
             curr_ymin, curr_ymax = self.line[lin].axes.get_ylim()
-            curr_xmin, curr_xmax = self.line[lin].axes.get_xlim()
+            #curr_xmin, curr_xmax = self.line[lin].axes.get_xlim()
             
             ymin = resize and (ymin - ypadding) or (curr_ymin+ypadding < ymin) and curr_ymin  or (ymin - ypadding)
             ymax = resize and (ymax + ypadding) or (curr_ymax-ypadding > ymax) and curr_ymax  or (ymax + ypadding)
@@ -376,7 +336,7 @@ class ScanPlotter(gtk.VBox):
             time_unit = 0.0
         
         eta_time = time_unit * (1 - fraction)
-        percent = fraction * 100
+        #percent = fraction * 100
         text = "ETA %s" % (time.strftime('%H:%M:%S',time.gmtime(eta_time)))
         self.prog_bar.set_complete(fraction, text)
 
@@ -404,7 +364,7 @@ class ScanPlotter(gtk.VBox):
     
     def plot_file(self, filename):
         """Do fitting and plot Fits"""
-        image_filename = "%s.ps" % filename
+        #image_filename = "%s.ps" % filename
         info = self._get_scan_data(filename)
         if info['scan_type'] == 'GridScan':
             data = info['data']
@@ -450,21 +410,21 @@ class ScanPlotter(gtk.VBox):
             
         else:
             data = info['data']
-            image_filename = "%s.ps" % filename
+            #image_filename = "%s.ps" % filename
             xo = data[:,0]
             yo = data[:,-1]
     
-            params, success = fitting.peak_fit(xo, yo, 'gaussian')
+            params, _ = fitting.peak_fit(xo, yo, 'gaussian')
             yc = fitting.gauss(xo, params)
     
             fwhm = params[1]
-            fwxl = [params[1]-0.5*fwhm, params[1]+0.5*fwhm]
-            fwyl = [0.5 * params[0] + params[3], 0.5 * params[0] + params[3]]
-            pkyl = [params[3],params[0]+params[3]]
-            pkxl = [params[1],params[1]]
+            #fwxl = [params[1]-0.5*fwhm, params[1]+0.5*fwhm]
+            #fwyl = [0.5 * params[0] + params[3], 0.5 * params[0] + params[3]]
+            #pkyl = [params[3],params[0]+params[3]]
+            #pkxl = [params[1],params[1]]
             
             #[ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema]            
-            histo_pars, success = fitting.histogram_fit(xo, yo)
+            histo_pars, _ = fitting.histogram_fit(xo, yo)
             
             self.plotter.clear()
             ax = self.plotter.axis[0]

@@ -1,19 +1,16 @@
-import os
+from bcm.beamline.mx import IBeamline
+from bcm.utils import misc
+from bcm.utils.decorators import async
+from datetime import datetime
+from mxdc.utils import gui, config
+from mxdc.widgets.misc import MotorEntry, ActiveEntry
+from mxdc.widgets import dialogs
+from twisted.python.components import globalRegistry
 import gobject
 import gtk
-import time
 import numpy
-
-from datetime import datetime
-from bcm.utils.decorators import async
-from bcm.utils import misc
-from mxdc.widgets import dialogs
-from mxdc.widgets.misc import MotorEntry, ActiveEntry
-from mxdc.utils.xlsimport import XLSLoader
-from mxdc.utils import gui, config
-
-from twisted.python.components import globalRegistry
-from bcm.beamline.mx import IBeamline
+import os
+import time
 
 _CONFIG_FILE = 'raster_config.json'
 
@@ -41,12 +38,12 @@ class ResultStore(gtk.ListStore):
             )
 
     def add_item(self, item):
-        iter = self.get_iter_first()
-        while iter:
-            self.set_value(iter, self.ACTIVE, False)
-            iter = self.iter_next(iter)
-        iter = self.append()
-        self.set(iter, 
+        itr = self.get_iter_first()
+        while itr:
+            self.set_value(itr, self.ACTIVE, False)
+            itr = self.iter_next(itr)
+        itr = self.append()
+        self.set(itr, 
             self.NAME, item['name'],
             self.ANGLE, "%0.2f" % item['angle'],
             self.ACTIVE, True,
@@ -73,8 +70,8 @@ class DetailStore(gtk.ListStore):
 
       
     def add_item(self, item):
-        iter = self.append()
-        self.set(iter,
+        itr = self.append()
+        self.set(itr,
             self.NAME, "(%d,%d)" % item['cell'],
             self.XPOS, "%0.3f" % item['xpos'],
             self.YPOS, "%0.3f" % item['ypos'],
@@ -104,7 +101,7 @@ class RasterWidget(gtk.Frame):
         pass
     
     def __init__(self):
-        gtk.Frame.__init__(self)
+        gtk.Frame.__init__(self, '')
         self.set_shadow_type(gtk.SHADOW_NONE)
         self._xml = gui.GUIFile(
                         os.path.join(os.path.dirname(__file__), 'data', 'raster_widget'),
@@ -141,7 +138,7 @@ class RasterWidget(gtk.Frame):
 
         self.entries = {
             'prefix': self.prefix_entry,
-            'directory': self.folder_btn,
+            'directory': dialogs.FolderSelector(self.folder_btn),
             'loop_size': self.loop_entry,
             'time': self.time_entry,
             'distance': self.distance_entry,
@@ -161,10 +158,9 @@ class RasterWidget(gtk.Frame):
         self.entries['loop_size'].connect('focus-out-event', lambda x,y: self._validate_float(x, 200.0, 20.0, 1000.0))
         self.entries['distance'].connect('focus-out-event', lambda x,y: self._validate_float(x, 250.0, 100.0, 1000.0))
         self.entries['time'].connect('focus-out-event', lambda x,y: self._validate_float(x, 1.0, 0.1, 500))
-        self.entries['directory'].connect('current-folder-changed', self.on_folder_changed)
         
-        omega = MotorEntry(self.beamline.omega, 'Gonio Omega', format="%0.2f")
-        aperture = ActiveEntry(self.beamline.aperture, 'Beam Aperture', format="%0.2f")
+        omega = MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f")
+        aperture = ActiveEntry(self.beamline.aperture, 'Beam Aperture', fmt="%0.2f")
         self.param_tbl.attach(omega, 1, 2, 3, 5)
         self.param_tbl.attach(aperture, 2, 4, 3, 5)
         
@@ -242,12 +238,12 @@ class RasterWidget(gtk.Frame):
 
         return treeview
 
-    def __float_format(self, column, renderer, model, iter):
-        value = model.get_value(iter, self.details.SCORE)
+    def __float_format(self, column, renderer, model, itr):
+        value = model.get_value(itr, self.details.SCORE)
         renderer.set_property('text', "%0.2f" % value)
 
-    def __score_colors(self, column, renderer, model, iter):
-        value = model.get_value(iter, self.details.SCORE)
+    def __score_colors(self, column, renderer, model, itr):
+        value = model.get_value(itr, self.details.SCORE)
         color = self.sample_viewer._grid_colormap.get_hex(value)
         renderer.set_property('cell-background', color)
 
@@ -295,7 +291,7 @@ class RasterWidget(gtk.Frame):
             params = {
                 'mode': 'Diffraction',
                 'prefix': 'testgrid',
-                'directory': os.environ['HOME'],
+                'directory': config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']),
                 'distance': self.beamline.distance.get_position(),
                 'loop_size': 200,
                 'aperture': self.beamline.aperture.get(),
@@ -318,13 +314,12 @@ class RasterWidget(gtk.Frame):
     def get_parameters(self):
         params = {}
         params['prefix']  = self.entries['prefix'].get_text().strip()
-        params['directory']   = self.entries['directory']._selected_folder
+        params['directory']   = self.entries['directory'].get_current_folder()
         
         for key in ['time','loop_size','distance']:
             params[key] = float(self.entries[key].get_text())
         params['aperture'] = self.beamline.aperture.get()
-        if params['directory'] is None:
-            params['directory'] = os.environ['HOME']
+
         if self.score_cbx.get_active() == 0:
             params['mode'] = 'Diffraction'
         else:
@@ -333,24 +328,17 @@ class RasterWidget(gtk.Frame):
         return params
 
     def _load_config(self):
-        data = config.load_config(_CONFIG_FILE)
-        self.set_parameters(data)
+        if not config.SESSION_INFO.get('new', False):
+            data = config.load_config(_CONFIG_FILE)
+            if data is not None:
+                self.set_parameters(data)
 
     def _save_config(self, parameters):
         config.save_config(_CONFIG_FILE, parameters)
 
-    def on_folder_changed(self, obj):
-        _new_folder = obj.get_current_folder()
-        _new_filename = obj.get_filename()
-        if  _new_folder != _new_filename:
-            obj._selected_folder = _new_filename
-            #obj.set_current_folder(obj._selected_folder)
-        else:
-            obj._selected_folder = _new_folder
-
     def on_detail_activated(self, treeview, path, column=None):        
-        iter = self.details.get_iter(path)
-        info = self.details.get_value(iter, DetailStore.DATA)
+        itr = self.details.get_iter(path)
+        info = self.details.get_value(itr, DetailStore.DATA)
         ox, oy = self._result_info['origin']
         angle = self._result_info['angle']
         cell_x = ox - info['xpos']
@@ -362,8 +350,8 @@ class RasterWidget(gtk.Frame):
 
     def on_detail_selected(self, treeview):
         sel = treeview.get_selection()
-        model, iter = sel.get_selected()
-        cell = model.get_value(iter, DetailStore.DATA)['cell']
+        model, itr = sel.get_selected()
+        cell = model.get_value(itr, DetailStore.DATA)['cell']
         info = self._result_info['details'][cell]
         for k, wi in self.labels.items():
             w, fmt = wi
@@ -378,20 +366,19 @@ class RasterWidget(gtk.Frame):
             self.beamline.sample_stage.y.move_to(y)        
        
     def on_result_activated(self, cell, path, column=None):
-        iter = self.results.get_iter_first()
-        while iter:
-            self.results.set_value(iter, ResultStore.ACTIVE, False)
-            iter = self.results.iter_next(iter)
-        iter = self.results.get_iter(path)
-        self.results.set_value(iter, ResultStore.ACTIVE, True)
-        self._result_info = self.results.get_value(iter, ResultStore.DATA)
+        itr = self.results.get_iter_first()
+        while itr:
+            self.results.set_value(itr, ResultStore.ACTIVE, False)
+            itr = self.results.iter_next(itr)
+        itr = self.results.get_iter(path)
+        self.results.set_value(itr, ResultStore.ACTIVE, True)
+        self._result_info = self.results.get_value(itr, ResultStore.DATA)
         self.details.add_items(self._result_info)
         self.beamline.omega.move_to(self._result_info['angle'], wait=False)
         self.sample_viewer.apply_grid_results(self._result_info)
         return True
     
     def on_apply(self, btn):
-        self.entries['directory'].set_current_folder(self.entries['directory']._selected_folder)
         if self.sample_viewer:
             gobject.idle_add(self.emit, 'show-raster')
             params = self.get_parameters()
@@ -532,9 +519,8 @@ def _score_diff(results):
     if not results:
         return 0.0
     
-    resolution = max(results['resolution'], results['alt_resolution'])
+    #resolution = max(results['resolution'], results['alt_resolution'])
     bragg = results['bragg_spots']
-    inres = results['resolution_spots']
     ice = 1/(1.0 + results['ice_rings'])
     saturation = results['saturation']
     sc_x = numpy.array([bragg, saturation, ice])

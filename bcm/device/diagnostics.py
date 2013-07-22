@@ -1,12 +1,10 @@
-import time
-import math
-import logging
-import gobject
-from zope.interface import implements
+from bcm.device.base import HealthManager
 from bcm.device.interfaces import IDiagnostic
 from bcm.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
-from bcm.device.base import HealthManager
+from zope.interface import implements
+import gobject
+
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger('diagnostics')
@@ -99,7 +97,7 @@ class DeviceDiag(DiagnosticBase):
                 
     def _on_health(self, obj, hlth):
         st, descr = hlth
-        if st == 0:
+        if st < 2:
             if descr == '':               
                 descr = 'OK!'
             _diag = (DIAG_STATUS_GOOD, descr)
@@ -110,6 +108,7 @@ class DeviceDiag(DiagnosticBase):
         else:
             _diag = (DIAG_STATUS_DISABLED, descr)    
         self._signal_status(*_diag)
+
 
 
 class ServiceDiag(DiagnosticBase):
@@ -138,3 +137,5 @@ class ServiceDiag(DiagnosticBase):
         else:
             _diag = (DIAG_STATUS_BAD,'Service unavailable!')            
         self._signal_status(*_diag)
+
+__all__ = ['DeviceDiag', 'ServiceDiag']

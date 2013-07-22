@@ -1,17 +1,17 @@
-import math
-import os
-import time
-import gobject
-from zope.interface import implements
 from bcm import registry
-from bcm.protocol.ca import PV
-from bcm.protocol import ca
 from bcm.device.base import BaseDevice, BaseDevice
-from bcm.utils.log import get_module_logger
-from bcm.utils import converter, misc
 from bcm.device.interfaces import *
 from bcm.device.motor import MotorBase
+from bcm.protocol import ca
+from bcm.protocol.ca import PV
+from bcm.utils import converter, misc
 from bcm.utils.decorators import async
+from bcm.utils.log import get_module_logger
+from zope.interface import implements
+import gobject
+import numpy
+import os
+import time
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -230,7 +230,7 @@ class Attenuator(BaseDevice):
             e = 0.1
         if e > 100:
             e = 100.0
-        attenuation = 1.0 - math.exp( -4.4189e12 * thickness / 
+        attenuation = 1.0 - numpy.exp( -4.4189e12 * thickness / 
                                         (e*1000+1e-6)**2.9554 )
         if attenuation < 0:
             attenuation = 0
@@ -252,7 +252,7 @@ class Attenuator(BaseDevice):
         frac = target/100.0
         
         # calculate required aluminum thickness
-        thickness = math.log(1.0-frac) * (e*1000+1e-6)**2.9554 / -4.4189e12
+        thickness = numpy.log(1.0-frac) * (e*1000+1e-6)**2.9554 / -4.4189e12
         thk = int(round(thickness * 10.0))
         if thk > 15: thk = 15
         
@@ -424,7 +424,7 @@ class ShutterGroup(BaseDevice):
     
     def _on_change(self, obj, val):
         if val:
-            if misc.all([dev.changed_state for dev in self._dev_list]):
+            if misc.every([dev.changed_state for dev in self._dev_list]):
                 self.set_state(changed=True, health=(0, 'state'))
                 
         else:
@@ -719,12 +719,20 @@ class DiskSpaceMonitor(BaseDevice):
         self._check_space()       
         gobject.timeout_add(self.frequency, self._check_space)
     
+    def _humanize(self, sz):
+        symbols = ('', 'K', 'M', 'G', 'T', 'P')
+        base_sz = numpy.ones(len(symbols))
+        base_sz[1:] = 1 << (numpy.arange(len(symbols)-1)+1)*10
+        idx = numpy.where(base_sz <= sz)[0][-1]
+        value = float(sz) / base_sz[idx]
+        return "%0.2f %sB" % (value, symbols[idx])        
+    
     def _check_space(self):
         fs_stat = os.statvfs(self.path)
-        total = round((fs_stat.f_frsize*fs_stat.f_blocks)/1073741824.0, 2)
-        avail = round((fs_stat.f_frsize*fs_stat.f_bfree)/1073741824.0, 2)
+        total = float(fs_stat.f_frsize*fs_stat.f_blocks)
+        avail = float(fs_stat.f_frsize*fs_stat.f_bavail)
         fraction = avail/total
-        msg = '%0.1f GB (%0.1f %%) available.' % (avail, fraction*100)
+        msg = '%s (%0.1f %%) available.' % (self._humanize(avail), fraction*100)
         if fraction < self.error_threshold:
             self.set_state(health=(4, 'usage', msg))
             _logger.error(msg)

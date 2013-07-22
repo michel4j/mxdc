@@ -1,26 +1,22 @@
 from twisted.internet import gtk2reactor
 gtk2reactor.install()
 
-#from mxdc.utils import gtkexcepthook
 from bcm.beamline.mx import MXBeamline
 from bcm.beamline.remote import BeamlineClient
 from bcm.utils import mdns
-from bcm.utils.log import get_module_logger, log_to_console, log_to_file
+from bcm.utils.log import get_module_logger, log_to_console
 from bcm.utils.misc import get_project_name
 from mxdc.AppWindow import AppWindow
 from mxdc.widgets.dialogs import error
+from mxdc.utils import excepthook
 from twisted.internet import reactor
 from twisted.spread import pb
-import gc
-import gobject
-import gtk
-import logging
 import os
-import sys
 import time
 import warnings
 
 warnings.simplefilter("ignore")
+excepthook.install()
 _logger = get_module_logger('mxdc')
 
 class MXDCApp(object):
@@ -74,7 +70,6 @@ class MXDCApp(object):
     def do_quit(self, obj=None):
         _logger.info('Stopping...')
         reactor.stop()
-        gc.collect()
         
 def main():
     try:

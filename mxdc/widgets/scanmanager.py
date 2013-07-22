@@ -1,22 +1,19 @@
 
+from bcm.beamline.mx import IBeamline
+from bcm.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
+from bcm.utils import lims_tools
+from bcm.utils.log import get_module_logger
+from mxdc.utils import config, gui
+from mxdc.widgets import dialogs
+from mxdc.widgets.misc import ActiveProgressBar
+from mxdc.widgets.periodictable import PeriodicTable
+from mxdc.widgets.plotter import Plotter
+from mxdc.widgets.textviewer import TextViewer
+from twisted.python.components import globalRegistry
+import gobject
+import gtk
 import os, sys
 import time
-import gtk
-import gobject
-import numpy
-
-from mxdc.widgets.periodictable import PeriodicTable
-from mxdc.widgets.textviewer import TextViewer
-from mxdc.widgets.plotter import Plotter
-from mxdc.widgets.dialogs import  warning, error, MyDialog
-from mxdc.utils import config, gui
-from mxdc.widgets.misc import ActiveProgressBar
-from bcm.beamline.mx import IBeamline
-from twisted.python.components import globalRegistry
-from bcm.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
-from bcm.utils import science, lims_tools
-from bcm.utils.log import get_module_logger
-
 
 _logger = get_module_logger('mxdc.scanmanager')
 
@@ -81,14 +78,13 @@ XRF_COLOR_LIST = ['#800080','#FF0000','#008000',
                   '#008080','#00FF00','#000080',
                   '#00FFFF','#0000FF','#000000']
 
-class ScanManager(gtk.Frame):
+class ScanManager(gtk.Alignment):
     __gsignals__ = {
         'create-run': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
         'update-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0, 0, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'scan_manager'), 
                                   'scan_widget')            
 
@@ -180,7 +176,7 @@ class ScanManager(gtk.Frame):
         self.exafs_btn.connect('toggled', self.on_mode_change, 'EXAFS')
         self.entries = {
             'prefix': self.prefix_entry,
-            'directory': self.directory_btn,
+            'directory': dialogs.FolderSelector(self.directory_btn),
             'edge': self.edge_entry,
             'energy': self.energy_entry,
             'time': self.time_entry,
@@ -189,7 +185,7 @@ class ScanManager(gtk.Frame):
             'scans': self.scans_entry,
             'kmax': self.kmax_entry,
         }
-        self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=gtk.EXPAND|gtk.FILL)
+        #self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=gtk.EXPAND|gtk.FILL)
         for key in ['prefix','edge']:
             self.entries[key].set_alignment(0.5)
         for key in ['energy','time','attenuation']:
@@ -210,9 +206,9 @@ class ScanManager(gtk.Frame):
         if not self.beamline.registry.get('multi_mca', False):
             self.exafs_btn.set_sensitive(False)
         elif not self.beamline.multi_mca.is_active():
-            self.exafs_btn.set_sensitive(False)
-        
-        # Disable EXAFS is MULTI-MCA is available but inactive
+            self.beamline.multi_mca.connect('active', lambda x,y: self.exafs_btn.set_sensitive(y))
+        else:
+            self.exafs_btn.set_sensitive(True)
             
         self.periodic_table = PeriodicTable(loE, hiE)
         self.periodic_table.connect('edge-selected',self.on_edge_selected)
@@ -290,14 +286,21 @@ class ScanManager(gtk.Frame):
         column.set_cell_data_func(renderer, self._float_format, ('%5.2f', COLUMN_PERCENT))
         self.xrf_list.append_column(column)
         self.xrf_sw.show_all()
+
+        #fix adjustments
+        if self.kmax_adj is None:
+            self.kmax_adj = gtk.Adjustment(12, 1, 18, 1, 1, 0)
+            self.kmax_entry.set_adjustment(self.kmax_adj)
+            self.scans_adj = gtk.Adjustment(1, 1, 128, 1, 10, 0)
+            self.scans_entry.set_adjustment(self.scans_adj)
         
         self.show_all()
         self.set_parameters()
         
            
     def _add_xanes_energy(self, item=None): 
-        iter = self.energy_store.append()        
-        self.energy_store.set(iter, 
+        itr = self.energy_store.append()        
+        self.energy_store.set(itr, 
             COLUMN_LABEL, item[COLUMN_LABEL], 
             COLUMN_ENERGY, item[COLUMN_ENERGY],
             COLUMN_FP, item[COLUMN_FP],
@@ -308,24 +311,24 @@ class ScanManager(gtk.Frame):
         self.scattering_factors.append({'fp':item[COLUMN_FP], 'fpp':item[COLUMN_FPP]})
 
     def _add_xrf_element(self, item=None): 
-        iter = self.xrf_store.append()        
-        self.xrf_store.set(iter, 
+        itr = self.xrf_store.append()        
+        self.xrf_store.set(itr, 
             COLUMN_DRAW, False, 
             COLUMN_ELEMENT, item[0],
             COLUMN_PERCENT, item[1]
         )
         
-    def _float_format(self, cell, renderer, model, iter, data):
-        format, column = data
-        value = model.get_value(iter, column)
-        index = model.get_path(iter)[0]
-        renderer.set_property('text', format % value)
+    def _float_format(self, cell, renderer, model, itr, data):
+        fmt, column = data
+        value = model.get_value(itr, column)
+        index = model.get_path(itr)[0]
+        renderer.set_property('text', fmt % value)
         if model == self.xrf_store:
             renderer.set_property("foreground", XRF_COLOR_LIST[index])
         return
 
-    def _color_element(self, cell, renderer, model, iter, column):
-        index = model.get_path(iter)[0]
+    def _color_element(self, cell, renderer, model, itr, column):
+        index = model.get_path(itr)[0]
         renderer.set_property("foreground", XRF_COLOR_LIST[index])
         return
 
@@ -377,12 +380,12 @@ class ScanManager(gtk.Frame):
             params = {
                 'mode': 'XANES',
                 'prefix': 'test_scan',
-                'directory': os.environ['HOME'],
+                'directory': config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']),
                 'energy': 12.6580,
                 'edge': 'Se-K',
                 'time': 0.5,
                 'emission': 11.2100,
-                'attenuation': 90.0,
+                'attenuation': self.beamline.config['default_attenuation'],
                 'scans': 1,
                 'kmax': 12,
             }
@@ -390,7 +393,7 @@ class ScanManager(gtk.Frame):
             self.entries[key].set_text(params[key])
         for key in ['time','attenuation']:
             self.entries[key].set_text("%0.1f" % params[key])
-        self.entries['directory'].set_filename(params['directory'])
+        self.entries['directory'].set_current_folder(params['directory'])
         self.entries['energy'].set_text("%0.4f" % params['energy'])
         self._emission = params['emission']
         self.entries['scans'].set_value(params.get('scans', 1))
@@ -411,9 +414,7 @@ class ScanManager(gtk.Frame):
         params['scans'] = self.entries['scans'].get_value_as_int()
         params['kmax'] = self.entries['kmax'].get_value_as_int()
         params['crystal'] = self.active_sample.get('id', '')
-        params['directory']   = self.entries['directory'].get_filename()
-        if params['directory'] is None:
-            params['directory'] = os.environ['HOME']
+        params['directory']   = self.entries['directory'].get_current_folder()
         if self.xanes_btn.get_active():
             params['mode'] = 'XANES'
         elif self.xrf_btn.get_active():
@@ -435,9 +436,10 @@ class ScanManager(gtk.Frame):
         return run_data
 
     def _load_config(self):
-        data = config.load_config(SCAN_CONFIG_FILE)
-        if data is not None:
-            self.set_parameters(data)
+        if not config.SESSION_INFO.get('new', False):
+            data = config.load_config(SCAN_CONFIG_FILE)
+            if data is not None:
+                self.set_parameters(data)
 
     def _save_config(self, parameters):
         config.save_config(SCAN_CONFIG_FILE, parameters)
@@ -589,11 +591,12 @@ class ScanManager(gtk.Frame):
             if warning:
                 msg = "Beam not Available. When the beam is available again, resume your scan." 
                 title = 'Attention Required'
-                self.resp = MyDialog(gtk.MESSAGE_WARNING, 
+                self.resp = dialogs.MyDialog(gtk.MESSAGE_WARNING, 
                                              title, msg,
+                                             parent=self.get_toplevel(),
                                              buttons=( ('OK', gtk.RESPONSE_ACCEPT),) )
                 self._intervening = False
-                response = self.resp()
+                self.resp()
         return True
             
     def on_scan_stopped(self, widget):
@@ -621,7 +624,7 @@ class ScanManager(gtk.Frame):
         self.scan_book.set_current_page(1)
         results = obj.results.get('energies')
         if results is None:
-            warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed')
+            dialogs.warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed', parent=self.get_toplevel())
             return True
         
         self.xanes_box.show()
@@ -649,8 +652,8 @@ class ScanManager(gtk.Frame):
         self.output_log.add_text(info_log)
         self.create_run_btn.set_sensitive(True) 
         try:
-	    result = list()
-	    result.append(obj.results)
+            result = list()
+            result.append(obj.results)
             lims_tools.upload_scan(self.beamline, result)
         except:
             print sys.exc_info()
@@ -756,14 +759,14 @@ class ScanManager(gtk.Frame):
         return True
         
     def on_element_toggled(self, cell, path, model):
-        iter = model.get_iter(path)
-        index = model.get_path(iter)[0]
+        itr = model.get_iter(path)
+        index = model.get_path(itr)[0]
         _color = XRF_COLOR_LIST[index]
 
-        element = model.get_value(iter, COLUMN_ELEMENT)                 
+        element = model.get_value(itr, COLUMN_ELEMENT)                 
         element_info = self.xrf_results.get(element)
-        state = model.get_value(iter, COLUMN_DRAW)
-        model.set(iter, COLUMN_DRAW, (not state) )
+        state = model.get_value(itr, COLUMN_DRAW)
+        model.set(itr, COLUMN_DRAW, (not state) )
         ax = self.plotter.axis[0]
         ax.axis('tight')
         alims = ax.axis()

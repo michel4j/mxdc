@@ -1,16 +1,9 @@
-'''
-Created on Jan 19, 2010
-
-@author: michel
-'''
-
-import os
-import gtk
-import gobject
-from twisted.python.components import globalRegistry
 from bcm.device import diagnostics
 from bcm.utils.log import get_module_logger
 from mxdc.utils import gui
+from twisted.python.components import globalRegistry
+import gtk
+import os
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger('mxdc')
@@ -19,6 +12,7 @@ try:
     pynotify.init('MxDC')
     _NOTIFY_AVAILABLE = True
 except:
+    _NOTIFY_AVAILABLE = False
     _logger.warn('System notifications will not be available.')
 
 MSG_COLORS = {
@@ -37,10 +31,9 @@ MSG_ICONS = {
     diagnostics.DIAG_STATUS_DISABLED: 'mxdc-ddisabled',
 }
 
-class DiagnosticDisplay(gtk.Frame):
+class DiagnosticDisplay(gtk.Alignment):
     def __init__(self, diag):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/diagnostics'), 
                                   'status_widget')
         self._diagnostic = diag
@@ -81,22 +74,23 @@ class DiagnosticDisplay(gtk.Frame):
             self._notice = pynotify.Notification(self._diagnostic.description,
                                       data[1])
             self._notice.set_urgency(pynotify.URGENCY_CRITICAL)
-            self._notice.set_timeout(20000) # 20 seconds
+            self._notice.set_timeout(6000) # 20 seconds
             self._notice.show()
 
         
         
 
-class DiagnosticsViewer(gtk.VBox):
+class DiagnosticsViewer(gtk.Alignment):
     def __init__(self):
-        gtk.VBox.__init__(self, False, 3)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 0.75, 0)
+        self.box = gtk.VBox(False, 2)
+        self.add(self.box)
         self._num = 0
         #fetch and add diagnostics
         _dl = globalRegistry.subscriptions([], diagnostics.IDiagnostic)
         for diag in _dl:
             self.add_diagnostic(diag)
-        self.set_border_width(24)
-        self.pack_end(gtk.Label(''), expand=True, fill=True)
+        self.set_border_width(12)
         self.show_all()
         
 
@@ -104,8 +98,8 @@ class DiagnosticsViewer(gtk.VBox):
     def add_diagnostic(self, diag):
         if self._num > 0:
             hs = gtk.HSeparator()
-            hs.set_sensitive(False)
-            self.pack_start(hs, expand=False, fill=False)
-        self.pack_start(DiagnosticDisplay(diag), expand=False, fill=False)
+            hs.set_size_request(-1,3)
+            self.box.pack_start(hs, False, False, 0)
+        self.box.pack_start(DiagnosticDisplay(diag), False, False, 0)
         self._num += 1
         
