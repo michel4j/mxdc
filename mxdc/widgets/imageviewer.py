@@ -8,6 +8,7 @@ import gtk
 import logging
 import math
 import numpy
+import glob
 import os
 import re
 import sys
@@ -30,9 +31,13 @@ class ImageViewer(gtk.Alignment):
         self._co_hide_id = None
         self._cl_hide_id = None
         self._follow_id = None
-        self.next_filename = ''
+        
+        self._dataset_frames = []
+        self._dataset_pos = 0
+        
         self._last_queued = ''
-        self.prev_filename = ''
+        self.directory = None
+        self.filename = None
         self.all_spots = []
         self._create_widgets()
         
@@ -117,40 +122,38 @@ class ImageViewer(gtk.Alignment):
     def _select_image_spots(self, spots):
         image_spots = [sp for sp in spots if abs(self.frame_number - sp[2]) <= 1]
         return image_spots
-
+    
+    def _rescan_dataset(self):
+        self._dataset_frames = glob.glob(self.file_template)
+        self._dataset_frames.sort()
+        self._dataset_pos = self._dataset_frames.index(self.filename)
+            
+        # test next and prev        
+        self.next_btn.set_sensitive(False)
+        self.prev_btn.set_sensitive(False)
+        if 0 <= self._dataset_pos + 1 < len(self._dataset_frames) and image_loadable(self._dataset_frames[self._dataset_pos + 1]):
+            self.next_btn.set_sensitive(True)
+            
+        if 0 <= self._dataset_pos - 1 < len(self._dataset_frames) and image_loadable(self._dataset_frames[self._dataset_pos - 1]):
+            self.prev_btn.set_sensitive(True)
+    
     def _set_file_specs(self, filename):
         self.filename = filename
+        self.directory = os.path.dirname(os.path.abspath(filename))
+        
         # determine file template and frame_number
-        file_dir = os.path.dirname(filename)
-        fm = FILE_PATTERN.search(os.path.basename(self.filename))
+        fm = FILE_PATTERN.match(os.path.basename(self.filename))
         if fm:
             if fm.group('ext') is not None:
                 extension = fm.group('ext')
             else:
                 extension = ''
-            self.file_template = os.path.join(file_dir,
-                                    "%s%s0%dd%s" % (
-                                            fm.group('base'),
-                                            '%', len(fm.group('num')),
-                                            extension))
             self.frame_number = int(fm.group('num'))            
-            self.next_filename = self.file_template % (self.frame_number + 1)
-            self.prev_filename = self.file_template % (self.frame_number - 1)
-        else:
-            self.next_filename = ''
-            self.prev_filename = ''
-            
-        # test next
-        if not image_loadable(self.next_filename):
-            self.next_btn.set_sensitive(False)
-        else:
-            self.next_btn.set_sensitive(True)
-            
-        # test prev
-        if not image_loadable(self.prev_filename):
-            self.prev_btn.set_sensitive(False)
-        else:
-            self.prev_btn.set_sensitive(True)
+            self.file_template = os.path.join(self.directory, 
+                                     "%s*%s" % (fm.group('base'), extension))
+        
+        self._rescan_dataset()
+        
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
         self.contrast_tbtn.set_sensitive(True)
@@ -264,9 +267,11 @@ class ImageViewer(gtk.Alignment):
 
     def _follow_frames(self):
         if self._following:
-            if (self._last_queued != self.next_filename):
-                self.image_canvas.queue_frame(self.next_filename)
-                self._last_queued = self.next_filename
+            if 0 <= self._dataset_pos + 1 < len(self._dataset_frames):
+                if image_loadable(self._dataset_frames[self._dataset_pos + 1]):
+                    self.image_canvas.queue_frame(self._dataset_frames[self._dataset_pos + 1])
+            else:
+                self._rescan_dataset()
             return True
         else:
             return False
@@ -287,21 +292,23 @@ class ImageViewer(gtk.Alignment):
         self.info_dialog = None
 
     def on_next_frame(self,widget):
-        if os.access(self.next_filename, os.R_OK):
-            self.open_image(self.next_filename)
+        if 0 <= self._dataset_pos + 1 < len(self._dataset_frames):
+            if image_loadable(self._dataset_frames[self._dataset_pos + 1]):
+                self.open_image(self._dataset_frames[self._dataset_pos + 1])
         else:
-            img_logger.warning("File not found: %s" % (self.next_filename))
-        return True
+            self._rescan_dataset()
+
 
     def on_prev_frame(self,widget):
-        if os.access(self.prev_filename, os.R_OK):
-            self.open_image(self.prev_filename)
+        if 0 <= self._dataset_pos - 1 < len(self._dataset_frames):
+            if image_loadable(self._dataset_frames[self._dataset_pos - 1]):
+                self.open_image(self._dataset_frames[self._dataset_pos - 1])
         else:
-            img_logger.warning("File not found: %s" % (self.next_filename))
-        return True
+            self._rescan_dataset()
 
-    def on_file_open(self,widget):
-        filename, flt = dialogs.select_open_image(parent=self.get_toplevel())
+    def on_file_open(self, widget):
+        filename, flt = dialogs.select_open_image(parent=self.get_toplevel(), 
+                                default_folder=self.directory)
         if filename is not None and os.path.isfile(filename):
             if flt.get_name() == 'XDS Spot files':
                 self._load_spots(filename)
@@ -313,7 +320,6 @@ class ImageViewer(gtk.Alignment):
                     gobject.idle_add(self.image_canvas.queue_draw)
             else:
                 self.open_image(filename)
-        return True
 
     def _timed_hide(self, obj):
         obj.set_active(False)
@@ -367,7 +373,7 @@ class ImageViewer(gtk.Alignment):
     def on_follow_toggled(self,widget):
         self._following = widget.get_active()
         if not self._collecting:
-            gobject.timeout_add(1000, self._follow_frames)
+            gobject.timeout_add(2500, self._follow_frames)
         return True
 
 def main():
