@@ -232,6 +232,8 @@ class Goniometer(GoniometerBase):
             self._bl_position.open()
             in_position = bl.config['misc']['aperture_in_position']
             self.minibeam.move_to(in_position, wait=False)
+            default_beamstop = bl.config['default_beamstop']
+            bl.beamstop_z.move_to(default_beamstop, wait=False)
             #put up backlight
         elif mode in ['MOUNTING']:
             #out_position = bl.config['misc']['aperture_out_position']
