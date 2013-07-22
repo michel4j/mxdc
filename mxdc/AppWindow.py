@@ -1,25 +1,21 @@
+from mxdc.utils import config
+config.get_session() # update the session configuration
 
-from bcm.beamline.interfaces import IBeamline
 from bcm.engine.scripting import get_scripts
-from bcm.utils.log import get_module_logger, log_to_console
-from bcm.utils.misc import get_project_name
+from bcm.utils.log import get_module_logger
 from mxdc.utils.gui import GUIFile
 from mxdc.widgets import dialogs
 from mxdc.widgets.collectmanager import CollectManager
 from mxdc.widgets.hutchmanager import HutchManager
-from mxdc.widgets.resultlist import RESULT_STATE_WAITING, RESULT_STATE_READY, RESULT_STATE_ERROR
 from mxdc.widgets.resultmanager import ResultManager
 from mxdc.widgets.samplemanager import SampleManager
 from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.screeningmanager import ScreenManager
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
-from twisted.python.components import globalRegistry
-
-import gtk, gobject
-import logging
-import pwd
-import sys, os
+import gobject
+import gtk
+import os
 
 _logger = get_module_logger('mxdc')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')

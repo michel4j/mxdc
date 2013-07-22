@@ -8,7 +8,7 @@ BEAMLINE_ENERGY_RANGE = (4.0, 18.5)
 BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
 
 DEFAULT_EXPOSURE    = 5.0
-DEFAULT_ATTENUATION = 0.0               # attenuation in %
+DEFAULT_ATTENUATION = 90.0               # attenuation in %
 DEFAULT_BEAMSTOP    = 60.0
 SAFE_DISTANCE       = 400.0
 SAFE_BEAMSTOP       = 80.0
@@ -34,7 +34,7 @@ def _energy2pitch(x):
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
     'energy':   PseudoMotor('DCM1608-4-B10-01:energy:KeV'),
-    'bragg_energy': BraggEnergyMotor('SMTR1608-4-B10-17:deg'),
+    'bragg_energy': BraggEnergyMotor('SMTR1608-4-B10-17:deg', motor_type="vmeenc"),
     'dcm_pitch':  ENCMotor('SMTR1608-4-B10-15:deg'),
     #'boss': BossOptimizer('BL08B1:PicoControl'),    
     'mostab': PitchOptimizer('Pitch Optimizer', _energy2pitch),

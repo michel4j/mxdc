@@ -8,7 +8,7 @@ BEAMLINE_ENERGY_RANGE = (6.0, 18.5)
 BEAMLINE_GONIO_POSITION = 3             # Goniometer orientation (XREC) 1,2,3
 
 DEFAULT_EXPOSURE    = 1.0
-DEFAULT_ATTENUATION = 0.0              # attenuation in %
+DEFAULT_ATTENUATION = 90.0              # attenuation in %
 DEFAULT_BEAMSTOP    = 30.0
 SAFE_BEAMSTOP       = 50.0
 SAFE_DISTANCE       = 400.0
@@ -30,7 +30,7 @@ LIMS_API_KEY    = "DE5C410E-6D59-4DE8-AFFC-3FF5F367359E"
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
     'energy':   EnergyMotor('BL08ID1:energy', 'SMTR16082I1005:deg'),
-    'bragg_energy': BraggEnergyMotor('SMTR16082I1005:deg'),
+    'bragg_energy': BraggEnergyMotor('SMTR16082I1005:deg', motor_type="vme"),
     'dcm_pitch':  VMEMotor('SMTR16082I1010:deg'),
     'mostab': MostabOptimizer('MOS16082I1001'),
     

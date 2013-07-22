@@ -1,19 +1,19 @@
 """This module defines classes aid interfaces for X-Ray fluorescence."""
-import os
-import time
-from datetime import datetime
-import gobject
-import re
-from zope.interface import Interface, Attribute, invariant
-from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
-from bcm.engine.scanning import BasicScan, ScanError
-from bcm.utils.science import *
-from bcm.utils.log import get_module_logger
-from bcm.utils import science, json, converter
 from bcm.engine.autochooch import AutoChooch
-from bcm.utils.misc import get_short_uuid, multi_count
+from bcm.engine.scanning import BasicScan, ScanError
 from bcm.service.utils import  send_array
+from bcm.utils import science, json, converter
+from bcm.utils.log import get_module_logger
+from bcm.utils.misc import get_short_uuid, multi_count
+from bcm.utils.science import *
+from datetime import datetime
+from twisted.python.components import globalRegistry
+from zope.interface import Interface, Attribute, invariant
+import gobject
+import os
+import re
+import time
 
 
 # setup module logger with a default do-nothing handler
@@ -323,6 +323,7 @@ class XANESScan(BasicScan):
                     scale = 1.0
                 else:
                     scale = (self.data[0][2]/i0)
+                x = self.beamline.monochromator.simple_energy.get_position()
                 self.data.append( [x, y*scale, i0, y] )
                     
                 fraction = float(self.count) / len(self._targets)
@@ -520,6 +521,8 @@ class EXAFSScan(BasicScan):
                         scale = 1.0
                     else:
                         scale = (self.data[0][2]/i0)
+                        
+                    x = self.beamline.monochromator.simple_energy.get_position()
                     data_point = [1000*x, y*scale, i0, k, _t] # convert KeV to eV
     
                     _rates = self.beamline.multi_mca.get_count_rates()

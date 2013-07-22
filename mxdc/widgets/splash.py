@@ -56,10 +56,11 @@ class Splash1(object):
 
     def _paint(self, obj=None, event=None):
         self.style = self.canvas.get_style()
-        self.canvas.window.draw_pixbuf(self.style.fg_gc[gtk.STATE_NORMAL], self.pixbuf, 0, 0, 0, 0)
-        self.canvas.window.draw_layout(self.style.bg_gc[gtk.STATE_NORMAL], 20, self.height/2, self.title)
-        self.canvas.window.draw_layout(self.style.bg_gc[gtk.STATE_NORMAL], 20, self.height/2 + 20, self.vers)
-        self.canvas.window.draw_layout(self.style.bg_gc[gtk.STATE_NORMAL], 20, self.height/2 + 40, self.log)
+        window = self.canvas.get_window()
+        window.draw_pixbuf(self.style.fg_gc[gtk.STATE_NORMAL], self.pixbuf, 0, 0, 0, 0)
+        window.draw_layout(self.style.bg_gc[gtk.STATE_NORMAL], 20, self.height/2, self.title)
+        window.draw_layout(self.style.bg_gc[gtk.STATE_NORMAL], 20, self.height/2 + 20, self.vers)
+        window.draw_layout(self.style.bg_gc[gtk.STATE_NORMAL], 20, self.height/2 + 40, self.log)
         
 
 class Splash(gtk.Window):
@@ -92,7 +93,8 @@ class Splash(gtk.Window):
         widget.set_colormap(colormap)
     
     def on_expose(self, widget, event):
-        cr = widget.window.cairo_create()
+        window = widget.get_window()
+        cr = window.cairo_create()
                 
         if self.supports_alpha:
             cr.set_source_rgba(1.0, 1.0, 1.0, 0.0) # Transparent
@@ -104,7 +106,7 @@ class Splash(gtk.Window):
         cr.paint()
         pixbuf = gtk.gdk.pixbuf_new_from_file(self.img_file)
         pix, mask = pixbuf.render_pixmap_and_mask(230)
-        cr = widget.window.cairo_create()
+        cr = window.cairo_create()
         cr.set_source_pixbuf(pixbuf,0,0)
         cr.paint()
         cr.set_source_rgb(0.2, 0.5, 0.7)

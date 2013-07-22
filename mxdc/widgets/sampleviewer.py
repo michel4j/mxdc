@@ -1,28 +1,20 @@
-import sys, time, os
-import math
-import numpy
-import random
-import gtk
-import gobject
-import pango
-from mxdc.widgets.dialogs import save_selector, warning, error
-from mxdc.widgets.video import VideoWidget
-from mxdc.widgets.misc import ActiveHScale, ScriptButton
+from bcm.beamline.interfaces import IBeamline
 from bcm.engine.scripting import get_scripts 
 from bcm.protocol import ca
-from bcm.beamline.interfaces import IBeamline
-from bcm.utils.log import get_module_logger
 from bcm.utils.decorators import async
-from bcm.utils.video import add_decorations
-from mxdc.utils import gui, colors
+from bcm.utils.log import get_module_logger
 from bcm.utils.ordereddict import OrderedDict
-try:
-    import cairo
-    using_cairo = True
-except:
-    using_cairo = False
-
+#from bcm.utils.video import add_decorations
+from mxdc.utils import gui, colors
+from mxdc.widgets import dialogs
+from mxdc.widgets.misc import ActiveHScale, ScriptButton
+from mxdc.widgets.video import VideoWidget
 from twisted.python.components import globalRegistry
+import gtk
+import math
+import numpy
+import pango
+import os
 
 _logger = get_module_logger('mxdc.sampleviewer')
 
@@ -63,14 +55,13 @@ POPUP_UI = """
 </ui>
 """
 
-class SampleViewer(gtk.Frame):
+class SampleViewer(gtk.Alignment):
     def __init__(self):
-        gtk.Frame.__init__(self)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'sample_viewer'), 
                                   'sample_viewer')
         self._xml_popup = gui.GUIFile(os.path.join(_DATA_DIR, 'sample_viewer'), 
                                   'colormap_popup')
-        self.set_shadow_type(gtk.SHADOW_NONE)
         
         self._timeout_id = None
         self._disp_time = 0
@@ -116,28 +107,6 @@ class SampleViewer(gtk.Frame):
             return self._xml.get_widget(key)
     
     def save_image(self, filename):
-#        img = self.beamline.sample_video.get_frame()
-#        pix_size = self.beamline.sample_video.resolution      
-#        try:
-#            bw = self.beamline.aperture.get() * 0.001 # convert to mm
-#            bh = self.beamline.aperture.get() * 0.001
-#            bx = 0 #self.beamline.beam_x.get_position()
-#            by = 0 #self.beamline.beam_y.get_position()
-#            cx = self.beamline.camera_center_x.get()
-#            cy = self.beamline.camera_center_y.get()
-#        except:
-#            w, h = img.size
-#            cx = w//2
-#            bw = bh = 1.0
-#            bx = by = 0
-#            cy = h//2
-#        
-#        sw = bw / pix_size 
-#        sh = bh / pix_size
-#        x = int(cx - (bx / pix_size))
-#        y = int(cy - (by / pix_size))
-#        img = add_decorations(img, x, y, sw, sh)
-#        img.save(filename)
         self.video.save_image(filename)
 
                     
@@ -145,7 +114,6 @@ class SampleViewer(gtk.Frame):
         w, h = pixmap.get_size()
         pix_size = self.beamline.sample_video.resolution      
         try:
-            bw = self.beamline.aperture.get() * 0.001 # convert to mm
             bh = self.beamline.aperture.get() * 0.001
             bx = 0 #self.beamline.beam_x.get_position()
             by = 0 #self.beamline.beam_y.get_position()
@@ -153,43 +121,27 @@ class SampleViewer(gtk.Frame):
             cy = self.beamline.camera_center_y.get()
         except:
             cx = w//2
-            bw = bh = 1.0
             bx = by = 0
             cy = h//2
         
         # slit sizes in pixels
-        sw = bw / pix_size 
         sh = bh / pix_size
         x = int((cx - (bx / pix_size)) * self.video.scale)
         y = int((cy - (by / pix_size)) * self.video.scale)
-
-        hw = int(0.5 * sw * self.video.scale)
         hh = int(0.5 * sh * self.video.scale)
-        tick = int(self._tick_size * self.video.scale)
         
-        if using_cairo:
-            cr = pixmap.cairo_create()
-            cr.set_source_rgba(1, 0.2, 0.1, 0.3)
-            cr.set_line_width(2.0)
-            #cr.set_dash([], 0)
-            
-            # beam size
-            #cr.set_dash([1,1])
-            cr.arc(x, y, hh, 0, 2.0 * 3.14)
-            cr.stroke()
-            
-
-        else:        
-            pixmap.draw_line(self.video.ol_gc, x-tick, y, x+tick, y)
-            pixmap.draw_line(self.video.ol_gc, x, y-tick, x, y+tick)
-            
-            pixmap.draw_arc(self.video.ol_gc, False, x-hw+1, y-hh+1, hh*2-1, hw*2-1, 0, 23040)
+        cr = pixmap.cairo_create()
+        cr.set_source_rgba(1, 0.2, 0.1, 0.3)
+        cr.set_line_width(2.0)
+        
+        # beam size
+        cr.arc(x, y, hh, 0, 2.0 * 3.14)
+        cr.stroke()
 
         return
         
     def draw_meas_overlay(self, pixmap):
         pix_size = self.beamline.sample_video.resolution
-        w, h = pixmap.get_size()
         if self.measuring == True:
             x1 = self.measure_x1
             y1 = self.measure_y1
@@ -197,15 +149,14 @@ class SampleViewer(gtk.Frame):
             y2 = self.measure_y2
             dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            if using_cairo:
-                cr = pixmap.cairo_create()
-                cr.set_source_rgba(0.2, 1.0, 0.2, 0.3)
-                cr.set_line_width(4.0)
-                cr.move_to(x1, y1)
-                cr.line_to(x2, y2)
-                cr.stroke()
-            else:
-                pixmap.draw_line(self.video.ol_gc, x1, y1, x2, y2)            
+
+            cr = pixmap.cairo_create()
+            cr.set_source_rgba(0.2, 1.0, 0.2, 0.3)
+            cr.set_line_width(4.0)
+            cr.move_to(x1, y1)
+            cr.line_to(x2, y2)
+            cr.stroke()
+            
             self.meas_label.set_markup("Length: %0.2g mm" % dist)
         else:
             self.meas_label.set_markup("FPS: %0.1f" % self.video.fps)
@@ -241,41 +192,40 @@ class SampleViewer(gtk.Frame):
     def draw_grid_overlay(self, pixmap):
         if self.show_grid:
             
-            x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()
-            if using_cairo:
-                cr = pixmap.cairo_create()
-                cr.set_line_width(0.5)
-                cr.set_source_rgba(0.5, 0.5, 0.5, 0.5)
-                for i in range(nX):
-                    for j in range(nY):
+            cell_size, nX, nY = self._calc_grid_params()[3:]
+            cr = pixmap.cairo_create()
+            cr.set_line_width(0.5)
+            cr.set_source_rgba(0.5, 0.5, 0.5, 0.5)
+            for i in range(nX):
+                for j in range(nY):
 
-                        #x1 = x0 + i*cell_size
-                        #y1 = y0 + j*cell_size
-                        cell = (i,j)
-                        loc = self._get_grid_center(cell)
-                        if cell in self.grid_params['ignore']:
-                            #cr.rectangle(x1, y1, cell_size, cell_size)
-                            cr.arc(loc[0], loc[1], cell_size/2, 0, 2.0 * 3.14)
-                            cr.set_source_rgba(0.0, 0.0, 0.0, 0.5)
-                            cr.stroke()
+                    #x1 = x0 + i*cell_size
+                    #y1 = y0 + j*cell_size
+                    cell = (i,j)
+                    loc = self._get_grid_center(cell)
+                    if cell in self.grid_params['ignore']:
+                        #cr.rectangle(x1, y1, cell_size, cell_size)
+                        cr.arc(loc[0], loc[1], cell_size/2, 0, 2.0 * 3.14)
+                        cr.set_source_rgba(0.0, 0.0, 0.0, 0.5)
+                        cr.stroke()
+                    else:
+                        score = self.grid_params['scores'].get(cell, None)
+                        if self.edit_grid:                               
+                            cr.set_source_rgba(0.0, 0.0, 1, 0.2)
+                        elif score is None:
+                            cr.set_source_rgba(0.9, 0.9, 0.9, 0.3)
                         else:
-                            score = self.grid_params['scores'].get(cell, None)
-                            if self.edit_grid:                               
-                                cr.set_source_rgba(0.0, 0.0, 1, 0.2)
-                            elif score is None:
-                                cr.set_source_rgba(0.9, 0.9, 0.9, 0.3)
-                            else:
-                                R,G,B = self._grid_colormap.get_rgb(score)
-                                cr.set_source_rgba(R, G, B, 0.3)
-                            #cr.rectangle(x1, y1, cell_size, cell_size)
-                            cr.arc(loc[0], loc[1], cell_size/2, 0, 2.0 * 3.14)
-                            cr.fill()
-                            
-                            #cr.rectangle(x1, y1, cell_size, cell_size)
-                            cr.arc(loc[0], loc[1], cell_size/2, 0, 2.0 * 3.14)
+                            R,G,B = self._grid_colormap.get_rgb(score)
+                            cr.set_source_rgba(R, G, B, 0.3)
+                        #cr.rectangle(x1, y1, cell_size, cell_size)
+                        cr.arc(loc[0], loc[1], cell_size/2, 0, 2.0 * 3.14)
+                        cr.fill()
+                        
+                        #cr.rectangle(x1, y1, cell_size, cell_size)
+                        cr.arc(loc[0], loc[1], cell_size/2, 0, 2.0 * 3.14)
 
-                            cr.set_source_rgba(0.1, 0.1, 0.1, 0.5)
-                            cr.stroke()
+                        cr.set_source_rgba(0.1, 0.1, 0.1, 0.5)
+                        cr.stroke()
         return True        
 
     def init_grid_settings(self):
@@ -529,7 +479,10 @@ class SampleViewer(gtk.Frame):
         self.pango_layout.set_font_description(pango.FontDescription('Monospace 8'))
         
     def on_save(self, obj=None, arg=None):
-        img_filename = save_selector()
+        img_filename, _ = dialogs.select_save_file(
+                                'Save Video Snapshot',
+                                parent=self.get_toplevel(),
+                                formats=[('PNG Image', 'png'), ('JPEG Image', 'jpg')])
         if not img_filename:
             return
         if os.access(os.path.split(img_filename)[0], os.W_OK):
@@ -560,8 +513,9 @@ class SampleViewer(gtk.Frame):
     def on_delete(self,widget):
         self.videothread.stop()
         
-    def on_expose(self, videoarea, event):        
-        videoarea.window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
+    def on_expose(self, videoarea, event):
+        window = videoarea.get_window()   
+        window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
             self.width, self.height)
     
     def on_zoom_in(self,widget):

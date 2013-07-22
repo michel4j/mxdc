@@ -6,7 +6,6 @@ Created on Oct 28, 2010
 
 from twisted.spread import pb
 from twisted.internet import reactor
-from twisted.python import log
 
 from bcm.utils import mdns
 from bcm.utils.log import get_module_logger
@@ -113,7 +112,7 @@ class LIMSClient(BaseService):
                     port = {'http':80, 'https':443}[m.group(1)]
                 else:
                     port = int(m.group(4))
-                data = {'name': 'LIMS JSONRPC Service',
+                data = {'name': 'MxLIVE JSONRPC Service',
                         'host': m.group(2),
                         'port': port,
                         'data': {'path': m.group(5)},

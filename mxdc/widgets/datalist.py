@@ -87,9 +87,9 @@ class DataList(gtk.ScrolledWindow):
                 DATA_COLUMN_DATA, item,
                 )
     
-    def __format_float_cell(self, column, renderer, model, iter):
+    def __format_float_cell(self, column, renderer, model, itr):
         column_index = renderer.get_data('column')
-        value = model.get_value(iter, column_index)
+        value = model.get_value(itr, column_index)
         # Hide negative values
         if value < 0:
             renderer.set_property('text', '-')

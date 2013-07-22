@@ -1,28 +1,27 @@
-import os
-import time, datetime
-import gtk
-import gobject
-import pango
-import logging
 
-from twisted.python.components import globalRegistry
+from bcm.beamline.mx import IBeamline
+from bcm.engine.diffraction import Screener, DataCollector
+from bcm.engine.interfaces import IDataCollector
+from bcm.engine.rastering import RasterCollector
+from bcm.engine.scripting import get_scripts
+from bcm.utils import lims_tools
+from bcm.utils.runlists import determine_skip, summarize_frame_set
+from mxdc.utils import config, gui
+from mxdc.widgets import dialogs
+from mxdc.widgets.imageviewer import ImageViewer
+from mxdc.widgets.ptzviewer import AxisViewer
+from mxdc.widgets.rasterwidget import RasterWidget
 from mxdc.widgets.samplelist import SampleList
 from mxdc.widgets.sampleviewer import SampleViewer
-from mxdc.widgets.imageviewer import ImageViewer
-from mxdc.widgets import dialogs
-from mxdc.widgets.ptzviewer import AxisViewer
-from bcm.beamline.mx import IBeamline
-from bcm.engine.interfaces import IDataCollector
-from bcm.utils.runlists import determine_skip, summarize_frame_set
-from bcm.utils import automounter
-from bcm.utils import lims_tools
-from bcm.engine.diffraction import Screener, DataCollector
-from bcm.engine.rastering import RasterCollector
-from mxdc.widgets.rasterwidget import RasterWidget
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
-from mxdc.widgets.dialogs import warning, MyDialog
-from mxdc.utils import config, gui
-from bcm.engine.scripting import get_scripts
+from twisted.python.components import globalRegistry
+
+import gobject
+import gtk
+import logging
+import os
+import pango
+import time
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -74,20 +73,19 @@ class Tasklet(object):
     def __getitem__(self, key):
         return self.options[key]
 
-class ScreenManager(gtk.Frame):
+class ScreenManager(gtk.Alignment):
     __gsignals__ = {
         'new-datasets': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
 
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                                   'screening_widget')
         self.samples_data = []
         self._create_widgets()
         self.screen_runner = Screener()
-        
+
         self._screening = False
         self._screening_paused = False
         self.screen_runner.connect('progress', self._on_progress)
@@ -136,7 +134,7 @@ class ScreenManager(gtk.Frame):
         self.lbl_port.modify_font(pango_font)
         self.lbl_barcode.modify_font(pango_font)
         self._set_throbber('idle')
-
+        self.dir_btn = dialogs.FolderSelector(self.folder_btn)
         #signals
         self.clear_btn.connect('clicked', self._on_queue_clear)
         self.apply_btn.connect('clicked', self._on_sequence_apply)
@@ -164,7 +162,7 @@ class ScreenManager(gtk.Frame):
         self.sample_viewer = SampleViewer()
         self.image_viewer = ImageViewer()
         self.image_viewer.set_collect_mode(True)
-        self.image_viewer.set_shadow_type(gtk.SHADOW_NONE)
+        #self.image_viewer.set_shadow_type(gtk.SHADOW_NONE)
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
         self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
         self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))    
@@ -208,7 +206,6 @@ class ScreenManager(gtk.Frame):
         self.time_entry.connect('activate', self._on_entry_changed, None, (0.1, 360.0, self.beamline.config['default_exposure']))
         self.time_entry.connect('focus-out-event', self._on_entry_changed, (0.1, 360.0, self.beamline.config['default_exposure']))
         self.beamline.energy.connect('changed', lambda obj, val: self.energy_entry.set_text('%0.4f' % val))
-        self.folder_btn.connect('current-folder-changed', self._on_folder_changed)
 
         for pos, tasklet in enumerate(self.default_tasks):
             key, options = tasklet
@@ -334,12 +331,12 @@ class ScreenManager(gtk.Frame):
                 self.lbl_barcode.set_markup('')
     
 
-    def _on_sync(self, obj, st, str):
+    def _on_sync(self, obj, st, txt):
         if st:
             self.lbl_sync.set_markup('<span color="#009900">Barcode match</span>')
         else:
             self.lbl_sync.set_markup('<span color="#990000">Barcode mismatch</span>')
-            self.message_log.add_text('sync: %s' % str)
+            self.message_log.add_text('sync: %s' % txt)
 
 
     def _on_new_datasets(self, obj, datasets):
@@ -360,12 +357,12 @@ class ScreenManager(gtk.Frame):
             
     def get_task_list(self):
         model = self.listview.get_model()
-        iter = model.get_iter_first()
+        itr = model.get_iter_first()
         items = []
-        while iter:
-            tsk = model.get_value(iter, QUEUE_COLUMN_TASK)
+        while itr:
+            tsk = model.get_value(itr, QUEUE_COLUMN_TASK)
             items.append(tsk)
-            iter = model.iter_next(iter)
+            itr = model.iter_next(itr)
         return items
     
     def _get_collect_setup(self, task):
@@ -392,15 +389,6 @@ class ScreenManager(gtk.Frame):
         tbl = _xml2.get_widget('collect_labels')
         return tbl
     
-    def _on_folder_changed(self, obj):
-        _new_folder = obj.get_current_folder()
-        _new_filename = obj.get_filename()
-        if  _new_folder != _new_filename:
-            obj._selected_folder = _new_filename
-            #obj.set_current_folder(obj._selected_folder)
-        else:
-            obj._selected_folder = _new_folder
-
     def _on_settings_changed(self, obj, event, task, key):
         try:
             val = float( obj.get_text() )
@@ -424,9 +412,9 @@ class ScreenManager(gtk.Frame):
         
        
     def _add_item(self, item):
-        iter = self.listmodel.append()
+        itr = self.listmodel.append()
         sample = item['task'].options.get('sample', {}) # dismount does not have a sample
-        self.listmodel.set(iter, 
+        self.listmodel.set(itr, 
             QUEUE_COLUMN_STATUS, item.get('status', Screener.TASK_STATE_PENDING), 
             QUEUE_COLUMN_ID, sample.get('name', '[LAST]'), # use [LAST] as sample name
             QUEUE_COLUMN_NAME, item['task'].name,
@@ -434,8 +422,8 @@ class ScreenManager(gtk.Frame):
         )
         self.start_btn.set_sensitive(True)
         
-    def _done_color(self, column, renderer, model, iter):
-        status = model.get_value(iter, QUEUE_COLUMN_STATUS)
+    def _done_color(self, column, renderer, model, itr):
+        status = model.get_value(itr, QUEUE_COLUMN_STATUS)
         _state_colors = {
             Screener.TASK_STATE_PENDING : None,
             Screener.TASK_STATE_RUNNING : '#990099',
@@ -445,8 +433,8 @@ class ScreenManager(gtk.Frame):
             }
         renderer.set_property("foreground", _state_colors.get(status))
         
-    def _done_pixbuf(self, column, renderer, model, iter):
-        value = model.get_value(iter, QUEUE_COLUMN_STATUS)
+    def _done_pixbuf(self, column, renderer, model, itr):
+        value = model.get_value(itr, QUEUE_COLUMN_STATUS)
         if value == Screener.TASK_STATE_PENDING:
             renderer.set_property('pixbuf', None)
         elif value == Screener.TASK_STATE_RUNNING:
@@ -483,7 +471,7 @@ class ScreenManager(gtk.Frame):
     
     def _save_config(self):
         data = {
-            "directory": self.folder_btn._selected_folder,
+            "directory": self.dir_btn.get_current_folder(),
             "delta": float(self.delta_entry.get_text()),
             "time": float(self.time_entry.get_text()),
             "distance": float(self.distance_entry.get_text()),
@@ -491,19 +479,20 @@ class ScreenManager(gtk.Frame):
         config.save_config(SCREEN_CONFIG_FILE, data)
     
     def _load_config(self):
-        data = config.load_config(SCREEN_CONFIG_FILE)
-        if data is not None:
-            self.folder_btn.set_current_folder(data.get('directory', os.environ['HOME']))
-            self.time_entry.set_text('%0.2f' % data.get('time', self.beamline.config['default_exposure']))
-            self.delta_entry.set_text('%0.2f' % data.get('delta', 1.0))
-            self.distance_entry.set_text('%0.2f' % data.get('distance', 300.0))
-            for idx, v in enumerate(data.get('tasks',[])):
-                self.TaskList[idx][1].set_active(v)
-        else:
-            self.folder_btn.set_current_folder(os.environ['HOME'])
-            self.time_entry.set_text('%0.2f' % self.beamline.config['default_exposure'])
-            self.delta_entry.set_text('%0.2f' % 1.0)
-            self.distance_entry.set_text('%0.2f' % 300.0)                  
+        if not config.SESSION_INFO.get('new', False):
+            data = config.load_config(SCREEN_CONFIG_FILE)
+            if data is not None:
+                self.dir_btn.set_current_folder(data.get('directory'))
+                self.time_entry.set_text('%0.2f' % data.get('time', self.beamline.config['default_exposure']))
+                self.delta_entry.set_text('%0.2f' % data.get('delta', 1.0))
+                self.distance_entry.set_text('%0.2f' % data.get('distance', 300.0))
+                for idx, v in enumerate(data.get('tasks',[])):
+                    self.TaskList[idx][1].set_active(v)
+            else:
+                self.dir_btn.set_current_folder(config.SESSION_INFO.get('current_folder', config.SESSION_INFO['path']))
+                self.time_entry.set_text('%0.2f' % self.beamline.config['default_exposure'])
+                self.delta_entry.set_text('%0.2f' % 1.0)
+                self.distance_entry.set_text('%0.2f' % 300.0)                  
         
     def _on_task_toggle(self, obj, tasklet):
         tasklet.configure(enabled=obj.get_active())
@@ -513,7 +502,6 @@ class ScreenManager(gtk.Frame):
         model.clear()
         items = self.sample_list.get_selected()
         delta = float(self.delta_entry.get_text())
-        self.folder_btn.set_current_folder(self.folder_btn._selected_folder)
         for item in items:
             collect_task = None
             collect_frames = []
@@ -521,7 +509,7 @@ class ScreenManager(gtk.Frame):
                 if t.options['enabled']:
                     tsk = Tasklet(t.task_type, **t.options)
                     tsk.options.update({
-                        'directory' : self.folder_btn._selected_folder,
+                        'directory' : self.dir_btn.get_current_folder(),
                         'sample':  item})
                     if tsk.task_type == Screener.TASK_COLLECT:
                         for n in range(int(t.options['frames'])):
@@ -615,19 +603,19 @@ class ScreenManager(gtk.Frame):
         # Update Queue state
         path = (position,)
         model = self.listview.get_model()
-        iter = model.get_iter(path)
-        model.set(iter, QUEUE_COLUMN_STATUS, status)
+        itr = model.get_iter(path)
+        model.set(itr, QUEUE_COLUMN_STATUS, status)
         self.listview.scroll_to_cell(path, use_align=True,row_align=0.4)
         
         # determine current and next tasks
-        if iter is None:
+        if itr is None:
             self.lbl_current.set_text('')
         else:
-            cur_tsk = model.get_value(iter, QUEUE_COLUMN_TASK)
+            cur_tsk = model.get_value(itr, QUEUE_COLUMN_TASK)
             cur_sample = cur_tsk['sample']['path'] # location in sample list
             txt = str(cur_tsk)
             self.lbl_current.set_text(txt)
-            next_iter = model.iter_next(iter)
+            next_iter = model.iter_next(itr)
             if next_iter is not None:
                 next_tsk = model.get_value(next_iter, QUEUE_COLUMN_TASK)
                 next_sample = next_tsk['sample']['path'] # location in sample list
@@ -671,8 +659,9 @@ class ScreenManager(gtk.Frame):
         self.scan_pbar.set_text("Paused")
         if msg:
             title = 'Attention Required'
-            self.resp = MyDialog(gtk.MESSAGE_WARNING, 
+            self.resp = dialogs.MyDialog(gtk.MESSAGE_WARNING, 
                                          title, msg,
+                                         parent=self.get_toplevel(),
                                          buttons=( ('Intervene', gtk.RESPONSE_ACCEPT),) )
             self._intervening = False
             if pause_dict['type'] is Screener.PAUSE_BEAM: 

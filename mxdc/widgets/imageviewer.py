@@ -1,17 +1,17 @@
 # -*- coding: UTF8 -*-
 
-import sys
-import re, os, time, gc, stat
-import threading
-import gtk
-import gobject, pango
-import math, re, struct
-from dialogs import select_image
-from mxdc.widgets.imagewidget import ImageWidget, image_loadable
 from mxdc.utils import gui
-
-from matplotlib.pylab import loadtxt
+from mxdc.widgets import dialogs
+from mxdc.widgets.imagewidget import ImageWidget, image_loadable
+import gobject
+import gtk
 import logging
+import math
+import numpy
+import glob
+import os
+import re
+import sys
 
 __log_section__ = 'mxdc.imageviewer'
 img_logger = logging.getLogger(__log_section__)
@@ -19,10 +19,9 @@ img_logger = logging.getLogger(__log_section__)
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
 FILE_PATTERN = re.compile('^(?P<base>[\w-]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.?[\w.]+)?$')
 
-class ImageViewer(gtk.Frame):
+class ImageViewer(gtk.Alignment):
     def __init__(self, size=512):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_OUT)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._canvas_size = size
         self._brightness = 1.0
         self._contrast = 1.0
@@ -32,31 +31,26 @@ class ImageViewer(gtk.Frame):
         self._co_hide_id = None
         self._cl_hide_id = None
         self._follow_id = None
-        self.next_filename = ''
+        
+        self._dataset_frames = []
+        self._dataset_pos = 0
+        
         self._last_queued = ''
-        self.prev_filename = ''
+        self.directory = None
+        self.filename = None
         self.all_spots = []
         self._create_widgets()
         
     def __getattr__(self, key):
-        try:
-            return super(ImageViewer).__getattr__(self, key)
-        except AttributeError:
-            return self._xml.get_widget(key)
+        return self._xml.get_widget(key)
 
     def _create_widgets(self):
-        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
-                                  'image_viewer')
-        self._xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
-                                  'brightness_popup')
-        self._xml4 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
-                                  'contrast_popup')
-        self._xml5 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
-                                  'colorize_popup')
-        self._xml3 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 
-                                  'info_dialog')
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 'image_viewer')
+        self._xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 'brightness_popup')
+        self._xml4 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 'contrast_popup')
+        self._xml5 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'),  'colorize_popup')
+        self._xml3 = gui.GUIFile(os.path.join(DATA_DIR, 'image_viewer'), 'info_dialog')
         
-        self._widget = self._xml.get_widget('image_viewer')
         self.image_canvas = ImageWidget(self._canvas_size)
         self.image_canvas.connect('image-loaded', self._update_info)
         self.image_frame.add(self.image_canvas)
@@ -69,18 +63,21 @@ class ImageViewer(gtk.Frame):
 
         self.contrast_popup = self._xml4.get_widget('contrast_popup')
         self.contrast = self._xml4.get_widget('contrast')
+        self.contrast.set_adjustment(gtk.Adjustment(0, 0, 100, 1, 10, 0))
         self.contrast_tbtn.connect('toggled', self.on_contrast_toggled)     
         self.contrast.connect('value-changed', self.on_contrast_changed)
         
 
         self.brightness_popup = self._xml2.get_widget('brightness_popup')
         self.brightness = self._xml2.get_widget('brightness')
+        self.brightness.set_adjustment(gtk.Adjustment(0, 0, 100, 1, 10, 0))
         self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)
         self.brightness.connect('value-changed', self.on_brightness_changed)
 
 
         self.colorize_popup = self._xml5.get_widget('colorize_popup')
         self.colormap = self._xml5.get_widget('colormap')
+        self.colormap.set_adjustment(gtk.Adjustment(0, 0, 100, 1, 10, 0))
         self.colorize_tbtn.connect('toggled', self.on_colorize_toggled)
         self.colormap.connect('value-changed', self.on_colormap_changed)
        
@@ -99,8 +96,8 @@ class ImageViewer(gtk.Frame):
         self.info_dialog = None
         self.expand_separator.set_expand(True)
 
-        self.image_canvas.connect('configure-event', self.on_configure)      
-        self.add(self._widget)         
+        self.image_canvas.connect('configure-event', self.on_configure)
+        self.add(self.image_viewer)         
         self.show_all()
 
     def log(self, msg):
@@ -108,7 +105,7 @@ class ImageViewer(gtk.Frame):
        
     def _load_spots(self, filename):
         try:
-            self.all_spots = loadtxt(filename)
+            self.all_spots = numpy.loadtxt(filename)
         except:
             img_logger.error('Could not load spots from %s' % filename)
    
@@ -125,40 +122,38 @@ class ImageViewer(gtk.Frame):
     def _select_image_spots(self, spots):
         image_spots = [sp for sp in spots if abs(self.frame_number - sp[2]) <= 1]
         return image_spots
-
+    
+    def _rescan_dataset(self):
+        self._dataset_frames = glob.glob(self.file_template)
+        self._dataset_frames.sort()
+        self._dataset_pos = self._dataset_frames.index(self.filename)
+            
+        # test next and prev        
+        self.next_btn.set_sensitive(False)
+        self.prev_btn.set_sensitive(False)
+        if 0 <= self._dataset_pos + 1 < len(self._dataset_frames) and image_loadable(self._dataset_frames[self._dataset_pos + 1]):
+            self.next_btn.set_sensitive(True)
+            
+        if 0 <= self._dataset_pos - 1 < len(self._dataset_frames) and image_loadable(self._dataset_frames[self._dataset_pos - 1]):
+            self.prev_btn.set_sensitive(True)
+    
     def _set_file_specs(self, filename):
         self.filename = filename
+        self.directory = os.path.dirname(os.path.abspath(filename))
+        
         # determine file template and frame_number
-        file_dir = os.path.dirname(filename)
-        fm = FILE_PATTERN.search(os.path.basename(self.filename))
+        fm = FILE_PATTERN.match(os.path.basename(self.filename))
         if fm:
             if fm.group('ext') is not None:
                 extension = fm.group('ext')
             else:
                 extension = ''
-            self.file_template = os.path.join(file_dir,
-                                    "%s%s0%dd%s" % (
-                                            fm.group('base'),
-                                            '%', len(fm.group('num')),
-                                            extension))
             self.frame_number = int(fm.group('num'))            
-            self.next_filename = self.file_template % (self.frame_number + 1)
-            self.prev_filename = self.file_template % (self.frame_number - 1)
-        else:
-            self.next_filename = ''
-            self.prev_filename = ''
-            
-        # test next
-        if not image_loadable(self.next_filename):
-            self.next_btn.set_sensitive(False)
-        else:
-            self.next_btn.set_sensitive(True)
-            
-        # test prev
-        if not image_loadable(self.prev_filename):
-            self.prev_btn.set_sensitive(False)
-        else:
-            self.prev_btn.set_sensitive(True)
+            self.file_template = os.path.join(self.directory, 
+                                     "%s*%s" % (fm.group('base'), extension))
+        
+        self._rescan_dataset()
+        
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
         self.contrast_tbtn.set_sensitive(True)
@@ -192,10 +187,11 @@ class ImageViewer(gtk.Frame):
         return last_parent
 
     def _position_popups(self):
-        ox, oy = self.window.get_origin()
-        ix,iy,iw,ih,ib = self.image_canvas.window.get_geometry()
+        window = self._get_parent_window().get_window()
+        ox, oy = window.get_origin()
+        ix,iy,iw,ih,_ = self.image_canvas.get_window().get_geometry()
         cx = ox + ix + iw/2 - 100
-        cy = oy + iy + ih/2 + 50
+        cy = oy + iy + ih - 50
         self.contrast_popup.move(cx, cy)
         self.brightness_popup.move(cx, cy)
         self.colorize_popup.move(cx, cy)
@@ -213,19 +209,19 @@ class ImageViewer(gtk.Frame):
         self.image_canvas.set_brightness(obj.get_value())
         if self._br_hide_id is not None:
             gobject.source_remove(self._br_hide_id)
-            self._br_hide_id = gobject.timeout_add(6000, self._timed_hide, self.brightness_tbtn)
+            self._br_hide_id = gobject.timeout_add(12000, self._timed_hide, self.brightness_tbtn)
     
     def on_contrast_changed(self, obj):
         self.image_canvas.set_contrast(obj.get_value())
         if self._co_hide_id is not None:
             gobject.source_remove(self._co_hide_id)
-            self._co_hide_id = gobject.timeout_add(6000, self._timed_hide, self.contrast_tbtn)
+            self._co_hide_id = gobject.timeout_add(12000, self._timed_hide, self.contrast_tbtn)
 
     def on_colormap_changed(self, obj):
         self.image_canvas.colorize(obj.get_value())
         if self._cl_hide_id is not None:
             gobject.source_remove(self._cl_hide_id)
-            self._cl_hide_id = gobject.timeout_add(6000, self._timed_hide, self.colorize_tbtn)
+            self._cl_hide_id = gobject.timeout_add(12000, self._timed_hide, self.colorize_tbtn)
     
     def on_reset_filters(self,widget):
         self.contrast_tbtn.set_active(False)
@@ -235,7 +231,7 @@ class ImageViewer(gtk.Frame):
         return True    
     
     def on_go_back(self, widget, full):
-        b = self.image_canvas.go_back(full)
+        self.image_canvas.go_back(full)
         return True
     
     def on_mouse_motion(self,widget,event):
@@ -253,7 +249,7 @@ class ImageViewer(gtk.Frame):
             if not w:
                 continue
             if key == "two_theta":
-            	val = val * 180.0 / math.pi
+                val = val * 180.0 / math.pi
             if key in ['detector_size', 'beam_center']:
                 txt = "%0.0f, %0.0f" % (val[0], val[1])
             elif key in ['filename']:
@@ -271,9 +267,11 @@ class ImageViewer(gtk.Frame):
 
     def _follow_frames(self):
         if self._following:
-            if (self._last_queued != self.next_filename):
-                self.image_canvas.queue_frame(self.next_filename)
-                self._last_queued = self.next_filename
+            if 0 <= self._dataset_pos + 1 < len(self._dataset_frames):
+                if image_loadable(self._dataset_frames[self._dataset_pos + 1]):
+                    self.image_canvas.queue_frame(self._dataset_frames[self._dataset_pos + 1])
+            else:
+                self._rescan_dataset()
             return True
         else:
             return False
@@ -294,23 +292,25 @@ class ImageViewer(gtk.Frame):
         self.info_dialog = None
 
     def on_next_frame(self,widget):
-        if os.access(self.next_filename, os.R_OK):
-            self.open_image(self.next_filename)
+        if 0 <= self._dataset_pos + 1 < len(self._dataset_frames):
+            if image_loadable(self._dataset_frames[self._dataset_pos + 1]):
+                self.open_image(self._dataset_frames[self._dataset_pos + 1])
         else:
-            img_logger.warning("File not found: %s" % (filename))
-        return True
+            self._rescan_dataset()
+
 
     def on_prev_frame(self,widget):
-        if os.access(self.prev_filename, os.R_OK):
-            self.open_image(self.prev_filename)
+        if 0 <= self._dataset_pos - 1 < len(self._dataset_frames):
+            if image_loadable(self._dataset_frames[self._dataset_pos - 1]):
+                self.open_image(self._dataset_frames[self._dataset_pos - 1])
         else:
-            img_logger.warning("File not found: %s" % (filename))
-        return True
+            self._rescan_dataset()
 
-    def on_file_open(self,widget):
-        filter, filename = select_image()
+    def on_file_open(self, widget):
+        filename, flt = dialogs.select_open_image(parent=self.get_toplevel(), 
+                                default_folder=self.directory)
         if filename is not None and os.path.isfile(filename):
-            if filter.get_name() == 'XDS SPOT Files':
+            if flt.get_name() == 'XDS Spot files':
                 self._load_spots(filename)
                 # if spot information is available  and an image is loaded display it
                 if self.image_canvas.image_loaded:
@@ -320,7 +320,6 @@ class ImageViewer(gtk.Frame):
                     gobject.idle_add(self.image_canvas.queue_draw)
             else:
                 self.open_image(filename)
-        return True
 
     def _timed_hide(self, obj):
         obj.set_active(False)
@@ -333,7 +332,7 @@ class ImageViewer(gtk.Frame):
             self._position_popups()
             self.brightness_popup.set_transient_for(self._get_parent_window())
             self.brightness_popup.show_all()
-            self._br_hide_id = gobject.timeout_add(5000, self._timed_hide, self.brightness_tbtn)
+            self._br_hide_id = gobject.timeout_add(12000, self._timed_hide, self.brightness_tbtn)
         else:
             if self._br_hide_id is not None:
                 gobject.source_remove(self._br_hide_id)
@@ -347,7 +346,7 @@ class ImageViewer(gtk.Frame):
             self._position_popups()
             self.contrast_popup.set_transient_for(self._get_parent_window())
             self.contrast_popup.show_all()
-            self._co_hide_id = gobject.timeout_add(5000, self._timed_hide, self.contrast_tbtn)
+            self._co_hide_id = gobject.timeout_add(12000, self._timed_hide, self.contrast_tbtn)
             
         else:
             if self._co_hide_id is not None:
@@ -362,18 +361,19 @@ class ImageViewer(gtk.Frame):
             self._position_popups()
             self.colorize_popup.set_transient_for(self._get_parent_window())
             self.colorize_popup.show_all()
-            self._cl_hide_id = gobject.timeout_add(5000, self._timed_hide, self.colorize_tbtn)
+            self._cl_hide_id = gobject.timeout_add(12000, self._timed_hide, self.colorize_tbtn)
             
         else:
             if self._cl_hide_id is not None:
                 gobject.source_remove(self._cl_hide_id)
                 self._cl_hide_id = None
             self.colorize_popup.hide()
+    
         
     def on_follow_toggled(self,widget):
         self._following = widget.get_active()
         if not self._collecting:
-            gobject.timeout_add(1000, self._follow_frames)
+            gobject.timeout_add(2500, self._follow_frames)
         return True
 
 def main():

@@ -33,4 +33,3 @@ if __name__ == '__main__':
         main()
     finally:
         _logger.info('Stopping...')
-
