@@ -8,7 +8,7 @@ from bcm.protocol import ca
 from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
 from bcm.utils.automounter import *
-import gobject
+import gobject as GObject
 import time
 import re
 
@@ -17,7 +17,7 @@ _logger = get_module_logger(__name__)
 
 
 
-class AutomounterContainer(gobject.GObject):
+class AutomounterContainer(GObject.GObject):
     """An event driven object for representing an automounter container.
     
     Signals:
@@ -25,7 +25,7 @@ class AutomounterContainer(gobject.GObject):
           no data.
     """
     __gsignals__ = {
-        'changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+        'changed': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, []),
     }
     def __init__(self, location, status_str=None):
         """ Create a container at the specified location in the Automounter.
@@ -38,7 +38,7 @@ class AutomounterContainer(gobject.GObject):
             - `status_str` (str or None): status string to update container with.       
         """
         
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
         self.location = location
         self.samples = {}
         self.configure(status_str)
@@ -64,7 +64,7 @@ class AutomounterContainer(gobject.GObject):
             
         if self.container_type in [CONTAINER_NONE, CONTAINER_UNKNOWN, CONTAINER_EMPTY]:
             self.samples = {}
-            gobject.idle_add(self.emit, 'changed')
+            GObject.idle_add(self.emit, 'changed')
             return
         elif self.container_type == CONTAINER_PUCK_ADAPTER:
             self.keys = 'ABCD'
@@ -82,7 +82,7 @@ class AutomounterContainer(gobject.GObject):
                 else:
                     self.samples[id_str] = [PORT_NONE, '']
                 count +=1
-        gobject.idle_add(self.emit, 'changed')
+        GObject.idle_add(self.emit, 'changed')
 
     def __getitem__(self, key):
         return self.samples.get(key, None)
@@ -106,10 +106,10 @@ class BasicAutomounter(BaseDevice):
     """
     implements(IAutomounter)
     __gsignals__ = {
-        'status': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
-        'enabled': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,)),
-        'mounted': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'progress': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'status': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_STRING,)),
+        'enabled': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_BOOLEAN,)),
+        'mounted': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_PYOBJECT,)),
+        'progress': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_PYOBJECT,)),
     }
 
     def __init__(self):
@@ -122,8 +122,7 @@ class BasicAutomounter(BaseDevice):
         self._total_steps = 0
         self._step_count = 0
         self._last_warn = ''
-        self.set_state(active=False, enabled=False)
-        self._command_sent = False    
+        self.set_state(active=False, enabled=False) 
     
     def do_state(self, st):
         pass
@@ -201,15 +200,15 @@ class BasicAutomounter(BaseDevice):
             True if the wait was successful. False if the wait timed-out.
             
         """
-        poll=0.20
+        poll=0.10
         
-        if (start and self._command_sent and not self.is_busy()):
+        if (start and not self.is_busy()):
             _logger.debug('Waiting for (%s) to start' % (self.name,))
-            while self._command_sent and not self.is_busy() and timeout > 0:
-                timeout -= poll
+            _start_timeout = 20
+            while not self.is_busy() and _start_timeout > 0:
+                _start_timeout -= poll
                 time.sleep(poll)
-            self._command_sent = False               
-            if timeout <= 0:
+            if _start_timeout <= 0:
                 _logger.warning('Timed out waiting for (%s) to start.' % (self.name,))
                 return False
         if (stop and self.is_busy()):
@@ -309,12 +308,12 @@ class Automounter(BasicAutomounter):
         BasicAutomounter.__init__(self)
         self.name = 'SAM Automounter'
         self._pv_name = pv_name
-        self._command_sent = False
         self._ful_pos = []
         #initialize housekeeping vars
         
         self.port_states = self.add_pv('%s:cassette:fbk' % pv_name)
         self.nitrogen_level = self.add_pv('%s:LN2Fill:start:in' % pv_name2)
+        self.nitrogen_valve = self.add_pv('%s:LN2Fill:valve:in' % pv_name2)
         self.status_msg = self.add_pv('%s:sample:msg' % pv_name)
         self.needs_val = self.add_pv('%s:status:val' % pv_name)
         
@@ -337,7 +336,7 @@ class Automounter(BasicAutomounter):
         self._bar_code = self.add_pv('%s:bcode:barcode' % pv_name)
         self._barcode_reset = self.add_pv('%s:bcode:clear' % pv_name)
         self._enabled = self.add_pv('%s:mntEn' % pv_name)
-        self._sample_busy = self.add_pv('%s:sample:sts' % pv_name)
+        self._sample_busy = self.add_pv('%s:bot:mntEn' % pv_name)
         self._probe_param = self.add_pv('%s:probe:wvParam' % pv_name)
         
         self.port_states.connect('changed', lambda x, y: self._parse_states(y))
@@ -427,21 +426,23 @@ class Automounter(BasicAutomounter):
         # use mount_next if something already mounted
         if _mounted_port == '':      # nothing is mounted  
             self._mount_param.put(param)
-            self._mount_cmd.toggle(1,0)
+            self._mount_cmd.set(1)
             self._total_steps = 26
             self._step_count = 0
         else:                        # something is mounted
             dis_param = self._mounted.get()
             self._dismount_param.put(dis_param)
             self._mount_param.put(param)
-            self._mount_next_cmd.toggle(1,0)
+            self._mount_next_cmd.set(1)
             self._total_steps = 40
             self._step_count = 0
         
         _logger.info('(%s) Mount command: %s' % (self.name, port))
-        self._command_sent = True
         if wait:
-            return self.wait(start=True, stop=True, timeout=240)
+            success = self.wait(start=True, stop=True, timeout=240)
+            if not success:
+                self.set_state(status='idle', message="Mounting timed out!")
+            return success
         return True
         
     
@@ -478,14 +479,16 @@ class Automounter(BasicAutomounter):
             param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
             
         self._dismount_param.put(param)
-        self._dismount_cmd.toggle(1,0)
+        self._dismount_cmd.set(1)
         self._total_steps = 25
         self._step_count = 0
         
         _logger.info('(%s) Dismount command: %s' % (self.name, port))
-        self._command_sent = True
         if wait:
-            return self.wait(start=True, stop=True, timeout=240)
+            success = self.wait(start=True, stop=True, timeout=240)
+            if not success:
+                self.set_state(status='idle', message="Dismounting timed out!")
+            return success
         return True
  
 
@@ -505,7 +508,8 @@ class Automounter(BasicAutomounter):
         self.set_state(enabled=(st==1))
 
     def _on_ln2level_changed(self, pv, st):
-        if st == 1:
+        filling = self.nitrogen_valve.get() == 1
+        if st == 1 and not filling:
             self.set_state(health=(2, 'ln2-level', 'LN2 level is low.'))
         else:
             self.set_state(health=(0, 'ln2-level'))
@@ -535,21 +539,18 @@ class Automounter(BasicAutomounter):
 
     def _on_state_changed(self, pv, st):
         state = self._status.get()
-        busy = (self._sample_busy.get() == 1)
+        busy = (self._sample_busy.get() == 0)
         try:
             state = state.split()[0].strip()
         except IndexError:
             return
         
-        if state  == 'robot_standby':
-            self.set_state(busy=busy, status="standby")
-        elif state  == 'idle':
-            self.set_state(busy=False, status="idle")
+        if state  in ['robot_standby', 'idle']:
+            self.set_state(busy=busy, status=state)
         elif state == 'robot_config':
             self.set_state(busy=busy, status="setup")
         else:
             self.set_state(busy=busy, status="busy")
-
 
     def _on_mount_changed(self, pv, val):
         vl = val.split()
@@ -658,8 +659,7 @@ class SimAutomounter(BasicAutomounter):
         if self.is_busy():
             return False
         self._sim_mount_start(port)
-        gobject.timeout_add(5000, self._sim_mount_done, port)
-        self._command_sent = True
+        GObject.timeout_add(5000, self._sim_mount_done, port)
         if wait:
             return self.wait(start=True, stop=True)
         return True
@@ -669,8 +669,7 @@ class SimAutomounter(BasicAutomounter):
             return False
         if self._mounted_port is not None:
             self._sim_mount_start(None)
-            gobject.timeout_add(10000, self._sim_dismount_done)
-        self._command_sent = True
+            GObject.timeout_add(10000, self._sim_dismount_done)
         if wait:
             return self.wait(start=True, stop=True)
         return True
@@ -679,13 +678,13 @@ class SimAutomounter(BasicAutomounter):
         self.set_state(busy=False, status='standby', enabled=True, message="Sample mounted. Drying gripper.", mounted=(port,''))
         self._mounted_port = port
         self.set_state(progress=(1.0, 'unknown', 'on gonio', 'in cradle'))
-        gobject.timeout_add(10000, self._sim_dry_done)
+        GObject.timeout_add(10000, self._sim_dry_done)
 
     def _sim_dismount_done(self):
         self.set_state(busy=False, status='standby', enabled=True, message="Sample dismounted. Drying gripper.", mounted=None)
         self._mounted_port = None
         self.set_state(progress=(1.0, 'unknown', 'in port', 'in cradle'))
-        gobject.timeout_add(10000, self._sim_dry_done)
+        GObject.timeout_add(10000, self._sim_dry_done)
 
     def _sim_mount_start(self, port=None):
         if port is None:

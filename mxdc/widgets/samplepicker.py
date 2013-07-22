@@ -1,25 +1,20 @@
-import os
+from bcm.beamline.interfaces import IBeamline
+from bcm.engine import auto
+from bcm.utils import automounter
+from bcm.utils.decorators import async
+from bcm.utils.log import get_module_logger
+from mxdc.utils import gui
+from mxdc.widgets.misc import ActiveProgressBar
+from mxdc.widgets.textviewer import TextViewer
+from twisted.python.components import globalRegistry
+import cairo
+import gobject
+import gtk
 import math
 import numpy
-import gtk
-import gobject
+import os
 import pango
 import time
-try:
-    import cairo
-    using_cairo = True
-except:
-    using_cairo = False
-
-from bcm.utils.automounter import *
-from bcm.utils.log import get_module_logger
-from bcm.utils.decorators import async
-from bcm.engine import auto
-from mxdc.widgets.textviewer import TextViewer
-from mxdc.utils import gui
-from bcm.beamline.interfaces import IBeamline
-from twisted.python.components import globalRegistry
-from mxdc.widgets.misc import ActiveProgressBar
 
 _logger = get_module_logger('mxdc.samplepicker')
 
@@ -83,10 +78,8 @@ class ContainerWidget(gtk.DrawingArea):
         self.queue_draw()
     
     def _puck_coordinates(self, width, height):
-        radius = self.radius
         ilenf = 140 / 394.
         olenf = 310 / 394.
-        sq_rad = radius * radius
         ilen = width * ilenf / 4.0
         olen = width * olenf / 4.0
         hw = int(width / 4)
@@ -107,8 +100,8 @@ class ContainerWidget(gtk.DrawingArea):
         locs = {
                 'A': locations + (self.x_pad, self.y_pad),
                 'B': locations + (self.x_pad, self.y_pad + height // 2),
-                'C': locations + (self.x_pad + width // 2, self.y_pad),
-                'D': locations + (self.x_pad + height // 2, self.y_pad + width / 2)
+                'C': locations + (2*self.x_pad + width // 2, 2*self.y_pad),
+                'D': locations + (2*self.x_pad + height // 2, 2*self.y_pad + width / 2)
         }
         final_loc = {}
         for k, v in locs.items():
@@ -117,14 +110,13 @@ class ContainerWidget(gtk.DrawingArea):
         labels = {
                 'A': (self.x_pad + hw, self.y_pad + hw),
                 'B': (self.x_pad + hw, self.y_pad + hw + height // 2),
-                'C': (self.x_pad + hw + width // 2, self.y_pad + hw),
-                'D': (self.x_pad + hw + height // 2, self.y_pad + hw + width // 2)
+                'C': (2*self.x_pad + hw + width // 2, 2*self.y_pad + hw),
+                'D': (2*self.x_pad + hw + height // 2, 2*self.y_pad + hw + width // 2)
         }
         return final_loc, labels
 
     def _cassette_coordinates(self, width, height, calib=False):
         radius = self.radius
-        sq_rad = radius * radius
         labels = {}
         keys = 'ABCDEFGHIJKL'
         final_loc = {}
@@ -142,37 +134,33 @@ class ContainerWidget(gtk.DrawingArea):
     def on_realize(self, obj):
         style = self.get_style()
         self.port_colors = {
-            PORT_EMPTY: gtk.gdk.color_parse("#aaaaaa"),
-            PORT_GOOD: gtk.gdk.color_parse("#90dc8f"),
-            PORT_UNKNOWN: style.bg[gtk.STATE_NORMAL],
-            PORT_MOUNTED: gtk.gdk.color_parse("#dd5cdc"),
-            PORT_JAMMED: gtk.gdk.color_parse("#ff6464"),
-            PORT_NONE: style.bg[gtk.STATE_NORMAL]
+            automounter.PORT_EMPTY: gtk.gdk.color_parse("#999999"),
+            automounter.PORT_GOOD: gtk.gdk.color_parse("#90dc8f"),
+            automounter.PORT_UNKNOWN: gtk.gdk.color_parse("#fcfcfc"),
+            automounter.PORT_MOUNTED: gtk.gdk.color_parse("#dd5cdc"),
+            automounter.PORT_JAMMED: gtk.gdk.color_parse("#ff6464"),
+            automounter.PORT_NONE: style.bg[gtk.STATE_NORMAL]
             }     
-        self.state_gc = {}  
-        for key, spec in self.port_colors.items():
-            self.state_gc[key] = self.window.new_gc()
-            self.state_gc[key].foreground = self.get_colormap().alloc_color( spec )
         self._realized = True 
            
     
     def do_configure_event(self, event):
-        if self.container_type == CONTAINER_PUCK_ADAPTER:
+        if self.container_type == automounter.CONTAINER_PUCK_ADAPTER:
             self.height = min(event.width, event.height) - 12
             self.width = self.height
-            self.radius = (self.width)/18.2
+            self.radius = (self.width)/17.5
             self.sq_rad = self.radius**2
-            self.x_pad = (event.width - self.width)//2
-            self.y_pad = (event.height - self.height)//2
+            self.x_pad = (event.width - self.width)//3
+            self.y_pad = (event.height - self.height)//3
             self.coordinates, self.labels = self._puck_coordinates(self.width, self.height)
-        elif self.container_type in [CONTAINER_CASSETTE, CONTAINER_CALIB_CASSETTE]:
-            self.width = min(event.width, event.height*12/9.0)
-            self.height = self.width*9/12.0
+        elif self.container_type in [automounter.CONTAINER_CASSETTE, automounter.CONTAINER_CALIB_CASSETTE]:
+            self.width = min(event.width, event.height*12/9.25)
+            self.height = self.width*9.25/12.0
             self.radius = (self.width)/24.0
             self.sq_rad = self.radius**2
             self.x_pad = (event.width - self.width)//2
             self.y_pad = (event.height - self.height)//2
-            if self.container_type == CONTAINER_CALIB_CASSETTE:
+            if self.container_type == automounter.CONTAINER_CALIB_CASSETTE:
                 self.coordinates, self.labels = self._cassette_coordinates(self.width, self.height, calib=True)
             else:
                 self.coordinates, self.labels = self._cassette_coordinates(self.width, self.height, calib=False)
@@ -183,27 +171,20 @@ class ContainerWidget(gtk.DrawingArea):
             self.height = event.height
             self.coordinates = {}
             self.labels = {}
-
     
     def do_expose_event(self, event):
-        if using_cairo:
-            context = self.window.cairo_create()
-            context.rectangle(event.area.x, event.area.y,
-                              event.area.width, event.area.height)
-            context.clip()
-            pcontext = self.get_pango_context()
-            font_desc = pcontext.get_font_description()
-            context.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-            style = self.get_style()
-            context.set_source_color(style.fg[self.state])
-            context.set_font_size( font_desc.get_size()/pango.SCALE )
-            self.draw_cairo(context)
-        else:
-            context = self.window.new_gc()
-            style = self.get_style()
-            context.foreground = style.fg[self.state]
-            context.set_clip_origin(event.area.x, event.area.y)
-            self.draw_gdk(context)
+        window = self.get_window()
+        context = window.cairo_create()
+        context.rectangle(event.area.x, event.area.y,
+                          event.area.width, event.area.height)
+        context.clip()
+        pcontext = self.get_pango_context()
+        font_desc = pcontext.get_font_description()
+        context.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+        style = self.get_style()
+        context.set_source_color(style.fg[self.state])
+        context.set_font_size( font_desc.get_size()/pango.SCALE )
+        self.draw_cairo(context)
         return False
 
     def do_button_press_event(self, event):
@@ -213,16 +194,16 @@ class ContainerWidget(gtk.DrawingArea):
             d2 = ((x - xl)**2 + (y - yl)**2)
             if d2 < self.sq_rad:
                 ekey = '%s%s' % (self.container.location, label)
-                if self.container.samples.get(label) is not None and self.container.samples[label][0] in [PORT_GOOD, PORT_UNKNOWN]:
+                if self.container.samples.get(label) is not None and self.container.samples[label][0] in [automounter.PORT_GOOD, automounter.PORT_UNKNOWN]:
                     self.emit('pin-selected', ekey)
-                elif self.container[label][0] == PORT_UNKNOWN:
+                elif self.container[label][0] == automounter.PORT_UNKNOWN:
                     self.emit('probe-select', ekey)
         self.queue_draw()
         return True
 
     def do_motion_notify_event(self, event):
         if event.is_hint:
-            x, y, state = event.window.get_pointer()
+            x, y = event.window.get_pointer()[:2]
         else:
             x, y = event.x, event.y
         inside = False
@@ -231,7 +212,7 @@ class ContainerWidget(gtk.DrawingArea):
             xl, yl = coord
             d2 = ((x - xl)**2 + (y - yl)**2)
             if d2 < self.sq_rad:
-                if self.container.samples.get(label) is not None and self.container.samples[label][0] not in [PORT_EMPTY]:
+                if self.container.samples.get(label) is not None and self.container.samples[label][0] not in [automounter.PORT_EMPTY]:
                     inside = True
                     _cur_port = '%s%s' % (self.container.location, label)
                 break  
@@ -244,46 +225,14 @@ class ContainerWidget(gtk.DrawingArea):
             self._last_hover_port = _cur_port
 
         return True
-
-    def draw_gdk(self, context):
-        if self.container_type in [CONTAINER_NONE, CONTAINER_UNKNOWN, CONTAINER_EMPTY]:
-            text = 'Empty or Undetermined'
-            pl = self.create_pango_layout(text)
-            iw, ih = pl.get_pixel_size()
-            self.window.draw_layout(context, 
-                                    self.x_pad + self.width/2 - iw/2,
-                                    self.y_pad + self.height/2 - ih/2,pl)
-            return
-        # draw main labels
-        _fd = pango.FontDescription() 
-        _fd.merge(self.get_pango_context().get_font_description(), False)
-        _fd.set_size(10240)
-        for label, coord in self.labels.items():
-            pl = self.create_pango_layout("%s" % (label))
-            x, y = coord
-            iw, ih = pl.get_pixel_size()
-            self.window.draw_layout(context, x-iw/2, y-ih/2, pl)
-        
-        # draw pins
-        _fd = pango.FontDescription() 
-        _fd.merge(self.get_pango_context().get_font_description(), False)
-        _fd.set_size(7168)
-        for label, coord in self.coordinates.items():
-            x, y = coord
-            r = int(self.radius)
-            port_state, port_descr = self.container.samples.get(label, [PORT_NONE,''])
-            self.window.draw_arc(self.state_gc[port_state], True, x-r+1, y-r+1, r*2-1, r*2-1, 0, 23040)
-            self.window.draw_arc(context, False, x-r+1, y-r+1, r*2-1, r*2-1, 0, 23040)
-            pl = self.create_pango_layout(label)
-            iw, ih = pl.get_pixel_size()
-            self.window.draw_layout(context, x-iw/2+1, y-ih/2+1, pl)
     
     def draw_cairo(self, cr):
-        if self.container_type in [CONTAINER_NONE, CONTAINER_UNKNOWN, CONTAINER_EMPTY]:
-            if self.container_type in [CONTAINER_NONE, CONTAINER_EMPTY]:
-                text = 'Automounter Location is Empty'
+        if self.container_type in [automounter.CONTAINER_NONE, automounter.CONTAINER_UNKNOWN, automounter.CONTAINER_EMPTY]:
+            if self.container_type in [automounter.CONTAINER_NONE, automounter.CONTAINER_EMPTY]:
+                text = 'Location Empty'
             else:
-                text = 'Container type is Unknown'
+                text = 'Container Unknown'
+            cr.set_font_size(15)
             x_b, y_b, w, h = cr.text_extents(text)[:4]
             cr.move_to(self.x_pad + self.width/2 - w/2,
                        self.y_pad + self.height/2 - h/2,
@@ -291,10 +240,20 @@ class ContainerWidget(gtk.DrawingArea):
             cr.show_text(text)
             cr.stroke()
             return
+        elif self.container_type == automounter.CONTAINER_CALIB_CASSETTE:
+            text = 'Calibration Cassette'
+            cr.set_font_size(15)
+            x_b, y_b, w, h = cr.text_extents(text)[:4]
+            cr.move_to(self.x_pad + self.width/2 - w/2,
+                       self.y_pad + self.height/2 - h/2,
+                       )
+            cr.show_text(text)
+            cr.stroke()
+            
            
         # draw main labels
         cr.set_font_size(15)
-        cr.set_line_width(0.85)
+        cr.set_line_width(1.2)
         cr.set_source_color( gtk.gdk.color_parse("#3232ff") )
         for label, coord in self.labels.items():
             x, y = coord
@@ -310,7 +269,7 @@ class ContainerWidget(gtk.DrawingArea):
         for label, coord in self.coordinates.items():
             x, y = coord
             r = self.radius
-            port_state, port_descr = self.container.samples.get(label, (PORT_NONE,''))
+            port_state = self.container.samples.get(label, (automounter.PORT_NONE,''))[0]
             cr.set_source_color( self.port_colors[port_state] )
             cr.arc(x, y, r-1.0, 0, 2.0 * 3.14)
             cr.fill()
@@ -325,14 +284,13 @@ class ContainerWidget(gtk.DrawingArea):
 
                       
 
-class SamplePicker(gtk.Frame):
+class SamplePicker(gtk.HBox):
     __gsignals__ = {
         'pin-hover': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                       (gobject.TYPE_PYOBJECT, gobject.TYPE_STRING,)),
     }
     def __init__(self, automounter=None):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.HBox.__init__(self)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/sample_picker'),
                                   'sample_picker')
         
@@ -344,7 +302,7 @@ class SamplePicker(gtk.Frame):
             self.automounter = automounter
             _logger.error('No registered beamline found.')
 
-        self.add(self.sample_picker)
+        self.pack_start(self.sample_picker, True, True, 0)
         pango_font = pango.FontDescription('sans 8')
         self.status_lbl.modify_font(pango_font)
         self.lbl_port.modify_font(pango_font)
@@ -359,7 +317,10 @@ class SamplePicker(gtk.Frame):
             self.containers[key] = ContainerWidget(self.automounter.containers[key])
             tab_label = gtk.Label('%s' % k)
             tab_label.set_padding(12, 0)
-            self.notebk.insert_page(self.containers[key], tab_label=tab_label)
+            aln = gtk.Alignment(0.5, 0.5, 1, 1)
+            aln.set_padding(3, 3, 3, 3)
+            aln.add(self.containers[key])
+            self.notebk.insert_page(aln, tab_label=tab_label)
             self.containers[key].connect('pin-selected', self.on_pick)
             self.containers[key].connect('pin-hover', self.on_hover)
         self.mount_btn.connect('clicked', self.on_mount)
@@ -386,6 +347,8 @@ class SamplePicker(gtk.Frame):
         self.control_box.pack_end(self.pbar, expand=False, fill=False)
         self.pbar.modify_font(pango_font)
         
+        # initialization
+        self.command_active = False
                
                 
     def __getattr__(self, key):
@@ -427,20 +390,18 @@ class SamplePicker(gtk.Frame):
     
     @async
     def execute_mount(self, port, wash):
-        try:
-            self.command_active = True
-            auto.auto_mount_manual(self.beamline, port, wash)
-        except:
-            _logger.error('Sample mounting failed')
+        self.command_active = True
+        success = auto.auto_mount_manual(self.beamline, port, wash)
+        if not success:
+            gobject.idle_add(self.mount_btn.set_sensitive, True)  
         self.command_active = False
         
     @async
     def execute_dismount(self, port):
-        try:
-            self.command_active = True
-            auto.auto_dismount_manual(self.beamline, port)
-        except:
-            _logger.error('Sample dismounting failed')
+        self.command_active = True
+        success = auto.auto_dismount_manual(self.beamline, port)
+        if not success:
+            gobject.idle_add(self.dismount_btn.set_sensitive, True) 
         self.command_active = False
                 
 

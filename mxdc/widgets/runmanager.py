@@ -97,7 +97,5 @@ class RunManager(gtk.Notebook):
         self.del_run(num)
         self.emit('del-run', num)
         
-                              
-gobject.type_register(RunManager)
                 
             

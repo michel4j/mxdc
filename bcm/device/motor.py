@@ -1,13 +1,13 @@
-import time
-import math
-import gobject
-from zope.interface import implements
-from bcm.device.interfaces import IMotor
-from bcm.utils.log import get_module_logger
-from bcm.utils.decorators import async
-from bcm.utils import converter, misc
-from bcm import registry
 from bcm.device.base import BaseDevice
+from bcm.device.interfaces import IMotor
+from bcm.utils import converter, misc
+from bcm.utils.decorators import async
+from bcm.utils.log import get_module_logger
+from zope.interface import implements
+from bcm.protocol import ca
+import gobject
+import math
+import time
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger('devices')
@@ -210,14 +210,14 @@ class Motor(MotorBase):
         pv_parts = pv_name.split(':')
         self.default_precision = precision
         if len(pv_parts)<2:
-            _logger.error("Unable to create motor '%s' of type '%s'." %
+            _logger.error("Unable to create motor '%s' of dialog_type '%s'." %
                              (pv_name, motor_type) )
             raise MotorError("Motor name must be of the format 'name:unit'.")
         
         if motor_type not in ['vme', 'cls', 'pseudo', 'oldpseudo', 'vmeenc', 'maxv']:
-            _logger.error("Unable to create motor '%s' of type '%s'." %
+            _logger.error("Unable to create motor '%s' of dialog_type '%s'." %
                              (pv_name, motor_type) )
-            raise MotorError("Motor type must be one of 'vmeenc', \
+            raise MotorError("Motor dialog_type must be one of 'vmeenc', \
                 'vme', 'cls', 'pseudo', 'maxv'")
           
         self.units = pv_parts[-1]
@@ -225,7 +225,7 @@ class Motor(MotorBase):
         self.pv_root = pv_root
         self._motor_type = motor_type
         
-        # initialize process variables based on motor type
+        # initialize process variables based on motor dialog_type
         self.DESC = self.add_pv("%s:desc" % (pv_root))               
         self.VAL  = self.add_pv("%s" % (pv_name))
         #self.ENAB = self.add_pv("%s:enabled" % (pv_root))
@@ -298,7 +298,11 @@ class Motor(MotorBase):
         Returns:
             float.
         """
-        return self.RBV.get()
+        try:
+            val = self.RBV.get()
+        except ca.ChannelAccessError:
+            val = 0.0001
+        return val
 
     def configure(self, **kwargs):
         """Configure the motor. Currently only allows changing the calibration

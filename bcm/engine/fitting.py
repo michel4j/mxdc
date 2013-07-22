@@ -1,6 +1,6 @@
-import numpy
 import scipy
-import scipy.optimize
+from scipy import optimize
+import numpy
 
 # Peak Function
 # 0 = H - Height of peak
@@ -81,7 +81,7 @@ class PeakFitter(object):
             err=(y-vals)
             return err
         
-        new_coeffs, cov_x, info, mesg, ier = scipy.optimize.leastsq(_err, coeffs[:], args=(x,y), maxfev=10000, full_output=1)
+        new_coeffs, cov_x, info, mesg, ier = optimize.leastsq(_err, coeffs[:], args=(x,y), maxfev=10000, full_output=1)
         if 1 <= ier <= 4:
             success = True
         else:
@@ -119,7 +119,7 @@ def peak_fit(x,y,target='gaussian'):
         err=(vals-y)
         return err
     
-    new_coeffs, cov_x, info, mesg, ier = scipy.optimize.leastsq(_err, coeffs[:], args=(x,y), maxfev=10000,full_output=1)
+    new_coeffs, cov_x, info, mesg, ier = optimize.leastsq(_err, coeffs[:], args=(x,y), maxfev=10000,full_output=1)
     if 1 <= ier <= 4:
         success = True
     else:

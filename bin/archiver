@@ -1,0 +1,3 @@
+#!/bin/csh
+
+/usr/bin/env python $BCM_PATH/bcm/service/archiver.py $*

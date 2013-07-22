@@ -91,9 +91,9 @@ class GoniometerBase(BaseDevice):
                 
     def _set_and_notify_mode(self, mode_str):
         mode = _MODE_MAP.get(mode_str, 6)
-        if mode_str in ['MOVING', 'UNKNOWN']:
-            return 
-        if mode != self.mode:
+        #if mode_str in ['MOVING', 'UNKNOWN']:
+        #    return 
+        if mode not in [self.mode, 'MOVING', 'UNKNOWN']:
             _logger.info( "Mode changed to `%s`" % (mode_str))
         gobject.idle_add(self.emit, 'mode', mode_str)
         self.mode = mode   
@@ -144,7 +144,9 @@ class Goniometer(GoniometerBase):
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:scanFrame.PROC" % pv_root, monitor=False)
         self._state = self.add_pv("%s:scanFrame:status" % pv_root)
+        self._mode_state = self.add_pv("%s:mntpos:moving" % mntname)
         self._state.connect('changed', self._on_busy)
+        self._mode_state.connect('changed', self._on_busy)
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
         self._bl_position = BackLight(blname)
 
@@ -175,7 +177,9 @@ class Goniometer(GoniometerBase):
         bl = globalRegistry.lookup([], IBeamline)
         out_position = bl.config['misc']['aperture_out_position']
         
-        if self._bl_position.changed_state:
+        if (self._mode_state.get() == 1) or (self._state.get() == 1):
+            self._set_and_notify_mode("MOVING")
+        elif self._bl_position.changed_state:
             self._set_and_notify_mode("CENTERING")
         elif (self._gonio_state.get() + self._table_state.get()) == 2:
             self._set_and_notify_mode("MOUNTING")
@@ -184,17 +188,17 @@ class Goniometer(GoniometerBase):
                 self._set_and_notify_mode(self._requested_mode)
             else:
                 self._set_and_notify_mode("UNKNOWN")
-        elif self._goto_mount_state.get() == 1:
-            self._set_and_notify_mode("MOVING")
         else:
             self._set_and_notify_mode("UNKNOWN")
            
             
     def _on_busy(self, obj, st):
-        if st == 0:
-            self.set_state(busy=False)
-        else:
+        if self._state.get() == 1 or self._mode_state.get() == 1:
             self.set_state(busy=True)
+        else:
+            self.set_state(busy=False)
+        self._check_gonio_pos()
+
                    
     def configure(self, **kwargs):
         """Configure the goniometer to perform an oscillation scan.
@@ -231,11 +235,13 @@ class Goniometer(GoniometerBase):
             self._bl_position.open()
             in_position = bl.config['misc']['aperture_in_position']
             self.minibeam.move_to(in_position, wait=False)
+            default_beamstop = bl.config['default_beamstop']
+            bl.beamstop_z.move_to(default_beamstop, wait=False)
             #put up backlight
         elif mode in ['MOUNTING']:
             #out_position = bl.config['misc']['aperture_out_position']
             #self.minibeam.move_to(out_position, wait=False)
-            self._bl_position.close()
+            #self._bl_position.close()
             self._goto_mount_cmd.put(1)
 
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
@@ -248,12 +254,13 @@ class Goniometer(GoniometerBase):
         self._check_gonio_pos()
         if wait:
             timeout = 30
-            while mode not in _MODE_MAP_REV.get(self.mode) and timeout > 0:
-                time.sleep(0.05)
-                timeout -= 0.05
+            while mode not in _MODE_MAP_REV.get(self.mode)  and timeout > 0:
+                time.sleep(0.01)
+                timeout -= 0.01
                 self._check_gonio_pos()
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
+            time.sleep(1.0)
 
     
     def scan(self, wait=True):
@@ -288,6 +295,7 @@ class MD2Goniometer(GoniometerBase):
         self._mode_cmd = self.add_pv("%s:S:MDPhasePosition:asyn.AOUT" % pv_root, monitor=False)
         self._dev_cnct = self.add_pv("%s:G:MachAppState:asyn.CNCT" % pv_root)
         self._dev_enabled = self.add_pv("%s:usrEnable" % pv_root)
+        #self._mca_act = self.add_pv("%s:S:MoveFluoDetFront")
         
         # FIXME: Does not work reliably yet
         self._mode_mounting_cmd = self.add_pv("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
@@ -381,23 +389,28 @@ class MD2Goniometer(GoniometerBase):
         if wait:
             timeout = 30
             #self.wait()
+
             while mode not in _MODE_MAP_REV.get(self.mode)  and timeout > 0:
                 time.sleep(0.01)
                 timeout -= 0.01
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
             time.sleep(1.0)
-        
+            
         #FIXME: compensate for broken presets in mounting mode
-        if mode == 'MOUNTING':
-            for dev,val in self._mount_setpoints.items():
-                if abs(dev.get() - val) > 0.01:              
-                    self.wait() 
-                    time.sleep(0.5)
-                    dev.set(val) 
-        elif mode == 'SCANNING': 
+        #if mode == 'MOUNTING':
+        #    for dev,val in self._mount_setpoints.items():
+        #        if abs(dev.get() - val) > 0.01:              
+        #            self.wait() 
+        #            time.sleep(0.5)
+        #            dev.set(val) 
+        if mode == 'SCANNING':
+            bl = globalRegistry.lookup([], IBeamline)
+            #self._mca_act.toggle(0, 1)
+            bl.beamstop_z.move_to(bl.config['xrf_beamstop'], wait=True)
             #self._minibeam.set(2) # may not be needed any more
-            pass
+        
+            
         
         
     def _on_mode_changed(self, pv, val):
@@ -496,3 +509,4 @@ class SimGoniometer(GoniometerBase):
    
 
 __all__ = ['Goniometer', 'MD2Goniometer', 'SimGoniometer']
+

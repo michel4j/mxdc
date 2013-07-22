@@ -1,7 +1,7 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <!-- interface-requires gtk+ 2.10 -->
-  <!-- interface-naming-policy project-wide -->
+  <requires lib="gtk+" version="2.18"/>
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <child>
@@ -14,7 +14,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="has_tooltip">True</property>
-            <property name="tooltip-text" translatable="yes">Crystal Selected for
+            <property name="tooltip_text" translatable="yes">Crystal Selected for
 Mounting</property>
             <property name="label" translatable="yes">&lt;i&gt;None&lt;/i&gt;</property>
             <property name="use_markup">True</property>
@@ -41,10 +41,9 @@ Mounting</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="tooltip-text" translatable="yes">Mount selected crystal 
+                <property name="tooltip_text" translatable="yes">Mount selected crystal 
 or dismount mounted
 crystal</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_underline">True</property>
                 <property name="focus_on_click">False</property>
               </object>
