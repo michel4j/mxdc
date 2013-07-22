@@ -204,7 +204,7 @@ class BasicAutomounter(BaseDevice):
         
         if (start and not self.is_busy()):
             _logger.debug('Waiting for (%s) to start' % (self.name,))
-            _start_timeout = 5
+            _start_timeout = 20
             while not self.is_busy() and _start_timeout > 0:
                 _start_timeout -= poll
                 time.sleep(poll)
