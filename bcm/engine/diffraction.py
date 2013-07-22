@@ -188,7 +188,7 @@ class DataCollector(gobject.GObject):
             prefix = '%s-pic' % (self.run_list[0]['name'])
             a1 = self.run_list[0]['start_angle']
             a2 = (a1 + 90.0) % 360.0
-            if not os.path.exists(os.path.join(self.run_list[0]['directory'], '%s_%0.1f.png' % (prefix, a1))):
+            if not os.path.exists(os.path.join(self.run_list[0]['directory'], '%s_%0.0f.png' % (prefix, a1))):
                 _logger.info('Taking snapshots of crystal at %0.1f and %0.1f' % (a1, a2))
                 snapshot.take_sample_snapshots(prefix, os.path.join(self.run_list[0]['directory']), [a2, a1], decorate=True)
         self.beamline.goniometer.set_mode('COLLECT', wait=True) # move goniometer to collect mode
@@ -492,13 +492,6 @@ class Screener(gobject.GObject):
                             self._notify_progress(Screener.TASK_STATE_ERROR)
                         else:
                             self._notify_progress(Screener.TASK_STATE_DONE)
-                        directory = os.path.join(task['directory'], task['sample']['name'], 'test')
-                        if not os.path.exists(directory):
-                            os.makedirs(directory) # make sure directories exist
-                        prefix = '%s-pic' % ( task['sample']['name'])
-                        if not os.path.exists(os.path.join(directory, '%s_%0.1f.png' % (prefix, 0.0))):
-                            _logger.info('Taking snapshots of crystal at %0.1f and %0.1f' % (0.0, 90.0))
-                            snapshot.take_sample_snapshots(prefix, directory, [0.0, 90.0], decorate=True)
                     else:
                         self._notify_progress(Screener.TASK_STATE_SKIPPED)
                         _logger.warn('Skipping task because given sample is not mounted')
@@ -522,7 +515,7 @@ class Screener(gobject.GObject):
                         _logger.debug('Collecting frames for crystal `%s`, in directory `%s`.' % (params['name'], params['directory']))
                         if not os.path.exists(params['directory']):
                             os.makedirs(params['directory']) # make sure directories exist
-                        self.data_collector.configure(params, skip_existing=False, take_snapshots=False)
+                        self.data_collector.configure(params, skip_existing=False, take_snapshots=True)
                         results = self.data_collector.run()
                         task.options['results'] = results
                         gobject.idle_add(self.emit, 'new-datasets', results)                       
