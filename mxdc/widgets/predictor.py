@@ -83,8 +83,8 @@ class Predictor( gtk.AspectFrame ):
         normFunction = LogNorm(vmin=0.4, vmax=50) #Normalize(0, 30)
         self.lines = self._shells(num=int(12*self.Z.min()))
         try:
-            cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=1, cmap=cm.gist_heat_r, norm=normFunction)
-            self.axis.clabel(cntr, inline=True, fmt='%1.1f',fontsize=9)             
+            cntr = self.axis.contour(self.xp, self.yp, self.Z, self.lines, linewidths=0.75, cmap=cm.gist_heat_r, norm=normFunction)
+            self.axis.clabel(cntr, inline=True, fmt='%0.1f',fontsize=8.5)             
             self.canvas.draw()
             self.last_updated = time.time()
         except ValueError:
@@ -153,7 +153,7 @@ class Predictor( gtk.AspectFrame ):
     def _mm(self, pix, center):
         return (pix - center) * self.pixel_size
          
-    def _shells(self, resolution=0.8, num=30):
+    def _shells(self, resolution=0.7, num=40):
         max_angle = self._angle( resolution )
         min_angle = self._angle( 50.0)
         step_size = ( max_angle - min_angle ) / num

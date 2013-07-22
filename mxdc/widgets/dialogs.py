@@ -229,7 +229,7 @@ def check_folder(directory, parent=None, warn=True):
         return False
     return True
 
-def select_opensave_file(title, action, parent=None, filters=[], formats=[]):
+def select_opensave_file(title, action, parent=None, filters=[], formats=[], default_folder=None):
         if action in [gtk.FILE_CHOOSER_ACTION_OPEN, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER]:
             _stock = gtk.STOCK_OPEN        
         else:
@@ -239,7 +239,10 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[]):
                     action=action,
                     parent=parent,
                     buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, _stock,   gtk.RESPONSE_OK))
-        dialog.set_current_folder(config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']))
+        if default_folder is None:
+            dialog.set_current_folder(config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']))
+        else:
+            dialog.set_current_folder(default_folder)
         dialog.set_do_overwrite_confirmation(True)
         if action == gtk.FILE_CHOOSER_ACTION_OPEN:
             for name, patterns in filters:
@@ -284,19 +287,19 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[]):
         return filename, fltr
                 
 
-def select_save_file(title, parent=None, formats=[]):
-    return select_opensave_file(title, gtk.FILE_CHOOSER_ACTION_SAVE, parent=parent, formats=formats)
+def select_save_file(title, parent=None, formats=[], default_folder=None):
+    return select_opensave_file(title, gtk.FILE_CHOOSER_ACTION_SAVE, parent=parent, formats=formats, default_folder=default_folder)
 
-def select_open_file(title, parent=None, filters=[]):
-    return select_opensave_file(title, gtk.FILE_CHOOSER_ACTION_OPEN, parent=parent, filters=filters)
+def select_open_file(title, parent=None, filters=[], default_folder=None):
+    return select_opensave_file(title, gtk.FILE_CHOOSER_ACTION_OPEN, parent=parent, filters=filters, default_folder=default_folder)
 
-def select_open_image(parent=None):
+def select_open_image(parent=None, default_folder=None):
     filters = [
         ('Diffraction Frames', ["*.img", "*.marccd","*.mccd", "*.pck", "*.cbf","*.[0-9][0-9][0-9]", "*.[0-9][0-9][0-9][0-9]" ]),
         ('XDS Spot files', ["SPOT.XDS*", "*.HKL*"] ),
         ('All files', ["*.*"])
     ]
-    return select_opensave_file('Select Image', gtk.FILE_CHOOSER_ACTION_OPEN, parent=parent, filters=filters)
+    return select_opensave_file('Select Image', gtk.FILE_CHOOSER_ACTION_OPEN, parent=parent, filters=filters, default_folder=default_folder)
 
 class FolderSelector(object):
     def __init__(self, button):

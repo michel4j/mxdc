@@ -454,7 +454,7 @@ class RunWidget(gtk.Alignment):
         if self.predictor is not None and self.number == 0:
             self.predictor.configure(distance=new_values['distance'], 
                                      energy=self.beamline.energy.get_position(),
-                                     two_theta=new_values['two_theta'])
+                                     two_theta=self.beamline.two_theta.get_position())
 
         for key in self.parameters.keys():
             # skip some keys 
