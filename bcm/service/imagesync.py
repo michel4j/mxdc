@@ -8,6 +8,7 @@ from bcm.service.utils import log_call
 
 from ConfigParser import ConfigParser
 import os, stat, re
+import shutil
     
 class IImageSyncService(Interface):
     def set_user(user, uid, gid):
@@ -173,18 +174,19 @@ class CommandProtocol(protocol.ProcessProtocol):
         pass
     
     def processEnded(self, reason):
-        rc = reason.value.exitCode
-        if rc == 0:
-            self.deferred.callback(self.output)
-        else:
-            self.deferred.errback(rc)
+        #rc = reason.value.exitCode
+        #if rc == 0:
+        #    self.deferred.callback(self.output)
+        #else:
+        #    self.deferred.errback(rc)
+        pass
 
 def run_command(command, args, path='/tmp', uid=0, gid=0):
     """Run an external or system command asynchronously.
     """
     prot = CommandProtocol(path)
     prot.deferred = defer.Deferred()
-    args = [command,] + args
+    args = [command,] + map(str, args)
     p = reactor.spawnProcess(
         prot,
         args[0],
@@ -204,7 +206,7 @@ class FileTailProducer(object):
     def __init__(self, filename):
         """Initialize Producer
 
-        @type filename: A string
+        @dialog_type filename: A string
         @param filename: The file to read data from
         """
         self.filename = filename
@@ -273,7 +275,7 @@ class ImgConsumer(object):
 
     The stream contains a list of image files one per line. The consumer makes 
     a copy of the image file in the owner's home directory and also at a backup
-    location, setting the file ownsership permissions appropriately.
+    location, setting the file ownership permissions appropriately.
     """
 
     implements(interfaces.IConsumer)
@@ -308,27 +310,16 @@ class ImgConsumer(object):
                     if f_parts[1] == 'data' and len(f_parts) > 2:
                         f_parts[1] = self.parent.settings['base']
                         user_file = os.path.sep.join(f_parts)
-                        #bkup_file = os.path.join(os.path.sep, 'backup', *(img_path.split(os.path.sep)[1:]))
                         bkup_file = self.parent.settings['backup'] + user_file
-
                     else:
                         return
-                        
-                    def cb(res):
-                        return run_command('/bin/chown',
-                                           ['%d:%d' % (self.parent.settings['uid'], self.parent.settings['gid']),
-                                            user_file])
-                    def cb2(res):
-                        return run_command('/bin/chown',
-                                           ['%d:%d' % (self.parent.settings['uid'], self.parent.settings['gid']),
-                                            bkup_file])
-                        
-                    user_res = run_command('/bin/cp',
-                                          [img_path, user_file])
-                    user_res.addCallback(cb)
-                    bkup_res = run_command('/bin/cp',
-                                          [img_path, bkup_file])
-                    bkup_res.addCallback(cb2)
+                    
+                    # Copy the files and update ownership
+                    shutil.copy2(img_path, user_file)
+                    shutil.copy2(img_path, bkup_file)
+                    os.chown(user_file, self.parent.settings['uid'], self.parent.settings['gid'])
+                    os.chown(bkup_file, self.parent.settings['uid'], self.parent.settings['gid'])
+                    
                     log.msg("New Frame '%s" % (user_file))
             except:
                 log.err()

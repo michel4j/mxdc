@@ -1,18 +1,14 @@
-import os
-import sys
-import re
-import numpy
-import math, time
-import gobject
-import string, unicodedata
-import pwd
-import threading
-from bcm.protocol import ca
 
-if sys.version_info[:2] == (2,5):
-    import uuid
-else:
-    from bcm.utils import uuid # for 2.3, 2.4
+from bcm.protocol import ca
+import gobject
+import numpy
+import os
+import pwd
+import re
+import string
+import threading
+import time
+import uuid
 
     
 def get_short_uuid():
@@ -25,10 +21,6 @@ def same_value(a, b, prec, deg=False):
         b = b % 360.0
     return abs(round(a-b, prec)) <= 10**-prec
         
-#def gtk_idle(sleep=None):
-#    while gtk.events_pending():
-#        gtk.main_iteration()
-
 class SignalWatcher(object):
     def __init__(self):
         self.activated = False
@@ -40,14 +32,14 @@ class SignalWatcher(object):
         
 def wait_for_signal(obj, signal, timeout=10):
     sw = SignalWatcher()
-    id = obj.connect(signal, sw)
+    _id = obj.connect(signal, sw)
     while not sw.activated and timeout > 0:
         time.sleep(0.05)
         timeout -= 0.05
-    gobject.source_remove(id)
+    gobject.source_remove(_id)
     return sw.data
     
-def all(iterable):
+def every(iterable):
     for element in iterable:
         if not element:
             return False
@@ -55,7 +47,7 @@ def all(iterable):
 
 def get_project_name():
     if os.environ.get('BCM_DEBUG') is not None:
-        return os.environ.get('BCM_DEBUG_USER', 'fodje')
+        return os.environ.get('BCM_DEBUG_USER', 'testuser')
     else:
         return pwd.getpwuid(os.geteuid())[0]
 

@@ -1,14 +1,10 @@
-"""Science Utilities."""
-
-import os
-import sys
-import numpy
-import scipy
-import re
-from bcm.utils import json
 from bcm.engine import fitting
-from scipy import interpolate
 from bcm.utils import converter
+from bcm.utils import json
+from scipy import interpolate, optimize
+import numpy
+import os
+import re
 
 SPACE_GROUP_NAMES = {
     1:'P1', 3:'P2', 4:'P2(1)', 5:'C2', 16:'P222', 
@@ -26,9 +22,13 @@ SPACE_GROUP_NAMES = {
     211:'I432', 214:'I4(1)32'             
     }
 
+EMISSIONS_DATA = {}
+PERIODIC_TABLE = {}
+
 # load data tables
 # Data was compiled from the NIST database
 # Emission rates were compiled using the PyMCA tables
+
 EMISSIONS_DATA = json.load(file(os.path.join(os.path.dirname(__file__), 'data','emissions.json')))
 PERIODIC_TABLE = json.load(file(os.path.join(os.path.dirname(__file__), 'data', 'periodictable.json')))
 
@@ -144,7 +144,7 @@ def savitzky_golay(data, kernel = 9, order = 3, deriv=0):
     try:
             kernel = abs(int(kernel))
             order = abs(int(order))
-    except ValueError, msg:
+    except ValueError:
         raise ValueError("kernel and order have to be of type int (floats will be converted).")
     if kernel % 2 != 1 or kernel < 1:
         raise TypeError("kernel size must be a positive odd number, was: %d" % kernel)
@@ -194,7 +194,7 @@ def smooth_data(data, times=1, window=11, order=1):
         ys = savitzky_golay(ys, kernel=window, order=order)
     return ys
     
-def find_peaks(x, y, w=21, sensitivity=0.01, smooth=True):
+def find_peaks(x, y, w=9, sensitivity=0.01, smooth=True):
     hw = w//3
     if smooth:
         ys = savitzky_golay(y,  w, 1)
@@ -229,7 +229,6 @@ def peak_search(x, y, w=7, threshold=0.01, min_peak=0.01):
         y = y[::-1]
     peaks = []
     t_peaks = []
-    yp = savitzky_golay(y, kernel=w, order=3, deriv=1)
     ypp = savitzky_golay(y, kernel=w, order=3, deriv=2)
     i = 0
     while i < len(x):  
@@ -380,7 +379,7 @@ def fit_elements(x, y, energy):
         return err
     
     templates = calc_template(x, elements)
-    new_coeffs, _ = scipy.optimize.leastsq(model_err, coeffs[:], args=(x, y, templates), maxfev=40000)
+    new_coeffs, _ = optimize.leastsq(model_err, coeffs[:], args=(x, y, templates), maxfev=40000)
     return elements, templates*new_coeffs, new_coeffs
 
 def interprete_xrf(xo, yo, energy, speedup=4):
@@ -420,6 +419,6 @@ def interprete_xrf(xo, yo, energy, speedup=4):
         
     template = calc_template(xc, elements)
     
-    new_coeffs, _ = scipy.optimize.leastsq(model_err, coeffs[:], args=(xc, yfunc, template), maxfev=20000)
+    new_coeffs, _ = optimize.leastsq(model_err, coeffs[:], args=(xc, yfunc, template), maxfev=20000)
     new_template = calc_template(xo, elements) * new_coeffs[:-1]
     return elements, new_template, new_coeffs

@@ -28,6 +28,7 @@ class Script(gobject.GObject):
     __gsignals__ = {}
     __gsignals__['done'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
     __gsignals__['started'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+    __gsignals__['enabled'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,))
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
     description = 'A Script'
     progress = None
@@ -41,16 +42,20 @@ class Script(gobject.GObject):
         except:
             self.beamline = None
             _logger.warning('No registered beamline found. Beamline will be unavailable "%s"' % (self,))
-
+        self.enable()
+        
     def __repr__(self):
         return '<Script:%s>' % self.name
     
     def start(self, *args, **kwargs):
-        self._active = True
-        worker_thread = threading.Thread(target=self._thread_run, args=args, kwargs=kwargs)
-        worker_thread.setDaemon(True)
-        self.output = None
-        worker_thread.start()
+        if self._enabled:
+            self._active = True
+            worker_thread = threading.Thread(target=self._thread_run, args=args, kwargs=kwargs)
+            worker_thread.setDaemon(True)
+            self.output = None
+            worker_thread.start()
+        else:
+            _logger.warning('Script "%s" disabled.' % (self,))
         
     def _thread_run(self, *args, **kwargs):
         try:
@@ -60,10 +65,22 @@ class Script(gobject.GObject):
             _logger.info('Script `%s` terminated successfully' % (self.name) )
         finally:
             gobject.idle_add(self.emit, "done", self.output)
+            self.run_after(*args, **kwargs)
             self._active = False
                 
     def run(self, *args, **kwargs):
         raise ScriptError('`run()` not implemented!')
+
+    def enable(self):
+        self._enabled = True
+        gobject.idle_add(self.emit, "enabled", self._enabled)
+
+    def disable(self):
+        self._enabled = False
+        gobject.idle_add(self.emit, "enabled", self._enabled)
+        
+    def run_after(self, *args, **kwargs):
+        pass
 
     def wait(self):
         while self._active:

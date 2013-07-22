@@ -3,20 +3,17 @@
 # heavily modified from Dirk Meyer's mdns.py in Freevo but removing references to kaa
 # by Michel Fodje
 
-import logging
-import sys
-import re
-
-import gobject
-import dbus
-import dbus.glib
-import avahi
-import socket
-from bcm.utils import json
 from bcm.utils.log import get_module_logger
-    
+from dbus.mainloop.glib import DBusGMainLoop
+import avahi
+import dbus
+import gobject
+import socket
+
 # get logging object
 log = get_module_logger(__name__)
+
+DBusGMainLoop(set_as_default=True)
 _bus = dbus.SystemBus()
 
 class mDNSError(Exception):
@@ -168,12 +165,18 @@ class Browser(gobject.GObject):
                 local = True
         except dbus.DBusException:
             pass
+        
+        try:
+            hostname = socket.gethostbyaddr(str(address))[0].lower()
+        except:
+            hostname = address
+
         self._services[(str(name), str(service_type))] = {
             'interface': int(interface), 
             'protocol': int(protocol), 
             'name': str(name),
             'domain':  str(domain),
-            'host':  socket.gethostbyaddr(str(address))[0].lower(), 
+            'host':  hostname, 
             'address': str(address), 
             'port': int(port),
             'local': local,

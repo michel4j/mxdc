@@ -1,6 +1,6 @@
 from bcm.engine import centering, snapshot
 from bcm.service.common import *
-from bcm.utils.decorators import ca_thread_enable, async
+from bcm.utils.decorators import ca_thread_enable
 
 from bcm.utils.log import get_module_logger
 _logger = get_module_logger('bcm.engine.auto')
@@ -20,14 +20,15 @@ def auto_mount(bl, port):
         mounted_info = bl.automounter.mounted_state
         if not success or mounted_info is None:
             _logger.error('Sample mounting failed')
-            raise MountError('Mounting failed for port `%s`.' % (port))
+            #raise MountError('Mounting failed for port `%s`.' % (port))
         else:
             port, barcode = mounted_info
             mounted_info = bl.automounter.mounted_state
             result['mounted'], result['barcode']  = mounted_info
             result['message'] = 'Sample mounted successfully.'
     else:
-        raise MountError('Port `%s` is not mountable.' % (port))
+        result['error'] = 'Mounting failed for port `%s`.' % (port)
+        #raise MountError('Port `%s` is not mountable.' % (port))
     return result
 
 
@@ -55,34 +56,41 @@ def auto_center(bl):
         return _out
 
 
-@async
 def auto_mount_manual(bl, port, wash=False):
     if bl.automounter.is_busy() or not bl.automounter.is_active():
-        raise MountError("Automounter is busy or inactive.")
+        _logger.warning("Automounter is busy or inactive.")
+        return False
     if bl.automounter.is_mounted(port):
         _logger.warning('Sample is already mounted')
+        return True
     elif bl.automounter.is_mountable(port):
         bl.goniometer.set_mode('MOUNTING', wait=True)
         bl.cryojet.nozzle.open()
         success = bl.automounter.mount(port, wash=wash, wait=True)
         mounted_info = bl.automounter.mounted_state
         if not success or mounted_info is None:
-            _logger.error('Sample mounting failed')
-            raise MountError('Mounting failed for port `%s`.' % (port))
+            _logger.warning('Sample mounting failed')
+            return False
         else:
             bl.cryojet.nozzle.close()
-            bl.goniometer.set_mode('CENTERING', wait=True)
+            bl.goniometer.set_mode('CENTERING', wait=False)
             _logger.info('Sample mounting succeeded')
+            return True
 
-@async  
 def auto_dismount_manual(bl, port):
     if bl.automounter.is_busy() or not bl.automounter.is_active():
-        raise MountError("Automounter is busy or inactive.")
+        _logger.warning("Automounter is busy or inactive.")
+        return False
     if not bl.automounter.is_mounted(port):
         _logger.warning('Sample is not mounted')
+        return True
     else:
         bl.goniometer.set_mode('MOUNTING', wait=True)
         bl.cryojet.nozzle.open()
         success = bl.automounter.dismount(wait=True)
         if not success:
-            raise MountError('Mounting failed for port `%s`.' % (port))
+            _logger.warning('Sample dismounting failed')
+            return False
+        else:
+            _logger.info('Sample mounting succeeded')
+            return True

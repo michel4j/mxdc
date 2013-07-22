@@ -1,12 +1,12 @@
-import gtk
-import gobject
-import sys, os
-from twisted.python.components import globalRegistry
-from bcm.utils import science, misc
 from bcm.beamline.mx import IBeamline
+from bcm.utils import science, misc
+from mxdc.utils import gui, config
+from mxdc.widgets import dialogs
 from mxdc.widgets.predictor import Predictor
-from mxdc.widgets.dialogs import warning, check_folder
-from mxdc.utils import gui
+from twisted.python.components import globalRegistry
+import gobject
+import gtk
+import os
 
 
 (
@@ -18,7 +18,7 @@ from mxdc.utils import gui
 
 DEFAULT_PARAMETERS = {
     'name': 'test',
-    'directory': os.environ['HOME'],
+    'directory': config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']),
     'distance': 250.0,
     'delta_angle': 1.0,
     'exposure_time': 1.0,
@@ -42,10 +42,9 @@ DEFAULT_PARAMETERS = {
 
 _ENERGY_DB = science.get_energy_database()
 
-class RunWidget(gtk.Frame):
+class RunWidget(gtk.Alignment):
     def __init__(self, num=0):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/run_widget'), 
                                   'run_widget')
         
@@ -65,11 +64,8 @@ class RunWidget(gtk.Frame):
         
         
         self.beamline = globalRegistry.lookup([], IBeamline)      
-
-        # Set directory field non-editable, must use directory selector
-        self.entry['directory'] = self.directory_btn
-        self.entry['directory']._selected_folder = os.environ['HOME']
-        self.entry['directory'].connect('current-folder-changed', self.on_folder_changed)
+        self.folder_entry = dialogs.FolderSelector(self.directory_btn)
+        self.entry['directory'] = self.folder_entry
 
         # entry signals
         self.entry['name'].connect('focus-out-event', self.on_prefix_changed)
@@ -135,8 +131,7 @@ class RunWidget(gtk.Frame):
         column1.set_alignment(0.5)
         self.energy_list.append_column(column1)
         self.expand_separator.set_expand(True)
-       
-        
+               
         #Delete column
         renderer = gtk.CellRendererPixbuf()
         renderer.set_property("stock-size", gtk.ICON_SIZE_MENU)
@@ -181,15 +176,15 @@ class RunWidget(gtk.Frame):
 
         for i in range(len(edict['energy'])):
             item = [edict['energy_label'][i], edict['energy'][i], True, False]                
-            iter = self.energy_store.append()
-            self.energy_store.set(iter, 
+            itr = self.energy_store.append()
+            self.energy_store.set(itr, 
                 COLUMN_LABEL, item[COLUMN_LABEL], 
                 COLUMN_ENERGY, item[COLUMN_ENERGY],
                 COLUMN_EDITABLE, item[COLUMN_EDITABLE],
                 COLUMN_CHANGED, item[COLUMN_CHANGED],
             )
-        iter = self.energy_store.append()
-        self.energy_store.set(iter, 
+        itr = self.energy_store.append()
+        self.energy_store.set(itr, 
             COLUMN_LABEL, '', 
             COLUMN_ENERGY, None,
             COLUMN_EDITABLE, True,
@@ -198,15 +193,15 @@ class RunWidget(gtk.Frame):
         
 
         
-    def _cell_format(self, cell, renderer, model, iter, column):
-        value = model.get_value(iter, COLUMN_ENERGY)
+    def _cell_format(self, cell, renderer, model, itr, column):
+        value = model.get_value(itr, COLUMN_ENERGY)
         if column == COLUMN_ENERGY:
             if value:
                 txt = '%0.4f' % value
                 renderer.set_property('text', txt)
             else:
                 renderer.set_property('markup', '<i>Click to add</i>')      
-        if value and model.get_value(iter, COLUMN_CHANGED):
+        if value and model.get_value(itr, COLUMN_CHANGED):
             renderer.set_property("foreground", '#cc00cc')
         elif value:
             renderer.set_property("foreground", None)
@@ -214,9 +209,9 @@ class RunWidget(gtk.Frame):
             renderer.set_property("foreground", '#cccccc')
         return
 
-    def _icon_format(self, cell, renderer, model, iter):
-        value = model.get_value(iter, COLUMN_ENERGY)
-        path = model.get_path(iter)
+    def _icon_format(self, cell, renderer, model, itr):
+        value = model.get_value(itr, COLUMN_ENERGY)
+        path = model.get_path(itr)
         size = model.iter_n_children(None)
         if path == (0,) and size == 2:
             renderer.set_property('stock-id', 'gtk-refresh')
@@ -231,20 +226,20 @@ class RunWidget(gtk.Frame):
                     
     def _set_energy_changed(self, state=False):
         model = self.energy_list.get_model()
-        iter = model.get_iter_first()
-        while iter:
-            model.set(iter, COLUMN_CHANGED, state)
-            iter = model.iter_next(iter)
+        itr = model.get_iter_first()
+        while itr:
+            model.set(itr, COLUMN_CHANGED, state)
+            itr = model.iter_next(itr)
     
-    def _delete_energy_row(self, iter):
+    def _delete_energy_row(self, itr):
         size = self.energy_store.iter_n_children(None)
-        path = self.energy_store.get_path(iter)
+        path = self.energy_store.get_path(itr)
         last_row = (path[0] == size - 1)
         last_iter = self.energy_store.get_iter((size-1,))
         last_val = self.energy_store.get_value(last_iter, COLUMN_ENERGY)
         
         if not last_row:
-            self.energy_store.remove(iter)
+            self.energy_store.remove(itr)
             if last_val:
                 last_iter = self.energy_store.append()
 
@@ -252,10 +247,9 @@ class RunWidget(gtk.Frame):
         self.energy_store.set(last_iter, COLUMN_ENERGY, None)
         self.energy_store.set(last_iter, COLUMN_LABEL, "")
 
-    def _reset_energy_row(self, iter):
+    def _reset_energy_row(self, itr):
         cur_e = self.beamline.energy.get_position()
-        path = self.energy_store.get_path(iter)   
-        self.energy_store.set(iter, COLUMN_ENERGY, cur_e)
+        self.energy_store.set(itr, COLUMN_ENERGY, cur_e)
         self.dafs.set_active(False)
         self.dafs.hide()
 
@@ -265,17 +259,16 @@ class RunWidget(gtk.Frame):
             path, column = treeview.get_path_at_pos(int(event.x), int(event.y))[:2]
             if column == self._delete_column:
                 size = self.energy_store.iter_n_children(None)
-                iter = self.energy_store.get_iter(path)
-                last_row = (path[0] == size - 1)
+                itr = self.energy_store.get_iter(path)
                 if path == (0,) and size == 2:
-                    self._reset_energy_row(iter)
+                    self._reset_energy_row(itr)
                 else:
-                    self._delete_energy_row(iter)
+                    self._delete_energy_row(itr)
 
     def on_editing_started(self, cell, editable, path):
         model = self.energy_store
-        iter = model.get_iter(path)
-        value = model.get_value(iter, COLUMN_ENERGY)
+        itr = model.get_iter(path)
+        value = model.get_value(itr, COLUMN_ENERGY)
         #editable.connect('focus-out-event', self.on_editing_finished)
         if not value:
             editable.delete_selection()
@@ -284,20 +277,20 @@ class RunWidget(gtk.Frame):
         editable.editing_done()
                             
     def on_energy_edited(self, cell, path_string, new_text, model):
-        iter = model.get_iter_from_string(path_string)     
+        itr = model.get_iter_from_string(path_string)     
         column = cell.get_data("column")
         new_text = new_text.strip()
-        path = model.get_path(iter)
+        path = model.get_path(itr)
         size = model.iter_n_children(None)
         last_row = (path[0] == size - 1)
-        e_value = model.get_value(iter, COLUMN_ENERGY)
+        e_value = model.get_value(itr, COLUMN_ENERGY)
 
         if column == COLUMN_ENERGY:
             if new_text == "":
                 if path == (0,) and size == 2:
-                    self._reset_energy_row(iter)                 
+                    self._reset_energy_row(itr)                 
                 else:
-                    self._delete_energy_row(iter)             
+                    self._delete_energy_row(itr)             
             else:
                 try:
                     _e = float(new_text)
@@ -310,11 +303,11 @@ class RunWidget(gtk.Frame):
                     
                     
                     
-                model.set(iter, COLUMN_ENERGY, _e)
+                model.set(itr, COLUMN_ENERGY, _e)
                 if _e is not None:
-                    lbl = model.get_value(iter, COLUMN_LABEL)
+                    lbl = model.get_value(itr, COLUMN_LABEL)
                     if not lbl:
-                        model.set(iter, COLUMN_LABEL, 'E%d'%path)
+                        model.set(itr, COLUMN_LABEL, 'E%d'%path)
                     
                     if last_row and size < 4:
                         # Add a new row if we add to the last row
@@ -325,75 +318,72 @@ class RunWidget(gtk.Frame):
 
         elif column == COLUMN_LABEL:
             if not e_value:
-                model.set(iter, COLUMN_LABEL, "")
+                model.set(itr, COLUMN_LABEL, "")
             else:
                 new_text = misc.slugify(new_text, empty='E%d'%path)
-                model.set(iter, COLUMN_LABEL, new_text)
+                model.set(itr, COLUMN_LABEL, new_text)
                                                
-    def set_parameters(self, dict):
+    def set_parameters(self, info):
         for key in  ['distance','delta_angle','start_angle','total_angle','wedge','exposure_time', 'attenuation']:
-            if key in dict:
-                self.entry[key].set_text("%0.2f" % dict[key])
+            if key in info:
+                self.entry[key].set_text("%0.2f" % info[key])
             else:
                 self.entry[key].set_text("%0.2f" % DEFAULT_PARAMETERS[key])
         for key in ['first_frame', 'num_frames']:
-            if key in dict:
-                self.entry[key].set_text("%d" % dict[key])
+            if key in info:
+                self.entry[key].set_text("%d" % info[key])
             else:
                 self.entry[key].set_text("%d" % DEFAULT_PARAMETERS[key])
-        if 'total_angle' in dict:
-            self.entry['num_frames'].set_text('%d' % int(dict['total_angle']/dict['delta_angle']))
+        if 'total_angle' in info:
+            self.entry['num_frames'].set_text('%d' % int(info['total_angle']/info['delta_angle']))
             
-        if 'name' in dict:
-            self.entry['name'].set_text("%s" % dict['name'])
-        if dict.get('directory') is not None and os.path.exists(dict['directory']):
-            self.entry['directory'].set_current_folder("%s" % dict['directory'])
-        else:
-            self.entry['directory'].set_current_folder(os.environ['HOME'])
-            dict['directory'] = os.environ['HOME']
+        if 'name' in info:
+            self.entry['name'].set_text("%s" % info['name'])
+        if info.get('directory') is not None and os.path.exists(info['directory']):
+            self.entry['directory'].set_current_folder("%s" % info['directory'])
         
         # always display up to date active crystal
         if self.active_sample:
             txt = '%s [ID:%s]' %(self.active_sample['name'], self.active_sample['id'])
             self.crystal_entry.set_text(txt)
-        elif  dict.get('crystal_id'):                                                                          
-            txt = '[ID:%s]' % (dict['crystal_id'])
+        elif  info.get('crystal_id'):                                                                          
+            txt = '[ID:%s]' % (info['crystal_id'])
             self.crystal_entry.set_text(txt)
         else:
             self.crystal_entry.set_text('[ Unknown ]')
             
-        self.set_number(dict['number'])
-        self.entry['inverse_beam'].set_active(dict['inverse_beam'])
-        #self.entry['dafs'].set_active(dict.get('dafs', False))
+        self.set_number(info['number'])
+        self.entry['inverse_beam'].set_active(info['inverse_beam'])
+        #self.entry['dafs'].set_active(info.get('dafs', False))
         
         # Add energy entries
-        self._set_energies(dict)
+        self._set_energies(info)
         
-        self.entry['skip'].set_text(dict.get('skip',''))
+        self.entry['skip'].set_text(info.get('skip',''))
       
         _cmt_buf =  self.comments_entry.get_buffer()
-        _cmt_buf.set_text(dict.get('comments', ''))
+        _cmt_buf.set_text(info.get('comments', ''))
         
-        self.parameters.update(dict)
+        self.parameters.update(info)
         self.check_changes()
         
     def get_parameters(self):
         run_data = self.parameters.copy()
                 
         run_data['name']      = self.entry['name'].get_text().strip()
-        run_data['directory']   = self.entry['directory']._selected_folder
+        run_data['directory']   = self.entry['directory'].get_current_folder()
         energy = []
         energy_label = []
         model = self.energy_list.get_model()
-        iter = model.get_iter_first()
-        while iter:
-            e = model.get_value(iter, COLUMN_ENERGY)
-            n = model.get_value(iter, COLUMN_LABEL)
+        itr = model.get_iter_first()
+        while itr:
+            e = model.get_value(itr, COLUMN_ENERGY)
+            n = model.get_value(itr, COLUMN_LABEL)
             if e is None:
                 break
             energy.append(e)
             energy_label.append(n)
-            iter = model.iter_next(iter)
+            itr = model.iter_next(itr)
         
         run_data['energy']  =    energy
         run_data['energy_label'] = energy_label
@@ -464,7 +454,7 @@ class RunWidget(gtk.Frame):
         if self.predictor is not None and self.number == 0:
             self.predictor.configure(distance=new_values['distance'], 
                                      energy=self.beamline.energy.get_position(),
-                                     two_theta=new_values['two_theta'])
+                                     two_theta=self.beamline.two_theta.get_position())
 
         for key in self.parameters.keys():
             # skip some keys 
@@ -487,7 +477,7 @@ class RunWidget(gtk.Frame):
             elif key == 'number':
                 widget = self.run_title
             elif key == 'directory':
-                widget = self.entry['directory']
+                widget = self.entry['directory'].get_child()
             else:
                 widget = self.entry[key]
             
@@ -595,7 +585,7 @@ class RunWidget(gtk.Frame):
         except:
             time = 1.0
         time = max(0.1, time)
-        self.entry['exposure_time'].set_text('%0.1f' % time)
+        self.entry['exposure_time'].set_text('%0.1f' % round(time, 1))
         new_delta = round(time * min(max_dps, delta/time), 2)
         if new_delta != delta:
             self.entry['delta_angle'].set_text('%0.2f' % new_delta)
@@ -677,19 +667,15 @@ class RunWidget(gtk.Frame):
         return False
         
     def on_folder_changed(self, obj):
-        _new_folder = obj.get_current_folder()
-        _new_filename = obj.get_filename()
-        if  _new_folder != _new_filename:
-            obj._selected_folder = _new_filename
-        else:
-            obj._selected_folder = _new_folder
         self.check_changes()
 
     def on_save(self, widget):
         self.enable_btn.set_active(True)
+        entry = self.get_toplevel().get_focus()
+        if isinstance(entry, gtk.Entry):
+            entry.activate()
         self.parameters = self.get_parameters()
         self.check_changes()
-        self.entry['directory'].set_current_folder(self.entry['directory']._selected_folder)
         return True
         
     def on_reset_parameters(self, obj):

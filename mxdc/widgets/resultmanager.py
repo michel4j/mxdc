@@ -1,56 +1,40 @@
-'''
-Created on Oct 27, 2010
 
-@author: michel
-'''
-
-import os
-import time
-import gtk
-#import gobject
-#import pango
-#import logging
-
-from twisted.python.components import globalRegistry
-from mxdc.widgets.resultlist import *
-from mxdc.widgets.datalist import DataList
-from mxdc.utils import gui
-from bcm.utils.log import get_module_logger
-from bcm.utils import lims_tools, runlists, json
 from bcm.beamline.mx import IBeamline
+from bcm.utils import lims_tools, runlists, json
+from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_project_name
 from bcm.utils.science import SPACE_GROUP_NAMES
+from mxdc.utils import gui, config
+from mxdc.widgets.datalist import DataList
+from mxdc.widgets import resultlist
+from twisted.python.components import globalRegistry
+import gtk
+import gobject
+import os
 
 
-#from mxdc.widgets.textviewer import TextViewer, GUIHandler
 _logger = get_module_logger(__name__)
 
-try:
-    import gtkmozembed
-    browser_engine = 'gecko'
-except:
-    import webkit
-    browser_engine = 'webkit'
+import webkit
+browser_engine = 'webkit'
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-
-class ResultManager(gtk.Frame):
+class ResultManager(gtk.Alignment):
     __gsignals__ = {
         'sample-selected': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
         'update-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }
     
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        gtk.Alignment.__init__(self, 0, 0, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'result_manager'), 
                                   'result_manager')
 
         self._create_widgets()
         self.active_sample = None
         self.active_strategy = None
-        self._dataset_path = os.environ['HOME']
+        self._dataset_path = config.SESSION_INFO['path']
 
     def __getattr__(self, key):
         try:
@@ -67,7 +51,7 @@ class ResultManager(gtk.Frame):
 
     def _create_widgets(self):
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.result_list = ResultList()
+        self.result_list = resultlist.ResultList()
         self.dataset_list = DataList()
         self.result_list.listview.connect('row-activated', self.on_result_row_activated)
         self.screen_btn.connect('clicked', self.on_screen_action)
@@ -80,17 +64,14 @@ class ResultManager(gtk.Frame):
     
         self.results_frame.add(self.result_list)
         self.datasets_frame.add(self.dataset_list)
-        if browser_engine == 'gecko':
-            self.browser = gtkmozembed.MozEmbed()
-            self.html_window.add(self.browser)
-        else:
-            self.browser = webkit.WebView()
-            self.browser_settings = webkit.WebSettings()
-            self.browser_settings.set_property("enable-file-access-from-file-uris", True)
-            self.browser_settings.set_property("default-font-size", 11)
-            self.browser.set_settings(self.browser_settings)
 
-            self.html_window.add(self.browser)
+        self.browser = webkit.WebView()
+        self.browser_settings = webkit.WebSettings()
+        self.browser_settings.set_property("enable-file-access-from-file-uris", True)
+        self.browser_settings.set_property("default-font-size", 11)
+        self.browser.set_settings(self.browser_settings)
+
+        self.html_window.add(self.browser)
         self.update_sample_btn.connect('clicked', self.send_selected_sample)
         self.add_dataset_btn.connect('clicked', self.on_load_dataset)
         self.add(self.result_manager)
@@ -102,8 +83,8 @@ class ResultManager(gtk.Frame):
     def add_dataset(self, data):
         return self.dataset_list.add_item(data)
     
-    def update_result(self, iter, data):
-        self.result_list.update_item(iter, data)
+    def update_result(self, itr, data):
+        self.result_list.update_item(itr, data)
 
     def upload_results(self, results):
         lims_tools.upload_report(self.beamline, results)
@@ -132,6 +113,7 @@ class ResultManager(gtk.Frame):
         
         file_open = gtk.FileChooserDialog(title="Select Datasets to add",
                 action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                parent=self.get_toplevel(),
                 buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         file_open.set_select_multiple(True)
         dataset_filter = gtk.FileFilter()
@@ -219,8 +201,8 @@ class ResultManager(gtk.Frame):
             self.process_dataset(_a_params)
         
     def process_dataset(self, params):
-        params.update(state=RESULT_STATE_WAITING)
-        iter = self.add_result(params)
+        params.update(state=resultlist.RESULT_STATE_WAITING)
+        itr = self.add_result(params)
         if params.get('type', 'SCRN') == 'SCRN':
             cmd = 'screenDataset'
         else:
@@ -230,19 +212,19 @@ class ResultManager(gtk.Frame):
                                 params['info'], 
                                 params['directory'],
                                 get_project_name(),
-                                ).addCallbacks(self._result_ready, callbackArgs=[iter, params],
-                                               errback=self._result_fail, errbackArgs=[iter])
+                                ).addCallbacks(self._result_ready, callbackArgs=[itr, params],
+                                               errback=self._result_fail, errbackArgs=[itr])
         except:
-            self._result_fail(None, iter)
+            self._result_fail(None, itr)
         
-    def _result_ready(self, results, iter, params):
+    def _result_ready(self, results, itr, params):
         for index, data in enumerate(results):
             if index != 0:
                 _a_params = params
-                _a_params.update(name=data['result']['name'], state=RESULT_STATE_WAITING)
+                _a_params.update(name=data['result']['name'], state=resultlist.RESULT_STATE_WAITING)
                 res_iter = self.add_result(params)
             else:
-                res_iter = iter
+                res_iter = itr
             cell_info = '%0.1f %0.1f %0.1f %0.1f %0.1f %0.1f' % (
                         data['result']['cell_a'],
                         data['result']['cell_b'],
@@ -251,7 +233,7 @@ class ResultManager(gtk.Frame):
                         data['result']['cell_beta'],
                         data['result']['cell_gamma']
                         )
-            item = {'state': RESULT_STATE_READY,
+            item = {'state': resultlist.RESULT_STATE_READY,
                     'score': data['result']['score'],
                     'space_group': SPACE_GROUP_NAMES[data['result']['space_group_id']],
                     'unit_cell': cell_info,
@@ -260,20 +242,20 @@ class ResultManager(gtk.Frame):
         self.upload_results(results)
 
         
-    def _result_fail(self, failure, iter):
+    def _result_fail(self, failure, itr):
         _logger.error("Unable to process data")
         if failure is not None:
             _logger.error(failure.getErrorMessage())
             failure.printBriefTraceback()
-        item = {'state': RESULT_STATE_ERROR}
-        self.update_result(iter, item)
+        item = {'state': resultlist.RESULT_STATE_ERROR}
+        self.update_result(itr, item)
 
 
     def on_result_row_activated(self, treeview, path, column):
         model = treeview.get_model()
-        iter = model.get_iter(path)
-        result_data = model.get_value(iter, RESULT_COLUMN_RESULT)
-        sample_data = model.get_value(iter, RESULT_COLUMN_DATA)
+        itr = model.get_iter(path)
+        result_data = model.get_value(itr, resultlist.RESULT_COLUMN_RESULT)
+        sample_data = model.get_value(itr, resultlist.RESULT_COLUMN_DATA)
 
         result = result_data.get('result', None)
         self.active_strategy = result_data.get('strategy', None)
@@ -317,29 +299,3 @@ class ResultManager(gtk.Frame):
         else:
             _logger.warning('Formatted results are not available.')
                 
-if __name__ == "__main__":
-    from twisted.internet import gtk2reactor
-    gtk2reactor.install()
-    from twisted.internet import reactor
-    
-    for k,v in os.environ.items():
-        print '%s=%s' % (k, v)
-    
-    win = gtk.Window()
-    win.connect("destroy", lambda x: reactor.stop())
-    win.set_default_size(800,600)
-    win.set_border_width(2)
-    win.set_title("Sample Widget Demo")
-
-    example = ResultManager()
-    example.result_list.load_data(TEST_DATA)
-
-    win.add(example)
-    win.show_all()
-
-    try:
-        reactor.run()
-    except KeyboardInterrupt:
-        print "Quiting..."
-        sys.exit()
-        

@@ -1,27 +1,22 @@
-import traceback
-import gtk, gobject
-import sys, os
 
-from twisted.python.components import globalRegistry
 from bcm.beamline.mx import IBeamline
-from bcm.engine.scripting import get_scripts
-from bcm.utils.log import get_module_logger
-from bcm.utils.misc import get_project_name
 from bcm.utils import lims_tools
-
-from mxdc.widgets.predictor import Predictor
-from mxdc.widgets.sampleviewer import SampleViewer
-from mxdc.widgets.hcviewer import HCViewer
-from mxdc.widgets.ptzviewer import AxisViewer
-from mxdc.widgets.samplepicker import SamplePicker
-from mxdc.widgets.simplevideo import SimpleVideo
-from mxdc.widgets.sampleloader import DewarLoader, STATUS_NOT_LOADED, STATUS_LOADED
-from mxdc.widgets import dialogs
-from mxdc.widgets.misc import *
-from mxdc.widgets.plotter import Plotter
-from mxdc.utils import gui
-
+from bcm.utils.log import get_module_logger
+from datetime import datetime
 from matplotlib.dates import date2num
+from mxdc.utils import gui, config
+from mxdc.widgets import dialogs, misc
+from mxdc.widgets.hcviewer import HCViewer
+from mxdc.widgets.plotter import Plotter
+from mxdc.widgets.ptzviewer import AxisViewer
+from mxdc.widgets.sampleloader import DewarLoader, STATUS_NOT_LOADED, STATUS_LOADED
+from mxdc.widgets.samplepicker import SamplePicker
+from mxdc.widgets.sampleviewer import SampleViewer
+from twisted.python.components import globalRegistry
+import gobject
+import gtk
+import os
+
 
 _logger = get_module_logger('mxdc.samplemanager')
 
@@ -31,19 +26,20 @@ _HCPLOT_INFO = {
     'relhs': {'title': 'Relative Humidity', 'units': 'h', 'color': 'b'}
 }
 
-class SampleManager(gtk.Frame):
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
+class SampleManager(gtk.Alignment):
     __gsignals__ = {
         'samples-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'active-sample': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
         'sample-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
     }    
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)       
+        gtk.Alignment.__init__(self, 0, 0, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'sample_widget'), 
                                   'sample_widget')
 
-        self.changed_hc = False
+        self._switching_hc = False
         self.hc1_active = False
         self._plot_init = False
         self._plot_paused = False
@@ -71,13 +67,13 @@ class SampleManager(gtk.Frame):
         # make video and cryo notebooks same vertical size
         self._szgrp1 = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
         self._szgrp1.add_widget(self.loader_frame)
-        self._szgrp1.add_widget(self.robot_ntbk)
+        self._szgrp1.add_widget(self.robot_frame)
             
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
         self.hutch_viewer = AxisViewer(self.beamline.hutch_video)
         self.dewar_loader = DewarLoader()
-        self.cryo_controller = CryojetWidget(self.beamline.cryojet)
+        self.cryo_controller = misc.CryojetWidget(self.beamline.cryojet)
         self.sample_picker = SamplePicker()
         
         self.plotter = Plotter(xformat='%g', loop=True, buffer_size=1200, dpi=72)
@@ -109,8 +105,7 @@ class SampleManager(gtk.Frame):
                 
             self.beamline.humidifier.connect('active', self.on_hc1_active)
         
-        self.robot_ntbk.append_page(self.sample_picker, tab_label=_mk_lbl('Automounter '))
-        self.dewar_loader.set_border_width(3)     
+        self.robot_frame.add(self.sample_picker)    
         self.loader_frame.add(self.dewar_loader)
         self.add(self.sample_widget)
         self.dewar_loader.lims_btn.connect('clicked', self.on_import_lims)
@@ -119,7 +114,28 @@ class SampleManager(gtk.Frame):
         self.sample_picker.connect('pin-hover', self.on_sample_hover)
         self.beamline.automounter.connect('mounted', self.on_sample_mounted)
         self.beamline.manualmounter.connect('mounted', self.on_sample_mounted, False)
-  
+        self.beamline.lims.connect('active', self.on_lims_connect)
+        
+        # make sure previously  loaded samples are loaded from disk if lims fails to connect
+        gobject.timeout_add(5000, self._load_without_lims) 
+    
+    def on_lims_connect(self, obj, state):
+        if state:
+            # Load MxLIVE Samples if a new session
+            if config.SESSION_INFO.get('new', False):
+                reply = lims_tools.get_onsite_samples(self.beamline)
+                if reply.get('error'):
+                    _logger.error('Containers and Samples could not be imported from MxLIVE.')
+                else:
+                    self.dewar_loader.import_lims(reply)
+            else:
+                self.dewar_loader.load_saved_database()
+                
+    def _load_without_lims(self):
+        # Called only if lims fails to connect to get previously loaded samples from disk
+        if self.beamline.lims.active_state != True:
+            self.dewar_loader.load_saved_database()
+            
     def on_samples_changed(self, obj):
         if self.beamline.automounter.is_mounted():
             self.active_sample = self.dewar_loader.find_crystal(self.beamline.automounter._mounted_port) or {}
@@ -187,11 +203,12 @@ class SampleManager(gtk.Frame):
     
     def get_database(self):
         return self.dewar_loader.samples_database
+    
 
     def on_import_lims(self, obj):
         reply = lims_tools.get_onsite_samples(self.beamline)
         if reply.get('error') is not None:
-            header = 'Error Connecting to the LIMS'
+            header = 'Error Connecting to the MxLIVE'
             subhead = 'Containers and Samples could not be imported.'
             details = reply['error'].get('message')
             dialogs.error(header, subhead, details=details)
@@ -230,15 +247,14 @@ class SampleManager(gtk.Frame):
         self.plot_new_points(key)
             
     def on_tab_change(self, obj, pointer, page_num):
-        if not self.changed_hc:
-            if ( obj.get_property("name") == "video_ntbk" and page_num is 2 ) or \
-               ( obj.get_property("name") == "cryo_ntbk" and page_num is 1 ):
-                self.changed_hc = True
+        if not self._switching_hc:
+            self._switching_hc = True
+            if obj is self.video_ntbk and page_num == 2 and self.cryo_ntbk.get_current_page() != 1:
                 self.cryo_ntbk.set_current_page(1)
+            elif obj is self.cryo_ntbk and page_num == 1 and self.video_ntbk.get_current_page() != 2:
                 self.video_ntbk.set_current_page(2)
-        else:
-            self.changed_hc = False
-
+            self._switching_hc = False
+            
     def on_plot_change(self, obj, widget, state):
         self.redraw_plot(widget, state)
 
@@ -304,7 +320,7 @@ class SampleManager(gtk.Frame):
     def plot_new_points(self, plot):
         if not self._plot_paused or self._plot_init:
             self._plot_init = False
-            min, max, xlabels = self.plot_config(plot)
+            min_val, max_val, xlabels = self.plot_config(plot)
             t = self.hc_data[plot][-1][1]
             
             # add points to each plot
@@ -317,7 +333,7 @@ class SampleManager(gtk.Frame):
             # tweak formatting before drawing plots
             if len(self.plotter.axis) > 1:
                 self.plotter.axis[1].set_ylim((0,100))
-            self.plotter.axis[0].set_xlim((min, max))
+            self.plotter.axis[0].set_xlim((min_val, max_val))
             self.plotter.set_time_labels(xlabels, '%H:%M', 1, 10)
             self.plotter.canvas.draw()
         

@@ -1,19 +1,11 @@
-'''
-Created on Sep 23, 2009
-
-@author: michel
-'''
-import sys, time, os
-import math
-import gtk
-import gobject
-import pango
-from mxdc.widgets.dialogs import save_selector
-from mxdc.widgets.video import VideoWidget
-from mxdc.widgets.misc import ActiveHScale
-from mxdc.utils import gui
 from bcm.utils.log import get_module_logger
-from twisted.python.components import globalRegistry
+from mxdc.utils import gui
+from mxdc.widgets import dialogs
+from mxdc.widgets.video import VideoWidget
+import gtk
+import math
+import pango
+import os
 
 _logger = get_module_logger('mxdc.videoviewer')
 
@@ -45,15 +37,11 @@ class SimpleVideo(gtk.Frame):
 
                                         
     def save_image(self, filename):
-        ftype = filename.split('.')[-1]
-        if ftype == 'jpg': 
-            ftype = 'jpeg'
         img = self.camera.get_frame()        
         img.save(filename)
                 
     def draw_measurement(self, pixmap):
         pix_size = self.camera.resolution
-        w, h = pixmap.get_size()
         if self.measuring == True:
             x1 = self.measure_x1
             y1 = self.measure_y1
@@ -121,7 +109,10 @@ class SimpleVideo(gtk.Frame):
         self.pango_layout.set_font_description(pango.FontDescription('Monospace 8'))
         
     def on_save(self, obj=None, arg=None):
-        img_filename = save_selector()
+        img_filename, _ = dialogs.select_save_file(
+                                'Save Video Snapshot',
+                                parent=self.get_toplevel(),
+                                formats=[('PNG Image', 'png'), ('JPEG Image', 'jpg')])
         if not img_filename:
             return
         if os.access(os.path.split(img_filename)[0], os.W_OK):
@@ -138,14 +129,15 @@ class SimpleVideo(gtk.Frame):
         self.videothread.stop()
         return True
         
-    def on_expose(self, videoarea, event):        
-        videoarea.window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
+    def on_expose(self, videoarea, event):
+        window = videoarea.get_window()     
+        window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
             self.width, self.height)
         return True
                     
     def on_mouse_motion(self, widget, event):
         if event.is_hint:
-            x, y, state = event.window.get_pointer()
+            x, y, _ = event.window.get_pointer()
         else:
             x = event.x; y = event.y
         im_x, im_y, xmm, ymm = self._img_position(x,y)
