@@ -60,9 +60,9 @@ class Cryojet(BaseDevice):
         
 
     def _on_temperature_changed(self, obj, val):
-        if val < 105:
+        if val < 110:
             self.set_state(health=(0, 'temp'))
-        elif val < 110:
+        elif val < 115:
             self.set_state(health=(2, 'temp', 'Temp. high!'))
         else:
             self.set_state(health=(4, 'temp', 'Temp. too high!'))
