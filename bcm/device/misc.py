@@ -73,7 +73,7 @@ class SimPositioner(PositionerBase):
 class Positioner(PositionerBase):
     """Simple EPICS based positioning device.
     """
-    def __init__(self, name, fbk_name=None, scale=100, units=""):
+    def __init__(self, name, fbk_name=None, scale=100, units="", wait_time=0):
         """Args:
             - `name` (str): Name of positioner PV for setting the value
         
@@ -93,6 +93,7 @@ class Positioner(PositionerBase):
         self.DESC = PV('%s.DESC' % name) # device should work without desc pv so not using add_pv
         self.name = name
         self.units = units
+        self._wait_time = wait_time
 
         self.fbk_pv.connect('changed', self._signal_change)
         self.DESC.connect('changed', self._on_name_change)
@@ -112,6 +113,8 @@ class Positioner(PositionerBase):
         else:
             val = self.scale * pos/100
             self.set_pv.set(val)
+        if wait:
+            time.sleep(self._wait_time)
           
     def get(self):
         if self.scale is None:
