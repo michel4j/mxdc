@@ -46,7 +46,7 @@ class BossPIDController(BaseDevice):
            'X': self.add_pv('%s:SetXOUT' % name),
         }       
         self._target = self._targets[target]
-        self._beam_off = self.add_pv('%s:BeamOff' % name)
+        self._beam_off = self.add_pv('%s:OffIntOUT' % name)
         self._status.connect('changed', self._state_change)
         self._off_value = 5000
         self._pause_value = 100000000
