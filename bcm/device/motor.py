@@ -27,13 +27,16 @@ class MotorBase(BaseDevice):
           Data is a tuple containing the previous set point and the current one.
         - `timed-change` (tuple(float, float)): Emitted everytime the motor changes.
           Data is a 2-tuple with the current position and the timestamp of the last change.
-        
+        - `starting` (None): Emitted when this a command to move has been accepted by this instance of the motor.
+        - `done` (None): Emitted within the instance when a commanded move has completed.
     """
     implements(IMotor)
 
     # Motor signals
     __gsignals__ =  { 
         "changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        "starting": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
+        "done": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
         "target-changed": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),        
         "timed-change": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         }  
@@ -44,19 +47,30 @@ class MotorBase(BaseDevice):
         self.name = name
         self._moving = False
         self._command_sent = False
+        self._starting_flag = False
         self._target_pos = 0
         self._prev_target = None
         self._motor_type = 'basic'
         self.units = ''
         self._move_active_value = 1
         self.default_precision = 2
-    
+        
     def do_changed(self, st):
         pass
     
     def do_timed_change(self, st):
         pass
     
+    def do_starting(self):
+        self._starting_flag = True
+    
+    def do_done(self):
+        self._starting_flag = False
+
+    def do_busy(self, st):
+        if self._starting_flag and not st:
+            self.set_state(done=None)
+
     def _signal_change(self, obj, value):
         self.set_state(changed=self.get_position())
 
@@ -70,7 +84,9 @@ class MotorBase(BaseDevice):
     def _signal_move(self, obj, state):
         if state == self._move_active_value:
             self._moving = True           
-            self._command_sent = False
+            if self._command_sent:
+                self.set_state(starting=None)
+                self._command_sent = False
         else:
             self._moving = False
 

@@ -32,7 +32,7 @@ DEVICES = {
     'energy':   EnergyMotor('BL08ID1:energy', 'SMTR16082I1005:deg'),
     'bragg_energy': BraggEnergyMotor('SMTR16082I1005:deg', motor_type="vme"),
     'dcm_pitch':  VMEMotor('SMTR16082I1010:deg'),
-    'mostab': MostabOptimizer('MOS16082I1001'),
+    'mostab': MostabPIDController('MOS16082I1001'),
     
     # Goniometer/goniometer head devices
     'goniometer': Goniometer('GV6K1608-001', 'OAV1608-3-I10-01', 'ROB16083I', 'PM1608-3-I10-02:pm:mm'),
