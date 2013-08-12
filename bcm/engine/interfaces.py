@@ -56,18 +56,3 @@ class IDataCollector(Interface):
     def stop():
         """Stop current run."""
         
-class IOptimizer(Interface):
-
-    """An optimizer object."""
-    
-    def start():
-        """Start optimizing."""
-                
-    def stop():
-        """Stop optimizing."""
-        
-    def wait():
-        """Wait for optimizer to become idle."""
-        
-    def get_state():
-        """Return the current state of the object."""
