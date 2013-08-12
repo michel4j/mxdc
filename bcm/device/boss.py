@@ -53,7 +53,7 @@ class BossPIDController(BaseDevice):
         self._target_func = target_func
         
     def _state_change(self, obj, val):
-        self.set_state(active=(val==1))
+        self.set_state(busy=(val==1))
     
     def pause(self):
         _logger.debug('Pausing Beam Stabilization')
