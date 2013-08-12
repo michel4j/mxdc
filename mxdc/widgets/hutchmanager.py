@@ -26,25 +26,6 @@ _logger = get_module_logger('mxdc.hutchmanager')
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-class ToggleBoss:
-    def __init__(self):
-        self.called = {}
-    
-    def __call__(self, obj, busy, boss):
-        if not obj in self.called:
-            self.called[obj] = busy
-        if busy and len(self.called.keys()) == 1:
-            try:
-                boss.stop()
-            except:
-                _logger.warn('Could not disable BOSS')
-        elif not busy:
-            self.called.pop(obj)
-            if not self.called.keys():
-                try:
-                    boss.start()
-                except:
-                    _logger.warn('Could not enable BOSS')
 
 class HutchManager(gtk.Alignment):
     __gsignals__ = {
@@ -68,7 +49,6 @@ class HutchManager(gtk.Alignment):
             return self._xml.get_widget(key)
         
     def _create_widgets(self):
-        self.switch_boss = ToggleBoss()       
         self.beamline = globalRegistry.lookup([], IBeamline)
         
         # diagram file name if one exists
@@ -139,8 +119,8 @@ class HutchManager(gtk.Alignment):
         
         # BOSS enable/disable if a boss has been defined
         if 'boss' in self.beamline.registry:
-            self.beamline.monochromator.energy.connect('busy', self.switch_boss, self.beamline.boss)
-            self.beamline.mostab.connect('busy', self.switch_boss, self.beamline.boss)
+            self.beamline.energy.connect('starting', lambda x: self.beamline.boss.pause())
+            self.beamline.energy.connect('done', lambda x: self.beamline.boss.resume())
        
         # Button commands
         self.front_end_btn = misc.ShutterButton(self.beamline.all_shutters, 'Restore Beam', open_only=True)
