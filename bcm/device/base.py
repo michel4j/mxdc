@@ -154,6 +154,9 @@ class BaseDevice(gobject.GObject):
                 if self.state_info.get(st, None) != val:
                     self.state_info.update({st: val})
                     gobject.idle_add(self.emit, st, val)
+                elif val == None:
+                    self.state_info.update({st: None})
+                    gobject.idle_add(self.emit, st)
             elif st == 'health':
                 sev, cntx = val[:2]
                 if sev != 0:          

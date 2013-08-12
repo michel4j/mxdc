@@ -1,14 +1,9 @@
-import time
-import sys
-import logging
-import numpy
-import gobject
 
-from zope.interface import implements
 from bcm.device.base import BaseDevice
-from bcm.device.interfaces import IMonochromator, IMotor
-from bcm.engine.interfaces import IOptimizer
+from bcm.device.interfaces import IMonochromator
 from bcm.utils.log import get_module_logger
+from zope.interface import implements
+
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)

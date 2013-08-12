@@ -338,3 +338,23 @@ class IStorageRing(IDevice):
     def wait_for_beam():
         """Block until beam is available"""
     
+
+class IOptimizer(Interface):
+
+    """An optimizer object."""
+    
+    def start():
+        """Start optimizing."""
+
+    def pause():
+        """Pause optimizing."""
+
+    def resume():
+        """resume optimizing."""
+                
+    def stop():
+        """Stop optimizing."""
+        
+    def wait():
+        """Wait for optimizer to become idle."""
+        
