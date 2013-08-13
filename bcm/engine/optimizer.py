@@ -50,13 +50,18 @@ class PitchOptimizer(BaseDevice):
             st_p = _p - 0.002
             en_p = _p + 0.002
             self._scan = AbsScan(self.pitch, st_p, en_p, 20, self.counter, 0.5)
-            self._scan.connect('done', self._fit_scan)
+            self._scan.connect('done', self._fit_scan, bl)
+            if 'boss' in bl.registry:
+                bl.boss.pause()
+            
             self._scan.start()
             
-    def _fit_scan(self, scan):
+    def _fit_scan(self, scan, bl):
         data = numpy.array(scan.data)
         xo = data[:, 0]
         yo = data[:,-1]
+        if 'boss' in bl.registry:
+            bl.boss.resume()
 
         params, success = fitting.peak_fit(xo, yo, 'gaussian')
         ymax = params[0]
