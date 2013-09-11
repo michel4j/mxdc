@@ -15,7 +15,7 @@
         <child>
           <object class="GtkHBox" id="upper_box">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">True</property>
             <property name="spacing">6</property>
             <child>
               <object class="GtkVButtonBox" id="commands_box">
@@ -51,12 +51,15 @@
             <child>
               <object class="GtkTable" id="device_box">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
                 <property name="n_rows">4</property>
                 <property name="n_columns">6</property>
                 <property name="column_spacing">3</property>
                 <property name="row_spacing">3</property>
                 <property name="homogeneous">True</property>
+                <child>
+                  <placeholder/>
+                </child>
                 <child>
                   <placeholder/>
                 </child>
