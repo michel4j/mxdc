@@ -31,7 +31,7 @@
             <child>
               <object class="GtkHBox" id="hbox2">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
                 <property name="spacing">2</property>
                 <child>
                   <object class="GtkLabel" id="fbk_label">
@@ -52,6 +52,7 @@
                   <object class="GtkEntry" id="entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="is_focus">True</property>
                     <property name="has_frame">False</property>
                     <property name="invisible_char">•</property>
                     <property name="width_chars">8</property>

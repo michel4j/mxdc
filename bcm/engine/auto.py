@@ -1,5 +1,5 @@
-from bcm.engine import centering, snapshot
-from bcm.service.common import *
+from bcm.engine import centering
+from bcm.service import common
 from bcm.utils.decorators import ca_thread_enable
 
 from bcm.utils.log import get_module_logger
@@ -22,13 +22,10 @@ def auto_mount(bl, port):
             _logger.error('Sample mounting failed')
             #raise MountError('Mounting failed for port `%s`.' % (port))
         else:
-            port, barcode = mounted_info
-            mounted_info = bl.automounter.mounted_state
             result['mounted'], result['barcode']  = mounted_info
             result['message'] = 'Sample mounted successfully.'
     else:
         result['error'] = 'Mounting failed for port `%s`.' % (port)
-        #raise MountError('Port `%s` is not mountable.' % (port))
     return result
 
 
@@ -38,11 +35,11 @@ def auto_dismount(bl):
     bl.cryojet.nozzle.open()
     mounted_info = bl.automounter.mounted_state
     if mounted_info is None:
-        raise MountError('No mounted sample to dismount.')
+        raise common.MountError('No mounted sample to dismount.')
     
     success = bl.automounter.dismount(wait=True)
     if not success:
-        raise MountError('Dismount failed.')
+        raise common.MountError('Dismount failed.')
     return True
     
 @ca_thread_enable
@@ -51,7 +48,7 @@ def auto_center(bl):
     bl.goniometer.set_mode('CENTERING', wait=True)
     _out = centering.auto_center_loop()
     if _out is None:
-        raise CenteringError('Loop centering failed')
+        raise common.CenteringError('Loop centering failed')
     else:
         return _out
 
