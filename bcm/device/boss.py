@@ -67,21 +67,24 @@ class BossPIDController(BaseDevice):
     
     def pause(self):
         _logger.debug('Pausing Beam Stabilization')
-        if self._status.get() == 1 and self._beam_off.get() != self._pause_value:
+        if self.active_state and self._status.get() == 1 and self._beam_off.get() != self._pause_value:
             self._off_value = self._beam_off.get()
             self._beam_off.set(self._pause_value)
 
     def resume(self):
         _logger.debug('Resuming Beam Stabilization')
-        self._beam_off.set(self._off_value)
+        if self.active_state:
+            self._beam_off.set(self._off_value)
                 
     def start(self):
         _logger.debug('Enabling Beam Stabilization')
-        self._enable.put(1)
+        if self.active_state:
+            self._enable.put(1)
         
     def stop(self):
         _logger.debug('Disabling Beam Stabilization')
-        self._enable.put(0)
+        if self.active_state:
+            self._enable.put(0)
     
     def wait(self):
         return
