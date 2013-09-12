@@ -1,8 +1,10 @@
 from bcm.device.base import BaseDevice
 from bcm.device.interfaces import IOptimizer
 from bcm.utils.log import get_module_logger
+from bcm.engine import fitting
 from zope.interface import implements
 import time
+import os
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -35,7 +37,7 @@ SimOptimizer = Optimizer
 class BossPIDController(BaseDevice):
     implements(IOptimizer)
     
-    def __init__(self, name, target='Y', target_func=None):
+    def __init__(self, name, energy, target='Y', target_func=None):
         BaseDevice.__init__(self)
         self.name = name
         self._enable = self.add_pv('%s:EnableDacOUT' % name)
@@ -51,9 +53,17 @@ class BossPIDController(BaseDevice):
         self._off_value = 5000
         self._pause_value = 100000000
         self._target_func = target_func
+        self._energy = self.add_pv(energy)
+        self._energy.connect('changed',self.update_target)    
+        
+        datfile = os.path.join(os.path.dirname(__file__), 'data','08B1-1-boss.dat')
+        self.fit = fitting.SplineRep(datfile)
         
     def _state_change(self, obj, val):
         self.set_state(busy=(val==1))
+    
+    def update_target(self, obj, energy):
+        self._target.put(self.fit.get_value(energy))
     
     def pause(self):
         _logger.debug('Pausing Beam Stabilization')

@@ -1,5 +1,5 @@
 import scipy
-from scipy import optimize
+from scipy import optimize, interpolate
 import numpy
 
 # Peak Function
@@ -175,3 +175,15 @@ def histogram_fit(x,y):
     cema = sum(x*y)/sum(y)
     return [ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema], True
 
+class SplineRep(object):
+    def __init__(self, txtfile=None):
+        self.fit = None
+        if txtfile:
+            data = numpy.genfromtxt(txtfile, skip_header=1, delimiter='\t')
+            data = data[numpy.argsort(data[:,0])]
+            x, y = zip(*data)
+            self.fit = interpolate.splrep(x,y)
+        
+    def get_value(self, x, rnd=4):
+        return round(interpolate.splev(x, self.fit, der=0),rnd)
+    
