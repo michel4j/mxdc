@@ -1,11 +1,10 @@
 
 
-from bcm.utils.science import savitzky_golay, find_peaks
+from bcm.utils.science import find_peaks
 import Image
 import ImageChops
 import ImageFilter
 import numpy
-import bisect
 
 THRESHOLD = 20
 BORDER = 10
