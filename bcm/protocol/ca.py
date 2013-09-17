@@ -322,7 +322,9 @@ class PV(gobject.GObject):
         This method raises an exception if the channel is not active.
         """
         if self._connected != CA_OP_CONN_UP:
-            raise ChannelAccessError('(%s) PV not connected' % (self._name,))
+            _logger.error('(%s) PV not connected' % (self._name,))
+            return
+            #raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         if self._monitor == True and self._val is not None:
             return self._val
         else:
@@ -344,7 +346,9 @@ class PV(gobject.GObject):
         """Get control parameters of a Process Variable.
         """
         if self._connected != CA_OP_CONN_UP:
-            raise ChannelAccessError('(%s) PV not connected' % (self._name,))
+            _logger.error('(%s) PV not connected' % (self._name,))
+            return
+            #raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         else:
             count = 1   # use count of 1 for control parameters
             _vtype = TypeMap[self._type][0] * count 
@@ -383,7 +387,8 @@ class PV(gobject.GObject):
         """
         if self._connected != CA_OP_CONN_UP:
             _logger.error('(%s) PV not connected' % (self._name,))
-            raise ChannelAccessError('(%s) PV not connected' % (self._name,))
+            return
+            #raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         if self._type == DBR_STRING:
             val = str(val)
             if len(val) > MAX_STRING_SIZE:
@@ -525,7 +530,8 @@ class PV(gobject.GObject):
     def _add_handler(self, callback):
         if self._connected != CA_OP_CONN_UP:
             _logger.error('(%s) PV not connected.' % (self._name,))
-            raise ChannelAccessError('PV not connected')
+            return
+            #raise ChannelAccessError('PV not connected')
         event_id = c_ulong()
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
         cb_function = cb_factory(callback)
