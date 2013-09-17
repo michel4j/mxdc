@@ -7,7 +7,7 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
 from bcm.device.interfaces import IOptimizer
-from bcm.engine.scanning import AbsScan
+from bcm.engine.scanning import RelScan
 from bcm.engine import fitting
 
 import numpy
@@ -38,18 +38,20 @@ class PitchOptimizer(BaseDevice):
             return 
         self.pitch = bl.dcm_pitch
         self.counter = bl.i_0
-        energy = bl.energy.get_position()
+        self._current_pitch = self.pitch.get_position()
+        #energy = bl.energy.get_position()
+        #self.pitch.move_to(self.pitch_func(energy))
 
         if self.counter.value.get() < self.min_count:
             _logger.warning('Counter is below threshold.')
             return 
         else:
-            self.set_state(busy=True)
-            _p = self.pitch_func(energy)
-            self._current_pitch = _p
-            st_p = _p - 0.002
-            en_p = _p + 0.002
-            self._scan = AbsScan(self.pitch, st_p, en_p, 20, self.counter, 0.5)
+            #self.set_state(busy=True)
+            #_p = self.pitch_func(energy)
+            #self._current_pitch = _p
+            #st_p = _p - 0.002
+            #en_p = _p + 0.002
+            self._scan = RelScan(self.pitch, -0.002, 0.002, 20, self.counter, 0.5)
             self._scan.connect('done', self._fit_scan, bl)
             if 'boss' in bl.registry:
                 bl.boss.pause()
