@@ -119,8 +119,8 @@ class HutchManager(gtk.Alignment):
         
         # BOSS enable/disable if a boss has been defined
         if 'boss' in self.beamline.registry:
-            self.beamline.energy.connect('starting', lambda x: self.beamline.boss.pause())
-            self.beamline.energy.connect('done', lambda x: self.beamline.boss.resume())
+            self.beamline.energy.connect('starting', lambda x: self.beamline.boss.stop())
+            self.beamline.energy.connect('done', lambda x: self.beamline.boss.start())
        
         # Button commands
         self.front_end_btn = misc.ShutterButton(self.beamline.all_shutters, 'Restore Beam', open_only=True)
