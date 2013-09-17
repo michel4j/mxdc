@@ -179,11 +179,10 @@ class SplineRep(object):
     def __init__(self, txtfile=None):
         self.fit = None
         if txtfile:
-            data = numpy.genfromtxt(txtfile, skip_header=1, delimiter='\t')
-            data = data[numpy.argsort(data[:,0])]
-            x, y = zip(*data)
-            self.fit = interpolate.splrep(x,y)
+            data = numpy.loadtxt(txtfile, dtype={"names": ('energy', 'target'), "formats": (float, float)})
+            data.sort(order="energy")
+            self.fit = interpolate.splrep(data['energy'], data['target'])
         
     def get_value(self, x, rnd=4):
-        return round(interpolate.splev(x, self.fit, der=0),rnd)
+        return round(interpolate.splev(x, self.fit, der=0), rnd)
     

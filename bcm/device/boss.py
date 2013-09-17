@@ -56,14 +56,16 @@ class BossPIDController(BaseDevice):
         self._energy = self.add_pv(energy)
         self._energy.connect('changed',self.update_target)    
         
-        datfile = os.path.join(os.path.dirname(__file__), 'data','08B1-1-boss.dat')
-        self.fit = fitting.SplineRep(datfile)
         
     def _state_change(self, obj, val):
         self.set_state(busy=(val==1))
     
     def update_target(self, obj, energy):
-        self._target.put(self.fit.get_value(energy))
+        if self._target_func:
+            new_target = self._target_func(energy)
+            # FIXME: avoid multiple instances changing value simultaneously
+            if round(self._target.get(),4) != new_target:
+                self._target.set(new_target, flush=True)
     
     def pause(self):
         _logger.debug('Pausing Beam Stabilization')
