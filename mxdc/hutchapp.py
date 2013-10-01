@@ -15,7 +15,11 @@ from mxdc.widgets.hutchmanager import HutchManager
 from bcm.engine.scripting import get_scripts
 from mxdc.widgets.statuspanel import StatusPanel
 from mxdc.widgets.samplepicker import SamplePicker
+from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.utils import gui
+
+from bcm.beamline.interfaces import IBeamline
+from twisted.python.components import globalRegistry
 
 _logger = get_module_logger('hutchviewer')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
@@ -55,6 +59,14 @@ class HutchWindow(gtk.Window):
         self.hutch_manager.video_book.append_page(self.sample_picker, tab_label=_lbl)
         self.sample_picker.set_border_width(9)
 
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        if self.beamline.config['admin_group'] in os.getgroups():
+            self.image_viewer = ImageViewer(size=256)
+            _lbl = gtk.Label('Diffraction')
+            _lbl.set_padding(6,0)
+            self.hutch_manager.tool_book.append_page(self.image_viewer, tab_label=_lbl)
+            self.beamline.detector._header['filename'].connect('changed', self.on_new_image)
+
         self.main_frame.add(self.hutch_manager)
         self.mxdc_main.pack_start(self.status_panel, expand = False, fill = False)
         self.add(self.mxdc_main)
@@ -67,6 +79,11 @@ class HutchWindow(gtk.Window):
         self.open_shutter_mnu.connect('activate', self.hutch_manager.on_open_shutter)
         self.close_shutter_mnu.connect('activate', self.hutch_manager.on_close_shutter)        
         self.show_all()
+
+    def on_new_image(self, widget, index):
+        header = self.beamline.detector._header
+        filename = '%s/%s' % (header['directory'].get().replace('/data/','/users/'), header['filename'].get())
+        self.image_viewer.image_canvas.queue_frame(filename)
         
     def _do_quit(self):
         self.hide()
