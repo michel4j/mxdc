@@ -6,6 +6,7 @@ BEAMLINE_NAME = '08ID-1'
 BEAMLINE_TYPE = 'MX'
 BEAMLINE_ENERGY_RANGE = (6.0, 18.5)
 BEAMLINE_GONIO_POSITION = 3             # Goniometer orientation (XREC) 1,2,3
+ADMIN_GROUP = 2000
 
 DEFAULT_EXPOSURE    = 1.0
 DEFAULT_ATTENUATION = 90.0              # attenuation in %
