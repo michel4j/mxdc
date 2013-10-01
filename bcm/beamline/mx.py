@@ -25,7 +25,8 @@ class MXBeamline(object):
               BEAMLINE_NAME = Any string preferably without spaces
               BEAMLINE_TYPE = Only the string 'MX' for now
               BEAMLINE_ENERGY_RANGE = A tuple of 2 floats for low and hi energy limits
-              BEAMLINE_GONIO_POSITION = Goniometer orientation according to XREC (i.e 1,2,3 etc)          
+              BEAMLINE_GONIO_POSITION = Goniometer orientation according to XREC (i.e 1,2,3 etc)  
+              ADMIN_GROUP = Group id for admin users (staff)        
               DEFAULT_EXPOSURE    = A float for the default exposure time
               DEFAULT_ATTENUATION = A float for attenuation in %
               DEFAULT_BEAMSTOP    = Default beam-stop position
@@ -105,6 +106,7 @@ class MXBeamline(object):
         _misc.update(getattr(l_settings, 'MISC_SETTINGS', {}))
         self.config.update({
             'name': self.name,
+            'admin_group': getattr(l_settings, 'ADMIN_GROUP', getattr(g_settings, 'ADMIN_GROUP', 2000)),
             'energy_range': getattr(l_settings, 'BEAMLINE_ENERGY_RANGE', getattr(g_settings, 'BEAMLINE_ENERGY_RANGE', (6.0, 18.0))),
             'default_attenuation': getattr(l_settings, 'DEFAULT_ATTENUATION', getattr(g_settings, 'DEFAULT_ATTENUATION', 90.0)),
             'default_exposure': getattr(l_settings, 'DEFAULT_EXPOSURE', getattr(g_settings, 'DEFAULT_EXPOSURE', 1.0)),
