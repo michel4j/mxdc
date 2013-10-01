@@ -7,10 +7,11 @@ from bcm.beamline.interfaces import IBeamline
 from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
 from bcm.device.interfaces import IOptimizer
-from bcm.engine.scanning import AbsScan
+from bcm.engine.scanning import RelScan
 from bcm.engine import fitting
 
 import numpy
+import gobject
 
 _logger = get_module_logger(__name__)
 
@@ -38,18 +39,20 @@ class PitchOptimizer(BaseDevice):
             return 
         self.pitch = bl.dcm_pitch
         self.counter = bl.i_0
-        energy = bl.energy.get_position()
+        self._current_pitch = self.pitch.get_position()
+        #energy = bl.energy.get_position()
+        #self.pitch.move_to(self.pitch_func(energy))
 
         if self.counter.value.get() < self.min_count:
             _logger.warning('Counter is below threshold.')
             return 
         else:
-            self.set_state(busy=True)
-            _p = self.pitch_func(energy)
-            self._current_pitch = _p
-            st_p = _p - 0.002
-            en_p = _p + 0.002
-            self._scan = AbsScan(self.pitch, st_p, en_p, 20, self.counter, 0.5)
+            #self.set_state(busy=True)
+            #_p = self.pitch_func(energy)
+            #self._current_pitch = _p
+            #st_p = _p - 0.002
+            #en_p = _p + 0.002
+            self._scan = RelScan(self.pitch, -0.002, 0.002, 20, self.counter, 0.5)
             self._scan.connect('done', self._fit_scan, bl)
             if 'boss' in bl.registry:
                 bl.boss.pause()
@@ -95,5 +98,35 @@ class PitchOptimizer(BaseDevice):
         poll=0.05
         while self.busy_state:
             time.sleep(poll)
+
+class SimOptimizer(BaseDevice):
+    """Pitch Optimizer for 08B1-1"""
+    implements(IOptimizer)
+    
+    def __init__(self, name):
+        BaseDevice.__init__(self)
+        self.name = name
+        self.set_state(active=True)
+    
+
+    def start(self):
+        self.set_state(busy=True)
+        gobject.timeout_add(2000, self._not_busy)            
+
+    def _not_busy(self):
+        self.set_state(busy=False)
+              
+    def stop(self):
+        pass
+    def pause(self):
+        pass
+
+    def resume(self):
+        pass
+
+    def wait(self):
+        poll=0.05
+        while self.busy_state:
+            time.sleep(poll)
             
-__all__ = ['PitchOptimizer']
+__all__ = ['PitchOptimizer', 'SimOptimizer']
