@@ -5,8 +5,8 @@ from bcm.utils import imgproc
 from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_short_uuid, logistic_score
 from twisted.python.components import globalRegistry
-import Image
-import ImageChops
+from PIL import Image
+from PIL import ImageChops
 import commands
 import numpy
 import os
