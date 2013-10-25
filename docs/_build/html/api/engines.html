@@ -2,17 +2,20 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Engines &mdash; Beamline Control Module v4.1.6-gedc482b documentation</title>
+    <title>Engines &mdash; Beamline Control Module 5.0.0-75-g7229eab documentation</title>
+    
     <link rel="stylesheet" href="../_static/jinja.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '4.1.6-gedc482b',
+        VERSION:     '5.0.0-75-g7229eab',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -21,7 +24,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="Beamline Control Module v4.1.6-gedc482b documentation" href="../index.html" />
+    <link rel="top" title="Beamline Control Module 5.0.0-75-g7229eab documentation" href="../index.html" />
     <link rel="up" title="API documentation" href="index.html" />
     <link rel="next" title="&lt;no title&gt;" href="services.html" />
     <link rel="prev" title="Devices" href="devices.html" /> 
@@ -42,7 +45,7 @@
         <li class="right" >
           <a href="devices.html" title="Devices"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Beamline Control Module v4.1.6-gedc482b documentation</a> &raquo;</li>
+        <li><a href="../index.html">Beamline Control Module 5.0.0-75-g7229eab documentation</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">API documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -64,14 +67,21 @@
 <div class="section" id="module-bcm.engine.centering">
 <span id="centering-engine"></span><h2>Centering Engine<a class="headerlink" href="#module-bcm.engine.centering" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="bcm.engine.centering.pre_center">
-<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">pre_center</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.pre_center" title="Permalink to this definition">¶</a></dt>
-<dd><p>Rough automatic centering of the sample pin using simple image processing.</p>
+<dt id="bcm.engine.centering.get_current_bkg">
+<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">get_current_bkg</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.get_current_bkg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Move Sample back and capture background image 
+to be used for auto centering</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="bcm.engine.centering.auto_center">
-<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">auto_center</tt><big>(</big><em>pre_align=True</em><big>)</big><a class="headerlink" href="#bcm.engine.centering.auto_center" title="Permalink to this definition">¶</a></dt>
+<dt id="bcm.engine.centering.center_loop">
+<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">center_loop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.center_loop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Automatic centering of the sample pin using simple image processing.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="bcm.engine.centering.center_crystal">
+<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">center_crystal</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.center_crystal" title="Permalink to this definition">¶</a></dt>
 <dd><p>More precise auto-centering of the crystal using the XREC package.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -250,9 +260,14 @@ cema is center of mass</p>
 <p>Pitch Optimizer for 08B1-1</p>
 </dd></dl>
 
-<span class="target" id="module-bcm.engine.snapshot"></span><p>Created on Jan 26, 2010</p>
-<p>&#64;author: michel</p>
-</div>
+<dl class="class">
+<dt id="bcm.engine.optimizer.SimOptimizer">
+<em class="property">class </em><tt class="descclassname">bcm.engine.optimizer.</tt><tt class="descname">SimOptimizer</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.engine.optimizer.SimOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="devices.html#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<p>Pitch Optimizer for 08B1-1</p>
+</dd></dl>
+
+<span class="target" id="module-bcm.engine.snapshot"></span></div>
 </div>
 
 
