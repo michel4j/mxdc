@@ -523,6 +523,9 @@ class SimShutter(BaseDevice):
         self._state = False
         self.set_state(changed=False )
 
+    def wait(self, state=True, timeout=5.0):
+        pass
+
    
 class Shutter(BasicShutter):
     def __init__(self, name):
