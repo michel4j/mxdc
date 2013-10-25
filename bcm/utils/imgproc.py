@@ -1,9 +1,9 @@
 
 
 from bcm.utils.science import find_peaks
-import Image
-import ImageChops
-import ImageFilter
+from PIL import Image
+from PIL import ImageChops
+from PIL import ImageFilter
 import numpy
 
 THRESHOLD = 20
