@@ -18,7 +18,7 @@
 /* -- page layout ----------------------------------------------------------- */
  
 body {
-    font-family: 'Gentium Basic', serif;
+    font-family: 'TheSansMonoCd Office', 'Gentium Basic', serif;
     font-size: 16px;
     background-color: white;
     color: #000;
@@ -248,7 +248,7 @@ p.admonition-title:after {
 }
 
 pre, tt {
-    font-family: 'Consolas', 'Menlo', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+    font-family: 'TheSansMonoCd Office', 'Ubuntu Mono', 'Consolas', 'Menlo', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
     font-size: 0.85em;
 }
 
