@@ -61,7 +61,7 @@ class BossPIDController(BaseDevice):
         self.set_state(busy=(val==1))
     
     def update_target(self, obj, energy):
-        if self._target_func:
+        if self.active_state and self._target_func:
             new_target = self._target_func(energy)
             # FIXME: avoid multiple instances changing value simultaneously
             if round(self._target.get(),4) != new_target:
