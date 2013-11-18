@@ -53,6 +53,8 @@ class MotorBase(BaseDevice):
         self._motor_type = 'basic'
         self.units = ''
         self._move_active_value = 1
+        self._disabled_value = 0
+        self._calib_good_value = 1
         self.default_precision = 2
         
     def do_changed(self, st):
@@ -95,13 +97,13 @@ class MotorBase(BaseDevice):
             _logger.debug( "(%s) stopped at %f" % (self.name, self.get_position()) )
                        
     def _on_calib_changed(self, obj, cal):
-        if cal == 0:
-            self.set_state(health=(2, 'calib', 'Device Not Calibrated!'))
-        else:
+        if cal == self._calib_good_value:
             self.set_state(health=(0, 'calib'))
+        else:
+            self.set_state(health=(2, 'calib', 'Device Not Calibrated!'))
 
     def _signal_enable(self, obj, val):
-        if val == 0:
+        if val == self._disabled_value:
             if not self.is_busy():
                 self.set_state(health=(16, 'disabled', 'Device disabled!'))
         else:
@@ -230,7 +232,7 @@ class Motor(MotorBase):
                              (pv_name, motor_type) )
             raise MotorError("Motor name must be of the format 'name:unit'.")
         
-        if motor_type not in ['vme', 'cls', 'pseudo', 'oldpseudo', 'vmeenc', 'maxv']:
+        if motor_type not in ['vme', 'cls', 'pseudo', 'oldpseudo', 'vmeenc', 'maxv', 'aps']:
             _logger.error("Unable to create motor '%s' of dialog_type '%s'." %
                              (pv_name, motor_type) )
             raise MotorError("Motor dialog_type must be one of 'vmeenc', \
@@ -242,10 +244,9 @@ class Motor(MotorBase):
         self._motor_type = motor_type
         
         # initialize process variables based on motor dialog_type
-        self.DESC = self.add_pv("%s:desc" % (pv_root))               
-        self.VAL  = self.add_pv("%s" % (pv_name))
-        #self.ENAB = self.add_pv("%s:enabled" % (pv_root))
         if self._motor_type in ['vme','vmeenc']:
+            self.VAL  = self.add_pv("%s" % (pv_name))
+            self.DESC = self.add_pv("%s:desc" % (pv_root))               
             if self._motor_type == 'vme':
                 self.RBV  = self.add_pv("%s:sp" % (pv_name), timed=True)
                 self.PREC =    self.add_pv("%s:sp.PREC" % (pv_name))
@@ -262,6 +263,8 @@ class Motor(MotorBase):
             self.CCW_LIM = self.add_pv("%s:ccw" % (pv_root))
             self.CW_LIM = self.add_pv("%s:cw" % (pv_root))
         elif self._motor_type == 'cls':
+            self.VAL  = self.add_pv("%s" % (pv_name))
+            self.DESC = self.add_pv("%s:desc" % (pv_root))               
             self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
             self.RBV  = self.add_pv("%s:fbk" % (pv_name), timed=True)
             self.MOVN = self.add_pv("%s:state" % pv_root)
@@ -270,6 +273,8 @@ class Motor(MotorBase):
             self.CALIB = self.add_pv("%s:isCalib" % (pv_root))
             self.ENAB = self.CALIB
         elif self._motor_type == 'pseudo':
+            self.VAL  = self.add_pv("%s" % (pv_name))
+            self.DESC = self.add_pv("%s:desc" % (pv_root))               
             self._move_active_value = 1
             self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
             self.RBV  = self.add_pv("%s:fbk" % (pv_name), timed=True)
@@ -281,6 +286,8 @@ class Motor(MotorBase):
             self.LOG.connect('changed', self._on_log)
             self.ENAB = self.add_pv("%s:enabled" % (pv_root))
         elif self._motor_type == 'oldpseudo':
+            self.VAL  = self.add_pv("%s" % (pv_name))
+            self.DESC = self.add_pv("%s:desc" % (pv_root))               
             self._move_active_value = 0
             self.PREC =    self.add_pv("%s:sp.PREC" % (pv_name))
             self.RBV  = self.add_pv("%s:sp" % (pv_name), timed=True)
@@ -291,6 +298,21 @@ class Motor(MotorBase):
             self.LOG = self.add_pv("%s:log" % pv_root)
             self.LOG.connect('changed', self._on_log)
             self.ENAB = self.add_pv("%s:enabled" % (pv_root))
+        elif self._motor_type == 'aps':
+            self.DESC = self.add_pv("%s.DESC" % pv_name)               
+            self.VAL  = self.add_pv('%s.VAL' % pv_name)    
+            self.PREC = self.add_pv("%s.PREC" % pv_name)
+            self.EGU = self.add_pv("%s.EGU"% pv_name)  
+            self.RBV = self.add_pv("%s.RBV"% pv_name)
+            self.MOVN = self.add_pv("%s.DMOV" % pv_name)
+            self.STOP = self.add_pv("%s.STOP" % pv_name)
+            self.CALIB =  self.add_pv("%s.SET" % pv_name)
+            self.STAT =  self.add_pv("%s.STAT" % pv_name)
+            self.ENAB = self.CALIB
+            self._move_active_value = 0
+            self._calib_good_value = 0
+            self._disabled_value = 1
+            
                      
         # connect monitors
         self._rbid = self.RBV.connect('timed-change', self._signal_timed_change)
@@ -319,29 +341,6 @@ class Motor(MotorBase):
         except ca.ChannelAccessError:
             val = 0.0001
         return val
-
-    def configure(self, **kwargs):
-        """Configure the motor. Currently only allows changing the calibration
-        flag and reseting the position  for "vme" and "vmeenc" motors only.
-        
-        Kwargs:
-            - `calib` (int): 0 removes the calibration flag, anything else sets it.
-            - `reset` (float): position to recalibrate the current motor to.
-        """
-        for key, val in kwargs.items():
-            # Set Calibration
-            if key == 'calib':
-                if val:
-                    self.CALIB.set(1)
-                else:
-                    self.CALIB.set(0)
-            if key == 'reset':
-                if self._motor_type in ['vme','vmeenc'] :
-                    self.SET.set(val)
-                    _logger.info( "(%s) reset to %f." % (self.name, val) )
-                else:
-                    _logger.error( "(%s) can not reset %s Motors." %
-                        (self._motor_type) )
               
     def move_to(self, pos, wait=False, force=False):
         """Request the motor to move to an absolute position. By default, the 
@@ -458,6 +457,13 @@ class VMEMotor(Motor):
     def __init__(self, *args, **kwargs ):
         kwargs['motor_type'] = 'vme'
         Motor.__init__(self, *args, **kwargs)
+
+class APSMotor(Motor):
+    """Convenience class for "vme" type motors."""
+    def __init__(self, *args, **kwargs ):
+        kwargs['motor_type'] = 'aps'
+        Motor.__init__(self, *args, **kwargs)
+
 
 class ENCMotor(Motor):
     """Convenience class for "vmeenc" type motors."""
