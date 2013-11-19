@@ -295,7 +295,7 @@ class MD2Goniometer(GoniometerBase):
         self._mode_cmd = self.add_pv("%s:S:MDPhasePosition:asyn.AOUT" % pv_root, monitor=False)
         self._dev_cnct = self.add_pv("%s:G:MachAppState:asyn.CNCT" % pv_root)
         self._dev_enabled = self.add_pv("%s:usrEnable" % pv_root)
-        self._mca_act = self.add_pv("%s:S:MoveFluoDetFront")
+        self._mca_act = self.add_pv("%s:S:MoveFluoDetFront" % pv_root)
         
         # FIXME: Does not work reliably yet
         self._mode_mounting_cmd = self.add_pv("%s:S:transfer:phase.PROC" % pv_root, monitor=False)
