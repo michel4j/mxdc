@@ -285,7 +285,7 @@ class XANESScan(BasicScan):
             self.beamline.energy.wait()
             self.beamline.bragg_energy.wait()
             gobject.idle_add(self.emit, "progress", -1, "Stabilizing beam ...")
-            
+            time.sleep(5)
 #             # if energy just moved more than 10eV, optimize
 #             if abs(_cur_energy - self._edge_energy) >= 0.01:
 #                 gobject.idle_add(self.emit, "progress", -1, "Optimizing Energy ...")
@@ -318,7 +318,6 @@ class XANESScan(BasicScan):
                     
                 self.count += 1
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
-                #print x, self.beamline.energy.get_position()
                 y, i0 = multi_count(self.beamline.mca, self.beamline.i_0, self._duration)
                 if self.count == 1:
                     scale = 1.0
@@ -328,7 +327,7 @@ class XANESScan(BasicScan):
                 self.data.append( [x, y*scale, i0, y] )
                     
                 fraction = float(self.count) / len(self._targets)
-                #_logger.info("%4d %15g %15g %15g %15g" % (self.count, x, y*scale, i0, y))
+                _logger.debug("%4d %15g %15g %15g %15g" % (self.count, x, y*scale, i0, y))
                 gobject.idle_add(self.emit, "new-point", (x, y*scale, i0, y))
                 gobject.idle_add(self.emit, "progress", fraction, "Doing Scan ...")
                              
