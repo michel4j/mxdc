@@ -133,6 +133,7 @@ class XRFScan(BasicScan):
             # prepare environment for scannning
             gobject.idle_add(self.emit, "progress", -1, "Preparing devices ...")
             self.beamline.goniometer.set_mode('SCANNING')
+            gobject.idle_add(self.emit, "progress", -1, "Cooling down MCA ...")            
             self.beamline.mca.configure(retract=True, cooling=True, energy=None)
             self.beamline.attenuator.set(self._attenuation)
             if self._energy is not None:
@@ -141,11 +142,11 @@ class XRFScan(BasicScan):
                 self.beamline.energy.move_to(self._energy)
                 self.beamline.energy.wait()
                 
-                # if energy just moved more than 5eV, optimize
-                if abs(_cur_energy - self._energy) >= 0.005:
-                    gobject.idle_add(self.emit, "progress", -1, "Optimizing beam ...")
-                    self.beamline.mostab.start()
-                    self.beamline.mostab.wait()
+#                 # if energy just moved more than 5eV, optimize
+#                 if abs(_cur_energy - self._energy) >= 0.005:
+#                     gobject.idle_add(self.emit, "progress", -1, "Optimizing beam ...")
+#                     self.beamline.mostab.start()
+#                     self.beamline.mostab.wait()
 
             gobject.idle_add(self.emit, "progress", -1, "Acquiring spectrum ...")
             self.beamline.exposure_shutter.open()
@@ -276,17 +277,20 @@ class XANESScan(BasicScan):
             self.beamline.goniometer.set_mode('SCANNING')
             gobject.idle_add(self.emit, "progress", -1, "Preparing devices ...")
             self.beamline.attenuator.set(self._attenuation)
+            gobject.idle_add(self.emit, "progress", -1, "Cooling down MCA ...")            
             self.beamline.mca.configure(retract=True, cooling=True, energy=self._roi_energy)
             gobject.idle_add(self.emit, "progress", -1, "Moving to Edge ...")
             _cur_energy = self.beamline.energy.get_position()
             self.beamline.energy.move_to(self._edge_energy)
             self.beamline.energy.wait()
+            self.beamline.bragg_energy.wait()
+            gobject.idle_add(self.emit, "progress", -1, "Stabilizing beam ...")
             
-            # if energy just moved more than 10eV, optimize
-            if abs(_cur_energy - self._edge_energy) >= 0.01:
-                gobject.idle_add(self.emit, "progress", -1, "Optimizing Energy ...")
-                self.beamline.mostab.start()
-                self.beamline.mostab.wait()
+#             # if energy just moved more than 10eV, optimize
+#             if abs(_cur_energy - self._edge_energy) >= 0.01:
+#                 gobject.idle_add(self.emit, "progress", -1, "Optimizing Energy ...")
+#                 self.beamline.mostab.start()
+#                 self.beamline.mostab.wait()
                    
             self.count = 0
             self.beamline.exposure_shutter.open()
@@ -298,19 +302,15 @@ class XANESScan(BasicScan):
             gobject.idle_add(self.emit, 'progress', 0.0, "")
             
             for x in self._targets:
-                if self._paused or self._notify:
+                if self._paused:
                     gobject.idle_add(self.emit, 'paused', True, self._notify)
-                    if not self._paused: 
-                        self.pause(True)
                     self._notify = False
                     _logger.warning("Edge Scan paused at point %s." % str(x))
                     while self._paused and not self._stopped:
                         time.sleep(0.05)
-                    if self._notify:
-                        self.pause(True)
-                        continue
+
                     self.beamline.goniometer.set_mode('SCANNING', wait=True)  
-                    gobject.idle_add(self.emit, 'paused', False, self._notify)
+                    gobject.idle_add(self.emit, 'paused', False, False)
                     _logger.info("Scan resumed.")                
                 if self._stopped:
                     _logger.info("Scan stopped!")
@@ -318,6 +318,7 @@ class XANESScan(BasicScan):
                     
                 self.count += 1
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
+                print x, self.beamline.energy.get_position()
                 y, i0 = multi_count(self.beamline.mca, self.beamline.i_0, self._duration)
                 if self.count == 1:
                     scale = 1.0
@@ -460,12 +461,13 @@ class EXAFSScan(BasicScan):
             _cur_energy = self.beamline.energy.get_position()
             self.beamline.energy.move_to(self._edge_energy+0.2) # for exafs optimize a 0.2 above edge
             self.beamline.energy.wait()
+            self.beamline.bragg_energy.wait()
             
-            # if energy just moved more than 10eV, optimize
-            if abs(_cur_energy - (self._edge_energy+0.2)) >= 0.01:
-                gobject.idle_add(self.emit, "progress", -1, "Optimizing Energy ...")
-                self.beamline.mostab.start()
-                self.beamline.mostab.wait()
+#             # if energy just moved more than 10eV, optimize
+#             if abs(_cur_energy - (self._edge_energy+0.2)) >= 0.01:
+#                 gobject.idle_add(self.emit, "progress", -1, "Optimizing Energy ...")
+#                 self.beamline.mostab.start()
+#                 self.beamline.mostab.wait()
                     
             self.beamline.exposure_shutter.open()
             self.data_names = [  # last string in tuple is format suffix appended to end of '%n' 

@@ -6,7 +6,7 @@ import os
 import termcolor
 import types
 
-if os.environ.get('BCM_DEBUG', 'False').lower() == 'true':
+if os.environ.get('BCM_DEBUG', '0') in ['1', 'True', 'TRUE', 'true']:
     LOG_LEVEL = logging.DEBUG
 else:   
     LOG_LEVEL = logging.INFO
