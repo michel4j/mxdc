@@ -15,7 +15,7 @@ DEFAULT_ATTENUATION = 90.0               # attenuation in %
 DEFAULT_BEAMSTOP    = 60.0
 SAFE_DISTANCE       = 400.0
 SAFE_BEAMSTOP       = 80.0
-XRF_BEAMSTOP        = 100.0
+XRF_BEAMSTOP        = 120.0
 
 CENTERING_BACKLIGHT = 65.0
 
@@ -146,7 +146,6 @@ CONSOLE_DEVICES = {
     'dcm_y': VMEMotor('SMTR1608-4-B10-18:mm'),
     'dcm_y2': ENCMotor('SMTR1608-4-B10-14:mm'),
     'dcm_x': VMEMotor('SMTR1608-4-B10-19:mm'),
-    'dcm_offset': VMEMotor('SMTR1608-4-B10-14:mm'),
     'wbs_hgap': PseudoMotor('PSL1608-4-B10-02:gap:mm'),
     'wbs_vgap': PseudoMotor('PSL1608-4-B10-01:gap:mm'),
     'wbs_x': PseudoMotor('PSL1608-4-B10-02:cntr:mm'),
