@@ -318,7 +318,7 @@ class XANESScan(BasicScan):
                     
                 self.count += 1
                 self.beamline.monochromator.simple_energy.move_to(x, wait=True)
-                print x, self.beamline.energy.get_position()
+                #print x, self.beamline.energy.get_position()
                 y, i0 = multi_count(self.beamline.mca, self.beamline.i_0, self._duration)
                 if self.count == 1:
                     scale = 1.0
