@@ -499,7 +499,17 @@ class ScanManager(gtk.Alignment):
         self._save_config(scan_parameters)
         self.plotter.clear()
         
-        self.xrf_scanner.configure(round(scan_parameters['energy'], 0) + 2.0, scan_parameters['edge'], 
+        # if current energy is greater than offset from edge energy, use it
+        # otherwise use edge_energy + offset
+        # clip everything to be within beamline energy range
+        exposure_energy = max(
+                              self.beamline.config['energy_range'][0],
+                              self.beamline.energy.get_position(),
+                              min(
+                                  round(scan_parameters['energy'], 0) + self.beamline.config['xrf_energy_offset'],
+                                  self.beamline.config['energy_range'][1] )
+                              )
+        self.xrf_scanner.configure(exposure_energy, scan_parameters['edge'], 
                                    scan_parameters['time'], scan_parameters['attenuation'], 
                                    scan_parameters['directory'], scan_parameters['prefix'],
                                    scan_parameters['crystal'])
