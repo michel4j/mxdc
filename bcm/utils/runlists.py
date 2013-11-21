@@ -8,6 +8,7 @@ import fnmatch
 import re
 from bcm.utils.science import exafs_targets, exafs_time_func
 from bcm.utils import converter
+import numpy
 
 FULL_PARAMETERS = {
     'name': 'test',
@@ -126,10 +127,11 @@ def generate_frame_list(run, frame_set):
     
     # initialize general parameters
     delta_angle = run.get('delta_angle', 1.0)
-    
+    max_frame_number = int(round(run['first_frame'] + (run['total_angle'] - run['start_angle'])/run['delta_angle']))
+    frame_fmt = '%%s_%%0%dd' % (max(3, 1+int(numpy.log10(max_frame_number))))
     for frame_number, angle in frame_set:               
         # generate frame info
-        frame_name = "%s_%03d" % (run['name'], frame_number)
+        frame_name = frame_fmt % (run['name'], frame_number)
         file_name = "%s.img" % (frame_name)
         frame = {
             'saved': False,
@@ -162,6 +164,7 @@ def generate_frame_sets(run, show_number=True):
     first_frame = run.get('first_frame', 1)
     start_angle =  run.get('start_angle', 0.0)
     wedge = run.get('wedge', 360.0)
+    
     # make sure wedge is good
     if wedge < total_angle:
         wedge = delta_angle * round(wedge/delta_angle)
