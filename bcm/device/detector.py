@@ -59,7 +59,7 @@ class MXCCDImager(BaseDevice):
         
         #Header parameters
         self._header = {
-            'filename' : self.add_pv("%s:img:filename" % name, monitor=False),
+            'filename' : self.add_pv("%s:img:filename" % name, monitor=True),
             'directory': self.add_pv("%s:img:dirname" % name, monitor=False),
             'beam_x' : self.add_pv("%s:beam:x" % name, monitor=False),
             'beam_y' : self.add_pv("%s:beam:y" % name, monitor=False),
