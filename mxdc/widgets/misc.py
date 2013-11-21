@@ -134,7 +134,7 @@ class ActiveEntry(gtk.VBox):
         
         if self.device.units != "":
             label = '%s (%s)' % (label, self.device.units)
-        self._label.set_markup("<small><b>%s</b></small>" % (label,))
+        self._label.set_markup("<span size='small'><b>%s</b></span>" % (label,))
         self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000088"))
 
     def _on_entry_clicked(self, widget, event, data=None):

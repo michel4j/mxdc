@@ -37,7 +37,7 @@ class MXDCApp(object):
         self.beamline = MXBeamline()
         self.main_window.connect('destroy', self.do_quit)
         if SERVICE_DATA['beamline'] == 'SIM':
-            self.provider_success()
+            self.main_window.run()
             return False       
         try:
             self.browser = mdns.Browser('_mxdc._tcp')
