@@ -11,11 +11,15 @@ import gobject
 
 from bcm.beamline.mx import MXBeamline
 from bcm.utils.log import get_module_logger, log_to_console
-from mxdc.widgets.hutchmanager import HutchManager
+from mxdc.widgets.minihutchman import MiniHutchManager
 from bcm.engine.scripting import get_scripts
 from mxdc.widgets.statuspanel import StatusPanel
 from mxdc.widgets.samplepicker import SamplePicker
+from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.utils import gui
+
+from bcm.beamline.interfaces import IBeamline
+from twisted.python.components import globalRegistry
 
 _logger = get_module_logger('hutchviewer')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
@@ -43,7 +47,7 @@ class HutchWindow(gtk.Window):
         self.set_icon(icon)
         self.set_resizable(False)
 
-        self.hutch_manager = HutchManager()
+        self.hutch_manager = MiniHutchManager()
         self.status_panel = StatusPanel()
         
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
@@ -54,6 +58,18 @@ class HutchWindow(gtk.Window):
         _lbl.set_padding(6, 0)
         self.hutch_manager.video_book.append_page(self.sample_picker, tab_label=_lbl)
         self.sample_picker.set_border_width(9)
+
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        if self.beamline.config['admin_group'] in os.getgroups():
+            self.image_viewer = ImageViewer(size=256)
+            _lbl = gtk.Label('Diffraction Viewer')
+            _lbl.set_padding(6,0)
+            self.hutch_manager.device_book.append_page(self.image_viewer, tab_label=_lbl)
+            self.beamline.detector._header['filename'].connect('changed', self.on_new_image)
+            self.hutch_manager.device_book.set_show_border(False)
+        else:
+            self.hutch_manager.device_book.set_show_tabs(False)
+            self.hutch_manager.device_book.set_show_border(False)
 
         self.main_frame.add(self.hutch_manager)
         self.mxdc_main.pack_start(self.status_panel, expand = False, fill = False)
@@ -67,6 +83,11 @@ class HutchWindow(gtk.Window):
         self.open_shutter_mnu.connect('activate', self.hutch_manager.on_open_shutter)
         self.close_shutter_mnu.connect('activate', self.hutch_manager.on_close_shutter)        
         self.show_all()
+
+    def on_new_image(self, widget, index):
+        header = self.beamline.detector._header
+        filename = '%s/%s' % (header['directory'].get().replace('/data/','/users/'), header['filename'].get())
+        self.image_viewer.image_canvas.queue_frame(filename)
         
     def _do_quit(self):
         self.hide()
@@ -121,30 +142,6 @@ def main():
     app = HutchApp()
     app.run_local()
         
-def main2():
-    win = gtk.Window()
-    win.connect("destroy", lambda x: reactor.stop())
-    win.set_border_width(3)
-    win.set_size_request(1167,815)
-    
-    win.set_title("HutchViewer")
- 
-    try:
-        _ = os.environ['BCM_CONFIG_PATH']
-    except:
-        _logger.error('Could not fine Beamline Control Module environment variables.')
-        _logger.error('Please make sure MXDC is properly installed and configured.')
-        sys.exit(1)
-    bl = MXBeamline()
-    
-    myviewer = HutchManager()
-    myviewer.video_book.connect('realize', lambda x: myviewer.video_book.set_page(1))
-    myviewer.tool_book.connect('realize', lambda x: myviewer.tool_book.set_page(1))
-    myviewer.show_all()
-
-    win.add(myviewer)
-    win.show_all()
-
 
 if __name__ == '__main__':
     log_to_console()

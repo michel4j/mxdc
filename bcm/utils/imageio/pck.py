@@ -8,7 +8,7 @@ Overview
 import sys
 from ctypes import *
 import numpy
-import Image
+from PIL import Image
 import os
 
 from bcm.utils.imageio.utils import calc_gamma

@@ -1,12 +1,12 @@
-import time
+
+from bcm.device.base import BaseDevice
+from bcm.device.interfaces import ICounter
+from bcm.utils.log import get_module_logger
+from zope.interface import implements
 import numpy
 import os
 import random
-
-from zope.interface import implements
-from bcm.device.interfaces import ICounter
-from bcm.device.base import BaseDevice
-from bcm.utils.log import get_module_logger
+import time
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)

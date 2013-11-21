@@ -5,7 +5,7 @@ Created on Nov 25, 2010
 '''
 import math
 import struct
-import Image 
+from PIL import Image 
 import numpy
 from bcm.utils.imageio.utils import calc_gamma
 from bcm.utils.log import get_module_logger

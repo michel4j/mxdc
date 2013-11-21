@@ -139,9 +139,8 @@ class BasicScan(gobject.GObject):
 
     def on_beam_change(self, obj, beam_available):
         self._notify = not beam_available
-        if not beam_available and (not self._paused) and (not self._stopped):
-            self.pause(True)    
-        return True
+        if self._notify and (not self._paused) and (not self._stopped):
+            self.pause(True)
     
     def save(self, filename=None):
         if filename is None:

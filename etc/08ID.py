@@ -6,6 +6,7 @@ BEAMLINE_NAME = '08ID-1'
 BEAMLINE_TYPE = 'MX'
 BEAMLINE_ENERGY_RANGE = (6.0, 18.5)
 BEAMLINE_GONIO_POSITION = 3             # Goniometer orientation (XREC) 1,2,3
+ADMIN_GROUP = 2000
 
 DEFAULT_EXPOSURE    = 1.0
 DEFAULT_ATTENUATION = 90.0              # attenuation in %
@@ -13,6 +14,7 @@ DEFAULT_BEAMSTOP    = 30.0
 SAFE_BEAMSTOP       = 50.0
 SAFE_DISTANCE       = 400.0
 XRF_BEAMSTOP        = 30.0
+XRF_ENERGY_OFFSET   = +2.0              # KeV
 
 CENTERING_BACKLIGHT = 37.0
 
@@ -32,7 +34,7 @@ DEVICES = {
     'energy':   EnergyMotor('BL08ID1:energy', 'SMTR16082I1005:deg'),
     'bragg_energy': BraggEnergyMotor('SMTR16082I1005:deg', motor_type="vme"),
     'dcm_pitch':  VMEMotor('SMTR16082I1010:deg'),
-    'mostab': MostabOptimizer('MOS16082I1001'),
+    'mostab': MostabPIDController('MOS16082I1001'),
     
     # Goniometer/goniometer head devices
     'goniometer': Goniometer('GV6K1608-001', 'OAV1608-3-I10-01', 'ROB16083I', 'PM1608-3-I10-02:pm:mm'),

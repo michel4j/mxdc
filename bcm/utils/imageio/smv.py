@@ -6,7 +6,7 @@ Created on Nov 25, 2010
 import numpy
 import re
 import ctypes
-import Image
+from PIL import Image
 from bcm.utils.imageio.utils import calc_gamma
 from bcm.utils.log import get_module_logger
 from bcm.utils.imageio.common import *

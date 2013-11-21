@@ -390,8 +390,9 @@ class RunWidget(gtk.Alignment):
         run_data['inverse_beam'] = self.entry['inverse_beam'].get_active()
         run_data['dafs'] =self.entry['dafs'].get_active()
         run_data['number'] = self.number
+        run_data['two_theta'] = self.beamline.two_theta.get_position()
             
-        for key in ['distance','delta_angle','start_angle','total_angle', 'wedge', 'exposure_time', 'attenuation', 'num_frames']:
+        for key in ['distance','delta_angle','start_angle','total_angle', 'wedge', 'exposure_time', 'attenuation']:
             run_data[key] = float(self.entry[key].get_text())
 
         for key in ['first_frame','num_frames']:
@@ -606,7 +607,7 @@ class RunWidget(gtk.Alignment):
     def on_total_frames_changed(self,widget,event=None):
         delta = float(self.entry['delta_angle'].get_text())
         try:
-            total_frames = float(self.entry['num_frames'].get_text() )
+            total_frames = max(1, int(self.entry['num_frames'].get_text()))
             total_angle = total_frames * delta 
         except:
             total_angle = float(self.entry['total_angle'].get_text())

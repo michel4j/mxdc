@@ -2,17 +2,20 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Beamline &mdash; Beamline Control Module v4.1.6-gedc482b documentation</title>
+    <title>Beamline &mdash; Beamline Control Module 5.0.0-75-g7229eab documentation</title>
+    
     <link rel="stylesheet" href="../_static/jinja.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '4.1.6-gedc482b',
+        VERSION:     '5.0.0-75-g7229eab',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -21,7 +24,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="Beamline Control Module v4.1.6-gedc482b documentation" href="../index.html" />
+    <link rel="top" title="Beamline Control Module 5.0.0-75-g7229eab documentation" href="../index.html" />
     <link rel="up" title="API documentation" href="index.html" />
     <link rel="next" title="&lt;no title&gt;" href="scripts.html" />
     <link rel="prev" title="&lt;no title&gt;" href="protocols.html" /> 
@@ -42,7 +45,7 @@
         <li class="right" >
           <a href="protocols.html" title="&lt;no title&gt;"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Beamline Control Module v4.1.6-gedc482b documentation</a> &raquo;</li>
+        <li><a href="../index.html">Beamline Control Module 5.0.0-75-g7229eab documentation</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">API documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -61,6 +64,11 @@
 <em class="property">class </em><tt class="descclassname">bcm.beamline.interfaces.</tt><tt class="descname">IBeamline</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">zope.interface.Interface</span></tt></p>
 <p>A beamline object.</p>
+<dl class="attribute">
+<dt>
+<tt class="descclassname">IBeamline.</tt><tt class="descname">dependents</tt><em class="property"> = &lt;WeakKeyDictionary at 48709504&gt;</em></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </div>
@@ -88,7 +96,8 @@ $(BCM_BEAMLINE)_local.py e.g &#8216;08B1_local.py for the above example.</p>
 <dd><p class="first">BEAMLINE_NAME = Any string preferably without spaces
 BEAMLINE_TYPE = Only the string &#8216;MX&#8217; for now
 BEAMLINE_ENERGY_RANGE = A tuple of 2 floats for low and hi energy limits
-BEAMLINE_GONIO_POSITION = Goniometer orientation according to XREC (i.e 1,2,3 etc)          
+BEAMLINE_GONIO_POSITION = Goniometer orientation according to XREC (i.e 1,2,3 etc)  
+ADMIN_GROUP = Group id for admin users (staff)        
 DEFAULT_EXPOSURE    = A float for the default exposure time
 DEFAULT_ATTENUATION = A float for attenuation in %
 DEFAULT_BEAMSTOP    = Default beam-stop position
