@@ -10,6 +10,7 @@ from bcm.device.goniometer import *
 from bcm.device.automounter import *
 from bcm.device.mca import *
 from bcm.device.cryojet import *
+from bcm.device.boss import *
 from bcm.device.video import *
 from bcm.service.imagesync_client import *
 from bcm.engine.optimizer import *

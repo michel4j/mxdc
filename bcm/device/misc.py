@@ -73,7 +73,7 @@ class SimPositioner(PositionerBase):
 class Positioner(PositionerBase):
     """Simple EPICS based positioning device.
     """
-    def __init__(self, name, fbk_name=None, scale=100, units=""):
+    def __init__(self, name, fbk_name=None, scale=100, units="", wait_time=0):
         """Args:
             - `name` (str): Name of positioner PV for setting the value
         
@@ -93,6 +93,7 @@ class Positioner(PositionerBase):
         self.DESC = PV('%s.DESC' % name) # device should work without desc pv so not using add_pv
         self.name = name
         self.units = units
+        self._wait_time = wait_time
 
         self.fbk_pv.connect('changed', self._signal_change)
         self.DESC.connect('changed', self._on_name_change)
@@ -112,6 +113,8 @@ class Positioner(PositionerBase):
         else:
             val = self.scale * pos/100
             self.set_pv.set(val)
+        if wait:
+            time.sleep(self._wait_time)
           
     def get(self):
         if self.scale is None:
@@ -268,7 +271,7 @@ class Attenuator(BaseDevice):
                 timeout -= 0.05
                 time.sleep(0.05)
             if timeout <= 0:
-                _logger.waring('Attenuator timed out going to [%s]' % (bitmap))
+                _logger.warning('Attenuator timed out going to [%s]' % (bitmap))
             
     
     def _signal_change(self, obj, value):
@@ -446,52 +449,8 @@ class ShutterGroup(BaseDevice):
             dev.close()
             while dev.changed_state:
                 time.sleep(0.1)
-        
-class MotorShutter(BaseDevice):
-    """Used for CMCF1 cryojet Motor"""
-    implements(IShutter)
-    __used_for__ = IMotor  
-    __gsignals__ =  { 
-        "changed": ( gobject.SIGNAL_RUN_FIRST, 
-                     gobject.TYPE_NONE, 
-                     (gobject.TYPE_BOOLEAN,)  ),
-        }
-    
-    def __init__(self, motor):
-        BaseDevice.__init__(self)
-        self.motor = motor
-        self.add_devices(self.motor)
-        self.name = motor.name
-        self.out_pos = 50
-        self.in_pos = 0
-        self.motor.CW_LIM.connect('changed', self._auto_calib_nozzle)
 
-    def _auto_calib_nozzle(self, obj, val):
-        if val == 1:
-            self.set_state(changed=True)
-            #self.motor.configure(reset=0.0)
-        else:
-            self.set_state(changed=False)
-
-    def is_open(self):
-        """Convenience function for open state"""
-        return self.changed_state
-        
-    def open(self):
-        self.motor.move_to(self.out_pos)
-
-    def close(self):
-        self.motor.move_to(self.in_pos-0.1)
-            
-    def _signal_change(self, obj, value):
-        if abs(value - self.in_pos) < 0.1:
-            self.set_state(changed=False)
-        else:
-            self.set_state(changed=True)
-
-registry.register([IMotor], IShutter, '', MotorShutter)
-
-        
+       
 class SimShutter(BaseDevice):
     
     implements(IShutter)
@@ -519,6 +478,9 @@ class SimShutter(BaseDevice):
     def close(self):
         self._state = False
         self.set_state(changed=False )
+
+    def wait(self, state=True, timeout=5.0):
+        pass
 
    
 class Shutter(BasicShutter):

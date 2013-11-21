@@ -15,7 +15,7 @@
         <child>
           <object class="GtkHBox" id="upper_box">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">True</property>
             <property name="spacing">6</property>
             <child>
               <object class="GtkVButtonBox" id="commands_box">
@@ -51,102 +51,12 @@
             <child>
               <object class="GtkTable" id="device_box">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
                 <property name="n_rows">4</property>
                 <property name="n_columns">6</property>
-                <property name="column_spacing">3</property>
-                <property name="row_spacing">3</property>
+                <property name="column_spacing">6</property>
+                <property name="row_spacing">4</property>
                 <property name="homogeneous">True</property>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
                 <child>
                   <placeholder/>
                 </child>
@@ -263,8 +173,8 @@
                 </child>
                 <child>
                   <object class="GtkAlignment" id="predictor_frame">
-                    <property name="width_request">120</property>
-                    <property name="height_request">120</property>
+                    <property name="width_request">100</property>
+                    <property name="height_request">100</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
@@ -303,6 +213,30 @@
                 <child>
                   <placeholder/>
                 </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -321,7 +255,7 @@
           <object class="GtkTable" id="lower_box">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="n_columns">12</property>
+            <property name="n_columns">14</property>
             <property name="column_spacing">6</property>
             <property name="homogeneous">True</property>
             <child>
@@ -331,7 +265,7 @@
                 <property name="scrollable">True</property>
               </object>
               <packing>
-                <property name="right_attach">7</property>
+                <property name="right_attach">8</property>
               </packing>
             </child>
             <child>
@@ -340,8 +274,8 @@
                 <property name="can_focus">True</property>
               </object>
               <packing>
-                <property name="left_attach">7</property>
-                <property name="right_attach">12</property>
+                <property name="left_attach">8</property>
+                <property name="right_attach">14</property>
               </packing>
             </child>
           </object>

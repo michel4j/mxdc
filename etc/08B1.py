@@ -1,18 +1,21 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
 import os
+import numpy
+from scipy import interpolate
 from bcm.settings import *
 
 BEAMLINE_NAME = '08B1-1'
 BEAMLINE_TYPE = 'MX'
 BEAMLINE_ENERGY_RANGE = (4.0, 18.5)
 BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
+ADMIN_GROUP = 2000
 
 DEFAULT_EXPOSURE    = 5.0
 DEFAULT_ATTENUATION = 90.0               # attenuation in %
 DEFAULT_BEAMSTOP    = 60.0
 SAFE_DISTANCE       = 400.0
 SAFE_BEAMSTOP       = 80.0
-XRF_BEAMSTOP        = 100.0
+XRF_BEAMSTOP        = 120.0
 
 CENTERING_BACKLIGHT = 65.0
 
@@ -30,14 +33,25 @@ def _energy2pitch(x):
     a = numpy.arcsin(1.97704/x)
     return p[0] + p[1] * numpy.sin(a) + p[2] * numpy.log(a) + p[3] * numpy.cos(a)
 
+class SplineRep(object):
+    def __init__(self):
+        self.fit = None
+        txtfile = os.path.join(os.path.dirname(__file__), 'data', '08B1-boss.lut')
+        data = numpy.loadtxt(txtfile, dtype={"names": ('energy', 'target'), "formats": (float, float)})
+        data.sort(order="energy")
+        self.fit = interpolate.splrep(data['energy'], data['target'])
+        
+    def __call__(self, x, rnd=4):
+        return round(interpolate.splev(x, self.fit, der=0), rnd)
+
 # maps names to device objects
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
     'energy':   PseudoMotor('DCM1608-4-B10-01:energy:KeV'),
     'bragg_energy': BraggEnergyMotor('SMTR1608-4-B10-17:deg', motor_type="vmeenc"),
     'dcm_pitch':  ENCMotor('SMTR1608-4-B10-15:deg'),
-    #'boss': BossOptimizer('BL08B1:PicoControl'),    
-    'mostab': PitchOptimizer('Pitch Optimizer', _energy2pitch),
+    'boss': BossPIDController('BL08B1:PicoControl', 'DCM1608-4-B10-01:energy:KeV:fbk', target_func=SplineRep()),    
+    'mostab': PitchOptimizer('Pitch Tuner', _energy2pitch),
     
     # Goniometer/goniometer head devices
     'goniometer': MD2Goniometer('BL08B1:MD2'),
@@ -132,7 +146,6 @@ CONSOLE_DEVICES = {
     'dcm_y': VMEMotor('SMTR1608-4-B10-18:mm'),
     'dcm_y2': ENCMotor('SMTR1608-4-B10-14:mm'),
     'dcm_x': VMEMotor('SMTR1608-4-B10-19:mm'),
-    'dcm_offset': VMEMotor('SMTR1608-4-B10-14:mm'),
     'wbs_hgap': PseudoMotor('PSL1608-4-B10-02:gap:mm'),
     'wbs_vgap': PseudoMotor('PSL1608-4-B10-01:gap:mm'),
     'wbs_x': PseudoMotor('PSL1608-4-B10-02:cntr:mm'),

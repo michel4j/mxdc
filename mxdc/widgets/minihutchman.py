@@ -27,13 +27,13 @@ _logger = get_module_logger('mxdc.hutchmanager')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 
-class HutchManager(gtk.Alignment):
+class MiniHutchManager(gtk.Alignment):
     __gsignals__ = {
         'beam-change': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_BOOLEAN,]),
     }
     def __init__(self):
         gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
-        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'hutch_widget'), 'hutch_widget')
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'mini_hutch_widget'), 'hutch_widget')
         
         self.scripts = get_scripts()
         self._create_widgets()
@@ -44,7 +44,7 @@ class HutchManager(gtk.Alignment):
     
     def __getattr__(self, key):
         try:
-            return super(HutchManager).__getattr__(self, key)
+            return super(MiniHutchManager).__getattr__(self, key)
         except AttributeError:
             return self._xml.get_widget(key)
         
@@ -75,16 +75,16 @@ class HutchManager(gtk.Alignment):
         
         # create and pack devices into settings frame
         _entry_locs = {
-            'energy': (2,0),
-            'attenuation': (3,0),
-            'omega': (3,2),
-            'distance': (4,0),
-            'beam_stop': (3,1),
-            'two_theta': (4,1),
-            'beam_size': (4,2),
-            'phi': (3,3),
-            'kappa': (4,3),
-            'chi': (4,2)
+            'energy': (0,0),
+            'attenuation': (1,0),
+            'omega': (0,2),
+            'distance': (2,0),
+            'beam_stop': (0,1),
+            'two_theta': (1,1),
+            'beam_size': (1,2),
+            'phi': (0,3),
+            'kappa': (1,3),
+            'chi': (1,2)
         }
         self.entries = {
             'energy':       misc.MotorEntry(self.beamline.monochromator.energy, 'Energy', fmt="%0.3f"),
@@ -111,7 +111,7 @@ class HutchManager(gtk.Alignment):
         # Predictor
         self.predictor = Predictor(self.beamline.detector.resolution, 
                                    self.beamline.detector.size)
-        self.predictor.set(xalign=1.0, yalign=0.5)
+        self.predictor.set(xalign=1, yalign=0.5)
         self.predictor_frame.add(self.predictor)
         self.beamline.diffractometer.distance.connect('changed', self.update_predictor)
         self.beamline.diffractometer.two_theta.connect('changed', self.update_predictor)

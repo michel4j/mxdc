@@ -139,7 +139,9 @@ class Browser(gobject.GObject):
         """
         Callback from dbus when a service is removed.
         """
-        gobject.idle_add(self.emit, 'removed', self._services.pop((str(name), str(service_type))))
+        key = (str(name), str(service_type))
+        if key in self._services:
+            gobject.idle_add(self.emit, 'removed', self._services.pop(key))
 
     def _on_service_added(self, interface, protocol, name, service_type, domain, flags):
         """
