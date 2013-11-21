@@ -112,11 +112,11 @@ class ImageViewer(gtk.Alignment):
     def _select_spots(self, spots):
         def _zeros(a):
             for v in a:
-                if abs(v)<0.01:
+                if abs(v)>0.01:
                     return False
             return True
-        indexed = [sp for sp in spots if _zeros(sp[4:])]
-        unindexed = [sp for sp in spots if not _zeros(sp[4:])]
+        indexed = [sp for sp in spots if not _zeros(sp[4:])]
+        unindexed = [sp for sp in spots if _zeros(sp[4:])]
         return indexed, unindexed
                     
     def _select_image_spots(self, spots):
@@ -152,8 +152,7 @@ class ImageViewer(gtk.Alignment):
             self.file_template = os.path.join(self.directory, 
                                      "%s*%s" % (fm.group('base'), extension))
         
-        self._rescan_dataset()
-        
+        self._rescan_dataset()       
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
         self.contrast_tbtn.set_sensitive(True)
@@ -196,7 +195,6 @@ class ImageViewer(gtk.Alignment):
         self.brightness_popup.move(cx, cy)
         self.colorize_popup.move(cx, cy)
         
-
     # signal handlers
     def on_focus_out(self, obj, event, btn):
         btn.set_active(False)
@@ -236,7 +234,7 @@ class ImageViewer(gtk.Alignment):
     
     def on_mouse_motion(self,widget,event):
         ix, iy, ires, ivalue = self.image_canvas.get_position(event.x, event.y)
-        self.info_label.set_markup("<small><tt>%5d %4d \n%5d %4.1f Å</tt></small>"% (ix, iy, ivalue, ires))
+        self.info_label.set_markup("<span size='x-small'><tt><b>%4d %5d \n%4d %5.1f Å</b></tt></span>"% (ix, iy, ivalue, ires))
         self.info_label.set_alignment(1.0, 0.5)
 
 
@@ -265,13 +263,13 @@ class ImageViewer(gtk.Alignment):
         if self._collecting and self._following:
             self.image_canvas.queue_frame(filename)
 
-    def _follow_frames(self):
-        if self._following:
-            if 0 <= self._dataset_pos + 1 < len(self._dataset_frames):
-                if image_loadable(self._dataset_frames[self._dataset_pos + 1]):
-                    self.image_canvas.queue_frame(self._dataset_frames[self._dataset_pos + 1])
-            else:
-                self._rescan_dataset()
+    def queue_frame(self, filename):
+        self.image_canvas.queue_frame(filename)
+
+    def _replay_frames(self):
+        self._rescan_dataset()
+        if self._following and 0 <= self._dataset_pos + 1 < len(self._dataset_frames):
+            self.image_canvas.queue_frame(self._dataset_frames[self._dataset_pos + 1])
             return True
         else:
             return False
@@ -373,7 +371,7 @@ class ImageViewer(gtk.Alignment):
     def on_follow_toggled(self,widget):
         self._following = widget.get_active()
         if not self._collecting:
-            gobject.timeout_add(2500, self._follow_frames)
+            gobject.timeout_add(2500, self._replay_frames)
         return True
 
 def main():
