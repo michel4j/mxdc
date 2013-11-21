@@ -607,7 +607,7 @@ class RunWidget(gtk.Alignment):
     def on_total_frames_changed(self,widget,event=None):
         delta = float(self.entry['delta_angle'].get_text())
         try:
-            total_frames = float(self.entry['num_frames'].get_text() )
+            total_frames = max(1, int(self.entry['num_frames'].get_text()))
             total_angle = total_frames * delta 
         except:
             total_angle = float(self.entry['total_angle'].get_text())
