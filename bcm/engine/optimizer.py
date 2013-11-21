@@ -6,101 +6,14 @@ from twisted.python.components import globalRegistry
 from bcm.beamline.interfaces import IBeamline
 from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
-from bcm.engine.interfaces import IOptimizer
-from bcm.engine.scanning import AbsScan
+from bcm.device.interfaces import IOptimizer
+from bcm.engine.scanning import RelScan
 from bcm.engine import fitting
 
 import numpy
+import gobject
 
 _logger = get_module_logger(__name__)
-
-class Optimizer(BaseDevice):
-    implements(IOptimizer)
-    
-    def __init__(self, name):
-        BaseDevice.__init__(self)
-        self.set_state(active=True)
-        self.name = name
-    
-    def start(self):
-        pass
-    
-    def stop(self):
-        pass
-        
-    def wait(self):
-        return
-
-SimOptimizer = Optimizer
-  
-class BossOptimizer(BaseDevice):
-    implements(IOptimizer)
-    
-    def __init__(self, name):
-        BaseDevice.__init__(self)
-        self.name = name
-        self._enable = self.add_pv('%s:EnableDacOUT' % name)
-        self._status = self.add_pv('%s:EnableDacIN' % name)
-        self._status.connect('changed', self._state_change)
-        
-    def _state_change(self, obj, val):
-        self.set_state(active=(val==1))
-        
-    def start(self):
-        _logger.debug('Enabling BOSS.')
-        self._enable.put(1)
-        
-    def stop(self):
-        _logger.debug('Disabling BOSS.')
-        self._enable.put(0)
-    
-    def wait(self):
-        return
-        
-class MostabOptimizer(BaseDevice):
-    
-    implements(IOptimizer)
-    
-    def __init__(self, name):
-        BaseDevice.__init__(self)
-        self.name = name
-        self._start = self.add_pv('%s:Mostab:opt:cmd' % name)
-        self._stop = self.add_pv('%s:abortFlag' % name)
-        self._state = self.add_pv('%s:Mostab:opt:sts'% name)
-        self._enabled = self.add_pv('%s:Mostab:opt:enabled'% name)
-        self._command_active = False
-        self._state.connect('changed', self._state_change)
-        self._enabled.connect('changed', self._on_enable)
-        
-        
-    def _state_change(self, obj, val):
-        if val == 1:
-            self.set_state(busy=True)
-        else:
-            self._command_active = False
-            self.set_state(busy=False)
-    
-    def _on_enable(self, obj, val):
-        if val == 0:
-            self.set_state(health=(16, 'srcheck', "No Beam"))
-        else:
-            self.set_state(health=(0, 'srcheck'))
-        
-    def start(self):
-        if self.health_state[0] == 0:
-            self._command_active = True
-            self._start.put(1)
-        else:
-            _logger.warning('Not enough beam to optimize.')
-        
-    
-    def stop(self):
-        self._stop.put(1)
-    
-    def wait(self):
-        poll=0.05
-        while self.busy_state or self._command_active:
-            time.sleep(poll)
 
 
 class PitchOptimizer(BaseDevice):
@@ -126,25 +39,32 @@ class PitchOptimizer(BaseDevice):
             return 
         self.pitch = bl.dcm_pitch
         self.counter = bl.i_0
-        energy = bl.energy.get_position()
+        self._current_pitch = self.pitch.get_position()
+        #energy = bl.energy.get_position()
+        #self.pitch.move_to(self.pitch_func(energy))
 
         if self.counter.value.get() < self.min_count:
             _logger.warning('Counter is below threshold.')
             return 
         else:
-            self.set_state(busy=True)
-            _p = self.pitch_func(energy)
-            self._current_pitch = _p
-            st_p = _p - 0.002
-            en_p = _p + 0.002
-            self._scan = AbsScan(self.pitch, st_p, en_p, 20, self.counter, 0.5)
-            self._scan.connect('done', self._fit_scan)
+            #self.set_state(busy=True)
+            #_p = self.pitch_func(energy)
+            #self._current_pitch = _p
+            #st_p = _p - 0.002
+            #en_p = _p + 0.002
+            self._scan = RelScan(self.pitch, -0.002, 0.002, 20, self.counter, 0.5)
+            self._scan.connect('done', self._fit_scan, bl)
+            if 'boss' in bl.registry:
+                bl.boss.pause()
+            
             self._scan.start()
             
-    def _fit_scan(self, scan):
+    def _fit_scan(self, scan, bl):
         data = numpy.array(scan.data)
         xo = data[:, 0]
         yo = data[:,-1]
+        if 'boss' in bl.registry:
+            bl.boss.resume()
 
         params, success = fitting.peak_fit(xo, yo, 'gaussian')
         ymax = params[0]
@@ -166,9 +86,47 @@ class PitchOptimizer(BaseDevice):
             self.pitch.move_to(self._current_pitch)
             _logger.info('Pitch Optimization aborted. Moving to theoretical position %0.4e.' % (self._current_pitch))
 
+    def pause(self):
+        if self.active_state and self._scan is not None:
+            self._scan.pause(True)
+
+    def resume(self):
+        if self.active_state and self._scan is not None:
+            self._scan.pause(False)
+
+    def wait(self):
+        poll=0.05
+        while self.busy_state:
+            time.sleep(poll)
+
+class SimOptimizer(BaseDevice):
+    """Pitch Optimizer for 08B1-1"""
+    implements(IOptimizer)
+    
+    def __init__(self, name):
+        BaseDevice.__init__(self)
+        self.name = name
+        self.set_state(active=True)
+    
+
+    def start(self):
+        self.set_state(busy=True)
+        gobject.timeout_add(2000, self._not_busy)            
+
+    def _not_busy(self):
+        self.set_state(busy=False)
+              
+    def stop(self):
+        pass
+    def pause(self):
+        pass
+
+    def resume(self):
+        pass
+
     def wait(self):
         poll=0.05
         while self.busy_state:
             time.sleep(poll)
             
-__all__ = ['BossOptimizer', 'MostabOptimizer', 'SimOptimizer', 'PitchOptimizer']
+__all__ = ['PitchOptimizer', 'SimOptimizer']

@@ -97,6 +97,8 @@ class ActiveEntry(gtk.VBox):
         self._sizegroup_h.add_widget(self._fbk_label)
         self._sizegroup_v.add_widget(self._entry)
         self._sizegroup_v.add_widget(self._fbk_label)
+
+        self._entry.connect('event', self._on_entry_clicked)
         #self._sizegroup_v.add_widget(self._action_btn)
 
         #font_desc.set_family('#monospace')
@@ -132,10 +134,13 @@ class ActiveEntry(gtk.VBox):
         
         if self.device.units != "":
             label = '%s (%s)' % (label, self.device.units)
-        self._label.set_markup("<small><b>%s</b></small>" % (label,))
+        self._label.set_markup("<span size='small'><b>%s</b></span>" % (label,))
         self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000088"))
 
-    
+    def _on_entry_clicked(self, widget, event, data=None):
+        if event.type == gtk.gdk.BUTTON_RELEASE:
+            widget.select_region(0, -1)
+          
     def set_feedback(self, val):
         text = self.number_format % val
         if len(text) > self.width:

@@ -11,7 +11,7 @@ from bcm.utils.imageio.utils import calc_gamma
 from bcm.utils.log import get_module_logger
 from ctypes import c_size_t, c_char_p, cdll, c_double, c_int, c_uint, c_long, sizeof
 from ctypes import c_uint16, c_uint32, POINTER, c_int32, c_int16, c_void_p, byref
-import Image
+from PIL import Image
 import ctypes
 import numpy
 import re

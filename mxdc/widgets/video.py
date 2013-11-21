@@ -6,10 +6,10 @@ import gobject
 import pango
 import time
 import threading
-import Image 
-import ImageOps
-import ImageDraw
-import ImageFont
+from PIL import Image 
+from PIL import ImageOps
+from PIL import ImageDraw
+from PIL import ImageFont
 
 
 from bcm.protocol import ca

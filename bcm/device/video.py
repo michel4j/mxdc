@@ -5,7 +5,7 @@ from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from scipy import misc
 from zope.interface import implements
-import Image
+from PIL import Image
 import cStringIO
 import httplib
 import numpy
