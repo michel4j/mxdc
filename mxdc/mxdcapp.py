@@ -43,7 +43,7 @@ class MXDCApp(object):
             self.browser = mdns.Browser('_mxdc._tcp')
             self.browser.connect('added', self.service_found)
             self.browser.connect('removed', self.service_removed)
-            gobject.timeout_add(2000, self.broadcast_service) # broadcast after a short while
+            gobject.timeout_add(2500, self.broadcast_service) # broadcast after a short while
             self.main_window.run()
         except mdns.mDNSError:
             self.provider_failure()
