@@ -126,20 +126,20 @@ class DataList(gtk.ScrolledWindow):
         model, paths = selection.get_selected_rows()
         datasets = []
         for path in paths:
-            iter = model.get_iter(path)
-            datasets.append(model.get_value(iter, DATA_COLUMN_DATA))
+            itr = model.get_iter(path)
+            datasets.append(model.get_value(itr, DATA_COLUMN_DATA))
         return datasets
        
     def on_row_toggled(self, cell, path, model):
-        iter = model.get_iter(path)
-        value = model.get_value(iter, DATA_COLUMN_SELECT)                 
-        model.set(iter, DATA_COLUMN_SELECT, (not value) )            
+        itr = model.get_iter(path)
+        value = model.get_value(itr, DATA_COLUMN_SELECT)                 
+        model.set(itr, DATA_COLUMN_SELECT, (not value) )            
         return True
 
     def set_row_selected(self, pos, selected=True):
         path = (pos,)
-        iter = self.listmodel.get_iter(path)
-        self.listmodel.set(iter, DATA_COLUMN_SELECT, selected)
+        itr = self.listmodel.get_iter(path)
+        self.listmodel.set(itr, DATA_COLUMN_SELECT, selected)
         self.listview.scroll_to_cell(path, use_align=True, row_align=0.9)        
     
 

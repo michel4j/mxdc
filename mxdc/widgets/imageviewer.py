@@ -124,18 +124,19 @@ class ImageViewer(gtk.Alignment):
         return image_spots
     
     def _rescan_dataset(self):
-        self._dataset_frames = glob.glob(self.file_template)
-        self._dataset_frames.sort()
-        self._dataset_pos = self._dataset_frames.index(self.filename)
-            
-        # test next and prev        
-        self.next_btn.set_sensitive(False)
-        self.prev_btn.set_sensitive(False)
-        if 0 <= self._dataset_pos + 1 < len(self._dataset_frames) and image_loadable(self._dataset_frames[self._dataset_pos + 1]):
-            self.next_btn.set_sensitive(True)
-            
-        if 0 <= self._dataset_pos - 1 < len(self._dataset_frames) and image_loadable(self._dataset_frames[self._dataset_pos - 1]):
-            self.prev_btn.set_sensitive(True)
+        if self.file_template is not None:
+            self._dataset_frames = glob.glob(self.file_template)
+            self._dataset_frames.sort()
+            self._dataset_pos = self._dataset_frames.index(self.filename)
+                
+            # test next and prev        
+            self.next_btn.set_sensitive(False)
+            self.prev_btn.set_sensitive(False)
+            if 0 <= self._dataset_pos + 1 < len(self._dataset_frames) and image_loadable(self._dataset_frames[self._dataset_pos + 1]):
+                self.next_btn.set_sensitive(True)
+                
+            if 0 <= self._dataset_pos - 1 < len(self._dataset_frames) and image_loadable(self._dataset_frames[self._dataset_pos - 1]):
+                self.prev_btn.set_sensitive(True)
     
     def _set_file_specs(self, filename):
         self.filename = filename
