@@ -1,14 +1,14 @@
 from zope.interface import implements
 from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
-from bcm.device.interfaces import ICryojet, IShutter
+from bcm.device.interfaces import ICryojet
 from bcm.device import misc
 
 
 _logger = get_module_logger('devices')
 
 class CryojetNozzle(misc.BasicShutter):
-    """A specialized in-out actuator for pneumatic cryoject nozzles at the CLS."""
+    """A specialized in-out actuator for pneumatic Cryojet nozzles at the CLS."""
     def __init__(self, name):
         """
         Args:
@@ -22,7 +22,7 @@ class CryojetNozzle(misc.BasicShutter):
         self._name = 'Cryojet Nozzle'
 
 class Cryojet(BaseDevice):
-    """EPICS Based cryoject device object at the CLS."""
+    """EPICS Based cryojet device object at the CLS."""
     
     implements(ICryojet)
     
@@ -30,10 +30,10 @@ class Cryojet(BaseDevice):
         """
         Args:
             - `cname` (str): Root name for EPICS cryojet record.
-            - `lname` (str): root name for EPICS cryo-level controller record.
+            - `lname` (str): root name for EPICS cryojet-level controller record.
         
         Kwargs:
-            - `nname` (str): Root name of the EPICS cryoject nozzle record.
+            - `nname` (str): Root name of the EPICS cryojet nozzle record.
         """
         BaseDevice.__init__(self)
         self.name = 'Cryojet'

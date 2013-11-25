@@ -1,10 +1,9 @@
 from bcm.device.base import BaseDevice
 from bcm.device.interfaces import IOptimizer
 from bcm.utils.log import get_module_logger
-from bcm.engine import fitting
 from zope.interface import implements
 import time
-import os
+
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)

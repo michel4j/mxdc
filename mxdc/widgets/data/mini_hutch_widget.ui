@@ -146,9 +146,30 @@
                     <property name="can_focus">True</property>
                     <property name="n_rows">4</property>
                     <property name="n_columns">3</property>
-                    <property name="column_spacing">6</property>
+                    <property name="column_spacing">8</property>
                     <property name="row_spacing">8</property>
                     <property name="homogeneous">True</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
                     <child>
                       <placeholder/>
                     </child>
@@ -200,6 +221,9 @@
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">4</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>

@@ -1,14 +1,10 @@
 
 from bcm.beamline.interfaces import IBeamline
-from bcm.protocol import ca
-from bcm.settings import *
-from bcm.utils.log import get_module_logger, log_to_console
+from bcm.settings import *  # @UnusedWildImport
 from twisted.python.components import globalRegistry
-from zope.interface import implements
 import imp
-import os
-import re
-       
+
+
 class MXBeamline(object):
     """MX Beamline(Macromolecular Crystallography Beamline) objects
 
