@@ -6,7 +6,7 @@ from bcm.utils.log import get_module_logger
 from zope.interface import implements
 from bcm.protocol import ca
 import gobject
-import math
+import numpy
 import time
 
 # setup module logger with a default do-nothing handler
@@ -674,10 +674,10 @@ class RelVerticalMotor(MotorBase):
     def __init__(self, y1, y2, omega, offset=0.0):
         """  
         Args:
-            - `y1` (:class:`MotorBase`): The first motor which is moves 
+            - `y1` (:class:`MotorBase`): The first motor which moves 
               vertically when the angle of the 
                 axis is at zero.              
-            - `y2` (:class:`MotorBase`): The second motor which is moves 
+            - `y2` (:class:`MotorBase`): The second motor which moves 
               horizontally when the angle of the axis is at zero.             
             - `omega` (:class:`MotorBase`): The motor for the rotation axis.
         
@@ -690,26 +690,43 @@ class RelVerticalMotor(MotorBase):
         self.y2 = y2
         self.omega = omega
         self.offset = offset
+        self._position = 0.0
         self.add_devices(self.y1, self.y2, self.omega)
-                
+        self.y1.connect('changed', self._calc_position)
+        self.y2.connect('changed', self._calc_position)
+        self.omega.connect('changed', self._calc_position)
+               
     def __repr__(self):
         return '<RelVerticalMotor: %s, %s >' % (self.y1, self.y2)
-        
+
+    def _calc_position(self, obj, val):
+        tmp_omega = int(self.omega.get_position() ) - 90.0 - self.offset
+        sin_w = numpy.sin(numpy.radians(tmp_omega))
+        cos_w = numpy.cos(numpy.radians(tmp_omega))
+        if sin_w != 0.0:
+            self._position = -self.y1.get_position()/sin_w
+        elif cos_w != 0.0:
+            self._position = self.y2.get_position()/cos_w
+        else:
+            self._position = 0.0
+        self.set_state(changed=self._position)    
+                
     def get_position(self):
-        # make sure all moves are relative by fixing current position at 0 always
-        return 0.0
+        return self._position
                                                             
     def move_to(self, val, wait=False, force=False):
-        if val == 0.0:
-            return
         tmp_omega = int(self.omega.get_position() ) - 90.0 - self.offset
-        sin_w = math.sin(tmp_omega * math.pi / 180)
-        cos_w = math.cos(tmp_omega * math.pi / 180)
-        self.y1.move_by(-val * sin_w)
-        self.y2.move_by(val * cos_w)
+        sin_w = numpy.sin(numpy.radians(tmp_omega))
+        cos_w = numpy.cos(numpy.radians(tmp_omega))
+        self.y1.move_to(-val * sin_w)
+        self.y2.move_to(val * cos_w)
         if wait:
             self.wait()
-    move_by = move_to
+    
+    def move_by(self, val, wait=False, force=False):
+        if val == 0.0:
+            return
+        self.move_to(val + self.get_position(), wait, force)
                 
     def stop(self):
         self.y2.stop()

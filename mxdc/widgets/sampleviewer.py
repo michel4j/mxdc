@@ -279,7 +279,7 @@ class SampleViewer(gtk.Alignment):
     def get_grid_settings(self):
         info = {}
         info.update(self.grid_params)
-        x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()
+        x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()  # @UnusedVariable
         info['size'] = nX
         info['cells'] = OrderedDict()
         i_range = range(nX)
@@ -294,7 +294,7 @@ class SampleViewer(gtk.Alignment):
             
     def _get_grid_cell(self, x, y):
         
-        x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()
+        x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()   # @UnusedVariable
         #i = int((x - x0)/cell_size) 
         #j = int((y - y0)/cell_size)
         
@@ -313,7 +313,7 @@ class SampleViewer(gtk.Alignment):
 
     def _get_grid_center(self, cell):
         i,j = cell
-        x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()
+        x0, y0, grid_size, cell_size, nX, nY = self._calc_grid_params()  # @UnusedVariable
 
 #        x = (i * cell_size) + cell_size/2 + x0 
 #        y = (j * cell_size) + cell_size/2 + y0
@@ -322,7 +322,7 @@ class SampleViewer(gtk.Alignment):
         x = (i * cell_size + cell_size*0.25*((-1)**j)) + cell_size/2 + x0 
         y = (j * yd) + cell_size/2 + y0
         
-        im_x, im_y, dx, dy = self._img_position(x, y) 
+        im_x, im_y, dx, dy = self._img_position(x, y)   # @UnusedVariable
         return int(round(x)), int(round(y)),dx,dy
     
     def toggle_grid_cell(self, x, y):
@@ -365,7 +365,8 @@ class SampleViewer(gtk.Alignment):
     
     @async
     def center_pixel(self, x, y):
-        im_x, im_y, xmm, ymm = self._img_position(x,y)
+        im_x, im_y, xmm, ymm = self._img_position(x,y)  # @UnusedVariable
+        print xmm, ymm
         if not self.beamline.sample_stage.x.is_busy():
             self.beamline.sample_stage.x.move_by(-xmm, wait=True)
         if not self.beamline.sample_stage.y.is_busy():

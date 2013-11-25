@@ -12,7 +12,7 @@ import gobject
 import os
 import threading
 import time
-import pwd
+
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
