@@ -703,30 +703,29 @@ class RelVerticalMotor(MotorBase):
         tmp_omega = int(self.omega.get_position() ) - 90.0 - self.offset
         sin_w = numpy.sin(numpy.radians(tmp_omega))
         cos_w = numpy.cos(numpy.radians(tmp_omega))
-        if sin_w != 0.0:
+        if abs(cos_w) < 1e-6:
             self._position = -self.y1.get_position()/sin_w
-        elif cos_w != 0.0:
+        elif abs(sin_w) < 1e-6:
             self._position = self.y2.get_position()/cos_w
         else:
-            self._position = 0.0
+            self._position = 0.5 * (self.y2.get_position()/cos_w - self.y1.get_position()/sin_w)
         self.set_state(changed=self._position)    
                 
     def get_position(self):
         return self._position
                                                             
-    def move_to(self, val, wait=False, force=False):
+    def move_by(self, val, wait=False, force=False):
+        if val == 0.0:  return
         tmp_omega = int(self.omega.get_position() ) - 90.0 - self.offset
         sin_w = numpy.sin(numpy.radians(tmp_omega))
         cos_w = numpy.cos(numpy.radians(tmp_omega))
-        self.y1.move_to(-val * sin_w)
-        self.y2.move_to(val * cos_w)
+        self.y1.move_by(-val * sin_w)
+        self.y2.move_by(val * cos_w)
         if wait:
             self.wait()
     
-    def move_by(self, val, wait=False, force=False):
-        if val == 0.0:
-            return
-        self.move_to(val + self.get_position(), wait, force)
+    def move_to(self, val, wait=False, force=False):        
+        self.move_by(self.get_position()-val, wait, force)
                 
     def stop(self):
         self.y2.stop()
