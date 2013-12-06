@@ -1,7 +1,7 @@
 from bcm.engine import fitting
 from bcm.utils import converter
 from bcm.utils import json
-from scipy import interpolate, optimize
+from scipy import interpolate, optimize, ndimage
 import numpy
 import os
 import re
@@ -24,6 +24,7 @@ SPACE_GROUP_NAMES = {
 
 EMISSIONS_DATA = {}
 PERIODIC_TABLE = {}
+PEAK_FWHM = 0.1
 
 # load data tables
 # Data was compiled from the NIST database
@@ -31,6 +32,9 @@ PERIODIC_TABLE = {}
 
 EMISSIONS_DATA = json.load(file(os.path.join(os.path.dirname(__file__), 'data','emissions.json')))
 PERIODIC_TABLE = json.load(file(os.path.join(os.path.dirname(__file__), 'data', 'periodictable.json')))
+
+def nearest(x, precision):
+    return int(numpy.round(x/precision, 0))
 
 def xanes_targets(energy):
     low_start = energy -0.10
@@ -146,8 +150,9 @@ def savitzky_golay(data, kernel = 9, order = 3, deriv=0):
             order = abs(int(order))
     except ValueError:
         raise ValueError("kernel and order have to be of type int (floats will be converted).")
-    if kernel % 2 != 1 or kernel < 1:
-        raise TypeError("kernel size must be a positive odd number, was: %d" % kernel)
+    if kernel % 2 != 1: kernel += 1
+    if kernel < 1: kernel = 1
+
     if kernel < order + 2:
         raise TypeError("kernel is to small for the polynomals\nshould be > order + 2")
 
@@ -197,8 +202,7 @@ def smooth_data(data, times=1, window=11, order=1):
 def find_peaks(x, y, w=9, sensitivity=0.01, smooth=True):
     hw = w//3
     if smooth:
-        ys = savitzky_golay(y,  w, 1)
-        ys = savitzky_golay(ys,  w, 1)
+        ys = smooth_data(y, times=2, window=w)
     else:
         ys = y
     ypp = savitzky_golay(ys, w, 2, 2)
@@ -215,7 +219,7 @@ def find_peaks(x, y, w=9, sensitivity=0.01, smooth=True):
         else:
             ps += 'L'
     def get_peak(pos):
-        return x[pos], ys[pos], ypp[pos]
+        return x[pos], y[pos], ypp[pos]
     peak_positions = [get_peak(m.start()+hw-1) for m in re.finditer(peak_patt, ps)]
     ymax = max(ys)
     yppmax = max(ypp)
@@ -284,6 +288,37 @@ def get_candidate_elements(energy):
         if len(entry) > 1:
             elements.append(tuple(entry))
     return elements
+
+def get_peak_elements(energy, peaks=[], prec=0.05):
+    """find all edges which can be excited at given energy.
+    Returns a list of tuples. Each tuple containing the element
+    symbol followed by the edges which are potentially present.  
+    
+    E.g   [('Se', 'K'), ('Au', 'L3')]
+    """
+    peak_energies = set([nearest(v[0], prec) for v in peaks])
+    elements = []
+    lonly = []
+    for symbol, edges in EMISSIONS_DATA.items():
+        entry = [symbol,]
+        entry_peaks = []
+        for edge, data in edges.items():
+            if data[0] > energy: continue
+            _fl = [(v[0], v[1], edge) for v in data[1].values()]
+            entry_peaks.extend(_fl)
+        if len(entry_peaks) > 1:
+            entry_peaks.sort(key=lambda v: v[1], reverse=True)
+        for pk in entry_peaks:    
+            if nearest(pk[0], prec) in peak_energies:
+                entry.append(pk[2])
+                break
+        if len(entry) > 1 :
+            elements.append(tuple(entry))
+            if 'K' in entry[1:]:
+                lonly.append(0.0)
+            else:
+                lonly.append(1.0)  
+    return elements, numpy.array(lonly)
     
 def get_line_info(element_info, factor):
     """Get information about emission lines for each element according to
@@ -295,6 +330,7 @@ def get_line_info(element_info, factor):
         edges = ['K']
     else:
         edges = element_info[1:]
+
     for edge in edges:
         edge_data = EMISSIONS_DATA[el][edge]
         for _ln, _pars in edge_data[1].items():
@@ -314,7 +350,6 @@ def generate_spectrum(info, energy, xa):
     xa is an array of energy values
     """
     
-    PEAK_FWHM = 0.143
     y = numpy.zeros(len(xa))
     
     el = info[0]    
@@ -322,18 +357,15 @@ def generate_spectrum(info, energy, xa):
         return y
     
     coeffs = []
-    if 'K' in info[1:]:
-        edges = ['K'] # use only K when K is present with L
-    else:
-        edges = info[1:]
+    edges = info[1:]
     for edge in edges:
         edge_data = EMISSIONS_DATA[el][edge]
-        #if edge != 'K': continue  # ignore non 'K' edges
+        #if edge in ['L1', 'L2', 'L3']:  continue  # ignore 'L' edges
         for _pos, _ri in edge_data[1].values():
-            if _ri >= 0.001:
+            if _ri >= 0.001 and _pos < energy:
                 fwhm = PEAK_FWHM  * (1.0 + _pos/energy) # fwhm increases by energy
                 coeffs.extend([_ri, fwhm, _pos, 0.0])
-    return fitting.multi_peak(xa, coeffs, target='voigt', fraction=0.25)
+    return fitting.multi_peak(xa, coeffs, target='voigt', fraction=0.2)
 
 def _rebin(a, *args):
     '''rebin ndarray data into a smaller ndarray of the same rank whose dimensions
@@ -352,36 +384,6 @@ def _rebin(a, *args):
              ['/factor[%d]'%i for i in range(lenShape)]
     return eval(''.join(evList))
 
-def fit_elements(x, y, energy):
-    
-    elements = get_candidate_elements(energy)
-    #elements = [('Rb', 'K'),('Br', 'K')]
-    coeffs = numpy.zeros((len(elements)+1))
-    
-    def calc_template(x, elements, scale=1.0):       
-        template = numpy.empty((len(x), len(elements)+1)) # elements + zero
-        xc = x * scale
-        for i, el in enumerate(elements):
-            template[:,i] = generate_spectrum(el, energy, xc)
-        template[:,-1] = generate_spectrum("zero", energy, xc)
-
-        return template
-    
-    def calc_model(x, coeffs, templates):
-        coeffs[coeffs < 0.0] = 0.0
-        return (templates*coeffs).sum(1)
-    
-    def model_err(coeffs, x, y, elements):
-        model = calc_model(x, coeffs, elements)
-        err = (y - model)
-        # penalize false positives more
-        err[err<0] = err[err<0]*15
-        return err
-    
-    templates = calc_template(x, elements)
-    new_coeffs, _ = optimize.leastsq(model_err, coeffs[:], args=(x, y, templates), maxfev=40000)
-    return elements, templates*new_coeffs, new_coeffs
-
 def interprete_xrf(xo, yo, energy, speedup=4):
     
     def calc_template(xa, elements, template=None):
@@ -391,34 +393,48 @@ def interprete_xrf(xo, yo, energy, speedup=4):
             template[:,i] = generate_spectrum(el, energy, xa)
         return template
     
-    def model_err(coeffs, xa, yfunc, template):
+    def model_err(coeffs, xa, yfunc, template, fixed=None, fixed_pars=None):
         pars = coeffs[:-1]
+        coeffs[-1] = min(1.01, max(0.99, coeffs[-1]))
         pars[pars < 0.0] = 0.0
         xt  = xa * coeffs[-1]
         yt = yfunc(xt)
-        full_template = template*pars
-        err = (yt - full_template.sum(1))
-        # penalize false positives more
-        err[err<0] = err[err<0]*10
         
-        # Minimize the number of elements attempted
-        err[-1:] = numpy.sqrt(sum(pars>1))
+        if fixed is not None and fixed_pars is not None:
+            pars[fixed] = fixed_pars[fixed]
+        
+        full_template = template*pars
+        yo = full_template.sum(1)
+        err = (yt - yo)
+        #if fixed is not None:
+        #    err[fixed] = 0.01 * err[fixed]
+        sel = err < 0
+        err[sel] = err[sel]*5
         return err
 
+    peaks = find_peaks(xo, yo, w=15, sensitivity=0.005)
     yo = smooth_data(yo, times=2, window=21)
-    elements = get_candidate_elements(energy)
-    #elements = [('Pt', 'L3')]
+    elements, lonly = get_peak_elements(energy, peaks, prec=0.1)
     
     # rebin data to speedup calculations
-    xc = _rebin(xo, len(xo)/speedup)
-    yc = _rebin(yo, len(yo)/speedup)
+    sz = len(xo)
+    sp = 1
+    for i in range(1,24):
+        if sz % i == 0: sp = i
+    xc = _rebin(xo, sz//sp)
+    yc = _rebin(yo, sz//sp)
     yfunc = interpolate.interp1d(xc, yc, kind='cubic', fill_value=0.0, copy=False, bounds_error=False)
 
     coeffs = numpy.zeros((len(elements)+1))
     coeffs[-1] = 1.0 # scale
         
     template = calc_template(xc, elements)
+    # Fit K peaks
+    k_template = template*numpy.abs(1-lonly)    
+    k_coeffs, _ = optimize.leastsq(model_err, coeffs[:], args=(xc, yfunc, k_template), maxfev=25000)
     
-    new_coeffs, _ = optimize.leastsq(model_err, coeffs[:], args=(xc, yfunc, template), maxfev=20000)
-    new_template = calc_template(xo, elements) * new_coeffs[:-1]
-    return elements, new_template, new_coeffs
+    # Fit L peaks keeping K-coefficients constant
+    new_coeffs, _ = optimize.leastsq(model_err, k_coeffs[:], args=(xc, yfunc, template, lonly==0.0, k_coeffs) , maxfev=25000)
+    final_template = calc_template(xo, elements) * new_coeffs[:-1]
+
+    return elements, final_template, new_coeffs
