@@ -73,10 +73,10 @@ def summarize_lines(data):
     #print new_data
     return new_data
         
-XRF_COLOR_LIST = ['#800080','#FF0000','#008000',
-                  '#FF00FF','#800000','#808000',
-                  '#008080','#00FF00','#000080',
-                  '#00FFFF','#0000FF','#000000']
+XRF_COLOR_LIST = ['#4185b4', '#ff7f0e', '#2ca02c', '#ff2627', 
+                  '#9467bd', '#c49c94', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+                '#004794', '#885523', '#45663f', '#750300', '#4b2766', '#8c564b', 
+                '#dc1a6e', '#252525', '#757500', '#157082']
 
 class ScanManager(gtk.Alignment):
     __gsignals__ = {
@@ -313,7 +313,7 @@ class ScanManager(gtk.Alignment):
     def _add_xrf_element(self, item=None): 
         itr = self.xrf_store.append()        
         self.xrf_store.set(itr, 
-            COLUMN_DRAW, False, 
+            COLUMN_DRAW, item[2], 
             COLUMN_ELEMENT, item[0],
             COLUMN_PERCENT, item[1]
         )
@@ -324,12 +324,12 @@ class ScanManager(gtk.Alignment):
         index = model.get_path(itr)[0]
         renderer.set_property('text', fmt % value)
         if model == self.xrf_store:
-            renderer.set_property("foreground", XRF_COLOR_LIST[index])
+            renderer.set_property("foreground", XRF_COLOR_LIST[index%len(XRF_COLOR_LIST)])
         return
 
     def _color_element(self, cell, renderer, model, itr, column):
         index = model.get_path(itr)[0]
-        renderer.set_property("foreground", XRF_COLOR_LIST[index])
+        renderer.set_property("foreground", XRF_COLOR_LIST[index%len(XRF_COLOR_LIST)])
         return
 
     def _set_scan_action(self, state):
@@ -502,14 +502,7 @@ class ScanManager(gtk.Alignment):
         # if current energy is greater than offset from edge energy, use it
         # otherwise use edge_energy + offset
         # clip everything to be within beamline energy range
-        exposure_energy = max(
-                              self.beamline.config['energy_range'][0],
-                              self.beamline.energy.get_position(),
-                              min(
-                                  round(scan_parameters['energy'], 0) + self.beamline.config['xrf_energy_offset'],
-                                  self.beamline.config['energy_range'][1] )
-                              )
-        self.xrf_scanner.configure(exposure_energy, scan_parameters['edge'], 
+        self.xrf_scanner.configure(scan_parameters['energy'], scan_parameters['edge'], 
                                    scan_parameters['time'], scan_parameters['attenuation'], 
                                    scan_parameters['directory'], scan_parameters['prefix'],
                                    scan_parameters['crystal'])
@@ -580,7 +573,14 @@ class ScanManager(gtk.Alignment):
         vals = data.split(':')
         params = self.get_parameters()
         params['edge'] = vals[0]
-        params['energy'] = float(vals[1])
+        if params['mode'] == 'XRF':
+            params['energy'] = max(
+                              self.beamline.config['energy_range'][0],
+                              self.beamline.energy.get_position(),
+                              min(float(vals[1]) + self.beamline.config['xrf_energy_offset'], self.beamline.config['energy_range'][1])
+                              )
+        else:
+            params['energy'] = float(vals[1])
         params['emission'] = float(vals[2])
         self.set_parameters(params)      
         
@@ -638,16 +638,16 @@ class ScanManager(gtk.Alignment):
         self.xanes_box.show()
         new_axis = self.plotter.add_axis(label="Anomalous scattering factors (f', f'')")
         if 'infl' in results.keys():
-                self.plotter.axis[0].axvline( results['infl'][1], color='m', linestyle=':', linewidth=1)
+                self.plotter.axis[0].axvline( results['infl'][1], color='#999999', linestyle='--', linewidth=1)
         if 'peak' in results.keys():
-                self.plotter.axis[0].axvline( results['peak'][1], color='m', linestyle=':', linewidth=1)
+                self.plotter.axis[0].axvline( results['peak'][1], color='#999999', linestyle='--', linewidth=1)
         if 'remo' in results.keys():
-                self.plotter.axis[0].axvline( results['remo'][1], color='m', linestyle=':', linewidth=1)
+                self.plotter.axis[0].axvline( results['remo'][1], color='#999999', linestyle='--', linewidth=1)
         fontpar = {}
         fontpar["family"]="monospace"
         fontpar["size"]=7.5
         info = obj.results.get('text')
-        self.plotter.fig.text(0.14,0.7, info,fontdict=fontpar, color='b')
+        self.plotter.fig.text(0.14,0.7, info,fontdict=fontpar, color='k')
 
         data = obj.results.get('efs')       
         self.plotter.add_line(data['energy'], data['fpp'], 'r', ax=new_axis)
@@ -721,6 +721,7 @@ class ScanManager(gtk.Alignment):
         x = obj.results['data']['energy']
         y = obj.results['data']['counts']
         yc = obj.results['data']['fit']
+        energy = obj.results['parameters']['energy']
         self.xrf_results = obj.results['assigned']
         self.plotter.set_labels(title='X-Ray Fluorescence',x_label='Energy (keV)',y1_label='Fluorescence')
         self.scan_book.set_current_page(1)
@@ -729,9 +730,12 @@ class ScanManager(gtk.Alignment):
         self.plotter.add_line(x, yc,'k:', label='Fit')
         self.plotter.axis[0].axhline(0.0, color='gray', linewidth=0.5)
         self.output_log.clear()
+        ax = self.plotter.axis[0]
+        ax.axis('tight')
+        ax.set_xlim((0, energy+0.25*self.beamline.config['xrf_energy_offset']))
         
         # get list of elements sorted in descending order of prevalence
-        element_list = [(v[0], k) for k,v in obj.results['assigned'].items()]
+        element_list = [(v[0], k) for k,v in self.xrf_results.items()]
         element_list.sort()
         element_list.reverse()
 
@@ -742,69 +746,71 @@ class ScanManager(gtk.Alignment):
                       "Energy",
                       "Height")
                       
-        # Display at most 20 entries in the xrf_list
-        count = 0
-        for prob, el in element_list:
-            if count < 20:
-                self._add_xrf_element((el, prob))
-                count += 1
+        for index, (prob, el) in enumerate(element_list):
             peak_log += 39 * "-" + "\n"
             peak_log += "%7s %7.2f %5s %8s %8s\n" % (el, prob, "", "", "")
             contents = obj.results['assigned'][el]
-            for trans,energy,height in contents[1]:
+            for trans,_nrg,height in contents[1]:
                 peak_log += "%7s %7s %5s %8.3f %8.2f\n" % (
-                                "", "", trans, energy, height)
-
+                                "", "", trans, _nrg, height)
+            if prob < 0.02 * element_list[0][0] or index > 20:
+                del self.xrf_results[el] 
+                continue
+            show = (prob >= 0.1 * element_list[0][0])
+            self._add_xrf_element((el, prob, show))
+            _color = XRF_COLOR_LIST[index%len(XRF_COLOR_LIST)]
+            element_info = self.xrf_results.get(el)
+            line_list = summarize_lines(element_info[1])
+            ln_points = []
+            self.xrf_annotations[el] = []
+            for _nm, _pos, _ht in line_list:
+                if _pos > energy: continue
+                ln_points.extend(([_pos, _pos],[0.0, _ht*0.95]))
+                txt = ax.text(_pos, -0.5, 
+                              "%s-%s" % (el, _nm), 
+                              rotation=90, 
+                              fontsize=8,
+                              horizontalalignment='center',
+                              verticalalignment='top',
+                              color=_color
+                      )
+                self.xrf_annotations[el].append(txt)               
+            lns = ax.plot(*ln_points, **{'linewidth':1.0, 'color':_color})            
+            self.xrf_annotations[el].extend(lns)
+            for antn in self.xrf_annotations[el]:
+                antn.set_visible(show)
+        ax.axvline(energy, c='#cccccc', ls='--', lw=0.5, label='Excitation Energy')
+                   
         self.output_log.add_text(peak_log)
         self.plotter.axis[0].legend()
-        self.plotter.redraw()
         self.scan_pbar.idle_text("Scan complete.", 1.0)
         self._set_scan_action(SCAN_STOP)
 
         # Upload scan to lims
         lims_tools.upload_scan(self.beamline, [obj.results])
 
+        alims = ax.axis()
+        _offset = 0.2 * alims[3]
+        ax.axis(ymin=alims[2]-_offset, ymax=alims[3]+_offset)
+        self.plotter.redraw()
         return True
         
     def on_element_toggled(self, cell, path, model):
         itr = model.get_iter(path)
         index = model.get_path(itr)[0]
-        _color = XRF_COLOR_LIST[index]
+        _color = XRF_COLOR_LIST[index%len(XRF_COLOR_LIST)]
 
         element = model.get_value(itr, COLUMN_ELEMENT)                 
-        element_info = self.xrf_results.get(element)
         state = model.get_value(itr, COLUMN_DRAW)
         model.set(itr, COLUMN_DRAW, (not state) )
-        ax = self.plotter.axis[0]
-        ax.axis('tight')
-        alims = ax.axis()
-        line_list = summarize_lines(element_info[1])
         if state:
-            # Delete drawings
+            # Hide drawings
             for _anotation in self.xrf_annotations[element]:
-                _anotation.remove()
-            del self.xrf_annotations[element]
+                _anotation.set_visible(False)
         else:
-            # Add Drawings
-            self.xrf_annotations[element] = []
-            ln_points = []
-            for _nm, _pos, _ht in line_list:
-                ln_points.extend(([_pos, _pos],[0.0, _ht*0.95]))
-                #ax.axvline(_pos, label=_nm)
-                txt = ax.text(_pos, -0.5, 
-                              "%s-%s" % (element, _nm), 
-                              rotation=90, 
-                              fontsize=7,
-                              horizontalalignment='center',
-                              verticalalignment='top',
-                              color=_color
-                      )
-                self.xrf_annotations[element].append(txt)
-            lns = ax.plot(*ln_points, **{'linewidth':1.0, 'color':_color})
-            self.xrf_annotations[element].extend(lns)
-            
-        _offset = 0.1 * alims[3]
-        ax.axis(ymin=alims[2]-_offset, ymax=alims[3]+_offset)
-        self.plotter.redraw()
+            # Show Drawings
+            for _anotation in self.xrf_annotations[element]:
+                _anotation.set_visible(True)
+        self.plotter.redraw()        
         return True
                                                              
