@@ -25,6 +25,17 @@ def multi_peak(x, coeffs, target='gaussian', fraction=0.5):
         y += TARGET_FUNC[target](x,pars)
     return y
 
+def multi_peak_simple(x, coeffs):
+    y = numpy.zeros(len(x))
+    npeaks = len(coeffs)//2 - 1
+    fwhm = coeffs[-2]
+    off = coeffs[-1]
+    for i in range(npeaks):
+        a, pos = coeffs[i*2:(i+1)*2]
+        pars = [a, fwhm, pos, off, 0.25]
+        y += voigt(x,pars)
+    return y
+
 def multi_peak_fwhm(x, coeffs, fwhm, target='gaussian', fraction=0.5):
     y = numpy.zeros(len(x))
     npeaks = len(coeffs)//3
@@ -61,6 +72,7 @@ TARGET_FUNC = {
     'voigt': voigt,
     'step': step_func,
     'decay': decay_func,
+    'multi_peak_simple': multi_peak_simple,
     }
 
 class PeakFitter(object):
@@ -69,15 +81,19 @@ class PeakFitter(object):
         self.default = default
     
     def __call__(self, x, y, target="gaussian"):
+        if type(target) == str:
+            target_func = TARGET_FUNC[target]
+        else:
+            target_func = target
 
-        if target not in ['step', 'decay']:
+        if target in ['gaussian', 'voigt', 'lorentzian']:
             pars, success = histogram_fit(x,y)
             coeffs = [pars[0], pars[1], pars[2], 0, 0]
         else:
             coeffs = self.default
         
         def _err(p, x, y):
-            vals = TARGET_FUNC[target](x,p)
+            vals = target_func(x,p)
             err=(y-vals)
             return err
         
@@ -94,7 +110,7 @@ class PeakFitter(object):
         self.msg = mesg
         self.ier = ier
         self.residual = (_err(self.coeffs, x, y)**2).sum()
-        self.ycalc = TARGET_FUNC[target](x, self.coeffs)
+        self.ycalc = target_func(x, self.coeffs)
         
         return new_coeffs, success
         
