@@ -438,7 +438,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self._aquiring = True
         time.sleep(t)
         self._acquiring = False
-        fname = os.path.join(os.environ['BCM_PATH'],'test/scans/xrf_%03d.raw' % 1)
+        fname = os.path.join(os.environ['BCM_PATH'],'test/scans/xrf_%03d.raw' % 4)
         self._raw_data = numpy.loadtxt(fname, comments="#")
         self._x_axis = self._raw_data[:,0]
         return numpy.array(zip(self._x_axis, self._raw_data[:,1]))

@@ -84,9 +84,11 @@ class Plotter( gtk.Alignment ):
     def __init__(self, loop=False, buffer_size=2500, xformat='%g', dpi=96 ):
         gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
         _fd = self.get_pango_context().get_font_description()
-        rcParams['font.family'] = 'serif'
-        rcParams['font.sans-serif'] = _fd.get_family()
-        rcParams['font.size'] = 0.95 * _fd.get_size()/pango.SCALE
+        rcParams['legend.loc'] = 'best'
+        rcParams['legend.fontsize'] = 8.5
+        rcParams['legend.isaxes'] = False
+        rcParams['figure.facecolor'] = 'white'
+        rcParams['figure.edgecolor'] = 'white'
         self.fig = Figure( figsize=( 10, 8 ), dpi=dpi, facecolor='w' )
         self.axis = []
         self.axis.append( self.fig.add_subplot(111) )
@@ -257,19 +259,8 @@ class Plotter( gtk.Alignment ):
         return True
 
     def redraw(self):
-        self.axis[0].xaxis.set_major_locator(MaxNLocator(10))
-        x_major = self.axis[0].xaxis.get_majorticklocs()
-        dx_minor =  (x_major[-1]-x_major[0])/(len(x_major)-1) /5.
-        self.axis[0].xaxis.set_minor_locator(MultipleLocator(dx_minor))
-        self.axis[0].yaxis.tick_left()
-        try:
-            xmin, xmax = self.axis[0].xaxis.get_data_interval()
-        except:
-            xmin, xmax = self.axis[0].xaxis.get_data_interval().get_bounds()
-        if (xmax - xmin) > 0.1:
-            self.axis[0].set_xlim(xmin, xmax)
-        #self.axis[0].legend()       
-        self.canvas.draw()
+        self.axis[0].legend()       
+        self.canvas.draw_idle()
 
 
 class ScanPlotter(gtk.VBox):
