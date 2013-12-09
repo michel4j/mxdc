@@ -15,7 +15,7 @@ SAFE_BEAMSTOP       = 50.0
 XRF_BEAMSTOP        = 90.0
 CENTERING_BACKLIGHT = 50
 
-LIMS_API_KEY    = "762D8EDF-B154-41D8-9544-5DB4A70A3F4C"
+LIMS_API_KEY    = "762D8EDF-B154-41D8-9544-5DB4A70A3F4C-disable"
 
 # pitch function for PitchOptimizer
 def _energy2pitch(x):

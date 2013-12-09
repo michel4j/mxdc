@@ -753,7 +753,7 @@ class ScanManager(gtk.Alignment):
             for trans,_nrg,height in contents[1]:
                 peak_log += "%7s %7s %5s %8.3f %8.2f\n" % (
                                 "", "", trans, _nrg, height)
-            if prob < 0.02 * element_list[0][0] or index > 20:
+            if prob < 0.005 * element_list[0][0] or index > 20:
                 del self.xrf_results[el] 
                 continue
             show = (prob >= 0.1 * element_list[0][0])
