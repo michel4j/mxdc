@@ -51,7 +51,6 @@ class XRFScan(BasicScan):
         sel = (x < 0.5) | (x > energy - self.beamline.config.get('xrf_energy_offset', 2.0))
         y[sel] = 0.0
         elements, bblocks, coeffs = science.interprete_xrf(x, y, energy)
-        
         assigned = {}        
         for i, el_info in enumerate(elements):
             symbol = el_info[0]
@@ -66,7 +65,7 @@ class XRFScan(BasicScan):
         # floats here
         ys = science.smooth_data(y, times=2, window=21)
         self.results = {
-            'data': {'energy': map(float, list(x* coeffs[-1])), 
+            'data': {'energy': map(float, list(x)), 
                      'counts': map(float, list(ys)),
                      'fit' : map(float, list(bblocks.sum(1)))},
             'assigned': assigned,
@@ -177,7 +176,6 @@ class XANESScan(BasicScan):
         
                     
     def analyse_file(self, filename):
-        import numpy
         data = numpy.loadtxt(filename)
         raw_text = file(filename).read()
         self.data = zip(data[:,0], data[:,1], data[:,2], data[:,3])
@@ -497,16 +495,18 @@ class EXAFSScan(BasicScan):
                     if self.count == 1:
                         scale = 1.0
                     else:
-                        scale = (self.data[0][2]/i0)
+                        scale = (self.data[0][2]/(i0*_t))
                         
                     x = self.beamline.monochromator.simple_energy.get_position()
                     data_point = [1000*x, y*scale, i0, k, _t] # convert KeV to eV
-    
+                    _corrected_sum = 0
                     _rates = self.beamline.multi_mca.get_count_rates()
                     for j in range(self.beamline.multi_mca.elements):
                         data_point.append(mca_values[j]) #iflour
                         data_point.append(_rates[j][0])  #icr
                         data_point.append(_rates[j][1])  #ocr
+                        _corrected_sum +=  mca_values[j] * float(_rates[j][0])/_rates[j][1]
+                    #data_point[1] = _corrected_sum * scale    
                     self.data.append(data_point)
                     
                     _used_time += _t    

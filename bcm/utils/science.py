@@ -395,9 +395,9 @@ def interprete_xrf(xo, yo, energy, speedup=4):
     
     def model_err(coeffs, xa, yfunc, template, fixed=None, fixed_pars=None):
         pars = coeffs[:-1]
-        coeffs[-1] = min(1.01, max(0.99, coeffs[-1]))
+        #coeffs[-1] = min(1.05, max(0.95, coeffs[-1]))
         pars[pars < 0.0] = 0.0
-        xt  = xa * coeffs[-1]
+        xt  = xa #+ coeffs[-1]
         yt = yfunc(xt)
         
         if fixed is not None and fixed_pars is not None:
@@ -436,5 +436,4 @@ def interprete_xrf(xo, yo, energy, speedup=4):
     # Fit L peaks keeping K-coefficients constant
     new_coeffs, _ = optimize.leastsq(model_err, k_coeffs[:], args=(xc, yfunc, template, lonly==0.0, k_coeffs) , maxfev=25000)
     final_template = calc_template(xo, elements) * new_coeffs[:-1]
-
     return elements, final_template, new_coeffs
