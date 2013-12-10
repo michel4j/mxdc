@@ -121,7 +121,7 @@ class SimMotor(MotorBase):
         pos = pos
         self._set_speed(speed)
         self.units = units
-        self._state = 0
+        self._status = 0
         self._stopped = False
         self._enabled = True
         self._command_sent = False
@@ -690,7 +690,7 @@ class RelVerticalMotor(MotorBase):
         self.y2 = y2
         self.omega = omega
         self.offset = offset
-        self._position = 0.0
+        self._status = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         self.add_devices(self.y1, self.y2, self.omega)
         self.y1.connect('changed', self._calc_position)
         self.y2.connect('changed', self._calc_position)
@@ -700,34 +700,33 @@ class RelVerticalMotor(MotorBase):
         return '<RelVerticalMotor: %s, %s >' % (self.y1, self.y2)
 
     def _calc_position(self, obj, val):
-        tmp_omega = int(self.omega.get_position() ) - 90.0 - self.offset
+        tmp_omega = self.omega.get_position() - self.offset
         sin_w = numpy.sin(numpy.radians(tmp_omega))
         cos_w = numpy.cos(numpy.radians(tmp_omega))
-        self._position = self.y2.get_position()*cos_w - self.y1.get_position()*sin_w
-        self.set_state(changed=self._position)    
+        y1 = self.y1.get_position()*sin_w
+        y2 = self.y2.get_position()*cos_w
+        z1 = self.y1.get_position()*cos_w
+        z2 = -self.y1.get_position()*sin_w        
+        self._status = (y1+y2, z1+z2, y1, y2, z1, z2)
+        self.set_state(changed=self._status[0])
+        _logger.debug('SAMPLE STAGE Y: %0.4f, Z: %0.4f' % (self._status[0], self._status[1]))
                 
     def get_position(self):
-        return self._position
+        return self._status[0]
                                                             
     def move_by(self, val, wait=False, force=False):
         if val == 0.0:  return
-        tmp_omega = int(self.omega.get_position() ) - 90.0 - self.offset
+        tmp_omega = self.omega.get_position() - self.offset
         sin_w = numpy.sin(numpy.radians(tmp_omega))
         cos_w = numpy.cos(numpy.radians(tmp_omega))
-        self.y1.move_by(-val * sin_w)
+        self.y1.move_by(val * sin_w)
         self.y2.move_by(val * cos_w)
         if wait:
             self.wait()
     
-    def move_to(self, val, wait=False, force=False):        
-        if val == 0.0:  return
-        tmp_omega = int(self.omega.get_position() ) - 90.0 - self.offset
-        sin_w = numpy.sin(numpy.radians(tmp_omega))
-        cos_w = numpy.cos(numpy.radians(tmp_omega))
-        self.y1.move_to(-val * sin_w)
-        self.y2.move_to(val * cos_w)
-        if wait:
-            self.wait()
+    def move_to(self, val, wait=False, force=False):
+        relval = val - self.get_position()
+        self.move_by(relval, wait=wait, force=force)
                 
     def stop(self):
         self.y2.stop()

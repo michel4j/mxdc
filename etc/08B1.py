@@ -1,8 +1,8 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
+from bcm.settings import *
 import os
 import numpy
 from scipy import interpolate
-from bcm.settings import *
 
 BEAMLINE_NAME = '08B1-1'
 BEAMLINE_TYPE = 'MX'

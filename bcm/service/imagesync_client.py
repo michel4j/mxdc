@@ -14,11 +14,15 @@ _logger = get_module_logger("clients")
 class ImageSyncClient(BaseService):
     implements(IImageSyncService)
     
-    def __init__(self):
+    def __init__(self, url=None):
         BaseService.__init__(self)
         self.name = "Image Sync Service"
         self._service_found = False
-        gobject.idle_add(self.setup)
+        if url is None:
+            gobject.idle_add(self.setup)
+        else:
+            address, port = url.split(':')
+            gobject.idle_add(self.setup_manual, address, int(port))
     
     @defer.deferredGenerator
     def set_user(self, user, uid, gid):
@@ -40,7 +44,17 @@ class ImageSyncClient(BaseService):
         self.browser = mdns.Browser('_cmcf_imgsync._tcp')
         self.browser.connect('added', self.on_imgsync_service_added)
         self.browser.connect('removed', self.on_imgsync_service_removed)
-        
+
+    def setup_manual(self, address, port):
+        self._service_data = {
+            'address': address,
+            'port': port
+        }
+        self.factory = pb.PBClientFactory()
+        self.factory.getRootObject().addCallback(self.on_server_connected).addErrback(self.dump_error)
+        reactor.connectTCP(self._service_data['address'],
+                           self._service_data['port'], self.factory)
+                
     def on_imgsync_service_added(self, obj, data):
         if self._service_found:
             return
