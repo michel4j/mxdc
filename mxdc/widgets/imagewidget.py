@@ -52,7 +52,6 @@ _c_pix = gtk.gdk.bitmap_create_from_data(None, _BUSY_CURSOR_BITS_, 32, 32)
 _c_color = gtk.gdk.Color()
 LEFT_PTR_WATCH=gtk.gdk.Cursor(_c_pix, _c_pix, _c_color, _c_color, 2, 2)
 
-  
 def _load_frame_image(filename, gamma_offset = 0.0):
     image_info = {}
     image_obj = read_image(filename)
@@ -61,10 +60,11 @@ def _load_frame_image(filename, gamma_offset = 0.0):
     hist = image_obj.image.histogram()
         
     disp_gamma = image_info['header']['gamma'] * numpy.exp(-gamma_offset + _GAMMA_SHIFT)/30.0
-    lut = stretch(disp_gamma)
     image_info['src-image'] =  image_obj.image
     img_min, img_max =  image_obj.image.getextrema()
-    image_info['image'] = image_obj.image.point(lut, 'L')
+    lut = stretch(disp_gamma)
+    
+    image_info['image'] = image_obj.image.point(lut.tolist(), 'L')
     idx = range(len(hist))
     x = numpy.linspace(img_min, img_max, len(hist))
     l = 2
@@ -509,7 +509,7 @@ class ImageWidget(gtk.DrawingArea):
         gamma = self.gamma * numpy.exp(-self.file_loader.gamma_offset+_GAMMA_SHIFT)/30.0
         if gamma != self.display_gamma:
             lut = stretch(gamma)
-            self.raw_img = self.src_image.point(lut, 'L')
+            self.raw_img = self.src_image.point(lut.tolist(), 'L')
             self._create_pixbuf()
             self.queue_draw()
             self.display_gamma = gamma

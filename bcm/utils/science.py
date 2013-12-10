@@ -1,7 +1,7 @@
 from bcm.engine import fitting
 from bcm.utils import converter
 from bcm.utils import json
-from scipy import interpolate, optimize, ndimage
+from scipy import interpolate, optimize
 import numpy
 import os
 import re

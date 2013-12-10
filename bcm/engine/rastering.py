@@ -114,7 +114,10 @@ class RasterCollector(gobject.GObject):
             self.total_items = len(self.grid_cells)
             self.image_queue = []
             self.pending_results = []
-
+            import pprint
+            pprint.pprint(self.grid_parameters)
+            
+            self.beamline.image_server.setup_folder(self.grid_parameters['directory'])
             for cell, cell_loc in self.grid_cells.items():
                 if self.paused:
                     gobject.idle_add(self.emit, 'paused', True)
