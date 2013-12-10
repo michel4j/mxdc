@@ -129,7 +129,7 @@ class RasterWidget(gtk.Frame):
 
         self.sample_viewer = None
         self.collector = None
-        self._state = RASTER_STATE_IDLE
+        self._status = RASTER_STATE_IDLE
         self._last_progress_fraction = 0.0
         self.action_btn.set_label('mxdc-start')
         self.stop_btn.set_sensitive(False)
@@ -397,7 +397,7 @@ class RasterWidget(gtk.Frame):
     def on_activate(self, btn):
         if self.sample_viewer and self.collector:
             self.action_btn.set_sensitive(False)
-            if self._state == RASTER_STATE_IDLE:
+            if self._status == RASTER_STATE_IDLE:
                 params = self.get_parameters()
                 config.save_config(_CONFIG_FILE,params)
                 info = self.sample_viewer.get_grid_settings()
@@ -411,10 +411,10 @@ class RasterWidget(gtk.Frame):
                 self.pbar.set_text("Starting ... ")
                 self.collector.start()
                 self.result_box.set_sensitive(False)
-            elif self._state == RASTER_STATE_RUNNING:
+            elif self._status == RASTER_STATE_RUNNING:
                 self.pbar.set_text("Pausing ... ")
                 self.collector.pause()
-            elif self._state == RASTER_STATE_PAUSED:
+            elif self._status == RASTER_STATE_PAUSED:
                 self.on_raster_progress()
                 self.collector.resume()
     
@@ -446,7 +446,7 @@ class RasterWidget(gtk.Frame):
         
     def on_raster_stopped(self, obj):
         self.stop_btn.set_sensitive(False)
-        self._state = RASTER_STATE_IDLE
+        self._status = RASTER_STATE_IDLE
         self.action_btn.set_label('mxdc-start')
         self.pbar.set_text("Stopped!")
         self.control_box.set_sensitive(True)
@@ -458,10 +458,10 @@ class RasterWidget(gtk.Frame):
         if state:
             self.pbar.set_text("Paused")
             self.action_btn.set_label('mxdc-resume')
-            self._state = RASTER_STATE_PAUSED
+            self._status = RASTER_STATE_PAUSED
         else:
             self.action_btn.set_label('mxdc-pause')
-            self._state = RASTER_STATE_RUNNING        
+            self._status = RASTER_STATE_RUNNING        
         self.action_btn.set_sensitive(True)
         
     def on_raster_started(self, obj):
@@ -471,7 +471,7 @@ class RasterWidget(gtk.Frame):
         self.stop_btn.set_sensitive(True)
         self.pbar.set_fraction(0.0)
         self.action_btn.set_sensitive(True)
-        self._state = RASTER_STATE_RUNNING
+        self._status = RASTER_STATE_RUNNING
         
         # Demo grid scores based on size
         # self._scores_for_demo = _demo_scores(self._result_info['size'])
@@ -480,7 +480,7 @@ class RasterWidget(gtk.Frame):
         self.stop_btn.set_sensitive(False)
         self.action_btn.set_label('mxdc-start')
         self.control_box.set_sensitive(True)
-        self._state = RASTER_STATE_IDLE
+        self._status = RASTER_STATE_IDLE
         self.results.add_item(self._result_info)
         self.details.add_items(self._result_info)
         self.result_box.set_sensitive(True)          
