@@ -524,7 +524,7 @@ class ImageWidget(gtk.DrawingArea):
         self.display_gamma = self.gamma
         self.file_loader.gamma_offset = 0.0
         lut = stretch(self.gamma)
-        self.raw_img = self.src_image.point(lut, 'L')
+        self.raw_img = self.src_image.point(lut.tolist(), 'L')
         self._create_pixbuf()
         self.queue_draw()
        
