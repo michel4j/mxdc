@@ -35,15 +35,15 @@ import numpy
 import array
 import re
 
-#from gi.repository import gobject
 import gobject
 
-from zope.interface import implements
-from bcm.protocol.interfaces import IProcessVariable
-from bcm.utils.log import get_module_logger
+from zope.interface import implements, Interface
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+module_name = __name__.split('.')[-1]
+_logger = logging.getLogger(module_name)
+_logger.setLevel(logging.INFO)
+
 
 # Define EPICS constants
 (DISABLE_PREEMPTIVE_CALLBACK, ENABLE_PREEMPTIVE_CALLBACK) = range(2)
@@ -205,6 +205,41 @@ _PV_REPR_FMT = """<ProcessVariable
     Connection: %s
 >"""
 
+class IProcessVariable(Interface):
+    
+    """A Process Variable object."""
+     
+    def get():
+        """Get and return the value of the process variable."""
+    
+    def set(val):
+        """Set the value of the process variable.
+        
+        Arguments:
+        val    -- value to set the PV to
+        
+        """
+    
+    def connect(signal, func, *args):
+        """Connect a function to be called when the PV signal is encountered.
+        
+        Arguments:
+        signal  -- Signal to connect to. Only 'changed' supported.
+        func    -- The function to be called
+        *args   -- A variable number of arguments to be passed to the function
+                   after all signal related arguments.
+        
+        returns a connection_id that can be used to disconnect the function.
+        """
+            
+    def disconnect(id):
+        """Disconnect a connected function.
+        
+        Arguments:
+        id  -- id of connection to disconnect.
+
+        """
+        
 class PV(gobject.GObject):
     
     """A Process Variable 
@@ -308,7 +343,7 @@ class PV(gobject.GObject):
     def __del__(self):
         for key,val in self._callbacks:
             self._del_handler(val[2])
-        
+                            
     def get(self):
         """Get the value of a Process Variable.
         If monitoring is enabled, this returns the most recently update value,
@@ -319,7 +354,6 @@ class PV(gobject.GObject):
               a string.
             - All other array types will return a numpy.ndarray
         
-        This method raises an exception if the channel is not active.
         """
         if self._connected != CA_OP_CONN_UP:
             _logger.error('(%s) PV not connected' % (self._name,))
@@ -568,6 +602,8 @@ class PV(gobject.GObject):
             if m:
                 attr = m.group(1)
                 return self.state_info.get(attr, None)
+            elif attr in self.state_info:
+                return self.state_info[attr]
             else:
                 raise AttributeError("%s has no attribute '%s'" % (self.__class__.__name__, attr))
 
@@ -630,7 +666,7 @@ def _heart_beat_loop():
     threads_init()
     while libca.active:
         libca.ca_pend_event(0.001)
-        time.sleep(0.02)
+        time.sleep(0.01)
     
              
 try:
