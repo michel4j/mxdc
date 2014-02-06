@@ -34,15 +34,16 @@ def _energy2pitch(x):
     return p[0] + p[1] * numpy.sin(a) + p[2] * numpy.log(a) + p[3] * numpy.cos(a)
 
 class SplineRep(object):
-    def __init__(self):
+    def __init__(self, offset=0.0):
         self.fit = None
+        self.offset = offset
         txtfile = os.path.join(os.path.dirname(__file__), 'data', '08B1-boss.lut')
         data = numpy.loadtxt(txtfile, dtype={"names": ('energy', 'target'), "formats": (float, float)})
         data.sort(order="energy")
         self.fit = interpolate.splrep(data['energy'], data['target'])
         
     def __call__(self, x, rnd=4):
-        return round(interpolate.splev(x, self.fit, der=0), rnd)
+        return self.offset + round(interpolate.splev(x, self.fit, der=0), rnd)
 
 # maps names to device objects
 DEVICES = {

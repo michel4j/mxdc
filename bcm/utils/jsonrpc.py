@@ -17,16 +17,12 @@ class ServiceProxy(object):
         return str({"jsonrpc": self.__version,
                 "method": self.__service_name})
   
-    def __call__(self, *args, **kwargs):
-        if len(kwargs):
-            params = kwargs 
-        else:
-            params = args
-
-        r = urllib.urlopen(self.__service_url,
-                            json.dumps({
+    def __call__(self, *args):
+        params = args
+        call_params = json.dumps({
                               "jsonrpc": self.__version,
                               "method": self.__service_name,
                               'params': params,
-                              'id': str(uuid.uuid1())})).read()
+                              'id': str(uuid.uuid1())})
+        r = urllib.urlopen(self.__service_url, call_params).read()
         return json.loads(r)
