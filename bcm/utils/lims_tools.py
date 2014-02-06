@@ -147,9 +147,8 @@ def get_onsite_samples(beamline):
         'project_name': get_project_name(),
         'beamline_name': beamline.name }
     try:
-        reply = beamline.lims.service.lims.get_onsite_samples(
-                        beamline.config.get('lims_api_key',''), info)
-    except IOError, e:
+        reply = beamline.lims.service.lims.get_onsite_samples(beamline.config.get('lims_api_key',''), info)
+    except (IOError, ValueError) as e:
         _logger.error('Unable to fetch samples: %s' % e)
         reply = {'error': {'message': str(e)}}       
     return reply
