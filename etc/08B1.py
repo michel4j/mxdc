@@ -51,7 +51,7 @@ DEVICES = {
     'energy':   PseudoMotor('DCM1608-4-B10-01:energy:KeV'),
     'bragg_energy': BraggEnergyMotor('SMTR1608-4-B10-17:deg', motor_type="vmeenc"),
     'dcm_pitch':  ENCMotor('SMTR1608-4-B10-15:deg'),
-    'boss': BossPIDController('BL08B1:PicoControl', 'DCM1608-4-B10-01:energy:KeV:fbk', target_func=SplineRep()),    
+    'boss': BossPIDController('BL08B1:PicoControl', 'DCM1608-4-B10-01:energy:KeV:fbk', target_func=SplineRep(offset=-0.0012)),    
     'mostab': PitchOptimizer('Pitch Tuner', _energy2pitch),
     
     # Goniometer/goniometer head devices
