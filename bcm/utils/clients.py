@@ -130,10 +130,12 @@ class LIMSClient(BaseService):
             protocol = 'https'
         else:
             protocol ='http'
+           
         path = self._service_data['data']['path'].strip()
         if path[-1] == '/':
-            self._service_data['path'] = path[:-1]
-        address = '%s://%s:%s%s' % (protocol, self._service_data['host'], 
+            self._service_data['data']['path'] = path[:-1]
+        
+        address = '%s://%s:%s%s/' % (protocol, self._service_data['host'], 
                                     self._service_data['port'],
                                     self._service_data['data']['path'])
         _logger.info('MxLIVE Service found at %s' % (address))
