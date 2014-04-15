@@ -78,8 +78,11 @@ class MXDCApp(object):
         pass
 
     def provider_failure(self):
-        msg = 'On <i>%s</i>, by user <i>%s</i> since <i>%s</i>. Only one instance permitted!' % (self._service_data['host'], 
+        try:
+            msg = 'On <i>%s</i>, by user <i>%s</i> since <i>%s</i>. Only one instance permitted!' % (self._service_data['host'], 
                         self._service_data['data']['user'], self._service_data['data']['started'])
+        except:
+            msg = "Unidentified remote MxDC instance found"
         if self.beamline.config['admin_group'] in os.getgroups():
             msg += '\n\nDo you want to shut it down?'
             response = dialogs.yesno('MXDC Already Running', msg)
