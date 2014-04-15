@@ -2,6 +2,7 @@
 from bcm.utils.imageio import read_image
 from bcm.utils.imageio.utils import stretch
 from bcm.utils.science import find_peaks
+from bcm.utils.decorators import async
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 import Queue
@@ -502,7 +503,7 @@ class ImageWidget(gtk.DrawingArea):
         self._colorize = True
         self._create_pixbuf()
         self.queue_draw()
-
+    
     def set_brightness(self, value):
         # new images need to respect this so file_loader should be informed
         self.file_loader.gamma_offset = value
