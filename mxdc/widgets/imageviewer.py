@@ -127,7 +127,10 @@ class ImageViewer(gtk.Alignment):
         if self.file_template is not None:
             self._dataset_frames = glob.glob(self.file_template)
             self._dataset_frames.sort()
-            self._dataset_pos = self._dataset_frames.index(self.filename)
+            try:
+                self._dataset_pos = self._dataset_frames.index(self.filename)
+            except:
+                self._dataset_pos = -1
                 
             # test next and prev        
             self.next_btn.set_sensitive(False)
