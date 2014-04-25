@@ -75,7 +75,10 @@ class DiagnosticDisplay(gtk.Alignment):
                                       data[1])
             self._notice.set_urgency(pynotify.URGENCY_CRITICAL)
             self._notice.set_timeout(6000) # 20 seconds
-            self._notice.show()
+            try:
+                self._notice.show()
+            except:
+                _logger.warn(self._diagnostic.description)
 
         
         
