@@ -74,8 +74,8 @@ DEVICES = {
     'psh1': Shutter('PSH1408-I00-01'),
     'psh2': Shutter('PSH1408-I00-02'),
     'ssh1': Shutter('SSH1408-I00-01'),
-    #'ssh2': Shutter('SSH1608-2-I10-01'),
-    'ssh2': StateLessShutter('SSH1608-2-I10-01:opr:open', 'SSH1608-2-I10-01:opr:close'),
+    'ssh2': Shutter('SSH1608-2-I10-01'),
+    #'ssh2': StateLessShutter('SSH1608-2-I10-01:opr:open', 'SSH1608-2-I10-01:opr:close'),
     'exposure_shutter': Shutter('PSH16083I1001'),
     
     # Intensity monitors,
