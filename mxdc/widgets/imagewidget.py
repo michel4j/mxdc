@@ -172,6 +172,8 @@ class ImageWidget(gtk.DrawingArea):
         self._draw_histogram = False
         self._best_interp = gtk.gdk.INTERP_TILES
         self._saturation_factor = 1.0
+        self._canvas_is_clean = False
+
         self.display_gamma = 1.0
         self.scale = 1.0
 
@@ -506,17 +508,21 @@ class ImageWidget(gtk.DrawingArea):
     
     def set_brightness(self, value):
         # new images need to respect this so file_loader should be informed
+        if (value == self.file_loader.gamma_offset) or (not self._canvas_is_clean):
+            return 
         self.file_loader.gamma_offset = value
         gamma = self.gamma * numpy.exp(-self.file_loader.gamma_offset+_GAMMA_SHIFT)/30.0
         if gamma != self.display_gamma:
             lut = stretch(gamma)
             self.raw_img = self.src_image.point(lut.tolist(), 'L')
             self._create_pixbuf()
+            self._canvas_is_clean = False
             self.queue_draw()
             self.display_gamma = gamma
 
     def colorize(self, value):
         self.set_colormap(index=value)
+        self._canvas_is_clean = False
         self._create_pixbuf()
         self.queue_draw()
 
@@ -728,6 +734,7 @@ class ImageWidget(gtk.DrawingArea):
             
             self.draw_overlay_cairo(context)
             self.draw_spots(context)
+            self._canvas_is_clean = True
                 
     def on_realized(self, obj):
         window = self.get_window()
