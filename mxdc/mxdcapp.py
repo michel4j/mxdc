@@ -69,6 +69,7 @@ class MXDCApp(object):
         
     def service_removed(self, obj, instance):
         self.remote_mxdc = None
+        self.broadcast_service()
             
     def do_quit(self, obj=None):
         _logger.info('Stopping...')
@@ -89,7 +90,7 @@ class MXDCApp(object):
             print response
             if response == gtk.RESPONSE_YES and self.remote_mxdc is not None:
                 self.remote_mxdc.callRemote('shutdown')
-                gobject.timeout_add(2000, self.broadcast_service) # broadcast after a short while
+                #gobject.timeout_add(2000, self.broadcast_service) # broadcast after a short while
             else:
                 self.do_quit()
         else:
