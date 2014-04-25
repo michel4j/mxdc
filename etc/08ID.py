@@ -38,7 +38,8 @@ DEVICES = {
     # Goniometer/goniometer head devices
     'goniometer': Goniometer('GV6K1608-001', 'OAV1608-3-I10-01', 'ROB16083I', 'PM1608-3-I10-02:pm:mm'),
     'omega':    VMEMotor('GV6K1608-001:deg'),
-    'sample_x':  VMEMotor('SMTR16083I1011:mm'),
+    #'sample_x':  VMEMotor('SMTR16083I1011:mm'),
+    'sample_x': VMEMotor('SMTR16083I1008:mm'),
     'sample_y2':  VMEMotor('SMTR16083I1012:mm'), # if no sample_y, it will be determined from
     'sample_y1':  VMEMotor('SMTR16083I1013:mm'), # orthogonal sample_y1 AND sample_y2
     
@@ -82,7 +83,8 @@ DEVICES = {
     'i_0': Counter('BPM08ID1-03:I0:fbk'),
     'i_1': Counter('BPM08ID1-02:I0:fbk'),
     'i_2': Counter('BPM08ID1-01:I0:fbk'),
-    
+    'i_4': Counter('A1608-3-06:A:fbk'),
+      
     # Misc: Automounter, HC1 etc
     'automounter':  Automounter('ROB16083I', 'ROB1608-300'),
     #'humidifier': HumidityController('HC1608-01'),
