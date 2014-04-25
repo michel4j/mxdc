@@ -18,7 +18,6 @@ class ServiceProxy(object):
                 "method": self.__service_name})
   
     def __call__(self, *args):
-        print args
         params = args
         call_params = json.dumps({
                               "jsonrpc": self.__version,
