@@ -336,7 +336,8 @@ class Automounter(BasicAutomounter):
         self._bar_code = self.add_pv('%s:bcode:barcode' % pv_name)
         self._barcode_reset = self.add_pv('%s:bcode:clear' % pv_name)
         self._enabled = self.add_pv('%s:mntEn' % pv_name)
-        self._sample_busy = self.add_pv('%s:bot:mntEn' % pv_name)
+        #self._sample_busy = self.add_pv('%s:bot:mntEn' % pv_name)
+        self._sample_busy = self.add_pv('%s:tblSafe:sts' % pv_name)
         self._probe_param = self.add_pv('%s:probe:wvParam' % pv_name)
         
         self.port_states.connect('changed', lambda x, y: self._parse_states(y))
