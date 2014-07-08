@@ -1,6 +1,6 @@
 
 from bcm.device.base import BaseDevice
-from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
+from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor, IVideoSink
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from scipy import misc
@@ -384,3 +384,70 @@ class FDICamera(VideoSrc):
     def stop(self):
         self._sock.close()
         self._stopped = True
+
+
+class VideoRecorder(object):
+    implements(IVideoSink)    
+    def __init__(self, camera):
+        self.stopped = False
+        self._colorize = False
+        self._palette = None
+        self._start_time = 0
+        self._last_time = 0
+        self._delta_t = 1.0
+        self._scale = 0.5
+        self._recording = False
+        self._duration = 300
+        self._filename = 'testing'
+        self.camera = camera
+            
+    def set_src(self, src):
+        self.camera = src
+        self.camera.start()
+    
+    def display(self, img):
+        if self._recording and time.time() - self._start_time <= self._duration:
+            if time.time() - self._last_time >= self._delta_t:
+                w, h = map(lambda x: int(x*self._scale), img.size)                
+                img = img.resize((w, h), Image.ANTIALIAS)
+                if self._colorize:
+                    if img.mode != 'L':
+                        img = img.convert('L')
+                    img.putpalette(self._palette)
+                self._video_images.append(img)
+                self._video_times.append(time.time())
+                self._last_time = self._video_times[-1]
+        elif self._recording:
+            self.stop()
+           
+    def set_colormap(self, colormap=None):
+        from mxdc.widgets import video as vw
+        if colormap is not None:
+            self._colorize = True
+            self._palette = vw.COLORMAPS[colormap]
+        else:
+            self._colorize = False
+    
+    def record(self, filename, duration=5, fps=0.5, scale=0.5):
+        if not self._recording:
+            self.camera.add_sink(self)
+            self._filename = filename
+            self._recording = True
+            self._video_images = []
+            self._video_times = []
+            self._duration = duration*60
+            self._delta_t = 1.0/fps
+            self._start_time = time.time()
+            self._last_time = self._start_time
+            self._scale = scale
+        
+    def stop(self):
+        from bcm.utils import images2gif
+        if self._recording:
+            self._recording = False
+            self.camera.del_sink(self)
+            dur = numpy.diff(self._video_times).mean()
+            images2gif.writeGif(self._filename, self._video_images, duration=dur)
+            del self._video_images
+            del self._video_times
+              
