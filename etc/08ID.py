@@ -14,6 +14,7 @@ SAFE_BEAMSTOP       = 50.0
 SAFE_DISTANCE       = 400.0
 XRF_BEAMSTOP        = 30.0
 XRF_ENERGY_OFFSET   = +0.5              # KeV
+XRF_FWHM            = 0.15
 
 CENTERING_BACKLIGHT = 37.0
 

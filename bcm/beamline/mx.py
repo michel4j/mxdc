@@ -28,6 +28,7 @@ class MXBeamline(object):
               DEFAULT_BEAMSTOP    = Default beam-stop position
               SAFE_BEAMSTOP       = Safe Beam-stop position during mounting
               XRF_BEAMSTOP        = Beam-stop position for XRF scans
+              XRF_FWHM            = FWHM of MCA peaks in XRF mode
               LIMS_API_KEY        = A string
               MISC_SETTINGS       = A dictionary containing any other key value pairs
                                     will be available as beamline.config['misc']
@@ -111,6 +112,7 @@ class MXBeamline(object):
             'safe_beamstop': getattr(l_settings, 'SAFE_BEAMSTOP', getattr(g_settings, 'SAFE_BEAMSTOP', 25.0)),
             'safe_distance': getattr(l_settings, 'SAFE_DISTANCE', getattr(g_settings, 'SAFE_DISTANCE', 700.0)),
             'xrf_beamstop': getattr(l_settings, 'XRF_BEAMSTOP', getattr(g_settings, 'XRF_BEAMSTOP', 50.0)),           
+            'xrf_fwhm': getattr(l_settings, 'XRF_FWHM', getattr(g_settings, 'XRF_FWHM', 0.1)),           
             'xrf_energy_offset': getattr(l_settings, 'XRF_ENERGY_OFFSET', getattr(g_settings, 'XRF_ENERGY_OFFSET', 2.0)),   
             'lims_api_key': getattr(l_settings, 'LIMS_API_KEY', getattr(g_settings, 'LIMS_API_KEY', '')),
             'shutter_sequence': getattr(l_settings, 'BEAMLINE_SHUTTERS', getattr(g_settings, 'BEAMLINE_SHUTTERS')),
