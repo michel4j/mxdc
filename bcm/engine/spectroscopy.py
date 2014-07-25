@@ -48,7 +48,7 @@ class XRFScan(BasicScan):
         x = self.data[:,0].astype(float)
         y = self.data[:,1].astype(float)
         energy = self._energy
-        sel = (x < 0.5) | (x > energy - self.beamline.config.get('xrf_energy_offset', 2.0))
+        sel = (x < 0.5) | (x > energy - 0.5*self.beamline.config.get('xrf_energy_offset', 2.0))
         y[sel] = 0.0
         elements, bblocks, coeffs = science.interprete_xrf(x, y, energy)
         assigned = {}        
@@ -66,7 +66,7 @@ class XRFScan(BasicScan):
         ys = science.smooth_data(y, times=2, window=21)
         self.results = {
             'data': {'energy': map(float, list(x)), 
-                     'counts': map(float, list(ys)),
+                     'counts': map(float, list(self.data[:,1])),
                      'fit' : map(float, list(bblocks.sum(1)))},
             'assigned': assigned,
             'parameters': {'directory': self._directory,
