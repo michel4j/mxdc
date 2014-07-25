@@ -732,7 +732,7 @@ class ScanManager(gtk.Alignment):
         self.output_log.clear()
         ax = self.plotter.axis[0]
         ax.axis('tight')
-        ax.set_xlim((0, energy+0.25*self.beamline.config['xrf_energy_offset']))
+        ax.set_xlim((-0.25*self.beamline.config['xrf_energy_offset'], energy+0.25*self.beamline.config['xrf_energy_offset']))
         
         # get list of elements sorted in descending order of prevalence
         element_list = [(v[0], k) for k,v in self.xrf_results.items()]
