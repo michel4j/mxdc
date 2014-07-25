@@ -66,7 +66,8 @@ class XRFScan(BasicScan):
         ys = science.smooth_data(y, times=2, window=21)
         self.results = {
             'data': {'energy': map(float, list(x)), 
-                     'counts': map(float, list(self.data[:,1])),
+                     #'counts': map(float, list(self.data[:,1])),
+                     'counts': map(float, list(ys)),
                      'fit' : map(float, list(bblocks.sum(1)))},
             'assigned': assigned,
             'parameters': {'directory': self._directory,
