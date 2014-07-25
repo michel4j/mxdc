@@ -50,6 +50,10 @@ class XRFScan(BasicScan):
         energy = self._energy
         sel = (x < 0.5) | (x > energy - 0.5*self.beamline.config.get('xrf_energy_offset', 2.0))
         y[sel] = 0.0
+        
+        # set FWHM of detector
+        science.PEAK_FWHM = self.beamline.config.get('xrf_fwhm', 0.1)
+        
         elements, bblocks, coeffs = science.interprete_xrf(x, y, energy)
         assigned = {}        
         for i, el_info in enumerate(elements):
