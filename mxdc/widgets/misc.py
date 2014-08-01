@@ -98,7 +98,7 @@ class ActiveEntry(gtk.VBox):
         self._sizegroup_v.add_widget(self._entry)
         self._sizegroup_v.add_widget(self._fbk_label)
 
-        self._entry.connect('event', self._on_entry_clicked)
+        #self._entry.connect('event', self._on_entry_clicked)
         #self._sizegroup_v.add_widget(self._action_btn)
 
         #font_desc.set_family('#monospace')
