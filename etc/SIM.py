@@ -75,6 +75,7 @@ DEVICES = {
     'ssh1':  SimShutter('SSH2'),
     'psh2':  SimShutter('PSH2'),
     'exposure_shutter': SimShutter('Fast Shutter'),
+    'enclosures': Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
     
     # Intensity monitors, shutter, attenuation, mca etc
     'i_0': SimCounter('I_0'),

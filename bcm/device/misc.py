@@ -775,3 +775,34 @@ class StorageRing(BaseDevice):
         self._last_current = val
         self._check_beam()
         
+
+class Enclosures(BaseDevice):
+    __gsignals__ =  { 
+        "ready": ( gobject.SIGNAL_RUN_FIRST, 
+                     gobject.TYPE_NONE, 
+                     (gobject.TYPE_BOOLEAN,)),
+        }  
+    
+    def __init__(self, **kwargs):
+        BaseDevice.__init__(self)
+        self.name = "Beamline Enclosures"
+        self.hutches = {}
+        for k,n in kwargs.items():
+            p = self.add_pv(n)
+            self.hutches[k] = p
+            p.connect('changed', self._on_change)
+        
+    def _get_message(self):
+        if self.ready_state:
+            return "All enclosures secure"
+        else:
+            msg = ", ".join([k.upper() for k,v in self.hutches.items() if v.get() == 0])
+            return "%s not secure" % msg
+         
+    def _on_change(self, obj, val):
+        rd = all([p.get() == 1 for p in self.hutches.values()])
+        self.set_state(ready=rd)
+        if not rd:
+            self.set_state(health=(2, 'ready', self._get_message()))
+        else:
+            self.set_state(health=(0, 'ready', self._get_message()))
