@@ -2,7 +2,6 @@
 from bcm.settings import *
 import os
 import numpy
-from scipy import interpolate
 
 BEAMLINE_NAME = '08B1-1'
 BEAMLINE_TYPE = 'MX'
@@ -36,6 +35,7 @@ def _energy2pitch(x):
 
 class SplineRep(object):
     def __init__(self, offset=0.0):
+        from scipy import interpolate
         self.fit = None
         self.offset = offset
         txtfile = os.path.join(os.path.dirname(__file__), 'data', '08B1-boss.lut')
@@ -44,6 +44,7 @@ class SplineRep(object):
         self.fit = interpolate.splrep(data['energy'], data['target'])
         
     def __call__(self, x, rnd=4):
+        from scipy import interpolate
         return self.offset + round(interpolate.splev(x, self.fit, der=0), rnd)
 
 # maps names to device objects
@@ -98,6 +99,7 @@ DEVICES = {
     'psh2': Shutter('PSH1408-B10-02'),
     'ssh1': Shutter('SSH1408-B10-01'),
     'ssh3': Shutter('SSH1608-4-B10-01'),
+    'enclosures': Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
     'exposure_shutter': BasicShutter('BL08B1:MD2:S:OpenFastShutter','BL08B1:MD2:S:CloseFastShutter','BL08B1:MD2:G:ShutterIsOpen'),
     
     # Intensity monitors,

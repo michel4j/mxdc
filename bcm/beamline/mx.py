@@ -164,7 +164,7 @@ class MXBeamline(object):
         
         # Setup diagnostics on some devices
         self.diagnostics = []
-        for k in ['automounter', 'goniometer', 'detector', 'cryojet', 'mca', 'all_shutters', 'storage_ring']:
+        for k in ['automounter', 'goniometer', 'detector', 'cryojet', 'mca', 'enclosures', 'all_shutters', 'storage_ring']:
             try:
                 self.diagnostics.append( DeviceDiag(self.registry[k]) )
             except:
