@@ -168,6 +168,7 @@ class ImageViewer(gtk.Alignment):
     
     def open_image(self, filename):
         # select spots and display for current image
+        self._set_file_specs(filename)
         if len(self.all_spots) > 0:
             image_spots = self._select_image_spots(self.all_spots)
             indexed, unindexed = self._select_spots(image_spots)
@@ -245,7 +246,6 @@ class ImageViewer(gtk.Alignment):
     def _update_info(self, obj=None):
         info = self.image_canvas.get_image_info()
 
-        self._set_file_specs(info['filename'])
         for key, val in info.items():
             w = self._xml3.get_widget('%s_lbl' % key)
             if not w:
@@ -312,7 +312,8 @@ class ImageViewer(gtk.Alignment):
         filename, flt = dialogs.select_open_image(parent=self.get_toplevel(), 
                                 default_folder=self.directory)
         if filename is not None and os.path.isfile(filename):
-            if flt.get_name() == 'XDS Spot files':
+            name, ext = os.path.splitext(filename)
+            if flt.get_name() == 'XDS Spot files' or name == 'SPOT' or ext == '.XDS':
                 self._load_spots(filename)
                 # if spot information is available  and an image is loaded display it
                 if self.image_canvas.image_loaded:
