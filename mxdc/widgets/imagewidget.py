@@ -34,6 +34,11 @@ COLORMAPS['gist_yarg'][-1] = 0
 COLORMAPS['gist_yarg'][-2] = 0
 COLORMAPS['gist_yarg'][-3] = 255
 
+# Modify default colormap to add overloaded pixel effect
+COLORMAPS['gist_yarg'][0] = 0
+COLORMAPS['gist_yarg'][1] = 0
+COLORMAPS['gist_yarg'][2] = 200
+
 _GAMMA_SHIFT = 3.5        
 
 _BUSY_CURSOR_BITS_ = "\
@@ -223,7 +228,6 @@ class ImageWidget(gtk.DrawingArea):
     def set_spots(self, indexed=[], unindexed=[]):
         self.indexed_spots = indexed
         self.unindexed_spots = unindexed
-        
             
     def load_frame(self, filename):        
         self.file_loader.load_file(filename)
@@ -466,28 +470,25 @@ class ImageWidget(gtk.DrawingArea):
         cr.set_line_width(0.85)
         cr.move_to(6, h-6)
         cr.show_text(os.path.basename(self.filename))
+        cr.stroke()
 
 
     def draw_spots(self, cr):
         # draw spots
         x, y, w, h = self.extents
-        cr.set_line_width(1.0)
-        cr.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+        cr.set_line_width(0.75)
+        cr.set_source_rgba(1.0, 0.0, 0.0, 0.5)
         for i, spots in enumerate([self.indexed_spots, self.unindexed_spots]):
             if i == 0:
-                cr.set_source_rgb(0.0, 1.0, 0.0)
+                cr.set_source_rgba(0.1, 0.1, 0.8, 0.75)
             else:
-                cr.set_source_rgb(1.0, 0.0, 0.0)
+                cr.set_source_rgba(0.8, 0.1, 0.1, 0.75)
             for spot in spots:
                 sx, sy = spot[:2]
                 if (0 < (sx-x) < x+w) and (0 < (sy-y) < y+h):
                     cx = int((sx-x)*self.scale)
                     cy = int((sy-y)*self.scale)
-                    cr.move_to(cx-4, cy)
-                    cr.line_to(cx+4, cy)
-                    cr.stroke()
-                    cr.move_to(cx, cy-4)
-                    cr.line_to(cx, cy+4)
+                    cr.arc(cx, cy, 16*self.scale, 0, 2.0 * numpy.pi)
                     cr.stroke()
             
             
