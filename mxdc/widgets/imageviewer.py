@@ -245,7 +245,7 @@ class ImageViewer(gtk.Alignment):
 
     def _update_info(self, obj=None):
         info = self.image_canvas.get_image_info()
-
+        self._set_file_specs(info['filename'])
         for key, val in info.items():
             w = self._xml3.get_widget('%s_lbl' % key)
             if not w:
