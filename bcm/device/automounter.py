@@ -188,7 +188,7 @@ class BasicAutomounter(BaseDevice):
         """
         pass
     
-    def wait(self, start=True, stop=True, timeout=240):
+    def wait(self, start=True, stop=True, timeout=480):
         """Wait for the automounter
         
         Kwargs:
@@ -440,7 +440,7 @@ class Automounter(BasicAutomounter):
         
         _logger.info('(%s) Mount command: %s' % (self.name, port))
         if wait:
-            success = self.wait(start=True, stop=True, timeout=240)
+            success = self.wait(start=True, stop=True)
             if not success:
                 self.set_state(status='idle', message="Mounting timed out!")
             return success
@@ -486,14 +486,14 @@ class Automounter(BasicAutomounter):
         
         _logger.info('(%s) Dismount command: %s' % (self.name, port))
         if wait:
-            success = self.wait(start=True, stop=True, timeout=240)
+            success = self.wait(start=True, stop=True)
             if not success:
                 self.set_state(status='idle', message="Dismounting timed out!")
             return success
         return True
  
 
-    def _wait_for_enable(self, timeout=60):
+    def _wait_for_enable(self, timeout=120):
         self.set_state(status='standby', message="Waiting for mount mode.")
         while not self.is_enabled() and timeout > 0:
             timeout -= 0.05
