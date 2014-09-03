@@ -226,16 +226,22 @@ class DataCollector(gobject.GObject):
                         os.remove("%s/%s" % (frame['directory'], frame['file_name']))
                 
                 self._notify_progress(self.STATE_RUNNING)
-                _cur_energy = self.beamline.energy.get_position()
-                self.beamline.energy.move_to(frame['energy'], wait=True)
+                _energy_delta = abs(self.beamline.energy.get_position() - frame['energy'])
                 
                 # if energy changes by more than 5 eV, Optimize
-                if  not frame.get('dafs', False) and abs(frame['energy'] - _cur_energy) >= 0.005:                                    
-                    self.beamline.mostab.start()
-                    self.beamline.mostab.wait()
+                #if  not frame.get('dafs', False) and _energy_delta >= 0.005:                                    
+                #    self.beamline.mostab.start()
+                #    self.beamline.mostab.wait()
+                
+                # if devices have moved, move them back
+                if _energy_delta >= 0.0005:
+                    self.beamline.energy.move_to(frame['energy'], wait=True)
 
-                self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True) 
-                self.beamline.attenuator.set(frame['attenuation'], wait=True)               
+                if abs(self.beamline.diffractometer.distance.get_position() - frame['distance']) >= 0.1:
+                    self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True) 
+                
+                if abs(self.beamline.attenuator.get() - frame['attenuation']) >= 25:
+                    self.beamline.attenuator.set(frame['attenuation'], wait=True)               
                 
                 # Prepare image header
                 header['delta_angle'] = frame['delta_angle']
@@ -261,8 +267,9 @@ class DataCollector(gobject.GObject):
                                                    angle=frame['start_angle'])
 
                 self.beamline.detector.start(first=self._first)
+                self.beamline.goniometer.scan(wait=False)
                 self.beamline.detector.set_parameters(header)
-                self.beamline.goniometer.scan()
+                self.beamline.goniometer.wait(start=True, stop=True)
                 self.beamline.detector.save()
                 
                 #frame['saved'] = True
