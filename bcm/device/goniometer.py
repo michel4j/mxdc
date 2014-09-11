@@ -225,6 +225,8 @@ class Goniometer(GoniometerBase):
         Kwargs:
             - `wait` (bool): if True, block until the mode is completely changed.
         """
+        if self.is_busy():
+            self.wait(start=False, stop=True)
         self._requested_mode = mode
         bl = globalRegistry.lookup([], IBeamline)
         if bl is None:
@@ -365,6 +367,9 @@ class MD2Goniometer(GoniometerBase):
         Kwargs:
             - `wait` (bool): if True, block until the mode is completely changed.
         """
+        
+        if self.is_busy():
+            self.wait(start=False, stop=True)
 
         #cmd_template = "SET_CLSMDPhasePosition=%d"
         mode = mode.strip().upper()
