@@ -217,15 +217,14 @@ class BasicAutomounter(BaseDevice):
         
         if (start and not self.is_busy()):
             _logger.debug('Waiting for (%s) to start' % (self.name,))
-            _start_timeout = 20
+            _start_timeout = 60
             while not self.is_busy() and _start_timeout > 0:
                 _start_timeout -= poll
                 time.sleep(poll)
             if _start_timeout <= 0:
                 _logger.warning('Timed out waiting for (%s) to start.' % (self.name,))
                 return False
-            else:
-                self.set_state(preparing=False)
+            self.set_state(preparing=False)
                 
         if (stop and self.is_busy()):
             _logger.debug('Waiting for (%s) to stop' % (self.name,))
@@ -577,7 +576,7 @@ class Automounter(BasicAutomounter):
         elif state == 'robot_config':
             self.set_state(busy=busy, status="setup")
         else:
-            self.set_state(busy=busy, status="busy")
+            self.set_state(busy=busy, status="busy", preparing=False)
 
     def _on_mount_changed(self, pv, val):
         vl = val.split()
