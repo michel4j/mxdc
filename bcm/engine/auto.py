@@ -14,6 +14,7 @@ def auto_mount(bl, port):
         result['mounted'], result['barcode']  = mounted_info
         result['message'] = 'Sample was already mounted.'
     elif bl.automounter.is_mountable(port):
+        bl.automounter.prepare()
         bl.cryojet.nozzle.open()
         bl.goniometer.set_mode('MOUNTING', wait=True)
         success = bl.automounter.mount(port, wait=True)
@@ -31,6 +32,7 @@ def auto_mount(bl, port):
 
 @ca_thread_enable
 def auto_dismount(bl):
+    bl.automounter.prepare()
     bl.goniometer.set_mode('MOUNTING', wait=True)
     bl.cryojet.nozzle.open()
     mounted_info = bl.automounter.mounted_state
@@ -54,13 +56,14 @@ def auto_center(bl):
 
 
 def auto_mount_manual(bl, port, wash=False):
-    if bl.automounter.is_busy() or not bl.automounter.is_active():
+    if bl.automounter.is_preparing() or bl.automounter.is_busy() or not bl.automounter.is_active():
         _logger.warning("Automounter is busy or inactive.")
         return False
     if bl.automounter.is_mounted(port):
         _logger.warning('Sample is already mounted')
         return True
     elif bl.automounter.is_mountable(port):
+        bl.automounter.prepare()
         bl.goniometer.set_mode('MOUNTING', wait=True)
         bl.cryojet.nozzle.open()
         success = bl.automounter.mount(port, wash=wash, wait=True)
@@ -75,13 +78,14 @@ def auto_mount_manual(bl, port, wash=False):
             return True
 
 def auto_dismount_manual(bl, port):
-    if bl.automounter.is_busy() or not bl.automounter.is_active():
+    if bl.automounter.is_preparing() or bl.automounter.is_busy() or not bl.automounter.is_active():
         _logger.warning("Automounter is busy or inactive.")
         return False
     if not bl.automounter.is_mounted(port):
         _logger.warning('Sample is not mounted')
         return True
     else:
+        bl.automounter.prepare()
         bl.goniometer.set_mode('MOUNTING', wait=True)
         bl.cryojet.nozzle.open()
         success = bl.automounter.dismount(wait=True)
