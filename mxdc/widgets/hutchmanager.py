@@ -138,6 +138,7 @@ class HutchManager(gtk.Alignment):
         self.commands_box.pack_start(self.optimize_btn)
         
         # disable mode change buttons while automounter is busy
+        self.beamline.automounter.connect('preparing', self.on_devices_busy)
         self.beamline.automounter.connect('busy', self.on_devices_busy)
         self.beamline.goniometer.connect('busy', self.on_devices_busy)
 
@@ -187,7 +188,7 @@ class HutchManager(gtk.Alignment):
         pass
     
     def on_devices_busy(self, obj, state):
-        combined_state = self.beamline.goniometer.busy_state | self.beamline.automounter.busy_state
+        combined_state = self.beamline.goniometer.busy_state | self.beamline.automounter.busy_state | self.beamline.automounter.preparing_state
         if combined_state:
             for script_name in ['SetMountMode','SetBeamMode','SetCenteringMode','SetCollectMode']:
                 self.scripts[script_name].disable()
