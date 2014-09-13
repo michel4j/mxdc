@@ -73,12 +73,12 @@ class Script(gobject.GObject):
 
     def enable(self):
         self._enabled = True
-        _logger.warning('Script "%s" enabled.' % (self,))
+        _logger.debug('Script "%s" enabled.' % (self,))
         gobject.idle_add(self.emit, "enabled", self._enabled)
 
     def disable(self):
         self._enabled = False
-        _logger.warning('Script "%s" disabled.' % (self,))
+        _logger.debug('Script "%s" disabled.' % (self,))
         gobject.idle_add(self.emit, "enabled", self._enabled)
         
     def run_after(self, *args, **kwargs):
