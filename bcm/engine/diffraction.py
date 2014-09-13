@@ -438,6 +438,7 @@ class Screener(gobject.GObject):
                         self._notify_progress(Screener.TASK_STATE_SKIPPED)
                     elif self.beamline.automounter.is_mountable(task['sample']['port']):
                         self._notify_progress(Screener.TASK_STATE_RUNNING)
+                        self.beamline.automounter.prepare()
                         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
                         self.beamline.cryojet.nozzle.open()
                         success = self.beamline.automounter.mount(task['sample']['port'], wait=True)
@@ -468,7 +469,8 @@ class Screener(gobject.GObject):
                 elif task.task_type == Screener.TASK_DISMOUNT:
                     _logger.warn('TASK: Dismounting Last Sample')
                     if self.beamline.automounter.is_mounted(): # only attempt if any sample is mounted
-                        self._notify_progress(Screener.TASK_STATE_RUNNING)                        
+                        self._notify_progress(Screener.TASK_STATE_RUNNING)
+                        self.beamline.automounter.prepare()                    
                         self.beamline.goniometer.set_mode('MOUNTING', wait=True)
                         self.beamline.cryojet.nozzle.open()
                         success = self.beamline.automounter.dismount(wait=True)

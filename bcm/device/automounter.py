@@ -97,6 +97,8 @@ class BasicAutomounter(BaseDevice):
         - `status`: transmits changes in automounter states. The signal data is 
           a string, one of ['busy','idle','standby','setup','fault'], 
         - `enabled`: <boolean>
+        - `preparing`: <boolean>, indicates that a mount operation is imminent, 
+            no new state changes allowed other than the currently executing ones.
         - `mounted`: emitted when a sample is mounted or dismounted. The data 
           transmitted is a tuple of the form (<port no.>, <barcode>) when 
           mounting and `None` when dismounting.
@@ -108,6 +110,7 @@ class BasicAutomounter(BaseDevice):
     __gsignals__ = {
         'status': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_STRING,)),
         'enabled': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_BOOLEAN,)),
+        'preparing': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_BOOLEAN,)),
         'mounted': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_PYOBJECT,)),
         'progress': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (GObject.TYPE_PYOBJECT,)),
     }
@@ -122,7 +125,8 @@ class BasicAutomounter(BaseDevice):
         self._total_steps = 0
         self._step_count = 0
         self._last_warn = ''
-        self.set_state(active=False, enabled=False) 
+        self.set_state(active=False, enabled=False, preparing=False)
+
     
     def do_state(self, st):
         pass
@@ -131,6 +135,9 @@ class BasicAutomounter(BaseDevice):
         pass
     
     def do_mounted(self, st):
+        pass
+    
+    def do_preparing(self, st):
         pass
     
     def do_progress(self, st):
@@ -157,6 +164,12 @@ class BasicAutomounter(BaseDevice):
     def probe(self):
         """Command the automounter the probe for containers and port states."""
         pass
+    
+    def prepare(self):
+        self.set_state(preparing=True)
+    
+    def is_preparing(self):
+        return self.preparing_state
     
     def mount(self, port, wash=False, wait=False):
         """Mount the sample at the specified port, optionally washing the sample
@@ -211,6 +224,9 @@ class BasicAutomounter(BaseDevice):
             if _start_timeout <= 0:
                 _logger.warning('Timed out waiting for (%s) to start.' % (self.name,))
                 return False
+            else:
+                self.set_state(preparing=False)
+                
         if (stop and self.is_busy()):
             _logger.debug('Waiting for (%s) to stop' % (self.name,))
             while self.is_busy() and timeout > 0:
@@ -378,7 +394,7 @@ class Automounter(BasicAutomounter):
         """Command the automounter the probe for containers and port states."""
         probe_str = ('1 '*291).strip()  #DCSS probe string
         self._probe_param.set(probe_str)
-        enabled = self._wait_for_enable(30)
+        enabled = self._wait_for_enable(60)
         if not enabled:
             _logger.warning('(%s) command received while disabled. Timed out waiting for enabled state.' % self.name)
             return False
@@ -403,13 +419,18 @@ class Automounter(BasicAutomounter):
             bool. True if the requested sample is successfully mounted, and False
             otherwise.
         """
+        self.set_state(preparing=True)
         if self.status_state != 'idle':
             _logger.warning('Operation not allowed while automounter not idle.')
+            self._on_state_changed(None, None)
+            self.set_state(message="Operation not allowed while automounter is busy.", preparing=False)
             return False
         
-        enabled = self._wait_for_enable(30)
+        enabled = self._wait_for_enable(60)
         if not enabled:
             _logger.warning('(%s) command received while disabled. Timed out waiting for enabled state.' % self.name)
+            self._on_state_changed(None, None)
+            self.set_state(message="Timed out waiting for enabled state.", preparing=False)
             return False
         param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
         if wash:
@@ -422,6 +443,8 @@ class Automounter(BasicAutomounter):
         _mounted_port = self._mounted.get().strip()
         if _mounted_port == param:
             _logger.info('(%s) Sample at location `%s` already mounted.' % (self.name, port))
+            self.set_state(message="Sample already mounted.")
+            self._on_state_changed(None, None)
             return True
         
         # use mount_next if something already mounted
@@ -442,7 +465,7 @@ class Automounter(BasicAutomounter):
         if wait:
             success = self.wait(start=True, stop=True)
             if not success:
-                self.set_state(status='idle', message="Mounting timed out!")
+                self.set_state(message="Mounting timed out!")
             return success
         return True
         
@@ -459,13 +482,16 @@ class Automounter(BasicAutomounter):
         Returns:
             bool. True if successfully dismounted, and False otherwise.
         """
+        self.set_state(preparing=True)
         if self.status_state != 'idle':
             _logger.warning('Operation not allowed while automounter not idle.')
             return False
 
-        enabled = self._wait_for_enable(30)
+        enabled = self._wait_for_enable(60)
         if not enabled:
             _logger.warning('(%s) command received while disabled. Timed out waiting for enabled state.' % self.name)
+            self.set_state(message="Timed out waiting for mount mode.", preparing=False)
+            self._on_state_changed(None, None)
             return False
 
         if port is None:
@@ -488,7 +514,7 @@ class Automounter(BasicAutomounter):
         if wait:
             success = self.wait(start=True, stop=True)
             if not success:
-                self.set_state(status='idle', message="Dismounting timed out!")
+                self.set_state(message="Dismounting timed out!", preparing=False)
             return success
         return True
  
@@ -499,7 +525,7 @@ class Automounter(BasicAutomounter):
             timeout -= 0.05
             time.sleep(0.05)
         if timeout <= 0:
-            self.set_state(status='fault', message="Mount mode timed out.")
+            self.set_state(status='fault', message="Mount mode timed out.", preparing=False)
             return False
         else:
             return True       
