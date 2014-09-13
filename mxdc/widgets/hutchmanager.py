@@ -188,12 +188,15 @@ class HutchManager(gtk.Alignment):
         pass
     
     def on_devices_busy(self, obj, state):
-        combined_state = any([self.beamline.goniometer.busy_state, self.beamline.automounter.busy_state, self.beamline.automounter.preparing_state])
+        _states = [self.beamline.goniometer.busy_state, self.beamline.automounter.preparing_state, self.beamline.automounter.busy_state]
+        combined_state = any(_states)
         _script_names = ['SetCenteringMode', 'SetBeamMode', 'SetCollectMode', 'SetMountMode']
         if combined_state:
+            _logger.info('Disabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(_states))
             for script_name in _script_names:
                 self.scripts[script_name].disable()
         else:
+            _logger.info('Enabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(_states))
             for script_name in _script_names:
                 self.scripts[script_name].enable()
 
