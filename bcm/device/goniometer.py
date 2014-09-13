@@ -262,7 +262,6 @@ class Goniometer(GoniometerBase):
                 self._check_gonio_pos()
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
-            time.sleep(1.0)
 
     
     def scan(self, wait=True):
@@ -400,7 +399,6 @@ class MD2Goniometer(GoniometerBase):
                 timeout -= 0.01
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
-            time.sleep(1.0)
             
         #FIXME: compensate for broken presets in mounting mode
         #if mode == 'MOUNTING':
