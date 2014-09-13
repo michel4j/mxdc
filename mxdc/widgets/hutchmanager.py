@@ -189,7 +189,7 @@ class HutchManager(gtk.Alignment):
     
     def on_devices_busy(self, obj, state):
         combined_state = any([self.beamline.goniometer.busy_state, self.beamline.automounter.busy_state, self.beamline.automounter.preparing_state])
-        _script_names = ['SetCenteringMode', ,'SetBeamMode', 'SetCollectMode', 'SetMountMode']
+        _script_names = ['SetCenteringMode', 'SetBeamMode', 'SetCollectMode', 'SetMountMode']
         if combined_state:
             for script_name in _script_names:
                 self.scripts[script_name].disable()
