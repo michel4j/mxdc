@@ -709,7 +709,7 @@ class RelVerticalMotor(MotorBase):
         z2 = -self.y1.get_position()*sin_w        
         self._status = (y1+y2, z1+z2, y1, y2, z1, z2)
         self.set_state(changed=self._status[0])
-        _logger.debug('SAMPLE STAGE Y: %0.4f, Z: %0.4f' % (self._status[0], self._status[1]))
+        #_logger.debug('SAMPLE STAGE Y: %0.4f, Z: %0.4f' % (self._status[0], self._status[1]))
                 
     def get_position(self):
         return self._status[0]
