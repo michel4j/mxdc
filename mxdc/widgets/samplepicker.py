@@ -332,6 +332,7 @@ class SamplePicker(gtk.HBox):
         self.automounter.connect('busy', self.on_state_changed)
         self.automounter.connect('health', self.on_state_changed)
         self.automounter.connect('enabled', self.on_state_changed)
+        self.automounter.connect('preparing', self.on_state_changed)
         self.automounter.connect('mounted', self.on_sample_mounted)
 
         self._full_state = []
@@ -442,7 +443,7 @@ class SamplePicker(gtk.HBox):
         code, h_msg = self.automounter.health_state
         status = self.automounter.status_state
         message = self.automounter.message_state
-        busy = self.automounter.busy_state
+        busy = (self.automounter.busy_state or self.automounter.preparing_state)
         enabled = self.automounter.enabled_state
         active = self.automounter.active_state
         
