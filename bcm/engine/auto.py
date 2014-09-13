@@ -56,7 +56,7 @@ def auto_center(bl):
 
 
 def auto_mount_manual(bl, port, wash=False):
-    if bl.automounter.is_preparing() or bl.automounter.is_busy() or not bl.automounter.is_active():
+    if (bl.automounter.is_preparing() or bl.automounter.is_busy()) or not bl.automounter.is_active():
         _logger.warning("Automounter is busy or inactive.")
         return False
     if bl.automounter.is_mounted(port):
@@ -68,14 +68,14 @@ def auto_mount_manual(bl, port, wash=False):
         bl.cryojet.nozzle.open()
         success = bl.automounter.mount(port, wash=wash, wait=True)
         mounted_info = bl.automounter.mounted_state
-        if not success or mounted_info is None:
-            _logger.warning('Sample mounting failed')
-            return False
-        else:
+        if success and mounted_info is not None:
             bl.cryojet.nozzle.close()
             bl.goniometer.set_mode('CENTERING', wait=False)
             _logger.info('Sample mounting succeeded')
             return True
+        else:
+            _logger.warning('Sample mounting failed')
+            return False
 
 def auto_dismount_manual(bl, port):
     if bl.automounter.is_preparing() or bl.automounter.is_busy() or not bl.automounter.is_active():
