@@ -73,10 +73,12 @@ class Script(gobject.GObject):
 
     def enable(self):
         self._enabled = True
+        _logger.warning('Script "%s" enabled.' % (self,))
         gobject.idle_add(self.emit, "enabled", self._enabled)
 
     def disable(self):
         self._enabled = False
+        _logger.warning('Script "%s" disabled.' % (self,))
         gobject.idle_add(self.emit, "enabled", self._enabled)
         
     def run_after(self, *args, **kwargs):
@@ -88,6 +90,10 @@ class Script(gobject.GObject):
     
     def is_active(self):
         return self._active
+
+    def is_enabled(self):
+        return self._enabled
+
 
 def get_scripts():
     import bcm.scripts
