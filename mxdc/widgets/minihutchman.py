@@ -192,11 +192,11 @@ class MiniHutchManager(gtk.Alignment):
         combined_state = any(_states)
         _script_names = ['SetCenteringMode', 'SetBeamMode', 'SetCollectMode', 'SetMountMode']
         if combined_state:
-            _logger.info('Disabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(_states))
+            _logger.debug('Disabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple([{True:'busy', False:'idle'}[s] for s in _states]))
             for script_name in _script_names:
                 self.scripts[script_name].disable()
         else:
-            _logger.info('Enabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(_states))
+            _logger.debug('Enabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple([{True:'busy', False:'idle'}[s] for s in _states]))
             for script_name in _script_names:
                 self.scripts[script_name].enable()
 
