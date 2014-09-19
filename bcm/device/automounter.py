@@ -223,8 +223,9 @@ class BasicAutomounter(BaseDevice):
                 time.sleep(poll)
             if _start_timeout <= 0:
                 _logger.warning('Timed out waiting for (%s) to start.' % (self.name,))
+                self.set_state(preparing=False)
                 return False
-            self.set_state(preparing=False)
+            
                 
         if (stop and self.is_busy()):
             _logger.debug('Waiting for (%s) to stop' % (self.name,))
@@ -418,7 +419,6 @@ class Automounter(BasicAutomounter):
             bool. True if the requested sample is successfully mounted, and False
             otherwise.
         """
-        self.set_state(preparing=True)
         if self.status_state != 'idle':
             _logger.warning('Operation not allowed while automounter not idle.')
             self._on_state_changed(None, None)
@@ -481,7 +481,7 @@ class Automounter(BasicAutomounter):
         Returns:
             bool. True if successfully dismounted, and False otherwise.
         """
-        self.set_state(preparing=True)
+
         if self.status_state != 'idle':
             _logger.warning('Operation not allowed while automounter not idle.')
             return False
