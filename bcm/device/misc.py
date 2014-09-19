@@ -704,7 +704,7 @@ class DiskSpaceMonitor(BaseDevice):
         else:
             self.set_state(health=(0, 'usage', msg))
             _logger.info(msg)
-        
+        return True
         
     
           
