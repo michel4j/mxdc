@@ -387,7 +387,6 @@ class SamplePicker(gtk.HBox):
             message = "<span color='blue'>Preparing to mount %s.</span>" % port
             self.status_lbl.set_markup(message)
             self.execute_mount(port, wash)
-            self.selected.set_text('')
     
     @async
     def execute_mount(self, port, wash):

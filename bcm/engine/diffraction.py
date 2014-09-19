@@ -1,7 +1,7 @@
 
 
 from bcm.beamline.interfaces import IBeamline
-from bcm.engine import centering, snapshot
+from bcm.engine import centering, snapshot, auto
 from bcm.engine.interfaces import IDataCollector
 from bcm.protocol import ca
 from bcm.utils import json, runlists
@@ -438,11 +438,7 @@ class Screener(gobject.GObject):
                         self._notify_progress(Screener.TASK_STATE_SKIPPED)
                     elif self.beamline.automounter.is_mountable(task['sample']['port']):
                         self._notify_progress(Screener.TASK_STATE_RUNNING)
-                        self.beamline.automounter.prepare()
-                        self.beamline.goniometer.set_mode('MOUNTING', wait=True)
-                        self.beamline.cryojet.nozzle.open()
-                        success = self.beamline.automounter.mount(task['sample']['port'], wait=True)
-                        self.beamline.cryojet.nozzle.close()
+                        success = auto.auto_mount_manual(self.beamline, task['sample']['port'])
                         mounted_info = self.beamline.automounter.mounted_state
                         if not success or mounted_info is None:
                             self.pause()
@@ -460,7 +456,6 @@ class Screener(gobject.GObject):
                                 gobject.idle_add(self.emit, 'sync', False, 'Barcode mismatch. Expected %s.' % self.run_list[self.pos]['sample']['barcode'])
                             else:
                                 gobject.idle_add(self.emit, 'sync', True, '')
-                            self.beamline.goniometer.set_mode('CENTERING', wait=True)
                             self._notify_progress(Screener.TASK_STATE_DONE)                        
                     else:
                         #"skip mounting"
@@ -470,10 +465,7 @@ class Screener(gobject.GObject):
                     _logger.warn('TASK: Dismounting Last Sample')
                     if self.beamline.automounter.is_mounted(): # only attempt if any sample is mounted
                         self._notify_progress(Screener.TASK_STATE_RUNNING)
-                        self.beamline.automounter.prepare()                    
-                        self.beamline.goniometer.set_mode('MOUNTING', wait=True)
-                        self.beamline.cryojet.nozzle.open()
-                        success = self.beamline.automounter.dismount(wait=True)
+                        success = auto.auto_dismount_manual(self.beamline, task['sample']['port'])
                         self._notify_progress(Screener.TASK_STATE_DONE)      
                         
                                                                                             
