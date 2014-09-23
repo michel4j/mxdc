@@ -543,6 +543,7 @@ class Automounter(BasicAutomounter):
     def _on_safety_changed(self, pv, st):
         if self.busy_state and st != 1:
             msg = "Endstation became unsafe while automounter was busy"
+            self.abort()
             _logger.warning(msg)
 
     def _on_normal_changed(self, obj, st):
