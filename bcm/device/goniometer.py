@@ -98,7 +98,7 @@ class GoniometerBase(BaseDevice):
         gobject.idle_add(self.emit, 'mode', mode_str)
         self.mode = mode   
 
-    def wait(self, start=True, stop=True, poll=0.05, timeout=20):
+    def wait(self, start=True, stop=True, poll=0.05, timeout=180):
         """Wait for the goniometer busy state to change. 
         
         Kwargs:
