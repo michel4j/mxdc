@@ -130,40 +130,41 @@ class GoniometerBase(BaseDevice):
     
 class Goniometer(GoniometerBase):
     """EPICS based Parker-type Goniometer at the CLS 08ID-1."""
-    def __init__(self, name, blname, mntname, minibeam):
+    def __init__(self, name, blname):
         """
         Args:
             - `name` (str): PV name of goniometer EPICS record.
             - `blname` (str): PV name for Backlight PV.
-            - `mntname` (str): PV root name for mount status mode.
-            - `minibeam` (str): PV name for minibeam motor. 
         """
         GoniometerBase.__init__(self, name)
         self.name = 'Goniometer'
         pv_root = name.split(':')[0]
+        
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:scanFrame.PROC" % pv_root, monitor=False)
-        self._state = self.add_pv("%s:scanFrame:status" % pv_root)
-        self._mode_state = self.add_pv("%s:mntpos:moving" % mntname)
-        self._state.connect('changed', self._on_busy)
-        self._mode_state.connect('changed', self._on_busy)
-        self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
-        self._bl_position = BackLight(blname)
-
-        self._goto_mount_cmd = self.add_pv("%s:mnt:gotoMount" % mntname)
-        self._goto_mount_state = self.add_pv("%s:mntpos:moving" % mntname)
-        self._gonio_state = self.add_pv("%s:goniPos:mntEn" % mntname)
-        self._table_state = self.add_pv("%s:tbl:mntEn" % mntname)
-
-        self.minibeam = PseudoMotor(minibeam)
-        self.add_devices(self._bl_position, self.minibeam)
-
-        self.minibeam.connect('changed', lambda x,y: self._check_gonio_pos())
-        self.minibeam.connect('busy', lambda x,y: self._check_gonio_pos())
-        self._bl_position.connect('changed', lambda x,y: self._check_gonio_pos())
-        self._gonio_state.connect('changed', lambda x,y: self._check_gonio_pos())
-        self._table_state.connect('changed', lambda x,y: self._check_gonio_pos())
+        self._scan_state = self.add_pv("%s:scanFrame:status" % pv_root)
         
+        self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
+
+        self._gonio_state_mnt = self.add_pv("%s:trans_11:tr.P" % blname)
+        self._gonio_state_cnt = self.add_pv("%s:trans_12:tr.P" % blname)
+        self._gonio_state_col = self.add_pv("%s:trans_13:tr.P" % blname)
+        self._gonio_state_mvn = self.add_pv("%s:trans_10:tr.P" % blname)
+        self._gonio_state_cal = self.add_pv("%s:trans_20:tr.P" % blname)
+        
+        # mode change commands
+        self._mnt_cmd = self.add_pv("%s:trans_1:tr.PROC" % blname)
+        self._cnt_cmd = self.add_pv("%s:trans_2:tr.PROC" % blname)
+        self._col_cmd = self.add_pv("%s:trans_3:tr.PROC" % blname)        
+        
+        # mode change feedback  
+        self._gonio_state_mnt.connect('changed', lambda x,y: self._check_gonio_pos())
+        self._gonio_state_cnt.connect('changed', lambda x,y: self._check_gonio_pos())
+        self._gonio_state_col.connect('changed', lambda x,y: self._check_gonio_pos())
+        self._gonio_state_mvn.connect('changed', lambda x,y: self._check_gonio_pos())
+        self._gonio_state_cal.connect('changed', lambda x,y: self._check_gonio_pos())
+        self._scan_state.connect('changed', self._on_busy)
+                
         #parameters
         self._settings = {
             'time' : self.add_pv("%s:expTime" % pv_root, monitor=False),
@@ -171,29 +172,25 @@ class Goniometer(GoniometerBase):
             'angle': self.add_pv("%s:openSHPos" % pv_root, monitor=False),
         }
         self._requested_mode = None
-        gobject.idle_add(self.emit, 'mode', 'MOVING')
     
     def _check_gonio_pos(self):
-        bl = globalRegistry.lookup([], IBeamline)
-        out_position = bl.config['misc']['aperture_out_position']
-        
-        if (self._mode_state.get() == 1) or (self._state.get() == 1):
+        if (self._gonio_state_mvn.get() == 1) or (self._scan_state.get() == 1):
             self._set_and_notify_mode("MOVING")
-        elif self._bl_position.changed_state:
+        elif self._gonio_state_cnt.get() == 1:
             self._set_and_notify_mode("CENTERING")
-        elif (self._gonio_state.get() + self._table_state.get()) == 2:
+        elif self._gonio_state_mnt.get() == 1 and self._gonio_state_cal.get() == 1:
             self._set_and_notify_mode("MOUNTING")
-        elif self.minibeam.get_position() < out_position and self._goto_mount_state.get() != 1:
+        elif self._gonio_state_col.get() == 1:
             if self._requested_mode in ['BEAM', 'COLLECT', 'SCANNING']:
                 self._set_and_notify_mode(self._requested_mode)
             else:
-                self._set_and_notify_mode("UNKNOWN")
+                self._set_and_notify_mode("COLLECT")
         else:
             self._set_and_notify_mode("UNKNOWN")
            
             
     def _on_busy(self, obj, st):
-        if self._state.get() == 1 or self._mode_state.get() == 1:
+        if self._scan_state.get() == 1 or self._gonio_state_mvn.get() == 1:
             self.set_state(busy=True)
         else:
             self.set_state(busy=False)
@@ -234,25 +231,12 @@ class Goniometer(GoniometerBase):
             return 
         
         if mode == 'CENTERING':
-            self._bl_position.open()
-            in_position = bl.config['misc']['aperture_in_position']
-            self.minibeam.move_to(in_position, wait=False)
-            default_beamstop = bl.config['default_beamstop']
-            bl.beamstop_z.move_to(default_beamstop, wait=False)
-            #put up backlight
+            self._cnt_cmd.put(1)
         elif mode in ['MOUNTING']:
-            #out_position = bl.config['misc']['aperture_out_position']
-            #self.minibeam.move_to(out_position, wait=False)
-            #self._bl_position.close()
-            self._goto_mount_cmd.put(1)
-
+            self._mnt_cmd.put(1)
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
-            self._bl_position.close()
-            in_position = bl.config['misc']['aperture_in_position']
-            self.minibeam.move_to(in_position, wait=True)
-
-                    
-        #self._set_and_notify_mode(mode)
+            self._col_cmd.put(1)
+                  
         self._check_gonio_pos()
         if wait:
             timeout = 30
@@ -292,7 +276,7 @@ class MD2Goniometer(GoniometerBase):
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:S:StartScan" % pv_root, monitor=False)
         self._abort_cmd = self.add_pv("%s:S:AbortScan" % pv_root, monitor=False)
-        self._state = self.add_pv("%s:G:MachAppState" % pv_root)
+        self._scan_state = self.add_pv("%s:G:MachAppState" % pv_root)
         self._mode_cmd = self.add_pv("%s:S:MDPhasePosition:asyn.AOUT" % pv_root, monitor=False)
         self._dev_cnct = self.add_pv("%s:G:MachAppState:asyn.CNCT" % pv_root)
         self._dev_enabled = self.add_pv("%s:usrEnable" % pv_root)
@@ -322,7 +306,7 @@ class MD2Goniometer(GoniometerBase):
         
         #signal handlers
         self._mode_fbk.connect('changed', self._on_mode_changed)
-        self._state.connect('changed', self._on_state_changed)
+        self._scan_state.connect('changed', self._on_state_changed)
         self._dev_cnct.connect('changed', self._on_cnct_changed)
         self._dev_enabled.connect('changed', self._on_enabled_changed)
         
