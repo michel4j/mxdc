@@ -489,6 +489,7 @@ class Automounter(BasicAutomounter):
             pct, pos, seqs_match, _ = self.progress_state
             timeout -= poll
             time.sleep(poll)
+        self.set_state(preparing=False)
         if timeout <= 0:
             _logger.error('(%s) Operation Timed-out: Port %s' % (self.name, port))
             return False
