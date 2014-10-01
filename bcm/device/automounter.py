@@ -365,8 +365,7 @@ class Automounter(BasicAutomounter):
         self._warning.connect('changed', self._on_status_warning)
         self.status_msg.connect('changed', self._send_message)
         self._gonio_safe.connect('changed', self._on_safety_changed)
-        
-        
+              
         self._mount_enabled.connect('changed', self._on_state_changed)
         self._robot_busy.connect('changed', self._on_state_changed)
         self._status.connect('changed', self._on_state_changed)
@@ -486,7 +485,7 @@ class Automounter(BasicAutomounter):
     def wait_sequence(self, port, timeout=480):
         poll = 0.05
         pct, pos, seqs_match, _ = self.progress_state
-        while pct < 100.0 and seqs_match and timeout >= 0:
+        while pct < 98.0 and seqs_match and timeout >= 0:
             pct, pos, seqs_match, _ = self.progress_state
             timeout -= poll
             time.sleep(poll)
