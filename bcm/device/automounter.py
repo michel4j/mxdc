@@ -485,7 +485,7 @@ class Automounter(BasicAutomounter):
     def wait_sequence(self, port, timeout=480):
         poll = 0.05
         pct, pos, seqs_match, _ = self.progress_state
-        while pct < 98.0 and seqs_match and timeout >= 0:
+        while pct < 0.98 and seqs_match and timeout >= 0:
             pct, pos, seqs_match, _ = self.progress_state
             timeout -= poll
             time.sleep(poll)
