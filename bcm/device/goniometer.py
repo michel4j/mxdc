@@ -222,6 +222,7 @@ class Goniometer(GoniometerBase):
         Kwargs:
             - `wait` (bool): if True, block until the mode is completely changed.
         """
+        
         if self.is_busy():
             self.wait(start=False, stop=True)
         self._requested_mode = mode
@@ -231,7 +232,8 @@ class Goniometer(GoniometerBase):
             return 
         
         if mode == 'CENTERING':
-            self._cnt_cmd.put(1)
+           _logger.info('Requesting centering mode')
+           self._cnt_cmd.put(1)
         elif mode in ['MOUNTING']:
             self._mnt_cmd.put(1)
         elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
