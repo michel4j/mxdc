@@ -417,25 +417,18 @@ class SamplePicker(gtk.HBox):
     def on_progress(self, obj, state):
         val, tool_pos, sample_pos, magnet_pos = state
         self.pbar.set_fraction(val)
-        self.message_log.add_text(time.strftime('-- %a %H:%M:%S --'))
-        self.message_log.add_text('Gripper: %s.' % tool_pos)
-        self.message_log.add_text('Sample: %s.' % sample_pos)
-        self.message_log.add_text('Magnet: %s.' % magnet_pos)
+
     
                    
     def _set_throbber(self, st):
-        if st == 'error':
+        if st == 'fault':
             self.throbber.set_from_stock('robot-error', gtk.ICON_SIZE_LARGE_TOOLBAR)
-        elif st == 'standby':
-            self.throbber.set_from_stock('robot-standby', gtk.ICON_SIZE_LARGE_TOOLBAR)
         elif st == 'warning':
             self.throbber.set_from_stock('robot-warning', gtk.ICON_SIZE_LARGE_TOOLBAR)
         elif st == 'busy':
             self.throbber.set_from_animation(self._animation)
-        elif st == 'idle':
+        elif st == 'ready':
             self.throbber.set_from_stock('robot-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
-        elif st == 'setup':
-            self.throbber.set_from_stock('robot-setup', gtk.ICON_SIZE_LARGE_TOOLBAR)
 
             
     def on_state_changed(self, obj, val):
@@ -453,13 +446,13 @@ class SamplePicker(gtk.HBox):
         else:
             self._full_state = _new_state
             
-        if code == 16: 
+        if code | 16 == code: 
             self._set_throbber('warning')
         elif code >= 2:
-            self._set_throbber('error')
+            self._set_throbber('fault')
         else:
             if not busy:
-                self._set_throbber(status)
+                self._set_throbber('ready')
             else:
                 self._set_throbber('busy') 
         if message.strip() == "":
@@ -470,7 +463,7 @@ class SamplePicker(gtk.HBox):
             self.message_log.add_text(h_msg)
         self.status_lbl.set_markup(message) 
 
-        if status == 'idle' and code <= 2 and not busy:
+        if status == 'ready' and code < 2 and not busy:
             self.command_tbl.set_sensitive(True)
         else:
             self.command_tbl.set_sensitive(False)
