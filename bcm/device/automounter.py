@@ -338,8 +338,12 @@ class Automounter(BasicAutomounter):
         self._warning = self.add_pv('%s:status:warning' % pv_name)
         self._status = self.add_pv('%s:status:state' % pv_name)
         
+        #Detailed Status
         self._normal = self.add_pv('%s:mod:normal' % pv_name)
         self._usr_disable = self.add_pv('%s:mnt:usrEnable' % pv_name)
+        self._gonio_safe = self.add_pv('%s:goniPos:mntEn' % pv_name)
+        self._mounted =  self.add_pv('%s:status:mounted' % pv_name)
+        self._position = self.add_pv('%s:state:curPnt' % pv_name)
         
         self._mount_cmd = self.add_pv('%s:mntX:opr' % pv_name)
         self._mount_param = self.add_pv('%s:mntX:param' % pv_name)
@@ -354,10 +358,6 @@ class Automounter(BasicAutomounter):
         self._mount_enabled = self.add_pv('%s:mntEn' % pv_name)
         self._robot_busy = self.add_pv('%s:sample:sts' % pv_name)
         
-        #Detailed Status
-        self._gonio_safe = self.add_pv('%s:goniPos:mntEn' % pv_name)
-        self._mounted =  self.add_pv('%s:status:mounted' % pv_name)
-        self._position = self.add_pv('%s:state:curPnt' % pv_name)
         self._position.connect('changed', self._notify_progress) 
         
         self._mounted.connect('changed', self._on_mount_changed)
