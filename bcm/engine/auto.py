@@ -1,6 +1,7 @@
 from bcm.engine import centering
 from bcm.service import common
 from bcm.utils.decorators import ca_thread_enable
+import time
 
 from bcm.utils.log import get_module_logger
 _logger = get_module_logger('bcm.engine.auto')
@@ -70,8 +71,10 @@ def auto_mount_manual(bl, port, wash=False):
         mounted_info = bl.automounter.mounted_state
         if success and mounted_info is not None:
             bl.cryojet.nozzle.close()
-            bl.goniometer.set_mode('CENTERING', wait=False)
             _logger.info('Sample mounting succeeded')
+            time.sleep(0.5)
+            bl.goniometer.set_mode('CENTERING', wait=False)
+            
             return True
         else:
             _logger.warning('Sample mounting failed')
