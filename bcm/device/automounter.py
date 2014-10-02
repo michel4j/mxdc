@@ -402,6 +402,7 @@ class Automounter(BasicAutomounter):
         
         if not self.is_enabled():
             _logger.warning('(%s) command received while disabled. ' % self.name)
+            self.set_state(preparing=False, message="Mounting Failed. Endstation was not ready.")
             self._on_state_changed(None, None)
             return False
         param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
@@ -415,7 +416,7 @@ class Automounter(BasicAutomounter):
         _mounted_port = self._mounted.get().strip()
         if _mounted_port == param:
             _logger.info('(%s) Sample at location `%s` already mounted.' % (self.name, port))
-            self.set_state(message="Sample already mounted.")
+            self.set_state(message="Sample already mounted.", preparing=False)
             self._on_state_changed(None, None)
             return True
         
@@ -455,6 +456,7 @@ class Automounter(BasicAutomounter):
 
         if not self.is_enabled():
             _logger.warning('(%s) command received while disabled. ' % self.name)
+            self.set_state(preparing=False, message="Dismount failed. Endstation was not ready")
             self._on_state_changed(None, None)
             return False
 
@@ -462,9 +464,8 @@ class Automounter(BasicAutomounter):
             port = self._mounted.get().strip()
             
         if port == '':
-            msg = 'No mounted sample to dismount.'
             _logger.warning(msg)
-            self.set_state(message=msg)
+            self.set_state(message='No sample to dismount', preparing=False)
             return False
         else:
             param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
