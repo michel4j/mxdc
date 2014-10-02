@@ -163,6 +163,7 @@ class Goniometer(GoniometerBase):
         self._gonio_state_col.connect('changed', lambda x,y: self._check_gonio_pos())
         self._gonio_state_mvn.connect('changed', lambda x,y: self._check_gonio_pos())
         self._gonio_state_cal.connect('changed', lambda x,y: self._check_gonio_pos())
+        self._gonio_state_mvn.connect('changed', self._on_busy)
         self._scan_state.connect('changed', self._on_busy)
                 
         #parameters
