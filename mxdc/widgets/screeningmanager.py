@@ -265,25 +265,16 @@ class ScreenManager(gtk.Alignment):
         self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-skip.png'))
         self._info_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-info.png'))
         
-    
-    
-
-
     def _set_throbber(self, st):
-        if st == 'error':
+        if st == 'fault':
             self.throbber.set_from_stock('robot-error', gtk.ICON_SIZE_LARGE_TOOLBAR)
-        elif st == 'standby':
-            self.throbber.set_from_stock('robot-standby', gtk.ICON_SIZE_LARGE_TOOLBAR)
         elif st == 'warning':
             self.throbber.set_from_stock('robot-warning', gtk.ICON_SIZE_LARGE_TOOLBAR)
         elif st == 'busy':
             self.throbber.set_from_animation(self._animation)
-        elif st == 'idle':
+        elif st == 'ready':
             self.throbber.set_from_stock('robot-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
-        elif st == 'setup':
-            self.throbber.set_from_stock('robot-setup', gtk.ICON_SIZE_LARGE_TOOLBAR)
 
-            
     def _on_automounter_state(self, obj, val):
 
         code, h_msg = self.automounter.health_state
