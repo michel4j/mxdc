@@ -399,7 +399,7 @@ class Automounter(BasicAutomounter):
             bool. True if the requested sample is successfully mounted, and False
             otherwise.
         """
-        
+        self._wait_for_enable(20)
         if not self.is_enabled():
             _logger.warning('(%s) command received while disabled. ' % self.name)
             self.set_state(preparing=False, message="Mounting Failed. Endstation was not ready.")
@@ -453,7 +453,7 @@ class Automounter(BasicAutomounter):
         Returns:
             bool. True if successfully dismounted, and False otherwise.
         """
-
+        self._wait_for_enable(20)
         if not self.is_enabled():
             _logger.warning('(%s) command received while disabled. ' % self.name)
             self.set_state(preparing=False, message="Dismount failed. Endstation was not ready")
@@ -500,7 +500,10 @@ class Automounter(BasicAutomounter):
         else:
             return True         
             
-            
+    def _wait_for_enable(self, timeout=30):
+        while not self.is_enabled() and timeout > 0:
+            timeout -= 0.05
+            time.sleep(0.05)
 
     def _notify_progress(self, pv, pos):
         if (not self._prog_sequence) or self._prog_sequence[-1] != pos:
