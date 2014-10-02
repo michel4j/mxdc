@@ -285,38 +285,39 @@ class ScreenManager(gtk.Alignment):
 
             
     def _on_automounter_state(self, obj, val):
+
         code, h_msg = self.automounter.health_state
         status = self.automounter.status_state
         message = self.automounter.message_state
-        busy = self.automounter.busy_state
+        busy = (self.automounter.busy_state or self.automounter.preparing_state)
         enabled = self.automounter.enabled_state
         active = self.automounter.active_state
-        
+
         # Do nothing if the state has not really changed
         _new_state = [code, h_msg, status, message, busy, enabled, active]
         if _new_state == self._full_state:
             return
         else:
             self._full_state = _new_state
-            
-        if code == 16: 
+
+        if code | 16 == code:
             self._set_throbber('warning')
         elif code >= 2:
-            self._set_throbber('error')
+            self._set_throbber('fault')
         else:
             if not busy:
-                self._set_throbber(status)
+                self._set_throbber('ready')
             else:
-                self._set_throbber('busy') 
+                self._set_throbber('busy')
         if message.strip() == "":
             message = h_msg
 
         message = "<span color='blue'>%s</span>" % message.strip()
         if h_msg.strip() != '':
             self.message_log.add_text(h_msg)
-        self.status_lbl.set_markup(message) 
-        
-    
+        self.status_lbl.set_markup(message)
+
+
     def _on_sample_mounted(self, obj, info):
         if info is None: # dismounting
             self.lbl_port.set_markup('')
