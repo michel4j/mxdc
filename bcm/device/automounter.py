@@ -194,7 +194,7 @@ class BasicAutomounter(BaseDevice):
         """
         pass
     
-    def wait(self, start=True, stop=True, timeout=480):
+    def wait(self, start=True, stop=True, timeout=240):
         """Wait for the automounter
         
         Kwargs:
@@ -482,7 +482,7 @@ class Automounter(BasicAutomounter):
             return success
         return True
  
-    def wait_sequence(self, port, timeout=480):
+    def wait_sequence(self, port, timeout=240):
         poll = 0.05
         pct, pos, seqs_match, _ = self.progress_state
         while pct < 0.999 and seqs_match and timeout >= 0:
