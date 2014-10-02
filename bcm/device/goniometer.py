@@ -257,6 +257,7 @@ class Goniometer(GoniometerBase):
             - `wait` (bool): if True, wait until the scan is complete otherwise run
             asynchronously.
         """
+	self.wait(start=False,stop=True)
         self._scan_cmd.put(1)
         if wait:
             t = 180
