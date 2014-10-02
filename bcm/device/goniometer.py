@@ -231,9 +231,8 @@ class Goniometer(GoniometerBase):
         if bl is None:
             _logger.error('Beamline is not available.')
             return 
-        
+        _logger.info('Requesting %s mode' % mode) 
         if mode == 'CENTERING':
-           _logger.info('Requesting centering mode')
            self._cnt_cmd.put(1)
         elif mode in ['MOUNTING']:
             self._mnt_cmd.put(1)
