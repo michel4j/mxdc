@@ -96,5 +96,5 @@ def auto_dismount_manual(bl, port):
             _logger.warning('Sample dismounting failed')
             return False
         else:
-            _logger.info('Sample mounting succeeded')
+            _logger.info('Sample dismounting succeeded')
             return True
