@@ -146,16 +146,16 @@ class Goniometer(GoniometerBase):
         
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
 
-        self._gonio_state_mnt = self.add_pv("%s:trans_11:tr.P" % blname)
-        self._gonio_state_cnt = self.add_pv("%s:trans_12:tr.P" % blname)
-        self._gonio_state_col = self.add_pv("%s:trans_13:tr.P" % blname)
-        self._gonio_state_mvn = self.add_pv("%s:trans_10:tr.P" % blname)
-        self._gonio_state_cal = self.add_pv("%s:trans_20:tr.P" % blname)
+        self._gonio_state_mnt = self.add_pv("%s:mounting:fbk" % blname)
+        self._gonio_state_cnt = self.add_pv("%s:centering:fbk" % blname)
+        self._gonio_state_col = self.add_pv("%s:collect:fbk" % blname)
+        self._gonio_state_mvn = self.add_pv("%s:moving:fbk" % blname)
+        self._gonio_state_cal = self.add_pv("%s:calibrated:fbk" % blname)
         
         # mode change commands
-        self._mnt_cmd = self.add_pv("%s:trans_1:tr.PROC" % blname)
-        self._cnt_cmd = self.add_pv("%s:trans_2:tr.PROC" % blname)
-        self._col_cmd = self.add_pv("%s:trans_3:tr.PROC" % blname)        
+        self._mnt_cmd = self.add_pv("%s:mounting.PROC" % blname)
+        self._cnt_cmd = self.add_pv("%s:centering.PROC" % blname)
+        self._col_cmd = self.add_pv("%s:collect.PROC" % blname)        
         
         # mode change feedback  
         self._gonio_state_mnt.connect('changed', lambda x,y: self._check_gonio_pos())

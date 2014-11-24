@@ -37,7 +37,7 @@ DEVICES = {
     'mostab': MostabPIDController('MOS16082I1001'),
     
     # Goniometer/goniometer head devices
-    'goniometer': Goniometer('GV6K1608-001', 'BL08ID1'),
+    'goniometer': Goniometer('GV6K1608-001', 'BL08ID1:mode'),
     'omega':    VMEMotor('GV6K1608-001:deg'),
     #'sample_x':  VMEMotor('SMTR16083I1011:mm'),
     'sample_x': VMEMotor('SMTR16083I1008:mm'),
