@@ -81,9 +81,9 @@ DEVICES = {
     'exposure_shutter': Shutter('PSH16083I1001'),
     
     # Intensity monitors,
-    'i_0': Counter('BPM08ID1-03:I0:fbk'),
+    'i_0': Counter('AH501-03:QEM:Sum1234:MeanValue_RBV'),
     'i_1': Counter('BPM08ID1-02:I0:fbk'),
-    'i_2': Counter('BPM08ID1-01:I0:fbk'),
+    'i_2': Counter('AH501-01:QEM:Sum1234:MeanValue_RBV'),
     'i_4': Counter('A1608-3-06:A:fbk'),
       
     # Misc: Automounter, HC1 etc
