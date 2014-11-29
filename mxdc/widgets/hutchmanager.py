@@ -135,7 +135,7 @@ class HutchManager(gtk.Alignment):
         #self.beam_btn = misc.ScriptButton(self.scripts['SetBeamMode'], 'Beam Mode')
         
         self.commands_box.pack_start(self.front_end_btn)
-        self.commands_box.pack_start(self.optimize_btn)
+        #self.commands_box.pack_start(self.optimize_btn)
         
         # disable mode change buttons while automounter is busy
         self.beamline.automounter.connect('preparing', self.on_devices_busy)
