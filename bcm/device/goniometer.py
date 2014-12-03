@@ -151,11 +151,13 @@ class Goniometer(GoniometerBase):
         self._gonio_state_col = self.add_pv("%s:collect:fbk" % blname)
         self._gonio_state_mvn = self.add_pv("%s:moving:fbk" % blname)
         self._gonio_state_cal = self.add_pv("%s:calibrated:fbk" % blname)
+        self._gonio_state_beam =  self.add_pv("OAV1608-3-I10-02:out")  # FIXME: no hard-coding
         
         # mode change commands
         self._mnt_cmd = self.add_pv("%s:mounting.PROC" % blname)
         self._cnt_cmd = self.add_pv("%s:centering.PROC" % blname)
-        self._col_cmd = self.add_pv("%s:collect.PROC" % blname)        
+        self._col_cmd = self.add_pv("%s:collect.PROC" % blname)
+        self._beam_cmd =  self.add_pv("OAV1608-3-I10-02:opr:open") #FIXME: no hard-coding
         
         # mode change feedback  
         self._gonio_state_mnt.connect('changed', lambda x,y: self._check_gonio_pos())
@@ -163,6 +165,7 @@ class Goniometer(GoniometerBase):
         self._gonio_state_col.connect('changed', lambda x,y: self._check_gonio_pos())
         self._gonio_state_mvn.connect('changed', lambda x,y: self._check_gonio_pos())
         self._gonio_state_cal.connect('changed', lambda x,y: self._check_gonio_pos())
+        self._gonio_state_beam.connect('changed', lambda x,y: self._check_gonio_pos())
         self._gonio_state_mvn.connect('changed', self._on_busy)
         self._scan_state.connect('changed', self._on_busy)
                 
@@ -182,8 +185,10 @@ class Goniometer(GoniometerBase):
         elif self._gonio_state_mnt.get() == 1 and self._gonio_state_cal.get() == 1:
             self._set_and_notify_mode("MOUNTING")
         elif self._gonio_state_col.get() == 1:
-            if self._requested_mode in ['BEAM', 'COLLECT', 'SCANNING']:
+            if self._requested_mode in ['COLLECT', 'SCANNING']:
                 self._set_and_notify_mode(self._requested_mode)
+            elif self.gonio_state_beam.get() == 0:
+                self._set_and_notify_mode('BEAM')
             else:
                 self._set_and_notify_mode("COLLECT")
         else:
