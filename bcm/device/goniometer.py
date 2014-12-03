@@ -241,7 +241,10 @@ class Goniometer(GoniometerBase):
            self._cnt_cmd.put(1)
         elif mode in ['MOUNTING']:
             self._mnt_cmd.put(1)
-        elif mode in ['COLLECT', 'BEAM', 'SCANNING']:
+        elif mode == 'BEAM':
+            self._col_cmd.put(1)
+            self._beam_cmd.put(1)
+        elif mode in ['COLLECT', 'SCANNING']:
             self._col_cmd.put(1)
                   
         self._check_gonio_pos()
