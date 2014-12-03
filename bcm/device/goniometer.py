@@ -184,11 +184,11 @@ class Goniometer(GoniometerBase):
             self._set_and_notify_mode("CENTERING")
         elif self._gonio_state_mnt.get() == 1 and self._gonio_state_cal.get() == 1:
             self._set_and_notify_mode("MOUNTING")
+        elif self.gonio_state_beam.get() == 0:
+            self._set_and_notify_mode('BEAM')
         elif self._gonio_state_col.get() == 1:
             if self._requested_mode in ['COLLECT', 'SCANNING']:
                 self._set_and_notify_mode(self._requested_mode)
-            elif self.gonio_state_beam.get() == 0:
-                self._set_and_notify_mode('BEAM')
             else:
                 self._set_and_notify_mode("COLLECT")
         else:
