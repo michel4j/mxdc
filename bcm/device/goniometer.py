@@ -266,7 +266,7 @@ class Goniometer(GoniometerBase):
             asynchronously.
         """
         self.wait(start=False,stop=True)
-        self._scan_cmd.toggle(1, 0, 0.01)
+        self._scan_cmd.put(1)
         if wait:
             t = 30
             self.wait(start=True, stop=True, timeout=t)
