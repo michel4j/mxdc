@@ -88,6 +88,7 @@ class GoniometerBase(BaseDevice):
         BaseDevice.__init__(self)
         self.name = name
         self.mode = -1
+        self.default_timeout = 180
                 
     def _set_and_notify_mode(self, mode_str):
         mode = _MODE_MAP.get(mode_str, 6)
@@ -98,7 +99,7 @@ class GoniometerBase(BaseDevice):
         gobject.idle_add(self.emit, 'mode', mode_str)
         self.mode = mode   
 
-    def wait(self, start=True, stop=True, poll=0.05, timeout=180):
+    def wait(self, start=True, stop=True, poll=0.05, timeout=None):
         """Wait for the goniometer busy state to change. 
         
         Kwargs:
@@ -107,6 +108,7 @@ class GoniometerBase(BaseDevice):
             - `poll` (float): time in seconds to wait between checks.
             - `timeout` (float): Maximum time to wait for.                  
         """
+        timeout = timeout or self.default_timeout
         if (start):
             time_left = timeout
             _logger.debug('Waiting for goniometer to start moving')
@@ -139,6 +141,7 @@ class Goniometer(GoniometerBase):
         GoniometerBase.__init__(self, name)
         self.name = 'Goniometer'
         pv_root = name.split(':')[0]
+        self.default_timeout = 30
         
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:scanFrame.PROC" % pv_root, monitor=False)
