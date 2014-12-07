@@ -269,7 +269,7 @@ class DataCollector(gobject.GObject):
                 self.beamline.detector.start(first=self._first)
                 self.beamline.goniometer.scan(wait=False)
                 self.beamline.detector.set_parameters(header)
-                self.beamline.goniometer.wait(start=True, stop=True, timeout=180)
+                self.beamline.goniometer.wait(start=True, stop=True)
                 self.beamline.detector.save()
                 
                 #frame['saved'] = True
