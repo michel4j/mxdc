@@ -269,7 +269,7 @@ class Goniometer(GoniometerBase):
         """
         self.wait(start=False,stop=True)
         self._scan_cmd.put(1)
-        self.wait(start=True, stop=wait, timeout=t)
+        self.wait(start=True, stop=wait)
                         
 
 class MD2Goniometer(GoniometerBase):
