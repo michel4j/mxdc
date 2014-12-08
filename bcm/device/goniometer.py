@@ -141,7 +141,6 @@ class Goniometer(GoniometerBase):
         GoniometerBase.__init__(self, name)
         self.name = 'Goniometer'
         pv_root = name.split(':')[0]
-        self.default_timeout = 30
         
         # initialize process variables
         self._scan_cmd = self.add_pv("%s:scanFrame.PROC" % pv_root, monitor=False)
@@ -270,9 +269,7 @@ class Goniometer(GoniometerBase):
         """
         self.wait(start=False,stop=True)
         self._scan_cmd.put(1)
-        if wait:
-            t = 30
-            self.wait(start=True, stop=True, timeout=t)
+        self.wait(start=True, stop=wait, timeout=t)
                         
 
 class MD2Goniometer(GoniometerBase):
