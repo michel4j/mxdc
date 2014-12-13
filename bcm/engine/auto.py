@@ -18,6 +18,7 @@ def auto_mount(bl, port):
         bl.automounter.prepare()
         bl.cryojet.nozzle.open()
         bl.goniometer.set_mode('MOUNTING', wait=True)
+        time.sleep(2)
         success = bl.automounter.mount(port, wait=True)
         mounted_info = bl.automounter.mounted_state
         if not success or mounted_info is None:
@@ -40,6 +41,7 @@ def auto_dismount(bl):
     if mounted_info is None:
         raise common.MountError('No mounted sample to dismount.')
     
+    time.sleep(2)
     success = bl.automounter.dismount(wait=True)
     if not success:
         raise common.MountError('Dismount failed.')
@@ -49,6 +51,7 @@ def auto_dismount(bl):
 def auto_center(bl):
     bl.cryojet.nozzle.close()
     bl.goniometer.set_mode('CENTERING', wait=True)
+    time.sleep(2)
     _out = centering.auto_center_loop()
     if _out is None:
         raise common.CenteringError('Loop centering failed')
@@ -67,6 +70,7 @@ def auto_mount_manual(bl, port, wash=False):
         bl.automounter.prepare()
         bl.goniometer.set_mode('MOUNTING', wait=True)
         bl.cryojet.nozzle.open()
+        time.sleep(2)
         success = bl.automounter.mount(port, wash=wash, wait=True)
         mounted_info = bl.automounter.mounted_state
         if success and mounted_info is not None:
@@ -91,6 +95,7 @@ def auto_dismount_manual(bl, port):
         bl.automounter.prepare()
         bl.goniometer.set_mode('MOUNTING', wait=True)
         bl.cryojet.nozzle.open()
+        time.sleep(2)
         success = bl.automounter.dismount(wait=True)
         if not success:
             _logger.warning('Sample dismounting failed')
