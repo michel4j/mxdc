@@ -3,10 +3,12 @@ from bcm.device.base import BaseDevice
 from bcm.device.interfaces import ICounter
 from bcm.utils.log import get_module_logger
 from zope.interface import implements
+from bcm.utils import decorators
 import numpy
 import os
 import random
 import time
+
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -67,6 +69,10 @@ class Counter(BaseDevice):
         total = (sum(values, 0.0)/len(values)) - self.zero
         _logger.debug('(%s) Returning average of %d values for %0.2f sec.' % (self.name, len(values), t) )
         return total #* (t/interval)
+    
+    @decorators.async
+    def async_count(self, t):
+        self.avg_value = self.count(t)
                         
 
 
@@ -124,5 +130,8 @@ class SimCounter(BaseDevice):
         else:
             return self.SIM_COUNTER_DATA[i,j]
 
+    @decorators.async
+    def async_count(self, t):
+        self.avg_value = self.count(t)
 
 __all__ = ['Counter', 'SimCounter']

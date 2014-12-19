@@ -3,11 +3,10 @@ import array
 
 try:
     import cairo
-    assert cairo.version >= '1.4.0'
     using_cairo = True
     
 except:
-    import ImageDraw
+    from PIL import ImageDraw
     using_cairo = False
 
 def add_decorations1(img, x, y, w, h):

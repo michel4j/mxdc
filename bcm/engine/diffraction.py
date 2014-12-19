@@ -265,13 +265,16 @@ class DataCollector(gobject.GObject):
                 self.beamline.goniometer.configure(time=frame['exposure_time'],
                                                    delta=frame['delta_angle'],
                                                    angle=frame['start_angle'])
-
+                if frame.get('dafs', False):
+                    self.beamline.i_0.async_count(frame['exposure_time'])
                 self.beamline.detector.start(first=self._first)
                 self.beamline.goniometer.scan(wait=False)
                 self.beamline.detector.set_parameters(header)
                 self.beamline.goniometer.wait(start=False, stop=True)
                 self.beamline.detector.save()
-                
+                if frame.get('dafs', False):
+                    _logger.info('DAFS I0  %s\t%s' % (frame['file_name'], self.beamline.i_0.avg_value))
+                    
                 #frame['saved'] = True
                 self._first = False
                     
