@@ -272,23 +272,6 @@ def peak_search(x, y, w=7, threshold=0.01, min_peak=0.01):
             peaks.append(peak)
     return peaks
 
-def get_candidate_elements(energy):
-    """find all edges which can be excited at given energy.
-    Returns a list of tuples. Each tuple containing the element
-    symbol followed by the edges which are potentially present.  
-    
-    E.g   [('Se', 'K'), ('Au', 'L3')]
-    """
-    elements = []
-    for symbol, edges in EMISSIONS_DATA.items():
-        entry = [symbol,]
-        for edge, data in edges.items():
-            if data[0] < energy:
-                entry.append(edge)
-        if len(entry) > 1:
-            elements.append(tuple(entry))
-    return elements
-
 def get_peak_elements(energy, peaks=[], prec=0.05):
     """find all edges which can be excited at given energy.
     Returns a list of tuples. Each tuple containing the element
@@ -303,7 +286,7 @@ def get_peak_elements(energy, peaks=[], prec=0.05):
         entry = [symbol,]
         entry_peaks = []
         for edge, data in edges.items():
-            if data[0] > energy: continue
+            if data[0] >= energy: continue
             _fl = [(v[0], v[1], edge) for v in data[1].values()]
             entry_peaks.extend(_fl)
         if len(entry_peaks) > 1:
@@ -311,7 +294,7 @@ def get_peak_elements(energy, peaks=[], prec=0.05):
         for pk in entry_peaks:    
             if nearest(pk[0], prec) in peak_energies:
                 entry.append(pk[2])
-                break
+                
         if len(entry) > 1 :
             elements.append(tuple(entry))
             if 'K' in entry[1:]:

@@ -54,7 +54,7 @@ def summarize_lines(data):
                 #nm = '%s,%s' % (a[0], b[0][-1])
                 nm = b[0][:-1]
             else:
-                nm = '%s,%s' % (a[0], b[0])
+                nm = os.path.commonprefix([a[0], b[0]])
             nm = name_dict.get(nm, nm)
             ht =  (a[2] + b[2])
             pos = (a[1]*a[2] + b[1]*b[2])/ht
