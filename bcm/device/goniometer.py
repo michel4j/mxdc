@@ -450,9 +450,9 @@ class MD2Goniometer(GoniometerBase):
             - `wait` (bool): if True, wait until the scan is complete otherwise run
               asynchronously.
         """
-        self._scan_cmd.put(1)
-        if wait:
-            self.wait(start=True, stop=True, timeout=180)
+        self.wait(stop=True, start=False)
+        self._scan_cmd.set(1)
+        self.wait(start=True, stop=wait, timeout=180)
 
     def stop(self):
         """Stop and abort the current scan if any."""
