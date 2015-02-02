@@ -63,8 +63,8 @@ class BackLight(BasicShutter):
         Args:
             -`name` (str): Root PV name of EPICS record.
         """
-        open_name = "%s:opr:open" % name
-        close_name = "%s:opr:close" % name
+        open_name = "%s:opr:ctl" % name
+        close_name = "%s:opr:ctl" % name
         state_name = "%s:out" % name
         BasicShutter.__init__(self, open_name, close_name, state_name)
         self._messages = ['Moving in', 'Moving out']
@@ -159,7 +159,7 @@ class Goniometer(GoniometerBase):
         self._mnt_cmd = self.add_pv("%s:mounting.PROC" % blname)
         self._cnt_cmd = self.add_pv("%s:centering.PROC" % blname)
         self._col_cmd = self.add_pv("%s:collect.PROC" % blname)
-        self._beam_cmd =  self.add_pv("OAV1608-3-I10-02:opr:open") #FIXME: no hard-coding
+        self._beam_cmd =  self.add_pv("OAV1608-3-I10-02:opr:ctl") #FIXME: no hard-coding
         
         # mode change feedback  
         self._gonio_state_mnt.connect('changed', lambda x,y: self._check_gonio_pos())
