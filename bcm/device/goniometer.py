@@ -56,25 +56,25 @@ _STATE_PATTERNS = {
 
 }
 
-class BackLight(BasicShutter):
-    """A specialized in-out actuator for pneumatic OAV backlight at the CLS."""
-    def __init__(self, name):
-        """
-        Args:
-            -`name` (str): Root PV name of EPICS record.
-        """
-        open_name = "%s:opr:ctl" % name
-        close_name = "%s:opr:ctl" % name
-        state_name = "%s:out" % name
-        BasicShutter.__init__(self, open_name, close_name, state_name)
-        self._messages = ['Moving in', 'Moving out']
-        self._name = 'Backlight'
-
-    def _signal_change(self, obj, value):
-        if value == 1:
-            self.set_state(changed=False)
-        else:
-            self.set_state(changed=True)
+# class BackLight(BasicShutter):
+#     """A specialized in-out actuator for pneumatic OAV backlight at the CLS."""
+#     def __init__(self, name):
+#         """
+#         Args:
+#             -`name` (str): Root PV name of EPICS record.
+#         """
+#         open_name = "%s:opr:ctl" % name
+#         close_name = "%s:opr:ctl" % name
+#         state_name = "%s:out" % name
+#         BasicShutter.__init__(self, open_name, close_name, state_name)
+#         self._messages = ['Moving in', 'Moving out']
+#         self._name = 'Backlight'
+# 
+#     def _signal_change(self, obj, value):
+#         if value == 1:
+#             self.set_state(changed=False)
+#         else:
+#             self.set_state(changed=True)
 
 
 class GoniometerBase(BaseDevice):
@@ -136,7 +136,7 @@ class Goniometer(GoniometerBase):
         """
         Args:
             - `name` (str): PV name of goniometer EPICS record.
-            - `blname` (str): PV name for Backlight PV.
+            - `blname` (str): PV name for Beamline PV.
         """
         GoniometerBase.__init__(self, name)
         self.name = 'Goniometer'
