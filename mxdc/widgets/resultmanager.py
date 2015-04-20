@@ -68,6 +68,7 @@ class ResultManager(gtk.Alignment):
         self.browser = webkit.WebView()
         self.browser_settings = webkit.WebSettings()
         self.browser_settings.set_property("enable-file-access-from-file-uris", True)
+        self.browser_settings.set_property("enable-plugins", False)
         self.browser_settings.set_property("default-font-size", 11)
         self.browser.set_settings(self.browser_settings)
 
