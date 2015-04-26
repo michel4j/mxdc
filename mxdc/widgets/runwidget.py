@@ -1,11 +1,11 @@
-from bcm.beamline.mx import IBeamline
-from bcm.utils import science, misc
+from mxdc.beamline.mx import IBeamline
+from mxdc.utils import science, misc
 from mxdc.utils import gui, config
 from mxdc.widgets import dialogs
 from mxdc.widgets.predictor import Predictor
 from twisted.python.components import globalRegistry
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import os
 
 
@@ -42,9 +42,9 @@ DEFAULT_PARAMETERS = {
 
 _ENERGY_DB = science.get_energy_database()
 
-class RunWidget(gtk.Alignment):
+class RunWidget(Gtk.Alignment):
     def __init__(self, num=0):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/run_widget'), 
                                   'run_widget')
         
@@ -59,7 +59,7 @@ class RunWidget(gtk.Alignment):
                    'attenuation','inverse_beam','skip', 'dafs']
         for e in entries:
             self.entry[e] = self._xml.get_widget(e)
-            if isinstance(self.entry[e], gtk.Entry) and e not in ['name',]:
+            if isinstance(self.entry[e], Gtk.Entry) and e not in ['name',]:
                 self.entry[e].set_alignment(1)
         
         
@@ -93,13 +93,13 @@ class RunWidget(gtk.Alignment):
         self.entry['skip'].connect('activate', self.on_skip_changed)
                
         # Energy
-        self.energy_store = gtk.ListStore(
-            gobject.TYPE_STRING,
-            gobject.TYPE_PYOBJECT,
-            gobject.TYPE_BOOLEAN,
-            gobject.TYPE_BOOLEAN,
+        self.energy_store = Gtk.ListStore(
+            GObject.TYPE_STRING,
+            GObject.TYPE_PYOBJECT,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_BOOLEAN,
         )
-        self.energy_list = gtk.TreeView(model=self.energy_store)
+        self.energy_list = Gtk.TreeView(model=self.energy_store)
         self.energy_list.set_hover_selection(True)
         self.energy_list.connect('focus-out-event', self.on_energy_changed)
         self.energy_list.connect('button-press-event', self.on_delete_clicked)
@@ -108,23 +108,23 @@ class RunWidget(gtk.Alignment):
         self.energy_view.add(self.energy_list)       
 
         #Energy column
-        renderer = gtk.CellRendererText()
+        renderer = Gtk.CellRendererText()
         renderer.set_data('column',COLUMN_ENERGY)
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
         renderer.connect("editing-started", self.on_editing_started)
         renderer.set_property('xalign', 0.5)
-        column1 = gtk.TreeViewColumn('Energy (KeV)', renderer, text=COLUMN_ENERGY, editable=COLUMN_EDITABLE)
+        column1 = Gtk.TreeViewColumn('Energy (KeV)', renderer, text=COLUMN_ENERGY, editable=COLUMN_EDITABLE)
         column1.set_cell_data_func(renderer, self._cell_format, COLUMN_ENERGY)
         column1.set_expand(True)
         column1.set_alignment(0.0)
         self.energy_list.append_column(column1)
 
         #Label column
-        renderer = gtk.CellRendererText()
+        renderer = Gtk.CellRendererText()
         renderer.set_data('column',COLUMN_LABEL)
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
         renderer.set_property('xalign', 0.5)
-        column1 = gtk.TreeViewColumn('Label', renderer, text=COLUMN_LABEL, editable=COLUMN_EDITABLE)
+        column1 = Gtk.TreeViewColumn('Label', renderer, text=COLUMN_LABEL, editable=COLUMN_EDITABLE)
         column1.set_cell_data_func(renderer, self._cell_format, COLUMN_LABEL)
         column1.set_min_width(80)
         column1.set_expand(False)
@@ -133,10 +133,10 @@ class RunWidget(gtk.Alignment):
         self.expand_separator.set_expand(True)
                
         #Delete column
-        renderer = gtk.CellRendererPixbuf()
-        renderer.set_property("stock-size", gtk.ICON_SIZE_MENU)
+        renderer = Gtk.CellRendererPixbuf()
+        renderer.set_property("stock-size", Gtk.IconSize.MENU)
         renderer.set_property('xalign', 0.7)
-        column1 = gtk.TreeViewColumn('', renderer)
+        column1 = Gtk.TreeViewColumn('', renderer)
         column1.set_cell_data_func(renderer, self._icon_format)
         column1.set_min_width(20)
         column1.set_expand(False)
@@ -485,12 +485,12 @@ class RunWidget(gtk.Alignment):
             if widget is None:
                 continue
             if new_values[key] != self.parameters.get(key):
-                widget.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("magenta"))
-                widget.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("magenta"))
+                widget.modify_text(Gtk.StateType.NORMAL, Gdk.color_parse("magenta"))
+                widget.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("magenta"))
                 self._changes_pending = True
             else:
-                widget.modify_text(gtk.STATE_NORMAL, None)
-                widget.modify_fg(gtk.STATE_NORMAL, None)
+                widget.modify_text(Gtk.StateType.NORMAL, None)
+                widget.modify_fg(Gtk.StateType.NORMAL, None)
                 self._changes_pending = False
         
     def on_energy_changed(self, widget, event=None):
@@ -673,7 +673,7 @@ class RunWidget(gtk.Alignment):
     def on_save(self, widget):
         self.enable_btn.set_active(True)
         entry = self.get_toplevel().get_focus()
-        if isinstance(entry, gtk.Entry):
+        if isinstance(entry, Gtk.Entry):
             entry.activate()
         self.parameters = self.get_parameters()
         self.check_changes()

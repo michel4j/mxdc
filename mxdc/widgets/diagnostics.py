@@ -1,15 +1,15 @@
-from bcm.device import diagnostics
-from bcm.utils.log import get_module_logger
+from mxdc.device import diagnostics
+from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from twisted.python.components import globalRegistry
-import gtk
+from gi.repository import Gtk
 import os
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger('mxdc')
 try:
-    import pynotify
-    pynotify.init('MxDC')
+    from gi.repository import Notify
+    Notify.init('MxDC')
     _NOTIFY_AVAILABLE = True
 except:
     _NOTIFY_AVAILABLE = False
@@ -31,9 +31,9 @@ MSG_ICONS = {
     diagnostics.DIAG_STATUS_DISABLED: 'mxdc-ddisabled',
 }
 
-class DiagnosticDisplay(gtk.Alignment):
+class DiagnosticDisplay(Gtk.Alignment):
     def __init__(self, diag):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/diagnostics'), 
                                   'status_widget')
         self._diagnostic = diag
@@ -41,7 +41,7 @@ class DiagnosticDisplay(gtk.Alignment):
         
         self._diagnostic.connect('status', self.on_status_changed)
         self._status = (diagnostics.DIAG_STATUS_UNKNOWN, "")
-        self.icon.set_from_stock('mxdc-dunknown', gtk.ICON_SIZE_MENU)
+        self.icon.set_from_stock('mxdc-dunknown', Gtk.IconSize.MENU)
         self.add(self.status_widget)
         self._notice = None
         self._notify_id = None
@@ -59,7 +59,7 @@ class DiagnosticDisplay(gtk.Alignment):
         
         # Set Icon and message
         _state, _msg = data 
-        self.icon.set_from_stock(MSG_ICONS.get(data[0], 'mxdc-unknown'), gtk.ICON_SIZE_MENU)        
+        self.icon.set_from_stock(MSG_ICONS.get(data[0], 'mxdc-unknown'), Gtk.IconSize.MENU)        
         self.info.set_markup('<span color="%s">%s</span>' % (MSG_COLORS.get(_state, 'black'), _msg))
         self.info.set_alignment(1.0, 0.5)
 
@@ -71,9 +71,9 @@ class DiagnosticDisplay(gtk.Alignment):
 
     def _show_notification(self, data):
         if _NOTIFY_AVAILABLE:
-            self._notice = pynotify.Notification(self._diagnostic.description,
+            self._notice = Notify.Notification(self._diagnostic.description,
                                       data[1])
-            self._notice.set_urgency(pynotify.URGENCY_CRITICAL)
+            self._notice.set_urgency(Notify.URGENCY_CRITICAL)
             self._notice.set_timeout(6000) # 20 seconds
             try:
                 self._notice.show()
@@ -83,10 +83,10 @@ class DiagnosticDisplay(gtk.Alignment):
         
         
 
-class DiagnosticsViewer(gtk.Alignment):
+class DiagnosticsViewer(Gtk.Alignment):
     def __init__(self):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 0.75, 0)
-        self.box = gtk.VBox(False, 2)
+        GObject.GObject.__init__(self, 0.5, 0.5, 0.75, 0)
+        self.box = Gtk.VBox(False, 2)
         self.add(self.box)
         self._num = 0
         #fetch and add diagnostics
@@ -100,9 +100,9 @@ class DiagnosticsViewer(gtk.Alignment):
 
     def add_diagnostic(self, diag):
         if self._num > 0:
-            hs = gtk.HSeparator()
+            hs = Gtk.HSeparator()
             hs.set_size_request(-1,3)
             self.box.pack_start(hs, False, False, 0)
-        self.box.pack_start(DiagnosticDisplay(diag), False, False, 0)
+        self.box.pack_start(DiagnosticDisplay(diag, True, True, 0), False, False, 0)
         self._num += 1
         

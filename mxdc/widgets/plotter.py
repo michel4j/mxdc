@@ -3,8 +3,8 @@ A Plotting widget using matplotlib - several lines can be added to multiple axes
 points can be added to each line and the plot is automatically updated.
 """
 
-from bcm.engine import fitting
-from bcm.engine.scanning import IScanPlotter
+from mxdc.engine import fitting
+from mxdc.engine.scanning import IScanPlotter
 from matplotlib import rcParams
 from matplotlib.colors import Normalize
 from matplotlib.dates import MinuteLocator, SecondLocator
@@ -14,9 +14,9 @@ from misc import ActiveProgressBar
 from mpl_toolkits.mplot3d import axes3d
 from twisted.python.components import globalRegistry
 from zope.interface import implements
-import gtk
+from gi.repository import Gtk
 import numpy
-import pango
+from gi.repository import Pango
 import time, os
 
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
@@ -30,41 +30,41 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 class PlotterToolbar(NavigationToolbar):
     def __init__(self, canvas):
         self.toolitems = (
-            ('Home', 'Reset original view', gtk.STOCK_HOME, 'home'),
-            ('Back', 'Back to  previous view',gtk.STOCK_GO_BACK, 'back'),
-            ('Forward', 'Forward to next view',gtk.STOCK_GO_FORWARD, 'forward'),
-            ('Pan', 'Pan axes with left mouse, zoom with right', gtk.STOCK_FULLSCREEN,'pan'),
-            ('Zoom', 'Zoom to rectangle',gtk.STOCK_ZOOM_FIT, 'zoom'),
+            ('Home', 'Reset original view', Gtk.STOCK_HOME, 'home'),
+            ('Back', 'Back to  previous view',Gtk.STOCK_GO_BACK, 'back'),
+            ('Forward', 'Forward to next view',Gtk.STOCK_GO_FORWARD, 'forward'),
+            ('Pan', 'Pan axes with left mouse, zoom with right', Gtk.STOCK_FULLSCREEN,'pan'),
+            ('Zoom', 'Zoom to rectangle',Gtk.STOCK_ZOOM_FIT, 'zoom'),
             (None, None, None, None),
-            ('Save', 'Save the figure',gtk.STOCK_SAVE, 'save_figure'),
+            ('Save', 'Save the figure',Gtk.STOCK_SAVE, 'save_figure'),
             )
         NavigationToolbar.__init__(self, canvas, None)
     
     def _init_toolbar2_4(self):
-        self.tooltips = gtk.Tooltips()
+        self.tooltips = Gtk.Tooltips()
 
         for text, tooltip_text, stock, callback in self.toolitems:
             if text is None:
-                self.insert( gtk.SeparatorToolItem(), -1 )
+                self.insert( Gtk.SeparatorToolItem(), -1 )
                 continue
-            tbutton = gtk.ToolButton()
-            image = gtk.Image()
-            image.set_from_stock(stock, gtk.ICON_SIZE_BUTTON)
+            tbutton = Gtk.ToolButton()
+            image = Gtk.Image()
+            image.set_from_stock(stock, Gtk.IconSize.BUTTON)
             tbutton.set_label_widget(image)
             self.insert(tbutton, -1)
             tbutton.connect('clicked', getattr(self, callback))
             tbutton.set_tooltip(self.tooltips, tooltip_text, 'Private')
 
-        toolitem = gtk.SeparatorToolItem()
+        toolitem = Gtk.SeparatorToolItem()
         self.insert(toolitem, -1)
         # set_draw() not making separator invisible,
         # bug #143692 fixed Jun 06 2004, will be in GTK+ 2.6
         toolitem.set_draw(False)
         toolitem.set_expand(True)
 
-        toolitem = gtk.ToolItem()
+        toolitem = Gtk.ToolItem()
         self.insert(toolitem, -1)
-        self.message = gtk.Label()
+        self.message = Gtk.Label()
         toolitem.add(self.message)
 
         self.show_all()
@@ -80,9 +80,9 @@ class PlotterToolbar(NavigationToolbar):
         print 'No printing implemented'
 
         
-class Plotter( gtk.Alignment ):
+class Plotter( Gtk.Alignment ):
     def __init__(self, loop=False, buffer_size=2500, xformat='%g', dpi=96 ):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
         _fd = self.get_pango_context().get_font_description()
         rcParams['legend.loc'] = 'best'
         rcParams['legend.fontsize'] = 8.5
@@ -96,13 +96,13 @@ class Plotter( gtk.Alignment ):
         self.axis[0].xaxis.set_major_formatter(self.xformatter)
         self.axis[0].yaxis.tick_left()
 
-        self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
-        self.vbox = gtk.VBox()
+        self.canvas = FigureCanvas( self.fig )  # a Gtk.DrawingArea
+        self.vbox = Gtk.VBox()
         try:
             self.toolbar = PlotterToolbar(self.canvas)
         except:
             self.toolbar = NavigationToolbar(self.canvas, None)
-        self.vbox.pack_start( self.canvas )
+        self.vbox.pack_start( self.canvas , True, True, 0)
         self.vbox.pack_start( self.toolbar, False, False )
         self.line = []
         self.x_data = []
@@ -263,12 +263,12 @@ class Plotter( gtk.Alignment ):
         self.canvas.draw_idle()
 
 
-class ScanPlotter(gtk.VBox):
+class ScanPlotter(Gtk.VBox):
     implements(IScanPlotter)
 
  
     def __init__(self):
-        gtk.VBox.__init__(self, False)
+        GObject.GObject.__init__(self, False)
         self.plotter = Plotter(self)
         self.plotter.set_size_request(577,400)
         self.pack_start(self.plotter, expand=True, fill=True)
@@ -469,9 +469,9 @@ class ScanPlotter(gtk.VBox):
             'title': title, 'data': data, 'subtitle': timestr, 'dim': dim}
 
 
-class ScanPlotWindow(gtk.Window):
+class ScanPlotWindow(Gtk.Window):
     def __init__(self):
-        gtk.Window.__init__(self)
+        GObject.GObject.__init__(self)
         self.plot = ScanPlotter()
         self.add(self.plot)
         self.show_all()

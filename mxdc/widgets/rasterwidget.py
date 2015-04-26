@@ -1,13 +1,13 @@
-from bcm.beamline.mx import IBeamline
-from bcm.utils import misc
-from bcm.utils.decorators import async
+from mxdc.beamline.mx import IBeamline
+from mxdc.utils import misc
+from mxdc.utils.decorators import async
 from datetime import datetime
 from mxdc.utils import gui, config
 from mxdc.widgets.misc import MotorEntry, ActiveEntry
 from mxdc.widgets import dialogs
 from twisted.python.components import globalRegistry
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import numpy
 import os
 import time
@@ -21,7 +21,7 @@ _CONFIG_FILE = 'raster_config.json'
 ) = range(3)
 
 
-class ResultStore(gtk.ListStore):
+class ResultStore(Gtk.ListStore):
     (   
         NAME,
         ANGLE,
@@ -30,11 +30,11 @@ class ResultStore(gtk.ListStore):
     ) = range(4)
     
     def __init__(self):
-        gtk.ListStore.__init__(self,                
-            gobject.TYPE_STRING, 
-            gobject.TYPE_STRING,
-            gobject.TYPE_BOOLEAN,
-            gobject.TYPE_PYOBJECT
+        GObject.GObject.__init__(self,                
+            GObject.TYPE_STRING, 
+            GObject.TYPE_STRING,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_PYOBJECT
             )
 
     def add_item(self, item):
@@ -49,7 +49,7 @@ class ResultStore(gtk.ListStore):
             self.ACTIVE, True,
             self.DATA, item)
                     
-class DetailStore(gtk.ListStore):
+class DetailStore(Gtk.ListStore):
     (
         NAME,
         XPOS,
@@ -59,14 +59,14 @@ class DetailStore(gtk.ListStore):
     ) = range(5)
     
     def __init__(self):
-        gtk.ListStore.__init__(self,
-            gobject.TYPE_STRING, 
-            gobject.TYPE_STRING, 
-            gobject.TYPE_STRING,
-            gobject.TYPE_FLOAT,
-            gobject.TYPE_PYOBJECT,
+        GObject.GObject.__init__(self,
+            GObject.TYPE_STRING, 
+            GObject.TYPE_STRING, 
+            GObject.TYPE_STRING,
+            GObject.TYPE_FLOAT,
+            GObject.TYPE_PYOBJECT,
             )
-        self.set_sort_column_id(self.SCORE, gtk.SORT_DESCENDING)
+        self.set_sort_column_id(self.SCORE, Gtk.SortType.DESCENDING)
 
       
     def add_item(self, item):
@@ -88,10 +88,10 @@ class DetailStore(gtk.ListStore):
                 'ypos': loc[3],
                 'score': score})
          
-class RasterWidget(gtk.Frame):    
+class RasterWidget(Gtk.Frame):    
     __gsignals__ = {
-        'show-raster': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
-        'show-image':  (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
+        'show-raster': (GObject.SignalFlags.RUN_LAST, None, []),
+        'show-image':  (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT, GObject.TYPE_PYOBJECT)),
     }
     
     def do_show_raster(self):
@@ -101,8 +101,8 @@ class RasterWidget(gtk.Frame):
         pass
     
     def __init__(self):
-        gtk.Frame.__init__(self, '')
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        GObject.GObject.__init__(self, '')
+        self.set_shadow_type(Gtk.ShadowType.NONE)
         self._xml = gui.GUIFile(
                         os.path.join(os.path.dirname(__file__), 'data', 'raster_widget'),
                         'raster_vbox')
@@ -164,7 +164,7 @@ class RasterWidget(gtk.Frame):
         self.param_tbl.attach(omega, 1, 2, 3, 5)
         self.param_tbl.attach(aperture, 2, 4, 3, 5)
         
-        sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        sg = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
         sg.add_widget(omega)
         sg.add_widget(aperture)
         self.expand_separator.set_expand(True)
@@ -179,23 +179,23 @@ class RasterWidget(gtk.Frame):
         self.results = ResultStore()
         model = self.results
 
-        treeview = gtk.TreeView(self.results)
+        treeview = Gtk.TreeView(self.results)
         treeview.set_rules_hint(True)
 
-        renderer = gtk.CellRendererToggle()
+        renderer = Gtk.CellRendererToggle()
         renderer.connect('toggled', self.on_result_activated)
         renderer.set_radio(True)
-        column = gtk.TreeViewColumn('', renderer, active=model.ACTIVE)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        column = Gtk.TreeViewColumn('', renderer, active=model.ACTIVE)
+        column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
         column.set_fixed_width(24)
         treeview.append_column(column)
 
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Name', renderer, text=model.NAME)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn('Name', renderer, text=model.NAME)
         treeview.append_column(column)
                
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Angle', renderer, text=model.ANGLE)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn('Angle', renderer, text=model.ANGLE)
         treeview.append_column(column)
         
         treeview.connect('row-activated',self.on_result_activated)
@@ -204,34 +204,34 @@ class RasterWidget(gtk.Frame):
     def __create_detail_view(self):
         self.details = DetailStore()
         model = self.details
-        treeview = gtk.TreeView(self.details)
+        treeview = Gtk.TreeView(self.details)
         treeview.set_rules_hint(True)
 
         # columns for Name, X and Y
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Grid Cell", renderer, text=model.NAME)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Grid Cell", renderer, text=model.NAME)
         treeview.append_column(column)
 
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("X-pos", renderer, text=model.XPOS)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("X-pos", renderer, text=model.XPOS)
         treeview.append_column(column)
         
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Y-pos", renderer, text=model.YPOS)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Y-pos", renderer, text=model.YPOS)
         treeview.append_column(column)
 
         # column for score
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Score", renderer, text=model.SCORE)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Score", renderer, text=model.SCORE)
         column.set_sort_column_id(model.SCORE)
         column.set_cell_data_func(renderer, self.__float_format)
         treeview.append_column(column)
 
         # column for score
-        renderer = gtk.CellRendererText()
+        renderer = Gtk.CellRendererText()
         renderer.set_fixed_size(14,14)
-        column = gtk.TreeViewColumn("", renderer)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        column = Gtk.TreeViewColumn("", renderer)
+        column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
         column.set_fixed_width(16)
         column.set_cell_data_func(renderer, self.__score_colors)
         treeview.append_column(column)
@@ -345,7 +345,7 @@ class RasterWidget(gtk.Frame):
         cell_y = oy - info['ypos']
         filename = os.path.join(self._result_info['directory'], 
                                 self._result_info['details'][info['cell']]['file'])
-        gobject.idle_add(self.emit, 'show-image', info['cell'], filename)
+        GObject.idle_add(self.emit, 'show-image', info['cell'], filename)
         self._center_xyz(angle, cell_x, cell_y)
 
     def on_detail_selected(self, treeview):
@@ -380,7 +380,7 @@ class RasterWidget(gtk.Frame):
     
     def on_apply(self, btn):
         if self.sample_viewer:
-            gobject.idle_add(self.emit, 'show-raster')
+            GObject.idle_add(self.emit, 'show-raster')
             params = self.get_parameters()
             config.save_config(_CONFIG_FILE,params)
             self.sample_viewer.apply_grid_settings(params)

@@ -1,7 +1,7 @@
 import os
 import logging
 import cairo
-import gtk
+from gi.repository import Gtk
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -15,17 +15,17 @@ class LabelHandler(logging.Handler):
         self.label.set_markup(self.format(record))
    
 
-class Splash(gtk.Window):
+class Splash(Gtk.Window):
     def __init__(self, version, image='splash.png'):
-        gtk.Window.__init__(self)
+        GObject.GObject.__init__(self)
         self.img_file = os.path.join(DATA_DIR, image)
         self.version = version
-        pixbuf = gtk.gdk.pixbuf_new_from_file(self.img_file)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(self.img_file)
         self.width, self.height = pixbuf.get_width(), pixbuf.get_height()
         self.set_size_request(self.width, self.height)
-        self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_SPLASHSCREEN)
-        self.set_gravity(gtk.gdk.GRAVITY_CENTER)
-        self.set_position(gtk.WIN_POS_CENTER)
+        self.set_type_hint(Gdk.WindowTypeHint.SPLASHSCREEN)
+        self.set_gravity(Gdk.GRAVITY_CENTER)
+        self.set_position(Gtk.WindowPosition.CENTER)
         self.connect('expose-event', self.on_expose)
         self.connect('screen-changed', self.on_set_screen)
         self.on_set_screen(self)
@@ -56,7 +56,7 @@ class Splash(gtk.Window):
         # Draw the background
         cr.set_operator(cairo.OPERATOR_SOURCE)
         cr.paint()
-        pixbuf = gtk.gdk.pixbuf_new_from_file(self.img_file)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(self.img_file)
         pix, mask = pixbuf.render_pixmap_and_mask(230)
         cr = window.cairo_create()
         cr.set_source_pixbuf(pixbuf,0,0)

@@ -1,9 +1,9 @@
 import os
 import sys
 import Queue
-import gtk
-import gobject
-import pango
+from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import Pango
 import time
 import threading
 from PIL import Image 
@@ -12,8 +12,8 @@ from PIL import ImageDraw
 from PIL import ImageFont
 
 
-from bcm.protocol import ca
-from bcm.device.interfaces import IVideoSink
+from mxdc.com import ca
+from mxdc.interface.devices import IVideoSink
 from zope.interface import implements
 
 import pickle
@@ -22,10 +22,10 @@ WIDGET_DIR = os.path.dirname(__file__)
 COLORMAPS = pickle.load(file(os.path.join(WIDGET_DIR, 'data/colormaps.data')))
 
     
-class VideoWidget(gtk.DrawingArea):
+class VideoWidget(Gtk.DrawingArea):
     implements(IVideoSink)    
     def __init__(self, camera):
-        gtk.DrawingArea.__init__(self)
+        GObject.GObject.__init__(self)
         self.camera = camera
         self.scale = 1
         self.pixbuf = None
@@ -37,13 +37,13 @@ class VideoWidget(gtk.DrawingArea):
         self.overlay_func = None
         self.display_func = None
         
-        self.set_events(gtk.gdk.EXPOSURE_MASK |
-                gtk.gdk.LEAVE_NOTIFY_MASK |
-                gtk.gdk.BUTTON_PRESS_MASK |
-                gtk.gdk.POINTER_MOTION_MASK |
-                gtk.gdk.POINTER_MOTION_HINT_MASK|
-                gtk.gdk.VISIBILITY_NOTIFY_MASK | 
-                gtk.gdk.BUTTON_RELEASE_MASK)  
+        self.set_events(Gdk.EventMask.EXPOSURE_MASK |
+                Gdk.EventMask.LEAVE_NOTIFY_MASK |
+                Gdk.EventMask.BUTTON_PRESS_MASK |
+                Gdk.EventMask.POINTER_MOTION_MASK |
+                Gdk.EventMask.POINTER_MOTION_HINT_MASK|
+                Gdk.EventMask.VISIBILITY_NOTIFY_MASK | 
+                Gdk.EventMask.BUTTON_RELEASE_MASK)  
 
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
@@ -89,9 +89,9 @@ class VideoWidget(gtk.DrawingArea):
             img.putpalette(self._palette)
         img = img.convert('RGB')
         w, h = img.size
-        self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
+        self.pixbuf = GdkPixbuf.Pixbuf.new_from_data(img.tostring(),GdkPixbuf.Colorspace.RGB, 
             False, 8, w, h, 3 * w )
-        gobject.idle_add(self.queue_draw)
+        GObject.idle_add(self.queue_draw)
         if self.display_func is not None:
             self.display_func(img, scale=self.scale)
     
@@ -119,13 +119,13 @@ class VideoWidget(gtk.DrawingArea):
         self.pl_gc.foreground = self.get_colormap().alloc_color("#ffaaff")
         self.ol_gc = window.new_gc()
         self.ol_gc.foreground = self.get_colormap().alloc_color("green")
-        #self.ol_gc.set_function(gtk.gdk.XOR)
-        self.ol_gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
+        #self.ol_gc.set_function(Gdk.XOR)
+        self.ol_gc.set_line_attributes(1,Gdk.LINE_SOLID,Gdk.CAP_BUTT,Gdk.JOIN_MITER)
         self.camera.add_sink(self)
         return True
 
     def on_visibility_notify(self, obj, event):
-        if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
+        if event.get_state() == Gdk.VisibilityState.FULLY_OBSCURED:
             self.stopped = True
         else:
             self.stopped = False
@@ -137,7 +137,7 @@ class VideoWidget(gtk.DrawingArea):
     def save_image(self, filename):
         window = self.get_window()
         colormap = window.get_colormap()
-        pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, 0, 8, *window.get_size())
+        pixbuf = GdkPixbuf.Pixbuf(GdkPixbuf.Colorspace.RGB, 0, 8, *window.get_size())
         pixbuf = pixbuf.get_from_drawable(window, colormap, 0,0,0,0, *window.get_size())
         ftype = os.path.splitext(filename)[-1]
         ftype = ftype.lower()

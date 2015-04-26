@@ -1,8 +1,8 @@
 
-from bcm.beamline.mx import IBeamline
-from bcm.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
-from bcm.utils import lims_tools
-from bcm.utils.log import get_module_logger
+from mxdc.beamline.mx import IBeamline
+from mxdc.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
+from mxdc.utils import lims_tools
+from mxdc.utils.log import get_module_logger
 from mxdc.utils import config, gui
 from mxdc.widgets import dialogs
 from mxdc.widgets.misc import ActiveProgressBar
@@ -10,8 +10,8 @@ from mxdc.widgets.periodictable import PeriodicTable
 from mxdc.widgets.plotter import Plotter
 from mxdc.widgets.textviewer import TextViewer
 from twisted.python.components import globalRegistry
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import os, sys
 import time
 
@@ -78,13 +78,13 @@ XRF_COLOR_LIST = ['#4185b4', '#ff7f0e', '#2ca02c', '#ff2627',
                 '#004794', '#885523', '#45663f', '#750300', '#4b2766', '#8c564b', 
                 '#dc1a6e', '#252525', '#757500', '#157082']
 
-class ScanManager(gtk.Alignment):
+class ScanManager(Gtk.Alignment):
     __gsignals__ = {
-        'create-run': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
-        'update-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'create-run': (GObject.SignalFlags.RUN_LAST, None, []),
+        'update-strategy': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
     }
     def __init__(self):
-        gtk.Alignment.__init__(self, 0, 0, 1, 1)
+        GObject.GObject.__init__(self, 0, 0, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'scan_manager'), 
                                   'scan_widget')            
 
@@ -159,7 +159,7 @@ class ScanManager(gtk.Alignment):
         self.stop_btn.connect('clicked', self.on_stop_activated)
         
         # Sizegroups for buttons horizontal sizes
-        sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        sg = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
         sg.add_widget(self.scan_btn)
         sg.add_widget(self.stop_btn)
         sg.add_widget(self.update_strategy_btn)
@@ -185,7 +185,7 @@ class ScanManager(gtk.Alignment):
             'scans': self.scans_entry,
             'kmax': self.kmax_entry,
         }
-        #self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=gtk.EXPAND|gtk.FILL)
+        #self.layout_table.attach(self.entries['directory'], 1,3, 1,2, xoptions=Gtk.AttachOptions.EXPAND|Gtk.AttachOptions.FILL)
         for key in ['prefix','edge']:
             self.entries[key].set_alignment(0.5)
         for key in ['energy','time','attenuation']:
@@ -218,35 +218,35 @@ class ScanManager(gtk.Alignment):
         self.add(self.scan_widget)
 
         # XANES Results section
-        self.energy_store = gtk.ListStore(
-            gobject.TYPE_STRING,
-            gobject.TYPE_FLOAT,
-            gobject.TYPE_FLOAT,
-            gobject.TYPE_FLOAT
+        self.energy_store = Gtk.ListStore(
+            GObject.TYPE_STRING,
+            GObject.TYPE_FLOAT,
+            GObject.TYPE_FLOAT,
+            GObject.TYPE_FLOAT
         )
-        self.energy_list = gtk.TreeView(model=self.energy_store)
+        self.energy_list = Gtk.TreeView(model=self.energy_store)
         self.energy_list.set_rules_hint(True)
         self.xanes_sw.add(self.energy_list)
         self.create_run_btn.connect('clicked', self.on_create_run)
         self.update_strategy_btn.connect('clicked', self.on_update_strategy)
 
         #Label column
-        renderer = gtk.CellRendererText()
-        column1 = gtk.TreeViewColumn('Name', renderer, text=COLUMN_LABEL)
+        renderer = Gtk.CellRendererText()
+        column1 = Gtk.TreeViewColumn('Name', renderer, text=COLUMN_LABEL)
         
         #Energy column
-        renderer = gtk.CellRendererText()
-        column2 = gtk.TreeViewColumn('Energy(keV)', renderer, text=COLUMN_ENERGY)
+        renderer = Gtk.CellRendererText()
+        column2 = Gtk.TreeViewColumn('Energy(keV)', renderer, text=COLUMN_ENERGY)
         column2.set_cell_data_func(renderer, self._float_format, ('%7.4f', COLUMN_ENERGY))
 
         #FP column
-        renderer = gtk.CellRendererText()
-        column3 = gtk.TreeViewColumn("f'", renderer, text=COLUMN_FP)
+        renderer = Gtk.CellRendererText()
+        column3 = Gtk.TreeViewColumn("f'", renderer, text=COLUMN_FP)
         column3.set_cell_data_func(renderer, self._float_format, ('%5.2f', COLUMN_FP))
 
         #FPP column
-        renderer = gtk.CellRendererText()
-        column4 = gtk.TreeViewColumn('f"', renderer, text=COLUMN_FPP)
+        renderer = Gtk.CellRendererText()
+        column4 = Gtk.TreeViewColumn('f"', renderer, text=COLUMN_FPP)
         column4.set_cell_data_func(renderer, self._float_format, ('%5.2f', COLUMN_FPP))
         
         self.energy_list.append_column(column1)
@@ -256,42 +256,42 @@ class ScanManager(gtk.Alignment):
         self.xanes_sw.show_all()
         
         # XRF Results section
-        self.xrf_store = gtk.ListStore(
-            gobject.TYPE_BOOLEAN,                          
-            gobject.TYPE_STRING,
-            gobject.TYPE_FLOAT
+        self.xrf_store = Gtk.ListStore(
+            GObject.TYPE_BOOLEAN,                          
+            GObject.TYPE_STRING,
+            GObject.TYPE_FLOAT
         )
-        self.xrf_list = gtk.TreeView(model=self.xrf_store)
+        self.xrf_list = Gtk.TreeView(model=self.xrf_store)
         self.xrf_list.set_rules_hint(True)
         self.xrf_sw.add(self.xrf_list)
         
         #Toggle column
-        renderer = gtk.CellRendererToggle()
+        renderer = Gtk.CellRendererToggle()
         renderer.connect('toggled', self.on_element_toggled, self.xrf_store)
-        column = gtk.TreeViewColumn('', renderer, active=COLUMN_DRAW)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        column = Gtk.TreeViewColumn('', renderer, active=COLUMN_DRAW)
+        column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
         column.set_fixed_width(24)
 
         self.xrf_list.append_column(column)
         
         #Name column
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Element', renderer, text=COLUMN_ELEMENT)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn('Element', renderer, text=COLUMN_ELEMENT)
         column.set_cell_data_func(renderer, self._color_element, COLUMN_PERCENT)
         self.xrf_list.append_column(column)
 
         #Percent column
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Reliability (%)", renderer, text=COLUMN_PERCENT)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Reliability (%)", renderer, text=COLUMN_PERCENT)
         column.set_cell_data_func(renderer, self._float_format, ('%5.2f', COLUMN_PERCENT))
         self.xrf_list.append_column(column)
         self.xrf_sw.show_all()
 
         #fix adjustments
         if self.kmax_adj is None:
-            self.kmax_adj = gtk.Adjustment(12, 1, 18, 1, 1, 0)
+            self.kmax_adj = Gtk.Adjustment(12, 1, 18, 1, 1, 0)
             self.kmax_entry.set_adjustment(self.kmax_adj)
-            self.scans_adj = gtk.Adjustment(1, 1, 128, 1, 10, 0)
+            self.scans_adj = Gtk.Adjustment(1, 1, 128, 1, 10, 0)
             self.scans_entry.set_adjustment(self.scans_adj)
         
         self.show_all()
@@ -599,10 +599,10 @@ class ScanManager(gtk.Alignment):
             if warning:
                 msg = "Beam not Available. When the beam is available again, resume your scan." 
                 title = 'Attention Required'
-                self.resp = dialogs.MyDialog(gtk.MESSAGE_WARNING, 
+                self.resp = dialogs.MyDialog(Gtk.MessageType.WARNING, 
                                              title, msg,
                                              parent=self.get_toplevel(),
-                                             buttons=( ('OK', gtk.RESPONSE_ACCEPT),) )
+                                             buttons=( ('OK', Gtk.ResponseType.ACCEPT),) )
                 self._intervening = False
                 self.resp()
         return True

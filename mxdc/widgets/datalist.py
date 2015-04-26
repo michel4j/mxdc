@@ -1,5 +1,5 @@
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 
 
 (
@@ -15,15 +15,15 @@ import gobject
 ) = range(9)
 
 DATA_TYPES = (
-    gobject.TYPE_BOOLEAN,
-    gobject.TYPE_STRING,
-    gobject.TYPE_PYOBJECT,
-    gobject.TYPE_STRING,
-    gobject.TYPE_FLOAT,
-    gobject.TYPE_FLOAT,
-    gobject.TYPE_STRING,
-    gobject.TYPE_PYOBJECT,
-    gobject.TYPE_UINT,
+    GObject.TYPE_BOOLEAN,
+    GObject.TYPE_STRING,
+    GObject.TYPE_PYOBJECT,
+    GObject.TYPE_STRING,
+    GObject.TYPE_FLOAT,
+    GObject.TYPE_FLOAT,
+    GObject.TYPE_STRING,
+    GObject.TYPE_PYOBJECT,
+    GObject.TYPE_UINT,
 )
 
 DATA_COLUMN_DICT = {
@@ -35,17 +35,17 @@ DATA_COLUMN_DICT = {
     DATA_COLUMN_FRAMES: 'Frames',
 }
 
-class DataList(gtk.ScrolledWindow):
+class DataList(Gtk.ScrolledWindow):
     def __init__(self):
-        gtk.ScrolledWindow.__init__(self)
-        self.listmodel = gtk.ListStore(*DATA_TYPES) 
+        GObject.GObject.__init__(self)
+        self.listmodel = Gtk.ListStore(*DATA_TYPES) 
                                 
-        self.listview = gtk.TreeView(self.listmodel)
+        self.listview = Gtk.TreeView(self.listmodel)
         self.listview.set_rules_hint(True)
-        self.listview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+        self.listview.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
         self.__add_columns()
-        self.set_shadow_type(gtk.SHADOW_ETCHED_IN)
-        self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
+        self.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.add(self.listview)
         self._first = True
         self._num_items = 0
@@ -103,17 +103,17 @@ class DataList(gtk.ScrolledWindow):
                         
     def __add_columns(self):        
         # Pending Column
-        renderer = gtk.CellRendererPixbuf()
-        column = gtk.TreeViewColumn('', renderer)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        renderer = Gtk.CellRendererPixbuf()
+        column = Gtk.TreeViewColumn('', renderer)
+        column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
         column.set_fixed_width(24)
         column.set_sort_column_id(DATA_COLUMN_INDEX)
         self.listview.append_column(column)
         
         for key in [DATA_COLUMN_NAME, DATA_COLUMN_GROUP, DATA_COLUMN_ANGLE, DATA_COLUMN_WAVELENGTH, DATA_COLUMN_FRAMES]:
-            renderer = gtk.CellRendererText()
+            renderer = Gtk.CellRendererText()
             renderer.set_data('column', key)
-            column = gtk.TreeViewColumn(DATA_COLUMN_DICT[key], renderer, text=key)
+            column = Gtk.TreeViewColumn(DATA_COLUMN_DICT[key], renderer, text=key)
             column.set_sort_column_id(key)
             if key in [DATA_COLUMN_ANGLE, DATA_COLUMN_WAVELENGTH]:
                 column.set_cell_data_func(renderer, self.__format_float_cell)

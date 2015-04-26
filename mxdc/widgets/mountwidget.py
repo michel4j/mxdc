@@ -1,11 +1,11 @@
 import os, sys
-import gtk
-import gobject
-from bcm.beamline.mx import IBeamline
+from gi.repository import Gtk
+from gi.repository import GObject
+from mxdc.beamline.mx import IBeamline
 from twisted.python.components import globalRegistry
-from bcm.utils.log import get_module_logger
-from bcm.engine import auto
-from bcm.utils.decorators import async
+from mxdc.utils.log import get_module_logger
+from mxdc.engine import auto
+from mxdc.utils.decorators import async
 
 from mxdc.widgets.runmanager import RunManager
 from mxdc.utils import gui
@@ -20,13 +20,13 @@ _logger = get_module_logger(__name__)
     MOUNT_ACTION_MANUAL_MOUNT
 ) = range(5)
 
-class MountWidget(gtk.Alignment):
+class MountWidget(Gtk.Alignment):
     __gsignals__ = {
-        'active-sample': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
-        'mount-action-progress': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT, gobject.TYPE_BOOLEAN]),
+        'active-sample': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
+        'mount-action-progress': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, GObject.TYPE_BOOLEAN]),
     }
     def __init__(self):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/mount_widget'), 
                                   'mount_widget')
         self.add(self.mount_widget)

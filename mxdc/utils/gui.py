@@ -1,11 +1,11 @@
 import os
-import gtk
+from gi.repository import Gtk
 
 class GUIFile(object):
     def __init__(self, name, root=None):
         self.name = name
         self.root = root
-        self.wTree = gtk.Builder()
+        self.wTree = Gtk.Builder()
         self.ui_file = "%s.ui" % self.name
         if os.path.exists(self.ui_file):
             if self.root is not None:
@@ -17,21 +17,21 @@ class GUIFile(object):
         return self.wTree.get_object(name)
 
 def make_icon_label(txt, stock_id=None):
-    aln = gtk.Alignment(0.5,0.5,0,0)
+    aln = Gtk.Alignment.new(0.5,0.5,0,0)
     aln.set_padding(0,0,6,6)
-    box = gtk.HBox(False,2)
-    aln.label = gtk.Label(txt)
+    box = Gtk.HBox(False,2)
+    aln.label = Gtk.Label(label=txt)
     aln.label.set_use_markup(True)
     box.pack_end(aln.label, expand=False, fill=False)
-    aln.icon = gtk.Image()
+    aln.icon = Gtk.Image()
     box.pack_start(aln.icon, expand=False, fill=False)
     if stock_id is not None:
-        aln.icon.set_from_stock(stock_id, gtk.ICON_SIZE_MENU)
+        aln.icon.set_from_stock(stock_id, Gtk.IconSize.MENU)
     aln.add(box)
     aln.show_all()
     return aln
 
 def make_tab_label(txt):
-    label = gtk.Label(txt)
+    label = Gtk.Label(label=txt)
     label.set_padding(6, 0)
     return label

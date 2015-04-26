@@ -1,25 +1,25 @@
 
-from bcm.utils.misc import lighten_color
+from mxdc.utils.misc import lighten_color
 from diagnostics import MSG_COLORS, MSG_ICONS
 from dialogs import warning
 from gauge import Gauge
 from mxdc.utils import gui
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import os
 import time
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-class ActiveHScale(gtk.HScale):
+class ActiveHScale(Gtk.HScale):
     def __init__( self, context, min_val=0.0, max_val=100.0):
-        gtk.HScale.__init__(self)
+        GObject.GObject.__init__(self)
         self.context = context
-        self.set_value_pos(gtk.POS_RIGHT)
+        self.set_value_pos(Gtk.PositionType.RIGHT)
         self.set_digits(1)
         self.set_range(min_val, max_val)
-        self.set_adjustment(gtk.Adjustment(0.0, min_val, max_val, (max_val-min_val)/100.0, 0, 0))
-        self.set_update_policy(gtk.UPDATE_CONTINUOUS)
+        self.set_adjustment(Gtk.Adjustment(0.0, min_val, max_val, (max_val-min_val)/100.0, 0, 0))
+        self.set_update_policy(Gtk.UPDATE_CONTINUOUS)
         self._handler_id = self.connect('value-changed', self._on_scale_changed)
         self.context.connect('changed', self._on_feedback_changed)
         self._feedback = False
@@ -42,9 +42,9 @@ class ActiveHScale(gtk.HScale):
         self._feedback = False
         #self.context.handler_unblock(self._handler_id)
         
-class ActiveLabel(gtk.Label):
+class ActiveLabel(Gtk.Label):
     def __init__( self, context, fmt="%s", show_units=True, rng=None):
-        gtk.Label.__init__(self, '')
+        GObject.GObject.__init__(self, '')
 
         self.set_alignment(0.5,0.5)
         self.format = fmt
@@ -73,12 +73,12 @@ class ActiveLabel(gtk.Label):
         alarm, severity = alrm
         #print alarm, severity
         
-class ActiveEntry(gtk.VBox):
-    #_border = gtk.Border(3,3,4,4)
+class ActiveEntry(Gtk.VBox):
+    #_border = Gtk.Border(3,3,4,4)
     def __init__( self, device, label=None,  fmt="%g",  width=10):
-        gtk.VBox.__init__(self, label)
-        self._sizegroup_h = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
-        self._sizegroup_v = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
+        GObject.GObject.__init__(self, label)
+        self._sizegroup_h = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
+        self._sizegroup_v = Gtk.SizeGroup(Gtk.SizeGroupMode.VERTICAL)
         # create gui layout
         
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/active_entry'), 
@@ -91,7 +91,7 @@ class ActiveEntry(gtk.VBox):
         self._action_btn = self._xml.get_widget('action_btn')
         self._action_icon = self._xml.get_widget('action_icon')
         self._label = self._xml.get_widget('label')
-        #font_desc = pango.FontDescription()
+        #font_desc = Pango.FontDescription()
 
         self._sizegroup_h.add_widget(self._entry)
         self._sizegroup_h.add_widget(self._fbk_label)
@@ -105,7 +105,7 @@ class ActiveEntry(gtk.VBox):
         #self._fbk_label.modify_font(font_desc)
 
 
-        self.pack_start(self._active_entry)
+        self.pack_start(self._active_entry, True, True, 0)
         
         self._fbk_label.set_alignment(1, 0.5)
         #self._entry.set_inner_border(self._border)
@@ -135,10 +135,10 @@ class ActiveEntry(gtk.VBox):
         if self.device.units != "":
             label = '%s (%s)' % (label, self.device.units)
         self._label.set_markup("<span size='small'><b>%s</b></span>" % (label,))
-        self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000088"))
+        self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000088"))
 
     def _on_entry_clicked(self, widget, event, data=None):
-        if event.type == gtk.gdk.BUTTON_RELEASE:
+        if event.type == Gdk.BUTTON_RELEASE:
             widget.select_region(0, -1)
           
     def set_feedback(self, val):
@@ -175,15 +175,15 @@ class ActiveEntry(gtk.VBox):
         state, _ = health
         
         if state == 0:
-            self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000066"))
-            self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
+            self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
+            self._action_icon.set_from_stock('gtk-apply', Gtk.IconSize.MENU)
             self._set_active(True)
         else:           
             if (state | 16) == state:
-                self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#333366"))
+                self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#333366"))
             else:                
-                self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#660000"))
-                self._action_icon.set_from_stock('gtk-dialog-warning', gtk.ICON_SIZE_MENU)
+                self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#660000"))
+                self._action_icon.set_from_stock('gtk-dialog-warning', Gtk.IconSize.MENU)
             self._set_active(False)           
 
     def _on_value_changed(self, obj, val):
@@ -225,24 +225,24 @@ class MotorEntry(ActiveEntry):
         self.device.connect('busy', self._on_motion_changed)
         self.device.connect('target-changed', self._on_target_changed)
         
-        self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+        self._animation = GdkPixbuf.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                                                'data/active_stop.gif'))
            
     def stop(self):
         self.device.stop()
-        self._action_icon.set_from_stock('gtk-apply', gtk.ICON_SIZE_MENU)
+        self._action_icon.set_from_stock('gtk-apply', Gtk.IconSize.MENU)
              
     
     def _on_motion_changed(self, obj, motion):
         if motion:
             self.running = True
             self._action_icon.set_from_animation(self._animation)
-            self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#0000ff"))
+            self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#0000ff"))
         else:
             self.running = False
             #self.set_target(self.device.get_position())
-            self._action_icon.set_from_stock('gtk-apply',gtk.ICON_SIZE_MENU)
-            self._fbk_label.modify_fg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#000066"))
+            self._action_icon.set_from_stock('gtk-apply',Gtk.IconSize.MENU)
+            self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
         self.set_feedback(self.device.get_position())
         return True
 
@@ -252,17 +252,17 @@ class MotorEntry(ActiveEntry):
    
 
 
-class ShutterButton(gtk.ToggleButton):
+class ShutterButton(Gtk.ToggleButton):
     def __init__(self, shutter, label, open_only=False, action_label=False):
-        gtk.ToggleButton.__init__(self)
+        GObject.GObject.__init__(self)
         self.shutter = shutter
         self.open_only = open_only
         self.action_label = action_label
-        container = gtk.HBox(False, 2)
+        container = Gtk.HBox(False, 2)
 
         self.label_text = label
-        self.image = gtk.Image()
-        self.label = gtk.Label(label)
+        self.image = Gtk.Image()
+        self.label = Gtk.Label(label=label)
         self.image.set_alignment(0.5, 0.5)
         self.image.set_padding(3,0)
         self.label.set_alignment(0.0, 0.5)
@@ -296,7 +296,7 @@ class ShutterButton(gtk.ToggleButton):
                 self.label.set_text(self.label_text)
             else:
                 self.label.set_text("Close")
-        self.image.set_from_stock('gtk-yes', gtk.ICON_SIZE_SMALL_TOOLBAR)
+        self.image.set_from_stock('gtk-yes', Gtk.IconSize.SMALL_TOOLBAR)
     
     def _set_off(self):
         self.set_sensitive(True)
@@ -304,21 +304,21 @@ class ShutterButton(gtk.ToggleButton):
             self.label.set_text(self.label_text)
         else:
             self.label.set_text("Open")
-        self.image.set_from_stock('gtk-no', gtk.ICON_SIZE_SMALL_TOOLBAR)
+        self.image.set_from_stock('gtk-no', Gtk.IconSize.SMALL_TOOLBAR)
 
-class ScriptButton(gtk.Button):
+class ScriptButton(Gtk.Button):
     def __init__(self, script, label, confirm=False, message=""):
-        gtk.Button.__init__(self)
+        GObject.GObject.__init__(self)
         self.script = script
         self.confirm = confirm
         self.warning_text = message
-        self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+        self._animation = GdkPixbuf.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                                                'data/active_stop.gif'))
-        container = gtk.HBox(False, 2)
+        container = Gtk.HBox(False, 2)
 
         self.label_text = label
-        self.image = gtk.Image()
-        self.label = gtk.Label(label)
+        self.image = Gtk.Image()
+        self.label = Gtk.Label(label=label)
         self.image.set_alignment(0.5, 0.5)
         self.image.set_padding(3,0)
         self.label.set_alignment(0.0, 0.5)
@@ -326,7 +326,7 @@ class ScriptButton(gtk.Button):
         container.pack_start(self.image, expand=False, fill=False)
         container.pack_end(self.label, expand=True, fill=True)
         self.add(container)
-        self.tooltip = gtk.Tooltips()
+        self.tooltip = Gtk.Tooltips()
         self.tooltip.set_tip(self, self.script.description)
         self._set_off()
         self.set_property('can-focus', False)
@@ -338,8 +338,8 @@ class ScriptButton(gtk.Button):
             
     def _on_clicked(self, widget):
         if self.confirm and not self.script.is_active():
-            response = warning(self.script.description, self.warning_text, buttons=(('Cancel', gtk.BUTTONS_CANCEL), ('Proceed', gtk.BUTTONS_OK)))
-            if response == gtk.BUTTONS_OK:
+            response = warning(self.script.description, self.warning_text, buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Proceed', Gtk.ButtonsType.OK)))
+            if response == Gtk.ButtonsType.OK:
                 self.script.start()
                 self._set_on()  
         elif not self.script.is_active():
@@ -350,11 +350,11 @@ class ScriptButton(gtk.Button):
         self.label.set_sensitive(False)
     
     def _set_off(self):
-        self.image.set_from_stock('gtk-execute', gtk.ICON_SIZE_SMALL_TOOLBAR)
+        self.image.set_from_stock('gtk-execute', Gtk.IconSize.SMALL_TOOLBAR)
         self.label.set_sensitive(True)
 
     def _set_err(self):
-        self.image.set_from_stock('gtk-warning', gtk.ICON_SIZE_SMALL_TOOLBAR)
+        self.image.set_from_stock('gtk-warning', Gtk.IconSize.SMALL_TOOLBAR)
         self.label.set_sensitive(True)
 
     def _on_enabled(self, obj, state):
@@ -363,7 +363,7 @@ class ScriptButton(gtk.Button):
         else:
             self.set_sensitive(False)
                     
-class StatusBox(gtk.EventBox):
+class StatusBox(Gtk.EventBox):
     COLOR_MAP = {
         'blue':'#6495ED',
         'orange': '#DAA520',
@@ -374,13 +374,13 @@ class StatusBox(gtk.EventBox):
     }
 
     def __init__(self, device, color_map={}, value_map={}, signal="changed", markup="<small><b>%s</b></small>", background=False):
-        gtk.EventBox.__init__(self)
-        hbox = gtk.HBox()
+        GObject.GObject.__init__(self)
+        hbox = Gtk.HBox()
         self.state_map = color_map
         self.value_map = value_map
         self.markup = markup
         self.background = background
-        self.label = gtk.Label('')
+        self.label = Gtk.Label(label='')
         self.label.set_alignment(0.5, 0.5)
         self.device = device
         self.device.connect(signal, self._on_signal)
@@ -393,17 +393,17 @@ class StatusBox(gtk.EventBox):
         color = self.COLOR_MAP.get(self.state_map.get(state, 'gray'), '#708090')
         if self.background:
             fg_color = lighten_color(color, step=153)
-            self.label.modify_fg(gtk.STATE_NORMAL,gtk.gdk.color_parse(fg_color))
-            self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(color))
+            self.label.modify_fg(Gtk.StateType.NORMAL,Gdk.color_parse(fg_color))
+            self.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse(color))
         else:
-            self.label.modify_fg(gtk.STATE_NORMAL,gtk.gdk.color_parse(color))
+            self.label.modify_fg(Gtk.StateType.NORMAL,Gdk.color_parse(color))
         return True
 
 
-class TextStatusDisplay(gtk.Label):
+class TextStatusDisplay(Gtk.Label):
     def __init__(self, device, text_map={}, sig='changed'):
         self.text_map = text_map
-        gtk.Label.__init__(self,'')
+        GObject.GObject.__init__(self,'')
         self.device = device
         self.set_use_markup(True)
         self.device.connect(sig, self._on_signal)
@@ -413,56 +413,56 @@ class TextStatusDisplay(gtk.Label):
         self.set_alignment(0.5, 0.5)
         return True
 
-class HealthDisplay(gtk.HBox):
+class HealthDisplay(Gtk.HBox):
     def __init__(self, device, label='', icon_map=MSG_ICONS, color_map=MSG_COLORS, sig='health'):
-        gtk.HBox.__init__(self)
+        GObject.GObject.__init__(self)
         
-        self.nm = gtk.Label('')
+        self.nm = Gtk.Label(label='')
         self.nm.set_alignment(0.1, 0.5)
         self.nm.set_markup('<small><b>%s</b></small>' % label)
         
-        self.status = gtk.Label('')
+        self.status = Gtk.Label(label='')
         self.status.set_alignment(0.95, 0.5)
         self.device = device
         self.device.connect(sig, self._on_signal)
 
-        self.icon = gtk.Image()
+        self.icon = Gtk.Image()
         self.icon.set_alignment(0.1,0.5)
         self.icon_map = icon_map
         self.color_map = color_map
         self.pack_start(self.icon, expand=False, fill=False)
         self.pack_start(self.nm, expand=True, fill=True)
-        self.pack_start(self.status)
+        self.pack_start(self.status, True, True, 0)
         
     def _on_signal(self, obj, status):
         state = status[0]
         text = status[1] or 'Connected and Ready'
         self.status.set_markup('<small><span color="%s"><i>%s</i></span></small>' 
                                % (self.color_map.get(state, '#9a2b2b'), text))
-        self.icon.set_from_stock(self.icon_map.get(state, 'mxdc-hcane'), gtk.ICON_SIZE_MENU)
+        self.icon.set_from_stock(self.icon_map.get(state, 'mxdc-hcane'), Gtk.IconSize.MENU)
         return True
     
-class StatusDisplay(gtk.HBox):
+class StatusDisplay(Gtk.HBox):
     def __init__(self, icon_list, message):
-        gtk.HBox.__init__(self, False, 0)
+        GObject.GObject.__init__(self, False, 0)
         self.message = message
         self.icon_list = icon_list
-        self.image = gtk.Image()
-        self.label = gtk.Label()
+        self.image = Gtk.Image()
+        self.label = Gtk.Label()
         self.pack_start(self.image, expand=False, fill=False)
         self.pack_start(self.label, expand=True, fill=True)
                                         
     def set_state(self, val=None, message=None):
         if val is not None:
             if len(self.icon_list) > val > 0:
-                self.image.set_from_stock(self.icon_list[val], gtk.ICON_SIZE_MENU)
+                self.image.set_from_stock(self.icon_list[val], Gtk.IconSize.MENU)
         if message is not None:
             self.message = message
             self.label.set_markup(message)
         
-class ActiveProgressBar(gtk.ProgressBar):
+class ActiveProgressBar(Gtk.ProgressBar):
     def __init__(self):
-        gtk.ProgressBar.__init__(self)    
+        GObject.GObject.__init__(self)    
         self.set_fraction(0.0)
         self.set_text('0.0%')
         self.progress_id = None
@@ -473,7 +473,7 @@ class ActiveProgressBar(gtk.ProgressBar):
         if busy:
             if not self.busy_state:
                 self.busy_state = True
-                gobject.timeout_add(100,  self._progress_timeout)
+                GObject.timeout_add(100,  self._progress_timeout)
             self.pulse()
         else:
             self.busy_state = False
@@ -502,9 +502,9 @@ class ActiveProgressBar(gtk.ProgressBar):
         self.set_text(complete_text)
     
 
-class LinearProgress(gtk.DrawingArea):
+class LinearProgress(Gtk.DrawingArea):
     def __init__(self):
-        gtk.DrawingArea.__init__(self)
+        GObject.GObject.__init__(self)
         self.set_app_paintable(True)
         self.fraction = 0.0
         self.bar_gc = None 
@@ -523,11 +523,11 @@ class LinearProgress(gtk.DrawingArea):
             if self.color_spec:
                 self.bar_gc.foreground = self.get_colormap().alloc_color(self.color_spec)
             else:
-                self.bar_gc.foreground = style.fg[gtk.STATE_PRELIGHT]
+                self.bar_gc.foreground = style.fg[Gtk.StateType.PRELIGHT]
             if self.bg_spec:
                 self.bar_gc.background = self.get_colormap().alloc_color(self.bg_spec)
             else:
-                self.bar_gc.background = style.bg[gtk.STATE_PRELIGHT]
+                self.bar_gc.background = style.bg[Gtk.StateType.PRELIGHT]
         
         self.draw_gdk()
         return False
@@ -554,9 +554,9 @@ class LinearProgress(gtk.DrawingArea):
         self.bg_spec = bg_spec
         
            
-class CryojetWidget(gtk.Alignment):
+class CryojetWidget(Gtk.Alignment):
     def __init__(self, cryojet):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
         self.cryojet = cryojet
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'cryo_widget'), 
                                   'cryo_widget')
@@ -627,15 +627,15 @@ class CryojetWidget(gtk.Alignment):
         msg2 += 'from icing. However this procedure may damage the sample.\n\n'
         msg2 += 'Are you sure you want to continue?'
             
-        response = warning(msg1, msg2, buttons=(('Cancel', gtk.BUTTONS_CANCEL), ('Anneal', gtk.BUTTONS_OK)))
-        if response == gtk.BUTTONS_OK:
+        response = warning(msg1, msg2, buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Anneal', Gtk.ButtonsType.OK)))
+        if response == Gtk.ButtonsType.OK:
             self.start_anneal_btn.set_sensitive(False)
             self.stop_anneal_btn.set_sensitive(True)
             self._annealed_time = 0
             self.cryojet.stop_flow()
             #dur = max(0.0, (duration-0.5*1000))
-            self._restore_anneal_id = gobject.timeout_add(int(duration*1000), self._stop_anneal)
-            self._progress_id = gobject.timeout_add(1000, self._update_progress, duration)
+            self._restore_anneal_id = GObject.timeout_add(int(duration*1000), self._stop_anneal)
+            self._progress_id = GObject.timeout_add(1000, self._update_progress, duration)
             
     def _stop_anneal(self, obj=None):
         self.cryojet.resume_flow()
@@ -644,10 +644,10 @@ class CryojetWidget(gtk.Alignment):
         self.anneal_prog.set_fraction(0.0)
         self.anneal_prog.set_text('')
         if self._restore_anneal_id:
-            gobject.source_remove(self._restore_anneal_id)
+            GObject.source_remove(self._restore_anneal_id)
             self._restore_anneal_id = None
         if self._progress_id:
-            gobject.source_remove(self._progress_id)
+            GObject.source_remove(self._progress_id)
             self._progress_id = None
         return False
 

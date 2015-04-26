@@ -1,9 +1,9 @@
 import gtk, gobject
-import pango
+from gi.repository import Pango
 import sys, os, time
 
 from mxdc.widgets.dialogs import *
-from bcm.utils import automounter
+from mxdc.utils import automounter
 
 (   
     SAMPLE_COLUMN_CONTAINER,
@@ -36,7 +36,7 @@ MIN_COLUMN_SET = set([COLUMN_DICT[SAMPLE_COLUMN_CONTAINER].lower(),
                       COLUMN_DICT[SAMPLE_COLUMN_NAME].lower(),
                       COLUMN_DICT[SAMPLE_COLUMN_COMMENTS].lower()])
 
-class SampleList(gtk.ScrolledWindow):
+class SampleList(Gtk.ScrolledWindow):
     STATUS_COLORS = {
         automounter.PORT_GOOD: '#006600',
         automounter.PORT_UNKNOWN: '#000000',
@@ -46,31 +46,31 @@ class SampleList(gtk.ScrolledWindow):
         automounter.PORT_NONE: '#990000',
     }
     PROCESSED_STYLE = {
-        True: pango.STYLE_ITALIC,
-        False: pango.STYLE_NORMAL,
+        True: Pango.Style.ITALIC,
+        False: Pango.Style.NORMAL,
     }
     def __init__(self):
-        gtk.ScrolledWindow.__init__(self)
-        self.listmodel = gtk.ListStore(
-            gobject.TYPE_STRING,
-            gobject.TYPE_INT,
-            gobject.TYPE_BOOLEAN,
-            gobject.TYPE_STRING,
-            gobject.TYPE_STRING,
-            gobject.TYPE_STRING,
-            gobject.TYPE_STRING,
-            gobject.TYPE_BOOLEAN,
-            gobject.TYPE_STRING,
-            gobject.TYPE_PYOBJECT,
+        GObject.GObject.__init__(self)
+        self.listmodel = Gtk.ListStore(
+            GObject.TYPE_STRING,
+            GObject.TYPE_INT,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_STRING,
+            GObject.TYPE_PYOBJECT,
         )
                         
-        self.listview = gtk.TreeView(self.listmodel)
+        self.listview = Gtk.TreeView(self.listmodel)
         self.listview.set_rules_hint(True)
         self.listview.set_reorderable(True)
         self.listview.set_enable_search(True)
         self.__add_columns()
-        self.set_shadow_type(gtk.SHADOW_ETCHED_IN)
-        self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
+        self.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.add(self.listview)
         self.listview.connect('row-activated',self.on_row_activated)
 
@@ -142,22 +142,22 @@ class SampleList(gtk.ScrolledWindow):
         model = self.listview.get_model()
                                                
         # Selected Column
-        renderer = gtk.CellRendererToggle()
+        renderer = Gtk.CellRendererToggle()
         renderer.connect('toggled', self.on_row_toggled, model)
-        column = gtk.TreeViewColumn(COLUMN_DICT[SAMPLE_COLUMN_SELECTED], renderer, active=SAMPLE_COLUMN_SELECTED)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        column = Gtk.TreeViewColumn(COLUMN_DICT[SAMPLE_COLUMN_SELECTED], renderer, active=SAMPLE_COLUMN_SELECTED)
+        column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
         column.set_fixed_width(50)
         self.listview.append_column(column)
         
         for key in [SAMPLE_COLUMN_NAME, SAMPLE_COLUMN_GROUP, SAMPLE_COLUMN_CONTAINER, SAMPLE_COLUMN_PORT, SAMPLE_COLUMN_CODE, SAMPLE_COLUMN_COMMENTS]:
-            renderer = gtk.CellRendererText()
-            column = gtk.TreeViewColumn(COLUMN_DICT[key], renderer, text=key)
+            renderer = Gtk.CellRendererText()
+            column = Gtk.TreeViewColumn(COLUMN_DICT[key], renderer, text=key)
             column.set_cell_data_func(renderer, self.__set_format)
             #column.set_sort_column_id(key)        
             self.listview.append_column(column)
         self.listview.set_search_column(SAMPLE_COLUMN_NAME)
         model.set_sort_func(SAMPLE_COLUMN_PRIORITY, self.__sort_func, None)
-        model.set_sort_column_id(SAMPLE_COLUMN_PRIORITY, gtk.SORT_DESCENDING)
+        model.set_sort_column_id(SAMPLE_COLUMN_PRIORITY, Gtk.SortType.DESCENDING)
         
     def set_row_selected(self, path, selected=True):
         iter = self.listmodel.get_iter(path)

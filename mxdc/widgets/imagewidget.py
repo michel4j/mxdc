@@ -1,21 +1,21 @@
 # -*- coding: UTF8 -*-
-from bcm.utils.imageio import read_image
-from bcm.utils.imageio.utils import stretch
-from bcm.utils.science import find_peaks
-from bcm.utils.decorators import async
+from mxdc.utils.imageio import read_image
+from mxdc.utils.imageio.utils import stretch
+from mxdc.utils.science import find_peaks
+from mxdc.utils.decorators import async
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 import Queue
 import cairo
 import gc
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import logging
 import math
 import matplotlib.backends.backend_agg
 import numpy
 import os
-import pango
+from gi.repository import Pango
 import pickle
 import sys
 import threading
@@ -54,9 +54,9 @@ _BUSY_CURSOR_BITS_ = "\
 \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
 \x00\x00\x00\x00\x00\x00\x00\x00"
 
-_c_pix = gtk.gdk.bitmap_create_from_data(None, _BUSY_CURSOR_BITS_, 32, 32)
-_c_color = gtk.gdk.Color()
-LEFT_PTR_WATCH=gtk.gdk.Cursor(_c_pix, _c_pix, _c_color, _c_color, 2, 2)
+_c_pix = Gdk.bitmap_create_from_data(None, _BUSY_CURSOR_BITS_, 32, 32)
+_c_color = Gdk.Color()
+LEFT_PTR_WATCH=Gdk.Cursor.new(_c_pix, _c_pix, _c_color, _c_color, 2, 2)
 
 def _load_frame_image(filename, gamma_offset = 0.0):
     image_info = {}
@@ -95,12 +95,12 @@ def image_loadable(filename):
             return False
     return False
 
-class FileLoader(gobject.GObject):
+class FileLoader(GObject.GObject):
     __gsignals__ =  { 
-        "new-image": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
+        "new-image": (GObject.SignalFlags.RUN_FIRST, None, []),
     }
     def __init__(self):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
         self.inbox = Queue.Queue(1000)
         self.outbox = Queue.Queue(1000)
         self._stopped = False
@@ -117,7 +117,7 @@ class FileLoader(gobject.GObject):
     def load_file(self, filename):
         if image_loadable(filename):
             self.outbox.put( _load_frame_image(filename, self.gamma_offset))
-            gobject.idle_add(self.emit, 'new-image')
+            GObject.idle_add(self.emit, 'new-image')
         
     def reset(self):
         while not self.inbox.empty():
@@ -155,18 +155,18 @@ class FileLoader(gobject.GObject):
                 else:
                     self.outbox.put(img_info)
                     img_logger.debug('Loading image: %s' % filename)
-                    gobject.idle_add(self.emit, 'new-image')
+                    GObject.idle_add(self.emit, 'new-image')
                     filename = None
             elif (time.time()-_search_t > 10.0) and self.inbox.qsize() > 0:
                 img_logger.debug('Error loading image: %s' % filename)
                 filename = None
         
-class ImageWidget(gtk.DrawingArea):
+class ImageWidget(Gtk.DrawingArea):
     __gsignals__ =  { 
-        "image-loaded": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
+        "image-loaded": (GObject.SignalFlags.RUN_FIRST, None, []),
     }
     def __init__(self, size):
-        gtk.DrawingArea.__init__(self)
+        GObject.GObject.__init__(self)
         self.pixbuf = None
         self._rubber_band=False
         self._shifting=False
@@ -175,7 +175,7 @@ class ImageWidget(gtk.DrawingArea):
         self._palette = None
         self.image_loaded = False
         self._draw_histogram = False
-        self._best_interp = gtk.gdk.INTERP_TILES
+        self._best_interp = GdkPixbuf.InterpType.TILES
         self._saturation_factor = 1.0
         self._canvas_is_clean = False
 
@@ -187,14 +187,14 @@ class ImageWidget(gtk.DrawingArea):
         self.extents = None
         self.set_spots()
         
-        self.set_events(gtk.gdk.EXPOSURE_MASK |
-                gtk.gdk.LEAVE_NOTIFY_MASK |
-                gtk.gdk.BUTTON_PRESS_MASK |
-                gtk.gdk.BUTTON_RELEASE_MASK |
-                gtk.gdk.POINTER_MOTION_MASK |
-                gtk.gdk.POINTER_MOTION_HINT_MASK|
-                gtk.gdk.VISIBILITY_NOTIFY_MASK|
-                gtk.gdk.SCROLL_MASK)  
+        self.set_events(Gdk.EventMask.EXPOSURE_MASK |
+                Gdk.EventMask.LEAVE_NOTIFY_MASK |
+                Gdk.EventMask.BUTTON_PRESS_MASK |
+                Gdk.EventMask.BUTTON_RELEASE_MASK |
+                Gdk.EventMask.POINTER_MOTION_MASK |
+                Gdk.EventMask.POINTER_MOTION_HINT_MASK|
+                Gdk.EventMask.VISIBILITY_NOTIFY_MASK|
+                Gdk.EventMask.SCROLL_MASK)  
 
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
@@ -236,7 +236,7 @@ class ImageWidget(gtk.DrawingArea):
         self.file_loader.queue_file(filename)
         
     def on_image_loaded(self, obj):
-        self._set_cursor_mode(gtk.gdk.WATCH)
+        self._set_cursor_mode(Gdk.CursorType.WATCH)
         self.img_info = obj.outbox.get(block=True)
         self.beam_x, self.beam_y = self.img_info['header']['beam_center']
         self.pixel_size = self.img_info['header']['pixel_size']
@@ -277,8 +277,8 @@ class ImageWidget(gtk.DrawingArea):
             nw = max(16, min(nh, nw))
             nh = nw
             self.extents = (nx, ny, nw, nh)
-        self.pixbuf =  gtk.gdk.pixbuf_new_from_data(self.image.tostring(),
-                                                    gtk.gdk.COLORSPACE_RGB, 
+        self.pixbuf =  GdkPixbuf.Pixbuf.new_from_data(self.image.tostring(),
+                                                    GdkPixbuf.Colorspace.RGB, 
                                                     False, 8, 
                                                     self.image_width, 
                                                     self.image_height, 
@@ -411,8 +411,8 @@ class ImageWidget(gtk.DrawingArea):
             l,b,w,h = canvas.figure.bbox.get_bounds()
         except:
             l,b,w,h = canvas.figure.bbox.bounds
-        self.plot_pixbuf =  gtk.gdk.pixbuf_new_from_data(stringImage,
-                                                    gtk.gdk.COLORSPACE_RGB, 
+        self.plot_pixbuf =  GdkPixbuf.Pixbuf.new_from_data(stringImage,
+                                                    GdkPixbuf.Colorspace.RGB, 
                                                     False, 8, 
                                                     int(w), int(h), 3*int(w))
         self._draw_histogram = True
@@ -565,12 +565,12 @@ class ImageWidget(gtk.DrawingArea):
         if cursor is None:
             window.set_cursor(None)
         else:
-            if cursor == gtk.gdk.WATCH:
+            if cursor == Gdk.CursorType.WATCH:
                 _cur = LEFT_PTR_WATCH
             else:
-                _cur = gtk.gdk.Cursor(cursor)
+                _cur = Gdk.Cursor.new(cursor)
             window.set_cursor(_cur)
-        gtk.main_iteration()
+        Gtk.main_iteration()
             
     def _clear_extents(self):
         self.extents_back = []
@@ -591,13 +591,13 @@ class ImageWidget(gtk.DrawingArea):
             x, y, state = event.window.get_pointer()
         else:
             x = event.x; y = event.y
-        #print event.state.value_names
+        #print event.get_state().value_names
         wx, wy, w, h = widget.get_allocation()
-        if 'GDK_BUTTON1_MASK' in event.state.value_names and self._rubber_band:
+        if 'GDK_BUTTON1_MASK' in event.get_state().value_names and self._rubber_band:
             self.rubber_x1 = max(min(w-1, event.x), 0)
             self.rubber_y1 = max(min(h-1, event.y), 0)
             self.queue_draw()
-        elif 'GDK_BUTTON2_MASK' in event.state.value_names and self._shifting:           
+        elif 'GDK_BUTTON2_MASK' in event.get_state().value_names and self._shifting:           
             self.shift_x1 = event.x
             self.shift_y1 = event.y
             ox,oy,ow,oh = self.extents
@@ -616,7 +616,7 @@ class ImageWidget(gtk.DrawingArea):
                 self.shift_x0 = self.shift_x1
                 self.shift_y0 = self.shift_y1
                 self.queue_draw()
-        elif 'GDK_BUTTON3_MASK' in event.state.value_names and self._measuring:
+        elif 'GDK_BUTTON3_MASK' in event.get_state().value_names and self._measuring:
             self.meas_x1 = int(max(min(w-1, event.x), 0))
             self.meas_y1 = int(max(min(h-1, event.y), 0))
             self.queue_draw()
@@ -626,9 +626,9 @@ class ImageWidget(gtk.DrawingArea):
     def on_mouse_scroll(self, widget, event):
         if not self.image_loaded:
             return False
-        if event.direction == gtk.gdk.SCROLL_UP:
+        if event.direction == Gdk.ScrollDirection.UP:
             self.set_brightness(min(5, self.file_loader.gamma_offset + 0.2))
-        elif event.direction == gtk.gdk.SCROLL_DOWN:
+        elif event.direction == Gdk.ScrollDirection.DOWN:
             self.set_brightness(max(-5, self.file_loader.gamma_offset - 0.2))
  
     def on_mouse_press(self, widget, event):
@@ -641,21 +641,21 @@ class ImageWidget(gtk.DrawingArea):
             self.rubber_y0 = max(min(h, event.y), 0)
             self.rubber_x1, self.rubber_y1 = self.rubber_x0, self.rubber_y0
             self._rubber_band = True
-            self._set_cursor_mode(gtk.gdk.TCROSS)
+            self._set_cursor_mode(Gdk.TCROSS)
         elif event.button == 2:
-            self._set_cursor_mode(gtk.gdk.FLEUR)
+            self._set_cursor_mode(Gdk.FLEUR)
             self.shift_x0 = max(min(w, event.x), 0)
             self.shift_y0 = max(min(w, event.y), 0)
             self.shift_x1, self.shift_y1 = self.shift_x0, self.shift_y0
             self._shift_start_extents = self.extents
             self._shifting = True
-            self._set_cursor_mode(gtk.gdk.FLEUR)
+            self._set_cursor_mode(Gdk.FLEUR)
         elif event.button == 3:
             self.meas_x0 = int(max(min(w, event.x), 0))
             self.meas_y0 = int(max(min(h, event.y), 0))
             self.meas_x1, self.meas_y1 = self.meas_x0, self.meas_y0
             self._measuring = True
-            self._set_cursor_mode(gtk.gdk.TCROSS)
+            self._set_cursor_mode(Gdk.TCROSS)
             
             
             
@@ -703,10 +703,10 @@ class ImageWidget(gtk.DrawingArea):
     def on_expose(self, widget, event):
         if self.pixbuf is not None:
             x, y, w, h = self.get_allocation()
-            disp_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, w, h)
+            disp_pixbuf = GdkPixbuf.Pixbuf(GdkPixbuf.Colorspace.RGB, False, 8, w, h)
             self.scale = float(w)/self.extents[2]
             if self.scale >= 1.0:
-                interp = gtk.gdk.INTERP_NEAREST
+                interp = GdkPixbuf.InterpType.NEAREST
             else:
                 interp = self._best_interp
             src_pixbuf = self.pixbuf.subpixbuf(self.extents[0], self.extents[1],
@@ -731,7 +731,7 @@ class ImageWidget(gtk.DrawingArea):
             font_desc = pcontext.get_font_description()
             style = self.get_style()
             context.set_source_color(style.fg[self.state])
-            context.set_font_size( font_desc.get_size()/pango.SCALE )
+            context.set_font_size( font_desc.get_size()/Pango.SCALE )
             
             self.draw_overlay_cairo(context)
             self.draw_spots(context)
@@ -744,11 +744,11 @@ class ImageWidget(gtk.DrawingArea):
         self.pl_gc.foreground = self.get_colormap().alloc_color("#007fff")
         self.ol_gc = window.new_gc()
         self.ol_gc.foreground = self.get_colormap().alloc_color("green")
-        self.ol_gc.set_function(gtk.gdk.XOR)
-        self.ol_gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
+        self.ol_gc.set_function(Gdk.XOR)
+        self.ol_gc.set_line_attributes(1,Gdk.LINE_SOLID,Gdk.CAP_BUTT,Gdk.JOIN_MITER)
  
     def on_visibility_notify(self, obj, event):
-        if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
+        if event.get_state() == Gdk.VisibilityState.FULLY_OBSCURED:
             self.stopped = True
         else:
             self.stopped = False
@@ -758,15 +758,15 @@ class ImageWidget(gtk.DrawingArea):
         
       
 def main():
-    win = gtk.Window()
-    win.connect("destroy", lambda x: gtk.main_quit())
+    win = Gtk.Window()
+    win.connect("destroy", lambda x: Gtk.main_quit())
     win.set_border_width(6)
     win.set_title("Diffraction Image Viewer")
     myview = ImageWidget(512)
-    gobject.idle_add(myview.load_frame, '/archive/users/decode/2009sep16_clsi/005/005_1/005_1_001.img')
+    GObject.idle_add(myview.load_frame, '/archive/users/decode/2009sep16_clsi/005/005_1/005_1_001.img')
     
-    hbox = gtk.AspectFrame(ratio=1.0)
-    hbox.set_shadow_type(gtk.SHADOW_NONE)
+    hbox = Gtk.AspectFrame(ratio=1.0)
+    hbox.set_shadow_type(Gtk.ShadowType.NONE)
     hbox.add(myview)
     win.add(hbox)
     win.show_all()
@@ -775,7 +775,7 @@ def main():
         myview.load_frame(sys.argv[1])
     
     try:
-        gtk.main()
+        Gtk.main()
     except KeyboardInterrupt:
         print "Quiting..."
         sys.exit()

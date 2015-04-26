@@ -4,21 +4,21 @@ Beamline
 Interfaces
 ----------
 
-.. autoclass:: bcm.beamline.interfaces.IBeamline
+.. autoclass:: mxdc.interface.beamlines.IBeamline
    :members:
    :undoc-members:
    :noindex:
 
 MX Beamline
 -----------
-.. automodule:: bcm.beamline.mx
+.. automodule:: mxdc.beamline.mx
    :members:
    :undoc-members:
    :noindex:
 
 Remote Client
 -------------
-.. autoclass:: bcm.beamline.remote.BeamlineClient
+.. autoclass:: mxdc.beamline.remote.BeamlineClient
    :members:
    :undoc-members:
    :noindex:

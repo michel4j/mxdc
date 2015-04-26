@@ -2,7 +2,7 @@ import unittest
 
 class BaseDeviceTestCase(unittest.TestCase):
     def setUp(self):
-        from bcm.device.base import BaseDevice
+        from mxdc.device.base import BaseDevice
         self.device = BaseDevice()
     
     def test_get_status(self):

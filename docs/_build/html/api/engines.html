@@ -57,31 +57,31 @@
             
   <div class="section" id="engines">
 <h1>Engines<a class="headerlink" href="#engines" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="module-bcm.engine.diffraction">
-<span id="diffraction-engine"></span><h2>Diffraction Engine<a class="headerlink" href="#module-bcm.engine.diffraction" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.engine.diffraction">
+<span id="diffraction-engine"></span><h2>Diffraction Engine<a class="headerlink" href="#module-mxdc.engine.diffraction" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="module-bcm.engine.spectroscopy">
-<span id="spectroscopy-engine"></span><h2>Spectroscopy Engine<a class="headerlink" href="#module-bcm.engine.spectroscopy" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.engine.spectroscopy">
+<span id="spectroscopy-engine"></span><h2>Spectroscopy Engine<a class="headerlink" href="#module-mxdc.engine.spectroscopy" title="Permalink to this headline">¶</a></h2>
 <p>This module defines classes aid interfaces for X-Ray fluorescence.</p>
 </div>
-<div class="section" id="module-bcm.engine.centering">
-<span id="centering-engine"></span><h2>Centering Engine<a class="headerlink" href="#module-bcm.engine.centering" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.engine.centering">
+<span id="centering-engine"></span><h2>Centering Engine<a class="headerlink" href="#module-mxdc.engine.centering" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="bcm.engine.centering.get_current_bkg">
-<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">get_current_bkg</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.get_current_bkg" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.centering.get_current_bkg">
+<tt class="descclassname">mxdc.engine.centering.</tt><tt class="descname">get_current_bkg</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.engine.centering.get_current_bkg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Move Sample back and capture background image 
 to be used for auto centering</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="bcm.engine.centering.center_loop">
-<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">center_loop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.center_loop" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.centering.center_loop">
+<tt class="descclassname">mxdc.engine.centering.</tt><tt class="descname">center_loop</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.engine.centering.center_loop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Automatic centering of the sample pin using simple image processing.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="bcm.engine.centering.center_crystal">
-<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">center_crystal</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.center_crystal" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.centering.center_crystal">
+<tt class="descclassname">mxdc.engine.centering.</tt><tt class="descname">center_crystal</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.engine.centering.center_crystal" title="Permalink to this definition">¶</a></dt>
 <dd><p>More precise auto-centering of the crystal using the XREC package.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -98,77 +98,77 @@ with a value of -99. (See the XREC 3.0 Manual).</dd>
 </dd></dl>
 
 <dl class="function">
-<dt id="bcm.engine.centering.auto_center_loop">
-<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">auto_center_loop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.auto_center_loop" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.centering.auto_center_loop">
+<tt class="descclassname">mxdc.engine.centering.</tt><tt class="descname">auto_center_loop</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.engine.centering.auto_center_loop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenience function to run automated loop centering and return the result, 
 displaying appropriate log messages on failure.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="bcm.engine.centering.auto_center_crystal">
-<tt class="descclassname">bcm.engine.centering.</tt><tt class="descname">auto_center_crystal</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.centering.auto_center_crystal" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.centering.auto_center_crystal">
+<tt class="descclassname">mxdc.engine.centering.</tt><tt class="descname">auto_center_crystal</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.engine.centering.auto_center_crystal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenience function to run automated crystal centering and return the result, 
 displaying appropriate log messages on failure.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.engine.scanning">
-<span id="scanning-engine"></span><h2>Scanning Engine<a class="headerlink" href="#module-bcm.engine.scanning" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.engine.scanning">
+<span id="scanning-engine"></span><h2>Scanning Engine<a class="headerlink" href="#module-mxdc.engine.scanning" title="Permalink to this headline">¶</a></h2>
 <dl class="exception">
-<dt id="bcm.engine.scanning.ScanError">
-<em class="property">exception </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">ScanError</tt><a class="headerlink" href="#bcm.engine.scanning.ScanError" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.scanning.ScanError">
+<em class="property">exception </em><tt class="descclassname">mxdc.engine.scanning.</tt><tt class="descname">ScanError</tt><a class="headerlink" href="#mxdc.engine.scanning.ScanError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
 <p>Scan Error.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.engine.scanning.AbsScan">
-<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">AbsScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.AbsScan" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.BasicScan</span></tt></p>
+<dt id="mxdc.engine.scanning.AbsScan">
+<em class="property">class </em><tt class="descclassname">mxdc.engine.scanning.</tt><tt class="descname">AbsScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#mxdc.engine.scanning.AbsScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.engine.scanning.BasicScan</span></tt></p>
 <p>An absolute scan of a single motor.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.engine.scanning.AbsScan2">
-<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">AbsScan2</tt><big>(</big><em>mtr1</em>, <em>start_pos1</em>, <em>end_pos1</em>, <em>mtr2</em>, <em>start_pos2</em>, <em>end_pos2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.AbsScan2" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.BasicScan</span></tt></p>
+<dt id="mxdc.engine.scanning.AbsScan2">
+<em class="property">class </em><tt class="descclassname">mxdc.engine.scanning.</tt><tt class="descname">AbsScan2</tt><big>(</big><em>mtr1</em>, <em>start_pos1</em>, <em>end_pos1</em>, <em>mtr2</em>, <em>start_pos2</em>, <em>end_pos2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#mxdc.engine.scanning.AbsScan2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.engine.scanning.BasicScan</span></tt></p>
 <p>An Absolute scan of two motors.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.engine.scanning.RelScan">
-<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">RelScan</tt><big>(</big><em>mtr</em>, <em>start_offset</em>, <em>end_offset</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.RelScan" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.engine.scanning.AbsScan" title="bcm.engine.scanning.AbsScan"><tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.AbsScan</span></tt></a></p>
+<dt id="mxdc.engine.scanning.RelScan">
+<em class="property">class </em><tt class="descclassname">mxdc.engine.scanning.</tt><tt class="descname">RelScan</tt><big>(</big><em>mtr</em>, <em>start_offset</em>, <em>end_offset</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#mxdc.engine.scanning.RelScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.engine.scanning.AbsScan" title="mxdc.engine.scanning.AbsScan"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.engine.scanning.AbsScan</span></tt></a></p>
 <p>A relative scan of a single motor.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.engine.scanning.CntScan">
-<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">CntScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.CntScan" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.BasicScan</span></tt></p>
+<dt id="mxdc.engine.scanning.CntScan">
+<em class="property">class </em><tt class="descclassname">mxdc.engine.scanning.</tt><tt class="descname">CntScan</tt><big>(</big><em>mtr</em>, <em>start_pos</em>, <em>end_pos</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#mxdc.engine.scanning.CntScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.engine.scanning.BasicScan</span></tt></p>
 <p>A Continuous scan of a single motor.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.engine.scanning.RelScan2">
-<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">RelScan2</tt><big>(</big><em>mtr1</em>, <em>start_offset1</em>, <em>end_offset1</em>, <em>mtr2</em>, <em>start_offset2</em>, <em>end_offset2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.RelScan2" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.engine.scanning.AbsScan2" title="bcm.engine.scanning.AbsScan2"><tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.AbsScan2</span></tt></a></p>
+<dt id="mxdc.engine.scanning.RelScan2">
+<em class="property">class </em><tt class="descclassname">mxdc.engine.scanning.</tt><tt class="descname">RelScan2</tt><big>(</big><em>mtr1</em>, <em>start_offset1</em>, <em>end_offset1</em>, <em>mtr2</em>, <em>start_offset2</em>, <em>end_offset2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#mxdc.engine.scanning.RelScan2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.engine.scanning.AbsScan2" title="mxdc.engine.scanning.AbsScan2"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.engine.scanning.AbsScan2</span></tt></a></p>
 <p>A relative scan of a two motors.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.engine.scanning.GridScan">
-<em class="property">class </em><tt class="descclassname">bcm.engine.scanning.</tt><tt class="descname">GridScan</tt><big>(</big><em>mtr1</em>, <em>start_pos1</em>, <em>end_pos1</em>, <em>mtr2</em>, <em>start_pos2</em>, <em>end_pos2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#bcm.engine.scanning.GridScan" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.engine.scanning.BasicScan</span></tt></p>
+<dt id="mxdc.engine.scanning.GridScan">
+<em class="property">class </em><tt class="descclassname">mxdc.engine.scanning.</tt><tt class="descname">GridScan</tt><big>(</big><em>mtr1</em>, <em>start_pos1</em>, <em>end_pos1</em>, <em>mtr2</em>, <em>start_pos2</em>, <em>end_pos2</em>, <em>steps</em>, <em>cntr</em>, <em>t</em>, <em>i0=None</em><big>)</big><a class="headerlink" href="#mxdc.engine.scanning.GridScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.engine.scanning.BasicScan</span></tt></p>
 <p>A absolute scan of two motors in a grid.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.engine.fitting">
-<span id="fitting-engine"></span><h2>Fitting Engine<a class="headerlink" href="#module-bcm.engine.fitting" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.engine.fitting">
+<span id="fitting-engine"></span><h2>Fitting Engine<a class="headerlink" href="#module-mxdc.engine.fitting" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="bcm.engine.fitting.peak_fit">
-<tt class="descclassname">bcm.engine.fitting.</tt><tt class="descname">peak_fit</tt><big>(</big><em>x</em>, <em>y</em>, <em>target='gaussian'</em><big>)</big><a class="headerlink" href="#bcm.engine.fitting.peak_fit" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.fitting.peak_fit">
+<tt class="descclassname">mxdc.engine.fitting.</tt><tt class="descname">peak_fit</tt><big>(</big><em>x</em>, <em>y</em>, <em>target='gaussian'</em><big>)</big><a class="headerlink" href="#mxdc.engine.fitting.peak_fit" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>Returns the coefficients for the target function</dt>
 <dd>0 = H - Height of peak
@@ -180,8 +180,8 @@ displaying appropriate log messages on failure.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="bcm.engine.fitting.histogram_fit">
-<tt class="descclassname">bcm.engine.fitting.</tt><tt class="descname">histogram_fit</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="headerlink" href="#bcm.engine.fitting.histogram_fit" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.fitting.histogram_fit">
+<tt class="descclassname">mxdc.engine.fitting.</tt><tt class="descname">histogram_fit</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="headerlink" href="#mxdc.engine.fitting.histogram_fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>calcfwhm(x,y) - with input x,y vector this function calculates fwhm and returns
 (fwhm,xpeak,ymax, fwhm_x_left, fwhm_x_right)
 x - input independent variable
@@ -192,21 +192,21 @@ cema is center of mass</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.engine.scripting">
-<span id="scripting-engine"></span><h2>Scripting Engine<a class="headerlink" href="#module-bcm.engine.scripting" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.engine.scripting">
+<span id="scripting-engine"></span><h2>Scripting Engine<a class="headerlink" href="#module-mxdc.engine.scripting" title="Permalink to this headline">¶</a></h2>
 <dl class="exception">
-<dt id="bcm.engine.scripting.ScriptError">
-<em class="property">exception </em><tt class="descclassname">bcm.engine.scripting.</tt><tt class="descname">ScriptError</tt><a class="headerlink" href="#bcm.engine.scripting.ScriptError" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.scripting.ScriptError">
+<em class="property">exception </em><tt class="descclassname">mxdc.engine.scripting.</tt><tt class="descname">ScriptError</tt><a class="headerlink" href="#mxdc.engine.scripting.ScriptError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
 <p>Exceptioins for Scripting Engine.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.engine.auto">
-<span id="miscelaneous-engines"></span><h2>Miscelaneous Engines<a class="headerlink" href="#module-bcm.engine.auto" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-bcm.engine.autochooch"></span><dl class="class">
-<dt id="bcm.engine.autochooch.AutoChooch">
-<em class="property">class </em><tt class="descclassname">bcm.engine.autochooch.</tt><tt class="descname">AutoChooch</tt><a class="headerlink" href="#bcm.engine.autochooch.AutoChooch" title="Permalink to this definition">¶</a></dt>
+<div class="section" id="module-mxdc.engine.auto">
+<span id="miscelaneous-engines"></span><h2>Miscelaneous Engines<a class="headerlink" href="#module-mxdc.engine.auto" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-mxdc.engine.autochooch"></span><dl class="class">
+<dt id="mxdc.engine.autochooch.AutoChooch">
+<em class="property">class </em><tt class="descclassname">mxdc.engine.autochooch.</tt><tt class="descname">AutoChooch</tt><a class="headerlink" href="#mxdc.engine.autochooch.AutoChooch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">gobject._gobject.GObject</span></tt></p>
 <p>An event driven engine for performing analysis of MAD Scans with CHOOCH.</p>
 <dl class="docutils">
@@ -218,8 +218,8 @@ cema is center of mass</p>
 </dd>
 </dl>
 <dl class="method">
-<dt id="bcm.engine.autochooch.AutoChooch.configure">
-<tt class="descname">configure</tt><big>(</big><em>edge</em>, <em>directory</em>, <em>prefix</em>, <em>uname=None</em><big>)</big><a class="headerlink" href="#bcm.engine.autochooch.AutoChooch.configure" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.autochooch.AutoChooch.configure">
+<tt class="descname">configure</tt><big>(</big><em>edge</em>, <em>directory</em>, <em>prefix</em>, <em>uname=None</em><big>)</big><a class="headerlink" href="#mxdc.engine.autochooch.AutoChooch.configure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prepare the engine for a specific CHOOCH analysis.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -235,14 +235,14 @@ cema is center of mass</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.engine.autochooch.AutoChooch.start">
-<tt class="descname">start</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.autochooch.AutoChooch.start" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.autochooch.AutoChooch.start">
+<tt class="descname">start</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.engine.autochooch.AutoChooch.start" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start the analysis asynchronously. Use signals to determine completion/failure.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.engine.autochooch.AutoChooch.run">
-<tt class="descname">run</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.engine.autochooch.AutoChooch.run" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.engine.autochooch.AutoChooch.run">
+<tt class="descname">run</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.engine.autochooch.AutoChooch.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Do the analysis synchronously. Blocks until completion/failure.</p>
 <dl class="docutils">
 <dt>Returns:</dt>
@@ -252,22 +252,22 @@ cema is center of mass</p>
 
 </dd></dl>
 
-<span class="target" id="module-bcm.engine.optimizer"></span><p>This module defines classes for Optimizers.</p>
+<span class="target" id="module-mxdc.engine.optimizer"></span><p>This module defines classes for Optimizers.</p>
 <dl class="class">
-<dt id="bcm.engine.optimizer.PitchOptimizer">
-<em class="property">class </em><tt class="descclassname">bcm.engine.optimizer.</tt><tt class="descname">PitchOptimizer</tt><big>(</big><em>name</em>, <em>pitch_func</em>, <em>min_count=0.0</em><big>)</big><a class="headerlink" href="#bcm.engine.optimizer.PitchOptimizer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="devices.html#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.engine.optimizer.PitchOptimizer">
+<em class="property">class </em><tt class="descclassname">mxdc.engine.optimizer.</tt><tt class="descname">PitchOptimizer</tt><big>(</big><em>name</em>, <em>pitch_func</em>, <em>min_count=0.0</em><big>)</big><a class="headerlink" href="#mxdc.engine.optimizer.PitchOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="devices.html#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>Pitch Optimizer for 08B1-1</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.engine.optimizer.SimOptimizer">
-<em class="property">class </em><tt class="descclassname">bcm.engine.optimizer.</tt><tt class="descname">SimOptimizer</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.engine.optimizer.SimOptimizer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="devices.html#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.engine.optimizer.SimOptimizer">
+<em class="property">class </em><tt class="descclassname">mxdc.engine.optimizer.</tt><tt class="descname">SimOptimizer</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#mxdc.engine.optimizer.SimOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="devices.html#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>Pitch Optimizer for 08B1-1</p>
 </dd></dl>
 
-<span class="target" id="module-bcm.engine.snapshot"></span></div>
+<span class="target" id="module-mxdc.engine.snapshot"></span></div>
 </div>
 
 
@@ -281,13 +281,13 @@ cema is center of mass</p>
   <h3><a href="../index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Engines</a><ul>
-<li><a class="reference internal" href="#module-bcm.engine.diffraction">Diffraction Engine</a></li>
-<li><a class="reference internal" href="#module-bcm.engine.spectroscopy">Spectroscopy Engine</a></li>
-<li><a class="reference internal" href="#module-bcm.engine.centering">Centering Engine</a></li>
-<li><a class="reference internal" href="#module-bcm.engine.scanning">Scanning Engine</a></li>
-<li><a class="reference internal" href="#module-bcm.engine.fitting">Fitting Engine</a></li>
-<li><a class="reference internal" href="#module-bcm.engine.scripting">Scripting Engine</a></li>
-<li><a class="reference internal" href="#module-bcm.engine.auto">Miscelaneous Engines</a></li>
+<li><a class="reference internal" href="#module-mxdc.engine.diffraction">Diffraction Engine</a></li>
+<li><a class="reference internal" href="#module-mxdc.engine.spectroscopy">Spectroscopy Engine</a></li>
+<li><a class="reference internal" href="#module-mxdc.engine.centering">Centering Engine</a></li>
+<li><a class="reference internal" href="#module-mxdc.engine.scanning">Scanning Engine</a></li>
+<li><a class="reference internal" href="#module-mxdc.engine.fitting">Fitting Engine</a></li>
+<li><a class="reference internal" href="#module-mxdc.engine.scripting">Scripting Engine</a></li>
+<li><a class="reference internal" href="#module-mxdc.engine.auto">Miscelaneous Engines</a></li>
 </ul>
 </li>
 </ul>

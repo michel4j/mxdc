@@ -1,8 +1,8 @@
 from mxdc.utils import config
 config.get_session() # update the session configuration
 
-from bcm.engine.scripting import get_scripts
-from bcm.utils.log import get_module_logger
+from mxdc.engine.scripting import get_scripts
+from mxdc.utils.log import get_module_logger
 from mxdc.utils.gui import GUIFile
 from mxdc.widgets import dialogs
 from mxdc.widgets.collectmanager import CollectManager
@@ -13,8 +13,8 @@ from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.screeningmanager import ScreenManager
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import os
 
 _logger = get_module_logger('mxdc')
@@ -31,11 +31,11 @@ Copyright (c) 2006-2010, Canadian Light Source, Inc
 All rights reserved.
 """
     
-class AppWindow(gtk.Window):
+class AppWindow(Gtk.Window):
     def __init__(self, version=VERSION):
-        gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
+        GObject.GObject.__init__(self, Gtk.WindowType.TOPLEVEL)
         self._xml = GUIFile(os.path.join(SHARE_DIR, 'mxdc_main'), 'mxdc_main')
-        self.set_position(gtk.WIN_POS_CENTER)
+        self.set_position(Gtk.WindowPosition.CENTER)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
         self.set_title('MxDC - Mx Data Collector')
         self.version = version
@@ -47,17 +47,17 @@ class AppWindow(gtk.Window):
         self.splash.set_modal(True)
         
         #prepare pixbufs for tab status icons
-        self._info_img = gtk.gdk.pixbuf_new_from_file(
+        self._info_img = GdkPixbuf.Pixbuf.new_from_file(
                             os.path.join(os.path.dirname(__file__), 'widgets','data','tiny-info.png'))
-        self._warn_img = gtk.gdk.pixbuf_new_from_file(
+        self._warn_img = GdkPixbuf.Pixbuf.new_from_file(
                             os.path.join(os.path.dirname(__file__), 'widgets','data','tiny-warn.png'))
 
         self._first_load = True
         self._show_select_dialog = True
         self._show_run_dialog = True
 
-        while gtk.events_pending():
-            gtk.main_iteration()
+        while Gtk.events_pending():
+            Gtk.main_iteration()
 
     def __getattr__(self, key):
         try:
@@ -66,11 +66,11 @@ class AppWindow(gtk.Window):
             return self._xml.get_widget(key)
         
     def run(self):
-        icon = gtk.gdk.pixbuf_new_from_file(self.icon_file)
+        icon = GdkPixbuf.Pixbuf.new_from_file(self.icon_file)
         self.set_icon(icon)
         self.set_resizable(False)
 
-        gobject.timeout_add(3000, lambda: self.splash.hide())         
+        GObject.timeout_add(3000, lambda: self.splash.hide())         
         self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)       
@@ -95,17 +95,17 @@ class AppWindow(gtk.Window):
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
         self.about_cmd.connect('activate', lambda x:  self._do_about() )
         
-        notebook = gtk.Notebook()
+        notebook = Gtk.Notebook()
         
         def _mk_lbl(txt):
-            aln = gtk.Alignment(0.5,0.5,0,0)
+            aln = Gtk.Alignment.new(0.5,0.5,0,0)
             aln.set_padding(0,0,6,6)
-            box = gtk.HBox(False,2)
+            box = Gtk.HBox(False,2)
             aln.raw_text = txt
-            aln.label = gtk.Label(txt)
+            aln.label = Gtk.Label(label=txt)
             aln.label.set_use_markup(True)
             box.pack_end(aln.label, expand=False, fill=False)
-            aln.image = gtk.Image()
+            aln.image = Gtk.Image()
             box.pack_start(aln.image, expand=False, fill=False)
             aln.add(box)
             aln.show_all()
@@ -146,7 +146,7 @@ class AppWindow(gtk.Window):
             "Kathryn Janzen",
             "Kevin Anderson",
             ]
-        about = gtk.AboutDialog()
+        about = Gtk.AboutDialog()
         name = 'Mx Data Collector (MxDC)'
         try:
             about.set_program_name(name)
@@ -157,7 +157,7 @@ class AppWindow(gtk.Window):
         about.set_comments("Program for macromolecular crystallography data acquisition.")
         about.set_website("http://cmcf.lightsource.ca")
         about.set_authors(authors)
-        logo = gtk.gdk.pixbuf_new_from_file(self.icon_file)
+        logo = GdkPixbuf.Pixbuf.new_from_file(self.icon_file)
         about.set_logo(logo)
         
         about.connect('response', lambda x,y: about.destroy())
@@ -172,7 +172,7 @@ class AppWindow(gtk.Window):
             header = 'New MAD Run Added'
             subhead = 'A new run for MAD data collection has been added to the "Data Collection" tab. '
             subhead += 'Remember to delete the runs you no longer need before proceeding.'
-            chkbtn = gtk.CheckButton('Do not show this dialog again.')
+            chkbtn = Gtk.CheckButton('Do not show this dialog again.')
             def _chk_cb(obj):
                 self._show_run_dialog = (not obj.get_active())
             chkbtn.connect('toggled', _chk_cb)
@@ -213,7 +213,7 @@ class AppWindow(gtk.Window):
 #                subhead += 'the Data Collection tab.'
 #            except KeyError:
 #                subhead = 'The crystal cannot be selected.'
-#            chkbtn = gtk.CheckButton('Do not show this dialog again.')
+#            chkbtn = Gtk.CheckButton('Do not show this dialog again.')
 #            def _chk_cb(obj):
 #                self._show_select_dialog = (not obj.get_active())
 #            chkbtn.connect('toggled', _chk_cb)

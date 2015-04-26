@@ -5,18 +5,18 @@ warnings.simplefilter("ignore")
 import sys, os
 import logging
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 
-from bcm.utils.log import get_module_logger, log_to_console
+from mxdc.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.imageviewer import ImageViewer
 
 _logger = get_module_logger('ImageViewer')
 
 def main():
 
-    win = gtk.Window()
-    win.connect("destroy", lambda x: gtk.main_quit())
+    win = Gtk.Window()
+    win.connect("destroy", lambda x: Gtk.main_quit())
     
     win.set_title("Diffraction Image Viewer")
     myviewer = ImageViewer(800)
@@ -24,7 +24,7 @@ def main():
     win.show_all()
     if len(sys.argv) >= 2:
         myviewer.open_image(os.path.abspath(sys.argv[1]))  
-    gtk.main()
+    Gtk.main()
 
 
 if __name__ == '__main__':

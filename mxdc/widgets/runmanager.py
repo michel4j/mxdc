@@ -2,21 +2,21 @@ import gtk, gobject
 import sys, time
 from mxdc.widgets.runwidget import RunWidget
 
-class RunManager(gtk.Notebook):
+class RunManager(Gtk.Notebook):
     __gsignals__ = {
-        'saved' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
-        'del-run' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'saved' : (GObject.SignalFlags.RUN_LAST, None, []),
+        'del-run' : (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
     }
     def __init__(self):
-        gtk.Notebook.__init__(self)
+        GObject.GObject.__init__(self)
         self.runs = []
         self.run_labels = []
-        self.blank_page = gtk.EventBox()
-        self.set_tab_pos(gtk.POS_RIGHT)
+        self.blank_page = Gtk.EventBox()
+        self.set_tab_pos(Gtk.PositionType.RIGHT)
         self.active_sample = None
         self.active_strategy = None
         
-        self.add_run_btn = gtk.image_new_from_stock('gtk-add', gtk.ICON_SIZE_MENU) 
+        self.add_run_btn = Gtk.Image.new_from_stock('gtk-add', Gtk.IconSize.MENU) 
         self.add_run_btn.show()
         self.append_page(self.blank_page, tab_label=self.add_run_btn)
         self.add_new_run()
@@ -55,7 +55,7 @@ class RunManager(gtk.Notebook):
                 newrun.on_update_parameters(None) # force update 
         self.runs.append(newrun)
         newrun.check_changes()
-        self.run_labels.append(gtk.Label(" %d " % (len(self.runs) - 1)))
+        self.run_labels.append(Gtk.Label(label=" %d " % (len(self.runs) - 1)))
         pos = len(self.runs) - 1
         self.insert_page(self.runs[-1], tab_label=self.run_labels[-1], position=pos)
         self.set_current_page(pos)

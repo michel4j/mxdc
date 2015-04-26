@@ -1,2 +1,2 @@
 #!/bin/csh
-/usr/bin/env python $BCM_PATH/bcm/utils/console.py
+/usr/bin/env python $BCM_PATH/mxdc/utils/console.py
