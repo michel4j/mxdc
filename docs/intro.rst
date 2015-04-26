@@ -70,10 +70,10 @@ Installation
 ------------  
 
 #. Uncompress the tarball archive into a target directory
-#. Edit :file:`deploy/bcm.csh` and :file:`deploy/bcm.csh` to suit the installation
+#. Edit :file:`deploy/mxdc.csh` and :file:`deploy/mxdc.csh` to suit the installation
 #. Create a configuration file in :file:`etc/xxx.py` to match your beamline hardware. It is better
    to copy an existing one and modify it. 
-#. Make sure :file:`bcm.csh` is sourced on login.
+#. Make sure :file:`mxdc.csh` is sourced on login.
 
 
 Usage

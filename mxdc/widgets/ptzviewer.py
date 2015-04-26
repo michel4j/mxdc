@@ -1,9 +1,9 @@
-from bcm.device.interfaces import IPTZCameraController
-from bcm.utils.log import get_module_logger
+from mxdc.interface.devices import IPTZCameraController
+from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget
-import gtk
+from gi.repository import Gtk
 import os
 
 
@@ -11,9 +11,9 @@ _logger = get_module_logger('mxdc.ptzviewer')
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
         
-class AxisViewer(gtk.Alignment):
+class AxisViewer(Gtk.Alignment):
     def __init__(self, ptz_camera):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
         
         self.timeout_id = None
         self.max_fps = 20     
@@ -85,7 +85,7 @@ class AxisViewer(gtk.Alignment):
         self.video_frame.add(self.video)
 
         # presets
-        self.presets_btn = gtk.combo_box_new_text()
+        self.presets_btn = Gtk.ComboBoxText()
         if IPTZCameraController.providedBy(self.camera):
             self.video.connect('button_press_event', self.on_image_click)
             for val in self.camera.get_presets():
@@ -109,22 +109,22 @@ class AxisViewer(gtk.Alignment):
 
 
 def main():
-    import bcm.device.video
-    win = gtk.Window()
-    win.connect("destroy", lambda x: gtk.main_quit())
+    import mxdc.device.video
+    win = Gtk.Window()
+    win.connect("destroy", lambda x: Gtk.main_quit())
     win.set_border_width(0)
     win.set_title("HutchViewer")
-    book = gtk.Notebook()
+    book = Gtk.Notebook()
     win.add(book)
     
     
-    cam = bcm.device.video.AxisCamera('10.52.4.100', 4) #ccd1608-201,10.52.4.102
+    cam = mxdc.device.video.AxisCamera('10.52.4.100', 4) #ccd1608-201,10.52.4.102
     
     myviewer = AxisViewer(cam)
-    book.append_page(myviewer, tab_label=gtk.Label('Hutch Viewer') )
+    book.append_page(myviewer, tab_label=Gtk.Label(label='Hutch Viewer') )
     win.show_all()
 
-    gtk.main()
+    Gtk.main()
 
 
 if __name__ == '__main__':

@@ -1,19 +1,19 @@
-from bcm.beamline.interfaces import IBeamline
-from bcm.engine.scripting import get_scripts 
-from bcm.protocol import ca
-from bcm.utils.decorators import async
-from bcm.utils.log import get_module_logger
-from bcm.utils.ordereddict import OrderedDict
-#from bcm.utils.video import add_decorations
+from mxdc.interface.beamlines import IBeamline
+from mxdc.engine.scripting import get_scripts 
+from mxdc.com import ca
+from mxdc.utils.decorators import async
+from mxdc.utils.log import get_module_logger
+from mxdc.utils.ordereddict import OrderedDict
+#from mxdc.utils.video import add_decorations
 from mxdc.utils import gui, colors
 from mxdc.widgets import dialogs
 from mxdc.widgets.misc import ActiveHScale, ScriptButton
 from mxdc.widgets.video import VideoWidget
 from twisted.python.components import globalRegistry
-import gtk
+from gi.repository import Gtk
 import math
 import numpy
-import pango
+from gi.repository import Pango
 import os
 
 _logger = get_module_logger('mxdc.sampleviewer')
@@ -55,9 +55,9 @@ POPUP_UI = """
 </ui>
 """
 
-class SampleViewer(gtk.Alignment):
+class SampleViewer(Gtk.Alignment):
     def __init__(self):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'sample_viewer'), 
                                   'sample_viewer')
         self._xml_popup = gui.GUIFile(os.path.join(_DATA_DIR, 'sample_viewer'), 
@@ -417,13 +417,13 @@ class SampleViewer(gtk.Alignment):
         # Lighting
         self.side_light = ActiveHScale(self.beamline.sample_frontlight)
         self.back_light = ActiveHScale(self.beamline.sample_backlight)
-        self.side_light.set_update_policy(gtk.UPDATE_DELAYED)
-        self.back_light.set_update_policy(gtk.UPDATE_DELAYED)
+        self.side_light.set_update_policy(Gtk.UPDATE_DELAYED)
+        self.back_light.set_update_policy(Gtk.UPDATE_DELAYED)
         self.lighting_box.attach(self.side_light, 1,2,0,1)
         self.lighting_box.attach(self.back_light, 1,2,1,2)
         
         self._scripts = get_scripts()
-        pango_font = pango.FontDescription('Monospace 8')
+        pango_font = Pango.FontDescription('Monospace 8')
         self.pos_label.modify_font(pango_font)
         self.meas_label.modify_font(pango_font)
         
@@ -477,7 +477,7 @@ class SampleViewer(gtk.Alignment):
         
     def on_realize(self, obj):
         self.pango_layout = self.video.create_pango_layout("")
-        self.pango_layout.set_font_description(pango.FontDescription('Monospace 8'))
+        self.pango_layout.set_font_description(Pango.FontDescription('Monospace 8'))
         
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(
@@ -553,9 +553,9 @@ class SampleViewer(gtk.Alignment):
             x = event.x; y = event.y
         im_x, im_y, xmm, ymm = self._img_position(x,y)
         self.pos_label.set_markup("%4d,%4d [%6.3f, %6.3f mm]" % (im_x, im_y, xmm, ymm))
-        if 'GDK_BUTTON2_MASK' in event.state.value_names:
+        if 'GDK_BUTTON2_MASK' in event.get_state().value_names:
             self.measure_x2, self.measure_y2, = event.x, event.y
-        elif 'GDK_BUTTON1_MASK' in event.state.value_names:
+        elif 'GDK_BUTTON1_MASK' in event.get_state().value_names:
             if self.show_grid and self.edit_grid and not self._click_centering:
                 self.clear_grid_cell(event.x, event.y)
         else:

@@ -58,44 +58,44 @@
   <div class="section" id="interfaces">
 <h1>Interfaces<a class="headerlink" href="#interfaces" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
-<dt id="bcm.device.interfaces.IDevice">
-<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">IDevice</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.IDevice" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.interface.devices.IDevice">
+<em class="property">class </em><tt class="descclassname">mxdc.interface.devices.</tt><tt class="descname">IDevice</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#mxdc.interface.devices.IDevice" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">zope.interface.Interface</span></tt></p>
 <p>A generic device interface.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.interfaces.IAutomounter">
-<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">IAutomounter</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.IAutomounter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.interfaces.IDevice" title="bcm.device.interfaces.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IDevice</span></tt></a></p>
+<dt id="mxdc.interface.devices.IAutomounter">
+<em class="property">class </em><tt class="descclassname">mxdc.interface.devices.</tt><tt class="descname">IAutomounter</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#mxdc.interface.devices.IAutomounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.interface.devices.IDevice" title="mxdc.interface.devices.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.interface.devices.IDevice</span></tt></a></p>
 <p>A sample automounter device interface.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.interfaces.ICollimator">
-<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">ICollimator</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.ICollimator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.interfaces.IDevice" title="bcm.device.interfaces.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IDevice</span></tt></a></p>
+<dt id="mxdc.interface.devices.ICollimator">
+<em class="property">class </em><tt class="descclassname">mxdc.interface.devices.</tt><tt class="descname">ICollimator</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#mxdc.interface.devices.ICollimator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.interface.devices.IDevice" title="mxdc.interface.devices.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.interface.devices.IDevice</span></tt></a></p>
 <p>An X-ray beam collimator device object.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.interfaces.ICounter">
-<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">ICounter</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.ICounter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.interfaces.IDevice" title="bcm.device.interfaces.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IDevice</span></tt></a></p>
+<dt id="mxdc.interface.devices.ICounter">
+<em class="property">class </em><tt class="descclassname">mxdc.interface.devices.</tt><tt class="descname">ICounter</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#mxdc.interface.devices.ICounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.interface.devices.IDevice" title="mxdc.interface.devices.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.interface.devices.IDevice</span></tt></a></p>
 <p>An integrating counter object.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.interfaces.IGoniometer">
-<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">IGoniometer</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.IGoniometer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.interfaces.IDevice" title="bcm.device.interfaces.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IDevice</span></tt></a></p>
+<dt id="mxdc.interface.devices.IGoniometer">
+<em class="property">class </em><tt class="descclassname">mxdc.interface.devices.</tt><tt class="descname">IGoniometer</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#mxdc.interface.devices.IGoniometer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.interface.devices.IDevice" title="mxdc.interface.devices.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.interface.devices.IDevice</span></tt></a></p>
 <p>A goniometer device object.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.interfaces.IImagingDetector">
-<em class="property">class </em><tt class="descclassname">bcm.device.interfaces.</tt><tt class="descname">IImagingDetector</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#bcm.device.interfaces.IImagingDetector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.interfaces.IDevice" title="bcm.device.interfaces.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IDevice</span></tt></a></p>
+<dt id="mxdc.interface.devices.IImagingDetector">
+<em class="property">class </em><tt class="descclassname">mxdc.interface.devices.</tt><tt class="descname">IImagingDetector</tt><big>(</big><em>name</em>, <em>bases=()</em>, <em>attrs=None</em>, <em>__doc__=None</em>, <em>__module__=None</em><big>)</big><a class="headerlink" href="#mxdc.interface.devices.IImagingDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.interface.devices.IDevice" title="mxdc.interface.devices.IDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.interface.devices.IDevice</span></tt></a></p>
 <p>An imaging detector device for aquiring image frames.</p>
 </dd></dl>
 

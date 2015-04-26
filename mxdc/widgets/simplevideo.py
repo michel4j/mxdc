@@ -1,10 +1,10 @@
-from bcm.utils.log import get_module_logger
+from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget
-import gtk
+from gi.repository import Gtk
 import math
-import pango
+from gi.repository import Pango
 import os
 
 _logger = get_module_logger('mxdc.videoviewer')
@@ -12,10 +12,10 @@ _logger = get_module_logger('mxdc.videoviewer')
 COLOR_MAPS = [None, 'Spectral','hsv','jet', 'RdYlGn','hot', 'PuBu']        
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-class SimpleVideo(gtk.Frame):
+class SimpleVideo(Gtk.Frame):
     def __init__(self, camera):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        GObject.GObject.__init__(self)
+        self.set_shadow_type(Gtk.ShadowType.NONE)
         
         self._timeout_id = None
         self._colormap = 0
@@ -106,7 +106,7 @@ class SimpleVideo(gtk.Frame):
         
     def on_realize(self, obj):
         self.pango_layout = self.video.create_pango_layout("")
-        self.pango_layout.set_font_description(pango.FontDescription('Monospace 8'))
+        self.pango_layout.set_font_description(Pango.FontDescription('Monospace 8'))
         
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(
@@ -142,8 +142,8 @@ class SimpleVideo(gtk.Frame):
             x = event.x; y = event.y
         im_x, im_y, xmm, ymm = self._img_position(x,y)
         self.pos_label.set_markup("<small><tt>%4d,%4d [%6.3f, %6.3f mm]</tt></small>" % (im_x, im_y, xmm, ymm))
-        #print event.state.value_names
-        if 'GDK_BUTTON2_MASK' in event.state.value_names:
+        #print event.get_state().value_names
+        if 'GDK_BUTTON2_MASK' in event.get_state().value_names:
             self.measure_x2, self.measure_y2, = event.x, event.y
         else:
             self.measuring = False

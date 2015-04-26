@@ -4,8 +4,8 @@ Created on May 20, 2010
 @author: michel
 '''
 
-from bcm.libs import xlrd
-from bcm.utils.enum import Enum
+from mxdc.libs import xlrd
+from mxdc.utils.enum import Enum
 import os
 
 COLUMN_MAP = dict([(index, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[index]) for index in range(26)])

@@ -1,19 +1,19 @@
-from bcm.beamline.interfaces import IBeamline
-from bcm.engine import auto
-from bcm.utils import automounter
-from bcm.utils.decorators import async
-from bcm.utils.log import get_module_logger
+from mxdc.interface.beamlines import IBeamline
+from mxdc.engine import auto
+from mxdc.utils import automounter
+from mxdc.utils.decorators import async
+from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.widgets.misc import ActiveProgressBar
 from mxdc.widgets.textviewer import TextViewer
 from twisted.python.components import globalRegistry
 import cairo
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import math
 import numpy
 import os
-import pango
+from gi.repository import Pango
 import time
 
 _logger = get_module_logger('mxdc.samplepicker')
@@ -22,14 +22,14 @@ class _DummyEvent(object):
     width = 0
     height = 0
 
-class ContainerWidget(gtk.DrawingArea):
+class ContainerWidget(Gtk.DrawingArea):
     __gsignals__ = {
-        'pin-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                      (gobject.TYPE_STRING,)),
-        'probe-select': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                      (gobject.TYPE_STRING,)),
-        'pin-hover': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                      (gobject.TYPE_STRING,)),
+        'pin-selected': (GObject.SignalFlags.RUN_FIRST, None,
+                      (GObject.TYPE_STRING,)),
+        'probe-select': (GObject.SignalFlags.RUN_FIRST, None,
+                      (GObject.TYPE_STRING,)),
+        'pin-hover': (GObject.SignalFlags.RUN_FIRST, None,
+                      (GObject.TYPE_STRING,)),
         'expose-event': 'override',
         'configure-event': 'override',
         'motion-notify-event': 'override',
@@ -37,17 +37,17 @@ class ContainerWidget(gtk.DrawingArea):
     }
     
     def __init__(self, container):
-        gtk.DrawingArea.__init__(self)
+        GObject.GObject.__init__(self)
         self.container = container
         self.connect('realize', self.on_realize)
         self.container_type = self.container.container_type
         self._realized = False
-        self.set_events(gtk.gdk.EXPOSURE_MASK |
-                gtk.gdk.LEAVE_NOTIFY_MASK |
-                gtk.gdk.BUTTON_PRESS_MASK |
-                gtk.gdk.POINTER_MOTION_MASK |
-                gtk.gdk.POINTER_MOTION_HINT_MASK|
-                gtk.gdk.VISIBILITY_NOTIFY_MASK)
+        self.set_events(Gdk.EventMask.EXPOSURE_MASK |
+                Gdk.EventMask.LEAVE_NOTIFY_MASK |
+                Gdk.EventMask.BUTTON_PRESS_MASK |
+                Gdk.EventMask.POINTER_MOTION_MASK |
+                Gdk.EventMask.POINTER_MOTION_HINT_MASK|
+                Gdk.EventMask.VISIBILITY_NOTIFY_MASK)
         self.set_size_request(160,160)
         self.container.connect('changed', self.on_container_changed)
         self._last_hover_port = None
@@ -134,12 +134,12 @@ class ContainerWidget(gtk.DrawingArea):
     def on_realize(self, obj):
         style = self.get_style()
         self.port_colors = {
-            automounter.PORT_EMPTY: gtk.gdk.color_parse("#999999"),
-            automounter.PORT_GOOD: gtk.gdk.color_parse("#90dc8f"),
-            automounter.PORT_UNKNOWN: gtk.gdk.color_parse("#fcfcfc"),
-            automounter.PORT_MOUNTED: gtk.gdk.color_parse("#dd5cdc"),
-            automounter.PORT_JAMMED: gtk.gdk.color_parse("#ff6464"),
-            automounter.PORT_NONE: style.bg[gtk.STATE_NORMAL]
+            automounter.PORT_EMPTY: Gdk.color_parse("#999999"),
+            automounter.PORT_GOOD: Gdk.color_parse("#90dc8f"),
+            automounter.PORT_UNKNOWN: Gdk.color_parse("#fcfcfc"),
+            automounter.PORT_MOUNTED: Gdk.color_parse("#dd5cdc"),
+            automounter.PORT_JAMMED: Gdk.color_parse("#ff6464"),
+            automounter.PORT_NONE: style.bg[Gtk.StateType.NORMAL]
             }     
         self._realized = True 
            
@@ -183,7 +183,7 @@ class ContainerWidget(gtk.DrawingArea):
         context.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
         style = self.get_style()
         context.set_source_color(style.fg[self.state])
-        context.set_font_size( font_desc.get_size()/pango.SCALE )
+        context.set_font_size( font_desc.get_size()/Pango.SCALE )
         self.draw_cairo(context)
         return False
 
@@ -220,7 +220,7 @@ class ContainerWidget(gtk.DrawingArea):
             if not inside:
                 event.window.set_cursor(None)
             else:
-                event.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
+                event.window.set_cursor(Gdk.Cursor.new(Gdk.HAND2))
             self.emit('pin-hover', _cur_port)
             self._last_hover_port = _cur_port
 
@@ -254,7 +254,7 @@ class ContainerWidget(gtk.DrawingArea):
         # draw main labels
         cr.set_font_size(15)
         cr.set_line_width(1.2)
-        cr.set_source_color( gtk.gdk.color_parse("#3232ff") )
+        cr.set_source_color( Gdk.color_parse("#3232ff") )
         for label, coord in self.labels.items():
             x, y = coord
             x_b, y_b, w, h = cr.text_extents(label)[:4]
@@ -284,13 +284,13 @@ class ContainerWidget(gtk.DrawingArea):
 
                       
 
-class SamplePicker(gtk.HBox):
+class SamplePicker(Gtk.HBox):
     __gsignals__ = {
-        'pin-hover': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                      (gobject.TYPE_PYOBJECT, gobject.TYPE_STRING,)),
+        'pin-hover': (GObject.SignalFlags.RUN_FIRST, None,
+                      (GObject.TYPE_PYOBJECT, GObject.TYPE_STRING,)),
     }
     def __init__(self, automounter=None):
-        gtk.HBox.__init__(self)
+        GObject.GObject.__init__(self)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/sample_picker'),
                                   'sample_picker')
         
@@ -303,11 +303,11 @@ class SamplePicker(gtk.HBox):
             _logger.error('No registered beamline found.')
 
         self.pack_start(self.sample_picker, True, True, 0)
-        pango_font = pango.FontDescription('sans 8')
+        pango_font = Pango.FontDescription('sans 8')
         self.status_lbl.modify_font(pango_font)
         self.lbl_port.modify_font(pango_font)
         self.lbl_barcode.modify_font(pango_font)
-        self.throbber.set_from_stock('robot-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
+        self.throbber.set_from_stock('robot-idle', Gtk.IconSize.LARGE_TOOLBAR)
         self.message_log = TextViewer(self.msg_txt)
         self.message_log.set_prefix('-')
         
@@ -315,9 +315,9 @@ class SamplePicker(gtk.HBox):
         for k in ['Left', 'Middle', 'Right']:
             key = k[0]
             self.containers[key] = ContainerWidget(self.automounter.containers[key])
-            tab_label = gtk.Label('%s' % k)
+            tab_label = Gtk.Label(label='%s' % k)
             tab_label.set_padding(12, 0)
-            aln = gtk.Alignment(0.5, 0.5, 1, 1)
+            aln = Gtk.Alignment.new(0.5, 0.5, 1, 1)
             aln.set_padding(3, 3, 3, 3)
             aln.add(self.containers[key])
             self.notebk.insert_page(aln, tab_label=tab_label)
@@ -338,7 +338,7 @@ class SamplePicker(gtk.HBox):
         self._full_state = []
         
         # extra widgets
-        self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+        self._animation = GdkPixbuf.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                                                'data/active_stop.gif'))
         
         #add progressbar
@@ -393,7 +393,7 @@ class SamplePicker(gtk.HBox):
         self.command_active = True
         success = auto.auto_mount_manual(self.beamline, port, wash)
         if not success:
-            gobject.idle_add(self.mount_btn.set_sensitive, True)  
+            GObject.idle_add(self.mount_btn.set_sensitive, True)  
         self.command_active = False
         
     @async
@@ -401,7 +401,7 @@ class SamplePicker(gtk.HBox):
         self.command_active = True
         success = auto.auto_dismount_manual(self.beamline, port)
         if not success:
-            gobject.idle_add(self.dismount_btn.set_sensitive, True) 
+            GObject.idle_add(self.dismount_btn.set_sensitive, True) 
         self.command_active = False
                 
 
@@ -422,13 +422,13 @@ class SamplePicker(gtk.HBox):
                    
     def _set_throbber(self, st):
         if st == 'fault':
-            self.throbber.set_from_stock('robot-error', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.throbber.set_from_stock('robot-error', Gtk.IconSize.LARGE_TOOLBAR)
         elif st == 'warning':
-            self.throbber.set_from_stock('robot-warning', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.throbber.set_from_stock('robot-warning', Gtk.IconSize.LARGE_TOOLBAR)
         elif st == 'busy':
             self.throbber.set_from_animation(self._animation)
         elif st == 'ready':
-            self.throbber.set_from_stock('robot-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.throbber.set_from_stock('robot-idle', Gtk.IconSize.LARGE_TOOLBAR)
 
             
     def on_state_changed(self, obj, val):

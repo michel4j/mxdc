@@ -1,9 +1,9 @@
    
-from bcm.beamline.interfaces import IBeamline
-from bcm.engine.diffraction import DataCollector
-from bcm.engine.scripting import get_scripts
-from bcm.utils import runlists, lims_tools
-from bcm.utils.log import get_module_logger
+from mxdc.interface.beamlines import IBeamline
+from mxdc.engine.diffraction import DataCollector
+from mxdc.engine.scripting import get_scripts
+from mxdc.utils import runlists, lims_tools
+from mxdc.utils.log import get_module_logger
 from mxdc.utils import config, gui
 from mxdc.widgets.dialogs import warning, error, MyDialog
 from mxdc.widgets.imageviewer import ImageViewer
@@ -11,9 +11,9 @@ from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
 from mxdc.widgets.mountwidget import MountWidget
 from mxdc.widgets.runmanager import RunManager
 from twisted.python.components import globalRegistry
-import gobject
-import gtk
-import pango
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Pango
 import sys
 import os
 import time
@@ -50,12 +50,12 @@ FRAME_STATE_SKIPPED = DataCollector.STATE_SKIPPED
 
 RUN_CONFIG_FILE = 'run_config.json'
 
-class CollectManager(gtk.Alignment):
+class CollectManager(Gtk.Alignment):
     __gsignals__ = {
-        'new-datasets': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'new-datasets': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_PYOBJECT,]),
     }
     def __init__(self):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/collect_widget'), 
                                   'collect_widget')            
         self.run_data = []
@@ -99,19 +99,19 @@ class CollectManager(gtk.Alignment):
         self.frame_pos = None
         
         
-        pango_font = pango.FontDescription("monospace 8")
+        pango_font = Pango.FontDescription("monospace 8")
         self.strategy_view.modify_font(pango_font)
 
         
         # Run List
-        self.listmodel = gtk.ListStore(
-            gobject.TYPE_UINT,
-            gobject.TYPE_FLOAT,
-            gobject.TYPE_UINT,
-            gobject.TYPE_STRING           
+        self.listmodel = Gtk.ListStore(
+            GObject.TYPE_UINT,
+            GObject.TYPE_FLOAT,
+            GObject.TYPE_UINT,
+            GObject.TYPE_STRING           
         )
         
-        self.listview = gtk.TreeView(self.listmodel)
+        self.listview = Gtk.TreeView(self.listmodel)
         self.listview.set_rules_hint(True)
         self._add_columns()     
         sw = self._xml.get_widget('run_list_window')
@@ -148,7 +148,7 @@ class CollectManager(gtk.Alignment):
         
         #diagnostics
         #self.diagnostics = DiagnosticsWidget()
-        #self.tool_book.append_page(self.diagnostics, tab_label=gtk.Label('Run Diagnostics'))
+        #self.tool_book.append_page(self.diagnostics, tab_label=Gtk.Label(label='Run Diagnostics'))
         #self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(0))
         #self.diagnostics.set_sensitive(False)
         
@@ -174,13 +174,13 @@ class CollectManager(gtk.Alignment):
         self.show_all()
         
         #prepare pixbufs for status icons
-        self._wait_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+        self._wait_img = GdkPixbuf.Pixbuf.new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/tiny-wait.png'))
-        self._ready_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+        self._ready_img = GdkPixbuf.Pixbuf.new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/tiny-ready.png'))
-        self._error_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+        self._error_img = GdkPixbuf.Pixbuf.new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/tiny-error.png'))
-        self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(os.path.dirname(__file__),
+        self._skip_img = GdkPixbuf.Pixbuf.new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/tiny-skip.png'))
 
     def _load_config(self):
@@ -338,22 +338,22 @@ class CollectManager(gtk.Alignment):
                 
     def _add_columns(self):
         # Saved Column
-        renderer = gtk.CellRendererPixbuf()
-        column = gtk.TreeViewColumn('', renderer)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        renderer = Gtk.CellRendererPixbuf()
+        column = Gtk.TreeViewColumn('', renderer)
+        column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
         column.set_fixed_width(24)
         column.set_cell_data_func(renderer, self._saved_pixbuf)
         self.listview.append_column(column)
         
         # Name Column
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Name', renderer, text=COLLECT_COLUMN_NAME)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn('Name', renderer, text=COLLECT_COLUMN_NAME)
         column.set_cell_data_func(renderer, self._saved_color)
         self.listview.append_column(column)
 
         # Angle Column
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Angle', renderer, text=COLLECT_COLUMN_ANGLE)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn('Angle', renderer, text=COLLECT_COLUMN_ANGLE)
         column.set_cell_data_func(renderer, self._float_format, '%5.2f')
         self.listview.append_column(column)
         
@@ -421,14 +421,14 @@ class CollectManager(gtk.Alignment):
         if len(existlist) > 0:
             header = 'Frames from this sequence already exist! Do you want to skip or replace them?'
             sub_header = '<b>Replacing them will overwrite their contents permanently!</b> Skipped frames will not be re-acquired.'
-            buttons = ( ('gtk-cancel',gtk.RESPONSE_CANCEL), ('Skip', gtk.RESPONSE_YES), ('Replace', gtk.RESPONSE_NO))
+            buttons = ( ('gtk-cancel',Gtk.ResponseType.CANCEL), ('Skip', Gtk.ResponseType.YES), ('Replace', Gtk.ResponseType.NO))
             response = warning(header, sub_header, details, buttons=buttons)
-            if response == gtk.RESPONSE_YES:
+            if response == Gtk.ResponseType.YES:
                 self.skip_existing = True
                 for index in existlist:
                     self.set_row_state(index, FRAME_STATE_SKIPPED)
                 return True
-            elif response == gtk.RESPONSE_NO:
+            elif response == Gtk.ResponseType.NO:
                 self.skip_existing = False
                 return True
             else:
@@ -508,9 +508,9 @@ class CollectManager(gtk.Alignment):
 
         if msg:
             title = 'Attention Required'
-            self.resp = MyDialog(gtk.MESSAGE_WARNING, 
+            self.resp = MyDialog(Gtk.MessageType.WARNING, 
                                          title, msg,
-                                         buttons=( ('Intervene', gtk.RESPONSE_ACCEPT),) )
+                                         buttons=( ('Intervene', Gtk.ResponseType.ACCEPT),) )
             self._intervening = False
             self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
             try:
@@ -520,7 +520,7 @@ class CollectManager(gtk.Alignment):
             except:
                 self.collect_obj = False
             response = self.resp()
-            if response == gtk.RESPONSE_ACCEPT or (('type' in pause_dict) and self._beam_up):
+            if response == Gtk.ResponseType.ACCEPT or (('type' in pause_dict) and self._beam_up):
                 self._intervening = True
                 self._beam_up = False
                 if self.beam_connect:
