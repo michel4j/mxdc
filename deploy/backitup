@@ -1,0 +1,2 @@
+#!/bin/csh
+python $MXDC_PATH/mxdc/utils/backup.py $*

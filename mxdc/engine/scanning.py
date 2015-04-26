@@ -144,7 +144,7 @@ class BasicScan(GObject.GObject):
     
     def save(self, filename=None):
         if filename is None:
-            data_dir = os.path.join(os.environ['BCM_DATA_PATH'], 
+            data_dir = os.path.join(os.environ['MXDC_DATA_PATH'], 
                                     time.strftime('%Y'),
                                     time.strftime('%B'))
             ext = self.__class__.__name__.lower()

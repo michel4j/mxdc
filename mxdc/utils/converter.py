@@ -62,7 +62,7 @@ def bragg_to_energy(bragg):
     bragg       --  bragg angle in degrees to convert to energy
     """
     
-    _S111_a = _S111_A_DICT.get(os.environ.get('BCM_BEAMLINE', '08id1'), 5.4310209)
+    _S111_a = _S111_A_DICT.get(os.environ.get('MXDC_BEAMLINE', '08id1'), 5.4310209)
         
     d = _S111_a / math.sqrt(3.0)
     wavelength = 2.0 * d * math.sin( radians(bragg) )
@@ -75,7 +75,7 @@ def energy_to_bragg(energy):
     energy      --  energy value to convert to bragg angle
     """
     
-    _S111_a = _S111_A_DICT.get(os.environ.get('BCM_BEAMLINE', '08id1'), 5.4310209)
+    _S111_a = _S111_A_DICT.get(os.environ.get('MXDC_BEAMLINE', '08id1'), 5.4310209)
     d = _S111_a / math.sqrt(3.0)
     bragg = math.asin( energy_to_wavelength(energy)/(2.0*d) )
     return degrees(bragg)
