@@ -171,9 +171,9 @@ class BeamlineConsole(GTKInterpreter):
 %s Interactive Beamline Console.
 Python %s
 Beamline Config: %s.py 
-        """ % (os.environ['BCM_BEAMLINE'].upper(),
+        """ % (os.environ['MXDC_BEAMLINE'].upper(),
                sys.version.split('\n')[0],
-               os.path.join(os.environ['BCM_CONFIG_PATH'], os.environ['BCM_BEAMLINE']))
+               os.path.join(os.environ['MXDC_CONFIG_PATH'], os.environ['MXDC_BEAMLINE']))
                
         GTKInterpreter.__init__(self, banner)
     

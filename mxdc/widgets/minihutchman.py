@@ -52,7 +52,7 @@ class MiniHutchManager(Gtk.Alignment):
         self.beamline = globalRegistry.lookup([], IBeamline)
         
         # diagram file name if one exists
-        diagram_file = os.path.join(os.environ.get('BCM_CONFIG_PATH'), 'data', self.beamline.name, 'diagram.png')
+        diagram_file = os.path.join(os.environ.get('MXDC_CONFIG_PATH'), 'data', self.beamline.name, 'diagram.png')
         if not os.path.exists(diagram_file):
             diagram_file = os.path.join(DATA_DIR, 'diagram.png')
         self.hutch_diagram.set_from_file(diagram_file)

@@ -132,8 +132,8 @@ class HutchApp(object):
 
 def main():
     try:
-        _ = os.environ['BCM_CONFIG_PATH']
-        _logger.info('Starting HutchViewer (%s)... ' % os.environ['BCM_BEAMLINE'])
+        _ = os.environ['MXDC_CONFIG_PATH']
+        _logger.info('Starting HutchViewer (%s)... ' % os.environ['MXDC_BEAMLINE'])
     except:
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure the BCM is properly installed and configured.')

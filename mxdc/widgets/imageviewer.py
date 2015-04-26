@@ -4,7 +4,7 @@ from mxdc.utils import gui
 from mxdc.widgets import dialogs
 from mxdc.widgets.imagewidget import ImageWidget, image_loadable
 from gi.repository import GObject
-from gi.repository import Gtk
+from gi.repository import Gtk, GdkX11
 import logging
 import math
 import numpy
@@ -21,7 +21,8 @@ FILE_PATTERN = re.compile('^(?P<base>[\w-]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.
 
 class ImageViewer(Gtk.Alignment):
     def __init__(self, size=512):
-        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
+        super(ImageViewer, self).__init__()
+        self.set(0.5, 0.5, 1, 1)
         self._canvas_size = size
         self._brightness = 1.0
         self._contrast = 1.0
@@ -191,9 +192,11 @@ class ImageViewer(Gtk.Alignment):
         return last_parent
 
     def _position_popups(self):
-        window = self._get_parent_window().get_window()
-        ox, oy = window.get_origin()
-        ix,iy,iw,ih,_ = self.image_canvas.get_window().get_geometry()
+        main_window = self._get_parent_window()
+        canvas_window = self.image_canvas.get_window()
+        ox, oy = main_window.get_position()
+        ix,iy = canvas_window.get_position()
+        iw,ih = canvas_window.get_width(), canvas_window.get_height()
         cx = ox + ix + iw/2 - 100
         cy = oy + iy + ih - 50
         self.contrast_popup.move(cx, cy)

@@ -106,7 +106,7 @@ class SimCamera(VideoSrc):
     def __init__(self, name="Camera Simulator", img="sim_sample_video.png"):
         VideoSrc.__init__(self, name)
         if img is not None:
-            fname = '%s/data/%s' % (os.environ.get('BCM_CONFIG_PATH'), img)
+            fname = '%s/data/%s' % (os.environ.get('MXDC_CONFIG_PATH'), img)
             self._frame = Image.open(fname)
             self.size = self._frame.size
             self.resolution = 1.0

@@ -21,7 +21,7 @@ unset i
 servicename='bcmserver'
 pidfile='/var/run/bcmserver.pid'
 logfile='/var/log/bcmserver.log'
-appfile=$BCM_PATH/bcm/service/bcm_server.py
+appfile=$MXDC_PATH/bcm/service/bcm_server.py
 umask=022
 
 # Sanity checks.
