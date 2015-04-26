@@ -1,11 +1,11 @@
 from mxdc.utils import gui, config
 from mxdc.utils.config import load_config, save_config
-from bcm.utils.log import get_module_logger
+from mxdc.utils.log import get_module_logger
 from mxdc.utils.xlsimport import XLSLoader
 from mxdc.widgets import dialogs
 from mxdc.widgets.mountwidget import MountWidget
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import os
 
 _logger = get_module_logger('mxdc')
@@ -23,7 +23,7 @@ STATUS_COLORS = {
     STATUS_LOADED: '#000000',
 }
 
-class CrystalStore(gtk.ListStore):
+class CrystalStore(Gtk.ListStore):
     (   
         NAME,
         PORT,
@@ -34,13 +34,13 @@ class CrystalStore(gtk.ListStore):
     ) = range(6)
     
     def __init__(self):
-        gtk.ListStore.__init__(self,                
-            gobject.TYPE_STRING, 
-            gobject.TYPE_STRING, 
-            gobject.TYPE_STRING,
-            gobject.TYPE_STRING,
-            gobject.TYPE_INT,
-            gobject.TYPE_PYOBJECT,
+        GObject.GObject.__init__(self,                
+            GObject.TYPE_STRING, 
+            GObject.TYPE_STRING, 
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_INT,
+            GObject.TYPE_PYOBJECT,
             )
             
     
@@ -54,7 +54,7 @@ class CrystalStore(gtk.ListStore):
             self.STATUS, item['load_status'],
             self.DATA, item)
                     
-class ContainerStore(gtk.ListStore):
+class ContainerStore(Gtk.ListStore):
     (
         NAME,
         TYPE,
@@ -65,13 +65,13 @@ class ContainerStore(gtk.ListStore):
     ) = range(6)
     
     def __init__(self):
-        gtk.ListStore.__init__(self,
-            gobject.TYPE_STRING, 
-            gobject.TYPE_STRING, 
-            gobject.TYPE_STRING,
-            gobject.TYPE_BOOLEAN,
-            gobject.TYPE_PYOBJECT,
-            gobject.TYPE_BOOLEAN,
+        GObject.GObject.__init__(self,
+            GObject.TYPE_STRING, 
+            GObject.TYPE_STRING, 
+            GObject.TYPE_STRING,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_PYOBJECT,
+            GObject.TYPE_BOOLEAN,
             )
             
         
@@ -86,14 +86,14 @@ class ContainerStore(gtk.ListStore):
             self.EDITABLE, (item['type'] in ['Uni-Puck','Cassette']))
             
          
-class DewarLoader(gtk.HBox):
+class DewarLoader(Gtk.HBox):
     __gsignals__ = {
-            'samples-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
-            'sample-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+            'samples-changed': (GObject.SignalFlags.RUN_FIRST, None, []),
+            'sample-selected': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
     }
     
     def __init__(self):
-        gtk.HBox.__init__(self)
+        GObject.GObject.__init__(self)
         self._xml = gui.GUIFile(
             os.path.join(os.path.dirname(__file__), 'data', 'sample_loader'),
             'sample_loader')
@@ -132,26 +132,26 @@ class DewarLoader(gtk.HBox):
         self.containers = ContainerStore()
         model = self.containers
 
-        treeview = gtk.TreeView(self.containers)
+        treeview = Gtk.TreeView(self.containers)
    
         treeview.set_rules_hint(True)
 
         # column for container name
-        column = gtk.TreeViewColumn('Container', gtk.CellRendererText(),
+        column = Gtk.TreeViewColumn('Container', Gtk.CellRendererText(),
                                     text=model.NAME)
         column.set_sort_column_id(model.NAME)
         treeview.append_column(column)
 
         # columns for container type
-        column = gtk.TreeViewColumn('Type', gtk.CellRendererText(),
+        column = Gtk.TreeViewColumn('Type', Gtk.CellRendererText(),
                                     text=model.TYPE)
         column.set_sort_column_id(model.TYPE)
         treeview.append_column(column)
 
         # column for Stall
-        renderer = gtk.CellRendererText()
+        renderer = Gtk.CellRendererText()
         renderer.connect("edited", self.on_stall_edited)
-        column = gtk.TreeViewColumn('Position', renderer,
+        column = Gtk.TreeViewColumn('Position', renderer,
                                      text=model.STALL, editable=model.EDITABLE)
         column.set_sort_column_id(model.STALL)
         treeview.append_column(column)
@@ -160,33 +160,33 @@ class DewarLoader(gtk.HBox):
     def __create_crystals_view(self):
         self.crystals = CrystalStore()
         model = self.crystals
-        treeview = gtk.TreeView(self.crystals)
+        treeview = Gtk.TreeView(self.crystals)
         treeview.set_rules_hint(True)
 
         # column for name
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Name", renderer, text=model.NAME)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Name", renderer, text=model.NAME)
         column.set_cell_data_func(renderer, self._row_color)
         column.set_sort_column_id(model.NAME)
         treeview.append_column(column)
 
         # column for port
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Port", renderer, text=model.PORT)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Port", renderer, text=model.PORT)
         column.set_cell_data_func(renderer, self._row_color)
         column.set_sort_column_id(model.PORT)
         treeview.append_column(column)
 
         # column for group
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Group", renderer, text=model.GROUP)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Group", renderer, text=model.GROUP)
         column.set_cell_data_func(renderer, self._row_color)
         column.set_sort_column_id(model.GROUP)
         treeview.append_column(column)                        
 
         # column for group
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn("Container", renderer, text=model.CONTAINER)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Container", renderer, text=model.CONTAINER)
         column.set_sort_column_id(model.CONTAINER)
         column.set_cell_data_func(renderer, self._row_color)
         treeview.append_column(column)                        
@@ -198,12 +198,12 @@ class DewarLoader(gtk.HBox):
         renderer.set_property("foreground", color)
 
     def _notify_changes(self):
-        gobject.idle_add(self.emit, 'samples-changed')
+        GObject.idle_add(self.emit, 'samples-changed')
         #txt = "The list of crystals in the Screening tab has been updated."
         if self.selected_crystal is not None:
             itr = self.crystals.get_iter(self.selected_crystal)
             crystal_data = self.crystals.get_value(itr, self.crystals.DATA)        
-            gobject.idle_add(self.emit, 'sample-selected', crystal_data)
+            GObject.idle_add(self.emit, 'sample-selected', crystal_data)
             #txt = "Crystal information has been updated in the Screening & Collection tabs"
         #self.selected_lbl.set_markup(txt)
     
@@ -277,7 +277,7 @@ class DewarLoader(gtk.HBox):
         self.selected_crystal = path
         itr = model.get_iter(path)
         crystal_data = model.get_value(itr, model.DATA)        
-        gobject.idle_add(self.emit, 'sample-selected', crystal_data)
+        GObject.idle_add(self.emit, 'sample-selected', crystal_data)
         #txt = "The selected crystal in the Collection tab has been updated."
         #self.selected_lbl.set_markup(txt)
 

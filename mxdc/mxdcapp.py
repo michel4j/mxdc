@@ -1,11 +1,11 @@
 from twisted.internet import gtk2reactor
 gtk2reactor.install()
 
-from bcm.service import mxdctools
-from bcm.beamline.mx import MXBeamline
-from bcm.utils import mdns
-from bcm.utils.log import get_module_logger, log_to_console
-from bcm.utils.misc import get_project_name
+from mxdc.service import mxdctools
+from mxdc.beamline.mx import MXBeamline
+from mxdc.utils import mdns
+from mxdc.utils.log import get_module_logger, log_to_console
+from mxdc.utils.misc import get_project_name
 from mxdc.AppWindow import AppWindow
 from mxdc.widgets import dialogs
 from mxdc.utils import excepthook
@@ -14,8 +14,8 @@ from twisted.spread import pb
 import os
 import time
 import warnings
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 
 MXDC_PORT = 9999
 SERVICE_DATA = {
@@ -43,7 +43,7 @@ class MXDCApp(object):
             self.browser = mdns.Browser('_mxdc._tcp')
             self.browser.connect('added', self.service_found)
             self.browser.connect('removed', self.service_removed)
-            gobject.timeout_add(2500, self.broadcast_service) # broadcast after a short while
+            GObject.timeout_add(2500, self.broadcast_service) # broadcast after a short while
             self.main_window.run()
         except mdns.mDNSError:
             self.provider_failure()
@@ -88,9 +88,9 @@ class MXDCApp(object):
             msg += '\n\nDo you want to shut it down?'
             response = dialogs.yesno('MXDC Already Running', msg)
             print response
-            if response == gtk.RESPONSE_YES and self.remote_mxdc is not None:
+            if response == Gtk.ResponseType.YES and self.remote_mxdc is not None:
                 self.remote_mxdc.callRemote('shutdown')
-                #gobject.timeout_add(2000, self.broadcast_service) # broadcast after a short while
+                #GObject.timeout_add(2000, self.broadcast_service) # broadcast after a short while
             else:
                 self.do_quit()
         else:

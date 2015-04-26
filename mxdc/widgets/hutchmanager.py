@@ -1,6 +1,6 @@
-from bcm.beamline.mx import IBeamline
-from bcm.engine.scripting import get_scripts
-from bcm.utils.log import get_module_logger
+from mxdc.beamline.mx import IBeamline
+from mxdc.engine.scripting import get_scripts
+from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.widgets.diagnostics import DiagnosticsViewer
 from mxdc.widgets import misc
@@ -10,8 +10,8 @@ from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.simplevideo import SimpleVideo
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from twisted.python.components import globalRegistry
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 import logging
 import os
 
@@ -27,12 +27,12 @@ _logger = get_module_logger('mxdc.hutchmanager')
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 
-class HutchManager(gtk.Alignment):
+class HutchManager(Gtk.Alignment):
     __gsignals__ = {
-        'beam-change': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_BOOLEAN,]),
+        'beam-change': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_BOOLEAN,]),
     }
     def __init__(self):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'hutch_widget'), 'hutch_widget')
         
         self.scripts = get_scripts()
@@ -59,7 +59,7 @@ class HutchManager(gtk.Alignment):
 
         # video
         def _mk_lbl(txt):
-            lbl = gtk.Label(txt)
+            lbl = Gtk.Label(label=txt)
             lbl.set_padding(6,0)
             return lbl
 
@@ -134,8 +134,8 @@ class HutchManager(gtk.Alignment):
         #self.collect_btn = misc.ScriptButton(self.scripts['SetCollectMode'], 'Collect Mode')        
         #self.beam_btn = misc.ScriptButton(self.scripts['SetBeamMode'], 'Beam Mode')
         
-        self.commands_box.pack_start(self.front_end_btn)
-        #self.commands_box.pack_start(self.optimize_btn)
+        self.commands_box.pack_start(self.front_end_btn, True, True, 0)
+        #self.commands_box.pack_start(self.optimize_btn, True, True, 0)
         
         # disable mode change buttons while automounter is busy
         self.beamline.automounter.connect('preparing', self.on_devices_busy)
@@ -145,7 +145,7 @@ class HutchManager(gtk.Alignment):
         # Monitor beam changes
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
         
-        self.commands_box.pack_start(gtk.Label(''))
+        self.commands_box.pack_start(Gtk.Label('', True, True, 0))
         _map = {'MOUNTING':'blue',
                 'CENTERING':'orange',
                 'SCANNING':'green',
@@ -158,18 +158,18 @@ class HutchManager(gtk.Alignment):
         gonio_mode = misc.StatusBox(self.beamline.goniometer, signal='mode', color_map=_map, background=True)
         gonio_mode.set_border_width(3)
         self.commands_box.pack_start(gonio_mode, expand=True, fill=True)
-        #self.commands_box.pack_start(gtk.Label(''))
+        #self.commands_box.pack_start(Gtk.Label('', True, True, 0))
         
         for btn in [self.mount_btn, self.cent_btn]:
-            self.commands_box.pack_end(btn)
+            self.commands_box.pack_end(btn, True, True, 0)
         
         # tool book, diagnostics  etc
         self.diagnostics = DiagnosticsViewer()
-        self.tool_book.append_page(self.diagnostics, tab_label=gtk.Label(' Beamline Status Checks '))
+        self.tool_book.append_page(self.diagnostics, tab_label=Gtk.Label(label=' Beamline Status Checks '))
         self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(0))       
         
         self.cryo_controller = misc.CryojetWidget(self.beamline.cryojet)
-        self.tool_book.append_page(self.cryo_controller, tab_label=gtk.Label(' Cryojet Stream '))
+        self.tool_book.append_page(self.cryo_controller, tab_label=Gtk.Label(label=' Cryojet Stream '))
 
         
         #logging

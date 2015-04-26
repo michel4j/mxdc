@@ -1,5 +1,5 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
-from bcm.settings import *  # @UnusedWildImport
+from mxdc.settings import *  # @UnusedWildImport
 
 BEAMLINE_NAME = '08ID-1'
 BEAMLINE_TYPE = 'MX'

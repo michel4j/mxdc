@@ -5,8 +5,8 @@ Created on Jan 19, 2010
 '''
 
 import os
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 from mxdc.widgets.plotter import Plotter
 import logging
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
@@ -21,10 +21,10 @@ from mxdc.utils import gui
 ) = range(4)
 
 
-class DiagnosticsWidget(gtk.Frame):
+class DiagnosticsWidget(Gtk.Frame):
     def __init__(self):
-        gtk.Frame.__init__(self)
-        self.set_shadow_type(gtk.SHADOW_NONE)
+        GObject.GObject.__init__(self)
+        self.set_shadow_type(Gtk.ShadowType.NONE)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/run_diagnostics'), 
                                   'run_diagnostics')
         self._create_widgets()
@@ -55,26 +55,26 @@ class DiagnosticsWidget(gtk.Frame):
         log_handler.setFormatter(formatter)
         logging.getLogger('').addHandler(log_handler)
 
-        self.listmodel = gtk.ListStore(
-            gobject.TYPE_BOOLEAN,
-            gobject.TYPE_STRING,
-            gobject.TYPE_STRING,
-            gobject.TYPE_PYOBJECT)
+        self.listmodel = Gtk.ListStore(
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_PYOBJECT)
         self.listview.set_rules_hint(True)
 
         self.listview.set_model(self.listmodel)
         
         # Display Column
-        renderer = gtk.CellRendererToggle()
+        renderer = Gtk.CellRendererToggle()
         renderer.connect('toggled', self.on_row_toggled, self.listmodel)
-        column = gtk.TreeViewColumn('Display', renderer, active=DIAGNOSTICS_COLUMN_DISPLAY)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        column = Gtk.TreeViewColumn('Display', renderer, active=DIAGNOSTICS_COLUMN_DISPLAY)
+        column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
         column.set_fixed_width(50)
         self.listview.append_column(column)
 
         # Description Column
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Description', renderer, text=DIAGNOSTICS_COLUMN_DESCRIPTION)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn('Description', renderer, text=DIAGNOSTICS_COLUMN_DESCRIPTION)
         column.set_cell_data_func(renderer, self._set_color)                                  
         self.listview.append_column(column)
 
@@ -111,13 +111,13 @@ test_data = [
 
 if __name__ == '__main__':
        
-    win = gtk.Window()
+    win = Gtk.Window()
     win.set_border_width(6)
 
     diag = DiagnosticsWidget()
     win.add(diag)
     win.show_all()
-    win.connect('destroy', lambda x: gtk.main_quit())
-    gtk.main()
+    win.connect('destroy', lambda x: Gtk.main_quit())
+    Gtk.main()
 
         

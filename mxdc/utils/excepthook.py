@@ -18,11 +18,11 @@
 ##
 
 from mxdc.widgets import dialogs
-from bcm.utils.log import get_module_logger
+from mxdc.utils.log import get_module_logger
 from twisted.internet import reactor
 from email.mime.text import MIMEText
 import smtplib
-import gtk
+from gi.repository import Gtk
 import sys
 import threading
 import traceback
@@ -67,29 +67,29 @@ def _custom_excepthook(exctyp, value, tb):
     secondary += "You can ignore the problem and attempt to continue "
     secondary += "or quit the program."
     
-    buttons = (("Report...", gtk.RESPONSE_HELP),
-               ('Ignore', gtk.RESPONSE_CANCEL), 
-               (gtk.STOCK_QUIT, gtk.RESPONSE_CLOSE))
+    buttons = (("Report...", Gtk.ResponseType.HELP),
+               ('Ignore', Gtk.ResponseType.CANCEL), 
+               (Gtk.STOCK_QUIT, Gtk.ResponseType.CLOSE))
     
-    dialog = dialogs.AlertDialog(dialogs.MAIN_WINDOW, gtk.DIALOG_MODAL, dialog_type=gtk.MESSAGE_ERROR)
+    dialog = dialogs.AlertDialog(dialogs.MAIN_WINDOW, Gtk.DialogFlags.MODAL, dialog_type=Gtk.MessageType.ERROR)
     for text, response in buttons:
         btn = dialog.add_button(text, response)
-        if response == gtk.RESPONSE_HELP:
+        if response == Gtk.ResponseType.HELP:
             dialog.set_default(btn)
-            dialog.set_default_response(gtk.RESPONSE_HELP)
+            dialog.set_default_response(Gtk.ResponseType.HELP)
                     
     dialog.set_primary(primary)
     dialog.set_secondary(secondary)
     dialog.set_details(trace)
     
     def _dlg_cb(dlg, response):
-        if response == gtk.RESPONSE_HELP:
+        if response == Gtk.ResponseType.HELP:
             _out = _send_email('cmcf-support@lightsource.ca', exctyp, trace)
             if _out:
                 _logger.warning("Bug report has been sent to developers.")
             else:
                 _logger.error("Bug report could not be submitted.")
-        elif response == gtk.RESPONSE_CLOSE:
+        elif response == Gtk.ResponseType.CLOSE:
             _exception_in_progress.release()
             reactor.stop()
         else:

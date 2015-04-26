@@ -1,19 +1,19 @@
 import os
 import sys
-import gtk
+from gi.repository import Gtk
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data/icons')
     
 def _register_icons():
     icons = ['contrast', 'brightness']
 
-    factory = gtk.IconFactory()
+    factory = Gtk.IconFactory()
     factory.add_default()
     for icon in icons:
         fn = 'stock_%s.png' % icon
         stock = 'mxdc-%s'  % icon
-        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR, fn))
-        icon_set = gtk.IconSet(pixbuf)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(DATA_DIR, fn))
+        icon_set = Gtk.IconSet(pixbuf)
         factory.add(stock, icon_set)
 
 def _register_icon_reuse():
@@ -25,14 +25,14 @@ def _register_icon_reuse():
     
     # We're too lazy to make our own icons, so we use regular stock icons.
     icons = [
-        ('mxdc-replace', gtk.STOCK_SAVE_AS),
-        ('mxdc-resume', gtk.STOCK_EXECUTE),
-        ('mxdc-pause', gtk.STOCK_MEDIA_PAUSE),
-        ('mxdc-stop', gtk.STOCK_MEDIA_STOP),
-        ('mxdc-collect', gtk.STOCK_MEDIA_PLAY),
-        ('mxdc-start', gtk.STOCK_MEDIA_PLAY),
-        ('mxdc-scan', gtk.STOCK_MEDIA_PLAY),
-        ('mxdc-stop-scan', gtk.STOCK_MEDIA_STOP),
+        ('mxdc-replace', Gtk.STOCK_SAVE_AS),
+        ('mxdc-resume', Gtk.STOCK_EXECUTE),
+        ('mxdc-pause', Gtk.STOCK_MEDIA_PAUSE),
+        ('mxdc-stop', Gtk.STOCK_MEDIA_STOP),
+        ('mxdc-collect', Gtk.STOCK_MEDIA_PLAY),
+        ('mxdc-start', Gtk.STOCK_MEDIA_PLAY),
+        ('mxdc-scan', Gtk.STOCK_MEDIA_PLAY),
+        ('mxdc-stop-scan', Gtk.STOCK_MEDIA_STOP),
     ]
 
     items = [
@@ -48,25 +48,25 @@ def _register_icon_reuse():
         ('mxdc-resume-scan', '_Resume Scan', 0, 0, None),
     ]
     
-    gtk.stock_add(items)
-    factory = gtk.IconFactory()
+    Gtk.stock_add(items)
+    factory = Gtk.IconFactory()
     factory.add_default()
     for new_stock, alias in icons:
-        icon_set = gtk.icon_factory_lookup_default(alias)
+        icon_set = Gtk.icon_factory_lookup_default(alias)
         factory.add(new_stock, icon_set)
     
     for icon in extra_icons:
         fn = 'stock_%s.png' % icon
         stock_id = 'mxdc-%s' % icon
-        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR, fn))
-        icon_set = gtk.IconSet(pixbuf)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(DATA_DIR, fn))
+        icon_set = Gtk.IconSet(pixbuf)
         factory.add(stock_id, icon_set)
     
     for icon in robot_icons:
         fn = 'robot-%s.png' % icon
         stock_id = 'robot-%s' % icon
-        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR, fn))
-        icon_set = gtk.IconSet(pixbuf)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(DATA_DIR, fn))
+        icon_set = Gtk.IconSet(pixbuf)
         factory.add(stock_id, icon_set)
 
 

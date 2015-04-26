@@ -1,17 +1,17 @@
-from bcm.beamline.interfaces import IBeamline
-from bcm.engine.scripting import get_scripts 
-from bcm.utils.log import get_module_logger
-from bcm.utils.video import add_hc_decorations
+from mxdc.interface.beamlines import IBeamline
+from mxdc.engine.scripting import get_scripts 
+from mxdc.utils.log import get_module_logger
+from mxdc.utils.video import add_hc_decorations
 from mxdc.utils import gui
 from mxdc.widgets.misc import ActiveEntry, HealthDisplay, ScriptButton
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.video import VideoWidget
 from twisted.python.components import globalRegistry
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import math
 import os
-import pango
+from gi.repository import Pango
 
 
 _logger = get_module_logger('mxdc.hcviewer')
@@ -20,12 +20,12 @@ _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class HCViewer(SampleViewer):
     __gsignals__ = {
-        'plot-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT, gobject.TYPE_BOOLEAN]),
-        'plot-paused': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT, gobject.TYPE_BOOLEAN]),
-        'plot-cleared': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT]),
+        'plot-changed': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, GObject.TYPE_BOOLEAN]),
+        'plot-paused': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, GObject.TYPE_BOOLEAN]),
+        'plot-cleared': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT]),
     }
     def __init__(self):
-        gtk.Alignment.__init__(self, 0.5, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'hc_viewer'), 
                                   'hc_viewer')
         self._xml_popup = gui.GUIFile(os.path.join(_DATA_DIR, 'hc_viewer'), 
@@ -110,12 +110,12 @@ class HCViewer(SampleViewer):
         self.video = VideoWidget(self.beamline.sample_video)
         self.video_frame.add(self.video)
         
-        pango_font = pango.FontDescription('Monospace 8')
+        pango_font = Pango.FontDescription('Monospace 8')
         self.pos_label.modify_font(pango_font)
         self.meas_label.modify_font(pango_font)
         
-        entry_box = gtk.VBox(False,0)
-        stat_box = gtk.VBox(True,0)
+        entry_box = Gtk.VBox(False,0)
+        stat_box = Gtk.VBox(True,0)
         for key in ['state']:
             stat_box.pack_start(self.entries[key], expand=True, fill=False)
         for key in ['rel_humidity']:
@@ -124,11 +124,11 @@ class HCViewer(SampleViewer):
         self.hc_panel.pack_start(entry_box, expand=True, fill=False)
         
         
-        store = gtk.ListStore(gobject.TYPE_STRING)
+        store = Gtk.ListStore(GObject.TYPE_STRING)
         for t in ['5', '10', '20']:
             store.append(['%s min' % t])
         self.time_btn.set_model(store)
-        cell = gtk.CellRendererText()
+        cell = Gtk.CellRendererText()
         self.time_btn.pack_start(cell, True)
         self.time_btn.add_attribute(cell, 'text', 0)
         self.time_btn.set_active(0)
@@ -144,9 +144,9 @@ class HCViewer(SampleViewer):
         self.temp_btn.set_label(self.labels[0])    
         self.roi_btn.set_label('Define ROI')
         self.reset_btn.set_label('Reset ROI')
-        self.roi_btn.tooltip = gtk.Tooltips()
+        self.roi_btn.tooltip = Gtk.Tooltips()
         self.roi_btn.tooltip.set_tip(self.roi_btn, 'Click and drag on the image to define a Region of Interest.')
-        self.reset_btn.tooltip = gtk.Tooltips()
+        self.reset_btn.tooltip = Gtk.Tooltips()
         self.reset_btn.tooltip.set_tip(self.reset_btn, 'Reset the current Region of Interest')
         
         
@@ -157,7 +157,7 @@ class HCViewer(SampleViewer):
         else:
             state = False
             label = self.labels[0]
-        gobject.idle_add(self.emit, 'plot-changed', widget, state)
+        GObject.idle_add(self.emit, 'plot-changed', widget, state)
         self.temp_btn.set_label(label)
 
     def on_hc1_active(self, obj=None, active=False):
@@ -170,16 +170,16 @@ class HCViewer(SampleViewer):
     def on_pause(self, widget=None):
         if self.paused:
             self.paused = False
-            self.pause_img.set_from_stock('gtk-media-pause', gtk.ICON_SIZE_MENU)
+            self.pause_img.set_from_stock('gtk-media-pause', Gtk.IconSize.MENU)
             self.pause_lbl.set_text('Pause')
         else:
             self.paused = True
-            self.pause_img.set_from_stock('gtk-media-play', gtk.ICON_SIZE_MENU)
+            self.pause_img.set_from_stock('gtk-media-play', Gtk.IconSize.MENU)
             self.pause_lbl.set_text('Track')
-        gobject.idle_add(self.emit, 'plot-paused', widget, self.paused)
+        GObject.idle_add(self.emit, 'plot-paused', widget, self.paused)
 
     def on_clear(self, widget):
-        gobject.idle_add(self.emit, 'plot-cleared', widget)
+        GObject.idle_add(self.emit, 'plot-cleared', widget)
         
     def on_set_time(self, widget):
         self.xtime = int(self.time_btn.get_active_text().split(' ')[0])
@@ -211,9 +211,9 @@ class HCViewer(SampleViewer):
             x = event.x; y = event.y
         im_x, im_y, xmm, ymm = self._img_position(x,y)
         self.pos_label.set_markup("%4d,%4d [%6.3f, %6.3f mm]" % (im_x, im_y, xmm, ymm))
-        if 'GDK_BUTTON1_MASK' in event.state.value_names and self._define_roi:
+        if 'GDK_BUTTON1_MASK' in event.get_state().value_names and self._define_roi:
             self.roi[2], self.roi[3], = int(event.x / float(self.video.scale)), int(event.y / float(self.video.scale))
-        elif 'GDK_BUTTON2_MASK' in event.state.value_names:
+        elif 'GDK_BUTTON2_MASK' in event.get_state().value_names:
             self.measure_x2, self.measure_y2, = event.x, event.y
         else:
             self.measuring = False

@@ -1,16 +1,16 @@
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import math
-import pango
+from gi.repository import Pango
 
-class Gauge(gtk.DrawingArea):
+class Gauge(Gtk.DrawingArea):
     __gproperties__ = {
-        'percent' : (float, 'Percent', 'Gauge Percentage', 0, 100, 0.0, gobject.PARAM_READWRITE),
-        'digits' : (int, 'Digits', 'The number of decimal places to display', 0, 5, 0, gobject.PARAM_READWRITE),
-        'low': (float, 'Low', 'The Low alarm percent', 0, 100, 0.0, gobject.PARAM_READWRITE),
-        'high': (float, 'High', 'The High alarm percent', 0, 100, 100, gobject.PARAM_READWRITE),
-        'units': (str, 'Units', 'Units to display', '', gobject.PARAM_READWRITE),
-        'label': (str, 'Label', 'Text to display', '', gobject.PARAM_READWRITE),
+        'percent' : (float, 'Percent', 'Gauge Percentage', 0, 100, 0.0, GObject.PARAM_READWRITE),
+        'digits' : (int, 'Digits', 'The number of decimal places to display', 0, 5, 0, GObject.PARAM_READWRITE),
+        'low': (float, 'Low', 'The Low alarm percent', 0, 100, 0.0, GObject.PARAM_READWRITE),
+        'high': (float, 'High', 'The High alarm percent', 0, 100, 100, GObject.PARAM_READWRITE),
+        'units': (str, 'Units', 'Units to display', '', GObject.PARAM_READWRITE),
+        'label': (str, 'Label', 'Text to display', '', GObject.PARAM_READWRITE),
     }
     def __init__(self, min_val, max_val, maj_ticks, min_ticks):
         """
@@ -19,7 +19,7 @@ class Gauge(gtk.DrawingArea):
         plus one
         min_ticks: number of minor tick marks per major tick mark
         """
-        gtk.DrawingArea.__init__(self)
+        GObject.GObject.__init__(self)
         self.connect("expose-event", self.on_expose)
         self.connect('realize', self.on_realize)
         self._properties = {
@@ -46,7 +46,7 @@ class Gauge(gtk.DrawingArea):
     value = property(get_value, set_value)
 
     def _on_property_change(self, widget, val):
-        gobject.idle_add(widget.queue_draw) 
+        GObject.idle_add(widget.queue_draw) 
             
     def do_get_property(self, pspec):
         if pspec.name in ['percent','digits','low','high', 'units', 'label']:
@@ -65,14 +65,14 @@ class Gauge(gtk.DrawingArea):
         rect = widget.get_allocation()
         
         style = widget.get_style()
-        context.set_source_color(style.dark[gtk.STATE_NORMAL] )
+        context.set_source_color(style.dark[Gtk.StateType.NORMAL] )
         context.rectangle(0, 0, rect.width, rect.height)
         context.stroke()
 
         context.rectangle(event.area.x, event.area.y,
                           event.area.width, event.area.height)
         context.clip()
-        context.set_source_color(style.fg[gtk.STATE_NORMAL] )
+        context.set_source_color(style.fg[Gtk.StateType.NORMAL] )
         widget.draw_cairo(context)
         return False
 
@@ -81,7 +81,7 @@ class Gauge(gtk.DrawingArea):
         pcontext = self.get_pango_context()
         style = self.get_style()
         font_desc = pcontext.get_font_description()
-        context.set_font_size(font_desc.get_size()/pango.SCALE)
+        context.set_font_size(font_desc.get_size()/Pango.SCALE)
 
         maximum = self.maximum
         frmstrg = '%%.%df' % self.get_property('digits')
@@ -100,7 +100,7 @@ class Gauge(gtk.DrawingArea):
         context.stroke()
 
         # Draw ticks
-        context.set_source_color(style.fg[gtk.STATE_NORMAL])
+        context.set_source_color(style.fg[Gtk.StateType.NORMAL])
         num_ticks = self.majticks * (self.minticks + 1) + 1
         tick_step = 1.5*math.pi / (num_ticks-1)
         label_radius = radius + 0.5 * pads[2]
