@@ -408,7 +408,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self.slope = 17.0/3298 #50000     #0.00498
         self.offset = -96.0 * self.slope #9600 #-0.45347
                 
-        self._counts_data = numpy.loadtxt(os.path.join(os.environ['BCM_PATH'],'test/scans/xanes_002.raw'), comments="#")
+        self._counts_data = numpy.loadtxt(os.path.join(os.environ['MXDC_PATH'],'test/scans/xanes_002.raw'), comments="#")
         self._counts_data = self._counts_data[:,1]        
         self._last_t = time.time()
         self._last_pos = 0
@@ -438,7 +438,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self._aquiring = True
         time.sleep(t)
         self._acquiring = False
-        fname = os.path.join(os.environ['BCM_PATH'],'test/scans/xrf_%03d.raw' % random.choice(range(1,7)))
+        fname = os.path.join(os.environ['MXDC_PATH'],'test/scans/xrf_%03d.raw' % random.choice(range(1,7)))
         _logger.debug('Simulated Spectrum: %s' % fname)
         self._raw_data = numpy.loadtxt(fname, comments="#")
         self._x_axis = self._raw_data[:,0]

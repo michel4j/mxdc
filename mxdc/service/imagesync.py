@@ -84,7 +84,7 @@ class ImgSyncService(service.Service):
         self.settings['marccd_uid'] = 500
         self.settings['marccd_gid'] = 500
         try:
-            self.settings['backup'] = os.path.join('/archive', os.environ['BCM_BEAMLINE'].upper())
+            self.settings['backup'] = os.path.join('/archive', os.environ['MXDC_BEAMLINE'].upper())
         except:
             self.settings['backup'] = os.path.join('/archive', 'UNDEF')
         

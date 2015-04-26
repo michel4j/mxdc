@@ -312,7 +312,7 @@ class FolderSelector(object):
         hbox = Gtk.HBox(False,3)
         hbox.pack_end(self.icon, False, False, 2)
         hbox.pack_start(self.label, True, True, 0)
-        hbox.pack_start(Gtk.VSeparator(, True, True, 0), False, False, 0)
+        hbox.pack_start(Gtk.VSeparator(True, True, 0), False, False, 0)
         hbox.show_all()
         self.button.add(hbox)
         self.tooltips = Gtk.Tooltips()

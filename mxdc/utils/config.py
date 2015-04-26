@@ -6,7 +6,7 @@ import atexit
 
 _logger = get_module_logger('mxdc.config')
 
-CONFIG_DIR = os.path.join(os.environ['HOME'], '.mxdc-%s' % os.environ['BCM_BEAMLINE'])
+CONFIG_DIR = os.path.join(os.environ['HOME'], '.mxdc-%s' % os.environ['MXDC_BEAMLINE'])
 SESSION_CONFIG_FILE = 'session_config.json'
 SESSION_INFO = {'path': os.environ['HOME']} # Default, update with get_session()
 
@@ -37,7 +37,7 @@ def save_config(fname, config):
 def get_session():
     config_file = os.path.join(CONFIG_DIR, SESSION_CONFIG_FILE)
     today = date.today()
-    _path = os.path.join(os.environ['HOME'], "CLS%s-%s" % (os.environ['BCM_BEAMLINE'], today.strftime('%Y%b%d').upper()))
+    _path = os.path.join(os.environ['HOME'], "CLS%s-%s" % (os.environ['MXDC_BEAMLINE'], today.strftime('%Y%b%d').upper()))
     session = {
         'path' : _path,
         'current_path': _path,

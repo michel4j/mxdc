@@ -1,2 +1,2 @@
 #!/bin/csh
-/usr/bin/env python $BCM_PATH/mxdc/mxdcapp.py
+/usr/bin/env python $MXDC_PATH/mxdc/mxdcapp.py

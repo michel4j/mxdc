@@ -287,7 +287,7 @@ class SimCCDImager(BaseDevice):
             src_dir = '/archive/staff/reference/CLS/SIM-%d' % i
             if os.path.exists(src_dir): 
                 dirlist.append(src_dir)
-        dirlist.append(os.path.join(os.environ['BCM_PATH'], 'test','images'))
+        dirlist.append(os.path.join(os.environ['MXDC_PATH'], 'test','images'))
         self._src_dir = random.choice(dirlist)
         self._num_frames = len([name for name in os.listdir(self._src_dir) if os.path.isfile(os.path.join(self._src_dir,name))])
     

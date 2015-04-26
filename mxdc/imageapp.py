@@ -3,7 +3,6 @@
 import warnings
 warnings.simplefilter("ignore")
 import sys, os
-import logging
 
 from gi.repository import Gtk
 from gi.repository import GObject
