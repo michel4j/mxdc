@@ -12,11 +12,11 @@ class MXBeamline(object):
     configuration file is loaded as a python module and follows the 
     following conventions:
     
-        - Must be named the same as BCM_BEAMLINE environment variable followed by .py
-          and placed in the directory defined by BCM_CONFIG_PATH. For example if the 
-          BCM_BEAMLINE is '08B1', the module should be '08B1.py'
+        - Must be named the same as MXDC_BEAMLINE environment variable followed by .py
+          and placed in the directory defined by MXDC_CONFIG_PATH. For example if the 
+          MXDC_BEAMLINE is '08B1', the module should be '08B1.py'
         - Optionally will also load a local module defined in the file 
-          $(BCM_BEAMLINE)_local.py e.g '08B1_local.py for the above example.
+          $(MXDC_BEAMLINE)_local.py e.g '08B1_local.py for the above example.
         - Global Variables:
               BEAMLINE_NAME = Any string preferably without spaces
               BEAMLINE_TYPE = Only the string 'MX' for now
@@ -78,8 +78,8 @@ class MXBeamline(object):
     def setup(self):
         """Setup and register the beamline devices from configuration files."""
         ca.threads_init()
-        mod_name = os.environ.get('BCM_BEAMLINE')
-        mod_dir = os.environ.get('BCM_CONFIG_PATH')
+        mod_name = os.environ.get('MXDC_BEAMLINE')
+        mod_dir = os.environ.get('MXDC_CONFIG_PATH')
         self.logger = get_module_logger(__name__)
         try:
             g_params = imp.find_module(mod_name, [mod_dir])

@@ -1,3 +1,3 @@
 #!/bin/csh
 
-/usr/bin/env python $BCM_PATH/mxdc/imageapp.py $1
+/usr/bin/env python $MXDC_PATH/mxdc/imageapp.py $1

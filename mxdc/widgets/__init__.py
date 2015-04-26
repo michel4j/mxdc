@@ -1,6 +1,7 @@
 import os
 import sys
 from gi.repository import Gtk
+from gi.repository import GdkPixbuf
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data/icons')
     
@@ -16,6 +17,7 @@ def _register_icons():
         icon_set = Gtk.IconSet(pixbuf)
         factory.add(stock, icon_set)
 
+"""
 def _register_icon_reuse():
     extra_icons =  ['idle','good','bad','part-cloudy',
                     'sunny','cloudy','rainy','stormy','hcane',
@@ -69,6 +71,6 @@ def _register_icon_reuse():
         icon_set = Gtk.IconSet(pixbuf)
         factory.add(stock_id, icon_set)
 
-
+"""
 _register_icons()    
-_register_icon_reuse()
+#_register_icon_reuse()

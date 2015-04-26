@@ -21,7 +21,7 @@ MXDC_PORT = 9999
 SERVICE_DATA = {
     'user': get_project_name(), 
     'started': time.asctime(time.localtime()),
-    'beamline': os.environ.get('BCM_BEAMLINE', 'SIM')
+    'beamline': os.environ.get('MXDC_BEAMLINE', 'SIM')
 }
 
 warnings.simplefilter("ignore")
@@ -51,7 +51,7 @@ class MXDCApp(object):
     
     def broadcast_service(self):
         if self.remote_mxdc is None:
-            self.provider = mdns.Provider('MXDC Client (%s)' % os.environ.get('BCM_BEAMLINE', 'SIM'), '_mxdc._tcp', MXDC_PORT, SERVICE_DATA, unique=True)
+            self.provider = mdns.Provider('MXDC Client (%s)' % os.environ.get('MXDC_BEAMLINE', 'SIM'), '_mxdc._tcp', MXDC_PORT, SERVICE_DATA, unique=True)
             self.provider.connect('collision', lambda x: self.provider_failure())
             self.service = mxdctools.MXDCService(None)       
             reactor.listenTCP(MXDC_PORT, pb.PBServerFactory(mxdctools.IPerspectiveMXDC(self.service)))
@@ -98,7 +98,7 @@ class MXDCApp(object):
             self.do_quit()
     
     def _rshutdown_success(self):
-        self.provider = mdns.Provider('MXDC Client (%s)' % os.environ.get('BCM_BEAMLINE', 'SIM'), '_mxdc._tcp', MXDC_PORT, SERVICE_DATA, unique=True)
+        self.provider = mdns.Provider('MXDC Client (%s)' % os.environ.get('MXDC_BEAMLINE', 'SIM'), '_mxdc._tcp', MXDC_PORT, SERVICE_DATA, unique=True)
     
     def _rshutdown_failure(self, failure):
         r = failure.trap(pb.PBConnectionLost)
@@ -118,8 +118,8 @@ class MXDCApp(object):
         
 def main():
     try:
-        _ = os.environ['BCM_CONFIG_PATH']
-        _logger.info('Starting MXDC (%s)... ' % os.environ['BCM_BEAMLINE'])
+        _ = os.environ['MXDC_CONFIG_PATH']
+        _logger.info('Starting MXDC (%s)... ' % os.environ['MXDC_BEAMLINE'])
     except:
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')

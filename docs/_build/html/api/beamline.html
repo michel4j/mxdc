@@ -84,12 +84,12 @@ configuration file is loaded as a python module and follows the
 following conventions:</p>
 <blockquote>
 <div><ul>
-<li><p class="first">Must be named the same as BCM_BEAMLINE environment variable followed by .py
-and placed in the directory defined by BCM_CONFIG_PATH. For example if the 
-BCM_BEAMLINE is &#8216;08B1&#8217;, the module should be &#8216;08B1.py&#8217;</p>
+<li><p class="first">Must be named the same as MXDC_BEAMLINE environment variable followed by .py
+and placed in the directory defined by MXDC_CONFIG_PATH. For example if the 
+MXDC_BEAMLINE is &#8216;08B1&#8217;, the module should be &#8216;08B1.py&#8217;</p>
 </li>
 <li><p class="first">Optionally will also load a local module defined in the file 
-$(BCM_BEAMLINE)_local.py e.g &#8216;08B1_local.py for the above example.</p>
+$(MXDC_BEAMLINE)_local.py e.g &#8216;08B1_local.py for the above example.</p>
 </li>
 <li><dl class="first docutils">
 <dt>Global Variables:</dt>
