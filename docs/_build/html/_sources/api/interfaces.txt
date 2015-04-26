@@ -1,20 +1,20 @@
 Interfaces
 ==========
    
-.. autoclass:: bcm.device.interfaces.IDevice
+.. autoclass:: mxdc.interface.devices.IDevice
     :members:
     
-.. autoclass:: bcm.device.interfaces.IAutomounter
+.. autoclass:: mxdc.interface.devices.IAutomounter
     :members:
     
-.. autoclass:: bcm.device.interfaces.ICollimator
+.. autoclass:: mxdc.interface.devices.ICollimator
     :members:
     
-.. autoclass:: bcm.device.interfaces.ICounter
+.. autoclass:: mxdc.interface.devices.ICounter
     :members:
     
-.. autoclass:: bcm.device.interfaces.IGoniometer
+.. autoclass:: mxdc.interface.devices.IGoniometer
     :members:
     
-.. autoclass:: bcm.device.interfaces.IImagingDetector
+.. autoclass:: mxdc.interface.devices.IImagingDetector
     :members:

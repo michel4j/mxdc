@@ -3,75 +3,75 @@ Devices
    
 Base Device
 -----------
-.. automodule:: bcm.device.base
+.. automodule:: mxdc.device.base
     :members:
  
 
 Automounter
 -----------
 
-.. automodule:: bcm.device.automounter
+.. automodule:: mxdc.device.automounter
    :members: BasicAutomounter
 
 Counters
 --------
 
-.. automodule:: bcm.device.counter
+.. automodule:: mxdc.device.counter
    :members: Counter
 
 Detector
 --------
 
-.. automodule:: bcm.device.detector
+.. automodule:: mxdc.device.detector
    :members: MXCCDImager
 
 Diffractometer
 --------------
 
-.. automodule:: bcm.device.diffractometer
+.. automodule:: mxdc.device.diffractometer
    :members:
 
 Goniometer
 ----------
 
-.. automodule:: bcm.device.goniometer
+.. automodule:: mxdc.device.goniometer
    :members: Goniometer, MD2Goniometer, BackLight
 
 
 Multi-Channel Analyzer
 ----------------------
 
-.. automodule:: bcm.device.mca
+.. automodule:: mxdc.device.mca
    :members:
 
 Monochromator
 -------------
 
-.. automodule:: bcm.device.monochromator
+.. automodule:: mxdc.device.monochromator
    :members:
    :undoc-members:
 
 Motors
 ------
 
-.. automodule:: bcm.device.motor
+.. automodule:: mxdc.device.motor
    :members:
 
 Video
 -----
 
-.. automodule:: bcm.device.video
+.. automodule:: mxdc.device.video
    :members: VideoSrc, ZoomableCamera, AxisPTZCamera
 
 Miscellaneous
 -----------
 
-.. automodule:: bcm.device.misc
+.. automodule:: mxdc.device.misc
    :members:
    
-.. automodule:: bcm.device.cryojet
+.. automodule:: mxdc.device.cryojet
    :members: Cryojet, CryojetNozzle
 
-.. automodule:: bcm.device.diagnostics
+.. automodule:: mxdc.device.diagnostics
    :members: 
 

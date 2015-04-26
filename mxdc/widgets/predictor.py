@@ -5,7 +5,7 @@ points can be added to each line and the plot is automatically updated.
 import gtk, gobject
 import threading
 import sys
-import pango
+from gi.repository import Pango
 import thread
 import numpy
 
@@ -17,8 +17,8 @@ from matplotlib.colors import Normalize, LogNorm
 from matplotlib.ticker import FormatStrFormatter, NullLocator
 from matplotlib import rcParams
 from pylab import meshgrid
-from bcm.utils import converter
-from bcm.utils.log import get_module_logger
+from mxdc.utils import converter
+from mxdc.utils.log import get_module_logger
 import time
 
 _logger = get_module_logger(__name__)
@@ -30,20 +30,20 @@ _logger = get_module_logger(__name__)
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
             
-class Predictor( gtk.AspectFrame ):
+class Predictor( Gtk.AspectFrame ):
     def __init__( self, pixel_size=0.07234, detector_size=4096):
-        gtk.AspectFrame.__init__(self, obey_child=True, ratio=1.0)
+        GObject.GObject.__init__(self, obey_child=True, ratio=1.0)
         self.fig = Figure(facecolor='w')
         self.axis = self.fig.add_axes([0.0,0.0,1,1], aspect='equal', frameon=False)
         _fd = self.get_pango_context().get_font_description()
         rcParams['font.family'] = 'sans-serif'
         rcParams['font.sans-serif'] = _fd.get_family()
-        rcParams['font.size'] = _fd.get_size()/pango.SCALE
+        rcParams['font.size'] = _fd.get_size()/Pango.SCALE
         self._destroyed = False
         
-        self.canvas = FigureCanvas( self.fig )  # a gtk.DrawingArea
+        self.canvas = FigureCanvas( self.fig )  # a Gtk.DrawingArea
         self.add( self.canvas )
-        self.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
+        self.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
         self.show_all()
         self.pixel_size = pixel_size
         self.detector_size = detector_size
@@ -53,12 +53,12 @@ class Predictor( gtk.AspectFrame ):
         self.distance = 250.0
         self.last_updated = 0
         self._can_update = True
-        self.canvas.set_events(gtk.gdk.EXPOSURE_MASK |
-                gtk.gdk.LEAVE_NOTIFY_MASK |
-                gtk.gdk.BUTTON_PRESS_MASK |
-                gtk.gdk.POINTER_MOTION_MASK |
-                gtk.gdk.POINTER_MOTION_HINT_MASK|
-                gtk.gdk.VISIBILITY_NOTIFY_MASK)  
+        self.canvas.set_events(Gdk.EventMask.EXPOSURE_MASK |
+                Gdk.EventMask.LEAVE_NOTIFY_MASK |
+                Gdk.EventMask.BUTTON_PRESS_MASK |
+                Gdk.EventMask.POINTER_MOTION_MASK |
+                Gdk.EventMask.POINTER_MOTION_HINT_MASK|
+                Gdk.EventMask.VISIBILITY_NOTIFY_MASK)  
         
         self.canvas.connect('visibility-notify-event', self.on_visibility_notify)
         self.canvas.connect('unrealize', self.on_destroy)
@@ -127,7 +127,7 @@ class Predictor( gtk.AspectFrame ):
     
         
     def on_visibility_notify(self, widget, event):
-        if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
+        if event.get_state() == Gdk.VisibilityState.FULLY_OBSCURED:
             self._can_update = False
         else:
             self._can_update = True
@@ -186,7 +186,7 @@ class Predictor( gtk.AspectFrame ):
                 self.xp = xp
                 self.yp = yp
                 self.Z = Z
-                gobject.idle_add(self.display)
+                GObject.idle_add(self.display)
             try:
                 time.sleep(0.05)
             except:

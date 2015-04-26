@@ -1,31 +1,31 @@
 import os
-import gtk
-import pango
+from gi.repository import Gtk
+from gi.repository import Pango
 import re
 from mxdc.utils import gui, config
 
 MAIN_WINDOW = None
 
 _IMAGE_TYPES = {
-    gtk.MESSAGE_INFO: gtk.STOCK_DIALOG_INFO,
-    gtk.MESSAGE_WARNING : gtk.STOCK_DIALOG_WARNING,
-    gtk.MESSAGE_QUESTION : gtk.STOCK_DIALOG_QUESTION,
-    gtk.MESSAGE_ERROR : gtk.STOCK_DIALOG_ERROR,
+    Gtk.MessageType.INFO: Gtk.STOCK_DIALOG_INFO,
+    Gtk.MessageType.WARNING : Gtk.STOCK_DIALOG_WARNING,
+    Gtk.MessageType.QUESTION : Gtk.STOCK_DIALOG_QUESTION,
+    Gtk.MessageType.ERROR : Gtk.STOCK_DIALOG_ERROR,
 }
 
 _BUTTON_TYPES = {
-    gtk.BUTTONS_NONE: (),
-    gtk.BUTTONS_OK: (gtk.STOCK_OK, gtk.RESPONSE_OK,),
-    gtk.BUTTONS_CLOSE: (gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE,),
-    gtk.BUTTONS_CANCEL: (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,),
-    gtk.BUTTONS_YES_NO: (gtk.STOCK_NO, gtk.RESPONSE_NO,
-                         gtk.STOCK_YES, gtk.RESPONSE_YES),
-    gtk.BUTTONS_OK_CANCEL: (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                            gtk.STOCK_OK, gtk.RESPONSE_OK),
+    Gtk.ButtonsType.NONE: (),
+    Gtk.ButtonsType.OK: (Gtk.STOCK_OK, Gtk.ResponseType.OK,),
+    Gtk.ButtonsType.CLOSE: (Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE,),
+    Gtk.ButtonsType.CANCEL: (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,),
+    Gtk.ButtonsType.YES_NO: (Gtk.STOCK_NO, Gtk.ResponseType.NO,
+                         Gtk.STOCK_YES, Gtk.ResponseType.YES),
+    Gtk.ButtonsType.OK_CANCEL: (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                            Gtk.STOCK_OK, Gtk.ResponseType.OK),
     }
     
-class AlertDialog(gtk.Dialog):
-    def __init__(self, parent, flags, dialog_type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_NONE):
+class AlertDialog(Gtk.Dialog):
+    def __init__(self, parent, flags, dialog_type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.NONE):
         if not dialog_type in _IMAGE_TYPES:
             raise TypeError(
                 "dialog_type must be one of: %s", ', '.join(_IMAGE_TYPES.keys()))
@@ -33,18 +33,18 @@ class AlertDialog(gtk.Dialog):
             raise TypeError(
                 "buttons be one of: %s", ', '.join(_BUTTON_TYPES.keys()))
 
-        gtk.Dialog.__init__(self, '', parent, flags)
-        self.set_position(gtk.WIN_POS_CENTER_ALWAYS)
+        GObject.GObject.__init__(self, '', parent, flags)
+        self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
         self.set_border_width(5)
         self.set_resizable(False)
         self.set_has_separator(False)
         self.set_title(" ")
         self.set_skip_taskbar_hint(True)
 
-        self._primary_label = gtk.Label()
-        self._secondary_label = gtk.Label()
-        self._image = gtk.image_new_from_stock(_IMAGE_TYPES[dialog_type],
-                                               gtk.ICON_SIZE_DIALOG)
+        self._primary_label = Gtk.Label()
+        self._secondary_label = Gtk.Label()
+        self._image = Gtk.Image.new_from_stock(_IMAGE_TYPES[dialog_type],
+                                               Gtk.IconSize.DIALOG)
         self._image.set_alignment(0.5, 0.0)
 
         self._primary_label.set_use_markup(True)
@@ -53,8 +53,8 @@ class AlertDialog(gtk.Dialog):
             label.set_selectable(True)
             label.set_alignment(0.0, 0.5)
 
-        hbox = gtk.HBox(False, 12)
-        vbox = gtk.VBox(False, 12)
+        hbox = Gtk.HBox(False, 12)
+        vbox = Gtk.VBox(False, 12)
         hbox.pack_start(self._image, False, False, 0)
         vbox.pack_start(self._primary_label, False, False, 0)
         vbox.pack_start(self._secondary_label, False, False, 0)
@@ -62,20 +62,20 @@ class AlertDialog(gtk.Dialog):
         hbox.set_border_width(5)
         hbox.show_all()
         
-        self.details_buffer = gtk.TextBuffer()
-        self.details_view = gtk.TextView(self.details_buffer)
+        self.details_buffer = Gtk.TextBuffer()
+        self.details_view = Gtk.TextView(self.details_buffer)
         self.details_view.set_editable(False)
         pf = self.details_view.get_pango_context().get_font_description()        
         pf.set_size(int(pf.get_size() * 0.85))
         self.details_view.modify_font(pf)
         
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        sw = Gtk.ScrolledWindow()
+        sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        sw.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
         sw.add(self.details_view)
         sw.set_size_request(-1, 200)
         
-        self._expander = gtk.Expander("Details")
+        self._expander = Gtk.Expander("Details")
         self._expander.add(sw)
         self._expander.set_border_width(5)
         self._expander.show_all()
@@ -107,42 +107,42 @@ class MyDialog(object):
     """Create and show a MessageDialog.
 
     @param dialog_type: one of constants
-      - gtk.MESSAGE_INFO
-      - gtk.MESSAGE_WARNING
-      - gtk.MESSAGE_QUESTION
-      - gtk.MESSAGE_ERROR
+      - Gtk.MessageType.INFO
+      - Gtk.MessageType.WARNING
+      - Gtk.MessageType.QUESTION
+      - Gtk.MessageType.ERROR
     @param header:      A header text to be inserted in the dialog.
     @param sub_header:  A longer description of the message
     @param details:     Further details of message.
     @param parent:      The parent widget of this dialog
-    @type parent:       a gtk.Window subclass
+    @type parent:       a Gtk.Window subclass
     @param buttons:     The button type that the dialog will be display,
       one of the constants:
-       - gtk.BUTTONS_NONE
-       - gtk.BUTTONS_OK
-       - gtk.BUTTONS_CLOSE
-       - gtk.BUTTONS_CANCEL
-       - gtk.BUTTONS_YES_NO
-       - gtk.BUTTONS_OK_CANCEL
+       - Gtk.ButtonsType.NONE
+       - Gtk.ButtonsType.OK
+       - Gtk.ButtonsType.CLOSE
+       - Gtk.ButtonsType.CANCEL
+       - Gtk.ButtonsType.YES_NO
+       - Gtk.ButtonsType.OK_CANCEL
       or a tuple or 2-sized tuples representing label and response. If label
       is a stock-id a stock icon will be displayed.
     @param default: optional default response id
     """
     def __init__(self, dialog_type, header, sub_header=None, details=None, parent=None,
-                  buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
+                  buttons=Gtk.ButtonsType.OK, default=-1, extra_widgets=None):
         
-        if buttons in (gtk.BUTTONS_NONE, gtk.BUTTONS_OK, gtk.BUTTONS_CLOSE,
-                       gtk.BUTTONS_CANCEL, gtk.BUTTONS_YES_NO,
-                       gtk.BUTTONS_OK_CANCEL):
+        if buttons in (Gtk.ButtonsType.NONE, Gtk.ButtonsType.OK, Gtk.ButtonsType.CLOSE,
+                       Gtk.ButtonsType.CANCEL, Gtk.ButtonsType.YES_NO,
+                       Gtk.ButtonsType.OK_CANCEL):
             dialog_buttons = buttons
             buttons = []
         else:
-            dialog_buttons = gtk.BUTTONS_NONE
+            dialog_buttons = Gtk.ButtonsType.NONE
 
         if parent is None:
             parent = MAIN_WINDOW
 
-        self.dialog = AlertDialog(parent=parent, flags=gtk.DIALOG_MODAL,
+        self.dialog = AlertDialog(parent=parent, flags=Gtk.DialogFlags.MODAL,
                            dialog_type=dialog_type, buttons=dialog_buttons)
         for text, response in buttons:
             btn = self.dialog.add_button(text, response)
@@ -155,7 +155,7 @@ class MyDialog(object):
             self.dialog.set_secondary(sub_header)
             
         if details:
-            if isinstance(details, gtk.Widget):
+            if isinstance(details, Gtk.Widget):
                 self.dialog.set_details_widget(details)
             elif isinstance(details, basestring):
                 self.dialog.set_details(details)
@@ -181,34 +181,34 @@ class MyDialog(object):
         self.dialog.destroy()
     
 
-def _simple(dialog_type, header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK,
+def _simple(dialog_type, header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK,
           default=-1, extra_widgets=None):
-    if buttons == gtk.BUTTONS_OK:
-        default = gtk.RESPONSE_OK
+    if buttons == Gtk.ButtonsType.OK:
+        default = Gtk.ResponseType.OK
     messagedialog = MyDialog(dialog_type, header, sub_header, details,
                          parent=parent, buttons=buttons,
                          default=default, extra_widgets=extra_widgets)
     return messagedialog()
 
-def error(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
-    return _simple(gtk.MESSAGE_ERROR, header, sub_header, details, parent=parent,
+def error(header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK, default=-1, extra_widgets=None):
+    return _simple(Gtk.MessageType.ERROR, header, sub_header, details, parent=parent,
                    buttons=buttons, default=default, extra_widgets=extra_widgets)
 
-def info(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
-    return _simple(gtk.MESSAGE_INFO, header, sub_header, details, parent=parent,
+def info(header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK, default=-1, extra_widgets=None):
+    return _simple(Gtk.MessageType.INFO, header, sub_header, details, parent=parent,
                    buttons=buttons, default=default, extra_widgets=extra_widgets)
 
-def warning(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
-    return _simple(gtk.MESSAGE_WARNING, header, sub_header, details, parent=parent,
+def warning(header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK, default=-1, extra_widgets=None):
+    return _simple(Gtk.MessageType.WARNING, header, sub_header, details, parent=parent,
                    buttons=buttons, default=default, extra_widgets=extra_widgets)
 
-def question(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
-    return _simple(gtk.MESSAGE_QUESTION, header, sub_header, details, parent=parent,
+def question(header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK, default=-1, extra_widgets=None):
+    return _simple(Gtk.MessageType.QUESTION, header, sub_header, details, parent=parent,
                    buttons=buttons, default=default, extra_widgets=extra_widgets)
 
-def yesno(header, sub_header=None, details=None, parent=None, default=gtk.RESPONSE_YES,
-          buttons=gtk.BUTTONS_YES_NO):
-    messagedialog = MyDialog(gtk.MESSAGE_WARNING, header, sub_header, details, parent,
+def yesno(header, sub_header=None, details=None, parent=None, default=Gtk.ResponseType.YES,
+          buttons=Gtk.ButtonsType.YES_NO):
+    messagedialog = MyDialog(Gtk.MessageType.WARNING, header, sub_header, details, parent,
                          buttons=buttons, default=default)
     return messagedialog()
 
@@ -230,32 +230,32 @@ def check_folder(directory, parent=None, warn=True):
     return True
 
 def select_opensave_file(title, action, parent=None, filters=[], formats=[], default_folder=None):
-        if action in [gtk.FILE_CHOOSER_ACTION_OPEN, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER]:
-            _stock = gtk.STOCK_OPEN        
+        if action in [Gtk.FileChooserAction.OPEN, Gtk.FileChooserAction.SELECT_FOLDER, Gtk.FileChooserAction.CREATE_FOLDER]:
+            _stock = Gtk.STOCK_OPEN        
         else:
-            _stock = gtk.STOCK_SAVE
-        dialog = gtk.FileChooserDialog(
+            _stock = Gtk.STOCK_SAVE
+        dialog = Gtk.FileChooserDialog(
                     title=title, 
                     action=action,
                     parent=parent,
-                    buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, _stock,   gtk.RESPONSE_OK))
+                    buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, _stock,   Gtk.ResponseType.OK))
         if default_folder is None:
             dialog.set_current_folder(config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']))
         else:
             dialog.set_current_folder(default_folder)
         dialog.set_do_overwrite_confirmation(True)
-        if action == gtk.FILE_CHOOSER_ACTION_OPEN:
+        if action == Gtk.FileChooserAction.OPEN:
             for name, patterns in filters:
-                fil = gtk.FileFilter()
+                fil = Gtk.FileFilter()
                 fil.set_name(name)
                 for pat in patterns:
                     fil.add_pattern(pat)
                 dialog.add_filter(fil)
-        elif action == gtk.FILE_CHOOSER_ACTION_SAVE:
+        elif action == Gtk.FileChooserAction.SAVE:
             format_info = dict(formats)
-            hbox = gtk.HBox(spacing=10)
-            hbox.pack_start(gtk.Label ("Format:"), False, False, 0)
-            cbox = gtk.combo_box_new_text()
+            hbox = Gtk.HBox(spacing=10)
+            hbox.pack_start(Gtk.Label ("Format:", True, True, 0), False, False, 0)
+            cbox = Gtk.ComboBoxText()
             hbox.pack_start(cbox, True, True, 0)
             for fmt in formats:
                 cbox.append_text(fmt[0])
@@ -269,9 +269,9 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[], def
                 dlg.set_current_name(os.path.basename(fname))
             cbox.connect('changed', _cb, dialog, format_info)
             
-        if dialog.run() == gtk.RESPONSE_OK:
+        if dialog.run() == Gtk.ResponseType.OK:
             filename = dialog.get_filename()
-            if action == gtk.FILE_CHOOSER_ACTION_SAVE:
+            if action == Gtk.FileChooserAction.SAVE:
                 txt = cbox.get_active_text()
                 fext = os.path.splitext(filename)[1].lstrip('.').lower()
                 if fext == '':
@@ -288,10 +288,10 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[], def
                 
 
 def select_save_file(title, parent=None, formats=[], default_folder=None):
-    return select_opensave_file(title, gtk.FILE_CHOOSER_ACTION_SAVE, parent=parent, formats=formats, default_folder=default_folder)
+    return select_opensave_file(title, Gtk.FileChooserAction.SAVE, parent=parent, formats=formats, default_folder=default_folder)
 
 def select_open_file(title, parent=None, filters=[], default_folder=None):
-    return select_opensave_file(title, gtk.FILE_CHOOSER_ACTION_OPEN, parent=parent, filters=filters, default_folder=default_folder)
+    return select_opensave_file(title, Gtk.FileChooserAction.OPEN, parent=parent, filters=filters, default_folder=default_folder)
 
 def select_open_image(parent=None, default_folder=None):
     filters = [
@@ -299,23 +299,23 @@ def select_open_image(parent=None, default_folder=None):
         ('XDS Spot files', ["SPOT.XDS*", "*.HKL*"] ),
         ('All files', ["*.*"])
     ]
-    return select_opensave_file('Select Image', gtk.FILE_CHOOSER_ACTION_OPEN, parent=parent, filters=filters, default_folder=default_folder)
+    return select_opensave_file('Select Image', Gtk.FileChooserAction.OPEN, parent=parent, filters=filters, default_folder=default_folder)
 
 class FolderSelector(object):
     def __init__(self, button):
         self.button = button
         self.path = config.SESSION_INFO.get('current_path', config.SESSION_INFO['path'])
-        self.label = gtk.Label('')
+        self.label = Gtk.Label(label='')
         self.label.set_alignment(0,0.5)
         self.folders = config.SESSION_INFO.get('directories', [self.path])
-        self.icon = gtk.image_new_from_stock('gtk-directory', gtk.ICON_SIZE_MENU)
-        hbox = gtk.HBox(False,3)
+        self.icon = Gtk.Image.new_from_stock('gtk-directory', Gtk.IconSize.MENU)
+        hbox = Gtk.HBox(False,3)
         hbox.pack_end(self.icon, False, False, 2)
         hbox.pack_start(self.label, True, True, 0)
-        hbox.pack_start(gtk.VSeparator(), False, False, 0)
+        hbox.pack_start(Gtk.VSeparator(, True, True, 0), False, False, 0)
         hbox.show_all()
         self.button.add(hbox)
-        self.tooltips = gtk.Tooltips()
+        self.tooltips = Gtk.Tooltips()
         self.tooltips.enable()
         self.set_current_folder(self.path)
            
@@ -331,11 +331,11 @@ class FolderSelector(object):
     
     def _create_popup(self):
         # Create Popup menu
-        self.menu = gtk.Menu()
+        self.menu = Gtk.Menu()
         self.menu_items = []
         for idx, folder in enumerate(self.folders[:min(len(self.folders), 10)]):
             if not os.path.exists(folder): continue
-            itm = gtk.ImageMenuItem(gtk.STOCK_DIRECTORY)
+            itm = Gtk.ImageMenuItem(Gtk.STOCK_DIRECTORY)
             name = os.path.relpath(folder, os.environ['HOME'])
             if len(name) > len(folder):
                 name = folder
@@ -345,10 +345,10 @@ class FolderSelector(object):
             itm.show()
             self.menu.append(itm)
             self.menu_items.append(itm)
-        sep = gtk.SeparatorMenuItem()
+        sep = Gtk.SeparatorMenuItem()
         sep.show()
         self.menu.append(sep)
-        itm = gtk.MenuItem('Other ...')
+        itm = Gtk.MenuItem('Other ...')
         itm.show()
         itm.connect("activate", self._on_select_other)
         self.menu.append(itm)
@@ -358,11 +358,11 @@ class FolderSelector(object):
         self.set_current_folder(folder)
 
     def _on_select_other(self, obj):
-        file_open = gtk.FileChooserDialog(
+        file_open = Gtk.FileChooserDialog(
                         title="Select Folder",
                         parent=self.button.get_toplevel(),
-                        action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                        buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+                        action=Gtk.FileChooserAction.SELECT_FOLDER,
+                        buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
         file_open.set_current_folder(self.path)
         file_open.set_modal(True)
         file_open.connect('response', self._on_dialog_action)
@@ -370,7 +370,7 @@ class FolderSelector(object):
         file_open.show()
         
     def _on_dialog_action(self, dialog, response_id):
-        if response_id == gtk.RESPONSE_OK:
+        if response_id == Gtk.ResponseType.OK:
             result = dialog.get_filename()
             if result is not None:
                 _error_flag = False
@@ -411,12 +411,12 @@ class FolderSelector(object):
         self._create_popup()
         self.label.set_text(self.path)
         self.tooltips.set_tip(self.button, self.path)
-        self.label.set_ellipsize(pango.ELLIPSIZE_START)
+        self.label.set_ellipsize(Pango.EllipsizeMode.START)
  
 
-class FolderSelectorButton(gtk.Button):
+class FolderSelectorButton(Gtk.Button):
     def __init__(self):
-        gtk.Button.__init__(self)
+        GObject.GObject.__init__(self)
         self.selector = FolderSelector(self)
     
     def set_current_folder(self, path):

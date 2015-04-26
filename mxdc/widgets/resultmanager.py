@@ -1,33 +1,33 @@
 
-from bcm.beamline.mx import IBeamline
-from bcm.utils import lims_tools, runlists, json
-from bcm.utils.log import get_module_logger
-from bcm.utils.misc import get_project_name
-from bcm.utils.science import SPACE_GROUP_NAMES
+from mxdc.beamline.mx import IBeamline
+from mxdc.utils import lims_tools, runlists, json
+from mxdc.utils.log import get_module_logger
+from mxdc.utils.misc import get_project_name
+from mxdc.utils.science import SPACE_GROUP_NAMES
 from mxdc.utils import gui, config
 from mxdc.widgets.datalist import DataList
 from mxdc.widgets import resultlist
 from twisted.python.components import globalRegistry
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 import os
 
 
 _logger = get_module_logger(__name__)
 
-import webkit
+from gi.repository import WebKit
 browser_engine = 'webkit'
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-class ResultManager(gtk.Alignment):
+class ResultManager(Gtk.Alignment):
     __gsignals__ = {
-        'sample-selected': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
-        'update-strategy': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'sample-selected': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_PYOBJECT,]),
+        'update-strategy': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
     }
     
     def __init__(self):
-        gtk.Alignment.__init__(self, 0, 0, 1, 1)
+        GObject.GObject.__init__(self, 0, 0, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'result_manager'), 
                                   'result_manager')
 
@@ -112,18 +112,18 @@ class ResultManager(gtk.Alignment):
 
     def on_load_dataset(self, obj):
         
-        file_open = gtk.FileChooserDialog(title="Select Datasets to add",
-                action=gtk.FILE_CHOOSER_ACTION_OPEN,
+        file_open = Gtk.FileChooserDialog(title="Select Datasets to add",
+                action=Gtk.FileChooserAction.OPEN,
                 parent=self.get_toplevel(),
-                buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+                buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
         file_open.set_select_multiple(True)
-        dataset_filter = gtk.FileFilter()
+        dataset_filter = Gtk.FileFilter()
         dataset_filter.set_name("Dataset Summary")
         dataset_filter.add_pattern("*.SUMMARY")
         file_open.add_filter(dataset_filter)
         file_open.set_current_folder(self._dataset_path)
 
-        if file_open.run() == gtk.RESPONSE_OK:
+        if file_open.run() == Gtk.ResponseType.OK:
             filenames = file_open.get_filenames()
         else:
             filenames = []
@@ -294,9 +294,9 @@ class ResultManager(gtk.Alignment):
             
             _logger.info('Loading results in %s' % uri)
             if browser_engine == 'webkit':
-                gobject.idle_add(self.browser.load_uri, uri)
+                GObject.idle_add(self.browser.load_uri, uri)
             else:
-                gobject.idle_add(self.browser.load_url, uri)            
+                GObject.idle_add(self.browser.load_url, uri)            
         else:
             _logger.warning('Formatted results are not available.')
                 

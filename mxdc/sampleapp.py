@@ -10,11 +10,11 @@ from twisted.internet import glib2reactor
 glib2reactor.install()
 from twisted.internet import reactor
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 
-from bcm.beamline.mx import MXBeamline
-from bcm.utils.log import get_module_logger
+from mxdc.beamline.mx import MXBeamline
+from mxdc.utils.log import get_module_logger
 from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.misc import CryojetWidget
 
@@ -22,13 +22,13 @@ _logger = get_module_logger('sampleviewer')
     
 def main():
 
-    win = gtk.Window()
+    win = Gtk.Window()
     win.connect("destroy", lambda x: reactor.stop())
     win.set_border_width(6)
     win.set_size_request(800,540)
     
     win.set_title("SampleViewer")
-    book = gtk.Notebook()
+    book = Gtk.Notebook()
     #win.add(book)
     try:
         _ = os.environ['BCM_CONFIG_PATH']
@@ -41,13 +41,13 @@ def main():
     myviewer = SampleViewer()
     myviewer.show_all()
     cryo_controller = CryojetWidget(bl.cryojet)
-    cryo_align = gtk.Alignment(0.5,0.5, 0, 0)
+    cryo_align = Gtk.Alignment.new(0.5,0.5, 0, 0)
     cryo_align.set_border_width(12)
     cryo_align.add(cryo_controller)
     cryo_controller.set_border_width(6)
 
-    book.append_page(myviewer, tab_label=gtk.Label(' Sample Camera ') )
-    book.append_page(cryo_align, tab_label=gtk.Label(' Cryojet Control '))
+    book.append_page(myviewer, tab_label=Gtk.Label(label=' Sample Camera ') )
+    book.append_page(cryo_align, tab_label=Gtk.Label(label=' Cryojet Control '))
     win.add(book)
     win.show_all()
 

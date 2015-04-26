@@ -57,11 +57,11 @@
             
   <div class="section" id="devices">
 <h1>Devices<a class="headerlink" href="#devices" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="module-bcm.device.base">
-<span id="base-device"></span><h2>Base Device<a class="headerlink" href="#module-bcm.device.base" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-bcm.device.base"></span><dl class="class">
-<dt id="bcm.device.base.BaseDevice">
-<em class="property">class </em><tt class="descclassname">bcm.device.base.</tt><tt class="descname">BaseDevice</tt><a class="headerlink" href="#bcm.device.base.BaseDevice" title="Permalink to this definition">¶</a></dt>
+<div class="section" id="module-mxdc.device.base">
+<span id="base-device"></span><h2>Base Device<a class="headerlink" href="#module-mxdc.device.base" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-mxdc.device.base"></span><dl class="class">
+<dt id="mxdc.device.base.BaseDevice">
+<em class="property">class </em><tt class="descclassname">mxdc.device.base.</tt><tt class="descname">BaseDevice</tt><a class="headerlink" href="#mxdc.device.base.BaseDevice" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">gobject._gobject.GObject</span></tt></p>
 <p>A generic device object class.  All devices should be derived from this 
 class. Objects of this class are instances of <cite>gobject.GObject</cite>.</p>
@@ -69,7 +69,7 @@ class. Objects of this class are instances of <cite>gobject.GObject</cite>.</p>
 <blockquote>
 <div><ul class="simple">
 <li><cite>pending_devs</cite>: a list of inactive child devices.</li>
-<li><cite>health_manager</cite>: A <a class="reference internal" href="#bcm.device.base.HealthManager" title="bcm.device.base.HealthManager"><tt class="xref py py-class docutils literal"><span class="pre">HealthManager</span></tt></a> object.</li>
+<li><cite>health_manager</cite>: A <a class="reference internal" href="#mxdc.device.base.HealthManager" title="mxdc.device.base.HealthManager"><tt class="xref py py-class docutils literal"><span class="pre">HealthManager</span></tt></a> object.</li>
 <li><cite>state_info</cite>: A dict containing state information.</li>
 <li><cite>name</cite>:  the name of the device</li>
 </ul>
@@ -130,8 +130,8 @@ name. For example:</p>
 </dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.base.BaseDevice.get_state">
-<tt class="descname">get_state</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.base.BaseDevice.get_state" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.base.BaseDevice.get_state">
+<tt class="descname">get_state</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.base.BaseDevice.get_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain a copy of the device state.</p>
 <dl class="docutils">
 <dt>Returns:</dt>
@@ -150,8 +150,8 @@ at least the following entries:</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.base.BaseDevice.set_state">
-<tt class="descname">set_state</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.base.BaseDevice.set_state" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.base.BaseDevice.set_state">
+<tt class="descname">set_state</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.base.BaseDevice.set_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the state of the device and emit the corresponding signal.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -168,29 +168,29 @@ Signals must be previously defined as supported signals of the device.</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.base.BaseDevice.add_pv">
-<tt class="descname">add_pv</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.base.BaseDevice.add_pv" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.base.BaseDevice.add_pv">
+<tt class="descname">add_pv</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.base.BaseDevice.add_pv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a process variable (PV) to the device.</p>
 <p>Create a new process variable, add it to the device. 
 Keyworded arguments should be the same as those expected for instantiating a
-<tt class="xref py py-class docutils literal"><span class="pre">bcm.protocol.ca.PV</span></tt> object.</p>
+<tt class="xref py py-class docutils literal"><span class="pre">mxdc.protocol.ca.PV</span></tt> object.</p>
 <dl class="docutils">
 <dt>Returns:</dt>
-<dd>A reference to the created <tt class="xref py py-class docutils literal"><span class="pre">bcm.protocol.ca.PV</span></tt> object.</dd>
+<dd>A reference to the created <tt class="xref py py-class docutils literal"><span class="pre">mxdc.protocol.ca.PV</span></tt> object.</dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.base.BaseDevice.add_devices">
-<tt class="descname">add_devices</tt><big>(</big><em>*devices</em><big>)</big><a class="headerlink" href="#bcm.device.base.BaseDevice.add_devices" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.base.BaseDevice.add_devices">
+<tt class="descname">add_devices</tt><big>(</big><em>*devices</em><big>)</big><a class="headerlink" href="#mxdc.device.base.BaseDevice.add_devices" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add one or more devices as children of this device.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.base.HealthManager">
-<em class="property">class </em><tt class="descclassname">bcm.device.base.</tt><tt class="descname">HealthManager</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.base.HealthManager">
+<em class="property">class </em><tt class="descclassname">mxdc.device.base.</tt><tt class="descname">HealthManager</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.base.HealthManager" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p>Manages the health states. The object enables registration and removal of
 error states and consistent reporting of health based on all currently 
@@ -199,14 +199,14 @@ active health issues.</p>
 the value is an error string to be returned instead of the context name
 with all health information for the given context.</p>
 <dl class="method">
-<dt id="bcm.device.base.HealthManager.register_messages">
-<tt class="descname">register_messages</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager.register_messages" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.base.HealthManager.register_messages">
+<tt class="descname">register_messages</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.base.HealthManager.register_messages" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update or add entries to the context message register</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.base.HealthManager.add">
-<tt class="descname">add</tt><big>(</big><em>severity</em>, <em>context</em>, <em>msg=None</em><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager.add" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.base.HealthManager.add">
+<tt class="descname">add</tt><big>(</big><em>severity</em>, <em>context</em>, <em>msg=None</em><big>)</big><a class="headerlink" href="#mxdc.device.base.HealthManager.add" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds an error state of the given context as a string
 and a severity value as a integer. If a message is given, it will be 
 stored and used instead of the context name. Only one message per context
@@ -214,14 +214,14 @@ type is allowed. Use a different context if you want different messages.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.base.HealthManager.remove">
-<tt class="descname">remove</tt><big>(</big><em>context</em><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager.remove" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.base.HealthManager.remove">
+<tt class="descname">remove</tt><big>(</big><em>context</em><big>)</big><a class="headerlink" href="#mxdc.device.base.HealthManager.remove" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove all errors of the given context as a string.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.base.HealthManager.get_health">
-<tt class="descname">get_health</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.base.HealthManager.get_health" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.base.HealthManager.get_health">
+<tt class="descname">get_health</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.base.HealthManager.get_health" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate an error code and string based on all the currently registered
 errors within the health registry.</p>
 </dd></dl>
@@ -229,12 +229,12 @@ errors within the health registry.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.device.automounter">
-<span id="automounter"></span><h2>Automounter<a class="headerlink" href="#module-bcm.device.automounter" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.device.automounter">
+<span id="automounter"></span><h2>Automounter<a class="headerlink" href="#module-mxdc.device.automounter" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="bcm.device.automounter.BasicAutomounter">
-<em class="property">class </em><tt class="descclassname">bcm.device.automounter.</tt><tt class="descname">BasicAutomounter</tt><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.device.automounter.BasicAutomounter">
+<em class="property">class </em><tt class="descclassname">mxdc.device.automounter.</tt><tt class="descname">BasicAutomounter</tt><a class="headerlink" href="#mxdc.device.automounter.BasicAutomounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>Basic Automounter object.</p>
 <p>An automounter object contains a number of AutomounterContainers.</p>
 <dl class="docutils">
@@ -259,20 +259,20 @@ mounting and <cite>None</cite> when dismounting.</p>
 </dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.automounter.BasicAutomounter.abort">
-<tt class="descname">abort</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.abort" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.automounter.BasicAutomounter.abort">
+<tt class="descname">abort</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.automounter.BasicAutomounter.abort" title="Permalink to this definition">¶</a></dt>
 <dd><p>Abort all actions.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.automounter.BasicAutomounter.probe">
-<tt class="descname">probe</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.probe" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.automounter.BasicAutomounter.probe">
+<tt class="descname">probe</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.automounter.BasicAutomounter.probe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Command the automounter the probe for containers and port states.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.automounter.BasicAutomounter.mount">
-<tt class="descname">mount</tt><big>(</big><em>port</em>, <em>wash=False</em>, <em>wait=False</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.mount" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.automounter.BasicAutomounter.mount">
+<tt class="descname">mount</tt><big>(</big><em>port</em>, <em>wash=False</em>, <em>wait=False</em><big>)</big><a class="headerlink" href="#mxdc.device.automounter.BasicAutomounter.mount" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mount the sample at the specified port, optionally washing the sample
 in the process. Does nothing if the requested port is already mounted.
 Dismounts the mounted sample prior to mounting if a another sample is 
@@ -296,8 +296,8 @@ otherwise.</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.automounter.BasicAutomounter.dismount">
-<tt class="descname">dismount</tt><big>(</big><em>port=None</em>, <em>wait=False</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.dismount" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.automounter.BasicAutomounter.dismount">
+<tt class="descname">dismount</tt><big>(</big><em>port=None</em>, <em>wait=False</em><big>)</big><a class="headerlink" href="#mxdc.device.automounter.BasicAutomounter.dismount" title="Permalink to this definition">¶</a></dt>
 <dd><p>Dismount the sample into the specified port if provided, otherwise 
 dismount it to the original port from which it was mounted.</p>
 <dl class="docutils">
@@ -312,8 +312,8 @@ port</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.automounter.BasicAutomounter.wait">
-<tt class="descname">wait</tt><big>(</big><em>start=True</em>, <em>stop=True</em>, <em>timeout=240</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.wait" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.automounter.BasicAutomounter.wait">
+<tt class="descname">wait</tt><big>(</big><em>start=True</em>, <em>stop=True</em>, <em>timeout=240</em><big>)</big><a class="headerlink" href="#mxdc.device.automounter.BasicAutomounter.wait" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wait for the automounter</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -329,8 +329,8 @@ port</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.automounter.BasicAutomounter.is_mountable">
-<tt class="descname">is_mountable</tt><big>(</big><em>port</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.is_mountable" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.automounter.BasicAutomounter.is_mountable">
+<tt class="descname">is_mountable</tt><big>(</big><em>port</em><big>)</big><a class="headerlink" href="#mxdc.device.automounter.BasicAutomounter.is_mountable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if a sample location can be mounted safely. Does not guarantee
 that the port is actually mountable, only that the the port was marked 
 as mountable during the last probe operation.</p>
@@ -343,8 +343,8 @@ as mountable during the last probe operation.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.automounter.BasicAutomounter.is_mounted">
-<tt class="descname">is_mounted</tt><big>(</big><em>port=None</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.is_mounted" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.automounter.BasicAutomounter.is_mounted">
+<tt class="descname">is_mounted</tt><big>(</big><em>port=None</em><big>)</big><a class="headerlink" href="#mxdc.device.automounter.BasicAutomounter.is_mounted" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if any sample or a specific sample location is currently 
 mounted.</p>
 <dl class="docutils">
@@ -357,8 +357,8 @@ specified and any sample is mounted. False otherwise.</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.automounter.BasicAutomounter.get_port_state">
-<tt class="descname">get_port_state</tt><big>(</big><em>port</em><big>)</big><a class="headerlink" href="#bcm.device.automounter.BasicAutomounter.get_port_state" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.automounter.BasicAutomounter.get_port_state">
+<tt class="descname">get_port_state</tt><big>(</big><em>port</em><big>)</big><a class="headerlink" href="#mxdc.device.automounter.BasicAutomounter.get_port_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain the detailed state of the specified sample location.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -380,12 +380,12 @@ specified and any sample is mounted. False otherwise.</dd>
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.device.counter">
-<span id="counters"></span><h2>Counters<a class="headerlink" href="#module-bcm.device.counter" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.device.counter">
+<span id="counters"></span><h2>Counters<a class="headerlink" href="#module-mxdc.device.counter" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="bcm.device.counter.Counter">
-<em class="property">class </em><tt class="descclassname">bcm.device.counter.</tt><tt class="descname">Counter</tt><big>(</big><em>pv_name</em>, <em>zero=0.0</em><big>)</big><a class="headerlink" href="#bcm.device.counter.Counter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.device.counter.Counter">
+<em class="property">class </em><tt class="descclassname">mxdc.device.counter.</tt><tt class="descname">Counter</tt><big>(</big><em>pv_name</em>, <em>zero=0.0</em><big>)</big><a class="headerlink" href="#mxdc.device.counter.Counter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>EPICS based Counter Device objects. Enables counting and averaging of 
 process variables over given time periods.</p>
 <dl class="docutils">
@@ -397,8 +397,8 @@ process variables over given time periods.</p>
 <dd>float. The average process variable value during the count time.</dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.counter.Counter.count">
-<tt class="descname">count</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#bcm.device.counter.Counter.count" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.counter.Counter.count">
+<tt class="descname">count</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#mxdc.device.counter.Counter.count" title="Permalink to this definition">¶</a></dt>
 <dd><p>Count for the specified amount of time and return the numeric value
 corresponding to the average count. This method blocks for the specified 
 time.</p>
@@ -413,12 +413,12 @@ time.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.device.detector">
-<span id="detector"></span><h2>Detector<a class="headerlink" href="#module-bcm.device.detector" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.device.detector">
+<span id="detector"></span><h2>Detector<a class="headerlink" href="#module-mxdc.device.detector" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="bcm.device.detector.MXCCDImager">
-<em class="property">class </em><tt class="descclassname">bcm.device.detector.</tt><tt class="descname">MXCCDImager</tt><big>(</big><em>name</em>, <em>size</em>, <em>resolution</em>, <em>detector_type='MX300'</em><big>)</big><a class="headerlink" href="#bcm.device.detector.MXCCDImager" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.device.detector.MXCCDImager">
+<em class="property">class </em><tt class="descclassname">mxdc.device.detector.</tt><tt class="descname">MXCCDImager</tt><big>(</big><em>name</em>, <em>size</em>, <em>resolution</em>, <em>detector_type='MX300'</em><big>)</big><a class="headerlink" href="#mxdc.device.detector.MXCCDImager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>MX Detector object for EPICS based Rayonix CCD detectors at the CLS.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -431,8 +431,8 @@ detectors.
 MX CCD 300.</dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.detector.MXCCDImager.initialize">
-<tt class="descname">initialize</tt><big>(</big><em>wait=True</em><big>)</big><a class="headerlink" href="#bcm.device.detector.MXCCDImager.initialize" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.detector.MXCCDImager.initialize">
+<tt class="descname">initialize</tt><big>(</big><em>wait=True</em><big>)</big><a class="headerlink" href="#mxdc.device.detector.MXCCDImager.initialize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize the detector and take background images if necessary. This
 method does not do anything if the device is already initialized.</p>
 <dl class="docutils">
@@ -443,8 +443,8 @@ complete.</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.detector.MXCCDImager.start">
-<tt class="descname">start</tt><big>(</big><em>first=False</em><big>)</big><a class="headerlink" href="#bcm.device.detector.MXCCDImager.start" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.detector.MXCCDImager.start">
+<tt class="descname">start</tt><big>(</big><em>first=False</em><big>)</big><a class="headerlink" href="#mxdc.device.detector.MXCCDImager.start" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start acquiring.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -454,14 +454,14 @@ acquisitions. This is used to customize the behaviour for the first.</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.detector.MXCCDImager.stop">
-<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.detector.MXCCDImager.stop" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.detector.MXCCDImager.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.detector.MXCCDImager.stop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stop and Abort the current acquisition.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.detector.MXCCDImager.save">
-<tt class="descname">save</tt><big>(</big><em>wait=False</em><big>)</big><a class="headerlink" href="#bcm.device.detector.MXCCDImager.save" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.detector.MXCCDImager.save">
+<tt class="descname">save</tt><big>(</big><em>wait=False</em><big>)</big><a class="headerlink" href="#mxdc.device.detector.MXCCDImager.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save the current buffers according to the current parameters.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -471,8 +471,8 @@ is complete.</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.detector.MXCCDImager.get_origin">
-<tt class="descname">get_origin</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.detector.MXCCDImager.get_origin" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.detector.MXCCDImager.get_origin">
+<tt class="descname">get_origin</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.detector.MXCCDImager.get_origin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain the detector origin/beam position in pixels.</p>
 <dl class="docutils">
 <dt>Returns:</dt>
@@ -481,8 +481,8 @@ is complete.</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.detector.MXCCDImager.wait">
-<tt class="descname">wait</tt><big>(</big><em>state='idle'</em><big>)</big><a class="headerlink" href="#bcm.device.detector.MXCCDImager.wait" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.detector.MXCCDImager.wait">
+<tt class="descname">wait</tt><big>(</big><em>state='idle'</em><big>)</big><a class="headerlink" href="#mxdc.device.detector.MXCCDImager.wait" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wait until the detector reaches a given state.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -491,8 +491,8 @@ is complete.</dd>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.detector.MXCCDImager.set_parameters">
-<tt class="descname">set_parameters</tt><big>(</big><em>data</em><big>)</big><a class="headerlink" href="#bcm.device.detector.MXCCDImager.set_parameters" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.detector.MXCCDImager.set_parameters">
+<tt class="descname">set_parameters</tt><big>(</big><em>data</em><big>)</big><a class="headerlink" href="#mxdc.device.detector.MXCCDImager.set_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the detector parameters for the image header and file names.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -523,12 +523,12 @@ supported parameters are:</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.device.diffractometer">
-<span id="diffractometer"></span><h2>Diffractometer<a class="headerlink" href="#module-bcm.device.diffractometer" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.device.diffractometer">
+<span id="diffractometer"></span><h2>Diffractometer<a class="headerlink" href="#module-mxdc.device.diffractometer" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="bcm.device.diffractometer.Diffractometer">
-<em class="property">class </em><tt class="descclassname">bcm.device.diffractometer.</tt><tt class="descname">Diffractometer</tt><big>(</big><em>distance</em>, <em>two_theta</em>, <em>name='Diffractometer'</em><big>)</big><a class="headerlink" href="#bcm.device.diffractometer.Diffractometer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.device.diffractometer.Diffractometer">
+<em class="property">class </em><tt class="descclassname">mxdc.device.diffractometer.</tt><tt class="descname">Diffractometer</tt><big>(</big><em>distance</em>, <em>two_theta</em>, <em>name='Diffractometer'</em><big>)</big><a class="headerlink" href="#mxdc.device.diffractometer.Diffractometer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>A Container device object which groups a detector distance and detector
 swing-out.</p>
 <dl class="docutils">
@@ -544,26 +544,26 @@ the detector swing-out angle.</li>
 <dd><cite>name</cite> (str): The name of the device group.</dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.diffractometer.Diffractometer.wait">
-<tt class="descname">wait</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.diffractometer.Diffractometer.wait" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.diffractometer.Diffractometer.wait">
+<tt class="descname">wait</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.diffractometer.Diffractometer.wait" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wait for both child devices to finish moving.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.diffractometer.Diffractometer.stop">
-<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.diffractometer.Diffractometer.stop" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.diffractometer.Diffractometer.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.diffractometer.Diffractometer.stop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stop both child devices.</p>
 </dd></dl>
 
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.device.goniometer">
-<span id="goniometer"></span><h2>Goniometer<a class="headerlink" href="#module-bcm.device.goniometer" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.device.goniometer">
+<span id="goniometer"></span><h2>Goniometer<a class="headerlink" href="#module-mxdc.device.goniometer" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="bcm.device.goniometer.BackLight">
-<em class="property">class </em><tt class="descclassname">bcm.device.goniometer.</tt><tt class="descname">BackLight</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.BackLight" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.misc.BasicShutter</span></tt></p>
+<dt id="mxdc.device.goniometer.BackLight">
+<em class="property">class </em><tt class="descclassname">mxdc.device.goniometer.</tt><tt class="descname">BackLight</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#mxdc.device.goniometer.BackLight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.misc.BasicShutter</span></tt></p>
 <p>A specialized in-out actuator for pneumatic OAV backlight at the CLS.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -572,9 +572,9 @@ the detector swing-out angle.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.goniometer.Goniometer">
-<em class="property">class </em><tt class="descclassname">bcm.device.goniometer.</tt><tt class="descname">Goniometer</tt><big>(</big><em>name</em>, <em>blname</em>, <em>mntname</em>, <em>minibeam</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.Goniometer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.goniometer.GoniometerBase</span></tt></p>
+<dt id="mxdc.device.goniometer.Goniometer">
+<em class="property">class </em><tt class="descclassname">mxdc.device.goniometer.</tt><tt class="descname">Goniometer</tt><big>(</big><em>name</em>, <em>blname</em>, <em>mntname</em>, <em>minibeam</em><big>)</big><a class="headerlink" href="#mxdc.device.goniometer.Goniometer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.goniometer.GoniometerBase</span></tt></p>
 <p>EPICS based Parker-type Goniometer at the CLS 08ID-1.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -587,8 +587,8 @@ the detector swing-out angle.</li>
 </dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.goniometer.Goniometer.configure">
-<tt class="descname">configure</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.Goniometer.configure" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.goniometer.Goniometer.configure">
+<tt class="descname">configure</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.goniometer.Goniometer.configure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Configure the goniometer to perform an oscillation scan.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -599,8 +599,8 @@ the detector swing-out angle.</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.goniometer.Goniometer.set_mode">
-<tt class="descname">set_mode</tt><big>(</big><em>mode</em>, <em>wait=False</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.Goniometer.set_mode" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.goniometer.Goniometer.set_mode">
+<tt class="descname">set_mode</tt><big>(</big><em>mode</em>, <em>wait=False</em><big>)</big><a class="headerlink" href="#mxdc.device.goniometer.Goniometer.set_mode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the mode of the goniometer environment.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -628,8 +628,8 @@ the detector swing-out angle.</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.goniometer.Goniometer.scan">
-<tt class="descname">scan</tt><big>(</big><em>wait=True</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.Goniometer.scan" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.goniometer.Goniometer.scan">
+<tt class="descname">scan</tt><big>(</big><em>wait=True</em><big>)</big><a class="headerlink" href="#mxdc.device.goniometer.Goniometer.scan" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform an oscillation scan according to the currently set parameters</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -644,9 +644,9 @@ the detector swing-out angle.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.goniometer.MD2Goniometer">
-<em class="property">class </em><tt class="descclassname">bcm.device.goniometer.</tt><tt class="descname">MD2Goniometer</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.MD2Goniometer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.goniometer.GoniometerBase</span></tt></p>
+<dt id="mxdc.device.goniometer.MD2Goniometer">
+<em class="property">class </em><tt class="descclassname">mxdc.device.goniometer.</tt><tt class="descname">MD2Goniometer</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#mxdc.device.goniometer.MD2Goniometer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.goniometer.GoniometerBase</span></tt></p>
 <p>EPICS based MD2-type Goniometer at the CLS 08B1-1.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -656,8 +656,8 @@ the detector swing-out angle.</li>
 </dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.goniometer.MD2Goniometer.configure">
-<tt class="descname">configure</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.MD2Goniometer.configure" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.goniometer.MD2Goniometer.configure">
+<tt class="descname">configure</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.goniometer.MD2Goniometer.configure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Configure the goniometer to perform an oscillation scan.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -671,8 +671,8 @@ the detector swing-out angle.</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.goniometer.MD2Goniometer.set_mode">
-<tt class="descname">set_mode</tt><big>(</big><em>mode</em>, <em>wait=False</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.MD2Goniometer.set_mode" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.goniometer.MD2Goniometer.set_mode">
+<tt class="descname">set_mode</tt><big>(</big><em>mode</em>, <em>wait=False</em><big>)</big><a class="headerlink" href="#mxdc.device.goniometer.MD2Goniometer.set_mode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the mode of the goniometer environment.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -700,8 +700,8 @@ the detector swing-out angle.</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.goniometer.MD2Goniometer.scan">
-<tt class="descname">scan</tt><big>(</big><em>wait=True</em><big>)</big><a class="headerlink" href="#bcm.device.goniometer.MD2Goniometer.scan" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.goniometer.MD2Goniometer.scan">
+<tt class="descname">scan</tt><big>(</big><em>wait=True</em><big>)</big><a class="headerlink" href="#mxdc.device.goniometer.MD2Goniometer.scan" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform an oscillation scan according to the currently set parameters</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -714,20 +714,20 @@ asynchronously.</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.goniometer.MD2Goniometer.stop">
-<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.goniometer.MD2Goniometer.stop" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.goniometer.MD2Goniometer.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.goniometer.MD2Goniometer.stop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stop and abort the current scan if any.</p>
 </dd></dl>
 
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.device.mca">
-<span id="multi-channel-analyzer"></span><h2>Multi-Channel Analyzer<a class="headerlink" href="#module-bcm.device.mca" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.device.mca">
+<span id="multi-channel-analyzer"></span><h2>Multi-Channel Analyzer<a class="headerlink" href="#module-mxdc.device.mca" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="bcm.device.mca.XFlashMCA">
-<em class="property">class </em><tt class="descclassname">bcm.device.mca.</tt><tt class="descname">XFlashMCA</tt><big>(</big><em>name</em>, <em>nozzle=None</em>, <em>channels=4096</em><big>)</big><a class="headerlink" href="#bcm.device.mca.XFlashMCA" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.mca.BasicMCA</span></tt></p>
+<dt id="mxdc.device.mca.XFlashMCA">
+<em class="property">class </em><tt class="descclassname">mxdc.device.mca.</tt><tt class="descname">XFlashMCA</tt><big>(</big><em>name</em>, <em>nozzle=None</em>, <em>channels=4096</em><big>)</big><a class="headerlink" href="#mxdc.device.mca.XFlashMCA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.mca.BasicMCA</span></tt></p>
 <p>mcaRecord based single element fluorescence detector object.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -737,14 +737,14 @@ asynchronously.</li>
 </dd>
 <dt>Kwargs:</dt>
 <dd><ul class="first last simple">
-<li><cite>nozzle</cite> (<a class="reference internal" href="#bcm.device.misc.Positioner" title="bcm.device.misc.Positioner"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.misc.Positioner</span></tt></a>): Nozzle positioner.</li>
+<li><cite>nozzle</cite> (<a class="reference internal" href="#mxdc.device.misc.Positioner" title="mxdc.device.misc.Positioner"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.misc.Positioner</span></tt></a>): Nozzle positioner.</li>
 <li><cite>channels</cite> (int):  Number of channels.</li>
 </ul>
 </dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.mca.XFlashMCA.configure">
-<tt class="descname">configure</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.mca.XFlashMCA.configure" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.mca.XFlashMCA.configure">
+<tt class="descname">configure</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.mca.XFlashMCA.configure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Configure the detector for data acquisition.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -765,9 +765,9 @@ disable it.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.mca.VortexMCA">
-<em class="property">class </em><tt class="descclassname">bcm.device.mca.</tt><tt class="descname">VortexMCA</tt><big>(</big><em>name</em>, <em>channels=2048</em><big>)</big><a class="headerlink" href="#bcm.device.mca.VortexMCA" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.mca.BasicMCA</span></tt></p>
+<dt id="mxdc.device.mca.VortexMCA">
+<em class="property">class </em><tt class="descclassname">mxdc.device.mca.</tt><tt class="descname">VortexMCA</tt><big>(</big><em>name</em>, <em>channels=2048</em><big>)</big><a class="headerlink" href="#mxdc.device.mca.VortexMCA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.mca.BasicMCA</span></tt></p>
 <p>EPICS based 4-element Vortex ME4 detector object.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -778,9 +778,9 @@ disable it.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.mca.SimMultiChannelAnalyzer">
-<em class="property">class </em><tt class="descclassname">bcm.device.mca.</tt><tt class="descname">SimMultiChannelAnalyzer</tt><big>(</big><em>name</em>, <em>channels=4096</em><big>)</big><a class="headerlink" href="#bcm.device.mca.SimMultiChannelAnalyzer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.mca.BasicMCA</span></tt></p>
+<dt id="mxdc.device.mca.SimMultiChannelAnalyzer">
+<em class="property">class </em><tt class="descclassname">mxdc.device.mca.</tt><tt class="descname">SimMultiChannelAnalyzer</tt><big>(</big><em>name</em>, <em>channels=4096</em><big>)</big><a class="headerlink" href="#mxdc.device.mca.SimMultiChannelAnalyzer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.mca.BasicMCA</span></tt></p>
 <p>Simulated single channel MCA detector.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -791,38 +791,38 @@ disable it.</li>
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.device.monochromator">
-<span id="monochromator"></span><h2>Monochromator<a class="headerlink" href="#module-bcm.device.monochromator" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.device.monochromator">
+<span id="monochromator"></span><h2>Monochromator<a class="headerlink" href="#module-mxdc.device.monochromator" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="bcm.device.monochromator.Monochromator">
-<em class="property">class </em><tt class="descclassname">bcm.device.monochromator.</tt><tt class="descname">Monochromator</tt><big>(</big><em>simple_energy</em>, <em>energy</em>, <em>mostab=None</em><big>)</big><a class="headerlink" href="#bcm.device.monochromator.Monochromator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.device.monochromator.Monochromator">
+<em class="property">class </em><tt class="descclassname">mxdc.device.monochromator.</tt><tt class="descname">Monochromator</tt><big>(</big><em>simple_energy</em>, <em>energy</em>, <em>mostab=None</em><big>)</big><a class="headerlink" href="#mxdc.device.monochromator.Monochromator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <dl class="method">
-<dt id="bcm.device.monochromator.Monochromator.wait">
-<tt class="descname">wait</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.monochromator.Monochromator.wait" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.monochromator.Monochromator.wait">
+<tt class="descname">wait</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.monochromator.Monochromator.wait" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.monochromator.Monochromator.stop">
-<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.monochromator.Monochromator.stop" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.monochromator.Monochromator.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.monochromator.Monochromator.stop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.device.motor">
-<span id="motors"></span><h2>Motors<a class="headerlink" href="#module-bcm.device.motor" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.device.motor">
+<span id="motors"></span><h2>Motors<a class="headerlink" href="#module-mxdc.device.motor" title="Permalink to this headline">¶</a></h2>
 <dl class="exception">
-<dt id="bcm.device.motor.MotorError">
-<em class="property">exception </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">MotorError</tt><a class="headerlink" href="#bcm.device.motor.MotorError" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.motor.MotorError">
+<em class="property">exception </em><tt class="descclassname">mxdc.device.motor.</tt><tt class="descname">MotorError</tt><a class="headerlink" href="#mxdc.device.motor.MotorError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
 <p>Base class for errors in the motor module.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.motor.MotorBase">
-<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">MotorBase</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.motor.MotorBase" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.device.motor.MotorBase">
+<em class="property">class </em><tt class="descclassname">mxdc.device.motor.</tt><tt class="descname">MotorBase</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.MotorBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>Base class for motors.</p>
 <dl class="docutils">
 <dt>Signals:</dt>
@@ -841,9 +841,9 @@ Data is a 2-tuple with the current position and the timestamp of the last change
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.motor.Motor">
-<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">Motor</tt><big>(</big><em>pv_name</em>, <em>motor_type</em>, <em>precision=4</em><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.MotorBase</span></tt></a></p>
+<dt id="mxdc.device.motor.Motor">
+<em class="property">class </em><tt class="descclassname">mxdc.device.motor.</tt><tt class="descname">Motor</tt><big>(</big><em>pv_name</em>, <em>motor_type</em>, <em>precision=4</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.Motor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.motor.MotorBase" title="mxdc.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.motor.MotorBase</span></tt></a></p>
 <p>Motor object for EPICS based motor records.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -867,8 +867,8 @@ Data is a 2-tuple with the current position and the timestamp of the last change
 </dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.motor.Motor.get_position">
-<tt class="descname">get_position</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.get_position" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.motor.Motor.get_position">
+<tt class="descname">get_position</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.motor.Motor.get_position" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain the current position of the motor in device units.</p>
 <dl class="docutils">
 <dt>Returns:</dt>
@@ -877,8 +877,8 @@ Data is a 2-tuple with the current position and the timestamp of the last change
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.motor.Motor.configure">
-<tt class="descname">configure</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.configure" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.motor.Motor.configure">
+<tt class="descname">configure</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.Motor.configure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Configure the motor. Currently only allows changing the calibration
 flag and reseting the position  for &#8220;vme&#8221; and &#8220;vmeenc&#8221; motors only.</p>
 <dl class="docutils">
@@ -892,8 +892,8 @@ flag and reseting the position  for &#8220;vme&#8221; and &#8220;vmeenc&#8221; m
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.motor.Motor.move_to">
-<tt class="descname">move_to</tt><big>(</big><em>pos</em>, <em>wait=False</em>, <em>force=False</em><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.move_to" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.motor.Motor.move_to">
+<tt class="descname">move_to</tt><big>(</big><em>pos</em>, <em>wait=False</em>, <em>force=False</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.Motor.move_to" title="Permalink to this definition">¶</a></dt>
 <dd><p>Request the motor to move to an absolute position. By default, the 
 command will not be sent to the motor if its current position is the 
 same as the requested position within its preset precision. In addition
@@ -917,9 +917,9 @@ target is the same as the current position.</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.motor.Motor.move_by">
-<tt class="descname">move_by</tt><big>(</big><em>val</em>, <em>wait=False</em>, <em>force=False</em><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.move_by" title="Permalink to this definition">¶</a></dt>
-<dd><p>Similar to <a class="reference internal" href="#bcm.device.motor.Motor.move_to" title="bcm.device.motor.Motor.move_to"><tt class="xref py py-func docutils literal"><span class="pre">move_to()</span></tt></a>, except request the motor to move by a 
+<dt id="mxdc.device.motor.Motor.move_by">
+<tt class="descname">move_by</tt><big>(</big><em>val</em>, <em>wait=False</em>, <em>force=False</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.Motor.move_by" title="Permalink to this definition">¶</a></dt>
+<dd><p>Similar to <a class="reference internal" href="#mxdc.device.motor.Motor.move_to" title="mxdc.device.motor.Motor.move_to"><tt class="xref py py-func docutils literal"><span class="pre">move_to()</span></tt></a>, except request the motor to move by a 
 relative amount.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -939,14 +939,14 @@ target is the same as the current position.</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.motor.Motor.stop">
-<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.stop" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.motor.Motor.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.motor.Motor.stop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stop the motor from moving.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.motor.Motor.wait">
-<tt class="descname">wait</tt><big>(</big><em>start=True</em>, <em>stop=True</em><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.wait" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.motor.Motor.wait">
+<tt class="descname">wait</tt><big>(</big><em>start=True</em>, <em>stop=True</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.Motor.wait" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wait for the motor busy state to change.</p>
 <dl class="docutils">
 <dt>Kwargs:</dt>
@@ -959,8 +959,8 @@ target is the same as the current position.</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.motor.Motor.get_settings">
-<tt class="descname">get_settings</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.motor.Motor.get_settings" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.motor.Motor.get_settings">
+<tt class="descname">get_settings</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.motor.Motor.get_settings" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain the motor settings for saving/restore purposes.</p>
 <dl class="docutils">
 <dt>Returns:</dt>
@@ -971,37 +971,37 @@ target is the same as the current position.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.motor.VMEMotor">
-<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">VMEMotor</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.motor.VMEMotor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.Motor" title="bcm.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.Motor</span></tt></a></p>
+<dt id="mxdc.device.motor.VMEMotor">
+<em class="property">class </em><tt class="descclassname">mxdc.device.motor.</tt><tt class="descname">VMEMotor</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.VMEMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.motor.Motor" title="mxdc.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.motor.Motor</span></tt></a></p>
 <p>Convenience class for &#8220;vme&#8221; type motors.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.motor.ENCMotor">
-<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">ENCMotor</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.motor.ENCMotor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.Motor" title="bcm.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.Motor</span></tt></a></p>
+<dt id="mxdc.device.motor.ENCMotor">
+<em class="property">class </em><tt class="descclassname">mxdc.device.motor.</tt><tt class="descname">ENCMotor</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.ENCMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.motor.Motor" title="mxdc.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.motor.Motor</span></tt></a></p>
 <p>Convenience class for &#8220;vmeenc&#8221; type motors.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.motor.CLSMotor">
-<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">CLSMotor</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.motor.CLSMotor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.Motor" title="bcm.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.Motor</span></tt></a></p>
+<dt id="mxdc.device.motor.CLSMotor">
+<em class="property">class </em><tt class="descclassname">mxdc.device.motor.</tt><tt class="descname">CLSMotor</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.CLSMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.motor.Motor" title="mxdc.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.motor.Motor</span></tt></a></p>
 <p>Convenience class for &#8220;cls&#8221; type motors.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.motor.PseudoMotor">
-<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">PseudoMotor</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#bcm.device.motor.PseudoMotor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.Motor" title="bcm.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.Motor</span></tt></a></p>
+<dt id="mxdc.device.motor.PseudoMotor">
+<em class="property">class </em><tt class="descclassname">mxdc.device.motor.</tt><tt class="descname">PseudoMotor</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.PseudoMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.motor.Motor" title="mxdc.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.motor.Motor</span></tt></a></p>
 <p>Convenience class for &#8220;pseudo&#8221; type motors.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.motor.BraggEnergyMotor">
-<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">BraggEnergyMotor</tt><big>(</big><em>name</em>, <em>enc=None</em>, <em>motor_type='vme'</em>, <em>precision=3</em><big>)</big><a class="headerlink" href="#bcm.device.motor.BraggEnergyMotor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.Motor" title="bcm.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.Motor</span></tt></a></p>
+<dt id="mxdc.device.motor.BraggEnergyMotor">
+<em class="property">class </em><tt class="descclassname">mxdc.device.motor.</tt><tt class="descname">BraggEnergyMotor</tt><big>(</big><em>name</em>, <em>enc=None</em>, <em>motor_type='vme'</em>, <em>precision=3</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.BraggEnergyMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.motor.Motor" title="mxdc.device.motor.Motor"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.motor.Motor</span></tt></a></p>
 <p>A specialized energy motor for using just the monochromator bragg angle.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -1029,16 +1029,16 @@ which to read the energy value.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.motor.FixedLine2Motor">
-<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">FixedLine2Motor</tt><big>(</big><em>x</em>, <em>y</em>, <em>slope</em>, <em>intercept</em>, <em>linked=False</em><big>)</big><a class="headerlink" href="#bcm.device.motor.FixedLine2Motor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.MotorBase</span></tt></a></p>
+<dt id="mxdc.device.motor.FixedLine2Motor">
+<em class="property">class </em><tt class="descclassname">mxdc.device.motor.</tt><tt class="descname">FixedLine2Motor</tt><big>(</big><em>x</em>, <em>y</em>, <em>slope</em>, <em>intercept</em>, <em>linked=False</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.FixedLine2Motor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.motor.MotorBase" title="mxdc.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.motor.MotorBase</span></tt></a></p>
 <p>A specialized fixed offset pseudo-motor for moving two motors along a 
 straight line.</p>
 <dl class="docutils">
 <dt>Args:</dt>
 <dd><ul class="first last simple">
-<li><cite>x</cite> (<a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): x-axis motor.</li>
-<li><cite>y</cite> (<a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): y-axis motor.</li>
+<li><cite>x</cite> (<a class="reference internal" href="#mxdc.device.motor.MotorBase" title="mxdc.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): x-axis motor.</li>
+<li><cite>y</cite> (<a class="reference internal" href="#mxdc.device.motor.MotorBase" title="mxdc.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): y-axis motor.</li>
 <li><cite>slope</cite> (float): slope of the line.</li>
 <li><cite>intercept</cite> (float): y-intercept of the line.</li>
 </ul>
@@ -1051,33 +1051,33 @@ linked if they can not be moved at the same time.</li>
 </dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.motor.FixedLine2Motor.get_position">
-<tt class="descname">get_position</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.motor.FixedLine2Motor.get_position" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.motor.FixedLine2Motor.get_position">
+<tt class="descname">get_position</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.motor.FixedLine2Motor.get_position" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain the position of the <cite>x</cite> motor only.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.motor.RelVerticalMotor">
-<em class="property">class </em><tt class="descclassname">bcm.device.motor.</tt><tt class="descname">RelVerticalMotor</tt><big>(</big><em>y1</em>, <em>y2</em>, <em>omega</em>, <em>offset=0.0</em><big>)</big><a class="headerlink" href="#bcm.device.motor.RelVerticalMotor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.MotorBase</span></tt></a></p>
+<dt id="mxdc.device.motor.RelVerticalMotor">
+<em class="property">class </em><tt class="descclassname">mxdc.device.motor.</tt><tt class="descname">RelVerticalMotor</tt><big>(</big><em>y1</em>, <em>y2</em>, <em>omega</em>, <em>offset=0.0</em><big>)</big><a class="headerlink" href="#mxdc.device.motor.RelVerticalMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.motor.MotorBase" title="mxdc.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.motor.MotorBase</span></tt></a></p>
 <p>A specialized pseudo-motor for moving an x-y stage attached to a 
 rotating axis vertically. Such as a centering table attached to a goniometer.
 The current position is always zero and all moves are relative.</p>
 <dl class="docutils">
 <dt>Args:</dt>
 <dd><ul class="first last">
-<li><p class="first"><cite>y1</cite> (<a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): The first motor which is moves 
+<li><p class="first"><cite>y1</cite> (<a class="reference internal" href="#mxdc.device.motor.MotorBase" title="mxdc.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): The first motor which is moves 
 vertically when the angle of the</p>
 <blockquote>
 <div><p>axis is at zero.</p>
 </div></blockquote>
 </li>
-<li><p class="first"><cite>y2</cite> (<a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): The second motor which is moves 
+<li><p class="first"><cite>y2</cite> (<a class="reference internal" href="#mxdc.device.motor.MotorBase" title="mxdc.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): The second motor which is moves 
 horizontally when the angle of the axis is at zero.</p>
 </li>
-<li><p class="first"><cite>omega</cite> (<a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): The motor for the rotation axis.</p>
+<li><p class="first"><cite>omega</cite> (<a class="reference internal" href="#mxdc.device.motor.MotorBase" title="mxdc.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">MotorBase</span></tt></a>): The motor for the rotation axis.</p>
 </li>
 </ul>
 </dd>
@@ -1091,52 +1091,52 @@ axis position to make <cite>y1</cite> vertical.</li>
 </dd></dl>
 
 </div>
-<div class="section" id="module-bcm.device.video">
-<span id="video"></span><h2>Video<a class="headerlink" href="#module-bcm.device.video" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mxdc.device.video">
+<span id="video"></span><h2>Video<a class="headerlink" href="#module-mxdc.device.video" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="bcm.device.video.VideoSrc">
-<em class="property">class </em><tt class="descclassname">bcm.device.video.</tt><tt class="descname">VideoSrc</tt><big>(</big><em>name='Basic Camera'</em>, <em>maxfps=5.0</em><big>)</big><a class="headerlink" href="#bcm.device.video.VideoSrc" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.device.video.VideoSrc">
+<em class="property">class </em><tt class="descclassname">mxdc.device.video.</tt><tt class="descname">VideoSrc</tt><big>(</big><em>name='Basic Camera'</em>, <em>maxfps=5.0</em><big>)</big><a class="headerlink" href="#mxdc.device.video.VideoSrc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>Base class for all Video Sources. Maintains a list of listenners (sinks)
 and updates each one when the video frame changes.</p>
 <p>Kwargs:
 <cite>name</cite> (str): Camera name.
 <cite>maxfps</cite> (flaot): Maximum frame rate.</p>
 <dl class="method">
-<dt id="bcm.device.video.VideoSrc.add_sink">
-<tt class="descname">add_sink</tt><big>(</big><em>sink</em><big>)</big><a class="headerlink" href="#bcm.device.video.VideoSrc.add_sink" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.video.VideoSrc.add_sink">
+<tt class="descname">add_sink</tt><big>(</big><em>sink</em><big>)</big><a class="headerlink" href="#mxdc.device.video.VideoSrc.add_sink" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a video sink.</p>
 <dl class="docutils">
 <dt>Args:</dt>
-<dd><cite>sink</cite> (<tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IVideoSink</span></tt> provider).</dd>
+<dd><cite>sink</cite> (<tt class="xref py py-class docutils literal"><span class="pre">mxdc.interface.devices.IVideoSink</span></tt> provider).</dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.video.VideoSrc.del_sink">
-<tt class="descname">del_sink</tt><big>(</big><em>sink</em><big>)</big><a class="headerlink" href="#bcm.device.video.VideoSrc.del_sink" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.video.VideoSrc.del_sink">
+<tt class="descname">del_sink</tt><big>(</big><em>sink</em><big>)</big><a class="headerlink" href="#mxdc.device.video.VideoSrc.del_sink" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove a video sink.</p>
 <dl class="docutils">
 <dt>Args:</dt>
-<dd><cite>sink</cite> (<tt class="xref py py-class docutils literal"><span class="pre">bcm.device.interfaces.IVideoSink</span></tt> provider).</dd>
+<dd><cite>sink</cite> (<tt class="xref py py-class docutils literal"><span class="pre">mxdc.interface.devices.IVideoSink</span></tt> provider).</dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.video.VideoSrc.start">
-<tt class="descname">start</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.video.VideoSrc.start" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.video.VideoSrc.start">
+<tt class="descname">start</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.video.VideoSrc.start" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start producing video frames.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.video.VideoSrc.stop">
-<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.video.VideoSrc.stop" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.video.VideoSrc.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.video.VideoSrc.stop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start producing video frames.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.video.VideoSrc.get_frame">
-<tt class="descname">get_frame</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.video.VideoSrc.get_frame" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.video.VideoSrc.get_frame">
+<tt class="descname">get_frame</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.video.VideoSrc.get_frame" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain the most recent video frame.</p>
 <dl class="docutils">
 <dt>Returns:</dt>
@@ -1149,10 +1149,10 @@ and updates each one when the video frame changes.</p>
 </div>
 <div class="section" id="miscellaneous">
 <h2>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-bcm.device.misc"></span><dl class="class">
-<dt id="bcm.device.misc.PositionerBase">
-<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">PositionerBase</tt><a class="headerlink" href="#bcm.device.misc.PositionerBase" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<span class="target" id="module-mxdc.device.misc"></span><dl class="class">
+<dt id="mxdc.device.misc.PositionerBase">
+<em class="property">class </em><tt class="descclassname">mxdc.device.misc.</tt><tt class="descname">PositionerBase</tt><a class="headerlink" href="#mxdc.device.misc.PositionerBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>Base class for a simple positioning device.</p>
 <dl class="docutils">
 <dt>Signals:</dt>
@@ -1162,16 +1162,16 @@ and updates each one when the video frame changes.</p>
 </dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.misc.PositionerBase.set">
-<tt class="descname">set</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#bcm.device.misc.PositionerBase.set" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.misc.PositionerBase.set">
+<tt class="descname">set</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#mxdc.device.misc.PositionerBase.set" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the value.
 Args:
 - <cite>value</cite> : New value to set.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.misc.PositionerBase.get">
-<tt class="descname">get</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.misc.PositionerBase.get" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.misc.PositionerBase.get">
+<tt class="descname">get</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.misc.PositionerBase.get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns:
 - The current value.</p>
 </dd></dl>
@@ -1179,9 +1179,9 @@ Args:
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.misc.Positioner">
-<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">Positioner</tt><big>(</big><em>name</em>, <em>fbk_name=None</em>, <em>scale=100</em>, <em>units=''</em>, <em>wait_time=0</em><big>)</big><a class="headerlink" href="#bcm.device.misc.Positioner" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.misc.PositionerBase" title="bcm.device.misc.PositionerBase"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.misc.PositionerBase</span></tt></a></p>
+<dt id="mxdc.device.misc.Positioner">
+<em class="property">class </em><tt class="descclassname">mxdc.device.misc.</tt><tt class="descname">Positioner</tt><big>(</big><em>name</em>, <em>fbk_name=None</em>, <em>scale=100</em>, <em>units=''</em>, <em>wait_time=0</em><big>)</big><a class="headerlink" href="#mxdc.device.misc.Positioner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.misc.PositionerBase" title="mxdc.device.misc.PositionerBase"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.misc.PositionerBase</span></tt></a></p>
 <p>Simple EPICS based positioning device.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -1201,37 +1201,37 @@ provided, the same PV will be used to both set and get.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.misc.PositionerMotor">
-<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">PositionerMotor</tt><big>(</big><em>positioner</em><big>)</big><a class="headerlink" href="#bcm.device.misc.PositionerMotor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.motor.MotorBase" title="bcm.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.motor.MotorBase</span></tt></a></p>
+<dt id="mxdc.device.misc.PositionerMotor">
+<em class="property">class </em><tt class="descclassname">mxdc.device.misc.</tt><tt class="descname">PositionerMotor</tt><big>(</big><em>positioner</em><big>)</big><a class="headerlink" href="#mxdc.device.misc.PositionerMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.motor.MotorBase" title="mxdc.device.motor.MotorBase"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.motor.MotorBase</span></tt></a></p>
 <p>Adapts a positioner so that it behaves like a Motor (ie, provides the
 <cite>IMotor</cite> interface.</p>
 <dl class="docutils">
 <dt>Args:</dt>
 <dd><ul class="first last simple">
-<li><cite>positioner</cite> (<a class="reference internal" href="#bcm.device.misc.PositionerBase" title="bcm.device.misc.PositionerBase"><tt class="xref py py-class docutils literal"><span class="pre">PositionerBase</span></tt></a>)</li>
+<li><cite>positioner</cite> (<a class="reference internal" href="#mxdc.device.misc.PositionerBase" title="mxdc.device.misc.PositionerBase"><tt class="xref py py-class docutils literal"><span class="pre">PositionerBase</span></tt></a>)</li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.misc.MotorShutter">
-<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">MotorShutter</tt><big>(</big><em>motor</em><big>)</big><a class="headerlink" href="#bcm.device.misc.MotorShutter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.device.misc.MotorShutter">
+<em class="property">class </em><tt class="descclassname">mxdc.device.misc.</tt><tt class="descname">MotorShutter</tt><big>(</big><em>motor</em><big>)</big><a class="headerlink" href="#mxdc.device.misc.MotorShutter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>Used for CMCF1 cryojet Motor</p>
 <dl class="method">
-<dt id="bcm.device.misc.MotorShutter.is_open">
-<tt class="descname">is_open</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.misc.MotorShutter.is_open" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.misc.MotorShutter.is_open">
+<tt class="descname">is_open</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.misc.MotorShutter.is_open" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenience function for open state</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.misc.DiskSpaceMonitor">
-<em class="property">class </em><tt class="descclassname">bcm.device.misc.</tt><tt class="descname">DiskSpaceMonitor</tt><big>(</big><em>descr</em>, <em>path</em>, <em>warn=0.05</em>, <em>critical=0.025</em>, <em>freq=5.0</em><big>)</big><a class="headerlink" href="#bcm.device.misc.DiskSpaceMonitor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.device.misc.DiskSpaceMonitor">
+<em class="property">class </em><tt class="descclassname">mxdc.device.misc.</tt><tt class="descname">DiskSpaceMonitor</tt><big>(</big><em>descr</em>, <em>path</em>, <em>warn=0.05</em>, <em>critical=0.025</em>, <em>freq=5.0</em><big>)</big><a class="headerlink" href="#mxdc.device.misc.DiskSpaceMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>An object which periodically monitors a given path for available space.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -1252,10 +1252,10 @@ goes above this value.</li>
 </dl>
 </dd></dl>
 
-<span class="target" id="module-bcm.device.cryojet"></span><dl class="class">
-<dt id="bcm.device.cryojet.CryojetNozzle">
-<em class="property">class </em><tt class="descclassname">bcm.device.cryojet.</tt><tt class="descname">CryojetNozzle</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#bcm.device.cryojet.CryojetNozzle" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.misc.BasicShutter</span></tt></p>
+<span class="target" id="module-mxdc.device.cryojet"></span><dl class="class">
+<dt id="mxdc.device.cryojet.CryojetNozzle">
+<em class="property">class </em><tt class="descclassname">mxdc.device.cryojet.</tt><tt class="descname">CryojetNozzle</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#mxdc.device.cryojet.CryojetNozzle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.misc.BasicShutter</span></tt></p>
 <p>A specialized in-out actuator for pneumatic cryoject nozzles at the CLS.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -1264,9 +1264,9 @@ goes above this value.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.cryojet.Cryojet">
-<em class="property">class </em><tt class="descclassname">bcm.device.cryojet.</tt><tt class="descname">Cryojet</tt><big>(</big><em>cname</em>, <em>lname</em>, <em>nname=''</em><big>)</big><a class="headerlink" href="#bcm.device.cryojet.Cryojet" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#bcm.device.base.BaseDevice" title="bcm.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">bcm.device.base.BaseDevice</span></tt></a></p>
+<dt id="mxdc.device.cryojet.Cryojet">
+<em class="property">class </em><tt class="descclassname">mxdc.device.cryojet.</tt><tt class="descname">Cryojet</tt><big>(</big><em>cname</em>, <em>lname</em>, <em>nname=''</em><big>)</big><a class="headerlink" href="#mxdc.device.cryojet.Cryojet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mxdc.device.base.BaseDevice" title="mxdc.device.base.BaseDevice"><tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.base.BaseDevice</span></tt></a></p>
 <p>EPICS Based cryoject device object at the CLS.</p>
 <dl class="docutils">
 <dt>Args:</dt>
@@ -1282,24 +1282,24 @@ goes above this value.</li>
 </dd>
 </dl>
 <dl class="method">
-<dt id="bcm.device.cryojet.Cryojet.stop_flow">
-<tt class="descname">stop_flow</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.cryojet.Cryojet.stop_flow" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.cryojet.Cryojet.stop_flow">
+<tt class="descname">stop_flow</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.cryojet.Cryojet.stop_flow" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stop the flow of the cold nitrogen stream. The current setting for
 flow rate is saved.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="bcm.device.cryojet.Cryojet.resume_flow">
-<tt class="descname">resume_flow</tt><big>(</big><big>)</big><a class="headerlink" href="#bcm.device.cryojet.Cryojet.resume_flow" title="Permalink to this definition">¶</a></dt>
+<dt id="mxdc.device.cryojet.Cryojet.resume_flow">
+<tt class="descname">resume_flow</tt><big>(</big><big>)</big><a class="headerlink" href="#mxdc.device.cryojet.Cryojet.resume_flow" title="Permalink to this definition">¶</a></dt>
 <dd><p>Restores the flow rate to the previously saved setting.</p>
 </dd></dl>
 
 </dd></dl>
 
-<span class="target" id="module-bcm.device.diagnostics"></span><dl class="class">
-<dt id="bcm.device.diagnostics.DeviceDiag">
-<em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">DeviceDiag</tt><big>(</big><em>device</em>, <em>descr=None</em><big>)</big><a class="headerlink" href="#bcm.device.diagnostics.DeviceDiag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.diagnostics.DiagnosticBase</span></tt></p>
+<span class="target" id="module-mxdc.device.diagnostics"></span><dl class="class">
+<dt id="mxdc.device.diagnostics.DeviceDiag">
+<em class="property">class </em><tt class="descclassname">mxdc.device.diagnostics.</tt><tt class="descname">DeviceDiag</tt><big>(</big><em>device</em>, <em>descr=None</em><big>)</big><a class="headerlink" href="#mxdc.device.diagnostics.DeviceDiag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.diagnostics.DiagnosticBase</span></tt></p>
 <p>A diagnostic object for generic devices which emits a warning when the
 device health is not good and an error when it is disconnected or disabled.</p>
 <dl class="docutils">
@@ -1312,9 +1312,9 @@ monitor.</dd>
 </dd></dl>
 
 <dl class="class">
-<dt id="bcm.device.diagnostics.ServiceDiag">
-<em class="property">class </em><tt class="descclassname">bcm.device.diagnostics.</tt><tt class="descname">ServiceDiag</tt><big>(</big><em>service</em>, <em>descr=None</em><big>)</big><a class="headerlink" href="#bcm.device.diagnostics.ServiceDiag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">bcm.device.diagnostics.DiagnosticBase</span></tt></p>
+<dt id="mxdc.device.diagnostics.ServiceDiag">
+<em class="property">class </em><tt class="descclassname">mxdc.device.diagnostics.</tt><tt class="descname">ServiceDiag</tt><big>(</big><em>service</em>, <em>descr=None</em><big>)</big><a class="headerlink" href="#mxdc.device.diagnostics.ServiceDiag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">mxdc.device.diagnostics.DiagnosticBase</span></tt></p>
 <p>A diagnostic object for generic services which emits an error when it is
 disconnected or disabled.</p>
 <dl class="docutils">
@@ -1340,16 +1340,16 @@ monitor.</dd>
   <h3><a href="../index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Devices</a><ul>
-<li><a class="reference internal" href="#module-bcm.device.base">Base Device</a></li>
-<li><a class="reference internal" href="#module-bcm.device.automounter">Automounter</a></li>
-<li><a class="reference internal" href="#module-bcm.device.counter">Counters</a></li>
-<li><a class="reference internal" href="#module-bcm.device.detector">Detector</a></li>
-<li><a class="reference internal" href="#module-bcm.device.diffractometer">Diffractometer</a></li>
-<li><a class="reference internal" href="#module-bcm.device.goniometer">Goniometer</a></li>
-<li><a class="reference internal" href="#module-bcm.device.mca">Multi-Channel Analyzer</a></li>
-<li><a class="reference internal" href="#module-bcm.device.monochromator">Monochromator</a></li>
-<li><a class="reference internal" href="#module-bcm.device.motor">Motors</a></li>
-<li><a class="reference internal" href="#module-bcm.device.video">Video</a></li>
+<li><a class="reference internal" href="#module-mxdc.device.base">Base Device</a></li>
+<li><a class="reference internal" href="#module-mxdc.device.automounter">Automounter</a></li>
+<li><a class="reference internal" href="#module-mxdc.device.counter">Counters</a></li>
+<li><a class="reference internal" href="#module-mxdc.device.detector">Detector</a></li>
+<li><a class="reference internal" href="#module-mxdc.device.diffractometer">Diffractometer</a></li>
+<li><a class="reference internal" href="#module-mxdc.device.goniometer">Goniometer</a></li>
+<li><a class="reference internal" href="#module-mxdc.device.mca">Multi-Channel Analyzer</a></li>
+<li><a class="reference internal" href="#module-mxdc.device.monochromator">Monochromator</a></li>
+<li><a class="reference internal" href="#module-mxdc.device.motor">Motors</a></li>
+<li><a class="reference internal" href="#module-mxdc.device.video">Video</a></li>
 <li><a class="reference internal" href="#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>

@@ -1,5 +1,5 @@
-from bcm.utils import json
-from bcm.utils.log import get_module_logger
+from mxdc.utils import json
+from mxdc.utils.log import get_module_logger
 from datetime import date, datetime
 import os
 import atexit

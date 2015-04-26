@@ -1,7 +1,7 @@
 
-from bcm.beamline.mx import IBeamline
-from bcm.utils import lims_tools
-from bcm.utils.log import get_module_logger
+from mxdc.beamline.mx import IBeamline
+from mxdc.utils import lims_tools
+from mxdc.utils.log import get_module_logger
 from datetime import datetime
 from matplotlib.dates import date2num
 from mxdc.utils import gui, config
@@ -13,8 +13,8 @@ from mxdc.widgets.sampleloader import DewarLoader, STATUS_NOT_LOADED, STATUS_LOA
 from mxdc.widgets.samplepicker import SamplePicker
 from mxdc.widgets.sampleviewer import SampleViewer
 from twisted.python.components import globalRegistry
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import os
 
 
@@ -28,14 +28,14 @@ _HCPLOT_INFO = {
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-class SampleManager(gtk.Alignment):
+class SampleManager(Gtk.Alignment):
     __gsignals__ = {
-        'samples-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'active-sample': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
-        'sample-selected': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'samples-changed': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
+        'active-sample': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
+        'sample-selected': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
     }    
     def __init__(self):
-        gtk.Alignment.__init__(self, 0, 0, 1, 1)
+        GObject.GObject.__init__(self, 0, 0, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'sample_widget'), 
                                   'sample_widget')
 
@@ -65,7 +65,7 @@ class SampleManager(gtk.Alignment):
         self.beamline = globalRegistry.lookup([], IBeamline)
         
         # make video and cryo notebooks same vertical size
-        self._szgrp1 = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
+        self._szgrp1 = Gtk.SizeGroup(Gtk.SizeGroupMode.VERTICAL)
         self._szgrp1.add_widget(self.loader_frame)
         self._szgrp1.add_widget(self.robot_frame)
             
@@ -79,7 +79,7 @@ class SampleManager(gtk.Alignment):
         self.plotter = Plotter(xformat='%g', loop=True, buffer_size=1200, dpi=72)
 
         def _mk_lbl(txt):
-            lbl = gtk.Label(txt)
+            lbl = Gtk.Label(label=txt)
             lbl.set_padding(6,0)
             return lbl
         
@@ -117,7 +117,7 @@ class SampleManager(gtk.Alignment):
         self.beamline.lims.connect('active', self.on_lims_connect)
         
         # make sure previously  loaded samples are loaded from disk if lims fails to connect
-        gobject.timeout_add(5000, self._load_without_lims) 
+        GObject.timeout_add(5000, self._load_without_lims) 
     
     def on_lims_connect(self, obj, state):
         if state:
@@ -139,8 +139,8 @@ class SampleManager(gtk.Alignment):
     def on_samples_changed(self, obj):
         if self.beamline.automounter.is_mounted():
             self.active_sample = self.dewar_loader.find_crystal(self.beamline.automounter._mounted_port) or {}
-            gobject.idle_add(self.emit, 'active-sample', self.active_sample)        
-        gobject.idle_add(self.emit, 'samples-changed', self.dewar_loader)
+            GObject.idle_add(self.emit, 'active-sample', self.active_sample)        
+        GObject.idle_add(self.emit, 'samples-changed', self.dewar_loader)
 
     def update_data(self, sample=None):
         self.dewar_loader.mount_widget.update_data(sample)
@@ -170,25 +170,25 @@ class SampleManager(gtk.Alignment):
                         xtl =  self.dewar_loader.find_crystal(port=port)
                 else: # if barcode is not read correctly or none exists, use port
                     xtl =  self.dewar_loader.find_crystal(port=port)
-                gobject.idle_add(self.emit, 'active-sample', xtl)
+                GObject.idle_add(self.emit, 'active-sample', xtl)
     
             else:   # sample dismounted
-                gobject.idle_add(self.emit, 'active-sample', None)
+                GObject.idle_add(self.emit, 'active-sample', None)
         else:
-            gobject.idle_add(self.emit, 'active-sample', mount_info)
+            GObject.idle_add(self.emit, 'active-sample', mount_info)
             
     def on_sample_selected(self, obj, crystal):
         
         if crystal.get('load_status', STATUS_NOT_LOADED) == STATUS_LOADED:
             if self.beamline.automounter.is_mountable(crystal['port']):
                 self.sample_picker.pick_port(crystal['port'])
-                gobject.idle_add(self.emit, 'sample-selected', crystal)
+                GObject.idle_add(self.emit, 'sample-selected', crystal)
             else:
                 self.sample_picker.pick_port(None)
-                gobject.idle_add(self.emit, 'sample-selected', {})
+                GObject.idle_add(self.emit, 'sample-selected', {})
         else:
             self.sample_picker.pick_port(None)
-            gobject.idle_add(self.emit, 'sample-selected', crystal)
+            GObject.idle_add(self.emit, 'sample-selected', crystal)
 
     def update_active_sample(self, sample=None):
         # send updated parameters to runs

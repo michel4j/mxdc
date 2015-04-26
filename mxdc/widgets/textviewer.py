@@ -1,6 +1,6 @@
-import gtk
-import gobject
-import pango
+from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import Pango
 import time
 import logging
 import re
@@ -11,7 +11,7 @@ class GUIHandler(logging.Handler):
         self.viewer = viewer
     
     def emit(self, record):
-        gobject.idle_add(self.viewer.add_text, self.format(record), True)
+        GObject.idle_add(self.viewer.add_text, self.format(record), True)
 
 class TextViewer(object):
     def __init__(self, view, size=5000, font='Monospace 8'):  
@@ -19,9 +19,9 @@ class TextViewer(object):
         self.view = view
         self.text_buffer = self.view.get_buffer()
         self.view.set_editable(False)
-        pango_font = pango.FontDescription(font)
+        pango_font = Pango.FontDescription(font)
         self.view.modify_font(pango_font)
-        self.wrap_mode = gtk.WRAP_WORD
+        self.wrap_mode = Gtk.WrapMode.WORD
         self.prefix = ''
         color_chart = {'INFO': 'Blue',
                'ERROR': 'Red',

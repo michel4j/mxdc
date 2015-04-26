@@ -1,11 +1,11 @@
 
-from bcm.beamline.mx import IBeamline
-from bcm.engine.diffraction import Screener, DataCollector
-from bcm.engine.interfaces import IDataCollector
-from bcm.engine.rastering import RasterCollector
-from bcm.engine.scripting import get_scripts
-from bcm.utils import lims_tools
-from bcm.utils.runlists import determine_skip, summarize_frame_set
+from mxdc.beamline.mx import IBeamline
+from mxdc.engine.diffraction import Screener, DataCollector
+from mxdc.interface.engines import IDataCollector
+from mxdc.engine.rastering import RasterCollector
+from mxdc.engine.scripting import get_scripts
+from mxdc.utils import lims_tools
+from mxdc.utils.runlists import determine_skip, summarize_frame_set
 from mxdc.utils import config, gui
 from mxdc.widgets import dialogs
 from mxdc.widgets.imageviewer import ImageViewer
@@ -16,11 +16,11 @@ from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from twisted.python.components import globalRegistry
 
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import logging
 import os
-import pango
+from gi.repository import Pango
 import time
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -73,13 +73,13 @@ class Tasklet(object):
     def __getitem__(self, key):
         return self.options[key]
 
-class ScreenManager(gtk.Alignment):
+class ScreenManager(Gtk.Alignment):
     __gsignals__ = {
-        'new-datasets': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT,]),
+        'new-datasets': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_PYOBJECT,]),
     }
 
     def __init__(self):
-        gtk.Alignment.__init__(self, 0, 0.5, 1, 1)
+        GObject.GObject.__init__(self, 0, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                                   'screening_widget')
         self.samples_data = []
@@ -123,9 +123,9 @@ class ScreenManager(gtk.Alignment):
         self.screen_manager = self._xml.get_widget('screening_widget')
         self.message_log = TextViewer(self.msg_txt)
         self.message_log.set_prefix('- ')
-        self._animation = gtk.gdk.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+        self._animation = GdkPixbuf.PixbufAnimation(os.path.join(os.path.dirname(__file__),
                                            'data/busy.gif'))
-        pango_font = pango.FontDescription('sans 8')
+        pango_font = Pango.FontDescription('sans 8')
         self.lbl_current.modify_font(pango_font)
         self.lbl_next.modify_font(pango_font)
         self.lbl_sync.modify_font(pango_font)
@@ -162,10 +162,10 @@ class ScreenManager(gtk.Alignment):
         self.sample_viewer = SampleViewer()
         self.image_viewer = ImageViewer()
         self.image_viewer.set_collect_mode(True)
-        #self.image_viewer.set_shadow_type(gtk.SHADOW_NONE)
+        #self.image_viewer.set_shadow_type(Gtk.ShadowType.NONE)
         self.hutch_viewer = AxisViewer(self.beamline.registry['hutch_video'])
-        self.video_book.append_page(self.sample_viewer, tab_label=gtk.Label('Sample Camera'))
-        self.video_book.append_page(self.hutch_viewer, tab_label=gtk.Label('Hutch Camera'))    
+        self.video_book.append_page(self.sample_viewer, tab_label=Gtk.Label(label='Sample Camera'))
+        self.video_book.append_page(self.hutch_viewer, tab_label=Gtk.Label(label='Hutch Camera'))    
         self.video_book.connect('realize', lambda x: self.video_book.set_current_page(0))
                 
         #create a data collector and attach it to diffraction viewer
@@ -196,7 +196,7 @@ class ScreenManager(gtk.Alignment):
                   (Screener.TASK_COLLECT, {'angle': 90.0, 'default': True, 'locked': False}),
                   (Screener.TASK_ANALYSE, {'default': True, 'locked': False}),
                   (Screener.TASK_PAUSE, {'default': False, 'locked': False}), ]
-        self._settings_sg = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        self._settings_sg = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
         
         # connect signals for collect parameters
         self.delta_entry.connect('activate', self._on_entry_changed, None, (0.2, 90.0, 1.0))
@@ -211,7 +211,7 @@ class ScreenManager(gtk.Alignment):
             key, options = tasklet
             options.update(enabled=options['default'])
             t = Tasklet(key, **options)
-            tbtn = gtk.CheckButton(t.name)
+            tbtn = Gtk.CheckButton(t.name)
             tbtn.connect('toggled', self._on_task_toggle, t)
             
             tbtn.set_active(options['default'])
@@ -227,22 +227,22 @@ class ScreenManager(gtk.Alignment):
                 ctable.attach(tbtn, 0, 3, 0, 1)
                 self.task_config_box.pack_start(ctable, expand=True, fill=True)
             else:
-                ctable = gtk.Table(1, 7, True)
+                ctable = Gtk.Table(1, 7, True)
                 ctable.attach(tbtn, 0, 3, 0, 1)
-                ctable.attach(gtk.Label(''), 4, 6, 0, 1)
+                ctable.attach(Gtk.Label(label=''), 4, 6, 0, 1)
                 self.task_config_box.pack_start(ctable, expand=True, fill=True)
                 
             self._settings_sg.add_widget(tbtn)
             self.TaskList.append((t, tbtn))
         
         # Run List
-        self.listmodel = gtk.ListStore(
-            gobject.TYPE_INT,
-            gobject.TYPE_STRING,
-            gobject.TYPE_STRING,
-            gobject.TYPE_PYOBJECT,
+        self.listmodel = Gtk.ListStore(
+            GObject.TYPE_INT,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_PYOBJECT,
         )
-        self.listview = gtk.TreeView(self.listmodel)
+        self.listview = Gtk.TreeView(self.listmodel)
         self.listview.set_rules_hint(True)
         self._add_columns()
         self.task_queue_window.add(self.listview)    
@@ -259,21 +259,21 @@ class ScreenManager(gtk.Alignment):
         self.show_all()
         
         #prepare pixbufs for status icons
-        self._wait_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-wait.png'))
-        self._ready_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-ready.png'))
-        self._error_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR, 'tiny-error.png'))
-        self._skip_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-skip.png'))
-        self._info_img = gtk.gdk.pixbuf_new_from_file(os.path.join(DATA_DIR,'tiny-info.png'))
+        self._wait_img = GdkPixbuf.Pixbuf.new_from_file(os.path.join(DATA_DIR,'tiny-wait.png'))
+        self._ready_img = GdkPixbuf.Pixbuf.new_from_file(os.path.join(DATA_DIR,'tiny-ready.png'))
+        self._error_img = GdkPixbuf.Pixbuf.new_from_file(os.path.join(DATA_DIR, 'tiny-error.png'))
+        self._skip_img = GdkPixbuf.Pixbuf.new_from_file(os.path.join(DATA_DIR,'tiny-skip.png'))
+        self._info_img = GdkPixbuf.Pixbuf.new_from_file(os.path.join(DATA_DIR,'tiny-info.png'))
         
     def _set_throbber(self, st):
         if st == 'fault':
-            self.throbber.set_from_stock('robot-error', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.throbber.set_from_stock('robot-error', Gtk.IconSize.LARGE_TOOLBAR)
         elif st == 'warning':
-            self.throbber.set_from_stock('robot-warning', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.throbber.set_from_stock('robot-warning', Gtk.IconSize.LARGE_TOOLBAR)
         elif st == 'busy':
             self.throbber.set_from_animation(self._animation)
         elif st == 'ready':
-            self.throbber.set_from_stock('robot-idle', gtk.ICON_SIZE_LARGE_TOOLBAR)
+            self.throbber.set_from_stock('robot-idle', Gtk.IconSize.LARGE_TOOLBAR)
 
     def _on_automounter_state(self, obj, val):
 
@@ -442,22 +442,22 @@ class ScreenManager(gtk.Alignment):
 
     def _add_columns(self):
         # Status Column
-        renderer = gtk.CellRendererPixbuf()
-        column = gtk.TreeViewColumn('', renderer)
-        column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        renderer = Gtk.CellRendererPixbuf()
+        column = Gtk.TreeViewColumn('', renderer)
+        column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
         column.set_fixed_width(24)
         column.set_cell_data_func(renderer, self._done_pixbuf)
         self.listview.append_column(column)
 
         # Name Column
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Crystal', renderer, text=QUEUE_COLUMN_ID)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn('Crystal', renderer, text=QUEUE_COLUMN_ID)
         column.set_cell_data_func(renderer, self._done_color)
         self.listview.append_column(column)
 
         # Task Column
-        renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Task', renderer, text=QUEUE_COLUMN_NAME)
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn('Task', renderer, text=QUEUE_COLUMN_NAME)
         column.set_cell_data_func(renderer, self._done_color)
         self.listview.append_column(column)
     
@@ -651,10 +651,10 @@ class ScreenManager(gtk.Alignment):
         self.scan_pbar.set_text("Paused")
         if msg:
             title = 'Attention Required'
-            self.resp = dialogs.MyDialog(gtk.MESSAGE_WARNING, 
+            self.resp = dialogs.MyDialog(Gtk.MessageType.WARNING, 
                                          title, msg,
                                          parent=self.get_toplevel(),
-                                         buttons=( ('Intervene', gtk.RESPONSE_ACCEPT),) )
+                                         buttons=( ('Intervene', Gtk.ResponseType.ACCEPT),) )
             self._intervening = False
             if pause_dict['type'] is Screener.PAUSE_BEAM: 
                 self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
@@ -664,7 +664,7 @@ class ScreenManager(gtk.Alignment):
                 except:
                     self.collect_obj = False
             response = self.resp()
-            if response == gtk.RESPONSE_ACCEPT or (pause_dict['type'] == Screener.PAUSE_BEAM and self._beam_up):
+            if response == Gtk.ResponseType.ACCEPT or (pause_dict['type'] == Screener.PAUSE_BEAM and self._beam_up):
                 self._intervening = True
                 self._beam_up = False
                 if self.collect_obj:
