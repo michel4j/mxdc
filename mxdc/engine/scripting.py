@@ -24,7 +24,7 @@ class ScriptError(Exception):
 
 class Script(GObject.GObject):
     
-    implements(IPlugin, imxdc.IScript)
+    implements(IPlugin, ibcm.IScript)
     __gsignals__ = {}
     __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
     __gsignals__['started'] = (GObject.SignalFlags.RUN_LAST, None, [])
@@ -98,7 +98,7 @@ class Script(GObject.GObject):
 def get_scripts():
     import mxdc.scripts
     scripts = {}
-    for script in list(getPlugins(imxdc.IScript, mxdc.scripts)):
+    for script in list(getPlugins(ibcm.IScript, mxdc.scripts)):
         scripts[script.name] = script
     return scripts
         

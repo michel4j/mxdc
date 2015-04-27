@@ -1,21 +1,18 @@
-import threading
-import logging
-from gi.repository import GObject
-import gc
-import time
-import sys
-import os
-import numpy
-from scipy import interpolate
 
-from zope.interface import Interface, Attribute
-from zope.interface import implements
-from twisted.python.components import globalRegistry
+from gi.repository import GObject
 from mxdc.com import ca
-from mxdc.utils.log import get_module_logger
 from mxdc.interface.devices import IMotor, ICounter
+from mxdc.interface.engines import IScan, IScanPlotter
 from mxdc.utils import json
 from mxdc.utils import misc
+from mxdc.utils.log import get_module_logger
+from scipy import interpolate
+from twisted.python.components import globalRegistry
+from zope.interface import implements
+import numpy
+import os
+import threading
+import time
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -23,57 +20,6 @@ _logger = get_module_logger(__name__)
 class ScanError(Exception):
     """Scan Error."""
 
-class IScanPlotter(Interface):
-    """Scan Plotter Object."""
-    
-    def connect_scan(self, scanner):
-        """Connect handlers to scanner."""
-        
-    def on_start(scan, data):
-        """Clear Scan and setup based on contents of info dictionary."""       
-    
-    def on_progress(scan, data):
-        """Progress handler."""
-
-    def on_new_point(scan, data):
-        """New point handler."""
-    
-    def on_done(scan):
-        """Done handler."""
-    
-    def on_stop(scan):
-        """Stop handler."""
-    
-    def on_error(scan, error):
-        """Error handler."""
-        
-        
-class IScan(Interface):
-    """Scan object."""
-    
-    data = Attribute("""Scan Data.""")
-    append = Attribute("""Whether to Append to data or not (Boolean).""")
-    
-    def configure(**kw):
-        """Configure the scan parameters."""
-    
-    def extend(num):
-        """Extend the scan by num points."""
-        
-    def start():
-        """Start the scan in asynchronous mode."""
-
-    def run():
-        """Run the scan in synchronous mode. Will block until complete"""
-                 
-    def stop():
-        """Stop the scan.
-        """
-        
-    def save(filename):
-        """Save the scan data to the provided file name."""
-    
-    
                 
 class BasicScan(GObject.GObject):
     

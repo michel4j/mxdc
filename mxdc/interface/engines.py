@@ -8,6 +8,57 @@ Created on Feb 17, 2010
 
 from zope.interface import Interface, Attribute
 
+class IScanPlotter(Interface):
+    """Scan Plotter Object."""
+    
+    def connect_scan(self, scanner):
+        """Connect handlers to scanner."""
+        
+    def on_start(scan, data):
+        """Clear Scan and setup based on contents of info dictionary."""       
+    
+    def on_progress(scan, data):
+        """Progress handler."""
+
+    def on_new_point(scan, data):
+        """New point handler."""
+    
+    def on_done(scan):
+        """Done handler."""
+    
+    def on_stop(scan):
+        """Stop handler."""
+    
+    def on_error(scan, error):
+        """Error handler."""
+        
+        
+class IScan(Interface):
+    """Scan object."""
+    
+    data = Attribute("""Scan Data.""")
+    append = Attribute("""Whether to Append to data or not (Boolean).""")
+    
+    def configure(**kw):
+        """Configure the scan parameters."""
+    
+    def extend(num):
+        """Extend the scan by num points."""
+        
+    def start():
+        """Start the scan in asynchronous mode."""
+
+    def run():
+        """Run the scan in synchronous mode. Will block until complete"""
+                 
+    def stop():
+        """Stop the scan.
+        """
+        
+    def save(filename):
+        """Save the scan data to the provided file name."""
+    
+    
 
 class IDataCollector(Interface):
     

@@ -1,22 +1,14 @@
-import os
-import sys
-import Queue
-from gi.repository import Gtk
-from gi.repository import GObject
-from gi.repository import Pango
-import time
-import threading
+
 from PIL import Image 
-from PIL import ImageOps
-from PIL import ImageDraw
-from PIL import ImageFont
-
-
-from mxdc.com import ca
+from gi.repository import GObject
+from gi.repository import Gdk
+from gi.repository import Gtk
+from gi.repository import Pango
 from mxdc.interface.devices import IVideoSink
 from zope.interface import implements
-
+import os
 import pickle
+import time
 
 WIDGET_DIR = os.path.dirname(__file__)
 COLORMAPS = pickle.load(file(os.path.join(WIDGET_DIR, 'data/colormaps.data')))
@@ -25,7 +17,7 @@ COLORMAPS = pickle.load(file(os.path.join(WIDGET_DIR, 'data/colormaps.data')))
 class VideoWidget(Gtk.DrawingArea):
     implements(IVideoSink)    
     def __init__(self, camera):
-        GObject.GObject.__init__(self)
+        super(VideoWidget, self).__init__()
         self.camera = camera
         self.scale = 1
         self.pixbuf = None
@@ -47,7 +39,7 @@ class VideoWidget(Gtk.DrawingArea):
 
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
-        self.connect('expose_event',self.on_expose)
+        self.connect('draw',self.on_draw)
         self.connect('realize', self.on_realized)
         self.connect('configure-event', self.on_configure)        
         self.connect("unrealize", self.on_destroy)
@@ -102,7 +94,7 @@ class VideoWidget(Gtk.DrawingArea):
         else:
             self._colorize = False
         
-    def on_expose(self, widget, event):
+    def on_draw(self, widget, context):
         window = self.get_window()
         w, h = self.get_size_request()
         if self.pixbuf is not None:

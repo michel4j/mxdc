@@ -66,7 +66,7 @@ class StatusPanel(Gtk.VBox):
         if label is not None:
             descr = Gtk.Label(label='<span color="#666666"><b>%s:</b></span>' % label)
             descr.set_use_markup(True)
-            hbox.pack_start(Gtk.VSeparator(, True, True, 0), expand=False, fill=True)
+            hbox.pack_start(Gtk.VSeparator(True, True, 0), expand=False, fill=True)
             hbox.pack_start(descr, expand=False, fill=True)
 
         return hbox
