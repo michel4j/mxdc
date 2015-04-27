@@ -1,25 +1,18 @@
-import warnings
-warnings.simplefilter("ignore")
-import sys, os
 
-from twisted.internet import glib2reactor
-glib2reactor.install()
-from twisted.internet import reactor
-
-from gi.repository import Gtk
 from gi.repository import GObject
-
+from gi.repository import Gtk
+from gi.repository import GdkPixbuf
 from mxdc.beamline.mx import MXBeamline
-from mxdc.utils.log import get_module_logger, log_to_console
-from mxdc.widgets.minihutchman import MiniHutchManager
 from mxdc.engine.scripting import get_scripts
-from mxdc.widgets.statuspanel import StatusPanel
-from mxdc.widgets.samplepicker import SamplePicker
-from mxdc.widgets.imageviewer import ImageViewer
-from mxdc.utils import gui
-
 from mxdc.interface.beamlines import IBeamline
+from mxdc.utils import gui
+from mxdc.utils.log import get_module_logger, log_to_console
+from mxdc.widgets.imageviewer import ImageViewer
+from mxdc.widgets.minihutchman import MiniHutchManager
+from mxdc.widgets.samplepicker import SamplePicker
+from mxdc.widgets.statuspanel import StatusPanel
 from twisted.python.components import globalRegistry
+import os
 
 _logger = get_module_logger('hutchviewer')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
@@ -30,7 +23,7 @@ All rights reserved.
 
 class HutchWindow(Gtk.Window):
     def __init__(self):
-        GObject.GObject.__init__(self, Gtk.WindowType.TOPLEVEL)
+        super(HutchWindow, self).__init__(Gtk.WindowType.TOPLEVEL)
         self._xml = gui.GUIFile(os.path.join(SHARE_DIR, 'mxdc_main'), 'mxdc_main')
         self.set_position(Gtk.WindowPosition.CENTER)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
@@ -128,7 +121,7 @@ class HutchApp(object):
         
     def _do_quit(self, obj=None):
         _logger.info('Stopping...')
-        reactor.stop()
+        Gtk.main_quit()
 
 def main():
     try:
@@ -137,8 +130,7 @@ def main():
     except:
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure the BCM is properly installed and configured.')
-        reactor.stop()
-        
+        Gtk.main_quit()        
     app = HutchApp()
     app.run_local()
         
@@ -146,8 +138,8 @@ def main():
 if __name__ == '__main__':
     log_to_console()
     try:
-        reactor.callWhenRunning(main)
-        reactor.run()
+        GObject.idle_add(main)
+        Gtk.main()
     finally:
         _logger.info('Stopping...')
 

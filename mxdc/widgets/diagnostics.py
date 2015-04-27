@@ -33,7 +33,8 @@ MSG_ICONS = {
 
 class DiagnosticDisplay(Gtk.Alignment):
     def __init__(self, diag):
-        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
+        super(DiagnosticsDisplay, self).__init__()
+        self.set(0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/diagnostics'), 
                                   'status_widget')
         self._diagnostic = diag
@@ -85,7 +86,8 @@ class DiagnosticDisplay(Gtk.Alignment):
 
 class DiagnosticsViewer(Gtk.Alignment):
     def __init__(self):
-        GObject.GObject.__init__(self, 0.5, 0.5, 0.75, 0)
+        super(DiagnosticsViewer, self).__init__()
+        self.set(0.5, 0.5, 1, 1)
         self.box = Gtk.VBox(False, 2)
         self.add(self.box)
         self._num = 0
@@ -103,6 +105,6 @@ class DiagnosticsViewer(Gtk.Alignment):
             hs = Gtk.HSeparator()
             hs.set_size_request(-1,3)
             self.box.pack_start(hs, False, False, 0)
-        self.box.pack_start(DiagnosticDisplay(diag, True, True, 0), False, False, 0)
+        self.box.pack_start(DiagnosticDisplay(diag), True, True, 0)
         self._num += 1
         

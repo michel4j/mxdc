@@ -1,4 +1,4 @@
-from mxdc.bcm import registry
+from mxdc import registry
 from mxdc.device.base import BaseDevice, BaseDevice
 from mxdc.interface.devices import *
 from mxdc.device.motor import MotorBase
@@ -690,20 +690,24 @@ class DiskSpaceMonitor(BaseDevice):
         return "%0.2f %sB" % (value, symbols[idx])        
     
     def _check_space(self):
-        fs_stat = os.statvfs(self.path)
-        total = float(fs_stat.f_frsize*fs_stat.f_blocks)
-        avail = float(fs_stat.f_frsize*fs_stat.f_bavail)
-        fraction = avail/total
-        msg = '%s (%0.1f %%) available.' % (self._humanize(avail), fraction*100)
-        if fraction < self.error_threshold:
-            self.set_state(health=(4, 'usage', msg))
-            _logger.error(msg)
-        elif fraction < self.warn_threshold:
-            self.set_state(health=(2, 'usage', msg))
-            _logger.warn(msg)            
+        try:
+            fs_stat = os.statvfs(self.path)
+        except OSError:
+            _logger.error('Error accessing path {0}'.format(self.path))
         else:
-            self.set_state(health=(0, 'usage', msg))
-            _logger.info(msg)
+            total = float(fs_stat.f_frsize*fs_stat.f_blocks)
+            avail = float(fs_stat.f_frsize*fs_stat.f_bavail)
+            fraction = avail/total
+            msg = '%s (%0.1f %%) available.' % (self._humanize(avail), fraction*100)
+            if fraction < self.error_threshold:
+                self.set_state(health=(4, 'usage', msg))
+                _logger.error(msg)
+            elif fraction < self.warn_threshold:
+                self.set_state(health=(2, 'usage', msg))
+                _logger.warn(msg)            
+            else:
+                self.set_state(health=(0, 'usage', msg))
+                _logger.info(msg)
         return True
         
     

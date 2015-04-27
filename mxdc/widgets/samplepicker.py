@@ -1,20 +1,20 @@
-from mxdc.interface.beamlines import IBeamline
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import Pango
 from mxdc.engine import auto
+from mxdc.interface.beamlines import IBeamline
 from mxdc.utils import automounter
+from mxdc.utils import gui
 from mxdc.utils.decorators import async
 from mxdc.utils.log import get_module_logger
-from mxdc.utils import gui
 from mxdc.widgets.misc import ActiveProgressBar
 from mxdc.widgets.textviewer import TextViewer
 from twisted.python.components import globalRegistry
 import cairo
-from gi.repository import GObject
-from gi.repository import Gtk
 import math
 import numpy
 import os
-from gi.repository import Pango
-import time
 
 _logger = get_module_logger('mxdc.samplepicker')
 
@@ -30,7 +30,7 @@ class ContainerWidget(Gtk.DrawingArea):
                       (GObject.TYPE_STRING,)),
         'pin-hover': (GObject.SignalFlags.RUN_FIRST, None,
                       (GObject.TYPE_STRING,)),
-        'expose-event': 'override',
+        'draw': 'override',
         'configure-event': 'override',
         'motion-notify-event': 'override',
         'button-press-event': 'override',   
@@ -172,7 +172,7 @@ class ContainerWidget(Gtk.DrawingArea):
             self.coordinates = {}
             self.labels = {}
     
-    def do_expose_event(self, event):
+    def do_draw(self, event):
         window = self.get_window()
         context = window.cairo_create()
         context.rectangle(event.area.x, event.area.y,
