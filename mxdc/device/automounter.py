@@ -505,6 +505,7 @@ class Automounter(BasicAutomounter):
             time.sleep(0.05)
 
     def _notify_progress(self, pv, pos):
+        if not self.is_active(): return
         if (not self._prog_sequence) or self._prog_sequence[-1] != pos:
             self._prog_sequence.append(pos)
         

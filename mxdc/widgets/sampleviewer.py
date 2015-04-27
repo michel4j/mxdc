@@ -57,7 +57,8 @@ POPUP_UI = """
 
 class SampleViewer(Gtk.Alignment):
     def __init__(self):
-        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
+        super(SampleViewer, self).__init__()
+        self.set(0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'sample_viewer'), 
                                   'sample_viewer')
         self._xml_popup = gui.GUIFile(os.path.join(_DATA_DIR, 'sample_viewer'), 
@@ -417,8 +418,8 @@ class SampleViewer(Gtk.Alignment):
         # Lighting
         self.side_light = ActiveHScale(self.beamline.sample_frontlight)
         self.back_light = ActiveHScale(self.beamline.sample_backlight)
-        self.side_light.set_update_policy(Gtk.UPDATE_DELAYED)
-        self.back_light.set_update_policy(Gtk.UPDATE_DELAYED)
+        #self.side_light.set_update_policy(Gtk.UPDATE_DELAYED)
+        #self.back_light.set_update_policy(Gtk.UPDATE_DELAYED)
         self.lighting_box.attach(self.side_light, 1,2,0,1)
         self.lighting_box.attach(self.back_light, 1,2,1,2)
         

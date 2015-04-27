@@ -3,25 +3,24 @@ A Plotting widget using matplotlib - several lines can be added to multiple axes
 points can be added to each line and the plot is automatically updated.
 """
 
-from mxdc.engine import fitting
-from mxdc.engine.scanning import IScanPlotter
+from gi.repository import Gtk
+from gi.repository import Pango
 from matplotlib import rcParams
+from matplotlib.backends.backend_gtk3 import FileChooserDialog
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
+from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.colors import Normalize
 from matplotlib.dates import MinuteLocator, SecondLocator
 from matplotlib.figure import Figure
-from matplotlib.ticker import FormatStrFormatter, MultipleLocator, MaxNLocator
+from matplotlib.ticker import FormatStrFormatter
 from misc import ActiveProgressBar
 from mpl_toolkits.mplot3d import axes3d
+from mxdc.engine import fitting
+from mxdc.interface.engines import IScanPlotter
 from twisted.python.components import globalRegistry
 from zope.interface import implements
-from gi.repository import Gtk
 import numpy
-from gi.repository import Pango
 import time, os
-
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
-from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
-from matplotlib.backends.backend_gtk import FileChooserDialog
 
 
 rcParams['legend.loc'] = 'best'
@@ -80,9 +79,10 @@ class PlotterToolbar(NavigationToolbar):
         print 'No printing implemented'
 
         
-class Plotter( Gtk.Alignment ):
+class Plotter(Gtk.Alignment):
     def __init__(self, loop=False, buffer_size=2500, xformat='%g', dpi=96 ):
-        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
+        super(Plotter, self).__init__()
+        self.set(0.5, 0.5, 1, 1)
         _fd = self.get_pango_context().get_font_description()
         rcParams['legend.loc'] = 'best'
         rcParams['legend.fontsize'] = 8.5

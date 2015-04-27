@@ -6,6 +6,8 @@ from gauge import Gauge
 from mxdc.utils import gui
 from gi.repository import GObject
 from gi.repository import Gtk
+from gi.repository import GdkPixbuf
+from gi.repository import Gdk
 import os
 import time
 
@@ -13,13 +15,13 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class ActiveHScale(Gtk.HScale):
     def __init__( self, context, min_val=0.0, max_val=100.0):
-        GObject.GObject.__init__(self)
+        super(ActiveHScale, self).__init__()
         self.context = context
         self.set_value_pos(Gtk.PositionType.RIGHT)
         self.set_digits(1)
         self.set_range(min_val, max_val)
         self.set_adjustment(Gtk.Adjustment(0.0, min_val, max_val, (max_val-min_val)/100.0, 0, 0))
-        self.set_update_policy(Gtk.UPDATE_CONTINUOUS)
+        #self.set_update_policy(Gtk.UPDATE_CONTINUOUS)
         self._handler_id = self.connect('value-changed', self._on_scale_changed)
         self.context.connect('changed', self._on_feedback_changed)
         self._feedback = False
@@ -44,7 +46,7 @@ class ActiveHScale(Gtk.HScale):
         
 class ActiveLabel(Gtk.Label):
     def __init__( self, context, fmt="%s", show_units=True, rng=None):
-        GObject.GObject.__init__(self, '')
+        super(ActiveLabel, self).__init__('')
 
         self.set_alignment(0.5,0.5)
         self.format = fmt
@@ -76,7 +78,7 @@ class ActiveLabel(Gtk.Label):
 class ActiveEntry(Gtk.VBox):
     #_border = Gtk.Border(3,3,4,4)
     def __init__( self, device, label=None,  fmt="%g",  width=10):
-        GObject.GObject.__init__(self, label)
+        super(ActiveEntry, self).__init__(label)
         self._sizegroup_h = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
         self._sizegroup_v = Gtk.SizeGroup(Gtk.SizeGroupMode.VERTICAL)
         # create gui layout
@@ -220,12 +222,12 @@ class ActiveEntry(Gtk.VBox):
             
 class MotorEntry(ActiveEntry):
     def __init__(self, mtr, label=None, fmt="%0.3f", width=8):
-        ActiveEntry.__init__(self, mtr, label=label, fmt=fmt, width=width)
+        super(MotorEntry, self).__init__(mtr, label=label, fmt=fmt, width=width)
         self._set_active(False)
         self.device.connect('busy', self._on_motion_changed)
         self.device.connect('target-changed', self._on_target_changed)
         
-        self._animation = GdkPixbuf.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+        self._animation = GdkPixbuf.PixbufAnimation.new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/active_stop.gif'))
            
     def stop(self):
@@ -254,7 +256,7 @@ class MotorEntry(ActiveEntry):
 
 class ShutterButton(Gtk.ToggleButton):
     def __init__(self, shutter, label, open_only=False, action_label=False):
-        GObject.GObject.__init__(self)
+        super(ShutterButton, self).__init__()
         self.shutter = shutter
         self.open_only = open_only
         self.action_label = action_label
@@ -268,8 +270,8 @@ class ShutterButton(Gtk.ToggleButton):
         self.label.set_alignment(0.0, 0.5)
         self.label.set_padding(3,0)
         
-        container.pack_start(self.image, expand=False, fill=False)
-        container.pack_start(self.label, expand=True, fill=True)
+        container.pack_start(self.image, False, False, 0)
+        container.pack_start(self.label, True, True, 0)
         self.add(container)
         self._set_off()
         self.shutter.connect('changed', self._on_state_change)
@@ -308,11 +310,11 @@ class ShutterButton(Gtk.ToggleButton):
 
 class ScriptButton(Gtk.Button):
     def __init__(self, script, label, confirm=False, message=""):
-        GObject.GObject.__init__(self)
+        super(ScriptButton, self).__init__()
         self.script = script
         self.confirm = confirm
         self.warning_text = message
-        self._animation = GdkPixbuf.PixbufAnimation(os.path.join(os.path.dirname(__file__),
+        self._animation = GdkPixbuf.PixbufAnimation.new_from_file(os.path.join(os.path.dirname(__file__),
                                                                'data/active_stop.gif'))
         container = Gtk.HBox(False, 2)
 
@@ -323,11 +325,10 @@ class ScriptButton(Gtk.Button):
         self.image.set_padding(3,0)
         self.label.set_alignment(0.0, 0.5)
         self.label.set_padding(3,0)
-        container.pack_start(self.image, expand=False, fill=False)
-        container.pack_end(self.label, expand=True, fill=True)
+        container.pack_start(self.image, False, False, 0)
+        container.pack_end(self.label, True, True, 0)
         self.add(container)
-        self.tooltip = Gtk.Tooltips()
-        self.tooltip.set_tip(self, self.script.description)
+        self.set_tooltip_text(self.script.description)
         self._set_off()
         self.set_property('can-focus', False)
         self.script.connect('done', lambda x,y: self._set_off())
@@ -374,7 +375,7 @@ class StatusBox(Gtk.EventBox):
     }
 
     def __init__(self, device, color_map={}, value_map={}, signal="changed", markup="<small><b>%s</b></small>", background=False):
-        GObject.GObject.__init__(self)
+        super(StatusBox, self).__init__()
         hbox = Gtk.HBox()
         self.state_map = color_map
         self.value_map = value_map
@@ -384,7 +385,7 @@ class StatusBox(Gtk.EventBox):
         self.label.set_alignment(0.5, 0.5)
         self.device = device
         self.device.connect(signal, self._on_signal)
-        hbox.pack_start(self.label, expand=True, fill=False)
+        hbox.pack_start(self.label, True, False, 0)
         self.add(hbox)
         self.show_all()
                 
@@ -403,7 +404,7 @@ class StatusBox(Gtk.EventBox):
 class TextStatusDisplay(Gtk.Label):
     def __init__(self, device, text_map={}, sig='changed'):
         self.text_map = text_map
-        GObject.GObject.__init__(self,'')
+        super(TextStatusDisplay, self).__init__('')
         self.device = device
         self.set_use_markup(True)
         self.device.connect(sig, self._on_signal)
@@ -415,7 +416,7 @@ class TextStatusDisplay(Gtk.Label):
 
 class HealthDisplay(Gtk.HBox):
     def __init__(self, device, label='', icon_map=MSG_ICONS, color_map=MSG_COLORS, sig='health'):
-        GObject.GObject.__init__(self)
+        super(HealthDisplay, self).__init__(False, 0)
         
         self.nm = Gtk.Label(label='')
         self.nm.set_alignment(0.1, 0.5)
@@ -430,8 +431,8 @@ class HealthDisplay(Gtk.HBox):
         self.icon.set_alignment(0.1,0.5)
         self.icon_map = icon_map
         self.color_map = color_map
-        self.pack_start(self.icon, expand=False, fill=False)
-        self.pack_start(self.nm, expand=True, fill=True)
+        self.pack_start(self.icon, False, False, 0)
+        self.pack_start(self.nm, True, True, 0)
         self.pack_start(self.status, True, True, 0)
         
     def _on_signal(self, obj, status):
@@ -444,13 +445,13 @@ class HealthDisplay(Gtk.HBox):
     
 class StatusDisplay(Gtk.HBox):
     def __init__(self, icon_list, message):
-        GObject.GObject.__init__(self, False, 0)
+        super(StatusDisplay, self).__init__(False, 0)
         self.message = message
         self.icon_list = icon_list
         self.image = Gtk.Image()
         self.label = Gtk.Label()
-        self.pack_start(self.image, expand=False, fill=False)
-        self.pack_start(self.label, expand=True, fill=True)
+        self.pack_start(self.image, False, False, 0)
+        self.pack_start(self.label, True, True, 0)
                                         
     def set_state(self, val=None, message=None):
         if val is not None:
@@ -462,7 +463,7 @@ class StatusDisplay(Gtk.HBox):
         
 class ActiveProgressBar(Gtk.ProgressBar):
     def __init__(self):
-        GObject.GObject.__init__(self)    
+        super(ActiveProgressBar, self).__init__()    
         self.set_fraction(0.0)
         self.set_text('0.0%')
         self.progress_id = None
@@ -501,62 +502,12 @@ class ActiveProgressBar(Gtk.ProgressBar):
         complete_text = '%0.1f%%  %s' % ((complete * 100), text)
         self.set_text(complete_text)
     
-
-class LinearProgress(Gtk.DrawingArea):
-    def __init__(self):
-        GObject.GObject.__init__(self)
-        self.set_app_paintable(True)
-        self.fraction = 0.0
-        self.bar_gc = None 
-        self.connect('expose-event', self.on_expose)
-        self.color_spec = None
-        self.bg_spec = None
-        self.queue_draw()
-           
-    
-    def on_expose(self, obj, event):
-        window = obj.get_window()
-        if self.bar_gc is None:
-            window.clear()
-            self.bar_gc = window.new_gc()
-            style = self.get_style()
-            if self.color_spec:
-                self.bar_gc.foreground = self.get_colormap().alloc_color(self.color_spec)
-            else:
-                self.bar_gc.foreground = style.fg[Gtk.StateType.PRELIGHT]
-            if self.bg_spec:
-                self.bar_gc.background = self.get_colormap().alloc_color(self.bg_spec)
-            else:
-                self.bar_gc.background = style.bg[Gtk.StateType.PRELIGHT]
-        
-        self.draw_gdk()
-        return False
-
-    def draw_gdk(self):
-        window = self.get_window()
-        window.set_back_pixmap(None, True)
-        bar_width = int(self.allocation.width * self.fraction - 3.0)       
-        window.draw_rectangle(self.bar_gc, False, 0, 0, self.allocation.width-1,
-            self.allocation.height-1)
-        if bar_width > 0:
-            window.draw_rectangle(self.bar_gc, True, 2, 2, bar_width-1, 
-                self.allocation.height - 4)
-             
-    def set_fraction(self, fraction):
-        self.fraction = max(0.0, min(1.0, fraction))
-        self.queue_draw()
-
-    def get_fraction(self):
-        return self.fraction
-    
-    def set_color(self, spec=None, bg_spec=None):
-        self.color_spec = spec
-        self.bg_spec = bg_spec
         
            
 class CryojetWidget(Gtk.Alignment):
     def __init__(self, cryojet):
-        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
+        super(CryojetWidget, self).__init__()
+        self.set(0.5, 0.5, 1, 1)
         self.cryojet = cryojet
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'cryo_widget'), 
                                   'cryo_widget')
