@@ -1,7 +1,7 @@
 #!/bin/csh
 
 ## ---- Setup Top level directory of BCM installation ----
-setenv BCM_PATH /home/michel/Code/eclipse-ws/beamline-control-module
+setenv BCM_PATH /home/michel/Code/eclipse-ws/mxdc
 
 
 ## ---- Setup Beamline Configuration by network ----
@@ -24,8 +24,3 @@ if ($?PYTHONPATH) then
 else
 	setenv PYTHONPATH ${BCM_PATH}:${BCM_PATH}/bcm/libs
 endif
-
-# Setup MOZEMBED XUL PATH
-set xul_lib=`rpm -q xulrunner.x86_64 --list | grep libxul.so`
-setenv MOZILLA_FIVE_HOME `dirname ${xul_lib}`
-
