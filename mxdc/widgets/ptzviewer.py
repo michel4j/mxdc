@@ -13,8 +13,11 @@ _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
         
 class AxisViewer(Gtk.Alignment):
     def __init__(self, ptz_camera):
-        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
+        super(AxisViewer, self).__init__()
+        self.set(0.5, 0.5, 1, 1)
         
+        self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'ptz_viewer'), 
+                                  'ptz_viewer')
         self.timeout_id = None
         self.max_fps = 20     
         self.camera = ptz_camera
@@ -24,9 +27,9 @@ class AxisViewer(Gtk.Alignment):
 
     def __getattr__(self, key):
         try:
-            return super(AxisViewer).__getattr__(self, key)
-        except AttributeError:
             return self._xml.get_widget(key)
+        except:
+            raise AttributeError
                                         
     def save_image(self, filename):
         img = self.camera.get_frame()
@@ -68,8 +71,6 @@ class AxisViewer(Gtk.Alignment):
         self.camera.goto(value)
                                 
     def _create_widgets(self):
-        self._xml = gui.GUIFile(os.path.join(_DATA_DIR, 'ptz_viewer'), 
-                                  'ptz_viewer')
         widget = self._xml.get_widget('ptz_viewer')
         
         self.add(widget)
@@ -94,7 +95,7 @@ class AxisViewer(Gtk.Alignment):
         else:
             self.preset_box.set_sensitive(False)
             self.zoom_box.set_sensitive(False)
-        self.presets_frame.pack_start(self.presets_btn, expand=False, fill=False)
+        self.presets_frame.pack_start(self.presets_btn, False, False, 0)
                 
 
         # status, save, etc

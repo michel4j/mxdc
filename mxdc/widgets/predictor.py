@@ -2,33 +2,25 @@
 A Resolution Predictor widget using matplotlib - several lines can be added to multiple axes
 points can be added to each line and the plot is automatically updated.
 """
-import gtk, gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 import threading
-import sys
+from gi.repository import Gdk
 from gi.repository import Pango
-import thread
 import numpy
 
-from matplotlib.artist import Artist
-from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
 import matplotlib.cm as cm
-from matplotlib.colors import Normalize, LogNorm
-from matplotlib.ticker import FormatStrFormatter, NullLocator
+from matplotlib.colors import LogNorm
+from matplotlib.ticker import NullLocator
 from matplotlib import rcParams
-from pylab import meshgrid
 from mxdc.utils import converter
 from mxdc.utils.log import get_module_logger
 import time
 
 _logger = get_module_logger(__name__)
 
-#try:
-#    from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
-#except:
-
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
-from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
+from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
             
 class Predictor( Gtk.AspectFrame ):
     def __init__( self, pixel_size=0.07234, detector_size=4096):
@@ -179,7 +171,7 @@ class Predictor( Gtk.AspectFrame ):
                 grid_size = 150
                 x = numpy.arange(0, self.detector_size, grid_size)
                 y = x
-                X,Y = meshgrid(x,y)
+                X,Y = numpy.meshgrid(x,y)
                 Z = self._pix_resol(X,Y)
                 xp = self._mm(X, self.beam_x)
                 yp = self._mm(Y, self.beam_y)
