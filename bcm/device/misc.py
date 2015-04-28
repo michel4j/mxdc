@@ -729,7 +729,7 @@ class StorageRing(BaseDevice):
         
         self.mode.connect('changed', self._on_mode_change)
         self.current.connect('changed', self._on_current_change)
-        self.control.connect('changed', self._on_control_change)
+        #self.control.connect('changed', self._on_control_change)
         self._last_current = 0.0
         
     def beam_available(self):
