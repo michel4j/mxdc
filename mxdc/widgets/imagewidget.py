@@ -63,6 +63,26 @@ _GAMMA_SHIFT = 3.5
 
 LEFT_PTR_WATCH = None
 
+
+def pil2cairo(im):
+    """Transform a PIL Image into a Cairo ImageSurface."""
+
+    assert sys.byteorder == 'little', 'We don\'t support big endian'
+    if im.mode != 'RGBA':
+        im = im.convert('RGBA')
+
+    s = im.tostring('raw', 'BGRA')
+    a = array.array('B', s)
+    dest = cairo.ImageSurface(cairo.FORMAT_ARGB32, im.size[0], im.size[1])
+    ctx = cairo.Context(dest)
+    non_premult_src_wo_alpha = cairo.ImageSurface.create_for_data(
+        a, cairo.FORMAT_RGB24, im.size[0], im.size[1])
+    non_premult_src_alpha = cairo.ImageSurface.create_for_data(
+        a, cairo.FORMAT_ARGB32, im.size[0], im.size[1])
+    ctx.set_source_surface(non_premult_src_wo_alpha)
+    ctx.mask_surface(non_premult_src_alpha)
+    return dest
+
 def image2pixbuf(im):
     arr = array.array('B', im.tostring())
     width, height = im.size
@@ -178,7 +198,7 @@ class ImageWidget(Gtk.DrawingArea):
     }
     def __init__(self, size):
         GObject.GObject.__init__(self)
-        self.pixbuf = None
+        self.surface = None
         self._rubber_band=False
         self._shifting=False
         self._measuring=False
@@ -209,7 +229,7 @@ class ImageWidget(Gtk.DrawingArea):
 
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
-        self.connect('draw',self.on_expose)
+        self.connect('draw',self.on_draw)
         self.connect('configure-event', self.on_configure)        
         self.connect('motion_notify_event', self.on_mouse_motion)
         self.connect('button_press_event', self.on_mouse_press)
@@ -256,8 +276,8 @@ class ImageWidget(Gtk.DrawingArea):
         self.pixel_data = self.img_info['data']
         self.raw_img = self.img_info['image']
         self.filename = self.img_info['header']['filename']
-        self._create_pixbuf()
-        #self._create_image_surface()
+        #self._create_pixbuf()
+        self._create_surface()
         self.queue_draw()
         self.image_loaded = True
         self.emit('image-loaded')
@@ -288,6 +308,33 @@ class ImageWidget(Gtk.DrawingArea):
             nh = nw
             self.extents = (nx, ny, nw, nh)
         self.pixbuf = image2pixbuf(self.image)
+
+    def _create_surface(self):
+        gc.collect()
+        if self._colorize and self.raw_img.mode in ['L','P']:
+            self.raw_img.putpalette(self._palette)
+        self.image = self.raw_img.convert('RGB')
+        #self.image.putalpha(256)
+        arr = numpy.array(self.image)
+        self.image_height, self.image_width, channels = arr.shape
+
+        if self.extents is None:
+            self.extents = (0,0, self.image_width, self.image_height)
+        else:
+            ox, oy, ow, oh = self.extents
+            nx = min(ox, self.image_width)
+            ny = min(oy, self.image_height)
+            nw = ow
+            nh = oh
+            if nx + nw > self.image_width:
+                nw = self.image_width - nx
+            if ny + nh > self.image_height:
+                nh = self.image_height - ny
+            nw = max(16, min(nh, nw))
+            nh = nw
+            self.extents = (nx, ny, nw, nh)
+            
+        self.surface = pil2cairo(self.image)
 
     
     def get_image_info(self):
@@ -647,21 +694,21 @@ class ImageWidget(Gtk.DrawingArea):
             self.rubber_y0 = max(min(h, event.y), 0)
             self.rubber_x1, self.rubber_y1 = self.rubber_x0, self.rubber_y0
             self._rubber_band = True
-            self._set_cursor_mode(Gdk.TCROSS)
+            self._set_cursor_mode(Gdk.CursorType.TCROSS)
         elif event.button == 2:
-            self._set_cursor_mode(Gdk.FLEUR)
+            self._set_cursor_mode(Gdk.CursorType.FLEUR)
             self.shift_x0 = max(min(w, event.x), 0)
             self.shift_y0 = max(min(w, event.y), 0)
             self.shift_x1, self.shift_y1 = self.shift_x0, self.shift_y0
             self._shift_start_extents = self.extents
             self._shifting = True
-            self._set_cursor_mode(Gdk.FLEUR)
+            self._set_cursor_mode(Gdk.CursorType.FLEUR)
         elif event.button == 3:
             self.meas_x0 = int(max(min(w, event.x), 0))
             self.meas_y0 = int(max(min(h, event.y), 0))
             self.meas_x1, self.meas_y1 = self.meas_x0, self.meas_y0
             self._measuring = True
-            self._set_cursor_mode(Gdk.TCROSS)
+            self._set_cursor_mode(Gdk.CursorType.TCROSS)
             
             
             
@@ -706,8 +753,18 @@ class ImageWidget(Gtk.DrawingArea):
         self._set_cursor_mode()
             
   
+    def on_draw(self, widget, context):
+        if self.surface is not None:
+            context.set_source_surface(self.surface, 0, 0)
+            context.rectangle(0, 0, self.image_width, self.image_height)
+            context.fill()
+            self.draw_overlay_cairo(context)
+            self.draw_spots(context)
+            self._canvas_is_clean = True
+            #context.paint()
+
     def on_expose(self, widget, context):
-        if self.pixbuf is not None:
+        if self.surface is not None:
             alloc = self.get_allocation()
             w, h = alloc.width, alloc.height
             disp_pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, w, h)
@@ -743,6 +800,7 @@ class ImageWidget(Gtk.DrawingArea):
             self.draw_spots(context)
             self._canvas_is_clean = True
             context.paint()
+
                  
     def on_visibility_notify(self, obj, event):
         if event.get_state() == Gdk.VisibilityState.FULLY_OBSCURED:
