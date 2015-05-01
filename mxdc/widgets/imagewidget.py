@@ -371,7 +371,7 @@ class ImageWidget(Gtk.DrawingArea):
                 # no xaxis ticks
                 ax.xaxis.set_ticks([])
 
-        matplotlib.rcParams.update({'font.size': 8.5})
+        matplotlib.rcParams.update({'font.size': 9.5})
         figure = matplotlib.figure.Figure(frameon=False,figsize=(4, 2), dpi=72)
         plot = figure.add_subplot(111)
         plot.patch.set_alpha(0.4)
@@ -666,8 +666,7 @@ class ImageWidget(Gtk.DrawingArea):
             x0, y0 = self._calc_pos(self.rubber_x0, self.rubber_y0)
             x1, y1 = self._calc_pos(self.rubber_x1, self.rubber_y1)
             x,y,w,h = self._calc_bounds(x0, y0, x1, y1)
-            w = max(w, 5)
-            h = max(h, 5)
+            if min(w, h) < 10: return 
             self.extents_back.append(self.extents)
             self.extents = (x, y, w, h)
             self.queue_draw()
