@@ -84,8 +84,8 @@ class ImageViewer(Gtk.Alignment):
        
         self.reset_btn.connect('clicked', self.on_reset_filters)
         
-        self.info_label = self._xml.get_widget('info_label')
-        self.extra_label = self._xml.get_widget('extra_label')
+        self.info_pos = self._xml.get_widget('info_pos')
+        self.info_data = self._xml.get_widget('info_data')
         
         # signals
         self.open_btn.connect('clicked',self.on_file_open)
@@ -242,9 +242,10 @@ class ImageViewer(Gtk.Alignment):
     
     def on_mouse_motion(self,widget,event):
         ix, iy, ires, ivalue = self.image_canvas.get_position(event.x, event.y)
-        self.info_label.set_markup("<span size='x-small'><tt><b>%4d %5d \n%4d %5.1f Å</b></tt></span>"% (ix, iy, ivalue, ires))
-        self.info_label.set_alignment(1.0, 0.5)
-
+        self.info_pos.set_markup("<b><small><tt>X:%5d \nY:%5d </tt></small></b>"% (ix, iy))
+        self.info_data.set_markup("<b><small><tt>I:%5d \nÅ:%5.1f </tt></small></b>"% (ivalue, ires))
+        self.info_pos.set_alignment(0.5, 0.5)
+        self.info_data.set_alignment(0.5, 0.5)
 
     def _update_info(self, obj=None):
         info = self.image_canvas.get_image_info()
