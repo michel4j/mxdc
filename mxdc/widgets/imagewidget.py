@@ -6,6 +6,8 @@ from gi.repository import Gtk
 from gi.repository import Pango
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
+from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
+
 from mxdc.utils.decorators import async
 from mxdc.utils.imageio import read_image
 from mxdc.utils.imageio.utils import stretch
@@ -44,27 +46,8 @@ COLORMAPS['gist_yarg'][2] = 200
 
 _GAMMA_SHIFT = 3.5        
 
-# _BUSY_CURSOR_BITS_ = "\
-# \x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\
-# \x0c\x00\x00\x00\x1c\x00\x00\x00\x3c\x00\x00\x00\
-# \x7c\x00\x00\x00\xfc\x00\x00\x00\xfc\x01\x00\x00\
-# \xfc\x3b\x00\x00\x7c\x38\x00\x00\x6c\x54\x00\x00\
-# \xc4\xdc\x00\x00\xc0\x44\x00\x00\x80\x39\x00\x00\
-# \x80\x39\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
-# \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
-# \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
-# \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
-# \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
-# \x00\x00\x00\x00\x00\x00\x00\x00"
-# 
-# _c_pix = Gdk.bitmap_create_from_data(None, _BUSY_CURSOR_BITS_, 32, 32)
-# _c_color = Gdk.Color()
-# LEFT_PTR_WATCH=Gdk.Cursor.new(_c_pix, _c_pix, _c_color, _c_color, 2, 2)
 
-LEFT_PTR_WATCH = None
-
-
-def pil2cairo(im):
+def image_to_surface(im):
     """Transform a PIL Image into a Cairo ImageSurface."""
 
     assert sys.byteorder == 'little', 'We don\'t support big endian'
@@ -230,7 +213,6 @@ class ImageWidget(Gtk.DrawingArea):
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
         self.connect('draw',self.on_draw)
-        self.connect('configure-event', self.on_configure)        
         self.connect('motion_notify_event', self.on_mouse_motion)
         self.connect('button_press_event', self.on_mouse_press)
         self.connect('scroll-event', self.on_mouse_scroll)
@@ -276,7 +258,6 @@ class ImageWidget(Gtk.DrawingArea):
         self.pixel_data = self.img_info['data']
         self.raw_img = self.img_info['image']
         self.filename = self.img_info['header']['filename']
-        #self._create_pixbuf()
         self._create_surface()
         self.queue_draw()
         self.image_loaded = True
@@ -286,40 +267,15 @@ class ImageWidget(Gtk.DrawingArea):
         #self._plot_histogram(self.histogram, show_axis=['xzero',], distance=False)
         self._set_cursor_mode()        
     
-    def _create_pixbuf(self):
-        gc.collect()
-        if self._colorize and self.raw_img.mode in ['L','P']:
-            self.raw_img.putpalette(self._palette)
-        self.image = self.raw_img.convert('RGB')
-        self.image_width, self.image_height = self.image.size
-        if self.extents is None:
-            self.extents = (0,0, self.image_width, self.image_height)
-        else:
-            ox, oy, ow, oh = self.extents
-            nx = min(ox, self.image_width)
-            ny = min(oy, self.image_height)
-            nw = ow
-            nh = oh
-            if nx + nw > self.image_width:
-                nw = self.image_width - nx
-            if ny + nh > self.image_height:
-                nh = self.image_height - ny
-            nw = max(16, min(nh, nw))
-            nh = nw
-            self.extents = (nx, ny, nw, nh)
-        self.pixbuf = image2pixbuf(self.image)
-
     def _create_surface(self):
         gc.collect()
         if self._colorize and self.raw_img.mode in ['L','P']:
             self.raw_img.putpalette(self._palette)
         self.image = self.raw_img.convert('RGB')
-        #self.image.putalpha(256)
-        arr = numpy.array(self.image)
-        self.image_height, self.image_width, channels = arr.shape
+        self.image_width, self.image_height = self.image.size
 
-        if self.extents is None:
-            self.extents = (0,0, self.image_width, self.image_height)
+        if not self.extents:
+            self.extents = (1,1, self.image_width-2, self.image_height-2)
         else:
             ox, oy, ow, oh = self.extents
             nx = min(ox, self.image_width)
@@ -334,7 +290,7 @@ class ImageWidget(Gtk.DrawingArea):
             nh = nw
             self.extents = (nx, ny, nw, nh)
             
-        self.surface = pil2cairo(self.image)
+        self.surface = image_to_surface(self.image)
 
     
     def get_image_info(self):
@@ -352,8 +308,8 @@ class ImageWidget(Gtk.DrawingArea):
     def _get_intensity_line(self, x,y,x2,y2, lw=1):
         """Bresenham's line algorithm"""
         
-        x, y, res0, val0 = self.get_position(x, y)
-        x2, y2, res1, val1 = self.get_position(x2, y2)
+        x, y = self.get_position(x, y)[:2]
+        x2, y2 = self.get_position(x2, y2)[:2]
         
         steep = 0
         coords = []
@@ -370,8 +326,10 @@ class ImageWidget(Gtk.DrawingArea):
             sx,sy = sy,sx
         d = (2 * dy) - dx
         for i in range(0,dx):
-            if steep: coords.append((y,x))
-            else: coords.append((x,y))
+            if steep: 
+                coords.append((y,x))
+            else: 
+                coords.append((x,y))
             while d >= 0:
                 y = y + sy
                 d = d - (2 * dx)
@@ -413,61 +371,57 @@ class ImageWidget(Gtk.DrawingArea):
                 # no xaxis ticks
                 ax.xaxis.set_ticks([])
 
-        old_fontsize = matplotlib.rcParams['font.size']
         matplotlib.rcParams.update({'font.size': 8.5})
-        figure = matplotlib.figure.Figure(frameon=False,figsize=(4, 2), dpi=80, facecolor='w' )
+        figure = matplotlib.figure.Figure(frameon=False,figsize=(4, 2), dpi=72)
         plot = figure.add_subplot(111)
+        plot.patch.set_alpha(0.4)
         _adjust_spines(plot, ['left'])
         figure.subplots_adjust(left=0.18, right=0.95)
         formatter = FormatStrFormatter('%g')
         plot.yaxis.set_major_formatter(formatter)
         plot.yaxis.set_major_locator(MaxNLocator(5))
-
+        
         if distance:
             plot.plot(data[:,1], data[:,2])
         else:
             plot.vlines(data[:,1], 0, data[:,2])
 
         if distance:
-            peaks = find_peaks(data[:,1], data[:,2], sensitivity=0.05)            
-            if len(peaks) > 1:
-                d1 = peaks[1][0] - peaks[0][0]
-                y1 = max(peaks[0][1], peaks[1][1])
-                r1 = (self.wavelength * self.distance/d1)
-                x1 = (peaks[1][0] + peaks[0][0])/2
-                plot.text((peaks[1][0]+peaks[0][0])/2, y1, '%0.0f A' % r1,
-                          horizontalalignment='center',
-                          verticalalignment='bottom',
-                          color='black', rotation=90)        
-            
-            if len(peaks) > 2:
-                d2 = peaks[2][0] - peaks[1][0]
-                r2 = (self.wavelength * self.distance/d2)
-                y2 = max(peaks[1][1], peaks[2][1])
-                x2 = (peaks[2][0] + peaks[1][0])/2
-                plot.text((peaks[2][0]+peaks[1][0])/2, y2, '%0.0f A' % r2,
-                          horizontalalignment='center', 
-                          verticalalignment='bottom',
-                          color='black', rotation=90)
+            peaks = find_peaks(data[:,1], data[:,2], sensitivity=0.1)            
+#             if len(peaks) > 1:
+#                 d1 = peaks[1][0] - peaks[0][0]
+#                 y1 = max(peaks[0][1], peaks[1][1])/2
+#                 r1 = (self.wavelength * self.distance/d1)
+#                 x1 = (peaks[1][0] + peaks[0][0])/2
+#                 plot.text(x1, y1, '%0.0f A' % r1,
+#                           horizontalalignment='center',
+#                           verticalalignment='bottom',
+#                           color='black', rotation=90)        
+#             
+#             if len(peaks) > 2:
+#                 d2 = peaks[2][0] - peaks[1][0]
+#                 r2 = (self.wavelength * self.distance/d2)
+#                 y2 = max(peaks[1][1], peaks[2][1])/2
+#                 x2 = (peaks[2][0] + peaks[1][0])/2
+#                 plot.text(x2, y2, '%0.0f A' % r2,
+#                           horizontalalignment='center', 
+#                           verticalalignment='bottom',
+#                           color='black', rotation=90)
+
+            if len(peaks) > 0:
+                plot.set_ylim(0, 1.1*max([p[1] for p in peaks]))
+
             
         # Ask matplotlib to render the figure to a bitmap using the Agg backend
         plot.set_xlim(min(data[:,1]), max(data[:,1]))
-        canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(figure)
-        canvas.draw()
-        matplotlib.rcParams.update({'font.size': old_fontsize})
-        
-        # Get the buffer from the bitmap
-        stringImage = canvas.tostring_rgb()
-        
-        # Convert the RGBA buffer to a pixbuf
-        try:
-            l,b,w,h = canvas.figure.bbox.get_bounds()
-        except:
-            l,b,w,h = canvas.figure.bbox.bounds
-        self.plot_pixbuf =  GdkPixbuf.Pixbuf.new_from_data(stringImage,
-                                                    GdkPixbuf.Colorspace.RGB, 
-                                                    False, 8, 
-                                                    int(w), int(h), 3*int(w))
+
+        canvas = FigureCanvasCairo(figure)
+        width, height = canvas.get_width_height()               
+        renderer = RendererCairo(canvas.figure.dpi)
+        renderer.set_width_height (width, height)
+        self.plot_surface = cairo.ImageSurface (cairo.FORMAT_ARGB32, width, height)
+        renderer.set_ctx_from_surface(self.plot_surface)
+        canvas.figure.draw(renderer)
         self._draw_histogram = True
             
     def _calc_palette(self, percent):
@@ -484,8 +438,8 @@ class ImageWidget(Gtk.DrawingArea):
         return rpal
 
     def draw_overlay_cairo(self, cr):
-        # rubberband
-        cr.set_line_width(1.5)
+        # rubber band
+        cr.set_line_width(1)
         cr.set_source_rgb(0.0, 0.5, 1.0)
         if self._rubber_band:
             x, y, w, h = self._calc_bounds(self.rubber_x0,
@@ -508,7 +462,7 @@ class ImageWidget(Gtk.DrawingArea):
             cr.stroke()
         # measuring
         if self._measuring:
-            cr.set_source_rgba(0.0, 0.5, 1.0,0.5)
+            cr.set_source_rgba(0.0, 0.5, 1.0, 0.5)
             cr.set_line_width(4)
             cr.move_to(self.meas_x0, self.meas_y0)
             cr.line_to(self.meas_x1, self.meas_y1)
@@ -549,7 +503,7 @@ class ImageWidget(Gtk.DrawingArea):
         if len(self.extents_back)> 0 and not full:
             self.extents = self.extents_back.pop()
         else:
-            self.extents = (0,0,self.image_width, self.image_height)
+            self.extents = (1,1,self.image_width-2, self.image_height-2)
             self.extents_back = []
         self.queue_draw()
         return len(self.extents_back) > 0
@@ -557,7 +511,7 @@ class ImageWidget(Gtk.DrawingArea):
     def set_contrast(self, value):
         self._palette = self._calc_palette(value)
         self._colorize = True
-        self._create_pixbuf()
+        self._create_surface()
         self.queue_draw()
     
     def set_brightness(self, value):
@@ -569,7 +523,7 @@ class ImageWidget(Gtk.DrawingArea):
         if gamma != self.display_gamma:
             lut = stretch(gamma)
             self.raw_img = self.src_image.point(lut.tolist(), 'L')
-            self._create_pixbuf()
+            self._create_surface()
             self._canvas_is_clean = False
             self.queue_draw()
             self.display_gamma = gamma
@@ -577,7 +531,7 @@ class ImageWidget(Gtk.DrawingArea):
     def colorize(self, value):
         self.set_colormap(index=value)
         self._canvas_is_clean = False
-        self._create_pixbuf()
+        self._create_surface()
         self.queue_draw()
 
     def reset_filters(self):
@@ -586,9 +540,16 @@ class ImageWidget(Gtk.DrawingArea):
         self.file_loader.gamma_offset = 0.0
         lut = stretch(self.gamma)
         self.raw_img = self.src_image.point(lut.tolist(), 'L')
-        self._create_pixbuf()
+        self._create_surface()
         self.queue_draw()
-       
+    
+    def _calc_pos(self, x, y):
+        Ix = int(x/self.scale)+self.extents[0]
+        Iy = int(y/self.scale)+self.extents[1]
+        Ix = max(1, min(Ix, self.image_width-2))
+        Iy = max(1, min(Iy, self.image_height-2))
+        return Ix, Iy
+           
     def _res(self,x,y):
         displacement = self.pixel_size * math.sqrt ( (x -self.beam_x)**2 + (y -self.beam_y)**2 )
         angle = 0.5 * math.atan(displacement/self.distance)
@@ -603,11 +564,8 @@ class ImageWidget(Gtk.DrawingArea):
     def get_position(self, x, y):
         if not self.image_loaded:
             return 0, 0, 0.0, 0
-        ox,oy,ow,oh = self.extents
-        Ix = int(x/self.scale)+ox
-        Iy = int(y/self.scale)+oy
-        Ix = max(0, min(Ix, self.image_width-1))
-        Iy = max(0, min(Iy, self.image_height-1))
+
+        Ix, Iy = self._calc_pos(x, y)
         Res = self._res(Ix, Iy)
         return Ix, Iy, Res, self.pixel_data[Ix, Iy]
 
@@ -618,24 +576,13 @@ class ImageWidget(Gtk.DrawingArea):
         if cursor is None:
             window.set_cursor(None)
         else:
-            if cursor == Gdk.CursorType.WATCH:
-                _cur = LEFT_PTR_WATCH
-            else:
-                _cur = Gdk.Cursor.new(cursor)
-            window.set_cursor(_cur)
+            window.set_cursor(Gdk.Cursor.new(cursor))
         Gtk.main_iteration()
             
     def _clear_extents(self):
-        self.extents_back = []
+        self.extents_back = None
         self.back_btn.set_sensitive(False)
                
-    def on_configure(self, widget, event):
-        width, height = event.width, event.height
-        if width > height:
-            width = height
-        else:
-            height = width
-        #self.queue_draw()
                
     def on_mouse_motion(self, widget, event):
         if not self.image_loaded:
@@ -645,8 +592,8 @@ class ImageWidget(Gtk.DrawingArea):
         alloc = self.get_allocation()
         w, h = alloc.width, alloc.height
         if 'GDK_BUTTON1_MASK' in event.get_state().value_names and self._rubber_band:
-            self.rubber_x1 = max(min(w-1, event.x), 0)
-            self.rubber_y1 = max(min(h-1, event.y), 0)
+            self.rubber_x1 = max(min(w-1, event.x), 0) + 0.5
+            self.rubber_y1 = max(min(h-1, event.y), 0) + 0.5
             self.queue_draw()
         elif 'GDK_BUTTON2_MASK' in event.get_state().value_names and self._shifting:           
             self.shift_x1 = event.x
@@ -668,8 +615,8 @@ class ImageWidget(Gtk.DrawingArea):
                 self.shift_y0 = self.shift_y1
                 self.queue_draw()
         elif 'GDK_BUTTON3_MASK' in event.get_state().value_names and self._measuring:
-            self.meas_x1 = int(max(min(w-1, event.x), 0))
-            self.meas_y1 = int(max(min(h-1, event.y), 0))
+            self.meas_x1 = int(max(min(w-1, event.x), 0)) + 0.5
+            self.meas_y1 = int(max(min(h-1, event.y), 0)) + 0.5
             self.queue_draw()
             
         return False
@@ -690,8 +637,8 @@ class ImageWidget(Gtk.DrawingArea):
         alloc = self.get_allocation()
         w, h = alloc.width, alloc.height
         if event.button == 1:
-            self.rubber_x0 = max(min(w, event.x), 0)
-            self.rubber_y0 = max(min(h, event.y), 0)
+            self.rubber_x0 = max(min(w, event.x), 0) + 0.5
+            self.rubber_y0 = max(min(h, event.y), 0) + 0.5
             self.rubber_x1, self.rubber_y1 = self.rubber_x0, self.rubber_y0
             self._rubber_band = True
             self._set_cursor_mode(Gdk.CursorType.TCROSS)
@@ -710,32 +657,19 @@ class ImageWidget(Gtk.DrawingArea):
             self._measuring = True
             self._set_cursor_mode(Gdk.CursorType.TCROSS)
             
-            
-            
+                       
     def on_mouse_release(self, widget, event):
         if not self.image_loaded:
             return False        
         if self._rubber_band:
             self._rubber_band = False
-            x,y,w,h = self._calc_bounds(self.rubber_x0,
-                                  self.rubber_y0,
-                                  self.rubber_x1,
-                                  self.rubber_y1)
-            if w < 5 and h < 5: return
-            ox,oy,ow,oh = self.extents
-            nx = int(x/self.scale)+ox
-            ny = int(y/self.scale)+oy
-            nw = int(w/self.scale)
-            nh = int(h/self.scale)
-            if nx + nw > self.image_width:
-                nw = self.image_width - nx
-            if ny + nh > self.image_height:
-                nh = self.image_height - ny
-            
-            nw = max(16, min(nw, nh))
-            nh = nw
+            x0, y0 = self._calc_pos(self.rubber_x0, self.rubber_y0)
+            x1, y1 = self._calc_pos(self.rubber_x1, self.rubber_y1)
+            x,y,w,h = self._calc_bounds(x0, y0, x1, y1)
+            w = max(w, 5)
+            h = max(h, 5)
             self.extents_back.append(self.extents)
-            self.extents = (nx, ny, nw, nh)
+            self.extents = (x, y, w, h)
             self.queue_draw()
         elif self._measuring:
             self._measuring = False
@@ -746,61 +680,41 @@ class ImageWidget(Gtk.DrawingArea):
                 self._plot_histogram(self._histogram_data, show_axis=['left',])
                 self.queue_draw()
         elif self._shifting:
-            self._shifting = False
-            
+            self._shifting = False            
             self.extents_back.append(self._shift_start_extents)
 
         self._set_cursor_mode()
             
   
-    def on_draw(self, widget, context):
-        if self.surface is not None:
-            context.set_source_surface(self.surface, 0, 0)
-            context.rectangle(0, 0, self.image_width, self.image_height)
-            context.fill()
-            self.draw_overlay_cairo(context)
-            self.draw_spots(context)
-            self._canvas_is_clean = True
-            #context.paint()
-
-    def on_expose(self, widget, context):
+    def on_draw(self, widget, ctx):
         if self.surface is not None:
             alloc = self.get_allocation()
-            w, h = alloc.width, alloc.height
-            disp_pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, w, h)
-            self.scale = float(w)/self.extents[2]
+            self.scale = min(float(alloc.width)/self.extents[2], float(alloc.height)/self.extents[3])
+          
+            ctx.save()
+            ctx.scale(self.scale, self.scale)
+            ctx.translate(-self.extents[0], -self.extents[1])
+            ctx.set_source_surface(self.surface, 0, 0)
             if self.scale >= 1.0:
-                interp = GdkPixbuf.InterpType.NEAREST
+                ctx.get_source().set_filter(cairo.FILTER_FAST);
             else:
-                interp = self._best_interp
-            src_pixbuf = self.pixbuf.new_subpixbuf(self.extents[0], self.extents[1],
-                                     self.extents[2], self.extents[3])
-            src_pixbuf.scale(disp_pixbuf, 0, 0, w, h, 0,
-                              0, self.scale, self.scale, interp)
+                ctx.get_source().set_filter(cairo.FILTER_GOOD);          
+            ctx.paint()
+            ctx.restore()
+
             if self._draw_histogram:
-                hw = self.plot_pixbuf.get_width()
-                hh = self.plot_pixbuf.get_height()
-                self.plot_pixbuf.composite(disp_pixbuf,
-                                           (w-hw-6), (h-hh-6), hw, hh, 
-                                           (w-hw-6), (h-hh-6), 1.0, 1.0, self._best_interp,
-                                           150)
-            
-            Gdk.cairo_set_source_pixbuf(context, src_pixbuf, 0, 0)
+                px = alloc.width - self.plot_surface.get_width() - 10
+                py = alloc.height - self.plot_surface.get_height() - 10
+                ctx.save()
+                ctx.set_source_surface(self.plot_surface, px, py)
+                ctx.paint()
+                ctx.restore()
 
-            #context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
-            #context.clip()
             
-            pcontext = self.get_pango_context()
-            font_desc = pcontext.get_font_description()
-            style = self.get_style()
-            #context.set_source_color(style.fg[self.state])
-            #context.set_font_size( font_desc.get_size()/Pango.SCALE )
-            
-            self.draw_overlay_cairo(context)
-            self.draw_spots(context)
+            self.draw_overlay_cairo(ctx)
+            self.draw_spots(ctx)
             self._canvas_is_clean = True
-            context.paint()
-
+            
                  
     def on_visibility_notify(self, obj, event):
         if event.get_state() == Gdk.VisibilityState.FULLY_OBSCURED:
@@ -817,7 +731,7 @@ def main():
     win.connect("destroy", lambda x: Gtk.main_quit())
     win.set_border_width(6)
     win.set_title("Diffraction Image Viewer")
-    myview = ImageWidget(512)
+    myview = ImageWidget(int(Gdk.Screen.height()*0.8))
     GObject.idle_add(myview.load_frame, '/home/michel/Work/data-processing/testins_101.img')
     
     hbox = Gtk.AspectFrame(ratio=1.0)
