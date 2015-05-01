@@ -19,7 +19,7 @@ def main():
     win.connect("destroy", lambda x: Gtk.main_quit())
     
     win.set_title("Diffraction Image Viewer")
-    myviewer = ImageViewer(int(Gdk.Screen.height()*0.8))
+    myviewer = ImageViewer(int(Gdk.Screen.height()*0.5))
     win.add(myviewer)
     win.show_all()
     if len(sys.argv) >= 2:
