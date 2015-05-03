@@ -83,3 +83,5 @@ def log_to_file(filename, level=logging.DEBUG):
     logfile.setFormatter(formatter)
     logging.getLogger('').addHandler(logfile)
       
+
+log_to_console()

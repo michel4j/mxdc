@@ -33,7 +33,7 @@ class AlertDialog(Gtk.Dialog):
             raise TypeError(
                 "buttons be one of: %s", ', '.join(_BUTTON_TYPES.keys()))
 
-        GObject.GObject.__init__(self, '', parent, flags)
+        super(AlertDialog, self).__init__('', parent, flags)
         self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
         self.set_border_width(5)
         self.set_resizable(False)
@@ -416,7 +416,7 @@ class FolderSelector(object):
 
 class FolderSelectorButton(Gtk.Button):
     def __init__(self):
-        GObject.GObject.__init__(self)
+        super(FolderSelectorButton, self).__init__()
         self.selector = FolderSelector(self)
     
     def set_current_folder(self, path):
