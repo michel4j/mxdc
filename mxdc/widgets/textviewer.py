@@ -57,6 +57,6 @@ class TextViewer(object):
         else:
             self.text_buffer.insert(_iter, "%s%s\n" % (self.prefix, text) )         
         _iter = self.text_buffer.get_end_iter()
-        self.view.scroll_to_iter(_iter, 0, use_align=True, yalign=0.5)
+        self.view.scroll_to_iter(_iter, 0, True, 0.5, 0.5)
     
         

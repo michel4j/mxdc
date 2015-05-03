@@ -21,7 +21,7 @@ Copyright (c) 2006-2010, Canadian Light Source, Inc
 All rights reserved.
 """
 
-class HutchWindow(Gtk.Window):
+class HutchWindow(Gtk.ApplicationWindow):
     def __init__(self):
         super(HutchWindow, self).__init__(Gtk.WindowType.TOPLEVEL)
         self._xml = gui.GUIFile(os.path.join(SHARE_DIR, 'mxdc_main'), 'mxdc_main')
@@ -65,7 +65,7 @@ class HutchWindow(Gtk.Window):
             self.hutch_manager.device_book.set_show_border(False)
 
         self.main_frame.add(self.hutch_manager)
-        self.mxdc_main.pack_start(self.status_panel, expand = False, fill = False)
+        self.mxdc_main.pack_start(self.status_panel, False, False, 0)
         self.add(self.mxdc_main)
         self.scripts = get_scripts()
         # register menu events

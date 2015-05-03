@@ -55,7 +55,8 @@ class CollectManager(Gtk.Alignment):
         'new-datasets': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_PYOBJECT,]),
     }
     def __init__(self):
-        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
+        super(CollectManager, self).__init__()
+        self.set(0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/collect_widget'), 
                                   'collect_widget')            
         self.run_data = []

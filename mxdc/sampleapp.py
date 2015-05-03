@@ -1,22 +1,16 @@
 #!/usr/bin/env python
 
-import warnings
-warnings.simplefilter("ignore")
-import sys, os
-import logging
-import time
+from twisted.internet import gtk3reactor
+gtk3reactor.install()
 
-from twisted.internet import glib2reactor
-glib2reactor.install()
-from twisted.internet import reactor
-
-from gi.repository import Gtk
 from gi.repository import GObject
-
+from gi.repository import Gtk
 from mxdc.beamline.mx import MXBeamline
 from mxdc.utils.log import get_module_logger
-from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.misc import CryojetWidget
+from mxdc.widgets.sampleviewer import SampleViewer
+from twisted.internet import reactor
+import sys, os
 
 _logger = get_module_logger('sampleviewer')
     

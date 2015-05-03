@@ -2,10 +2,12 @@ from mxdc.interface.beamlines import IBeamline
 from mxdc.widgets.misc import ActiveLabel, StatusBox
 from twisted.python.components import globalRegistry
 from gi.repository import Gtk
+from gi.repository import GObject
+
 
 class StatusPanel(Gtk.VBox):
     def __init__(self):
-        GObject.GObject.__init__(self)
+        super(StatusPanel, self).__init__()
         self.layout_table = Gtk.Table(1, 9, True)
         self.layout_table.set_col_spacings(2)
         self.layout_table.set_border_width(2)
@@ -62,12 +64,12 @@ class StatusPanel(Gtk.VBox):
         
     def _frame_control(self, label, widget, shadow):
         hbox = Gtk.HBox(False, 3)
-        hbox.pack_end(widget, expand=True, fill=True)
+        hbox.pack_end(widget, True, True, 0)
         if label is not None:
             descr = Gtk.Label(label='<span color="#666666"><b>%s:</b></span>' % label)
             descr.set_use_markup(True)
-            hbox.pack_start(Gtk.VSeparator(True, True, 0), expand=False, fill=True)
-            hbox.pack_start(descr, expand=False, fill=True)
+            hbox.pack_start(Gtk.VSeparator(), False, True, 0)
+            hbox.pack_start(descr, False, True, 0)
 
         return hbox
             

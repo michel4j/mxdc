@@ -8,16 +8,15 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 
-from mxdc.utils.decorators import async
 from mxdc.utils.imageio import read_image
 from mxdc.utils.imageio.utils import stretch
 from mxdc.utils.science import find_peaks
+from mxdc.utils.video import image_to_surface
 import Queue
 import cairo
 import gc
 import logging
 import math
-import matplotlib.backends.backend_agg
 import numpy
 import array
 import os
@@ -47,24 +46,6 @@ COLORMAPS['gist_yarg'][2] = 200
 _GAMMA_SHIFT = 3.5        
 
 
-def image_to_surface(im):
-    """Transform a PIL Image into a Cairo ImageSurface."""
-
-    assert sys.byteorder == 'little', 'We don\'t support big endian'
-    if im.mode != 'RGBA':
-        im = im.convert('RGBA')
-
-    s = im.tostring('raw', 'BGRA')
-    a = array.array('B', s)
-    dest = cairo.ImageSurface(cairo.FORMAT_ARGB32, im.size[0], im.size[1])
-    ctx = cairo.Context(dest)
-    non_premult_src_wo_alpha = cairo.ImageSurface.create_for_data(
-        a, cairo.FORMAT_RGB24, im.size[0], im.size[1])
-    non_premult_src_alpha = cairo.ImageSurface.create_for_data(
-        a, cairo.FORMAT_ARGB32, im.size[0], im.size[1])
-    ctx.set_source_surface(non_premult_src_wo_alpha)
-    ctx.mask_surface(non_premult_src_alpha)
-    return dest
 
 def image2pixbuf(im):
     arr = array.array('B', im.tostring())

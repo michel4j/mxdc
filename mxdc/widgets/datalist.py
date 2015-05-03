@@ -37,7 +37,7 @@ DATA_COLUMN_DICT = {
 
 class DataList(Gtk.ScrolledWindow):
     def __init__(self):
-        GObject.GObject.__init__(self)
+        super(DataList, self).__init__()
         self.listmodel = Gtk.ListStore(*DATA_TYPES) 
                                 
         self.listview = Gtk.TreeView(self.listmodel)
