@@ -2,6 +2,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import Pango
+from gi.repository import GdkPixbuf
 from mxdc.engine import auto
 from mxdc.interface.beamlines import IBeamline
 from mxdc.utils import automounter
@@ -37,7 +38,7 @@ class ContainerWidget(Gtk.DrawingArea):
     }
     
     def __init__(self, container):
-        GObject.GObject.__init__(self)
+        super(ContainerWidget, self).__init__()
         self.container = container
         self.connect('realize', self.on_realize)
         self.container_type = self.container.container_type
@@ -284,15 +285,13 @@ class ContainerWidget(Gtk.DrawingArea):
 
                       
 
-class SamplePicker(Gtk.HBox):
+class SamplePicker(Gtk.Box):
     __gsignals__ = {
         'pin-hover': (GObject.SignalFlags.RUN_FIRST, None,
                       (GObject.TYPE_PYOBJECT, GObject.TYPE_STRING,)),
     }
     def __init__(self, automounter=None):
-        GObject.GObject.__init__(self)
-        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/sample_picker'),
-                                  'sample_picker')
+        super(SamplePicker, self).__init__(orientation=Gtk.Orientation.HORIZONTAL)
         
         try:
             self.beamline = globalRegistry.lookup([], IBeamline)
@@ -302,15 +301,17 @@ class SamplePicker(Gtk.HBox):
             self.automounter = automounter
             _logger.error('No registered beamline found.')
 
-        self.pack_start(self.sample_picker, True, True, 0)
-        pango_font = Pango.FontDescription('sans 8')
-        self.status_lbl.modify_font(pango_font)
-        self.lbl_port.modify_font(pango_font)
-        self.lbl_barcode.modify_font(pango_font)
-        self.throbber.set_from_stock('robot-idle', Gtk.IconSize.LARGE_TOOLBAR)
-        self.message_log = TextViewer(self.msg_txt)
-        self.message_log.set_prefix('-')
-        
+        self._full_state = []
+        # initialization
+        self.command_active = False
+
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/sample_picker'), 'sample_picker')
+        self.notebk = Gtk.Notebook()
+        self.sample_picker = self._xml.get_widget('sample_picker')
+        self.sample_picker.attach(self.notebk, 0, 0, 2, 1)
+        self.pbar = ActiveProgressBar()
+        self.pbar.set_fraction(0.0)
+        self.pbar.idle_text('')        
         self.containers = {}
         for k in ['Left', 'Middle', 'Right']:
             key = k[0]
@@ -320,9 +321,14 @@ class SamplePicker(Gtk.HBox):
             aln = Gtk.Alignment.new(0.5, 0.5, 1, 1)
             aln.set_padding(3, 3, 3, 3)
             aln.add(self.containers[key])
-            self.notebk.insert_page(aln, tab_label=tab_label)
+            self.notebk.insert_page(aln, tab_label, -1)
             self.containers[key].connect('pin-selected', self.on_pick)
             self.containers[key].connect('pin-hover', self.on_hover)
+        
+        self.throbber.set_from_stock('robot-idle', Gtk.IconSize.LARGE_TOOLBAR)
+        self.message_log = TextViewer(self.msg_txt)
+        self.message_log.set_prefix('-')
+        
         self.mount_btn.connect('clicked', self.on_mount)
         self.dismount_btn.connect('clicked', self.on_dismount)
         self.automounter.connect('progress', self.on_progress)
@@ -334,29 +340,16 @@ class SamplePicker(Gtk.HBox):
         self.automounter.connect('enabled', self.on_state_changed)
         self.automounter.connect('preparing', self.on_state_changed)
         self.automounter.connect('mounted', self.on_sample_mounted)
+        self.control_box.pack_end(self.pbar, False, False, 0)
 
-        self._full_state = []
-        
-        # extra widgets
-        self._animation = GdkPixbuf.PixbufAnimation(os.path.join(os.path.dirname(__file__),
-                                                               'data/active_stop.gif'))
-        
-        #add progressbar
-        self.pbar = ActiveProgressBar()
-        self.pbar.set_fraction(0.0)
-        self.pbar.idle_text('')
-        self.control_box.pack_end(self.pbar, expand=False, fill=False)
-        self.pbar.modify_font(pango_font)
-        
-        # initialization
-        self.command_active = False
-               
+        self._animation = GdkPixbuf.PixbufAnimation.new_from_file(os.path.join(os.path.dirname(__file__), 'data/active_stop.gif'))
+                      
                 
     def __getattr__(self, key):
-        try:
-            return super(SamplePicker).__getattr__(self, key)
-        except AttributeError:
-            return self._xml.get_widget(key)
+        obj = self._xml.get_widget(key)
+        if obj is None:
+            raise AttributeError(key)
+        return obj
         
     def do_pin_hover(self, cont, port):
         pass

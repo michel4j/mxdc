@@ -5,6 +5,7 @@ points can be added to each line and the plot is automatically updated.
 
 from gi.repository import Gtk
 from gi.repository import Pango
+from gi.repository import GObject
 from matplotlib import rcParams
 from matplotlib.backends.backend_gtk3 import FileChooserDialog
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
@@ -103,7 +104,7 @@ class Plotter(Gtk.Alignment):
         except:
             self.toolbar = NavigationToolbar(self.canvas, None)
         self.vbox.pack_start( self.canvas , True, True, 0)
-        self.vbox.pack_start( self.toolbar, False, False )
+        self.vbox.pack_start( self.toolbar, False, False, 0)
         self.line = []
         self.x_data = []
         self.y_data = []
@@ -263,20 +264,20 @@ class Plotter(Gtk.Alignment):
         self.canvas.draw_idle()
 
 
-class ScanPlotter(Gtk.VBox):
+class ScanPlotter(Gtk.Box):
     implements(IScanPlotter)
 
  
     def __init__(self):
-        GObject.GObject.__init__(self, False)
+        super(ScanPlotter, self).__init__(orientation=Gtk.Orientation.VERTICAL)
         self.plotter = Plotter(self)
         self.plotter.set_size_request(577,400)
-        self.pack_start(self.plotter, expand=True, fill=True)
+        self.pack_start(self.plotter, True, True, 0)
         self.prog_bar = ActiveProgressBar()
         self.prog_bar.set_fraction(0.0)
         self.prog_bar.idle_text('0%')
 
-        self.pack_start(self.prog_bar, expand=False, fill=False)
+        self.pack_start(self.prog_bar, False, False, 0)
         globalRegistry.register([], IScanPlotter, '', self)
         self._sig_handlers = {}
         self.show_all()

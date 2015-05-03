@@ -33,7 +33,7 @@ MSG_ICONS = {
 
 class DiagnosticDisplay(Gtk.Alignment):
     def __init__(self, diag):
-        super(DiagnosticsDisplay, self).__init__()
+        super(DiagnosticDisplay, self).__init__()
         self.set(0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/diagnostics'), 
                                   'status_widget')

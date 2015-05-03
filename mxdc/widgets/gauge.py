@@ -19,8 +19,8 @@ class Gauge(Gtk.DrawingArea):
         plus one
         min_ticks: number of minor tick marks per major tick mark
         """
-        GObject.GObject.__init__(self)
-        self.connect("expose-event", self.on_expose)
+        super(Gauge, self).__init__()
+        self.connect("draw", self.on_draw)
         self.connect('realize', self.on_realize)
         self._properties = {
             'percent': 0.0,
@@ -60,29 +60,16 @@ class Gauge(Gtk.DrawingArea):
         else:
             raise AttributeError, 'unknown property %s' % pspec.name
                     
-    def on_expose(self, widget, event):
-        context = widget.get_window().cairo_create()
+    def on_draw(self, widget, context):
         rect = widget.get_allocation()
         
-        style = widget.get_style()
-        context.set_source_color(style.dark[Gtk.StateType.NORMAL] )
+        style = widget.get_style_context()
+        col = style.get_color(Gtk.StateType.NORMAL)
+        context.set_source_rgba(col.red, col.green, col.blue, 0.25)
         context.rectangle(0, 0, rect.width, rect.height)
         context.stroke()
-
-        context.rectangle(event.area.x, event.area.y,
-                          event.area.width, event.area.height)
-        context.clip()
-        context.set_source_color(style.fg[Gtk.StateType.NORMAL] )
-        widget.draw_cairo(context)
-        return False
-
-    def draw_cairo(self, context):
-        rect = self.get_allocation()
-        pcontext = self.get_pango_context()
-        style = self.get_style()
-        font_desc = pcontext.get_font_description()
-        context.set_font_size(font_desc.get_size()/Pango.SCALE)
-
+        
+        context.set_source_rgba(*col)
         maximum = self.maximum
         frmstrg = '%%.%df' % self.get_property('digits')
         pads = context.text_extents(frmstrg % maximum)
@@ -100,7 +87,7 @@ class Gauge(Gtk.DrawingArea):
         context.stroke()
 
         # Draw ticks
-        context.set_source_color(style.fg[Gtk.StateType.NORMAL])
+        context.set_source_rgba(*col)
         num_ticks = self.majticks * (self.minticks + 1) + 1
         tick_step = 1.5*math.pi / (num_ticks-1)
         label_radius = radius + 0.5 * pads[2]

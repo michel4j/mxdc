@@ -2,9 +2,11 @@
 from PIL import Image 
 from gi.repository import GObject
 from gi.repository import Gdk
+from gi.repository import GdkPixbuf
 from gi.repository import Gtk
 from gi.repository import Pango
 from mxdc.interface.devices import IVideoSink
+from mxdc.utils.video import image_to_surface
 from zope.interface import implements
 import os
 import pickle
@@ -20,7 +22,7 @@ class VideoWidget(Gtk.DrawingArea):
         super(VideoWidget, self).__init__()
         self.camera = camera
         self.scale = 1
-        self.pixbuf = None
+        self.surface = None
         self.stopped = False
         self._colorize = False
         self._palette = None
@@ -80,9 +82,7 @@ class VideoWidget(Gtk.DrawingArea):
                 img = img.convert('L')
             img.putpalette(self._palette)
         img = img.convert('RGB')
-        w, h = img.size
-        self.pixbuf = GdkPixbuf.Pixbuf.new_from_data(img.tostring(),GdkPixbuf.Colorspace.RGB, 
-            False, 8, w, h, 3 * w )
+        self.surface = image_to_surface(img)
         GObject.idle_add(self.queue_draw)
         if self.display_func is not None:
             self.display_func(img, scale=self.scale)
@@ -94,25 +94,16 @@ class VideoWidget(Gtk.DrawingArea):
         else:
             self._colorize = False
         
-    def on_draw(self, widget, context):
-        window = self.get_window()
-        w, h = self.get_size_request()
-        if self.pixbuf is not None:
-            window.draw_pixbuf(self.gc, self.pixbuf, 0, 0, 0, 0, w, h, 0,0,0)
+    def on_draw(self, widget, ctx):
+        if self.surface is not None:
+            ctx.set_source_surface(self.surface, 0, 0)       
+            ctx.paint()
             if self.overlay_func is not None:
-                    self.overlay_func(window)
+                self.overlay_func(ctx)
             self.fps = 1.0/(time.time() - self._last_frame)
             self._last_frame = time.time()
     
     def on_realized(self, obj):
-        window = self.get_window()
-        self.gc = window.new_gc()
-        self.pl_gc = window.new_gc()
-        self.pl_gc.foreground = self.get_colormap().alloc_color("#ffaaff")
-        self.ol_gc = window.new_gc()
-        self.ol_gc.foreground = self.get_colormap().alloc_color("green")
-        #self.ol_gc.set_function(Gdk.XOR)
-        self.ol_gc.set_line_attributes(1,Gdk.LINE_SOLID,Gdk.CAP_BUTT,Gdk.JOIN_MITER)
         self.camera.add_sink(self)
         return True
 
