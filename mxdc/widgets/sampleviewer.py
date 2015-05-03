@@ -111,19 +111,14 @@ class SampleViewer(Gtk.Alignment):
         self.video.save_image(filename)
 
                     
-    def draw_beam_overlay(self, pixmap):
-        w, h = pixmap.get_size()
+    def draw_beam_overlay(self, cr):
         pix_size = self.beamline.sample_video.resolution      
-        try:
-            bh = self.beamline.aperture.get() * 0.001
-            bx = 0 #self.beamline.beam_x.get_position()
-            by = 0 #self.beamline.beam_y.get_position()
-            cx = self.beamline.camera_center_x.get()
-            cy = self.beamline.camera_center_y.get()
-        except:
-            cx = w//2
-            bx = by = 0
-            cy = h//2
+        bh = self.beamline.aperture.get() * 0.001
+        bx = 0 #self.beamline.beam_x.get_position()
+        by = 0 #self.beamline.beam_y.get_position()
+        cx = self.beamline.camera_center_x.get()
+        cy = self.beamline.camera_center_y.get()
+
         
         # slit sizes in pixels
         sh = bh / pix_size
@@ -131,7 +126,8 @@ class SampleViewer(Gtk.Alignment):
         y = int((cy - (by / pix_size)) * self.video.scale)
         hh = int(0.5 * sh * self.video.scale)
         
-        cr = pixmap.cairo_create()
+        
+        
         cr.set_source_rgba(1, 0.2, 0.1, 0.3)
         cr.set_line_width(2.0)
         
@@ -141,7 +137,7 @@ class SampleViewer(Gtk.Alignment):
 
         return
         
-    def draw_meas_overlay(self, pixmap):
+    def draw_meas_overlay(self, cr):
         pix_size = self.beamline.sample_video.resolution
         if self.measuring == True:
             x1 = self.measure_x1
@@ -151,7 +147,6 @@ class SampleViewer(Gtk.Alignment):
             dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-            cr = pixmap.cairo_create()
             cr.set_source_rgba(0.2, 1.0, 0.2, 0.3)
             cr.set_line_width(4.0)
             cr.move_to(x1, y1)
@@ -190,11 +185,10 @@ class SampleViewer(Gtk.Alignment):
         
         return (x0, y0, grid_size, cell_size, nX, nY)
     
-    def draw_grid_overlay(self, pixmap):
+    def draw_grid_overlay(self, cr):
         if self.show_grid:
             
             cell_size, nX, nY = self._calc_grid_params()[3:]
-            cr = pixmap.cairo_create()
             cr.set_line_width(0.5)
             cr.set_source_rgba(0.5, 0.5, 0.5, 0.5)
             for i in range(nX):
@@ -445,10 +439,10 @@ class SampleViewer(Gtk.Alignment):
             self.scripts[sc].connect('started', self.on_scripts_started)
             self.scripts[sc].connect('done', self.on_scripts_done)
     
-    def _overlay_function(self, pixmap):
-        self.draw_beam_overlay(pixmap)
-        self.draw_meas_overlay(pixmap)
-        self.draw_grid_overlay(pixmap)
+    def _overlay_function(self, cr):
+        self.draw_beam_overlay(cr)
+        self.draw_meas_overlay(cr)
+        self.draw_grid_overlay(cr)
         return True        
         
     
@@ -506,20 +500,10 @@ class SampleViewer(Gtk.Alignment):
     def error_centering(self, obj):
         pass
                 
-    def on_unmap(self, widget):
-        self.videothread.pause()
 
-    def on_no_expose(self, widget, event):
-        return True
-        
     def on_delete(self,widget):
         self.videothread.stop()
-        
-    def on_expose(self, videoarea, event):
-        window = videoarea.get_window()   
-        window.draw_drawable(self.othergc, self.pixmap, 0, 0, 0, 0, 
-            self.width, self.height)
-    
+            
     def on_zoom_in(self,widget):
         self.beamline.sample_video.zoom(8)
 

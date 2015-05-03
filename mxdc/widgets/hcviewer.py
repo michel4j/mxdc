@@ -245,29 +245,28 @@ class HCViewer(SampleViewer):
         self.roi_btn.set_active(False)
         self._get_roi()
         
-    def _overlay_function(self, pixmap):
+    def _overlay_function(self, ctx):
         if self.hc1_active:
-            self.draw_roi_overlay(pixmap)
-            self.draw_drop_coords(pixmap)
-        self.draw_meas_overlay(pixmap)
+            self.draw_roi_overlay(ctx)
+            self.draw_drop_coords(ctx)
+        self.draw_meas_overlay(ctx)
         return True        
     
-    def draw_roi_overlay(self, pixmap):
+    def draw_roi_overlay(self, ctx):
         coords = []
         for i in range(4):
             coords.append(int(self.roi[i] * float(self.video.scale)))
         [x1, y1, x2, y2] = coords
 
-        cr = pixmap.cairo_create()
-        cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
-        cr.set_line_width(0.5)
-        cr.rectangle(x1, y1, x2-x1, y2-y1)
-        cr.stroke()
+        ctx.set_source_rgba(0.1, 1.0, 0.0, 1.0)
+        ctx.set_line_width(0.5)
+        ctx.rectangle(x1, y1, x2-x1, y2-y1)
+        ctx.stroke()
         self.meas_label.set_markup("FPS: %0.1f" % self.video.fps)
 
         return True
 
-    def draw_meas_overlay(self, pixmap):
+    def draw_meas_overlay(self, cr):
         pix_size = self.beamline.sample_video.resolution
         if self.measuring:
             x1 = self.measure_x1
@@ -277,7 +276,6 @@ class HCViewer(SampleViewer):
         
             dist = pix_size * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0) / self.video.scale * 1000
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            cr = pixmap.cairo_create()
             cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
             cr.set_line_width(0.5)
             cr.move_to(x1, y1)
@@ -285,11 +283,10 @@ class HCViewer(SampleViewer):
             cr.stroke()
             self.meas_label.set_markup("Length: %0.1f um" % dist)
             
-    def draw_drop_coords(self, pixmap):
+    def draw_drop_coords(self, cr):
         if self.drop_coords and self.drop_size > 0:
             [x1, y1, x2, y2] = [val * float(self.video.scale) for val in self.drop_coords]
 
-            cr = pixmap.cairo_create()
             cr.set_source_rgba(0.0, 0.0, 1.0, 1.0)
             cr.set_line_width(1)
             cr.move_to(x1, y1)

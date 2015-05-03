@@ -24,19 +24,18 @@ beyond getting and setting a pv's value, a pv includes  these features:
 See the documentation for the PV class for a more complete description.
 """
 
-import sys
-import os
-import time
-import threading
-import atexit
-import logging
 from ctypes import *
-import numpy
-import array
-import re
-
 from gi.repository import GObject 
 from mxdc.com import BasePV
+import array
+import atexit
+import logging
+import numpy
+import os
+import re
+import sys
+import threading
+import time
 
 # setup module logger with a default do-nothing handler
 module_name = __name__.split('.')[-1]

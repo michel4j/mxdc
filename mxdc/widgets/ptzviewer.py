@@ -103,7 +103,7 @@ class AxisViewer(Gtk.Alignment):
         
         self.show_all()
 
-    def _overlay_function(self, pixmap):
+    def _overlay_function(self, cr):
         self.meas_label.set_markup("<small><tt>FPS: %0.1f</tt></small>" % self.video.fps)
         return True     
         
