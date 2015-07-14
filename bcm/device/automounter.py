@@ -9,13 +9,24 @@ from bcm.device.base import BaseDevice
 from bcm.utils.log import get_module_logger
 from bcm.utils.automounter import *
 import gobject as GObject
+import difflib
 import time
 import re
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
+def similarity(L_1, L_2):
+    L_1 = set(intern(w) for w in L_1)
+    L_2 = set(intern(w) for w in L_2)
 
+    to_match = L_1.difference( L_2)
+    against = L_2.difference(L_1)
+    for w in to_match:
+        res = difflib.get_close_matches(w, against)
+        if len(res):
+            against.remove( res[0] )
+    return (len(L_2)-len(against)) / float(len(L_1))
 
 class AutomounterContainer(GObject.GObject):
     """An event driven object for representing an automounter container.
@@ -509,7 +520,12 @@ class Automounter(BasicAutomounter):
         if (not self._prog_sequence) or self._prog_sequence[-1] != pos:
             self._prog_sequence.append(pos)
         
-        seqs_match = self._prog_sequence == self._command_sequence[:len(self._prog_sequence)]
+        if len(self._prog_sequence) <= len(self._command_sequence):
+            seq_similarity = similarity(self._prog_sequence, self._command_sequence[:len(self._prog_sequence)])
+        else:
+            seq_similarity = similarity(self._command_sequence, self._prog_sequence[:len(self._command_sequence)])
+        
+        seqs_match = (seq_similarity > 0.9)
         if self._command_sequence:
             prog = float(len(self._prog_sequence))/len(self._command_sequence)
         else:

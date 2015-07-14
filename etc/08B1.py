@@ -124,8 +124,8 @@ DEVICES = {
 # lims, dpm, imagesync and other services
 SERVICES = {
     'image_server': ImageSyncClient(),
-    'lims': LIMSClient(),
-    'dpm': DPMClient(),
+    'lims': LIMSClient('https://cmcf.lightsource.ca/json/'),
+    'dpm': DPMClient('srv-cmcf-dp2.clsi.ca:8881'),
 }
 
 # Beamline shutters in the order in which they should be opened
