@@ -53,7 +53,7 @@ class BossPIDController(BaseDevice):
         self._pause_value = 100000000
         self._target_func = target_func
         self._energy = self.add_pv(energy)
-        self._energy.connect('changed',self.update_target)    
+        #self._energy.connect('changed',self.update_target)    
         
         
     def _state_change(self, obj, val):
