@@ -602,7 +602,9 @@ class CryojetWidget(gtk.Alignment):
             return self._xml.get_widget(key)
                 
     def _on_level(self, obj, val):
-        self.level_gauge.value = val/10.0
+        if val > 105:
+            val /= 10.0
+        self.level_gauge.value = val
         return False
     
     def _on_nozzle_change(self, obj, state):
