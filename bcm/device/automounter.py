@@ -26,7 +26,8 @@ def similarity(L_1, L_2):
         res = difflib.get_close_matches(w, against)
         if len(res):
             against.remove( res[0] )
-    return (len(L_2)-len(against)) / float(len(L_1))
+
+    sim =  0.0 if not float(len(L_1)) else (len(L_2)-len(against)) / float(len(L_1))
 
 class AutomounterContainer(GObject.GObject):
     """An event driven object for representing an automounter container.
