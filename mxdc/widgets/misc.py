@@ -579,7 +579,7 @@ class CryojetWidget(gtk.Alignment):
             'shld': (2, self.cryojet.shield_flow),
             }
         for v in tbl_data.values():
-            lb = ActiveLabel(v[1])
+            lb = ActiveLabel(v[1], fmt='%0.1f')
             lb.set_alignment(0.5, 0.5)
             self.status_table.attach(lb, 1, 2, v[0], v[0]+1)
 
