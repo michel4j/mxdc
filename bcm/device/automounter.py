@@ -446,7 +446,7 @@ class Automounter(BasicAutomounter):
             
         _logger.info('(%s) Mount command: %s' % (self.name, port))
         if wait:
-            success = self.wait_sequence(port)
+            success = self.wait(start=True, stop=True)
             if not success:
                 self.set_state(message="Mounting timed out!")
             return success
