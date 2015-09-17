@@ -33,27 +33,13 @@ def _energy2pitch(x):
     a = numpy.arcsin(1.97704/x)
     return p[0] + p[1] * numpy.sin(a) + p[2] * numpy.log(a) + p[3] * numpy.cos(a)
 
-class SplineRep(object):
-    def __init__(self, offset=0.0):
-        from scipy import interpolate
-        self.fit = None
-        self.offset = offset
-        txtfile = os.path.join(os.path.dirname(__file__), 'data', '08B1-boss.lut')
-        data = numpy.loadtxt(txtfile, dtype={"names": ('energy', 'target'), "formats": (float, float)})
-        data.sort(order="energy")
-        self.fit = interpolate.splrep(data['energy'], data['target'])
-        
-    def __call__(self, x, rnd=4):
-        from scipy import interpolate
-        return self.offset + round(interpolate.splev(x, self.fit, der=0), rnd)
-
 # maps names to device objects
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
     'energy':   PseudoMotor('DCM1608-4-B10-01:energy:KeV'),
     'bragg_energy': BraggEnergyMotor('SMTR1608-4-B10-17:deg', motor_type="vmeenc"),
     'dcm_pitch':  ENCMotor('SMTR1608-4-B10-15:deg'),
-    'boss': BossPIDController('BL08B1:PicoControl', 'DCM1608-4-B10-01:energy:KeV:fbk', target_func=SplineRep(offset=-0.0)),    
+    'boss': BossPIDController('BL08B1:PicoControl', 'DCM1608-4-B10-01:energy:KeV:fbk'),    
     'mostab': PitchOptimizer('Pitch Tuner', _energy2pitch),
     
     # Goniometer/goniometer head devices
