@@ -36,36 +36,21 @@ SimOptimizer = Optimizer
 class BossPIDController(BaseDevice):
     implements(IOptimizer)
     
-    def __init__(self, name, energy, target='Y', target_func=None):
+    def __init__(self, name, energy):
         BaseDevice.__init__(self)
         self.name = name
         self._enable = self.add_pv('%s:EnableDacOUT' % name)
         self._status = self.add_pv('%s:EnableDacIN' % name)
-        self._targets = {
-           'Y': self.add_pv('%s:SetYOUT' % name),
-           'I': self.add_pv('%s:SetIntOUT' % name),
-           'X': self.add_pv('%s:SetXOUT' % name),
-        }       
-        self._target = self._targets[target]
         self._beam_off = self.add_pv('%s:OffIntOUT' % name)
         self._status.connect('changed', self._state_change)
         self._off_value = 5000
         self._pause_value = 100000000
-        self._target_func = target_func
         self._energy = self.add_pv(energy)
-        #self._energy.connect('changed',self.update_target)    
         
         
     def _state_change(self, obj, val):
         self.set_state(busy=(val==1))
-    
-    def update_target(self, obj, energy):
-        if self.active_state and self._target_func:
-            new_target = self._target_func(energy)
-            # FIXME: avoid multiple instances changing value simultaneously
-            if round(self._target.get(),4) != new_target:
-                self._target.set(new_target, flush=True)
-    
+        
     def pause(self):
         _logger.debug('Pausing Beam Stabilization')
         if self.active_state and self._status.get() == 1 and self._beam_off.get() != self._pause_value:
