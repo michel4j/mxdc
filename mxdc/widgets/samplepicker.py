@@ -212,7 +212,7 @@ class ContainerWidget(gtk.DrawingArea):
             xl, yl = coord
             d2 = ((x - xl)**2 + (y - yl)**2)
             if d2 < self.sq_rad:
-                if self.container.samples.get(label) is not None and self.container.samples[label][0] not in [automounter.PORT_EMPTY]:
+                if self.container.samples.get(label) is not None and self.container.samples[label][0] not in [automounter.PORT_EMPTY, automounter.PORT_UNKNOWN]:
                     inside = True
                     _cur_port = '%s%s' % (self.container.location, label)
                 break  
@@ -249,37 +249,42 @@ class ContainerWidget(gtk.DrawingArea):
                        )
             cr.show_text(text)
             cr.stroke()
-            
-           
+                       
         # draw main labels
         cr.set_font_size(15)
-        cr.set_line_width(1.2)
-        cr.set_source_color( gtk.gdk.color_parse("#3232ff") )
+        cr.set_source_color( gtk.gdk.color_parse("#555555") )
         for label, coord in self.labels.items():
+            cr.set_line_width(1.2)
             x, y = coord
             x_b, y_b, w, h = cr.text_extents(label)[:4]
             cr.move_to(x - w/2.0 - x_b, y - h/2.0 - y_b)
             cr.show_text(label)
             cr.stroke()
-
-
+            if self.container_type == automounter.CONTAINER_PUCK_ADAPTER:
+                cr.set_line_width(4)
+                cr.arc(x, y, self.width/4.0, 0, 2.0 * numpy.pi)
+                cr.stroke()
+            
         # draw pins
         cr.set_font_size(10)
         style = self.get_style()
+        cr.set_line_width(2)
         for label, coord in self.coordinates.items():
             x, y = coord
             r = self.radius
             port_state = self.container.samples.get(label, (automounter.PORT_NONE,''))[0]
-            cr.set_source_color( self.port_colors[port_state] )
-            cr.arc(x, y, r-1.0, 0, 2.0 * 3.14)
-            cr.fill()
-            cr.set_source_color(style.fg[self.state])
-            cr.arc(x, y, r-1.0, 0, 2.0 * 3.14)
-            cr.stroke()
-            x_b, y_b, w, h = cr.text_extents(label[1:])[:4]
-            cr.move_to(x - w/2.0 - x_b, y - h/2.0 - y_b)
-            cr.show_text(label[1:])
-            cr.stroke()
+            if port_state != automounter.PORT_UNKNOWN:
+                cr.set_source_color( self.port_colors[port_state] )
+                cr.arc(x, y, r-1.0, 0, 2.0 * numpy.pi)
+                cr.fill()
+            
+                cr.set_source_color(style.fg[self.state])
+                cr.arc(x, y, r-1.0, 0, 2.0 * numpy.pi)
+                cr.stroke()
+                x_b, y_b, w, h = cr.text_extents(label[1:])[:4]
+                cr.move_to(x - w/2.0 - x_b, y - h/2.0 - y_b)
+                cr.show_text(label[1:])
+                cr.stroke()
             
 
                       
