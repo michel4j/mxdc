@@ -33,6 +33,7 @@ class VideoWidget(gtk.DrawingArea):
         self._colorize = False
         self._palette = None
         self.fps = 0
+        self._frame_count = 0
         self._last_frame = 0
         self.overlay_func = None
         self.display_func = None
@@ -109,8 +110,11 @@ class VideoWidget(gtk.DrawingArea):
             window.draw_pixbuf(self.gc, self.pixbuf, 0, 0, 0, 0, w, h, 0,0,0)
             if self.overlay_func is not None:
                     self.overlay_func(window)
-            self.fps = 1.0/(time.time() - self._last_frame)
-            self._last_frame = time.time()
+            self._frame_count += 1
+            if self._frame_count % 10 == 0:
+                self.fps = 10.0/(time.time() - self._last_frame)
+                self._last_frame = time.time()
+                self._frame_count = 0
     
     def on_realized(self, obj):
         window = self.get_window()
@@ -129,6 +133,8 @@ class VideoWidget(gtk.DrawingArea):
             self.stopped = True
         else:
             self.stopped = False
+            self._last_frame = time.time()
+            self._frame_count = 0
         return True
 
     def on_unmap(self, obj):
