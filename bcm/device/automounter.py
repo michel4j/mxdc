@@ -16,19 +16,6 @@ import re
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
-def similarity(L_1, L_2):
-    L_1 = set(intern(w) for w in L_1)
-    L_2 = set(intern(w) for w in L_2)
-
-    to_match = L_1.difference( L_2)
-    against = L_2.difference(L_1)
-    for w in to_match:
-        res = difflib.get_close_matches(w, against)
-        if len(res):
-            against.remove( res[0] )
-
-    sim =  0.0 if not float(len(L_1)) else (len(L_2)-len(against)) / float(len(L_1))
-
 class AutomounterContainer(GObject.GObject):
     """An event driven object for representing an automounter container.
     
@@ -320,20 +307,35 @@ class BasicAutomounter(BaseDevice):
             return port_state
 
 
+class ColList(object):
+    """Combine repeating elements in list comprehension"""
+    def __init__(self):
+        self._last = None
+    
+    def last(self):
+        return self._last
+    
+    def next(self, v):
+        self._last = v
+        return self._last
+    
+    def reset(self):
+        self._last = None
+
 class Automounter(BasicAutomounter):
     """EPICS Based SAM Automounter object. 
 
     """
     SEQUENCES = {
-       'mount':['P1','P2','P3','P6','P50','P52','P53','P52','P50','P4','P6','P3',
+       'mount':['P0', 'P1','P2','P3','P6','P50','P52','P53','P52','P50','P4','P6','P3',
                 'P93','P5','P93','P16','P2','P18','P22','P24','P21','P23','P22',
                 'P18','P1','P0'],
        
-       'mountnext': ['P1','P2','P3','P2','P18','P22','P23','P21','P22','P18','P27',
+       'mountnext': ['P0','P1','P2','P3','P2','P18','P22','P23','P21','P22','P18','P27',
                     'P26','P3','P6','P50','P52','P53','P52','P50','P52','P53','P52',
                     'P50','P4','P6','P3','P93','P5','P93','P16','P2','P18','P22',
                     'P24','P21','P23','P22','P18','P1','P0'],
-       'dismount': ['P1','P2','P3','P2','P18','P22','P23','P21','P22','P18','P27',
+       'dismount': ['P0','P1','P2','P3','P2','P18','P22','P23','P21','P22','P18','P27',
                      'P26','P3','P6','P50','P52','P53','P52','P50','P4','P6','P3',
                      'P2','P1','P0']
     }
@@ -383,6 +385,10 @@ class Automounter(BasicAutomounter):
         self._status.connect('changed', self._on_state_changed)
         self._normal.connect('changed', self._on_state_changed)
         self._usr_disable.connect('changed', self._on_state_changed)
+        
+        self._mount_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['mount']))
+        self._mount_next_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['mountnext']))
+        self._dismount_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['dismount']))
 
         #initialize housekeeping vars
         self.reset_progress([])
@@ -518,23 +524,28 @@ class Automounter(BasicAutomounter):
             time.sleep(0.05)
 
     def _notify_progress(self, pv, pos):
-        if (not self._prog_sequence) or self._prog_sequence[-1] != pos:
-            self._prog_sequence.append(pos)
-        
-        if len(self._prog_sequence) <= len(self._command_sequence):
-            seq_similarity = similarity(self._prog_sequence, self._command_sequence[:len(self._prog_sequence)])
-        else:
-            seq_similarity = similarity(self._command_sequence, self._prog_sequence[:len(self._command_sequence)])
-        
-        seqs_match = (seq_similarity > 0.9)
-        if self._command_sequence:
-            prog = float(len(self._prog_sequence))/len(self._command_sequence)
+
+        self._prog_sequence.append(pos)
+        proc = ColList()
+        actual_seq = '-'.join([proc.next(p) for p in self._prog_sequence if proc.last() != p])
+        proc.reset()
+        req_seq = '-'.join([proc.next(p) for p in self._command_sequence if proc.last() != p])
+
+        sim=difflib.SequenceMatcher(a=actual_seq, b=req_seq)
+        sim_r = sim.ratio()
+        seqs_match = (sim_r > 0.95)
+        if req_seq:
+            prog = float(len(actual_seq))/len(req_seq)
         else:
             prog = 0.0                     
         self.set_state(progress=(prog, pos, seqs_match, None))
-    
+        print "-----"
+        print 'EXPECT', req_seq
+        print 'ACTUAL', actual_seq
+        print prog, pos, seqs_match, sim_r, len(actual_seq), len(req_seq)
+              
     def reset_progress(self, command_seq):
-        self._prog_sequence = []
+        self._prog_sequence = [self._position.get()]
         self._command_sequence = command_seq
         self.set_state(progress=(0.0, self._position.get(), True, None))
     
