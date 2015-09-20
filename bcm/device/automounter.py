@@ -539,10 +539,10 @@ class Automounter(BasicAutomounter):
         else:
             prog = 0.0                     
         self.set_state(progress=(prog, pos, seqs_match, None))
-        print "-----"
-        print 'EXPECT', req_seq
-        print 'ACTUAL', actual_seq
-        print prog, pos, seqs_match, sim_r, len(actual_seq), len(req_seq)
+        _logger.debug("-----")
+        _logger.debug('EXPECT {0}'.format(req_seq))
+        _logger.debug('ACTUAL {0}'.format(actual_seq))
+        
               
     def reset_progress(self, command_seq):
         self._prog_sequence = [self._position.get()]
