@@ -533,7 +533,7 @@ class Automounter(BasicAutomounter):
 
         sim=difflib.SequenceMatcher(a=actual_seq, b=req_seq)
         sim_r = sim.ratio()
-        seqs_match = (sim_r > 0.95)
+        seqs_match = (sim_r > 0.98)
         if req_seq:
             prog = float(len(actual_seq))/len(req_seq)
         else:
