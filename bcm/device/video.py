@@ -6,6 +6,7 @@ from bcm.utils.log import get_module_logger
 from scipy import misc
 from zope.interface import implements
 from PIL import Image
+import urllib
 import cStringIO
 import httplib
 import numpy
@@ -210,23 +211,49 @@ class AxisCamera(VideoSrc):
     def __init__(self, hostname,  idx=None, name='Axis Camera'):
         VideoSrc.__init__(self, name, maxfps=20.0)
         self.size = (768, 576)
+        self._read_size = 1024
         if idx is None:
-            self.url = 'http://%s/jpg/image.jpg' % hostname
+            self.url = 'http://%s/mjpg/video.mjpg' % hostname
         else:
-            self.url = 'http://%s/jpg/%s/image.jpg' % (hostname,idx)
+            self.url = 'http://%s/mjpg/%s/video.mjpg' % (hostname,idx)
         self._last_frame = time.time()
+        self.stream = urllib.urlopen(self.url)
         self.set_state(active=True)
 
+    def _stream_video(self):
+        ca.threads_init()
+        data = ''
+        
+        count = 0
+        self._frame = None
+        while not self._stopped:
+            if self._active:
+                try:
+                    data += self.stream.read(self._read_size)
+                    a = data.find('\xff\xd8')
+                    b = data.find('\xff\xd9')
+                    count += 1
+                    if a!=-1 and b!=-1:
+                        jpg = data[a:b+2]
+                        data = data[b+2:]
+                        f_str = cStringIO.StringIO(jpg)
+                        img = Image.open(f_str)
+                        if self._frame:
+                            self._frame = Image.blend(self._frame, img, 0.5)
+                        else:
+                            self._frame = img
+                        self.size = self._frame.size
+                        for sink in self.sinks:
+                            if not sink.stopped:
+                                sink.display(self._frame)
+                        if count > 4:
+                            self._read_size *= 2
+                        count = 0
+                except:
+                    pass
+
     def get_frame(self):
-        try:
-            f = urllib.urlopen(self.url)
-            f_str = cStringIO.StringIO(f.read())
-            img = Image.open(f_str)
-            self.size = img.size
-        except:
-            self.set_state(active=False, message='Unable to connect!')
-            img = None
-        return img
+        return self._frame
 
 class ZoomableAxisCamera(AxisCamera):
     
