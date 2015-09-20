@@ -504,7 +504,7 @@ class Automounter(BasicAutomounter):
     def wait_sequence(self, port, timeout=240):
         poll = 0.05
         pct, pos, seqs_match, _ = self.progress_state
-        while pct < 0.999 and seqs_match and timeout >= 0:
+        while (not seqs_match) and timeout >= 0:
             pct, pos, seqs_match, _ = self.progress_state
             timeout -= poll
             time.sleep(poll)
@@ -533,10 +533,12 @@ class Automounter(BasicAutomounter):
 
         sim=difflib.SequenceMatcher(a=actual_seq, b=req_seq)
         sim_r = sim.ratio()
-        seqs_match = (sim_r > 0.98)
+                       
         if req_seq:
             prog = float(len(actual_seq))/len(req_seq)
+            seqs_match = prog > 0.9 and req_seq.endswith(actual_seq[(len(actual_seq)//2):])
         else:
+            seqs_match = False
             prog = 0.0                     
         self.set_state(progress=(prog, pos, seqs_match, None))
         _logger.debug("-----")
