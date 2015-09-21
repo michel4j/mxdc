@@ -502,7 +502,11 @@ class Automounter(BasicAutomounter):
         return True
  
     def wait_sequence(self, port, timeout=240):
-        poll = 0.05
+        poll = 0.05        
+        success = self.wait(start=True, stop=False)
+        if not success:
+            return False
+            
         pct, pos, seqs_match, _ = self.progress_state
         while (not seqs_match) and timeout >= 0:
             pct, pos, seqs_match, _ = self.progress_state
@@ -541,7 +545,7 @@ class Automounter(BasicAutomounter):
             seqs_match = False
             prog = 0.0                     
         self.set_state(progress=(prog, pos, seqs_match, None))
-        _logger.debug("-----")
+        _logger.debug("----- {0} {1} {2}".format(seqs_match, pos, prog))
         _logger.debug('EXPECT {0}'.format(req_seq))
         _logger.debug('ACTUAL {0}'.format(actual_seq))
         
