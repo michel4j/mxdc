@@ -508,6 +508,7 @@ class Automounter(BasicAutomounter):
             return False
             
         pct, pos, seqs_match, _ = self.progress_state
+        _logger.debug("%s %s %s %s" % (pct, pos, seqs_match))
         while (not seqs_match) and timeout >= 0:
             pct, pos, seqs_match, _ = self.progress_state
             timeout -= poll
