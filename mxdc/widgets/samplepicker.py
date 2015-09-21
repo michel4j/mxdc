@@ -148,7 +148,7 @@ class ContainerWidget(gtk.DrawingArea):
         if self.container_type == automounter.CONTAINER_PUCK_ADAPTER:
             self.height = min(event.width, event.height) - 12
             self.width = self.height
-            self.radius = (self.width)/17.5
+            self.radius = -0.5 + (self.width)/17.5
             self.sq_rad = self.radius**2
             self.x_pad = (event.width - self.width)//3
             self.y_pad = (event.height - self.height)//3
@@ -268,7 +268,7 @@ class ContainerWidget(gtk.DrawingArea):
         # draw pins
         cr.set_font_size(10)
         style = self.get_style()
-        cr.set_line_width(2)
+        cr.set_line_width(1)
         for label, coord in self.coordinates.items():
             x, y = coord
             r = self.radius
@@ -285,6 +285,7 @@ class ContainerWidget(gtk.DrawingArea):
                 cr.move_to(x - w/2.0 - x_b, y - h/2.0 - y_b)
                 cr.show_text(label[1:])
                 cr.stroke()
+            
             
 
                       
