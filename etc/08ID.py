@@ -63,7 +63,7 @@ DEVICES = {
     'camera_center_x':  Positioner('BL08ID1:video:sample:x'),
     'camera_center_y':  Positioner('BL08ID1:video:sample:y'),
     'cryojet':  Cryojet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
-    'sample_camera': AxisCamera('V2E1608-001', 4),
+    'sample_camera': AxisCamera('V2E1608-001', 4), #4
     'sample_backlight': SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk','ILC1608-3-I10-02:on', 100.0),
     'sample_frontlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk','ILC1608-3-I10-01:on', 100.0),    
     'hutch_video':  AxisPTZCamera('CCD1608-301'),

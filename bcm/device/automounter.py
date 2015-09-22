@@ -386,9 +386,9 @@ class Automounter(BasicAutomounter):
         self._normal.connect('changed', self._on_state_changed)
         self._usr_disable.connect('changed', self._on_state_changed)
         
-        self._mount_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['mount']))
-        self._mount_next_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['mountnext']))
-        self._dismount_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['dismount']))
+        #self._mount_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['mount']))
+        #self._mount_next_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['mountnext']))
+        #self._dismount_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['dismount']))
 
         #initialize housekeeping vars
         self.reset_progress([])
@@ -503,8 +503,9 @@ class Automounter(BasicAutomounter):
  
     def wait_sequence(self, port, timeout=240):
         poll = 0.05        
-        success = self.wait(start=True, stop=False)
+        success = self.wait(start=True, stop=False, timeout=30)
         if not success:
+            _logger.debug("Automounter did not start within the expected time")
             return False
             
         pct, pos, seqs_match, _ = self.progress_state
@@ -554,7 +555,7 @@ class Automounter(BasicAutomounter):
     def reset_progress(self, command_seq):
         self._prog_sequence = [self._position.get()]
         self._command_sequence = command_seq
-        self.set_state(progress=(0.0, self._position.get(), True, None))
+        self.set_state(progress=(0.0, self._position.get(), False, None))
     
 
     def _on_safety_changed(self, pv, st):
