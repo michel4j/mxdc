@@ -6,6 +6,7 @@ from bcm.utils.log import get_module_logger
 from scipy import misc
 from zope.interface import implements
 from PIL import Image
+import urllib2
 import urllib
 import cStringIO
 import httplib
@@ -15,7 +16,6 @@ import re
 import socket
 import threading
 import time
-import urllib
 import zlib
 
 # setup module logger with a default do-nothing handler
@@ -73,7 +73,6 @@ class VideoSrc(BaseDevice):
         self._stopped = True
     
     def _stream_video(self):
-        ca.threads_init()
         dur = 1.0/self.maxfps
         while not self._stopped:
             if self._active:
@@ -82,9 +81,9 @@ class VideoSrc(BaseDevice):
                     for sink in self.sinks:
                         if not sink.stopped:
                             sink.display(img)
-                except:
-                    #_logger.error('(%s) Error fetching frame' % self.name)
-                    pass
+                except Exception, e:
+                    _logger.warning('(%s) Error fetching frame' % self.name)
+                    print e
             # for some reason this does not cleanup properly without try-except
             try:
                 time.sleep(dur)
@@ -217,13 +216,13 @@ class AxisCamera(VideoSrc):
         else:
             self.url = 'http://%s/mjpg/%s/video.mjpg' % (hostname,idx)
         self._last_frame = time.time()
-        self.stream = urllib.urlopen(self.url)
+        self.stream = urllib2.urlopen(self.url)
+        self.data = ''
+        self._frame = None
         self.set_state(active=True)
 
     def _stream_video(self):
-        ca.threads_init()
-        data = ''
-        
+        data = ''       
         count = 0
         self._frame = None
         while not self._stopped:
@@ -239,7 +238,7 @@ class AxisCamera(VideoSrc):
                         f_str = cStringIO.StringIO(jpg)
                         img = Image.open(f_str)
                         if self._frame:
-                            self._frame = Image.blend(self._frame, img, 0.5)
+                            self._frame = Image.blend(self._frame, img, 0.6)
                         else:
                             self._frame = img
                         self.size = self._frame.size
@@ -249,8 +248,13 @@ class AxisCamera(VideoSrc):
                         if count > 4:
                             self._read_size *= 2
                         count = 0
-                except:
-                    pass
+                except IOError, e:
+                    _logger.warning("Connection to {0} video lost. Trying to reconnect.".format(self.name))
+                    print e
+                    time.sleep(2)
+                    self.stream = urllib2.urlopen(self.url)
+                    data = ''
+                    self._read_size = 1024
 
     def get_frame(self):
         return self._frame
