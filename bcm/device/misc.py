@@ -50,7 +50,25 @@ class PositionerBase(BaseDevice):
         """       
         raise NotImplementedError, 'Derived class must implement this method'
 
-
+class ChoicePositioner(PositionerBase):
+    def __init__(self, name, choices={}, units=""):
+        self.units = units
+        self.dev = self.add_pv(name)
+        self.choices = choices
+        self.rchoices = {v:k for k,v in self.choices.items()}
+        self.values = list(sorted(self.choices.values()))
+        #self.dev.connect('changed', self._signal_change)
+    
+    def get(self):
+        val = self.dev.get()
+        if val in self.choices.keys():
+            return self.choices[val]
+        return val
+    
+    def set(self, value):
+        if value in self.rchoices.keys():
+            self.dev.put(self.rchoices[value])
+        
 class SimPositioner(PositionerBase):
     def __init__(self, name, pos=0, units="", active=True):
         PositionerBase.__init__(self)
