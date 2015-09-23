@@ -54,6 +54,7 @@ DEVICES = {
     
     # Beam position & Size
     'aperture': Positioner('BL08B1:MD2:G:BeamSizeHor', 'BL08B1:MD2:G:BeamSizeHor', 100.0, 'um'),
+    #'aperture': ChoicePositioner('BL08B1:MD2:S:SelectedAperture', choices={1: 200, 2: 150, 3:100, 4:50, 5:20}, units='um'),
     'beam_x':   VMEMotor('SMTR1608-5-B10-08:mm'),
     'beam_y':   VMEMotor('SMTR1608-5-B10-06:mm'),
     'beam_w':   VMEMotor('SMTR1608-5-B10-07:mm'),

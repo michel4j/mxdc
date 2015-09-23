@@ -216,6 +216,64 @@ class ActiveEntry(gtk.VBox):
         self._set_active(state)
             
                     
+class ActiveMenu(gtk.VBox):
+    #_border = gtk.Border(3,3,4,4)
+    def __init__( self, device, label=None):
+        gtk.VBox.__init__(self, label)
+        self._sizegroup_h = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        self._sizegroup_v = gtk.SizeGroup(gtk.SIZE_GROUP_VERTICAL)
+        # create gui layout
+        
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/active_menu'), 
+                                  'active_menu')
+        
+        self._active_menu = self._xml.get_widget('active_menu')        
+        self._entry = self._xml.get_widget('entry')
+        self._label = self._xml.get_widget('label')
+
+        self.pack_start(self._active_menu)        
+        self._entry.set_alignment(1)
+        
+        # signals and parameters
+        self.device = device
+        for value in self.device.values:
+            self._entry.append_text(value)
+        self.device.connect('changed', self._on_value_changed)
+        self.device.connect('active', self._on_active_changed)
+        self.device.connect('health', self._on_health_changed)
+        self._entry.connect('changed', self._on_apply)
+        
+        self._first_change = True
+        self._last_signal = 0
+        
+        if label is None:
+            label = self.device.name
+        
+        if self.device.units != "":
+            label = '%s (%s)' % (label, self.device.units)
+        self._label.set_markup("<span size='small'><b>%s</b></span>" % (label,))
+
+    def _on_apply(self, obj):
+        target = self._entry.get_active()
+        self.device.set(target)
+            
+    def _on_health_changed(self, obj, health):
+        state, _ = health       
+        if state == 0:
+            self._set_active(True)
+        else:           
+            self._set_active(False)           
+
+    def _on_value_changed(self, obj, val):       
+        self._entry.set_active(self.device.values.index(val))
+        return True
+        
+    def _set_active(self, state):
+        self.action_active = state
+        if state:
+            self._entry.set_sensitive(True)
+        else:
+            self._entry.set_sensitive(False)
     
             
 class MotorEntry(ActiveEntry):

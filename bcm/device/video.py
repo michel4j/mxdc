@@ -211,6 +211,8 @@ class AxisCamera(VideoSrc):
         VideoSrc.__init__(self, name, maxfps=20.0)
         self.size = (768, 576)
         self._read_size = 1024
+        self.hostname = hostname
+        self.index = idx
         if idx is None:
             self.url = 'http://%s/mjpg/video.mjpg' % hostname
         else:
@@ -221,7 +223,10 @@ class AxisCamera(VideoSrc):
         self._frame = None
         self.set_state(active=True)
 
-    def _stream_video(self):
+    def get_frame1(self):
+        return self._frame
+
+    def _stream_video1(self):
         data = ''       
         count = 0
         self._frame = None
@@ -248,6 +253,7 @@ class AxisCamera(VideoSrc):
                         if count > 4:
                             self._read_size *= 2
                         count = 0
+                       
                 except IOError, e:
                     _logger.warning("Connection to {0} video lost. Trying to reconnect.".format(self.name))
                     print e
@@ -257,7 +263,21 @@ class AxisCamera(VideoSrc):
                     self._read_size = 1024
 
     def get_frame(self):
+        if not self.index:
+            url = 'http://%s/jpg/image.jpg' % (self.hostname)
+        else:
+            url = 'http://%s/jpg/%s/image.jpg' % (self.hostname, self.index)
+        try:
+            f = urllib.urlopen(url)
+            f_str = cStringIO.StringIO(f.read())
+            img = Image.open(f_str)
+            self._frame = img
+            self.size = self._frame.size
+        except:
+            self.set_state(active=False, message='Unable to connect!')
         return self._frame
+
+
 
 class ZoomableAxisCamera(AxisCamera):
     
