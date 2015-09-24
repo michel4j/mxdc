@@ -88,7 +88,7 @@ class Provider(gobject.GObject):
                     gobject.idle_add(self.emit, 'collision')
                     log.error('Service Name Collision')
                     retry = False
-                    raise mDNSError('Service Name Collision')
+                    #raise mDNSError('Service Name Collision')
                 else:
                     self._params[3] = '%s #%d' % (base_name, retries)
                     log.warning('Service Name Collision. Renaming to %s' % (self._params[3]))
