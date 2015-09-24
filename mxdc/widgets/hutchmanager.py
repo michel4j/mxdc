@@ -81,10 +81,11 @@ class HutchManager(gtk.Alignment):
             'distance': (4,0),
             'beam_stop': (3,1),
             'two_theta': (4,1),
-            'beam_size': (4,2),
+            'beam_size': (2,1),
             'phi': (3,3),
             'kappa': (4,3),
-            'chi': (4,2)
+            'chi': (4,2),
+            'aperture': (2,1),
         }
         self.entries = {
             'energy':       misc.MotorEntry(self.beamline.monochromator.energy, 'Energy', fmt="%0.3f"),
@@ -93,13 +94,13 @@ class HutchManager(gtk.Alignment):
             'distance':     misc.MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', fmt="%0.1f"),
             'beam_stop':    misc.MotorEntry(self.beamline.beamstop_z, 'Beam-stop', fmt="%0.1f"),
             'two_theta':    misc.MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', fmt="%0.1f"),
-            'beam_size':    misc.ActiveEntry(self.beamline.aperture, 'Beam Aperture', fmt="%0.2f"),
+            'beam_size':    misc.ActiveMenu(self.beamline.aperture, 'Beam Size'),
         }
         if 'phi' in self.beamline.registry:
             self.entries['phi'] = misc.MotorEntry(self.beamline.phi, 'Gonio Phi', fmt="%0.2f")
         if 'chi' in self.beamline.registry:
             self.entries['chi'] = misc.MotorEntry(self.beamline.chi, 'Gonio Chi', fmt="%0.2f")
-            del self.entries['beam_size']
+            #del self.entries['beam_size']
         if 'kappa' in self.beamline.registry:
             self.entries['kappa'] = misc.MotorEntry(self.beamline.kappa, 'Gonio Kappa', fmt="%0.2f")
 

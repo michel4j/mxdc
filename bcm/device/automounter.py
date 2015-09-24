@@ -322,6 +322,26 @@ class ColList(object):
     def reset(self):
         self._last = None
 
+ACTION_STATES = {
+    r'cooling tong .*': 'cooling',
+    r'done': 'idle',
+    r'drying tong': 'drying',
+    r'get sample from port': 'get_sample',
+    r'go home.*': 'to_home',
+    r'gonio to dumbbell': 'to_placer',
+    r'grip sample': 'get_sample',
+    r'move to goniometer': 'to_gonio',
+    r'moving to Dewar': 'to_dewar',
+    r'put back dumbbell': 'put_magnet',
+    r'release sample': 'put_sample',
+    r'.*move to port.*': 'to_port',
+    r'take dumbbell': 'get_magnet'
+}
+def _get_action(s):
+    for k,v in ACTION_STATES.items():
+        if re.match(k, s):
+            return v
+
 class Automounter(BasicAutomounter):
     """EPICS Based SAM Automounter object. 
 
@@ -344,6 +364,7 @@ class Automounter(BasicAutomounter):
         self.name = 'SAM Automounter'
         self._pv_name = pv_name
 
+        self.full_state = {}
         
         self.port_states = self.add_pv('%s:cassette:fbk' % pv_name)
         self.port_states.connect('changed', lambda x, y: self._parse_states(y))
@@ -351,6 +372,8 @@ class Automounter(BasicAutomounter):
         self.status_msg = self.add_pv('%s:sample:msg' % pv_name)
         self._warning = self.add_pv('%s:status:warning' % pv_name)
         self._status = self.add_pv('%s:status:state' % pv_name)
+        self._sample = self.add_pv('%s:state:sts' % pv_name)
+        self._magnet = self.add_pv('%s:state:mag' % pv_name)
         
         #Detailed Status
         self._normal = self.add_pv('%s:mod:normal' % pv_name)
@@ -372,8 +395,7 @@ class Automounter(BasicAutomounter):
         self._mount_enabled = self.add_pv('%s:mntEn' % pv_name)
         self._robot_busy = self.add_pv('%s:sample:sts' % pv_name)
         
-        self._position.connect('changed', self._notify_progress) 
-        
+        self._position.connect('changed', self._notify_progress)         
         self._mounted.connect('changed', self._on_mount_changed)
       
         self._warning.connect('changed', self._on_status_warning)
@@ -386,11 +408,12 @@ class Automounter(BasicAutomounter):
         self._normal.connect('changed', self._on_state_changed)
         self._usr_disable.connect('changed', self._on_state_changed)
         
-        #self._mount_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['mount']))
-        #self._mount_next_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['mountnext']))
-        #self._dismount_cmd.connect('changed', lambda x,y: self.reset_progress(self.SEQUENCES['dismount']))
+        self._position.connect('changed', self._do_full_state) 
+        self._sample.connect('changed', self._do_full_state)
+        self._magnet.connect('changed', self._do_full_state)
+        self.status_msg.connect('changed', self._do_full_state)
+        
 
-        #initialize housekeeping vars
         self.reset_progress([])
         
         
@@ -530,15 +553,14 @@ class Automounter(BasicAutomounter):
             time.sleep(0.05)
 
     def _notify_progress(self, pv, pos):
-
         self._prog_sequence.append(pos)
         proc = ColList()
         actual_seq = '-'.join([proc.next(p) for p in self._prog_sequence if proc.last() != p])
         proc.reset()
         req_seq = '-'.join([proc.next(p) for p in self._command_sequence if proc.last() != p])
 
-        sim=difflib.SequenceMatcher(a=actual_seq, b=req_seq)
-        sim_r = sim.ratio()
+        #sim=difflib.SequenceMatcher(a=actual_seq, b=req_seq)
+        #sim_r = sim.ratio()
                        
         if req_seq:
             prog = float(len(actual_seq))/len(req_seq)
@@ -550,8 +572,22 @@ class Automounter(BasicAutomounter):
         _logger.debug("----- {0} {1} {2}".format(seqs_match, pos, prog))
         _logger.debug('EXPECT {0}'.format(req_seq))
         _logger.debug('ACTUAL {0}'.format(actual_seq))
-        
-              
+        self._signal_states()
+    
+    def _do_full_state(self, obj, val):
+        _SSTATES = ['', 'picker', 'placer', 'tong','gonio']
+        _MSTATES = {'in cradle': 'cradle',  'on tong': 'tong'}
+        act = _get_action(self.status_msg.get())
+        self.full_state['pos'] = self._position.get()
+        self.full_state['magnet'] = _MSTATES.get(self._magnet.get(), '')
+        self.full_state['sample'] = _SSTATES[self._sample.get()]
+        if act:
+            self.full_state['action'] = act
+        self._signal_states()
+
+    def _signal_states(self):
+        _logger.debug('(%s) state changed to: %s' % (self.name, [':'.join(pair) for pair in self.full_state.items()]) ) 
+                  
     def reset_progress(self, command_seq):
         self._prog_sequence = [self._position.get()]
         self._command_sequence = command_seq
@@ -625,6 +661,7 @@ class Automounter(BasicAutomounter):
                 self.set_state(mounted=(port, barcode))
                 self._mounted_port = port
                 _logger.debug('Mounted:  port=%s barcode=%s' % (port, barcode))
+    
         
     def _send_message(self, pv, msg):
         if msg.strip() == 'done':
