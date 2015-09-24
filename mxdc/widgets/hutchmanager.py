@@ -76,12 +76,12 @@ class HutchManager(gtk.Alignment):
         # create and pack devices into settings frame
         _entry_locs = {
             'energy': (2,0),
-            'attenuation': (3,0),
+            'attenuation': (2,1),
             'omega': (3,2),
             'distance': (4,0),
             'beam_stop': (3,1),
             'two_theta': (4,1),
-            'beam_size': (2,1),
+            'beam_size': (3,0),
             'phi': (3,3),
             'kappa': (4,3),
             'chi': (4,2),
