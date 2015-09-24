@@ -51,24 +51,46 @@ class PositionerBase(BaseDevice):
         raise NotImplementedError, 'Derived class must implement this method'
 
 class ChoicePositioner(PositionerBase):
-    def __init__(self, name, choices={}, units=""):
+    def __init__(self, pv, choices=[], units=""):
+        PositionerBase.__init__(self)
         self.units = units
-        self.dev = self.add_pv(name)
+        self.dev = self.add_pv(pv)
         self.choices = choices
-        self.rchoices = {v:k for k,v in self.choices.items()}
-        self.values = list(sorted(self.choices.values()))
-        #self.dev.connect('changed', self._signal_change)
+        self.dev.connect('changed', self._signal_change)
     
     def get(self):
         val = self.dev.get()
-        if val in self.choices.keys():
+        if not val in self.choices:
             return self.choices[val]
-        return val
-    
-    def set(self, value):
-        if value in self.rchoices.keys():
-            self.dev.put(self.rchoices[value])
+        else:
+            return val
         
+    def set(self, value, wait=False):
+        if value in self.choices:
+            self.dev.put(self.choices.index(value))
+        else:
+            self.dev.put(value)
+
+class SimChoicePositioner(PositionerBase):
+    def __init__(self, name, value, choices=[], units="",  active=True):
+        self.name = name
+        PositionerBase.__init__(self)
+        self.units = units
+        self.choices = choices
+        self._pos = value
+        if active:
+            self.set_state(changed=self._pos, active=active, health=(0,''))
+        else:
+            self.set_state(changed=self._pos, active=active, health=(16,'disabled'))       
+    
+    def get(self):
+        return self._pos
+    
+    def set(self, value, wait=False):
+        _logger.info('%s requesting %s' % (self.name, value))
+        self._pos = value
+        self.set_state(changed=self._pos)
+         
 class SimPositioner(PositionerBase):
     def __init__(self, name, pos=0, units="", active=True):
         PositionerBase.__init__(self)
