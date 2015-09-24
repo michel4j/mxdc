@@ -23,25 +23,6 @@
           </packing>
         </child>
         <child>
-          <object class="GtkFrame" id="frame2">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label_xalign">0</property>
-            <child>
-              <object class="GtkComboBox" id="entry">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="has_frame">False</property>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
           <placeholder/>
         </child>
       </object>
