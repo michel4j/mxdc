@@ -229,8 +229,11 @@ class ActiveMenu(gtk.VBox):
         
         self._active_menu = self._xml.get_widget('active_menu')        
         self._entry = gtk.combo_box_new_text()
-        for r in self._entry.get_cells():
-            r.set_alignment(0.5, 0.5)
+        try:
+            for r in self._entry.get_cells():
+                r.set_alignment(0.5, 0.5)
+        except:
+            pass
 
         self._active_menu.pack_end(self._entry, True, True)
         self._label = self._xml.get_widget('label')
