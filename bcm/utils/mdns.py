@@ -85,6 +85,7 @@ class Provider(gobject.GObject):
                 self._entrygroup.Commit()
             except dbus.exceptions.DBusException:
                 if unique:
+                    gobject.idle_add(self.emit, 'collision')
                     log.error('Service Name Collision')
                     retry = False
                     raise mDNSError('Service Name Collision')
