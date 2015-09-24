@@ -81,7 +81,7 @@ class MiniHutchManager(gtk.Alignment):
             'distance': (2,0),
             'beam_stop': (0,1),
             'two_theta': (1,1),
-            'beam_size': (1,2),
+            'beam_size': (1,1),
             'phi': (0,3),
             'kappa': (1,3),
             'chi': (1,2)
@@ -92,12 +92,11 @@ class MiniHutchManager(gtk.Alignment):
             'omega':        misc.MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f"),
             'distance':     misc.MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', fmt="%0.1f"),
             'beam_stop':    misc.MotorEntry(self.beamline.beamstop_z, 'Beam-stop', fmt="%0.1f"),
-            'two_theta':    misc.MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', fmt="%0.1f"),
+            #'two_theta':    misc.MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', fmt="%0.1f"),
             'beam_size':    misc.ActiveMenu(self.beamline.aperture, 'Beam Size'),
         }
         if 'phi' in self.beamline.registry:
-            #self.entries['phi'] = misc.MotorEntry(self.beamline.phi, 'Gonio Phi', fmt="%0.2f")
-            _entry_locs['beam_size'] = (0,3)
+            self.entries['phi'] = misc.MotorEntry(self.beamline.phi, 'Gonio Phi', fmt="%0.2f")
         if 'chi' in self.beamline.registry:
             self.entries['chi'] = misc.MotorEntry(self.beamline.chi, 'Gonio Chi', fmt="%0.2f")
 
