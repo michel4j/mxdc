@@ -40,7 +40,7 @@ DEVICES = {
     'sample_y':  SimMotor('Sample Y', 0.0, 'mm'),
     
     # Beam position & Size
-    'aperture': SimPositioner('Aperture', 25.0, 'um', active=False),
+    'aperture': SimChoicePositioner("Aperture", 50, choices=[100,50,25], units='um'),
     'beam_x':   SimMotor('Beam X', 0.0, 'mm'),
     'beam_y':   SimMotor('Beam Y', 0.0, 'mm'),
     'beam_w':   SimMotor('Beam W', 0.2, 'mm'),

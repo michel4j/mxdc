@@ -228,16 +228,21 @@ class ActiveMenu(gtk.VBox):
                                   'active_menu')
         
         self._active_menu = self._xml.get_widget('active_menu')        
-        self._entry = self._xml.get_widget('entry')
+        self._entry = gtk.combo_box_new_text()
+        for r in self._entry.get_cells():
+            r.set_alignment(0.5, 0.5)
+
+        self._active_menu.pack_end(self._entry, True, True)
         self._label = self._xml.get_widget('label')
 
         self.pack_start(self._active_menu)        
-        self._entry.set_alignment(1)
         
         # signals and parameters
         self.device = device
-        for value in self.device.values:
-            self._entry.append_text(value)
+        self.values = {}
+        for i, value in enumerate(self.device.choices):
+            self._entry.append_text("%0.0f" % value)
+            self.values[value] = i
         self.device.connect('changed', self._on_value_changed)
         self.device.connect('active', self._on_active_changed)
         self.device.connect('health', self._on_health_changed)
@@ -254,8 +259,9 @@ class ActiveMenu(gtk.VBox):
         self._label.set_markup("<span size='small'><b>%s</b></span>" % (label,))
 
     def _on_apply(self, obj):
-        target = self._entry.get_active()
+        target = float(self._entry.get_active_text())
         self.device.set(target)
+        #print "SETTING TO", target
             
     def _on_health_changed(self, obj, health):
         state, _ = health       
@@ -264,8 +270,9 @@ class ActiveMenu(gtk.VBox):
         else:           
             self._set_active(False)           
 
-    def _on_value_changed(self, obj, val):       
-        self._entry.set_active(self.device.values.index(val))
+    def _on_value_changed(self, obj, val):
+        if val in self.values:
+            self._entry.set_active(self.values[val])
         return True
         
     def _set_active(self, state):
@@ -274,6 +281,9 @@ class ActiveMenu(gtk.VBox):
             self._entry.set_sensitive(True)
         else:
             self._entry.set_sensitive(False)
+
+    def _on_active_changed(self, obj, state):
+        self._set_active(state)
     
             
 class MotorEntry(ActiveEntry):
