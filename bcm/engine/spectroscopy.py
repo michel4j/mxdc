@@ -217,6 +217,7 @@ class XANESScan(BasicScan):
                 'directory': self._directory,
                 'edge': self._edge,
                 'crystal_id': self._crystal_id,
+                'exposure_time': self._duration,
                 'attenuation': self._attenuation,
                 'energy': self._edge_energy,
                 'kind': 0 # MAD Scan
