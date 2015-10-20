@@ -156,11 +156,11 @@ class Cryojet5(BaseDevice):
         flow rate is saved.
         """
         self._previous_flow = self.sample_flow.get()
-        #self.sample_flow.set(0.0)
+        self.sample_flow.set(0.0)
 
     def resume_flow(self):
         """Restores the flow rate to the previously saved setting."""
-        #self.sample_flow.set(self._previous_flow)
+        self.sample_flow.set(self._previous_flow)
 
 
 
