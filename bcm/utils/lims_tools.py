@@ -123,6 +123,7 @@ def upload_scan(beamline, results):
                     },
                 'name': scan.get('name_template'),
                 'crystal_id': scan.get('crystal_id'),
+                'exposure_time': scan.get('exposure_time'),
                 'attenuation': scan.get('attenuation'),
                 'edge': scan.get('edge'),
                 'energy': scan.get('energy')
