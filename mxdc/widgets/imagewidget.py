@@ -277,7 +277,7 @@ class ImageWidget(gtk.DrawingArea):
             nw = max(16, min(nh, nw))
             nh = nw
             self.extents = (nx, ny, nw, nh)
-        self.pixbuf =  gtk.gdk.pixbuf_new_from_data(self.image.tostring(),
+        self.pixbuf =  gtk.gdk.pixbuf_new_from_data(self.image.tobytes(),
                                                     gtk.gdk.COLORSPACE_RGB, 
                                                     False, 8, 
                                                     self.image_width, 
