@@ -90,7 +90,7 @@ class VideoWidget(gtk.DrawingArea):
             img.putpalette(self._palette)
         img = img.convert('RGB')
         w, h = img.size
-        self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tostring(),gtk.gdk.COLORSPACE_RGB, 
+        self.pixbuf = gtk.gdk.pixbuf_new_from_data(img.tobytes(),gtk.gdk.COLORSPACE_RGB, 
             False, 8, w, h, 3 * w )
         gobject.idle_add(self.queue_draw)
         if self.display_func is not None:

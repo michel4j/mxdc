@@ -48,7 +48,7 @@ def add_decorations(img, x, y, bw, bh):
     hw = bw/2
     hh = bh/2
     if using_cairo:
-        src = array.array('B', img.tostring('raw', 'RGBA', 0, 1))
+        src = array.array('B', img.tobytes('raw', 'RGBA', 0, 1))
         surface = cairo.ImageSurface.create_for_data(src, cairo.FORMAT_ARGB32,
                                               w, h, w*4)
         cr = cairo.Context(surface)
@@ -93,7 +93,7 @@ def add_hc_decorations(img, x1, x2, y1, y2):
     img = img.convert('RGBA')
     w, h = img.size
     if using_cairo:
-        src = array.array('B', img.tostring('raw', 'RGBA', 0, 1))
+        src = array.array('B', img.tobytes('raw', 'RGBA', 0, 1))
         surface = cairo.ImageSurface.create_for_data(src, cairo.FORMAT_ARGB32, w, h, w*4)
         cr = cairo.Context(surface)
         cr.set_source_rgba(0.1, 1.0, 0.0, 1.0)
