@@ -128,7 +128,7 @@ def generate_frame_list(run, frame_set):
     # initialize general parameters
     delta_angle = run.get('delta_angle', 1.0)
     max_frame_number = int(round(run['first_frame'] + (run['total_angle']/run['delta_angle'])))
-    frame_fmt = '%%s_%%0%dd' % (max(3, 1+int(numpy.log10(max_frame_number))))
+    frame_fmt = '%%s_%%0%dd' % (max(4, 1+int(numpy.log10(max_frame_number))))
     for frame_number, angle in frame_set:               
         # generate frame info
         frame_name = frame_fmt % (run['name'], frame_number)
