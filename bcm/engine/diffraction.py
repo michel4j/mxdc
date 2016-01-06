@@ -542,7 +542,7 @@ class Screener(gobject.GObject):
                         if len(collect_results) > 0:
                             frame_list = runlists.frameset_to_list(collect_results[0]['frame_sets'])
                             _first_frame = os.path.join(collect_results[0]['directory'],
-                                                        "%s_%03d.img" % (collect_results[0]['name'], frame_list[0]))
+                                                        "%s_%04d.img" % (collect_results[0]['name'], frame_list[0]))
                             _a_params = {'directory': os.path.join(task['directory'], task['sample']['name'], 'scrn'),
                                          'info': {'anomalous': False,
                                                   'file_names': [_first_frame, ]                                             
