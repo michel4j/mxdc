@@ -153,7 +153,7 @@ class ResultManager(gtk.Alignment):
         for data in datasets:
             frame_list = runlists.frameset_to_list(data['frame_sets'])
             _first_frame = os.path.join(data['directory'],
-                                        "%s_%03d.img" % (data['name'], frame_list[0]))
+                                        "%s_%04d.img" % (data['name'], frame_list[0]))
             _a_params = {'directory': os.path.join(data['directory'], '%s-scrn'% data['name']),
                          'info': {'anomalous': self.anom_check_btn.get_active(),
                                   'file_names': [_first_frame,]                                             
@@ -169,7 +169,7 @@ class ResultManager(gtk.Alignment):
             for data in datasets:
                 frame_list = runlists.frameset_to_list(data['frame_sets'])
                 _first_frame = os.path.join(data['directory'],
-                                        "%s_%03d.img" % (data['name'], frame_list[0]))
+                                        "%s_%04d.img" % (data['name'], frame_list[0]))
                 _a_params = {'directory': os.path.join(data['directory'], '%s-proc' % data['name']),
                              'info': {'anomalous': self.anom_check_btn.get_active(),
                                       'file_names': [_first_frame,]                                             
@@ -184,7 +184,7 @@ class ResultManager(gtk.Alignment):
             for data in datasets:
                 frame_list = runlists.frameset_to_list(data['frame_sets'])
                 file_names.append(os.path.join(data['directory'],
-                                            "%s_%03d.img" % (data['name'], frame_list[0])))
+                                            "%s_%04d.img" % (data['name'], frame_list[0])))
                 name_list.append(data['name'])
             _prefix = os.path.commonprefix(name_list)
             if _prefix == '':
