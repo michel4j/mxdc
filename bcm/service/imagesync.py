@@ -136,10 +136,8 @@ class ImgSyncService(service.Service):
                                   '/data',
                                   self.settings['marccd_uid'],
                                   self.settings['marccd_gid'])
-            _ = run_command('/bin/mkdir',
-                                  ['-p', bkup_dir])
-            _ = run_command('/usr/bin/chmod',
-                                  [bkup_dir])
+            _ = run_command('/bin/mkdir',      ['-p', bkup_dir])
+            _ = run_command('/usr/bin/chmod',  ['700', bkup_dir])
         except:
             log.err()
             return False
