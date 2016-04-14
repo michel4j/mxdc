@@ -83,10 +83,8 @@ class ImgSyncService(service.Service):
         self.settings['base'] =   'users'
         self.settings['marccd_uid'] = 500
         self.settings['marccd_gid'] = 500
-        try:
-            self.settings['backup'] = os.path.join('/archive', os.environ['BCM_BEAMLINE'].upper())
-        except:
-            self.settings['backup'] = os.path.join('/archive', 'UNDEF')
+        self.settings['backup'] = '/archive'
+
         
         config = ConfigParser()
         if os.path.exists(self.filename):
@@ -140,6 +138,8 @@ class ImgSyncService(service.Service):
                                   self.settings['marccd_gid'])
             _ = run_command('/bin/mkdir',
                                   ['-p', bkup_dir])
+            _ = run_command('/usr/bin/chmod',
+                                  [bkup_dir])
         except:
             log.err()
             return False
