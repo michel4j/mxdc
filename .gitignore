@@ -6,6 +6,7 @@
 *.gladep
 *.cache
 .settings
+.idea
 .project
 Xrec_check.txt
 etc/*_local.py
