@@ -239,7 +239,8 @@ class IProcessVariable(Interface):
         id  -- id of connection to disconnect.
 
         """
-        
+
+
 class PV(gobject.GObject):
     
     """A Process Variable 
