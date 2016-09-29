@@ -1,20 +1,27 @@
 #!/bin/sh
 
 ## ---- Setup Top level directory of BCM installation ----
-export BCM_PATH=/home/michel/Code/eclipse-ws/beamline-control-module
+export BCM_PATH=/home/michel/Code/eclipse-ws/mxdc
 
 
 ## ---- Setup Beamline Configuration by network ----
-export BCM_BEAMLINE=08B1  # default beamline
-domain=`netstat -rn | grep '255.255.252.0' | awk '{print $1}'`
-if [ $domain = '10.52.28.0' ] ; then
-	export BCM_BEAMLINE=08ID
-	export BCM_S111_TEMP=LN2
-fi
 
-if [ $domain = '10.52.4.0' ] ; then
-	export BCM_BEAMLINE=08B1
-	export BCM_S111_TEMP=RT
+if [ ! -z "$BCM_FORCE" ]; then
+    export BCM_BEAMLINE=$BCM_FORCE
+    export BCM_S111_TEMP=LN2
+else 
+
+    export BCM_BEAMLINE=08B1  # default beamline
+    domain=`netstat -rn | grep '255.255.252.0' | awk '{print $1}'`
+    if [ $domain = '10.52.28.0' ] ; then
+	    export BCM_BEAMLINE=08ID
+	    export BCM_S111_TEMP=LN2
+    fi
+
+    if [ $domain = '10.52.4.0' ] ; then
+	    export BCM_BEAMLINE=08B1
+	    export BCM_S111_TEMP=RT
+    fi
 fi
 
 ## ---- Do not change below this line ----
@@ -26,8 +33,4 @@ if [ $PYTHONPATH ]; then
 else
 	export PYTHONPATH=${BCM_PATH}:${BCM_PATH}/bcm/libs
 fi
-
-# Setup MOZEMBED XUL PATH
-xul_lib=`rpm -q xulrunner.x86_64 --list | grep libxul.so`
-export MOZILLA_FIVE_HOME=`dirname ${xul_lib}`
 
