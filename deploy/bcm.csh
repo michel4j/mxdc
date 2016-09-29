@@ -6,15 +6,22 @@ setenv BCM_PATH /home/michel/Code/eclipse-ws/mxdc
 
 ## ---- Setup Beamline Configuration by network ----
 setenv BCM_BEAMLINE 08B1  # default beamline
-set domain=`netstat -rn | grep '255.255.252.0' | awk '{print $1}'`
-if ($domain == '10.52.28.0') then
+
+set osver=`cat /etc/redhat-release|awk '{print $4}' | cut -c1 `
+if ("$osver" == '6') then
+   set domain=`netstat -rn | grep 'UG' | awk '{print $2}'`
+else
+   set domain=`netstat -rn | grep 'UGH' | awk '{print $2}'`
+endif
+if ($domain == '10.52.31.254') then
 	setenv BCM_BEAMLINE 08ID
 	setenv BCM_S111_TEMP LN2
 endif
-if ($domain == '10.52.4.0') then
+if ($domain == '10.52.7.25') then
 	setenv BCM_BEAMLINE 08B1
 	setenv BCM_S111_TEMP RT
 endif
+
 ## ---- Do not change below this line ----
 setenv BCM_CONFIG_PATH $BCM_PATH/etc
 setenv BCM_DATA_PATH  $HOME/scans
