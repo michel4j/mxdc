@@ -478,8 +478,17 @@ class Screener(gobject.GObject):
                     if self.beamline.automounter.is_mounted(task['sample']['port']):
                         self._notify_progress(Screener.TASK_STATE_RUNNING)            
 
-                        _out = centering.auto_center_loop()
-                        if _out is None:
+                        for method in ['crystal', 'capillary', 'loop']:
+                            if task.options.get(method):
+                                break
+                        if method == 'crystal':
+                            _out = centering.auto_center_crystal()
+                        elif method == 'capillary':
+                            _out = centering.auto_center_capillary()
+                        else:
+                            _out = centering.auto_center_loop()
+
+                        if not _out:
                             _logger.error('Error attempting auto loop centering "%s"' % task['sample']['name'])
                             pause_dict = {'type': Screener.PAUSE_ALIGN,
                                           'task': self.run_list[self.pos - 1].name,
