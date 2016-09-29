@@ -86,7 +86,6 @@ def center_loop():
         beamline.sample_stage.x.move_to(0.0, wait=True)
         beamline.sample_stage.y.move_to(0.0, wait=True)
         beamline.omega.move_by(90.0, wait=True)
-        beamline.sample_stage.y.move_to(0.0, wait=True)
 
     _logger.debug('Attempting to center loop')
 
@@ -111,6 +110,7 @@ def center_loop():
             max_width = max(loop_w, max_width)
 
         ymm = (cy - y) * beamline.sample_video.resolution
+        xmm = 0
         if count <= _MAX_TRIES // 2 or loop_w > 0.6 * max_width or loop_w < 0:
             xmm = (cx - x) * beamline.sample_video.resolution
             beamline.sample_stage.x.move_by(-xmm, wait=True)
@@ -138,8 +138,100 @@ def center_loop():
     # while an average of 2 pixel and a max of 2 pixel will score 100%
     _dev = numpy.abs(avg_devs[-1:])
     scores = numpy.array([
-        logistic_score(_dev.mean(), 0.05*loop_w, 0.2*loop_w),
-        logistic_score(_dev.max(), 0.05*loop_w, 0.2*loop_w),
+        logistic_score(_dev.mean(), 0.05 * loop_w, 0.2 * loop_w),
+        logistic_score(_dev.max(), 0.05 * loop_w, 0.2 * loop_w),
+    ])
+    quality = 100 * scores.mean()
+
+    beamline.sample_frontlight.set_on()
+    beamline.sample_backlight.set(backlt)
+    beamline.sample_frontlight.set(frontlt)
+
+    return quality
+
+
+def center_capillary():
+    """Automatic centering of capillary sample using simple image processing."""
+    beamline = globalRegistry.lookup([], IBeamline)
+
+    # set lighting and zoom
+    beamline.sample_frontlight.set_off()
+    backlt = beamline.sample_backlight.get()
+    frontlt = beamline.sample_frontlight.get()
+    beamline.sample_video.zoom(_CENTERING_ZOOM)
+    beamline.sample_backlight.set(beamline.config.get('centering_backlight', _CENTERING_BLIGHT))
+    # beamline.sample_frontlight.set(_CENTERING_FLIGHT)
+
+    cx = beamline.camera_center_x.get()
+    cy = beamline.camera_center_y.get()
+
+    bkg_img = get_current_bkg()  # sample will move off screen, take bkgd, then return sample.
+
+    # check if there is something on the screen
+    img1 = beamline.sample_video.get_frame()
+    dev = imgproc.image_deviation(bkg_img, img1)
+    if dev < 1.0:
+        # Nothing on screen, go to default start
+        beamline.sample_stage.x.move_to(0.0, wait=True)
+        beamline.sample_stage.y.move_to(0.0, wait=True)
+        beamline.omega.move_by(90, wait=True)
+
+    _logger.debug('Attempting to center capillary')
+
+    ANGLE_STEP = 90.0
+    count = 0
+    max_width = 0.0
+    x_offset = 2  # milimeters
+    adj_mm = []
+    avg_devs = []
+    converged = False
+    cap_w = 100
+    while count < _MAX_TRIES and not converged:
+        count += 1
+        img = beamline.sample_video.get_frame()  # new frame on each try
+        x, y, w = imgproc.get_cap_center(img, bkg_img, orientation=int(beamline.config['orientation']))
+
+        if w > 10:
+            cap_w = w * beamline.sample_video.resolution
+
+        if count > _MAX_TRIES // 2:
+            max_width = max(cap_w, max_width)  # max width becomes cap width
+
+        ymm = (cy - y) * beamline.sample_video.resolution
+        xmm = 0
+        if count <= _MAX_TRIES // 2 or cap_w > 0.6 * max_width or cap_w < 0:
+            xmm = (cx - x) * beamline.sample_video.resolution  # center the tip
+            beamline.sample_stage.move_by(-xmm, wait=True)
+        adj_mm.append(((xmm - x_offset), ymm))  # move tip past edge of frame.
+
+        beamline.sample_stage.y.move_by(-ymm, wait=True)
+        beamline.omega.move_by(ANGLE_STEP, wait=True)
+
+        # check progress quality
+        if count > 2:
+            adj_a = numpy.array(adj_mm[-2:])
+        else:
+            adj_a = numpy.array(adj_mm)
+        _dev = numpy.array([adj_a[:, 0].mean(), adj_a[:, 1].mean()])
+        avg_devs.append(_dev)
+
+        # converges id last H/V adjustments are all less than 5 image pixels
+        if len(avg_devs) >= 2:
+            if numpy.abs(avg_devs[-1:]).mean() <= 5 * beamline.sample_video.resolution:
+                converged = True
+        _logger.info("Centering ... [%d] (H): %0.3f, (V): %0.3f, Converged: %s" % (
+            count,
+            _dev[0],
+            _dev[1],
+            converged
+        ))
+        # calculate score based on average and maximum of last two adjustments
+    # an average of 20 pixels and a max of 20 pixels will give a score of 50%
+    # while an average of 2 pixels and a max of 2 pixels will xcore 100%
+    _dev = numpy.abs(avg_devs[-1:])
+    scores = numpy.array([
+        logistic_score(_dev.mean(), 0.05 * cap_w, 0.2 * cap_w),
+        logistic_score(_dev.max(), 0.05 * cap_w, 0.2 * cap_w),
     ])
     quality = 100 * scores.mean()
 
@@ -283,6 +375,21 @@ def auto_center_loop():
         _logger.warning('Loop centering not reliable enough.')
 
     _logger.info('Loop centering complete in %d seconds. [%0.0f %% reliable]' % (time.time() - tst, quality))
+    return quality
+
+
+def auto_center_capillary():
+    """Convenience function to run automated capillary centering and return the result,
+    displaying appropriate log messages on failure.
+    """
+
+    tst = time.time()
+    quality = center_capillary()
+
+    if quality < 75:
+        _logger.warning('Capillary centering not reliable enough.')
+
+    _logger.info('Capillary centering complete in %d seconds. [%0.0f %% reliable]' % (time.time() - tst, quality))
     return quality
 
 
