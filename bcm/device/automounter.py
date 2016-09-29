@@ -607,7 +607,7 @@ class Automounter(BasicAutomounter):
         usr_enabled = self._usr_disable.get()
         mnt_enabled = self._mount_enabled.get()
         robot_busy = self._robot_busy.get()
-        
+
         try:
             state_str = state_str.split()[0].strip()
         except IndexError:
