@@ -9,19 +9,26 @@ export BCM_PATH=/home/michel/Code/eclipse-ws/mxdc
 if [ ! -z "$BCM_FORCE" ]; then
     export BCM_BEAMLINE=$BCM_FORCE
     export BCM_S111_TEMP=LN2
-else 
+else
 
     export BCM_BEAMLINE=08B1  # default beamline
-    domain=`netstat -rn | grep '255.255.252.0' | awk '{print $1}'`
-    if [ $domain = '10.52.28.0' ] ; then
-	    export BCM_BEAMLINE=08ID
-	    export BCM_S111_TEMP=LN2
+    osver=`cat /etc/redhat-release|awk '{print $4}' | cut -c1 `
+    if [ "$osver" = "6" ] ; then
+       domain=`netstat -rn | grep 'UG' | awk '{print $2}'`
+    else
+       domain=`netstat -rn | grep 'UGH' | awk '{print $2}'`
     fi
 
-    if [ $domain = '10.52.4.0' ] ; then
-	    export BCM_BEAMLINE=08B1
-	    export BCM_S111_TEMP=RT
+    if [ "$domain" = '10.52.31.254' ] ; then
+        export BCM_BEAMLINE=08ID
+        export BCM_S111_TEMP=LN2
     fi
+
+    if [ "$domain" = '10.52.7.254' ] ; then
+        export BCM_BEAMLINE=08B1
+        export BCM_S111_TEMP=RT
+    fi
+
 fi
 
 ## ---- Do not change below this line ----
