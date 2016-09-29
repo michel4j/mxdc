@@ -145,6 +145,7 @@ class AppWindow(gtk.Window):
             "Michel Fodje (maintainer)",
             "Kathryn Janzen",
             "Kevin Anderson",
+            "Cuylar Conly"
             ]
         about = gtk.AboutDialog()
         name = 'Mx Data Collector (MxDC)'
