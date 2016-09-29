@@ -161,8 +161,8 @@ class AppWindow(gtk.Window):
         logo = gtk.gdk.pixbuf_new_from_file(self.icon_file)
         about.set_logo(logo)
         
-        about.connect('response', lambda x,y: about.destroy())
-        about.connect('destroy', lambda x: about.destroy())
+        about.connect('response', lambda x,y: x.destroy())
+        about.connect('destroy', lambda x: x.destroy())
         about.set_transient_for(self)
         about.show()
 

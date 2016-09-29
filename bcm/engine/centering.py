@@ -83,9 +83,11 @@ def center_loop():
     dev = imgproc.image_deviation(bkg_img, img1)
     if dev < 1.0:
         # Nothing on screen, go to default start
-        beamline.sample_stage.x.move_to(0.0, wait=True)
         beamline.sample_stage.y.move_to(0.0, wait=True)
+        beamline.sample_stage.x.move_to(0.0, wait=True)
         beamline.omega.move_by(90.0, wait=True)
+        beamline.sample_stage.y.move_to(0.0, wait=True)
+
 
     _logger.debug('Attempting to center loop')
 
@@ -172,38 +174,37 @@ def center_capillary():
     dev = imgproc.image_deviation(bkg_img, img1)
     if dev < 1.0:
         # Nothing on screen, go to default start
-        beamline.sample_stage.x.move_to(0.0, wait=True)
         beamline.sample_stage.y.move_to(0.0, wait=True)
-        beamline.omega.move_by(90, wait=True)
+        beamline.sample_stage.x.move_to(0.0, wait=True)
+        beamline.omega.move_by(90.0, wait=True)
+        beamline.sample_stage.y.move_to(0.0, wait=True)
+
 
     _logger.debug('Attempting to center capillary')
 
     ANGLE_STEP = 90.0
     count = 0
     max_width = 0.0
-    x_offset = 2  # milimeters
+    x_offset = 1.5   # milimeters
     adj_mm = []
     avg_devs = []
     converged = False
-    cap_w = 100
+    direction = -1 if beamline.config['orientation'] == 2 else 1
     while count < _MAX_TRIES and not converged:
         count += 1
         img = beamline.sample_video.get_frame()  # new frame on each try
         x, y, w = imgproc.get_cap_center(img, bkg_img, orientation=int(beamline.config['orientation']))
+        _logger.debug("GET CAP CENTERING {}, {}, {}".format(x, y, w))
 
-        if w > 10:
-            cap_w = w * beamline.sample_video.resolution
-
-        if count > _MAX_TRIES // 2:
-            max_width = max(cap_w, max_width)  # max width becomes cap width
-
+        # calculate motor positions and move
         ymm = (cy - y) * beamline.sample_video.resolution
-        xmm = 0
-        if count <= _MAX_TRIES // 2 or cap_w > 0.6 * max_width or cap_w < 0:
-            xmm = (cx - x) * beamline.sample_video.resolution  # center the tip
-            beamline.sample_stage.move_by(-xmm, wait=True)
-        adj_mm.append(((xmm - x_offset), ymm))  # move tip past edge of frame.
-
+        xmm = (cx - x) * beamline.sample_video.resolution
+        beamline.sample_stage.x.move_by(-xmm, wait=True)
+        _logger.debug("TESTING OMEGA: {}, XMM: {}, YMM: {}".format(
+            beamline.omega.get_position(),
+            xmm/beamline.sample_video.resolution, ymm/beamline.sample_video.resolution)
+        )
+        adj_mm.append(ymm)
         beamline.sample_stage.y.move_by(-ymm, wait=True)
         beamline.omega.move_by(ANGLE_STEP, wait=True)
 
@@ -212,22 +213,22 @@ def center_capillary():
             adj_a = numpy.array(adj_mm[-2:])
         else:
             adj_a = numpy.array(adj_mm)
-        _dev = numpy.array([adj_a[:, 0].mean(), adj_a[:, 1].mean()])
+        _dev = adj_a.mean()
         avg_devs.append(_dev)
 
-        # converges id last H/V adjustments are all less than 5 image pixels
+        # converges if last V adjustments are all less than 5 image pixels
         if len(avg_devs) >= 2:
-            if numpy.abs(avg_devs[-1:]).mean() <= 5 * beamline.sample_video.resolution:
+            if numpy.abs(avg_devs[-1:]).mean() <= 0.1 * w * beamline.sample_video.resolution: # 10% of cap width
                 converged = True
-        _logger.info("Centering ... [%d] (H): %0.3f, (V): %0.3f, Converged: %s" % (
-            count,
-            _dev[0],
-            _dev[1],
-            converged
-        ))
-        # calculate score based on average and maximum of last two adjustments
+        _logger.info("Centering ... [%d] (V): %0.3f, Converged: %s" % (count, _dev, converged))
+
+    beamline.sample_stage.x.wait(start=False, stop=True)
+    beamline.sample_stage.x.move_by(x_offset*direction, wait=True)
+
+    # calculate score based on average and maximum of last two adjustments
     # an average of 20 pixels and a max of 20 pixels will give a score of 50%
     # while an average of 2 pixels and a max of 2 pixels will xcore 100%
+    cap_w = w * beamline.sample_video.resolution
     _dev = numpy.abs(avg_devs[-1:])
     scores = numpy.array([
         logistic_score(_dev.mean(), 0.05 * cap_w, 0.2 * cap_w),

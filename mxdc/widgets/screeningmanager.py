@@ -26,8 +26,8 @@ import time
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 TASKLET_NAME_MAP = {
-    Screener.TASK_MOUNT : 'Mount Crystal',
-    Screener.TASK_ALIGN : 'Center Crystal',
+    Screener.TASK_MOUNT : 'Mount Sample',
+    Screener.TASK_ALIGN : 'Auto Center',
     Screener.TASK_PAUSE : 'Pause',
     Screener.TASK_COLLECT : 'Collect Frames',
     Screener.TASK_ANALYSE : 'Request Analysis',
@@ -67,7 +67,7 @@ class Tasklet(object):
         elif self.task_type == Screener.TASK_DISMOUNT:
             _info = self.name
         else:
-            _info = '%s: %s' % (self.name, self.options['sample']['name'])
+            _info = '%s: %s' % (self.name, self.options.get('sample', {}).get('name', '...'))
         return _info
     
     def __getitem__(self, key):
@@ -189,7 +189,7 @@ class ScreenManager(gtk.Alignment):
         self.TaskList = []
         self.default_tasks = [ 
                   (Screener.TASK_MOUNT, {'default': True, 'locked': False}),
-                  (Screener.TASK_ALIGN, {'default': False, 'locked': False}),
+                  (Screener.TASK_ALIGN, {'default': False, 'locked': False, 'loop': True, 'crystal': False, 'capillary': False}),
                   (Screener.TASK_PAUSE, {'default': True, 'locked': False}), # use this line for collect labels
                   (Screener.TASK_COLLECT, {'angle': 0.0, 'default': True, 'locked': False}),
                   (Screener.TASK_COLLECT, {'angle': 45.0, 'default': True, 'locked': False}),
@@ -221,7 +221,11 @@ class ScreenManager(gtk.Alignment):
                 ctable = self._get_collect_setup(t)
                 ctable.attach(tbtn, 0, 3, 0, 1)
                 self.task_config_box.pack_start(ctable, expand=True, fill=True)
-                
+
+            elif key == Screener.TASK_ALIGN:
+                ctable = self._get_centering_setup(t)
+                ctable.attach(tbtn, 0, 3, 0, 1)
+                self.task_config_box.pack_start(ctable, expand=True, fill=True)
             elif pos == 2:
                 ctable = self._get_collect_labels()
                 ctable.attach(tbtn, 0, 3, 0, 1)
@@ -375,6 +379,21 @@ class ScreenManager(gtk.Alignment):
             en.connect('focus-out-event', self._on_settings_changed, task, key)
         return tbl
 
+    def _get_centering_setup(self, task):
+        _xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'),
+                            'centering_tools')
+        tbl = _xml2.get_widget('centering_tools')
+        for key in ['loop', 'crystal','capillary']:
+            btn = _xml2.get_widget('%s_btn' % key)
+            if task.options.get(key, None):
+                btn.set_active(True)
+                task.options[key] = True
+            else:
+                task.options[key] = False
+
+            btn.connect('toggled', self._on_radio_changed, None, task, key)
+        return tbl
+
     def _get_collect_labels(self):
         _xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                           'collect_labels')
@@ -391,6 +410,9 @@ class ScreenManager(gtk.Alignment):
                 obj.set_text( '%0.1f' % obj.default_value )
             val = obj.default_value
         task.options[key] = val
+
+    def _on_radio_changed(self, obj, event, task, key):
+        task.options[key] = obj.get_active()
     
     def _on_entry_changed(self, obj, event, data):
         min_val, max_val, default = data
