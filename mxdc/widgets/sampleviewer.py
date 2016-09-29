@@ -401,6 +401,7 @@ class SampleViewer(gtk.Alignment):
         # centering 
         self.click_btn.connect('clicked', self.toggle_click_centering)
         self.loop_btn.connect('clicked', self.on_center_loop)
+        self.capillary_btn.connect('clicked', self.on_center_capillary)
         self.crystal_btn.connect('clicked', self.on_center_crystal)
         self.beamline.goniometer.connect('mode', self.on_gonio_mode)
 
@@ -491,7 +492,12 @@ class SampleViewer(gtk.Alignment):
     
     def on_center_loop(self,widget):
         script = self._scripts['CenterSample']
-        script.start(crystal=False)
+        script.start(loop=True)
+        return True
+
+    def on_center_capillary(self, widget):
+        script = self._scripts['CenterSample']
+        script.start(capillary=True)
         return True
               
     def on_center_crystal(self, widget):
