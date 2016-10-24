@@ -632,7 +632,7 @@ class ScanManager(gtk.Alignment):
         self.scan_book.set_current_page(1)
         results = obj.results.get('energies')
         if results is None:
-            dialogs.warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed', parent=self.get_toplevel())
+            dialogs.warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed')
             return True
         
         self.xanes_box.show()

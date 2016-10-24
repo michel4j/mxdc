@@ -285,7 +285,7 @@ class ImageViewer(gtk.Alignment):
             self.info_dialog = self._xml3.get_widget('info_dialog')
             self.info_close_btn = self._xml3.get_widget('info_close_btn')
             self.info_close_btn.connect('clicked', self.on_info_destroy)
-            self.info_dialog.set_transient_for(self._get_parent_window())
+            #self.info_dialog.set_transient_for(self._get_parent_window())
         self._update_info()
         self.info_dialog.show()
 
@@ -333,7 +333,7 @@ class ImageViewer(gtk.Alignment):
             self.contrast_tbtn.set_active(False)
             self.colorize_tbtn.set_active(False)
             self._position_popups()
-            self.brightness_popup.set_transient_for(self._get_parent_window())
+            #self.brightness_popup.set_transient_for(self._get_parent_window())
             self.brightness_popup.show_all()
             self._br_hide_id = gobject.timeout_add(12000, self._timed_hide, self.brightness_tbtn)
         else:
@@ -347,7 +347,7 @@ class ImageViewer(gtk.Alignment):
             self.brightness_tbtn.set_active(False)
             self.colorize_tbtn.set_active(False)
             self._position_popups()
-            self.contrast_popup.set_transient_for(self._get_parent_window())
+            #self.contrast_popup.set_transient_for(self._get_parent_window())
             self.contrast_popup.show_all()
             self._co_hide_id = gobject.timeout_add(12000, self._timed_hide, self.contrast_tbtn)
             
@@ -362,7 +362,7 @@ class ImageViewer(gtk.Alignment):
             self.brightness_tbtn.set_active(False)
             self.contrast_tbtn.set_active(False)
             self._position_popups()
-            self.colorize_popup.set_transient_for(self._get_parent_window())
+            #self.colorize_popup.set_transient_for(self._get_parent_window())
             self.colorize_popup.show_all()
             self._cl_hide_id = gobject.timeout_add(12000, self._timed_hide, self.colorize_tbtn)
             
