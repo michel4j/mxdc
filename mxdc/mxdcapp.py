@@ -124,6 +124,7 @@ def main():
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')
         reactor.stop()
+        #gtk.main()
         
     app = MXDCApp()
     app.run_local()

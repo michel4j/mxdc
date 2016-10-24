@@ -16,7 +16,7 @@ XRF_BEAMSTOP        = 90.0
 CENTERING_BACKLIGHT = 50
 XRF_ENERGY_OFFSET   = +1.0              # KeV
 
-LIMS_API_KEY    = "762D8EDF-B154-41D8-9544-5DB4A70A3F4C"
+LIMS_API_KEY    = "AB272878-167F-468D-AFA5-FD2E2F8BD887"
 
 # pitch function for PitchOptimizer
 def _energy2pitch(x):
@@ -96,7 +96,7 @@ DEVICES = {
 # lims, dpm, imagesync and other services
 SERVICES = {
     'image_server': SimImageSyncClient(),
-    'lims': LIMSClient('https://cmcf.lightsource.ca/json/'),
+    'lims': LIMSClient('https://opi2051-002.clsi.ca:9393/json/'),
     'dpm': DPMClient(),
 }
 
