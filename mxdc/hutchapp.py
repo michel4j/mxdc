@@ -115,7 +115,7 @@ class HutchWindow(gtk.Window):
         
         about.connect('response', lambda x,y: about.destroy())
         about.connect('destroy', lambda x: about.destroy())
-        about.set_transient_for(self)
+        #about.set_transient_for(self)
         about.show()
 
 

@@ -42,7 +42,7 @@ class AppWindow(gtk.Window):
         self.splash = Splash(version)
         dialogs.MAIN_WINDOW = self
         self.splash.show_all()
-        self.splash.set_transient_for(self)
+        #self.splash.set_transient_for(self)
         self.splash.set_keep_above(True)
         self.splash.set_modal(True)
         
@@ -134,7 +134,7 @@ class AppWindow(gtk.Window):
         self.close_shutter_mnu.connect('activate', self.hutch_manager.on_close_shutter)
         
         self.show_all()
-        self.set_transient_for(self.splash)
+        #self.set_transient_for(self.splash)
         
     def _do_quit(self):
         self.hide()
@@ -163,7 +163,7 @@ class AppWindow(gtk.Window):
         
         about.connect('response', lambda x,y: x.destroy())
         about.connect('destroy', lambda x: x.destroy())
-        about.set_transient_for(self)
+        #about.set_transient_for(self)
         about.show()
 
     def on_create_run(self, obj=None, arg=None):
@@ -178,7 +178,7 @@ class AppWindow(gtk.Window):
                 self._show_run_dialog = (not obj.get_active())
             chkbtn.connect('toggled', _chk_cb)
             chkbtn.set_property('can-focus', False)
-            dialogs.info(header, subhead, extra_widgets=[chkbtn])
+            dialogs.info(header, subhead) #dialogs.info(header, subhead, extra_widgets=[chkbtn])
         
     def on_samples_changed(self, obj, ctx):
         samples = ctx.get_loaded_samples()

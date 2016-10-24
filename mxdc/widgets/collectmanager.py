@@ -6,6 +6,7 @@ from bcm.utils import runlists, lims_tools
 from bcm.utils.log import get_module_logger
 from mxdc.utils import config, gui
 from mxdc.widgets.dialogs import warning, error, MyDialog
+from mxdc.widgets import dialogs
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
 from mxdc.widgets.mountwidget import MountWidget

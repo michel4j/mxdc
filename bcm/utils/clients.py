@@ -16,6 +16,9 @@ import re
 from dpm.service import common
 import gobject
 import os
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
 _logger = get_module_logger(__name__)
 
 class DPMClient(BaseService):
@@ -108,15 +111,19 @@ class LIMSClient(BaseService):
         if address is not None:
             m = re.match('(\w+)://([\w.\-_]+)(:?(\d+))?(.+)?', address)
             if m:
+                protocol = m.group(1)
                 if m.group(4) is None:
-                    port = {'http':80, 'https':443}[m.group(1)]
+                    port = {'http':80, 'https':443}[protocol]
                 else:
                     port = int(m.group(4))
+
                 data = {'name': 'MxLIVE JSONRPC Service',
                         'host': m.group(2),
                         'port': port,
                         'data': {'path': m.group(5)},
+                        'protocol': protocol
                         }
+                print data
             self.on_lims_service_added(None, data)
         else:
             gobject.idle_add(self.setup)
@@ -126,11 +133,7 @@ class LIMSClient(BaseService):
             return
         self._service_found = True
         self._service_data = data
-        if self._service_data['port'] == 443:
-            protocol = 'https'
-        else:
-            protocol ='http'
-           
+        protocol = self._service_data.get('protocol','https')
         path = self._service_data['data']['path'].strip()
         if path[-1] == '/':
             self._service_data['data']['path'] = path[:-1]
