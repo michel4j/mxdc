@@ -193,17 +193,17 @@ def _simple(dialog_type, header, sub_header=None, details=None, parent=None, but
     return messagedialog()
 
 
-def error1(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
+def error(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
     return _simple(gtk.MESSAGE_ERROR, header, sub_header, details, parent=parent,
                    buttons=buttons, default=default, extra_widgets=extra_widgets)
 
 
-def info1(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
+def info(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
     return _simple(gtk.MESSAGE_INFO, header, sub_header, details, parent=parent,
                    buttons=buttons, default=default, extra_widgets=extra_widgets)
 
 
-def warning1(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
+def warning(header, sub_header=None, details=None, parent=None, buttons=gtk.BUTTONS_OK, default=-1, extra_widgets=None):
     return _simple(gtk.MESSAGE_WARNING, header, sub_header, details, parent=parent,
                    buttons=buttons, default=default, extra_widgets=extra_widgets)
 
@@ -214,7 +214,7 @@ def question(header, sub_header=None, details=None, parent=None, buttons=gtk.BUT
                    buttons=buttons, default=default, extra_widgets=extra_widgets)
 
 
-def yesno1(header, sub_header=None, details=None, parent=None, default=gtk.RESPONSE_YES,
+def yesno(header, sub_header=None, details=None, parent=None, default=gtk.RESPONSE_YES,
           buttons=gtk.BUTTONS_YES_NO):
     messagedialog = MyDialog(gtk.MESSAGE_WARNING, header, sub_header, details, parent,
                              buttons=buttons, default=default)
@@ -432,30 +432,6 @@ class FolderSelector(object):
         self.label.set_text(self.path)
         self.tooltips.set_tip(self.button, self.path)
         self.label.set_ellipsize(pango.ELLIPSIZE_START)
-
-
-def info(self, title, message, details=None):
-    md = gtk.MessageDialog(self, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO, gtk.BUTTONS_CLOSE, message)
-    md.run()
-    md.destroy()
-
-
-def error(self, title, message, details=None):
-    md = gtk.MessageDialog(self, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE, message)
-    md.run()
-    md.destroy()
-
-
-def yesno(self, title, message, details=None):
-    md = gtk.MessageDialog(self, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_QUESTION, gtk.BUTTONS_CLOSE, message)
-    md.run()
-    md.destroy()
-
-
-def warning(self, title, message, details=None):
-    md = gtk.MessageDialog(self, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE, message)
-    md.run()
-    md.destroy()
 
 
 class FolderSelectorButton(gtk.Button):
