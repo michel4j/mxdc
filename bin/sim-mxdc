@@ -1,3 +1,3 @@
-#!/bin/csh
-setenv BCM_BEAMLINE SIM
-/usr/bin/env python $BCM_PATH/mxdc/mxdcapp.py
+#!/bin/bash
+export BCM_BEAMLINE=SIM
+/usr/bin/env python ${BCM_PATH}/mxdc/mxdcapp.py

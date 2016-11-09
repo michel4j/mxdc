@@ -1,7 +1,6 @@
 
 from bcm.beamline.mx import IBeamline
 from bcm.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
-from bcm.utils import lims_tools
 from bcm.utils.log import get_module_logger
 from mxdc.utils import config, gui
 from mxdc.widgets import dialogs
@@ -659,13 +658,7 @@ class ScanManager(gtk.Alignment):
         info_log = '\n---------------------------------------\n\n'
         self.output_log.add_text(info_log)
         self.create_run_btn.set_sensitive(True) 
-        try:
-            result = list()
-            result.append(obj.results)
-            lims_tools.upload_scan(self.beamline, result)
-        except:
-            print sys.exc_info()
-            _logger.warn('Could not upload scan to MxLIVE.')
+        self.beamline.upload_scan(self.beamline, obj.results)
         return True
                 
     def on_create_run(self, obj):
@@ -787,7 +780,7 @@ class ScanManager(gtk.Alignment):
         self._set_scan_action(SCAN_STOP)
 
         # Upload scan to lims
-        lims_tools.upload_scan(self.beamline, [obj.results])
+        self.beamline.lims.upload_scan(self.beamline, obj.results)
 
         alims = ax.axis()
         _offset = 0.2 * alims[3]

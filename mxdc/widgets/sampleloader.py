@@ -345,7 +345,6 @@ class DewarLoader(gtk.HBox):
         else:
             self.samples_database = {}
 
-
     
     def get_loaded_samples(self):
         if self.samples_database is None or self.samples_database == {}:
@@ -369,14 +368,10 @@ class DewarLoader(gtk.HBox):
         self.selected_crystal = None
         self._notify_changes()
                               
-    def import_lims(self, lims_loader):
+    def import_lims(self, data):
         self.selected_crystal = None
-        self.samples_database = lims_loader.get('result',{})
-            
-        if lims_loader.get('error'):
-            _logger.error('Error Importing containers from MxLIVE')
-            _logger.error(lims_loader['error'])
-        elif len(self.samples_database.get('containers', {}).keys()) > 0:
+        if data and len(data.get('containers', {}).keys()) > 0:
+            self.samples_database = data
             self.load_database(self.samples_database)
             self.save_database()
             msg = 'Successfully imported %d containers, with a total of %d samples from MxLIVE.' % (
@@ -384,7 +379,8 @@ class DewarLoader(gtk.HBox):
                                 len(self.samples_database['crystals']))
             _logger.info(msg)
         else:
-            _logger.warning('Could not find any valid containers to import from MxLIVE.')
+            dialogs.warning("No Samples in MxLIVE", "Could not find any valid containers to import from MxLIVE.")
+            _logger.warning('No valid containers to import from MxLIVE.')
             
 
     def on_import_file(self, obj):
