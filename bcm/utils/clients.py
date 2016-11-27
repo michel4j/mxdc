@@ -261,14 +261,15 @@ class LIMSClient(BaseService):
             try:
                 reply = self.post(url, json=report)
             except (IOError, ValueError, requests.HTTPError), e:
-                _logger.error('Dataset could not be uploaded to MxLIVE, \n {}'.format(e))
+                _logger.error('Report could not be uploaded to MxLIVE, \n {}'.format(e))
             else:
                 if reply.get('id'):
                     report['id'] = reply['id']
-                    _logger.info('Dataset successfully uploaded to MxLIVE')
+                    _logger.info('Report successfully uploaded to MxLIVE')
                 else:
                     _logger.error('Invalid response from to MxLIVE: {}'.format(reply))
         else:
+            reply = {'error': 'Dataset required to upload report, none found.'}
             _logger.error('Dataset required to upload report, none found.')
         return reply
 
