@@ -37,7 +37,6 @@ class AlertDialog(Gtk.Dialog):
         self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
         self.set_border_width(5)
         self.set_resizable(False)
-        self.set_has_separator(False)
         self.set_title(" ")
         self.set_skip_taskbar_hint(True)
 
@@ -254,7 +253,7 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[], def
         elif action == Gtk.FileChooserAction.SAVE:
             format_info = dict(formats)
             hbox = Gtk.HBox(spacing=10)
-            hbox.pack_start(Gtk.Label ("Format:", True, True, 0), False, False, 0)
+            hbox.pack_start(Gtk.Label ("Format:"), False, False, 0)
             cbox = Gtk.ComboBoxText()
             hbox.pack_start(cbox, True, True, 0)
             for fmt in formats:
@@ -312,11 +311,9 @@ class FolderSelector(object):
         hbox = Gtk.HBox(False,3)
         hbox.pack_end(self.icon, False, False, 2)
         hbox.pack_start(self.label, True, True, 0)
-        hbox.pack_start(Gtk.VSeparator(True, True, 0), False, False, 0)
+        hbox.pack_start(Gtk.VSeparator(), False, False, 0)
         hbox.show_all()
         self.button.add(hbox)
-        self.tooltips = Gtk.Tooltips()
-        self.tooltips.enable()
         self.set_current_folder(self.path)
            
         self.button.connect('button-press-event', self._on_activate)
@@ -410,7 +407,6 @@ class FolderSelector(object):
         config.SESSION_INFO['current_path'] = self.path
         self._create_popup()
         self.label.set_text(self.path)
-        self.tooltips.set_tip(self.button, self.path)
         self.label.set_ellipsize(Pango.EllipsizeMode.START)
  
 

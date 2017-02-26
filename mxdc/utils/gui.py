@@ -22,9 +22,9 @@ def make_icon_label(txt, stock_id=None):
     box = Gtk.HBox(False,2)
     aln.label = Gtk.Label(label=txt)
     aln.label.set_use_markup(True)
-    box.pack_end(aln.label, expand=False, fill=False)
+    box.pack_end(aln.label, False, False, 0)
     aln.icon = Gtk.Image()
-    box.pack_start(aln.icon, expand=False, fill=False)
+    box.pack_start(aln.icon, False, False, 0)
     if stock_id is not None:
         aln.icon.set_from_stock(stock_id, Gtk.IconSize.MENU)
     aln.add(box)

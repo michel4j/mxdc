@@ -30,12 +30,7 @@ class ResultStore(Gtk.ListStore):
     ) = range(4)
     
     def __init__(self):
-        GObject.GObject.__init__(self,                
-            GObject.TYPE_STRING, 
-            GObject.TYPE_STRING,
-            GObject.TYPE_BOOLEAN,
-            GObject.TYPE_PYOBJECT
-            )
+        super(ResultStore, self).__init__(str, str, bool, object)
 
     def add_item(self, item):
         itr = self.get_iter_first()
@@ -59,13 +54,7 @@ class DetailStore(Gtk.ListStore):
     ) = range(5)
     
     def __init__(self):
-        GObject.GObject.__init__(self,
-            GObject.TYPE_STRING, 
-            GObject.TYPE_STRING, 
-            GObject.TYPE_STRING,
-            GObject.TYPE_FLOAT,
-            GObject.TYPE_PYOBJECT,
-            )
+        super(DetailStore, self).__init__(str, str, str, float, object)
         self.set_sort_column_id(self.SCORE, Gtk.SortType.DESCENDING)
 
       
@@ -101,11 +90,11 @@ class RasterWidget(Gtk.Frame):
         pass
     
     def __init__(self):
-        GObject.GObject.__init__(self, '')
+        super(RasterWidget, self).__init__()
         self.set_shadow_type(Gtk.ShadowType.NONE)
         self._xml = gui.GUIFile(
-                        os.path.join(os.path.dirname(__file__), 'data', 'raster_widget'),
-                        'raster_vbox')
+            os.path.join(os.path.dirname(__file__), 'data', 'raster_widget'),      'raster_vbox'
+        )
 
         self.add(self.raster_vbox)
 

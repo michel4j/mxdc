@@ -1,4 +1,4 @@
-import gtk, gobject
+from gi.repository import Gtk, GObject
 import sys, time
 from mxdc.widgets.runwidget import RunWidget
 

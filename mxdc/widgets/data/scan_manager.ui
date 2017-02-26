@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.20.0 -->
 <interface>
-  <requires lib="gtk+" version="2.18"/>
-  <!-- interface-naming-policy toplevel-contextual -->
+  <requires lib="gtk+" version="3.14"/>
   <object class="GtkAdjustment" id="kmax_adj">
     <property name="lower">10</property>
     <property name="upper">16</property>
@@ -21,15 +21,16 @@
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">window1</property>
     <child>
-      <object class="GtkHBox" id="scan_widget">
+      <object class="GtkBox" id="scan_widget">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="border_width">9</property>
         <property name="spacing">9</property>
         <child>
-          <object class="GtkVBox" id="vbox1">
+          <object class="GtkBox" id="vbox1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="orientation">vertical</property>
             <property name="spacing">6</property>
             <child>
               <object class="GtkFrame" id="frame1">
@@ -43,7 +44,7 @@
                     <property name="can_focus">False</property>
                     <property name="left_padding">12</property>
                     <child>
-                      <object class="GtkVBox" id="vbox2">
+                      <object class="GtkBox" id="vbox2">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <child>
@@ -129,11 +130,11 @@
                         <property name="width_request">250</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="xalign">0</property>
                         <property name="label" translatable="yes">Find peak, inflection and remote energies for MAD experiments</property>
                         <property name="use_markup">True</property>
                         <property name="wrap">True</property>
                         <property name="selectable">True</property>
+                        <property name="xalign">0</property>
                       </object>
                     </child>
                   </object>
@@ -182,8 +183,8 @@
                           <object class="GtkLabel" id="label5">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">1</property>
                             <property name="label" translatable="yes">Prefix:</property>
+                            <property name="xalign">1</property>
                           </object>
                           <packing>
                             <property name="top_attach">1</property>
@@ -195,8 +196,8 @@
                           <object class="GtkLabel" id="label6">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">1</property>
                             <property name="label" translatable="yes">Folder:</property>
+                            <property name="xalign">1</property>
                           </object>
                           <packing>
                             <property name="top_attach">2</property>
@@ -208,8 +209,8 @@
                           <object class="GtkLabel" id="label7">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">1</property>
                             <property name="label" translatable="yes">Edge:</property>
+                            <property name="xalign">1</property>
                           </object>
                           <packing>
                             <property name="top_attach">3</property>
@@ -220,8 +221,8 @@
                           <object class="GtkLabel" id="label9">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">1</property>
                             <property name="label" translatable="yes">Time:</property>
+                            <property name="xalign">1</property>
                           </object>
                           <packing>
                             <property name="top_attach">4</property>
@@ -232,8 +233,8 @@
                           <object class="GtkLabel" id="label10">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">1</property>
                             <property name="label" translatable="yes">Atten.:</property>
+                            <property name="xalign">1</property>
                           </object>
                           <packing>
                             <property name="top_attach">5</property>
@@ -244,9 +245,9 @@
                           <object class="GtkLabel" id="label11">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">0</property>
                             <property name="xpad">3</property>
                             <property name="label" translatable="yes">%</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
@@ -259,9 +260,9 @@
                           <object class="GtkLabel" id="label12">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">0</property>
                             <property name="xpad">3</property>
                             <property name="label" translatable="yes">sec</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
@@ -279,8 +280,6 @@
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -300,8 +299,6 @@
                             <property name="xalign">1</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -320,8 +317,6 @@
                             <property name="xalign">1</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -340,8 +335,6 @@
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -356,8 +349,8 @@
                           <object class="GtkLabel" id="label3">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">1</property>
                             <property name="label" translatable="yes">Crystal:</property>
+                            <property name="xalign">1</property>
                           </object>
                         </child>
                         <child>
@@ -375,8 +368,6 @@ with this crystal</property>
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -389,8 +380,8 @@ with this crystal</property>
                           <object class="GtkLabel" id="label20">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">0.99000000953674316</property>
                             <property name="label" translatable="yes">Scans:</property>
+                            <property name="xalign">0.99000000953674316</property>
                           </object>
                           <packing>
                             <property name="top_attach">6</property>
@@ -400,19 +391,8 @@ with this crystal</property>
                         <child>
                           <object class="GtkSpinButton" id="scans_entry">
                             <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can_focus">True</property>
-                            <property name="tooltip_text" translatable="yes">Number of EXAFS Scans to run.</property>
-                            <property name="invisible_char">●</property>
-                            <property name="width_chars">3</property>
-                            <property name="xalign">0.5</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
-                            <property name="adjustment">scans_adj</property>
-                            <property name="snap_to_ticks">True</property>
-                            <property name="numeric">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="invisible_char">*</property>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -434,8 +414,6 @@ with this crystal</property>
                             <property name="xalign">0.5</property>
                             <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
                           </object>
                           <packing>
                             <property name="left_attach">3</property>
@@ -450,9 +428,9 @@ with this crystal</property>
                           <object class="GtkLabel" id="label8">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">0.94999998807907104</property>
                             <property name="label" translatable="yes">k&lt;sub&gt;&lt;small&gt;max&lt;/small&gt;&lt;/sub&gt;:</property>
                             <property name="use_markup">True</property>
+                            <property name="xalign">0.94999998807907104</property>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
@@ -464,20 +442,8 @@ with this crystal</property>
                         <child>
                           <object class="GtkSpinButton" id="kmax_entry">
                             <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can_focus">True</property>
-                            <property name="tooltip_text" translatable="yes">Upper limit for the scan in K-space.</property>
-                            <property name="invisible_char">●</property>
-                            <property name="width_chars">3</property>
-                            <property name="xalign">0.5</property>
-                            <property name="invisible_char_set">True</property>
-                            <property name="primary_icon_activatable">False</property>
-                            <property name="secondary_icon_activatable">False</property>
-                            <property name="primary_icon_sensitive">True</property>
-                            <property name="secondary_icon_sensitive">True</property>
-                            <property name="adjustment">kmax_adj</property>
-                            <property name="snap_to_ticks">True</property>
-                            <property name="numeric">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="invisible_char">*</property>
                           </object>
                           <packing>
                             <property name="left_attach">3</property>
@@ -492,8 +458,8 @@ with this crystal</property>
                           <object class="GtkLabel" id="label">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">0.94999998807907104</property>
                             <property name="label" translatable="yes">Energy:</property>
+                            <property name="xalign">0.94999998807907104</property>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
@@ -539,7 +505,7 @@ with this crystal</property>
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="xanes_box">
+              <object class="GtkBox" id="xanes_box">
                 <property name="can_focus">False</property>
                 <property name="no_show_all">True</property>
                 <property name="spacing">3</property>
@@ -547,9 +513,9 @@ with this crystal</property>
                   <object class="GtkLabel" id="label17">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">0</property>
                     <property name="label" translatable="yes">&lt;b&gt;Results:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
+                    <property name="xalign">0</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -593,7 +559,7 @@ with this crystal</property>
                             <property name="xscale">0</property>
                             <property name="yscale">0</property>
                             <child>
-                              <object class="GtkHBox" id="hbox3">
+                              <object class="GtkBox" id="hbox3">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="spacing">2</property>
@@ -662,9 +628,10 @@ with this crystal</property>
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="vbox3">
+              <object class="GtkBox" id="vbox3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">3</property>
                 <child>
                   <object class="GtkHButtonBox" id="hbuttonbox2">
@@ -718,16 +685,16 @@ with this crystal</property>
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="xrf_box">
+              <object class="GtkBox" id="xrf_box">
                 <property name="can_focus">False</property>
                 <property name="no_show_all">True</property>
                 <child>
                   <object class="GtkLabel" id="label19">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">0</property>
                     <property name="label" translatable="yes">&lt;b&gt;Results:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
+                    <property name="xalign">0</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

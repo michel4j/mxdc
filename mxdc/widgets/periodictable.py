@@ -1,4 +1,4 @@
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 from gi.repository import GObject
 from mxdc.utils import science
 
@@ -10,8 +10,7 @@ class PeriodicTable(Gtk.Alignment):
     }
 
     def __init__(self, loE=4, hiE=18):
-        self.__gobject_init__() 
-        GObject.GObject.__init__(self,0.5,0.5,0,0)
+        super(PeriodicTable, self).__init__()
         
         # set parameters
         self.low_energy = loE
@@ -43,7 +42,6 @@ class PeriodicTable(Gtk.Alignment):
 
     def _populate_table(self):
         # parse data file and populate table
-        self.tooltips = Gtk.Tooltips()
         edge_names = ['K','L1','L2','L3']
         # Verify L1 emission lines
         emissions = science.get_energy_database()
@@ -78,11 +76,11 @@ class PeriodicTable(Gtk.Alignment):
                     edge_label.set_use_markup(True)
                     edge_bgbox = Gtk.EventBox()
                     edge_bgbox.add(edge_label)
-                    edge_bgbox.modify_bg(Gtk.StateType.NORMAL, edge_bgbox.get_colormap().alloc_color( self.edge_colors[el_type] ))
+                    #edge_bgbox.modify_bg(Gtk.StateType.NORMAL, edge_bgbox.get_colormap().alloc_color( self.edge_colors[el_type] ))
                     edge_bgbox.connect('button_press_event',self.select_edge,event_data)
                     edge_bgbox.connect('realize',self.set_area_cursor)
                     edge_container.pack_start(edge_bgbox, True, True, 0)
-                    self.tooltips.set_tip(edge_bgbox, "Edge: %s (%s)\nAbsorption: %g keV\nEmission: %g keV" % (el_name, edge_descr, val,e_val) )
+                    edge_bgbox.set_tooltip_markup("Edge: %s (%s)<br/>Absorption: %g keV<br/>Emission: %g keV" % (el_name, edge_descr, val,e_val) )
 
             
             element_container.pack_start(edge_container,True, True,0)
@@ -95,7 +93,7 @@ class PeriodicTable(Gtk.Alignment):
             element_bgbox = Gtk.EventBox() 
             element_bgbox.add(element_container)
             color = self.type_colors[ el_type ]
-            element_bgbox.modify_bg(Gtk.StateType.NORMAL, element_bgbox.get_colormap().alloc_color( color ))
+            #element_bgbox.modify_bg(Gtk.StateType.NORMAL, element_bgbox.get_colormap().alloc_color( color ))
             element_bgbox.show()          
             self.table.attach(element_bgbox,la,ra,ta,ba)
 

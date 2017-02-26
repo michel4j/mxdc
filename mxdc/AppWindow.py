@@ -14,7 +14,7 @@ from mxdc.widgets.screeningmanager import ScreenManager
 from mxdc.widgets.splash import Splash
 from mxdc.widgets.statuspanel import StatusPanel
 from gi.repository import GObject
-from gi.repository import Gtk
+from gi.repository import Gtk, GdkPixbuf
 import os
 
 _logger = get_module_logger('mxdc')
@@ -33,7 +33,7 @@ All rights reserved.
     
 class AppWindow(Gtk.Window):
     def __init__(self, version=VERSION):
-        GObject.GObject.__init__(self, Gtk.WindowType.TOPLEVEL)
+        super(AppWindow, self).__init__()
         self._xml = GUIFile(os.path.join(SHARE_DIR, 'mxdc_main'), 'mxdc_main')
         self.set_position(Gtk.WindowPosition.CENTER)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
@@ -104,9 +104,9 @@ class AppWindow(Gtk.Window):
             aln.raw_text = txt
             aln.label = Gtk.Label(label=txt)
             aln.label.set_use_markup(True)
-            box.pack_end(aln.label, expand=False, fill=False)
+            box.pack_end(aln.label, False, False,  0)
             aln.image = Gtk.Image()
-            box.pack_start(aln.image, expand=False, fill=False)
+            box.pack_start(aln.image, False, False, 0)
             aln.add(box)
             aln.show_all()
             return aln
@@ -122,7 +122,7 @@ class AppWindow(Gtk.Window):
         self.notebook.connect('switch-page', self.on_page_switch)
 
         self.main_frame.add(notebook)
-        self.mxdc_main.pack_end(self.status_panel, expand = False, fill = False)
+        self.mxdc_main.pack_end(self.status_panel, False, False, 0)
         self.add(self.mxdc_main)
         self.scripts = get_scripts()
         # register menu events

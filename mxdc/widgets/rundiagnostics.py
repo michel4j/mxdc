@@ -45,7 +45,7 @@ class DiagnosticsWidget(Gtk.Frame):
         self.add(self.run_diagnostics)
         self.plotter = Plotter()
         self.plotter.set_size_request(400,300)
-        self.run_diagnostics.pack_start(self.plotter, expand=True, fill=True)
+        self.run_diagnostics.pack_start(self.plotter, True, True, 0)
         
         #logging
         self.log_viewer = TextViewer(self.log_view, font='Sans 7')
