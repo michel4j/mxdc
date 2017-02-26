@@ -18,6 +18,7 @@ from twisted.python.components import globalRegistry
 
 from gi.repository import GObject
 from gi.repository import Gtk
+from gi.repository import GdkPixbuf
 import logging
 import os
 from gi.repository import Pango
@@ -79,7 +80,8 @@ class ScreenManager(Gtk.Alignment):
     }
 
     def __init__(self):
-        GObject.GObject.__init__(self, 0, 0.5, 1, 1)
+        super(ScreenManager, self).__init__()
+        self.set(0, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                                   'screening_widget')
         self.samples_data = []
@@ -108,7 +110,7 @@ class ScreenManager(Gtk.Alignment):
 
     def __getattr__(self, key):
         try:
-            return super(ScreenManager).__getattr__(self, key)
+            return super(ScreenManager, self).__getattr__(key)
         except AttributeError:
             return self._xml.get_widget(key)
 
@@ -123,8 +125,9 @@ class ScreenManager(Gtk.Alignment):
         self.screen_manager = self._xml.get_widget('screening_widget')
         self.message_log = TextViewer(self.msg_txt)
         self.message_log.set_prefix('- ')
-        self._animation = GdkPixbuf.PixbufAnimation(os.path.join(os.path.dirname(__file__),
-                                           'data/busy.gif'))
+        self._animation = GdkPixbuf.PixbufAnimation.new_from_file(
+            os.path.join(os.path.dirname(__file__), 'data/busy.gif')
+        )
         pango_font = Pango.FontDescription('sans 8')
         self.lbl_current.modify_font(pango_font)
         self.lbl_next.modify_font(pango_font)
@@ -156,7 +159,7 @@ class ScreenManager(Gtk.Alignment):
         self.automounter.connect('active', self._on_automounter_state)
         self.automounter.connect('enabled', self._on_automounter_state)
              
-        self.sample_box.pack_start(self.sample_list, expand=True, fill=True)
+        self.sample_box.pack_start(self.sample_list, True, True, 0)
 
         # video        
         self.sample_viewer = SampleViewer()
@@ -220,17 +223,17 @@ class ScreenManager(Gtk.Alignment):
             if key == Screener.TASK_COLLECT:
                 ctable = self._get_collect_setup(t)
                 ctable.attach(tbtn, 0, 3, 0, 1)
-                self.task_config_box.pack_start(ctable, expand=True, fill=True)
+                self.task_config_box.pack_start(ctable, True, True, 0)
                 
             elif pos == 2:
                 ctable = self._get_collect_labels()
                 ctable.attach(tbtn, 0, 3, 0, 1)
-                self.task_config_box.pack_start(ctable, expand=True, fill=True)
+                self.task_config_box.pack_start(ctable, True, True, 0)
             else:
                 ctable = Gtk.Table(1, 7, True)
                 ctable.attach(tbtn, 0, 3, 0, 1)
                 ctable.attach(Gtk.Label(label=''), 4, 6, 0, 1)
-                self.task_config_box.pack_start(ctable, expand=True, fill=True)
+                self.task_config_box.pack_start(ctable, True, True, 0)
                 
             self._settings_sg.add_widget(tbtn)
             self.TaskList.append((t, tbtn))

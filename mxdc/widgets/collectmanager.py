@@ -12,7 +12,7 @@ from mxdc.widgets.mountwidget import MountWidget
 from mxdc.widgets.runmanager import RunManager
 from twisted.python.components import globalRegistry
 from gi.repository import GObject
-from gi.repository import Gtk
+from gi.repository import Gtk, GdkPixbuf
 from gi.repository import Pango
 import sys
 import os
@@ -128,7 +128,7 @@ class CollectManager(Gtk.Alignment):
         self.progress_bar = ActiveProgressBar()
         self.progress_bar.set_fraction(0.0)
         self.progress_bar.idle_text('0%')
-        self.control_box.pack_start(self.progress_bar, expand=False, fill=True)
+        self.control_box.pack_start(self.progress_bar, False, True, 0)
                 
         # Current Position
         pos_table = self._xml.get_widget('position_table')
@@ -140,7 +140,7 @@ class CollectManager(Gtk.Alignment):
             pos_table.attach(ActiveLabel(self.beamline.attenuator, fmt='%7.2f'), 1,2,4,5)        
         # Image Viewer
         self.frame_book.add(self.image_viewer)
-        self.collect_widget.pack_end(self.run_manager, expand = True, fill = True)
+        self.collect_widget.pack_end(self.run_manager, True, True, 0)
         
         #automounter signals
         self.beamline.automounter.connect('busy', self.on_mount_busy)

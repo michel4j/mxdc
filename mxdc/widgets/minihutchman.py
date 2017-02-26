@@ -32,6 +32,7 @@ class MiniHutchManager(Gtk.Alignment):
         'beam-change': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_BOOLEAN,]),
     }
     def __init__(self):
+
         super(MiniHutchManager, self).__init__()
         self.set(0.5, 0.5, 1, 1)
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'mini_hutch_widget'), 'hutch_widget')

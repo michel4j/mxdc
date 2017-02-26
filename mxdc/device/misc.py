@@ -42,6 +42,9 @@ class PositionerBase(BaseDevice):
             - `value` : New value to set.
         """       
         raise NotImplementedError, 'Derived class must implement this method'
+
+    def set_position(self, value):
+        return self.set(value)
     
     def get(self):
         """
@@ -50,6 +53,8 @@ class PositionerBase(BaseDevice):
         """       
         raise NotImplementedError, 'Derived class must implement this method'
 
+    def get_position(self):
+        return self.get()
 
 class SimPositioner(PositionerBase):
     def __init__(self, name, pos=0, units="", active=True):
@@ -192,17 +197,11 @@ class PositionerMotor(MotorBase):
 
 registry.register([IPositioner], IMotor, '', PositionerMotor)
     
-class Attenuator(BaseDevice):
+class Attenuator(PositionerBase):
 
-    implements(IPositioner)
-    __gsignals__ =  { 
-        "changed": ( GObject.SignalFlags.RUN_FIRST, 
-                     None, 
-                     (GObject.TYPE_PYOBJECT,)),
-        }  
     
     def __init__(self, bitname, energy):
-        BaseDevice.__init__(self)
+        super(Attenuator, self).__init__()
         fname = bitname[:-1]
         self._filters = [
             PV('%s4:bit' % fname),
@@ -280,7 +279,7 @@ class Attenuator(BaseDevice):
 
 class Attenuator2(Attenuator):  
     def __init__(self, bitname, energy):
-        BaseDevice.__init__(self)
+        super(Attenuator2, self).__init__(bitname=bitname, energy=energy)
         fname = bitname[:-1]
         self._filters = [
             PV('%s4:ctl' % fname),

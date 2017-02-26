@@ -15,15 +15,15 @@ from gi.repository import GObject
 ) = range(9)
 
 DATA_TYPES = (
-    GObject.TYPE_BOOLEAN,
-    GObject.TYPE_STRING,
-    GObject.TYPE_PYOBJECT,
-    GObject.TYPE_STRING,
-    GObject.TYPE_FLOAT,
-    GObject.TYPE_FLOAT,
-    GObject.TYPE_STRING,
-    GObject.TYPE_PYOBJECT,
-    GObject.TYPE_UINT,
+    bool,
+    str,
+    object,
+    str,
+    float,
+    float,
+    str,
+    object,
+    int,
 )
 
 DATA_COLUMN_DICT = {
@@ -112,7 +112,7 @@ class DataList(Gtk.ScrolledWindow):
         
         for key in [DATA_COLUMN_NAME, DATA_COLUMN_GROUP, DATA_COLUMN_ANGLE, DATA_COLUMN_WAVELENGTH, DATA_COLUMN_FRAMES]:
             renderer = Gtk.CellRendererText()
-            renderer.set_data('column', key)
+            renderer.column = key
             column = Gtk.TreeViewColumn(DATA_COLUMN_DICT[key], renderer, text=key)
             column.set_sort_column_id(key)
             if key in [DATA_COLUMN_ANGLE, DATA_COLUMN_WAVELENGTH]:

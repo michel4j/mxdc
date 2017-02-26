@@ -1,5 +1,5 @@
-from twisted.internet import gtk2reactor
-gtk2reactor.install()
+from twisted.internet import gtk3reactor
+gtk3reactor.install()
 
 from mxdc.service import mxdctools
 from mxdc.beamline.mx import MXBeamline

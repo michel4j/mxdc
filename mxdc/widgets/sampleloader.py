@@ -34,14 +34,9 @@ class CrystalStore(Gtk.ListStore):
     ) = range(6)
     
     def __init__(self):
-        GObject.GObject.__init__(self,                
-            GObject.TYPE_STRING, 
-            GObject.TYPE_STRING, 
-            GObject.TYPE_STRING,
-            GObject.TYPE_STRING,
-            GObject.TYPE_INT,
-            GObject.TYPE_PYOBJECT,
-            )
+        super(CrystalStore, self).__init__(
+            str, str, str, int, object
+        )
             
     
     def add_crystal(self, item):
@@ -65,14 +60,7 @@ class ContainerStore(Gtk.ListStore):
     ) = range(6)
     
     def __init__(self):
-        GObject.GObject.__init__(self,
-            GObject.TYPE_STRING, 
-            GObject.TYPE_STRING, 
-            GObject.TYPE_STRING,
-            GObject.TYPE_BOOLEAN,
-            GObject.TYPE_PYOBJECT,
-            GObject.TYPE_BOOLEAN,
-            )
+        super(ContainerStore, self).__init__(str, str, str, bool, object, bool)
             
         
     def add_container(self, item):
@@ -86,21 +74,20 @@ class ContainerStore(Gtk.ListStore):
             self.EDITABLE, (item['type'] in ['Uni-Puck','Cassette']))
             
          
-class DewarLoader(Gtk.HBox):
+class DewarLoader(Gtk.Box):
     __gsignals__ = {
             'samples-changed': (GObject.SignalFlags.RUN_FIRST, None, []),
             'sample-selected': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
     }
     
     def __init__(self):
-        GObject.GObject.__init__(self)
+        super(DewarLoader, self).__init__()
         self._xml = gui.GUIFile(
             os.path.join(os.path.dirname(__file__), 'data', 'sample_loader'),
             'sample_loader')
 
         self.pack_start(self.sample_loader, True, True, 0)
         self.selected_crystal = None
-
 
         #containers pane
         self.containers_view = self.__create_containers_view()
@@ -124,7 +111,7 @@ class DewarLoader(Gtk.HBox):
         
     def __getattr__(self, key):
         try:
-            return super(DewarLoader).__getattr__(self, key)
+            return super(DewarLoader, self).__getattr__(key)
         except AttributeError:
             return self._xml.get_widget(key)
     
