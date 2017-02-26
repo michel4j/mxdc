@@ -1,28 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.20.0 -->
 <interface>
-  <!-- interface-requires gtk+ 3.0 -->
-  <!-- interface-naming-policy toplevel-contextual -->
-  <object class="GtkListStore" id="liststore1">
-    <columns>
-      <!-- column-name item -->
-      <column type="gchararray"/>
-    </columns>
-    <data>
-      <row>
-        <col id="0" translatable="yes">Diffraction</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Fluorescence</col>
-      </row>
-    </data>
-  </object>
+  <requires lib="gtk+" version="3.14"/>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <child>
-      <object class="GtkVBox" id="raster_vbox">
+      <object class="GtkBox" id="raster_vbox">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="border_width">6</property>
+        <property name="orientation">vertical</property>
         <child>
           <object class="GtkFrame" id="control_box">
             <property name="visible">True</property>
@@ -71,11 +58,8 @@
                     <property name="width_chars">3</property>
                     <property name="text" translatable="yes">200</property>
                     <property name="xalign">1</property>
-                    <property name="invisible_char_set">True</property>
                     <property name="primary_icon_activatable">False</property>
                     <property name="secondary_icon_activatable">False</property>
-                    <property name="primary_icon_sensitive">True</property>
-                    <property name="secondary_icon_sensitive">True</property>
                   </object>
                   <packing>
                     <property name="left_attach">3</property>
@@ -92,11 +76,8 @@
                     <property name="width_chars">3</property>
                     <property name="text" translatable="yes">250</property>
                     <property name="xalign">1</property>
-                    <property name="invisible_char_set">True</property>
                     <property name="primary_icon_activatable">False</property>
                     <property name="secondary_icon_activatable">False</property>
-                    <property name="primary_icon_sensitive">True</property>
-                    <property name="secondary_icon_sensitive">True</property>
                   </object>
                   <packing>
                     <property name="left_attach">3</property>
@@ -115,11 +96,8 @@
                     <property name="width_chars">3</property>
                     <property name="text" translatable="yes">1.0</property>
                     <property name="xalign">1</property>
-                    <property name="invisible_char_set">True</property>
                     <property name="primary_icon_activatable">False</property>
                     <property name="secondary_icon_activatable">False</property>
-                    <property name="primary_icon_sensitive">True</property>
-                    <property name="secondary_icon_sensitive">True</property>
                   </object>
                   <packing>
                     <property name="left_attach">3</property>
@@ -135,11 +113,8 @@
                     <property name="invisible_char">●</property>
                     <property name="width_chars">3</property>
                     <property name="xalign">0.5</property>
-                    <property name="invisible_char_set">True</property>
                     <property name="primary_icon_activatable">False</property>
                     <property name="secondary_icon_activatable">False</property>
-                    <property name="primary_icon_sensitive">True</property>
-                    <property name="secondary_icon_sensitive">True</property>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -151,7 +126,6 @@
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can_focus">False</property>
-                    <property name="model">liststore1</property>
                     <property name="active">1</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext1"/>
@@ -171,8 +145,8 @@
                   <object class="GtkLabel" id="label2">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">1</property>
                     <property name="label" translatable="yes">Loop size:</property>
+                    <property name="xalign">1</property>
                   </object>
                   <packing>
                     <property name="left_attach">2</property>
@@ -183,8 +157,8 @@
                   <object class="GtkLabel" id="label3">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">1</property>
                     <property name="label" translatable="yes">Distance:</property>
+                    <property name="xalign">1</property>
                   </object>
                   <packing>
                     <property name="left_attach">2</property>
@@ -197,8 +171,8 @@
                   <object class="GtkLabel" id="label5">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">1</property>
                     <property name="label" translatable="yes">Exp. Time:</property>
+                    <property name="xalign">1</property>
                   </object>
                   <packing>
                     <property name="left_attach">2</property>
@@ -211,16 +185,16 @@
                   <object class="GtkLabel" id="label6">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">1</property>
                     <property name="label" translatable="yes">Prefix:</property>
+                    <property name="xalign">1</property>
                   </object>
                 </child>
                 <child>
                   <object class="GtkLabel" id="label7">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">1</property>
                     <property name="label" translatable="yes">Folder:</property>
+                    <property name="xalign">1</property>
                   </object>
                   <packing>
                     <property name="top_attach">1</property>
@@ -231,8 +205,8 @@
                   <object class="GtkLabel" id="label8">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">1</property>
                     <property name="label" translatable="yes">Scoring:</property>
+                    <property name="xalign">1</property>
                   </object>
                   <packing>
                     <property name="top_attach">2</property>
@@ -285,6 +259,7 @@
                           </object>
                           <packing>
                             <property name="expand">True</property>
+                            <property name="homogeneous">False</property>
                           </packing>
                         </child>
                         <child>
@@ -309,6 +284,7 @@
                           </object>
                           <packing>
                             <property name="expand">False</property>
+                            <property name="homogeneous">False</property>
                           </packing>
                         </child>
                       </object>
@@ -367,7 +343,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkHBox" id="hbox5">
+          <object class="GtkBox" id="hbox5">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="spacing">24</property>
@@ -417,8 +393,8 @@
               <object class="GtkProgressBar" id="pbar">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="show_text">True</property>
                 <property name="text" translatable="yes">0.0%</property>
+                <property name="show_text">True</property>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -446,22 +422,23 @@
           </packing>
         </child>
         <child>
-          <object class="GtkHBox" id="result_box">
+          <object class="GtkBox" id="result_box">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="spacing">6</property>
             <child>
-              <object class="GtkVBox" id="vbox7">
+              <object class="GtkBox" id="vbox7">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">3</property>
                 <child>
                   <object class="GtkLabel" id="label20">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">0</property>
                     <property name="label" translatable="yes">&lt;b&gt;Results&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
+                    <property name="xalign">0</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -496,8 +473,8 @@
                       <object class="GtkLabel" id="label1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
                         <property name="label" translatable="yes">Total Spots:</property>
+                        <property name="xalign">0</property>
                       </object>
                       <packing>
                         <property name="top_attach">1</property>
@@ -509,8 +486,8 @@
                       <object class="GtkLabel" id="label9">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
                         <property name="label" translatable="yes">Bragg Spots:</property>
+                        <property name="xalign">0</property>
                       </object>
                       <packing>
                         <property name="top_attach">2</property>
@@ -522,8 +499,8 @@
                       <object class="GtkLabel" id="label10">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
                         <property name="label" translatable="yes">Resolution:</property>
+                        <property name="xalign">0</property>
                       </object>
                       <packing>
                         <property name="top_attach">3</property>
@@ -535,8 +512,8 @@
                       <object class="GtkLabel" id="label11">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
                         <property name="label" translatable="yes">Ice Rings:</property>
+                        <property name="xalign">0</property>
                       </object>
                       <packing>
                         <property name="top_attach">4</property>
@@ -548,8 +525,8 @@
                       <object class="GtkLabel" id="label12">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
                         <property name="label" translatable="yes">Max Cell:</property>
+                        <property name="xalign">0</property>
                       </object>
                       <packing>
                         <property name="top_attach">5</property>
@@ -626,8 +603,8 @@
                       <object class="GtkLabel" id="label13">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
                         <property name="label" translatable="yes">Saturation:</property>
+                        <property name="xalign">0</property>
                       </object>
                     </child>
                     <child>
@@ -657,17 +634,18 @@
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="vbox8">
+              <object class="GtkBox" id="vbox8">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">3</property>
                 <child>
                   <object class="GtkLabel" id="label26">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">0</property>
                     <property name="label" translatable="yes">&lt;b&gt;Details&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
+                    <property name="xalign">0</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

@@ -32,7 +32,7 @@ class HutchManager(Gtk.Alignment):
         'beam-change': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_BOOLEAN,]),
     }
     def __init__(self):
-        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
+        super(HutchManager, self).__init__()
         self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'hutch_widget'), 'hutch_widget')
         
         self.scripts = get_scripts()
@@ -111,7 +111,7 @@ class HutchManager(Gtk.Alignment):
         # Predictor
         self.predictor = Predictor(self.beamline.detector.resolution, 
                                    self.beamline.detector.size)
-        self.predictor.set(xalign=1.0, yalign=0.5)
+        self.predictor.set(1.0, 0.5, 1, True)
         self.predictor_frame.add(self.predictor)
         self.beamline.diffractometer.distance.connect('changed', self.update_predictor)
         self.beamline.diffractometer.two_theta.connect('changed', self.update_predictor)
@@ -145,7 +145,7 @@ class HutchManager(Gtk.Alignment):
         # Monitor beam changes
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
         
-        self.commands_box.pack_start(Gtk.Label('', True, True, 0))
+        self.commands_box.pack_start(Gtk.Label(''), True, True, 0)
         _map = {'MOUNTING':'blue',
                 'CENTERING':'orange',
                 'SCANNING':'green',
@@ -157,7 +157,7 @@ class HutchManager(Gtk.Alignment):
                 }
         gonio_mode = misc.StatusBox(self.beamline.goniometer, signal='mode', color_map=_map, background=True)
         gonio_mode.set_border_width(3)
-        self.commands_box.pack_start(gonio_mode, expand=True, fill=True)
+        self.commands_box.pack_start(gonio_mode, True, True,  0)
         #self.commands_box.pack_start(Gtk.Label('', True, True, 0))
         
         for btn in [self.mount_btn, self.cent_btn]:

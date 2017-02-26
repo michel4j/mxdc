@@ -26,7 +26,7 @@ class MountWidget(Gtk.Alignment):
         'mount-action-progress': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, GObject.TYPE_BOOLEAN]),
     }
     def __init__(self):
-        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
+        super(MountWidget,self).__init__()
         self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/mount_widget'), 
                                   'mount_widget')
         self.add(self.mount_widget)

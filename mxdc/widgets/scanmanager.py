@@ -83,10 +83,10 @@ class ScanManager(Gtk.Alignment):
         'create-run': (GObject.SignalFlags.RUN_LAST, None, []),
         'update-strategy': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
     }
+
     def __init__(self):
-        GObject.GObject.__init__(self, 0, 0, 1, 1)
-        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'scan_manager'), 
-                                  'scan_widget')            
+        super(ScanManager, self).__init__()
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'scan_manager'), 'scan_widget')
 
         self._create_widgets()
 
@@ -167,7 +167,7 @@ class ScanManager(Gtk.Alignment):
         
         # pbar
         self.scan_pbar = ActiveProgressBar()
-        self.vbox3.pack_start(self.scan_pbar, expand=False, fill=False)
+        self.vbox3.pack_start(self.scan_pbar, False, False, 0)
         self.xanes_btn.set_active(True)
         
         # Scan options

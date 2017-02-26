@@ -27,9 +27,9 @@ class ResultManager(Gtk.Alignment):
     }
     
     def __init__(self):
-        GObject.GObject.__init__(self, 0, 0, 1, 1)
-        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'result_manager'), 
-                                  'result_manager')
+        super(ResultManager, self).__init__()
+        self.set(0, 0, 1, 1)
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'result_manager'),                                   'result_manager')
 
         self._create_widgets()
         self.active_sample = None
@@ -38,7 +38,7 @@ class ResultManager(Gtk.Alignment):
 
     def __getattr__(self, key):
         try:
-            return super(ResultManager).__getattr__(self, key)
+            return super(ResultManager, self).__getattr__(key)
         except AttributeError:
             return self._xml.get_widget(key)
 
@@ -65,8 +65,8 @@ class ResultManager(Gtk.Alignment):
         self.results_frame.add(self.result_list)
         self.datasets_frame.add(self.dataset_list)
 
-        self.browser = webkit.WebView()
-        self.browser_settings = webkit.WebSettings()
+        self.browser = WebKit.WebView()
+        self.browser_settings = WebKit.WebSettings()
         self.browser_settings.set_property("enable-file-access-from-file-uris", True)
         self.browser_settings.set_property("enable-plugins", False)
         self.browser_settings.set_property("default-font-size", 11)

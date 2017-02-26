@@ -44,9 +44,8 @@ _ENERGY_DB = science.get_energy_database()
 
 class RunWidget(Gtk.Alignment):
     def __init__(self, num=0):
-        GObject.GObject.__init__(self, 0.5, 0.5, 1, 1)
-        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/run_widget'), 
-                                  'run_widget')
+        super(RunWidget, self).__init__()
+        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/run_widget'), 'run_widget')
         
         self.add(self.run_widget)
         self.update_btn.connect('clicked', self.on_update_parameters)
@@ -109,7 +108,7 @@ class RunWidget(Gtk.Alignment):
 
         #Energy column
         renderer = Gtk.CellRendererText()
-        renderer.set_data('column',COLUMN_ENERGY)
+        renderer.column = COLUMN_ENERGY
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
         renderer.connect("editing-started", self.on_editing_started)
         renderer.set_property('xalign', 0.5)
@@ -121,7 +120,7 @@ class RunWidget(Gtk.Alignment):
 
         #Label column
         renderer = Gtk.CellRendererText()
-        renderer.set_data('column',COLUMN_LABEL)
+        renderer.column = COLUMN_LABEL
         renderer.connect("edited", self.on_energy_edited, self.energy_store)
         renderer.set_property('xalign', 0.5)
         column1 = Gtk.TreeViewColumn('Label', renderer, text=COLUMN_LABEL, editable=COLUMN_EDITABLE)
@@ -401,7 +400,7 @@ class RunWidget(Gtk.Alignment):
         for key in ['skip']:
             run_data[key] = self.entry[key].get_text()
         _cmt_buf =  self.comments_entry.get_buffer()           
-        run_data['comments'] = _cmt_buf.get_text(_cmt_buf.get_start_iter(), _cmt_buf.get_end_iter())
+        #FIXME: run_data['comments'] = _cmt_buf.get_text(_cmt_buf.get_start_iter(), _cmt_buf.get_end_iter())
         return run_data
                 
     def is_enabled(self):
@@ -432,7 +431,7 @@ class RunWidget(Gtk.Alignment):
                                    self.beamline.detector.size)
                 self.predictor.set_size_request(180,180)
                 self.predictor.set_border_width(12)
-                self.run_widget.pack_end( self.predictor, expand=True, fill=True)
+                self.run_widget.pack_end( self.predictor, True, True, 0)
     
     def update_active_data(self, sample=None, strategy=None):
         if sample is not None:

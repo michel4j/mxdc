@@ -48,7 +48,7 @@ _GAMMA_SHIFT = 3.5
 
 
 def image2pixbuf(im):
-    arr = array.array('B', im.tostring())
+    arr = array.array('B', im.tobytes())
     width, height = im.size
     return GdkPixbuf.Pixbuf.new_from_data(arr, GdkPixbuf.Colorspace.RGB,
                                           True, 8, width, height, width * 4)

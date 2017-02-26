@@ -16,10 +16,8 @@ import os
 
 _logger = get_module_logger('hutchviewer')
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
-COPYRIGHT = """
-Copyright (c) 2006-2010, Canadian Light Source, Inc
-All rights reserved.
-"""
+COPYRIGHT = "Copyright (c) 2006-2010, Canadian Light Source, Inc. All rights reserved."
+
 
 class HutchWindow(Gtk.ApplicationWindow):
     def __init__(self):
@@ -31,7 +29,7 @@ class HutchWindow(Gtk.ApplicationWindow):
 
     def __getattr__(self, key):
         try:
-            return super(HutchWindow).__getattr__(self, key)
+            return super(HutchWindow, self).__getattr__(key)
         except AttributeError:
             return self._xml.get_widget(key)
         
@@ -90,7 +88,6 @@ class HutchWindow(Gtk.ApplicationWindow):
         authors = [
             "Michel Fodje (maintainer)",
             "Kathryn Janzen",
-            "Kevin Anderson",
             ]
         about = Gtk.AboutDialog()
         name = 'Hutch Viewer'
@@ -114,7 +111,7 @@ class HutchWindow(Gtk.ApplicationWindow):
 
 class HutchApp(object):
     def run_local(self):
-        _ = MXBeamline()
+        MXBeamline()
         self.main_window = HutchWindow()
         self.main_window.connect('destroy', self._do_quit)
         self.main_window.run()        

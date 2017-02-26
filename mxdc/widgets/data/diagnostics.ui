@@ -5,7 +5,7 @@
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <child>
-      <object class="GtkHBox" id="status_widget">
+      <object class="GtkBox" id="status_widget">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="spacing">12</property>

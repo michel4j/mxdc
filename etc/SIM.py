@@ -90,7 +90,7 @@ DEVICES = {
     'multi_mca' : SimMultiChannelAnalyzer('Simulated MCA'),
 
     #disk space monitor
-    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.8, critical=0.5, freq=0.5), 
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/home', warn=0.4, critical=0.1, freq=2),
 }
 
 # lims, dpm, imagesync and other services
