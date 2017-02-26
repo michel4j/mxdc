@@ -1,5 +1,5 @@
 from gi.repository import GObject
-from gi.repository import Gtk
+from gi.repository import Gtk, GdkPixbuf
 import os
 
 
@@ -17,16 +17,16 @@ import os
 ) = range(10)
 
 RESULT_TYPES = (
-    GObject.TYPE_UINT,
-    GObject.TYPE_STRING,
-    GObject.TYPE_STRING,
-    GObject.TYPE_STRING,
-    GObject.TYPE_FLOAT,
-    GObject.TYPE_STRING,
-    GObject.TYPE_STRING,
-    GObject.TYPE_PYOBJECT,
-    GObject.TYPE_PYOBJECT,
-    GObject.TYPE_UINT,
+    int,
+    str,
+    str,
+    str,
+    float,
+    str,
+    str,
+    object,
+    object,
+    int,
 )
 
 (   RESULT_STATE_WAITING,
@@ -40,7 +40,7 @@ STATE_DICT = {
 }
 
 COLUMN_DICT = {
-    RESULT_COLUMN_NAME: 'State',               
+    RESULT_COLUMN_STATE: 'State',
     RESULT_COLUMN_NAME: 'Dataset',
     RESULT_COLUMN_TYPE: 'Type',
     RESULT_COLUMN_GROUP: 'Group',
@@ -51,7 +51,7 @@ COLUMN_DICT = {
 
 class ResultList(Gtk.ScrolledWindow):
     def __init__(self):
-        GObject.GObject.__init__(self)
+        super(ResultList, self).__init__()
         self.listmodel = Gtk.ListStore(*RESULT_TYPES) 
                                 
         self.listview = Gtk.TreeView(self.listmodel)

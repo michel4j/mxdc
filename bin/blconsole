@@ -1,2 +1,2 @@
-#!/bin/csh
+#!/bin/bash
 /usr/bin/env python $MXDC_PATH/mxdc/utils/console.py

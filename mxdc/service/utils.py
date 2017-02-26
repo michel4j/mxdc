@@ -31,7 +31,7 @@ def defer_to_thread(func):
 def send_array(arr):
     if arr is None:
         return None
-    return [arr.tostring(), arr.dtype.char, arr.shape]
+    return [arr.bytes(), arr.dtype.char, arr.shape]
 
 def recv_array(arr_list):
     if arr_list is None:

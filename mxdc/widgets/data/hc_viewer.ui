@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.20.0 -->
 <interface>
-  <requires lib="gtk+" version="2.18"/>
-  <!-- interface-naming-policy toplevel-contextual -->
+  <requires lib="gtk+" version="3.14"/>
   <object class="GtkMenu" id="colormap_popup">
     <property name="can_focus">False</property>
     <child>
@@ -57,22 +57,23 @@
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">window1</property>
     <child>
-      <object class="GtkHBox" id="hc_viewer">
+      <object class="GtkBox" id="hc_viewer">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="border_width">6</property>
         <property name="spacing">6</property>
         <child>
-          <object class="GtkVBox" id="vbox1">
+          <object class="GtkBox" id="vbox1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="orientation">vertical</property>
             <child>
               <object class="GtkLabel" id="label7">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="xalign">0.029999999329447746</property>
                 <property name="label" translatable="yes">&lt;b&gt;Beamline Mode:&lt;/b&gt;</property>
                 <property name="use_markup">True</property>
+                <property name="xalign">0.029999999329447746</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -81,7 +82,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkHBox" id="hbox9">
+              <object class="GtkBox" id="hbox9">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
@@ -103,6 +104,12 @@
                     <property name="can_focus">False</property>
                     <property name="n_columns">2</property>
                     <property name="homogeneous">True</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
                     <child>
                       <placeholder/>
                     </child>
@@ -159,11 +166,11 @@
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="stat_box">
+              <object class="GtkBox" id="stat_box">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
-                  <object class="GtkHBox" id="hbox4">
+                  <object class="GtkBox" id="hbox4">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
@@ -180,7 +187,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkVBox" id="stat_panel">
+                      <object class="GtkBox" id="stat_panel">
                         <property name="height_request">25</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -226,18 +233,19 @@
               <placeholder/>
             </child>
             <child>
-              <object class="GtkVBox" id="side_panel">
+              <object class="GtkBox" id="side_panel">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">3</property>
                 <child>
                   <object class="GtkLabel" id="label3">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">0.029999999329447746</property>
                     <property name="label" translatable="yes">&lt;b&gt;Settings:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
+                    <property name="xalign">0.029999999329447746</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -246,7 +254,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkHBox" id="hbox3">
+                  <object class="GtkBox" id="hbox3">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
@@ -263,7 +271,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkVBox" id="hc_panel">
+                      <object class="GtkBox" id="hc_panel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <child>
@@ -284,9 +292,10 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkHBox" id="roi_panel">
+                  <object class="GtkBox" id="roi_panel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel" id="label8">
                         <property name="width_request">10</property>
@@ -301,7 +310,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkHBox" id="hbox2">
+                      <object class="GtkBox" id="hbox2">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="homogeneous">True</property>
@@ -351,9 +360,9 @@
                   <object class="GtkLabel" id="label1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="xalign">0.029999999329447746</property>
                     <property name="label" translatable="yes">&lt;b&gt;Plot Controls:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
+                    <property name="xalign">0.029999999329447746</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -362,7 +371,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkHBox" id="plot_panel">
+                  <object class="GtkBox" id="plot_panel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
@@ -379,11 +388,11 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkHBox" id="hbox1">
+                      <object class="GtkBox" id="hbox1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <child>
-                          <object class="GtkHBox" id="hbox5">
+                          <object class="GtkBox" id="hbox5">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="homogeneous">True</property>
@@ -435,7 +444,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkHBox" id="plot_panel1">
+                  <object class="GtkBox" id="plot_panel1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
@@ -452,7 +461,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkHBox" id="hbox6">
+                      <object class="GtkBox" id="hbox6">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="homogeneous">True</property>
@@ -462,7 +471,7 @@
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <child>
-                              <object class="GtkHBox" id="hbox7">
+                              <object class="GtkBox" id="hbox7">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <child>
@@ -505,7 +514,7 @@
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <child>
-                              <object class="GtkHBox" id="hbox8">
+                              <object class="GtkBox" id="hbox8">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <child>
@@ -589,9 +598,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkVBox" id="video_frame">
+          <object class="GtkBox" id="video_frame">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="orientation">vertical</property>
             <child>
               <object class="GtkAspectFrame" id="video_adjuster">
                 <property name="visible">True</property>
@@ -620,12 +630,12 @@
                   <object class="GtkLabel" id="pos_label">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="xalign">0.25</property>
                     <property name="xpad">3</property>
                     <property name="ypad">3</property>
                     <property name="use_markup">True</property>
                     <property name="selectable">True</property>
                     <property name="single_line_mode">True</property>
+                    <property name="xalign">0.25</property>
                   </object>
                   <packing>
                     <property name="right_attach">3</property>
@@ -636,12 +646,12 @@
                   <object class="GtkLabel" id="meas_label">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="xalign">1</property>
                     <property name="xpad">3</property>
                     <property name="label" translatable="yes">FPS:</property>
                     <property name="use_markup">True</property>
                     <property name="selectable">True</property>
                     <property name="single_line_mode">True</property>
+                    <property name="xalign">1</property>
                   </object>
                   <packing>
                     <property name="left_attach">3</property>

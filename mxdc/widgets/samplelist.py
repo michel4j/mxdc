@@ -1,5 +1,4 @@
-import gtk, gobject
-from gi.repository import Pango
+from gi.repository import Pango, Gtk, GObject
 import sys, os, time
 
 from mxdc.widgets.dialogs import *
