@@ -102,8 +102,7 @@ class DiagnosticsViewer(Gtk.Alignment):
 
     def add_diagnostic(self, diag):
         if self._num > 0:
-            hs = Gtk.HSeparator()
-            hs.set_size_request(-1,3)
+            hs = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
             self.box.pack_start(hs, False, False, 0)
         self.box.pack_start(DiagnosticDisplay(diag), True, True, 0)
         self._num += 1
