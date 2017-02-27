@@ -221,7 +221,7 @@ class ContainerWidget(Gtk.DrawingArea):
             if not inside:
                 event.window.set_cursor(None)
             else:
-                event.window.set_cursor(Gdk.Cursor.new(Gdk.HAND2))
+                event.window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.HAND2))
             self.emit('pin-hover', _cur_port)
             self._last_hover_port = _cur_port
 

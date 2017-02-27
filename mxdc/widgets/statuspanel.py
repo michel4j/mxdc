@@ -53,8 +53,7 @@ class StatusPanel(Gtk.VBox):
         self.gonio_mode = StatusBox(beamline.goniometer, signal='mode', color_map=_cmap)
         self.layout_table.attach(self._frame_control('Mode', self.gonio_mode, Gtk.ShadowType.IN), 2, 3 , 0, 1, **options)
         
-        vseparator = Gtk.HSeparator()
-        vseparator.set_size_request(-1,3)
+        vseparator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         self.pack_start(vseparator, False, True, 2)        
         self.pack_end(self.layout_table, True, True, 0)
         self.show_all()    
@@ -68,7 +67,7 @@ class StatusPanel(Gtk.VBox):
         if label is not None:
             descr = Gtk.Label(label='<span color="#666666"><b>%s:</b></span>' % label)
             descr.set_use_markup(True)
-            hbox.pack_start(Gtk.VSeparator(), False, True, 0)
+            hbox.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, True, 0)
             hbox.pack_start(descr, False, True, 0)
 
         return hbox
