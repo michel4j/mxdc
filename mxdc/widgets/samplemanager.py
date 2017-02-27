@@ -1,5 +1,4 @@
 from mxdc.beamline.mx import IBeamline
-from mxdc.utils import lims_tools
 from mxdc.utils.log import get_module_logger
 from datetime import datetime
 from matplotlib.dates import date2num
@@ -201,11 +200,11 @@ class SampleManager(Gtk.Alignment):
         return self.dewar_loader.samples_database
 
     def on_import_lims(self, obj):
-        reply = lims_tools.get_onsite_samples(self.beamline)
-        if reply.get('error') is not None:
-            header = 'Error Connecting to the MxLIVE'
-            subhead = 'Containers and Samples could not be imported.'
-            details = reply['error'].get('message')
+        reply = self.beamline.lims.get_project_samples(self.beamline)
+        if 'error' in reply:
+            header = 'MxLIVE Error'
+            subhead = reply['error']
+            details = reply.get('details', '')
             dialogs.error(header, subhead, details=details)
         else:
             self.dewar_loader.import_lims(reply)

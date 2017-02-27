@@ -45,7 +45,6 @@ class AppWindow(Gtk.Window):
         self.splash = Splash(version)
         dialogs.MAIN_WINDOW = self
         self.splash.show_all()
-        self.splash.set_transient_for(self)
         self.splash.set_keep_above(True)
         self.splash.set_modal(True)
         
@@ -73,7 +72,9 @@ class AppWindow(Gtk.Window):
         self.set_icon(icon)
         self.set_resizable(False)
 
-        GObject.timeout_add(3000, lambda: self.splash.hide())         
+        GObject.timeout_add(3000, lambda: self.splash.hide())
+        GObject.timeout_add(3010, lambda: self.present())
+
         self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)       
@@ -137,7 +138,6 @@ class AppWindow(Gtk.Window):
         self.close_shutter_mnu.connect('activate', self.hutch_manager.on_close_shutter)
         
         self.show_all()
-        self.set_transient_for(self.splash)
         
     def _do_quit(self):
         self.hide()
@@ -163,9 +163,8 @@ class AppWindow(Gtk.Window):
         logo = GdkPixbuf.Pixbuf.new_from_file(self.icon_file)
         about.set_logo(logo)
         
-        about.connect('response', lambda x,y: about.destroy())
-        about.connect('destroy', lambda x: about.destroy())
-        about.set_transient_for(self)
+        about.connect('response', lambda x,y: x.destroy())
+        about.connect('destroy', lambda x: x.destroy())
         about.show()
 
     def on_create_run(self, obj=None, arg=None):

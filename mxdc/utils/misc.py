@@ -46,8 +46,8 @@ def every(iterable):
     return True
 
 def get_project_name():
-    if os.environ.get('MXDC_DEBUG') is not None:
-        return os.environ.get('MXDC_DEBUG_USER', 'testuser')
+    if os.environ.get('MXDC_DEBUG'):
+        return os.environ.get('MXDC_DEBUG_USER')
     else:
         return pwd.getpwuid(os.geteuid())[0]
 

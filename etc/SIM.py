@@ -16,7 +16,7 @@ XRF_BEAMSTOP        = 90.0
 CENTERING_BACKLIGHT = 50
 XRF_ENERGY_OFFSET   = +1.0              # KeV
 
-LIMS_API_KEY    = "762D8EDF-B154-41D8-9544-5DB4A70A3F4C"
+LIMS_API_KEY    = "4A8285AB-9E5F-476E-B17B-92BEB299A985"
 
 # pitch function for PitchOptimizer
 def _energy2pitch(x):
