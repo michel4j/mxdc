@@ -13,9 +13,9 @@ import time
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 
-class ActiveHScale(Gtk.HScale):
+class ActiveHScale(Gtk.Scale):
     def __init__(self, context, min_val=0.0, max_val=100.0):
-        super(ActiveHScale, self).__init__()
+        super(ActiveHScale, self).__init__(orientation=Gtk.Orientation.HORIZONTAL)
         self.context = context
         self.set_value_pos(Gtk.PositionType.RIGHT)
         self.set_digits(1)
@@ -77,38 +77,17 @@ class ActiveLabel(Gtk.Label):
         # print alarm, severity
 
 
-class ActiveEntry(Gtk.VBox):
-    # _border = Gtk.Border(3,3,4,4)
+class ActiveEntry(Gtk.Box, gui.BuilderMixin):
+    gui_roots = {
+        'data/active_entry': ['active_entry']
+    }
     def __init__(self, device, label=None, fmt="%g", width=10):
-        super(ActiveEntry, self).__init__(label)
-        self._sizegroup_h = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
-        self._sizegroup_v = Gtk.SizeGroup(Gtk.SizeGroupMode.VERTICAL)
+        super(ActiveEntry, self).__init__(orientation=Gtk.Orientation.HORIZONTAL)
 
-        # create gui layout
-        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/active_entry'), 'active_entry')
-
-        self._active_entry = self._xml.get_widget('active_entry')
-        self._fbk_label = self._xml.get_widget('fbk_label')
-
-        self._entry = self._xml.get_widget('entry')
-        self._action_btn = self._xml.get_widget('action_btn')
-        self._action_icon = self._xml.get_widget('action_icon')
-        self._label = self._xml.get_widget('label')
-        self._sizegroup_h.add_widget(self._entry)
-        self._sizegroup_h.add_widget(self._fbk_label)
-        self._sizegroup_v.add_widget(self._entry)
-        self._sizegroup_v.add_widget(self._fbk_label)
-
-        self.pack_start(self._active_entry, True, True, 0)
-
-        # signals and parameters
+        # initialize housekeeping
         self.device = device
-        self.device.connect('changed', self._on_value_changed)
-        self.device.connect('active', self._on_active_changed)
-        self.device.connect('health', self._on_health_changed)
-        self._action_btn.connect('clicked', self._on_activate)
-        self._entry.connect('activate', self._on_activate)
-
+        self.name = label or self.device.name
+        self.name = self.name if not self.device.units else '%s (%s)' % (self.name, self.device.units)
         self.target = 0.0
         self.current = 0.0
         self._first_change = True
@@ -119,23 +98,40 @@ class ActiveEntry(Gtk.VBox):
         self.number_format = fmt
         self.format = self.number_format
 
-        if label is None:
-            label = self.device.name
+        self.setup_gui()
+        self.build_gui()
 
-        if self.device.units != "":
-            label = '%s (%s)' % (label, self.device.units)
-        self._label.set_markup("<span size='small'><b>%s</b></span>" % (label,))
-        self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000088"))
+    def build_gui(self):
+        self.sizegroup_h = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
+        self.sizegroup_v = Gtk.SizeGroup(Gtk.SizeGroupMode.VERTICAL)
+
+        self.sizegroup_h.add_widget(self.entry)
+        self.sizegroup_h.add_widget(self.fbk_label)
+        self.sizegroup_v.add_widget(self.entry)
+        self.sizegroup_v.add_widget(self.fbk_label)
+        self.pack_start(self.active_entry, True, True, 0)
+
+        # signals and parameters
+        self.device.connect('changed', self._on_value_changed)
+        self.device.connect('active', self._on_active_changed)
+        self.device.connect('health', self._on_health_changed)
+        self.action_btn.connect('clicked', self._on_activate)
+        self.entry.connect('activate', self._on_activate)
+
+        self.label.set_markup("<span size='small'><b>%s</b></span>" % (self.name,))
+        self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000088"))
+        self.entry.set_progress_fraction(0.0)
+        self.entry.set_progress_pulse_step(0.0)
 
     def set_feedback(self, val):
         text = self.number_format % val
         if len(text) > self.width:
             text = "##.##"
-        self._fbk_label.set_markup('%7s ' % (text,))
+        self.fbk_label.set_markup('%7s ' % (text,))
 
     def set_target(self, val):
         text = self.number_format % val
-        self._entry.set_text(text)
+        self.entry.set_text(text)
         self.target = val
         self.current = self.device.get_position()
 
@@ -150,9 +146,9 @@ class ActiveEntry(Gtk.VBox):
             self.device.set(target)
 
     def _get_target(self):
-        feedback = self._fbk_label.get_text()
+        feedback = self.fbk_label.get_text()
         try:
-            target = float(self._entry.get_text())
+            target = float(self.entry.get_text())
         except ValueError:
             target = feedback
         self.set_target(target)
@@ -162,15 +158,15 @@ class ActiveEntry(Gtk.VBox):
         state, _ = health
 
         if state == 0:
-            self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
-            self._action_icon.set_from_stock('gtk-apply', Gtk.IconSize.MENU)
+            self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
+            self.action_icon.set_from_stock('gtk-go-forward', Gtk.IconSize.MENU)
             self._set_active(True)
         else:
             if (state | 16) == state:
-                self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#333366"))
+                self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#333366"))
             else:
-                self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#660000"))
-                self._action_icon.set_from_stock('gtk-dialog-warning', Gtk.IconSize.MENU)
+                self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#660000"))
+                self.action_icon.set_from_stock('gtk-dialog-warning', Gtk.IconSize.MENU)
             self._set_active(False)
 
     def get_fraction(self, val):
@@ -182,7 +178,7 @@ class ActiveEntry(Gtk.VBox):
             self._last_signal = time.time()
         if self._first_change:
             self._first_change = False
-        self._entry.set_progress_fraction(self.get_fraction(val))
+        self.entry.set_progress_fraction(self.get_fraction(val))
         return True
 
     def _on_activate(self, obj):
@@ -196,10 +192,10 @@ class ActiveEntry(Gtk.VBox):
     def _set_active(self, state):
         self.action_active = state
         if state:
-            self._entry.set_sensitive(True)
+            self.entry.set_sensitive(True)
             # self._action_btn.set_sensitive(True)
         else:
-            self._entry.set_sensitive(False)
+            self.entry.set_sensitive(False)
             # self._action_btn.set_sensitive(False)
 
     def _on_active_changed(self, obj, state):
@@ -227,18 +223,18 @@ class MotorEntry(ActiveEntry):
     def stop(self):
         self.device.stop()
         self._entry.set_progress_fraction(0.0)
-        self._action_icon.set_from_stock('gtk-apply', Gtk.IconSize.MENU)
+        self._action_icon.set_from_stock('gtk-go-forward', Gtk.IconSize.MENU)
 
     def _on_motion_changed(self, obj, motion):
         if motion:
             self.running = True
-            self._action_icon.set_from_animation(self._animation)
-            self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#0000ff"))
+            self.action_icon.set_from_animation(self._animation)
+            self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#0000ff"))
         else:
             self.running = False
-            self._entry.set_progress_fraction(0.0)
-            self._action_icon.set_from_stock('gtk-apply', Gtk.IconSize.MENU)
-            self._fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
+            self.entry.set_progress_fraction(0.0)
+            self.action_icon.set_from_stock('gtk-go-forward', Gtk.IconSize.MENU)
+            self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
         self.set_feedback(self.device.get_position())
         return True
 

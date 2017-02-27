@@ -2,6 +2,10 @@ from gi.repository import Gtk, Gdk
 from gi.repository import GObject
 from mxdc.utils import science
 
+def _create_color(spec):
+    col = Gdk.RGBA(alpha=0.15)
+    created = col.parse(spec)
+    return col
 
 class PeriodicTable(Gtk.Alignment):
     __gsignals__ = {
@@ -10,19 +14,27 @@ class PeriodicTable(Gtk.Alignment):
     }
 
     def __init__(self, loE=4, hiE=18):
-        super(PeriodicTable, self).__init__()
+        super(PeriodicTable, self).__init__(xalign=0.5, yalign=0.5, xscale=0.75, yscale=0.75)
         
         # set parameters
         self.low_energy = loE
         self.high_energy = hiE
         self.edge = 'Se-K'
         self.energy = 12.658
-        self.type_colors = ["#ff9999","#ff99ff","#9999ff","#cc99ff",
-                            "#99ccff","#99ffff","#99ff99","#ccff99",
-                            "#ffcc99","#ff6666", "#cccccc", "#ffff99"]
-        self.edge_colors = ["#de7878","#de78de","#7878de","#ab78de",
-                            "#7899de","#78dede","#78de78","#abde78",
-                            "#deab78","#de4545", "#ababab", "#dede78"]
+        self.type_colors = map(
+            _create_color,
+            ["#ff9999","#ff99ff","#9999ff","#cc99ff",
+            "#99ccff","#99ffff","#99ff99","#ccff99",
+            "#ffcc99","#ff6666", "#cccccc", "#ffff99"]
+        )
+        self.edge_colors = map(
+            _create_color,
+            ["#de7878","#de78de","#7878de","#ab78de",
+            "#7899de","#78dede","#78de78","#abde78",
+            "#deab78","#de4545", "#ababab", "#dede78"]
+        )
+
+
 
         self.table = Gtk.Table(4,18,True)
         science.PERIODIC_TABLE = science.PERIODIC_TABLE
@@ -76,13 +88,12 @@ class PeriodicTable(Gtk.Alignment):
                     edge_label.set_use_markup(True)
                     edge_bgbox = Gtk.EventBox()
                     edge_bgbox.add(edge_label)
-                    #edge_bgbox.modify_bg(Gtk.StateType.NORMAL, edge_bgbox.get_colormap().alloc_color( self.edge_colors[el_type] ))
+                    edge_bgbox.override_background_color(Gtk.StateType.NORMAL, self.edge_colors[el_type])
                     edge_bgbox.connect('button_press_event',self.select_edge,event_data)
                     edge_bgbox.connect('realize',self.set_area_cursor)
                     edge_container.pack_start(edge_bgbox, True, True, 0)
-                    edge_bgbox.set_tooltip_markup("Edge: %s (%s)<br/>Absorption: %g keV<br/>Emission: %g keV" % (el_name, edge_descr, val,e_val) )
+                    edge_bgbox.set_tooltip_markup("Edge: %s (%s)\nAbsorption: %g keV\nEmission: %g keV" % (el_name, edge_descr, val,e_val) )
 
-            
             element_container.pack_start(edge_container,True, True,0)
 
             # determine where to place in table from Group and Period fields
@@ -92,8 +103,7 @@ class PeriodicTable(Gtk.Alignment):
             ta = ba -1
             element_bgbox = Gtk.EventBox() 
             element_bgbox.add(element_container)
-            color = self.type_colors[ el_type ]
-            #element_bgbox.modify_bg(Gtk.StateType.NORMAL, element_bgbox.get_colormap().alloc_color( color ))
+            element_bgbox.override_background_color(Gtk.StateType.NORMAL, self.type_colors[ el_type ])
             element_bgbox.show()          
             self.table.attach(element_bgbox,la,ra,ta,ba)
 
@@ -108,6 +118,6 @@ class PeriodicTable(Gtk.Alignment):
         return True
 
     def set_area_cursor(self,widget):
-        widget.get_window().set_cursor(Gdk.Cursor.new(Gdk.HAND2))
+        widget.get_window().set_cursor(Gdk.Cursor.new(Gdk.CursorType.HAND2))
         return True
 
