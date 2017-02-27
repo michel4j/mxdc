@@ -4,7 +4,6 @@ from mxdc.engine.diffraction import Screener, DataCollector
 from mxdc.interface.engines import IDataCollector
 from mxdc.engine.rastering import RasterCollector
 from mxdc.engine.scripting import get_scripts
-from mxdc.utils import lims_tools
 from mxdc.utils.runlists import determine_skip, summarize_frame_set
 from mxdc.utils import config, gui
 from mxdc.widgets import dialogs
@@ -27,8 +26,8 @@ import time
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 TASKLET_NAME_MAP = {
-    Screener.TASK_MOUNT : 'Mount Crystal',
-    Screener.TASK_ALIGN : 'Center Crystal',
+    Screener.TASK_MOUNT : 'Mount Sample',
+    Screener.TASK_ALIGN : 'Center Sample',
     Screener.TASK_PAUSE : 'Pause',
     Screener.TASK_COLLECT : 'Collect Frames',
     Screener.TASK_ANALYSE : 'Request Analysis',
@@ -68,7 +67,7 @@ class Tasklet(object):
         elif self.task_type == Screener.TASK_DISMOUNT:
             _info = self.name
         else:
-            _info = '%s: %s' % (self.name, self.options['sample']['name'])
+            _info = '%s: %s' % (self.name, self.options.get('sample', {}).get('name', '...'))
         return _info
     
     def __getitem__(self, key):
@@ -192,7 +191,7 @@ class ScreenManager(Gtk.Alignment):
         self.TaskList = []
         self.default_tasks = [ 
                   (Screener.TASK_MOUNT, {'default': True, 'locked': False}),
-                  (Screener.TASK_ALIGN, {'default': False, 'locked': False}),
+                  (Screener.TASK_ALIGN, {'default': False, 'locked': False, 'loop': True, 'crystal': False, 'capillary': False}),
                   (Screener.TASK_PAUSE, {'default': True, 'locked': False}), # use this line for collect labels
                   (Screener.TASK_COLLECT, {'angle': 0.0, 'default': True, 'locked': False}),
                   (Screener.TASK_COLLECT, {'angle': 45.0, 'default': True, 'locked': False}),
@@ -224,7 +223,10 @@ class ScreenManager(Gtk.Alignment):
                 ctable = self._get_collect_setup(t)
                 ctable.attach(tbtn, 0, 3, 0, 1)
                 self.task_config_box.pack_start(ctable, True, True, 0)
-                
+            elif key == Screener.TASK_ALIGN:
+                ctable = self._get_centering_setup(t)
+                ctable.attach(tbtn, 0, 3, 0, 1)
+                self.task_config_box.pack_start(ctable, True, True, 0)
             elif pos == 2:
                 ctable = self._get_collect_labels()
                 ctable.attach(tbtn, 0, 3, 0, 1)
@@ -335,8 +337,8 @@ class ScreenManager(Gtk.Alignment):
 
 
     def _on_new_datasets(self, obj, datasets):
-        datasets = lims_tools.upload_data(self.beamline, datasets)
         self.emit('new-datasets', datasets)
+        datasets = self.beamline.lims.upload_datasets(self.beamline, datasets)
 
                
         
@@ -378,12 +380,30 @@ class ScreenManager(Gtk.Alignment):
             en.connect('focus-out-event', self._on_settings_changed, task, key)
         return tbl
 
+    def _get_centering_setup(self, task):
+        _xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'),
+                            'centering_tools')
+        tbl = _xml2.get_widget('centering_tools')
+        for key in ['loop', 'crystal', 'capillary']:
+            btn = _xml2.get_widget('%s_btn' % key)
+            if task.options.get(key, None):
+                btn.set_active(True)
+                task.options[key] = True
+            else:
+                task.options[key] = False
+
+            btn.connect('toggled', self._on_radio_changed, None, task, key)
+        return tbl
+
     def _get_collect_labels(self):
         _xml2 = gui.GUIFile(os.path.join(DATA_DIR, 'screening_widget'), 
                           'collect_labels')
         tbl = _xml2.get_widget('collect_labels')
         return tbl
-    
+
+    def _on_radio_changed(self, obj, event, task, key):
+        task.options[key] = obj.get_active()
+
     def _on_settings_changed(self, obj, event, task, key):
         try:
             val = float( obj.get_text() )

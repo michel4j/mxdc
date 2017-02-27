@@ -1,6 +1,6 @@
 
 from mxdc.beamline.mx import IBeamline
-from mxdc.utils import lims_tools, runlists, json
+from mxdc.utils import runlists, json
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_project_name
 from mxdc.utils.science import SPACE_GROUP_NAMES
@@ -88,7 +88,7 @@ class ResultManager(Gtk.Alignment):
         self.result_list.update_item(itr, data)
 
     def upload_results(self, results):
-        lims_tools.upload_report(self.beamline, results)
+        self.beamline.lims.upload_reports(self.beamline, results)
 
     def add_results(self, item_list):
         for item in item_list:

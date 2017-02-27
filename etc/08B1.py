@@ -14,7 +14,7 @@ DEFAULT_ATTENUATION = 90.0               # attenuation in %
 DEFAULT_BEAMSTOP    = 60.0
 SAFE_DISTANCE       = 400.0
 SAFE_BEAMSTOP       = 80.0
-XRF_BEAMSTOP        = 120.0
+XRF_BEAMSTOP        = 100.0
 XRF_ENERGY_OFFSET   = +1.0              # KeV
 
 CENTERING_BACKLIGHT = 65.0
@@ -124,7 +124,7 @@ DEVICES = {
 # lims, dpm, imagesync and other services
 SERVICES = {
     'image_server': ImageSyncClient(),
-    'lims': LIMSClient(),
+    'lims': LIMSClient('https://cmcf.lightsource.ca'),
     'dpm': DPMClient(),
 }
 

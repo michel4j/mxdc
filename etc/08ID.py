@@ -10,10 +10,10 @@ ADMIN_GROUP = 2000
 DEFAULT_EXPOSURE    = 1.0
 DEFAULT_ATTENUATION = 90.0              # attenuation in %
 DEFAULT_BEAMSTOP    = 30.0
-SAFE_BEAMSTOP       = 50.0
+SAFE_BEAMSTOP       = 47.0
 SAFE_DISTANCE       = 400.0
 XRF_BEAMSTOP        = 30.0
-XRF_ENERGY_OFFSET   = +0.5              # KeV
+XRF_ENERGY_OFFSET   = 0.5              # KeV
 XRF_FWHM            = 0.15
 
 CENTERING_BACKLIGHT = 37.0
@@ -99,7 +99,7 @@ DEVICES = {
 # lims, dpm, imagesync and other services
 SERVICES = {
     'image_server': ImageSyncClient(),
-    'lims': LIMSClient('https://cmcf.lightsource.ca/json/'),
+    'lims': LIMSClient('https://cmcf.lightsource.ca'),
     'dpm': DPMClient('srv-cmcf-dp2:8881'),
 }
 

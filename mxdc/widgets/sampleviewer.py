@@ -60,12 +60,13 @@ POPUP_UI = """
 
 
 class SampleViewer(Gtk.Alignment):
-    gui_file  = 'sample_viewer'
-    gui_root  = 'sample_viewer'
+    gui_file = 'sample_viewer'
+    gui_root = 'sample_viewer'
+
     def __init__(self):
         super(SampleViewer, self).__init__()
         self.set(0.5, 0.5, 1, 1)
-        self._xml = gui.GUIFile(os.path.join(_DATA_DIR, self.gui_file),  self.gui_root)
+        self._xml = gui.GUIFile(os.path.join(_DATA_DIR, self.gui_file), self.gui_root)
         self._xml_popup = gui.GUIFile(os.path.join(_DATA_DIR, self.gui_file), 'colormap_popup')
 
         self._timeout_id = None
@@ -82,8 +83,6 @@ class SampleViewer(Gtk.Alignment):
 
         self.scripts = get_scripts()
         self._create_widgets()
-
-
 
     def __getattr__(self, key):
         try:
@@ -375,6 +374,7 @@ class SampleViewer(Gtk.Alignment):
         self.click_btn.connect('clicked', self.toggle_click_centering)
         self.loop_btn.connect('clicked', self.on_center_loop)
         self.crystal_btn.connect('clicked', self.on_center_crystal)
+        self.capillary_btn.connect('clicked', self.on_center_capillary)
         self.beamline.goniometer.connect('mode', self.on_gonio_mode)
 
         # status, save, etc
@@ -489,6 +489,11 @@ class SampleViewer(Gtk.Alignment):
     def on_center_crystal(self, widget):
         script = self._scripts['CenterSample']
         script.start(crystal=True)
+        return True
+
+    def on_center_capillary(self, widget):
+        script = self._scripts['CenterSample']
+        script.start(capillary=True)
         return True
 
     def done_centering(self, obj, result):
