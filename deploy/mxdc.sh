@@ -5,14 +5,25 @@ export MXDC_PATH=/home/michel/Code/Projects/mxdc
 
 
 ## ---- Setup Beamline Configuration by network ----
-export MXDC_BEAMLINE=08B1  # default beamline
-domain=`netstat -rn | grep '255.255.252.0' | awk '{print $1}'`
-if [ "$domain" = '10.52.28.0' ] ; then
-	export MXDC_BEAMLINE=08ID
-fi
+if [ ! -z "$MXDC_FORCE" ]; then
+    export MXDC_BEAMLINE=$BCM_FORCE
+else
 
-if [ "$domain" = '10.52.4.0' ] ; then
-	export MXDC_BEAMLINE=08B1
+    export MXDC_BEAMLINE=08B1  # default beamline
+    osver=`cat /etc/redhat-release|awk '{print $4}' | cut -c1 `
+    if [ "$osver" = "6" ] ; then
+       domain=`netstat -rn | grep 'UG' | awk '{print $2}'`
+    else
+       domain=`netstat -rn | grep 'UGH' | awk '{print $2}'`
+    fi
+
+    if [ "$domain" = '10.52.31.254' ] ; then
+        export MXDC_BEAMLINE=08ID
+    fi
+
+    if [ "$domain" = '10.52.7.254' ] ; then
+        export MXDC_BEAMLINE=08B1
+    fi
 fi
 
 ## ---- Do not change below this line ----

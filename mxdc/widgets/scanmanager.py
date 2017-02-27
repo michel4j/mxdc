@@ -1,7 +1,6 @@
 
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
-from mxdc.utils import lims_tools
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import config, gui
 from mxdc.widgets import dialogs
@@ -662,7 +661,7 @@ class ScanManager(Gtk.Alignment):
         try:
             result = list()
             result.append(obj.results)
-            lims_tools.upload_scan(self.beamline, result)
+            self.beamline.lims.upload_scan(self.beamline, obj.results)
         except:
             print sys.exc_info()
             _logger.warn('Could not upload scan to MxLIVE.')
