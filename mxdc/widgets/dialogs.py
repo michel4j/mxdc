@@ -160,7 +160,6 @@ class MyDialog(object):
                 self.dialog.set_details(details)
     
         if parent:
-            self.dialog.set_transient_for(parent)
             self.dialog.set_modal(True)
     
         if extra_widgets:
