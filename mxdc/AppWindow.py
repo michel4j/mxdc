@@ -1,6 +1,9 @@
+import gi
+gi.require_version('Gtk', '3.0')
+
+
 from mxdc.utils import config
 config.get_session() # update the session configuration
-
 from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.gui import GUIFile

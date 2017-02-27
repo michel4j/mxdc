@@ -311,7 +311,7 @@ class FolderSelector(object):
         hbox = Gtk.HBox(False,3)
         hbox.pack_end(self.icon, False, False, 2)
         hbox.pack_start(self.label, True, True, 0)
-        hbox.pack_start(Gtk.VSeparator(), False, False, 0)
+        hbox.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 0)
         hbox.show_all()
         self.button.add(hbox)
         self.set_current_folder(self.path)
