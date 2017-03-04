@@ -150,6 +150,12 @@
           <placeholder/>
         </child>
         <child>
+          <placeholder/>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
           <object class="GtkHBox" id="hbox4">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -1364,6 +1370,12 @@
           <placeholder/>
         </child>
         <child>
+          <placeholder/>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
           <object class="GtkEntry" id="frames_entry">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -1437,6 +1449,12 @@ to collect</property>
         <property name="n_columns">6</property>
         <property name="column_spacing">2</property>
         <property name="homogeneous">True</property>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
         <child>
           <placeholder/>
         </child>

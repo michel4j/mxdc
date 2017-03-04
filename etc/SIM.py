@@ -63,7 +63,8 @@ DEVICES = {
     'sample_camera': SimCamera(),
     'sample_backlight': SimLight('Back light', 45.0, '%'),
     'sample_frontlight': SimLight('Front light', 55.0, '%'),    
-    'hutch_video':  SimPTZCamera(),
+    #'hutch_video':  SimPTZCamera(),
+    'hutch_video':  AxisPTZCamera('ccd1608-500'),
     
     # Facility, storage-ring, shutters, etc
     'ring_current':  PV('PCT1402-01:mA:fbk'),
@@ -96,11 +97,11 @@ DEVICES = {
 # lims, dpm, imagesync and other services
 SERVICES = {
     'image_server': SimImageSyncClient(),
-    'lims': LIMSClient('https://cmcf.lightsource.ca/json/'),
+    'lims': LIMSClient('https://cmcf.lightsource.ca'),
     'dpm': DPMClient(),
 }
 
 # Beamline shutters in the order in which they should be opened
-BEAMLINE_SHUTTERS = ('ssh1', 'ssh1', 'psh1', 'psh2')  
+BEAMLINE_SHUTTERS = ('ssh1', 'psh1', 'psh2')
 
 

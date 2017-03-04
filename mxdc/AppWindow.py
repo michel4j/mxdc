@@ -1,26 +1,29 @@
 import gi
+
 gi.require_version('Gtk', '3.0')
-
-
+from mxdc.beamline.mx import IBeamline
 from mxdc.utils import config
-config.get_session() # update the session configuration
+
+config.get_session()  # update the session configuration
 from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
-from mxdc.utils.gui import GUIFile
+from mxdc.utils import gui
+from mxdc.widgets.controllers import status, setup, microscope
 from mxdc.widgets import dialogs
 from mxdc.widgets.collectmanager import CollectManager
-from mxdc.widgets.hutchmanager import HutchManager
 from mxdc.widgets.resultmanager import ResultManager
 from mxdc.widgets.samplemanager import SampleManager
 from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.screeningmanager import ScreenManager
 from mxdc.widgets.splash import Splash
-from mxdc.widgets.statuspanel import StatusPanel
+from twisted.python.components import globalRegistry
 from gi.repository import GObject
 from gi.repository import Gtk, GdkPixbuf
 import os
+from datetime import datetime
 
 _logger = get_module_logger('mxdc')
+
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
 
 _version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
@@ -29,127 +32,130 @@ if os.path.exists(_version_file):
 else:
     VERSION = '- Development -'
 
-COPYRIGHT = """
-Copyright (c) 2006-2010, Canadian Light Source, Inc
-All rights reserved.
-"""
-    
-class AppWindow(Gtk.Window):
+COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
+
+MODE_MAP = {
+    'MOUNTING': 'blue',
+    'CENTERING': 'orange',
+    'SCANNING': 'green',
+    'COLLECT': 'green',
+    'BEAM': 'red',
+    'MOVING': 'gray',
+    'INIT': 'gray',
+    'ALIGN': 'gray',
+}
+
+COLOR_MAP = {
+    'blue': '#6495ED',
+    'orange': '#DAA520',
+    'red': '#CD5C5C',
+    'green': '#8cd278',
+    'gray': '#708090',
+    'violet': '#9400D3',
+}
+
+
+class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
+    gui_roots = {
+        'data/mxdc_main': ['app_menu', 'header_bar', 'mxdc_main', 'sample_store']
+    }
+
     def __init__(self, version=VERSION):
-        super(AppWindow, self).__init__()
-        self._xml = GUIFile(os.path.join(SHARE_DIR, 'mxdc_main'), 'mxdc_main')
+        super(AppWindow, self).__init__(name='MxDC')
         self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_size_request(1440, 940)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
-        self.set_title('MxDC - Mx Data Collector')
+
         self.version = version
         self.splash = Splash(version)
-        dialogs.MAIN_WINDOW = self
         self.splash.show_all()
         self.splash.set_keep_above(True)
         self.splash.set_modal(True)
-        
-        #prepare pixbufs for tab status icons
-        self._info_img = GdkPixbuf.Pixbuf.new_from_file(
-                            os.path.join(os.path.dirname(__file__), 'widgets','data','tiny-info.png'))
-        self._warn_img = GdkPixbuf.Pixbuf.new_from_file(
-                            os.path.join(os.path.dirname(__file__), 'widgets','data','tiny-warn.png'))
 
-        self._first_load = True
-        self._show_select_dialog = True
-        self._show_run_dialog = True
+        self.setup_gui()
+        dialogs.MAIN_WINDOW = self
+
+        self.first_load = True
+        self.show_select_dialog = True
+        self.show_run_dialog = True
 
         while Gtk.events_pending():
             Gtk.main_iteration()
 
-    def __getattr__(self, key):
-        try:
-            return super(AppWindow).__getattr__(self, key)
-        except AttributeError:
-            return self._xml.get_widget(key)
-        
-    def run(self):
+    def add_menu_actions(self):
+        self.quit_mnu.connect('activate', lambda x: self.do_quit())
+        self.about_mnu.connect('activate', lambda x: self.do_about())
+        self.mount_mnu.connect('activate', lambda x: self.scripts['SetMountMode'].start())
+        self.centering_mnu.connect('activate', lambda x: self.scripts['SetCenteringMode'].start())
+        self.collect_mnu.connect('activate', lambda x: self.scripts['SetCollectMode'].start())
+        self.beam_mnu.connect('activate', lambda x: self.scripts['SetBeamMode'].start())
+
+    def build_gui(self):
+
+        self.hutch_manager = setup.SetupController(self)
+        self.status_panel = status.StatusPanel(self)
+        self.sample_manager = microscope.MicroscopeController(self)
+
+        self.scan_manager = ScanManager()
+        self.collect_manager = CollectManager()
+        self.scan_manager.connect('create-run', self.on_create_run)
+
+        #self.sample_manager = SampleManager()
+        self.result_manager = ResultManager()
+        self.screen_manager = ScreenManager()
+
+        self.app_mnu_btn.set_popup(self.app_menu)
+        self.add_menu_actions()
+        self.page_switcher.set_stack(self.main_stack)
+        self.main_stack.connect('notify::visible-child', self.on_page_switched)
+        self.set_titlebar(self.header_bar)
+
         icon = GdkPixbuf.Pixbuf.new_from_file(self.icon_file)
         self.set_icon(icon)
-        self.set_resizable(False)
 
         GObject.timeout_add(3000, lambda: self.splash.hide())
         GObject.timeout_add(3010, lambda: self.present())
 
-        self.scan_manager = ScanManager()
-        self.collect_manager = CollectManager()
-        self.scan_manager.connect('create-run', self.on_create_run)       
-        self.hutch_manager = HutchManager()
-        self.sample_manager = SampleManager()
-        self.result_manager = ResultManager()
-        self.screen_manager = ScreenManager()
-        self.status_panel = StatusPanel()
-        
         self.screen_manager.screen_runner.connect('analyse-request', self.on_analyse_request)
-        self.sample_manager.connect('samples-changed', self.on_samples_changed)
-        self.sample_manager.connect('sample-selected', self.on_sample_selected)
-        self.sample_manager.connect('active-sample', self.on_active_sample)
+        #self.sample_manager.connect('samples-changed', self.on_samples_changed)
+        #self.sample_manager.connect('sample-selected', self.on_sample_selected)
+        #self.sample_manager.connect('active-sample', self.on_active_sample)
         self.result_manager.connect('sample-selected', self.on_sample_selected)
         self.result_manager.connect('update-strategy', self.on_update_strategy)
         self.scan_manager.connect('update-strategy', self.on_update_strategy)
         self.collect_manager.connect('new-datasets', self.on_new_datasets)
         self.screen_manager.connect('new-datasets', self.on_new_datasets)
 
-        self.hutch_manager.connect('beam-change', self.on_beam_change)
-        
-        self.quit_cmd.connect('activate', lambda x: self._do_quit() )
-        self.about_cmd.connect('activate', lambda x:  self._do_about() )
-        
-        notebook = Gtk.Notebook()
-        
-        def _mk_lbl(txt):
-            aln = Gtk.Alignment.new(0.5,0.5,0,0)
-            aln.set_padding(0,0,6,6)
-            box = Gtk.HBox(False,2)
-            aln.raw_text = txt
-            aln.label = Gtk.Label(label=txt)
-            aln.label.set_use_markup(True)
-            box.pack_end(aln.label, False, False,  0)
-            aln.image = Gtk.Image()
-            box.pack_start(aln.image, False, False, 0)
-            aln.add(box)
-            aln.show_all()
-            return aln
-            
-        notebook.append_page(self.hutch_manager, tab_label=_mk_lbl('Beamline Setup'))
-        notebook.append_page(self.sample_manager, tab_label=_mk_lbl('Samples'))
-        notebook.append_page(self.collect_manager, tab_label=_mk_lbl('Data Collection'))
-        notebook.append_page(self.screen_manager, tab_label=_mk_lbl('Screening'))
-        notebook.append_page(self.scan_manager, tab_label=_mk_lbl('Fluorescence Scans'))
-        notebook.append_page(self.result_manager, tab_label=_mk_lbl('Processing Results'))
-        notebook.set_border_width(3)
-        self.notebook = notebook
-        self.notebook.connect('switch-page', self.on_page_switch)
 
-        self.main_frame.add(notebook)
-        self.mxdc_main.pack_end(self.status_panel, False, False, 0)
+        #self.samples_box.pack_start(self.sample_manager, True, True, 0)
+        self.datasets_box.pack_start(self.collect_manager, True, True, 0)
+        self.screen_box.pack_start(self.screen_manager, True, True, 0)
+        self.scans_box.pack_start(self.scan_manager, True, True, 0)
+        self.analyses_box.pack_start(self.result_manager, True, True, 0)
+
+
         self.add(self.mxdc_main)
-        self.scripts = get_scripts()
-        # register menu events
-        self.mounting_mnu.connect('activate', self.hutch_manager.on_mounting)
-        self.centering_mnu.connect('activate', self.hutch_manager.on_centering)
-        self.collect_mnu.connect('activate', self.hutch_manager.on_collection)
-        self.beam_mnu.connect('activate', self.hutch_manager.on_beam_mode)
-        self.open_shutter_mnu.connect('activate', self.hutch_manager.on_open_shutter)
-        self.close_shutter_mnu.connect('activate', self.hutch_manager.on_close_shutter)
-        
+
         self.show_all()
-        
-    def _do_quit(self):
+
+    def run(self):
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.scripts = get_scripts()
+        self.build_gui()
+
+    def do_quit(self):
         self.hide()
         self.emit('destroy')
-             
-    def _do_about(self):
+
+    def do_about(self):
         authors = [
-            "Michel Fodje (maintainer)",
+            "Michel Fodje",
             "Kathryn Janzen",
             "Kevin Anderson",
-            ]
+            "Cuylar Conly"
+        ]
         about = Gtk.AboutDialog()
+        about.set_transient_for(self)
         name = 'Mx Data Collector (MxDC)'
         try:
             about.set_program_name(name)
@@ -162,36 +168,37 @@ class AppWindow(Gtk.Window):
         about.set_authors(authors)
         logo = GdkPixbuf.Pixbuf.new_from_file(self.icon_file)
         about.set_logo(logo)
-        
-        about.connect('response', lambda x,y: x.destroy())
+
+        about.connect('response', lambda x, y: x.destroy())
         about.connect('destroy', lambda x: x.destroy())
         about.show()
 
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
-        self.collect_manager.add_run( run_data )
-        if self._show_run_dialog:
+        self.collect_manager.add_run(run_data)
+        if self.show_run_dialog:
             header = 'New MAD Run Added'
             subhead = 'A new run for MAD data collection has been added to the "Data Collection" tab. '
             subhead += 'Remember to delete the runs you no longer need before proceeding.'
             chkbtn = Gtk.CheckButton('Do not show this dialog again.')
+
             def _chk_cb(obj):
-                self._show_run_dialog = (not obj.get_active())
+                self.show_run_dialog = (not obj.get_active())
+
             chkbtn.connect('toggled', _chk_cb)
             chkbtn.set_property('can-focus', False)
             dialogs.info(header, subhead, extra_widgets=[chkbtn])
-        
+
     def on_samples_changed(self, obj, ctx):
         samples = ctx.get_loaded_samples()
         self.screen_manager.add_samples(samples)
         # only change tabs if samples are changed manually
-        if not self._first_load:
-            tab_lbl = self.notebook.get_tab_label(self.screen_manager)
-            tab_lbl.image.set_from_pixbuf(self._info_img)
-            tab_lbl.label.set_markup("<b>%s</b>" % tab_lbl.raw_text)
+        if not self.first_load:
+            # self.screen_box.props.needs_attention = True
+            pass
         else:
-            self._first_load = False
-        
+            self.first_load = False
+
     def on_active_sample(self, obj, data):
         self.sample_manager.update_active_sample(data)
         self.collect_manager.update_active_sample(data)
@@ -202,50 +209,22 @@ class AppWindow(Gtk.Window):
         self.sample_manager.update_selected(sample=data)
         try:
             _logger.info('The selected sample has been updated to "%s (%s)"' % (data['name'], data['port']))
+            # self.datasets_box.props.needs_attention = True
         except KeyError:
             _logger.info('The crystal cannot be selected')
-        tab_lbl = self.notebook.get_tab_label(self.collect_manager)
-        tab_lbl.image.set_from_pixbuf(self._info_img)
-        tab_lbl.label.set_markup("<b>%s</b>" % tab_lbl.raw_text)
-        
-#        if self._show_select_dialog:
-#            header = 'Selected Crystal Updated'
-#            try:
-#                subhead = 'The selected crystal has been updated to "%s (%s)" in ' % (data['name'], data['port'])
-#                subhead += 'the Data Collection tab.'
-#            except KeyError:
-#                subhead = 'The crystal cannot be selected.'
-#            chkbtn = Gtk.CheckButton('Do not show this dialog again.')
-#            def _chk_cb(obj):
-#                self._show_select_dialog = (not obj.get_active())
-#            chkbtn.connect('toggled', _chk_cb)
-#            chkbtn.set_property('can-focus', False)
-#            dialogs.info(header, subhead, extra_widgets=[chkbtn])
 
     def on_beam_change(self, obj, beam_available):
-        # Do not show icon if current page is already hutch tab
-        if self.notebook.get_current_page() != self.notebook.page_num(self.hutch_manager):
-            tab_lbl = self.notebook.get_tab_label(self.hutch_manager)
-            if beam_available:
-                tab_lbl.image.set_from_pixbuf(None)
-                tab_lbl.label.set_markup(tab_lbl.raw_text)
-            else:
-                tab_lbl.image.set_from_pixbuf(self._warn_img)
-                tab_lbl.label.set_markup("<b>%s</b>" % tab_lbl.raw_text)
-    
-    def on_page_switch(self, obj, pg, pgn):
-        wdg = self.notebook.get_nth_page(pgn)
-        tab_lbl = self.notebook.get_tab_label(wdg)
-        tab_lbl.image.set_from_pixbuf(None)
-        tab_lbl.label.set_markup(tab_lbl.raw_text)
-        
+        if not beam_available:
+            # self.setup_box.props.needs_attention = True
+            pass
+
     def on_update_strategy(self, obj, data):
         self.collect_manager.update_data(strategy=data)
-        _logger.info('The active strategy has been updated in the "Data Collection" tab.')
+        # self.datasets_box.props.needs_attention = True
 
     def on_new_datasets(self, obj, datasets):
         # Fech full crystal information from sample database and update the dataset information
-        database =  self.sample_manager.get_database()
+        database = self.sample_manager.get_database()
         if database is not None:
             for dataset in datasets:
                 if dataset.get('crystal_id') is not None:
@@ -258,10 +237,11 @@ class AppWindow(Gtk.Window):
                             crystal.update(group_name=group.get('name', dataset['experiment_id']))
                     dataset.update(crystal=crystal)
         self.result_manager.add_datasets(datasets)
-        
+
+    def on_page_switched(self, obj, params):
+        name = self.main_stack.get_visible_child_name()
+        child = self.main_stack.get_child_by_name(name)
+
     def on_analyse_request(self, obj, data):
         self.result_manager.process_dataset(data)
-        tab_lbl = self.notebook.get_tab_label(self.result_manager)
-        tab_lbl.image.set_from_pixbuf(self._info_img)
-        tab_lbl.label.set_markup("<b>%s</b>" % tab_lbl.raw_text)
-        
+        # self.analysis_box.props.needs_attention = True

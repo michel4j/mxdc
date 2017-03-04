@@ -26,7 +26,9 @@ class HCViewer(SampleViewer):
     }
 
     gui_file = 'hc_viewer'
-    gui_root = 'hc_viewer'
+    gui_roots = {
+        'data/hc_viewer': ['hc_viewer', 'cmap_popup']
+    }
 
     def __init__(self):
         super(HCViewer, self).__init__()
@@ -34,13 +36,9 @@ class HCViewer(SampleViewer):
         self._timeout_id = None
         self._disp_time = 0
         self._colormap = 0
+        self._measuring = False
         self.paused = False
 
-    def __getattr__(self, key):
-        try:
-            return super(HCViewer, self).__getattr__(key)
-        except AttributeError:
-            return self._xml.get_widget(key)
 
     def do_plot_changed(self, obj, data):
         pass
@@ -51,7 +49,7 @@ class HCViewer(SampleViewer):
     def do_plot_cleared(self, obj):
         pass
 
-    def _create_widgets(self):
+    def build_gui(self):
         self.hc = self.beamline.humidifier
         self.add(self.hc_viewer)
         self.labels = ['Temp', 'Drop Size']
