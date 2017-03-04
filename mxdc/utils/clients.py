@@ -7,7 +7,7 @@ Created on Oct 28, 2010
 from twisted.spread import pb
 from twisted.internet import reactor
 
-from mxdc.utils import mdns
+from mxdc.utils import mdns, misc
 from mxdc.utils.log import get_module_logger
 from mxdc.service.base import BaseService
 
@@ -135,7 +135,7 @@ class LIMSClient(BaseService):
 
     def get_project_samples(self, beamline):
         url = "{}/api/{}/samples/{}/{}/".format(
-            self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
+            self.address, beamline.config.get('lims_api_key', ''), beamline.name, misc.get_project_name()
         )
         try:
             reply = self.get(url)
@@ -146,7 +146,7 @@ class LIMSClient(BaseService):
 
     def upload_dataset(self, beamline, data):
         url = "{}/api/{}/data/{}/{}/".format(
-            self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
+            self.address, beamline.config.get('lims_api_key', ''), beamline.name, misc.get_project_name()
         )
 
         json_info = {

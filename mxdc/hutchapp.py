@@ -10,7 +10,6 @@ from mxdc.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.minihutchman import MiniHutchManager
 from mxdc.widgets.samplepicker import SamplePicker
-from mxdc.widgets.statuspanel import StatusPanel
 from twisted.python.components import globalRegistry
 import os
 
@@ -39,7 +38,6 @@ class HutchWindow(Gtk.ApplicationWindow):
         self.set_resizable(False)
 
         self.hutch_manager = MiniHutchManager()
-        self.status_panel = StatusPanel()
         
         self.quit_cmd.connect('activate', lambda x: self._do_quit() )
         self.about_cmd.connect('activate', lambda x:  self._do_about() )            

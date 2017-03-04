@@ -49,8 +49,10 @@ class AlertDialog(Gtk.Dialog):
         self._primary_label.set_use_markup(True)
         for label in (self._primary_label, self._secondary_label):
             label.set_line_wrap(True)
+            label.set_line_wrap_mode(Pango.WrapMode.WORD)
             label.set_selectable(True)
             label.set_alignment(0.0, 0.5)
+            label.set_max_width_chars(60)
 
         hbox = Gtk.HBox(False, 12)
         vbox = Gtk.VBox(False, 12)
@@ -62,7 +64,7 @@ class AlertDialog(Gtk.Dialog):
         hbox.show_all()
         
         self.details_buffer = Gtk.TextBuffer()
-        self.details_view = Gtk.TextView(self.details_buffer)
+        self.details_view = Gtk.TextView()
         self.details_view.set_editable(False)
         pf = self.details_view.get_pango_context().get_font_description()        
         pf.set_size(int(pf.get_size() * 0.85))
@@ -74,7 +76,7 @@ class AlertDialog(Gtk.Dialog):
         sw.add(self.details_view)
         sw.set_size_request(-1, 200)
         
-        self._expander = Gtk.Expander("Details")
+        self._expander = Gtk.Expander()
         self._expander.add(sw)
         self._expander.set_border_width(5)
         self._expander.show_all()
@@ -88,7 +90,6 @@ class AlertDialog(Gtk.Dialog):
         self.vbox.pack_start(self._expander, True, True, 1)
         self.set_default(self.get_action_area())
 
-        
     def set_primary(self, text):
         self._primary_label.set_markup('<span weight="bold" size="large">%s</span>' % text)
         

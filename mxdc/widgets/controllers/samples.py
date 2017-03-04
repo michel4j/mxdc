@@ -7,6 +7,7 @@ from matplotlib.dates import date2num
 from twisted.python.components import globalRegistry
 
 from mxdc.beamline.mx import IBeamline
+from mxdc.widgets.controllers import common
 from mxdc.utils import gui, config
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -14,53 +15,24 @@ from mxdc.widgets.sampleloader import DewarLoader, STATUS_NOT_LOADED, STATUS_LOA
 from mxdc.widgets.samplepicker import SamplePicker
 from mxdc.widgets.sampleviewer import SampleViewer
 
-_logger = get_module_logger('mxdc.samplemanager')
-
-_HCPLOT_INFO = {
-    'temps': {'title': 'Temperature', 'units': 'C', 'color': 'm'},
-    'drops': {'title': 'Drop Size', 'units': 'um', 'color': 'c'},
-    'relhs': {'title': 'Relative Humidity', 'units': 'h', 'color': 'b'}
-}
-
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+_logger = get_module_logger('mxdc.samples')
 
 
-class SampleManager(Gtk.Alignment, gui.BuilderMixin):
+class SamplesController(GObject.GObject):
     __gsignals__ = {
         'samples-changed': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
         'active-sample': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, ]),
         'sample-selected': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, ]),
     }
-    gui_roots = {
-        'data/sample_widget': ['sample_widget']
-    }
 
-    def __init__(self):
-        super(SampleManager, self).__init__()
-        self.setup_gui()
-        self._switching_hc = False
-        self.hc1_active = False
-        self._plot_init = False
-        self._plot_paused = False
-        self.build_gui()
-
-
-    def do_samples_changed(self, data):
-        pass
-
-    def do_sample_selected(self, data):
-        pass
-
-    def do_active_sample(self, data):
-        pass
-
-    def build_gui(self):
+    def __init__(self, widget):
+        super(SamplesController, self).__init__()
+        self.widget = widget
         self.beamline = globalRegistry.lookup([], IBeamline)
+        self.sample_viewer = None
+        self.setup()
 
-        # make video and cryo notebooks same vertical size
-        #self._szgrp1 = Gtk.SizeGroup(Gtk.SizeGroupMode.VERTICAL)
-        #self._szgrp1.add_widget(self.loader_frame)
-        #self._szgrp1.add_widget(self.robot_frame)
+    def setup(self):
 
         # video, automounter, cryojet, dewar loader 
         self.sample_viewer = SampleViewer()
@@ -301,3 +273,12 @@ class SampleManager(Gtk.Alignment, gui.BuilderMixin):
             self.plotter.axis[0].set_xlim((min_val, max_val))
             self.plotter.set_time_labels(xlabels, '%H:%M', 1, 10)
             self.plotter.canvas.draw()
+
+    def do_samples_changed(self, data):
+        pass
+
+    def do_sample_selected(self, data):
+        pass
+
+    def do_active_sample(self, data):
+        pass

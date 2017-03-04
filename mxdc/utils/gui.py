@@ -59,10 +59,15 @@ class BuilderMixin(object):
     def build_gui(self):
         pass
 
+    def reload(self, item):
+        for path, roots in self.gui_roots.items():
+            if item in roots:
+                return GUIFile(os.path.join(self.gui_top, path), item)
+
     def __getattr__(self, item):
         if self.gui_objects:
             for xml in self.gui_objects.values():
                 obj = xml.get_widget(item)
                 if obj:
                     return obj
-        raise AttributeError
+        raise AttributeError('{} does not have attribute: {}'.format(self, item))

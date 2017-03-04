@@ -59,14 +59,14 @@ class Splash(Gtk.Window):
         cr = window.cairo_create()
         cr.set_source(sp)
         cr.paint()
-        cr.set_source_rgb(0.2, 0.5, 0.7)
+        cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
         cr.set_line_width(0.5)
-        cr.move_to(32, self.height - 32)
+        cr.move_to(50, self.height - 32)
         cr.select_font_face("Luxi Sans",
                 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
-        cr.set_font_size(10)
-        cr.text_path('Release %s' % self.version)
+        cr.set_font_size(12)
+        cr.text_path('Initializing devices and views ...')
         cr.fill()
         #cr.stroke()
         #widget.shape_combine_mask(mask, 0, 0)

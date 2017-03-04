@@ -1,98 +1,110 @@
-import math
 import os
-
-import numpy
-from gi.repository import Gtk
-from gi.repository import Pango
+from gi.repository import Gtk, Pango
 from twisted.python.components import globalRegistry
-
-from mxdc.com import ca
-from mxdc.engine.scripting import get_scripts
-from mxdc.interface.beamlines import IBeamline
-from mxdc.utils import gui, colors
 from mxdc.utils.decorators import async
+from mxdc.beamline.mx import IBeamline
 from mxdc.utils.log import get_module_logger
-from mxdc.utils.ordereddict import OrderedDict
 from mxdc.widgets import dialogs
-from mxdc.widgets.controllers import common
 from mxdc.widgets.video import VideoWidget
+from mxdc.widgets.controllers import common
+import math
+from mxdc.engine.scripting import get_scripts
+from mxdc.utils import colors
+from collections import OrderedDict
+_logger = get_module_logger('mxdc.microscope')
 
-_logger = get_module_logger('mxdc.sampleviewer')
+        
+class MicroscopeController(object):
+    def __init__(self, widget):
+        self.timeout_id = None
+        self.max_fps = 20
+        self.widget = widget
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.camera = self.beamline.sample_video
+        self.setup()
+        self.video.set_overlay_func(self.overlay_function)
 
-COLOR_MAPS = [None, 'Spectral', 'hsv', 'jet', 'RdYlGn', 'hot', 'PuBu']
-_DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+    def setup(self):
+        # zoom
+        self.widget.microscope_zoomout_btn.connect('clicked', self.on_zoom_out)
+        self.widget.microscope_zoomin_btn.connect('clicked', self.on_zoom_in)
+        self.widget.microscope_zoom100_btn.connect('clicked', self.on_unzoom)
 
+        # move sample
+        self.widget.microscope_left_btn.connect('clicked', self.on_fine_left)
+        self.widget.microscope_right_btn.connect('clicked', self.on_fine_right)
 
-def activate_action(action):
-    print 'Action "%s" activated' % action.get_name()
+        # rotate sample
+        self.widget.microscope_ccw90_btn.connect('clicked', self.on_ccw90)
+        self.widget.microscope_cw90_btn.connect('clicked', self.on_cw90)
+        self.widget.microscope_rot180_btn.connect('clicked', self.on_rot180)
 
+        # centering
+        self.widget.microscope_click_btn.connect('clicked', self.toggle_click_centering)
+        self.widget.microscope_loop_btn.connect('clicked', self.on_center_loop)
+        self.widget.microscope_crystal_btn.connect('clicked', self.on_center_crystal)
+        self.widget.microscope_capillary_btn.connect('clicked', self.on_center_capillary)
+        self.beamline.goniometer.connect('mode', self.on_gonio_mode)
 
-POPUP_ACTIONS = (
-    ('cmap_default', None, 'Default', None, None, activate_action),
-    ('cmap_spectral', None, 'Spectral', None, None, activate_action),
-    ('cmap_hsv', None, 'HSV', None, None, activate_action),
-    ('cmap_jet', None, 'Jet', None, None, activate_action),
-    ('cmap_ryg', None, 'RdYlGn', None, None, activate_action),
-    ('cmap_hot', None, 'Hot', None, None, activate_action),
-    ('cmap_pubu', None, 'PuBu', None, None, activate_action),
-)
-POPUP_UI = """
-<ui>
-<popup name="PopupMenu">
-    <menu name="Grid" action="grid_action">
-      <menuitem name="Clear Grid" action="grid_clear"/>
-      <separator/>
-      <menuitem name="Reset Grid" action="grid_reset"/>
-    </menu>
-    <menu name="Color Mapping" action="cmap_action">
-      <menuitem name="Default" action="cmap_default"/>
-      <separator/>
-      <menuitem name="Spectral" action="cmap_spectral"/>
-      <menuitem name="HSV" action="cmap_hsv"/>
-      <menuitem name="Jet" action="cmap_jet"/>
-      <menuitem name="RdYlGn" action="cmap_ryg"/>
-      <menuitem name="Hot" action="cmap_hot"/>
-      <menuitem name="PuBu" action="cmap_pubu"/>
-    </menu>
-</popup>
-</ui>
-"""
+        # Video Area
+        self.video = VideoWidget(self.camera)
+        self.widget.microscope_video_frame.add(self.video)
 
+        # status, save, etc
+        self.widget.microscope_save_btn.connect('clicked', self.on_save)
 
-class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
+        # lighting monitors
+        self.monitors = [
+            common.ScaleMonitor(self.widget.microscope_backlight_scale, self.beamline.sample_backlight),
+            common.ScaleMonitor(self.widget.microscope_frontlight_scale, self.beamline.sample_frontlight),
+        ]
+        self.widget.microscope_backlight_scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
+        self.widget.microscope_frontlight_scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
 
-    gui_roots = {
-        'data/sample_viewer': ['blight_adj', 'flight_adj', 'sample_viewer', 'cmap_popup','btn_sizer']
-    }
+        pango_font = Pango.FontDescription('Monospace 8')
+        self.widget.microscope_pos_lbl.modify_font(pango_font)
+        self.widget.microscope_meas_lbl.modify_font(pango_font)
 
-    def __init__(self):
-        super(SampleViewer, self).__init__()
-        self.setup_gui()
+        # initialize measurement variables
+        self.measuring = False
+        self.measure_x1 = 0
+        self.measure_x2 = 0
+        self.measure_y1 = 0
+        self.measure_y2 = 0
 
-        self._timeout_id = None
-        self._disp_time = 0
-        self._click_centering = False
-        self._colormap = 0
-        self._tick_size = 8
+        # initialize grid variables
+        self.init_grid_settings()
+        self._grid_colormap = colors.ColorMapper(color_map='jet', min_val=0.2, max_val=0.8)
 
-        try:
-            self.beamline = globalRegistry.lookup([], IBeamline)
-        except:
-            self.beamline = None
-            _logger.warning('No registered beamline found.')
+        self.video.connect('motion_notify_event', self.on_mouse_motion)
+        self.video.connect('button_press_event', self.on_image_click)
+        self.video.set_overlay_func(self.overlay_function)
+        self.video.connect('realize', self.on_realize)
 
         self.scripts = get_scripts()
-        self.build_gui()
+        script = self.scripts['CenterSample']
+        script.connect('done', self.done_centering)
+        script.connect('error', self.error_centering)
 
+        toolbar_btns = [
+            self.widget.microscope_zoomout_btn, self.widget.microscope_zoom100_btn,
+            self.widget.microscope_zoomin_btn,   self.widget.microscope_left_btn, self.widget.microscope_right_btn,
+            self.widget.microscope_ccw90_btn, self.widget.microscope_cw90_btn,
+            self.widget.microscope_rot180_btn, self.widget.microscope_loop_btn,
+            self.widget.microscope_crystal_btn, self.widget.microscope_click_btn,
+            self.widget.microscope_capillary_btn, self.widget.microscope_save_btn
+        ]
+        self.size_grp = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.BOTH)
+        for btn in toolbar_btns:
+            self.size_grp.add_widget(btn)
 
     def save_image(self, filename):
         self.video.save_image(filename)
-
+        
     def draw_beam_overlay(self, cr):
         pix_size = self.beamline.sample_video.resolution
         bh = self.beamline.aperture.get() * 0.001
-        bx = 0  # self.beamline.beam_x.get_position()
-        by = 0  # self.beamline.beam_y.get_position()
+        bx = by = 0
         cx = self.beamline.camera_center_x.get()
         cy = self.beamline.camera_center_y.get()
 
@@ -127,9 +139,9 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
             cr.line_to(x2, y2)
             cr.stroke()
 
-            self.meas_label.set_markup("%0.2g mm" % dist)
+            self.widget.microscope_meas_lbl.set_markup("%0.2g mm" % dist)
         else:
-            self.meas_label.set_markup("<small>%4.1f fps</small>" % self.video.fps)
+            self.widget.microscope_meas_lbl.set_markup("<small>%4.1f fps</small>" % self.video.fps)
         return True
 
     def _calc_grid_params(self):
@@ -155,7 +167,7 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
         cell_size = self.video.scale * cw / pix_size
         x0 = int((cx - bx) * self.video.scale) - hgw
         # y0 = int((cy-by) * self.video.scale) - hgw
-        y0 = int((cy - by) * self.video.scale) - hgw * numpy.sqrt(1 - 0.5 ** 2)
+        y0 = int((cy - by) * self.video.scale) - hgw * math.sqrt(1 - 0.5 ** 2)
 
         return (x0, y0, grid_size, cell_size, nX, nY)
 
@@ -266,7 +278,7 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
         # i = int((x - x0)/cell_size)
         # j = int((y - y0)/cell_size)
 
-        yd = cell_size * numpy.sqrt(1 - 0.5 ** 2)
+        yd = cell_size * math.sqrt(1 - 0.5 ** 2)
         j = int((y - y0) / yd)
         x0adj = x0 + cell_size * 0.25 * ((-1) ** j)
         if x < x0adj or y < y0:
@@ -286,7 +298,7 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
         #        x = (i * cell_size) + cell_size/2 + x0
         #        y = (j * cell_size) + cell_size/2 + y0
 
-        yd = cell_size * numpy.sqrt(1 - 0.5 ** 2)
+        yd = cell_size * math.sqrt(1 - 0.5 ** 2)
         x = (i * cell_size + cell_size * 0.25 * ((-1) ** j)) + cell_size / 2 + x0
         y = (j * yd) + cell_size / 2 + y0
 
@@ -315,7 +327,7 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
         try:
             cx = self.beamline.camera_center_x.get()
             cy = self.beamline.camera_center_y.get()
-        except  ca.ChannelAccessError:
+        except:
             cx, cy = self.beamline.sample_video.size
             cx //= 2
             cy //= 2
@@ -339,95 +351,8 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
         if not self.beamline.sample_stage.y.is_busy():
             self.beamline.sample_stage.y.move_by(-ymm)
 
-    def build_gui(self):
-        # connect colormap signals
-        cmap_items = ['cmap_default', 'cmap_spectral', 'cmap_hsv', 'cmap_jet', 'cmap_ryg', 'cmap_hot', 'cmap_pubu']
-        for i in range(len(cmap_items)):
-            w = getattr(self, cmap_items[i])
-            w.connect('activate', self.on_cmap_activate, i)
 
-        self.back_light_scale.set_adjustment(self.blight_adj)
-        self.front_light_scale.set_adjustment(self.flight_adj)
-        self.add(self.sample_viewer)
-
-        # zoom
-        self.zoom_out_btn.connect('clicked', self.on_zoom_out)
-        self.zoom_in_btn.connect('clicked', self.on_zoom_in)
-        self.zoom_100_btn.connect('clicked', self.on_unzoom)
-
-        # move sample
-        self.left_btn.connect('clicked', self.on_fine_left)
-        self.right_btn.connect('clicked', self.on_fine_right)
-
-        # rotate sample
-        self.decr_90_btn.connect('clicked', self.on_decr_omega)
-        self.incr_90_btn.connect('clicked', self.on_incr_omega)
-        self.incr_180_btn.connect('clicked', self.on_double_incr_omega)
-
-        # centering 
-        self.click_btn.connect('clicked', self.toggle_click_centering)
-        self.loop_btn.connect('clicked', self.on_center_loop)
-        self.crystal_btn.connect('clicked', self.on_center_crystal)
-        self.capillary_btn.connect('clicked', self.on_center_capillary)
-        self.beamline.goniometer.connect('mode', self.on_gonio_mode)
-
-        # status, save, etc
-        self.save_btn.connect('clicked', self.on_save)
-
-        # Video Area
-        self.video_frame = self.video_adjuster
-        w, h = map(float, self.beamline.sample_video.size)
-        self.video_frame.set(xalign=0.5, yalign=0.5, ratio=(w / h), obey_child=False)
-        self.video = VideoWidget(self.beamline.sample_video)
-        self.video_frame.add(self.video)
-
-        # lighting monitors
-        self.monitors = [
-            common.ScaleMonitor(self.back_light_scale, self.beamline.sample_backlight),
-            common.ScaleMonitor(self.front_light_scale, self.beamline.sample_frontlight),
-        ]
-
-        self.scripts = get_scripts()
-        pango_font = Pango.FontDescription('Monospace 8')
-        self.pos_label.modify_font(pango_font)
-        self.meas_label.modify_font(pango_font)
-
-        # disable key controls while scripts are running
-        for sc in ['SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'SetBeamMode', 'CenterSample']:
-            self.scripts[sc].connect('started', self.on_scripts_started)
-            self.scripts[sc].connect('done', self.on_scripts_done)
-
-        # initialize measurement variables
-        self.measuring = False
-        self.measure_x1 = 0
-        self.measure_x2 = 0
-        self.measure_y1 = 0
-        self.measure_y2 = 0
-
-        # initialize grid variables
-        self.init_grid_settings()
-        self._grid_colormap = colors.ColorMapper(color_map='jet', min_val=0.2, max_val=0.8)
-
-        self.video.connect('motion_notify_event', self.on_mouse_motion)
-        self.video.connect('button_press_event', self.on_image_click)
-        self.video.set_overlay_func(self._overlay_function)
-        self.video.connect('realize', self.on_realize)
-
-        script = self.scripts['CenterSample']
-        script.connect('done', self.done_centering)
-        script.connect('error', self.error_centering)
-
-        toolbar_btns = [
-            self.zoom_out_btn, self.zoom_100_btn, self.zoom_in_btn,
-            self.left_btn, self.right_btn, self.decr_90_btn, self.incr_90_btn,
-            self.incr_180_btn, self.loop_btn, self.crystal_btn, self.click_btn,
-            self.capillary_btn, self.save_btn
-        ]
-        for btn in toolbar_btns:
-            self.btn_sizer.add_widget(btn)
-
-
-    def _overlay_function(self, cr):
+    def overlay_function(self, cr):
         self.draw_beam_overlay(cr)
         self.draw_meas_overlay(cr)
         self.draw_grid_overlay(cr)
@@ -438,20 +363,18 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def on_gonio_mode(self, obj, mode):
         if mode != 'CENTERING':
-            self.loop_btn.set_sensitive(False)
-            self.crystal_btn.set_sensitive(False)
+            self.widget.microscope_loop_btn.set_sensitive(False)
+            self.widget.microscope_crystal_btn.set_sensitive(False)
         else:
-            self.loop_btn.set_sensitive(True)
-            self.crystal_btn.set_sensitive(True)
+            self.widget.microscope_loop_btn.set_sensitive(True)
+            self.widget.microscope_crystal_btn.set_sensitive(True)
 
     def on_scripts_started(self, obj, event=None):
-        self.video_toolbar.set_sensitive(False)
+        self.widget.microscope_toolbar.set_sensitive(False)
 
     def on_scripts_done(self, obj, event=None):
-        self.video_toolbar.set_sensitive(True)
+        self.widget.microscope_toolbar.set_sensitive(True)
 
-    def on_cmap_activate(self, obj, cmap):
-        self.video.set_colormap(COLOR_MAPS[cmap])
 
     def on_realize(self, obj):
         self.pango_layout = self.video.create_pango_layout("")
@@ -460,7 +383,7 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(
             'Save Video Snapshot',
-            parent=self.get_toplevel(),
+            parent=self.widget,
             formats=[('PNG Image', 'png'), ('JPEG Image', 'jpg')])
         if not img_filename:
             return
@@ -488,9 +411,6 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
     def error_centering(self, obj):
         pass
 
-    def on_delete(self, widget):
-        self.videothread.stop()
-
     def on_zoom_in(self, widget):
         self.beamline.sample_video.zoom(8)
 
@@ -500,19 +420,19 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
     def on_unzoom(self, widget):
         self.beamline.sample_video.zoom(5)
 
-    def on_incr_omega(self, widget):
+    def on_cw90(self, widget):
         cur_omega = int(self.beamline.omega.get_position())
         target = (cur_omega + 90)
         target = (target > 360) and (target % 360) or target
         self.beamline.omega.move_to(target)
 
-    def on_decr_omega(self, widget):
+    def on_ccw90(self, widget):
         cur_omega = int(self.beamline.omega.get_position())
         target = (cur_omega - 90)
         target = (target < -360) and (target % 360) or target
         self.beamline.omega.move_to(target)
 
-    def on_double_incr_omega(self, widget):
+    def on_rot180(self, widget):
         cur_omega = int(self.beamline.omega.get_position())
         target = (cur_omega + 180)
         target = (target > 360) and (target % 360) or target
@@ -525,7 +445,7 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
             x = event.x
             y = event.y
         im_x, im_y, xmm, ymm = self._img_position(x, y)
-        self.pos_label.set_markup("%4d,%4d [%6.3f, %6.3f mm]" % (im_x, im_y, xmm, ymm))
+        self.widget.microscope_pos_lbl.set_markup("%4d,%4d [%6.3f, %6.3f mm]" % (im_x, im_y, xmm, ymm))
         if 'GDK_BUTTON2_MASK' in event.get_state().value_names:
             self.measure_x2, self.measure_y2, = event.x, event.y
         elif 'GDK_BUTTON1_MASK' in event.get_state().value_names:
@@ -545,8 +465,6 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
             self.measuring = True
             self.measure_x1, self.measure_y1 = event.x, event.y
             self.measure_x2, self.measure_y2 = event.x, event.y
-        elif event.button == 3:
-            self.cmap_popup.popup(None, None, None, event.button, event.time)
 
     def on_fine_left(self, widget):
         # move left by 0.2 mm
