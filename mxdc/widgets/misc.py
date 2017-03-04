@@ -13,38 +13,6 @@ import time
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 
-class ActiveHScale(Gtk.Scale):
-    def __init__(self, context, min_val=0.0, max_val=100.0):
-        super(ActiveHScale, self).__init__(orientation=Gtk.Orientation.HORIZONTAL)
-        self.context = context
-        self.set_value_pos(Gtk.PositionType.RIGHT)
-        self.set_digits(1)
-        self.set_range(min_val, max_val)
-        self.set_adjustment(Gtk.Adjustment(0.0, min_val, max_val, (max_val - min_val) / 100.0, 0, 0))
-        # self.set_update_policy(Gtk.UPDATE_CONTINUOUS)
-        self._handler_id = self.connect('value-changed', self._on_scale_changed)
-        self.context.connect('changed', self._on_feedback_changed)
-        self._feedback = False
-
-    def _on_scale_changed(self, obj):
-        if self._feedback:
-            return
-        target = self.get_value()
-        if hasattr(self.context, 'move_to'):
-            self.context.move_to(target)
-        elif hasattr(self.context, 'set'):
-            self.context.set(target)
-
-    def _on_feedback_changed(self, obj, val):
-        # we need to prevent an infinite loop by temporarily suspending
-        # the _on_scale_changed handler
-        # self.context.handler_block(self._handler_id)
-        self._feedback = True
-        self.set_value(val)
-        self._feedback = False
-        # self.context.handler_unblock(self._handler_id)
-
-
 class ActiveLabel(Gtk.Label):
     def __init__(self, context, fmt="%s", show_units=True, rng=None):
         super(ActiveLabel, self).__init__('')
@@ -81,6 +49,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
     gui_roots = {
         'data/active_entry': ['active_entry']
     }
+
     def __init__(self, device, label=None, fmt="%g", width=10):
         super(ActiveEntry, self).__init__(orientation=Gtk.Orientation.HORIZONTAL)
 
@@ -117,11 +86,10 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.device.connect('health', self._on_health_changed)
         self.action_btn.connect('clicked', self._on_activate)
         self.entry.connect('activate', self._on_activate)
-
+        # self.entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "go-next-symbolic")
+        # self.entry.set_icon_activatable(Gtk.EntryIconPosition.SECONDARY, True)
         self.label.set_markup("<span size='small'><b>%s</b></span>" % (self.name,))
         self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000088"))
-        self.entry.set_progress_fraction(0.0)
-        self.entry.set_progress_pulse_step(0.0)
 
     def set_feedback(self, val):
         text = self.number_format % val
@@ -178,7 +146,6 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
             self._last_signal = time.time()
         if self._first_change:
             self._first_change = False
-        self.entry.set_progress_fraction(self.get_fraction(val))
         return True
 
     def _on_activate(self, obj):
@@ -222,7 +189,6 @@ class MotorEntry(ActiveEntry):
 
     def stop(self):
         self.device.stop()
-        self._entry.set_progress_fraction(0.0)
         self._action_icon.set_from_stock('gtk-go-forward', Gtk.IconSize.MENU)
 
     def _on_motion_changed(self, obj, motion):
@@ -243,70 +209,16 @@ class MotorEntry(ActiveEntry):
         return True
 
 
-class ShutterButton(Gtk.ToggleButton):
-    def __init__(self, shutter, label, open_only=False, action_label=False):
-        super(ShutterButton, self).__init__()
-        self.shutter = shutter
-        self.open_only = open_only
-        self.action_label = action_label
-        container = Gtk.HBox(False, 2)
-
-        self.label_text = label
-        self.image = Gtk.Image()
-        self.label = Gtk.Label(label=label)
-        self.image.set_alignment(0.5, 0.5)
-        self.image.set_padding(3, 0)
-        self.label.set_alignment(0.0, 0.5)
-        self.label.set_padding(3, 0)
-
-        container.pack_start(self.image, False, False, 0)
-        container.pack_start(self.label, True, True, 0)
-        self.add(container)
-        self._set_off()
-        self.shutter.connect('changed', self._on_state_change)
-        self.connect('clicked', self._on_clicked)
-
-    def _on_clicked(self, widget):
-        if self.shutter.is_open():
-            self.shutter.close()
-        else:
-            self.shutter.open()
-
-    def _on_state_change(self, obj, state):
-        if state:
-            self._set_on()
-        else:
-            self._set_off()
-        return True
-
-    def _set_on(self):
-        if self.open_only:
-            self.set_sensitive(False)
-        else:
-            if not self.action_label:
-                self.label.set_text(self.label_text)
-            else:
-                self.label.set_text("Close")
-        self.image.set_from_stock('gtk-yes', Gtk.IconSize.SMALL_TOOLBAR)
-
-    def _set_off(self):
-        self.set_sensitive(True)
-        if not self.action_label:
-            self.label.set_text(self.label_text)
-        else:
-            self.label.set_text("Open")
-        self.image.set_from_stock('gtk-no', Gtk.IconSize.SMALL_TOOLBAR)
-
-
 class ScriptButton(Gtk.Button):
     def __init__(self, script, label, confirm=False, message=""):
         super(ScriptButton, self).__init__()
         self.script = script
         self.confirm = confirm
         self.warning_text = message
-        self._animation = GdkPixbuf.PixbufAnimation.new_from_file(os.path.join(os.path.dirname(__file__),
-                                                                               'data/active_stop.gif'))
-        container = Gtk.HBox(False, 2)
+        self._animation = GdkPixbuf.PixbufAnimation.new_from_file(
+            os.path.join(os.path.dirname(__file__), 'data/active_stop.gif')
+        )
+        container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
         self.label_text = label
         self.image = Gtk.Image()

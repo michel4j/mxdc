@@ -1,20 +1,21 @@
-from mxdc.beamline.mx import IBeamline
-from mxdc.engine.scripting import get_scripts
-from mxdc.utils.log import get_module_logger
-from mxdc.utils import gui
-from mxdc.widgets.diagnostics import DiagnosticsViewer
-from mxdc.widgets import misc
-from mxdc.widgets.predictor import Predictor
-from mxdc.widgets.ptzviewer import AxisViewer
-from mxdc.widgets.sampleviewer import SampleViewer
-from mxdc.widgets.simplevideo import SimpleVideo
-from mxdc.widgets.textviewer import TextViewer, GUIHandler
-from twisted.python.components import globalRegistry
-from gi.repository import Gtk
-from gi.repository import GObject
 import logging
 import os
 
+from gi.repository import GObject
+from gi.repository import Gtk
+from twisted.python.components import globalRegistry
+
+from mxdc.beamline.mx import IBeamline
+from mxdc.engine.scripting import get_scripts
+from mxdc.utils import gui
+from mxdc.utils.log import get_module_logger
+from mxdc.widgets import misc
+from mxdc.widgets.controllers.ptzvideo import AxisViewer
+from mxdc.widgets.diagnostics import DiagnosticsViewer
+from mxdc.widgets.predictor import Predictor
+from mxdc.widgets.sampleviewer import SampleViewer
+from mxdc.widgets.simplevideo import SimpleVideo
+from mxdc.widgets.textviewer import TextViewer, GUIHandler
 
 _logger = get_module_logger('mxdc.hutchmanager')
 

@@ -48,14 +48,14 @@ class Script(GObject.GObject):
         return '<Script:%s>' % self.name
     
     def start(self, *args, **kwargs):
-        if self._enabled:
+        if self._enabled and not self._active:
             self._active = True
             worker_thread = threading.Thread(target=self._thread_run, args=args, kwargs=kwargs)
             worker_thread.setDaemon(True)
             self.output = None
             worker_thread.start()
         else:
-            _logger.warning('Script "%s" disabled.' % (self,))
+            _logger.warning('Script "%s" disabled or busy.' % (self,))
         
     def _thread_run(self, *args, **kwargs):
         try:

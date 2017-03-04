@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.20.0 -->
 <interface>
-  <requires lib="gtk+" version="2.18"/>
-  <!-- interface-naming-policy toplevel-contextual -->
+  <requires lib="gtk+" version="3.14"/>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <child>
       <object class="GtkBox" id="status_widget">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="spacing">12</property>
+        <property name="spacing">6</property>
         <child>
           <object class="GtkImage" id="icon">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="stock">gtk-dialog-question</property>
-            <property name="icon-size">1</property>
+            <property name="icon_size">1</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -26,8 +26,9 @@
           <object class="GtkLabel" id="label">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="xalign">0</property>
             <property name="label" translatable="yes">label</property>
+            <property name="selectable">True</property>
+            <property name="xalign">0</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -36,14 +37,35 @@
           </packing>
         </child>
         <child>
-          <object class="GtkArrow" id="arrow1">
+          <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="arrow_type">none</property>
-            <property name="shadow_type">none</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">2</property>
           </packing>
@@ -52,12 +74,13 @@
           <object class="GtkLabel" id="info">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="xalign">1</property>
             <property name="justify">right</property>
+            <property name="selectable">True</property>
             <property name="ellipsize">end</property>
+            <property name="xalign">1</property>
           </object>
           <packing>
-            <property name="expand">True</property>
+            <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="pack_type">end</property>
             <property name="position">3</property>
