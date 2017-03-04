@@ -50,15 +50,18 @@ FRAME_STATE_SKIPPED = DataCollector.STATE_SKIPPED
 
 RUN_CONFIG_FILE = 'run_config.json'
 
-class CollectManager(Gtk.Alignment):
+class CollectManager(Gtk.Alignment, gui.BuilderMixin):
     __gsignals__ = {
         'new-datasets': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_PYOBJECT,]),
     }
+    gui_roots = {
+        'data/collect_widget' : ['collect_widget']
+    }
+
     def __init__(self):
         super(CollectManager, self).__init__()
         self.set(0.5, 0.5, 1, 1)
-        self._xml = gui.GUIFile(os.path.join(os.path.dirname(__file__), 'data/collect_widget'), 
-                                  'collect_widget')            
+        self.setup_gui()
         self.run_data = []
         self.run_list = []
         
@@ -67,7 +70,7 @@ class CollectManager(Gtk.Alignment):
         self._first_launch = False
         self.await_response = False
         self.skip_frames = False
-        self._create_widgets()
+        self.build_gui()
         self.pause_time = 0
         self.auto_pause = False
         
@@ -78,16 +81,11 @@ class CollectManager(Gtk.Alignment):
         
         self.scripts = get_scripts()
         
-    def __getattr__(self, key):
-        try:
-            return super(CollectManager).__getattr__(self, key)
-        except AttributeError:
-            return self._xml.get_widget(key)
 
     def do_new_datasets(self, dataset):
         pass
     
-    def _create_widgets(self):
+    def build_gui(self):
         self.image_viewer = ImageViewer(size=640)
         self.run_manager = RunManager()
         self.collector = DataCollector()
@@ -114,9 +112,8 @@ class CollectManager(Gtk.Alignment):
         
         self.listview = Gtk.TreeView(self.listmodel)
         self.listview.set_rules_hint(True)
-        self._add_columns()     
-        sw = self._xml.get_widget('run_list_window')
-        sw.add(self.listview)
+        self._add_columns()
+        self.run_list_window.add(self.listview)
         
         self.mnt_hbox.add(self.mount_widget)
 
@@ -131,7 +128,7 @@ class CollectManager(Gtk.Alignment):
         self.control_box.pack_start(self.progress_bar, False, True, 0)
                 
         # Current Position
-        pos_table = self._xml.get_widget('position_table')
+        pos_table = self.position_table
         if self.beamline is not None:
             pos_table.attach(ActiveLabel(self.beamline.omega, fmt='%7.2f'), 1,2,0,1)
             pos_table.attach(ActiveLabel(self.beamline.diffractometer.two_theta, fmt='%7.2f'), 1,2,1,2)

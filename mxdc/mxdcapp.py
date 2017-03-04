@@ -1,3 +1,5 @@
+import gi
+gi.require_version('Gtk', '3.0')
 from twisted.internet import gtk3reactor
 gtk3reactor.install()
 
@@ -25,7 +27,7 @@ SERVICE_DATA = {
 }
 
 warnings.simplefilter("ignore")
-excepthook.install()
+#excepthook.install()
 _logger = get_module_logger('mxdc')
 
 class MXDCApp(object):
@@ -129,7 +131,7 @@ def main():
     app.run_local()
 
 if __name__ == "__main__":
-    log_to_console()
+    #log_to_console()
     #log_to_file(os.path.join(os.environ['HOME'], 'mxdc.log'))
         
     reactor.callWhenRunning(main)
