@@ -386,7 +386,7 @@ class AutomounterClient(SlaveDevice, BasicAutomounter):
         return self.device.callRemote('wait', state=state)
         
     def remote_update(self, state):
-        self._parse_states(state)
+        self.parse_states(state)
 
 class DetectorServer(MasterDevice):
     __used_for__ = IImagingDetector

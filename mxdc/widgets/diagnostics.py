@@ -54,7 +54,7 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
         self._diagnostic.connect('status', self.on_status_changed)
         self._status = (diagnostics.DIAG_STATUS_UNKNOWN, "")
 
-        color = Gdk.RGBA();
+        color = Gdk.RGBA()
         color.parse(ICON_COLORS[diagnostics.DIAG_STATUS_UNKNOWN])
         self.override_color(Gtk.StateFlags.NORMAL, color)
         self.icon.set_from_icon_name(MSG_ICONS[diagnostics.DIAG_STATUS_UNKNOWN], Gtk.IconSize.SMALL_TOOLBAR)
@@ -85,8 +85,10 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
 
     def _show_notification(self, data):
         if _NOTIFY_AVAILABLE:
-            self._notice = Notify.Notification(self._diagnostic.description, data[1])
-            self._notice.set_urgency(Notify.Urgency.CRITICAL)
+            self._notice = Notify.Notification(
+                summary=self._diagnostic.description, app_name='MxDC', body=data[1], icon_name=MSG_ICONS[data[0]]
+            )
+            self._notice.set_urgency(Notify.Urgency.NORMAL)
             self._notice.set_timeout(6000)  # 20 seconds
             try:
                 self._notice.show()
