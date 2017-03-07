@@ -28,7 +28,7 @@ SERVICE_DATA = {
 
 warnings.simplefilter("ignore")
 #excepthook.install()
-_logger = get_module_logger('mxdc')
+logger = get_module_logger('mxdc')
 
 class MXDCApp(object):
     def __init__(self):
@@ -63,7 +63,7 @@ class MXDCApp(object):
     def service_found(self, obj, instance):
         self._service_data = instance
         data = self._service_data['data']
-        _logger.info('MxDC running on `%s`, by `%s` since `%s` .' % (instance['host'], data['user'], data['started'] ))    
+        logger.info('MxDC running on `%s`, by `%s` since `%s` .' % (instance['host'], data['user'], data['started']))
         self.factory = pb.PBClientFactory()
         self.factory.getRootObject().addCallbacks(self._remote_mxdc_success, self._remote_mxdc_failed)
         reactor.connectTCP(self._service_data['address'],
@@ -74,7 +74,7 @@ class MXDCApp(object):
         self.broadcast_service()
             
     def do_quit(self, obj=None):
-        _logger.info('Stopping...')
+        logger.info('Stopping...')
         reactor.stop()
 
     def provider_success(self):
@@ -107,32 +107,29 @@ class MXDCApp(object):
         if r == pb.PBConnectionLost:
             self._rshutdown_success()
         else:
-            _logger.error('Remote Shutdown Failed')
+            logger.error('Remote Shutdown Failed')
             self.do_quit()
         
     def _remote_mxdc_success(self, perspective):
         self.remote_mxdc = perspective
     
     def _remote_mxdc_failed(self, failure):
-        _logger.error('An instance of MXDC is already running on the local network. Only one instance permitted.')
+        logger.error('An instance of MXDC is already running on the local network. Only one instance permitted.')
         dialogs.error('MXDC Already Running', 'An instance of MXDC is already running on the local network. Only one instance permitted.')
         self.do_quit()
         
 def main():
     try:
         _ = os.environ['MXDC_CONFIG_PATH']
-        _logger.info('Starting MXDC (%s)... ' % os.environ['MXDC_BEAMLINE'])
+        logger.info('Starting MXDC (%s)... ' % os.environ['MXDC_BEAMLINE'])
     except:
-        _logger.error('Could not find Beamline Control Module environment variables.')
-        _logger.error('Please make sure MXDC is properly installed and configured.')
+        logger.error('Could not find Beamline Control Module environment variables.')
+        logger.error('Please make sure MXDC is properly installed and configured.')
         reactor.stop()
         
     app = MXDCApp()
     app.run_local()
 
 if __name__ == "__main__":
-    #log_to_console()
-    #log_to_file(os.path.join(os.environ['HOME'], 'mxdc.log'))
-        
     reactor.callWhenRunning(main)
     reactor.run()

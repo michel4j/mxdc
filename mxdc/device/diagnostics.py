@@ -38,7 +38,7 @@ class DiagnosticBase(GObject.GObject):
         }
 
     def __init__(self, descr):
-        GObject.GObject.__init__(self)
+        super(DiagnosticBase, self).__init__()
         self.description = descr
         self._manager = HealthManager()
         self._status = (DIAG_STATUS_UNKNOWN, '')
@@ -91,7 +91,7 @@ class DeviceDiag(DiagnosticBase):
         """
         if descr is None:
             descr = device.name
-        DiagnosticBase.__init__(self, descr)
+        super(DeviceDiag, self).__init__(descr)
         self.device = device
         self.device.connect('health', self._on_health)
                 
@@ -127,7 +127,7 @@ class ServiceDiag(DiagnosticBase):
         """
         if descr is None:
             descr = service.name
-        DiagnosticBase.__init__(self, descr)
+        super(ServiceDiag, self).__init__(descr)
         self.service = service
         self.service.connect('active', self._on_active)
         

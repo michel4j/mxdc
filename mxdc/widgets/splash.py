@@ -61,7 +61,7 @@ class Splash(Gtk.Window):
         cr.paint()
         cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
         cr.set_line_width(0.5)
-        cr.move_to(50, self.height - 32)
+        cr.move_to(40, self.height - 32)
         cr.select_font_face("Luxi Sans",
                 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 

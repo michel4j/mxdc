@@ -80,7 +80,7 @@ class VideoWidget(Gtk.DrawingArea):
         self.display_func = func
 
     def display(self, img):
-        img = img.resize((self._img_width, self._img_height), Image.BICUBIC)
+        img = img.resize((int(self._img_width), int(self._img_height)), Image.BICUBIC)
         if self._colorize:
             if img.mode != 'L':
                 img = img.convert('L')
