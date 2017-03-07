@@ -83,6 +83,8 @@ def auto_mount_manual(bl, port, wash=False):
         else:
             _logger.warning('Sample mounting failed')
             return False
+    else:
+        _logger.warning('{} is not mountable'.format(port))
 
 def auto_dismount_manual(bl, port):
     if bl.automounter.is_preparing() or bl.automounter.is_busy() or not bl.automounter.is_active():

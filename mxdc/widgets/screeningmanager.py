@@ -19,8 +19,6 @@ from mxdc.widgets import dialogs
 from mxdc.widgets.controllers.ptzvideo import AxisController
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.rasterwidget import RasterWidget
-from mxdc.widgets.samplelist import SampleList
-from mxdc.widgets.sampleviewer import SampleViewer
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -116,7 +114,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
 
     def build_gui(self):
 
-        self.sample_list = SampleList()
+        #self.sample_list = SampleStore()
         self.beamline = globalRegistry.lookup([], IBeamline)
 
         self.message_log = TextViewer(self.msg_txt)
@@ -138,8 +136,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
         self.clear_btn.connect('clicked', self._on_queue_clear)
         self.apply_btn.connect('clicked', self._on_sequence_apply)
         self.reset_btn.connect('clicked', self._on_sequence_reset)
-        self.select_all_btn.connect('clicked', lambda x: self.sample_list.select_all(True))
-        self.deselect_all_btn.connect('clicked', lambda x: self.sample_list.select_all(False))
+
         self.refresh_btn.connect('clicked', lambda x: self.refresh_samples())
         self.start_btn.connect('clicked', self._on_activate)
         self.stop_btn.connect('clicked', self._on_stop_btn_clicked)
@@ -155,7 +152,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
         self.automounter.connect('active', self._on_automounter_state)
         self.automounter.connect('enabled', self._on_automounter_state)
 
-        self.sample_box.pack_start(self.sample_list, True, True, 0)
+        #self.sample_box.pack_start(self.sample_list, True, True, 0)
 
         # video        
         #self.sample_viewer = SampleViewer()
@@ -336,10 +333,11 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
         datasets = self.beamline.lims.upload_datasets(self.beamline, datasets)
 
     def refresh_samples(self):
-        self.sample_list.clear()
-        for sample in self.samples_data:
-            sample['state'] = self.beamline.automounter.get_port_state(sample.get('port'))
-        self.sample_list.load_data(self.samples_data)
+        #self.sample_list.clear()
+        #for sample in self.samples_data:
+        #    sample['state'] = self.beamline.automounter.get_port_state(sample.get('port'))
+        #self.sample_list.load_data(self.samples_data)
+        pass
 
     def add_samples(self, samples):
         self.samples_data = samples
@@ -503,7 +501,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
     def _on_sequence_apply(self, obj):
         model = self.listview.get_model()
         model.clear()
-        items = self.sample_list.get_selected()
+        items = [] #self.sample_list.get_selected()
         delta = float(self.delta_entry.get_text())
         for item in items:
             collect_task = None
@@ -626,8 +624,9 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
                 self.lbl_next.set_text('')
                 next_sample = None
             if cur_sample != next_sample and status == Screener.TASK_STATE_DONE:
-                self.sample_list.set_row_processed(cur_sample, True)
-                self.sample_list.set_row_selected(cur_sample, False)
+                #self.sample_list.set_row_processed(cur_sample, True)
+                #self.sample_list.set_row_selected(cur_sample, False)
+                pass
 
                 # self.lbl_current.set_alignment(0.5, 0.5)
                 # self.lbl_next.set_alignment(0.5, 0.5)

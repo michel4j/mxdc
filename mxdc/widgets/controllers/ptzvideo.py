@@ -71,7 +71,7 @@ class AxisController(object):
             self.video.connect('button_press_event', self.on_image_click)
             for val in self.camera.get_presets():
                 self.widget.hutch_presets_btn.append_text(val)
-                self.widget.hutch_presets_btn.connect('changed', self.on_view_changed)
+            self.widget.hutch_presets_btn.connect('changed', self.on_view_changed)
 
         # status, save, etc
         self.widget.hutch_save_btn.connect('clicked', self.on_save)
