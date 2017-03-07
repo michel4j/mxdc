@@ -8,11 +8,10 @@ config.get_session()  # update the session configuration
 from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
-from mxdc.widgets.controllers import status, setup, microscope
+from mxdc.widgets.controllers import status, setup, microscope, samplestore
 from mxdc.widgets import dialogs
 from mxdc.widgets.collectmanager import CollectManager
 from mxdc.widgets.resultmanager import ResultManager
-from mxdc.widgets.samplemanager import SampleManager
 from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.screeningmanager import ScreenManager
 from mxdc.widgets.splash import Splash
@@ -34,26 +33,6 @@ else:
 
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
-MODE_MAP = {
-    'MOUNTING': 'blue',
-    'CENTERING': 'orange',
-    'SCANNING': 'green',
-    'COLLECT': 'green',
-    'BEAM': 'red',
-    'MOVING': 'gray',
-    'INIT': 'gray',
-    'ALIGN': 'gray',
-}
-
-COLOR_MAP = {
-    'blue': '#6495ED',
-    'orange': '#DAA520',
-    'red': '#CD5C5C',
-    'green': '#8cd278',
-    'gray': '#708090',
-    'violet': '#9400D3',
-}
-
 
 class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     gui_roots = {
@@ -62,7 +41,10 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
 
     def __init__(self, version=VERSION):
         super(AppWindow, self).__init__(name='MxDC')
+        self.set_wmclass("MxDC", "MxDC")
         self.set_position(Gtk.WindowPosition.CENTER)
+        self.settings = self.get_settings()
+        self.settings.props.gtk_enable_animations = True
         self.set_size_request(1440, 940)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
 
@@ -71,6 +53,8 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.splash.show_all()
         self.splash.set_keep_above(True)
         self.splash.set_modal(True)
+        while Gtk.events_pending():
+            Gtk.main_iteration()
 
         self.setup_gui()
         dialogs.MAIN_WINDOW = self
@@ -81,6 +65,8 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
 
         while Gtk.events_pending():
             Gtk.main_iteration()
+
+
 
     def add_menu_actions(self):
         self.quit_mnu.connect('activate', lambda x: self.do_quit())
@@ -94,13 +80,13 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
 
         self.hutch_manager = setup.SetupController(self)
         self.status_panel = status.StatusPanel(self)
-        self.sample_manager = microscope.MicroscopeController(self)
+        self.sample_microscope = microscope.MicroscopeController(self)
+        self.sample_store = samplestore.SampleStore(self.samples_list, self)
 
         self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)
 
-        #self.sample_manager = SampleManager()
         self.result_manager = ResultManager()
         self.screen_manager = ScreenManager()
 
@@ -113,26 +99,25 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         icon = GdkPixbuf.Pixbuf.new_from_file(self.icon_file)
         self.set_icon(icon)
 
-        GObject.timeout_add(3000, lambda: self.splash.hide())
-        GObject.timeout_add(3010, lambda: self.present())
+
+        GObject.timeout_add(1010, lambda: self.present())
+        GObject.timeout_add(1000, lambda: self.splash.hide())
 
         self.screen_manager.screen_runner.connect('analyse-request', self.on_analyse_request)
-        #self.sample_manager.connect('samples-changed', self.on_samples_changed)
-        #self.sample_manager.connect('sample-selected', self.on_sample_selected)
-        #self.sample_manager.connect('active-sample', self.on_active_sample)
+        # self.sample_manager.connect('samples-changed', self.on_samples_changed)
+        # self.sample_manager.connect('sample-selected', self.on_sample_selected)
+        # self.sample_manager.connect('active-sample', self.on_active_sample)
         self.result_manager.connect('sample-selected', self.on_sample_selected)
         self.result_manager.connect('update-strategy', self.on_update_strategy)
         self.scan_manager.connect('update-strategy', self.on_update_strategy)
         self.collect_manager.connect('new-datasets', self.on_new_datasets)
         self.screen_manager.connect('new-datasets', self.on_new_datasets)
 
-
-        #self.samples_box.pack_start(self.sample_manager, True, True, 0)
+        #self.automounter_box.pack_start(self.sample_picker, True, True, 0)
         self.datasets_box.pack_start(self.collect_manager, True, True, 0)
         self.screen_box.pack_start(self.screen_manager, True, True, 0)
         self.scans_box.pack_start(self.scan_manager, True, True, 0)
         self.analyses_box.pack_start(self.result_manager, True, True, 0)
-
 
         self.add(self.mxdc_main)
 
@@ -200,13 +185,13 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
             self.first_load = False
 
     def on_active_sample(self, obj, data):
-        self.sample_manager.update_active_sample(data)
+        self.sample_microscope.update_active_sample(data)
         self.collect_manager.update_active_sample(data)
         self.scan_manager.update_active_sample(data)
 
     def on_sample_selected(self, obj, data):
         self.collect_manager.update_selected(sample=data)
-        self.sample_manager.update_selected(sample=data)
+        self.sample_microscope.update_selected(sample=data)
         try:
             _logger.info('The selected sample has been updated to "%s (%s)"' % (data['name'], data['port']))
             # self.datasets_box.props.needs_attention = True
@@ -224,7 +209,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
 
     def on_new_datasets(self, obj, datasets):
         # Fech full crystal information from sample database and update the dataset information
-        database = self.sample_manager.get_database()
+        database = self.sample_microscope.get_database()
         if database is not None:
             for dataset in datasets:
                 if dataset.get('crystal_id') is not None:
