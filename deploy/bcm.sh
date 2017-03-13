@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ## ---- Setup Top level directory of BCM installation ----
-export BCM_PATH=/home/michel/Code/eclipse-ws/mxdc
+export BCM_PATH=/home/michel/Code/Projects/mxdc
 
 
 ## ---- Setup Beamline Configuration by network ----
