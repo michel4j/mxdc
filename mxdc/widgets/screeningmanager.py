@@ -16,9 +16,6 @@ from mxdc.interface.engines import IDataCollector
 from mxdc.utils import config, gui
 from mxdc.utils.runlists import determine_skip, summarize_frame_set
 from mxdc.widgets import dialogs
-from mxdc.widgets.controllers.ptzvideo import AxisController
-from mxdc.widgets.imageviewer import ImageViewer
-from mxdc.widgets.rasterwidget import RasterWidget
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -114,7 +111,6 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
 
     def build_gui(self):
 
-        #self.sample_list = SampleStore()
         self.beamline = globalRegistry.lookup([], IBeamline)
 
         self.message_log = TextViewer(self.msg_txt)
@@ -154,31 +150,11 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
 
         #self.sample_box.pack_start(self.sample_list, True, True, 0)
 
-        # video        
-        #self.sample_viewer = SampleViewer()
-        self.image_viewer = ImageViewer()
-        self.image_viewer.set_collect_mode(True)
-        # self.image_viewer.set_shadow_type(Gtk.ShadowType.NONE)
-
-        #self.video_book.append_page(self.sample_viewer, tab_label=Gtk.Label(label='Sample Camera'))
-        self.video_book.connect('realize', lambda x: self.video_book.set_current_page(0))
-
         # create a data collector and attach it to diffraction viewer
         self.data_collector = DataCollector()
         self.data_collector.connect('new-image', self._on_diffraction_image)
         globalRegistry.register([], IDataCollector, 'mxdc.screening', self.data_collector)
-        self.screen_ntbk.append_page(self.image_viewer, tab_label=gui.make_icon_label('Diffraction Viewer'))
-        self.screen_ntbk.connect('switch-page', self._on_page_switch)
 
-        # raster screening
-        self.raster_collector = RasterCollector()
-        self.raster_collector.connect('new-image', self._on_diffraction_image)
-        self.raster_widget = RasterWidget()
-        #self.raster_widget.link_viewer(self.sample_viewer)
-        self.raster_widget.link_collector(self.raster_collector)
-        self.raster_widget.connect('show-raster', self._on_show_raster)
-        self.raster_widget.connect('show-image', self._on_diffraction_image)
-        self.activity_ntbk.append_page(self.raster_widget, tab_label=gui.make_tab_label('Raster Screening'))
 
         # Task Configuration
         self.TaskList = []
