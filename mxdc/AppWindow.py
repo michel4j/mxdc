@@ -8,16 +8,14 @@ config.get_session()  # update the session configuration
 from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
-from mxdc.widgets.controllers import status, setup, microscope, samplestore
+from mxdc.widgets.controllers import status, setup, microscope, samplestore, datasets
 from mxdc.widgets import dialogs
 from mxdc.widgets.collectmanager import CollectManager
 from mxdc.widgets.resultmanager import ResultManager
 from mxdc.widgets.scanmanager import ScanManager
-from mxdc.widgets.screeningmanager import ScreenManager
 from mxdc.widgets.splash import Splash
 from twisted.python.components import globalRegistry
-from gi.repository import GObject
-from gi.repository import Gtk, GdkPixbuf
+from gi.repository import Gtk, GdkPixbuf, Gio, GObject
 import os
 from datetime import datetime
 
@@ -43,8 +41,8 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         super(AppWindow, self).__init__(name='MxDC')
         self.set_wmclass("MxDC", "MxDC")
         self.set_position(Gtk.WindowPosition.CENTER)
-        self.settings = self.get_settings()
-        self.settings.props.gtk_enable_animations = True
+        settings = self.get_settings()
+        settings.props.gtk_enable_animations = True
         self.set_size_request(1440, 940)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
 
@@ -67,7 +65,6 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
             Gtk.main_iteration()
 
 
-
     def add_menu_actions(self):
         self.quit_mnu.connect('activate', lambda x: self.do_quit())
         self.about_mnu.connect('activate', lambda x: self.do_about())
@@ -82,13 +79,15 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.status_panel = status.StatusPanel(self)
         self.sample_microscope = microscope.MicroscopeController(self)
         self.sample_store = samplestore.SampleStore(self.samples_list, self)
+        self.datasets = datasets.DatasetsController(self)
 
         self.scan_manager = ScanManager()
-        self.collect_manager = CollectManager()
+        #self.collect_manager = CollectManager()
+
         self.scan_manager.connect('create-run', self.on_create_run)
 
         self.result_manager = ResultManager()
-        self.screen_manager = ScreenManager()
+        #self.screen_manager = ScreenManager()
 
         self.app_mnu_btn.set_popup(self.app_menu)
         self.add_menu_actions()
@@ -103,19 +102,19 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         GObject.timeout_add(1010, lambda: self.present())
         GObject.timeout_add(1000, lambda: self.splash.hide())
 
-        self.screen_manager.screen_runner.connect('analyse-request', self.on_analyse_request)
+        #self.screen_manager.screen_runner.connect('analyse-request', self.on_analyse_request)
         # self.sample_manager.connect('samples-changed', self.on_samples_changed)
         # self.sample_manager.connect('sample-selected', self.on_sample_selected)
         # self.sample_manager.connect('active-sample', self.on_active_sample)
         self.result_manager.connect('sample-selected', self.on_sample_selected)
         self.result_manager.connect('update-strategy', self.on_update_strategy)
         self.scan_manager.connect('update-strategy', self.on_update_strategy)
-        self.collect_manager.connect('new-datasets', self.on_new_datasets)
-        self.screen_manager.connect('new-datasets', self.on_new_datasets)
+        #self.collect_manager.connect('new-datasets', self.on_new_datasets)
+        #self.screen_manager.connect('new-datasets', self.on_new_datasets)
 
         #self.automounter_box.pack_start(self.sample_picker, True, True, 0)
-        self.datasets_box.pack_start(self.collect_manager, True, True, 0)
-        self.screen_box.pack_start(self.screen_manager, True, True, 0)
+        #self.datasets_box.pack_start(self.collect_manager, True, True, 0)
+        #self.screen_box.pack_start(self.screen_manager, True, True, 0)
         self.scans_box.pack_start(self.scan_manager, True, True, 0)
         self.analyses_box.pack_start(self.result_manager, True, True, 0)
 
@@ -160,7 +159,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
 
     def on_create_run(self, obj=None, arg=None):
         run_data = self.scan_manager.get_run_data()
-        self.collect_manager.add_run(run_data)
+        #self.collect_manager.add_run(run_data)
         if self.show_run_dialog:
             header = 'New MAD Run Added'
             subhead = 'A new run for MAD data collection has been added to the "Data Collection" tab. '
@@ -176,7 +175,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
 
     def on_samples_changed(self, obj, ctx):
         samples = ctx.get_loaded_samples()
-        self.screen_manager.add_samples(samples)
+        #self.screen_manager.add_samples(samples)
         # only change tabs if samples are changed manually
         if not self.first_load:
             # self.screen_box.props.needs_attention = True
@@ -186,11 +185,11 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
 
     def on_active_sample(self, obj, data):
         self.sample_microscope.update_active_sample(data)
-        self.collect_manager.update_active_sample(data)
+        #self.collect_manager.update_active_sample(data)
         self.scan_manager.update_active_sample(data)
 
     def on_sample_selected(self, obj, data):
-        self.collect_manager.update_selected(sample=data)
+        #self.collect_manager.update_selected(sample=data)
         self.sample_microscope.update_selected(sample=data)
         try:
             _logger.info('The selected sample has been updated to "%s (%s)"' % (data['name'], data['port']))
@@ -204,8 +203,9 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
             pass
 
     def on_update_strategy(self, obj, data):
-        self.collect_manager.update_data(strategy=data)
+        #self.collect_manager.update_data(strategy=data)
         # self.datasets_box.props.needs_attention = True
+        pass
 
     def on_new_datasets(self, obj, datasets):
         # Fech full crystal information from sample database and update the dataset information

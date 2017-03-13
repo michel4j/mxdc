@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schemalist>
+    <schema id="org.lightsource.mxdc-1">
+        <key name='dataset-folder-template' type='s'>
+            <default>'/{group}/{crystal}/data/'</default>
+            <summary>Folder template for full datasets</summary>
+            <description>
+                Define the template to be used for creating full dataset folders. All folders
+                will be created within the session top-level direction. You can use variables
+                for substituting context-specific values. Available variables include {session},
+                {crystal}, {group}, {container}, {port}, {date}.
+
+                For example: /{date}/{group}/{crystal}/data/
+            </description>
+        </key>
+                <key name='screening-folder-template' type='s'>
+            <default>'/{group}/{crystal}/test/'</default>
+            <summary>Folder template for screening datasets</summary>
+            <description>
+                Define the template to be used for creating full screening folders. All folders
+                will be created within the session top-level direction. You can use variables
+                for substituting context-specific values. Available variables include {session},
+                {crystal}, {group}, {container}, {port}, {date}.
+
+                For example: /{date}/{group}/{crystal}/test/
+            </description>
+        </key>
+                <key name='analysis-folder-template' type='s'>
+            <default>'/{group}/{crystal}/proc/'</default>
+            <summary>Folder template for data analysis results</summary>
+            <description>
+                Define the template to be used for data analysis results. All folders
+                will be created within the session top-level direction. You can use variables
+                for substituting context-specific values. Available variables include {session},
+                {crystal}, {group}, {container}, {port}, {date}.
+
+                For example: /{date}/{group}/{crystal}/proc/
+            </description>
+        </key>
+    </schema>
+</schemalist>

@@ -127,7 +127,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
 
         if state == 0:
             self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
-            self.action_icon.set_from_stock('gtk-go-forward', Gtk.IconSize.MENU)
+            self.action_icon.set_from_icon_name("media-playback-start-symbolic",Gtk.IconSize.MENU)
             self._set_active(True)
         else:
             if (state | 16) == state:
@@ -189,7 +189,7 @@ class MotorEntry(ActiveEntry):
 
     def stop(self):
         self.device.stop()
-        self._action_icon.set_from_stock('gtk-go-forward', Gtk.IconSize.MENU)
+        self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.MENU)
 
     def _on_motion_changed(self, obj, motion):
         if motion:
@@ -198,8 +198,7 @@ class MotorEntry(ActiveEntry):
             self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#0000ff"))
         else:
             self.running = False
-            self.entry.set_progress_fraction(0.0)
-            self.action_icon.set_from_stock('gtk-go-forward', Gtk.IconSize.MENU)
+            self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.MENU)
             self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
         self.set_feedback(self.device.get_position())
         return True
