@@ -4,6 +4,7 @@ from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import Gtk
 from gi.repository import Pango
+import matplotlib
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
