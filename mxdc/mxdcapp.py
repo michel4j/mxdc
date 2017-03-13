@@ -16,8 +16,7 @@ from twisted.spread import pb
 import os
 import time
 import warnings
-from gi.repository import GObject
-from gi.repository import Gtk
+from gi.repository import GObject, Gtk, Gio
 
 MXDC_PORT = 9999
 SERVICE_DATA = {
@@ -35,6 +34,7 @@ class MXDCApp(object):
         self.remote_mxdc = None
         
     def run_local(self):
+
         self.main_window = AppWindow()
         self.beamline = MXBeamline()
         self.main_window.connect('destroy', self.do_quit)

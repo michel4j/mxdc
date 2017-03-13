@@ -59,10 +59,15 @@ class BuilderMixin(object):
     def build_gui(self):
         pass
 
-    def reload(self, item):
-        for path, roots in self.gui_roots.items():
-            if item in roots:
-                return GUIFile(os.path.join(self.gui_top, path), item)
+    def clone(self):
+        if self.gui_objects:
+            builder = Builder({
+                root: GUIFile(os.path.join(self.gui_top, path), root)
+                for path, roots in self.gui_roots.items() for root in roots
+            })
+            builder.gui_top = self.gui_top
+            builder.gui_roots = self.gui_roots
+            return builder
 
     def __getattr__(self, item):
         if self.gui_objects:
@@ -71,3 +76,11 @@ class BuilderMixin(object):
                 if obj:
                     return obj
         raise AttributeError('{} does not have attribute: {}'.format(self, item))
+
+
+class Builder(BuilderMixin):
+    def __init__(self, objects=None):
+        if not objects:
+            self.setup_gui()
+        else:
+            self.gui_objects = objects

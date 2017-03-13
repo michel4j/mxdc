@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-
-from gi.repository import Gdk
-from gi.repository import Gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk
 from mxdc.utils.log import get_module_logger, log_to_console
 from mxdc.widgets.imageviewer import ImageViewer
+from mxdc.widgets import dialogs
 import sys, os
 
 _logger = get_module_logger('ImageViewer')
@@ -11,6 +12,7 @@ _logger = get_module_logger('ImageViewer')
 def main():
 
     win = Gtk.Window()
+    dialogs.MAIN_WINDOW = win
     win.connect("destroy", lambda x: Gtk.main_quit())
     
     win.set_title("Diffraction Image Viewer")

@@ -6,7 +6,7 @@ import cairo
 import numpy
 from gi.repository import Gdk, Gtk, GObject
 from twisted.python.components import globalRegistry
-from mxdc.utils.automounter import ContainerCoords
+from mxdc.utils.automounter import ContainerCoords, ISARA_LAYOUTS
 from mxdc.beamline.mx import IBeamline
 from mxdc.utils.log import get_module_logger
 
@@ -29,6 +29,7 @@ class DewarLayout(object):
         self.update(data)
 
     def update(self, data):
+        data = ISARA_LAYOUTS
         if data:
             self.base_params = {
                 loc: (ContainerCoords[kind] + center, kind in ['puck', 'basket']) for (loc, kind), center in data.items()
