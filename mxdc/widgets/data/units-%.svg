@@ -14,7 +14,7 @@
    viewBox="0 0 12.7 12.7"
    version="1.1"
    id="svg8"
-   inkscape:version="0.92.1 r"
+   inkscape:version="0.92.0 r"
    sodipodi:docname="units-%.svg">
   <defs
      id="defs2" />
@@ -26,7 +26,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="11.4375"
-     inkscape:cx="24"
+     inkscape:cx="7.2131148"
      inkscape:cy="24"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
@@ -54,16 +54,14 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-284.3)">
-    <text
-       xml:space="preserve"
+    <g
+       aria-label="%"
        style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.87777805px;line-height:1.25;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="2.2161498"
-       y="294.28995"
-       id="text5038"><tspan
-         sodipodi:role="line"
-         id="tspan5036"
-         x="2.2161498"
-         y="294.28995"
-         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.87777805px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.26458332">%</tspan></text>
+       id="text5038">
+      <path
+         d="m 4.1028054,291.50441 q -0.7803445,0 -1.1754556,-0.58278 -0.3951111,-0.58279 -0.3951111,-1.71874 0,-1.14582 0.3951111,-1.72861 0.4049889,-0.59267 1.1754556,-0.59267 0.7704667,0 1.1655778,0.59267 0.4049889,0.58279 0.4049889,1.72861 0,1.13595 -0.4049889,1.71874 -0.3951111,0.58278 -1.1655778,0.58278 z m 0,-0.65193 q 0.8396111,0 0.8396111,-1.64959 0,-0.84949 -0.2074333,-1.25448 -0.2074333,-0.40498 -0.6321778,-0.40498 -0.8494889,0 -0.8494889,1.65946 0,1.64959 0.8494889,1.64959 z m 4.494389,3.56588 q -0.7803444,0 -1.1853333,-0.58279 -0.3951112,-0.59267 -0.3951112,-1.72861 0,-1.13595 0.3951112,-1.71873 0.4049889,-0.59267 1.1853333,-0.59267 0.7704667,0 1.1655778,0.59267 0.4049888,0.58278 0.4049888,1.71873 0,1.13594 -0.4049888,1.72861 -0.3951111,0.58279 -1.1655778,0.58279 z m 0,-0.66181 q 0.4247445,0 0.6223,-0.39511 0.2074334,-0.40499 0.2074334,-1.25448 0,-0.84949 -0.2074334,-1.25448 -0.2074333,-0.40499 -0.6223,-0.40499 -0.8593667,0 -0.8593667,1.65947 0,0.84949 0.2074334,1.25448 0.2074333,0.39511 0.6519333,0.39511 z m -1.3927667,-6.77616 h 0.7803445 l -2.5682223,7.30956 H 4.6362054 Z"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.87777805px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.26458332"
+         id="path8419" />
+    </g>
   </g>
 </svg>

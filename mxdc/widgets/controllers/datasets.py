@@ -65,6 +65,7 @@ class DatasetsController(GObject.GObject):
         config.run_name_lbl.set_text('Name_{suffix}'.format(**item.info))
         config.run_sample_lbl.set_text('{} / {}'.format('Sample Name', 'Group Name'))
         config.run_path_lbl.set_text('/full/path/to/datatset/frames')
+        config.run_index_lbl.set_text('{}'.format(item.position))
         config.run_info_lbl.set_text(
             (
                 'Will collect {range} deg total, with {delta} deg per frame, {exposure} sec exposure per frame, '

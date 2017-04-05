@@ -14,7 +14,7 @@
    viewBox="0 0 12.7 12.7"
    version="1.1"
    id="svg8"
-   inkscape:version="0.92.1 r"
+   inkscape:version="0.92.0 r"
    sodipodi:docname="units-sec.svg">
   <defs
      id="defs2" />
@@ -45,7 +45,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -54,17 +54,23 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-284.3)">
-    <text
-       xml:space="preserve"
+    <g
+       aria-label="sec"
+       transform="scale(0.9745427,1.0261223)"
        style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.62631607px;line-height:1.25;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.25784773"
-       x="0.56320381"
-       y="285.85477"
-       id="text5038"
-       transform="scale(0.9745427,1.0261223)"><tspan
-         sodipodi:role="line"
-         id="tspan5036"
-         x="0.56320381"
-         y="285.85477"
-         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.62631607px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.25784773">sec</tspan></text>
+       id="text5038">
+      <path
+         d="m 2.2863144,285.96066 q -0.3080421,0 -0.6353369,-0.0578 -0.3176684,-0.0578 -0.74122631,-0.16365 v -0.70272 q 0.30804211,0.10589 0.65458951,0.16365 0.3561737,0.0578 0.6834684,0.0578 0.4043053,0 0.6257106,-0.21178 0.2310316,-0.21178 0.2310316,-0.58721 0,-0.34655 -0.1829001,-0.5487 -0.1732736,-0.20215 -0.5775789,-0.30804 -0.2310316,-0.0481 -0.4813158,-0.11552 -0.2406579,-0.0674 -0.4428106,-0.2214 -0.2021526,-0.16365 -0.336921,-0.44281 -0.13476845,-0.27917 -0.13476845,-0.75086 0,-0.72197 0.41393155,-1.12627 0.423558,-0.40431 1.1744106,-0.40431 0.2695369,0 0.5487,0.0481 0.2887895,0.0385 0.6738421,0.12514 v 0.70273 q -0.3946789,-0.0963 -0.6257105,-0.12515 -0.2214053,-0.0385 -0.4331842,-0.0385 -0.4331842,0 -0.6738421,0.21178 -0.2406579,0.20215 -0.2406579,0.56795 0,0.2214 0.057758,0.3658 0.067384,0.13477 0.1732737,0.2214 0.1155158,0.0866 0.2599106,0.1444 0.154021,0.0578 0.3176684,0.0963 0.2887895,0.077 0.5390737,0.1829 0.2502842,0.10589 0.4331842,0.27917 0.1829,0.16364 0.2887895,0.42355 0.1058895,0.25991 0.1058895,0.65459 0,0.72198 -0.4524369,1.14553 -0.4428105,0.41394 -1.2225421,0.41394 z"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.62631607px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.25784773"
+         id="path8434" />
+      <path
+         d="m 6.7025373,285.9414 q -1.0203895,0 -1.5594632,-0.66421 -0.5294474,-0.67384 -0.5294474,-1.93489 0,-1.36694 0.5198211,-2.06966 0.5198211,-0.70272 1.5402106,-0.70272 1.674979,0 1.674979,2.29106 0,0.25029 -0.00963,0.41393 -0.00963,0.15403 -0.028879,0.31767 H 5.5185004 q 0.048132,0.85674 0.3369211,1.2418 0.2887895,0.38505 0.8952474,0.38505 0.2887895,0 0.6257105,-0.0674 0.3369211,-0.0674 0.7316001,-0.22141 l 0.048131,0.71235 q -0.3080421,0.13477 -0.702721,0.21178 -0.3850527,0.0866 -0.7508527,0.0866 z m -0.048132,-4.66876 q -1.0396421,0 -1.1262789,1.66535 h 2.0022737 q -0.019253,-0.89524 -0.2214053,-1.2803 -0.2021526,-0.38505 -0.6545895,-0.38505 z"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.62631607px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.25784773"
+         id="path8436" />
+      <path
+         d="m 11.236381,285.95103 q -1.107026,0 -1.655726,-0.65459 -0.5487,-0.66422 -0.5487,-2.04078 0,-2.69537 2.204426,-2.69537 0.192527,0 0.404306,0.0289 0.221405,0.0289 0.481315,0.10589 v 0.7316 q -0.231031,-0.0578 -0.433184,-0.077 -0.192526,-0.0289 -0.385052,-0.0289 -0.702721,0 -1.030016,0.46207 -0.3176686,0.45243 -0.3176686,1.47282 0,1.00114 0.3272946,1.47283 0.327295,0.47169 1.02039,0.47169 0.327294,0 0.818236,-0.11552 v 0.7316 q -0.192526,0.0578 -0.433184,0.0963 -0.231031,0.0385 -0.452437,0.0385 z"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.62631607px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.25784773"
+         id="path8438" />
+    </g>
   </g>
 </svg>
