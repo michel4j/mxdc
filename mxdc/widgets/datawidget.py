@@ -1,21 +1,6 @@
-from mxdc.interface.beamlines import IBeamline
-from mxdc.engine.diffraction import DataCollector
-from mxdc.engine.scripting import get_scripts
-from mxdc.utils import runlists
-from mxdc.utils.log import get_module_logger
-from mxdc.utils import config, gui
-from mxdc.widgets.dialogs import warning, error, MyDialog
-from mxdc.widgets.imageviewer import ImageViewer
-from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
-from mxdc.widgets.mountwidget import MountWidget
-from mxdc.widgets.runmanager import RunManager
-from twisted.python.components import globalRegistry
-from gi.repository import GObject
-from gi.repository import Gtk, GdkPixbuf
-from gi.repository import Pango
-import sys
-import os
-import time
+from gi.repository import Gtk
+
+from mxdc.utils import gui
 
 
 class RunEditor(gui.BuilderMixin):

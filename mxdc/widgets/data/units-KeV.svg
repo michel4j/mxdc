@@ -14,7 +14,7 @@
    viewBox="0 0 12.7 12.7"
    version="1.1"
    id="svg8"
-   inkscape:version="0.92.1 r"
+   inkscape:version="0.92.0 r"
    sodipodi:docname="units-KeV.svg">
   <defs
      id="defs2" />
@@ -26,7 +26,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="11.4375"
-     inkscape:cx="20.323666"
+     inkscape:cx="3.5367808"
      inkscape:cy="24"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
@@ -54,17 +54,23 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-284.3)">
-    <text
-       xml:space="preserve"
+    <g
+       aria-label="KeV"
+       transform="scale(0.87504644,1.1427965)"
        style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:7.98143625px;line-height:1.25;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.16611773"
-       x="0.66808206"
-       y="257.24945"
-       id="text5038"
-       transform="scale(0.87504644,1.1427965)"><tspan
-         sodipodi:role="line"
-         id="tspan5036"
-         x="0.66808206"
-         y="257.24945"
-         style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:7.98143625px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.16611773">KeV</tspan></text>
+       id="text5038">
+      <path
+         d="m 1.1868754,251.34319 h 0.9338281 v 2.49819 h 0.622552 l 1.4446399,-2.49819 h 1.0455682 l -1.5483986,2.65782 -0.3432018,0.21549 v 0.0479 l 0.3511832,0.19954 1.7000459,2.78552 H 4.3475242 l -1.6042687,-2.60993 h -0.622552 v 2.60993 H 1.1868754 Z"
+         style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:7.98143625px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.16611773"
+         id="path8412" />
+      <path
+         d="m 7.2636166,257.32128 q -0.877958,0 -1.3408813,-0.55072 -0.4549418,-0.5587 -0.4549418,-1.61225 0,-1.13336 0.4469604,-1.70802 0.4549419,-0.58265 1.3328999,-0.58265 1.4526214,0 1.4526214,1.94747 0,0.2155 -0.00798,0.3432 -0.00798,0.12771 -0.023944,0.26339 H 6.3936401 q 0.039907,0.6465 0.2554059,0.91787 0.2154988,0.27137 0.6704407,0.27137 0.4788862,0 1.189234,-0.23147 l 0.039907,0.69439 q -0.2633874,0.11174 -0.6145706,0.17559 -0.3432018,0.0718 -0.6704407,0.0718 z m -0.039907,-3.75925 q -0.383109,0 -0.5906263,0.30329 -0.1995359,0.29531 -0.2394431,0.93383 h 1.4925286 q -0.015963,-0.66246 -0.1755916,-0.94979 -0.1516473,-0.28733 -0.4868676,-0.28733 z"
+         style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:7.98143625px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.16611773"
+         id="path8414" />
+      <path
+         d="m 8.6574997,251.34319 h 0.9178652 l 1.1413451,3.91888 0.247425,1.13337 h 0.07183 l 0.263387,-1.13337 1.133364,-3.91888 h 0.893921 l -1.692065,5.90626 h -1.269048 z"
+         style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:7.98143625px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.16611773"
+         id="path8416" />
+    </g>
   </g>
 </svg>

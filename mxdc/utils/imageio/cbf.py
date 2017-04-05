@@ -319,7 +319,7 @@ class CBFImageFile(object):
             if res != 0:
                 _logger.error('MiniCBF Image data error: %s' % (_format_error(res),))
                         
-        self.image = Image.fromstring('F', self.header['detector_size'], data, 'raw', el_params[1])
+        self.image = Image.frombytes('F', self.header['detector_size'], data, 'raw', el_params[1])
         self.image = self.image.convert('I')
         arr = numpy.fromstring(data, dtype=el_type)
         self.header['average_intensity'] = arr.mean()    

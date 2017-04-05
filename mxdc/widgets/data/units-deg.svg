@@ -14,7 +14,7 @@
    viewBox="0 0 12.7 12.7"
    version="1.1"
    id="svg8"
-   inkscape:version="0.92.1 r"
+   inkscape:version="0.92.0 r"
    sodipodi:docname="units-deg.svg">
   <defs
      id="defs2" />
@@ -45,7 +45,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -54,17 +54,23 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-284.3)">
-    <text
-       xml:space="preserve"
+    <g
+       aria-label="deg"
+       transform="scale(0.92474176,1.081383)"
        style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.13439369px;line-height:1.25;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.24467124"
-       x="0.36034948"
-       y="271.4617"
-       id="text5038"
-       transform="scale(0.92474176,1.081383)"><tspan
-         sodipodi:role="line"
-         id="tspan5036"
-         x="0.36034948"
-         y="271.4617"
-         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.13439369px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.24467124">deg</tspan></text>
+       id="text5038">
+      <path
+         d="m 2.2877065,271.54391 q -1.59851885,0 -1.59851885,-2.47542 0,-1.27882 0.53892925,-1.94563 0.5480636,-0.67594 1.5985189,-0.67594 0.1552847,0 0.301435,0.0183 0.1552847,0.009 0.3927789,0.0457 v -2.42975 h 0.8403642 v 7.38059 H 3.6030592 l -0.073075,-0.49326 h -0.027403 q -0.4384509,0.57547 -1.2148744,0.57547 z m 0.2466287,-0.64854 q 0.2009566,0 0.3745101,-0.0731 0.1826879,-0.0731 0.3197038,-0.21922 0.1370159,-0.14615 0.2100911,-0.36538 0.082209,-0.21922 0.082209,-0.51152 v -2.55763 q -0.2192255,-0.0548 -0.3836445,-0.0731 -0.1644191,-0.0274 -0.3379726,-0.0274 -0.6302732,0 -0.9317082,0.45672 -0.301435,0.45672 -0.301435,1.4615 0,0.98651 0.2374943,1.45237 0.2374942,0.45672 0.7307515,0.45672 z"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.13439369px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.24467124"
+         id="path8422" />
+      <path
+         d="m 7.2028667,271.54391 q -0.9682458,0 -1.4797718,-0.63027 -0.5023917,-0.63941 -0.5023917,-1.83602 0,-1.29708 0.4932573,-1.96389 0.4932573,-0.66681 1.461503,-0.66681 1.5893845,0 1.5893845,2.17398 0,0.2375 -0.00913,0.39278 -0.00913,0.14615 -0.027403,0.30144 H 6.0793363 q 0.045672,0.81296 0.3197037,1.17833 0.2740318,0.36538 0.8494986,0.36538 0.2740319,0 0.5937356,-0.0639 0.3197038,-0.0639 0.694214,-0.21009 l 0.045672,0.67594 q -0.2923006,0.12789 -0.6668107,0.20096 -0.3653758,0.0822 -0.7124827,0.0822 z m -0.045672,-4.43018 q -0.9865145,0 -1.0687241,1.58025 h 1.8999539 q -0.018269,-0.8495 -0.210091,-1.21488 -0.1918223,-0.36537 -0.6211388,-0.36537 z"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.13439369px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.24467124"
+         id="path8424" />
+      <path
+         d="m 11.075707,273.47127 q -0.621138,0 -1.2696804,-0.21009 l 0.063941,-0.67595 q 0.3288386,0.10961 0.6028696,0.15529 0.274032,0.0548 0.53893,0.0548 0.328838,0 0.557198,-0.10048 0.237494,-0.0913 0.383644,-0.30143 0.155285,-0.20096 0.22836,-0.52066 0.07308,-0.31971 0.08221,-0.77643 v -0.21009 h -0.03654 q -0.429317,0.5572 -1.187471,0.5572 -1.6167879,0 -1.6167879,-2.37494 0,-1.26968 0.5389292,-1.94563 0.5480637,-0.67594 1.5893847,-0.67594 0.392779,0 0.74902,0.0548 0.356241,0.0457 0.794692,0.17356 v 4.18355 q 0,1.35189 -0.493257,1.98216 -0.493257,0.63028 -1.525444,0.63028 z m 0.182688,-2.63984 q 0.200957,0 0.37451,-0.0731 0.182688,-0.0731 0.319704,-0.21009 0.137016,-0.14615 0.210091,-0.34711 0.08221,-0.21009 0.08221,-0.47498 v -2.55763 q -0.22836,-0.0548 -0.392779,-0.0731 -0.155285,-0.0274 -0.319704,-0.0274 -0.630273,0 -0.931708,0.45672 -0.301435,0.45672 -0.301435,1.4615 0,0.94084 0.22836,1.39756 0.237494,0.44759 0.730751,0.44759 z"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:9.13439369px;font-family:'Encode Sans Compressed';-inkscape-font-specification:'Encode Sans Compressed, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.24467124"
+         id="path8426" />
+    </g>
   </g>
 </svg>
