@@ -12,7 +12,7 @@ from twisted.cred import portal, checkers
 from twisted.spread import pb
 from twisted.python import log
 
-from bcm.service.imagesync import ImgSyncService, IPptvISync
+from bcm.service.imagesync import MarCCDImgSyncService, IPptvISync
 from bcm.utils import mdns
 
 def getShellFactory(service, **passwords):
@@ -36,7 +36,7 @@ IMGSYNC_CONFIG = "/home/marccd/.imgsync.conf"
 IMGSYNC_SOURCE_LOG = "/home/marccd/log/stdouterr.log"
 
 application = service.Application('ImgSync')
-f = ImgSyncService(config_file=IMGSYNC_CONFIG, log_file=IMGSYNC_SOURCE_LOG)
+f = MarCCDImgSyncService(config_file=IMGSYNC_CONFIG, log_file=IMGSYNC_SOURCE_LOG)
 sf = getShellFactory(f, admin='admin')
 try:
     isync_provider = mdns.Provider('ImgSync Module', '_cmcf_imgsync._tcp', 8880, {}, unique=True)

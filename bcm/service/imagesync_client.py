@@ -14,16 +14,18 @@ _logger = get_module_logger("clients")
 class ImageSyncClient(BaseService):
     implements(IImageSyncService)
     
-    def __init__(self, url=None):
+    def __init__(self, url=None, **kwargs):
         BaseService.__init__(self)
         self.name = "Image Sync Service"
         self._service_found = False
+        self.kwargs = kwargs
         if url is None:
             gobject.idle_add(self.setup)
         else:
             address, port = url.split(':')
             gobject.idle_add(self.setup_manual, address, int(port))
-    
+
+
     @defer.deferredGenerator
     def set_user(self, user, uid, gid):
         d = self.service.callRemote('set_user', user, uid, gid)
@@ -37,7 +39,14 @@ class ImageSyncClient(BaseService):
         v = defer.waitForDeferred(d)
         yield v
         yield v.getResult()
-        
+
+    @defer.deferredGenerator
+    def configure(self, *args, **kwargs):
+        d = self.service.callRemote('configure', **kwargs)
+        v = defer.waitForDeferred(d)
+        yield v
+        yield v.getResult()
+
     def setup(self):
         """Find out the connection details of the ImgSync Server using mdns
         and initiate a connection"""
@@ -66,7 +75,7 @@ class ImageSyncClient(BaseService):
         self.factory.getRootObject().addCallback(self.on_server_connected).addErrback(self.dump_error)
         reactor.connectTCP(self._service_data['address'],
                            self._service_data['port'], self.factory)
-        
+
     def on_imgsync_service_removed(self, obj, data):
         if not self._service_found and self._service_data['host']==data['host']:
             return
@@ -80,7 +89,8 @@ class ImageSyncClient(BaseService):
         I expect to receive a remote perspective which will be used to call remote methods
         on the remote server."""
         _logger.info('Connection to Image Sync Server established')
-        self.service = perspective       
+        self.service = perspective
+        self.configure(**self.kwargs)
         self._ready = True
         self.set_state(active=True)
 
