@@ -428,8 +428,7 @@ class RunWidget(gtk.Alignment):
             self.delete_btn.set_sensitive(False)
             if self.predictor is None:    
                 #add Predictor    
-                self.predictor = Predictor(self.beamline.detector.resolution, 
-                                   self.beamline.detector.size)
+                self.predictor = Predictor(self.beamline.detector.resolution, min(self.beamline.detector.size))
                 self.predictor.set_size_request(180,180)
                 self.predictor.set_border_width(12)
                 self.run_widget.pack_end( self.predictor, expand=True, fill=True)

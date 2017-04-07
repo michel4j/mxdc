@@ -121,7 +121,9 @@ class IImagingDetector(IDevice):
     """An imaging detector device for aquiring image frames."""
     
     size = Attribute("""A size in pixels along x-axis.""")
-    resolution = Attribute("""Pixel resolution in mm.""" )    
+    resolution = Attribute("""Pixel resolution in mm.""" )
+    shutterless =  Attribute('Boolean value, True if shutterless mode is supported')
+    file_extension = Attribute('File extension used for frame names, without leading dot')
        
     def initialize():
         """Reset and initialize the detector."""
@@ -145,7 +147,7 @@ class IImagingDetector(IDevice):
             filename    -- name of image file to save
             directory   -- directory to save image                
         """
-    
+
     def wait():
         """Wait for detector to become idle."""
         

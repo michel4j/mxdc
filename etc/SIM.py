@@ -50,8 +50,9 @@ DEVICES = {
     'distance': _tmp1,
     'detector_z':  _tmp1,
     'two_theta':  SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
-    'detector': SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
-    
+    #'detector': SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
+    'detector': PIL6MImager('DEC1608-01:cam1'),
+
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_x':  SimMotor('Beamstop X', 0.0, 'mm'),
     'beamstop_y':  SimMotor('Beamstop Y', 0.0, 'mm'),
@@ -95,8 +96,8 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'image_server': SimImageSyncClient(),
-    'lims': LIMSClient('https://opi2051-002.clsi.ca:9393'),
+    'image_server': SimImageSyncClient(filename_pv='DEC1608-01:cam1:FileName'),
+    'lims': LIMSClient('https://cmcf.lightsource.ca'),
     'dpm': DPMClient(),
 }
 
