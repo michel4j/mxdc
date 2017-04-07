@@ -109,8 +109,7 @@ class MiniHutchManager(gtk.Alignment):
             self.device_box.attach(self.entries[key], l, l+1, t, t+1)
 
         # Predictor
-        self.predictor = Predictor(self.beamline.detector.resolution, 
-                                   self.beamline.detector.size)
+        self.predictor = Predictor(self.beamline.detector.resolution, min(self.beamline.detector.size))
         self.predictor.set(xalign=1, yalign=0.5)
         self.predictor_frame.add(self.predictor)
         self.beamline.diffractometer.distance.connect('changed', self.update_predictor)

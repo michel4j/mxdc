@@ -17,6 +17,7 @@ import pango
 import sys
 import os
 import time
+import itertools
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -25,8 +26,10 @@ _logger = get_module_logger(__name__)
     COLLECT_COLUMN_STATUS,
     COLLECT_COLUMN_ANGLE,
     COLLECT_COLUMN_RUN,
-    COLLECT_COLUMN_NAME
-) = range(4)
+    COLLECT_COLUMN_NAME,
+    COLLECT_COLUMN_AVERAGE,
+    COLLECT_COLUMN_DATASET,
+) = range(6)
 
 (
     COLLECT_STATE_IDLE,
@@ -47,6 +50,13 @@ FRAME_STATE_SKIPPED = DataCollector.STATE_SKIPPED
     MOUNT_ACTION_MANUAL_MOUNT
 ) = range(5)
 
+(
+    RESPONSE_REPLACE_ALL,
+    RESPONSE_REPLACE_BAD,
+    RESPONSE_SKIP,
+    RESPONSE_CANCEL,
+) = range(4)
+
 RUN_CONFIG_FILE = 'run_config.json'
 
 
@@ -64,19 +74,18 @@ class CollectManager(gtk.Alignment):
 
         self.collect_state = COLLECT_STATE_IDLE
         self.frame_pos = None
+        self.total_frames = 0
         self._first_launch = False
         self.await_response = False
         self.skip_frames = False
         self._create_widgets()
-        self.pause_time = 0
-        self.auto_pause = False
 
         self.active_sample = {}
         self.selected_sample = {}
         self.active_strategy = {}
         self.connect('realize', lambda x: self.update_data())
-
         self.scripts = get_scripts()
+
 
     def __getattr__(self, key):
         try:
@@ -99,6 +108,7 @@ class CollectManager(gtk.Alignment):
         self.sel_mounting = False  # will be sent to true when mount command has been sent and false when it is done
         self.frame_pos = None
 
+
         pango_font = pango.FontDescription("monospace 8")
         self.strategy_view.modify_font(pango_font)
 
@@ -107,6 +117,8 @@ class CollectManager(gtk.Alignment):
             gobject.TYPE_UINT,
             gobject.TYPE_FLOAT,
             gobject.TYPE_UINT,
+            gobject.TYPE_STRING,
+            gobject.TYPE_FLOAT,
             gobject.TYPE_STRING
         )
 
@@ -166,6 +178,7 @@ class CollectManager(gtk.Alignment):
         self.collector.connect('new-image', self.on_new_image)
         self.collector.connect('stopped', self.on_stopped)
         self.collector.connect('progress', self.on_progress)
+        self.collector.connect('started', self.on_started)
 
         self._load_config()
         self.add(self.collect_widget)
@@ -300,9 +313,12 @@ class CollectManager(gtk.Alignment):
         self.listmodel.set(itr,
                            COLLECT_COLUMN_STATUS, status,
                            COLLECT_COLUMN_ANGLE, item['start_angle'],
-                           COLLECT_COLUMN_RUN, item['number'],
-                           COLLECT_COLUMN_NAME, item['frame_name']
+                           COLLECT_COLUMN_RUN, item.get('number', 1),
+                           COLLECT_COLUMN_NAME, item['frame_name'],
+                           COLLECT_COLUMN_AVERAGE, 0.0,
+                           COLLECT_COLUMN_DATASET, item['dataset'],
                            )
+        self.total_frames = self.listmodel.get_path(itr)[0]
 
     def _saved_pixbuf(self, column, renderer, model, itr):
         value = model.get_value(itr, COLLECT_COLUMN_STATUS)
@@ -404,30 +420,42 @@ class CollectManager(gtk.Alignment):
 
     def gen_sequence(self):
         self.listmodel.clear()
+        self.total_frames = 0
         for item in self.run_list:
             self._add_item(item)
 
     def check_runlist(self):
-        existlist = []
-        details = ""
-        for i, frame in enumerate(self.run_list):
-            path_to_frame = "%s/%s" % (frame['directory'], frame['file_name'])
-            if os.path.exists(path_to_frame):
-                existlist.append(i)
-                details += frame['file_name'] + "\n"
-        if len(existlist) > 0:
-            header = 'Frames from this sequence already exist! Do you want to skip or replace them?'
-            sub_header = '<b>Replacing them will overwrite their contents permanently!</b> Skipped frames will not be re-acquired.'
-            buttons = (('gtk-cancel', gtk.RESPONSE_CANCEL), ('Skip', gtk.RESPONSE_YES), ('Replace', gtk.RESPONSE_NO))
+        existing, bad = runlists.check_frame_list(self.run_list, self.beamline.detector.file_extension, detect_bad=True)
+        details = '\n'.join(sorted(existing))
+        # for i, frame in enumerate(self.run_list):
+        #     file_name = "{}.{}".format(frame['frame_name'], self.beamline.detector.file_extension)
+        #     path_to_frame = "{}/{}".format(frame['directory'], file_name)
+        #     if os.path.exists(path_to_frame):
+        #         existing.append(i)
+        #         details += file_name + "\n"
+        if len(existing) > 0:
+            header = 'Frames from this sequence already exist!'
+            sub_header = (
+                '<b>What would you like to do with them?</b>\n'
+                '<i>Skip</i>: Do not overwrite existing frames\n'
+                '<i>Replace Bad</i>: Re-collect bad frames\n'
+                '<i>Replace All</i>: Re-collect all frames\n\n'
+                'See details for more information'
+            )
+            buttons = (
+                ('Cancel', RESPONSE_CANCEL),
+                ('Skip', RESPONSE_SKIP),
+                ('Replace Bad', RESPONSE_REPLACE_BAD),
+                ('Replace All', RESPONSE_REPLACE_ALL)
+            )
             response = warning(header, sub_header, details, buttons=buttons)
-            if response == gtk.RESPONSE_YES:
-                self.skip_existing = True
-                for index in existlist:
-                    self.set_row_state(index, FRAME_STATE_SKIPPED)
-                return True
-            elif response == gtk.RESPONSE_NO:
+            if response == RESPONSE_SKIP:
                 self.skip_existing = False
                 return True
+            elif response == RESPONSE_REPLACE_ALL:
+                pass
+            elif response == RESPONSE_REPLACE_BAD:
+                pass
             else:
                 return False
         return True
@@ -493,7 +521,7 @@ class CollectManager(gtk.Alignment):
             self.collect_btn.set_sensitive(True)
         else:
             self.paused = False
-            self.pause_time = time.time() - self.pause_start
+            self.pause_time += time.time() - self.pause_start
             self.collect_btn.set_label('mxdc-pause')
             self.collect_state = COLLECT_STATE_RUNNING
 
@@ -501,7 +529,6 @@ class CollectManager(gtk.Alignment):
         msg = ''
         if 'type' in pause_dict:
             msg = "Beam not Available. Collection has been paused and will automatically resume once the beam becomes available. Intervene to manually resume collection."
-            self.auto_pause = True
 
         if msg:
             title = 'Attention Required'
@@ -584,34 +611,33 @@ class CollectManager(gtk.Alignment):
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
 
-        self.emit('new-datasets', obj.results)
+        gobject.idle_add(self.emit, 'new-datasets', obj.results)
         self.beamline.lims.upload_datasets(self.beamline, obj.results)
 
-    def on_new_image(self, widget, index, filename):
-        self.frame_pos = index
-        self.image_viewer.add_frame(filename)
-
-    def on_progress(self, obj, fraction, position, state):
-        self.set_row_state(position, state)
-        if position == 0:
-            self.skipped = 0
-        self.start_time = (position == self.skipped) and time.time() or self.start_time + self.pause_time
+    def on_started(self, obj):
         self.pause_time = 0
-        if state == FRAME_STATE_RUNNING and position != self.skipped:
-            elapsed_time = time.time() - self.start_time
-            if position - 1 > self.skipped:
-                self.frame_time = (self.auto_pause and self.frame_time) or elapsed_time / (position - 1 - self.skipped)
-                if self.auto_pause: self.auto_pause = False
-                eta_time = self.frame_time * (self.ntot - position)
-                eta_format = eta_time >= 3600 and '%H:%M:%S' or '%M:%S'
-                text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format, time.gmtime(eta_time)), self.frame_time)
-            else:
-                if fraction:
-                    self.ntot = int(round((position + 1) / fraction))
-                text = "Calculating ETA..."
-            self.progress_bar.set_complete(fraction, text)
-        elif state == FRAME_STATE_SKIPPED:  # skipping this frame
-            self.skipped += 1
+        self.start_time = time.time()
+        _logger.info("Data Collection Started.")
+
+    def on_new_image(self, widget, index, file_path):
+        self.frame_pos = index
+        frame = os.path.splitext(os.path.basename(file_path))[0]
+        itr = self.listmodel.get_iter_first()
+        while itr:
+            fname = self.listmodel.get_value(itr, COLLECT_COLUMN_NAME)
+            if fname == frame:
+                self.listmodel.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_DONE)
+            itr = self.listmodel.iter_next(itr)
+        self.image_viewer.add_frame(file_path)
+
+    def on_progress(self, obj, fraction, state):
+        used_time = time.time() - self.start_time - self.pause_time
+        remaining_time = (1 - fraction) * used_time / fraction
+        eta_time = time.time() + remaining_time
+        frame_time = (used_time + remaining_time)/self.total_frames
+        eta_format = eta_time >= 3600 and '%H:%M:%S' or '%M:%S'
+        text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format, time.gmtime(eta_time)), frame_time)
+        self.progress_bar.set_complete(fraction, text)
 
     def on_energy_changed(self, obj, val):
         run_zero = self.run_manager.runs[0]
@@ -625,8 +651,10 @@ class CollectManager(gtk.Alignment):
 
     def start_collection(self):
         self.init_time = time.time()
+        self.pause_time = 0
         self.create_runlist()
         if self.config_user():
+            #proceed, skipped_frames = self.check_runlist()
             if self.check_runlist():
                 self.progress_bar.busy_text("Starting data collection...")
                 self.collector.configure(self.run_data, skip_existing=self.skip_existing)

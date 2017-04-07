@@ -380,11 +380,15 @@ class EXAFSScan(BasicScan):
             _logger.error("Could not open file '%s' for writing" % filename)
             return
         f.write('# XDI/1.0 MXDC\n')
+        f.write('# Facility.name: Canadian Light Source\n')
         f.write('# Beamline.name: CLS %s\n' % self.beamline.name)
-        f.write('# Beamline.edge-energy: %0.2f\n' % (1000.0 * self.scan_parameters['edge_energy']))
-        f.write('# Beamline.d-spacing: %0.5f\n' % converter.energy_to_d(self.scan_parameters['edge_energy']))
-        f.write('# Time.start: %s\n' % self.scan_parameters['start_time'].isoformat())
-        f.write('# Time.end: %s\n' % self.scan_parameters['end_time'].isoformat())
+        f.write('# Element.symbol: %s\n' % (self.scan_parameters['edge'].split('-')[0]))
+        f.write('# Element.edge: %s\n' % (self.scan_parameters['edge'].split('-')[1]))
+        f.write('# Mono.name: Si 111\n' )
+        f.write('# Mono.d_spacing: %0.5f\n' % converter.energy_to_d(self.scan_parameters['edge_energy']))
+        f.write('# Scan.edge_energy: %0.2f eV\n' % (1000.0 * self.scan_parameters['edge_energy']))
+        f.write('# Scan.start_time: %s\n' % self.scan_parameters['start_time'].isoformat())
+        f.write('# Scan.end_time: %s\n' % self.scan_parameters['end_time'].isoformat())
         
         header = ''
         for i , info in enumerate(self.data_names):
