@@ -95,7 +95,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'image_server': SimImageSyncClient(),
+    'image_server': ImageSyncClient(filename_pv="DEC1608-01:cam1:FileName"),
     'lims': LIMSClient('https://opi2051-002.clsi.ca:9393'),
     'dpm': DPMClient(),
 }
