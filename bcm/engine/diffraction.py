@@ -276,6 +276,10 @@ class DataCollector(gobject.GObject):
 
                 if abs(self.beamline.attenuator.get() - wedge['attenuation']) >= 25:
                     self.beamline.attenuator.set(wedge['attenuation'], wait=True)
+
+                # setup folder for wedge
+                self.beamline.image_server.setup_folder(wedge['directory'])
+
                 name = wedge['file_template'] % wedge['start_frame']
                 detector_parameters = {
                     'file_template': '{}.{}'.format(name, self.beamline.detector.file_extension),
