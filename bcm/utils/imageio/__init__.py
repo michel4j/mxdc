@@ -45,8 +45,8 @@ def read_image(filename, header_only=False):
         raise UnknownImageFormat('Supported formats [%s]' % (known_formats,))
 
 
-def read_header(filename):
-    img_obj = read_image(filename, header_only=True)
+def read_header(filename, full=False):
+    img_obj = read_image(filename, header_only=not(full))
     return img_obj.header
 
 
