@@ -406,7 +406,7 @@ class PV(gobject.GObject):
             
             return self._params
 
-    def set(self, val, flush=False):
+    def set(self, val, flush=True):
         """
         Set the value of the process variable, waiting for up to 1 sec until 
         the put is complete.
@@ -446,13 +446,14 @@ class PV(gobject.GObject):
             data = self._vtype(val)           
         libca.ca_array_put(self._type, self._count, self._chid, byref(data))
         libca.ca_pend_io(1.0)
-        libca.ca_flush_io()
-        libca.ca_pend_event(0.05)
+        if flush:
+            libca.ca_flush_io()
+            libca.ca_pend_event(0.05)
         
     # provide a put method for those used to EPICS terminology even though
     # set makes more sense
-    def put(self, val):
-        self.set(val)
+    def put(self, val, flush=True):
+        self.set(val, flush)
     
     def toggle(self, val1, val2, delay=0.001):
         """Rapidly switch between two values with a maximum delay between."""

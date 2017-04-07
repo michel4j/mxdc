@@ -284,7 +284,7 @@ class CBFImageFile(object):
                 config = '%s.ini' % hdr_type.value.lower()
                 info = parse_tools.parse_data(hdr_contents.value, config)
                 header['detector_type'] = info['detector'].lower().strip().replace(' ', '')
-                header['two_theta'] = info['two_theta']
+                header['two_theta'] = 0 if not info['two_theta'] else info['two_theta']
                 header['pixel_size'] = info['pixel_size'][0] * 1000
                 header['exposure_time'] = info['exposure_time']
                 header['wavelength'] = info['wavelength']
@@ -319,7 +319,7 @@ class CBFImageFile(object):
             if res != 0:
                 _logger.error('MiniCBF Image data error: %s' % (_format_error(res),))
                         
-        self.image = Image.fromstring('F', self.header['detector_size'], data, 'raw', el_params[1])
+        self.image = Image.frombytes('F', self.header['detector_size'], data, 'raw', el_params[1])
         self.image = self.image.convert('I')
         arr = numpy.fromstring(data, dtype=el_type)
         self.header['average_intensity'] = arr.mean()    

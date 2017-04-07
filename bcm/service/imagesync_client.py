@@ -1,4 +1,4 @@
-import xmlrpclib
+
 import gobject
 from zope.interface import implements
 from bcm.service.imagesync import IImageSyncService
@@ -8,6 +8,7 @@ from bcm.service.base import BaseService
 from twisted.spread import pb
 from twisted.internet import reactor
 from twisted.internet import defer
+import os
 
 _logger = get_module_logger("clients")
 
@@ -101,4 +102,25 @@ class SimImageSyncClient(BaseService):
     def setup_folder(self, folder):
         return True
 
-__all__ = ['ImageSyncClient','SimImageSyncClient']
+
+class LocalImageSyncClient(BaseService):
+    implements(IImageSyncService)
+
+    def __init__(self):
+        super(LocalImageSyncClient, self).__init__()
+        self.name = "ImgSync Service"
+        self.set_state(active=True)
+        self.params = []
+
+    def set_user(self, user, uid, gid):
+        self.params = [user, uid, gid]
+        return True
+
+    def setup_folder(self, folder):
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        os.chmod(folder, 0o777)
+        return True
+
+
+__all__ = ['ImageSyncClient', 'LocalImageSyncClient', 'SimImageSyncClient']

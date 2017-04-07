@@ -133,5 +133,8 @@ if __name__ == "__main__":
     log_to_console()
     #log_to_file(os.path.join(os.environ['HOME'], 'mxdc.log'))
         
-    reactor.callWhenRunning(main)
-    reactor.run()
+    #reactor.callWhenRunning(main)
+    #reactor.run()
+
+    gobject.idle_add(main)
+    gtk.main()
