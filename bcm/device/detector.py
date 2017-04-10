@@ -21,8 +21,9 @@ class MXCCDImager(BaseDevice):
     """MX Detector object for EPICS based Rayonix CCD detectors at the CLS."""
     implements(IImagingDetector)
     __gsignals__ = {
-        'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT, gobject.TYPE_STRING)),
+        'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
     }
+
     def __init__(self, name, size, resolution, detector_type='MX300'):
         """
         Args:
@@ -43,6 +44,7 @@ class MXCCDImager(BaseDevice):
         self.name = '%s Detector' % detector_type
         self.shutterless = False
         self.file_extension = 'img'
+        self.current_file = ''
 
         self._start_cmd = self.add_pv("%s:start:cmd" % name, monitor=False)
         self._abort_cmd = self.add_pv("%s:abort:cmd" % name, monitor=False)
@@ -138,6 +140,7 @@ class MXCCDImager(BaseDevice):
         self._save_cmd.put(1)
         if wait:
             self.wait_for_state('read:exec')
+        self.set_state(new_image=self.current_file)
 
     def get_origin(self):
         """Obtain the detector origin/beam position in pixels.
@@ -179,7 +182,11 @@ class MXCCDImager(BaseDevice):
                          
         """
         for key in data.keys():
-            self._header[key].set(data[key])
+            if key in self._header:
+                self._header[key].set(data[key])
+        self.current_file = data['filename']
+        if os.path.exists(data['filename']):
+            os.remove(data['filename'])
         self._header_cmd.put(1)
 
     def take_background(self):
@@ -252,9 +259,8 @@ class MXCCDImager(BaseDevice):
 class SimCCDImager(BaseDevice):
     implements(IImagingDetector)
     __gsignals__ = {
-        'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT, gobject.TYPE_STRING)),
+        'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
     }
-
     def __init__(self, name, size, resolution, detector_type="MX300"):
         BaseDevice.__init__(self)
         self.size = int(size), int(size)
@@ -299,18 +305,21 @@ class SimCCDImager(BaseDevice):
         _logger.debug('Saving frame: %s' % datetime.now().isoformat())
         num = 1 + (self.parameters['frame_number'] - 1) % self._num_frames
         src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
-        dst_img = os.path.join(self.parameters['directory'],
-                               '%s.gz' % self.parameters['filename'])
+        dst_img = os.path.join(self.parameters['directory'], '%s.gz' % self.parameters['filename'])
+        file_path = os.path.join(self.parameters['directory'], self.parameters['filename'])
+
         dst_parts = dst_img.split('/')
         if dst_parts[1] == 'data':
             dst_parts[1] = 'users'
         dst_img = '/'.join(dst_parts)
         shutil.copyfile(src_img, dst_img)
+        self.set_state(new_image=file_path)
         os.system('/usr/bin/gunzip -f %s' % dst_img)
         _logger.debug('Frame saved: %s' % datetime.now().isoformat())
 
     def save(self, wait=False):
         self._copy_frame()
+
 
     def wait(self, state='idle'):
         time.sleep(0.1)
@@ -324,7 +333,7 @@ class SimCCDImager(BaseDevice):
 class PIL6MImager(BaseDevice):
     implements(IImagingDetector)
     __gsignals__ = {
-        'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT, gobject.TYPE_STRING)),
+        'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
     }
     STATES = {
         'init': [8],
@@ -343,12 +352,15 @@ class PIL6MImager(BaseDevice):
         self.detector_type = '6M'
         self.shutterless = True
         self.file_extension = 'cbf'
+        self.file_list = []
+        self._notifier_id = None
+        self._notifier_period = 1000
 
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
         self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name), monitor=False)
-        self.callback_cmd = self.add_pv("%s:ArrayCallbacks" % name, monitor=False)
 
-        self.connected_status = self.add_pv('')
+
+        self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
         self.armed_status = self.add_pv("{}:Armed".format(name))
         self.acquire_status = self.add_pv("{}:Acquire_RBV".format(name))
         self.energy_threshold = self.add_pv('{}:ThresholdEnergy_RBV'.format(name), monitor=False)
@@ -356,11 +368,10 @@ class PIL6MImager(BaseDevice):
         self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
         self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
-        self.new_file = self.add_pv('{}:FileName'.format(name))
 
         # Data Parameters
         self.settings = {
-            'file_template': self.add_pv("{}:FileTemplate".format(name), monitor=True),
+            'first_frame': self.add_pv("{}:FileTemplate".format(name), monitor=True),
             'directory': self.add_pv("{}:FilePath".format(name), monitor=False),
 
             'wavelength': self.add_pv("{}:Wavelength".format(name), monitor=False),
@@ -386,8 +397,6 @@ class PIL6MImager(BaseDevice):
             'comments': self.add_pv('{}:HeaderString'.format(name), monitor=False),
         }
 
-        self.new_file.connect('changed', self.on_new_file)
-
     def initialize(self, wait=True):
         _logger.debug('({}) Initializing Detector ...'.format(self.name))
 
@@ -397,6 +406,7 @@ class PIL6MImager(BaseDevice):
         self.acquire_cmd.put(1)
         ca.flush()
         self.wait('acquiring')
+        self.monitor_frames()
 
     def stop(self):
         _logger.debug('({}) Stopping Detector ...'.format(self.name))
@@ -410,12 +420,16 @@ class PIL6MImager(BaseDevice):
     def save(self, wait=False):
         return
 
-    def on_new_file(self, obj, filename):
-        file_patt = re.compile(r'^.+_(\d+).{}$'.format(self.file_extension))
-        numbers = file_patt.findall(filename)
-        if numbers:
-            number = int(numbers[0])
-            self.set_state(new_image=(number, filename))
+    def monitor_frames(self):
+        if self._notifier_id:
+            gobject.source_remove(self._notifier_id)
+        print self._notifier_period
+        self._notifier_id = gobject.timeout_add(self._notifier_period, self._notify_frame)
+
+    def _notify_frame(self):
+        if self.file_list:
+            gobject.idle_add(self.emit, 'new-image', self.file_list.pop(0))
+            return True
 
     def wait(self, state='idle'):
         return self.wait_for_state(state)
@@ -429,18 +443,30 @@ class PIL6MImager(BaseDevice):
 
         # default directory if camserver fails to save frames
         self.settings['directory'].put('/data/images/', flush=True)
-
+        params['file_template'] = '{}.{}'.format(params['file_template'], self.file_extension)
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
         params['polarization'] = self.settings['polarization'].get()
         params['exposure_period'] = params['exposure_time']
         params['exposure_time'] -= 0.002
+        params['first_frame'] = params['file_template'] % params['start_frame']
+
         self.mode_cmd.put(0)
         for k, v in params.items():
             if k in self.settings:
                 time.sleep(0.05)
                 self.settings[k].put(v, flush=True)
 
+        # cleanup existing files
+        self.file_list = [
+            os.path.join(params['directory'], params['file_template'] % (i+params['start_frame']))
+            for i in range(params['num_frames'])
+        ]
+        self._notifier_period = int(1000*params['exposure_period'])
+        for file_path in self.file_list:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            time.sleep(0)
 
     def wait_for_state(self, state, timeout=10.0):
         _logger.debug('(%s) Waiting for state: %s' % (self.name, state,))

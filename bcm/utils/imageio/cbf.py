@@ -280,7 +280,7 @@ class CBFImageFile(object):
             hdr_contents = c_char_p()
             res |= cbflib.cbf_get_value(self.handle, byref(hdr_contents))
             if res == 0 and hdr_type.value != 'XDS special':
-                _logger.info('miniCBF header type found: %s' % hdr_type.value)
+                #_logger.info('miniCBF header type found: %s' % hdr_type.value)
                 config = '%s.ini' % hdr_type.value.lower()
                 info = parse_tools.parse_data(hdr_contents.value, config)
                 header['detector_type'] = info['detector'].lower().strip().replace(' ', '')
@@ -294,8 +294,8 @@ class CBFImageFile(object):
                 header['delta_angle'] = info['delta_angle']
                 header['saturated_value'] = info['saturated_value']
                 header['sensor_thickness'] = info['sensor_thickness']*1000
-            else:
-                _logger.warning('miniCBF with no header')
+            #else:
+            #    _logger.warning('miniCBF with no header')
         self.header = header
 
         
@@ -316,8 +316,8 @@ class CBFImageFile(object):
             num_el_read = c_size_t()
             res |= cbflib.cbf_get_integerarray(self.handle, byref(binary_id), byref(data), el_size,
                 1, c_size_t(num_el), byref(num_el_read))
-            if res != 0:
-                _logger.error('MiniCBF Image data error: %s' % (_format_error(res),))
+            #if res != 0:
+            #    _logger.error('MiniCBF Image data error: %s' % (_format_error(res),))
                         
         self.image = Image.frombytes('F', self.header['detector_size'], data, 'raw', el_params[1])
         self.image = self.image.convert('I')

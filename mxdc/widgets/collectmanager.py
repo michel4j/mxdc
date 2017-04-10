@@ -425,37 +425,28 @@ class CollectManager(gtk.Alignment):
             self._add_item(item)
 
     def check_runlist(self):
-        existing, bad = runlists.check_frame_list(self.run_list, self.beamline.detector.file_extension, detect_bad=True)
-        details = '\n'.join(sorted(existing))
-        # for i, frame in enumerate(self.run_list):
-        #     file_name = "{}.{}".format(frame['frame_name'], self.beamline.detector.file_extension)
-        #     path_to_frame = "{}/{}".format(frame['directory'], file_name)
-        #     if os.path.exists(path_to_frame):
-        #         existing.append(i)
-        #         details += file_name + "\n"
-        if len(existing) > 0:
-            header = 'Frames from this sequence already exist!'
-            sub_header = (
-                '<b>What would you like to do with them?</b>\n'
+        existing, bad = runlists.check_frame_list(self.run_list, self.beamline.detector.file_extension, detect_bad=False)
+        if any(existing.values()):
+            details = '\n'.join(['{}: {}'.format(k, v) for k, v in existing.items()])
+            header = 'Frames from this sequence already exist!\n'
+            sub_header = details + (
+                '\n\n<b>What would you like to do with them?</b>\n'
                 '<i>Skip</i>: Do not overwrite existing frames\n'
-                '<i>Replace Bad</i>: Re-collect bad frames\n'
                 '<i>Replace All</i>: Re-collect all frames\n\n'
-                'See details for more information'
             )
             buttons = (
                 ('Cancel', RESPONSE_CANCEL),
                 ('Skip', RESPONSE_SKIP),
-                ('Replace Bad', RESPONSE_REPLACE_BAD),
                 ('Replace All', RESPONSE_REPLACE_ALL)
             )
-            response = warning(header, sub_header, details, buttons=buttons)
+
+            response = warning(header, sub_header, buttons=buttons)
             if response == RESPONSE_SKIP:
-                self.skip_existing = False
+                for run in self.run_data:
+                    run['skip'] = ','.join([existing.get(run['name'], ''), run.get('skip', '')])
                 return True
             elif response == RESPONSE_REPLACE_ALL:
-                pass
-            elif response == RESPONSE_REPLACE_BAD:
-                pass
+                return True
             else:
                 return False
         return True
@@ -580,24 +571,18 @@ class CollectManager(gtk.Alignment):
             warning(msg1, msg2)
             return
 
-        if self.collect_state == COLLECT_STATE_IDLE:
-            self.start_collection()
-            self.progress_bar.set_fraction(0)
-        elif self.collect_state == COLLECT_STATE_RUNNING:
-            self.collector.pause()
-            self.collect_btn.set_sensitive(False)
-            self.progress_bar.busy_text("Pausing after this frame...")
-        elif self.collect_state == COLLECT_STATE_PAUSED:
-            self.collector.resume()
+        self.start_collection()
+        self.progress_bar.set_fraction(0)
+        self.collect_btn.set_sensitive(False)
 
     def on_stop_btn_clicked(self, widget):
         self.collector.stop()
         self.stop_btn.set_sensitive(False)
-        self.progress_bar.busy_text("Stopping after this frame...")
+        self.progress_bar.busy_text("Stopping ...")
 
     def on_done(self, obj=None):
         self.on_complete(obj)
-        text = 'Completed in %s' % time.strftime('%H:%M:%S', time.gmtime(time.time() - self.init_time))
+        text = 'Completed in %s' % time.strftime('%H:%M:%S', time.gmtime(time.time() - self.start_time))
         self.progress_bar.idle_text(text)
 
     def on_stopped(self, obj=None):
@@ -605,8 +590,7 @@ class CollectManager(gtk.Alignment):
         self.progress_bar.idle_text("Stopped")
 
     def on_complete(self, obj=None):
-        self.collect_state = COLLECT_STATE_IDLE
-        self.collect_btn.set_label('mxdc-collect')
+        self.collect_btn.set_sensitive(True)
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
@@ -617,10 +601,10 @@ class CollectManager(gtk.Alignment):
     def on_started(self, obj):
         self.pause_time = 0
         self.start_time = time.time()
+        self.stop_btn.set_sensitive(True)
         _logger.info("Data Collection Started.")
 
-    def on_new_image(self, widget, index, file_path):
-        self.frame_pos = index
+    def on_new_image(self, widget, file_path):
         frame = os.path.splitext(os.path.basename(file_path))[0]
         itr = self.listmodel.get_iter_first()
         while itr:
@@ -629,11 +613,12 @@ class CollectManager(gtk.Alignment):
                 self.listmodel.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_DONE)
             itr = self.listmodel.iter_next(itr)
         self.image_viewer.add_frame(file_path)
+        _logger.info('Frame available: {}'.format(file_path))
 
-    def on_progress(self, obj, fraction, state):
-        used_time = time.time() - self.start_time - self.pause_time
+    def on_progress(self, obj, fraction):
+        used_time = time.time() - self.start_time
         remaining_time = (1 - fraction) * used_time / fraction
-        eta_time = time.time() + remaining_time
+        eta_time = remaining_time
         frame_time = (used_time + remaining_time)/self.total_frames
         eta_format = eta_time >= 3600 and '%H:%M:%S' or '%M:%S'
         text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format, time.gmtime(eta_time)), frame_time)
@@ -650,8 +635,6 @@ class CollectManager(gtk.Alignment):
             self.labels[key].set_text(dct[key])
 
     def start_collection(self):
-        self.init_time = time.time()
-        self.pause_time = 0
         self.create_runlist()
         if self.config_user():
             #proceed, skipped_frames = self.check_runlist()
@@ -659,9 +642,6 @@ class CollectManager(gtk.Alignment):
                 self.progress_bar.busy_text("Starting data collection...")
                 self.collector.configure(self.run_data, skip_existing=self.skip_existing)
                 self.collector.start()
-                self.collect_state = COLLECT_STATE_RUNNING
-                self.collect_btn.set_label('mxdc-pause')
-                self.stop_btn.set_sensitive(True)
                 self.run_manager.set_sensitive(False)
                 self.image_viewer.set_collect_mode(True)
         return
