@@ -726,7 +726,7 @@ class ScreenManager(gtk.Alignment):
         self.action_frame.set_sensitive(True)
         self.clear_btn.set_sensitive(True)
 
-    def _on_diffraction_image(self, obj, pos, filename):
+    def _on_diffraction_image(self, obj, filename):
         self.image_viewer.add_frame(filename)
         # make tab label bold if image is loaded while hidden
         if self.screen_ntbk.get_current_page() != self.screen_ntbk.page_num(self.image_viewer):

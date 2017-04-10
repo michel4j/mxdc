@@ -35,9 +35,9 @@ COLORMAPS['gist_yarg'][-2] = 0
 COLORMAPS['gist_yarg'][-3] = 255
 
 # Modify default colormap to add overloaded pixel effect
-COLORMAPS['gist_yarg'][0] = 0
-COLORMAPS['gist_yarg'][1] = 0
-COLORMAPS['gist_yarg'][2] = 200
+#COLORMAPS['gist_yarg'][0] = 0
+#COLORMAPS['gist_yarg'][1] = 0
+#COLORMAPS['gist_yarg'][2] = 200
 
 _GAMMA_SHIFT = 3.5        
 
@@ -95,13 +95,15 @@ def image_loadable(filename):
             return False
     return False
 
+
 class FileLoader(gobject.GObject):
     __gsignals__ =  { 
         "new-image": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),
     }
+
     def __init__(self):
         gobject.GObject.__init__(self)
-        self.inbox = Queue.Queue(1000)
+        self.next_file = None
         self.outbox = Queue.Queue(1000)
         self._stopped = False
         self._paused = False
@@ -109,7 +111,7 @@ class FileLoader(gobject.GObject):
         
     def queue_file(self, filename):
         if not self._paused and not self._stopped:
-            self.inbox.put(filename)
+            self.next_file = filename
             img_logger.debug('Queuing for display: %s' % filename)
         else:
             self.load_file(filename)
@@ -120,8 +122,7 @@ class FileLoader(gobject.GObject):
             gobject.idle_add(self.emit, 'new-image')
         
     def reset(self):
-        while not self.inbox.empty():
-            _junk = self.inbox.get()
+        self.next_file = None
     
     def start(self):
         self._stopped = False
@@ -140,14 +141,16 @@ class FileLoader(gobject.GObject):
     
     def _run(self):
         filename = None
+        _search_t = time.time()
         while not self._stopped:
-            time.sleep(0.5)
+            time.sleep(1.0)
             if self._paused:
                 continue
-            elif filename is None:
-                filename = self.inbox.get(block=True)
+            if not filename:
+                filename = self.next_file
+                self.next_file = None
                 _search_t = time.time()
-            elif image_loadable(filename):
+            if filename and image_loadable(filename):
                 try:
                     img_info = _load_frame_image(filename, self.gamma_offset)
                 except:
@@ -157,10 +160,11 @@ class FileLoader(gobject.GObject):
                     img_logger.debug('Loading image: %s' % filename)
                     gobject.idle_add(self.emit, 'new-image')
                     filename = None
-            elif (time.time()-_search_t > 10.0) and self.inbox.qsize() > 0:
+            if filename and (time.time()-_search_t > 10.0):
                 img_logger.debug('Error loading image: %s' % filename)
                 filename = None
-        
+
+
 class ImageWidget(gtk.DrawingArea):
     __gsignals__ =  { 
         "image-loaded": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, []),

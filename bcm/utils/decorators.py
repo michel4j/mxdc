@@ -24,6 +24,6 @@ def ca_thread_enable(f):
     def _f(*args, **kwargs):
         threads_init() 
         return f(*args,**kwargs)
-        _f.__name__ = f.__name__
+    _f.__name__ = f.__name__
     return _f
     

@@ -168,8 +168,8 @@ class FrameChecker(object):
                 value = header.get('average_intensity')
             else:
                 value = 10
-            return frame['dataset'], frame_name, True, value
-        return frame['dataset'], frame_name, False, 0
+            return frame['dataset'], frame['frame_number'], True, value
+        return frame['dataset'], frame['frame_number'], False, 0
 
 
 def check_frame_list(frames, ext='img', detect_bad=False):
@@ -177,13 +177,15 @@ def check_frame_list(frames, ext='img', detect_bad=False):
     check_frame = FrameChecker(ext, detect_bad)
     pool = Pool(cpu_count())
     results = pool.map(check_frame, frames)
-
-    for dataset, frame_name, exists, value in results:
+    existing_frames = defaultdict(list)
+    for dataset, frame_number, exists, value in results:
         if exists:
-            intensities[dataset][frame_name] = value
-
-    existing = list(itertools.chain.from_iterable(intensities.values()))
-    print existing
+            intensities[dataset][frame_number] = value
+            existing_frames[dataset].append(frame_number)
+    existing = {
+        k: summarize_frame_set(v)
+        for k,v in existing_frames.items()
+    }
     bad = []
     return existing, bad
 

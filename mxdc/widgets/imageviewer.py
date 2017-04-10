@@ -17,7 +17,7 @@ __log_section__ = 'mxdc.imageviewer'
 img_logger = logging.getLogger(__log_section__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
-FILE_PATTERN = re.compile('^(?P<base>[\w-]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.?[\w.]+)?$')
+FILE_PATTERN = re.compile('^(?P<base>[\w-]+\.?)(?<!\d)(?P<num>\d{3,6})(?P<ext>\.?[\w.]+)?$')
 
 class ImageViewer(gtk.Alignment):
     def __init__(self, size=512):
@@ -259,7 +259,7 @@ class ImageViewer(gtk.Alignment):
             elif key in ['detector_type']:
                 txt = val
             else:
-                txt = "%g" % val
+                txt = '' if not val else "%g" % val
             w.set_markup(txt)
 
             
