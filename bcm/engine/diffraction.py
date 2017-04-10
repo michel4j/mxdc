@@ -8,11 +8,14 @@ from bcm.utils.log import get_module_logger
 from bcm.utils.misc import get_project_name
 from twisted.python.components import globalRegistry
 from zope.interface import implements
+from Queue import Queue
 import gobject
 import os
 import pwd
 import threading
 import time
+import re
+import subprocess
 
 
 # setup module logger with a default do-nothing handler
@@ -34,16 +37,15 @@ DEFAULT_PARAMETERS = {
     'energy_label': ['E0'],
     'number': 1,
     'two_theta': 0.0,
-    'jump': 0.0
 }
 
 
 class DataCollector(gobject.GObject):
     implements(IDataCollector)
     __gsignals__ = {
-        'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT, gobject.TYPE_STRING)),
+        'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
         'progress': (
-            gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT, gobject.TYPE_INT)),
+            gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)),
         'done': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []), 'paused': (
             gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_PYOBJECT)),
         'started': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
@@ -65,14 +67,15 @@ class DataCollector(gobject.GObject):
         self.beamline = None
         self.beam_connect = None
         self.total_frames = 0
-
-    def configure(self, run_data, skip_existing=True, take_snapshots=True):
-        # associate beamline devices
+        self.count = 0
         self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline.detector.connect('new-image', self.on_new_image)
 
-        if self.beam_connect:
-            self.beamline.storage_ring.disconnect(self.beam_connect)
-        self.beam_connect = self.beamline.storage_ring.connect('beam', self.on_beam_change)
+
+    def configure(self, run_data, skip_existing=True, take_snapshots=True, skip_frames=None):
+        # if self.beam_connect:
+        #     self.beamline.storage_ring.disconnect(self.beam_connect)
+        # self.beam_connect = self.beamline.storage_ring.connect('beam', self.on_beam_change)
 
         self.config['skip_existing'] = skip_existing
         self.config['take_snapshots'] = take_snapshots
@@ -88,24 +91,23 @@ class DataCollector(gobject.GObject):
         if self.beamline is None:
             _logger.error('No Beamline found. Aborting data collection...')
             return False
-        worker_thread = threading.Thread(target=self.run)
-        worker_thread.setDaemon(True)
-        worker_thread.setName('Data Collector')
+
+        worker = threading.Thread(target=self.run)
+        worker.setDaemon(True)
+        worker.setName('Data Collector')
         self.paused = False
         self.stopped = False
-        worker_thread.start()
+        worker.start()
 
     def run(self):
+        ca.threads_init()
+        self.beamline.lock.acquire()
         if self.beamline.detector.shutterless:
             self.run_shutterless()
         else:
             self.run_default()
 
     def run_default(self):
-        ca.threads_init()
-        self.beamline.lock.acquire()
-
-        skip_existing = self.config['skip_existing']
         datasets = self.config['datasets']
         wedges = self.config['wedges']
 
@@ -135,8 +137,11 @@ class DataCollector(gobject.GObject):
             self.beamline.exposure_shutter.close()
             self.count = 0
 
-            first_frame = True
+            is_first_frame = True
             for wedge in wedges:
+                # setup folder for wedge
+                self.beamline.image_server.setup_folder(wedge['directory'])
+
                 # setup devices
                 if abs(self.beamline.energy.get_position() - wedge['energy']) >= 0.0005:
                     self.beamline.energy.move_to(wedge['energy'], wait=True)
@@ -147,31 +152,10 @@ class DataCollector(gobject.GObject):
                 if abs(self.beamline.attenuator.get() - wedge['attenuation']) >= 25:
                     self.beamline.attenuator.set(wedge['attenuation'], wait=True)
 
-                # setup folder for wedge
-                self.beamline.image_server.setup_folder(wedge['directory'])
-
                 for frame in runlists.generate_frame_list(wedge):
-                    if self.paused:
-                        gobject.idle_add(self.emit, 'paused', True, {})
-                        while self.paused and not self.stopped:
-                            time.sleep(0.05)
-                        self.beamline.goniometer.set_mode('COLLECT', wait=True)
-                        gobject.idle_add(self.emit, 'paused', False, {})
                     if self.stopped:
                         _logger.info("Stopping Collection ...")
                         break
-
-                    if frame['saved'] and skip_existing:
-                        _logger.info('Skipping %s' % frame['frame_name'])
-                        # self.notify_progress(self.STATE_SKIPPED)
-                        continue
-                    elif frame['saved']:
-                        _logger.info('Overwriting %s' % frame['frame_name'])
-                        os.remove(
-                            "{}/{}.{}".format(frame['directory'], frame['frame_name'],
-                                              self.beamline.detector.file_extension)
-                        )
-                    self.notify_progress(self.STATE_RUNNING)
 
                     # Prepare image header
                     header = {
@@ -196,7 +180,7 @@ class DataCollector(gobject.GObject):
                     )
                     if frame.get('dafs', False):
                         self.beamline.i_0.async_count(frame['exposure_time'])
-                    self.beamline.detector.start(first=first_frame)
+                    self.beamline.detector.start(first=is_first_frame)
                     self.beamline.goniometer.scan(wait=False)
                     self.beamline.detector.set_parameters(header)
                     self.beamline.goniometer.wait(start=False, stop=True, timeout=frame['exposure_time'] * 4)
@@ -204,18 +188,14 @@ class DataCollector(gobject.GObject):
                     if frame.get('dafs', False):
                         _logger.info('DAFS I0  %s\t%s' % (frame['frame_name'], self.beamline.i_0.avg_value))
 
-                    first_frame = False
+                    is_first_frame = False
+                    time.sleep(0)
 
-                    _logger.info("Image Collected: %s" % (header['filename']))
-                    gobject.idle_add(
-                        self.emit, 'new-image', self.count, "{}/{}".format(frame['directory'], header['filename'])
-                    )
-
-                    self.notify_progress(self.STATE_DONE)
-                    self.count += 1
+                if self.stopped:
+                    break
 
             # Wait for Last image to be transfered (only if dataset is to be uploaded to MxLIVE)
-            if self.count >= 4:
+            if self.total_frames >= 4:
                 time.sleep(5.0)
 
             self.results = self.get_dataset_info(datasets)
@@ -226,16 +206,11 @@ class DataCollector(gobject.GObject):
             self.stopped = True
         finally:
             self.beamline.exposure_shutter.close()
-            # Restore attenuation
-            self.beamline.attenuator.set(current_attenuation)
+            self.beamline.attenuator.set(current_attenuation) # attenuation
             self.beamline.lock.release()
         return self.results
 
     def run_shutterless(self):
-        ca.threads_init()
-        self.beamline.lock.acquire()
-
-        skip_existing = self.config['skip_existing']
         datasets = self.config['datasets']
         wedges = self.config['wedges']
 
@@ -265,8 +240,11 @@ class DataCollector(gobject.GObject):
             self.beamline.exposure_shutter.close()
             self.count = 0
 
-            first_frame = True
+            is_first_frame = True
             for wedge in wedges:
+                # setup folder for wedge
+                self.beamline.image_server.setup_folder(wedge['directory'])
+
                 # setup devices
                 if abs(self.beamline.energy.get_position() - wedge['energy']) >= 0.0005:
                     self.beamline.energy.move_to(wedge['energy'], wait=True)
@@ -277,12 +255,9 @@ class DataCollector(gobject.GObject):
                 if abs(self.beamline.attenuator.get() - wedge['attenuation']) >= 25:
                     self.beamline.attenuator.set(wedge['attenuation'], wait=True)
 
-                # setup folder for wedge
-                self.beamline.image_server.setup_folder(wedge['directory'])
-
-                name = wedge['file_template'] % wedge['start_frame']
                 detector_parameters = {
-                    'file_template': '{}.{}'.format(name, self.beamline.detector.file_extension),
+                    'file_template': wedge['file_template'],
+                    'start_frame': wedge['start_frame'],
                     'directory': wedge['directory'],
                     'wavelength': energy_to_wavelength(wedge['energy']),
                     'energy': wedge['energy'],
@@ -301,23 +276,19 @@ class DataCollector(gobject.GObject):
                     angle=wedge['start_angle']
                 )
 
+                # Perform scan
                 self.beamline.detector.set_parameters(detector_parameters)
-                self.beamline.detector.start(first=first_frame)
-                self.beamline.goniometer.scan(wait=False)
+                self.beamline.detector.start(first=is_first_frame)
+                self.beamline.goniometer.scan(wait=True)
 
-                self.beamline.goniometer.wait(
-                    start=False, stop=True, timeout=wedge['exposure_time'] * wedge['num_frames'] * 2
-                )
-                self.count += wedge['num_frames']
+                _logger.info("Wedge of images Collected: %s" % (wedge['file_template'] % wedge['start_frame']))
 
-                _logger.info("Set of %d Images Collected: %s" % (wedge['num_frames'], name))
-                gobject.idle_add(
-                    self.emit, 'new-image', self.count,
-                    "{}/{}".format(wedge['directory'], detector_parameters['file_template'])
-                )
+                is_first_frame = False
+                if self.stopped:
+                    break
 
             # Wait for Last image to be transfered (only if dataset is to be uploaded to MxLIVE)
-            if self.count >= 4:
+            if self.total_frames >= 4:
                 time.sleep(5.0)
 
             self.results = self.get_dataset_info(datasets)
@@ -328,25 +299,26 @@ class DataCollector(gobject.GObject):
             self.stopped = True
         finally:
             self.beamline.exposure_shutter.close()
-            # Restore attenuation
             self.beamline.attenuator.set(current_attenuation)
             self.beamline.lock.release()
         return self.results
 
+    def on_new_image(self, obj, file_path):
+        self.count += 1
+        gobject.idle_add(self.emit, 'new-image', file_path)
+        fraction = float(self.count) / max(1, self.total_frames)
+        gobject.idle_add(self.emit, 'progress', fraction)
+        _logger.info("Image Collected: %s" % (file_path))
+
     def on_beam_change(self, obj, beam_available):
-        if not beam_available and (not self.paused) and (not self.stopped):
-            self.pause()
+        if not beam_available and (not self.stopped):
+            self.stop()
             pause_dict = {
                 'type': Screener.PAUSE_BEAM,
                 'collector': True,
                 'position': self.count - 1
             }
             gobject.idle_add(self.emit, 'paused', True, pause_dict)
-        return True
-
-    def notify_progress(self, status):
-        fraction = float(self.count + 1) / self.total_frames
-        gobject.idle_add(self.emit, 'progress', fraction, status)
 
     def get_dataset_info(self, data_list):
         results = []
@@ -402,6 +374,8 @@ class DataCollector(gobject.GObject):
 
     def stop(self):
         self.stopped = True
+        self.beamline.goniometer.stop()
+        self.beamline.detector.stop()
 
 
 class Screener(gobject.GObject):

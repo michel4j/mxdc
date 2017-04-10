@@ -135,18 +135,20 @@ class SimMotor(MotorBase):
     
     def _set_speed(self, val):
         self._speed = val # speed
-        self._steps_per_second = 20
-        self._stepsize = self._speed/self._steps_per_second
-        
+        self._step_size = val/10.0
+
     @async
-    def _move_action(self, target):
+    def _move_async(self, target):
+        self._move_sync(target)
+
+    def _move_sync(self, target):
         self._stopped = False
         self._command_sent = True
-        import numpy
+
         self.set_state(target_changed=(self._target, target))
         self._target = target
-        _num_steps = max(5, int(abs(self._position - target)/self._stepsize))
-        targets = numpy.linspace(self._position, target, _num_steps)
+        _num_steps = numpy.ceil(abs(self._position - target)/self._step_size)
+        targets = numpy.linspace(self._position, target, int(_num_steps))
         self.set_state(busy=True)
         self._command_sent = False
         for pos in targets:
@@ -155,17 +157,17 @@ class SimMotor(MotorBase):
             self._signal_timed_change(self, data)
             if self._stopped:
                 break
-            time.sleep(1.0/self._steps_per_second)
+            time.sleep(0.1)
         self.set_state(busy=False)
 
-            
     def move_to(self, pos, wait=False, force=False):
         if pos == self._position:
             _logger.debug( "(%s) is already at %s" % (self.name, pos) )
             return
-        self._move_action(pos)
         if wait:
-            self.wait()
+            self._move_sync(pos)
+        else:
+            self._move_async(pos)
     
     def move_by(self, pos, wait=False):
         self.move_to(self._position+pos, wait)

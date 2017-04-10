@@ -16,6 +16,7 @@ import time
 import warnings
 import gobject
 import gtk
+import sys
 
 MXDC_PORT = 9999
 SERVICE_DATA = {
@@ -74,6 +75,7 @@ class MXDCApp(object):
     def do_quit(self, obj=None):
         _logger.info('Stopping...')
         reactor.stop()
+        sys.exit()
 
     def provider_success(self):
         pass
@@ -129,12 +131,19 @@ def main():
     app = MXDCApp()
     app.run_local()
 
+import threading
+def show_threads():
+    _logger.warning('ACTIVE THREADS: {}'.format(
+        ', '.join(t.name for t in threading.enumerate())
+    ))
+    return True
+
 if __name__ == "__main__":
     log_to_console()
     #log_to_file(os.path.join(os.environ['HOME'], 'mxdc.log'))
-        
-    #reactor.callWhenRunning(main)
-    #reactor.run()
 
-    gobject.idle_add(main)
-    gtk.main()
+    reactor.callWhenRunning(main)
+    reactor.run()
+
+    #gobject.idle_add(main)
+    #gtk.main()
