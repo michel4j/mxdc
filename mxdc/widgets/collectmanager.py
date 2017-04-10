@@ -451,16 +451,6 @@ class CollectManager(gtk.Alignment):
                 return False
         return True
 
-    def set_row_state(self, pos, status):
-        path = (pos,)
-        try:
-            itr = self.listmodel.get_iter(path)
-            self.listmodel.set(itr, COLLECT_COLUMN_STATUS, status)
-            self.listview.scroll_to_cell(path, use_align=True, row_align=0.7)
-        except ValueError:
-            # only change valid positions
-            pass
-
     def on_row_activated(self, treeview, path, column):
         if self.collect_state != COLLECT_STATE_PAUSED:
             return True
@@ -485,21 +475,6 @@ class CollectManager(gtk.Alignment):
 
         if self.collect_state == COLLECT_STATE_PAUSED:
             self.collector.set_position(self.frame_pos)
-        return True
-
-    def on_row_toggled(self, treeview, path, column):
-        if self.collect_state != COLLECT_STATE_PAUSED:
-            return True
-        model = treeview.get_model()
-        itr = model.get_iter_first()
-        pos = model.get_iter(path)
-        i = model.get_path(pos)[0]
-        if self.run_list[i]['saved']:
-            model.set(itr, COLLECT_COLUMN_STATUS, False)
-            self.run_list[i]['saved'] = False
-        else:
-            model.set(itr, COLLECT_COLUMN_STATUS, True)
-            self.run_list[i]['saved'] = True
         return True
 
     def on_pause(self, widget, paused, pause_dict):
@@ -611,7 +586,15 @@ class CollectManager(gtk.Alignment):
             fname = self.listmodel.get_value(itr, COLLECT_COLUMN_NAME)
             if fname == frame:
                 self.listmodel.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_DONE)
+                path = self.listmodel.get_path(itr)
+                self.listview.scroll_to_cell(path, use_align=True, row_align=0.7)
+                break
+            else:
+                state = self.listmodel.get_value(itr, COLLECT_COLUMN_STATUS)
+                if state == FRAME_STATE_PENDING:
+                    self.listmodel.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_SKIPPED)
             itr = self.listmodel.iter_next(itr)
+
         self.image_viewer.add_frame(file_path)
         _logger.info('Frame available: {}'.format(file_path))
 
