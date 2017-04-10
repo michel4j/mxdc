@@ -51,6 +51,7 @@ DEVICES = {
     'detector_z':  _tmp1,
     'two_theta':  SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
     #'detector': SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
+    #'detector': MXCCDImager('BL08B1-01:CCD', 4096, 0.07243, 'MX300HE'),
     'detector': PIL6MImager('DEC1608-01:cam1'),
 
     # Sample environment, beam stop, cameras, zoom, lighting
@@ -91,7 +92,7 @@ DEVICES = {
     'multi_mca' : SimMultiChannelAnalyzer('Simulated MCA'),
 
     #disk space monitor
-    'disk_space' : DiskSpaceMonitor('Disk Space', '/home', warn=0.8, critical=0.5, freq=0.5),
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.8, critical=0.5, freq=0.5),
 }
 
 # lims, dpm, imagesync and other services

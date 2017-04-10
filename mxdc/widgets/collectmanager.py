@@ -431,13 +431,11 @@ class CollectManager(gtk.Alignment):
             header = 'Frames from this sequence already exist!\n'
             sub_header = details + (
                 '\n\n<b>What would you like to do with them?</b>\n'
-                '<i>Skip</i>: Do not overwrite existing frames\n'
-                '<i>Replace All</i>: Re-collect all frames\n\n'
             )
             buttons = (
                 ('Cancel', RESPONSE_CANCEL),
                 ('Skip', RESPONSE_SKIP),
-                ('Replace All', RESPONSE_REPLACE_ALL)
+                ('Overwrite', RESPONSE_REPLACE_ALL)
             )
 
             response = warning(header, sub_header, buttons=buttons)
@@ -596,7 +594,7 @@ class CollectManager(gtk.Alignment):
             itr = self.listmodel.iter_next(itr)
 
         self.image_viewer.add_frame(file_path)
-        _logger.info('Frame available: {}'.format(file_path))
+        _logger.info('Frame collected: {}'.format(frame))
 
     def on_progress(self, obj, fraction):
         used_time = time.time() - self.start_time

@@ -368,6 +368,7 @@ class PIL6MImager(BaseDevice):
         self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
         self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
+        self.file_name = self.add_pv('{}:FileName_RBV'.format(name))
 
         # Data Parameters
         self.settings = {
@@ -423,7 +424,6 @@ class PIL6MImager(BaseDevice):
     def monitor_frames(self):
         if self._notifier_id:
             gobject.source_remove(self._notifier_id)
-        print self._notifier_period
         self._notifier_id = gobject.timeout_add(self._notifier_period, self._notify_frame)
 
     def _notify_frame(self):
@@ -449,7 +449,7 @@ class PIL6MImager(BaseDevice):
         params['polarization'] = self.settings['polarization'].get()
         params['exposure_period'] = params['exposure_time']
         params['exposure_time'] -= 0.002
-        params['first_frame'] = params['file_template'] % params['start_frame']
+        params['first_frame'] = params['file_template'].format(params['start_frame'])
 
         self.mode_cmd.put(0)
         for k, v in params.items():
@@ -459,7 +459,7 @@ class PIL6MImager(BaseDevice):
 
         # cleanup existing files
         self.file_list = [
-            os.path.join(params['directory'], params['file_template'] % (i+params['start_frame']))
+            os.path.join(params['directory'], params['file_template'].format(i+params['start_frame']))
             for i in range(params['num_frames'])
         ]
         self._notifier_period = int(1000*params['exposure_period'])
@@ -469,27 +469,27 @@ class PIL6MImager(BaseDevice):
             time.sleep(0)
 
     def wait_for_state(self, state, timeout=10.0):
-        _logger.debug('(%s) Waiting for state: %s' % (self.name, state,))
+        _logger.debug('({}) Waiting for state: {}'.format(self.name, state,))
         while timeout > 0 and not self.is_in_state(state):
             timeout -= 0.05
             time.sleep(0.05)
         if timeout > 0:
-            _logger.debug('(%s) state %s attained after: %0.1f sec' % (self.name, state, 10 - timeout))
+            _logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, state, 10 - timeout))
             return True
         else:
-            _logger.warning('(%s) Timed out waiting for state: %s' % (self.name, state,))
+            _logger.warning('({}) Timed out waiting for state: {}'.format(self.name, state,))
             return False
 
     def wait_in_state(self, state, timeout=60):
-        _logger.debug('(%s) Waiting for state "%s" to expire.' % (self.name, state,))
+        _logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, state,))
         while self.is_in_state(state) and timeout > 0:
             timeout -= 0.05
             time.sleep(0.05)
         if timeout > 0:
-            _logger.debug('(%s) state "%s" expired after: %0.1f sec' % (self.name, state, 10 - timeout))
+            _logger.debug('({}) state "{}" expired after: {:0.1f} sec'.format(self.name, state, 10 - timeout))
             return True
         else:
-            _logger.warning('(%s) Timed out waiting for state "%s" to expire' % (self.name, state,))
+            _logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, state,))
             return False
 
     def is_in_state(self, state):
