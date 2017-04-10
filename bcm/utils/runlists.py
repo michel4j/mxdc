@@ -33,6 +33,8 @@ FULL_PARAMETERS = {
     'jump': 0.0,
 }
 
+FRAME_NUMBER_DIGITS = 4
+
 
 def prepare_run(run_data):
     runs = []
@@ -44,7 +46,7 @@ def prepare_run(run_data):
                 e_list[0], start=-0.1, edge=-0.005, exafs=0.006, kmax=8, pe_factor=10.0, e_step=0.001, k_step=0.2
             )
         )
-        e_names = ["%0.4f" % (e) for e in e_values]
+        e_names = ["{:0.4f}".format(e) for e in e_values]
     else:
         e_list = run_data.pop('energy')
         e_values = e_list
@@ -70,7 +72,7 @@ def prepare_run(run_data):
             if e_s is not None:
                 param['scattering_factors'] = e_s
             if len(e_values) > 1:
-                param['name'] = '%s_%s' % (param['name'], e_n)
+                param['name'] = '{}_{}'.format(param['name'], e_n)
             param['two_theta'] = run_data.get('two_theta', 0.0)
             param['frame_sets'] = generate_frame_sets(param)
             runs.append(param)
@@ -104,9 +106,9 @@ def summarize_frame_set(full_frame_set):
 
     for st, en in tmp_pairs:
         if st == en:
-            sum_list.append('%d' % (st,))
+            sum_list.append('{}'.format(st,))
         else:
-            sum_list.append('%d-%d' % (st, en))
+            sum_list.append('{}-{}'.format(st, en))
     return ','.join(sum_list)
 
 
@@ -138,7 +140,7 @@ def generate_frame_list(wedge):
             'dataset': wedge['dataset'],
             'saved': False,
             'frame_number': i + wedge['start_frame'],
-            'frame_name': wedge['file_template'] % (i + wedge['start_frame']),
+            'frame_name': wedge['file_template'].format(i + wedge['start_frame']),
             'start_angle': wedge['start_angle'] + i * wedge['delta_angle'],
             'delta_angle': wedge['delta_angle'],
             'exposure_time': wedge['exposure_time'],
@@ -197,7 +199,7 @@ def generate_collection_list(run, frame_set):
     first_frame, start_angle = frame_set[0]
     data_set = {
         'dataset': run['name'],
-        'file_template': '%s_%%0%dd' % (run['name'], 5),
+        'file_template': '{}_{}'.format(run['name'], '{{:04d}}'.format(FRAME_NUMBER_DIGITS)),
         'start_angle': start_angle,
         'start_frame': first_frame,
         'num_frames': len(frame_set),
@@ -318,7 +320,8 @@ def _all_files(root, patterns='*'):
 
 def get_disk_frameset(directory, file_glob):
     # Given a glob and pattern, determine the collected frame set and number of frames based on images on disk
-    file_pattern = file_glob.replace('*', r'(\d{5})')
+
+    file_pattern = file_glob.replace('*', r'(\d{{}})'.format(FRAME_NUMBER_DIGITS))
     text = ' '.join(_all_files(directory, file_glob))
     full_set = map(int, re.findall(file_pattern, text))
 
