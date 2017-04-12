@@ -74,7 +74,8 @@ class CollectManager(gtk.Alignment):
 
         self.collect_state = COLLECT_STATE_IDLE
         self.frame_pos = None
-        self.total_frames = 0
+        self.total_frames = 1
+        self.start_time = 0
         self._first_launch = False
         self.await_response = False
         self.skip_frames = False
@@ -413,7 +414,6 @@ class CollectManager(gtk.Alignment):
         self.run_data = []
 
     def create_runlist(self):
-
         self.run_list = runlists.generate_run_list(self.run_data)
         self.frame_pos = 0
         self.gen_sequence()
@@ -492,7 +492,9 @@ class CollectManager(gtk.Alignment):
         # Build the dialog message
         msg = ''
         if 'type' in pause_dict:
-            msg = "Beam not Available. Collection has been paused and will automatically resume once the beam becomes available. Intervene to manually resume collection."
+            msg = ("Beam not Available. Collection has been paused and will "
+                   "automatically resume once the beam becomes available. "
+                   "Intervene to manually resume collection.")
 
         if msg:
             title = 'Attention Required'
@@ -546,7 +548,6 @@ class CollectManager(gtk.Alignment):
 
         self.start_collection()
         self.progress_bar.set_fraction(0)
-        self.collect_btn.set_sensitive(False)
 
     def on_stop_btn_clicked(self, widget):
         self.collector.stop()
@@ -620,6 +621,7 @@ class CollectManager(gtk.Alignment):
         if self.config_user():
             #proceed, skipped_frames = self.check_runlist()
             if self.check_runlist():
+                self.collect_btn.set_sensitive(False)
                 self.progress_bar.busy_text("Starting data collection...")
                 self.collector.configure(self.run_data, skip_existing=self.skip_existing)
                 self.collector.start()

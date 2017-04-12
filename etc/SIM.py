@@ -16,7 +16,7 @@ XRF_BEAMSTOP        = 90.0
 CENTERING_BACKLIGHT = 50
 XRF_ENERGY_OFFSET   = +1.0              # KeV
 
-LIMS_API_KEY    = "4A8285AB-9E5F-476E-B17B-92BEB299A985"
+LIMS_API_KEY = "4A8285AB-9E5F-476E-B17B-92BEB299A985"
 
 # pitch function for PitchOptimizer
 def _energy2pitch(x):
@@ -92,14 +92,16 @@ DEVICES = {
     'multi_mca' : SimMultiChannelAnalyzer('Simulated MCA'),
 
     #disk space monitor
-    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.8, critical=0.5, freq=0.5),
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.5, critical=0.25, freq=30),
 }
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-
-    'lims': LIMSClient('https://cmcf.lightsource.ca'),
+    'lims': LIMSClient('https://opi2051-002.clsi.ca:9393'),
+    #'lims': LIMSClient('https://cmcf.lightsource.ca'),
     'image_server': ImageSyncClient(filename_pv="DEC1608-01:cam1:FileName"),
+    #'image_server': ImageSyncClient('ccdc1608-004:8880'),
+
     'dpm': DPMClient(),
 }
 
