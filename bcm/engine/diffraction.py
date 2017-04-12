@@ -68,7 +68,8 @@ class DataCollector(gobject.GObject):
         self.total_frames = 0
         self.count = 0
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.beamline.detector.connect('new-image', self.on_new_image)
+        self.new_image_handler_id = self.beamline.detector.connect('new-image', self.on_new_image)
+        self.beamline.detector.handler_block(self.new_image_handler_id)
 
     def configure(self, run_data, skip_existing=True, take_snapshots=True, skip_frames=None):
         self.config['skip_existing'] = skip_existing
@@ -99,6 +100,7 @@ class DataCollector(gobject.GObject):
         current_attenuation = self.beamline.attenuator.get()
 
         with self.beamline.lock:
+            self.beamline.detector.handler_unblock(self.new_image_handler_id)
             # Take snapshots and prepare endstation mode
             self.take_snapshots()
             self.beamline.goniometer.set_mode('COLLECT', wait=True)
@@ -110,6 +112,7 @@ class DataCollector(gobject.GObject):
                     self.run_default()
             finally:
                 self.beamline.exposure_shutter.close()
+            self.beamline.detector.handler_block(self.new_image_handler_id)
 
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
         if self.total_frames >= 4:
@@ -125,19 +128,17 @@ class DataCollector(gobject.GObject):
         is_first_frame = True
         self.count = 0
         for wedge in self.config['wedges']:
+            if self.stopped: break
             self.prepare_for_wedge(wedge)
             for frame in runlists.generate_frame_list(wedge):
-                if self.stopped:
-                    _logger.info("Stopping Collection ...")
-                    break
-
                 # Prepare image header
                 header = {
                     'delta_angle': frame['delta_angle'],
                     'filename': '{}.{}'.format(frame['frame_name'], self.beamline.detector.file_extension),
-                    'directory': os.path.sep.join(
-                        ['', 'data'] + frame['directory'].split(os.path.sep)[2:]
-                    ) if frame['directory'].startswith('/users') else frame['directory'],
+                    #'directory': os.path.sep.join(
+                    #    ['', 'data'] + frame['directory'].split(os.path.sep)[2:]
+                    #) if frame['directory'].startswith('/users') else frame['directory'],
+                    'directory': frame['directory'],
                     'distance': frame['distance'],
                     'exposure_time': frame['exposure_time'],
                     'frame_number': frame['frame_number'],
@@ -163,14 +164,14 @@ class DataCollector(gobject.GObject):
                     _logger.info('DAFS I0  {}\t{}'.format(frame['frame_name'], self.beamline.i_0.avg_value))
 
                 is_first_frame = False
+                if self.stopped: break
                 time.sleep(0)
-
-            if self.stopped: break
 
     def run_shutterless(self):
         is_first_frame = True
         self.count = 0
         for wedge in self.config['wedges']:
+            if self.stopped: break
             self.prepare_for_wedge(wedge)
             detector_parameters = {
                 'file_template': wedge['file_template'],
@@ -202,7 +203,6 @@ class DataCollector(gobject.GObject):
             self.beamline.goniometer.scan(wait=True)
 
             is_first_frame = False
-            if self.stopped: break
             time.sleep(0)
 
     def take_snapshots(self):
@@ -308,9 +308,10 @@ class DataCollector(gobject.GObject):
         self.paused = False
 
     def stop(self):
+        _logger.info("Stopping Collection ...")
         self.stopped = True
-        self.beamline.goniometer.stop()
         self.beamline.detector.stop()
+        self.beamline.goniometer.stop()
 
 
 class Screener(gobject.GObject):

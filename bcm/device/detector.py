@@ -349,12 +349,12 @@ class PIL6MImager(BaseDevice):
         self.size = 2463, 2527
         self.resolution = 0.172
         self.name = description
-        self.detector_type = '6M'
+        self.detector_type = 'PILATUS 6M'
         self.shutterless = True
         self.file_extension = 'cbf'
-        self.file_list = []
-        self._notifier_id = None
-        self._notifier_period = 1000
+        # self.file_list = []
+        # self._notifier_id = None
+        # self._notifier_period = 1000
 
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
         self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name), monitor=False)
@@ -369,6 +369,7 @@ class PIL6MImager(BaseDevice):
         self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
         self.file_name = self.add_pv('{}:FileName_RBV'.format(name))
+        self.file_name.connect('changed', self.on_new_frame)
 
         # Data Parameters
         self.settings = {
@@ -407,7 +408,6 @@ class PIL6MImager(BaseDevice):
         self.acquire_cmd.put(1)
         ca.flush()
         self.wait('acquiring')
-        self.monitor_frames()
 
     def stop(self):
         _logger.debug('({}) Stopping Detector ...'.format(self.name))
@@ -421,15 +421,19 @@ class PIL6MImager(BaseDevice):
     def save(self, wait=False):
         return
 
-    def monitor_frames(self):
-        if self._notifier_id:
-            gobject.source_remove(self._notifier_id)
-        self._notifier_id = gobject.timeout_add(self._notifier_period, self._notify_frame)
+    def on_new_frame(self, obj, frame_name):
+        file_path = os.path.join(self.settings['directory'].get(), frame_name)
+        gobject.idle_add(self.emit, 'new-image', file_path)
 
-    def _notify_frame(self):
-        if self.file_list:
-            gobject.idle_add(self.emit, 'new-image', self.file_list.pop(0))
-            return True
+    # def monitor_frames(self):
+    #     if self._notifier_id:
+    #         gobject.source_remove(self._notifier_id)
+    #     self._notifier_id = gobject.timeout_add(self._notifier_period, self._notify_frame)
+    #
+    # def _notify_frame(self):
+    #     if self.file_list:
+    #         gobject.idle_add(self.emit, 'new-image', self.file_list.pop(0))
+    #         return True
 
     def wait(self, state='idle'):
         return self.wait_for_state(state)
@@ -458,15 +462,19 @@ class PIL6MImager(BaseDevice):
                 self.settings[k].put(v, flush=True)
 
         # cleanup existing files
-        self.file_list = [
-            os.path.join(params['directory'], params['file_template'].format(i+params['start_frame']))
+        file_list =  [
+            os.path.join(params['directory'], params['file_template'].format(i + params['start_frame']))
             for i in range(params['num_frames'])
         ]
-        self._notifier_period = int(1000*params['exposure_period'])
-        for file_path in self.file_list:
-            if os.path.exists(file_path):
-                os.remove(file_path)
+        for file_path in file_list:
+            if os.path.exists(file_path) and os.access(file_path, os.W_OK):
+                try:
+                    os.remove(file_path)
+                except OSError:
+                    _logger.error('Unable to remove existing frame: {}'.format(file_path))
             time.sleep(0)
+
+        # self._notifier_period = int(1000 * params['exposure_period'])
 
     def wait_for_state(self, state, timeout=10.0):
         _logger.debug('({}) Waiting for state: {}'.format(self.name, state,))
