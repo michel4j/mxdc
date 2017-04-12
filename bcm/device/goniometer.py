@@ -502,6 +502,7 @@ class SimGoniometer(GoniometerBase):
 
     def stop(self):
         self._scanning = False
+        self.beamline.omega.stop()
 
 
 __all__ = ['Goniometer', 'MD2Goniometer', 'SimGoniometer']

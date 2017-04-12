@@ -199,7 +199,7 @@ def generate_collection_list(run, frame_set):
     first_frame, start_angle = frame_set[0]
     data_set = {
         'dataset': run['name'],
-        'file_template': '{}_{}'.format(run['name'], '{{:04d}}'.format(FRAME_NUMBER_DIGITS)),
+        'file_template': '{}_{}'.format(run['name'], '{{:0{}d}}'.format(FRAME_NUMBER_DIGITS)),
         'start_angle': start_angle,
         'start_frame': first_frame,
         'num_frames': len(frame_set),
@@ -321,7 +321,7 @@ def _all_files(root, patterns='*'):
 def get_disk_frameset(directory, file_glob):
     # Given a glob and pattern, determine the collected frame set and number of frames based on images on disk
 
-    file_pattern = file_glob.replace('*', r'(\d{{}})'.format(FRAME_NUMBER_DIGITS))
+    file_pattern = file_glob.replace('*', '(\d{{{}}})'.format(FRAME_NUMBER_DIGITS))
     text = ' '.join(_all_files(directory, file_glob))
     full_set = map(int, re.findall(file_pattern, text))
 
