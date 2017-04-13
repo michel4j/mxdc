@@ -1,11 +1,10 @@
 from twisted.application import service
-from twisted.internet import protocol, reactor, defer, interfaces, inotify
+from twisted.internet import protocol, reactor, defer, interfaces
 from twisted.web import resource, xmlrpc
 from twisted.spread import pb
-from twisted.python import log, components, filepath
+from twisted.python import log, components
 from zope.interface import Interface, implements
 from bcm.service.utils import log_call
-from bcm.protocol import ca
 
 from ConfigParser import ConfigParser
 import os, stat, re
@@ -19,9 +18,6 @@ class IImageSyncService(Interface):
     def setup_folder(folder):
         """Return a deferred returning a boolean"""
 
-    def configure(*args, **kwargs):
-        """Configure ImgSync Service"""
-
 class IPptvISync(Interface):
     
     def remote_set_user(*args, **kwargs):
@@ -29,10 +25,6 @@ class IPptvISync(Interface):
         
     def remote_setup_folder(*args, **kwargs):
         """Setup the folder"""
-
-    def remote_configure(*args, **kwargs):
-        """Configure ImgSync Service"""
-                
 
 class PptvISyncFromService(pb.Root):
     implements(IPptvISync)
@@ -44,9 +36,6 @@ class PptvISyncFromService(pb.Root):
     
     def remote_setup_folder(self, folder):
         self.service.setup_folder(folder)
-
-    def remote_configure(self, *args, **kwargs):
-        self.service.configure(*args, **kwargs)
 
 components.registerAdapter(PptvISyncFromService,
     IImageSyncService,
@@ -155,17 +144,10 @@ class MarCCDImgSyncService(service.Service):
         return True
 
     @log_call
-    def configure(self, *args, **kwargs):
-        return
-
-    @log_call   
     def shutdown(self):
         reactor.stop()
     
 components.registerAdapter(ImgSyncResource, IImageSyncService, resource.IResource)
-
-import Queue
-from threading import Thread
 
 
 class ADImgSyncService(service.Service):
@@ -175,12 +157,7 @@ class ADImgSyncService(service.Service):
         self.settings = {}
         self.filename = config_file
         self._read_config()
-        self.cons = INotifyConsumer(self)
-        self.prod = INotifyProducer()
-        self.prod.addConsumer(self.cons, img_selector)
-        self.pvname = None
-        self.queue = Queue.LifoQueue()
-        self.processing = False
+        self.bkup_list = []
 
     def _read_config(self):
         self.settings['user'] = 500
@@ -235,38 +212,18 @@ class ADImgSyncService(service.Service):
             _ = run_command('/usr/bin/chmod', ['777', folder.strip()])
             _ = run_command('/bin/mkdir', ['-p', bkup_dir])
             _ = run_command('/usr/bin/chmod', ['700', bkup_dir])
-            self.prod.configure(filepath.FilePath(folder.strip()))
+
+            self.bkup_list = [bkup for bkup in self.bkup_list if not bkup['archive'].complete]
+            if folder not in [bkup['src'] for bkup in self.bkup_list]:
+                self.bkup_list.append({'src': folder, 'dest': bkup_dir, 'archive': ArchiveProtocol(folder, bkup_dir)})
+
+            for bkup in self.bkup_list:
+                if not bkup['archive'].processing and not bkup['archive'].complete:
+                    bkup['archive'].start()
         except:
             log.err()
             return False
         return True
-
-    @log_call
-    def configure(self, filename_pv=None):
-        # Stop any threads that are processing
-        self.processing = False
-        time.sleep(1)
-
-        # Create and start a new thread
-        queueThread = Thread(target=self.process_queue)
-        self.processing = True
-        queueThread.start()
-        self.pvname = filename_pv
-        return True
-
-    def process_queue(self):
-        pvname = None
-        pv = None
-        while self.processing:
-            if self.pvname and pvname != self.pvname:
-                pvname = self.pvname
-                pv = ca.PV(self.pvname, connect=True)
-            if pv and not self.queue.empty():
-                filename = self.queue.get_nowait()
-                pv.set(filename)
-                self.queue.task_done()
-            else:
-                time.sleep(0.01)
 
     @log_call
     def shutdown(self):
@@ -318,6 +275,53 @@ def run_command(command, args, path='/tmp', uid=0, gid=0):
         )
     return prot.deferred
 
+class ArchiveProtocol(CommandProtocol):
+
+    def __init__(self, src, dest, path='/tmp'):
+        CommandProtocol.__init__(self, path)
+        self.src = os.path.join(src,'')
+        self.dest = os.path.join(dest,'')
+        self.processing = False
+        self.complete = False
+        self.time = 0
+        self.timeout = 60
+
+    def outReceived(self, output):
+        self.output = output
+
+    def start(self):
+        if not self.processing:
+            self.processing = True
+            self.time = time.time()
+        self.deferred = defer.Deferred()
+        args = ['/usr/bin/rsync','-rt','--stats',
+                '--modify-window=2',
+                '--include=*.cbf',
+                '--exclude=*',
+                self.src, self.dest]
+
+        p = reactor.spawnProcess(
+            self, args[0], args, env=os.environ, path=self.path)
+
+        return self.deferred
+
+    def processEnded(self, reason):
+        if self.errors:
+            self.processing = False
+            log.err("Unable to backup data: %s" % self.errors)
+        else:
+            files = 0
+            m = re.search("(?<=Number of regular files transferred: )\d+", self.output)
+            if m: files = m.group()
+            if (time.time() - self.time) < self.timeout:
+                if int(files):
+                    self.time = time.time()
+                    log.msg("Transferred %s file(s) from %s. Checking for %i more seconds." % (files, self.src, self.timeout))
+                reactor.callLater(1, self.start)
+            else:
+                log.msg("File transfer from %s completed" % self.src)
+                self.processing = False
+                self.complete = True
 
 class FileTailProducer(object):
     """A pull producer that sends the tail contents of a file to any consumer.
@@ -457,115 +461,3 @@ def img_selector(chunk):
     img_patt = re.compile('.*byte frame written to file:\s+(?P<file>[^ ]+\.img)\s+.*\n')
     new_images = img_patt.findall(chunk)
     return '\n'.join(new_images)
-
-class INotifyProducer(object):
-    implements(interfaces.IPushProducer)
-    deferred = None
-
-    def __init__(self):
-        self.fullpath = None
-        self.consumers = []
-        self.notifier = inotify.INotify()
-
-    def addConsumer(self, consumer, transform=None):
-        """
-        @type consumer: Any implementor of IConsumer
-        @param consumer: The object to write data to
-
-        @param transform: A callable taking one string argument and returning
-        the same.  All bytes read from the file are passed through this before
-        being written to the consumer.
-        """
-        consumer.registerProducer(self, True)
-        self.consumers.append( (consumer, transform) )
-
-    def configure(self, fullpath=None):
-        if fullpath:
-            self.pauseProducing()
-            self.fullpath = fullpath
-            self.resumeProducing()
-
-    def checkWork(self, ignored, path, mask):
-        for consumer, transform in self.consumers:
-            #if transform:
-            #    t_chunk = transform(path.path)
-            #else:
-            #    t_chunk = path.path
-            if path.path.endswith('.cbf'):
-                t_chunk = path.path
-            else:
-                t_chunk = ''
-            consumer.write(t_chunk)
-
-    def resumeProducing(self):
-        if self.fullpath:
-            self.notifier.startReading()
-            self.notifier.watch(self.fullpath, inotify.IN_CREATE | inotify.IN_MODIFY, callbacks=[self.checkWork])
-
-    def pauseProducing(self):
-        self.notifier.stopReading()
-
-    def stopProducing(self):
-        self.notifier.stopReading()
-        if self.deferred:
-            self.deferred.errback(Exception("Consumer asked us to stop producing"))
-            self.deferred = None
-
-
-class INotifyConsumer(object):
-    """
-    A consumer that consumes a stream of text corresponding to a list of files
-    to transfer.
-
-    The stream contains a list of image files one per line. The consumer makes
-    a copy of the image file in the owner's home directory and also at a backup
-    location, setting the file ownership permissions appropriately.
-    """
-
-    implements(interfaces.IConsumer)
-
-    def __init__(self, parent=None):
-        self.parent = parent
-        self.path = None
-
-    def registerProducer(self, producer, streaming):
-        """Connect a stream producer to this consumer.
-        """
-
-        self.producer = producer
-        assert streaming
-        self.producer.resumeProducing()
-
-    def unregisterProducer(self):
-        """Disconnect a stream producer from this consumer.
-        """
-        self.producer = None
-
-    def write(self, path):
-        """Consume a chunk of text obtained from the stream producer.
-        """
-        if path and self.path != path:
-            self.parent.queue.put(path)
-            log.msg("Write New Frame '%s'" % (path))
-            self.path = path
-
-            # my_match = re.compile('^([^ ]+\.img)$')
-            # tm = my_match.match(self.path)
-            # try:
-            #     if tm:
-            #         img_path = os.path.abspath(tm.group(1))
-            #         f_parts = img_path.split(os.path.sep)
-            #         if f_parts[1] == 'data' and len(f_parts) > 2:
-            #             f_parts[1] = self.parent.settings['base']
-            #             user_file = os.path.sep.join(f_parts)
-            #             bkup_file = self.parent.settings['backup'] + user_file
-            #         else:
-            #             return
-            #
-            #         # Copy the files and update ownership
-            #         shutil.copy2(img_path, bkup_file)
-            #         os.chown(bkup_file, self.parent.settings['uid'], self.parent.settings['gid'])
-            #
-            #         log.msg("New Frame '%s" % (user_file))
-            # except:
-            #     log.err()
