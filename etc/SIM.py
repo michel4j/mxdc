@@ -99,7 +99,7 @@ DEVICES = {
 SERVICES = {
     'lims': LIMSClient('https://opi2051-002.clsi.ca:9393'),
     #'lims': LIMSClient('https://cmcf.lightsource.ca'),
-    'image_server': ImageSyncClient(filename_pv="DEC1608-01:cam1:FileName"),
+    'image_server': ImageSyncClient(),
     #'image_server': ImageSyncClient('ccdc1608-004:8880'),
 
     'dpm': DPMClient(),
