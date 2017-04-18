@@ -18,6 +18,9 @@ class IImageSyncService(Interface):
     def setup_folder(folder):
         """Return a deferred returning a boolean"""
 
+    def configure(*args, **kwargs):
+        """Configure ImgSync Service"""
+
 class IPptvISync(Interface):
     
     def remote_set_user(*args, **kwargs):
@@ -25,6 +28,9 @@ class IPptvISync(Interface):
         
     def remote_setup_folder(*args, **kwargs):
         """Setup the folder"""
+
+    def remote_configure(*args, **kwargs):
+        """Configure ImgSync Service"""
 
 class PptvISyncFromService(pb.Root):
     implements(IPptvISync)
@@ -36,6 +42,9 @@ class PptvISyncFromService(pb.Root):
     
     def remote_setup_folder(self, folder):
         self.service.setup_folder(folder)
+
+    def remote_configure(self, *args, **kwargs):
+        self.service.configure(*args, **kwargs)
 
 components.registerAdapter(PptvISyncFromService,
     IImageSyncService,
@@ -144,6 +153,10 @@ class MarCCDImgSyncService(service.Service):
         return True
 
     @log_call
+    def configure(self, *args, **kwargs):
+        return
+
+    @log_call
     def shutdown(self):
         reactor.stop()
     
@@ -158,6 +171,8 @@ class ADImgSyncService(service.Service):
         self.filename = config_file
         self._read_config()
         self.bkup_list = []
+        self.include = []
+        self.mode = None
 
     def _read_config(self):
         self.settings['user'] = 500
@@ -209,13 +224,14 @@ class ADImgSyncService(service.Service):
                 bkup_dir = os.path.join(os.path.sep, self.settings['backup'], *(f_path.split(os.path.sep)[1:]))
             else:
                 return False
-            _ = run_command('/usr/bin/chmod', ['777', folder.strip()])
+            if self.mode:
+                _ = run_command('/usr/bin/chmod', [self.mode, folder.strip()])
             _ = run_command('/bin/mkdir', ['-p', bkup_dir])
             _ = run_command('/usr/bin/chmod', ['700', bkup_dir])
 
             self.bkup_list = [bkup for bkup in self.bkup_list if not bkup['archive'].complete]
             if folder not in [bkup['src'] for bkup in self.bkup_list]:
-                self.bkup_list.append({'src': folder, 'dest': bkup_dir, 'archive': ArchiveProtocol(folder, bkup_dir)})
+                self.bkup_list.append({'src': folder, 'dest': bkup_dir, 'archive': ArchiveProtocol(folder, bkup_dir, self.include)})
 
             for bkup in self.bkup_list:
                 if not bkup['archive'].processing and not bkup['archive'].complete:
@@ -224,6 +240,11 @@ class ADImgSyncService(service.Service):
             log.err()
             return False
         return True
+
+    @log_call
+    def configure(self, include=[], mode=None):
+        self.include = include
+        self.mode = mode
 
     @log_call
     def shutdown(self):
@@ -277,7 +298,7 @@ def run_command(command, args, path='/tmp', uid=0, gid=0):
 
 class ArchiveProtocol(CommandProtocol):
 
-    def __init__(self, src, dest, path='/tmp'):
+    def __init__(self, src, dest, include, path='/tmp'):
         CommandProtocol.__init__(self, path)
         self.src = os.path.join(src,'')
         self.dest = os.path.join(dest,'')
@@ -285,6 +306,7 @@ class ArchiveProtocol(CommandProtocol):
         self.complete = False
         self.time = 0
         self.timeout = 60
+        self.includes = ['--include={0}'.format(i) for i in include]
 
     def outReceived(self, output):
         self.output = output
@@ -295,9 +317,7 @@ class ArchiveProtocol(CommandProtocol):
             self.time = time.time()
         self.deferred = defer.Deferred()
         args = ['/usr/bin/rsync','-rt','--stats',
-                '--modify-window=2',
-                '--include=*.cbf',
-                '--exclude=*',
+                '--modify-window=2'] + self.includes + ['--exclude=*',
                 self.src, self.dest]
 
         p = reactor.spawnProcess(
