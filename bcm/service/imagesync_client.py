@@ -41,6 +41,13 @@ class ImageSyncClient(BaseService):
         yield v
         yield v.getResult()
 
+    @defer.deferredGenerator
+    def configure(self, *args, **kwargs):
+        d = self.service.callRemote('configure', **kwargs)
+        v = defer.waitForDeferred(d)
+        yield v
+        yield v.getResult()
+
     def setup(self):
         """Find out the connection details of the ImgSync Server using mdns
         and initiate a connection"""
@@ -84,6 +91,7 @@ class ImageSyncClient(BaseService):
         on the remote server."""
         _logger.info('Connection to Image Sync Server established')
         self.service = perspective
+        self.configure(**self.kwargs)
         self._ready = True
         self.set_state(active=True)
 
