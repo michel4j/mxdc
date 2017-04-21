@@ -34,7 +34,7 @@ FULL_PARAMETERS = {
 }
 
 FRAME_NUMBER_DIGITS = 4
-
+OUTLIER_DEVIATION = 50
 
 def prepare_run(run_data):
     runs = []
@@ -175,19 +175,29 @@ class FrameChecker(object):
 
 
 def check_frame_list(frames, ext='img', detect_bad=False):
-    intensities = defaultdict(OrderedDict)
+    intensities = defaultdict(list)
     check_frame = FrameChecker(ext, detect_bad)
     pool = Pool(cpu_count())
     results = pool.map(check_frame, frames)
     existing_frames = defaultdict(list)
     for dataset, frame_number, exists, value in results:
         if exists:
-            intensities[dataset][frame_number] = value
+            intensities[dataset].append((frame_number, value))
             existing_frames[dataset].append(frame_number)
     existing = {
         k: summarize_frame_set(v)
         for k,v in existing_frames.items()
     }
+
+    if detect_bad:
+        for dataset, values in intensities.items():
+            frame_info = numpy.array(values)
+            data = frame_info[:,1]
+            devs = numpy.abs(data - numpy.median(data))
+            mdev = numpy.median(devs)
+            s = devs/mdev if mdev else 0.0
+            outliers = frame_info[s>OUTLIER_DEVIATION]
+            print dataset, outliers, s[s>OUTLIER_DEVIATION]
     bad = []
     return existing, bad
 

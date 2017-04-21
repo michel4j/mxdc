@@ -290,20 +290,6 @@ class CollectManager(gtk.Alignment):
                 done_text = obj.health_state[1]
         self.progress_bar.idle_text(done_text)
 
-    def config_user(self):
-        # username = os.environ['USER']
-        # userid = os.getuid()
-        # groupid = os.getgid()
-        try:
-            assert (self.beamline.image_server.is_active() == True)
-            # self.beamline.image_server.set_user(username, userid, groupid)
-            return True
-        except:
-            msg_title = 'Image Synchronization Server Error'
-            msg_sub = 'MXDC could not configure the server for the current user. '
-            msg_sub += 'Data collection can not proceed reliably without the server up and running.'
-            warning(msg_title, msg_sub)
-            return False
 
     def _add_item(self, item):
         itr = self.listmodel.append()
@@ -378,10 +364,8 @@ class CollectManager(gtk.Alignment):
         dir_error = False
 
         try:
-            assert (self.beamline.image_server.is_active())
             for run in self.run_manager.runs:
                 data = run.get_parameters()
-                # self.beamline.image_server.setup_folder(data['directory'])
                 if run_num == 0 and data['number'] == 0:
                     data['energy'] = [self.beamline.monochromator.energy.get_position()]
                     data['energy_label'] = ['E0']
@@ -618,16 +602,14 @@ class CollectManager(gtk.Alignment):
 
     def start_collection(self):
         self.create_runlist()
-        if self.config_user():
-            #proceed, skipped_frames = self.check_runlist()
-            if self.check_runlist():
-                self.collect_btn.set_sensitive(False)
-                self.progress_bar.busy_text("Starting data collection...")
-                self.collector.configure(self.run_data, skip_existing=self.skip_existing)
-                self.collector.start()
-                self.run_manager.set_sensitive(False)
-                self.image_viewer.set_collect_mode(True)
-        return
+        if self.check_runlist():
+            self.collect_btn.set_sensitive(False)
+            self.progress_bar.busy_text("Starting data collection...")
+            self.collector.configure(self.run_data, skip_existing=self.skip_existing)
+            self.collector.start()
+            self.run_manager.set_sensitive(False)
+            self.image_viewer.set_collect_mode(True)
+
 
     def stop(self):
         if self.collector is not None:
