@@ -412,12 +412,13 @@ class CollectManager(gtk.Alignment):
             details = '\n'.join(['{}: {}'.format(k, v) for k, v in existing.items()])
             header = 'Frames from this sequence already exist!\n'
             sub_header = details + (
-                '\n\n<b>What would you like to do with them?</b>\n'
+                '\n\n<b>What would you like to do with them? '
+                'Re-collecting will delete existing frames.</b>\n'
             )
             buttons = (
                 ('Cancel', RESPONSE_CANCEL),
-                ('Skip', RESPONSE_SKIP),
-                ('Overwrite', RESPONSE_REPLACE_ALL)
+                ('Continue', RESPONSE_SKIP),
+                ('Re-Collect', RESPONSE_REPLACE_ALL)
             )
 
             response = warning(header, sub_header, buttons=buttons)
@@ -505,6 +506,10 @@ class CollectManager(gtk.Alignment):
 
     def on_stopped(self, obj=None):
         self.on_complete(obj)
+        if self.collector.paused:
+            self.progress_bar.idle_text("Paused!")
+        elif self.collector.stopped:
+            self.progress_bar.idle_text("Stopped!")
 
     def on_complete(self, obj=None):
         self.collect_btn.set_sensitive(True)
