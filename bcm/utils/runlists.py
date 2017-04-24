@@ -89,7 +89,7 @@ def summarize_frame_set(full_frame_set):
     # and reduces it to the string "1-4,6-8"
     sum_list = []
     tmp_pairs = []
-    full_set = full_frame_set[:]
+    full_set = list(set(full_frame_set))
 
     if len(full_set) == 0:
         return ""
@@ -188,7 +188,7 @@ def check_frame_list(frames, ext='img', detect_bad=False):
         k: summarize_frame_set(v)
         for k,v in existing_frames.items()
     }
-
+    bad_frames = {}
     if detect_bad:
         for dataset, values in intensities.items():
             frame_info = numpy.array(values)
@@ -196,9 +196,11 @@ def check_frame_list(frames, ext='img', detect_bad=False):
             devs = numpy.abs(data - numpy.median(data))
             mdev = numpy.median(devs)
             s = devs/mdev if mdev else 0.0
-            outliers = frame_info[s>OUTLIER_DEVIATION]
-            print dataset, outliers, s[s>OUTLIER_DEVIATION]
-    bad = []
+            bad_frames['dataset'] = frame_info[s>OUTLIER_DEVIATION]
+    bad = {
+        k: summarize_frame_set(v)
+        for k, v in bad_frames.items()
+    }
     return existing, bad
 
 
@@ -347,3 +349,9 @@ def frameset_to_list(frame_set):
         elif len(v) == 1:
             frame_numbers.extend(v)
     return frame_numbers
+
+
+def merge_framesets(*args):
+    frame_set = ','.join(filter(None, args))
+    sequence = frameset_to_list(frame_set)
+    return summarize_frame_set(sequence)
