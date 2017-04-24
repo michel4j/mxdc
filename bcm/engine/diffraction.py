@@ -43,10 +43,9 @@ class DataCollector(gobject.GObject):
     implements(IDataCollector)
     __gsignals__ = {
         'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
-        'progress': (
-            gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)),
-        'done': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []), 'paused': (
-            gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_PYOBJECT)),
+        'progress': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)),
+        'done': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+        'paused': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN, gobject.TYPE_PYOBJECT)),
         'started': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
         'stopped': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
         'error': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
@@ -58,21 +57,19 @@ class DataCollector(gobject.GObject):
         gobject.GObject.__init__(self)
         self.paused = False
         self.stopped = True
-        self.skip_existing = False
+        self.collecting = False
         self.run_list = []
         self.runs = []
         self.results = {}
         self.config = {}
-        self.beamline = None
-        self.beam_connect = None
         self.total_frames = 0
         self.count = 0
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.new_image_handler_id = self.beamline.detector.connect('new-image', self.on_new_image)
+        self.beamline.storage_ring.connect('beam', self.on_beam_change)
         self.beamline.detector.handler_block(self.new_image_handler_id)
 
-    def configure(self, run_data, skip_existing=True, take_snapshots=True, skip_frames=None):
-        self.config['skip_existing'] = skip_existing
+    def configure(self, run_data, take_snapshots=True):
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
 
@@ -96,6 +93,7 @@ class DataCollector(gobject.GObject):
 
     def run(self):
         ca.threads_init()
+        self.collecting = True
         self.total_frames = sum([wedge['num_frames'] for wedge in self.config['wedges']])
         current_attenuation = self.beamline.attenuator.get()
 
@@ -112,6 +110,7 @@ class DataCollector(gobject.GObject):
                     self.run_default()
             finally:
                 self.beamline.exposure_shutter.close()
+
             self.beamline.detector.handler_block(self.new_image_handler_id)
 
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
@@ -119,16 +118,16 @@ class DataCollector(gobject.GObject):
             time.sleep(5.0)
 
         self.results = self.save_summary(self.config['datasets'])
-        gobject.idle_add(self.emit, 'done' if not self.stopped else 'stopped')
-        self.stopped = True
+        gobject.idle_add(self.emit, 'done' if not (self.stopped or self.paused) else 'stopped')
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
+        self.collecting = False
         return self.results
 
     def run_default(self):
         is_first_frame = True
         self.count = 0
         for wedge in self.config['wedges']:
-            if self.stopped: break
+            if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
             for frame in runlists.generate_frame_list(wedge):
                 # Prepare image header
@@ -164,14 +163,14 @@ class DataCollector(gobject.GObject):
                     _logger.info('DAFS I0  {}\t{}'.format(frame['frame_name'], self.beamline.i_0.avg_value))
 
                 is_first_frame = False
-                if self.stopped: break
+                if self.stopped or self.paused: break
                 time.sleep(0)
 
     def run_shutterless(self):
         is_first_frame = True
         self.count = 0
         for wedge in self.config['wedges']:
-            if self.stopped: break
+            if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
             detector_parameters = {
                 'file_template': wedge['file_template'],
@@ -277,35 +276,47 @@ class DataCollector(gobject.GObject):
             results.append(data)
         return results
 
-    def set_position(self, pos):
-        for i, frame in enumerate(self.run_list):
-            if i < pos and len(self.run_list) > pos:
-                frame['saved'] = True
-            else:
-                frame['saved'] = False
-        self.pos = pos
-
     def on_new_image(self, obj, file_path):
         self.count += 1
         fraction = float(self.count) / max(1, self.total_frames)
         gobject.idle_add(self.emit, 'new-image', file_path)
         gobject.idle_add(self.emit, 'progress', fraction)
 
-    def on_beam_change(self, obj, beam_available):
-        if not beam_available and (not self.stopped):
-            self.stop()
-            pause_dict = {
-                'type': Screener.PAUSE_BEAM,
-                'collector': True,
-                'position': self.count - 1
+    def on_beam_change(self, obj, available):
+        if self.collecting and not available:
+            info = {
+                'reason': 'No Beam! Data Collection Paused.',
+                'details': (
+                   "Data collection has been paused because there is no beam. It will "
+                   "resume automatically once the beam becomes available."
+                )
             }
-            gobject.idle_add(self.emit, 'paused', True, pause_dict)
-
-    def pause(self):
-        self.paused = True
+            self.pause()
+            gobject.idle_add(self.emit, 'paused', True, info)
+        elif self.paused and available:
+            # FIXME: restore beam fully before resuming
+            gobject.idle_add(self.emit, 'paused', False, {})
+            self.resume()
 
     def resume(self):
-        self.paused = False
+        _logger.info("Resuming Collection ...")
+        if self.paused:
+            self.paused = False
+            frame_list =  runlists.generate_run_list(self.config['runs'])
+            existing, bad = runlists.check_frame_list(
+                frame_list, self.beamline.detector.file_extension, detect_bad=False
+            )
+            for run in self.config['runs']:
+                run['skip'] = runlists.merge_framesets(existing.get(run['name'], ''), run.get('skip', ''), bad.get(run['name'], ''))
+            self.configure(self.config['runs'], take_snapshots=False)
+            self.start()
+
+    def pause(self):
+        # FIXME: consider saving resume state at this point
+        _logger.info("Pausing Collection ...")
+        self.paused = True
+        self.beamline.detector.stop()
+        self.beamline.goniometer.stop()
 
     def stop(self):
         _logger.info("Stopping Collection ...")
@@ -539,7 +550,7 @@ class Screener(gobject.GObject):
                             params['name'], params['directory']))
                         if not os.path.exists(params['directory']):
                             os.makedirs(params['directory'])  # make sure directories exist
-                        self.data_collector.configure(params, skip_existing=False, take_snapshots=False)
+                        self.data_collector.configure(params, take_snapshots=False)
                         results = self.data_collector.run()
                         task.options['results'] = results
                         gobject.idle_add(self.emit, 'new-datasets', results)

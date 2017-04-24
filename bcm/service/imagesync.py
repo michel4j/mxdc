@@ -11,55 +11,59 @@ import os, stat, re
 import shutil
 import time
 
+
 class IImageSyncService(Interface):
     def set_user(user, uid, gid):
         """Return a deferred returning a boolean"""
-    
+
     def setup_folder(folder):
         """Return a deferred returning a boolean"""
 
     def configure(*args, **kwargs):
         """Configure ImgSync Service"""
 
+
 class IPptvISync(Interface):
-    
     def remote_set_user(*args, **kwargs):
         """Set the active user"""
-        
+
     def remote_setup_folder(*args, **kwargs):
         """Setup the folder"""
 
     def remote_configure(*args, **kwargs):
         """Configure ImgSync Service"""
 
+
 class PptvISyncFromService(pb.Root):
     implements(IPptvISync)
+
     def __init__(self, service):
         self.service = service
-    
+
     def remote_set_user(self, user, uid, gid):
         self.service.set_user(user, uid, gid)
-    
+
     def remote_setup_folder(self, folder):
         self.service.setup_folder(folder)
 
     def remote_configure(self, *args, **kwargs):
         self.service.configure(*args, **kwargs)
 
+
 components.registerAdapter(PptvISyncFromService,
-    IImageSyncService,
-    IPptvISync)
-        
-    
+                           IImageSyncService,
+                           IPptvISync)
+
+
 class ConfigXR(xmlrpc.XMLRPC):
     def __init__(self, service):
         xmlrpc.XMLRPC.__init__(self)
         self.service = service
-    
+
     def render(self, request):
         self.client = request.transport
         return xmlrpc.XMLRPC.render(self, request)
-        
+
     def xmlrpc_set_user(self, user, uid, gid):
         return self.service.set_user(user, uid, gid)
 
@@ -69,13 +73,16 @@ class ConfigXR(xmlrpc.XMLRPC):
 
 class ImgSyncResource(resource.Resource):
     implements(resource.IResource)
+
     def __init__(self, service):
         resource.Resource.__init__(self)
         self.service = service
         self.putChild('RPC2', ConfigXR(self.service))
 
+
 class MarCCDImgSyncService(service.Service):
     implements(IImageSyncService)
+
     def __init__(self, config_file, log_file):
         self.settings = {}
         self.filename = config_file
@@ -83,33 +90,30 @@ class MarCCDImgSyncService(service.Service):
         self.cons = ImgConsumer(self)
         self.prod = FileTailProducer(log_file)
         self.prod.addConsumer(self.cons, img_selector)
-        
-            
+
     def _read_config(self):
         self.settings['user'] = 500
         self.settings['uid'] = 500
         self.settings['gid'] = 500
-        self.settings['base'] =   'users'
+        self.settings['base'] = 'users'
         self.settings['marccd_uid'] = 500
         self.settings['marccd_gid'] = 500
         self.settings['backup'] = '/archive'
 
-        
         config = ConfigParser()
         if os.path.exists(self.filename):
             try:
                 config.read(self.filename)
-                self.settings['user'] = config.get('config','user')
-                self.settings['uid'] = int(config.get('config','uid'))
-                self.settings['gid'] = int(config.get('config','gid'))
-                self.settings['base'] =   config.get('config','base')
-                self.settings['marccd_uid'] = int(config.get('config','marccd_uid'))
-                self.settings['marccd_gid'] = int(config.get('config','marccd_gid'))
+                self.settings['user'] = config.get('config', 'user')
+                self.settings['uid'] = int(config.get('config', 'uid'))
+                self.settings['gid'] = int(config.get('config', 'gid'))
+                self.settings['base'] = config.get('config', 'base')
+                self.settings['marccd_uid'] = int(config.get('config', 'marccd_uid'))
+                self.settings['marccd_gid'] = int(config.get('config', 'marccd_gid'))
             except:
                 log.err()
-       
 
-    @log_call   
+    @log_call
     def set_user(self, user, uid, gid):
         config = ConfigParser()
         config.add_section('config')
@@ -125,14 +129,14 @@ class MarCCDImgSyncService(service.Service):
         self._read_config()
         return True
 
-    @log_call   
+    @log_call
     def setup_folder(self, folder):
         if not os.access(folder, os.W_OK):
             log.err('Directory does not exist or cannot be written to.')
-            return False 
+            return False
         f_parts = os.path.abspath(folder.strip()).split(os.path.sep)
         try:
-            if f_parts[1] != '' and len(f_parts)>2:
+            if f_parts[1] != '' and len(f_parts) > 2:
                 self.settings['base'] = f_parts[1]
                 f_parts[1] = 'data'
                 raw_dir = os.path.sep.join(f_parts)
@@ -141,12 +145,12 @@ class MarCCDImgSyncService(service.Service):
             else:
                 return False
             _ = run_command('/bin/mkdir',
-                                  ['-p', raw_dir],
-                                  '/data',
-                                  self.settings['marccd_uid'],
-                                  self.settings['marccd_gid'])
-            _ = run_command('/bin/mkdir',      ['-p', bkup_dir])
-            _ = run_command('/usr/bin/chmod',  ['700', bkup_dir])
+                            ['-p', raw_dir],
+                            '/data',
+                            self.settings['marccd_uid'],
+                            self.settings['marccd_gid'])
+            _ = run_command('/bin/mkdir', ['-p', bkup_dir])
+            _ = run_command('/usr/bin/chmod', ['700', bkup_dir])
         except:
             log.err()
             return False
@@ -159,57 +163,22 @@ class MarCCDImgSyncService(service.Service):
     @log_call
     def shutdown(self):
         reactor.stop()
-    
+
+
 components.registerAdapter(ImgSyncResource, IImageSyncService, resource.IResource)
 
 
-class ADImgSyncService(service.Service):
+class ImgSyncService(service.Service):
     implements(IImageSyncService)
 
-    def __init__(self, config_file, log_file):
-        self.settings = {}
-        self.filename = config_file
-        self._read_config()
+    def __init__(self):
         self.bkup_list = []
         self.include = []
-        self.mode = None
-
-    def _read_config(self):
-        self.settings['user'] = 500
-        self.settings['uid'] = 500
-        self.settings['gid'] = 500
-        self.settings['base'] = 'users'
-        self.settings['detector_uid'] = 500
-        self.settings['detector_gid'] = 500
-        self.settings['backup'] = '/archive'
-
-        config = ConfigParser()
-        if os.path.exists(self.filename):
-            try:
-                config.read(self.filename)
-                self.settings['user'] = config.get('config', 'user')
-                self.settings['uid'] = int(config.get('config', 'uid'))
-                self.settings['gid'] = int(config.get('config', 'gid'))
-                self.settings['base'] = config.get('config', 'base')
-                self.settings['detector_uid'] = int(config.get('config', 'detector_uid'))
-                self.settings['detector_gid'] = int(config.get('config', 'detector_gid'))
-            except:
-                log.err()
+        self.file_mode = None
+        self.archive_root = '/archive'
 
     @log_call
     def set_user(self, user, uid, gid):
-        config = ConfigParser()
-        config.add_section('config')
-        config.set('config', 'user', user)
-        config.set('config', 'uid', uid)
-        config.set('config', 'gid', gid)
-        config.set('config', 'base', 'users')
-        config.set('config', 'detector_uid', 500)
-        config.set('config', 'detector_gid', 500)
-        f = open(self.filename, 'w')
-        config.write(f)
-        f.close()
-        self._read_config()
         return True
 
     @log_call
@@ -221,17 +190,18 @@ class ADImgSyncService(service.Service):
         try:
             if f_parts[1] != '' and len(f_parts) > 2:
                 f_path = os.path.abspath(folder.strip())
-                bkup_dir = os.path.join(os.path.sep, self.settings['backup'], *(f_path.split(os.path.sep)[1:]))
+                bkup_dir = os.path.join(os.path.sep, self.archive_root, *(f_path.split(os.path.sep)[1:]))
             else:
                 return False
-            if self.mode:
-                _ = run_command('/usr/bin/chmod', [self.mode, folder.strip()])
+            if self.file_mode:
+                _ = run_command('/usr/bin/chmod', [self.file_mode, folder.strip()])
             _ = run_command('/bin/mkdir', ['-p', bkup_dir])
             _ = run_command('/usr/bin/chmod', ['700', bkup_dir])
 
             self.bkup_list = [bkup for bkup in self.bkup_list if not bkup['archive'].complete]
             if folder not in [bkup['src'] for bkup in self.bkup_list]:
-                self.bkup_list.append({'src': folder, 'dest': bkup_dir, 'archive': ArchiveProtocol(folder, bkup_dir, self.include)})
+                self.bkup_list.append(
+                    {'src': folder, 'dest': bkup_dir, 'archive': ArchiveProtocol(folder, bkup_dir, self.include)})
 
             for bkup in self.bkup_list:
                 if not bkup['archive'].processing and not bkup['archive'].complete:
@@ -242,9 +212,10 @@ class ADImgSyncService(service.Service):
         return True
 
     @log_call
-    def configure(self, include=[], mode=None):
+    def configure(self, include=[], mode=None, archive_root='/archive'):
         self.include = include
-        self.mode = mode
+        self.file_mode = mode
+        self.archive_root = archive_root
 
     @log_call
     def shutdown(self):
@@ -255,53 +226,54 @@ class CommandProtocol(protocol.ProcessProtocol):
     """Twisted protocol for running external commands to collect output, errors 
     and return status asynchronously.
     """
-    
+
     def __init__(self, path):
         self.output = ''
         self.errors = ''
         self.path = path
-    
+
     def outReceived(self, output):
         self.output += output
-    
+
     def errReceived(self, error):
-        self.errors += error        
+        self.errors += error
 
     def outConnectionLost(self):
         pass
-    
+
     def errConnectionLost(self):
         pass
-    
+
     def processEnded(self, reason):
-        #rc = reason.value.exitCode
-        #if rc == 0:
+        # rc = reason.value.exitCode
+        # if rc == 0:
         #    self.deferred.callback(self.output)
-        #else:
+        # else:
         #    self.deferred.errback(rc)
         pass
+
 
 def run_command(command, args, path='/tmp', uid=0, gid=0):
     """Run an external or system command asynchronously.
     """
     prot = CommandProtocol(path)
     prot.deferred = defer.Deferred()
-    args = [command,] + map(str, args)
+    args = [command, ] + map(str, args)
     p = reactor.spawnProcess(
         prot,
         args[0],
         args,
         env=os.environ, path=path,
         uid=uid, gid=gid, usePTY=True
-        )
+    )
     return prot.deferred
 
-class ArchiveProtocol(CommandProtocol):
 
+class ArchiveProtocol(CommandProtocol):
     def __init__(self, src, dest, include, path='/tmp'):
         CommandProtocol.__init__(self, path)
-        self.src = os.path.join(src,'')
-        self.dest = os.path.join(dest,'')
+        self.src = os.path.join(src, '')
+        self.dest = os.path.join(dest, '')
         self.processing = False
         self.complete = False
         self.time = 0
@@ -316,9 +288,8 @@ class ArchiveProtocol(CommandProtocol):
             self.processing = True
             self.time = time.time()
         self.deferred = defer.Deferred()
-        args = ['/usr/bin/rsync','-rt','--stats',
-                '--modify-window=2'] + self.includes + ['--exclude=*',
-                self.src, self.dest]
+        args = ['/usr/bin/rsync', '-rt', '--stats',
+                '--modify-window=2'] + self.includes + ['--exclude=*', self.src, self.dest]
 
         p = reactor.spawnProcess(
             self, args[0], args, env=os.environ, path=self.path)
@@ -336,12 +307,14 @@ class ArchiveProtocol(CommandProtocol):
             if (time.time() - self.time) < self.timeout:
                 if int(files):
                     self.time = time.time()
-                    log.msg("Transferred %s file(s) from %s. Checking for %i more seconds." % (files, self.src, self.timeout))
+                    log.msg("Transferred %s file(s) from %s. Checking for %i more seconds." % (
+                    files, self.src, self.timeout))
                 reactor.callLater(1, self.start)
             else:
                 log.msg("File transfer from %s completed" % self.src)
                 self.processing = False
                 self.complete = True
+
 
 class FileTailProducer(object):
     """A pull producer that sends the tail contents of a file to any consumer.
@@ -370,29 +343,29 @@ class FileTailProducer(object):
         being written to the consumer.
         """
         consumer.registerProducer(self, True)
-        self.consumers.append( (consumer, transform) )
-    
+        self.consumers.append((consumer, transform))
+
     def checkWork(self):
         if self.fileobj is None:
             self.fileobj = open(self.filename)
             self.fstat = os.fstat(self.fileobj.fileno())
             self.fileobj.seek(0, 2)
-            
+
         # if file shrinks, we will adjust to the new size
         if os.path.getsize(self.filename) < self.fileobj.tell():
-            self.fileobj.seek(0,2)
+            self.fileobj.seek(0, 2)
         chunk = self.fileobj.read()
 
         try:
             st = os.stat(self.filename)
         except:
             st = self.fstat
-            
+
         if (st[stat.ST_DEV], st[stat.ST_INO]) != (self.fstat[stat.ST_DEV], self.fstat[stat.ST_INO]):
             self.fileobj.close()
             self.fileobj = open(self.filename)
             self.fstat = os.fstat(self.fileobj.fileno())
-        
+
         if chunk:
             for consumer, transform in self.consumers:
                 if transform:
@@ -401,10 +374,10 @@ class FileTailProducer(object):
                     t_chunk = chunk
                 consumer.write(t_chunk)
         self._call_id = reactor.callLater(0.1, self.checkWork)
-        
+
     def resumeProducing(self):
         self.checkWork()
-                              
+
     def pauseProducing(self):
         self._call_id.cancel()
 
@@ -412,7 +385,7 @@ class FileTailProducer(object):
         if self.deferred:
             self.deferred.errback(Exception("Consumer asked us to stop producing"))
             self.deferred = None
-            
+
 
 class ImgConsumer(object):
     """
@@ -425,17 +398,17 @@ class ImgConsumer(object):
     """
 
     implements(interfaces.IConsumer)
+
     def __init__(self, parent=None):
         self.parent = parent
 
     def registerProducer(self, producer, streaming):
         """Connect a stream producer to this consumer.        
         """
-        
+
         self.producer = producer
         assert streaming
         self.producer.resumeProducing()
-
 
     def unregisterProducer(self):
         """Disconnect a stream producer from this consumer.        
@@ -459,17 +432,18 @@ class ImgConsumer(object):
                         bkup_file = self.parent.settings['backup'] + user_file
                     else:
                         return
-                    
+
                     # Copy the files and update ownership
                     shutil.copy2(img_path, user_file)
                     shutil.copy2(img_path, bkup_file)
                     os.chown(user_file, self.parent.settings['uid'], self.parent.settings['gid'])
                     os.chown(bkup_file, self.parent.settings['uid'], self.parent.settings['gid'])
-                    
+
                     log.msg("New Frame '%s" % (user_file))
             except:
                 log.err()
-        
+
+
 def img_selector(chunk):
     """A transformer which takes a piece of text and transforms it into a list 
     of image files on behalf of a producer.
@@ -477,7 +451,7 @@ def img_selector(chunk):
     This transformer is specific for MarCCD log files. It reads a chunk of data
     from a MarCCD log file and returns a list of images collected.
     """
-    
+
     img_patt = re.compile('.*byte frame written to file:\s+(?P<file>[^ ]+\.img)\s+.*\n')
     new_images = img_patt.findall(chunk)
     return '\n'.join(new_images)
