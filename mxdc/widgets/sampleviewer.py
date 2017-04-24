@@ -1,4 +1,5 @@
 from bcm.beamline.interfaces import IBeamline
+from bcm.device.interfaces import ILightController
 from bcm.engine.scripting import get_scripts
 from bcm.protocol import ca
 from bcm.utils.decorators import async
@@ -414,12 +415,14 @@ class SampleViewer(gtk.Alignment):
         self.video_frame.add(self.video)
 
         # Lighting
-        self.side_light = ActiveHScale(self.beamline.sample_frontlight)
-        self.back_light = ActiveHScale(self.beamline.sample_backlight)
-        self.side_light.set_update_policy(gtk.UPDATE_DELAYED)
-        self.back_light.set_update_policy(gtk.UPDATE_DELAYED)
-        self.lighting_box.attach(self.side_light, 1, 2, 0, 1)
-        self.lighting_box.attach(self.back_light, 1, 2, 1, 2)
+        lights = globalRegistry.lookupAll([], ILightController)
+        for i, (name, light) in enumerate(sorted(lights)):
+            w = ActiveHScale(light)
+            w.set_update_policy(gtk.UPDATE_DELAYED)
+            label = gtk.Label(light.description)
+            label.set_alignment(0.0, 0.5)
+            self.lighting_box.attach(label, 0, 1, i, i + 1)
+            self.lighting_box.attach(w, 1, 4, i, i+1)
 
         self._scripts = get_scripts()
         pango_font = pango.FontDescription('Monospace 8')

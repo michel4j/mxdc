@@ -51,8 +51,8 @@ DEVICES = {
     'detector_z':  _tmp1,
     'two_theta':  SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
     #'detector': SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
-    #'detector': MXCCDImager('BL08B1-01:CCD', 4096, 0.07243, 'MX300HE'),
-    'detector': PIL6MImager('DEC1608-01:cam1'),
+    'detector': MXCCDImager('BL08B1-01:CCD', 4096, 0.07243, 'MX300HE'),
+    #'detector': PIL6MImager('DEC1608-01:cam1'),
 
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_x':  SimMotor('Beamstop X', 0.0, 'mm'),
@@ -63,8 +63,10 @@ DEVICES = {
     'camera_center_y':  SimPositioner('Camera Center y', 288),
     'cryojet':  SimCryojet('Simulated Cryojet'),
     'sample_camera': SimCamera(),
-    'sample_backlight': SimLight('Back light', 45.0, '%'),
-    'sample_frontlight': SimLight('Front light', 55.0, '%'),    
+    'sample_uvlight': SimLight('UV', 80.0, '%'),
+    'sample_backlight': SimLight('Back', 45.0, '%'),
+    'sample_frontlight': SimLight('Front', 55.0, '%'),
+
     'hutch_video':  SimPTZCamera(),
     
     # Facility, storage-ring, shutters, etc
@@ -99,7 +101,7 @@ DEVICES = {
 SERVICES = {
     'lims': LIMSClient('https://opi2051-002.clsi.ca:9393'),
     #'lims': LIMSClient('https://cmcf.lightsource.ca'),
-    'image_server': ImageSyncClient('vm-bcm08id1:8880', include=['*.cbf'], mode='777'),
+    'image_server': ImageSyncClient('vm-bcm08id1:8880', include=['*.cbf', '*.img'], mode='777'),
     #'image_server': ImageSyncClient('ccdc1608-004:8880'),
 
     'dpm': DPMClient(),

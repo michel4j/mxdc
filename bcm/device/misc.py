@@ -1,3 +1,4 @@
+from twisted.python.components import globalRegistry
 from bcm import registry
 from bcm.device.base import BaseDevice, BaseDevice
 from bcm.device.interfaces import *
@@ -165,10 +166,12 @@ class Positioner(PositionerBase):
  
 
 class SampleLight(Positioner):
-    implements(IOnOff)
-    def __init__(self, set_name, fbk_name, onoff_name, scale=100, units=""):
+    implements(ILightController)
+    def __init__(self, set_name, fbk_name, onoff_name, scale=100, units="", desc=""):
         Positioner.__init__(self, set_name, fbk_name, scale, units)
         self.onoff_cmd = self.add_pv(onoff_name)
+        self.description = desc
+        globalRegistry.register([], ILightController, desc, self)
         
     def set_on(self):
         self.onoff_cmd.put(1)
@@ -180,10 +183,12 @@ class SampleLight(Positioner):
         return self.onoff_cmd.get() == 1
 
 class SimLight(SimPositioner):
-    implements(IOnOff)
+    implements(ILightController)
     def __init__(self, name, pos=0, units="", active=True):
         SimPositioner.__init__(self, name, pos, units, active)
         self._on = 0
+        self.description = name
+        globalRegistry.register([], ILightController, name, self)
         
     def set_on(self):
         self._on = 1
