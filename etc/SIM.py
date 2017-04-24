@@ -71,8 +71,8 @@ DEVICES = {
     'ring_current':  PV('PCT1402-01:mA:fbk'),
     'ring_mode':  PV('SYSTEM:mode:fbk'),
     'ring_status':  PV('SRStatus:injecting'),
-    #'storage_ring':  SimStorageRing('Simulated Storage Ring'),
-    'storage_ring':  StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
+    'storage_ring':  SimStorageRing('Simulated Storage Ring'),
+    #'storage_ring':  StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
     'psh1':  SimShutter('PSH1'),
     'ssh1':  SimShutter('SSH2'),
     'psh2':  SimShutter('PSH2'),
@@ -99,7 +99,7 @@ DEVICES = {
 SERVICES = {
     'lims': LIMSClient('https://opi2051-002.clsi.ca:9393'),
     #'lims': LIMSClient('https://cmcf.lightsource.ca'),
-    'image_server': ImageSyncClient(include=['*.cbf'], mode='777'),
+    'image_server': ImageSyncClient('vm-bcm08id1:8880', include=['*.cbf'], mode='777'),
     #'image_server': ImageSyncClient('ccdc1608-004:8880'),
 
     'dpm': DPMClient(),

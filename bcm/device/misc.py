@@ -659,6 +659,7 @@ class HumidityController(BaseDevice):
         elif state == 'Enable':
             self.set_state(health=(0,'modbus'))
 
+
 class SimStorageRing(BaseDevice):
     implements(IStorageRing)
     __gsignals__ =  { 
@@ -672,7 +673,7 @@ class SimStorageRing(BaseDevice):
         self.name = name
         self.message = 'Sim SR Testing!'
         self.beam_available = False
-        self.set_state(beam=False, active=True, health=(0, ''))
+        self.set_state(beam=True, active=True, health=(0, ''))
         gobject.timeout_add(30000, self._change_beam)
         
     def _change_beam(self):

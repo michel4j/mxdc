@@ -78,7 +78,7 @@ class CollectManager(gtk.Alignment):
         self.start_time = 0
         self._first_launch = False
         self.await_response = False
-        self.skip_frames = False
+
         self._create_widgets()
 
         self.active_sample = {}
@@ -86,7 +86,6 @@ class CollectManager(gtk.Alignment):
         self.active_strategy = {}
         self.connect('realize', lambda x: self.update_data())
         self.scripts = get_scripts()
-
 
     def __getattr__(self, key):
         try:
@@ -108,7 +107,6 @@ class CollectManager(gtk.Alignment):
         self.sel_mount_action = MOUNT_ACTION_NONE
         self.sel_mounting = False  # will be sent to true when mount command has been sent and false when it is done
         self.frame_pos = None
-
 
         pango_font = pango.FontDescription("monospace 8")
         self.strategy_view.modify_font(pango_font)
@@ -290,7 +288,6 @@ class CollectManager(gtk.Alignment):
                 done_text = obj.health_state[1]
         self.progress_bar.idle_text(done_text)
 
-
     def _add_item(self, item):
         itr = self.listmodel.append()
         if item['saved']:
@@ -409,7 +406,8 @@ class CollectManager(gtk.Alignment):
             self._add_item(item)
 
     def check_runlist(self):
-        existing, bad = runlists.check_frame_list(self.run_list, self.beamline.detector.file_extension, detect_bad=False)
+        existing, bad = runlists.check_frame_list(self.run_list, self.beamline.detector.file_extension,
+                                                  detect_bad=False)
         if any(existing.values()):
             details = '\n'.join(['{}: {}'.format(k, v) for k, v in existing.items()])
             header = 'Frames from this sequence already exist!\n'
@@ -459,63 +457,25 @@ class CollectManager(gtk.Alignment):
             self.collector.set_position(self.frame_pos)
         return True
 
-    def on_pause(self, widget, paused, pause_dict):
+    def on_pause(self, obj, paused, info):
         if paused:
-            self.paused = True
-            self.pause_start = time.time()
-            self.collect_btn.set_label('mxdc-resume')
-            self.collect_state = COLLECT_STATE_PAUSED
             self.progress_bar.idle_text("Paused")
-            self.collect_btn.set_sensitive(True)
+            # Build the dialog message
+            title = info.get('reason', '')
+            msg = info.get('details', '')
+            self.pause_dialog = MyDialog(
+                gtk.MESSAGE_WARNING, title, msg,
+                buttons=(('Stop', gtk.RESPONSE_NO), ('Continue', gtk.RESPONSE_YES))
+            )
+            response = self.pause_dialog()
+            if response == gtk.RESPONSE_NO:
+                self.collector.stop()
+                self.pause_dialog = None
+                self.on_complete(obj)
         else:
-            self.paused = False
-            self.pause_time += time.time() - self.pause_start
-            self.collect_btn.set_label('mxdc-pause')
-            self.collect_state = COLLECT_STATE_RUNNING
-
-        # Build the dialog message
-        msg = ''
-        if 'type' in pause_dict:
-            msg = ("Beam not Available. Collection has been paused and will "
-                   "automatically resume once the beam becomes available. "
-                   "Intervene to manually resume collection.")
-
-        if msg:
-            title = 'Attention Required'
-            self.resp = MyDialog(gtk.MESSAGE_WARNING,
-                                 title, msg,
-                                 buttons=(('Intervene', gtk.RESPONSE_ACCEPT),))
-            self._intervening = False
-            self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
-            try:
-                self.ntot += 1
-                self.collect_obj = pause_dict['collector']
-                self.collector.set_position(pause_dict['position'])
-            except:
-                self.collect_obj = False
-            response = self.resp()
-            if response == gtk.RESPONSE_ACCEPT or (('type' in pause_dict) and self._beam_up):
-                self._intervening = True
-                self._beam_up = False
-                if self.beam_connect:
-                    self.beamline.storage_ring.disconnect(self.beam_connect)
-                return
-
-    def _on_beam_change(self, obj, beam_available):
-
-        def resume_screen(script, obj):
-            if self.collect_obj:
-                self.paused = False
-            self.collector.resume()
-            self.resp.dialog.destroy()
-            s.disconnect(self.resume_connect)
-
-        if beam_available and not self._intervening and self.paused:
-            self._beam_up = True
-            s = self.scripts['RestoreBeam']
-            self.resume_connect = s.connect('done', resume_screen)
-            s.start()
-        return True
+            if self.pause_dialog:
+                self.pause_dialog.dialog.destroy()
+                self.pause_dialog = None
 
     def on_error(self, widget, msg):
         msg_title = msg
@@ -545,7 +505,6 @@ class CollectManager(gtk.Alignment):
 
     def on_stopped(self, obj=None):
         self.on_complete(obj)
-        self.progress_bar.idle_text("Stopped")
 
     def on_complete(self, obj=None):
         self.collect_btn.set_sensitive(True)
@@ -557,9 +516,9 @@ class CollectManager(gtk.Alignment):
         self.beamline.lims.upload_datasets(self.beamline, obj.results)
 
     def on_started(self, obj):
-        self.pause_time = 0
         self.start_time = time.time()
         self.stop_btn.set_sensitive(True)
+        self.collect_btn.set_sensitive(False)
         _logger.info("Data Collection Started.")
 
     def on_new_image(self, widget, file_path):
@@ -585,7 +544,7 @@ class CollectManager(gtk.Alignment):
         used_time = time.time() - self.start_time
         remaining_time = (1 - fraction) * used_time / fraction
         eta_time = remaining_time
-        frame_time = (used_time + remaining_time)/self.total_frames
+        frame_time = (used_time + remaining_time) / self.total_frames
         eta_format = eta_time >= 3600 and '%H:%M:%S' or '%M:%S'
         text = "ETA %s @ %0.1fs/f" % (time.strftime(eta_format, time.gmtime(eta_time)), frame_time)
         self.progress_bar.set_complete(fraction, text)
@@ -605,11 +564,10 @@ class CollectManager(gtk.Alignment):
         if self.check_runlist():
             self.collect_btn.set_sensitive(False)
             self.progress_bar.busy_text("Starting data collection...")
-            self.collector.configure(self.run_data, skip_existing=self.skip_existing)
+            self.collector.configure(self.run_data)
             self.collector.start()
             self.run_manager.set_sensitive(False)
             self.image_viewer.set_collect_mode(True)
-
 
     def stop(self):
         if self.collector is not None:

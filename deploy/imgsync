@@ -7,17 +7,15 @@
 #               detector data folder and user home directories.
 #
 # Source BCM parameters
-. /home/janzen/profile.d/bcm.sh
-. /cmcf_apps/profile.d/epics.sh
+. /cmcf_apps/profile.d/bcm.sh
+
 # Source function library.
 . /etc/rc.d/init.d/functions
-
-export BCM_PATH=/home/janzen/code/projects/mxdc
 
 servicename='imgsync'
 pidfile='/var/run/imgsync.pid'
 logfile='/var/log/imgsync.log'
-appfile=$BCM_PATH/bcm/service/imagesync_server_ad.py
+appfile=$BCM_PATH/bcm/service/imagesync_server.py
 umask=022
 
 # Sanity checks.
