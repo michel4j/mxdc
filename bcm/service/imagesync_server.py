@@ -11,15 +11,11 @@ from twisted.application import internet, service
 from twisted.spread import pb
 from twisted.python import log
 
-from bcm.service.imagesync import ADImgSyncService, IPptvISync
+from bcm.service.imagesync import ImgSyncService, IPptvISync
 from bcm.utils import mdns
 
-
-IMGSYNC_CONFIG = "/home/janzen/.imgsync.conf"
-IMGSYNC_SOURCE_LOG = "/home/janzen/log/stdouterr.log"
-
 application = service.Application('ImgSync')
-f = ADImgSyncService(config_file=IMGSYNC_CONFIG, log_file=IMGSYNC_SOURCE_LOG)
+f = ImgSyncService()
 try:
     isync_provider = mdns.Provider('ImgSync Module', '_cmcf_imgsync._tcp', 8880, {}, unique=True)
 except mdns.mDNSError:
