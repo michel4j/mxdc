@@ -147,6 +147,8 @@ class IImagingDetector(IDevice):
             filename    -- name of image file to save
             directory   -- directory to save image                
         """
+    def delete(directory, *frame_list):
+        """Delete the provided frames from the disk"""
 
     def wait():
         """Wait for detector to become idle."""
@@ -182,6 +184,13 @@ class IOnOff(IDevice):
     
     def is_on():
         """Return the on/off state"""
+
+
+class ILightController(IOnOff):
+    """A Light Controller"""
+    description = Attribute("""Description.""")
+
+
 
 
 class IDiffractometer(IDevice):
