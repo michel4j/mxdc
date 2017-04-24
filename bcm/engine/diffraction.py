@@ -79,6 +79,11 @@ class DataCollector(gobject.GObject):
         self.config['datasets'] = datasets
         self.beamline.image_server.set_user(pwd.getpwuid(os.geteuid())[0], os.geteuid(), os.getegid())
 
+        # delete existing frames
+        for wedge in wedges:
+            frame_list = [ wedge['file_template'].format(i + wedge['start_frame']) for i in range(wedge['num_frames'])]
+            self.beamline.detector.delete(wedge['directory'], *frame_list)
+
     def start(self):
         if self.beamline is None:
             _logger.error('No Beamline found. Aborting data collection...')
@@ -133,10 +138,6 @@ class DataCollector(gobject.GObject):
                 # Prepare image header
                 header = {
                     'delta_angle': frame['delta_angle'],
-                    'filename': '{}.{}'.format(frame['frame_name'], self.beamline.detector.file_extension),
-                    #'directory': os.path.sep.join(
-                    #    ['', 'data'] + frame['directory'].split(os.path.sep)[2:]
-                    #) if frame['directory'].startswith('/users') else frame['directory'],
                     'directory': frame['directory'],
                     'distance': frame['distance'],
                     'exposure_time': frame['exposure_time'],
@@ -233,6 +234,7 @@ class DataCollector(gobject.GObject):
 
         if abs(self.beamline.attenuator.get() - wedge['attenuation']) >= 25:
             self.beamline.attenuator.set(wedge['attenuation'], wait=True)
+
 
     def save_summary(self, data_list):
         results = []

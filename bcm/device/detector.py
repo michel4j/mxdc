@@ -1,5 +1,6 @@
 import os
 import re
+import glob
 import random
 import shutil
 import time
@@ -14,7 +15,7 @@ from zope.interface import implements
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
-WAIT_DELAY = 0.02
+DELETE_SUFFIX = '.DELETE'
 
 
 class MXCCDImager(BaseDevice):
@@ -44,7 +45,6 @@ class MXCCDImager(BaseDevice):
         self.name = '%s Detector' % detector_type
         self.shutterless = False
         self.file_extension = 'img'
-        self.current_file = ''
 
         self._start_cmd = self.add_pv("%s:start:cmd" % name, monitor=False)
         self._abort_cmd = self.add_pv("%s:abort:cmd" % name, monitor=False)
@@ -61,7 +61,7 @@ class MXCCDImager(BaseDevice):
         self._connection_state = self.add_pv('%s:sock:state' % name)
 
         # Header parameters
-        self._header = {
+        self.settings = {
             'filename': self.add_pv("%s:img:filename" % name, monitor=True),
             'directory': self.add_pv("%s:img:dirname" % name, monitor=False),
             'beam_x': self.add_pv("%s:beam:x" % name, monitor=False),
@@ -89,6 +89,7 @@ class MXCCDImager(BaseDevice):
 
         self._state.connect('changed', self.on_state_change)
         self._connection_state.connect('changed', self.on_connection_changed)
+        self.settings['filename'].connect('changed', self.on_new_frame)
 
     def initialize(self, wait=True):
         """Initialize the detector and take background images if necessary. This
@@ -140,7 +141,15 @@ class MXCCDImager(BaseDevice):
         self._save_cmd.put(1)
         if wait:
             self.wait_for_state('read:exec')
-        self.set_state(new_image=self.current_file)
+
+    def delete(self, directory, *frame_list):
+        for frame_name in frame_list:
+            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
+            if os.path.exists(frame_path):
+                try:
+                    os.rename(frame_path, frame_path + DELETE_SUFFIX)
+                except OSError:
+                    _logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
     def get_origin(self):
         """Obtain the detector origin/beam position in pixels.
@@ -148,7 +157,7 @@ class MXCCDImager(BaseDevice):
         Returns:
             tuple(x, y) corresponding to the beam-x and beam-y coordinates.
         """
-        return self._header['beam_x'].get(), self._header['beam_y'].get()
+        return self.settings['beam_x'].get(), self.settings['beam_y'].get()
 
     def wait(self, state='idle'):
         """Wait until the detector reaches a given state.
@@ -181,12 +190,11 @@ class MXCCDImager(BaseDevice):
                 - `comments` (str), File comments.
                          
         """
+        data['filename'] = '{}.{}'.format(data['frame_name'], self.file_extension)
         for key in data.keys():
-            if key in self._header:
-                self._header[key].set(data[key])
-        self.current_file = data['filename']
-        if os.path.exists(data['filename']):
-            os.remove(data['filename'])
+            if key in self.settings:
+                self.settings[key].set(data[key])
+
         self._header_cmd.put(1)
 
     def take_background(self):
@@ -229,6 +237,23 @@ class MXCCDImager(BaseDevice):
         _logger.debug('(%s) state changed to: %s' % (self.name, states,))
         return True
 
+    def on_new_frame(self, obj, frame_name):
+        file_path = os.path.join(self.settings['directory'].get(), frame_name)
+        gobject.idle_add(self.emit, 'new-image', file_path)
+
+        # Remove any .DELETE frames from this sequence
+        old_file = file_path + DELETE_SUFFIX
+        if os.path.exists(old_file):
+            try:
+                os.remove(old_file)
+            except OSError:
+                _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
+
+        # FIXME remove thumbnails
+        os.chdir(self.settings['directory'].get())
+        for f in glob.glob('*.img_???.png'):
+            os.remove(f)
+
     def wait_for_state(self, state, timeout=10.0):
         _logger.debug('(%s) Waiting for state: %s' % (self.name, state,))
         while (not self.is_in_state(state)) and timeout > 0:
@@ -261,6 +286,7 @@ class SimCCDImager(BaseDevice):
     __gsignals__ = {
         'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
     }
+
     def __init__(self, name, size, resolution, detector_type="MX300"):
         BaseDevice.__init__(self)
         self.size = int(size), int(size)
@@ -317,9 +343,25 @@ class SimCCDImager(BaseDevice):
         os.system('/usr/bin/gunzip -f %s' % dst_img)
         _logger.debug('Frame saved: %s' % datetime.now().isoformat())
 
+        # Remove any .DELETE frames from this sequence
+        old_file = file_path + DELETE_SUFFIX
+        if os.path.exists(old_file):
+            try:
+                os.remove(old_file)
+            except OSError:
+                _logger.error('Unable to delete frame: {}{}'.format(self.parameters['filename'], DELETE_SUFFIX))
+
     def save(self, wait=False):
         self._copy_frame()
 
+    def delete(self, directory, *frame_list):
+        for frame_name in frame_list:
+            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
+            if os.path.exists(frame_path):
+                try:
+                    os.rename(frame_path, frame_path + DELETE_SUFFIX)
+                except OSError:
+                    _logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
     def wait(self, state='idle'):
         time.sleep(0.1)
@@ -358,7 +400,6 @@ class PIL6MImager(BaseDevice):
 
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
         self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name), monitor=False)
-
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
         self.armed_status = self.add_pv("{}:Armed".format(name))
@@ -421,19 +462,27 @@ class PIL6MImager(BaseDevice):
     def save(self, wait=False):
         return
 
+    def delete(self, directory, *frame_list):
+        for frame_name in frame_list:
+            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
+            print frame_path
+            if os.path.exists(frame_path):
+                try:
+                    os.rename(frame_path, frame_path + DELETE_SUFFIX)
+                except OSError:
+                    _logger.error('Unable to remove existing frame: {}'.format(frame_name))
+
     def on_new_frame(self, obj, frame_name):
         file_path = os.path.join(self.settings['directory'].get(), frame_name)
         gobject.idle_add(self.emit, 'new-image', file_path)
 
-    # def monitor_frames(self):
-    #     if self._notifier_id:
-    #         gobject.source_remove(self._notifier_id)
-    #     self._notifier_id = gobject.timeout_add(self._notifier_period, self._notify_frame)
-    #
-    # def _notify_frame(self):
-    #     if self.file_list:
-    #         gobject.idle_add(self.emit, 'new-image', self.file_list.pop(0))
-    #         return True
+        # Remove any .DELETE frames from this sequence
+        old_file = file_path + DELETE_SUFFIX
+        if os.path.exists(old_file):
+            try:
+                os.remove(old_file)
+            except OSError:
+                _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
 
     def wait(self, state='idle'):
         return self.wait_for_state(state)
@@ -460,21 +509,6 @@ class PIL6MImager(BaseDevice):
             if k in self.settings:
                 time.sleep(0.05)
                 self.settings[k].put(v, flush=True)
-
-        # cleanup existing files
-        file_list =  [
-            os.path.join(params['directory'], params['file_template'].format(i + params['start_frame']))
-            for i in range(params['num_frames'])
-        ]
-        for file_path in file_list:
-            if os.path.exists(file_path) and os.access(file_path, os.W_OK):
-                try:
-                    os.remove(file_path)
-                except OSError:
-                    _logger.error('Unable to remove existing frame: {}'.format(file_path))
-            time.sleep(0)
-
-        # self._notifier_period = int(1000 * params['exposure_period'])
 
     def wait_for_state(self, state, timeout=10.0):
         _logger.debug('({}) Waiting for state: {}'.format(self.name, state,))
