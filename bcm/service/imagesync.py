@@ -288,7 +288,7 @@ class ArchiveProtocol(CommandProtocol):
             self.processing = True
             self.time = time.time()
         self.deferred = defer.Deferred()
-        args = ['/usr/bin/rsync', '-rt', '--stats',
+        args = ['rsync', '-rt', '--stats',
                 '--modify-window=2'] + self.includes + ['--exclude=*', self.src, self.dest]
 
         p = reactor.spawnProcess(
