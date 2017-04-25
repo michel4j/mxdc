@@ -324,15 +324,12 @@ class SimCCDImager(BaseDevice):
 
     def _copy_frame(self):
         _logger.debug('Saving frame: %s' % datetime.now().isoformat())
-        num = 1 + (self.parameters['frame_number'] - 1) % self._num_frames
+        num = 1 + (self.parameters['start_frame'] - 1) % self._num_frames
         src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
-        dst_img = os.path.join(self.parameters['directory'], '%s.gz' % self.parameters['filename'])
-        file_path = os.path.join(self.parameters['directory'], self.parameters['filename'])
+        file_name = '{}_{:04d}.img'.format(self.parameters['file_prefix'], self.parameters['start_frame'])
+        dst_img = os.path.join(self.parameters['directory'], '{}.gz'.format(file_name))
+        file_path = os.path.join(self.parameters['directory'], file_name)
 
-        dst_parts = dst_img.split('/')
-        if dst_parts[1] == 'data':
-            dst_parts[1] = 'users'
-        dst_img = '/'.join(dst_parts)
         shutil.copyfile(src_img, dst_img)
         self.set_state(new_image=file_path)
         os.system('/usr/bin/gunzip -f %s' % dst_img)
@@ -344,7 +341,7 @@ class SimCCDImager(BaseDevice):
             try:
                 os.remove(old_file)
             except OSError:
-                _logger.error('Unable to delete frame: {}{}'.format(self.parameters['filename'], DELETE_SUFFIX))
+                _logger.error('Unable to delete frame: {}{}'.format(file_name, DELETE_SUFFIX))
 
     def save(self, wait=False):
         self._copy_frame()
@@ -358,12 +355,12 @@ class SimCCDImager(BaseDevice):
                 except OSError:
                     _logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
-    def wait(self, state='idle'):
+    def wait(self, *states):
         time.sleep(0.1)
 
     def set_parameters(self, data):
         self.parameters = data
-        if self.parameters['frame_number'] == 1:
+        if self.parameters['start_frame'] == 1:
             self._select_dir()
 
 

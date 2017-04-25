@@ -50,9 +50,9 @@ DEVICES = {
     'distance': _tmp1,
     'detector_z':  _tmp1,
     'two_theta':  SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
-    #'detector': SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
+    'detector': SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
     #'detector': MXCCDImager('BL08B1-01:CCD', 4096, 0.07243, 'MX300HE'),
-    'detector': ADRayonixImager('CCDC1608-B1-01:cam1', 4096, 'MX300HE'),
+    #'detector': ADRayonixImager('CCDC1608-B1-01:cam1', 4096, 'MX300HE'),
     #'detector': PIL6MImager('DEC1608-01:cam1'),
 
     # Sample environment, beam stop, cameras, zoom, lighting
@@ -100,11 +100,9 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'lims': LIMSClient('https://opi2051-002.clsi.ca:9393'),
-    #'lims': LIMSClient('https://cmcf.lightsource.ca'),
-    'image_server': ImageSyncClient('vm-bcm08id1:8880', include=['*.cbf', '*.img'], mode='777'),
-    #'image_server': ImageSyncClient('ccdc1608-004:8880'),
-
+    #'lims': LIMSClient('https://opi2051-002.clsi.ca:9393'),
+    'lims': LIMSClient('https://cmcf.lightsource.ca'),
+    'image_server': ImageSyncClient(include=['*.cbf', '*.img'], mode='777'),
     'dpm': DPMClient(),
 }
 
