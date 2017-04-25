@@ -56,7 +56,8 @@ DEVICES = {
     'distance': PseudoMotor('BL08ID1:2Theta:D:mm'),
     'detector_z':  ENCMotor('SMTR16083I1018:mm'),
     'two_theta':  PseudoMotor('BL08ID1:2Theta:deg'),
-    'detector': MXCCDImager('BL08ID1:CCD', 4096, 0.07243, 'MX300'),
+    #'detector': MXCCDImager('BL08ID1:CCD', 4096, 0.07243, 'MX300'),
+    'detector': PIL6MImager('DEC1608-01:cam1'),
     
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  VMEMotor('SMTR16083I1016:mm'),  
