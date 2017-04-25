@@ -81,7 +81,7 @@ class DataCollector(gobject.GObject):
 
         # delete existing frames
         for wedge in wedges:
-            frame_list = [ wedge['file_template'].format(i + wedge['start_frame']) for i in range(wedge['num_frames'])]
+            frame_list = [ wedge['frame_template'].format(i + wedge['start_frame']) for i in range(wedge['num_frames'])]
             self.beamline.detector.delete(wedge['directory'], *frame_list)
 
     def start(self):
@@ -99,11 +99,11 @@ class DataCollector(gobject.GObject):
     def run(self):
         ca.threads_init()
         self.collecting = True
+        self.beamline.detector.handler_unblock(self.new_image_handler_id)
         self.total_frames = sum([wedge['num_frames'] for wedge in self.config['wedges']])
         current_attenuation = self.beamline.attenuator.get()
 
         with self.beamline.lock:
-            self.beamline.detector.handler_unblock(self.new_image_handler_id)
             # Take snapshots and prepare endstation mode
             self.take_snapshots()
             self.beamline.goniometer.set_mode('COLLECT', wait=True)
@@ -116,8 +116,6 @@ class DataCollector(gobject.GObject):
             finally:
                 self.beamline.exposure_shutter.close()
 
-            self.beamline.detector.handler_block(self.new_image_handler_id)
-
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
         if self.total_frames >= 4:
             time.sleep(5.0)
@@ -126,6 +124,7 @@ class DataCollector(gobject.GObject):
         gobject.idle_add(self.emit, 'done' if not (self.stopped or self.paused) else 'stopped')
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.collecting = False
+        self.beamline.detector.handler_block(self.new_image_handler_id)
         return self.results
 
     def run_default(self):
@@ -137,16 +136,16 @@ class DataCollector(gobject.GObject):
             for frame in runlists.generate_frame_list(wedge):
                 # Prepare image header
                 header = {
+                    'file_prefix': frame['file_prefix'],
                     'delta_angle': frame['delta_angle'],
                     'directory': frame['directory'],
                     'distance': frame['distance'],
                     'exposure_time': frame['exposure_time'],
-                    'frame_number': frame['frame_number'],
+                    'start_frame': frame['start_frame'],
                     'wavelength': energy_to_wavelength(frame['energy']),
                     'energy': frame['energy'],
                     'frame_name': frame['frame_name'],
                     'start_angle': frame['start_angle'],
-                    'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
                 }
 
                 # prepare goniometer for scan
@@ -155,10 +154,12 @@ class DataCollector(gobject.GObject):
                 )
                 if frame.get('dafs', False):
                     self.beamline.i_0.async_count(frame['exposure_time'])
-                self.beamline.detector.start(first=is_first_frame)
-                self.beamline.goniometer.scan(wait=False)
+
                 self.beamline.detector.set_parameters(header)
-                self.beamline.goniometer.wait(start=False, stop=True, timeout=frame['exposure_time'] * 4)
+                self.beamline.detector.start(first=is_first_frame)
+                self.beamline.goniometer.scan(wait=True, timeout=frame['exposure_time'] * 4)
+
+                #self.beamline.goniometer.wait(start=False, stop=True, timeout=frame['exposure_time'] * 4)
                 self.beamline.detector.save()
                 if frame.get('dafs', False):
                     _logger.info('DAFS I0  {}\t{}'.format(frame['frame_name'], self.beamline.i_0.avg_value))
@@ -174,7 +175,7 @@ class DataCollector(gobject.GObject):
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
             detector_parameters = {
-                'file_template': wedge['file_template'],
+                'file_prefix': wedge['file_prefix'],
                 'start_frame': wedge['start_frame'],
                 'directory': wedge['directory'],
                 'wavelength': energy_to_wavelength(wedge['energy']),
@@ -189,7 +190,7 @@ class DataCollector(gobject.GObject):
             }
             # prepare goniometer for scan
             _logger.info("Collecting {} images starting at: {}".format(
-                wedge['num_frames'], wedge['file_template'].format(wedge['start_frame']))
+                wedge['num_frames'], wedge['frame_template'].format(wedge['start_frame']))
             )
             self.beamline.goniometer.configure(
                 time=wedge['exposure_time'] * wedge['num_frames'],
@@ -285,7 +286,7 @@ class DataCollector(gobject.GObject):
         gobject.idle_add(self.emit, 'progress', fraction)
 
     def on_beam_change(self, obj, available):
-        if self.collecting and not available:
+        if not (self.stopped or self.paused) and self.collecting and not available:
             info = {
                 'reason': 'No Beam! Data Collection Paused.',
                 'details': (
@@ -323,6 +324,7 @@ class DataCollector(gobject.GObject):
     def stop(self):
         _logger.info("Stopping Collection ...")
         self.stopped = True
+        self.paused = False
         self.beamline.detector.stop()
         self.beamline.goniometer.stop()
 

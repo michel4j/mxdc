@@ -138,9 +138,10 @@ def generate_frame_list(wedge):
         # generate frame info
         frame = {
             'dataset': wedge['dataset'],
+            'file_prefix': wedge['file_prefix'],
             'saved': False,
-            'frame_number': i + wedge['start_frame'],
-            'frame_name': wedge['file_template'].format(i + wedge['start_frame']),
+            'start_frame': i + wedge['start_frame'],
+            'frame_name': wedge['frame_template'].format(i + wedge['start_frame']),
             'start_angle': wedge['start_angle'] + i * wedge['delta_angle'],
             'delta_angle': wedge['delta_angle'],
             'exposure_time': wedge['exposure_time'],
@@ -170,8 +171,8 @@ class FrameChecker(object):
                 value = header.get('average_intensity')
             else:
                 value = 10
-            return frame['dataset'], frame['frame_number'], True, value
-        return frame['dataset'], frame['frame_number'], False, 0
+            return frame['file_prefix'], frame['start_frame'], True, value
+        return frame['file_prefix'], frame['start_frame'], False, 0
 
 
 def check_frame_list(frames, ext='img', detect_bad=False):
@@ -211,7 +212,8 @@ def generate_collection_list(run, frame_set):
     first_frame, start_angle = frame_set[0]
     data_set = {
         'dataset': run['name'],
-        'file_template': '{}_{}'.format(run['name'], '{{:0{}d}}'.format(FRAME_NUMBER_DIGITS)),
+        'file_prefix': run['name'],
+        'frame_template': '{}_{}'.format(run['name'], '{{:0{}d}}'.format(FRAME_NUMBER_DIGITS)),
         'start_angle': start_angle,
         'start_frame': first_frame,
         'num_frames': len(frame_set),
@@ -342,6 +344,8 @@ def get_disk_frameset(directory, file_glob):
 
 def frameset_to_list(frame_set):
     frame_numbers = []
+
+    print [w.split('-') for w in frame_set.split(',')]
     wlist = [map(int, w.split('-')) for w in frame_set.split(',')]
     for v in wlist:
         if len(v) == 2:

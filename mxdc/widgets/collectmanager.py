@@ -5,7 +5,6 @@ from bcm.utils import runlists
 from bcm.utils.log import get_module_logger
 from mxdc.utils import config, gui
 from mxdc.widgets.dialogs import warning, error, MyDialog
-from mxdc.widgets import dialogs
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets.misc import ActiveLabel, ActiveProgressBar
 from mxdc.widgets.mountwidget import MountWidget
@@ -14,10 +13,10 @@ from twisted.python.components import globalRegistry
 import gobject
 import gtk
 import pango
-import sys
 import os
 import time
-import itertools
+from bcm.utils.decorators import async
+import copy
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -162,7 +161,6 @@ class CollectManager(gtk.Alignment):
         # self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(0))
         # self.diagnostics.set_sensitive(False)
 
-        self.listview.connect('row-activated', self.on_row_activated)
         self.collect_btn.connect('clicked', self.on_activate)
         self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
         self.run_manager.connect('saved', self.save_runs)
@@ -396,7 +394,6 @@ class CollectManager(gtk.Alignment):
 
     def create_runlist(self):
         self.run_list = runlists.generate_run_list(self.run_data)
-        self.frame_pos = 0
         self.gen_sequence()
 
     def gen_sequence(self):
@@ -406,8 +403,11 @@ class CollectManager(gtk.Alignment):
             self._add_item(item)
 
     def check_runlist(self):
-        existing, bad = runlists.check_frame_list(self.run_list, self.beamline.detector.file_extension,
-                                                  detect_bad=False)
+        existing, bad = runlists.check_frame_list(
+            self.run_list, self.beamline.detector.file_extension, detect_bad=False
+        )
+        config_data = copy.deepcopy(self.run_data)
+        success = True
         if any(existing.values()):
             details = '\n'.join(['{}: {}'.format(k, v) for k, v in existing.items()])
             header = 'Frames from this sequence already exist!\n'
@@ -423,40 +423,14 @@ class CollectManager(gtk.Alignment):
 
             response = warning(header, sub_header, buttons=buttons)
             if response == RESPONSE_SKIP:
-                for run in self.run_data:
+                success = True
+                for run in config_data:
                     run['skip'] = ','.join([existing.get(run['name'], ''), run.get('skip', '')])
-                return True
             elif response == RESPONSE_REPLACE_ALL:
-                return True
+                success = True
             else:
-                return False
-        return True
-
-    def on_row_activated(self, treeview, path, column):
-        if self.collect_state != COLLECT_STATE_PAUSED:
-            return True
-        model = treeview.get_model()
-        itr = model.get_iter_first()
-        pos = model.get_iter(path)
-        self.frame_pos = model.get_path(pos)[0]
-        while itr:
-            i = model.get_path(itr)[0]
-            if i < self.frame_pos:
-                status = model.get_value(itr, COLLECT_COLUMN_STATUS)
-                if status != FRAME_STATE_DONE:
-                    model.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_SKIPPED)
-                self.run_list[i]['saved'] = True
-            elif i == self.frame_pos:
-                model.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_RUNNING)
-                self.run_list[i]['saved'] = False
-            else:
-                model.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_PENDING)
-                self.run_list[i]['saved'] = False
-            itr = model.iter_next(itr)
-
-        if self.collect_state == COLLECT_STATE_PAUSED:
-            self.collector.set_position(self.frame_pos)
-        return True
+                success = False
+        return success, config_data
 
     def on_pause(self, obj, paused, info):
         if paused:
@@ -495,9 +469,10 @@ class CollectManager(gtk.Alignment):
         self.progress_bar.set_fraction(0)
 
     def on_stop_btn_clicked(self, widget):
-        self.collector.stop()
         self.stop_btn.set_sensitive(False)
         self.progress_bar.busy_text("Stopping ...")
+        self.stop()
+
 
     def on_done(self, obj=None):
         self.on_complete(obj)
@@ -565,11 +540,12 @@ class CollectManager(gtk.Alignment):
             self.labels[key].set_text(dct[key])
 
     def start_collection(self):
-        self.create_runlist()
-        if self.check_runlist():
+        #self.create_runlist()
+        success, config_data = self.check_runlist()
+        if success:
             self.collect_btn.set_sensitive(False)
             self.progress_bar.busy_text("Starting data collection...")
-            self.collector.configure(self.run_data)
+            self.collector.configure(config_data)
             self.collector.start()
             self.run_manager.set_sensitive(False)
             self.image_viewer.set_collect_mode(True)
