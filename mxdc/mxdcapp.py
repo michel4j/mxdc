@@ -73,9 +73,8 @@ class MXDCApp(object):
         self.broadcast_service()
             
     def do_quit(self, obj=None):
-        _logger.info('Stopping...')
+        _logger.info('Stopping ...')
         reactor.stop()
-        sys.exit()
 
     def provider_success(self):
         pass

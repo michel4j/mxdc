@@ -15,7 +15,6 @@ import gtk
 import pango
 import os
 import time
-from bcm.utils.decorators import async
 import copy
 
 # setup module logger with a default do-nothing handler
@@ -161,6 +160,7 @@ class CollectManager(gtk.Alignment):
         # self.tool_book.connect('realize', lambda x: self.tool_book.set_current_page(0))
         # self.diagnostics.set_sensitive(False)
 
+        self.collect_btn.set_sensitive(False)
         self.collect_btn.connect('clicked', self.on_activate)
         self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
         self.run_manager.connect('saved', self.save_runs)
@@ -356,31 +356,16 @@ class CollectManager(gtk.Alignment):
     def save_runs(self, obj=None):
         self.clear_runs()
         run_num = self.run_manager.get_current_page()
-        dir_error = False
 
-        try:
-            for run in self.run_manager.runs:
-                data = run.get_parameters()
-                if run_num == 0 and data['number'] == 0:
-                    data['energy'] = [self.beamline.monochromator.energy.get_position()]
-                    data['energy_label'] = ['E0']
-                    self.run_data = [data]
-                    break
-                elif (run_num == data['number'] or run.is_enabled()) and data['number'] != 0:
-                    self.run_data.append(data)
-        except:
-            msg_title = 'Error Saving Run information'
-            msg_sub = 'Either you have entered invalid parameters or a connection to the Image '
-            msg_sub += 'Synchronisation Server could not be established. Data Collection '
-            msg_sub += 'can not proceed reliably until the problem is resolved.'
-            warning(msg_title, msg_sub)
-
-        if dir_error:
-            msg_title = 'Invalid Directories'
-            msg_sub = 'One or more runs have been disbled because directories '
-            msg_sub += 'Could not be setup. Please make sure no  directories with spaces '
-            msg_sub += 'or special characters are used, and try again.'
-            warning(msg_title, msg_sub)
+        for run in self.run_manager.runs:
+            data = run.get_parameters()
+            if run_num == 0 and data['number'] == 0:
+                data['energy'] = [self.beamline.monochromator.energy.get_position()]
+                data['energy_label'] = ['E0']
+                self.run_data = [data]
+                break
+            elif (run_num == data['number'] or run.is_enabled()) and data['number'] != 0:
+                self.run_data.append(data)
 
         self._save_config()
         self.create_runlist()
@@ -391,6 +376,8 @@ class CollectManager(gtk.Alignment):
     def clear_runs(self):
         del self.run_data[:]
         self.run_data = []
+        self.listmodel.clear()
+        self.collect_btn.set_sensitive(False)
 
     def create_runlist(self):
         self.run_list = runlists.generate_run_list(self.run_data)
@@ -401,6 +388,10 @@ class CollectManager(gtk.Alignment):
         self.total_frames = 0
         for item in self.run_list:
             self._add_item(item)
+        if self.run_list:
+            self.collect_btn.set_sensitive(True)
+        else:
+            self.collect_btn.set_sensitive(False)
 
     def check_runlist(self):
         existing, bad = runlists.check_frame_list(
@@ -412,13 +403,13 @@ class CollectManager(gtk.Alignment):
             details = '\n'.join(['{}: {}'.format(k, v) for k, v in existing.items()])
             header = 'Frames from this sequence already exist!\n'
             sub_header = details + (
-                '\n\n<b>What would you like to do with them? '
-                'Re-collecting will delete existing frames.</b>\n'
+                '\n\n<b>What would you like to do with them? </b>\n'
+                'NOTE: Re-collecting will delete existing frames!\n'
             )
             buttons = (
                 ('Cancel', RESPONSE_CANCEL),
-                ('Continue', RESPONSE_SKIP),
-                ('Re-Collect', RESPONSE_REPLACE_ALL)
+                ('Re-Collect', RESPONSE_REPLACE_ALL),
+                ('Continue', RESPONSE_SKIP)
             )
 
             response = warning(header, sub_header, buttons=buttons)
@@ -434,19 +425,18 @@ class CollectManager(gtk.Alignment):
 
     def on_pause(self, obj, paused, info):
         if paused:
-            self.progress_bar.idle_text("Paused")
             # Build the dialog message
             title = info.get('reason', '')
             msg = info.get('details', '')
             self.pause_dialog = MyDialog(
                 gtk.MESSAGE_WARNING, title, msg,
-                buttons=(('Stop', gtk.RESPONSE_NO), ('Continue', gtk.RESPONSE_YES))
+                buttons=(('Stop', gtk.RESPONSE_NO), ('OK', gtk.RESPONSE_YES))
             )
+            self.progress_bar.busy_text("Waiting for Beam!")
             response = self.pause_dialog()
             if response == gtk.RESPONSE_NO:
                 self.collector.stop()
                 self.pause_dialog = None
-                self.on_complete(obj)
         else:
             if self.pause_dialog:
                 self.pause_dialog.dialog.destroy()
@@ -469,10 +459,7 @@ class CollectManager(gtk.Alignment):
         self.progress_bar.set_fraction(0)
 
     def on_stop_btn_clicked(self, widget):
-        self.stop_btn.set_sensitive(False)
-        self.progress_bar.busy_text("Stopping ...")
         self.stop()
-
 
     def on_done(self, obj=None):
         self.on_complete(obj)
@@ -480,18 +467,14 @@ class CollectManager(gtk.Alignment):
         self.progress_bar.idle_text(text)
 
     def on_stopped(self, obj=None):
+        self.progress_bar.idle_text("Stopped!")
         self.on_complete(obj)
-        if self.collector.paused:
-            self.progress_bar.idle_text("Paused!")
-        elif self.collector.stopped:
-            self.progress_bar.idle_text("Stopped!")
 
     def on_complete(self, obj=None):
         self.collect_btn.set_sensitive(True)
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
         self.image_viewer.set_collect_mode(False)
-
         gobject.idle_add(self.emit, 'new-datasets', obj.results)
         self.beamline.lims.upload_datasets(self.beamline, obj.results)
 
@@ -540,16 +523,17 @@ class CollectManager(gtk.Alignment):
             self.labels[key].set_text(dct[key])
 
     def start_collection(self):
-        #self.create_runlist()
         success, config_data = self.check_runlist()
         if success:
             self.collect_btn.set_sensitive(False)
-            self.progress_bar.busy_text("Starting data collection...")
+            self.progress_bar.busy_text("Starting acquisition ...")
             self.collector.configure(config_data)
             self.collector.start()
             self.run_manager.set_sensitive(False)
             self.image_viewer.set_collect_mode(True)
 
     def stop(self):
+        self.stop_btn.set_sensitive(False)
+        self.progress_bar.busy_text("Stopping acquisition ...")
         if self.collector is not None:
             self.collector.stop()
