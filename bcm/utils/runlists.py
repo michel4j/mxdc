@@ -36,6 +36,7 @@ FULL_PARAMETERS = {
 FRAME_NUMBER_DIGITS = 4
 OUTLIER_DEVIATION = 50
 
+
 def prepare_run(run_data):
     runs = []
     run_data = run_data.copy()
@@ -106,7 +107,7 @@ def summarize_frame_set(full_frame_set):
 
     for st, en in tmp_pairs:
         if st == en:
-            sum_list.append('{}'.format(st,))
+            sum_list.append('{}'.format(st, ))
         else:
             sum_list.append('{}-{}'.format(st, en))
     return ','.join(sum_list)
@@ -187,17 +188,17 @@ def check_frame_list(frames, ext='img', detect_bad=False):
             existing_frames[dataset].append(frame_number)
     existing = {
         k: summarize_frame_set(v)
-        for k,v in existing_frames.items()
+        for k, v in existing_frames.items()
     }
     bad_frames = {}
     if detect_bad:
         for dataset, values in intensities.items():
             frame_info = numpy.array(values)
-            data = frame_info[:,1]
+            data = frame_info[:, 1]
             devs = numpy.abs(data - numpy.median(data))
             mdev = numpy.median(devs)
-            s = devs/mdev if mdev else 0.0
-            bad_frames['dataset'] = frame_info[s>OUTLIER_DEVIATION]
+            s = devs / mdev if mdev else 0.0
+            bad_frames['dataset'] = frame_info[s > OUTLIER_DEVIATION]
     bad = {
         k: summarize_frame_set(v)
         for k, v in bad_frames.items()
@@ -344,8 +345,8 @@ def get_disk_frameset(directory, file_glob):
 
 def frameset_to_list(frame_set):
     frame_numbers = []
-    print 'FRAMESET_TO_LIST', frame_set
-    wlist = [map(int, w.split('-')) for w in frame_set.split(',')]
+    ranges = filter(None, frame_set.split(','))
+    wlist = [map(int, filter(None, w.split('-'))) for w in ranges]
     for v in wlist:
         if len(v) == 2:
             frame_numbers.extend(range(v[0], v[1] + 1))
