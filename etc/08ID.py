@@ -68,7 +68,7 @@ DEVICES = {
     'sample_camera': AxisCamera('V2E1608-001', 4), #4
     'sample_backlight': SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk','ILC1608-3-I10-02:on', 100.0, desc='Back'),
     'sample_frontlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk','ILC1608-3-I10-01:on', 100.0, desc='Front'),
-    'sample_uvlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk','ILC1608-3-I10-01:on', 100.0, desc='UV'),
+    'sample_uvlight': SampleLight('BL08ID1:UVLight', 'BL08ID1:UVLight:fbk','BL08ID1:UVLight:OnOff', 100.0, desc='UV'),
     'hutch_video':  AxisPTZCamera('CCD1608-301'),
     
     # Facility, storage-ring, shutters, etc
