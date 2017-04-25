@@ -64,7 +64,7 @@ DEVICES = {
     'distance': PseudoMotor('BL08B1:det:dist:mm', precision=2),
     'detector_z':  ENCMotor('SMTR1608-5-B10-14:mm', precision=2),
     'two_theta':  PseudoMotor('BL08B1:det:2theta:deg'),
-    'detector': ADRayonixImager('BL08B1-01:CCD', 4096, 'MX300HE'),
+    'detector': ADRayonixImager('CCDC1608-B1-01', 4096, 'MX300HE'),
     
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  PseudoMotor('PSMTR1608-5-B10-08:pm:mm'),  
@@ -111,7 +111,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'image_server': ImageSyncClient(),
+    'image_server': ImageSyncClient(include=['*.img', '*.cbf'], mode='777'),
     'lims': LIMSClient('https://cmcf.lightsource.ca'),
     'dpm': DPMClient('srv-cmcf-dp2.clsi.ca:8881'),
 }

@@ -344,8 +344,7 @@ def get_disk_frameset(directory, file_glob):
 
 def frameset_to_list(frame_set):
     frame_numbers = []
-
-    print [w.split('-') for w in frame_set.split(',')]
+    print 'FRAMESET_TO_LIST', frame_set
     wlist = [map(int, w.split('-')) for w in frame_set.split(',')]
     for v in wlist:
         if len(v) == 2:
