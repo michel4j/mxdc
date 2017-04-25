@@ -260,16 +260,16 @@ class Goniometer(GoniometerBase):
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
 
-    def scan(self, wait=True):
+    def scan(self, wait=True, timeout=None):
         """Perform an oscillation scan according to the currently set parameters
         
         Kwargs:
             - `wait` (bool): if True, wait until the scan is complete otherwise run
             asynchronously.
         """
-        self.wait(start=False, stop=True)
+        self.wait(start=False, stop=True, timeout=timeout)
         self._scan_cmd.put(1)
-        self.wait(start=True, stop=wait)
+        self.wait(start=True, stop=wait, timeout=timeout)
 
 
 class MD2Goniometer(GoniometerBase):
@@ -438,16 +438,16 @@ class MD2Goniometer(GoniometerBase):
             if v.match(txt):
                 self._set_and_notify_mode(k)
 
-    def scan(self, wait=True):
+    def scan(self, wait=True, timeout=None):
         """Perform an oscillation scan according to the currently set parameters
         
         Kwargs:
             - `wait` (bool): if True, wait until the scan is complete otherwise run
               asynchronously.
         """
-        self.wait(stop=True, start=False)
+        self.wait(stop=True, start=False, timeout=timeout)
         self._scan_cmd.set(1)
-        self.wait(start=True, stop=wait, timeout=180)
+        self.wait(start=True, stop=wait, timeout=timeout)
 
     def stop(self):
         """Stop and abort the current scan if any."""
@@ -491,7 +491,7 @@ class SimGoniometer(GoniometerBase):
         _logger.info('Scan done at: %s' % datetime.now().isoformat())
         self._scanning = False
 
-    def scan(self, wait=True):
+    def scan(self, wait=True, timeout=None):
         if wait:
             self._scan_sync()
         else:

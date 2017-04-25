@@ -11,6 +11,7 @@ from bcm.device.interfaces import IImagingDetector
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from zope.interface import implements
+from bcm.utils import runlists
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -124,8 +125,7 @@ class MXCCDImager(BaseDevice):
         """Stop and Abort the current acquisition."""
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
         self._abort_cmd.put(1)
-        ca.flush()
-        self.wait_for_state('idle')
+        #self.wait_for_state('idle')
 
     def save(self, wait=False):
         """Save the current buffers according to the current parameters.
@@ -394,9 +394,6 @@ class PIL6MImager(BaseDevice):
         self.detector_type = 'PILATUS 6M'
         self.shutterless = True
         self.file_extension = 'cbf'
-        # self.file_list = []
-        # self._notifier_id = None
-        # self._notifier_period = 1000
 
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
         self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name), monitor=False)
@@ -409,20 +406,29 @@ class PIL6MImager(BaseDevice):
         self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
         self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
-        self.file_name = self.add_pv('{}:FileName_RBV'.format(name))
-        self.file_name.connect('changed', self.on_new_frame)
+        self.file_format = self.add_pv("{}:FileTemplate".format(name)),
+
+        root_name = name.split(':')[0]
+        self.saved_filename = self.add_pv('{}:saveData_fullPathName'.format(root_name))
+        self.saved_filename.connect('changed', self.on_new_frame)
 
         # Data Parameters
         self.settings = {
-            'first_frame': self.add_pv("{}:FileTemplate".format(name), monitor=True),
+            'start_frame': self.add_pv("{}:FileNumber".format(name), monitor=False),
+            'num_frames': self.add_pv('{}:NumImages'.format(name), monitor=False),
+            'file_prefix': self.add_pv("{}:FileName".format(name), monitor=True),
             'directory': self.add_pv("{}:FilePath".format(name), monitor=False),
+
+            'start_angle': self.add_pv("{}:StartAngle".format(name), monitor=False),
+            'delta_angle': self.add_pv("{}:AngleIncr".format(name), monitor=False),
+            'exposure_time': self.add_pv("{}:AcquireTime".format(name), monitor=False),
+            'exposure_period': self.add_pv("{}:AcquirePeriod".format(name), monitor=False),
 
             'wavelength': self.add_pv("{}:Wavelength".format(name), monitor=False),
             'beam_x': self.add_pv("{}:BeamX".format(name), monitor=False),
             'beam_y': self.add_pv("{}:BeamY".format(name), monitor=False),
             'distance': self.add_pv("{}:DetDist".format(name), monitor=False),
             'axis': self.add_pv("{}:OscillAxis".format(name), monitor=False),
-
             'two_theta': self.add_pv("{}:Det2theta".format(name), monitor=False),
             'alpha': self.add_pv("{}:Alpha".format(name), monitor=False),
             'kappa': self.add_pv("{}:Kappa".format(name), monitor=False),
@@ -431,11 +437,7 @@ class PIL6MImager(BaseDevice):
             'polarization': self.add_pv("{}:Polarization".format(name), monitor=False),
             'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name), monitor=False),
 
-            'num_frames': self.add_pv('{}:NumImages'.format(name), monitor=False),
-            'start_angle': self.add_pv("{}:StartAngle".format(name), monitor=False),
-            'delta_angle': self.add_pv("{}:AngleIncr".format(name), monitor=False),
-            'exposure_time': self.add_pv("{}:AcquireTime".format(name), monitor=False),
-            'exposure_period': self.add_pv("{}:AcquirePeriod".format(name), monitor=False),
+
 
             'comments': self.add_pv('{}:HeaderString'.format(name), monitor=False),
         }
@@ -453,7 +455,6 @@ class PIL6MImager(BaseDevice):
     def stop(self):
         _logger.debug('({}) Stopping Detector ...'.format(self.name))
         self.acquire_cmd.put(0)
-        ca.flush()
         self.wait('idle')
 
     def get_origin(self):
@@ -465,7 +466,6 @@ class PIL6MImager(BaseDevice):
     def delete(self, directory, *frame_list):
         for frame_name in frame_list:
             frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
-            print frame_path
             if os.path.exists(frame_path):
                 try:
                     os.rename(frame_path, frame_path + DELETE_SUFFIX)
@@ -495,14 +495,13 @@ class PIL6MImager(BaseDevice):
             params['threshold_energy'] = round(0.6*params['energy'], 2)
 
         # default directory if camserver fails to save frames
-        self.settings['directory'].put('/data/images/', flush=True)
-        params['file_template'] = '{}.{}'.format(params['file_template'], self.file_extension)
+        #self.settings['directory'].put('/data/images/', flush=True)
+        #params['file_template'] = '%s%s_%{0}.{0}d.{1}'.format(runlists.FRAME_NUMBER_DIGITS, self.file_extension)
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
         params['polarization'] = self.settings['polarization'].get()
         params['exposure_period'] = params['exposure_time']
         params['exposure_time'] -= 0.002
-        params['first_frame'] = params['file_template'].format(params['start_frame'])
 
         self.mode_cmd.put(0)
         for k, v in params.items():
@@ -538,4 +537,147 @@ class PIL6MImager(BaseDevice):
         return self.state_value.get() in self.STATES.get(state, [])
 
 
-__all__ = ['MXCCDImager', 'SimCCDImager', 'PIL6MImager']
+class ADRayonixImager(BaseDevice):
+    implements(IImagingDetector)
+    __gsignals__ = {
+        'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
+    }
+    STATES = {
+        'init': [8],
+        'acquiring': [1, 2],
+        'reading': [2],
+        'correcting': [3],
+        'saving': [4],
+        'idle': [0, 6, 10],
+        'error': [6, 9],
+        'waiting': [7],
+        'busy': [1, 2, 3, 4, 5, 7, 8],
+    }
+
+    def __init__(self, name, size, detector_type='MX300HE', desc='Rayonix Detector'):
+        super(ADRayonixImager, self).__init__()
+        self.size = size, size
+        self.resolution = 0.073242
+        self.name = desc
+        self.detector_type = detector_type
+        self.shutterless = False
+        self.file_extension = 'img'
+
+        self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
+        self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
+        self.frame_type = self.add_pv('{}:FrameType'.format(name), monitor=False)
+        self.acquire_status = self.add_pv("{}:Acquire_RBV".format(name))
+        self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
+        self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
+        self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
+        self.file_format = self.add_pv("{}:FileTemplate".format(name)),
+        self.saved_filename = self.add_pv('{}:FullFileName_RBV'.format(name))
+        self.saved_filename.connect('changed', self.on_new_frame)
+
+        # Data Parameters
+        self.settings = {
+            'start_frame': self.add_pv("{}:FileNumber".format(name), monitor=False),
+            'num_frames': self.add_pv('{}:NumImages'.format(name), monitor=False),
+            'file_prefix': self.add_pv("{}:FileName".format(name), monitor=True),
+            'directory': self.add_pv("{}:FilePath".format(name), monitor=False),
+
+            'wavelength': self.add_pv("{}:Wavelength".format(name), monitor=False),
+            'beam_x': self.add_pv("{}:BeamX".format(name), monitor=False),
+            'beam_y': self.add_pv("{}:BeamY".format(name), monitor=False),
+            'distance': self.add_pv("{}:DetectorDistance".format(name), monitor=False),
+            'axis': self.add_pv("{}:RotationAxis".format(name), monitor=False),
+            'start_angle': self.add_pv("{}:StartPhi".format(name), monitor=False),
+            'delta_angle': self.add_pv("{}:RotationRange".format(name), monitor=False),
+            'two_theta': self.add_pv("{}:TwoTheta".format(name), monitor=False),
+            'exposure_time': self.add_pv("{}:AcquireTime".format(name), monitor=False),
+            'exposure_period': self.add_pv("{}:AcquirePeriod".format(name), monitor=False),
+
+            'comments': self.add_pv('{}:DatasetComments'.format(name), monitor=False),
+        }
+
+    def initialize(self, wait=True):
+        _logger.debug('({}) Initializing Detector ...'.format(self.name))
+
+    def start(self, first=False):
+        _logger.debug('({}) Starting Acquisition ...'.format(self.name))
+        self.wait('idle', 'correct', 'saving', 'waiting')
+        self.acquire_cmd.put(1)
+        ca.flush()
+        self.wait('acquiring')
+
+    def stop(self):
+        _logger.debug('({}) Stopping Detector ...'.format(self.name))
+        self.acquire_cmd.put(0)
+        self.wait('idle')
+
+    def get_origin(self):
+        return self.size[0] // 2, self.size[1] // 2
+
+    def save(self):
+        self.acquire_cmd.put(0)
+        #self.on_new_frame(None, self.saved_filename.get())
+
+    def delete(self, directory, *frame_list):
+        for frame_name in frame_list:
+            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
+            if os.path.exists(frame_path):
+                try:
+                    os.rename(frame_path, frame_path + DELETE_SUFFIX)
+                except OSError:
+                    _logger.error('Unable to remove existing frame: {}'.format(frame_name))
+
+    def on_new_frame(self, obj, file_path):
+        gobject.idle_add(self.emit, 'new-image', file_path)
+        frame_name = os.path.basename(file_path)
+
+        # Remove any .DELETE frames from this sequence
+        old_file = file_path + DELETE_SUFFIX
+        if os.path.exists(old_file):
+            try:
+                os.remove(old_file)
+            except OSError:
+                _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
+
+    def wait(self, *states):
+        states = states or ('idle',)
+        return self.wait_for_state(*states)
+
+    def set_parameters(self, data):
+        params = {}
+        params.update(data)
+        for k, v in params.items():
+            if k in self.settings:
+                time.sleep(0.05)
+                self.settings[k].put(v, flush=True)
+
+    def wait_for_state(self, *states, **kwargs):
+        timeout = kwargs.get('timeout', 10)
+        _logger.debug('({}) Waiting for state: {}'.format(self.name, '|'.join(states)))
+        while timeout > 0 and not self.is_in_state(*states):
+            timeout -= 0.05
+            time.sleep(0.05)
+        if timeout > 0:
+            _logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
+            return True
+        else:
+            _logger.warning('({}) Timed out waiting for state: {}'.format(self.name, '|'.join(states),))
+            return False
+
+    def wait_in_state(self, *states, **kwargs):
+        timeout = kwargs.get('timeout', 60)
+        _logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, '|'.join(states),))
+        while self.is_in_state(*states) and timeout > 0:
+            timeout -= 0.05
+            time.sleep(0.05)
+        if timeout > 0:
+            _logger.debug('({}) state "{}" expired after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
+            return True
+        else:
+            _logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, '|'.join(states),))
+            return False
+
+    def is_in_state(self, *states):
+        return any(self.state_value.get() in self.STATES.get(state, []) for state in states)
+
+
+__all__ = ['MXCCDImager', 'SimCCDImager', 'PIL6MImager', 'ADRayonixImager']
