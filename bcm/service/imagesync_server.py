@@ -17,10 +17,10 @@ from bcm.utils import mdns
 application = service.Application('ImgSync')
 f = ImgSyncService()
 try:
-    isync_provider = mdns.Provider('ImgSync Module', '_cmcf_imgsync._tcp', 8880, {}, unique=True)
+    isync_provider = mdns.Provider('ImgSync Module', '_cmcf_imgsync._tcp', 9999, {}, unique=True)
 except mdns.mDNSError:
     log.err('An instance of ImgSync is already running on the local network. Only one instance permitted.')
     sys.exit()
 
 serviceCollection = service.IServiceCollection(application)
-internet.TCPServer(8880, pb.PBServerFactory(IPptvISync(f))).setServiceParent(serviceCollection)
+internet.TCPServer(9999, pb.PBServerFactory(IPptvISync(f))).setServiceParent(serviceCollection)
