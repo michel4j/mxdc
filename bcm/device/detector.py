@@ -249,11 +249,6 @@ class MXCCDImager(BaseDevice):
             except OSError:
                 _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
 
-        # FIXME remove thumbnails
-        os.chdir(self.settings['directory'].get())
-        for f in glob.glob('*.img_???.png'):
-            os.remove(f)
-
     def wait_for_state(self, state, timeout=10.0):
         _logger.debug('(%s) Waiting for state: %s' % (self.name, state,))
         while (not self.is_in_state(state)) and timeout > 0:
@@ -608,14 +603,13 @@ class ADRayonixImager(BaseDevice):
     def stop(self):
         _logger.debug('({}) Stopping Detector ...'.format(self.name))
         self.acquire_cmd.put(0)
-        self.wait('idle')
+        #self.wait('idle')
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
 
     def save(self):
         self.acquire_cmd.put(0)
-        #self.on_new_frame(None, self.saved_filename.get())
 
     def delete(self, directory, *frame_list):
         for frame_name in frame_list:
