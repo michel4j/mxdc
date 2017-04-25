@@ -52,7 +52,7 @@ DEVICES = {
     'two_theta':  SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
     #'detector': SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
     #'detector': MXCCDImager('BL08B1-01:CCD', 4096, 0.07243, 'MX300HE'),
-    'detector': ADRayonixImager('CCDC1608-08B1:cam1', 4096, 'MX300HE'),
+    'detector': ADRayonixImager('CCDC1608-B1-01:cam1', 4096, 'MX300HE'),
     #'detector': PIL6MImager('DEC1608-01:cam1'),
 
     # Sample environment, beam stop, cameras, zoom, lighting

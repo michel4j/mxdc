@@ -480,7 +480,7 @@ class SimGoniometer(GoniometerBase):
         self._scanning = True
         bl = self.beamline
         st = time.time()
-        _logger.info('Starting scan at: %s' % datetime.now().isoformat())
+        _logger.debug('Starting scan at: %s' % datetime.now().isoformat())
         bl.omega.move_to(self._settings['angle'] - 0.05, wait=True)
         old_speed = bl.omega._speed
         bl.omega._set_speed(float(self._settings['delta']) / self._settings['time'])
@@ -488,7 +488,7 @@ class SimGoniometer(GoniometerBase):
             _logger.debug('Waiting for scan to complete ...')
         bl.omega.move_to(self._settings['angle'] + self._settings['delta'] + 0.05, wait=True)
         bl.omega._set_speed(old_speed)
-        _logger.info('Scan done at: %s' % datetime.now().isoformat())
+        _logger.debug('Scan done at: %s' % datetime.now().isoformat())
         self._scanning = False
 
     def scan(self, wait=True, timeout=None):
