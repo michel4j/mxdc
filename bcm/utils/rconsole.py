@@ -137,6 +137,7 @@ class GTKInterpreter(threading.Thread):
         threading.Thread.__init__(self)
         self.banner = banner
         self.shell = MTConsole(on_kill=[gtk.main_quit])
+        self.setDaemon(True)
 
     def run(self):
         self.pre_interact()
