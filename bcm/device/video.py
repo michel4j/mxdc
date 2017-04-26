@@ -229,6 +229,7 @@ class AxisCamera(VideoSrc):
         data = ''
         count = 0
         self._frame = None
+        dur = 1/self.maxfps
         while not self._stopped:
             if self._active:
                 try:
@@ -260,6 +261,7 @@ class AxisCamera(VideoSrc):
                     self.stream = urllib2.urlopen(self.url)
                     data = ''
                     self._read_size = 1024
+            time.sleep(dur)
 
     def get_frame(self):
         if not self.index:
