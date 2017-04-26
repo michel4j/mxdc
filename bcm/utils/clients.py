@@ -5,7 +5,7 @@ Created on Oct 28, 2010
 '''
 
 from twisted.spread import pb
-from twisted.internet import reactor
+from twisted.internet import reactor, error
 
 from bcm.utils import mdns
 from bcm.utils.log import get_module_logger
@@ -13,14 +13,21 @@ from bcm.service.base import BaseService
 from bcm.utils.misc import get_project_name
 import requests
 
-
 import re
-from dpm.service import common
 import gobject
 import os
 import json
 
 _logger = get_module_logger(__name__)
+
+# For some reason clientConnectionMade is not called
+class ServerClientFactory(pb.PBClientFactory):
+    def buildProtocol(self, addr):
+        broker = pb.PBClientFactory.buildProtocol(self, addr)
+        pb.PBClientFactory.clientConnectionMade(self, broker)
+        return broker
+
+
 
 class DPMClient(BaseService):
     def __init__(self, address=None):
@@ -36,72 +43,61 @@ class DPMClient(BaseService):
                         'address': m.group(1),
                         'port': int(m.group(2)),
                         }
-            self.on_dpm_service_added(None, data)
+            self.on_service_added(None, data)
         else:
             gobject.idle_add(self.setup)
-    
-    def on_dpm_service_added(self, obj, data):
+
+    def on_service_added(self, obj, data):
         if self._service_found:
             return
         self._service_found = True
         self._service_data = data
-        _logger.info('AutoProcess Service found at %s:%s' % (self._service_data['host'], 
-                                                                self._service_data['port']))
-        self.factory = pb.PBClientFactory()
-        self.factory.getRootObject().addCallback(self.on_dpm_connected).addErrback(self.dump_error)
-        reactor.connectTCP(self._service_data['address'],
-                           self._service_data['port'], self.factory)
-        
-    def on_dpm_service_removed(self, obj, data):
-        if not self._service_found and self._service_data['host']==data['host']:
+        self.factory = ServerClientFactory() #pb.PBClientFactory()
+        self.factory.getRootObject().addCallback(self.on_connected).addErrback(self.on_connection_failed)
+        reactor.connectTCP(self._service_data['address'], self._service_data['port'], self.factory)
+        _logger.info('AutoProcess Service found at %s:%s' % (self._service_data['host'], self._service_data['port']))
+
+    def on_service_removed(self, obj, data):
+        if not self._service_found and self._service_data['host'] == data['host']:
             return
         self._service_found = False
         self._ready = False
-        _logger.warning('AutoProcess Service %s:%s disconnected.' % (self._service_data['host'], 
-                                                                self._service_data['port']))
+        _logger.warning('AutoProcess Service %s:%s disconnected.' % (self._service_data['host'],
+                                                                     self._service_data['port']))
         self.set_state(active=False)
-        
+
     def setup(self):
         """Find out the connection details of the AutoProcess Server using mdns
         and initiate a connection"""
         import time
-        _service_data = {'user': os.getlogin(), 
-                         'uid': os.getuid(), 
-                         'gid': os.getgid(), 
+        _service_data = {'user': os.getlogin(),
+                         'uid': os.getuid(),
+                         'gid': os.getgid(),
                          'started': time.asctime(time.localtime())}
         self.browser = mdns.Browser('_cmcf_dpm._tcp')
-        self.browser.connect('added', self.on_dpm_service_added)
-        self.browser.connect('removed', self.on_dpm_service_removed)
-        
-    def on_dpm_connected(self, perspective):
+        self.browser.connect('added', self.on_service_added)
+        self.browser.connect('removed', self.on_service_removed)
+
+    def on_connected(self, perspective):
         """ I am called when a connection to the AutoProcess Server has been established.
         I expect to receive a remote perspective which will be used to call remote methods
         on the DPM server."""
         _logger.info('Connection to AutoProcess Server established')
         self.service = perspective
-        self.service.notifyOnDisconnect(self._disconnect_cb)     
+        self.service.notifyOnDisconnect(self.on_disconnected)
         self._ready = True
         self.set_state(active=True)
-    
-    def _disconnect_cb(self, obj):
+
+    def on_disconnected(self, obj):
         """Used to detect disconnections if MDNS is not being used."""
         self.set_state(active=False)
-        
+
     def on_connection_failed(self, reason):
-        _logger.error('Could not connect to AutoProcess Server: %', reason)
-    
+        _logger.error('Connection to AutoProcess Server Failed')
+        print reason
+
     def is_ready(self):
         return self._ready
-
-    def dump_results(self, data):
-        """pretty print the data received from the server"""
-        import pprint
-        pp = pprint.PrettyPrinter(indent=4, depth=4)
-        _logger.info('Server sent: %s' % pp.pformat(data))
-
-    def dump_error(self, failure):
-        r = failure.trap(common.InvalidUser, common.CommandFailed)
-        _logger.error('<%s -- %s>.' % (r, failure.getErrorMessage()))
 
 
 class LIMSClient(BaseService):
@@ -119,23 +115,21 @@ class LIMSClient(BaseService):
     def get(self, *args, **kwargs):
         r = requests.get(*args, verify=False, cookies=self.cookies, **kwargs)
         if r.status_code == requests.codes.ok:
-            reply = r.json()
+            return r.json()
         else:
             r.raise_for_status()
-        return reply
 
     def post(self, *args, **kwargs):
         r = requests.post(*args, verify=False, cookies=self.cookies, **kwargs)
         if r.status_code == requests.codes.ok:
-            reply = r.json()
+            return r.json()
         else:
-            print r.text
+            _logger.error('Failed posting data to MxLIVE: HTTP-%s' % r.status_code)
             r.raise_for_status()
-        return reply
 
     def get_project_samples(self, beamline):
         url = "{}/api/{}/samples/{}/{}/".format(
-            self.address, beamline.config.get('lims_api_key',''), beamline.name, get_project_name()
+            self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
         )
         try:
             reply = self.get(url)
@@ -144,11 +138,9 @@ class LIMSClient(BaseService):
             reply = {'error': 'Unable to fetch Samples from MxLIVE', 'details': '{}'.format(e)}
         return reply
 
-
-
     def upload_dataset(self, beamline, data):
         url = "{}/api/{}/data/{}/{}/".format(
-            self.address, beamline.config.get('lims_api_key',''), beamline.name, get_project_name()
+            self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
         )
 
         json_info = {
@@ -201,9 +193,10 @@ class LIMSClient(BaseService):
 
     def upload_scan(self, beamline, scan):
         url = "{}/api/{}/scan/{}/{}/".format(
-            self.address, beamline.config.get('lims_api_key',''), beamline.name, get_project_name()
+            self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
         )
         kind = int(scan.get('kind'))
+        new_info = {}
 
         if kind == 1:  # Excitation Scan
             crystal_id = None if not scan['parameters'].get('crystal_id', '') else int(scan['parameters']['crystal_id'])
@@ -255,7 +248,7 @@ class LIMSClient(BaseService):
 
     def upload_report(self, beamline, report):
         url = "{}/api/{}/report/{}/{}/".format(
-            self.address, beamline.config.get('lims_api_key',''), beamline.name, get_project_name()
+            self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
         )
         if report.get('data_id'):
             try:
@@ -282,10 +275,76 @@ class LIMSClient(BaseService):
             self.upload_report(beamline, report)
 
         if len(reports):
-            with open(os.path.join(report['url'], 'process.json'), 'w') as fobj:
+            with open(os.path.join(reports[0]['url'], 'process.json'), 'w') as fobj:
                 info = {'result': reports, 'error': None}
                 json.dump(info, fobj)
 
         return reports
 
 
+class MxDCClient(BaseService):
+    def __init__(self):
+        BaseService.__init__(self)
+        self.name = "Remote MxDC"
+        self._service_found = False
+        self.service_data = {}
+        self.service = None
+        self._ready = False
+        gobject.idle_add(self.setup)
+
+    def on_service_added(self, obj, data):
+        self._service_found = True
+        self.service_data = data
+        self.factory = ServerClientFactory() #pb.PBClientFactory()
+        self.factory.getRootObject().addCallback(self.on_connected).addErrback(self.on_connection_failed)
+        reactor.connectTCP(self.service_data['address'], self.service_data['port'], self.factory)
+
+        _logger.warning(
+            'Remote MXDC instance {}@{}:{} since {}'.format(
+                self.service_data['data']['user'], self.service_data['address'], self.service_data['port'],
+                self.service_data['data']['started']
+            )
+        )
+
+    def on_service_removed(self, obj, data):
+        # if not self._service_found and self.service_data['address'] == data['address']:
+        #     return
+        self._service_found = False
+        self._ready = False
+        self.set_state(active=False)
+
+    def setup(self):
+        """Find out the connection details of the Remove MXDC using mdns
+        and initiate a connection"""
+        self.browser = mdns.Browser('_mxdc._tcp')
+        self.browser.connect('added', self.on_service_added)
+        self.browser.connect('removed', self.on_service_removed)
+
+        # Notify state after 3 seconds if not active
+        gobject.timeout_add(5000, self.notify_state)
+
+    def on_connected(self, perspective):
+        """ I am called when a connection to the MxDC instance has been established.
+        I expect to receive a remote perspective which will be used to call remote methods
+        on the MxDC instance."""
+        self.service = perspective
+        self.service.notifyOnDisconnect(self.on_disconnected)
+        self._ready = True
+        self.set_state(active=True)
+
+    def on_disconnected(self, obj):
+        """Used to detect disconnections if MDNS is not being used."""
+        self.set_state(active=False)
+
+    def on_connection_failed(self, reason):
+        _logger.warning('Connection to Remote MxDC Failed')
+
+    def notify_state(self):
+        if not self.active_state:
+            self.set_state(active=False)
+
+    def is_ready(self):
+        return self._ready
+
+
+__all__ = ['DPMClient', 'MxDCClient', 'LIMSClient']

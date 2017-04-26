@@ -15,6 +15,6 @@ from bcm.device.video import *
 from bcm.service.imagesync_client import *
 from bcm.engine.optimizer import *
 from bcm.engine.interfaces import *
-from bcm.utils.clients import LIMSClient, DPMClient
+from bcm.utils.clients import *
 from bcm.device.monochromator import Monochromator
 from bcm.device.diffractometer import Diffractometer
