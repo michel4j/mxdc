@@ -64,7 +64,9 @@ def multi_count(*args):
 
     threads = []
     for i, device in enumerate(args[:-1]):
-        threads.append(threading.Thread(target=count, args=(device, args[-1], i,)))
+        worker = threading.Thread(target=count, args=(device, args[-1], i,))
+        worker.setDaemon(True)
+        threads.append(worker)
     [th.start() for th in threads]
     [th.join() for th in threads]
     return tuple(counts)
