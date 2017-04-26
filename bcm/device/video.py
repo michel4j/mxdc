@@ -329,7 +329,6 @@ class AxisPTZCamera(AxisCamera):
       
     def __init__(self, hostname, idx=None, name='Axis PTZ Camera'):
         AxisCamera.__init__(self, hostname, idx, name)
-        self.session = requests.Session()
         self.server_url = hostname
         self._rzoom = 0
        
@@ -340,7 +339,7 @@ class AxisPTZCamera(AxisCamera):
             `value` (int): the target zoom value.
         """
         command = "{}/axis-cgi/com/ptz.cgi?rzoom={}".format(self.server_url, value)
-        self.session.get(command)
+        requests.get(command)
         self._rzoom -= value
 
     def center(self, x, y):
@@ -352,7 +351,7 @@ class AxisPTZCamera(AxisCamera):
         """
 
         command = "{}/axis-cgi/com/ptz.cgi?center={},{}".format(self.server_url, x, y)
-        self.session.get(command)
+        requests.get(command)
     
     def goto(self, position):
         """Set the pan-tilt focal point based on a predefined position
@@ -362,7 +361,7 @@ class AxisPTZCamera(AxisCamera):
         """
         position = urllib.quote_plus(position)
         command = "{}/axis-cgi/com/ptz.cgi?gotoserverpresetname={}".format(self.server_url, position)
-        self.session.get(command)
+        requests.get(command)
         self._rzoom = 0
 
     def get_presets(self):
@@ -373,7 +372,7 @@ class AxisPTZCamera(AxisCamera):
         """
         try:
             command = "{}/axis-cgi/com/ptz.cgi?query=presetposall".format(self.server_url)
-            r = self.session.get(command)
+            r = requests.get(command)
             result = r.text
         except:
             result = ''
