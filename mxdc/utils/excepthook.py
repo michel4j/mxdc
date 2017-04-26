@@ -32,6 +32,8 @@ import socket
 _logger = get_module_logger('mxdc')
 _exception_in_progress = threading.Lock()
 
+QUIT_FUNCTION = sys.exit
+
 def _send_email(address, subject, message):
     from_addr = '%s@%s' % (getpass.getuser(), socket.gethostname())
     to_addr = [address,]
@@ -91,7 +93,7 @@ def _custom_excepthook(exctyp, value, tb):
                 _logger.error("Bug report could not be submitted.")
         elif response == gtk.RESPONSE_CLOSE:
             _exception_in_progress.release()
-            reactor.stop()
+            QUIT_FUNCTION()
         else:
             dlg.destroy()
             _exception_in_progress.release()
@@ -102,9 +104,12 @@ def _custom_excepthook(exctyp, value, tb):
 
 _excepthook_save = sys.excepthook
 
-def install():
+def install(quit_func=None):
     sys.excepthook = _custom_excepthook
+    if quit_func:
+        QUIT_FUNCTION = quit_func
 
 def uninstall():
     sys.excepthook = _excepthook_save
+    QUIT_FUNCTION = sys.exit
    
