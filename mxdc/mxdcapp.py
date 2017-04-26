@@ -28,7 +28,7 @@ SERVICE_DATA = {
 }
 
 warnings.simplefilter("ignore")
-excepthook.install()
+
 _logger = get_module_logger('mxdc')
 
 
@@ -122,4 +122,5 @@ def main():
 
 if __name__ == "__main__":
     log_to_console()
+    excepthook.install(exit_main_loop)
     run_main_loop(main)
