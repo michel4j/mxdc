@@ -65,7 +65,7 @@ class HutchWindow(gtk.Window):
             _lbl = gtk.Label('Diffraction Viewer')
             _lbl.set_padding(6,0)
             self.hutch_manager.device_book.append_page(self.image_viewer, tab_label=_lbl)
-            self.beamline.detector._header['filename'].connect('changed', self.on_new_image)
+            self.beamline.detector.connect('new-image', self.on_new_image)
             self.hutch_manager.device_book.set_show_border(False)
         else:
             self.hutch_manager.device_book.set_show_tabs(False)
@@ -84,10 +84,9 @@ class HutchWindow(gtk.Window):
         self.close_shutter_mnu.connect('activate', self.hutch_manager.on_close_shutter)        
         self.show_all()
 
-    def on_new_image(self, widget, index):
+    def on_new_image(self, widget, file_path):
         header = self.beamline.detector._header
-        filename = '%s/%s' % (header['directory'].get().replace('/data/','/users/'), header['filename'].get())
-        self.image_viewer.image_canvas.queue_frame(filename)
+        self.image_viewer.image_canvas.queue_frame(file_path)
         
     def _do_quit(self):
         self.hide()
@@ -97,7 +96,6 @@ class HutchWindow(gtk.Window):
         authors = [
             "Michel Fodje (maintainer)",
             "Kathryn Janzen",
-            "Kevin Anderson",
             ]
         about = gtk.AboutDialog()
         name = 'Hutch Viewer'
@@ -115,13 +113,12 @@ class HutchWindow(gtk.Window):
         
         about.connect('response', lambda x,y: about.destroy())
         about.connect('destroy', lambda x: about.destroy())
-        #about.set_transient_for(self)
         about.show()
 
 
 class HutchApp(object):
     def run_local(self):
-        _ = MXBeamline()
+        self.beamline = MXBeamline()
         self.main_window = HutchWindow()
         self.main_window.connect('destroy', self._do_quit)
         self.main_window.run()        

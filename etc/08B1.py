@@ -77,7 +77,7 @@ DEVICES = {
     'sample_backlight': SampleLight('BL08B1:MD2:S:BlightLevel', 'BL08B1:MD2:G:BlightLevel', 'BL08B1:MD2:S:BlightOnOff', 100.0, desc='Back'),
     'sample_frontlight': SampleLight('BL08B1:MD2:S:FlightLevel', 'BL08B1:MD2:G:FlightLevel', 'BL08B1:MD2:S:FlightOnOff',100.0, desc='Front'),
     'hutch_video':  AxisPTZCamera('ccd1608-500.clsi.ca'),
-    
+
     # Facility, storage-ring, shutters, etc
     'ring_current':  PV('PCT1402-01:mA:fbk'),
     'ring_mode':  PV('SYSTEM:mode:fbk'),
@@ -94,8 +94,6 @@ DEVICES = {
     'i_0': Counter('BPM08B1-05:I0:fbk'),
     'i_1': Counter('BPM08B1-04:I0:fbk'),
     'i_2': Counter('BPM08B1-02:I0:fbk'),
-    'i_bst':  Counter('BL08B1:MD2:G:ExternalPhotoDiode'),
-    'i_scn':  Counter('BL08B1:MD2:G:InternalPhotoDiode'),
     
     # Misc: Automounter, HC1 etc
     'automounter':  Automounter('ROB16085B', 'ROB1608-500'),
@@ -121,6 +119,8 @@ BEAMLINE_SHUTTERS = ('ssh1', 'psh1', 'psh2', 'ssh3')
 
 # Devices only available in the console
 CONSOLE_DEVICES = {
+    'i_bst': Counter('BL08B1:MD2:G:ExternalPhotoDiode'),
+    'i_scn': Counter('BL08B1:MD2:G:InternalPhotoDiode'),
     'vcm_y': PseudoMotor('SCM1608-4-B10-01:ht:mm'),
     'vcm_pitch': PseudoMotor('SCM1608-4-B10-01:pitch:mrad'),
     'vcm_x': PseudoMotor('SMTR1608-4-B10-08:mm'),
