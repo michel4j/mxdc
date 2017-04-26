@@ -19,6 +19,7 @@ import warnings
 import gobject
 import gtk
 
+USE_TWISTED = True
 MXDC_PORT = 9898
 SERVICE_DATA = {
     'user': get_project_name(),
@@ -87,7 +88,23 @@ class MXDCApp(object):
 
     def do_quit(self, obj=None):
         _logger.info('Stopping ...')
+        exit_main_loop()
+
+
+def run_main_loop(func):
+    if USE_TWISTED:
+        reactor.callWhenRunning(func)
+        reactor.run()
+    else:
+        gtk.idle_add(func)
+        gtk.main()
+
+
+def exit_main_loop():
+    if USE_TWISTED:
         reactor.stop()
+    else:
+        gtk.main_quit()
 
 
 def main():
@@ -97,7 +114,7 @@ def main():
     except:
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')
-        reactor.stop()
+        exit_main_loop()
 
     app = MXDCApp()
     app.run_local()
@@ -105,7 +122,4 @@ def main():
 
 if __name__ == "__main__":
     log_to_console()
-    # log_to_file(os.path.join(os.environ['HOME'], 'mxdc.log'))
-
-    reactor.callWhenRunning(main)
-    reactor.run()
+    run_main_loop(main)

@@ -70,8 +70,6 @@ class AppWindow(gtk.Window):
         self.set_icon(icon)
         self.set_resizable(False)
 
-        gobject.timeout_add(3000, lambda: self.splash.hide())
-        gobject.timeout_add(3010, lambda: self.present())
         self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
         self.scan_manager.connect('create-run', self.on_create_run)       
@@ -135,7 +133,11 @@ class AppWindow(gtk.Window):
         self.close_shutter_mnu.connect('activate', self.hutch_manager.on_close_shutter)
         
         self.show_all()
-        #self.set_transient_for(self.splash)
+        self.ready()
+
+    def ready(self):
+        self.splash.hide()
+        self.present()
         
     def _do_quit(self):
         self.hide()
