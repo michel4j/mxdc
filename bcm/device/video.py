@@ -223,10 +223,10 @@ class AxisCamera(VideoSrc):
         self._frame = None
         self.set_state(active=True)
 
-    def get_frame1(self):
+    def get_frame(self):
         return self._frame
 
-    def _stream_video1(self):
+    def _stream_video(self):
         data = ''       
         count = 0
         self._frame = None
@@ -262,7 +262,7 @@ class AxisCamera(VideoSrc):
                     data = ''
                     self._read_size = 1024
 
-    def get_frame(self):
+    def get_frame2(self):
         if not self.index:
             url = 'http://%s/jpg/image.jpg' % (self.hostname)
         else:
@@ -329,8 +329,9 @@ class AxisPTZCamera(AxisCamera):
       
     def __init__(self, hostname, idx=None, name='Axis PTZ Camera'):
         AxisCamera.__init__(self, hostname, idx, name)
-        self.server_url = hostname
+        self.server_url = 'http://{}'.format(hostname)
         self._rzoom = 0
+        self.presets = self.fetch_presets()
        
     def zoom(self, value):
         """Set the zoom position of the PTZ camera
@@ -365,6 +366,9 @@ class AxisPTZCamera(AxisCamera):
         self._rzoom = 0
 
     def get_presets(self):
+        return self.presets
+
+    def fetch_presets(self):
         """Get a list of all predefined position names from the PTZ camera
         
         Returns:
@@ -372,6 +376,7 @@ class AxisPTZCamera(AxisCamera):
         """
         try:
             command = "{}/axis-cgi/com/ptz.cgi?query=presetposall".format(self.server_url)
+            print command
             r = requests.get(command)
             result = r.text
         except:

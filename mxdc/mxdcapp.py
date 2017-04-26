@@ -19,7 +19,7 @@ import warnings
 import gobject
 import gtk
 
-USE_TWISTED = True
+USE_TWISTED = False
 MXDC_PORT = 9898
 SERVICE_DATA = {
     'user': get_project_name(),
