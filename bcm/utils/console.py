@@ -143,8 +143,9 @@ class GTKInterpreter(threading.Thread):
     """
     TIMEOUT = 100 # Milisecond interval between timeouts.
     
-    def __init__(self,banner=None):
+    def __init__(self, banner=None):
         threading.Thread.__init__(self)
+        self.setDaemon(True)
         self.banner = banner
         self.shell = MTConsole(on_kill=[gtk.main_quit])
 
