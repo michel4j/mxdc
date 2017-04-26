@@ -357,7 +357,7 @@ class PV(gobject.GObject):
         
         """
         if self._connected != CA_OP_CONN_UP:
-            _logger.error('(%s) PV not connected' % (self._name,))
+            _logger.warning('(%s) PV not connected' % (self._name,))
             return
             #raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         if self._monitor == True and self._val is not None:
@@ -381,7 +381,7 @@ class PV(gobject.GObject):
         """Get control parameters of a Process Variable.
         """
         if self._connected != CA_OP_CONN_UP:
-            _logger.error('(%s) PV not connected' % (self._name,))
+            _logger.warning('(%s) PV not connected' % (self._name,))
             return
             #raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         else:
@@ -421,7 +421,7 @@ class PV(gobject.GObject):
               will be set to zero.
         """
         if self._connected != CA_OP_CONN_UP:
-            _logger.error('(%s) PV not connected' % (self._name,))
+            _logger.warning('(%s) PV not connected' % (self._name,))
             return
             #raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         if self._type == DBR_STRING:
@@ -565,7 +565,7 @@ class PV(gobject.GObject):
         
     def _add_handler(self, callback):
         if self._connected != CA_OP_CONN_UP:
-            _logger.error('(%s) PV not connected.' % (self._name,))
+            _logger.warning('(%s) PV not connected.' % (self._name,))
             return
             #raise ChannelAccessError('PV not connected')
         event_id = c_ulong()
@@ -752,7 +752,7 @@ __all__ = ['PV', 'threads_init', 'flush', ]
 
 
 #Make sure you get the events on time.
-gobject.timeout_add(10, _heart_beat, 0.001)
+gobject.timeout_add(20, _heart_beat, 0.01)
 #_ca_heartbeat_thread = threading.Thread(target=_heart_beat_loop)
 #_ca_heartbeat_thread.setDaemon(True)
 #_ca_heartbeat_thread.setName('ca.heartbeat')
