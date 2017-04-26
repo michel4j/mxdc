@@ -1,11 +1,11 @@
 
 from bcm.device.base import BaseDevice
 from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor, IVideoSink
-from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from scipy import misc
 from zope.interface import implements
 from PIL import Image
+import requests
 import urllib2
 import urllib
 import cStringIO
@@ -329,7 +329,8 @@ class AxisPTZCamera(AxisCamera):
       
     def __init__(self, hostname, idx=None, name='Axis PTZ Camera'):
         AxisCamera.__init__(self, hostname, idx, name)
-        self._server = httplib.HTTPConnection(hostname)
+        self.session = requests.Session()
+        self.server_url = hostname
         self._rzoom = 0
        
     def zoom(self, value):
@@ -338,11 +339,9 @@ class AxisPTZCamera(AxisCamera):
         Args:
             `value` (int): the target zoom value.
         """
-        self._server.connect()
-        command = "/axis-cgi/com/ptz.cgi?rzoom=%s" % value
-        self._server.request("GET", command)
+        command = "{}/axis-cgi/com/ptz.cgi?rzoom={}".format(self.server_url, value)
+        self.session.get(command)
         self._rzoom -= value
-        self._server.close()
 
     def center(self, x, y):
         """Set the pan-tilt focal point of the PTZ camera
@@ -351,10 +350,9 @@ class AxisPTZCamera(AxisCamera):
             `x` (int): the target horizontal focal point on the image.
             `y` (int): the target horizontal focal point on the image.
         """
-        self._server.connect()
-        command = "/axis-cgi/com/ptz.cgi?center=%d,%d" % (x, y)
-        self._server.request("GET", command)
-        self._server.close()
+
+        command = "{}/axis-cgi/com/ptz.cgi?center={},{}".format(self.server_url, x, y)
+        self.session.get(command)
     
     def goto(self, position):
         """Set the pan-tilt focal point based on a predefined position
@@ -362,12 +360,10 @@ class AxisPTZCamera(AxisCamera):
         Args:
             `position` (str): Name of predefined position.
         """
-        self._server.connect()
         position = urllib.quote_plus(position)
-        command = "/axis-cgi/com/ptz.cgi?gotoserverpresetname=%s" % position
-        self._server.request("GET", command)
+        command = "{}/axis-cgi/com/ptz.cgi?gotoserverpresetname={}".format(self.server_url, position)
+        self.session.get(command)
         self._rzoom = 0
-        self._server.close()
 
     def get_presets(self):
         """Get a list of all predefined position names from the PTZ camera
@@ -375,13 +371,10 @@ class AxisPTZCamera(AxisCamera):
         Returns:
             A list of strings.
         """
-        
         try:
-            self._server.connect()
-            command = "/axis-cgi/com/ptz.cgi?query=presetposall"
-            self._server.request("GET", command)
-            result = self._server.getresponse().read()
-            self._server.close()
+            command = "{}/axis-cgi/com/ptz.cgi?query=presetposall".format(self.server_url)
+            r = self.session.get(command)
+            result = r.text
         except:
             result = ''
             _logger.error('Could not connect to video server')
