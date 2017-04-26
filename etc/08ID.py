@@ -65,11 +65,11 @@ DEVICES = {
     'camera_center_x':  Positioner('BL08ID1:video:sample:x'),
     'camera_center_y':  Positioner('BL08ID1:video:sample:y'),
     'cryojet':  Cryojet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
-    'sample_camera': AxisCamera('V2E1608-001', 4), #4
+    'sample_camera': AxisCamera('V2E1608-001.clsi.ca', 4), #4
     'sample_backlight': SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk','ILC1608-3-I10-02:on', 100.0, desc='Back'),
     'sample_frontlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk','ILC1608-3-I10-01:on', 100.0, desc='Front'),
     'sample_uvlight': SampleLight('BL08ID1:UVLight', 'BL08ID1:UVLight:fbk','BL08ID1:UVLight:OnOff', 100.0, desc='UV'),
-    'hutch_video':  AxisPTZCamera('CCD1608-301'),
+    'hutch_video':  AxisPTZCamera('CCD1608-301.clsi.ca'),
     
     # Facility, storage-ring, shutters, etc
     'ring_current':  PV('PCT1402-01:mA:fbk'),
@@ -103,7 +103,7 @@ DEVICES = {
 SERVICES = {
     'image_server': ImageSyncClient(include=['*.cbf'], mode='777'),
     'lims': LIMSClient('https://cmcf.lightsource.ca'),
-    'dpm': DPMClient('srv-cmcf-dp2:8881'),
+    'dpm': DPMClient('srv-cmcf-dp1.clsi.ca:8881'),
 }
 
 # Beamline shutters in the order in which they should be opened
