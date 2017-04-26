@@ -76,7 +76,7 @@ DEVICES = {
     'sample_camera': AxisCamera('V2E1608-400.clsi.ca', 1), #1
     'sample_backlight': SampleLight('BL08B1:MD2:S:BlightLevel', 'BL08B1:MD2:G:BlightLevel', 'BL08B1:MD2:S:BlightOnOff', 100.0, desc='Back'),
     'sample_frontlight': SampleLight('BL08B1:MD2:S:FlightLevel', 'BL08B1:MD2:G:FlightLevel', 'BL08B1:MD2:S:FlightOnOff',100.0, desc='Front'),
-    'hutch_video':  SimPTZCamera(), #AxisPTZCamera('ccd1608-500.clsi.ca'),
+    'hutch_video':  AxisPTZCamera('ccd1608-500.clsi.ca'),
     
     # Facility, storage-ring, shutters, etc
     'ring_current':  PV('PCT1402-01:mA:fbk'),
