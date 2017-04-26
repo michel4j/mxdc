@@ -128,6 +128,7 @@ class LIMSClient(BaseService):
             r.raise_for_status()
 
     def get_project_samples(self, beamline):
+        _logger.debug('Requesting Samples from MxLIVE ...')
         url = "{}/api/{}/samples/{}/{}/".format(
             self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
         )
