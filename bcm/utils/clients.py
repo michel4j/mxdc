@@ -6,7 +6,6 @@ Created on Oct 28, 2010
 
 from twisted.spread import pb
 from twisted.internet import reactor, error
-
 from bcm.utils import mdns
 from bcm.utils.log import get_module_logger
 from bcm.service.base import BaseService
@@ -19,6 +18,7 @@ import os
 import json
 
 _logger = get_module_logger(__name__)
+
 
 # For some reason clientConnectionMade is not called
 class ServerClientFactory(pb.PBClientFactory):
@@ -52,7 +52,7 @@ class DPMClient(BaseService):
             return
         self._service_found = True
         self._service_data = data
-        self.factory = ServerClientFactory() #pb.PBClientFactory()
+        self.factory = ServerClientFactory()  # pb.PBClientFactory()
         self.factory.getRootObject().addCallback(self.on_connected).addErrback(self.on_connection_failed)
         reactor.connectTCP(self._service_data['address'], self._service_data['port'], self.factory)
         _logger.info('AutoProcess Service found at %s:%s' % (self._service_data['host'], self._service_data['port']))
@@ -94,7 +94,6 @@ class DPMClient(BaseService):
 
     def on_connection_failed(self, reason):
         _logger.error('Connection to AutoProcess Server Failed')
-        print reason
 
     def is_ready(self):
         return self._ready
@@ -288,6 +287,8 @@ class MxDCClient(BaseService):
         BaseService.__init__(self)
         self.name = "Remote MxDC"
         self._service_found = False
+        self.added_id = None
+        self.removed_id = None
         self.service_data = {}
         self.service = None
         self._ready = False
@@ -296,7 +297,7 @@ class MxDCClient(BaseService):
     def on_service_added(self, obj, data):
         self._service_found = True
         self.service_data = data
-        self.factory = ServerClientFactory() #pb.PBClientFactory()
+        self.factory = ServerClientFactory()  # pb.PBClientFactory()
         self.factory.getRootObject().addCallback(self.on_connected).addErrback(self.on_connection_failed)
         reactor.connectTCP(self.service_data['address'], self.service_data['port'], self.factory)
 
@@ -313,16 +314,15 @@ class MxDCClient(BaseService):
         self._service_found = False
         self._ready = False
         self.set_state(active=False)
+        self.notify_failure()
 
     def setup(self):
         """Find out the connection details of the Remove MXDC using mdns
         and initiate a connection"""
         self.browser = mdns.Browser('_mxdc._tcp')
-        self.browser.connect('added', self.on_service_added)
-        self.browser.connect('removed', self.on_service_removed)
-
-        # Notify state after 3 seconds if not active
-        gobject.timeout_add(5000, self.notify_state)
+        self.added_id = self.browser.connect('added', self.on_service_added)
+        self.removed_id = self.browser.connect('removed', self.on_service_removed)
+        gobject.timeout_add(2000, self.notify_failure)
 
     def on_connected(self, perspective):
         """ I am called when a connection to the MxDC instance has been established.
@@ -333,16 +333,19 @@ class MxDCClient(BaseService):
         self._ready = True
         self.set_state(active=True)
 
-    def on_disconnected(self, obj):
+    def on_disconnected(self, remote):
         """Used to detect disconnections if MDNS is not being used."""
         self.set_state(active=False)
 
     def on_connection_failed(self, reason):
+        reason.trap(error.ConnectionDone)
         _logger.warning('Connection to Remote MxDC Failed')
 
-    def notify_state(self):
+    def notify_failure(self):
         if not self.active_state:
-            self.set_state(active=False)
+            self.browser.disconnect(self.removed_id)
+            self.browser.disconnect(self.added_id)
+            self.set_state(health=(16, 'not-connected'))
 
     def is_ready(self):
         return self._ready

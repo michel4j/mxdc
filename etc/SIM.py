@@ -16,6 +16,8 @@ XRF_BEAMSTOP        = 90.0
 CENTERING_BACKLIGHT = 50
 XRF_ENERGY_OFFSET   = +1.0              # KeV
 
+ADMIN_GROUPS = (2000, 1000)
+
 LIMS_API_KEY = "4A8285AB-9E5F-476E-B17B-92BEB299A985"
 
 # pitch function for PitchOptimizer

@@ -18,12 +18,6 @@ DBusGMainLoop(set_as_default=True)
 _bus = dbus.SystemBus()
 
 
-def get_ip_address():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("10.52.7.132", 80))
-    return s.getsockname()[0]
-
-
 class mDNSError(Exception):
     pass
 
@@ -59,7 +53,7 @@ class Provider(gobject.GObject):
             name,  # name
             service_type,  # service type
             "",  # domain
-            get_ip_address(),  # host
+            hostname,  # host
             dbus.UInt16(port),  # port
             avahi.string_array_to_txt_array(data_list),  # data
         ]

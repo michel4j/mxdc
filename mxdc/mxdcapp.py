@@ -11,7 +11,7 @@ from bcm.utils.clients import MxDCClient
 from mxdc.AppWindow import AppWindow
 from mxdc.widgets import dialogs
 from mxdc.utils import excepthook
-from twisted.internet import reactor
+from twisted.internet import reactor, error
 from twisted.spread import pb
 import os
 import time
@@ -39,6 +39,7 @@ class MXDCApp(object):
         self.beamline = MXBeamline()
         self.remote_mxdc = MxDCClient()
         self.remote_mxdc.connect('active', self.service_found)
+        self.remote_mxdc.connect('health', self.service_failed)
         self.main_window.connect('destroy', self.do_quit)
         self.main_window.run()
 
@@ -49,18 +50,22 @@ class MXDCApp(object):
                 data['host'], data['data']['user'], data['data']['started']
             )
 
-            if self.beamline.config['admin_group'] in os.getgroups():
+            if set(self.beamline.config['admin_groups']) & set(os.getgroups()):
                 msg += '\n\nDo you want to shut it down?'
                 response = dialogs.yesno('MXDC Already Running', msg)
                 if response == gtk.RESPONSE_YES:
-                    self.remote_mxdc.perspective.callRemote('shutdown')
+                    d = self.remote_mxdc.service.callRemote('shutdown')
+                    d.addErrback(self.on_close_connection)
                 else:
                     self.do_quit()
             else:
                 self.provider_failure()
-        else:
-            # broadcast after a short while if remote MxDC shuts down
-            gobject.timeout_add(1000, self.broadcast_service)
+
+    def service_failed(self, obj, state):
+        if state:
+            # broadcast after emote MxDC shuts down
+            _logger.info('Starting MxDC service discovery ...')
+            self.broadcast_service()
 
     def broadcast_service(self):
         self.provider = mdns.Provider(
@@ -78,6 +83,10 @@ class MXDCApp(object):
             'An instance of MXDC is already running on the local network. Only one instance permitted.'
         )
         self.do_quit()
+
+
+    def on_close_connection(self, reason):
+        _logger.warning('Remote MxDC instance terminated.')
 
     def provider_success(self):
         _logger.info(
