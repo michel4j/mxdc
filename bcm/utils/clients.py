@@ -283,7 +283,7 @@ class LIMSClient(BaseService):
 
 
 class MxDCClient(BaseService):
-    def __init__(self):
+    def __init__(self, service_type):
         BaseService.__init__(self)
         self.name = "Remote MxDC"
         self._service_found = False
@@ -292,6 +292,7 @@ class MxDCClient(BaseService):
         self.service_data = {}
         self.service = None
         self._ready = False
+        self.service_type = service_type
         gobject.idle_add(self.setup)
 
     def on_service_added(self, obj, data):
@@ -319,7 +320,7 @@ class MxDCClient(BaseService):
     def setup(self):
         """Find out the connection details of the Remove MXDC using mdns
         and initiate a connection"""
-        self.browser = mdns.Browser('_mxdc._tcp')
+        self.browser = mdns.Browser(self.service_type)
         self.added_id = self.browser.connect('added', self.on_service_added)
         self.removed_id = self.browser.connect('removed', self.on_service_removed)
         gobject.timeout_add(2000, self.notify_failure)

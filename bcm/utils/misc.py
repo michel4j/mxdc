@@ -41,6 +41,15 @@ def wait_for_signal(obj, signal, timeout=10):
     return sw.data
 
 
+def identifier_slug(value):
+    """
+    Converts to lowercase, removes non-word characters (alphanumerics and
+    underscores) and converts spaces to hyphens. Also strips leading and
+    trailing whitespace.
+    """
+    value = re.sub('[^\w\s-]', '', value).strip()
+    return re.sub('[-\s]+', '_', value)
+
 def every(iterable):
     for element in iterable:
         if not element:
