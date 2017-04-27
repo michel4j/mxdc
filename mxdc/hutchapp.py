@@ -60,7 +60,7 @@ class HutchWindow(gtk.Window):
         self.sample_picker.set_border_width(9)
 
         self.beamline = globalRegistry.lookup([], IBeamline)
-        if set([self.beamline.config['admin_group'], 10]) & set(os.getgroups()):
+        if set(self.beamline.config['admin_groups']) & set(os.getgroups()):
             self.image_viewer = ImageViewer(size=256)
             _lbl = gtk.Label('Diffraction Viewer')
             _lbl.set_padding(6,0)
