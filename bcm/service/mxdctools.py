@@ -4,6 +4,7 @@ from twisted.spread import pb
 from twisted.python import components
 from zope.interface import Interface, implements
 from bcm.utils.log import get_module_logger
+import gobject
 
 _logger = get_module_logger('mxdc')
 
@@ -54,4 +55,6 @@ class MXDCService(service.Service):
     def shutdown(self):
         _logger.warning('Remote Shutdown ...')
         reactor.stop()
+        return defer.succeed([])
+
            
