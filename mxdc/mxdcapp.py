@@ -6,12 +6,12 @@ from bcm.service import mxdctools
 from bcm.beamline.mx import MXBeamline
 from bcm.utils import mdns
 from bcm.utils.log import get_module_logger, log_to_console
-from bcm.utils.misc import get_project_name
+from bcm.utils.misc import get_project_name, identifier_slug
 from bcm.utils.clients import MxDCClient
 from mxdc.AppWindow import AppWindow
 from mxdc.widgets import dialogs
 from mxdc.utils import excepthook
-from twisted.internet import reactor, error
+from twisted.internet import reactor
 from twisted.spread import pb
 import os
 import time
@@ -37,7 +37,8 @@ class MXDCApp(object):
         # Create application window
         self.main_window = AppWindow()
         self.beamline = MXBeamline()
-        self.remote_mxdc = MxDCClient()
+        self.service_type = '_mxdc_{}._tcp'.format(identifier_slug(self.beamline.name))
+        self.remote_mxdc = MxDCClient(self.service_type)
         self.remote_mxdc.connect('active', self.service_found)
         self.remote_mxdc.connect('health', self.service_failed)
         self.main_window.connect('destroy', self.do_quit)
@@ -70,7 +71,7 @@ class MXDCApp(object):
     def broadcast_service(self):
         self.provider = mdns.Provider(
             'MXDC Client (%s)' % self.beamline.name,
-            '_mxdc._tcp', MXDC_PORT, SERVICE_DATA, unique=True
+            self.service_type, MXDC_PORT, SERVICE_DATA, unique=True
         )
         self.provider.connect('collision', lambda x: self.provider_failure())
         self.provider.connect('running', lambda x: self.provider_success())
