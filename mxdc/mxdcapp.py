@@ -21,11 +21,6 @@ import gtk
 
 USE_TWISTED = True
 MXDC_PORT = 9898
-SERVICE_DATA = {
-    'user': get_project_name(),
-    'started': time.asctime(time.localtime()),
-    'beamline': os.environ.get('BCM_BEAMLINE', 'SIM')
-}
 
 warnings.simplefilter("ignore")
 
@@ -38,6 +33,11 @@ class MXDCApp(object):
         self.main_window = AppWindow()
         self.beamline = MXBeamline()
         self.service_type = '_mxdc_{}._tcp'.format(identifier_slug(self.beamline.name))
+        self.service_data = {
+            'user': get_project_name(),
+            'started': time.asctime(time.localtime()),
+            'beamline': self.beamline.name
+        }
         self.remote_mxdc = MxDCClient(self.service_type)
         self.remote_mxdc.connect('active', self.service_found)
         self.remote_mxdc.connect('health', self.service_failed)
@@ -71,7 +71,7 @@ class MXDCApp(object):
     def broadcast_service(self):
         self.provider = mdns.Provider(
             'MXDC Client (%s)' % self.beamline.name,
-            self.service_type, MXDC_PORT, SERVICE_DATA, unique=True
+            self.service_type, MXDC_PORT, self.service_data, unique=True
         )
         self.provider.connect('collision', lambda x: self.provider_failure())
         self.provider.connect('running', lambda x: self.provider_success())
@@ -92,7 +92,7 @@ class MXDCApp(object):
     def provider_success(self):
         _logger.info(
             'Local MXDC instance {}@{} since {}'.format(
-                SERVICE_DATA['user'], SERVICE_DATA['beamline'], SERVICE_DATA['started']
+                self.service_data['user'], self.beamline.name, self.service_data['started']
             )
         )
 
