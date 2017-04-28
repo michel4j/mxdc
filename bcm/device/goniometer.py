@@ -57,27 +57,6 @@ _STATE_PATTERNS = {
 }
 
 
-# class BackLight(BasicShutter):
-#     """A specialized in-out actuator for pneumatic OAV backlight at the CLS."""
-#     def __init__(self, name):
-#         """
-#         Args:
-#             -`name` (str): Root PV name of EPICS record.
-#         """
-#         open_name = "%s:opr:ctl" % name
-#         close_name = "%s:opr:ctl" % name
-#         state_name = "%s:out" % name
-#         BasicShutter.__init__(self, open_name, close_name, state_name)
-#         self._messages = ['Moving in', 'Moving out']
-#         self._name = 'Backlight'
-# 
-#     def _signal_change(self, obj, value):
-#         if value == 1:
-#             self.set_state(changed=False)
-#         else:
-#             self.set_state(changed=True)
-
-
 class GoniometerBase(BaseDevice):
     """Base class for goniometer."""
     implements(IGoniometer)
@@ -150,7 +129,8 @@ class Goniometer(GoniometerBase):
         self._scan_state = self.add_pv("%s:scanFrame:status" % pv_root)
 
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
-
+        self._gonio_command = self.add_pv("%s:L2.AOUT" % pv_root)
+        self._stop_command =  self.add_pv("%s:stop" % pv_root)
         self._gonio_state_mnt = self.add_pv("%s:mounting:fbk" % blname)
         self._gonio_state_cnt = self.add_pv("%s:centering:fbk" % blname)
         self._gonio_state_col = self.add_pv("%s:collect:fbk" % blname)
@@ -271,6 +251,10 @@ class Goniometer(GoniometerBase):
         self._scan_cmd.put(1)
         self.wait(start=True, stop=wait, timeout=timeout)
 
+    def stop(self):
+        self._stop_command.put(1)
+        self._gonio_command.put('OUT.1-0')
+
 
 class MD2Goniometer(GoniometerBase):
     """EPICS based MD2-type Goniometer at the CLS 08B1-1."""
@@ -329,11 +313,6 @@ class MD2Goniometer(GoniometerBase):
         self._minibeam = Positioner("%s:S:CapPredefPosn" % pv_root, "%s:G:CapPredefPosn" % pv_root)
         self.add_devices(self._tbl_x, self._tbl_y, self._tbl_z, self._cnt_x, self._cnt_y, self._minibeam)
 
-        # device set points for mount mode
-        self._mount_setpoints = {
-            # self._cnt_x: 0.0,
-            # self._cnt_y: 0.0,
-        }
 
     def configure(self, **kwargs):
         """Configure the goniometer to perform an oscillation scan.
@@ -368,25 +347,19 @@ class MD2Goniometer(GoniometerBase):
         mode = mode.strip().upper()
         if mode == 'CENTERING':
             self._cntr_cmd_start.toggle(1, 0)
-            # self._mode_cmd.put(cmd_template % (2,))
-            # self._mode_centering_cmd.put('\x01')
+
         elif mode == 'MOUNTING':
             self._mode_mounting_cmd.put(1)
-            # self._mode_cmd.put(cmd_template % (1,))
-            # self._mode_mounting_cmd.put('\x01')
+
         elif mode in ['COLLECT', 'SCANNING']:
             self._cntr_cmd_complete.toggle(1, 0)
             self._mode_collect_cmd.put(1)
-            # self._mode_cmd.put(cmd_template % (5,))
-            # self._mode_collect_cmd.put('\x01')
+
         elif mode == 'BEAM':
             self._mode_beam_cmd.put(1)
-            # self._mode_cmd.put(cmd_template % (3,))
-            # self._mode_beam_cmd.put('\x01')
 
         if wait:
             timeout = 30
-            # self.wait()
 
             while mode not in _MODE_MAP_REV.get(self.mode) and timeout > 0:
                 time.sleep(0.01)
@@ -394,19 +367,10 @@ class MD2Goniometer(GoniometerBase):
             if timeout <= 0:
                 _logger.warn('Timed out waiting for requested mode `%s`' % mode)
 
-        # FIXME: compensate for broken presets in mounting mode
-        # if mode == 'MOUNTING':
-        #    for dev,val in self._mount_setpoints.items():
-        #        if abs(dev.get() - val) > 0.01:              
-        #            self.wait() 
-        #            time.sleep(0.5)
-        #            dev.set(val) 
         if mode == 'SCANNING':
             bl = globalRegistry.lookup([], IBeamline)
             self._mca_act.set(1)
             bl.beamstop_z.move_to(bl.config['xrf_beamstop'], wait=True)
-            # self._set_and_notify_mode(mode)
-            # self._minibeam.set(2) # may not be needed any more
 
     def _on_mode_changed(self, pv, val):
         mode_str = _MODE_MAP_REV.get(val, ['UNKNOWN'])[0]
@@ -446,14 +410,13 @@ class MD2Goniometer(GoniometerBase):
               asynchronously.
         """
         self.wait(stop=True, start=False, timeout=timeout)
-        self._scan_cmd.set(1)
+        self._scan_cmd.put(1)
         self.wait(start=True, stop=wait, timeout=timeout)
 
     def stop(self):
         """Stop and abort the current scan if any."""
-        self._abort_cmd.set(1)
-        ca.flush()
-        self._abort_cmd.set(0)
+        self._abort_cmd.toggle(1, 0)
+
 
 
 class SimGoniometer(GoniometerBase):
