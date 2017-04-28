@@ -486,9 +486,6 @@ class PIL6MImager(BaseDevice):
         if not (0.5*params['energy'] < self.energy_threshold.get() < 0.75*params['energy']):
             params['threshold_energy'] = round(0.6*params['energy'], 2)
 
-        # default directory if camserver fails to save frames
-        #self.settings['directory'].put('/data/images/', flush=True)
-        #params['file_template'] = '%s%s_%{0}.{0}d.{1}'.format(runlists.FRAME_NUMBER_DIGITS, self.file_extension)
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
         params['polarization'] = self.settings['polarization'].get()
@@ -536,7 +533,7 @@ class ADRayonixImager(BaseDevice):
     }
     STATES = {
         'init': [8],
-        'acquiring': [1, 2],
+        'acquiring': [1],
         'reading': [2],
         'correcting': [3],
         'saving': [4],
@@ -592,15 +589,14 @@ class ADRayonixImager(BaseDevice):
 
     def start(self, first=False):
         _logger.debug('({}) Starting Acquisition ...'.format(self.name))
-        self.wait('idle', 'correct', 'saving', 'waiting')
+        self.wait('idle', 'correct', 'saving', 'waiting', 'reading')
         self.acquire_cmd.put(1)
-        ca.flush()
         self.wait('acquiring')
 
     def stop(self):
         _logger.debug('({}) Stopping Detector ...'.format(self.name))
         self.acquire_cmd.put(0)
-        #self.wait('idle')
+        self.wait('idle')
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2

@@ -221,8 +221,9 @@ class AxisCamera(VideoSrc):
         self.data = ''
         self._frame = None
         self.set_state(active=True)
+        self.start()
 
-    def get_frame1(self):
+    def get_frame(self):
         return self._frame
 
     def _stream_video(self):
@@ -263,7 +264,7 @@ class AxisCamera(VideoSrc):
                     self._read_size = 1024
             time.sleep(dur)
 
-    def get_frame(self):
+    def get_frame1(self):
         if not self.index:
             url = 'http://%s/jpg/image.jpg' % (self.hostname)
         else:
