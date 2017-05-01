@@ -129,7 +129,6 @@ class Goniometer(GoniometerBase):
         self._scan_state = self.add_pv("%s:scanFrame:status" % pv_root)
 
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
-        self._gonio_command = self.add_pv("%s:L2.AOUT" % pv_root)
         self._stop_command =  self.add_pv("%s:stop" % pv_root)
         self._gonio_state_mnt = self.add_pv("%s:mounting:fbk" % blname)
         self._gonio_state_cnt = self.add_pv("%s:centering:fbk" % blname)
@@ -253,7 +252,6 @@ class Goniometer(GoniometerBase):
 
     def stop(self):
         self._stop_command.put(1)
-        self._gonio_command.put('OUT.1-0')
 
 
 class MD2Goniometer(GoniometerBase):
