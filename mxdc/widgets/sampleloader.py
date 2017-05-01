@@ -31,7 +31,8 @@ class CrystalStore(gtk.ListStore):
         CONTAINER,
         STATUS,
         DATA,
-    ) = range(6)
+        PRIORITY,
+    ) = range(7)
     
     def __init__(self):
         gtk.ListStore.__init__(self,                
@@ -41,6 +42,7 @@ class CrystalStore(gtk.ListStore):
             gobject.TYPE_STRING,
             gobject.TYPE_INT,
             gobject.TYPE_PYOBJECT,
+            gobject.TYPE_INT,
             )
             
     
@@ -52,7 +54,9 @@ class CrystalStore(gtk.ListStore):
             self.PORT, item['port'],
             self.CONTAINER, item['container_name'],
             self.STATUS, item['load_status'],
-            self.DATA, item)
+            self.DATA, item,
+            self.PRIORITY, item.get('priority', 0)
+        )
                     
 class ContainerStore(gtk.ListStore):
     (
@@ -189,7 +193,15 @@ class DewarLoader(gtk.HBox):
         column = gtk.TreeViewColumn("Container", renderer, text=model.CONTAINER)
         column.set_sort_column_id(model.CONTAINER)
         column.set_cell_data_func(renderer, self._row_color)
-        treeview.append_column(column)                        
+        treeview.append_column(column)
+
+        # column for priority
+        renderer = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("Priority", renderer, text=model.PRIORITY)
+        column.set_sort_column_id(model.PRIORITY)
+        column.set_cell_data_func(renderer, self._row_color)
+        treeview.append_column(column)
+
         return treeview
 
     def _row_color(self, column, renderer, model, itr):
