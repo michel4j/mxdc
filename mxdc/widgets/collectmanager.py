@@ -381,14 +381,15 @@ class CollectManager(gtk.Alignment):
 
     def create_runlist(self):
         self.run_list = runlists.generate_run_list(self.run_data)
+
         self.gen_sequence()
 
     def gen_sequence(self):
         self.listmodel.clear()
-        self.total_frames = 0
+        self.total_frames = len(self.run_list)
         for item in self.run_list:
             self._add_item(item)
-        if self.run_list:
+        if self.total_frames:
             self.collect_btn.set_sensitive(True)
         else:
             self.collect_btn.set_sensitive(False)
