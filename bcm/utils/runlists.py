@@ -179,8 +179,8 @@ class FrameChecker(object):
 def check_frame_list(frames, ext='img', detect_bad=False):
     intensities = defaultdict(list)
     check_frame = FrameChecker(ext, detect_bad)
-    pool = Pool(cpu_count())
-    results = pool.map(check_frame, frames)
+    #pool = Pool(cpu_count())
+    results = map(check_frame, frames)
     existing_frames = defaultdict(list)
     for dataset, frame_number, exists, value in results:
         if exists:
