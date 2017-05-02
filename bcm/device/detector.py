@@ -623,7 +623,7 @@ class ADRayonixImager(BaseDevice):
             try:
                 os.remove(old_file)
             except OSError:
-                _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
+                _logger.debug('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
 
     def wait(self, *states):
         states = states or ('idle',)
