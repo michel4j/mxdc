@@ -99,7 +99,7 @@ class DataCollector(gobject.GObject):
     def run(self):
         ca.threads_init()
         self.collecting = True
-        self.beamline.detector_cover.open()
+        self.beamline.detector_cover.open(wait=True)
         self.beamline.detector.handler_unblock(self.new_image_handler_id)
         self.total_frames = sum([wedge['num_frames'] for wedge in self.config['wedges']])
         current_attenuation = self.beamline.attenuator.get()
