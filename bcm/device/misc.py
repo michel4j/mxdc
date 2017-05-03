@@ -387,21 +387,25 @@ class BasicShutter(BaseDevice):
         """Convenience function for open state"""
         return self.changed_state
     
-    def open(self):
+    def open(self, wait=False):
         if self.changed_state:
             return 
         _logger.debug(' '.join([self._messages[0], self.name]))
         self._open_cmd.set(1)
         ca.flush()
         self._open_cmd.set(0)
+        if wait:
+            self.wait(state=True)
     
-    def close(self):
+    def close(self, wait=False):
         if not self.changed_state:
             return 
         _logger.debug(' '.join([self._messages[1], self.name]))
         self._close_cmd.set(1)
         ca.flush()
         self._close_cmd.set(0)
+        if wait:
+            self.wait(state=False)
     
     def wait(self, state=True, timeout=5.0):
         while self.changed_state != state and timeout > 0:
@@ -440,11 +444,11 @@ class StateLessShutter(BaseDevice):
         """Convenience function for open state"""
         return self.changed_state
     
-    def open(self):
+    def open(self, wait=False):
         _logger.debug(' '.join([self._messages[0], self.name]))
         self._open_cmd.toggle(1, 0)
     
-    def close(self):
+    def close(self, wait=False):
         _logger.debug(' '.join([self._messages[1], self.name]))
         self._close_cmd.toggle(1, 0)
 
@@ -478,22 +482,16 @@ class ShutterGroup(BaseDevice):
         else:
             self.set_state(changed=False, health=(2, 'state', 'Not Open!'))
     @async
-    def open(self):
+    def open(self, wait=True):
         for i,dev in enumerate(self._dev_list):
-            if i > 0:
-                self._dev_list[i-1].wait(True)  # Wait for prev to open
-            dev.open()
+            dev.open(wait=True)
 
     @async
-    def close(self):
+    def close(self, wait=True):
         newlist = self._dev_list[:]
         newlist.reverse()
         for i,dev in enumerate(newlist):
-            if i > 0:
-                self._dev_list[i-1].wait(False)  # Wait for prev to close
-            dev.close()
-            while dev.changed_state:
-                time.sleep(0.1)
+            dev.close(wait=True)
 
        
 class SimShutter(BaseDevice):
@@ -516,11 +514,11 @@ class SimShutter(BaseDevice):
         """Convenience function for open state"""
         return self.changed_state
 
-    def open(self):
+    def open(self, wait=False):
         self._state = True
         self.set_state(changed=True )
 
-    def close(self):
+    def close(self, wait=False):
         self._state = False
         self.set_state(changed=False )
 
