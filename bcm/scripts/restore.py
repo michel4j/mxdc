@@ -5,6 +5,7 @@ class RestoreBeam(Script):
     def run(self):
         if not self.beamline.all_shutters.is_open():
             self.beamline.all_shutters.open()
+        self.beamline.all_shutters.wait()
         pos  = self.beamline.monochromator.energy.get_position()
         self.beamline.monochromator.energy.move_to(pos, wait=True, force=True)
         return
