@@ -154,6 +154,8 @@ class MXBeamline(object):
         self.registry['manualmounter'] = ManualMounter()
         self.mca.nozzle = self.registry.get('mca_nozzle', None)
         self.registry['manualmounter'] = ManualMounter()
+        if not 'detector_cover' in self.registry:
+            self.registry['detector_cover'] = SimShutter('Dummy Detector Cover')
         
         #Setup Bealine shutters
         _shutter_list = []
