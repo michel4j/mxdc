@@ -85,7 +85,6 @@ class HutchWindow(gtk.Window):
         self.show_all()
 
     def on_new_image(self, widget, file_path):
-        header = self.beamline.detector._header
         self.image_viewer.image_canvas.queue_frame(file_path)
         
     def _do_quit(self):
