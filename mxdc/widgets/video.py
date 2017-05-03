@@ -129,10 +129,13 @@ class VideoWidget(gtk.DrawingArea):
         return True
 
     def on_visibility_notify(self, obj, event):
+        print event, event.state
         if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
             self.stopped = True
+            self.camera.stop()
         else:
             self.stopped = False
+            self.camera.start()
             self._last_frame = time.time()
             self._frame_count = 0
         return True

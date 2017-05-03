@@ -208,7 +208,7 @@ class AxisCamera(VideoSrc):
     def __init__(self, hostname, idx=None, name='Axis Camera'):
         VideoSrc.__init__(self, name, maxfps=20.0)
         self.size = (768, 576)
-        self._read_size = 4096
+        self._read_size = 16384
         self.hostname = hostname
         self.index = idx
         if idx is None:
@@ -257,11 +257,10 @@ class AxisCamera(VideoSrc):
 
                 except IOError, e:
                     _logger.warning("Connection to {0} video lost. Trying to reconnect.".format(self.name))
-                    print e
                     time.sleep(2)
                     self.stream = urllib2.urlopen(self.url)
                     data = ''
-                    self._read_size = 1024
+                    self._read_size = 16384
             time.sleep(dur)
 
     def get_frame1(self):
