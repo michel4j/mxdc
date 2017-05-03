@@ -381,6 +381,7 @@ class Automounter(BasicAutomounter):
         self._gonio_safe = self.add_pv('%s:goniPos:mntEn' % pv_name)
         self._mounted =  self.add_pv('%s:status:mounted' % pv_name)
         self._position = self.add_pv('%s:state:curPnt' % pv_name)
+        self._autofill = self.add_pv('%s:LN2Fill:en' % pv_name2)
         
         self._mount_cmd = self.add_pv('%s:mntX:opr' % pv_name)
         self._mount_param = self.add_pv('%s:mntX:param' % pv_name)
@@ -397,6 +398,7 @@ class Automounter(BasicAutomounter):
         
         self._position.connect('changed', self._notify_progress)         
         self._mounted.connect('changed', self._on_mount_changed)
+
       
         self._warning.connect('changed', self._on_status_warning)
         self.status_msg.connect('changed', self._send_message)
@@ -407,7 +409,8 @@ class Automounter(BasicAutomounter):
         self._status.connect('changed', self._on_state_changed)
         self._normal.connect('changed', self._on_state_changed)
         self._usr_disable.connect('changed', self._on_state_changed)
-        
+        self._autofill.connect('changed', self._on_state_changed)
+
         self._position.connect('changed', self._do_full_state) 
         self._sample.connect('changed', self._do_full_state)
         self._magnet.connect('changed', self._do_full_state)
@@ -607,6 +610,7 @@ class Automounter(BasicAutomounter):
         usr_enabled = self._usr_disable.get()
         mnt_enabled = self._mount_enabled.get()
         robot_busy = self._robot_busy.get()
+        autofill_enabled = self._autofill.get()
 
         try:
             state_str = state_str.split()[0].strip()
@@ -636,6 +640,10 @@ class Automounter(BasicAutomounter):
         
         if usr_enabled == 0:
             hlth_msg += ' Disabled by staff.'
+            hlth_code |= 16
+
+        if autofill_enabled == 0:
+            hlth_msg += ' Autofill Disabled.'
             hlth_code |= 16
                
         self.set_state(busy=busy, enabled=(mnt_enabled==1), status=status, 
