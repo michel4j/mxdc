@@ -475,7 +475,8 @@ class PIL6MImager(BaseDevice):
             try:
                 os.remove(old_file)
             except OSError:
-                _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
+                #_logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
+                pass
 
     def wait(self, state='idle'):
         return self.wait_for_state(state)
