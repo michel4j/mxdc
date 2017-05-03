@@ -494,7 +494,7 @@ class PIL6MImager(BaseDevice):
         params['exposure_period'] = params['exposure_time']
         params['exposure_time'] -= 0.002
 
-        self.mode_cmd.put(0)
+        self.mode_cmd.put(2) # External Trigger Mode
         for k, v in params.items():
             if k in self.settings:
                 time.sleep(0.05)
