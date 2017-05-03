@@ -58,6 +58,7 @@ DEVICES = {
     'two_theta':  PseudoMotor('BL08ID1:2Theta:deg'),
     #'detector': MXCCDImager('BL08ID1:CCD', 4096, 0.07243, 'MX300'),
     'detector': PIL6MImager('DEC1608-01:cam1'),
+    'detector_cover': Shutter('MSHD1608-3-I10-01'),
     
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  VMEMotor('SMTR16083I1016:mm'),  
