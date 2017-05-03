@@ -542,10 +542,13 @@ class ImageWidget(gtk.DrawingArea):
        
     def _res(self,x,y):
         displacement = self.pixel_size * math.sqrt ( (x -self.beam_x)**2 + (y -self.beam_y)**2 )
-        angle = 0.5 * math.atan(displacement/self.distance)
-        if angle < 1e-3:
-            angle = 1e-3
-        return self.wavelength / (2.0 * math.sin(angle) )
+        try:
+            angle = 0.5 * math.atan(displacement/self.distance)
+            if angle < 1e-3:
+                angle = 1e-3
+            return self.wavelength / (2.0 * math.sin(angle) )
+        except:
+            return 0.0
     
     def _rdist(self, x0, y0, x1, y1 ):
         d = math.sqrt((x0 - x1)**2 + (y0 - y1)**2) * self.pixel_size
