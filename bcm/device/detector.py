@@ -247,7 +247,8 @@ class MXCCDImager(BaseDevice):
             try:
                 os.remove(old_file)
             except OSError:
-                _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
+                #_logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
+                pass
 
     def wait_for_state(self, state, timeout=10.0):
         _logger.debug('(%s) Waiting for state: %s' % (self.name, state,))
