@@ -23,7 +23,8 @@ COLORMAPS = pickle.load(file(os.path.join(WIDGET_DIR, 'data/colormaps.data')))
 
     
 class VideoWidget(gtk.DrawingArea):
-    implements(IVideoSink)    
+    implements(IVideoSink)
+
     def __init__(self, camera):
         gtk.DrawingArea.__init__(self)
         self.camera = camera
@@ -129,7 +130,6 @@ class VideoWidget(gtk.DrawingArea):
         return True
 
     def on_visibility_notify(self, obj, event):
-        print event, event.state
         if event.state == gtk.gdk.VISIBILITY_FULLY_OBSCURED:
             self.stopped = True
             self.camera.stop()
