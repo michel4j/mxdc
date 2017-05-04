@@ -658,7 +658,7 @@ class ScanManager(gtk.Alignment):
         info_log = '\n---------------------------------------\n\n'
         self.output_log.add_text(info_log)
         self.create_run_btn.set_sensitive(True) 
-        self.beamline.upload_scan(self.beamline, obj.results)
+        self.beamline.lims.upload_scan(self.beamline, obj.results)
         return True
                 
     def on_create_run(self, obj):
