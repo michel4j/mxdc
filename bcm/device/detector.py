@@ -600,9 +600,15 @@ class ADRayonixImager(BaseDevice):
     def initialize(self, wait=True):
         _logger.debug('({}) Initializing Detector ...'.format(self.name))
         self.initialized = True
+        self.frame_type.put(1)
+        self.start()
+        self.stop()
+        self.frame_type.put(0)
 
     def start(self, first=False):
         _logger.debug('({}) Starting Acquisition ...'.format(self.name))
+        if not self.initialized:
+            self.initialize(True)
         self.wait('idle', 'correct', 'saving', 'waiting', 'reading')
         self.acquire_cmd.put(1)
         self.wait('acquiring')
