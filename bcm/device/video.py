@@ -244,7 +244,7 @@ class AxisCamera(VideoSrc):
                         f_str = cStringIO.StringIO(jpg)
                         img = Image.open(f_str)
                         if self._frame:
-                            self._frame = Image.blend(self._frame, img, 0.6)
+                            self._frame = Image.blend(self._frame, img, 0.75)
                         else:
                             self._frame = img
                         self.size = self._frame.size

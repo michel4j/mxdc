@@ -452,6 +452,8 @@ class StateLessShutter(BaseDevice):
         _logger.debug(' '.join([self._messages[1], self.name]))
         self._close_cmd.toggle(1, 0)
 
+    def wait(self, state=True, timeout=5.0):
+        _logger.warning('Stateless Shutter wont wait (%s).' % (self.name))
 
 
 class ShutterGroup(BaseDevice):
@@ -492,6 +494,13 @@ class ShutterGroup(BaseDevice):
         newlist.reverse()
         for i,dev in enumerate(newlist):
             dev.close(wait=True)
+
+    def wait(self, state=True, timeout=5.0):
+        while self.changed_state != state and timeout > 0:
+            time.sleep(0.1)
+            timeout -= 0.1
+        if timeout <= 0:
+            _logger.warning('Timed-out waiting for %s.' % (self.name))
 
        
 class SimShutter(BaseDevice):

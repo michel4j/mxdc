@@ -435,6 +435,8 @@ class PIL6MImager(BaseDevice):
             'comments': self.add_pv('{}:HeaderString'.format(name), monitor=False),
         }
 
+        self.connected_status.connect('changed', self.on_connection_changed)
+
     def initialize(self, wait=True):
         _logger.debug('({}) Initializing Detector ...'.format(self.name))
 
@@ -512,6 +514,12 @@ class PIL6MImager(BaseDevice):
             _logger.warning('({}) Timed out waiting for state: {}'.format(self.name, state,))
             return False
 
+    def on_connection_changed(self, obj, state):
+        if state == 0:
+            self.set_state(health=(4, 'socket', 'Detector disconnected!'))
+        else:
+            self.set_state(health=(0, 'socket'))
+
     def wait_in_state(self, state, timeout=60):
         _logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, state,))
         while self.is_in_state(state) and timeout > 0:
@@ -553,6 +561,7 @@ class ADRayonixImager(BaseDevice):
         self.detector_type = detector_type
         self.shutterless = False
         self.file_extension = 'img'
+        self.initialized = False
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
@@ -586,8 +595,11 @@ class ADRayonixImager(BaseDevice):
             'comments': self.add_pv('{}:DatasetComments'.format(name), monitor=False),
         }
 
+        self.connected_status.connect('changed', self.on_connection_changed)
+
     def initialize(self, wait=True):
         _logger.debug('({}) Initializing Detector ...'.format(self.name))
+        self.initialized = True
 
     def start(self, first=False):
         _logger.debug('({}) Starting Acquisition ...'.format(self.name))
@@ -614,6 +626,13 @@ class ADRayonixImager(BaseDevice):
                     os.rename(frame_path, frame_path + DELETE_SUFFIX)
                 except OSError:
                     _logger.error('Unable to remove existing frame: {}'.format(frame_name))
+
+    def on_connection_changed(self, obj, state):
+        if state == 0:
+            self.initialized = False
+            self.set_state(health=(4, 'socket', 'Detector disconnected!'))
+        else:
+            self.set_state(health=(0, 'socket'))
 
     def on_new_frame(self, obj, file_path):
         gobject.idle_add(self.emit, 'new-image', file_path)
