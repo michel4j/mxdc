@@ -163,7 +163,7 @@ class LIMSClient(BaseService):
             'staff_comments': data.get('comments'),
         }
         if data.get('crystal_id'):
-            json['crystal_id'] = int(data['crystal_id'])
+            json_info['crystal_id'] = int(data['crystal_id'])
         if data['num_frames'] < 10:
             json_info['kind'] = 0  # screening
         else:
