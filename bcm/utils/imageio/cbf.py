@@ -219,7 +219,7 @@ class CBFImageFile(object):
 
         sz1 = c_size_t(self.mime_header.get('X-Binary-Size-Fastest-Dimension', 0))
         sz2 = c_size_t(self.mime_header.get('X-Binary-Size-Second-Dimension', 0))
-        res |= cbflib.cbf_get_image_size(self.handle, 0, 0, byref(sz1), byref(sz2))
+        #res |= cbflib.cbf_get_image_size(self.handle, 0, 0, byref(sz1), byref(sz2))
         header['detector_size'] = (sz1.value, sz2.value)
         
         px1 = c_double(1.0)
