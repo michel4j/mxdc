@@ -502,7 +502,7 @@ class PIL6MImager(BaseDevice):
                 time.sleep(0.05)
                 self.settings[k].put(v, flush=True)
 
-    def wait_for_state(self, state, timeout=10.0):
+    def wait_for_state(self, state, timeout=20.0):
         _logger.debug('({}) Waiting for state: {}'.format(self.name, state,))
         while timeout > 0 and not self.is_in_state(state):
             timeout -= 0.05
