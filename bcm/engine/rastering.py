@@ -38,8 +38,12 @@ class RasterCollector(gobject.GObject):
         self.stopped = True
         self.run_list = []
         self.runs = []
-        self.results = {}        
+        self.results = {}
+        self.image_cells = {}
         self._last_initialized = 0
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.new_image_handler_id = self.beamline.detector.connect('new-image', self.on_new_image)
+        self.beamline.detector.handler_block(self.new_image_handler_id)
         
             
     def configure(self, run_data):
@@ -55,18 +59,12 @@ class RasterCollector(gobject.GObject):
             self.beamline.storage_ring.disconnect(self.beam_connect)
         except:
             pass
-        self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
          
         self.raster_parameters = {}
         self.raster_parameters.update(run_data)
         self.beamline.image_server.setup_folder(self.raster_parameters['directory'])
         self.raster_parameters['user_properties'] = (get_project_name(), os.geteuid(), os.getegid())
 
-
-    def _on_beam_change(self, obj, beam_available):
-        if not beam_available and (not self.paused) and (not self.stopped):
-            self.pause()
-            gobject.idle_add(self.emit, 'paused', True)
 
     def _notify_progress(self, status):
         # Notify progress
@@ -94,7 +92,8 @@ class RasterCollector(gobject.GObject):
             return False
         ca.threads_init()
         self.beamline.lock.acquire()
-        
+        self.beamline.detector_cover.open(wait=True)
+        self.beamline.detector.handler_unblock(self.new_image_handler_id)
         # Obtain configured parameters
         self.grid_parameters = self.raster_parameters
         self.grid_cells = self.raster_parameters['cells']
@@ -114,8 +113,7 @@ class RasterCollector(gobject.GObject):
             self.total_items = len(self.grid_cells)
             self.image_queue = []
             self.pending_results = []
-            import pprint
-            pprint.pprint(self.grid_parameters)
+            self.image_cells = {}
             
             self.beamline.image_server.setup_folder(self.grid_parameters['directory'])
             for cell, cell_loc in self.grid_cells.items():
@@ -126,7 +124,7 @@ class RasterCollector(gobject.GObject):
                     self.beamline.goniometer.set_mode('COLLECT', wait=True)   
                     gobject.idle_add(self.emit, 'paused', False)
                 if self.stopped:
-                    _logger.info("Stopping Rastering")
+                    _logger.info("Stopping Rastering...")
                     break
     
                 frame = {
@@ -135,14 +133,12 @@ class RasterCollector(gobject.GObject):
                     'delta_angle': self.grid_parameters['delta'],
                     'exposure_time': self.grid_parameters['time'],
                     'start_angle': self.grid_parameters['angle']-0.5,
-                    'energy':self.beamline.energy.get_position(),
-                    'name':   '%s_%dx%d_001' % (self.grid_parameters['prefix'], cell[0], cell[1])
+                    'start_frame': 1,
+                    'two_theta': round(self.beamline.two_theta.get_position(), 1),
+                    'energy': self.beamline.energy.get_position(),
+                    'file_prefix': '%s_%dx%d' % (self.grid_parameters['prefix'], cell[0], cell[1]),
+                    'frame_name':   '%s_%dx%d' % (self.grid_parameters['prefix'], cell[0], cell[1])
                 }
-                frame['file_name'] = "%s.img" % (frame['name'])
-                _full_file =  os.path.join(frame['directory'], frame['file_name']) 
-                
-                if os.path.exists(_full_file):
-                    os.remove(_full_file)
 
                 ox, oy = self.grid_parameters['origin']
                 cell_x = ox - cell_loc[2]
@@ -153,44 +149,42 @@ class RasterCollector(gobject.GObject):
                 if not self.beamline.sample_stage.y.is_busy():
                     self.beamline.sample_stage.y.move_to(cell_y, wait=True)
                                 
-                self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)              
-                
-                # Prepare image header
-                header['delta_angle'] = frame['delta_angle']
-                header['filename'] = frame['file_name']
-                dir_parts = frame['directory'].split('/')
-                if dir_parts[1] == 'users':
-                    dir_parts[1] = 'data'
-                    header['directory'] = '/'.join(dir_parts)
-                else:
-                    header['directory'] = frame['directory']
-                header['distance'] = frame['distance'] 
-                header['exposure_time'] = frame['exposure_time']
-                header['frame_number'] = 1
-                header['wavelength'] = energy_to_wavelength(frame['energy'])
-                header['energy'] = frame['energy']
-                header['name'] = frame['name']
-                header['start_angle'] = frame['start_angle']
-                header['comments'] = 'BEAMLINE: %s %s' % ('CLS', self.beamline.name)
-                
-                #prepare goniometer for scan   
-                self.beamline.goniometer.configure(time=frame['exposure_time'],
-                                                   delta=frame['delta_angle'],
-                                                   angle=frame['start_angle'])
+                self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)
 
-                self.beamline.detector.start(first=self._first)
+                # Prepare image header
+                header = {
+                    'file_prefix': frame['file_prefix'],
+                    'delta_angle': frame['delta_angle'],
+                    'directory': frame['directory'],
+                    'distance': frame['distance'],
+                    'exposure_time': frame['exposure_time'],
+                    'start_frame': frame['start_frame'],
+                    'wavelength': energy_to_wavelength(frame['energy']),
+                    'energy': frame['energy'],
+                    'frame_name': frame['frame_name'],
+                    'num_frames': 1,
+                    'two_theta': frame['two_theta'],
+                    'start_angle': frame['start_angle'],
+                    'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
+                }
+
+                # prepare goniometer for scan
+                self.beamline.goniometer.configure(
+                    time=frame['exposure_time'], delta=frame['delta_angle'], angle=frame['start_angle']
+                )
+
                 self.beamline.detector.set_parameters(header)
-                self.beamline.goniometer.scan()
+                self.beamline.detector.start(first=self._first)
+                self.beamline.goniometer.scan(wait=True, timeout=frame['exposure_time'] * 4)
                 self.beamline.detector.save()
 
                 self._first = False
                 self.pos = self.pos + 1
                     
-                _logger.info("Image Collected: %s" % (frame['file_name']))
-                gobject.idle_add(self.emit, 'new-image', cell, os.path.join(frame['directory'], frame['file_name']))
+                _logger.info("Image Collected: %s" % (frame['frame_name']))
                 gobject.idle_add(self.emit, 'progress', self.pos/float(self.total_items))
-                self.analyse_image((cell, os.path.join(frame['directory'], frame['file_name'])))
-               
+                self.image_cells[os.path.join(frame['directory'], frame['frame_name'])] = cell
+
             # finish off analysing the images after everything is copied over
             while not self.analyse_image() or len(self.pending_results) > 0:
                 time.sleep(0.1)
@@ -212,8 +206,16 @@ class RasterCollector(gobject.GObject):
                 self.beamline.sample_stage.y.move_to(oy, wait=True)
             
         finally:
+            self.beamline.detector.handler_block(self.new_image_handler_id)
+            self.beamline.detector_cover.close()
             self.beamline.exposure_shutter.close()
             self.beamline.lock.release()
+
+    def on_new_image(self, obj, file_path):
+        gobject.idle_add(self.emit, 'new-image', file_path)
+        for frame, cell in self.image_cells.items():
+            if file_path.startswith(frame):
+                self.analyse_image((cell, file_path))
 
     def analyse_image(self, cell_params=None):
         if cell_params is not None: 
