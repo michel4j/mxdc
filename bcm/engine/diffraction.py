@@ -203,7 +203,7 @@ class DataCollector(gobject.GObject):
             # Perform scan
             self.beamline.detector.set_parameters(detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
-            self.beamline.goniometer.scan(wait=True)
+            self.beamline.goniometer.scan(wait=True,  timeout=wedge['exposure_time'] * wedge['num_frames']*1.5)
 
             is_first_frame = False
             time.sleep(0)

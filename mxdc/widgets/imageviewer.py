@@ -259,7 +259,7 @@ class ImageViewer(gtk.Alignment):
             elif key in ['detector_type']:
                 txt = val
             else:
-                txt = '' if not val else "%g" % val
+                txt = '' if val is None else "%g" % val
             w.set_markup(txt)
 
             
