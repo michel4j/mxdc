@@ -676,6 +676,7 @@ class RunWidget(gtk.Alignment):
                   'start_angle', 'delta_angle', 'total_angle', 'first_frame', 'skip', 'wedge', 'inverse_beam']:
             params[k] = DEFAULT_PARAMETERS[k]
         params['exposure_time'] = self.beamline.config['default_exposure']
+        params['delta_angle'] = self.beamline.config['default_delta']
         params['crystal_id'] = self.active_sample.get('id', None)
 
         self.set_parameters(params)
@@ -692,7 +693,7 @@ class RunWidget(gtk.Alignment):
         params['energy'] = self.active_strategy.get('energy', [self.beamline.energy.get_position()])
         params['energy_label'] = self.active_strategy.get('energy_label', ['E0'])
         params['start_angle'] = self.active_strategy.get('start_angle', self.beamline.omega.get_position())
-        params['delta_angle'] = self.active_strategy.get('delta_angle', 1.0)
+        params['delta_angle'] = self.active_strategy.get('delta_angle', self.beamline.config['default_delta'])
         params['exposure_time'] = self.active_strategy.get('exposure_time', self.beamline.config['default_exposure'])
         params['total_angle'] = self.active_strategy.get('total_angle', 180.0)
         params['first_frame'] = 1

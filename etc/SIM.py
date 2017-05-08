@@ -7,7 +7,9 @@ BEAMLINE_TYPE = 'MX'
 BEAMLINE_ENERGY_RANGE = (3.0, 18.5)
 BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
 
-DEFAULT_EXPOSURE    = 2.0
+DEFAULT_EXPOSURE    = 2
+DEFAULT_DELTA       = 0.5
+
 DEFAULT_ATTENUATION = 50.0              # attenuation in %
 DEFAULT_BEAMSTOP    = 30.0
 SAFE_DISTANCE       = 400.0
