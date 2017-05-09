@@ -219,7 +219,6 @@ class CBFImageFile(object):
 
         sz1 = c_size_t(self.mime_header.get('X-Binary-Size-Fastest-Dimension', 0))
         sz2 = c_size_t(self.mime_header.get('X-Binary-Size-Second-Dimension', 0))
-        #res |= cbflib.cbf_get_image_size(self.handle, 0, 0, byref(sz1), byref(sz2))
         header['detector_size'] = (sz1.value, sz2.value)
         
         px1 = c_double(1.0)
@@ -280,23 +279,21 @@ class CBFImageFile(object):
             hdr_contents = c_char_p()
             res |= cbflib.cbf_get_value(self.handle, byref(hdr_contents))
             if res == 0 and hdr_type.value != 'XDS special':
-                #_logger.info('miniCBF header type found: %s' % hdr_type.value)
                 config = '%s.ini' % hdr_type.value.lower()
                 info = parse_tools.parse_data(hdr_contents.value, config)
                 header['detector_type'] = info['detector'].lower().strip().replace(' ', '')
-                header['two_theta'] = 0 if not info['two_theta'] else info['two_theta']
+                header['two_theta'] = 0.0 if not info['two_theta'] else info['two_theta']
                 header['pixel_size'] = info['pixel_size'][0] * 1000
                 header['exposure_time'] = info['exposure_time']
                 header['wavelength'] = info['wavelength']
-                header['distance'] = info['distance']*1000
+                header['distance'] = info['distance'] *1000
                 header['beam_center'] = info['beam_center']
                 header['start_angle'] = info['start_angle']
                 header['delta_angle'] = info['delta_angle']
                 header['saturated_value'] = info['saturated_value']
                 header['sensor_thickness'] = info['sensor_thickness']*1000
-            #else:
-            #    _logger.warning('miniCBF with no header')
         self.header = header
+        print self.header
 
         
     def _read_image(self):
