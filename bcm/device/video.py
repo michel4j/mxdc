@@ -15,6 +15,7 @@ import socket
 import threading
 import time
 import zlib
+import cv2
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -82,13 +83,8 @@ class VideoSrc(BaseDevice):
                         if not sink.stopped:
                             sink.display(img)
                 except Exception, e:
-                    _logger.warning('(%s) Error fetching frame' % self.name)
-                    print e
-            # for some reason this does not cleanup properly without try-except
-            try:
-                time.sleep(dur)
-            except:
-                return
+                    _logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
+            time.sleep(dur)
 
     def get_frame(self):
         """Obtain the most recent video frame.
@@ -217,67 +213,22 @@ class AxisCamera(VideoSrc):
             self.url = 'http://%s/mjpg/%s/video.mjpg' % (hostname, idx)
 
         self._last_frame = time.time()
-        #self.stream = requests.get(self.url, stream=True)
-        self.stream = urllib2.urlopen(self.url)
+        self.stream = cv2.VideoCapture(self.url)
         self.data = ''
         self._frame = None
         self.set_state(active=True)
         self.start()
 
     def get_frame(self):
-        return self._frame
-
-    def _stream_video(self):
-        data = ''
-        count = 0
-        self._frame = None
-        dur = 1/self.maxfps
-        while not self._stopped:
-            if self._active:
-                try:
-                    data += self.stream.read(self._read_size)
-                    a = data.find('\xff\xd8')
-                    b = data.find('\xff\xd9')
-                    count += 1
-                    if a != -1 and b != -1:
-                        jpg = data[a:b + 2]
-                        data = data[b + 2:]
-                        f_str = cStringIO.StringIO(jpg)
-                        img = Image.open(f_str)
-                        if self._frame:
-                            self._frame = Image.blend(self._frame, img, 0.75)
-                        else:
-                            self._frame = img
-                        self.size = self._frame.size
-                        for sink in self.sinks:
-                            if not sink.stopped:
-                                sink.display(self._frame)
-                        #if count > 4:
-                        #    self._read_size *= 2
-                        count = 0
-
-                except IOError, e:
-                    _logger.warning("Connection to {0} video lost. Trying to reconnect.".format(self.name))
-                    time.sleep(2)
-                    self.stream = urllib2.urlopen(self.url)
-                    data = ''
-                    self._read_size = 1024
-            time.sleep(dur)
-
-    def get_frame1(self):
-        if not self.index:
-            url = 'http://%s/jpg/image.jpg' % (self.hostname)
+        _, cv2_im = self.stream.read()
+        cv2_im = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
+        _frame = Image.fromarray(cv2_im)
+        if self._frame:
+            self._frame = Image.blend(self._frame, _frame, 0.75)
         else:
-            url = 'http://%s/jpg/%s/image.jpg' % (self.hostname, self.index)
-        try:
-            f = session.get(url)
-            f_str = cStringIO.StringIO(f.read())
-            img = Image.open(f_str)
-            self._frame = img
-            self.size = self._frame.size
-        except:
-            self.set_state(active=False, message='Unable to connect!')
+            self._frame = _frame
         return self._frame
+
 
 
 class ZoomableAxisCamera(AxisCamera):
