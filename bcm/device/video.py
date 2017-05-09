@@ -208,7 +208,7 @@ class AxisCamera(VideoSrc):
     def __init__(self, hostname, idx=None, name='Axis Camera'):
         VideoSrc.__init__(self, name, maxfps=20.0)
         self.size = (768, 576)
-        self._read_size = 16384
+        self._read_size = 1024
         self.hostname = hostname
         self.index = idx
         if idx is None:
@@ -217,6 +217,7 @@ class AxisCamera(VideoSrc):
             self.url = 'http://%s/mjpg/%s/video.mjpg' % (hostname, idx)
 
         self._last_frame = time.time()
+        #self.stream = requests.get(self.url, stream=True)
         self.stream = urllib2.urlopen(self.url)
         self.data = ''
         self._frame = None
@@ -251,8 +252,8 @@ class AxisCamera(VideoSrc):
                         for sink in self.sinks:
                             if not sink.stopped:
                                 sink.display(self._frame)
-                        if count > 4:
-                            self._read_size *= 2
+                        #if count > 4:
+                        #    self._read_size *= 2
                         count = 0
 
                 except IOError, e:
@@ -260,7 +261,7 @@ class AxisCamera(VideoSrc):
                     time.sleep(2)
                     self.stream = urllib2.urlopen(self.url)
                     data = ''
-                    self._read_size = 16384
+                    self._read_size = 1024
             time.sleep(dur)
 
     def get_frame1(self):
