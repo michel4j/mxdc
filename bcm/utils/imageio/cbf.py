@@ -293,7 +293,6 @@ class CBFImageFile(object):
                 header['saturated_value'] = info['saturated_value']
                 header['sensor_thickness'] = info['sensor_thickness']*1000
         self.header = header
-        print self.header
 
         
     def _read_image(self):
