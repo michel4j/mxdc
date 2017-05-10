@@ -82,7 +82,7 @@ def multi_count(*args):
 
 
 def slugify(s, empty=""):
-    valid_chars = "-_.()%s%s" % (string.ascii_letters, string.digits)
+    valid_chars = "-_%s%s" % (string.ascii_letters, string.digits)
     ns = ''.join([c for c in s if c in valid_chars])
     if ns == "":
         ns = empty
