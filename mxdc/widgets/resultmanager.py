@@ -12,6 +12,7 @@ import gobject
 import os
 import webkit
 
+
 _logger = get_module_logger(__name__)
 browser_engine = 'webkit'
 
@@ -148,9 +149,8 @@ class ResultManager(gtk.Alignment):
     def on_screen_action(self, obj):
         datasets = self.dataset_list.get_selected()
         for data in datasets:
-            frame_list = runlists.frameset_to_list(data['frame_sets'])
-            _first_frame = os.path.join(data['directory'],
-                                        "%s_%04d.img" % (data['name'], frame_list[0]))
+            images = runlists.get_disk_dataset(data['directory'], data['name'])
+            _first_frame = images[0]
             _a_params = {'directory': os.path.join(data['directory'], '%s-scrn' % data['name']),
                          'info': {'anomalous': self.anom_check_btn.get_active(),
                                   'file_names': [_first_frame, ]
@@ -164,9 +164,8 @@ class ResultManager(gtk.Alignment):
         datasets = self.dataset_list.get_selected()
         if not self.merge_check_btn.get_active() and not self.mad_check_btn.get_active():
             for data in datasets:
-                frame_list = runlists.frameset_to_list(data['frame_sets'])
-                _first_frame = os.path.join(data['directory'],
-                                            "%s_%04d.img" % (data['name'], frame_list[0]))
+                images = runlists.get_disk_dataset(data['directory'], data['name'])
+                _first_frame = images[0]
                 _a_params = {'directory': os.path.join(data['directory'], '%s-proc' % data['name']),
                              'info': {'anomalous': self.anom_check_btn.get_active(),
                                       'file_names': [_first_frame, ]
@@ -179,9 +178,8 @@ class ResultManager(gtk.Alignment):
             file_names = []
             name_list = []
             for data in datasets:
-                frame_list = runlists.frameset_to_list(data['frame_sets'])
-                file_names.append(os.path.join(data['directory'],
-                                               "%s_%04d.img" % (data['name'], frame_list[0])))
+                images = runlists.get_disk_dataset(data['directory'], data['name'])
+                file_names.append(images[0])
                 name_list.append(data['name'])
             _prefix = os.path.commonprefix(name_list)
             if _prefix == '':
