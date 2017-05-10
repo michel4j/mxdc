@@ -13,6 +13,7 @@ from multiprocessing import Pool, cpu_count
 import numpy
 from collections import defaultdict, OrderedDict
 import itertools
+import glob
 
 FULL_PARAMETERS = {
     'name': 'test',
@@ -342,6 +343,13 @@ def get_disk_frameset(directory, file_glob):
 
     return summarize_frame_set(full_set), len(full_set)
 
+def get_disk_dataset(directory, name):
+    # Given a name and directory, determine the collected frames based on images on disk
+    file_pattern = r'^({}/{}_\d{{3,}}\.[^.]+)$'.format(directory, name)
+    file_glob = os.path.join(directory, '{}_*.*'.format(name))
+    text = '\n'.join(glob.glob(file_glob))
+    patt = re.compile(file_pattern, re.MULTILINE)
+    return sorted(patt.findall(text))
 
 def frameset_to_list(frame_set):
     frame_numbers = []
