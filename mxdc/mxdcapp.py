@@ -19,7 +19,7 @@ import warnings
 import gobject
 import gtk
 
-USE_TWISTED = False
+USE_TWISTED = True
 MXDC_PORT = 9898
 
 warnings.simplefilter("ignore")
