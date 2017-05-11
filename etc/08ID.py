@@ -4,22 +4,21 @@ from bcm.settings import *  # @UnusedWildImport
 BEAMLINE_NAME = '08ID-1'
 BEAMLINE_TYPE = 'MX'
 BEAMLINE_ENERGY_RANGE = (6.0, 18.5)
-BEAMLINE_GONIO_POSITION = 3             # Goniometer orientation (XREC) 1,2,3
+BEAMLINE_GONIO_POSITION = 3  # Goniometer orientation (XREC) 1,2,3
 ADMIN_GROUPS = (2000, 1000, 1046, 1014, 1150)
 
-DEFAULT_EXPOSURE    = 0.2
-DEFAULT_DELTA       = 0.2
+DEFAULT_EXPOSURE = 0.2
+DEFAULT_DELTA = 0.2
 
-DEFAULT_ATTENUATION = 90.0              # attenuation in %
-DEFAULT_BEAMSTOP    = 30.0
-SAFE_BEAMSTOP       = 47.9
-SAFE_DISTANCE       = 400.0
-XRF_BEAMSTOP        = 30.0
-XRF_ENERGY_OFFSET   = +0.5              # KeV
-XRF_FWHM            = 0.15
+DEFAULT_ATTENUATION = 90.0  # attenuation in %
+DEFAULT_BEAMSTOP = 30.0
+SAFE_BEAMSTOP = 47.9
+SAFE_DISTANCE = 400.0
+XRF_BEAMSTOP = 30.0
+XRF_ENERGY_OFFSET = +0.5  # KeV
+XRF_FWHM = 0.15
 
 CENTERING_BACKLIGHT = 37.0
-
 
 # miscellaneous settings
 MISC_SETTINGS = {
@@ -28,78 +27,81 @@ MISC_SETTINGS = {
     'max_omega_velocity': 30.0,  # deg/sec
 }
 
-LIMS_API_KEY    = "DE5C410E-6D59-4DE8-AFFC-3FF5F367359E"
+LIMS_API_KEY = "DE5C410E-6D59-4DE8-AFFC-3FF5F367359E"
 
 # maps names to device objects
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
-    'energy':   EnergyMotor('BL08ID1:energy', 'SMTR16082I1005:deg'),
+    'energy': EnergyMotor('BL08ID1:energy', 'SMTR16082I1005:deg'),
     'bragg_energy': BraggEnergyMotor('SMTR16082I1005:deg', motor_type="vme"),
-    'dcm_pitch':  VMEMotor('SMTR16082I1010:deg'),
+    'dcm_pitch': VMEMotor('SMTR16082I1010:deg'),
     'mostab': MostabPIDController('MOS16082I1001'),
-    
+
     # Goniometer/goniometer head devices
     'goniometer': Goniometer('GV6K1608-001', 'BL08ID1:mode'),
-    'omega':    VMEMotor('GV6K1608-001:deg'),
-    #'sample_x':  VMEMotor('SMTR16083I1011:mm'),
-    'sample_x': VMEMotor('SMTR16083I1008:mm'),
-    'sample_y2':  VMEMotor('SMTR16083I1012:mm'), # if no sample_y, it will be determined from
-    'sample_y1':  VMEMotor('SMTR16083I1013:mm'), # orthogonal sample_y1 AND sample_y2
-    
-    # Beam position & Size
-    'aperture': SimChoicePositioner("Aperture", 50, choices=[100,50,25], units='um', active=False),
+    'omega': VMEMotor('GV6K1608-001:deg'),
+    # 'sample_x':  VMEMotor('SMTR16083I1011:mm'),
+    'sample_x': ENCMotor('SMTR16083I1008:mm'),
+    'sample_y2': ENCMotor('SMTR16083I1012:mm'),  # if no sample_y, it will be determined from
+    'sample_y1': ENCMotor('SMTR16083I1013:mm'),  # orthogonal sample_y1 AND sample_y2
 
-    'beam_x':   VMEMotor('SMTR16083I1002:mm'),
-    'beam_y':   VMEMotor('SMTR16083I1004:mm'),
-    'beam_w':   VMEMotor('SMTR16083I1001:mm'),
-    'beam_h':   VMEMotor('SMTR16083I1003:mm'),
-    
+    # Beam position & Size
+    'aperture': SimChoicePositioner("Aperture", 50, choices=[100, 50, 25], units='um', active=False),
+
+    'beam_x': VMEMotor('SMTR16083I1002:mm'),
+    'beam_y': VMEMotor('SMTR16083I1004:mm'),
+    'beam_w': VMEMotor('SMTR16083I1001:mm'),
+    'beam_h': VMEMotor('SMTR16083I1003:mm'),
+
     # Detector, distance & two_theta
     'distance': PseudoMotor('BL08ID1:2Theta:D:mm'),
-    'detector_z':  ENCMotor('SMTR16083I1018:mm'),
-    'two_theta':  PseudoMotor('BL08ID1:2Theta:deg'),
-    #'detector': MXCCDImager('BL08ID1:CCD', 4096, 0.07243, 'MX300'),
+    'detector_z': ENCMotor('SMTR16083I1018:mm'),
+    'two_theta': PseudoMotor('BL08ID1:2Theta:deg'),
+    # 'detector': MXCCDImager('BL08ID1:CCD', 4096, 0.07243, 'MX300'),
     'detector': PIL6MImager('DEC1608-01:cam1'),
     'detector_cover': Shutter('MSHD1608-3-I10-01'),
-    
+
     # Sample environment, beam stop, cameras, zoom, lighting
-    'beamstop_z':  VMEMotor('SMTR16083I1016:mm'),  
-    'sample_zoom':  VMEMotor('SMTR16083I1025:mm'),
-    'camera_center_x':  Positioner('BL08ID1:video:sample:x'),
-    'camera_center_y':  Positioner('BL08ID1:video:sample:y'),
-    'cryojet':  Cryojet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
-    'sample_camera': AxisCamera('V2E1608-001.clsi.ca', 4), #4
-    'sample_backlight': SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk','ILC1608-3-I10-02:on', 100.0, desc='Back'),
-    'sample_frontlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk','ILC1608-3-I10-01:on', 100.0, desc='Front'),
-    'sample_uvlight': SampleLight('BL08ID1:UVLight', 'BL08ID1:UVLight:fbk','BL08ID1:UVLight:OnOff', 100.0, desc='UV'),
-    'hutch_video':  AxisPTZCamera('CCD1608-301.clsi.ca'),
-    
+    'beamstop_z': VMEMotor('SMTR16083I1016:mm'),
+    'sample_zoom': VMEMotor('SMTR16083I1025:mm'),
+    'camera_center_x': Positioner('BL08ID1:video:sample:x'),
+    'camera_center_y': Positioner('BL08ID1:video:sample:y'),
+    'cryojet': Cryojet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
+    'sample_camera': AxisCamera('V2E1608-001.clsi.ca', 4),  # 4
+    'sample_backlight': SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk', 'ILC1608-3-I10-02:on', 100.0,
+                                    desc='Back'),
+    'sample_frontlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk', 'ILC1608-3-I10-01:on', 100.0,
+                                     desc='Front'),
+    'sample_uvlight': SampleLight('BL08ID1:UVLight', 'BL08ID1:UVLight:fbk', 'BL08ID1:UVLight:OnOff', 100.0, desc='UV'),
+    'hutch_video': AxisPTZCamera('CCD1608-301.clsi.ca'),
+
     # Facility, storage-ring, shutters, etc
-    'ring_current':  PV('PCT1402-01:mA:fbk'),
-    'ring_mode':  PV('SYSTEM:mode:fbk'),
-    'ring_status':  PV('SRStatus:injecting'),
-    'storage_ring':  StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
+    'ring_current': PV('PCT1402-01:mA:fbk'),
+    'ring_mode': PV('SYSTEM:mode:fbk'),
+    'ring_status': PV('SRStatus:injecting'),
+    'storage_ring': StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
     'psh1': Shutter('PSH1408-I00-01'),
     'psh2': Shutter('PSH1408-I00-02'),
     'ssh1': Shutter('SSH1408-I00-01'),
     'ssh2': Shutter('SSH1608-2-I10-01'),
-    'enclosures': Enclosures(poe1='ACIS1608-3-I10-01:poe1:secure', poe2='ACIS1608-3-I10-01:poe2:secure', soe='ACIS1608-3-I10-01:soe1:secure'),
+    'enclosures': Enclosures(poe1='ACIS1608-3-I10-01:poe1:secure', poe2='ACIS1608-3-I10-01:poe2:secure',
+                             soe='ACIS1608-3-I10-01:soe1:secure'),
     'exposure_shutter': Shutter('PSH16083I1001'),
-    
+
     # Intensity monitors,
     'i_0': Counter('AH501-03:QEM:SumAll:MeanValue_RBV'),
     'i_1': Counter('AH501-04:QEM:SumAll:MeanValue_RBV'),
     'i_2': Counter('AH501-01:QEM:SumAll:MeanValue_RBV'),
     'i_4': Counter('A1608-3-06:A:fbk'),
-      
+
     # Misc: Automounter, HC1 etc
-    'automounter':  Automounter('ROB16083I', 'ROB1608-300'),
-    #'humidifier': HumidityController('HC1608-01'),
+    'automounter': Automounter('ROB16083I', 'ROB1608-300'),
+    # 'humidifier': HumidityController('HC1608-01'),
     'attenuator': Attenuator('PFIL1608-3-I10-01', 'BL08ID1:energy'),
     'mca': XFlashMCA('XFD1608-101'),
-    
-    #disk space monitor
-    'disk_space' : DiskSpaceMonitor('Disk Space', '/users'), 
+
+    # disk space monitor
+    'disk_space': DiskSpaceMonitor('Disk Space', '/users'),
 }
 
 # lims, dpm, imagesync and other services
@@ -118,7 +120,7 @@ CONSOLE_DEVICES = {
     'vfm_y': PseudoMotor2('BL08ID1:VFMHeight:mm'),
     'vfm_yaw': PseudoMotor2('BL08ID1:VFMTrans:yaw:mm'),
     'vfm_pitch': PseudoMotor2('BL08ID1:VFMPitch:mrad'),
-    'vfm_roll':  PseudoMotor2('BL08ID1:VFMRoll:mrad'),
+    'vfm_roll': PseudoMotor2('BL08ID1:VFMRoll:mrad'),
     'vfm_x': PseudoMotor2('BL08ID1:VFMTrans:cm'),
     'dcm_roll1': VMEMotor('SMTR16082I1007:deg'),
     'dcm_roll2': VMEMotor('SMTR16082I1008:deg'),
@@ -143,6 +145,6 @@ CONSOLE_DEVICES = {
     'exbox_pitch': VMEMotor('SMTR16083I1007:mm'),
     'exbox_x': VMEMotor('SMTR16083I1005:mm'),
     'exbox_y': VMEMotor('SMTR16083I1006:mm'),
-    'beamstop_x':  VMEMotor('SMTR16083I1014:mm'),
-    'beamstop_y':  VMEMotor('SMTR16083I1015:mm'),
+    'beamstop_x': VMEMotor('SMTR16083I1014:mm'),
+    'beamstop_y': VMEMotor('SMTR16083I1015:mm'),
 }
