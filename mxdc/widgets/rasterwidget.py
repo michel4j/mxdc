@@ -91,13 +91,13 @@ class DetailStore(gtk.ListStore):
 class RasterWidget(gtk.Frame):    
     __gsignals__ = {
         'show-raster': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
-        'show-image':  (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
+        'show-image':  (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
     }
     
     def do_show_raster(self):
         pass
 
-    def do_show_image(self, cell, filename):
+    def do_show_image(self, filename):
         pass
     
     def __init__(self):
@@ -345,7 +345,7 @@ class RasterWidget(gtk.Frame):
         cell_y = oy - info['ypos']
         filename = os.path.join(self._result_info['directory'], 
                                 self._result_info['details'][info['cell']]['file'])
-        gobject.idle_add(self.emit, 'show-image', info['cell'], filename)
+        gobject.idle_add(self.emit, 'show-image', filename)
         self._center_xyz(angle, cell_x, cell_y)
 
     def on_detail_selected(self, treeview):
@@ -363,7 +363,7 @@ class RasterWidget(gtk.Frame):
         if not self.beamline.sample_stage.x.is_busy():
             self.beamline.sample_stage.x.move_to(x, wait=True)
         if not self.beamline.sample_stage.y.is_busy():
-            self.beamline.sample_stage.y.move_to(y)        
+            self.beamline.sample_stage.y.move_to(y)
        
     def on_result_activated(self, cell, path, column=None):
         itr = self.results.get_iter_first()
@@ -376,7 +376,6 @@ class RasterWidget(gtk.Frame):
         self.details.add_items(self._result_info)
         self.beamline.omega.move_to(self._result_info['angle'], wait=False)
         self.sample_viewer.apply_grid_results(self._result_info)
-        return True
     
     def on_apply(self, btn):
         if self.sample_viewer:

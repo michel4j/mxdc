@@ -1,6 +1,5 @@
 import os
-import re
-import glob
+import copy
 import random
 import shutil
 import time
@@ -11,7 +10,6 @@ from bcm.device.interfaces import IImagingDetector
 from bcm.protocol import ca
 from bcm.utils.log import get_module_logger
 from zope.interface import implements
-from bcm.utils import runlists
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -305,6 +303,7 @@ class SimCCDImager(BaseDevice):
         self.initialize(True)
         time.sleep(0.1)
 
+
     def stop(self):
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
         time.sleep(0.1)
@@ -324,19 +323,21 @@ class SimCCDImager(BaseDevice):
             [name for name in os.listdir(self._src_dir) if os.path.isfile(os.path.join(self._src_dir, name))])
 
     def _copy_frame(self):
+        file_parms = copy.deepcopy(self.parameters)
         _logger.debug('Saving frame: %s' % datetime.now().isoformat())
-        num = 1 + (self.parameters['start_frame'] - 1) % self._num_frames
+        num = 1 + (file_parms['start_frame'] - 1) % self._num_frames
         src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
-        file_name = '{}_{:04d}.img'.format(self.parameters['file_prefix'], self.parameters['start_frame'])
-        dst_img = os.path.join(self.parameters['directory'], '{}.gz'.format(file_name))
-        file_path = os.path.join(self.parameters['directory'], file_name)
+        file_name = '{}_{:04d}.img'.format(file_parms['file_prefix'], file_parms['start_frame'])
+        dst_img = os.path.join(file_parms['directory'], '{}.gz'.format(file_name))
+        file_path = os.path.join(file_parms['directory'], file_name)
 
         shutil.copyfile(src_img, dst_img)
-        self.set_state(new_image=file_path)
+
         os.system('/usr/bin/gunzip -f %s' % dst_img)
         _logger.debug('Frame saved: %s' % datetime.now().isoformat())
 
         # Remove any .DELETE frames from this sequence
+        self.set_state(new_image=file_path)
         old_file = file_path + DELETE_SUFFIX
         if os.path.exists(old_file):
             try:
@@ -360,7 +361,7 @@ class SimCCDImager(BaseDevice):
         time.sleep(0.1)
 
     def set_parameters(self, data):
-        self.parameters = data
+        self.parameters = copy.deepcopy(data)
         if self.parameters['start_frame'] == 1:
             self._select_dir()
 
