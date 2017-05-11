@@ -48,30 +48,16 @@ class RasterCollector(gobject.GObject):
             
     def configure(self, run_data):
         #associate beamline devices
-        
-        try:
-            self.beamline = globalRegistry.lookup([], IBeamline)
-        except:
-            self.beamline = None
-            _logger.warning('No registered beamline found.')
-            raise
-        try:
-            self.beamline.storage_ring.disconnect(self.beam_connect)
-        except:
-            pass
-         
         self.raster_parameters = {}
         self.raster_parameters.update(run_data)
         self.beamline.image_server.setup_folder(self.raster_parameters['directory'])
         self.raster_parameters['user_properties'] = (get_project_name(), os.geteuid(), os.getegid())
 
-
     def _notify_progress(self, status):
         # Notify progress
         fraction = float(self.pos) / self.total_items
         gobject.idle_add(self.emit, 'progress', fraction)                
-    
-            
+
     def get_state(self):
         state = {
             'paused': self.paused,
@@ -87,13 +73,11 @@ class RasterCollector(gobject.GObject):
         worker_thread.start()
     
     def run(self):
-        if self.beamline is None:
-            _logger.error('No Beamline found. Aborting Raster Screening.')
-            return False
         ca.threads_init()
         self.beamline.lock.acquire()
         self.beamline.detector_cover.open(wait=True)
         self.beamline.detector.handler_unblock(self.new_image_handler_id)
+
         # Obtain configured parameters
         self.grid_parameters = self.raster_parameters
         self.grid_cells = self.raster_parameters['cells']
@@ -108,7 +92,6 @@ class RasterCollector(gobject.GObject):
         try:
             self.beamline.exposure_shutter.close()
             self.pos = 0
-            header = {}
             self._first = True
             self.total_items = len(self.grid_cells)
             self.image_queue = []
@@ -116,6 +99,7 @@ class RasterCollector(gobject.GObject):
             self.image_cells = {}
             
             self.beamline.image_server.setup_folder(self.grid_parameters['directory'])
+            self.beamline.distance.move_to(self.grid_parameters['distance'], wait=True)
             for cell, cell_loc in self.grid_cells.items():
                 if self.paused:
                     gobject.idle_add(self.emit, 'paused', True)
@@ -132,7 +116,7 @@ class RasterCollector(gobject.GObject):
                     'distance': self.grid_parameters['distance'],
                     'delta_angle': self.grid_parameters['delta'],
                     'exposure_time': self.grid_parameters['time'],
-                    'start_angle': self.grid_parameters['angle']-0.5,
+                    'start_angle': self.grid_parameters['angle']-0.5*self.grid_parameters['delta'],
                     'start_frame': 1,
                     'two_theta': round(self.beamline.two_theta.get_position(), 1),
                     'energy': self.beamline.energy.get_position(),
@@ -144,12 +128,8 @@ class RasterCollector(gobject.GObject):
                 cell_x = ox - cell_loc[2]
                 cell_y = oy - cell_loc[3]
                 self.beamline.omega.move_to(self.grid_parameters['angle'], wait=True)
-                if not self.beamline.sample_stage.x.is_busy():
-                    self.beamline.sample_stage.x.move_to(cell_x, wait=True)
-                if not self.beamline.sample_stage.y.is_busy():
-                    self.beamline.sample_stage.y.move_to(cell_y, wait=True)
-                                
-                self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)
+                self.beamline.sample_stage.x.move_to(cell_x, wait=True)
+                self.beamline.sample_stage.y.move_to(cell_y, wait=True)
 
                 # Prepare image header
                 header = {
@@ -184,6 +164,7 @@ class RasterCollector(gobject.GObject):
                 _logger.info("Image Collected: %s" % (frame['frame_name']))
                 gobject.idle_add(self.emit, 'progress', self.pos/float(self.total_items))
                 self.image_cells[os.path.join(frame['directory'], frame['frame_name'])] = cell
+                time.sleep(0)
 
             # finish off analysing the images after everything is copied over
             while not self.analyse_image() or len(self.pending_results) > 0:
