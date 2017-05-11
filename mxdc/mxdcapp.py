@@ -1,6 +1,6 @@
 from twisted.internet import gtk2reactor
 
-gtk2reactor.install()
+gtk2reactor.portableInstall()
 
 from bcm.service import mxdctools
 from bcm.beamline.mx import MXBeamline
@@ -16,7 +16,6 @@ from twisted.spread import pb
 import os
 import time
 import warnings
-import gobject
 import gtk
 
 USE_TWISTED = True
@@ -132,5 +131,5 @@ def main():
 
 if __name__ == "__main__":
     log_to_console()
-    excepthook.install(exit_main_loop)
+    #excepthook.install(exit_main_loop)
     run_main_loop(main)
