@@ -129,7 +129,7 @@ class Goniometer(GoniometerBase):
         self._scan_state = self.add_pv("%s:scanFrame:status" % pv_root)
 
         self._shutter_state = self.add_pv("%s:outp1:fbk" % pv_root)
-        self._stop_command =  self.add_pv("%s:stop" % pv_root)
+        self._stop_command = self.add_pv("%s:stop" % pv_root)
         self._gonio_state_mnt = self.add_pv("%s:mounting:fbk" % blname)
         self._gonio_state_cnt = self.add_pv("%s:centering:fbk" % blname)
         self._gonio_state_col = self.add_pv("%s:collect:fbk" % blname)
@@ -311,7 +311,6 @@ class MD2Goniometer(GoniometerBase):
         self._minibeam = Positioner("%s:S:CapPredefPosn" % pv_root, "%s:G:CapPredefPosn" % pv_root)
         self.add_devices(self._tbl_x, self._tbl_y, self._tbl_z, self._cnt_x, self._cnt_y, self._minibeam)
 
-
     def configure(self, **kwargs):
         """Configure the goniometer to perform an oscillation scan.
         
@@ -416,7 +415,6 @@ class MD2Goniometer(GoniometerBase):
         self._abort_cmd.toggle(1, 0)
 
 
-
 class SimGoniometer(GoniometerBase):
     def __init__(self):
         GoniometerBase.__init__(self, 'Simulated Goniometer')
@@ -426,7 +424,6 @@ class SimGoniometer(GoniometerBase):
 
     def configure(self, **kwargs):
         self._settings = kwargs
-        self.beamline = globalRegistry.lookup([], IBeamline)
 
     def set_mode(self, mode, wait=False):
         if isinstance(mode, int):
@@ -439,7 +436,7 @@ class SimGoniometer(GoniometerBase):
 
     def _scan_sync(self, wait=True):
         self._scanning = True
-        bl = self.beamline
+        bl = globalRegistry.lookup([], IBeamline)
         st = time.time()
         _logger.debug('Starting scan at: %s' % datetime.now().isoformat())
         bl.omega.move_to(self._settings['angle'] - 0.05, wait=True)
@@ -463,7 +460,8 @@ class SimGoniometer(GoniometerBase):
 
     def stop(self):
         self._scanning = False
-        self.beamline.omega.stop()
+        bl = globalRegistry.lookup([], IBeamline)
+        bl.omega.stop()
 
 
 __all__ = ['Goniometer', 'MD2Goniometer', 'SimGoniometer']
