@@ -1,6 +1,6 @@
-#===============================================================================
+# ===============================================================================
 # Automounter Classes
-#===============================================================================
+# ===============================================================================
 
 from zope.interface import implements
 from bcm.device.interfaces import IAutomounter
@@ -16,6 +16,7 @@ import re
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
+
 class AutomounterContainer(GObject.GObject):
     """An event driven object for representing an automounter container.
     
@@ -26,6 +27,7 @@ class AutomounterContainer(GObject.GObject):
     __gsignals__ = {
         'changed': (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, []),
     }
+
     def __init__(self, location, status_str=None):
         """ Create a container at the specified location in the Automounter.
         
@@ -36,15 +38,15 @@ class AutomounterContainer(GObject.GObject):
         Kwargs:
             - `status_str` (str or None): status string to update container with.       
         """
-        
+
         GObject.GObject.__init__(self)
         self.location = location
         self.samples = {}
         self.configure(status_str)
-        
+
     def do_changed(self):
         pass
-    
+
     def configure(self, status_str=None):
         """Sets up the container type and state from a status string.
         If no status string is provided, it is rest the 'unknown' state.
@@ -53,39 +55,39 @@ class AutomounterContainer(GObject.GObject):
             status_str (str or None): status string to update with.
             
         """
-        if status_str is not None and len(status_str)>0:
+        if status_str is not None and len(status_str) > 0:
             if re.match('\d', status_str[0]):
                 self.container_type = int(status_str[0])
             else:
                 self.container_type = CONTAINER_UNKNOWN
         else:
             self.container_type = CONTAINER_NONE
-            
+
         if self.container_type in [CONTAINER_NONE, CONTAINER_UNKNOWN, CONTAINER_EMPTY]:
             self.samples = {}
             GObject.idle_add(self.emit, 'changed')
             return
         elif self.container_type == CONTAINER_PUCK_ADAPTER:
             self.keys = 'ABCD'
-            self.indices = range(1,17)
-        else: # cassette and calibration cassette
+            self.indices = range(1, 17)
+        else:  # cassette and calibration cassette
             self.keys = 'ABCDEFGHIJKL'
-            self.indices = range(1,9)
+            self.indices = range(1, 9)
         count = 1
         for key in self.keys:
             for index in self.indices:
                 id_str = '%s%d' % (key, index)
                 if status_str is not None:
-                    
+
                     self.samples[id_str] = [PORT_STATE_TABLE[status_str[count]], '']
                 else:
                     self.samples[id_str] = [PORT_NONE, '']
-                count +=1
+                count += 1
         GObject.idle_add(self.emit, 'changed')
 
     def __getitem__(self, key):
         return self.samples.get(key, None)
-                    
+
 
 class BasicAutomounter(BaseDevice):
     """Basic Automounter object. 
@@ -117,52 +119,51 @@ class BasicAutomounter(BaseDevice):
     def __init__(self):
         BaseDevice.__init__(self)
         self.containers = {'L': AutomounterContainer('L'),
-                          'M': AutomounterContainer('M'),
-                          'R': AutomounterContainer('R')}
+                           'M': AutomounterContainer('M'),
+                           'R': AutomounterContainer('R')}
         self._mounted_port = None
         self._last_warn = ''
         self.set_state(active=False, enabled=False, status='fault', preparing=False)
 
-    
     def do_state(self, st):
         pass
-    
+
     def do_enabled(self, st):
         pass
-    
+
     def do_mounted(self, st):
         pass
-    
+
     def do_preparing(self, st):
         pass
-    
+
     def do_progress(self, st):
         pass
-    
+
     def _parse_states(self, state):
         """This method sets up all the container types and states from a DCSS type status string.
         If no status string.
         
         Args:
             `state` (str): State string for container.
-        """        
+        """
         fbstr = ''.join(state.split())
         info = {
-        'L': fbstr[:97],
-        'M': fbstr[97:-97],
-        'R': fbstr[-97:]}
-        for k,s in info.items():
+            'L': fbstr[:97],
+            'M': fbstr[97:-97],
+            'R': fbstr[-97:]}
+        for k, s in info.items():
             self.containers[k].configure(s)
-    
+
     def abort(self):
         """Abort all actions."""
-        
+
     def prepare(self):
         self.set_state(preparing=True, message='Preparing to mount')
-    
+
     def is_preparing(self):
         return self.preparing_state
-    
+
     def mount(self, port, wash=False, wait=False):
         """Mount the sample at the specified port, optionally washing the sample
         in the process. Does nothing if the requested port is already mounted.
@@ -181,7 +182,7 @@ class BasicAutomounter(BaseDevice):
             otherwise.
         """
         pass
-    
+
     def dismount(self, port=None, wait=False):
         """Dismount the sample into the specified port if provided, otherwise 
         dismount it to the original port from which it was mounted.
@@ -192,7 +193,7 @@ class BasicAutomounter(BaseDevice):
             - `wait` (bool): Run asynchronously or block (default is async, False)
         """
         pass
-    
+
     def wait(self, start=True, stop=True, timeout=240):
         """Wait for the automounter
         
@@ -205,8 +206,8 @@ class BasicAutomounter(BaseDevice):
             True if the wait was successful. False if the wait timed-out.
             
         """
-        poll=0.10
-        
+        poll = 0.10
+
         if (start and not self.is_busy()):
             _logger.debug('Waiting for (%s) to start' % (self.name,))
             _start_timeout = 60
@@ -217,8 +218,7 @@ class BasicAutomounter(BaseDevice):
                 _logger.warning('Timed out waiting for (%s) to start.' % (self.name,))
                 self.set_state(preparing=False)
                 return False
-            
-                
+
         if (stop and self.is_busy()):
             _logger.debug('Waiting for (%s) to stop' % (self.name,))
             while self.is_busy() and timeout > 0:
@@ -228,7 +228,7 @@ class BasicAutomounter(BaseDevice):
                 _logger.warning('Timed out waiting for (%s) to top.' % (self.name,))
                 return False
         return True
-    
+
     def is_mountable(self, port):
         """Check if a sample location can be mounted safely. Does not guarantee
         that the port is actually mountable, only that the the port was marked 
@@ -240,7 +240,7 @@ class BasicAutomounter(BaseDevice):
         Returns:
             True or False.
         """
-        
+
         if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
             return False
         info = self.containers[port[0]][port[1:]]
@@ -248,7 +248,7 @@ class BasicAutomounter(BaseDevice):
             return False
         else:
             return info[0] in [PORT_GOOD, PORT_MOUNTED, PORT_UNKNOWN]
-    
+
     def is_mounted(self, port=None):
         """Check if any sample or a specific sample location is currently 
         mounted. 
@@ -260,10 +260,10 @@ class BasicAutomounter(BaseDevice):
             True if a port is specified and is mounted or if no port is 
             specified and any sample is mounted. False otherwise.
         """
-        
+
         if port is None:
             return self._mounted_port != None
-        
+
         if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
             return False
         try:
@@ -271,12 +271,12 @@ class BasicAutomounter(BaseDevice):
             port_state = info[0]
         except (AttributeError, TypeError):
             port_state = PORT_UNKNOWN
-            
+
         if info is None:
             return False
         else:
             return port_state == PORT_MOUNTED
-    
+
     def get_port_state(self, port):
         """Obtain the detailed state of the specified sample location.
         
@@ -309,18 +309,20 @@ class BasicAutomounter(BaseDevice):
 
 class ColList(object):
     """Combine repeating elements in list comprehension"""
+
     def __init__(self):
         self._last = None
-    
+
     def last(self):
         return self._last
-    
+
     def next(self, v):
         self._last = v
         return self._last
-    
+
     def reset(self):
         self._last = None
+
 
 ACTION_STATES = {
     r'cooling tong .*': 'cooling',
@@ -337,35 +339,39 @@ ACTION_STATES = {
     r'.*move to port.*': 'to_port',
     r'take dumbbell': 'get_magnet'
 }
+
+
 def _get_action(s):
-    for k,v in ACTION_STATES.items():
+    for k, v in ACTION_STATES.items():
         if re.match(k, s):
             return v
+
 
 class Automounter(BasicAutomounter):
     """EPICS Based SAM Automounter object. 
 
     """
     SEQUENCES = {
-       'mount':['P0', 'P1','P2','P3','P6','P50','P52','P53','P52','P50','P4','P6','P3',
-                'P93','P5','P93','P16','P2','P18','P22','P24','P21','P23','P22',
-                'P18','P1','P0'],
-       
-       'mountnext': ['P0','P1','P2','P3','P2','P18','P22','P23','P21','P22','P18','P27',
-                    'P26','P3','P6','P50','P52','P53','P52','P50','P52','P53','P52',
-                    'P50','P4','P6','P3','P93','P5','P93','P16','P2','P18','P22',
-                    'P24','P21','P23','P22','P18','P1','P0'],
-       'dismount': ['P0','P1','P2','P3','P2','P18','P22','P23','P21','P22','P18','P27',
-                     'P26','P3','P6','P50','P52','P53','P52','P50','P4','P6','P3',
-                     'P2','P1','P0']
+        'mount': ['P0', 'P1', 'P2', 'P3', 'P6', 'P50', 'P52', 'P53', 'P52', 'P50', 'P4', 'P6', 'P3',
+                  'P93', 'P5', 'P93', 'P16', 'P2', 'P18', 'P22', 'P24', 'P21', 'P23', 'P22',
+                  'P18', 'P1', 'P0'],
+
+        'mountnext': ['P0', 'P1', 'P2', 'P3', 'P2', 'P18', 'P22', 'P23', 'P21', 'P22', 'P18', 'P27',
+                      'P26', 'P3', 'P6', 'P50', 'P52', 'P53', 'P52', 'P50', 'P52', 'P53', 'P52',
+                      'P50', 'P4', 'P6', 'P3', 'P93', 'P5', 'P93', 'P16', 'P2', 'P18', 'P22',
+                      'P24', 'P21', 'P23', 'P22', 'P18', 'P1', 'P0'],
+        'dismount': ['P0', 'P1', 'P2', 'P3', 'P2', 'P18', 'P22', 'P23', 'P21', 'P22', 'P18', 'P27',
+                     'P26', 'P3', 'P6', 'P50', 'P52', 'P53', 'P52', 'P50', 'P4', 'P6', 'P3',
+                     'P2', 'P1', 'P0']
     }
+
     def __init__(self, pv_name, pv_name2=None):
         BasicAutomounter.__init__(self)
         self.name = 'SAM Automounter'
         self._pv_name = pv_name
 
         self.full_state = {}
-        
+
         self.port_states = self.add_pv('%s:cassette:fbk' % pv_name)
         self.port_states.connect('changed', lambda x, y: self._parse_states(y))
 
@@ -374,15 +380,15 @@ class Automounter(BasicAutomounter):
         self._status = self.add_pv('%s:status:state' % pv_name)
         self._sample = self.add_pv('%s:state:sts' % pv_name)
         self._magnet = self.add_pv('%s:state:mag' % pv_name)
-        
-        #Detailed Status
+
+        # Detailed Status
         self._normal = self.add_pv('%s:mod:normal' % pv_name)
         self._usr_disable = self.add_pv('%s:mnt:usrEnable' % pv_name)
         self._gonio_safe = self.add_pv('%s:goniPos:mntEn' % pv_name)
-        self._mounted =  self.add_pv('%s:status:mounted' % pv_name)
+        self._mounted = self.add_pv('%s:status:mounted' % pv_name)
         self._position = self.add_pv('%s:state:curPnt' % pv_name)
         self._autofill = self.add_pv('%s:LN2Fill:en' % pv_name2)
-        
+
         self._mount_cmd = self.add_pv('%s:mntX:opr' % pv_name)
         self._mount_param = self.add_pv('%s:mntX:param' % pv_name)
         self._dismount_cmd = self.add_pv('%s:dismntX:opr' % pv_name)
@@ -395,15 +401,14 @@ class Automounter(BasicAutomounter):
         self._barcode_reset = self.add_pv('%s:bcode:clear' % pv_name)
         self._mount_enabled = self.add_pv('%s:mntEn' % pv_name)
         self._robot_busy = self.add_pv('%s:sample:sts' % pv_name)
-        
-        self._position.connect('changed', self._notify_progress)         
+
+        self._position.connect('changed', self._notify_progress)
         self._mounted.connect('changed', self._on_mount_changed)
 
-      
         self._warning.connect('changed', self._on_status_warning)
         self.status_msg.connect('changed', self._send_message)
         self._gonio_safe.connect('changed', self._on_safety_changed)
-              
+
         self._mount_enabled.connect('changed', self._on_state_changed)
         self._robot_busy.connect('changed', self._on_state_changed)
         self._status.connect('changed', self._on_state_changed)
@@ -411,21 +416,17 @@ class Automounter(BasicAutomounter):
         self._usr_disable.connect('changed', self._on_state_changed)
         self._autofill.connect('changed', self._on_state_changed)
 
-        self._position.connect('changed', self._do_full_state) 
+        self._position.connect('changed', self._do_full_state)
         self._sample.connect('changed', self._do_full_state)
         self._magnet.connect('changed', self._do_full_state)
         self.status_msg.connect('changed', self._do_full_state)
-        
 
         self.reset_progress([])
-        
-        
-        
-        
+
     def abort(self):
         """Abort all actions."""
         self._abort_cmd.put(1)
-     
+
     def mount(self, port, wash=False, wait=False):
         """Mount the sample at the specified port, optionally washing the sample
         in the process. Does nothing if the requested port is already mounted.
@@ -455,27 +456,27 @@ class Automounter(BasicAutomounter):
         else:
             self._wash_param.put('0')
         self._barcode_reset.put(1)
-        
-        #do nothing if sample is already mounted
+
+        # do nothing if sample is already mounted
         _mounted_port = self._mounted.get().strip()
         if _mounted_port == param:
             _logger.info('(%s) Sample at location `%s` already mounted.' % (self.name, port))
             self.set_state(message="Sample already mounted.", preparing=False)
             self._on_state_changed(None, None)
             return True
-        
+
         # use mount_next if something already mounted
-        if _mounted_port == '':      # nothing is mounted  
+        if _mounted_port == '':  # nothing is mounted
             self._mount_param.put(param)
             self.reset_progress(self.SEQUENCES['mount'])
             self._mount_cmd.set(1)
-        else:                        # something is mounted
+        else:  # something is mounted
             dis_param = self._mounted.get()
             self._dismount_param.put(dis_param)
             self._mount_param.put(param)
             self.reset_progress(self.SEQUENCES['mountnext'])
             self._mount_next_cmd.set(1)
-            
+
         _logger.info('(%s) Mount command: %s' % (self.name, port))
         if wait:
             success = self.wait_sequence(port)
@@ -483,8 +484,7 @@ class Automounter(BasicAutomounter):
                 self.set_state(message="Mounting timed out!")
             return success
         return True
-        
-    
+
     def dismount(self, port=None, wait=False):
         """Dismount the sample into the specified port if provided, otherwise 
         dismount it to the original port from which it was mounted.
@@ -506,19 +506,18 @@ class Automounter(BasicAutomounter):
 
         if port is None:
             port = self._mounted.get().strip()
-            
+
         if port == '':
             _logger.warning(msg)
             self.set_state(message='No sample to dismount', preparing=False)
             return False
         else:
             param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
-            
+
         self._dismount_param.put(param)
         self.reset_progress(self.SEQUENCES['dismount'])
         self._dismount_cmd.set(1)
 
-        
         _logger.info('(%s) Dismount command: %s' % (self.name, port))
         if wait:
             success = self.wait_sequence(None)
@@ -526,14 +525,14 @@ class Automounter(BasicAutomounter):
                 self.set_state(message="Dismounting Failed!", preparing=False)
             return success
         return True
- 
+
     def wait_sequence(self, port, timeout=240):
-        poll = 0.05        
+        poll = 0.05
         success = self.wait(start=True, stop=False, timeout=30)
         if not success:
             _logger.debug("Automounter did not start within the expected time")
             return False
-            
+
         pct, pos, seqs_match, _ = self.progress_state
         _logger.debug("%s %s %s" % (pct, pos, seqs_match))
         while (not seqs_match) and timeout >= 0:
@@ -548,8 +547,8 @@ class Automounter(BasicAutomounter):
             _logger.error('(%s) Operation failed: Port %s' % (self.name, port))
             return False
         else:
-            return True         
-            
+            return True
+
     def _wait_for_enable(self, timeout=30):
         while not self.is_enabled() and timeout > 0:
             timeout -= 0.05
@@ -562,24 +561,24 @@ class Automounter(BasicAutomounter):
         proc.reset()
         req_seq = '-'.join([proc.next(p) for p in self._command_sequence if proc.last() != p])
 
-        #sim=difflib.SequenceMatcher(a=actual_seq, b=req_seq)
-        #sim_r = sim.ratio()
-                       
+        # sim=difflib.SequenceMatcher(a=actual_seq, b=req_seq)
+        # sim_r = sim.ratio()
+
         if req_seq:
-            prog = float(len(actual_seq))/len(req_seq)
-            seqs_match = prog > 0.9 and req_seq.endswith(actual_seq[(len(actual_seq)//2):])
+            prog = float(len(actual_seq)) / len(req_seq)
+            seqs_match = prog > 0.9 and req_seq.endswith(actual_seq[(len(actual_seq) // 2):])
         else:
             seqs_match = False
-            prog = 0.0                     
+            prog = 0.0
         self.set_state(progress=(prog, pos, seqs_match, None))
         _logger.debug("----- {0} {1} {2}".format(seqs_match, pos, prog))
         _logger.debug('EXPECT {0}'.format(req_seq))
         _logger.debug('ACTUAL {0}'.format(actual_seq))
         self._signal_states()
-    
+
     def _do_full_state(self, obj, val):
-        _SSTATES = ['', 'picker', 'placer', 'tong','gonio']
-        _MSTATES = {'in cradle': 'cradle',  'on tong': 'tong'}
+        _SSTATES = ['', 'picker', 'placer', 'tong', 'gonio']
+        _MSTATES = {'in cradle': 'cradle', 'on tong': 'tong'}
         act = _get_action(self.status_msg.get())
         self.full_state['pos'] = self._position.get()
         self.full_state['magnet'] = _MSTATES.get(self._magnet.get(), '')
@@ -589,20 +588,18 @@ class Automounter(BasicAutomounter):
         self._signal_states()
 
     def _signal_states(self):
-        _logger.debug('(%s) state changed to: %s' % (self.name, [':'.join(pair) for pair in self.full_state.items()]) ) 
-                  
+        _logger.debug('(%s) state changed to: %s' % (self.name, [':'.join(pair) for pair in self.full_state.items()]))
+
     def reset_progress(self, command_seq):
         self._prog_sequence = [self._position.get()]
         self._command_sequence = command_seq
         self.set_state(progress=(0.0, self._position.get(), False, None))
-    
 
     def _on_safety_changed(self, pv, st):
         if self.busy_state and st != 1:
             msg = "Endstation became unsafe while automounter was busy"
             self.abort()
             _logger.warning(msg)
-
 
     def _on_state_changed(self, pv, st):
         normal = self._normal.get()
@@ -618,26 +615,26 @@ class Automounter(BasicAutomounter):
             return
         hlth_msg = ''
         hlth_code = 0
-    
+
         if normal == 0:
             status = 'ready'
         else:
             status = 'fault'
             hlth_msg += ' Needs Staff Attention.'
             hlth_code |= 4
-        
+
         msg = ''
         if mnt_enabled != 1:
-            #msg = 'Not ready for mounting'
+            # msg = 'Not ready for mounting'
             pass
-        
+
         if state_str not in ['robot_standby', 'idle'] and robot_busy == 1:
             if state_str == 'robot_standby':
                 msg = 'Not ready for mounting'
             busy = True
         else:
             busy = False
-        
+
         if usr_enabled == 0:
             hlth_msg += ' Disabled by staff.'
             hlth_code |= 16
@@ -645,8 +642,8 @@ class Automounter(BasicAutomounter):
         if autofill_enabled == 0:
             hlth_msg += ' Autofill Disabled.'
             hlth_code |= 16
-               
-        self.set_state(busy=busy, enabled=(mnt_enabled==1), status=status, 
+
+        self.set_state(busy=busy, enabled=(mnt_enabled == 1), status=status,
                        health=(hlth_code, 'status', hlth_msg))
         if msg:
             self.set_state(message=msg)
@@ -664,13 +661,12 @@ class Automounter(BasicAutomounter):
             try:
                 barcode = self._bar_code.get()
             except:
-                barcode = ''   
+                barcode = ''
             if port != self._mounted_port:
                 self.set_state(mounted=(port, barcode))
                 self._mounted_port = port
                 _logger.debug('Mounted:  port=%s barcode=%s' % (port, barcode))
-    
-        
+
     def _send_message(self, pv, msg):
         if msg.strip() == 'done':
             msg = "Ready."
@@ -684,24 +680,24 @@ class Automounter(BasicAutomounter):
             self._last_warn = val
             # Warnings expire
             if (time.time() - pv._time) < 10:
-                self.set_state(health=(1,'notices', self._last_warn))
+                self.set_state(health=(1, 'notices', self._last_warn))
             else:
-                self.set_state(health=(0,'notices'))
+                self.set_state(health=(0, 'notices'))
 
 
 class ManualMounter(BasicAutomounter):
     """Manual Mounter objects."""
-    
+
     def __init__(self):
         BasicAutomounter.__init__(self)
         self.sample = None
 
     def mount(self, state):
         self.set_state(mounted=state)
-    
+
     def dismount(self, state):
         self.set_state(mounted=None)
-        
+
 
 _TEST_STATE = '31uuuuuuuuuujuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu---\
 -----------------------------01uuuuuuuuuuuumuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu\
@@ -712,17 +708,19 @@ _TEST_STATE2 = '31uuu00000uuj11u1uuuuuuuuuuuuuuuu111111uuuuuuuuuuuuuuuuuuuuuuuuu
 uuuuuuuuuuuuuuuu0uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu20------uu------uu------\
 uu------uu------uu------uu------uu------uu------uu------uu------uu------u'
 
-       
-class SimAutomounter(BasicAutomounter):        
+
+class SimAutomounter(BasicAutomounter):
     def __init__(self):
         BasicAutomounter.__init__(self)
         self._parse_states(_TEST_STATE2)
         from bcm.device.misc import SimPositioner
         self.nitrogen_level = SimPositioner('Automounter Cryogen Level', 80.0, '%')
-        self.set_state(active=True, health=(0,''), status='ready', message='Ready', enabled=True)
+        self.set_state(
+            active=True, health=(0, ''), status='ready',
+            message='Ready', enabled=True,
+            preparing=False,
+        )
 
-
-    
     def mount(self, port, wash=False, wait=False):
         if self.is_busy():
             return False
@@ -731,7 +729,7 @@ class SimAutomounter(BasicAutomounter):
         if wait:
             return self.wait(start=True, stop=True)
         return True
-    
+
     def dismount(self, port=None, wait=False):
         if self.busy_state:
             return False
@@ -741,15 +739,25 @@ class SimAutomounter(BasicAutomounter):
         if wait:
             return self.wait(start=True, stop=True)
         return True
-                       
+
     def _sim_mount_done(self, port=None):
-        self.set_state(busy=False, status='ready', enabled=True, message="Sample mounted. Drying gripper.", mounted=(port,''))
+        self.set_state(
+            busy=False, status='ready', enabled=True,
+            message="Sample mounted. Drying gripper.",
+            preparing=False,
+            mounted=(port, '')
+        )
         self._mounted_port = port
         self.set_state(progress=(1.0, 'unknown', 'on gonio', 'in cradle'))
         GObject.timeout_add(10000, self._sim_dry_done)
 
     def _sim_dismount_done(self):
-        self.set_state(busy=False, status='ready', enabled=True, message="Sample dismounted. Drying gripper.", mounted=None)
+        self.set_state(
+            busy=False, status='ready', enabled=True,
+            message="Sample dismounted. Drying gripper.",
+            preparing=False,
+            mounted=None
+        )
         self._mounted_port = None
         self.set_state(progress=(1.0, 'unknown', 'in port', 'in cradle'))
         GObject.timeout_add(10000, self._sim_dry_done)
@@ -759,11 +767,11 @@ class SimAutomounter(BasicAutomounter):
             msg = 'Dismounting crystal'
         else:
             msg = 'Mounting sample at %s' % port
-        self.set_state(busy=True, message=msg)                         
-    
+        self.set_state(busy=True, message=msg)
+
     def _sim_dry_done(self):
-        self.set_state(status='ready', message='Ready.')
-        
+        self.set_state(status='ready', busy=False, message='Ready.')
+
     def is_mounted(self, port=None):
         if port is None:
             return self.mounted_state is not None
@@ -772,14 +780,16 @@ class SimAutomounter(BasicAutomounter):
         else:
             return self.mounted_state[0] == port
 
+
 def _format_msg(txt):
     if txt.strip() == '':
         return ''
-    txt = ". ".join([p.capitalize().strip() for p in  txt.lower().split('. ')]).strip()
+    txt = ". ".join([p.capitalize().strip() for p in txt.lower().split('. ')]).strip()
     if txt[-1] != '.':
         txt = txt + '.'
     return txt
-       
+
+
 def _format_error_string(need_list):
     nd_dict = {
         'calib': 'calibration',
@@ -789,12 +799,12 @@ def _format_error_string(need_list):
     needs = []
     calib = []
     for t in need_list:
-        ts = t.split(':') 
-        if len(ts)>1:
+        ts = t.split(':')
+        if len(ts) > 1:
             if ts[0] == 'calib':
                 calib.append(ts[1])
             else:
-                needs.append(ts[1] +' '+ nd_dict[ts[0]])
+                needs.append(ts[1] + ' ' + nd_dict[ts[0]])
         else:
             needs.append(t)
     if len(calib) > 0:
@@ -804,7 +814,3 @@ def _format_error_string(need_list):
     else:
         needs_txt = ''
     return needs_txt
-
-
-   
-       

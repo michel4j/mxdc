@@ -274,8 +274,9 @@ class LIMSClient(BaseService):
             report = data['result']
             self.upload_report(beamline, report)
 
-        if len(reports):
-            with open(os.path.join(reports[0]['url'], 'process.json'), 'w') as fobj:
+        if reports:
+            result = reports[0]['result']
+            with open(os.path.join(result['url'], 'process.json'), 'w') as fobj:
                 info = {'result': reports, 'error': None}
                 json.dump(info, fobj)
 
