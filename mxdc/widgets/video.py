@@ -1,22 +1,12 @@
 import os
-import sys
-import Queue
-import gtk
-import gobject
-import pango
+import pickle
 import time
-import threading
-from PIL import Image 
-from PIL import ImageOps
-from PIL import ImageDraw
-from PIL import ImageFont
 
-
-from bcm.protocol import ca
+import gobject
+import gtk
+from PIL import Image
 from bcm.device.interfaces import IVideoSink
 from zope.interface import implements
-
-import pickle
 
 WIDGET_DIR = os.path.dirname(__file__)
 COLORMAPS = pickle.load(file(os.path.join(WIDGET_DIR, 'data/colormaps.data')))
