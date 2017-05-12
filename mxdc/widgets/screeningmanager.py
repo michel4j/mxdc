@@ -95,6 +95,7 @@ class ScreenManager(gtk.Alignment):
         self.screen_runner.connect('done', self._on_complete)
         self.screen_runner.connect('sync', self._on_sync)
         self.screen_runner.connect('new-datasets', self._on_new_datasets)
+        self.screen_runner.connect('new-image', self._on_diffraction_image)
 
         self.beamline = globalRegistry.lookup([], IBeamline)
         self._beam_up = False
@@ -168,9 +169,6 @@ class ScreenManager(gtk.Alignment):
         self.video_book.connect('realize', lambda x: self.video_book.set_current_page(0))
 
         # create a data collector and attach it to diffraction viewer
-        self.data_collector = DataCollector()
-        self.data_collector.connect('new-image', self._on_diffraction_image)
-        globalRegistry.register([], IDataCollector, 'mxdc.screening', self.data_collector)
         self.screen_ntbk.append_page(self.image_viewer, tab_label=gui.make_icon_label('Diffraction Viewer'))
         self.screen_ntbk.connect('switch-page', self._on_page_switch)
 
@@ -673,7 +671,6 @@ class ScreenManager(gtk.Alignment):
                 self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
                 try:
                     self.collect_obj = pause_dict['collector']
-                    self.data_collector.set_position(pause_dict['position'])
                 except:
                     self.collect_obj = False
             response = self.resp()

@@ -123,7 +123,7 @@ class MXCCDImager(BaseDevice):
         """Stop and Abort the current acquisition."""
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
         self._abort_cmd.put(1)
-        #self.wait_for_state('idle')
+        # self.wait_for_state('idle')
 
     def save(self, wait=False):
         """Save the current buffers according to the current parameters.
@@ -245,7 +245,7 @@ class MXCCDImager(BaseDevice):
             try:
                 os.remove(old_file)
             except OSError:
-                #_logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
+                # _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
                 pass
 
     def wait_for_state(self, state, timeout=10.0):
@@ -302,7 +302,6 @@ class SimCCDImager(BaseDevice):
     def start(self, first=False):
         self.initialize(True)
         time.sleep(0.1)
-
 
     def stop(self):
         _logger.debug('(%s) Stopping CCD ...' % (self.name,))
@@ -431,8 +430,6 @@ class PIL6MImager(BaseDevice):
             'polarization': self.add_pv("{}:Polarization".format(name), monitor=False),
             'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name), monitor=False),
 
-
-
             'comments': self.add_pv('{}:HeaderString'.format(name), monitor=False),
         }
 
@@ -478,7 +475,7 @@ class PIL6MImager(BaseDevice):
             try:
                 os.remove(old_file)
             except OSError:
-                #_logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
+                # _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
                 pass
 
     def wait(self, state='idle'):
@@ -488,8 +485,8 @@ class PIL6MImager(BaseDevice):
         params = {}
         params.update(data)
 
-        if not (0.5*params['energy'] < self.energy_threshold.get() < 0.75*params['energy']):
-            params['threshold_energy'] = round(0.6*params['energy'], 2)
+        if not (0.5 * params['energy'] < self.energy_threshold.get() < 0.75 * params['energy']):
+            params['threshold_energy'] = round(0.6 * params['energy'], 2)
 
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
@@ -497,14 +494,14 @@ class PIL6MImager(BaseDevice):
         params['exposure_period'] = params['exposure_time']
         params['exposure_time'] -= 0.002
 
-        self.mode_cmd.put(2) # External Trigger Mode
+        self.mode_cmd.put(2)  # External Trigger Mode
         for k, v in params.items():
             if k in self.settings:
                 time.sleep(0.05)
                 self.settings[k].put(v, flush=True)
 
     def wait_for_state(self, state, timeout=20.0):
-        _logger.debug('({}) Waiting for state: {}'.format(self.name, state,))
+        _logger.debug('({}) Waiting for state: {}'.format(self.name, state, ))
         while timeout > 0 and not self.is_in_state(state):
             timeout -= 0.05
             time.sleep(0.05)
@@ -512,7 +509,7 @@ class PIL6MImager(BaseDevice):
             _logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, state, 10 - timeout))
             return True
         else:
-            _logger.warning('({}) Timed out waiting for state: {}'.format(self.name, state,))
+            _logger.warning('({}) Timed out waiting for state: {}'.format(self.name, state, ))
             return False
 
     def on_connection_changed(self, obj, state):
@@ -522,7 +519,7 @@ class PIL6MImager(BaseDevice):
             self.set_state(health=(0, 'socket'))
 
     def wait_in_state(self, state, timeout=60):
-        _logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, state,))
+        _logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, state, ))
         while self.is_in_state(state) and timeout > 0:
             timeout -= 0.05
             time.sleep(0.05)
@@ -530,7 +527,7 @@ class PIL6MImager(BaseDevice):
             _logger.debug('({}) state "{}" expired after: {:0.1f} sec'.format(self.name, state, 10 - timeout))
             return True
         else:
-            _logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, state,))
+            _logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, state, ))
             return False
 
     def is_in_state(self, state):
@@ -675,20 +672,21 @@ class ADRayonixImager(BaseDevice):
             _logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
             return True
         else:
-            _logger.warning('({}) Timed out waiting for state: {}'.format(self.name, '|'.join(states),))
+            _logger.warning('({}) Timed out waiting for state: {}'.format(self.name, '|'.join(states), ))
             return False
 
     def wait_in_state(self, *states, **kwargs):
         timeout = kwargs.get('timeout', 60)
-        _logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, '|'.join(states),))
+        _logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, '|'.join(states), ))
         while self.is_in_state(*states) and timeout > 0:
             timeout -= 0.05
             time.sleep(0.05)
         if timeout > 0:
-            _logger.debug('({}) state "{}" expired after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
+            _logger.debug(
+                '({}) state "{}" expired after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
             return True
         else:
-            _logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, '|'.join(states),))
+            _logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, '|'.join(states), ))
             return False
 
     def is_in_state(self, *states):
