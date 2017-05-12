@@ -203,15 +203,17 @@ class ResultManager(gtk.Alignment):
             cmd = 'screenDataset'
         else:
             cmd = 'processDataset'
-        try:
-            self.beamline.dpm.service.callRemote(cmd,
-                                                 params['info'],
-                                                 params['directory'],
-                                                 get_project_name(),
-                                                 ).addCallbacks(self._result_ready, callbackArgs=[itr, params],
-                                                                errback=self._result_fail, errbackArgs=[itr])
-        except:
-            self._result_fail(None, itr)
+
+        self.beamline.dpm.service.callRemote(
+            cmd,
+            params['info'],
+            params['directory'],
+            get_project_name(),
+        ).addCallbacks(
+            self._result_ready,
+            callbackArgs=[itr, params],
+            errback=self._result_fail, errbackArgs=[itr]
+        )
 
     def _result_ready(self, results, itr, params):
         for index, data in enumerate(results):

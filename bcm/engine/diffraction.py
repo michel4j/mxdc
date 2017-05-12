@@ -32,7 +32,6 @@ DEFAULT_PARAMETERS = {
     'num_frames': 1,
     'inverse_beam': False,
     'wedge': 360.0,
-    'energy': [12.658],
     'energy_label': ['E0'],
     'number': 1,
     'two_theta': 0.0,
@@ -72,9 +71,7 @@ class DataCollector(gobject.GObject):
     def configure(self, run_data, take_snapshots=True):
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
-
         datasets, wedges = runlists.generate_wedges(self.config['runs'])
-
         self.config['wedges'] = wedges
         self.config['datasets'] = datasets
         self.beamline.image_server.set_user(pwd.getpwuid(os.geteuid())[0], os.geteuid(), os.getegid())
@@ -92,11 +89,11 @@ class DataCollector(gobject.GObject):
         worker = threading.Thread(target=self.run)
         worker.setDaemon(True)
         worker.setName('Data Collector')
-        self.paused = False
-        self.stopped = False
         worker.start()
 
     def run(self):
+        self.paused = False
+        self.stopped = False
         ca.threads_init()
         self.collecting = True
         self.beamline.detector_cover.open(wait=True)
@@ -136,6 +133,7 @@ class DataCollector(gobject.GObject):
         for wedge in self.config['wedges']:
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
+
             for frame in runlists.generate_frame_list(wedge):
                 # Prepare image header
                 header = {
@@ -203,7 +201,7 @@ class DataCollector(gobject.GObject):
             # Perform scan
             self.beamline.detector.set_parameters(detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
-            self.beamline.goniometer.scan(wait=True,  timeout=wedge['exposure_time'] * wedge['num_frames']*1.5)
+            self.beamline.goniometer.scan(wait=True, timeout=wedge['exposure_time'] * wedge['num_frames'] * 1.5)
 
             is_first_frame = False
             time.sleep(0)
@@ -345,6 +343,7 @@ class Screener(gobject.GObject):
     __gsignals__['error'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
     __gsignals__['analyse-request'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
     __gsignals__['new-datasets'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+    __gsignals__['new-image'] = (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
 
     TASK_MOUNT, TASK_ALIGN, TASK_PAUSE, TASK_COLLECT, TASK_ANALYSE, TASK_DISMOUNT = range(6)
     TASK_STATE_PENDING, TASK_STATE_RUNNING, TASK_STATE_DONE, TASK_STATE_ERROR, TASK_STATE_SKIPPED = range(5)
@@ -359,42 +358,20 @@ class Screener(gobject.GObject):
         self.data_collector = None
         self._collect_results = []
         self.last_pause = None
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.data_collector = DataCollector()
+        self.data_collector.connect('new-image', self.on_new_image)
 
     def configure(self, run_list):
-        # associate beamline devices
-        try:
-            self.beamline = globalRegistry.lookup([], IBeamline)
-
-        except:
-            self.beamline = None
-            _logger.warning('No registered beamline found.')
-            raise
-        try:
-            self.data_collector = globalRegistry.lookup([], IDataCollector, 'mxdc.screening')
-        except:
-            if self.data_collector is None:
-                self.data_collector = DataCollector()
-        try:
-            self.data_collector.disconnect(self.collect_connect)
-        except:
-            pass
-        self.collect_connect = self.data_collector.connect('paused', self.on_collector_pause)
         self.run_list = run_list
         self.total_items = len(self.run_list)
-        return
-
-    def on_collector_pause(self, obj, state, pause_dict):
-        task = self.run_list[self.pos]
-        if task.task_type == Screener.TASK_COLLECT and (not self.paused) and (not self.stopped) and (
-                    'collector' in pause_dict):
-            self.paused = True
-            gobject.idle_add(self.emit, 'paused', True, pause_dict)
-        return True
 
     def start(self):
         worker_thread = threading.Thread(target=self.run)
         worker_thread.setDaemon(True)
         worker_thread.setName('Screener')
+        self.paused = False
+        self.stopped = False
         worker_thread.start()
 
     def notify_progress(self, status):
@@ -405,217 +382,195 @@ class Screener(gobject.GObject):
             fraction = float(self.pos) / self.total_items
         gobject.idle_add(self.emit, 'progress', fraction, self.pos, status)
 
+    def on_new_image(self, obj, file_path):
+        gobject.idle_add(self.emit, 'new-image', file_path)
+
     def run(self):
-        self.paused = False
-        self.stopped = False
-        if self.beamline is None:
-            _logger.error('No Beamline found. Aborting Screening.')
-            return
         ca.threads_init()
-        # self.beamline.lock.acquire()
         gobject.idle_add(self.emit, 'started')
-        try:
-            self.pos = 0
-            pause_dict = {}
+        pause_info = {}
 
-            while self.pos < len(self.run_list):
-                task = self.run_list[self.pos]
-                _logger.debug('TASK: "%s"' % str(task))
+        for self.pos, task in enumerate(self.run_list):
+            _logger.debug('TASK: "%s"' % str(task))
 
-                # Making sure beam is available before trying to collect
-                if (
-                            self.last_pause != Screener.PAUSE_BEAM) and task.task_type == Screener.TASK_COLLECT and not self.beamline.storage_ring.beam_state and not self.paused:
+            if self.paused:
+                gobject.idle_add(self.emit, 'paused', True, pause_info)
+                self.last_pause = pause_info.get('type', None)
+                pause_info = {}
+                while self.paused and not self.stopped:
+                    time.sleep(0.1)
+                gobject.idle_add(self.emit, 'paused', False, pause_info)
+
+            if self.stopped:
+                gobject.idle_add(self.emit, 'stopped')
+                break
+
+            # Perform the screening task here
+            if task.task_type == Screener.TASK_PAUSE:
+                pause_info = {
+                    'type': Screener.PAUSE_TASK,
+                    'task': self.run_list[self.pos - 1].name,
+                    'sample': self.run_list[self.pos]['sample']['name'],
+                    'port': self.run_list[self.pos]['sample']['port']
+                }
+                self.pause()
+                self.notify_progress(Screener.TASK_STATE_DONE)
+
+            elif task.task_type == Screener.TASK_MOUNT:
+                _logger.debug('TASK: Mount "%s"' % task['sample']['port'])
+                self.notify_progress(Screener.TASK_STATE_RUNNING)
+                success = auto.auto_mount_manual(self.beamline, task['sample']['port'])
+                mounted_info = self.beamline.automounter.mounted_state
+                if not success or mounted_info is None:
+                    self.stop()
                     self.pause()
-                    pause_dict = {'type': Screener.PAUSE_BEAM,
-                                  'object': None}
+                    pause_info = {
+                        'type': Screener.PAUSE_MOUNT,
+                        'task': self.run_list[self.pos - 1].name,
+                        'sample': self.run_list[self.pos]['sample']['name'],
+                        'port': self.run_list[self.pos]['sample']['port']
+                    }
+                    self.notify_progress(Screener.TASK_STATE_ERROR)
+                else:
+                    port, barcode = mounted_info
+                    if port != self.run_list[self.pos]['sample']['port']:
+                        gobject.idle_add(
+                            self.emit, 'sync', False,
+                            'Port mismatch. Expected {}.'.format(
+                                self.run_list[self.pos]['sample']['port']
+                            )
+                        )
+                    elif barcode != self.run_list[self.pos]['sample']['barcode']:
+                        gobject.idle_add(
+                            self.emit, 'sync', False,
+                            'Barcode mismatch. Expected {}.'.format(
+                                self.run_list[self.pos]['sample']['barcode']
+                            )
+                        )
+                    else:
+                        gobject.idle_add(self.emit, 'sync', True, '')
+                        self.notify_progress(Screener.TASK_STATE_DONE)
 
-                if self.stopped:
-                    gobject.idle_add(self.emit, 'stopped')
-                    break
-                if self.paused:
-                    gobject.idle_add(self.emit, 'paused', True, pause_dict)
-                    self.last_pause = pause_dict.get('type', None)
-                    pause_dict = {}
-                    while self.paused and not self.stopped:
-                        time.sleep(0.05)
-                    gobject.idle_add(self.emit, 'paused', False, pause_dict)
-                    continue
-
-                # Perform the screening task here
-                if task.task_type == Screener.TASK_PAUSE:
-                    self.pause()
+            elif task.task_type == Screener.TASK_DISMOUNT:
+                _logger.warn('TASK: Dismounting Last Sample')
+                if self.beamline.automounter.is_mounted():  # only attempt if any sample is mounted
+                    self.notify_progress(Screener.TASK_STATE_RUNNING)
+                    success = auto.auto_dismount_manual(self.beamline, task['sample']['port'])
                     self.notify_progress(Screener.TASK_STATE_DONE)
-                    pause_dict = {'type': Screener.PAUSE_TASK,
-                                  'task': self.run_list[self.pos - 1].name,
-                                  'sample': self.run_list[self.pos]['sample']['name'],
-                                  'port': self.run_list[self.pos]['sample']['port']}
 
-                elif task.task_type == Screener.TASK_MOUNT:
-                    _logger.warn('TASK: Mount "%s"' % task['sample']['port'])
-                    if self.beamline.automounter.is_mounted(task['sample']['port']):
-                        # do nothing
-                        self.notify_progress(Screener.TASK_STATE_SKIPPED)
-                    elif self.beamline.automounter.is_mountable(task['sample']['port']):
-                        self.notify_progress(Screener.TASK_STATE_RUNNING)
-                        success = auto.auto_mount_manual(self.beamline, task['sample']['port'])
-                        mounted_info = self.beamline.automounter.mounted_state
-                        if not success or mounted_info is None:
-                            self.pause()
-                            self.stop()
-                            pause_dict = {'type': Screener.PAUSE_MOUNT,
-                                          'task': self.run_list[self.pos - 1].name,
-                                          'sample': self.run_list[self.pos]['sample']['name'],
-                                          'port': self.run_list[self.pos]['sample']['port']}
-                            self.notify_progress(Screener.TASK_STATE_ERROR)
-                        else:
-                            port, barcode = mounted_info
-                            if port != self.run_list[self.pos]['sample']['port']:
-                                gobject.idle_add(self.emit, 'sync', False,
-                                                 'Port mismatch. Expected %s.' % self.run_list[self.pos]['sample'][
-                                                     'port'])
-                            elif barcode != self.run_list[self.pos]['sample']['barcode']:
-                                gobject.idle_add(self.emit, 'sync', False,
-                                                 'Barcode mismatch. Expected %s.' % self.run_list[self.pos]['sample'][
-                                                     'barcode'])
-                            else:
-                                gobject.idle_add(self.emit, 'sync', True, '')
-                            self.notify_progress(Screener.TASK_STATE_DONE)
+            elif task.task_type == Screener.TASK_ALIGN:
+                _logger.warn('TASK: Align sample "%s"' % task['sample']['name'])
+
+                if self.beamline.automounter.is_mounted(task['sample']['port']):
+                    self.notify_progress(Screener.TASK_STATE_RUNNING)
+
+                    for method in ['crystal', 'capillary', 'loop']:
+                        if task.options.get(method):
+                            break
+                    if method == 'crystal':
+                        _out = centering.auto_center_crystal()
+                    elif method == 'capillary':
+                        _out = centering.auto_center_capillary()
                     else:
-                        # "skip mounting"
-                        _logger.warn('Skipping sample: "%s @ %s". Sample port is not mountable!' % (
-                            task['sample']['name'], task['sample']['port']))
-                        self.notify_progress(Screener.TASK_STATE_SKIPPED)
-                elif task.task_type == Screener.TASK_DISMOUNT:
-                    _logger.warn('TASK: Dismounting Last Sample')
-                    if self.beamline.automounter.is_mounted():  # only attempt if any sample is mounted
-                        self.notify_progress(Screener.TASK_STATE_RUNNING)
-                        success = auto.auto_dismount_manual(self.beamline, task['sample']['port'])
+                        _out = centering.auto_center_loop()
+
+                    if not _out:
+                        _logger.error('Error attempting auto loop centering "%s"' % task['sample']['name'])
+                        pause_info = {'type': Screener.PAUSE_ALIGN,
+                                      'task': self.run_list[self.pos - 1].name,
+                                      'sample': self.run_list[self.pos]['sample']['name'],
+                                      'port': self.run_list[self.pos]['sample']['port']}
+                        self.pause()
+                        self.notify_progress(Screener.TASK_STATE_ERROR)
+                    elif _out < 70:
+                        pause_info = {'type': Screener.PAUSE_UNRELIABLE,
+                                      'task': self.run_list[self.pos - 1].name,
+                                      'sample': self.run_list[self.pos]['sample']['name'],
+                                      'port': self.run_list[self.pos]['sample']['port']}
+                        self.pause()
+                        self.notify_progress(Screener.TASK_STATE_ERROR)
+                    else:
                         self.notify_progress(Screener.TASK_STATE_DONE)
+                    directory = os.path.join(task['directory'], task['sample']['name'], 'test')
+                    if not os.path.exists(directory):
+                        os.makedirs(directory)  # make sure directories exist
+                    prefix = '%s_test-pic' % (task['sample']['name'])
+                    if not os.path.exists(os.path.join(directory, '%s_%0.1f.png' % (prefix, 0.0))):
+                        _logger.info('Taking snapshots of crystal at %0.1f and %0.1f' % (0.0, 90.0))
+                        snapshot.take_sample_snapshots(prefix, directory, [0.0, 90.0], decorate=True)
+                else:
+                    self.notify_progress(Screener.TASK_STATE_SKIPPED)
+                    _logger.warn('Skipping task because given sample is not mounted')
 
+            elif task.task_type == Screener.TASK_COLLECT:
+                _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
 
-                elif task.task_type == Screener.TASK_ALIGN:
-                    _logger.warn('TASK: Align sample "%s"' % task['sample']['name'])
+                if self.beamline.automounter.is_mounted(task['sample']['port']):
+                    self.notify_progress(Screener.TASK_STATE_RUNNING)
+                    sample = task['sample']
+                    params = DEFAULT_PARAMETERS.copy()
+                    params['name'] = "%s_test" % sample['name']
+                    params['two_theta'] = self.beamline.two_theta.get_position()
+                    params['crystal_id'] = sample.get('id', None)
+                    params['experiment_id'] = sample.get('experiment_id', None)
+                    params['directory'] = os.path.join(task['directory'], sample['name'], 'test')
+                    params['energy'] = [self.beamline.energy.get_position()]
+                    for k in ['distance', 'delta_angle', 'exposure_time', 'start_angle', 'total_angle',
+                              'first_frame', 'skip']:
+                        params[k] = task.options[k]
 
-                    if self.beamline.automounter.is_mounted(task['sample']['port']):
-                        self.notify_progress(Screener.TASK_STATE_RUNNING)
+                    _logger.debug('Collecting frames for crystal `%s`, in directory `%s`.' % (
+                        params['name'], params['directory']))
+                    if not os.path.exists(params['directory']):
+                        os.makedirs(params['directory'])  # make sure directories exist
+                    self.data_collector.configure(params, take_snapshots=False)
+                    results = self.data_collector.run()
+                    task.options['results'] = results
+                    gobject.idle_add(self.emit, 'new-datasets', results)
+                    self.notify_progress(Screener.TASK_STATE_DONE)
+                else:
+                    self.notify_progress(Screener.TASK_STATE_SKIPPED)
+                    _logger.warn('Skipping task because given sample is not mounted')
 
-                        for method in ['crystal', 'capillary', 'loop']:
-                            if task.options.get(method):
-                                break
-                        if method == 'crystal':
-                            _out = centering.auto_center_crystal()
-                        elif method == 'capillary':
-                            _out = centering.auto_center_capillary()
-                        else:
-                            _out = centering.auto_center_loop()
+            elif task.task_type == Screener.TASK_ANALYSE:
+                collect_task = task.options.get('collect_task')
+                if collect_task is not None:
+                    collect_results = collect_task.options.get('results', [])
+                    if len(collect_results) > 0:
+                        images = runlists.get_disk_dataset(
+                            collect_results[0]['directory'],
+                            collect_results[0]['name']
+                        )
+                        _a_params = {
+                            'directory': os.path.join(task['directory'], task['sample']['name'], 'scrn'),
+                            'info': {'anomalous': False, 'file_names': images[:1]},
+                            'type': 'SCRN',
+                            'crystal': task.options['sample'],
+                            'name': collect_results[0]['name']
+                        }
 
-                        if not _out:
-                            _logger.error('Error attempting auto loop centering "%s"' % task['sample']['name'])
-                            pause_dict = {'type': Screener.PAUSE_ALIGN,
-                                          'task': self.run_list[self.pos - 1].name,
-                                          'sample': self.run_list[self.pos]['sample']['name'],
-                                          'port': self.run_list[self.pos]['sample']['port']}
-                            self.pause()
-                            self.notify_progress(Screener.TASK_STATE_ERROR)
-                        elif _out < 70:
-                            pause_dict = {'type': Screener.PAUSE_UNRELIABLE,
-                                          'task': self.run_list[self.pos - 1].name,
-                                          'sample': self.run_list[self.pos]['sample']['name'],
-                                          'port': self.run_list[self.pos]['sample']['port']}
-                            self.pause()
-                            self.notify_progress(Screener.TASK_STATE_ERROR)
-                        else:
-                            self.notify_progress(Screener.TASK_STATE_DONE)
-                        directory = os.path.join(task['directory'], task['sample']['name'], 'test')
-                        if not os.path.exists(directory):
-                            os.makedirs(directory)  # make sure directories exist
-                        prefix = '%s_test-pic' % (task['sample']['name'])
-                        if not os.path.exists(os.path.join(directory, '%s_%0.1f.png' % (prefix, 0.0))):
-                            _logger.info('Taking snapshots of crystal at %0.1f and %0.1f' % (0.0, 90.0))
-                            snapshot.take_sample_snapshots(prefix, directory, [0.0, 90.0], decorate=True)
-                    else:
-                        self.notify_progress(Screener.TASK_STATE_SKIPPED)
-                        _logger.warn('Skipping task because given sample is not mounted')
-
-                elif task.task_type == Screener.TASK_COLLECT:
-                    _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
-
-                    if self.beamline.automounter.is_mounted(task['sample']['port']):
-                        self.notify_progress(Screener.TASK_STATE_RUNNING)
-                        self.beamline.cryojet.nozzle.close()
-                        sample = task['sample']
-                        params = DEFAULT_PARAMETERS.copy()
-                        params['name'] = "%s_test" % sample['name']
-                        params['two_theta'] = self.beamline.two_theta.get_position()
-                        params['crystal_id'] = sample.get('id', None)
-                        params['experiment_id'] = sample.get('experiment_id', None)
-                        params['directory'] = os.path.join(task['directory'], sample['name'], 'test')
-                        params['energy'] = [self.beamline.energy.get_position()]
-                        for k in ['distance', 'delta_angle', 'exposure_time', 'start_angle', 'total_angle',
-                                  'first_frame', 'skip']:
-                            params[k] = task.options[k]
-                        _logger.debug('Collecting frames for crystal `%s`, in directory `%s`.' % (
-                            params['name'], params['directory']))
-                        if not os.path.exists(params['directory']):
-                            os.makedirs(params['directory'])  # make sure directories exist
-                        self.data_collector.configure(params, take_snapshots=False)
-                        results = self.data_collector.run()
-                        task.options['results'] = results
-                        gobject.idle_add(self.emit, 'new-datasets', results)
+                        if not os.path.exists(_a_params['directory']):
+                            os.makedirs(_a_params['directory'])  # make sure directories exist
+                        gobject.idle_add(self.emit, 'analyse-request', _a_params)
+                        self._collect_results = []
+                        _logger.warn('Requesting analysis')
                         self.notify_progress(Screener.TASK_STATE_DONE)
-                    else:
-                        self.notify_progress(Screener.TASK_STATE_SKIPPED)
-                        _logger.warn('Skipping task because given sample is not mounted')
-
-                elif task.task_type == Screener.TASK_ANALYSE:
-                    collect_task = task.options.get('collect_task')
-                    if collect_task is not None:
-                        collect_results = collect_task.options.get('results', [])
-                        if len(collect_results) > 0:
-                            frame_list = runlists.frameset_to_list(collect_results[0]['frame_sets'])
-                            _first_frame = os.path.join(collect_results[0]['directory'],
-                                                        "%s_%04d.img" % (collect_results[0]['name'], frame_list[0]))
-                            _a_params = {'directory': os.path.join(task['directory'], task['sample']['name'], 'scrn'),
-                                         'info': {'anomalous': False,
-                                                  'file_names': [_first_frame, ]
-                                                  },
-                                         'type': 'SCRN',
-                                         'crystal': task.options['sample'],
-                                         'name': collect_results[0]['name']}
-
-                            if not os.path.exists(_a_params['directory']):
-                                os.makedirs(_a_params['directory'])  # make sure directories exist
-                            gobject.idle_add(self.emit, 'analyse-request', _a_params)
-                            self._collect_results = []
-                            _logger.warn('Requesting analysis')
-                            self.notify_progress(Screener.TASK_STATE_DONE)
-                        else:
-                            self.notify_progress(Screener.TASK_STATE_SKIPPED)
-                            _logger.warn('Skipping task because frames were not collected')
                     else:
                         self.notify_progress(Screener.TASK_STATE_SKIPPED)
                         _logger.warn('Skipping task because frames were not collected')
+                else:
+                    self.notify_progress(Screener.TASK_STATE_SKIPPED)
+                    _logger.warn('Skipping task because frames were not collected')
 
-                self.pos += 1
-
-            gobject.idle_add(self.emit, 'done')
-            self.stopped = True
-        finally:
-            self.beamline.exposure_shutter.close()
-            # self.beamline.lock.release()
-
-    def set_position(self, pos):
-        self.pos = pos
+        gobject.idle_add(self.emit, 'done')
+        self.stopped = True
+        self.beamline.exposure_shutter.close()
 
     def pause(self):
         self.paused = True
-        self.data_collector.pause()
 
     def resume(self):
-        if self.last_pause is Screener.PAUSE_BEAM and self.beamline.storage_ring.beam_state:
-            self.last_pause = None
         self.paused = False
-        self.data_collector.resume()
 
     def stop(self):
         self.stopped = True
