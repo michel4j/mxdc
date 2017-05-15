@@ -641,7 +641,7 @@ class Automounter(BasicAutomounter):
 
         if autofill_enabled == 0:
             hlth_msg += ' Autofill Disabled.'
-            hlth_code |= 16
+            hlth_code |= 0
 
         self.set_state(busy=busy, enabled=(mnt_enabled == 1), status=status,
                        health=(hlth_code, 'status', hlth_msg))
