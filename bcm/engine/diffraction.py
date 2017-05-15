@@ -315,19 +315,18 @@ class DataCollector(gobject.GObject):
             self.start()
 
     def pause(self, info={}):
-        # FIXME: consider saving resume state at this point
         _logger.info("Pausing Collection ...")
         self.paused = True
-        self.beamline.goniometer.stop()
         self.beamline.detector.stop()
+        self.beamline.goniometer.stop()
         gobject.idle_add(self.emit, 'paused', True, info)
 
     def stop(self):
         _logger.info("Stopping Collection ...")
         self.stopped = True
         self.paused = False
-        self.beamline.goniometer.stop()
         self.beamline.detector.stop()
+        self.beamline.goniometer.stop()
         gobject.idle_add(self.emit, 'stopped')
 
 
