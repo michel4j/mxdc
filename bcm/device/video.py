@@ -6,8 +6,7 @@ from scipy import misc
 from zope.interface import implements
 from PIL import Image
 import requests
-import urllib2
-import cStringIO
+from StringIO import StringIO
 import numpy
 import os
 import re
@@ -15,6 +14,7 @@ import socket
 import threading
 import time
 import zlib
+import gobject
 import cv2
 
 # setup module logger with a default do-nothing handler
@@ -62,7 +62,7 @@ class VideoSrc(BaseDevice):
     def start(self):
         """Start producing video frames. """
 
-        if self._stopped == True:
+        if self._stopped:
             self._stopped = False
             worker = threading.Thread(target=self._stream_video)
             worker.setName('Video Thread: %s' % self.name)
@@ -84,7 +84,8 @@ class VideoSrc(BaseDevice):
                             sink.display(img)
                 except Exception, e:
                     _logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
-            time.sleep(dur)
+            #time.sleep(dur)
+            time.sleep(0)
 
     def get_frame(self):
         """Obtain the most recent video frame.
@@ -213,13 +214,18 @@ class AxisCamera(VideoSrc):
             self.url = 'http://%s/mjpg/%s/video.mjpg' % (hostname, idx)
 
         self._last_frame = time.time()
-        self.stream = cv2.VideoCapture(self.url)
+        self.stream = None
         self.data = ''
         self._frame = None
         self.set_state(active=True)
-        self.start()
 
     def get_frame(self):
+        if not self.stream:
+            self.stream = cv2.VideoCapture()
+            self.stream.set(cv2.CAP_PROP_BUFFERSIZE, 3)
+            self.stream.open(self.url)
+            #_logger.debug('{}: connected to stream `{}`'.format(self.name, self.url))
+
         _, cv2_im = self.stream.read()
         cv2_im = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
         _frame = Image.fromarray(cv2_im)
@@ -227,8 +233,8 @@ class AxisCamera(VideoSrc):
             self._frame = Image.blend(self._frame, _frame, 0.75)
         else:
             self._frame = _frame
-        return self._frame
 
+        return self._frame
 
 
 class ZoomableAxisCamera(AxisCamera):
