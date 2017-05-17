@@ -221,10 +221,7 @@ class AxisCamera(VideoSrc):
 
     def get_frame(self):
         if not self.stream:
-            self.stream = cv2.VideoCapture()
-            self.stream.set(cv2.CAP_PROP_BUFFERSIZE, 3)
-            self.stream.open(self.url)
-            #_logger.debug('{}: connected to stream `{}`'.format(self.name, self.url))
+            self.stream = cv2.VideoCapture(self.url)
 
         _, cv2_im = self.stream.read()
         cv2_im = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
