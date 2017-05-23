@@ -14,7 +14,6 @@ from zope.interface import implements
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
-DELETE_SUFFIX = '.DELETE'
 
 
 class MXCCDImager(BaseDevice):
@@ -145,7 +144,7 @@ class MXCCDImager(BaseDevice):
             frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
             if os.path.exists(frame_path):
                 try:
-                    os.rename(frame_path, frame_path + DELETE_SUFFIX)
+                    os.remove(frame_path)
                 except OSError:
                     _logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
@@ -239,14 +238,7 @@ class MXCCDImager(BaseDevice):
         file_path = os.path.join(self.settings['directory'].get(), frame_name)
         gobject.idle_add(self.emit, 'new-image', file_path)
 
-        # Remove any .DELETE frames from this sequence
-        old_file = file_path + DELETE_SUFFIX
-        if os.path.exists(old_file):
-            try:
-                os.remove(old_file)
-            except OSError:
-                # _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
-                pass
+
 
     def wait_for_state(self, state, timeout=10.0):
         _logger.debug('(%s) Waiting for state: %s' % (self.name, state,))
@@ -335,14 +327,6 @@ class SimCCDImager(BaseDevice):
         os.system('/usr/bin/gunzip -f %s' % dst_img)
         _logger.debug('Frame saved: %s' % datetime.now().isoformat())
 
-        # Remove any .DELETE frames from this sequence
-        self.set_state(new_image=file_path)
-        old_file = file_path + DELETE_SUFFIX
-        if os.path.exists(old_file):
-            try:
-                os.remove(old_file)
-            except OSError:
-                _logger.error('Unable to delete frame: {}{}'.format(file_name, DELETE_SUFFIX))
 
     def save(self, wait=False):
         self._copy_frame()
@@ -352,7 +336,7 @@ class SimCCDImager(BaseDevice):
             frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
             if os.path.exists(frame_path):
                 try:
-                    os.rename(frame_path, frame_path + DELETE_SUFFIX)
+                    os.remove(frame_path)
                 except OSError:
                     _logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
@@ -461,22 +445,13 @@ class PIL6MImager(BaseDevice):
             frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
             if os.path.exists(frame_path):
                 try:
-                    os.rename(frame_path, frame_path + DELETE_SUFFIX)
+                    os.remove(frame_path)
                 except OSError:
                     _logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
     def on_new_frame(self, obj, frame_name):
         file_path = os.path.join(self.settings['directory'].get(), frame_name)
         gobject.idle_add(self.emit, 'new-image', file_path)
-
-        # Remove any .DELETE frames from this sequence
-        old_file = file_path + DELETE_SUFFIX
-        if os.path.exists(old_file):
-            try:
-                os.remove(old_file)
-            except OSError:
-                # _logger.error('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
-                pass
 
     def wait(self, state='idle'):
         return self.wait_for_state(state)
@@ -627,7 +602,7 @@ class ADRayonixImager(BaseDevice):
             frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
             if os.path.exists(frame_path):
                 try:
-                    os.rename(frame_path, frame_path + DELETE_SUFFIX)
+                    os.remove(frame_path)
                 except OSError:
                     _logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
@@ -641,14 +616,6 @@ class ADRayonixImager(BaseDevice):
     def on_new_frame(self, obj, file_path):
         gobject.idle_add(self.emit, 'new-image', file_path)
         frame_name = os.path.basename(file_path)
-
-        # Remove any .DELETE frames from this sequence
-        old_file = file_path + DELETE_SUFFIX
-        if os.path.exists(old_file):
-            try:
-                os.remove(old_file)
-            except OSError:
-                _logger.debug('Unable to delete: {}{}'.format(frame_name, DELETE_SUFFIX))
 
     def wait(self, *states):
         states = states or ('idle',)
