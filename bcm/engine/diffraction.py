@@ -115,8 +115,7 @@ class DataCollector(gobject.GObject):
                 self.beamline.exposure_shutter.close()
 
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
-        if self.total_frames >= 4:
-            time.sleep(5.0)
+        time.sleep(2.0)
 
         self.results = self.save_summary(self.config['datasets'])
         if not (self.stopped or self.paused):
@@ -136,7 +135,7 @@ class DataCollector(gobject.GObject):
 
             for frame in runlists.generate_frame_list(wedge):
                 # Prepare image header
-                header = {
+                detector_parameters = {
                     'file_prefix': frame['file_prefix'],
                     'delta_angle': frame['delta_angle'],
                     'directory': frame['directory'],
@@ -156,7 +155,7 @@ class DataCollector(gobject.GObject):
                 if frame.get('dafs', False):
                     self.beamline.i_0.async_count(frame['exposure_time'])
 
-                self.beamline.detector.set_parameters(header)
+                self.beamline.detector.set_parameters(detector_parameters)
                 self.beamline.detector.start(first=is_first_frame)
                 self.beamline.goniometer.scan(wait=True, timeout=frame['exposure_time'] * 4)
                 self.beamline.detector.save()
@@ -165,7 +164,6 @@ class DataCollector(gobject.GObject):
                     _logger.info('DAFS I0  {}\t{}'.format(frame['frame_name'], self.beamline.i_0.avg_value))
 
                 is_first_frame = False
-                if self.stopped or self.paused: break
                 time.sleep(0)
 
     def run_shutterless(self):
@@ -188,6 +186,7 @@ class DataCollector(gobject.GObject):
                 'delta_angle': wedge['delta_angle'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
             }
+
             # prepare goniometer for scan
             _logger.info("Collecting {} images starting at: {}".format(
                 wedge['num_frames'], wedge['frame_template'].format(wedge['start_frame']))
@@ -201,7 +200,7 @@ class DataCollector(gobject.GObject):
             # Perform scan
             self.beamline.detector.set_parameters(detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
-            self.beamline.goniometer.scan(wait=True, timeout=wedge['exposure_time'] * wedge['num_frames'] * 1.5)
+            self.beamline.goniometer.scan(wait=True, timeout=wedge['exposure_time'] * wedge['num_frames'] * 2)
 
             is_first_frame = False
             time.sleep(0)
