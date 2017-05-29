@@ -28,6 +28,7 @@ class VideoWidget(gtk.DrawingArea):
         self._last_frame = 0
         self.overlay_func = None
         self.display_func = None
+        self._img_width, self._img_height = 704, 480
         
         self.set_events(gtk.gdk.EXPOSURE_MASK |
                 gtk.gdk.LEAVE_NOTIFY_MASK |
@@ -41,19 +42,16 @@ class VideoWidget(gtk.DrawingArea):
         self.connect('unmap', self.on_unmap)
         self.connect('expose_event',self.on_expose)
         self.connect('realize', self.on_realized)
-        self.connect('configure-event', self.on_configure)        
-        self.connect("unrealize", self.on_destroy)
-    
-    def set_src(self, src):
-        self.camera = src
+        self.connect('configure-event', self.on_configure)
+        self.camera.connect('new-frame', self.on_new_frame)
         self.camera.start()
-    
-    def on_destroy(self, obj):
-        self.camera.del_sink(self)
-        self.camera.stop()
-        
-    def on_configure(self, widget, event):        
+
+    def on_new_frame(self, obj, frame):
+        self.display(frame)
+
+    def on_configure(self, widget, event):
         width, height = event.width, event.height
+
         w, h = map(float, self.camera.size)
         ratio = w/h
         if width < w/4: width = w/4
@@ -116,7 +114,6 @@ class VideoWidget(gtk.DrawingArea):
         self.ol_gc.foreground = self.get_colormap().alloc_color("green")
         #self.ol_gc.set_function(gtk.gdk.XOR)
         self.ol_gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
-        self.camera.add_sink(self)
         return True
 
     def on_visibility_notify(self, obj, event):
