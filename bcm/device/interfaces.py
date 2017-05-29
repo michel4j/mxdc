@@ -269,13 +269,7 @@ class ICamera(IDevice):
             
     def get_frame():
         """Get current frame of video."""
-    
-    def add_sink(sink):
-        """Add a video sink."""
 
-    def del_sink(sink):
-        """Remove a video sink."""
-    
     def start():
         """Start producing video frames"""
     

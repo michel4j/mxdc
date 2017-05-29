@@ -7,6 +7,7 @@ from zope.interface import implements
 from PIL import Image
 import requests
 from StringIO import StringIO
+import urllib2
 import numpy
 import os
 import re
@@ -24,8 +25,12 @@ session = requests.Session()
 
 
 class VideoSrc(BaseDevice):
-    """Base class for all Video Sources. Maintains a list of listenners (sinks)
+    """Base class for all Video Sources.
     and updates each one when the video frame changes."""
+
+    __gsignals__ = {
+        "new-frame": (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, [gobject.TYPE_PYOBJECT]),
+    }
 
     def __init__(self, name="Basic Camera", maxfps=5.0):
         """Kwargs:
@@ -37,31 +42,11 @@ class VideoSrc(BaseDevice):
         self.name = name
         self.maxfps = max(1.0, maxfps)
         self.resolution = 1.0
-        self.sinks = []
         self._stopped = True
         self._active = True
 
-    def add_sink(self, sink):
-        """Add a video sink.
-
-        Args:
-            `sink` (:class:`mxdc.interface.IVideoSink` provider).
-        """
-        self.sinks.append(sink)
-        sink.set_src(self)
-
-    def del_sink(self, sink):
-        """Remove a video sink.
-
-        Args:
-            `sink` (:class:`mxdc.interface.IVideoSink` provider).
-        """
-        if sink in self.sinks:
-            self.sinks.remove(sink)
-
     def start(self):
         """Start producing video frames. """
-
         if self._stopped:
             self._stopped = False
             worker = threading.Thread(target=self._stream_video)
@@ -79,12 +64,10 @@ class VideoSrc(BaseDevice):
             if self._active:
                 try:
                     img = self.get_frame()
-                    for sink in self.sinks:
-                        if not sink.stopped:
-                            sink.display(img)
-                except Exception, e:
+                    gobject.idle_add(self.emit, 'new-frame', img)
+                except Exception as e:
                     _logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
-            #time.sleep(dur)
+            time.sleep(dur)
             time.sleep(0)
 
     def get_frame(self):
@@ -210,8 +193,10 @@ class AxisCamera(VideoSrc):
         self.index = idx
         if idx is None:
             self.url = 'http://%s/mjpg/video.mjpg' % hostname
+            self.image_url = 'http://%s/jpg/image.jpg' % hostname
         else:
             self.url = 'http://%s/mjpg/%s/video.mjpg' % (hostname, idx)
+            self.image_url = 'http://%s/jpg/%s/image.jpg' % (hostname, idx)
 
         self._last_frame = time.time()
         self.stream = None
@@ -219,19 +204,43 @@ class AxisCamera(VideoSrc):
         self._frame = None
         self.set_state(active=True)
 
+        # self.stream = cv2.VideoCapture(self.url)
+        # self.stream = urllib2.urlopen(self.url)
+        self.stream = requests.get(self.url, stream=True)
+
     def get_frame(self):
-        if not self.stream:
-            self.stream = cv2.VideoCapture(self.url)
-
-        _, cv2_im = self.stream.read()
-        cv2_im = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
-        _frame = Image.fromarray(cv2_im)
-        if self._frame:
-            self._frame = Image.blend(self._frame, _frame, 0.75)
-        else:
-            self._frame = _frame
-
         return self._frame
+
+    def _stream_video(self):
+        dur = 1.0 / self.maxfps
+        bytes = ''
+        while not self._stopped:
+            try:
+                bytes += self.stream.raw.read(28000)
+                # a = bytes.find('\xff\xd8')
+                # b = bytes.find('\xff\xd9')
+                b = bytes.rfind('\xff\xd9')
+                a = bytes[:b].rfind('\xff\xd8')
+                if a != -1 and b != -1:
+                    jpg = bytes[a:b + 2]
+                    bytes = bytes[b + 2:]
+                    self._frame = Image.open(StringIO(jpg))
+                    gobject.idle_add(self.emit, 'new-frame', self._frame)
+            except Exception as e:
+                _logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
+            time.sleep(0)
+
+    def _stream_video_cv(self):
+        dur = 1.0 / self.maxfps
+        while not self._stopped:
+            if not self.stream:
+                time.sleep(0)
+                continue
+            _, cv2_im = self.stream.read()
+            cv2_im = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
+            self._frame = Image.fromarray(cv2_im)
+            gobject.idle_add(self.emit, 'new-frame', self._frame)
+            time.sleep(dur)
 
 
 class ZoomableAxisCamera(AxisCamera):
@@ -286,7 +295,6 @@ class AxisPTZCamera(AxisCamera):
         self.presets = []
         self.fetch_presets()
 
-    @async
     def zoom(self, value):
         """Set the zoom position of the PTZ camera
 
@@ -296,7 +304,6 @@ class AxisPTZCamera(AxisCamera):
         requests.get(self.url_root, params={'rzoom': value})
         self._rzoom -= value
 
-    @async
     def center(self, x, y):
         """Set the pan-tilt focal point of the PTZ camera
 
@@ -306,7 +313,6 @@ class AxisPTZCamera(AxisCamera):
         """
         requests.get(self.url_root, params={'center': '{},{}'.format(x, y)})
 
-    @async
     def goto(self, position):
         """Set the pan-tilt focal point based on a predefined position
 
@@ -319,7 +325,6 @@ class AxisPTZCamera(AxisCamera):
     def get_presets(self):
         return self.presets
 
-    @async
     def fetch_presets(self):
         """Get a list of all predefined position names from the PTZ camera
 
@@ -378,70 +383,3 @@ class FDICamera(VideoSrc):
     def stop(self):
         self._sock.close()
         self._stopped = True
-
-
-class VideoRecorder(object):
-    implements(IVideoSink)
-
-    def __init__(self, camera):
-        self.stopped = False
-        self._colorize = False
-        self._palette = None
-        self._start_time = 0
-        self._last_time = 0
-        self._delta_t = 1.0
-        self._scale = 0.5
-        self._recording = False
-        self._duration = 300
-        self._filename = 'testing'
-        self.camera = camera
-
-    def set_src(self, src):
-        self.camera = src
-        self.camera.start()
-
-    def display(self, img):
-        if self._recording and time.time() - self._start_time <= self._duration:
-            if time.time() - self._last_time >= self._delta_t:
-                w, h = map(lambda x: int(x * self._scale), img.size)
-                img = img.resize((w, h), Image.ANTIALIAS)
-                if self._colorize:
-                    if img.mode != 'L':
-                        img = img.convert('L')
-                    img.putpalette(self._palette)
-                self._video_images.append(img)
-                self._video_times.append(time.time())
-                self._last_time = self._video_times[-1]
-        elif self._recording:
-            self.stop()
-
-    def set_colormap(self, colormap=None):
-        from mxdc.widgets import video as vw
-        if colormap is not None:
-            self._colorize = True
-            self._palette = vw.COLORMAPS[colormap]
-        else:
-            self._colorize = False
-
-    def record(self, filename, duration=5, fps=0.5, scale=0.5):
-        if not self._recording:
-            self.camera.add_sink(self)
-            self._filename = filename
-            self._recording = True
-            self._video_images = []
-            self._video_times = []
-            self._duration = duration * 60
-            self._delta_t = 1.0 / fps
-            self._start_time = time.time()
-            self._last_time = self._start_time
-            self._scale = scale
-
-    def stop(self):
-        from mxdc.utils import images2gif
-        if self._recording:
-            self._recording = False
-            self.camera.del_sink(self)
-            dur = numpy.diff(self._video_times).mean()
-            images2gif.writeGif(self._filename, self._video_images, duration=dur)
-            del self._video_images
-            del self._video_times
