@@ -419,6 +419,7 @@ class CollectManager(gtk.Alignment):
                     run['skip'] = ','.join([existing.get(run['name'], ''), run.get('skip', '')])
             elif response == RESPONSE_REPLACE_ALL:
                 success = True
+                self.reset_frame_states()
             else:
                 success = False
         return success, config_data
@@ -499,6 +500,12 @@ class CollectManager(gtk.Alignment):
 
         self.image_viewer.add_frame(file_path)
         _logger.info('Frame collected: {}'.format(frame))
+
+    def reset_frame_states(self):
+        itr = self.listmodel.get_iter_first()
+        while itr:
+            self.listmodel.set(itr, COLLECT_COLUMN_STATUS, FRAME_STATE_PENDING)
+            itr = self.listmodel.iter_next(itr)
 
     def on_progress(self, obj, fraction):
         used_time = time.time() - self.start_time

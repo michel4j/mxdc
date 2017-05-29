@@ -18,7 +18,7 @@ import time
 import warnings
 import gtk
 
-USE_TWISTED = True
+USE_TWISTED = False
 MXDC_PORT = 9898
 
 warnings.simplefilter("ignore")
