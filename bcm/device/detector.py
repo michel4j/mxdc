@@ -15,7 +15,6 @@ from zope.interface import implements
 _logger = get_module_logger(__name__)
 
 
-
 class MXCCDImager(BaseDevice):
     """MX Detector object for EPICS based Rayonix CCD detectors at the CLS."""
     implements(IImagingDetector)
@@ -238,8 +237,6 @@ class MXCCDImager(BaseDevice):
         file_path = os.path.join(self.settings['directory'].get(), frame_name)
         gobject.idle_add(self.emit, 'new-image', file_path)
 
-
-
     def wait_for_state(self, state, timeout=10.0):
         _logger.debug('(%s) Waiting for state: %s' % (self.name, state,))
         while (not self.is_in_state(state)) and timeout > 0:
@@ -326,7 +323,7 @@ class SimCCDImager(BaseDevice):
 
         os.system('/usr/bin/gunzip -f %s' % dst_img)
         _logger.debug('Frame saved: %s' % datetime.now().isoformat())
-
+        gobject.idle_add(self.emit, 'new-image', file_path)
 
     def save(self, wait=False):
         self._copy_frame()

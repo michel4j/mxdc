@@ -479,9 +479,9 @@ class Automounter(BasicAutomounter):
 
         _logger.info('(%s) Mount command: %s' % (self.name, port))
         if wait:
-            success = self.wait_sequence(port)
+            success = self.wait_sequence(port) or (self.mounted_state and self.mounted_state[0] == port)
             if not success:
-                self.set_state(message="Mounting timed out!")
+                self.set_state(message="Mounting failed!")
             return success
         return True
 
@@ -508,7 +508,6 @@ class Automounter(BasicAutomounter):
             port = self._mounted.get().strip()
 
         if port == '':
-            _logger.warning(msg)
             self.set_state(message='No sample to dismount', preparing=False)
             return False
         else:
@@ -520,7 +519,7 @@ class Automounter(BasicAutomounter):
 
         _logger.info('(%s) Dismount command: %s' % (self.name, port))
         if wait:
-            success = self.wait_sequence(None)
+            success = self.wait_sequence(None) or (self.mounted_state is None)
             if not success:
                 self.set_state(message="Dismounting Failed!", preparing=False)
             return success
@@ -541,13 +540,13 @@ class Automounter(BasicAutomounter):
             time.sleep(poll)
         self.set_state(preparing=False)
         if timeout <= 0:
-            _logger.error('(%s) Operation Timed-out: Port %s' % (self.name, port))
+            _logger.warning('(%s) Operation Timed-out: Port %s' % (self.name, port))
             return False
         elif not seqs_match or self._mounted_port != port:
-            _logger.error('(%s) Operation failed: Port %s' % (self.name, port))
+            _logger.warning('(%s) Operation failed: Port %s' % (self.name, port))
             return False
-        else:
-            return True
+
+        return True
 
     def _wait_for_enable(self, timeout=30):
         while not self.is_enabled() and timeout > 0:
