@@ -162,7 +162,7 @@ class CollectManager(gtk.Alignment):
 
         self.collect_btn.set_sensitive(False)
         self.collect_btn.connect('clicked', self.on_activate)
-        self.stop_btn.connect('clicked', self.on_stop_btn_clicked)
+        self.stop_btn.connect('clicked', self.on_stop)
         self.run_manager.connect('saved', self.save_runs)
         self.clear_strategy_btn.connect('clicked', self.on_clear_strategy)
 
@@ -458,9 +458,6 @@ class CollectManager(gtk.Alignment):
         self.start_collection()
         self.progress_bar.set_fraction(0)
 
-    def on_stop_btn_clicked(self, widget):
-        self.stop()
-
     def on_done(self, obj=None):
         self.on_complete(obj)
         text = 'Completed in %s' % time.strftime('%H:%M:%S', time.gmtime(time.time() - self.start_time))
@@ -532,8 +529,7 @@ class CollectManager(gtk.Alignment):
             self.run_manager.set_sensitive(False)
             self.image_viewer.set_collect_mode(True)
 
-    def stop(self):
+    def on_stop(self, obj):
         self.stop_btn.set_sensitive(False)
         self.progress_bar.busy_text("Stopping acquisition ...")
-        if self.collector is not None:
-            self.collector.stop()
+        self.collector.stop()

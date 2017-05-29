@@ -134,6 +134,7 @@ class DataCollector(gobject.GObject):
             self.prepare_for_wedge(wedge)
 
             for frame in runlists.generate_frame_list(wedge):
+                if self.stopped or self.paused: break
                 # Prepare image header
                 detector_parameters = {
                     'file_prefix': frame['file_prefix'],
