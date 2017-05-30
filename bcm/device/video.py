@@ -68,7 +68,6 @@ class VideoSrc(BaseDevice):
                 except Exception as e:
                     _logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
             time.sleep(dur)
-            time.sleep(0)
 
     def get_frame(self):
         """Obtain the most recent video frame.
@@ -204,7 +203,7 @@ class AxisCamera(VideoSrc):
         self._frame = None
         self.set_state(active=True)
 
-        # self.stream = cv2.VideoCapture(self.url)
+        #self.stream = cv2.VideoCapture(self.url)
         # self.stream = urllib2.urlopen(self.url)
         self.stream = requests.get(self.url, stream=True)
 
