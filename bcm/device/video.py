@@ -228,7 +228,7 @@ class AxisCamera(VideoSrc):
                     gobject.idle_add(self.emit, 'new-frame', self._frame)
             except Exception as e:
                 _logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
-            time.sleep(0)
+            time.sleep(dur)
 
     def _stream_video_cv(self):
         dur = 1.0 / self.maxfps
