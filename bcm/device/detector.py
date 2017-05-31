@@ -352,12 +352,8 @@ class PIL6MImager(BaseDevice):
         'new-image': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
     }
     STATES = {
-        'init': [8],
-        'acquiring': [1, 2, 3, 4],
-        'idle': [0, 6, 10],
-        'error': [6, 9],
-        'waiting': [7],
-        'busy': [1, 2, 3, 4, 5, 7, 8],
+        'acquiring': [1],
+        'idle': [0]
     }
 
     def __init__(self, name, description='PILATUS 6M Detector'):
@@ -374,7 +370,7 @@ class PIL6MImager(BaseDevice):
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
         self.armed_status = self.add_pv("{}:Armed".format(name))
-        self.acquire_status = self.add_pv("{}:Acquire_RBV".format(name))
+        self.acquire_status = self.add_pv("{}:Acquire".format(name))
         self.energy_threshold = self.add_pv('{}:ThresholdEnergy_RBV'.format(name), monitor=False)
         self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
         self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
@@ -503,7 +499,7 @@ class PIL6MImager(BaseDevice):
             return False
 
     def is_in_state(self, state):
-        return self.state_value.get() in self.STATES.get(state, [])
+        return self.acquire_status.get() in self.STATES.get(state, [])
 
 
 class ADRayonixImager(BaseDevice):
