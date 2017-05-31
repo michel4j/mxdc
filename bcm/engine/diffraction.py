@@ -242,16 +242,15 @@ class DataCollector(gobject.GObject):
         for d in data_list:
             data = d.copy()
 
-            if len(data['frame_sets']) == 0:
-                continue
-            if len(data['frame_sets'][0]) < 2:
-                continue
-
             data['id'] = None
             data['frame_sets'], data['num_frames'] = runlists.get_disk_frameset(
                 data['directory'],
                 '{}_*.{}'.format(data['name'], self.beamline.detector.file_extension),
             )
+
+            if len(data['num_frames'][0]) < 2:
+                continue
+
             data['wavelength'] = energy_to_wavelength(data['energy'])
             data['resolution'] = dist_to_resol(
                 data['distance'], self.beamline.detector.resolution, min(self.beamline.detector.size), data['energy']
