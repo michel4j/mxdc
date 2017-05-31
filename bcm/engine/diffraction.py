@@ -248,7 +248,7 @@ class DataCollector(gobject.GObject):
                 '{}_*.{}'.format(data['name'], self.beamline.detector.file_extension),
             )
 
-            if len(data['num_frames'][0]) < 2:
+            if data['num_frames'] < 2:
                 continue
 
             data['wavelength'] = energy_to_wavelength(data['energy'])
