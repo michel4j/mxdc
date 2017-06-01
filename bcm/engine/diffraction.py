@@ -120,9 +120,9 @@ class DataCollector(gobject.GObject):
         self.results = self.save_summary(self.config['datasets'])
         if not (self.stopped or self.paused):
             gobject.idle_add(self.emit, 'done')
+            self.beamline.detector.handler_block(self.new_image_handler_id)
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.collecting = False
-        #self.beamline.detector.handler_block(self.new_image_handler_id)
         self.beamline.detector_cover.close()
         return self.results
 
@@ -331,6 +331,7 @@ class DataCollector(gobject.GObject):
         while self.collecting:
             time.sleep(0.1)
         gobject.idle_add(self.emit, 'stopped')
+        self.beamline.detector.handler_block(self.new_image_handler_id)
 
 
 class Screener(gobject.GObject):
