@@ -537,9 +537,10 @@ class ADRayonixImager(BaseDevice):
         self.write_status = self.add_pv("{}:MarWritingStatus_RBV".format(name))
         self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
-        self.file_format = self.add_pv("{}:FileTemplate".format(name)),
+        self.file_format = self.add_pv("{}:FileTemplate".format(name))
         self.saved_filename = self.add_pv('{}:FullFileName_RBV'.format(name))
         self.write_status.connect('changed', self.on_new_frame)
+        self.file_format.connect('changed', self.on_new_format)
 
         # Data Parameters
         self.settings = {
@@ -613,6 +614,9 @@ class ADRayonixImager(BaseDevice):
         if state == 2:
             file_path = self.saved_filename.get()
             gobject.idle_add(self.emit, 'new-image', file_path)
+
+    def on_new_format(self, obj, format):
+        self.file_extension = format.split('.')[-1]
 
     def wait(self, *states):
         states = states or ('idle',)
