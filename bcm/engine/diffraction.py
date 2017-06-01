@@ -157,6 +157,7 @@ class DataCollector(gobject.GObject):
                     self.beamline.i_0.async_count(frame['exposure_time'])
 
                 self.beamline.detector.set_parameters(detector_parameters)
+                if self.stopped or self.paused: break
                 self.beamline.detector.start(first=is_first_frame)
                 if self.stopped or self.paused: break
                 self.beamline.goniometer.scan(wait=True, timeout=frame['exposure_time'] * 4)
