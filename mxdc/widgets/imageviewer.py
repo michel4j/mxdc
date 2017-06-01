@@ -323,6 +323,7 @@ class ImageViewer(gtk.Alignment):
                     gobject.idle_add(self.image_canvas.queue_draw)
             else:
                 self.open_image(filename)
+            self.set_collect_mode(False)
 
     def _timed_hide(self, obj):
         obj.set_active(False)
