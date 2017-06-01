@@ -538,7 +538,7 @@ class ADRayonixImager(BaseDevice):
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
         self.file_format = self.add_pv("{}:FileTemplate".format(name)),
         self.saved_filename = self.add_pv('{}:FullFileName_RBV'.format(name))
-        self.saved_filename.connect('changed', self.on_new_frame)
+        self.state_value.connect('changed', self.on_new_frame)
 
         # Data Parameters
         self.settings = {
@@ -608,9 +608,10 @@ class ADRayonixImager(BaseDevice):
         else:
             self.set_state(health=(0, 'socket'))
 
-    def on_new_frame(self, obj, file_path):
-        gobject.idle_add(self.emit, 'new-image', file_path)
-        frame_name = os.path.basename(file_path)
+    def on_new_frame(self, obj, state):
+        if state == 4:
+            file_path = self.saved_filename.get()
+            gobject.idle_add(self.emit, 'new-image', file_path)
 
     def wait(self, *states):
         states = states or ('idle',)
