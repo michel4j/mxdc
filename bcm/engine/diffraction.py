@@ -327,6 +327,7 @@ class DataCollector(gobject.GObject):
         self.paused = False
         self.beamline.detector.stop()
         self.beamline.goniometer.stop()
+        time.sleep(2.0)
         gobject.idle_add(self.emit, 'stopped')
 
 
