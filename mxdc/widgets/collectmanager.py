@@ -472,7 +472,6 @@ class CollectManager(gtk.Alignment):
         self.collect_btn.set_sensitive(True)
         self.stop_btn.set_sensitive(False)
         self.run_manager.set_sensitive(True)
-        self.image_viewer.set_collect_mode(False)
         gobject.idle_add(self.emit, 'new-datasets', obj.results)
         self.beamline.lims.upload_datasets(self.beamline, obj.results)
 
