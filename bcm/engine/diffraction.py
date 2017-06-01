@@ -122,7 +122,7 @@ class DataCollector(gobject.GObject):
             gobject.idle_add(self.emit, 'done')
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.collecting = False
-        self.beamline.detector.handler_block(self.new_image_handler_id)
+        #self.beamline.detector.handler_block(self.new_image_handler_id)
         self.beamline.detector_cover.close()
         return self.results
 
