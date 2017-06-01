@@ -331,7 +331,6 @@ class DataCollector(gobject.GObject):
         while self.collecting:
             time.sleep(0.1)
         gobject.idle_add(self.emit, 'stopped')
-        self.beamline.detector.handler_block(self.new_image_handler_id)
 
 
 class Screener(gobject.GObject):
