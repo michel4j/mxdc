@@ -38,6 +38,8 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
         else:
             angle = beamline.omega.get_position()
         img = beamline.sample_video.get_frame()
+        if not img:
+            return []
         if decorate:
             img = add_decorations(img, x, y, w, h)
         imgname = os.path.join(directory, '%s_%0.0f.png' % (prefix, angle))
