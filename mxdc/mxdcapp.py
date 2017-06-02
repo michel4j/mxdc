@@ -131,5 +131,5 @@ def main():
 
 if __name__ == "__main__":
     log_to_console()
-    #excepthook.install(exit_main_loop)
+    excepthook.install(exit_main_loop)
     run_main_loop(main)
