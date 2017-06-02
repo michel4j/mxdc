@@ -229,13 +229,18 @@ class AxisCamera(VideoSrc):
         if not self.stream:
             #self.stream = urllib2.urlopen(self.url)
             self.stream = requests.get(self.url, stream=True).raw
-        self.data += self.stream.read(28000)
-        b = self.data.rfind('\xff\xd9')
-        a = self.data[:b].rfind('\xff\xd8')
-        if a != -1 and b != -1:
-            jpg = self.data[a:b + 2]
-            self.data = self.data[b + 2:]
-            self._frame = Image.open(StringIO(jpg))
+        try:
+            self.data += self.stream.read(28000)
+            b = self.data.rfind('\xff\xd9')
+            a = self.data[:b].rfind('\xff\xd8')
+            if a != -1 and b != -1:
+                jpg = self.data[a:b + 2]
+                self.data = self.data[b + 2:]
+                self._frame = Image.open(StringIO(jpg))
+        except Exception as e:
+            _logger.error(e)
+            self.stream = requests.get(self.url, stream=True).raw
+
         return self._frame
 
     def get_frame_opencv(self):
