@@ -221,6 +221,7 @@ class AxisCamera(VideoSrc):
         self.data = ''
         self._frame = None
         self.set_state(active=True)
+        self.lock = threading.Lock()
 
     def get_frame(self):
         return self.get_frame_raw()
@@ -230,25 +231,26 @@ class AxisCamera(VideoSrc):
             #self.stream = urllib2.urlopen(self.url)
             self.stream = requests.get(self.url, stream=True).raw
         try:
-            self.data += self.stream.read(28000)
-            b = self.data.rfind('\xff\xd9')
-            a = self.data[:b].rfind('\xff\xd8')
-            if a != -1 and b != -1:
-                jpg = self.data[a:b + 2]
-                self.data = self.data[b + 2:]
-                self._frame = Image.open(StringIO(jpg))
+            with self.lock:
+                self.data += self.stream.read(28000)
+                b = self.data.rfind('\xff\xd9')
+                a = self.data[:b].rfind('\xff\xd8')
+                if a != -1 and b != -1:
+                    jpg = self.data[a:b + 2]
+                    self.data = self.data[b + 2:]
+                    self._frame = Image.open(StringIO(jpg))
         except Exception as e:
             _logger.error(e)
             self.stream = requests.get(self.url, stream=True).raw
-
         return self._frame
 
     def get_frame_opencv(self):
         if not self.stream:
             self.stream = cv2.VideoCapture(self.url)
-        _, cv2_im = self.stream.read()
-        cv2_im = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
-        self._frame = Image.fromarray(cv2_im)
+        with self.lock:
+            _, cv2_im = self.stream.read()
+            cv2_im = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
+            self._frame = Image.fromarray(cv2_im)
         return self._frame
 
 
