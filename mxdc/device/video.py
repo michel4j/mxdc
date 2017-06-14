@@ -1,30 +1,26 @@
 
 from mxdc.device.base import BaseDevice
 from mxdc.interface.devices import ICamera, IZoomableCamera, IPTZCameraController, IMotor, IVideoSink
-from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 from scipy import misc
 from zope.interface import implements
 from PIL import Image
-import cStringIO
 import requests
+from StringIO import StringIO
 import numpy
 import os
 import re
 import socket
 import threading
 import time
-import urllib
 import zlib
-import urllib2
-import urllib
-
-
+import cv2
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
 session = requests.Session()
+
 
 class VideoSrc(BaseDevice):
     """Base class for all Video Sources. Maintains a list of listenners (sinks)
@@ -65,7 +61,7 @@ class VideoSrc(BaseDevice):
     def start(self):
         """Start producing video frames. """
 
-        if self._stopped == True:
+        if self._stopped:
             self._stopped = False
             worker = threading.Thread(target=self._stream_video)
             worker.setName('Video Thread: %s' % self.name)
@@ -82,17 +78,13 @@ class VideoSrc(BaseDevice):
             if self._active:
                 try:
                     img = self.get_frame()
+                    if not img: continue
                     for sink in self.sinks:
                         if not sink.stopped:
                             sink.display(img)
-                except Exception, e:
-                    _logger.warning('(%s) Error fetching frame' % self.name)
-                    print e
-            # for some reason this does not cleanup properly without try-except
-            try:
-                time.sleep(dur)
-            except:
-                return
+                except Exception as e:
+                    _logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
+            time.sleep(dur)
 
     def get_frame(self):
         """Obtain the most recent video frame.
@@ -212,72 +204,51 @@ class AxisCamera(VideoSrc):
     def __init__(self, hostname, idx=None, name='Axis Camera'):
         VideoSrc.__init__(self, name, maxfps=20.0)
         self.size = (768, 576)
-        self._read_size = 4096
+        self._read_size = 1024
         self.hostname = hostname
         self.index = idx
         if idx is None:
             self.url = 'http://%s/mjpg/video.mjpg' % hostname
+            self.image_url = 'http://%s/jpg/image.jpg' % hostname
         else:
             self.url = 'http://%s/mjpg/%s/video.mjpg' % (hostname, idx)
+            self.image_url = 'http://%s/jpg/%s/image.jpg' % (hostname, idx)
 
         self._last_frame = time.time()
-        self.stream = urllib2.urlopen(self.url)
+        self.stream = None
         self.data = ''
         self._frame = None
         self.set_state(active=True)
-
-    def get_frame1(self):
-        return self._frame
-
-    def _stream_video(self):
-        data = ''
-        count = 0
-        self._frame = None
-        while not self._stopped:
-            if self._active:
-                try:
-                    data += self.stream.read(self._read_size)
-                    a = data.find('\xff\xd8')
-                    b = data.find('\xff\xd9')
-                    count += 1
-                    if a != -1 and b != -1:
-                        jpg = data[a:b + 2]
-                        data = data[b + 2:]
-                        f_str = cStringIO.StringIO(jpg)
-                        img = Image.open(f_str)
-                        if self._frame:
-                            self._frame = Image.blend(self._frame, img, 0.6)
-                        else:
-                            self._frame = img
-                        self.size = self._frame.size
-                        for sink in self.sinks:
-                            if not sink.stopped:
-                                sink.display(self._frame)
-                        if count > 4:
-                            self._read_size *= 2
-                        count = 0
-
-                except IOError, e:
-                    _logger.warning("Connection to {0} video lost. Trying to reconnect.".format(self.name))
-                    print e
-                    time.sleep(2)
-                    self.stream = urllib2.urlopen(self.url)
-                    data = ''
-                    self._read_size = 1024
+        self.lock = threading.Lock()
 
     def get_frame(self):
-        if not self.index:
-            url = 'http://%s/jpg/image.jpg' % (self.hostname)
-        else:
-            url = 'http://%s/jpg/%s/image.jpg' % (self.hostname, self.index)
+        return self.get_frame_raw()
+
+    def get_frame_raw(self):
+        if not self.stream:
+            #self.stream = urllib2.urlopen(self.url)
+            self.stream = requests.get(self.url, stream=True).raw
         try:
-            f = session.get(url)
-            f_str = cStringIO.StringIO(f.read())
-            img = Image.open(f_str)
-            self._frame = img
-            self.size = self._frame.size
-        except:
-            self.set_state(active=False, message='Unable to connect!')
+            with self.lock:
+                self.data += self.stream.read(28000)
+                b = self.data.rfind('\xff\xd9')
+                a = self.data[:b].rfind('\xff\xd8')
+                if a != -1 and b != -1:
+                    jpg = self.data[a:b + 2]
+                    self.data = self.data[b + 2:]
+                    self._frame = Image.open(StringIO(jpg))
+        except Exception as e:
+            _logger.error(e)
+            self.stream = requests.get(self.url, stream=True).raw
+        return self._frame
+
+    def get_frame_opencv(self):
+        if not self.stream:
+            self.stream = cv2.VideoCapture(self.url)
+        with self.lock:
+            _, cv2_im = self.stream.read()
+            cv2_im = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
+            self._frame = Image.fromarray(cv2_im)
         return self._frame
 
 
@@ -330,6 +301,8 @@ class AxisPTZCamera(AxisCamera):
         AxisCamera.__init__(self, hostname, idx, name)
         self.url_root = 'http://{}/axis-cgi/com/ptz.cgi'.format(hostname)
         self._rzoom = 0
+        self.presets = []
+        self.fetch_presets()
 
     def zoom(self, value):
         """Set the zoom position of the PTZ camera
@@ -337,7 +310,7 @@ class AxisPTZCamera(AxisCamera):
         Args:
             `value` (int): the target zoom value.
         """
-        session.get(self.url_root, params={'rzoom': value})
+        requests.get(self.url_root, params={'rzoom': value})
         self._rzoom -= value
 
     def center(self, x, y):
@@ -347,8 +320,7 @@ class AxisPTZCamera(AxisCamera):
             `x` (int): the target horizontal focal point on the image.
             `y` (int): the target horizontal focal point on the image.
         """
-        session.get(self.url_root, params={'center': '{},{}'.format(x,y)})
-
+        requests.get(self.url_root, params={'center': '{},{}'.format(x, y)})
 
     def goto(self, position):
         """Set the pan-tilt focal point based on a predefined position
@@ -356,26 +328,27 @@ class AxisPTZCamera(AxisCamera):
         Args:
             `position` (str): Name of predefined position.
         """
-        print time.time()
-        session.get(self.url_root, params={'gotoserverpresetname':  position})
-        print time.time()
+        requests.get(self.url_root, params={'gotoserverpresetname': position})
         self._rzoom = 0
 
     def get_presets(self):
+        return self.presets
+
+    def fetch_presets(self):
         """Get a list of all predefined position names from the PTZ camera
 
         Returns:
             A list of strings.
         """
         presets = []
-        r = session.get(self.url_root, params={'query': 'presetposall'})
+        r = requests.get(self.url_root, params={'query': 'presetposall'})
         if r.status_code == requests.codes.ok:
             pospatt = re.compile('presetposno.+=(?P<name>[\w ]+)')
             for line in r.text.split('\n'):
                 m = pospatt.match(line)
                 if m:
                     presets.append(m.group('name'))
-        return presets
+        self.presets = presets
 
 
 class FDICamera(VideoSrc):
@@ -486,4 +459,3 @@ class VideoRecorder(object):
             images2gif.writeGif(self._filename, self._video_images, duration=dur)
             del self._video_images
             del self._video_times
-              

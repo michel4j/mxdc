@@ -88,10 +88,6 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.device.connect('health', self._on_health_changed)
         self.action_btn.connect('clicked', self._on_activate)
         self.entry.connect('activate', self._on_activate)
-        self.entry.connect('realize', self._on_realize)
-        self.entry.connect('icon-release', self._on_icon_activate)
-        # self.entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "go-next-symbolic")
-        # self.entry.set_icon_activatable(Gtk.EntryIconPosition.SECONDARY, True)
         self.label.set_markup("<span size='small'><b>%s</b></span>" % (self.name,))
         self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000088"))
 
@@ -130,14 +126,6 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
     def _on_icon_activate(self, widget, pos, event):
         if pos == Gtk.EntryIconPosition.SECONDARY:
             self._on_activate(widget)
-
-    def _on_realize(self, obj):
-        alloc = self.entry.get_allocation()
-        width = alloc.width
-        height = alloc.height - 4
-        self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-        self.fbk_pixbuf = Gdk.pixbuf_get_from_surface(self.surface, 0, 0, width, height)
-        self.entry.set_icon_from_pixbuf(Gtk.EntryIconPosition.PRIMARY, self.fbk_pixbuf)
 
     def _on_health_changed(self, obj, health):
         state, _ = health

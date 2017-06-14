@@ -3,38 +3,73 @@
 from twisted.python import log
 import logging
 import os
-import termcolor
-import types
 
-if os.environ.get('MXDC_DEBUG', '0') in ['1', 'True', 'TRUE', 'true']:
+if os.environ.get('BCM_DEBUG', '0') in ['1', 'True', 'TRUE', 'true']:
     LOG_LEVEL = logging.DEBUG
 else:   
     LOG_LEVEL = logging.INFO
 
-class NullHandler(logging.Handler):
+class TermColor(object):
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
+    @classmethod
+    def warn(cls, text):
+        return '{}{}{}'.format(cls.WARNING, text, cls.ENDC)
+
+    @classmethod
+    def success(cls, text):
+        return '{}{}{}'.format(cls.OKGREEN, text, cls.ENDC)
+
+    @classmethod
+    def error(cls, text):
+        return '{}{}{}'.format(cls.FAIL, text, cls.ENDC)
+
+    @classmethod
+    def emphasis(cls, text):
+        return '{}{}{}'.format(cls.BOLD, text, cls.ENDC)
+
+    @classmethod
+    def debug(cls, text):
+        return '{}{}{}'.format(cls.OKBLUE, text, cls.ENDC)
+
+    @classmethod
+    def normal(cls, text):
+        return text
+
+    @classmethod
+    def underline(cls, text):
+        return '{}{}{}'.format(cls.UNDERLINE, text, cls.ENDC)
+
+
+class NullHandler(logging.Handler):
     """A do-nothing log handler."""
-    
+
     def emit(self, record):
         pass
+
 
 class ColoredConsoleHandler(logging.StreamHandler):
     def emit(self, record):
         try:
             msg = self.format(record)
             if record.levelno == logging.WARNING:
-                msg = termcolor.colored(msg, "yellow")
+                msg = TermColor.warn(msg)
             elif record.levelno > logging.WARNING:
-                msg = termcolor.colored(msg, "red")
+                msg = TermColor.error(msg)
             elif record.levelno == logging.DEBUG:
-                msg = termcolor.colored(msg, "cyan")
-            if not hasattr(types, "UnicodeType"): #if no unicode support...
-                self.stream.write("%s\n" % msg)
-            else:
-                self.stream.write("%s\n" % msg)
+                msg = TermColor.debug(msg)
+            self.stream.write("{}\n".format(msg))
             self.flush()
         except:
             self.handleError(record)
+
 
 class TwistedLogHandler(logging.StreamHandler):
     def emit(self, record):
@@ -83,5 +118,3 @@ def log_to_file(filename, level=logging.DEBUG):
     logfile.setFormatter(formatter)
     logging.getLogger('').addHandler(logfile)
       
-
-log_to_console()
