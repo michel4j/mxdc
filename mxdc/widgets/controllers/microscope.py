@@ -30,9 +30,9 @@ class MicroscopeController(object):
         self.widget.microscope_zoomin_btn.connect('clicked', self.on_zoom_in)
         self.widget.microscope_zoom100_btn.connect('clicked', self.on_unzoom)
 
-        # move sample
-        self.widget.microscope_left_btn.connect('clicked', self.on_fine_left)
-        self.widget.microscope_right_btn.connect('clicked', self.on_fine_right)
+        # # move sample
+        # self.widget.microscope_left_btn.connect('clicked', self.on_fine_left)
+        # self.widget.microscope_right_btn.connect('clicked', self.on_fine_right)
 
         # rotate sample
         self.widget.microscope_ccw90_btn.connect('clicked', self.on_ccw90)
@@ -88,7 +88,7 @@ class MicroscopeController(object):
 
         toolbar_btns = [
             self.widget.microscope_zoomout_btn, self.widget.microscope_zoom100_btn,
-            self.widget.microscope_zoomin_btn,   self.widget.microscope_left_btn, self.widget.microscope_right_btn,
+            self.widget.microscope_zoomin_btn,
             self.widget.microscope_ccw90_btn, self.widget.microscope_cw90_btn,
             self.widget.microscope_rot180_btn, self.widget.microscope_loop_btn,
             self.widget.microscope_crystal_btn, self.widget.microscope_click_btn,

@@ -129,7 +129,7 @@
             <property name="margin_right">12</property>
             <property name="margin_top">6</property>
             <property name="margin_bottom">12</property>
-            <property name="spacing">12</property>
+            <property name="spacing">6</property>
             <child>
               <object class="GtkFrame">
                 <property name="visible">True</property>
@@ -653,17 +653,6 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkSeparator">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
                                       <object class="GtkFrame">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
@@ -687,18 +676,7 @@
                                       <packing>
                                         <property name="expand">False</property>
                                         <property name="fill">True</property>
-                                        <property name="position">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkSeparator">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">3</property>
+                                        <property name="position">1</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -750,11 +728,8 @@
                                       <packing>
                                         <property name="expand">False</property>
                                         <property name="fill">True</property>
-                                        <property name="position">4</property>
+                                        <property name="position">2</property>
                                       </packing>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
                                     </child>
                                     <child>
                                       <object class="GtkFrame">
@@ -819,7 +794,7 @@
                                       <packing>
                                         <property name="expand">True</property>
                                         <property name="fill">True</property>
-                                        <property name="position">6</property>
+                                        <property name="position">3</property>
                                       </packing>
                                     </child>
                                   </object>
@@ -844,10 +819,10 @@
                                   <object class="GtkAspectFrame" id="hutch_video_frame">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="border_width">12</property>
+                                    <property name="border_width">6</property>
                                     <property name="label_xalign">0</property>
                                     <property name="shadow_type">none</property>
-                                    <property name="ratio">1.4700000286102295</property>
+                                    <property name="ratio">1.3300000429153442</property>
                                     <child>
                                       <placeholder/>
                                     </child>
@@ -1219,17 +1194,6 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkSeparator">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkFrame">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -1240,50 +1204,6 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="homogeneous">True</property>
-                                        <child>
-                                          <object class="GtkButton" id="microscope_left_btn">
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="receives_default">False</property>
-                                            <property name="tooltip_text" translatable="yes">Move by -0.2mm</property>
-                                            <child>
-                                              <object class="GtkImage" id="image5">
-                                                <property name="visible">True</property>
-                                                <property name="can_focus">False</property>
-                                                <property name="halign">center</property>
-                                                <property name="icon_name">go-previous-symbolic</property>
-                                                <property name="icon_size">2</property>
-                                              </object>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkButton" id="microscope_right_btn">
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="receives_default">False</property>
-                                            <property name="tooltip_text" translatable="yes">Move by 0.2mm</property>
-                                            <child>
-                                              <object class="GtkImage" id="image8">
-                                                <property name="visible">True</property>
-                                                <property name="can_focus">False</property>
-                                                <property name="halign">center</property>
-                                                <property name="icon_name">go-next-symbolic</property>
-                                                <property name="icon_size">2</property>
-                                              </object>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
                                         <child>
                                           <object class="GtkButton" id="microscope_ccw90_btn">
                                             <property name="visible">True</property>
@@ -1304,7 +1224,7 @@
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
-                                            <property name="position">2</property>
+                                            <property name="position">0</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -1327,7 +1247,7 @@
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
-                                            <property name="position">3</property>
+                                            <property name="position">1</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -1350,7 +1270,7 @@
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
-                                            <property name="position">4</property>
+                                            <property name="position">2</property>
                                           </packing>
                                         </child>
                                         <style>
@@ -1370,18 +1290,7 @@
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkSeparator">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">3</property>
+                                    <property name="position">1</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -1466,7 +1375,7 @@
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">False</property>
-                                            <property name="tooltip_text" translatable="yes">Click Centering</property>
+                                            <property name="tooltip_text" translatable="yes">Capillary Centering</property>
                                             <property name="use_underline">True</property>
                                             <child>
                                               <object class="GtkImage">
@@ -1501,18 +1410,7 @@
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">4</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkSeparator">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">5</property>
+                                    <property name="position">2</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -1651,7 +1549,7 @@
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">6</property>
+                                    <property name="position">3</property>
                                   </packing>
                                 </child>
                               </object>
@@ -1676,11 +1574,10 @@
                               <object class="GtkAspectFrame" id="microscope_video_frame">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="border_width">9</property>
+                                <property name="border_width">6</property>
                                 <property name="label_xalign">0</property>
                                 <property name="shadow_type">none</property>
                                 <property name="ratio">1.3300000429153442</property>
-                                <property name="obey_child">False</property>
                                 <child>
                                   <placeholder/>
                                 </child>
@@ -1747,13 +1644,10 @@
                                         <property name="can_focus">False</property>
                                         <property name="tooltip_text" translatable="yes">Front Light</property>
                                         <child>
-                                          <object class="GtkScale" id="microscope_frontlight_scale">
-                                            <property name="width_request">100</property>
+                                          <object class="GtkImage">
                                             <property name="visible">True</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="fill_level">100</property>
-                                            <property name="round_digits">1</property>
-                                            <property name="draw_value">False</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="icon_name">display-brightness-symbolic</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -1762,10 +1656,13 @@
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkImage">
+                                          <object class="GtkScale" id="microscope_frontlight_scale">
+                                            <property name="width_request">100</property>
                                             <property name="visible">True</property>
-                                            <property name="can_focus">False</property>
-                                            <property name="icon_name">display-brightness-symbolic</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="fill_level">100</property>
+                                            <property name="round_digits">1</property>
+                                            <property name="draw_value">False</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -2685,7 +2582,6 @@
                 <property name="can_focus">False</property>
                 <property name="border_width">12</property>
                 <property name="spacing">12</property>
-                <property name="homogeneous">True</property>
                 <child>
                   <object class="GtkFrame" id="datasets_viewer_box">
                     <property name="width_request">512</property>
