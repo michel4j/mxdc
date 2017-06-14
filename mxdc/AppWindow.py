@@ -43,7 +43,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.set_position(Gtk.WindowPosition.CENTER)
         settings = self.get_settings()
         settings.props.gtk_enable_animations = True
-        self.set_size_request(1440, 940)
+        #self.set_size_request(1200, 798)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
 
         self.version = version
