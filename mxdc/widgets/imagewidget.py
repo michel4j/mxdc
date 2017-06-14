@@ -1,6 +1,6 @@
 # -*- coding: UTF8 -*-
-from bcm.utils.imageio import read_image
-from bcm.utils.imageio.utils import stretch
+from bcm.libs.imageio import read_image
+from bcm.libs.imageio.utils import stretch
 from bcm.utils.science import find_peaks
 from bcm.utils.decorators import async
 from matplotlib.colors import LinearSegmentedColormap
