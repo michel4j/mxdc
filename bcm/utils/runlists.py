@@ -8,7 +8,7 @@ import fnmatch
 import re
 from bcm.utils.science import exafs_targets, exafs_time_func
 from bcm.utils import converter
-from bcm.utils.imageio import read_header
+from bcm.libs.imageio import read_header
 from multiprocessing import Pool, cpu_count
 import numpy
 from collections import defaultdict, OrderedDict
