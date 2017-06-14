@@ -152,7 +152,7 @@ class DewarController(GObject.GObject):
         for loc, (coords, is_puck) in self.layout.parameters.items():
             cx, cy = coords[-1]
             if is_puck:
-                cr.arc(cx, cy, self.layout.radius + 5, 0, 2.0 * 3.14)
+                cr.arc(cx, cy, self.layout.radius, 0, 2.0 * 3.14)
                 cr.fill()
             else:
                 for px, py in coords[1:-1]:
@@ -161,7 +161,7 @@ class DewarController(GObject.GObject):
         # pins
         for loc, (coords, is_puck) in self.layout.parameters.items():
             cx, cy = coords[-1]
-            cr.select_font_face('Cantarell', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+            cr.select_font_face('Cantarell', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
             cr.set_source_rgb(0, 0, 1)
             xb, yb, w, h = cr.text_extents(loc)[:4]
             cr.move_to(cx - w / 2.0 - xb, cy - h / 2.0 - yb)

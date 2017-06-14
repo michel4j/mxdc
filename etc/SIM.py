@@ -60,12 +60,12 @@ DEVICES = {
     'camera_center_x':  SimPositioner('Camera Center x', 388),
     'camera_center_y':  SimPositioner('Camera Center y', 288),
     'cryojet':  SimCryojet('Simulated Cryojet'),
-    'sample_camera': SimCamera(),
-    #'sample_camera': AxisCamera('V2E1608-001.clsi.ca', 4),
+    #'sample_camera': SimCamera(),
+    'sample_camera': AxisCamera('V2E1608-400.clsi.ca', 2),
     'sample_backlight': SimLight('Back light', 45.0, '%'),
     'sample_frontlight': SimLight('Front light', 55.0, '%'),    
-    'hutch_video':  SimPTZCamera(),
-    #'hutch_video':  AxisPTZCamera('ccd1608-500'),
+    #'hutch_video':  SimPTZCamera(),
+    'hutch_video':  AxisPTZCamera('ccd1608-500'),
     
     # Facility, storage-ring, shutters, etc
     'ring_current':  PV('PCT1402-01:mA:fbk'),
@@ -92,7 +92,7 @@ DEVICES = {
     'multi_mca' : SimMultiChannelAnalyzer('Simulated MCA'),
 
     #disk space monitor
-    'disk_space' : DiskSpaceMonitor('Disk Space', '/home', warn=0.4, critical=0.1, freq=2),
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.4, critical=0.1, freq=2),
 }
 
 # lims, dpm, imagesync and other services

@@ -9,8 +9,8 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 
-from mxdc.utils.imageio import read_image
-from mxdc.utils.imageio.utils import stretch
+from mxdc.libs.imageio import read_image
+from mxdc.libs.imageio.utils import stretch
 from mxdc.utils.science import find_peaks
 from mxdc.utils.video import image_to_surface
 import Queue
