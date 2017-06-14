@@ -1,0 +1,3 @@
+[submodule "bcm/libs/imageio"]
+	path = bcm/libs/imageio
+	url = git@srv-cmcf-dp4.clsi.ca:cmcf/imageio.git
