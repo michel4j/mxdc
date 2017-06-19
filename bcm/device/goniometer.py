@@ -68,6 +68,7 @@ class GoniometerBase(BaseDevice):
         BaseDevice.__init__(self)
         self.name = name
         self.mode = -1
+        self.stopped = True
         self.default_timeout = 180
 
     def _set_and_notify_mode(self, mode_str):
@@ -81,20 +82,22 @@ class GoniometerBase(BaseDevice):
 
     def wait(self, start=True, stop=True, poll=0.05, timeout=None):
         """Wait for the goniometer busy state to change. 
-        
+
         Kwargs:
             - `start` (bool): Wait for the goniometer to become busy.
             - `stop` (bool): Wait for the goniometer to become idle.
             - `poll` (float): time in seconds to wait between checks.
-            - `timeout` (float): Maximum time to wait for.                  
+            - `timeout` (float): Maximum time to wait for.
         """
         timeout = timeout or self.default_timeout
+        self.stopped = False
         if (start):
             time_left = timeout
             _logger.debug('Waiting for goniometer to start moving')
             while not self.is_busy() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
+                if self.stopped: break
             if time_left <= 0:
                 _logger.warn('Timed out waiting for goniometer to start moving')
         if (stop):
@@ -103,12 +106,13 @@ class GoniometerBase(BaseDevice):
             while self.is_busy() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
+                if self.stopped: break
             if time_left <= 0:
                 _logger.warn('Timed out waiting for goniometer to stop')
 
     def stop(self):
         """Stop and abort the current scan if any."""
-        pass
+        self.stopped = True
 
 
 class Goniometer(GoniometerBase):
@@ -143,7 +147,7 @@ class Goniometer(GoniometerBase):
         self._col_cmd = self.add_pv("%s:collect.PROC" % blname)
         self._beam_cmd = self.add_pv("OAV1608-3-I10-02:opr:ctl")  # FIXME: no hard-coding
 
-        # mode change feedback  
+        # mode change feedback
         self._gonio_state_mnt.connect('changed', lambda x, y: self._check_gonio_pos())
         self._gonio_state_cnt.connect('changed', lambda x, y: self._check_gonio_pos())
         self._gonio_state_col.connect('changed', lambda x, y: self._check_gonio_pos())
@@ -187,7 +191,7 @@ class Goniometer(GoniometerBase):
 
     def configure(self, **kwargs):
         """Configure the goniometer to perform an oscillation scan.
-        
+
         Kwargs:
             `time` (float): Exposure time in seconds
             `delta` (float): Delta oscillation range in deg
@@ -198,15 +202,15 @@ class Goniometer(GoniometerBase):
 
     def set_mode(self, mode, wait=False):
         """Set the mode of the goniometer environment.
-        
+
         Args:
             - `mode` (str) one of:
-                - "CENTERING" : Prepare for centering 
+                - "CENTERING" : Prepare for centering
                 - "MOUNTING" : Prepare for mounting/dismounting samples
                 - "COLLECT" : Prepare for data collection
                 - "BEAM" : Inspect the beam
                 - "SCANNING" : Prepare for scanning and fluorescence measurements
-        
+
         Kwargs:
             - `wait` (bool): if True, block until the mode is completely changed.
         """
@@ -241,7 +245,7 @@ class Goniometer(GoniometerBase):
 
     def scan(self, wait=True, timeout=None):
         """Perform an oscillation scan according to the currently set parameters
-        
+
         Kwargs:
             - `wait` (bool): if True, wait until the scan is complete otherwise run
             asynchronously.
@@ -249,8 +253,11 @@ class Goniometer(GoniometerBase):
         self.wait(start=False, stop=True, timeout=timeout)
         self._scan_cmd.put(1)
         self.wait(start=True, stop=wait, timeout=timeout)
+        _logger.debug('Scan complete...')
 
     def stop(self):
+        _logger.debug('Stopping goniometer ...')
+        self.stopped = True
         self._stop_command.put(1)
 
 
@@ -313,7 +320,7 @@ class MD2Goniometer(GoniometerBase):
 
     def configure(self, **kwargs):
         """Configure the goniometer to perform an oscillation scan.
-        
+
         Kwargs:
             - `time` (float): Exposure time in seconds
             - `delta` (float): Delta oscillation range in deg
@@ -324,15 +331,15 @@ class MD2Goniometer(GoniometerBase):
 
     def set_mode(self, mode, wait=False):
         """Set the mode of the goniometer environment.
-        
+
         Args:
             - `mode` (str) one of:
-                - "CENTERING" : Prepare for centering 
+                - "CENTERING" : Prepare for centering
                 - "MOUNTING" : Prepare for mounting/dismounting samples
                 - "COLLECT" : Prepare for data collection
                 - "BEAM" : Inspect the beam
                 - "SCANNING" : Prepare for scanning and fluorescence measurements
-        
+
         Kwargs:
             - `wait` (bool): if True, block until the mode is completely changed.
         """
@@ -401,7 +408,7 @@ class MD2Goniometer(GoniometerBase):
 
     def scan(self, wait=True, timeout=None):
         """Perform an oscillation scan according to the currently set parameters
-        
+
         Kwargs:
             - `wait` (bool): if True, wait until the scan is complete otherwise run
               asynchronously.
@@ -412,6 +419,7 @@ class MD2Goniometer(GoniometerBase):
 
     def stop(self):
         """Stop and abort the current scan if any."""
+        self.stopped = True
         self._abort_cmd.toggle(1, 0)
 
 
@@ -459,6 +467,7 @@ class SimGoniometer(GoniometerBase):
         return self._scanning
 
     def stop(self):
+        self.stopped = True
         self._scanning = False
         bl = globalRegistry.lookup([], IBeamline)
         bl.omega.stop()
