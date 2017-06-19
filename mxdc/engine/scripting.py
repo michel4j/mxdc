@@ -1,21 +1,38 @@
-import sys
+
 import time
 import threading
+from collections import OrderedDict
 from gi.repository import GObject
-import logging
 
 from zope.interface import Interface, Attribute
-from zope.interface import implements, classProvides
+from zope.interface import implements
 from twisted.python.components import globalRegistry
-from twisted.plugin import IPlugin, getPlugins
 from mxdc.com import ca
 from mxdc.interface.beamlines import IBeamline
 from mxdc.utils.log import get_module_logger
-from mxdc import ibcm
 
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
+
+
+class IScript(Interface):
+    description = Attribute("""Short description of the script.""")
+    progress = Attribute("""Progress Level of Script.""")
+
+    def start(self):
+        """Start the script in asynchronous mode. It returns immediately."""
+
+    def run(self):
+        """Start the script in synchronous mode. It blocks.
+        This is where the functionality of the script is defined.
+        """
+
+    def is_active(self):
+        """Returns true if the script is currently running."""
+
+    def wait(self):
+        """Wait for script to finish running."""
 
 
 class ScriptError(Exception):
@@ -23,8 +40,7 @@ class ScriptError(Exception):
 
 
 class Script(GObject.GObject):
-    
-    implements(IPlugin, ibcm.IScript)
+    implements(IScript)
     __gsignals__ = {}
     __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
     __gsignals__['started'] = (GObject.SignalFlags.RUN_LAST, None, [])
@@ -94,11 +110,15 @@ class Script(GObject.GObject):
     def is_enabled(self):
         return self._enabled
 
+_SCRIPTS = {}
 
 def get_scripts():
-    import mxdc.scripts
-    scripts = {}
-    for script in list(getPlugins(ibcm.IScript, mxdc.scripts)):
-        scripts[script.name] = script
-    return scripts
-        
+    from mxdc import scripts
+    _logger.debug('Available Scripts: {}'.format(scripts.__all__))
+    for script in Script.__subclasses__():
+        name = script.__name__
+        if not name in _SCRIPTS:
+            _SCRIPTS[name] = script()
+    return _SCRIPTS
+
+__all__ = ['Script', 'get_scripts', 'IScript', 'ScriptError']

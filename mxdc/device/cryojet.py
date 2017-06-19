@@ -1,14 +1,18 @@
+
+from gi.repository import GObject
+
 from zope.interface import implements
 from mxdc.device.base import BaseDevice
 from mxdc.utils.log import get_module_logger
 from mxdc.interface.devices import ICryojet
 from mxdc.device import misc
 
-
 _logger = get_module_logger('devices')
+
 
 class CryojetNozzle(misc.BasicShutter):
     """A specialized in-out actuator for pneumatic Cryojet nozzles at the CLS."""
+
     def __init__(self, name):
         """
         Args:
@@ -21,106 +25,127 @@ class CryojetNozzle(misc.BasicShutter):
         self._messages = ['Restoring', 'Retracting']
         self._name = 'Cryojet Nozzle'
 
-class Cryojet(BaseDevice):
+
+class CryojetBase(BaseDevice):
     """EPICS Based cryojet device object at the CLS."""
-    
     implements(ICryojet)
-    
-    def __init__(self, cname, lname, nname=''):
-        """
-        Args:
-            - `cname` (str): Root name for EPICS cryojet record.
-            - `lname` (str): root name for EPICS cryojet-level controller record.
-        
-        Kwargs:
-            - `nname` (str): Root name of the EPICS cryojet nozzle record.
-        """
+
+    temperature = GObject.Property(type=float, default=0.0)
+    shield = GObject.Property(type=float, default=0.0)
+    sample = GObject.Property(type=float, default=0.0)
+    level = GObject.Property(type=float, default=0.0)
+
+    def __init__(self, *args, **kwargs):
         BaseDevice.__init__(self)
         self.name = 'Cryojet'
-        self.temperature = misc.Positioner('%s:sensorTemp:get' % cname,
-                                      '%s:sensorTemp:get' % cname,
-                                      units='Kelvin')
-        self.sample_flow = misc.Positioner('%s:sampleFlow:set' % cname,
-                                      '%s:SampleFlow:get' % cname,
-                                      units='L/min')
-        self.shield_flow = misc.Positioner('%s:shieldFlow:set' % cname,
-                                      '%s:ShieldFlow:get' % cname,
-                                      units='L/min')
-        self.level = self.add_pv('%s:ch1LVL:get' % lname)
-        self.nozzle = CryojetNozzle(nname)
-
-        self.fill_status = self.add_pv('%s:status:ch1:N.SVAL' % lname)
-        self.add_devices(self.temperature, self.sample_flow, self.shield_flow)
         self._previous_flow = 7.0
-        
-        # connect signals for monitoring state
-        self.temperature.connect('changed', self._on_temperature_changed)
-        self.level.connect('changed', self._on_level_changed)
-        self.nozzle.connect('changed', self._on_noz_change)
-        
+        self.setup(*args, **kwargs)
 
-    def _on_temperature_changed(self, obj, val):
+    def setup(self, *args, **kwargs):
+        pass
+
+    def stop_flow(self):
+        """Stop the flow of the cold nitrogen stream. The current setting for
+        flow rate is saved.
+        """
+        self._previous_flow = self.sample_fbk.get()
+        self.sample_sp.set(0.0)
+
+    def resume_flow(self):
+        """Restores the flow rate to the previously saved setting."""
+        self.sample_sp.set(self._previous_flow)
+
+    def on_temp(self, obj, val):
         if val < 110:
             self.set_state(health=(0, 'temp'))
         elif val < 115:
             self.set_state(health=(2, 'temp', 'Temp. high!'))
         else:
             self.set_state(health=(4, 'temp', 'Temp. too high!'))
+        self.set_property('temperature', val)
 
-    def _on_level_changed(self, obj, val):
-        if  val < 150:
+    def on_sample(self, obj, val):
+        if val > 5:
+            self.set_state(health=(0, 'sample'))
+        elif val > 4:
+            self.set_state(health=(2, 'sample', 'Sample Flow Low!'))
+        else:
+            self.set_state(health=(4, 'sample', 'Sample Flow Too Low!'))
+        self.set_property('sample', val)
+
+    def on_shield(self, obj, val):
+        if val > 5:
+            self.set_state(health=(0, 'shield'))
+        elif val > 4:
+            self.set_state(health=(2, 'shield', 'Shield Flow Low!'))
+        else:
+            self.set_state(health=(4, 'shield', 'Shield Flow Too Low!'))
+        self.set_property('shield', val)
+
+    def on_level(self, obj, val):
+        if val < 15:
             self.set_state(health=(4, 'cryo', 'Cryogen too low!'))
-        elif val < 200:
+        elif val < 20:
             self.set_state(health=(2, 'cryo', 'Cryogen low!'))
-        elif val <= 1000:
+        else:
             self.set_state(health=(0, 'cryo'))
-            
-    def _on_noz_change(self, obj, val):
+        self.set_property('level', val)
+
+    def on_nozzle(self, obj, val):
         if val:
             self.set_state(health=(1, 'nozzle', 'Retracted!'))
         else:
             self.set_state(health=(0, 'nozzle', 'Restored'))
-                       
-    def stop_flow(self):
-        """Stop the flow of the cold nitrogen stream. The current setting for
-        flow rate is saved.
-        """
-        self._previous_flow = self.sample_flow.get()
-        self.sample_flow.set(0.0)
 
-    def resume_flow(self):
-        """Restores the flow rate to the previously saved setting."""
-        self.sample_flow.set(self._previous_flow)
-    
 
-class SimCryojet(BaseDevice):
-    """Simulated cryoject device."""
-    implements(ICryojet)
-    def __init__(self, name):
-        """Args:
-            name (str): Name of the device.
-        """
-        BaseDevice.__init__(self)
-        self.name = name
-        self.temperature = misc.SimPositioner('Cryojet Temperature',
-                                        pos=101.2, units='Kelvin')
-        self.sample_flow = misc.SimPositioner('Cryojet Sample Flow',
-                                         pos=8.0, units='L/min')
-        self.shield_flow = misc.SimPositioner('Cryojet Shield Flow',
-                                         pos=5.0, units='L/min')
-        self.level = misc.SimPositioner('Cryogen Level', pos=90.34, units='%')
-        self.fill_status = misc.SimPositioner('Fill Status', pos=1)
-        self.nozzle = misc.SimShutter('Cryojet Nozzle Actuator')
-        self.set_state(active=True, health=(0,''))
+class Cryojet(CryojetBase):
+    def setup(self, name, level_name, nozzle_name):
+        self.temp_fbk = self.add_pv('{}:sensorTemp:get'.format(name))
+        self.sample_fbk = self.add_pv('{}:SampleFlow:get'.format(name))
+        self.shield_fbk = self.add_pv('{}:ShieldFlow:get'.format(name))
+        self.sample_sp = self.add_pv('{}:SampleFlow:set'.format(name))
+        self.level_fbk = self.add_pv('{}:ch1LVL:get'.format(level_name))
+        self.fill_status = self.add_pv('{}:status:ch1:N.SVAL'.format(level_name))
+        self.nozzle = CryojetNozzle(nozzle_name)
 
-    def stop_flow(self):
-        """Stop the flow of the cold nitrogen stream. The current setting for
-        flow rate is saved.
-        """
-        self.sample_flow.set(0.0)
+        # connect signals for monitoring state
+        self.temp_fbk.connect('changed', self.on_temp)
+        self.level_fbk.connect('changed', self.on_level)
+        self.sample_fbk.connect('changed', self.on_sample)
+        self.sample_fbk.connect('changed', self.on_shield)
+        self.nozzle.connect('changed', self.on_nozzle)
 
-    def resume_flow(self):
-        """Restores the flow rate to the previously saved setting."""
-        self.sample_flow.set(8.0)
+    def on_level(self, obj, val):
+        if val < 150:
+            self.set_state(health=(4, 'cryo', 'Cryogen too low!'))
+        elif val < 200:
+            self.set_state(health=(2, 'cryo', 'Cryogen low!'))
+        else:
+            self.set_state(health=(0, 'cryo'))
+        self.set_property('level', val)
 
-__all__ = ['Cryojet', 'SimCryojet']
+class Cryojet5(CryojetBase):
+    def setup(self, name, nozzle_name):
+        self.temp_fbk = self.add_pv('{}:SAMPLET:TEMP:FBK'.format(name))
+        self.sample_fbk = self.add_pv('{}:SAMPLEF:FLOW:FBK'.format(name))
+        self.shield_fbk = self.add_pv('{}:SHIELDF:FLOW:FBK'.format(name))
+        self.sample_sp = self.add_pv('{}:SAMPLET:FLOW'.format(name))
+        self.level_fbk = self.add_pv('{}:LEVEL:LEVL:FBK'.format(name))
+        self.fill_status = self.add_pv('{}:AUTOFILL:STEP'.format(name))
+        self.nozzle = CryojetNozzle(nozzle_name)
+
+        # connect signals for monitoring state
+        self.temp_fbk.connect('changed', self.on_temp)
+        self.level_fbk.connect('changed', self.on_level)
+        self.sample_fbk.connect('changed', self.on_sample)
+        self.shield_fbk.connect('changed', self.on_shield)
+        self.nozzle.connect('changed', self.on_nozzle)
+
+
+class SimCryojet(CryojetBase):
+    def setup(self):
+        self.nozzle = misc.SimShutter('Sim Cryo Nozzle')
+        self.name = 'Sim Cryojet'
+
+
+__all__ = ['Cryojet', 'Cryojet5', 'SimCryojet']

@@ -1,6 +1,7 @@
 from gi.repository import Gtk, Gdk, Pango, GObject
 from mxdc.widgets import dialogs
 import logging
+import operator
 import re
 
 
@@ -16,17 +17,19 @@ class DeviceMonitor(object):
 
 
 class ShutterSwitcher(object):
-    def __init__(self, device, switch):
+    def __init__(self, device, switch, reverse=False):
         self.device = device
         self.switch = switch
+        self.reverse = reverse
         self.device.connect('changed', self.on_state_change)
         self.switch.connect('notify::active', self.on_shutter_activated)
 
     def on_state_change(self, obj, state):
-        self.switch.set_state(state)
+        self.switch.set_state(operator.xor(state, self.reverse))
 
-    def on_shutter_activated(self, obj, value):
-        if self.switch.get_active():
+    def on_shutter_activated(self, obj, param):
+        state = self.switch.get_active()
+        if operator.xor(state, self.reverse):
             self.device.open()
         else:
             self.device.close()
@@ -76,7 +79,7 @@ class ModeMonitor(object):
 
 
 class ScriptMonitor(object):
-    def __init__(self, btn, script, spinner=None, confirm=False, msg=""):
+    def __init__(self, btn, script, spinner=None, status=None, confirm=False, msg=""):
         self.script = script
         self.btn = btn
         self.confirm = confirm
@@ -110,7 +113,7 @@ class GUIHandler(logging.Handler):
         self.viewer = viewer
 
     def emit(self, record):
-        GObject.idle_add(self.viewer.add_text, self.format(record), True)
+        GObject.idle_add(self.viewer.add_text, self.format(record), record.levelno)
 
 
 class LogMonitor(object):
@@ -124,12 +127,11 @@ class LogMonitor(object):
         self.wrap_mode = Gtk.WrapMode.WORD
         self.prefix = ''
         color_chart = {
-            'INFO': 'Blue',
-            'ERROR': 'Red',
-            'DEBUG': 'Gray',
-            'CRITICAL': 'Red',
-            'WARNING': 'Purple',
-            'DEFAULT': 'Black',
+            logging.INFO: 'Black',
+            logging.CRITICAL: 'Red',
+            logging.DEBUG: 'Blue',
+            logging.ERROR: 'Red',
+            logging.WARNING: 'Orange',
         }
         self.tags = {}
         for key, v in color_chart.items():
@@ -141,7 +143,7 @@ class LogMonitor(object):
     def clear(self):
         self.text_buffer.delete(self.text_buffer.get_start_iter(), self.text_buffer.get_end_iter())
 
-    def add_text(self, text, log=False):
+    def add_text(self, text, level=logging.INFO):
         linecount = self.text_buffer.get_line_count()
         if linecount > self.buffer_size:
             start_iter = self.text_buffer.get_start_iter()
@@ -149,13 +151,7 @@ class LogMonitor(object):
             end_iter.forward_lines(10)
             self.text_buffer.delete(start_iter, end_iter)
         _iter = self.text_buffer.get_end_iter()
-        if log:
-            tag = self.tags['DEFAULT']
-            for key in ['INFO', 'DEBUG', 'ERROR', 'WARNING', 'CRITICAL']:
-                if re.search(key, text):
-                    tag = self.tags[key]
-            self.text_buffer.insert_with_tags(_iter, "%s%s\n" % (self.prefix, text), tag)
-        else:
-            self.text_buffer.insert(_iter, "%s%s\n" % (self.prefix, text))
+        tag = self.tags[level]
+        self.text_buffer.insert_with_tags(_iter, "%s%s\n" % (self.prefix, text), tag)
         _iter = self.text_buffer.get_end_iter()
         self.view.scroll_to_iter(_iter, 0, True, 0.5, 0.5)

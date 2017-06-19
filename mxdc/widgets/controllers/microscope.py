@@ -1,5 +1,5 @@
 import os
-from gi.repository import Gtk, Pango
+from gi.repository import Gtk, Pango, Gdk
 from twisted.python.components import globalRegistry
 from mxdc.utils.decorators import async
 from mxdc.beamline.mx import IBeamline
@@ -97,6 +97,10 @@ class MicroscopeController(object):
         self.size_grp = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.BOTH)
         for btn in toolbar_btns:
             self.size_grp.add_widget(btn)
+
+        self.widget.microscope_bkg.override_background_color(
+            Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=0, blue=0, alpha=1)
+        )
 
     def save_image(self, filename):
         self.video.save_image(filename)
@@ -379,6 +383,26 @@ class MicroscopeController(object):
     def on_realize(self, obj):
         self.pango_layout = self.video.create_pango_layout("")
         self.pango_layout.set_font_description(Pango.FontDescription('Monospace 8'))
+
+    def on_configure(self, widget, event):
+        frame_width, frame_height = event.width, event.height
+        video_width, video_height = self.camera.size
+
+        video_ratio = float(video_width)/video_height
+        frame_ratio = float(frame_width)/frame_height
+
+        if frame_ratio < video_ratio:
+            width = frame_width
+            height = int(width/video_ratio)
+        else:
+            height = frame_height
+            width = int(video_ratio*height)
+
+        self.video.scale = float(width) / video_width
+        self._img_width, self._img_height = width, height
+        self.set_size_request(width, height)
+        print width, height,  event.width, event.height
+        #return True
 
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(

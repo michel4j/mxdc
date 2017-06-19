@@ -111,7 +111,9 @@ class StatusPanel(object):
     def on_scripts_started(self, obj, event=None):
         self.widget.status_commands.set_sensitive(False)
         self.widget.spinner.start()
+        self.widget.status_lbl.set_markup('<small>{}</small>'.format(obj.description))
 
     def on_scripts_done(self, obj, event=None):
         self.widget.status_commands.set_sensitive(True)
         self.widget.spinner.stop()
+        self.widget.status_lbl.set_text('')
