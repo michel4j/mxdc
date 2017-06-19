@@ -77,14 +77,15 @@ DEVICES = {
     'distance': PseudoMotor('BL08B1:det:dist:mm', precision=2),
     'detector_z':  ENCMotor('SMTR1608-5-B10-14:mm', precision=2),
     'two_theta':  PseudoMotor('BL08B1:det:2theta:deg'),
-    'detector': MXCCDImager('BL08B1-01:CCD', 4096, 0.07243, 'MX300HE'),
+    'detector': ADRayonixImager('CCDC1608-B1-01:cam1', 4096, 'MX300HE'),
     
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  PseudoMotor('PSMTR1608-5-B10-08:pm:mm'),  
     'sample_zoom':  Positioner('BL08B1:MD2:S:ZoomLevel', 'BL08B1:MD2:G:ZoomLevel'),
     'camera_center_x':  Positioner('BL08B1:MD2:cam:x'),
     'camera_center_y':  Positioner('BL08B1:MD2:cam:y'),
-    'cryojet':  Cryojet('CSC1608-5-01', 'CSCLVM1608-5-01', 'CSC1608-5-B10-01'),
+    #'cryojet':  Cryojet('CSC1608-5-01', 'CSCLVM1608-5-01', 'CSC1608-5-B10-01'),
+    'cryojet':  Cryojet5('CSC1608-5-03', 'CSC1608-5-B10-01'),
     'sample_camera': AxisCamera('V2E1608-400', 1),
     'sample_backlight': SampleLight('BL08B1:MD2:S:BlightLevel', 'BL08B1:MD2:G:BlightLevel', 'BL08B1:MD2:S:BlightOnOff', 100.0),
     'sample_frontlight': SampleLight('BL08B1:MD2:S:FlightLevel', 'BL08B1:MD2:G:FlightLevel', 'BL08B1:MD2:S:FlightOnOff',100.0),    

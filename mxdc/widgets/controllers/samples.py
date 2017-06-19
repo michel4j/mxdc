@@ -8,6 +8,7 @@ from twisted.python.components import globalRegistry
 
 from mxdc.beamline.mx import IBeamline
 from mxdc.widgets.controllers import common
+from mxdc.widgets.controllers.cryo import CryoController
 from mxdc.utils import gui, config
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -38,6 +39,7 @@ class SamplesController(GObject.GObject):
         self.sample_viewer = SampleViewer()
         self.dewar_loader = DewarLoader()
         self.sample_picker = SamplePicker()
+        self.cryo_controller = CryoController(self.widget)
 
         self.video_frame.add(self.sample_viewer)
         self.samples_list.add(self.dewar_loader)
