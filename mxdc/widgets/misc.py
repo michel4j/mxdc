@@ -96,7 +96,6 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         if len(text) > self.width:
             text = "##.##"
         self.fbk_label.set_markup('%7s ' % (text,))
-        self.entry.progress_pulse()
 
     def set_target(self, val):
         text = self.number_format % val
@@ -180,10 +179,12 @@ class MotorEntry(ActiveEntry):
         self._set_active(False)
         self.device.connect('busy', self._on_motion_changed)
         self.device.connect('target-changed', self._on_target_changed)
+        self.device.connect('changed', self._on_progress)
 
         self._animation = GdkPixbuf.PixbufAnimation.new_from_file(
             os.path.join(os.path.dirname(__file__), 'data/active_stop.gif')
         )
+        self.entry.set_progress_fraction(0.0)
 
     def get_fraction(self, val):
         if hasattr(self, 'current') and hasattr(self, 'target'):
@@ -203,6 +204,7 @@ class MotorEntry(ActiveEntry):
             self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#0000ff"))
         else:
             self.running = False
+            self.entry.set_progress_fraction(0.0)
             self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.MENU)
             self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
         self.set_feedback(self.device.get_position())
@@ -211,6 +213,9 @@ class MotorEntry(ActiveEntry):
     def _on_target_changed(self, obj, targets):
         self.set_target(targets[-1])
         return True
+
+    def _on_progress(self, obj, val):
+        self.entry.set_progress_fraction(self.get_fraction(val))
 
 
 class ScriptButton(Gtk.Button):
