@@ -26,15 +26,18 @@ class VideoWidget(Gtk.DrawingArea):
         super(VideoWidget, self).__init__()
         self.camera = camera
         self.scale = 1
+        self.voffset = 0
+        self.hoffset = 0
         self.surface = None
         self.stopped = False
         self._colorize = False
         self._palette = None
+        self.display_width  = 0
+        self.display_height = 0
         self.fps = 0
         self._last_frame = 0
         self.overlay_func = None
         self.display_func = None
-
         self.set_events(Gdk.EventMask.EXPOSURE_MASK |
                         Gdk.EventMask.LEAVE_NOTIFY_MASK |
                         Gdk.EventMask.BUTTON_PRESS_MASK |
@@ -49,29 +52,41 @@ class VideoWidget(Gtk.DrawingArea):
         self.connect('realize', self.on_realized)
         self.connect('configure-event', self.on_configure)
         self.connect("unrealize", self.on_destroy)
+        self.override_background_color(Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=1, blue=0, alpha=1))
 
     def set_src(self, src):
         self.camera = src
         self.camera.start()
+
+    def set_display_size(self, width, height):
+        self.display_width, self.display_height = width, height
 
     def on_destroy(self, obj):
         self.camera.del_sink(self)
         self.camera.stop()
 
     def on_configure(self, widget, event):
-        width, height = event.width, event.height
-        w, h = map(float, self.camera.size)
-        ratio = w / h
-        if width < w / 4: width = w / 4
-        if height < h / 4: height = h / 4
-        if width < ratio * height:
-            height = int(width / ratio)
+        frame_width, frame_height = event.width, event.height
+        video_width, video_height = self.camera.size
+
+        video_ratio = float(video_width)/video_height
+        frame_ratio = float(frame_width)/frame_height
+
+        if frame_ratio < video_ratio:
+            width = frame_width
+            height = int(round(width/video_ratio))
+            self.voffset = (frame_height - height)//2
+            self.hoffset = 0
         else:
-            width = int(ratio * height)
-        self.scale = float(width) / self.camera.size[0]
-        self._img_width, self._img_height = width, height
-        self.set_size_request(width, height)
-        return True
+            height = frame_height
+            width = int(round(video_ratio*height))
+            self.hoffset = (frame_width - width)//2
+            self.voffset = 0
+
+        self.scale = float(width) / video_width
+        self.display_width, self.display_height = width, height
+        self.props.parent.set(0.5, 0.5, video_ratio, False)
+
 
     def set_overlay_func(self, func):
         self.overlay_func = func
@@ -80,7 +95,7 @@ class VideoWidget(Gtk.DrawingArea):
         self.display_func = func
 
     def display(self, img):
-        img = img.resize((int(self._img_width), int(self._img_height)), Image.BICUBIC)
+        img = img.resize((self.display_width, self.display_height), Image.BICUBIC)
         if self._colorize:
             if img.mode != 'L':
                 img = img.convert('L')
@@ -98,12 +113,12 @@ class VideoWidget(Gtk.DrawingArea):
         else:
             self._colorize = False
 
-    def on_draw(self, widget, ctx):
+    def on_draw(self, widget, cr):
         if self.surface is not None:
-            ctx.set_source_surface(self.surface, 0, 0)
-            ctx.paint()
+            cr.set_source_surface(self.surface, 0, 0)
+            cr.paint()
             if self.overlay_func is not None:
-                self.overlay_func(ctx)
+                self.overlay_func(cr)
             self.fps = 1.0 / (time.time() - self._last_frame)
             self._last_frame = time.time()
 

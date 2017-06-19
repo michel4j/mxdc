@@ -8,7 +8,7 @@ config.get_session()  # update the session configuration
 from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
-from mxdc.widgets.controllers import status, setup, microscope, samplestore, datasets
+from mxdc.widgets.controllers import status, setup, microscope, samplestore, datasets, cryo
 from mxdc.widgets import dialogs
 from mxdc.widgets.collectmanager import CollectManager
 from mxdc.widgets.resultmanager import ResultManager
@@ -78,6 +78,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.hutch_manager = setup.SetupController(self)
         self.status_panel = status.StatusPanel(self)
         self.sample_microscope = microscope.MicroscopeController(self)
+        self.cryo_controller = cryo.CryoController(self)
         self.sample_store = samplestore.SampleStore(self.samples_list, self)
         self.datasets = datasets.DatasetsController(self)
 

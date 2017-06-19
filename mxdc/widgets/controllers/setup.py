@@ -9,6 +9,7 @@ from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc
 from mxdc.widgets.controllers import common
 from mxdc.widgets.controllers.ptzvideo import AxisController
+
 from mxdc.widgets.diagnostics import DiagnosticsViewer
 from mxdc.widgets.textviewer import GUIHandler
 
@@ -78,14 +79,13 @@ class SetupController(object):
         # status, cryo, log
         self.diagnostics = DiagnosticsViewer()
         self.widget.setup_status_box.pack_end(self.diagnostics, True, True, 0)
-        self.cryo_controller = misc.CryojetWidget(self.beamline.cryojet)
-        self.widget.setup_cryo_box.pack_start(self.cryo_controller, True, True, 0)
+
 
         # logging
         self.log_viewer = common.LogMonitor(self.widget.setup_log_view, 'Candara 7')
         log_handler = GUIHandler(self.log_viewer)
         log_handler.setLevel(logging.NOTSET)
-        formatter = logging.Formatter('%(asctime)s %(levelname)-8s: %(message)s', '%b-%d %H:%M:%S')
+        formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
         log_handler.setFormatter(formatter)
         logging.getLogger('').addHandler(log_handler)
 
