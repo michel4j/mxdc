@@ -3,10 +3,9 @@ from __future__ import division
 from datetime import datetime
 
 import cairo
-import numpy
 from gi.repository import Gdk, Gtk, GObject
 from twisted.python.components import globalRegistry
-from mxdc.utils.automounter import ContainerCoords, ISARA_LAYOUTS
+from mxdc.utils.automounter import ContainerCoords, ISARA_LAYOUTS, SAM_LAYOUTS, CATS_LAYOUTS
 from mxdc.beamline.mx import IBeamline
 from mxdc.utils.log import get_module_logger
 
@@ -29,7 +28,7 @@ class DewarLayout(object):
         self.update(data)
 
     def update(self, data):
-        data = ISARA_LAYOUTS
+        #data = SAM_LAYOUTS
         if data:
             self.base_params = {
                 loc: (ContainerCoords[kind] + center, kind in ['puck', 'basket']) for (loc, kind), center in data.items()
@@ -84,11 +83,11 @@ class DewarController(GObject.GObject):
         ) = range(6)
 
     Color = {
-        State.UNKNOWN: Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0),
+        State.UNKNOWN: Gdk.RGBA(red=1.0, green=1.0, blue=1.0, alpha=1),
         State.EMPTY: Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.5),
         State.JAMMED: Gdk.RGBA(red=1.0, green=0, blue=0, alpha=0.5),
         State.MOUNTED: Gdk.RGBA(red=1.0, green=0, blue=1.0, alpha=0.5),
-        State.NONE: Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0),
+        State.NONE: Gdk.RGBA(red=1.0, green=1.0, blue=1.0, alpha=1),
         State.GOOD: Gdk.RGBA(red=0, green=1.0, blue=0, alpha=0.5)
     }
     StateLabel = {
@@ -148,14 +147,19 @@ class DewarController(GObject.GObject):
     def draw_dewar(self, widget, cr):
         cr.set_line_width(1)
         # background
-        cr.set_source_rgb(.7, .7, .7)
+
         for loc, (coords, is_puck) in self.layout.parameters.items():
             cx, cy = coords[-1]
             if is_puck:
                 cr.arc(cx, cy, self.layout.radius, 0, 2.0 * 3.14)
+                cr.set_source_rgba(.7, .7, .7, 1.)
                 cr.fill()
+                cr.arc(cx, cy, self.layout.radius, 0, 2.0 * 3.14)
+                cr.set_source_rgb(0, 0, 0)
+                cr.stroke()
             else:
                 for px, py in coords[1:-1]:
+                    cr.set_source_rgba(.7, .7, .7, 1.)
                     cr.arc(px, py, self.layout.pin_size + 5, 0, 2.0 * 3.14)
                     cr.fill()
         # pins
@@ -168,7 +172,7 @@ class DewarController(GObject.GObject):
             cr.show_text(loc)
             cr.stroke()
             for i, (px, py) in enumerate(coords[1:-1]):
-                port = '{}{}'.format(loc, i)
+                port = '{}{}'.format(loc, i + 1)
                 # cr.set_source_rgba(1, 1, 1, 1.0)
                 rgba = self.state_colors.get(port, Gdk.RGBA(1.0, 1.0, 1.0, 1.0))
                 Gdk.cairo_set_source_rgba(cr, rgba)
