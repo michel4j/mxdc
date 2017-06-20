@@ -190,6 +190,12 @@ class BasicAutomounter(BaseDevice):
         }
         port_states = {}
         dewar_layout = {}
+        type_map = {
+            'u': self.ContainerType.EMPTY,
+            '1': self.ContainerType.CASSETTE,
+            '2': self.ContainerType.CALIB,
+            '3': self.ContainerType.PUCK,
+        }
         container_spec = {
             self.ContainerType.PUCK: ('ABCD', range(1,17)),
             self.ContainerType.CASSETTE: ('ABCDEFGHIJKL', range(1,9)),
@@ -202,7 +208,7 @@ class BasicAutomounter(BaseDevice):
         }
 
         for loc, (c_type, status) in info.items():
-            container_type = int(c_type)
+            container_type = type_map.get(c_type, self.ContainerType.PUCK)
             spec = container_spec.get(container_type)
             type_name = container_type_name.get(container_type)
             if spec:
