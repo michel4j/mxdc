@@ -143,7 +143,7 @@ class Cryojet5(CryojetBase):
 
 
 class SimCryojet(CryojetBase):
-    def setup(self):
+    def setup(self, *args, **kwargs):
         self.nozzle = misc.SimShutter('Sim Cryo Nozzle')
         self.name = 'Sim Cryojet'
 

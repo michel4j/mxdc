@@ -1,5 +1,3 @@
-
-
 from mxdc.interface.beamlines import IBeamline
 from mxdc.engine import centering, snapshot, auto
 from mxdc.interface.engines import IDataCollector
@@ -261,7 +259,8 @@ class DataCollector(GObject.GObject):
             data['detector'] = self.beamline.detector.detector_type
             filename = os.path.join(data['directory'], '{}.SUMMARY'.format(data['name']))
             if os.path.exists(filename):
-                old_data = json.load(file(filename))
+                with open(filename, 'r') as handle:
+                    old_data = json.load(handle)
                 data['id'] = data['id'] if not old_data.get('id') else old_data['id']
                 data['crystal_id'] = (
                     data.get('crystal_id') if not old_data.get('crystal_id')
@@ -574,5 +573,3 @@ class Screener(GObject.GObject):
     def stop(self):
         self.stopped = True
         self.data_collector.stop()
-
-    
