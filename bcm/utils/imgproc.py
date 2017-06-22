@@ -23,7 +23,6 @@ def _centroid(a):
 
 def _get_object(a):
     p = list(a > THRESHOLD)
-
     if True in p:
         mid = _centroid(a)
         pl = p.index(True)

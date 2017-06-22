@@ -560,19 +560,18 @@ class Automounter(BasicAutomounter):
         proc.reset()
         req_seq = '-'.join([proc.next(p) for p in self._command_sequence if proc.last() != p])
 
-        # sim=difflib.SequenceMatcher(a=actual_seq, b=req_seq)
-        # sim_r = sim.ratio()
-
         if req_seq:
-            prog = float(len(actual_seq)) / len(req_seq)
-            seqs_match = prog > 0.9 and req_seq.endswith(actual_seq[(len(actual_seq) // 2):])
+            sim = difflib.SequenceMatcher(a=actual_seq, b=req_seq)
+            prog = sim.ratio()
+            seqs_match = prog > 0.95 and req_seq.endswith(actual_seq[-5:])
+            _logger.debug('Progress {:0.2f} {} {} %'.format(prog*100, seqs_match, pos))
+            _logger.debug('Expected Sequence: {0}'.format(req_seq))
+            _logger.debug('Actual Sequence:   {0}'.format(actual_seq))
         else:
             seqs_match = False
             prog = 0.0
         self.set_state(progress=(prog, pos, seqs_match, None))
-        _logger.debug("----- {0} {1} {2}".format(seqs_match, pos, prog))
-        _logger.debug('EXPECT {0}'.format(req_seq))
-        _logger.debug('ACTUAL {0}'.format(actual_seq))
+
         self._signal_states()
 
     def _do_full_state(self, obj, val):
