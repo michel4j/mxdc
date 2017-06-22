@@ -46,6 +46,15 @@ def every(iterable):
             return False
     return True
 
+def identifier_slug(value):
+    """
+    Converts to lowercase, removes non-word characters (alphanumerics and
+    underscores) and converts spaces to hyphens. Also strips leading and
+    trailing whitespace.
+    """
+    value = re.sub('[^\w\s-]', '', value).strip()
+    return re.sub('[-\s]+', '_', value)
+
 def get_project_name():
     if os.environ.get('MXDC_DEBUG'):
         return os.environ.get('MXDC_DEBUG_USER')
