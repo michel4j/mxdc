@@ -27,7 +27,7 @@ _version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
 if os.path.exists(_version_file):
     VERSION = (file(_version_file).readline()).strip()
 else:
-    VERSION = '- Development -'
+    VERSION = "- Development -"
 
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
