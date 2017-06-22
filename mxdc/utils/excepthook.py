@@ -105,11 +105,13 @@ def _custom_excepthook(exctyp, value, tb):
 _excepthook_save = sys.excepthook
 
 def install(quit_func=None):
+    global QUIT_FUNCTION
     sys.excepthook = _custom_excepthook
     if quit_func:
         QUIT_FUNCTION = quit_func
 
 def uninstall():
+    global QUIT_FUNCTION
     sys.excepthook = _excepthook_save
     QUIT_FUNCTION = sys.exit
    
