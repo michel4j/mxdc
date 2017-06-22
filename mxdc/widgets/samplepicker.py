@@ -215,7 +215,7 @@ class ContainerWidget(gtk.DrawingArea):
             d2 = ((x - xl) ** 2 + (y - yl) ** 2)
             if d2 < self.sq_rad:
                 if self.container.samples.get(label) is not None and self.container.samples[label][0] not in [
-                    automounter.PORT_EMPTY, automounter.PORT_UNKNOWN]:
+                    automounter.PORT_EMPTY]:
                     inside = True
                     _cur_port = '%s%s' % (self.container.location, label)
                 break
@@ -277,18 +277,18 @@ class ContainerWidget(gtk.DrawingArea):
             x, y = coord
             r = self.radius
             port_state = self.container.samples.get(label, (automounter.PORT_NONE, ''))[0]
-            if port_state != automounter.PORT_UNKNOWN:
-                cr.set_source_color(self.port_colors[port_state])
-                cr.arc(x, y, r - 1.0, 0, 2.0 * numpy.pi)
-                cr.fill()
 
-                cr.set_source_color(style.fg[self.state])
-                cr.arc(x, y, r - 1.0, 0, 2.0 * numpy.pi)
-                cr.stroke()
-                x_b, y_b, w, h = cr.text_extents(label[1:])[:4]
-                cr.move_to(x - w / 2.0 - x_b, y - h / 2.0 - y_b)
-                cr.show_text(label[1:])
-                cr.stroke()
+            cr.set_source_color(self.port_colors[port_state])
+            cr.arc(x, y, r - 1.0, 0, 2.0 * numpy.pi)
+            cr.fill()
+
+            cr.set_source_color(style.fg[self.state])
+            cr.arc(x, y, r - 1.0, 0, 2.0 * numpy.pi)
+            cr.stroke()
+            x_b, y_b, w, h = cr.text_extents(label[1:])[:4]
+            cr.move_to(x - w / 2.0 - x_b, y - h / 2.0 - y_b)
+            cr.show_text(label[1:])
+            cr.stroke()
 
 
 class SamplePicker(gtk.HBox):
