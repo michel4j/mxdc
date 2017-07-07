@@ -3,7 +3,7 @@ from mxdc.utils import misc
 from mxdc.utils.decorators import async
 from datetime import datetime
 from mxdc.utils import gui, config
-from mxdc.widgets.misc import MotorEntry, ActiveEntry
+from mxdc.widgets.misc import MotorEntry, ActiveMenu
 from mxdc.widgets import dialogs
 from twisted.python.components import globalRegistry
 from gi.repository import GObject
@@ -149,7 +149,7 @@ class RasterWidget(Gtk.Frame):
         self.entries['time'].connect('focus-out-event', lambda x,y: self._validate_float(x, 1.0, 0.1, 500))
         
         omega = MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f")
-        aperture = ActiveEntry(self.beamline.aperture, 'Beam Aperture', fmt="%0.2f")
+        aperture = ActiveMenu(self.beamline.aperture, 'Beam Aperture', fmt="%0.0f")
         self.param_tbl.attach(omega, 1, 2, 3, 5)
         self.param_tbl.attach(aperture, 2, 4, 3, 5)
         
@@ -275,12 +275,12 @@ class RasterWidget(Gtk.Frame):
             self.collector.connect('new-result', self.on_new_result)
         
     def set_parameters(self, params=None):
-        if params is None:
+        if not params:
             # load defaults
             params = {
                 'mode': 'Diffraction',
                 'prefix': 'testgrid',
-                'directory': config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']),
+                'directory': os.path.join(os.environ['HOME'], config.get_session()),
                 'distance': self.beamline.distance.get_position(),
                 'loop_size': 200,
                 'aperture': self.beamline.aperture.get(),
@@ -317,10 +317,9 @@ class RasterWidget(Gtk.Frame):
         return params
 
     def _load_config(self):
-        if not config.SESSION_INFO.get('new', False):
-            data = config.load_config(_CONFIG_FILE)
-            if data is not None:
-                self.set_parameters(data)
+        data = config.load_config(_CONFIG_FILE)
+        if data is not None:
+            self.set_parameters(data)
 
     def _save_config(self, parameters):
         config.save_config(_CONFIG_FILE, parameters)

@@ -228,8 +228,8 @@ class DataCollector(GObject.GObject):
         if abs(self.beamline.energy.get_position() - wedge['energy']) >= 0.0005:
             self.beamline.energy.move_to(wedge['energy'], wait=True)
 
-        if abs(self.beamline.diffractometer.distance.get_position() - wedge['distance']) >= 0.1:
-            self.beamline.diffractometer.distance.move_to(wedge['distance'], wait=True)
+        if abs(self.beamline.distance.get_position() - wedge['distance']) >= 0.1:
+            self.beamline.distance.move_to(wedge['distance'], wait=True)
 
         if abs(self.beamline.attenuator.get() - wedge['attenuation']) >= 25:
             self.beamline.attenuator.set(wedge['attenuation'], wait=True)
@@ -250,7 +250,7 @@ class DataCollector(GObject.GObject):
 
             data['wavelength'] = energy_to_wavelength(data['energy'])
             data['resolution'] = dist_to_resol(
-                data['distance'], self.beamline.detector.resolution, min(self.beamline.detector.size), data['energy']
+                data['distance'], self.beamline.detector.mm_size, data['energy']
             )
             data['beamline_name'] = self.beamline.name
             data['detector_size'] = min(self.beamline.detector.size)

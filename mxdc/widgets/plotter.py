@@ -476,3 +476,5 @@ class ScanPlotWindow(Gtk.Window):
         self.plot = ScanPlotter()
         self.add(self.plot)
         self.show_all()
+
+

@@ -29,10 +29,10 @@ import time
 __log_section__ = 'mxdc.imagewidget'
 img_logger = logging.getLogger(__log_section__)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data') 
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 COLORMAPS = pickle.load(file(os.path.join(DATA_DIR, 'colormaps.data')))
-_COLORNAMES = ['gist_yarg','gist_gray','hot','jet','hsv','Spectral',
-                     'Paired','gist_heat','PiYG','Set1','gist_ncar']
+_COLORNAMES = ['gist_yarg', 'gist_gray', 'hot', 'jet', 'hsv', 'Spectral',
+               'Paired', 'gist_heat', 'PiYG', 'Set1', 'gist_ncar']
 
 # Modify default colormap to add overloaded pixel effect
 COLORMAPS['gist_yarg'][-1] = 0
@@ -40,39 +40,40 @@ COLORMAPS['gist_yarg'][-2] = 0
 COLORMAPS['gist_yarg'][-3] = 255
 
 # Modify default colormap to add overloaded pixel effect
-COLORMAPS['gist_yarg'][0] = 0
-COLORMAPS['gist_yarg'][1] = 0
-COLORMAPS['gist_yarg'][2] = 200
+COLORMAPS['gist_yarg'][0] = 255
+COLORMAPS['gist_yarg'][1] = 255
+COLORMAPS['gist_yarg'][2] = 255
 
-_GAMMA_SHIFT = 3.5        
-
+_GAMMA_SHIFT = 3.5
 
 
 def image2pixbuf(im):
     arr = array.array('B', im.tobytes())
     width, height = im.size
-    return GdkPixbuf.Pixbuf.new_from_data(arr, GdkPixbuf.Colorspace.RGB,
-                                          True, 8, width, height, width * 4)
+    return GdkPixbuf.Pixbuf.new_from_data(arr, GdkPixbuf.Colorspace.RGB, True, 8, width, height, width * 4)
 
-def _load_frame_image(filename, gamma_offset = 0.0):
+
+def _load_frame_image(filename, gamma_offset=0.0):
     image_info = {}
     image_obj = read_image(filename)
     image_info['header'] = image_obj.header
-    image_info['data'] = numpy.transpose(numpy.asarray(image_obj.image)) #image_obj.image.load()
-    hist = image_obj.image.histogram()
-        
-    disp_gamma = image_info['header']['gamma'] * numpy.exp(-gamma_offset + _GAMMA_SHIFT)/30.0
-    image_info['src-image'] =  image_obj.image
-    img_min, img_max =  image_obj.image.getextrema()
+    image_info['data'] = image_obj.data  # numpy.transpose(numpy.asarray(image_obj.image))
+
+    disp_gamma = image_info['header']['gamma'] * numpy.exp(-gamma_offset + _GAMMA_SHIFT) / 30.0
+    image_info['src-image'] = image_obj.image
+    img_min, img_max = image_obj.image.getextrema()
     lut = stretch(disp_gamma)
-    
+
     image_info['image'] = image_obj.image.point(lut.tolist(), 'L')
+    hist = image_info['image'].histogram()
+
     idx = range(len(hist))
     x = numpy.linspace(img_min, img_max, len(hist))
     l = 2
-    r = len(hist)-1
-    image_info['histogram'] = numpy.array(zip(idx[l:r],x[l:r],hist[l:r]))
+    r = len(hist) - 1
+    image_info['histogram'] = numpy.array(zip(idx[l:r], x[l:r], hist[l:r]))
     return image_info
+
 
 def image_loadable(filename):
     filename = os.path.abspath(filename)
@@ -91,10 +92,12 @@ def image_loadable(filename):
             return False
     return False
 
+
 class FileLoader(GObject.GObject):
-    __gsignals__ =  { 
+    __gsignals__ = {
         "new-image": (GObject.SignalFlags.RUN_FIRST, None, []),
     }
+
     def __init__(self):
         GObject.GObject.__init__(self)
         self.inbox = Queue.Queue(1000)
@@ -102,38 +105,38 @@ class FileLoader(GObject.GObject):
         self._stopped = False
         self._paused = False
         self.gamma_offset = 0.0
-        
+
     def queue_file(self, filename):
         if not self._paused and not self._stopped:
             self.inbox.put(filename)
             img_logger.debug('Queuing for display: %s' % filename)
         else:
             self.load_file(filename)
-    
+
     def load_file(self, filename):
         if image_loadable(filename):
-            self.outbox.put( _load_frame_image(filename, self.gamma_offset))
+            self.outbox.put(_load_frame_image(filename, self.gamma_offset))
             GObject.idle_add(self.emit, 'new-image')
-        
+
     def reset(self):
         while not self.inbox.empty():
             _junk = self.inbox.get()
-    
+
     def start(self):
         self._stopped = False
         worker_thread = threading.Thread(target=self._run)
         worker_thread.setDaemon(True)
         worker_thread.start()
-    
+
     def stop(self):
         self._stopped = True
-    
+
     def pause(self):
         self._paused = True
-    
+
     def resume(self):
         self._paused = False
-    
+
     def _run(self):
         filename = None
         while not self._stopped:
@@ -153,20 +156,22 @@ class FileLoader(GObject.GObject):
                     img_logger.debug('Loading image: %s' % filename)
                     GObject.idle_add(self.emit, 'new-image')
                     filename = None
-            elif (time.time()-_search_t > 10.0) and self.inbox.qsize() > 0:
+            elif (time.time() - _search_t > 10.0) and self.inbox.qsize() > 0:
                 img_logger.debug('Error loading image: %s' % filename)
                 filename = None
-        
+
+
 class ImageWidget(Gtk.DrawingArea):
-    __gsignals__ =  { 
+    __gsignals__ = {
         "image-loaded": (GObject.SignalFlags.RUN_FIRST, None, []),
     }
+
     def __init__(self, size):
         GObject.GObject.__init__(self)
         self.surface = None
-        self._rubber_band=False
-        self._shifting=False
-        self._measuring=False
+        self._rubber_band = False
+        self._shifting = False
+        self._measuring = False
         self._colorize = False
         self._palette = None
         self.image_loaded = False
@@ -182,19 +187,19 @@ class ImageWidget(Gtk.DrawingArea):
         self.extents_forward = []
         self.extents = None
         self.set_spots()
-        
+
         self.set_events(Gdk.EventMask.EXPOSURE_MASK |
-                Gdk.EventMask.LEAVE_NOTIFY_MASK |
-                Gdk.EventMask.BUTTON_PRESS_MASK |
-                Gdk.EventMask.BUTTON_RELEASE_MASK |
-                Gdk.EventMask.POINTER_MOTION_MASK |
-                Gdk.EventMask.POINTER_MOTION_HINT_MASK|
-                Gdk.EventMask.VISIBILITY_NOTIFY_MASK|
-                Gdk.EventMask.SCROLL_MASK)  
+                        Gdk.EventMask.LEAVE_NOTIFY_MASK |
+                        Gdk.EventMask.BUTTON_PRESS_MASK |
+                        Gdk.EventMask.BUTTON_RELEASE_MASK |
+                        Gdk.EventMask.POINTER_MOTION_MASK |
+                        Gdk.EventMask.POINTER_MOTION_HINT_MASK |
+                        Gdk.EventMask.VISIBILITY_NOTIFY_MASK |
+                        Gdk.EventMask.SCROLL_MASK)
 
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
-        self.connect('draw',self.on_draw)
+        self.connect('draw', self.on_draw)
         self.connect('motion_notify_event', self.on_mouse_motion)
         self.connect('button_press_event', self.on_mouse_press)
         self.connect('scroll-event', self.on_mouse_scroll)
@@ -210,7 +215,7 @@ class ImageWidget(Gtk.DrawingArea):
             self._colorize = True
             self._palette = COLORMAPS[colormap]
         elif index is not None:
-            index =  int(index)
+            index = int(index)
             self._colorize = True
             self._palette = COLORMAPS[_COLORNAMES[(index % 11)]]
         else:
@@ -218,17 +223,17 @@ class ImageWidget(Gtk.DrawingArea):
 
     def set_cross(self, x, y):
         self.beam_x, self.beam_y = x, y
-    
+
     def set_spots(self, indexed=[], unindexed=[]):
         self.indexed_spots = indexed
         self.unindexed_spots = unindexed
-            
-    def load_frame(self, filename):        
+
+    def load_frame(self, filename):
         self.file_loader.load_file(filename)
 
-    def queue_frame(self, filename):        
+    def queue_frame(self, filename):
         self.file_loader.queue_file(filename)
-        
+
     def on_image_loaded(self, obj):
         self._set_cursor_mode(Gdk.CursorType.WATCH)
         self.img_info = obj.outbox.get(block=True)
@@ -246,18 +251,17 @@ class ImageWidget(Gtk.DrawingArea):
         self.emit('image-loaded')
         self.src_image = self.img_info['src-image']
         self.histogram = self.img_info['histogram']
-        #self._plot_histogram(self.histogram, show_axis=['xzero',], distance=False)
-        self._set_cursor_mode()        
-    
+        #self._plot_histogram(self.histogram, show_axis=['xzero', ], distance=False)
+        self._set_cursor_mode()
+
     def _create_surface(self):
-        gc.collect()
-        if self._colorize and self.raw_img.mode in ['L','P']:
+        if self._colorize and self.raw_img.mode in ['L', 'P']:
             self.raw_img.putpalette(self._palette)
         self.image = self.raw_img.convert('RGB')
         self.image_width, self.image_height = self.image.size
 
         if not self.extents:
-            self.extents = (1,1, self.image_width-2, self.image_height-2)
+            self.extents = (1, 1, self.image_width - 2, self.image_height - 2)
         else:
             ox, oy, ow, oh = self.extents
             nx = min(ox, self.image_width)
@@ -271,82 +275,85 @@ class ImageWidget(Gtk.DrawingArea):
             nw = max(16, min(nh, nw))
             nh = nw
             self.extents = (nx, ny, nw, nh)
-            
+
         self.surface = image_to_surface(self.image)
 
-    
     def get_image_info(self):
         if not self.image_loaded:
             return {}
         return self.img_info['header']
-       
+
     def _calc_bounds(self, x0, y0, x1, y1):
         x = int(min(x0, x1))
         y = int(min(y0, y1))
         w = int(abs(x0 - x1))
         h = int(abs(y0 - y1))
-        return (x,y,w,h)
-          
-    def _get_intensity_line(self, x,y,x2,y2, lw=1):
+        return (x, y, w, h)
+
+    def _get_intensity_line(self, x, y, x2, y2, lw=1):
         """Bresenham's line algorithm"""
-        
+
         x, y = self.get_position(x, y)[:2]
         x2, y2 = self.get_position(x2, y2)[:2]
-        
+
         steep = 0
         coords = []
         dx = abs(x2 - x)
-        if (x2 - x) > 0: sx = 1
-        else: sx = -1
+        if (x2 - x) > 0:
+            sx = 1
+        else:
+            sx = -1
         dy = abs(y2 - y)
-        if (y2 - y) > 0: sy = 1
-        else: sy = -1
+        if (y2 - y) > 0:
+            sy = 1
+        else:
+            sy = -1
         if dy > dx:
             steep = 1
-            x,y = y,x
-            dx,dy = dy,dx
-            sx,sy = sy,sx
+            x, y = y, x
+            dx, dy = dy, dx
+            sx, sy = sy, sx
         d = (2 * dy) - dx
-        for i in range(0,dx):
-            if steep: 
-                coords.append((y,x))
-            else: 
-                coords.append((x,y))
+        for i in range(0, dx):
+            if steep:
+                coords.append((y, x))
+            else:
+                coords.append((x, y))
             while d >= 0:
                 y = y + sy
                 d = d - (2 * dx)
             x = x + sx
             d = d + (2 * dy)
-        coords.append((x2,y2))
-   
-        data = numpy.zeros((len(coords),3))
+        coords.append((x2, y2))
+
+        data = numpy.zeros((len(coords), 3))
         n = 0
         for ix, iy in coords:
             ix = max(1, ix)
             iy = max(1, iy)
             data[n][0] = n
-            val = self.pixel_data[ix-lw:ix+lw, iy-lw:iy+lw].mean()
+            val = self.pixel_data[ix - lw:ix + lw, iy - lw:iy + lw].mean()
             data[n][2] = val
             data[n][1] = self._rdist(ix, iy, coords[0][0], coords[0][1])
             n += 1
         return data
 
     def _plot_histogram(self, data, show_axis=None, distance=True):
-        def _adjust_spines(ax,spines):
+        def _adjust_spines(ax, spines):
             for loc, spine in ax.spines.items():
                 if loc in spines:
-                    spine.set_position(('outward',10)) # outward by 10 points
+                    spine.set_position(('outward', 10))  # outward by 10 points
                     spine.set_smart_bounds(True)
                 else:
-                    spine.set_color('none') # don't draw spine
-        
+                    spine.set_color('none')  # don't draw spine
+
             # turn off ticks where there is no spine
             if 'left' in spines:
                 ax.yaxis.set_ticks_position('left')
             else:
                 # no yaxis ticks
                 ax.yaxis.set_ticks([])
-        
+
             if 'bottom' in spines:
                 ax.xaxis.set_ticks_position('bottom')
             else:
@@ -354,7 +361,7 @@ class ImageWidget(Gtk.DrawingArea):
                 ax.xaxis.set_ticks([])
 
         matplotlib.rcParams.update({'font.size': 9.5})
-        figure = matplotlib.figure.Figure(frameon=False,figsize=(4, 2), dpi=72)
+        figure = matplotlib.figure.Figure(frameon=False, figsize=(4, 2), dpi=72)
         plot = figure.add_subplot(111)
         plot.patch.set_alpha(0.4)
         _adjust_spines(plot, ['left'])
@@ -362,61 +369,40 @@ class ImageWidget(Gtk.DrawingArea):
         formatter = FormatStrFormatter('%g')
         plot.yaxis.set_major_formatter(formatter)
         plot.yaxis.set_major_locator(MaxNLocator(5))
-        
+
         if distance:
-            plot.plot(data[:,1], data[:,2])
+            plot.plot(data[:, 1], data[:, 2])
         else:
-            plot.vlines(data[:,1], 0, data[:,2])
+            plot.vlines(data[:, 1], 0, data[:, 2])
 
         if distance:
-            peaks = find_peaks(data[:,1], data[:,2], sensitivity=0.1)            
-#             if len(peaks) > 1:
-#                 d1 = peaks[1][0] - peaks[0][0]
-#                 y1 = max(peaks[0][1], peaks[1][1])/2
-#                 r1 = (self.wavelength * self.distance/d1)
-#                 x1 = (peaks[1][0] + peaks[0][0])/2
-#                 plot.text(x1, y1, '%0.0f A' % r1,
-#                           horizontalalignment='center',
-#                           verticalalignment='bottom',
-#                           color='black', rotation=90)        
-#             
-#             if len(peaks) > 2:
-#                 d2 = peaks[2][0] - peaks[1][0]
-#                 r2 = (self.wavelength * self.distance/d2)
-#                 y2 = max(peaks[1][1], peaks[2][1])/2
-#                 x2 = (peaks[2][0] + peaks[1][0])/2
-#                 plot.text(x2, y2, '%0.0f A' % r2,
-#                           horizontalalignment='center', 
-#                           verticalalignment='bottom',
-#                           color='black', rotation=90)
-
+            peaks = find_peaks(data[:, 1], data[:, 2], sensitivity=0.1)
             if len(peaks) > 0:
-                plot.set_ylim(0, 1.1*max([p[1] for p in peaks]))
+                plot.set_ylim(0, 1.1 * max([p[1] for p in peaks]))
 
-            
         # Ask matplotlib to render the figure to a bitmap using the Agg backend
-        plot.set_xlim(min(data[:,1]), max(data[:,1]))
+        plot.set_xlim(min(data[:, 1]), max(data[:, 1]))
 
         canvas = FigureCanvasCairo(figure)
-        width, height = canvas.get_width_height()               
+        width, height = canvas.get_width_height()
         renderer = RendererCairo(canvas.figure.dpi)
-        renderer.set_width_height (width, height)
-        self.plot_surface = cairo.ImageSurface (cairo.FORMAT_ARGB32, width, height)
+        renderer.set_width_height(width, height)
+        self.plot_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         renderer.set_ctx_from_surface(self.plot_surface)
         canvas.figure.draw(renderer)
         self._draw_histogram = True
-            
+
     def _calc_palette(self, percent):
-        frac = percent/100.0
+        frac = percent / 100.0
         cdict = {
-                 'red'  :  ((0., 1., 1.), (frac, 0.9, 0.9), (1., 0., 0.)),
-                 'green':  ((0., 1., 1.), (frac, 0.9, 0.9), (1., 0., 0.)),
-                 'blue' :  ((0., 1., 1.), (frac, 0.9, 0.9), (1., 0., 0.))
-                 }
+            'red': ((0., 1., 1.), (frac, 0.9, 0.9), (1., 0., 0.)),
+            'green': ((0., 1., 1.), (frac, 0.9, 0.9), (1., 0., 0.)),
+            'blue': ((0., 1., 1.), (frac, 0.9, 0.9), (1., 0., 0.))
+        }
         cmap = LinearSegmentedColormap('_tmp_cmap', cdict)
         a = numpy.arange(256)
-        tpal = cmap(a)[:,:-1].reshape((-1,1))
-        rpal = [int(round(v[0]*255)) for v in tpal]
+        tpal = cmap(a)[:, :-1].reshape((-1, 1))
+        rpal = [int(round(v[0] * 255)) for v in tpal]
         return rpal
 
     def draw_overlay_cairo(self, cr):
@@ -424,23 +410,20 @@ class ImageWidget(Gtk.DrawingArea):
         cr.set_line_width(1)
         cr.set_source_rgb(0.0, 0.5, 1.0)
         if self._rubber_band:
-            x, y, w, h = self._calc_bounds(self.rubber_x0,
-                                           self.rubber_y0,
-                                           self.rubber_x1,
-                                           self.rubber_y1)    
+            x, y, w, h = self._calc_bounds(self.rubber_x0, self.rubber_y0, self.rubber_x1, self.rubber_y1)
             cr.rectangle(x, y, w, h)
             cr.stroke()
-        
+
         # cross
         x, y, w, h = self.extents
-        if (0 < (self.beam_x-x) < x+w) and (0 < (self.beam_y-y) < y+h):
-            cx = int((self.beam_x-x)*self.scale)
-            cy = int((self.beam_y-y)*self.scale)
-            cr.move_to(cx-4, cy)
-            cr.line_to(cx+4, cy)
+        if (0 < (self.beam_x - x) < x + w) and (0 < (self.beam_y - y) < y + h):
+            cx = int((self.beam_x - x) * self.scale)
+            cy = int((self.beam_y - y) * self.scale)
+            cr.move_to(cx - 4, cy)
+            cr.line_to(cx + 4, cy)
             cr.stroke()
-            cr.move_to(cx, cy-4)
-            cr.line_to(cx, cy+4)
+            cr.move_to(cx, cy - 4)
+            cr.line_to(cx, cy + 4)
             cr.stroke()
         # measuring
         if self._measuring:
@@ -449,7 +432,7 @@ class ImageWidget(Gtk.DrawingArea):
             cr.move_to(self.meas_x0, self.meas_y0)
             cr.line_to(self.meas_x1, self.meas_y1)
             cr.stroke()
-        
+
         # Filename
         pcontext = self.get_pango_context()
         alloc = self.get_allocation()
@@ -457,10 +440,9 @@ class ImageWidget(Gtk.DrawingArea):
         cr.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         cr.set_font_size(12)
         cr.set_line_width(0.85)
-        cr.move_to(6, alloc.height-6)
+        cr.move_to(6, alloc.height - 6)
         cr.show_text(os.path.basename(self.filename))
         cr.stroke()
-
 
     def draw_spots(self, cr):
         # draw spots
@@ -474,18 +456,17 @@ class ImageWidget(Gtk.DrawingArea):
                 cr.set_source_rgba(0.8, 0.1, 0.1, 0.75)
             for spot in spots:
                 sx, sy = spot[:2]
-                if (0 < (sx-x) < x+w) and (0 < (sy-y) < y+h):
-                    cx = int((sx-x)*self.scale)
-                    cy = int((sy-y)*self.scale)
-                    cr.arc(cx, cy, 16*self.scale, 0, 2.0 * numpy.pi)
+                if (0 < (sx - x) < x + w) and (0 < (sy - y) < y + h):
+                    cx = int((sx - x) * self.scale)
+                    cy = int((sy - y) * self.scale)
+                    cr.arc(cx, cy, 16 * self.scale, 0, 2.0 * numpy.pi)
                     cr.stroke()
-            
-            
+
     def go_back(self, full=False):
-        if len(self.extents_back)> 0 and not full:
+        if len(self.extents_back) > 0 and not full:
             self.extents = self.extents_back.pop()
         else:
-            self.extents = (1,1,self.image_width-2, self.image_height-2)
+            self.extents = (1, 1, self.image_width - 2, self.image_height - 2)
             self.extents_back = []
         self.queue_draw()
         return len(self.extents_back) > 0
@@ -495,13 +476,13 @@ class ImageWidget(Gtk.DrawingArea):
         self._colorize = True
         self._create_surface()
         self.queue_draw()
-    
+
     def set_brightness(self, value):
         # new images need to respect this so file_loader should be informed
         if (value == self.file_loader.gamma_offset) or (not self._canvas_is_clean):
-            return 
+            return
         self.file_loader.gamma_offset = value
-        gamma = self.gamma * numpy.exp(-self.file_loader.gamma_offset+_GAMMA_SHIFT)/30.0
+        gamma = self.gamma * numpy.exp(-self.file_loader.gamma_offset + _GAMMA_SHIFT) / 30.0
         if gamma != self.display_gamma:
             lut = stretch(gamma)
             self.raw_img = self.src_image.point(lut.tolist(), 'L')
@@ -524,24 +505,24 @@ class ImageWidget(Gtk.DrawingArea):
         self.raw_img = self.src_image.point(lut.tolist(), 'L')
         self._create_surface()
         self.queue_draw()
-    
+
     def _calc_pos(self, x, y):
-        Ix = int(x/self.scale)+self.extents[0]
-        Iy = int(y/self.scale)+self.extents[1]
-        Ix = max(1, min(Ix, self.image_width-2))
-        Iy = max(1, min(Iy, self.image_height-2))
+        Ix = int(x / self.scale) + self.extents[0]
+        Iy = int(y / self.scale) + self.extents[1]
+        Ix = max(1, min(Ix, self.image_width - 2))
+        Iy = max(1, min(Iy, self.image_height - 2))
         return Ix, Iy
-           
-    def _res(self,x,y):
-        displacement = self.pixel_size * math.sqrt ( (x -self.beam_x)**2 + (y -self.beam_y)**2 )
-        angle = 0.5 * math.atan(displacement/self.distance)
+
+    def _res(self, x, y):
+        displacement = self.pixel_size * math.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
+        angle = 0.5 * math.atan(displacement / self.distance)
         if angle < 1e-3:
             angle = 1e-3
-        return self.wavelength / (2.0 * math.sin(angle) )
-    
-    def _rdist(self, x0, y0, x1, y1 ):
-        d = math.sqrt((x0 - x1)**2 + (y0 - y1)**2) * self.pixel_size
-        return d #(self.wavelength * self.distance/d)
+        return self.wavelength / (2.0 * math.sin(angle))
+
+    def _rdist(self, x0, y0, x1, y1):
+        d = math.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2) * self.pixel_size
+        return d  # (self.wavelength * self.distance/d)
 
     def get_position(self, x, y):
         if not self.image_loaded:
@@ -551,7 +532,7 @@ class ImageWidget(Gtk.DrawingArea):
         Res = self._res(Ix, Iy)
         return Ix, Iy, Res, self.pixel_data[Ix, Iy]
 
-    def _set_cursor_mode(self, cursor=None ):
+    def _set_cursor_mode(self, cursor=None):
         window = self.get_window()
         if window is None:
             return
@@ -560,29 +541,28 @@ class ImageWidget(Gtk.DrawingArea):
         else:
             window.set_cursor(Gdk.Cursor.new(cursor))
         Gtk.main_iteration()
-            
+
     def _clear_extents(self):
         self.extents_back = None
         self.back_btn.set_sensitive(False)
-               
-               
+
     def on_mouse_motion(self, widget, event):
         if not self.image_loaded:
             return False
 
-        #print event.get_state().value_names
+        # print event.get_state().value_names
         alloc = self.get_allocation()
         w, h = alloc.width, alloc.height
         if 'GDK_BUTTON1_MASK' in event.get_state().value_names and self._rubber_band:
-            self.rubber_x1 = max(min(w-1, event.x), 0) + 0.5
-            self.rubber_y1 = max(min(h-1, event.y), 0) + 0.5
+            self.rubber_x1 = max(min(w - 1, event.x), 0) + 0.5
+            self.rubber_y1 = max(min(h - 1, event.y), 0) + 0.5
             self.queue_draw()
-        elif 'GDK_BUTTON2_MASK' in event.get_state().value_names and self._shifting:           
+        elif 'GDK_BUTTON2_MASK' in event.get_state().value_names and self._shifting:
             self.shift_x1 = event.x
             self.shift_y1 = event.y
-            ox,oy,ow,oh = self.extents
-            nx = int((self.shift_x0-self.shift_x1)/self.scale)+ox
-            ny = int((self.shift_y0-self.shift_y1)/self.scale)+oy
+            ox, oy, ow, oh = self.extents
+            nx = int((self.shift_x0 - self.shift_x1) / self.scale) + ox
+            ny = int((self.shift_y0 - self.shift_y1) / self.scale) + oy
             nw = ow
             nh = oh
             nx = max(0, nx)
@@ -597,12 +577,12 @@ class ImageWidget(Gtk.DrawingArea):
                 self.shift_y0 = self.shift_y1
                 self.queue_draw()
         elif 'GDK_BUTTON3_MASK' in event.get_state().value_names and self._measuring:
-            self.meas_x1 = int(max(min(w-1, event.x), 0)) + 0.5
-            self.meas_y1 = int(max(min(h-1, event.y), 0)) + 0.5
+            self.meas_x1 = int(max(min(w - 1, event.x), 0)) + 0.5
+            self.meas_y1 = int(max(min(h - 1, event.y), 0)) + 0.5
             self.queue_draw()
-            
+
         return False
-    
+
     def on_mouse_scroll(self, widget, event):
         if not self.image_loaded:
             return False
@@ -610,7 +590,7 @@ class ImageWidget(Gtk.DrawingArea):
             self.set_brightness(min(5, self.file_loader.gamma_offset + 0.2))
         elif event.direction == Gdk.ScrollDirection.DOWN:
             self.set_brightness(max(-5, self.file_loader.gamma_offset - 0.2))
- 
+
     def on_mouse_press(self, widget, event):
         self._draw_histogram = False
         if not self.image_loaded:
@@ -638,40 +618,38 @@ class ImageWidget(Gtk.DrawingArea):
             self.meas_x1, self.meas_y1 = self.meas_x0, self.meas_y0
             self._measuring = True
             self._set_cursor_mode(Gdk.CursorType.TCROSS)
-            
-                       
+
     def on_mouse_release(self, widget, event):
         if not self.image_loaded:
-            return False        
+            return False
         if self._rubber_band:
             self._rubber_band = False
             x0, y0 = self._calc_pos(self.rubber_x0, self.rubber_y0)
             x1, y1 = self._calc_pos(self.rubber_x1, self.rubber_y1)
-            x,y,w,h = self._calc_bounds(x0, y0, x1, y1)
-            if min(w, h) < 10: return 
+            x, y, w, h = self._calc_bounds(x0, y0, x1, y1)
+            if min(w, h) < 10: return
             self.extents_back.append(self.extents)
             self.extents = (x, y, w, h)
             self.queue_draw()
         elif self._measuring:
             self._measuring = False
             # prevent zero-length lines
-            self._histogram_data = self._get_intensity_line(self.meas_x0, self.meas_y0, 
-                                           self.meas_x1, self.meas_y1, 2)
+            self._histogram_data = self._get_intensity_line(self.meas_x0, self.meas_y0,
+                                                            self.meas_x1, self.meas_y1, 2)
             if len(self._histogram_data) > 4:
-                self._plot_histogram(self._histogram_data, show_axis=['left',])
+                self._plot_histogram(self._histogram_data, show_axis=['left', ])
                 self.queue_draw()
         elif self._shifting:
-            self._shifting = False            
+            self._shifting = False
             self.extents_back.append(self._shift_start_extents)
 
         self._set_cursor_mode()
-            
-  
+
     def on_draw(self, widget, ctx):
         if self.surface is not None:
             alloc = self.get_allocation()
-            self.scale = min(float(alloc.width)/self.extents[2], float(alloc.height)/self.extents[3])
-          
+            self.scale = min(float(alloc.width) / self.extents[2], float(alloc.height) / self.extents[3])
+
             ctx.save()
             ctx.scale(self.scale, self.scale)
             ctx.translate(-self.extents[0], -self.extents[1])
@@ -679,7 +657,7 @@ class ImageWidget(Gtk.DrawingArea):
             if self.scale >= 1.0:
                 ctx.get_source().set_filter(cairo.FILTER_FAST);
             else:
-                ctx.get_source().set_filter(cairo.FILTER_GOOD);          
+                ctx.get_source().set_filter(cairo.FILTER_GOOD);
             ctx.paint()
             ctx.restore()
 
@@ -691,12 +669,10 @@ class ImageWidget(Gtk.DrawingArea):
                 ctx.paint()
                 ctx.restore()
 
-            
             self.draw_overlay_cairo(ctx)
             self.draw_spots(ctx)
             self._canvas_is_clean = True
-            
-                 
+
     def on_visibility_notify(self, obj, event):
         if event.get_state() == Gdk.VisibilityState.FULLY_OBSCURED:
             self.stopped = True
@@ -705,16 +681,16 @@ class ImageWidget(Gtk.DrawingArea):
 
     def on_unmap(self, obj):
         self.stopped = True
-        
-      
+
+
 def main():
     win = Gtk.Window()
     win.connect("destroy", lambda x: Gtk.main_quit())
     win.set_border_width(6)
     win.set_title("Diffraction Image Viewer")
-    myview = ImageWidget(int(Gdk.Screen.height()*0.8))
+    myview = ImageWidget(int(Gdk.Screen.height() * 0.8))
     GObject.idle_add(myview.load_frame, '/home/michel/Work/data-processing/testins_101.img')
-    
+
     hbox = Gtk.AspectFrame(ratio=1.0)
     hbox.set_shadow_type(Gtk.ShadowType.NONE)
     hbox.add(myview)
@@ -723,12 +699,13 @@ def main():
 
     if len(sys.argv) == 2:
         myview.load_frame(sys.argv[1])
-    
+
     try:
         Gtk.main()
     except KeyboardInterrupt:
         print "Quiting..."
         sys.exit()
+
 
 if __name__ == '__main__':
     main()

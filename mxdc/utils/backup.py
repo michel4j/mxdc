@@ -10,7 +10,7 @@ import logging.handlers
 import commands
 
 if __name__ == '__main__':
-    confdir = os.environ.get('MXDC_CONFIG_PATH')    
+    confdir = os.path.join(os.environ.get('MXDC_PATH'), 'etc')
 
     # Setup the logger
     _logger = logging.getLogger('backup')

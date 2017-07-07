@@ -1,17 +1,16 @@
 import logging
 
+import common
 from gi.repository import GObject
-from twisted.python.components import globalRegistry
-
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc
-from mxdc.widgets.controllers import common
-from mxdc.widgets.controllers.ptzvideo import AxisController
-
 from mxdc.widgets.diagnostics import DiagnosticsViewer
 from mxdc.widgets.textviewer import GUIHandler
+from mxdc.widgets.ticker import ChartManager
+from ptzvideo import AxisController
+from twisted.python.components import globalRegistry
 
 _logger = get_module_logger('mxdc.setup')
 
@@ -40,36 +39,29 @@ class SetupController(object):
 
         # create and pack devices into settings frame
         entry_list = [
-            'energy', 'attenuation',
-            'omega', 'distance',
-            'beam_stop', 'two_theta', 'beam_size',
-            'phi', 'kappa', 'chi'
+            'energy', 'attenuation', 'beam_size',
+            'distance', 'beam_stop', 'two_theta',
+            'omega', 'kappa', 'chi', 'phi'
         ]
         entries = {
-            'energy': misc.MotorEntry(self.beamline.monochromator.energy, 'Energy', fmt="%0.3f"),
+            'energy': misc.MotorEntry(self.beamline.energy, 'Energy', fmt="%0.3f"),
             'attenuation': misc.ActiveEntry(self.beamline.attenuator, 'Attenuation', fmt="%0.1f"),
             'omega': misc.MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f"),
-            'distance': misc.MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', fmt="%0.1f"),
+            'distance': misc.MotorEntry(self.beamline.distance, 'Detector Distance', fmt="%0.1f"),
             'beam_stop': misc.MotorEntry(self.beamline.beamstop_z, 'Beam-stop', fmt="%0.1f"),
-            'two_theta': misc.MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', fmt="%0.1f"),
-            'beam_size': misc.ActiveEntry(self.beamline.aperture, 'Beam Aperture', fmt="%0.2f"),
+            'two_theta': misc.MotorEntry(self.beamline.two_theta, 'Detector 2-Theta', fmt="%0.1f"),
+            'beam_size': misc.ActiveMenu(self.beamline.aperture, 'Beam Aperture', fmt="%0.0f"),
         }
         if 'phi' in self.beamline.registry:
             entries['phi'] = misc.MotorEntry(self.beamline.phi, 'Gonio Phi', fmt="%0.2f")
         if 'chi' in self.beamline.registry:
             entries['chi'] = misc.MotorEntry(self.beamline.chi, 'Gonio Chi', fmt="%0.2f")
-            del entries['beam_size']
         if 'kappa' in self.beamline.registry:
             entries['kappa'] = misc.MotorEntry(self.beamline.kappa, 'Gonio Kappa', fmt="%0.2f")
 
         for i, key in enumerate(entry_list):
             if key in entries:
                 self.widget.setup_device_box.insert(entries[key], i)
-
-        # BOSS enable/disable if a boss has been defined
-        if 'boss' in self.beamline.registry:
-            self.beamline.energy.connect('starting', lambda x: self.beamline.boss.stop())
-            self.beamline.energy.connect('done', lambda x: self.beamline.boss.start())
 
         # disable mode change buttons while automounter is busy
         self.beamline.automounter.connect('preparing', self.on_devices_busy)
@@ -80,7 +72,6 @@ class SetupController(object):
         self.diagnostics = DiagnosticsViewer()
         self.widget.setup_status_box.pack_end(self.diagnostics, True, True, 0)
 
-
         # logging
         self.log_viewer = common.LogMonitor(self.widget.setup_log_view, 'Candara 7')
         log_handler = GUIHandler(self.log_viewer)
@@ -88,6 +79,22 @@ class SetupController(object):
         formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
         log_handler.setFormatter(formatter)
         logging.getLogger('').addHandler(log_handler)
+
+        # Beam Tuner
+        self.tuner = ChartManager(interval=100, view=10)
+        self.widget.tuner_box.pack_start(self.tuner.chart, True, True, 0)
+        self.tuner.add_plot(self.beamline.beam_tuner, 'beam_tuner')
+        self.tuner_monitors = [
+            common.DeviceMonitor(self.beamline.beam_tuner, self.widget.tuner_left_lbl),
+            common.DeviceMonitor(
+                self.beamline.beam_tuner, self.widget.tuner_right_lbl, format='<b>{:0.1f} %</b>',
+                signal='percent', warning=90.0, error=80.0
+            )
+        ]
+        self.widget.tuner_control_box.set_sensitive(self.beamline.beam_tuner.tunable)
+        self.widget.tuner_up_btn.connect('clicked', lambda x: self.beamline.beam_tuner.tune_up())
+        self.widget.tuner_dn_btn.connect('clicked', lambda x: self.beamline.beam_tuner.tune_down())
+        self.widget.tuner_reset_btn.connect('clicked', lambda x: self.beamline.beam_tuner.reset())
 
     def do_beam_change(self, state):
         pass

@@ -18,7 +18,6 @@ import os
 
 DEFAULT_PARAMETERS = {
     'name': 'test',
-    'directory': config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']),
     'distance': 250.0,
     'delta_angle': 1.0,
     'exposure_time': 1.0,

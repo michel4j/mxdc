@@ -1,17 +1,18 @@
+import os
+import time
+
+import numpy
+from gi.repository import GObject
 from mxdc import registry
-from mxdc.device.base import BaseDevice, BaseDevice
-from mxdc.interface.devices import *
-from mxdc.device.motor import MotorBase
 from mxdc.com import ca
 from mxdc.com.ca import PV
+from mxdc.device.base import BaseDevice
+from mxdc.device.motor import MotorBase
+from mxdc.interface.devices import *
 from mxdc.utils import converter, misc
 from mxdc.utils.decorators import async
 from mxdc.utils.log import get_module_logger
 from zope.interface import implements
-from gi.repository import GObject
-import numpy
-import os
-import time
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -133,6 +134,49 @@ class Positioner(PositionerBase):
             return val
 
 
+class ChoicePositioner(PositionerBase):
+    def __init__(self, pv, choices=[], units=""):
+        PositionerBase.__init__(self)
+        self.units = units
+        self.dev = self.add_pv(pv)
+        self.choices = choices
+        self.dev.connect('changed', self._signal_change)
+
+    def get(self):
+        val = self.dev.get()
+        if not val in self.choices:
+            return self.choices[val]
+        else:
+            return val
+
+    def set(self, value, wait=False):
+        if value in self.choices:
+            self.dev.put(self.choices.index(value))
+        else:
+            self.dev.put(value)
+
+
+class SimChoicePositioner(PositionerBase):
+    def __init__(self, name, value, choices=[], units="", active=True):
+        self.name = name
+        PositionerBase.__init__(self)
+        self.units = units
+        self.choices = choices
+        self._pos = value
+        if active:
+            self.set_state(changed=self._pos, active=active, health=(0, ''))
+        else:
+            self.set_state(changed=self._pos, active=active, health=(16, 'disabled'))
+
+    def get(self):
+        return self._pos
+
+    def set(self, value, wait=False):
+        _logger.info('%s requesting %s' % (self.name, value))
+        self._pos = value
+        self.set_state(changed=self._pos)
+
+
 class SampleLight(Positioner):
     implements(IOnOff)
 
@@ -142,12 +186,40 @@ class SampleLight(Positioner):
 
     def set_on(self):
         self.onoff_cmd.put(1)
+    on = set_on
 
     def set_off(self):
         self.onoff_cmd.put(0)
+    off = set_off
 
     def is_on(self):
         return self.onoff_cmd.get() == 1
+
+
+class OnOffToggle(BaseDevice):
+    implements(IOnOff)
+    __gsignals__ = {
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_PYOBJECT,)),
+    }
+
+    def __init__(self, pv_name):
+        super(OnOffToggle, self).__init__()
+        self.onoff_cmd = self.add_pv(pv_name)
+        self.onoff_cmd.connect('changed', self.on_changed)
+
+    def set_on(self):
+        self.onoff_cmd.put(1)
+    on = set_on
+
+    def set_off(self):
+        self.onoff_cmd.put(0)
+    off = set_off
+
+    def is_on(self):
+        return self.changed_state
+
+    def on_changed(self, obj, val):
+        self.set_state(changed=(val == 1))
 
 
 class SimLight(SimPositioner):
