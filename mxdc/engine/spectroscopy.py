@@ -296,13 +296,13 @@ class XANESScan(BasicScan):
                     break
                     
                 self.count += 1
-                self.beamline.monochromator.simple_energy.move_to(x, wait=True)
+                self.beamline.bragg_energy.move_to(x, wait=True)
                 y, i0 = multi_count(self.beamline.mca, self.beamline.i_0, self._duration)
                 if self.count == 1:
                     scale = 1.0
                 else:
                     scale = (self.data[0][2]/i0)
-                x = self.beamline.monochromator.simple_energy.get_position()
+                x = self.beamline.bragg_energy.get_position()
                 self.data.append( [x, y*scale, i0, y] )
                     
                 fraction = float(self.count) / len(self._targets)
@@ -326,7 +326,7 @@ class XANESScan(BasicScan):
                 GObject.idle_add(self.emit, "done")
                 GObject.idle_add(self.emit, "progress", 1.0, "Done")
         finally:
-            self.beamline.monochromator.energy.move_to(self._edge_energy)
+            self.beamline.energy.move_to(self._edge_energy)
             self.beamline.exposure_shutter.close()
             self.beamline.attenuator.set(_saved_attenuation)
             self.beamline.mca.configure(retract=False)
@@ -493,7 +493,7 @@ class EXAFSScan(BasicScan):
                         break
                         
                     self.count += 1
-                    self.beamline.monochromator.simple_energy.move_to(x, wait=True)
+                    self.beamline.bragg_energy.move_to(x, wait=True)
                     k, _t = kt
                     y,i0 = multi_count(self.beamline.multi_mca, self.beamline.i_0, _t)
                     mca_values = self.beamline.multi_mca.get_roi_counts()
@@ -502,7 +502,7 @@ class EXAFSScan(BasicScan):
                     else:
                         scale = (self.data[0][2]/(i0*_t))
                         
-                    x = self.beamline.monochromator.simple_energy.get_position()
+                    x = self.beamline.bragg_energy.get_position()
                     data_point = [1000*x, y*scale, i0, k, _t] # convert KeV to eV
                     _corrected_sum = 0
                     _rates = self.beamline.multi_mca.get_count_rates()

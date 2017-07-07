@@ -1,13 +1,33 @@
 from collections import OrderedDict
-from gi.repository import Gtk, Gdk, Pango
-from twisted.python.components import globalRegistry
+
+from automounter import DewarController
+from gi.repository import Gtk, Gdk, Pango, GObject
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine import auto
 from mxdc.utils.decorators import async
-from mxdc.widgets.controllers import automounter
+from twisted.python.components import globalRegistry
+from zope.interface import Interface, implements
 
 
-class SampleStore(object):
+class ISampleStore(Interface):
+    """Sample information database."""
+
+    def get_current(self):
+        pass
+
+    def get_next(self):
+        pass
+
+    def has_port(self, port):
+        pass
+
+    def get_state(self, port):
+        pass
+
+
+class SampleStore(GObject.GObject):
+    implements(ISampleStore)
+
     class Data(object):
         (
             SELECTED,
@@ -37,6 +57,7 @@ class SampleStore(object):
 
     Column = OrderedDict([
         (Data.SELECTED, ''),
+        (Data.STATE, ''),
         (Data.NAME, 'Name'),
         (Data.GROUP, 'Group'),
         (Data.CONTAINER, 'Container'),
@@ -45,49 +66,60 @@ class SampleStore(object):
         (Data.PRIORITY, 'Priority'),
     ])
 
-    Color = {
-        State.UNKNOWN: Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0),
-        State.EMPTY: Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.5),
-        State.JAMMED: Gdk.RGBA(red=1.0, green=0, blue=0, alpha=0.5),
-        State.MOUNTED: Gdk.RGBA(red=1.0, green=0, blue=1.0, alpha=0.5),
-        State.NONE: Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=1.0),
-        State.GOOD: Gdk.RGBA(red=0, green=1.0, blue=0, alpha=0.5)
+    __gsignals__ = {
+        'updated': (GObject.SignalFlags.RUN_LAST, None, []),
     }
 
     def __init__(self, view, widget):
+        super(SampleStore, self).__init__()
         self.model = Gtk.ListStore(
             bool, str, str, str, str, bool, str, int, str, int, str, bool, object
         )
+        self.search_model = self.model.filter_new()
+        self.search_model.set_visible_func(self.search_data)
+        self.filter_model = Gtk.TreeModelSort(model=self.search_model)
         self.next_sample = {}
         self.current_sample = {}
+        self.ports = set()
+        self.states = {}
+        self.filter_text = ''
 
         self.view = view
         self.widget = widget
-        self.view.set_model(self.model)
+        self.view.set_model(self.filter_model)
         self.beamline = globalRegistry.lookup([], IBeamline)
 
         self.setup()
-
         self.widget.samples_selectall_btn.connect('clicked', lambda x: self.select_all(True))
         self.widget.samples_selectnone_btn.connect('clicked', lambda x: self.select_all(False))
         self.widget.samples_clear_btn.connect('clicked', lambda x: self.clear())
         self.view.connect('key-press-event', self.on_key_press)
         self.widget.mxlive_import_btn.connect('clicked', lambda x: self.import_mxlive())
         self.beamline.automounter.connect('mounted', self.on_sample_mounted)
-        self.beamline.automounter.connect('samples-updated', self.on_automounter_states)
+        self.beamline.automounter.connect('port-state', self.on_automounter_states)
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
         self.widget.samples_dismount_btn.connect('clicked', lambda x: self.dismount_action())
+        self.widget.samples_search_entry.connect('search-changed', self.on_search)
 
+        globalRegistry.register([], ISampleStore, '', self)
         self.load_data(TEST_DATA.values())
+
+    def get_current(self):
+        return self.current_sample
 
     def setup(self):
         # Selected Column
         for data, title in self.Column.items():
             if data == self.Data.SELECTED:
                 renderer = Gtk.CellRendererToggle(activatable=True)
-                renderer.connect('toggled', self.on_row_toggled, self.model)
+                renderer.connect('toggled', self.on_row_toggled, self.filter_model)
                 column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer, active=data)
                 column.set_fixed_width(30)
+            elif data == self.Data.STATE:
+                renderer = Gtk.CellRendererText(text=u"\u25c9")
+                column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer)
+                column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
+                column.set_fixed_width(20)
                 column.set_cell_data_func(renderer, self.format_state)
             else:
                 renderer = Gtk.CellRendererText()
@@ -116,13 +148,14 @@ class SampleStore(object):
         self.update_current_sample()
         self.update_next_sample()
 
-        self.sample_dewar = automounter.DewarController(self.widget, self)
+        self.sample_dewar = DewarController(self.widget, self)
         self.sample_dewar.connect('selected', self.on_dewar_selected)
 
     def load_data(self, data):
         self.clear()
         for item in data:
             self.add_item(item)
+        GObject.idle_add(self.emit, 'updated')
 
     def add_item(self, item):
         itr = self.model.append()
@@ -135,13 +168,26 @@ class SampleStore(object):
             self.Data.CONTAINER_TYPE, item.get('container_type', ''),
             self.Data.PORT, item.get('port', ''),
             self.Data.PRIORITY, item.get('priority', 0),
-            self.Data.STATE, item.get('state', self.State.UNKNOWN),
+            self.Data.STATE, self.states.get(item.get('port', ''), self.State.UNKNOWN),
             self.Data.COMMENTS, item.get('comments', ''),
             self.Data.BARCODE, item.get('barcode', ''),
             self.Data.LOADED, item.get('loaded', False),
             self.Data.PROCESSED, False,
             self.Data.DATA, item,
         )
+        self.ports.add(item.get('port'))
+
+    def on_search(self, obj):
+        self.filter_text = obj.get_text()
+        self.search_model.refilter()
+
+    def search_data(self, model, itr, dat):
+        """Test if the row is visible"""
+        search_text = " ".join([
+            str(self.model.get_value(itr, col)) for col in
+            [self.Data.NAME, self.Data.GROUP, self.Data.CONTAINER, self.Data.PORT, self.Data.COMMENTS, self.Data.BARCODE]
+        ])
+        return (not self.filter_text) or (self.filter_text in search_text)
 
     def import_mxlive(self):
         # data = self.beamline.lims.get_project_samples()
@@ -149,7 +195,14 @@ class SampleStore(object):
 
     def format_state(self, column, cell, model, itr, data):
         value = model.get_value(itr, self.Data.STATE)
-        cell.set_property("cell-background-rgba", self.Color[value])
+        if value in [self.State.UNKNOWN, self.State.NONE]:
+            col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=1.0)
+            cell.set_property("foreground-rgba", col)
+            cell.set_property("text", u"\u25ef")
+        else:
+            col = Gdk.RGBA(alpha=1.0, **DewarController.Color[value])
+            cell.set_property("foreground-rgba", col)
+            cell.set_property("text", u"\u2b24")
 
     def format_processed(self, column, cell, model, itr, data):
         value = model.get_value(itr, self.Data.PROCESSED)
@@ -188,13 +241,14 @@ class SampleStore(object):
         self.widget.samples_cur_port.set_markup(
             '{}/{}'.format(self.current_sample.get('container_name', '...'), self.current_sample.get('port', '...'))
         )
+        GObject.idle_add(self.emit, 'updated')
 
     def get_next(self):
-        itr = self.model.get_iter_first()
-        while itr and not self.model.get_value(itr, self.Data.SELECTED):
-            itr = self.model.iter_next(itr)
+        itr = self.filter_model.get_iter_first()
+        while itr and not self.filter_model.get_value(itr, self.Data.SELECTED):
+            itr = self.filter_model.iter_next(itr)
         if itr:
-            return Gtk.TreeRowReference.new(self.model, self.model.get_path(itr))
+            return Gtk.TreeRowReference.new(self.filter_model, self.filter_model.get_path(itr))
 
     def find_by_port(self, port):
         itr = self.model.get_iter_first()
@@ -205,13 +259,16 @@ class SampleStore(object):
         else:
             return {}, None
 
+    def get_state(self, port):
+        return self.states.get(port, self.State.UNKNOWN)
+
     def get_selected(self):
         itr = self.model.get_iter_first()
         items = []
         while itr:
             sel = self.model.get_value(itr, self.Data.SELECTED)
             state = self.model.get_value(itr, self.Data.STATE)
-            if sel and state in [self.State.GOOD, self.State.UNKNOWN, self.State.MOUNTED]:
+            if sel and state not in [self.State.JAMMED, self.State.EMPTY]:
                 item = self.model.get_value(itr, self.Data.DATA)
                 item['path'] = self.model.get_path(itr)
                 items.append(item)
@@ -223,38 +280,43 @@ class SampleStore(object):
         # toggle all selected rows otherwise toggle the whole list
         if len(paths) > 1:
             for path in paths:
-                itr = self.model.get_iter(path)
-                self.model.set_value(itr, self.Data.SELECTED, option)
+                itr = self.filter_model.get_iter(path)
+                self.searc_filter.set_value(itr, self.Data.SELECTED, option)
         else:
-            itr = self.model.get_iter_first()
+            itr = self.filter_model.get_iter_first()
             while itr:
-                state = self.model.get_value(itr, self.Data.STATE)
-                if state in [self.State.GOOD, self.State.UNKNOWN, self.State.MOUNTED]:
-                    self.model.set_value(itr, self.Data.SELECTED, option)
-                itr = self.model.iter_next(itr)
+                state = self.filter_model.get_value(itr, self.Data.STATE)
+                if state not in [self.State.JAMMED, self.State.EMPTY]:
+                    self.filter_model.set_value(itr, self.Data.SELECTED, option)
+                itr = self.filter_model.iter_next(itr)
         self.update_next_sample()
 
     def clear(self):
         self.model.clear()
         self.update_next_sample()
+        GObject.idle_add(self.emit, 'updated')
+
+    def has_port(self, port):
+        return port in self.ports
 
     def toggle_row(self, path):
-        itr = self.model.get_iter(path)
-        value = self.model.get_value(itr, self.Data.SELECTED)
-        state = self.model.get_value(itr, self.Data.STATE)
-        if state in [self.State.GOOD, self.State.UNKNOWN, self.State.MOUNTED]:
+        itr = self.filter_model.convert_iter_to_child_iter(self.filter_model.get_iter(path))
+        value = self.search_model.get_value(itr, self.Data.SELECTED)
+        state = self.search_model.get_value(itr, self.Data.STATE)
+        if state not in [self.State.JAMMED, self.State.EMPTY]:
             selected = not value
-            self.model.set(itr, self.Data.SELECTED, selected)
+            self.search_model.set_value(itr, self.Data.SELECTED, selected)
             if selected:
-                self.model.set(itr, self.Data.PROCESSED, False)
+                self.search_model.set_value(itr, self.Data.PROCESSED, False)
         self.update_next_sample()
 
     def update_states(self, states):
+        self.states.update(states)
         itr = self.model.get_iter_first()
         while itr:
             port = self.model.get_value(itr, self.Data.PORT)
-            if port in states:
-                self.model.set(itr, self.Data.STATE, states[port])
+            if port in self.states:
+                self.model.set(itr, self.Data.STATE, self.states[port])
             itr = self.model.iter_next(itr)
 
     def on_automounter_states(self, obj, states):

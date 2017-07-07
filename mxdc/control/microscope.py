@@ -1,19 +1,21 @@
+import math
 import os
+from collections import OrderedDict
+
+import common
 from gi.repository import Gtk, Pango, Gdk
-from twisted.python.components import globalRegistry
-from mxdc.utils.decorators import async
 from mxdc.beamline.mx import IBeamline
+from mxdc.engine.scripting import get_scripts
+from mxdc.utils import colors
+from mxdc.utils.decorators import async
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget
-from mxdc.widgets.controllers import common
-import math
-from mxdc.engine.scripting import get_scripts
-from mxdc.utils import colors
-from collections import OrderedDict
+from twisted.python.components import globalRegistry
+
 _logger = get_module_logger('mxdc.microscope')
 
-        
+
 class MicroscopeController(object):
     def __init__(self, widget):
         self.timeout_id = None
@@ -61,7 +63,7 @@ class MicroscopeController(object):
         self.widget.microscope_backlight_scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
         self.widget.microscope_frontlight_scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
 
-        pango_font = Pango.FontDescription('Monospace 8')
+        pango_font = Pango.FontDescription('Monospace 7.5')
         self.widget.microscope_pos_lbl.modify_font(pango_font)
         self.widget.microscope_meas_lbl.modify_font(pango_font)
 
@@ -104,7 +106,7 @@ class MicroscopeController(object):
 
     def save_image(self, filename):
         self.video.save_image(filename)
-        
+
     def draw_beam_overlay(self, cr):
         pix_size = self.beamline.sample_video.resolution
         bh = self.beamline.aperture.get() * 0.001
@@ -143,9 +145,9 @@ class MicroscopeController(object):
             cr.line_to(x2, y2)
             cr.stroke()
 
-            self.widget.microscope_meas_lbl.set_markup("%0.2g mm" % dist)
+            self.widget.microscope_meas_lbl.set_text("%0.2g mm" % dist)
         else:
-            self.widget.microscope_meas_lbl.set_markup("<small>%4.1f fps</small>" % self.video.fps)
+            self.widget.microscope_meas_lbl.set_text("%4.1f fps" % self.video.fps)
         return True
 
     def _calc_grid_params(self):
@@ -349,12 +351,10 @@ class MicroscopeController(object):
     @async
     def center_pixel(self, x, y):
         im_x, im_y, xmm, ymm = self._img_position(x, y)  # @UnusedVariable
-        print xmm, ymm
         if not self.beamline.sample_stage.x.is_busy():
             self.beamline.sample_stage.x.move_by(-xmm, wait=True)
         if not self.beamline.sample_stage.y.is_busy():
             self.beamline.sample_stage.y.move_by(-ymm)
-
 
     def overlay_function(self, cr):
         self.draw_beam_overlay(cr)
@@ -379,7 +379,6 @@ class MicroscopeController(object):
     def on_scripts_done(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(True)
 
-
     def on_realize(self, obj):
         self.pango_layout = self.video.create_pango_layout("")
         self.pango_layout.set_font_description(Pango.FontDescription('Monospace 8'))
@@ -388,21 +387,21 @@ class MicroscopeController(object):
         frame_width, frame_height = event.width, event.height
         video_width, video_height = self.camera.size
 
-        video_ratio = float(video_width)/video_height
-        frame_ratio = float(frame_width)/frame_height
+        video_ratio = float(video_width) / video_height
+        frame_ratio = float(frame_width) / frame_height
 
         if frame_ratio < video_ratio:
             width = frame_width
-            height = int(width/video_ratio)
+            height = int(width / video_ratio)
         else:
             height = frame_height
-            width = int(video_ratio*height)
+            width = int(video_ratio * height)
 
         self.video.scale = float(width) / video_width
         self._img_width, self._img_height = width, height
         self.set_size_request(width, height)
-        print width, height,  event.width, event.height
-        #return True
+        print "RESIZING", width, height, event.width, event.height
+        # return True
 
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(

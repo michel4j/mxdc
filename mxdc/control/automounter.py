@@ -4,11 +4,10 @@ from datetime import datetime
 
 import cairo
 from gi.repository import Gdk, Gtk, GObject
-from twisted.python.components import globalRegistry
-from mxdc.utils.automounter import ContainerCoords, ISARA_LAYOUTS, SAM_LAYOUTS, CATS_LAYOUTS
 from mxdc.beamline.mx import IBeamline
+from mxdc.utils.automounter import ContainerCoords
 from mxdc.utils.log import get_module_logger
-
+from twisted.python.components import globalRegistry
 _logger = get_module_logger('mxdc.samples')
 
 
@@ -28,14 +27,14 @@ class DewarLayout(object):
         self.update(data)
 
     def update(self, data):
-        #data = SAM_LAYOUTS
         if data:
             self.base_params = {
-                loc: (ContainerCoords[kind] + center, kind in ['puck', 'basket']) for (loc, kind), center in data.items()
+                loc: (ContainerCoords[kind] + center, kind in ['puck', 'basket']) for (loc, kind), center in
+            data.items()
             }
             # maximum extents of container locations in units of radius
             self.max_width = max(
-                [coords[:, 0].max() for coords, kind  in self.base_params.values()]
+                [coords[:, 0].max() for coords, kind in self.base_params.values()]
             ) + min(
                 [coords[:, 0].min() for coords, kind in self.base_params.values()]
             )
@@ -70,6 +69,15 @@ class DewarLayout(object):
             for loc, spec in self.base_params.items()
         }
 
+OWN_ALPHA = {
+    True: 1.0,
+    False: 0.25
+}
+
+def _text_col(col, alpha):
+    br = 0.241 * col['red']**2 + 0.691 * col['green']**2 + 0.068 * col['blue']**2
+    return (0.0, 0.0, 0.0, alpha) if br > 0.5 else  (1.0, 1.0, 1.0, alpha)
+
 
 class DewarController(GObject.GObject):
     class State(object):
@@ -83,12 +91,12 @@ class DewarController(GObject.GObject):
         ) = range(6)
 
     Color = {
-        State.UNKNOWN: Gdk.RGBA(red=1.0, green=1.0, blue=1.0, alpha=1),
-        State.EMPTY: Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.5),
-        State.JAMMED: Gdk.RGBA(red=1.0, green=0, blue=0, alpha=0.5),
-        State.MOUNTED: Gdk.RGBA(red=1.0, green=0, blue=1.0, alpha=0.5),
-        State.NONE: Gdk.RGBA(red=1.0, green=1.0, blue=1.0, alpha=1),
-        State.GOOD: Gdk.RGBA(red=0, green=1.0, blue=0, alpha=0.5)
+        State.UNKNOWN: {'red': 1.0, 'green': 1.0, 'blue': 1.0},
+        State.EMPTY: {'red': 0.2, 'green': 0.2, 'blue': 0.2},
+        State.JAMMED: {'red': 1.0, 'green': 0., 'blue': 0.0},
+        State.MOUNTED: {'red': 0.5, 'green': 0, 'blue': 0.5},
+        State.NONE: {'red': 1.0, 'green': 1.0, 'blue': 1.0},
+        State.GOOD: {'red': 0.0, 'green': 0.5, 'blue': 0.0},
     }
     StateLabel = {
         State.UNKNOWN: "Unknown",
@@ -110,15 +118,12 @@ class DewarController(GObject.GObject):
         self.widget = widget
         self.store = store
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.state_colors = {}
-        self.state_labels = {}
-        self.states = {}
         self.setup()
         self.messages = []
 
         self.layout = DewarLayout()
 
-        self.beamline.automounter.connect('samples-updated', self.on_samples_updated)
+        self.beamline.automounter.connect('port-state', self.on_port_state)
         self.beamline.automounter.connect('layout', self.on_dewar_layout)
         self.beamline.automounter.connect('message', self.on_state_changed)
         self.beamline.automounter.connect('status', self.on_state_changed)
@@ -139,7 +144,6 @@ class DewarController(GObject.GObject):
         self.widget.sample_dewar_area.connect('motion-notify-event', self.on_motion_notify)
         self.widget.sample_dewar_area.connect('button-press-event', self.on_press_event)
 
-
     def on_dewar_layout(self, obj, data):
         self.layout.update(data)
         self.widget.sample_dewar_area.queue_draw()
@@ -152,17 +156,20 @@ class DewarController(GObject.GObject):
             cx, cy = coords[-1]
             if is_puck:
                 cr.arc(cx, cy, self.layout.radius, 0, 2.0 * 3.14)
-                cr.set_source_rgba(.7, .7, .7, 1.)
+                #cr.set_source_rgba(.7, .7, .7, 1.)
+                cr.set_source_rgba(0.5, 0.5, 0.5, 1.)
                 cr.fill()
                 cr.arc(cx, cy, self.layout.radius, 0, 2.0 * 3.14)
                 cr.set_source_rgb(0, 0, 0)
                 cr.stroke()
             else:
                 for px, py in coords[1:-1]:
-                    cr.set_source_rgba(.7, .7, .7, 1.)
+                    #cr.set_source_rgba(.7, .7, .7, 1.)
+                    cr.set_source_rgba(0.5, 0.5, 0.5, 1.)
                     cr.arc(px, py, self.layout.pin_size + 5, 0, 2.0 * 3.14)
                     cr.fill()
         # pins
+        alpha = 0.5
         for loc, (coords, is_puck) in self.layout.parameters.items():
             cx, cy = coords[-1]
             cr.select_font_face('Cantarell', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
@@ -173,23 +180,24 @@ class DewarController(GObject.GObject):
             cr.stroke()
             for i, (px, py) in enumerate(coords[1:-1]):
                 port = '{}{}'.format(loc, i + 1)
-                # cr.set_source_rgba(1, 1, 1, 1.0)
-                rgba = self.state_colors.get(port, Gdk.RGBA(1.0, 1.0, 1.0, 1.0))
-                Gdk.cairo_set_source_rgba(cr, rgba)
+                state = self.store.get_state(port)
+                alpha = OWN_ALPHA[self.store.has_port(port)]
+                rgb = self.Color.get(state, {'red': 1.0, 'green': 1.0, 'blue': 1.0})
+                Gdk.cairo_set_source_rgba(cr, Gdk.RGBA(alpha=alpha, **rgb))
                 cr.arc(px, py, self.layout.pin_size, 0, 2.0 * 3.14)
                 cr.fill()
                 cr.arc(px, py, self.layout.pin_size, 0, 2.0 * 3.14)
-                cr.set_source_rgba(0.5, 0.5, 0.5, 1.0)
+                cr.set_source_rgba(0.5, 0.5, 0.5, alpha)
                 cr.stroke()
                 label = '{}'.format(i + 1)
                 xb, yb, w, h = cr.text_extents(label)[:4]
                 cr.move_to(px - w / 2. - xb, py - h / 2. - yb)
-                cr.set_source_rgba(0, 0, 0, 1.0)
+                cr.set_source_rgba(*_text_col(rgb, alpha))
                 cr.show_text(label)
                 cr.stroke()
 
         if not self.layout.parameters:
-            text = 'Automounter Dewar Layout Not available!'
+            text = 'Layout Not available!'
             cx, cy = self.layout.width / 2., self.layout.height / 2.
             cr.set_source_rgb(0.5, 0.35, 0)
             cr.set_font_size(14)
@@ -205,32 +213,29 @@ class DewarController(GObject.GObject):
             if min_dist > self.layout.pin_size: continue
             pos = distances.tolist().index(min_dist)
             port = '{}{}'.format(loc, pos + 1)
-            return port
+            if self.store.has_port(port):
+                return port
 
     def on_size_allocate(self, obj, size):
         self.layout.scale(size.width, size.height)
 
-    def on_samples_updated(self, obj, info):
-        self.states.update(info)
-        self.state_colors.update({k: self.Color[v] for k, v in info.items()})
-        self.state_labels.update({k: self.StateLabel[v] for k, v in info.items()})
+    def on_port_state(self, *args, **kwargs):
         self.widget.sample_dewar_area.queue_draw()
 
     def on_motion_notify(self, widget, event):
         port = self.find_port(event.x, event.y)
         if port:
+            state = self.store.get_state(port)
+            label = self.StateLabel[state]
             event.window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.HAND2))
-            self.widget.hover_sample_lbl.set_markup('<b><span color="blue">{}</span></b>'.format(port))
-            self.widget.hover_state_lbl.set_text(self.state_labels.get(port, '...'))
-            self.widget.hover_state_box.override_background_color(
-                Gtk.StateFlags.NORMAL, self.state_colors.get(port, Gdk.RGBA(1, 1, 1, 0))
-            )
+            self.widget.hover_sample_lbl.set_markup('<b>{}</b>'.format(port))
+            self.widget.hover_state_lbl.set_text(label)
         else:
             event.window.set_cursor(None)
 
     def on_press_event(self, widget, event):
         port = self.find_port(event.x, event.y)
-        if port and self.states.get(port) in [self.State.UNKNOWN, self.State.GOOD, self.State.EMPTY, None]:
+        if self.store.get_state(port) not in [self.State.JAMMED, self.State.EMPTY]:
             self.emit('selected', port)
 
     def on_state_changed(self, obj, val):

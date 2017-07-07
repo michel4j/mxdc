@@ -55,9 +55,8 @@ class BeamlineClient(GObject.GObject):
             log.msg('Setting up %s' % (name))
     
         # Create and register other/compound devices
-        self.registry['monochromator'] = Monochromator(self.bragg_energy, self.energy, self.mostab)
         self.registry['collimator'] = Collimator(self.beam_x, self.beam_y, self.beam_w, self.beam_h)
-        self.registry['diffractometer'] = Diffractometer(self.distance, self.two_theta)
+
         if 'sample_y' in self.registry:
             self.registry['sample_stage'] = XYStage(self.sample_x, self.sample_y)
         else:

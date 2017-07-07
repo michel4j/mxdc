@@ -8,14 +8,16 @@ config.get_session()  # update the session configuration
 from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
-from mxdc.widgets.controllers import status, setup, microscope, samplestore, datasets, cryo
+from mxdc.control import status
+from mxdc.control import datasets
+from mxdc.control import setup
+from mxdc.control import samples
 from mxdc.widgets import dialogs
-from mxdc.widgets.collectmanager import CollectManager
 from mxdc.widgets.resultmanager import ResultManager
 from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.splash import Splash
 from twisted.python.components import globalRegistry
-from gi.repository import Gtk, GdkPixbuf, Gio, GObject
+from gi.repository import Gtk, GdkPixbuf, GObject
 import os
 from datetime import datetime
 
@@ -30,17 +32,30 @@ else:
     VERSION = "- Development -"
 
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
-
-
+STYLES = """
+    GTKEntry.squared {
+        border-radius: 0;
+    }
+    GTKButton.small {
+        border-radius: 20;
+        border-width: 0 0 0 0;
+        padding: 0;
+        margin: 0;
+    }
+"""
 class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     gui_roots = {
-        'data/mxdc_main': ['app_menu', 'header_bar', 'mxdc_main', 'sample_store']
+        'data/mxdc_main': ['app_menu', 'header_bar', 'mxdc_main']
     }
 
     def __init__(self, version=VERSION):
         super(AppWindow, self).__init__(name='MxDC')
         self.set_wmclass("MxDC", "MxDC")
         self.set_position(Gtk.WindowPosition.CENTER)
+        css = Gtk.CssProvider()
+        css.load_from_data(STYLES)
+        style = self.get_style_context()
+        style.add_provider(css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         settings = self.get_settings()
         settings.props.gtk_enable_animations = True
         self.set_size_request(1290, 884)
@@ -77,18 +92,12 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
 
         self.hutch_manager = setup.SetupController(self)
         self.status_panel = status.StatusPanel(self)
-        self.sample_microscope = microscope.MicroscopeController(self)
-        self.cryo_controller = cryo.CryoController(self)
-        self.sample_store = samplestore.SampleStore(self.samples_list, self)
+        self.samples = samples.SamplesController(self)
         self.datasets = datasets.DatasetsController(self)
+        self.scans = ScanManager()
 
-        self.scan_manager = ScanManager()
-        #self.collect_manager = CollectManager()
-
-        self.scan_manager.connect('create-run', self.on_create_run)
-
-        self.result_manager = ResultManager()
-        #self.screen_manager = ScreenManager()
+        #self.scans.connect('create-run', self.on_create_run)
+        self.analysis = ResultManager()
 
         self.app_mnu_btn.set_popup(self.app_menu)
         self.add_menu_actions()
@@ -99,7 +108,6 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         icon = GdkPixbuf.Pixbuf.new_from_file(self.icon_file)
         self.set_icon(icon)
 
-
         GObject.timeout_add(1010, lambda: self.present())
         GObject.timeout_add(1000, lambda: self.splash.hide())
 
@@ -107,17 +115,17 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         # self.sample_manager.connect('samples-changed', self.on_samples_changed)
         # self.sample_manager.connect('sample-selected', self.on_sample_selected)
         # self.sample_manager.connect('active-sample', self.on_active_sample)
-        self.result_manager.connect('sample-selected', self.on_sample_selected)
-        self.result_manager.connect('update-strategy', self.on_update_strategy)
-        self.scan_manager.connect('update-strategy', self.on_update_strategy)
+        #self.result_manager.connect('sample-selected', self.on_sample_selected)
+        #self.result_manager.connect('update-strategy', self.on_update_strategy)
+        #self.scan_manager.connect('update-strategy', self.on_update_strategy)
         #self.collect_manager.connect('new-datasets', self.on_new_datasets)
         #self.screen_manager.connect('new-datasets', self.on_new_datasets)
 
         #self.automounter_box.pack_start(self.sample_picker, True, True, 0)
         #self.datasets_box.pack_start(self.collect_manager, True, True, 0)
         #self.screen_box.pack_start(self.screen_manager, True, True, 0)
-        self.scans_box.pack_start(self.scan_manager, True, True, 0)
-        self.analyses_box.pack_start(self.result_manager, True, True, 0)
+        self.scans_box.pack_start(self.scans, True, True, 0)
+        self.analysis_box.pack_start(self.analysis, True, True, 0)
 
         self.add(self.mxdc_main)
 
@@ -158,76 +166,76 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         about.connect('destroy', lambda x: x.destroy())
         about.show()
 
-    def on_create_run(self, obj=None, arg=None):
-        run_data = self.scan_manager.get_run_data()
-        #self.collect_manager.add_run(run_data)
-        if self.show_run_dialog:
-            header = 'New MAD Run Added'
-            subhead = 'A new run for MAD data collection has been added to the "Data Collection" tab. '
-            subhead += 'Remember to delete the runs you no longer need before proceeding.'
-            chkbtn = Gtk.CheckButton('Do not show this dialog again.')
+    # def on_create_run(self, obj=None, arg=None):
+    #     run_data = self.scan_manager.get_run_data()
+    #     #self.collect_manager.add_run(run_data)
+    #     if self.show_run_dialog:
+    #         header = 'New MAD Run Added'
+    #         subhead = 'A new run for MAD data collection has been added to the "Data Collection" tab. '
+    #         subhead += 'Remember to delete the runs you no longer need before proceeding.'
+    #         chkbtn = Gtk.CheckButton('Do not show this dialog again.')
+    #
+    #         def _chk_cb(obj):
+    #             self.show_run_dialog = (not obj.get_active())
+    #
+    #         chkbtn.connect('toggled', _chk_cb)
+    #         chkbtn.set_property('can-focus', False)
+    #         dialogs.info(header, subhead, extra_widgets=[chkbtn])
 
-            def _chk_cb(obj):
-                self.show_run_dialog = (not obj.get_active())
+    # def on_samples_changed(self, obj, ctx):
+    #     samples = ctx.get_loaded_samples()
+    #     #self.screen_manager.add_samples(samples)
+    #     # only change tabs if samples are changed manually
+    #     if not self.first_load:
+    #         # self.screen_box.props.needs_attention = True
+    #         pass
+    #     else:
+    #         self.first_load = False
 
-            chkbtn.connect('toggled', _chk_cb)
-            chkbtn.set_property('can-focus', False)
-            dialogs.info(header, subhead, extra_widgets=[chkbtn])
+    # def on_active_sample(self, obj, data):
+    #     self.sample_microscope.update_active_sample(data)
+    #     #self.collect_manager.update_active_sample(data)
+    #     self.scan_manager.update_active_sample(data)
+    #
+    # def on_sample_selected(self, obj, data):
+    #     #self.collect_manager.update_selected(sample=data)
+    #     self.sample_microscope.update_selected(sample=data)
+    #     try:
+    #         _logger.info('The selected sample has been updated to "%s (%s)"' % (data['name'], data['port']))
+    #         # self.datasets_box.props.needs_attention = True
+    #     except KeyError:
+    #         _logger.info('The crystal cannot be selected')
 
-    def on_samples_changed(self, obj, ctx):
-        samples = ctx.get_loaded_samples()
-        #self.screen_manager.add_samples(samples)
-        # only change tabs if samples are changed manually
-        if not self.first_load:
-            # self.screen_box.props.needs_attention = True
-            pass
-        else:
-            self.first_load = False
-
-    def on_active_sample(self, obj, data):
-        self.sample_microscope.update_active_sample(data)
-        #self.collect_manager.update_active_sample(data)
-        self.scan_manager.update_active_sample(data)
-
-    def on_sample_selected(self, obj, data):
-        #self.collect_manager.update_selected(sample=data)
-        self.sample_microscope.update_selected(sample=data)
-        try:
-            _logger.info('The selected sample has been updated to "%s (%s)"' % (data['name'], data['port']))
-            # self.datasets_box.props.needs_attention = True
-        except KeyError:
-            _logger.info('The crystal cannot be selected')
-
-    def on_beam_change(self, obj, beam_available):
-        if not beam_available:
-            # self.setup_box.props.needs_attention = True
-            pass
-
-    def on_update_strategy(self, obj, data):
-        #self.collect_manager.update_data(strategy=data)
-        # self.datasets_box.props.needs_attention = True
-        pass
-
-    def on_new_datasets(self, obj, datasets):
-        # Fech full crystal information from sample database and update the dataset information
-        database = self.sample_microscope.get_database()
-        if database is not None:
-            for dataset in datasets:
-                if dataset.get('crystal_id') is not None:
-                    crystal = database['crystals'].get(str(dataset['crystal_id']))
-                    if crystal is None:
-                        continue
-                    if dataset.get('experiment_id') is not None:
-                        group = database['experiments'].get(str(dataset['experiment_id']))
-                        if group is not None:
-                            crystal.update(group_name=group.get('name', dataset['experiment_id']))
-                    dataset.update(crystal=crystal)
-        self.result_manager.add_datasets(datasets)
+    # def on_beam_change(self, obj, beam_available):
+    #     if not beam_available:
+    #         # self.setup_box.props.needs_attention = True
+    #         pass
+    #
+    # def on_update_strategy(self, obj, data):
+    #     #self.collect_manager.update_data(strategy=data)
+    #     # self.datasets_box.props.needs_attention = True
+    #     pass
+    #
+    # def on_new_datasets(self, obj, datasets):
+    #     # Fech full crystal information from sample database and update the dataset information
+    #     database = self.sample_microscope.get_database()
+    #     if database is not None:
+    #         for dataset in datasets:
+    #             if dataset.get('crystal_id') is not None:
+    #                 crystal = database['crystals'].get(str(dataset['crystal_id']))
+    #                 if crystal is None:
+    #                     continue
+    #                 if dataset.get('experiment_id') is not None:
+    #                     group = database['experiments'].get(str(dataset['experiment_id']))
+    #                     if group is not None:
+    #                         crystal.update(group_name=group.get('name', dataset['experiment_id']))
+    #                 dataset.update(crystal=crystal)
+    #     self.result_manager.add_datasets(datasets)
 
     def on_page_switched(self, obj, params):
         name = self.main_stack.get_visible_child_name()
         child = self.main_stack.get_child_by_name(name)
 
     def on_analyse_request(self, obj, data):
-        self.result_manager.process_dataset(data)
+        self.analyses.process_dataset(data)
         # self.analysis_box.props.needs_attention = True

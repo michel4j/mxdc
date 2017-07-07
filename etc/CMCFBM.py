@@ -7,7 +7,7 @@ BEAMLINE_NAME = '08B1-1'
 BEAMLINE_TYPE = 'MX'
 BEAMLINE_ENERGY_RANGE = (4.0, 18.5)
 BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
-ADMIN_GROUP = 2000
+ADMIN_GROUPS = [2000]
 
 DEFAULT_EXPOSURE    = 5.0
 DEFAULT_ATTENUATION = 90.0               # attenuation in %
@@ -15,7 +15,7 @@ DEFAULT_BEAMSTOP    = 60.0
 SAFE_DISTANCE       = 400.0
 SAFE_BEAMSTOP       = 80.0
 XRF_BEAMSTOP        = 100.0
-XRF_ENERGY_OFFSET   = +1.0              # KeV
+XRF_ENERGY_OFFSET   = 1.0              # KeV
 
 CENTERING_BACKLIGHT = 65.0
 
@@ -26,35 +26,13 @@ MISC_SETTINGS = {
     'max_omega_velocity': 120.0,  # deg/sec
 }
 
-# pitch function for PitchOptimizer
-def _energy2pitch(x):
-    import numpy
-    p = [0.3985341, -0.10101318, 0.01685788, -0.15792546] # from fitting
-    a = numpy.arcsin(1.97704/x)
-    return p[0] + p[1] * numpy.sin(a) + p[2] * numpy.log(a) + p[3] * numpy.cos(a)
-
-class SplineRep(object):
-    def __init__(self, offset=0.0):
-        from scipy import interpolate
-        self.fit = None
-        self.offset = offset
-        txtfile = os.path.join(os.path.dirname(__file__), 'data', '08B1-boss.lut')
-        data = numpy.loadtxt(txtfile, dtype={"names": ('energy', 'target'), "formats": (float, float)})
-        data.sort(order="energy")
-        self.fit = interpolate.splrep(data['energy'], data['target'])
-        
-    def __call__(self, x, rnd=4):
-        from scipy import interpolate
-        return self.offset + round(interpolate.splev(x, self.fit, der=0), rnd)
-
 # maps names to device objects
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
     'energy':   PseudoMotor('DCM1608-4-B10-01:energy:KeV'),
     'bragg_energy': BraggEnergyMotor('SMTR1608-4-B10-17:deg', motor_type="vmeenc"),
     'dcm_pitch':  ENCMotor('SMTR1608-4-B10-15:deg'),
-    'boss': BossPIDController('BL08B1:PicoControl', 'DCM1608-4-B10-01:energy:KeV:fbk', target_func=SplineRep(offset=-0.0)),    
-    'mostab': PitchOptimizer('Pitch Tuner', _energy2pitch),
+    'beam_tuner': BOSSTuner('BL08B1:PicoControl'),
     
     # Goniometer/goniometer head devices
     'goniometer': MD2Goniometer('BL08B1:MD2'),
@@ -67,7 +45,7 @@ DEVICES = {
     
     
     # Beam position & Size
-    'aperture': Positioner('BL08B1:MD2:G:BeamSizeHor', 'BL08B1:MD2:G:BeamSizeHor', 100.0, 'um'),
+    'aperture': ChoicePositioner('BL08B1:MD2:S:SelectedAperture', choices=[200, 150, 100, 50, 20], units='um'),
     'beam_x':   VMEMotor('SMTR1608-5-B10-08:mm'),
     'beam_y':   VMEMotor('SMTR1608-5-B10-06:mm'),
     'beam_w':   VMEMotor('SMTR1608-5-B10-07:mm'),
@@ -105,8 +83,8 @@ DEVICES = {
     
     # Intensity monitors,
     'i_0': Counter('BPM08B1-05:I0:fbk'),
-    'i_1': Counter('BPM08B1-04:I0:fbk'),
-    'i_2': Counter('BPM08B1-02:I0:fbk'),
+    #'i_1': Counter('BPM08B1-04:I0:fbk'),
+    'i_1': Counter('BPM08B1-02:I0:fbk'),
     'i_bst':  Counter('BL08B1:MD2:G:ExternalPhotoDiode'),
     'i_scn':  Counter('BL08B1:MD2:G:InternalPhotoDiode'),
     
@@ -117,6 +95,7 @@ DEVICES = {
     'mca_nozzle': Positioner('BL08B1:MD2:S:MoveFluoDetFront'),
     'mca': XFlashMCA('XFD1608-501'),
     'multi_mca': VortexMCA('dxp1608-004'),
+    'deicer': OnOffToggle('DIC1608-5-B10-01:spray:on'),
 
     #disk space monitor
     'disk_space' : DiskSpaceMonitor('Disk Space', '/users'), 

@@ -374,12 +374,12 @@ class ScanManager(Gtk.Alignment):
         return True
     
     def set_parameters(self, params=None):
-        if params is None:
+        if not params:
             # load defaults
             params = {
                 'mode': 'XANES',
                 'prefix': 'test_scan',
-                'directory': config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']),
+                'directory': os.path.join(os.environ['HOME'], config.get_session()),
                 'energy': 12.6580,
                 'edge': 'Se-K',
                 'time': 0.5,
@@ -435,10 +435,9 @@ class ScanManager(Gtk.Alignment):
         return run_data
 
     def _load_config(self):
-        if not config.SESSION_INFO.get('new', False):
-            data = config.load_config(SCAN_CONFIG_FILE)
-            if data is not None:
-                self.set_parameters(data)
+        data = config.load_config(SCAN_CONFIG_FILE)
+        if data is not None:
+            self.set_parameters(data)
 
     def _save_config(self, parameters):
         config.save_config(SCAN_CONFIG_FILE, parameters)

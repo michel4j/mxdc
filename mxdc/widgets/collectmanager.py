@@ -131,9 +131,9 @@ class CollectManager(Gtk.Alignment, gui.BuilderMixin):
         pos_table = self.position_table
         if self.beamline is not None:
             pos_table.attach(ActiveLabel(self.beamline.omega, fmt='%7.2f'), 1,2,0,1)
-            pos_table.attach(ActiveLabel(self.beamline.diffractometer.two_theta, fmt='%7.2f'), 1,2,1,2)
-            pos_table.attach(ActiveLabel(self.beamline.diffractometer.distance, fmt='%7.2f'), 1,2,2,3)
-            pos_table.attach(ActiveLabel(self.beamline.monochromator.energy, fmt='%7.4f'), 1,2,3,4)
+            pos_table.attach(ActiveLabel(self.beamline.two_theta, fmt='%7.2f'), 1,2,1,2)
+            pos_table.attach(ActiveLabel(self.beamline.distance, fmt='%7.2f'), 1,2,2,3)
+            pos_table.attach(ActiveLabel(self.beamline.energy, fmt='%7.4f'), 1,2,3,4)
             pos_table.attach(ActiveLabel(self.beamline.attenuator, fmt='%7.2f'), 1,2,4,5)        
         # Image Viewer
         self.frame_book.add(self.image_viewer)
@@ -367,7 +367,7 @@ class CollectManager(Gtk.Alignment, gui.BuilderMixin):
                 data = run.get_parameters()                
                 #self.beamline.image_server.setup_folder(data['directory'])
                 if run_num == 0 and data['number'] == 0:
-                    data['energy'] = [self.beamline.monochromator.energy.get_position()]
+                    data['energy'] = [self.beamline.energy.get_position()]
                     data['energy_label'] = ['E0']
                     self.run_data = [data]
                     break

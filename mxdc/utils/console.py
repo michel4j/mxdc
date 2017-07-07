@@ -176,15 +176,12 @@ class GTKInterpreter(threading.Thread):
 
 class BeamlineConsole(GTKInterpreter):
     def __init__(self, banner=None):
-        banner = """
+        banner = (
+            "Interactive Beamline Console \n"
+            "Python {} \n"
+            "Beamline Config: {} \n"
+        ).format(sys.version.split('\n')[0], os.environ['MXDC_CONFIG'])
 
-%s Interactive Beamline Console.
-Python %s
-Beamline Config: %s.py 
-        """ % (os.environ['MXDC_BEAMLINE'].upper(),
-               sys.version.split('\n')[0],
-               os.path.join(os.environ['MXDC_CONFIG_PATH'], os.environ['MXDC_BEAMLINE']))
-               
         GTKInterpreter.__init__(self, banner)
     
     def pre_interact(self):

@@ -1,19 +1,35 @@
-from gi.repository import Gtk, Gdk, Pango, GObject
-from mxdc.widgets import dialogs
 import logging
 import operator
-import re
+
+from gi.repository import Gtk, Gdk, Pango, GObject
+from mxdc.widgets import dialogs
+
+
+def value_color(val, warning, error):
+    if (val < warning < error) or (val > warning > error):
+        return Gdk.color_parse("#204A87")
+    elif (warning < val < error) or (warning > val > error):
+        return Gdk.color_parse("#CE5C00")
+    elif (warning < error < val) or (warning > error > val):
+        return Gdk.color_parse("#A40000")
+    else:
+        return Gdk.color_parse("#204A87")
 
 
 class DeviceMonitor(object):
-    def __init__(self, device, label, format='{:.3e}', signal='changed'):
+    def __init__(self, device, label, format='{:.3e}', signal='changed', warning=None, error=None):
         self.label = label
         self.device = device
         self.format = format
+        self.warning = warning
+        self.error = error
         self.device.connect(signal, self.on_signal)
 
     def on_signal(self, obj, *args):
         self.label.set_markup(self.format.format(*args))
+        if self.warning and self.error:
+            col = value_color(args[0], self.warning, self.error)
+            self.label.modify_fg(Gtk.StateType.NORMAL, col)
 
 
 class ShutterSwitcher(object):

@@ -1,4 +1,4 @@
-
+from gi.repository import GObject
 from mxdc.device.base import BaseDevice
 from mxdc.interface.devices import ICounter
 from mxdc.utils.log import get_module_logger
@@ -18,6 +18,9 @@ class Counter(BaseDevice):
     """EPICS based Counter Device objects. Enables counting and averaging of 
     process variables over given time periods.
     """
+    __gsignals__ = {
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+    }
 
     implements(ICounter)
     
@@ -36,12 +39,16 @@ class Counter(BaseDevice):
         self.name = pv_name
         self.zero = float(zero)
         self.value = self.add_pv(pv_name)
+        self.value.connect('changed', self._on_value_change)
         self.DESC = self.add_pv('%s.DESC' % pv_name)
         self.DESC.connect('changed', self._on_name_change)
     
     def _on_name_change(self, pv, val):
         if val != '':
             self.name = val
+
+    def _on_value_change(self, pv, val):
+        self.set_state(changed=val)
     
     def count(self, t):
         """Count for the specified amount of time and return the numeric value
@@ -79,7 +86,10 @@ class Counter(BaseDevice):
 class SimCounter(BaseDevice):
     """Simulated Counter Device objects. Optionally reads from external file.
     """
-    
+    __gsignals__ = {
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+    }
+
     SIM_COUNTER_DATA = numpy.loadtxt(os.path.join(os.path.dirname(__file__),'data','simcounter.dat'))
     implements(ICounter)
     

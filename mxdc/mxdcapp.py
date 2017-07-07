@@ -19,7 +19,7 @@ from twisted.spread import pb
 import os
 import time
 import warnings
-from gi.repository import GObject, Gtk
+from gi.repository import Gtk
 
 USE_TWISTED = True
 MXDC_PORT = 9898
@@ -120,10 +120,10 @@ def exit_main_loop():
 
 def main():
     try:
-        _ = os.environ['BCM_CONFIG_PATH']
-        _logger.info('Starting MXDC ({})... '.format(os.environ['BCM_BEAMLINE']))
+        _ = os.environ['MXDC_CONFIG']
+        _logger.info('Starting MXDC ({})... '.format(os.environ['MXDC_CONFIG']))
     except:
-        _logger.error('Could not find Beamline Control Module environment variables.')
+        _logger.error('Could not find Beamline Configuration.')
         _logger.error('Please make sure MXDC is properly installed and configured.')
         exit_main_loop()
 
@@ -133,5 +133,5 @@ def main():
 
 if __name__ == "__main__":
     log_to_console()
-    excepthook.install(exit_main_loop)
+    #excepthook.install(exit_main_loop)
     run_main_loop(main)

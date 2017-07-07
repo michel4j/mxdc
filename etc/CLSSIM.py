@@ -6,6 +6,7 @@ BEAMLINE_NAME = 'SIM-1'
 BEAMLINE_TYPE = 'MX'
 BEAMLINE_ENERGY_RANGE = (3.0, 18.5)
 BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
+ADMIN_GROUPS = [2000]
 
 DEFAULT_EXPOSURE    = 2.0
 DEFAULT_ATTENUATION = 50.0              # attenuation in %
@@ -30,8 +31,7 @@ DEVICES = {
     'energy':   SimMotor('Energy', 12.5, 'keV'),
     'bragg_energy': SimMotor('Bragg Energy', 12.5, 'keV'),
     'dcm_pitch':  SimMotor('DCM Pitch', 0.0, 'deg'),
-    'boss': SimOptimizer('Sim Boss'),    
-    'mostab': PitchOptimizer('Sim Pitch Optimzer', _energy2pitch),
+    'beam_tuner': SimTuner('Simulated Beam Tuner'),
     
     # Goniometer/goniometer head devices
     'goniometer': SimGoniometer(),
@@ -40,7 +40,7 @@ DEVICES = {
     'sample_y':  SimMotor('Sample Y', 0.0, 'mm'),
     
     # Beam position & Size
-    'aperture': SimPositioner('Aperture', 25.0, 'um', active=False),
+    'aperture': SimChoicePositioner('Beam Size', 100, choices=[200, 150, 100, 50, 20], units='um'),
     'beam_x':   SimMotor('Beam X', 0.0, 'mm'),
     'beam_y':   SimMotor('Beam Y', 0.0, 'mm'),
     'beam_w':   SimMotor('Beam W', 0.2, 'mm'),
@@ -61,7 +61,7 @@ DEVICES = {
     'camera_center_y':  SimPositioner('Camera Center y', 288),
     'cryojet':  SimCryojet('Simulated Cryojet'),
     #'sample_camera': SimCamera(),
-    'sample_camera': AxisCamera('V2E1608-400.clsi.ca', 2),
+    'sample_camera': AxisCamera('V2E1608-400.clsi.ca', 1),
     'sample_backlight': SimLight('Back light', 45.0, '%'),
     'sample_frontlight': SimLight('Front light', 55.0, '%'),    
     #'hutch_video':  SimPTZCamera(),

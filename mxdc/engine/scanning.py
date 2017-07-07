@@ -48,7 +48,7 @@ class BasicScan(GObject.GObject):
             self.plotter.connect_scanner(self)
         except:
             self.plotter = None
-            #_logger.debug('No Plotter found.')
+            #_logger.debug('No TickerChart found.')
                 
     def configure(self, **kwargs):
         self.data = []
@@ -90,17 +90,8 @@ class BasicScan(GObject.GObject):
     
     def save(self, filename=None):
         if filename is None:
-            data_dir = os.path.join(os.environ['MXDC_DATA_PATH'], 
-                                    time.strftime('%Y'),
-                                    time.strftime('%B'))
             ext = self.__class__.__name__.lower()
             filename = time.strftime('%d%a-%H:%M:%S.') + ext
-            try:
-                if not os.path.exists(data_dir): 
-                    os.makedirs(data_dir)
-                filename = os.path.join(data_dir, filename)
-            except:
-                _logger.error("Could not make directory '%s' for writing" % data_dir)
         try:
             f = open(filename,'w')
         except:
