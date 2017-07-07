@@ -5,11 +5,12 @@ BEAMLINE_NAME = '08ID-1'
 BEAMLINE_TYPE = 'MX'
 BEAMLINE_ENERGY_RANGE = (6.0, 18.5)
 BEAMLINE_GONIO_POSITION = 3             # Goniometer orientation (XREC) 1,2,3
-ADMIN_GROUP = 2000
+ADMIN_GROUPS = [2000]
 
-DEFAULT_EXPOSURE    = 1.0
 DEFAULT_ATTENUATION = 90.0              # attenuation in %
 DEFAULT_BEAMSTOP    = 30.0
+DEFAULT_EXPOSURE = 0.2
+DEFAULT_DELTA = 0.2
 SAFE_BEAMSTOP       = 47.0
 SAFE_DISTANCE       = 400.0
 XRF_BEAMSTOP        = 30.0
@@ -34,18 +35,17 @@ DEVICES = {
     'energy':   EnergyMotor('BL08ID1:energy', 'SMTR16082I1005:deg'),
     'bragg_energy': BraggEnergyMotor('SMTR16082I1005:deg', motor_type="vme"),
     'dcm_pitch':  VMEMotor('SMTR16082I1010:deg'),
-    'mostab': MostabPIDController('MOS16082I1001'),
+    'beam_tuner': MOSTABTuner('MOS16082I1001', 'AH501-01:QEM', reference='LUT1608-ID-IONC:control'),
     
     # Goniometer/goniometer head devices
     'goniometer': Goniometer('GV6K1608-001', 'BL08ID1:mode'),
     'omega':    VMEMotor('GV6K1608-001:deg'),
-    #'sample_x':  VMEMotor('SMTR16083I1011:mm'),
     'sample_x': VMEMotor('SMTR16083I1008:mm'),
     'sample_y2':  VMEMotor('SMTR16083I1012:mm'), # if no sample_y, it will be determined from
     'sample_y1':  VMEMotor('SMTR16083I1013:mm'), # orthogonal sample_y1 AND sample_y2
     
     # Beam position & Size
-    'aperture': SimPositioner('Aperture', 50.0, 'um', active=False),
+    'aperture': SimChoicePositioner('Aperture', 50, choices=[50], units='um'),
     'beam_x':   VMEMotor('SMTR16083I1002:mm'),
     'beam_y':   VMEMotor('SMTR16083I1004:mm'),
     'beam_w':   VMEMotor('SMTR16083I1001:mm'),
@@ -55,7 +55,8 @@ DEVICES = {
     'distance': PseudoMotor('BL08ID1:2Theta:D:mm'),
     'detector_z':  ENCMotor('SMTR16083I1018:mm'),
     'two_theta':  PseudoMotor('BL08ID1:2Theta:deg'),
-    'detector': PIL6MImager('BL08ID1:CCD', 4096, 0.07243, 'MX300'),
+    'detector': PIL6MImager('DEC1608-01:cam1'),
+    'detector_cover': Shutter('MSHD1608-3-I10-01'),
     
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  VMEMotor('SMTR16083I1016:mm'),  
@@ -65,7 +66,8 @@ DEVICES = {
     'cryojet':  Cryojet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
     'sample_camera': AxisCamera('V2E1608-001', 4),
     'sample_backlight': SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk','ILC1608-3-I10-02:on', 100.0),
-    'sample_frontlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk','ILC1608-3-I10-01:on', 100.0),    
+    'sample_frontlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk','ILC1608-3-I10-01:on', 100.0),
+    'sample_uvlight': SampleLight('BL08ID1:UVLight', 'BL08ID1:UVLight:fbk', 'BL08ID1:UVLight:OnOff', 100.0),
     'hutch_video':  AxisPTZCamera('CCD1608-301'),
     
     # Facility, storage-ring, shutters, etc
@@ -98,9 +100,9 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'image_server': ImageSyncClient(),
+    'image_server': ImageSyncClient(include=['*.cbf'], mode='777'),
     'lims': LIMSClient('https://cmcf.lightsource.ca'),
-    'dpm': DPMClient('srv-cmcf-dp2:8881'),
+    'dpm': DPMClient(),
 }
 
 # Beamline shutters in the order in which they should be opened

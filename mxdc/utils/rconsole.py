@@ -19,7 +19,7 @@ import os
 import code
 import threading
 import time
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 from gi.repository import GObject
 import Queue
 try:
@@ -166,14 +166,11 @@ class GTKInterpreter(threading.Thread):
 
 class BeamlineConsole(GTKInterpreter):
     def __init__(self, banner=None):
-        banner = """
-
-%s Interactive Beamline Console.
-Python %s
-Beamline Config: %s.py 
-        """ % (os.environ['MXDC_BEAMLINE'].upper(),
-               sys.version.split('\n')[0],
-               os.path.join(os.environ['MXDC_CONFIG_PATH'], os.environ['MXDC_BEAMLINE']))
+        banner = (
+            "Interactive Beamline Console \n"
+            "Python {} \n"
+            "Beamline Config: {} \n"
+        ).format(sys.version.split('\n')[0], os.environ['MXDC_CONFIG'])
                
         GTKInterpreter.__init__(self, banner)
     

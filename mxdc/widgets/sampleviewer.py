@@ -2,10 +2,9 @@ import math
 import os
 
 import numpy
+from control import common
 from gi.repository import Gtk
 from gi.repository import Pango
-from twisted.python.components import globalRegistry
-
 from mxdc.com import ca
 from mxdc.engine.scripting import get_scripts
 from mxdc.interface.beamlines import IBeamline
@@ -14,8 +13,8 @@ from mxdc.utils.decorators import async
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.ordereddict import OrderedDict
 from mxdc.widgets import dialogs
-from mxdc.widgets.controllers import common
 from mxdc.widgets.video import VideoWidget
+from twisted.python.components import globalRegistry
 
 _logger = get_module_logger('mxdc.sampleviewer')
 

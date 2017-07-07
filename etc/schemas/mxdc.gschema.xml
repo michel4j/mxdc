@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="mxdc">
+    <schema id="ca.lightsource.mxdc" path="/ca/lightsource/mxdc/">
+        <key type="b" name="auto-process-datasets">
+            <default>false</default>
+            <summary>Auto-process datasets</summary>
+            <description>If True, new datasets will be automatically processed using the AutoProcess server.
+            </description>
+        </key>
+
+        <key name="directory-template" type="s">
+            <default>'{session}/{group}/{sample}'</default>
+            <summary>Directory Template</summary>
+            <description>The template to be used for creating directories. use '{varname}' syntax
+                to use variable substitution. Available variables include {session}, {group}, {sample},
+                {task}, and {date}. Initial slash will be ignored. Only the characters
+                AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789-_ are allowed.
+            </description>
+        </key>
+
+        <key name="default-dataset-strategy" type="i">
+            <default>0</default>
+            <summary>Default Dataset Strategy</summary>
+            <description>The default strategy to be used for data collection.
+            </description>
+        </key>
+    </schema>
+</schemalist>

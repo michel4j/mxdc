@@ -3,16 +3,15 @@ import os
 
 from gi.repository import GObject
 from gi.repository import Gtk
-from twisted.python.components import globalRegistry
-
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine.scripting import get_scripts
 from mxdc.utils import gui
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc
-from mxdc.widgets.controllers.ptzvideo import AxisViewer
 from mxdc.widgets.diagnostics import DiagnosticsViewer
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
+from ptzvideo import AxisViewer
+from twisted.python.components import globalRegistry
 
 _logger = get_module_logger('mxdc.hutchmanager')
 
@@ -48,7 +47,9 @@ class HutchManager(Gtk.Alignment, gui.BuilderMixin):
         self.beamline = globalRegistry.lookup([], IBeamline)
 
         # diagram file name if one exists
-        diagram_file = os.path.join(os.environ.get('MXDC_CONFIG_PATH'), 'data', self.beamline.name, 'diagram.png')
+        diagram_file = os.path.join(
+            os.environ.get('MXDC_PATH'), 'etc', 'data', self.beamline.name, 'diagram.png'
+        )
         if not os.path.exists(diagram_file):
             diagram_file = os.path.join(DATA_DIR, 'diagram.png')
         self.hutch_diagram.set_from_file(diagram_file)
@@ -70,12 +71,12 @@ class HutchManager(Gtk.Alignment, gui.BuilderMixin):
             'chi'
         ]
         self.entries = {
-            'energy': misc.MotorEntry(self.beamline.monochromator.energy, 'Energy', fmt="%0.3f"),
+            'energy': misc.MotorEntry(self.beamline.energy, 'Energy', fmt="%0.3f"),
             'attenuation': misc.ActiveEntry(self.beamline.attenuator, 'Attenuation', fmt="%0.1f"),
             'omega': misc.MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f"),
-            'distance': misc.MotorEntry(self.beamline.diffractometer.distance, 'Detector Distance', fmt="%0.1f"),
+            'distance': misc.MotorEntry(self.beamline.distance, 'Detector Distance', fmt="%0.1f"),
             'beam_stop': misc.MotorEntry(self.beamline.beamstop_z, 'Beam-stop', fmt="%0.1f"),
-            'two_theta': misc.MotorEntry(self.beamline.diffractometer.two_theta, 'Detector 2-Theta', fmt="%0.1f"),
+            'two_theta': misc.MotorEntry(self.beamline.two_theta, 'Detector 2-Theta', fmt="%0.1f"),
             'beam_size': misc.ActiveEntry(self.beamline.aperture, 'Beam Aperture', fmt="%0.2f"),
         }
         if 'phi' in self.beamline.registry:
@@ -89,11 +90,6 @@ class HutchManager(Gtk.Alignment, gui.BuilderMixin):
         for i, key in enumerate(entry_list):
             if key in self.entries:
                 self.device_box.insert(self.entries[key], i)
-
-        # BOSS enable/disable if a boss has been defined
-        if 'boss' in self.beamline.registry:
-            self.beamline.energy.connect('starting', lambda x: self.beamline.boss.stop())
-            self.beamline.energy.connect('done', lambda x: self.beamline.boss.start())
 
         # disable mode change buttons while automounter is busy
         self.beamline.automounter.connect('preparing', self.on_devices_busy)
@@ -144,7 +140,7 @@ class HutchManager(Gtk.Alignment, gui.BuilderMixin):
 
     def update_predictor(self, widget, val=None):
         self.predictor.configure(
-            energy=self.beamline.monochromator.energy.get_position(),
-            distance=self.beamline.diffractometer.distance.get_position(),
-            two_theta=self.beamline.diffractometer.two_theta.get_position()
+            energy=self.beamline.energy.get_position(),
+            distance=self.beamline.distance.get_position(),
+            two_theta=self.beamline.two_theta.get_position()
         )

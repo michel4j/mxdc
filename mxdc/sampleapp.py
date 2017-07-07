@@ -25,7 +25,7 @@ def main():
     book = Gtk.Notebook()
     #win.add(book)
     try:
-        _ = os.environ['MXDC_CONFIG_PATH']
+        _ = os.environ['MXDC_CONFIG']
     except:
         _logger.error('Could not fine Beamline Control Module environment variables.')
         _logger.error('Please make sure MXDC is properly installed and configured.')

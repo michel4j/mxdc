@@ -13,8 +13,5 @@ from mxdc.device.cryojet import *
 from mxdc.device.boss import *
 from mxdc.device.video import *
 from mxdc.service.imagesync_client import *
-from mxdc.engine.optimizer import *
 from mxdc.interface.engines import *
 from mxdc.utils.clients import LIMSClient, DPMClient
-from mxdc.device.monochromator import Monochromator
-from mxdc.device.diffractometer import Diffractometer

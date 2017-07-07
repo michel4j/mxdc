@@ -4,6 +4,7 @@ from gi.repository import Pango
 import re
 from mxdc.utils import gui, config
 
+
 MAIN_WINDOW = None
 
 _IMAGE_TYPES = {
@@ -13,7 +14,7 @@ _IMAGE_TYPES = {
     Gtk.MessageType.ERROR : Gtk.STOCK_DIALOG_ERROR,
 }
 
-_BUTTON_TYPES = {
+BUTTON_TYPES = {
     Gtk.ButtonsType.NONE: (),
     Gtk.ButtonsType.OK: (Gtk.STOCK_OK, Gtk.ResponseType.OK,),
     Gtk.ButtonsType.CLOSE: (Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE,),
@@ -29,9 +30,9 @@ class AlertDialog(Gtk.Dialog):
         if not dialog_type in _IMAGE_TYPES:
             raise TypeError(
                 "dialog_type must be one of: %s", ', '.join(_IMAGE_TYPES.keys()))
-        if not buttons in _BUTTON_TYPES:
+        if not buttons in BUTTON_TYPES:
             raise TypeError(
-                "buttons be one of: %s", ', '.join(_BUTTON_TYPES.keys()))
+                "buttons be one of: %s", ', '.join(BUTTON_TYPES.keys()))
 
         super(AlertDialog, self).__init__('', parent, flags)
         self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
@@ -84,7 +85,7 @@ class AlertDialog(Gtk.Dialog):
         self._expander.hide()
         self._expander.set_expanded(False)
         self._expander.set_spacing(3)
-        self.add_buttons(*_BUTTON_TYPES[buttons])
+        self.add_buttons(*BUTTON_TYPES[buttons])
         
         self.vbox.pack_start(hbox, False, False, 0)
         self.vbox.pack_start(self._expander, True, True, 1)
@@ -180,7 +181,7 @@ class MyDialog(object):
         self.dialog.destroy()
     
 
-def _simple(dialog_type, header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK,
+def _simple1(dialog_type, header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK,
           default=-1, extra_widgets=None):
     if buttons == Gtk.ButtonsType.OK:
         default = Gtk.ResponseType.OK
@@ -188,6 +189,20 @@ def _simple(dialog_type, header, sub_header=None, details=None, parent=None, but
                          parent=parent, buttons=buttons,
                          default=default, extra_widgets=extra_widgets)
     return messagedialog()
+
+
+def _simple(dialog_type, title, sub_header=None, details=None, buttons=Gtk.ButtonsType.OK, default=-1, extra_widgets=None, parent=None):
+    msg_dialog = Gtk.MessageDialog(MAIN_WINDOW, 0, dialog_type, Gtk.ButtonsType.NONE, title)
+    if isinstance(buttons, tuple):
+        for button in buttons:
+            msg_dialog.add_buttons(*button)
+    else:
+        msg_dialog.add_buttons(*BUTTON_TYPES[buttons])
+    if sub_header:
+        msg_dialog.format_secondary_markup(sub_header)
+    result = msg_dialog.run()
+    msg_dialog.destroy()
+    return result
 
 def error(header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK, default=-1, extra_widgets=None):
     return _simple(Gtk.MessageType.ERROR, header, sub_header, details, parent=parent,
@@ -239,7 +254,7 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[], def
                     parent=parent,
                     buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, _stock,   Gtk.ResponseType.OK))
         if default_folder is None:
-            dialog.set_current_folder(config.SESSION_INFO.get('current_path', config.SESSION_INFO['path']))
+            dialog.set_current_folder(os.path.join(os.environ['HOME'], config.get_session()))
         else:
             dialog.set_current_folder(default_folder)
         dialog.set_do_overwrite_confirmation(True)
@@ -303,10 +318,10 @@ def select_open_image(parent=None, default_folder=None):
 class FolderSelector(object):
     def __init__(self, button):
         self.button = button
-        self.path = config.SESSION_INFO.get('current_path', config.SESSION_INFO['path'])
+        self.path = os.path.join(os.environ['HOME'], config.get_session())
         self.label = Gtk.Label(label='')
         self.label.set_alignment(0,0.5)
-        self.folders = config.SESSION_INFO.get('directories', [self.path])
+        self.folders = [self.path]
         self.icon = Gtk.Image.new_from_stock('gtk-directory', Gtk.IconSize.MENU)
         hbox = Gtk.HBox(False,3)
         hbox.pack_end(self.icon, False, False, 2)
@@ -404,7 +419,6 @@ class FolderSelector(object):
     def set_current_folder(self, path):
         if os.path.exists(path):
             self.path = path
-        config.SESSION_INFO['current_path'] = self.path
         self._create_popup()
         self.label.set_text(self.path)
         self.label.set_ellipsize(Pango.EllipsizeMode.START)

@@ -1,25 +1,10 @@
-import os
-from gi.repository import Gtk, Pango, Gdk
-from twisted.python.components import globalRegistry
-
+import common
+from gi.repository import Gtk
 from mxdc.beamline.mx import IBeamline
 from mxdc.utils.log import get_module_logger
-from mxdc.widgets import dialogs
-from mxdc.widgets.controllers import common
-
+from twisted.python.components import globalRegistry
 
 _logger = get_module_logger('mxdc.cryo')
-
-
-def value_color(val, warning, error):
-    if (val < warning < error) or (val > warning > error):
-        return Gdk.RGBA(red=0.0, green=0.0, blue=0)
-    elif ( warning < val < error) or (warning > val > error):
-        return Gdk.RGBA(red=1.0, green=0.5, blue=0)
-    elif ( warning < error < val ) or (warning > error > val):
-        return Gdk.RGBA(red=1.0, green=0, blue=0)
-    else:
-        return Gdk.RGBA(red=0.0, green=0.0, blue=0)
 
 
 class CryoController(object):
@@ -54,13 +39,10 @@ class CryoController(object):
         self.cryojet.connect('notify', self.on_parameter_changed)
         self.nozzle_switch = common.ShutterSwitcher(self.cryojet.nozzle, self.widget.cryo_nozzle_switch, reverse=True)
 
-
     def on_parameter_changed(self, obj, param):
         if param.name in self.labels:
             val = obj.get_property(param.name)
             txt = self.formats[param.name].format(val)
-            col = value_color(val, *self.limits[param.name])
+            col = common.value_color(val, *self.limits[param.name])
             self.labels[param.name].set_text(txt)
-            self.labels[param.name].override_color(Gtk.StateFlags.NORMAL, col)
-
-
+            self.labels[param.name].modify_fg(Gtk.StateType.NORMAL, col)

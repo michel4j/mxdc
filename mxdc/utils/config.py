@@ -1,3 +1,4 @@
+from gi.repository import Gio
 from mxdc.utils import json
 from mxdc.utils.log import get_module_logger
 from datetime import date, datetime
@@ -6,58 +7,48 @@ import atexit
 
 _logger = get_module_logger('mxdc.config')
 
-CONFIG_DIR = os.path.join(os.environ['HOME'], '.mxdc-%s' % os.environ['MXDC_BEAMLINE'])
-SESSION_CONFIG_FILE = 'session_config.json'
-SESSION_INFO = {'path': os.environ['HOME']} # Default, update with get_session()
+CONFIG_DIR = os.path.join(os.environ['HOME'], '.config', 'mxdc')
+SESSION_CONFIG_FILE = '{}.conf'.format(os.environ['MXDC_CONFIG'])
+SCHEMA_DIR = os.path.join(os.environ['MXDC_PATH'], 'etc', 'schemas')
 
-def save_session(session):
-    session['date'] = date.today().isoformat()
-    session['new'] = False
-    return save_config(SESSION_CONFIG_FILE, session)
+_schema_source = Gio.SettingsSchemaSource.new_from_directory(
+    SCHEMA_DIR,
+    Gio.SettingsSchemaSource.get_default(),
+    False
+)
+_schema = _schema_source.lookup('ca.lightsource.mxdc', False)
+
+settings = Gio.Settings.new_full(_schema, None, None)
 
 def load_config(fname):
     config_file = os.path.join(CONFIG_DIR, fname)
-    if os.access(config_file, os.R_OK):
-        config = json.loads(file(config_file).read())
-        return config
+    if os.path.exists(config_file):
+        with open(config_file, 'r') as handle:
+            config = json.load(handle)
+    else:
+        config = {}
+    return config
 
 def save_config(fname, config):
-    if not os.path.exists(CONFIG_DIR) and os.access(os.environ['HOME'], os.W_OK):
+    if not os.path.exists(CONFIG_DIR):
         os.mkdir(CONFIG_DIR)
-
     config_file = os.path.join(CONFIG_DIR, fname)
-    if os.access(CONFIG_DIR, os.W_OK):
-        f = open(config_file, 'w')
-        json.dump(config, f)
-        f.close()
-        return True
-    else:
-        return False
+    with open(config_file, 'w') as handle:
+        json.dump(config, handle, indent=4)
+
 
 def get_session():
-    config_file = os.path.join(CONFIG_DIR, SESSION_CONFIG_FILE)
+    config = load_config(SESSION_CONFIG_FILE)
     today = date.today()
-    _path = os.path.join(os.environ['HOME'], "CLS%s-%s" % (os.environ['MXDC_BEAMLINE'], today.strftime('%Y%b%d').upper()))
-    session = {
-        'path' : _path,
-        'current_path': _path,
-        'date' : today.isoformat(),
-        'directories': [_path],
-        'new' : True
-    }
-    if os.access(config_file, os.R_OK):
-        prev_session = json.loads(file(config_file).read())
-    else:
-        prev_session = {'date': '1990-01-01'}
-    
-    prev_date = datetime.strptime(prev_session['date'], '%Y-%m-%d').date()
-    if (today - prev_date).days > 7:  # Use new session if last was modified more than a week ago
-        new_session = session
-        _logger.info('New Session Directory: %s' % _path)
-    else:
-        new_session = prev_session
-    if not os.path.exists(new_session['path']):
-        os.makedirs(new_session['path'])
-    SESSION_INFO.update(new_session)
+    prev_date_string = config.get('session-start', '19900101')
+    prev_date = datetime.strptime(prev_date_string, '%Y%m%d').date()
+    if (today - prev_date).days > 6 or not 'session-key' in config:
+        date_string = today.strftime('%Y%m%d')
+        config['session-key'] ='{}-{}'.format(os.environ['MXDC_CONFIG'], date_string)
+        config['session-start'] = date_string
+        save_config(SESSION_CONFIG_FILE, config)
+    return config['session-key']
 
-atexit.register(save_session, SESSION_INFO)
+
+
+

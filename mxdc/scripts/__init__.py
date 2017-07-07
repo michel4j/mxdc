@@ -104,12 +104,26 @@ class RestoreBeam(Script):
     def run(self):
         if not self.beamline.all_shutters.is_open():
             self.beamline.all_shutters.open()
-        pos = self.beamline.monochromator.energy.get_position()
-        self.beamline.monochromator.energy.move_to(pos, wait=True, force=True)
+        pos = self.beamline.energy.get_position()
+        self.beamline.energy.move_to(pos, wait=True, force=True)
         return
 
 
+class DeiceGonio(Script):
+    description = 'Deice Goniometer'
+
+    def run(self):
+        if 'deicer' in self.beamline.registry:
+            pos = self.beamline.omega.get_position()
+            self.beamline.goniometer.configure(delta=360, time=60, angle=pos)
+            self.beamline.deicer.on()
+            self.beamline.goniometer.scan(wait=True)
+            self.beamline.omega.move_to(pos)
+            self.beamline.deicer.off()
+            self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+        return
+
 __all__ = [
     'RestoreBeam', 'OptimizeBeam', 'SetFreezeMode', 'SetBeamMode',
-    'SetCollectMode', 'SetMountMode', 'SetCenteringMode'
+    'SetCollectMode', 'SetMountMode', 'SetCenteringMode', 'DeiceGonio',
 ]

@@ -110,7 +110,7 @@ class BasicAutomounter(BaseDevice):
     __gsignals__ = {
         'status': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING,)),
         'layout': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-        'samples-updated': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
+        'port-state': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
         'enabled': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_BOOLEAN,)),
         'preparing': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_BOOLEAN,)),
         'mounted': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
@@ -228,7 +228,7 @@ class BasicAutomounter(BaseDevice):
                     dewar_layout[entry] = SAM_LAYOUTS[entry]
 
         self.set_state(layout=dewar_layout)
-        self.set_state(samples_updated=port_states)
+        self.set_state(port_state=port_states)
 
 
     def abort(self):
@@ -737,7 +737,7 @@ class SimAutomounter(BasicAutomounter):
         self.set_state(
             busy=False, status='ready', enabled=True, message="Sample mounted",
             mounted=(port, ''), preparing=False, progress=(1.0, 'unknown', 'on gonio', 'in cradle'),
-            samples_updated={port: self.PortState.MOUNTED}
+            port_state={port: self.PortState.MOUNTED}
         )
         self._mounted_port = port
         if dry:
@@ -747,7 +747,7 @@ class SimAutomounter(BasicAutomounter):
         self.set_state(
             busy=False, status='ready', enabled=True, message="Sample dismounted",
             mounted=None, preparing=False, progress=(1.0, 'unknown', 'in port', 'in cradle'),
-            samples_updated={self._mounted_port: self.PortState.GOOD}
+            port_state={self._mounted_port: self.PortState.GOOD}
         )
         self._mounted_port = None
         if dry:

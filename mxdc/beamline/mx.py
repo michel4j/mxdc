@@ -12,11 +12,9 @@ class MXBeamline(object):
     configuration file is loaded as a python module and follows the 
     following conventions:
     
-        - Must be named the same as MXDC_BEAMLINE environment variable followed by .py
-          and placed in the directory defined by MXDC_CONFIG_PATH. For example if the 
-          MXDC_BEAMLINE is '08B1', the module should be '08B1.py'
+        -
         - Optionally will also load a local module defined in the file 
-          $(MXDC_BEAMLINE)_local.py e.g '08B1_local.py for the above example.
+          $(MXDC_CONFIG)_local.py e.g 'CMCFBM_local.py for the above example.
         - Global Variables:
               BEAMLINE_NAME = Any string preferably without spaces
               BEAMLINE_TYPE = Only the string 'MX' for now
@@ -33,7 +31,7 @@ class MXBeamline(object):
               MISC_SETTINGS       = A dictionary containing any other key value pairs
                                     will be available as beamline.config['misc']
               DEVICES             = A dictionary mapping device names to device objects.
-                                    See SIM.py for a standard set of names.
+                                    See CLSSIM.py for a standard set of names.
               CONSOLE_DEVICES = Same as above but only available in the console
                                 in addition to the above
               SERVICES = A dictionary mapping service names to service client objects
@@ -78,11 +76,12 @@ class MXBeamline(object):
     def setup(self):
         """Setup and register the beamline devices from configuration files."""
         ca.threads_init()
-        mod_name = os.environ.get('MXDC_BEAMLINE')
-        mod_dir = os.environ.get('MXDC_CONFIG_PATH')
+        mod_name = os.environ.get('MXDC_CONFIG')
+        mod_dir = os.path.join(os.environ.get('MXDC_PATH'), 'etc')
         self.logger = get_module_logger(__name__)
         try:
             g_params = imp.find_module(mod_name, [mod_dir])
+
             g_settings = imp.load_module('global_settings', *g_params)
             g_params[0].close()
         except ImportError:
@@ -103,10 +102,11 @@ class MXBeamline(object):
         _misc.update(getattr(l_settings, 'MISC_SETTINGS', {}))
         self.config.update({
             'name': self.name,
-            'admin_group': getattr(l_settings, 'ADMIN_GROUP', getattr(g_settings, 'ADMIN_GROUP', 2000)),
+            'admin_groups': getattr(l_settings, 'ADMIN_GROUPS', getattr(g_settings, 'ADMIN_GROUPS', [2000])),
             'energy_range': getattr(l_settings, 'BEAMLINE_ENERGY_RANGE', getattr(g_settings, 'BEAMLINE_ENERGY_RANGE', (6.0, 18.0))),
             'default_attenuation': getattr(l_settings, 'DEFAULT_ATTENUATION', getattr(g_settings, 'DEFAULT_ATTENUATION', 90.0)),
-            'default_exposure': getattr(l_settings, 'DEFAULT_EXPOSURE', getattr(g_settings, 'DEFAULT_EXPOSURE', 1.0)),
+            'default_exposure': getattr(l_settings, 'DEFAULT_EXPOSURE', getattr(g_settings, 'DEFAULT_EXPOSURE', 0.5)),
+            'default_delta': getattr(l_settings, 'DEFAULT_DELTA', getattr(g_settings, 'DEFAULT_DELTA', 0.5)),
             'default_beamstop': getattr(l_settings, 'DEFAULT_BEAMSTOP', getattr(g_settings, 'DEFAULT_BEAMSTOP', 25.0)),
             'default_distance': getattr(l_settings, 'DEFAULT_DISTANCE', getattr(g_settings, 'DEFAULT_DISTANCE', None)),
             'safe_beamstop': getattr(l_settings, 'SAFE_BEAMSTOP', getattr(g_settings, 'SAFE_BEAMSTOP', 25.0)),
@@ -143,9 +143,7 @@ class MXBeamline(object):
                 self.logger.debug('Setting up service: %s' % (srv_name))
         
         # Create and register other/compound devices
-        self.registry['monochromator'] = Monochromator(self.bragg_energy, self.energy, self.mostab)
         self.registry['collimator'] = Collimator(self.beam_x, self.beam_y, self.beam_w, self.beam_h)
-        self.registry['diffractometer'] = Diffractometer(self.distance, self.two_theta)
         if 'sample_y' in self.registry:
             self.registry['sample_stage'] = XYStage(self.sample_x, self.sample_y)
         else:
@@ -160,7 +158,11 @@ class MXBeamline(object):
         for nm in self.config['shutter_sequence']:
             _shutter_list.append(self.registry[nm])
         self.registry['all_shutters'] = ShutterGroup(*tuple(_shutter_list))
-        
+
+        # Setup coordination between Beam tuner and energy changes
+        if 'beam_tuner' in self.registry:
+            self.energy.connect('starting', lambda x: self.beam_tuner.pause())
+            self.energy.connect('done', lambda x: self.beam_tuner.resume())
         
         # Setup diagnostics on some devices
         self.diagnostics = []

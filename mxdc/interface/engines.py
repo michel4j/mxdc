@@ -9,7 +9,7 @@ Created on Feb 17, 2010
 from zope.interface import Interface, Attribute
 
 class IScanPlotter(Interface):
-    """Scan Plotter Object."""
+    """Scan TickerChart Object."""
     
     def connect_scan(self, scanner):
         """Connect handlers to scanner."""
