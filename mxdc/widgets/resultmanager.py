@@ -29,12 +29,12 @@ class ResultManager(Gtk.Alignment):
     def __init__(self):
         super(ResultManager, self).__init__()
         self.set(0, 0, 1, 1)
-        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'result_manager'),                                   'result_manager')
+        self._xml = gui.GUIFile(os.path.join(DATA_DIR, 'result_manager'), 'result_manager')
 
         self._create_widgets()
         self.active_sample = None
         self.active_strategy = None
-        self._dataset_path = config.SESSION_INFO['path']
+        self._dataset_path = os.path.join(os.environ['HOME'], config.get_session())
 
     def __getattr__(self, key):
         try:

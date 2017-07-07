@@ -49,7 +49,7 @@ class HutchWindow(Gtk.ApplicationWindow):
         self.sample_picker.set_border_width(9)
 
         self.beamline = globalRegistry.lookup([], IBeamline)
-        if self.beamline.config['admin_group'] in os.getgroups():
+        if set(os.getgroups()) & set(self.beamline.config['admin_groups']):
             self.image_viewer = ImageViewer(size=256)
             _lbl = Gtk.Label(label='Diffraction Viewer')
             _lbl.set_padding(6,0)
@@ -119,8 +119,8 @@ class HutchApp(object):
 
 def main():
     try:
-        _ = os.environ['MXDC_CONFIG_PATH']
-        _logger.info('Starting HutchViewer (%s)... ' % os.environ['MXDC_BEAMLINE'])
+        _ = os.environ['MXDC_CONFIG']
+        _logger.info('Starting HutchViewer (%s)... ' % os.environ['MXDC_CONFIG'])
     except:
         _logger.error('Could not find Beamline Control Module environment variables.')
         _logger.error('Please make sure the BCM is properly installed and configured.')

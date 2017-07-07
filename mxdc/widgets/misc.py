@@ -46,6 +46,77 @@ class ActiveLabel(Gtk.Label):
         # print alarm, severity
 
 
+class ActiveMenu(Gtk.Box, gui.BuilderMixin):
+    gui_roots = {
+        'data/active_menu': ['active_menu']
+    }
+
+    def __init__(self, device, label=None, fmt="%g", width=10):
+        super(ActiveMenu, self).__init__(orientation=Gtk.Orientation.HORIZONTAL)
+
+        # initialize housekeeping
+        self.device = device
+        self.name = label or self.device.name
+        self.name = self.name if not self.device.units else '%s (%s)' % (self.name, self.device.units)
+        self.target = 0.0
+        self.current = 0.0
+        self._first_change = True
+        self._last_signal = 0
+        self.running = False
+        self.action_active = True
+        self.width = width
+        self.number_format = fmt
+        self.format = self.number_format
+        self.values = {}
+        self.setup_gui()
+        self.build_gui()
+
+    def build_gui(self):
+        self.pack_start(self.active_menu, True, True, 0)
+
+        # Generate list of values
+        for i, value in enumerate(self.device.choices):
+            self.entry.append_text(self.format % value)
+            self.values[value] = i
+        for r in self.entry.get_cells():
+            r.set_alignment(0.5, 0.5)
+        # signals and parameters
+        self.device.connect('changed', self.on_value_changed)
+        self.device.connect('active', self.on_active_changed)
+        self.device.connect('health', self.on_health_changed)
+        self.entry.connect('changed', self.on_activate)
+        self.label.set_markup("<span size='small'><b>%s</b></span>" % (self.name,))
+
+    def on_activate(self, val):
+        target = float(self.entry.get_active_text())
+        self.device.set(target)
+
+    def apply(self):
+        target = self._get_target()
+        if hasattr(self.device, 'move_to'):
+            self.device.move_to(target)
+        elif hasattr(self.device, 'set'):
+            self.device.set(target)
+
+    def on_health_changed(self, obj, health):
+        state, _ = health
+        if state == 0:
+            self.entry.set_sensitive(True)
+        else:
+            self.entry.set_sensitive(False)
+
+    def on_value_changed(self, obj, val):
+        if val in self.values:
+            self.entry.set_active(self.values[val])
+        return True
+
+    def on_active_changed(self, obj, state):
+        if state:
+            self.entry.set_sensitive(True)
+        else:
+            self.entry.set_sensitive(False)
+
+
 class ActiveEntry(Gtk.Box, gui.BuilderMixin):
     gui_roots = {
         'data/active_entry': ['active_entry']
@@ -73,13 +144,13 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.build_gui()
 
     def build_gui(self):
-        self.sizegroup_h = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
-        self.sizegroup_v = Gtk.SizeGroup(Gtk.SizeGroupMode.VERTICAL)
-
-        self.sizegroup_h.add_widget(self.entry)
-        self.sizegroup_h.add_widget(self.fbk_label)
-        self.sizegroup_v.add_widget(self.entry)
-        self.sizegroup_v.add_widget(self.fbk_label)
+        # self.sizegroup_h = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
+        # self.sizegroup_v = Gtk.SizeGroup(Gtk.SizeGroupMode.VERTICAL)
+        #
+        # #self.sizegroup_h.add_widget(self.entry)
+        # self.sizegroup_h.add_widget(self.fbk_label)
+        # self.sizegroup_v.add_widget(self.entry)
+        # self.sizegroup_v.add_widget(self.fbk_label)
         self.pack_start(self.active_entry, True, True, 0)
 
         # signals and parameters
@@ -87,15 +158,18 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.device.connect('active', self._on_active_changed)
         self.device.connect('health', self._on_health_changed)
         self.action_btn.connect('clicked', self._on_activate)
+        self.entry.connect('icon-press', self._on_activate)
         self.entry.connect('activate', self._on_activate)
         self.label.set_markup("<span size='small'><b>%s</b></span>" % (self.name,))
-        self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000088"))
+        self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#204A87"))
+        self.entry_box.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse("#ffffff"))
+        self.entry.modify_base(Gtk.StateType.NORMAL, Gdk.color_parse("#ffffff"))
 
     def set_feedback(self, val):
         text = self.number_format % val
         if len(text) > self.width:
             text = "##.##"
-        self.fbk_label.set_markup('%7s ' % (text,))
+        self.fbk_label.set_text('%8s' % (text,))
 
     def set_target(self, val):
         text = self.number_format % val
@@ -130,15 +204,16 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         state, _ = health
 
         if state == 0:
-            self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
-            self.action_icon.set_from_icon_name("media-playback-start-symbolic",Gtk.IconSize.MENU)
+            self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#204A87"))
+            self.action_icon.set_from_icon_name("media-playback-start-symbolic",Gtk.IconSize.BUTTON)
             self._set_active(True)
         else:
             if (state | 16) == state:
-                self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#333366"))
+                self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#CE5C00"))
             else:
-                self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#660000"))
-                self.action_icon.set_from_stock('gtk-dialog-warning', Gtk.IconSize.MENU)
+                self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#A40000"))
+                self.action_icon.set_from_stock('gtk-dialog-warning', Gtk.IconSize.BUTTON)
+
             self._set_active(False)
 
     def get_fraction(self, val):
@@ -152,7 +227,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
             self._first_change = False
         return True
 
-    def _on_activate(self, obj):
+    def _on_activate(self, obj, data=None, event=None):
         if self.action_active:
             if self.running:
                 self.stop()
@@ -184,7 +259,7 @@ class MotorEntry(ActiveEntry):
         self._animation = GdkPixbuf.PixbufAnimation.new_from_file(
             os.path.join(os.path.dirname(__file__), 'data/active_stop.gif')
         )
-        self.entry.set_progress_fraction(0.0)
+        #self.entry.set_progress_fraction(0.0)
 
     def get_fraction(self, val):
         if hasattr(self, 'current') and hasattr(self, 'target'):
@@ -195,7 +270,7 @@ class MotorEntry(ActiveEntry):
 
     def stop(self):
         self.device.stop()
-        self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.MENU)
+        self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
 
     def _on_motion_changed(self, obj, motion):
         if motion:
@@ -204,9 +279,10 @@ class MotorEntry(ActiveEntry):
             self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#0000ff"))
         else:
             self.running = False
-            self.entry.set_progress_fraction(0.0)
-            self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.MENU)
+            #self.entry.set_progress_fraction(0.0)
+            self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
             self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
+
         self.set_feedback(self.device.get_position())
         return True
 
@@ -215,7 +291,8 @@ class MotorEntry(ActiveEntry):
         return True
 
     def _on_progress(self, obj, val):
-        self.entry.set_progress_fraction(self.get_fraction(val))
+        #self.entry.set_progress_fraction(self.get_fraction(val))
+        pass
 
 
 class ScriptButton(Gtk.Button):

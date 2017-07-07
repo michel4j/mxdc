@@ -1,139 +1,217 @@
+from gi.repository import GObject
 from mxdc.device.base import BaseDevice
-from mxdc.interface.devices import IOptimizer
 from mxdc.utils.log import get_module_logger
 from zope.interface import implements
-import time
-
-
+from zope.interface import Interface, Attribute, invariant
+import random
+import math
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
 
-class Optimizer(BaseDevice):
-    implements(IOptimizer)
-    
-    def __init__(self, name):
-        BaseDevice.__init__(self)
-        self.set_state(active=True)
-        self.name = name
-    
+
+class IBeamTuner(Interface):
+    """A Beam Tuner object."""
+
+    tunable = Attribute('True or False, determines if the tuning is allowed or not')
+
+    def tune_up(self):
+        """Adjust up"""
+
+    def tune_down(self):
+        """Adjust down"""
+
+    def get_value(self):
+        """Get value"""
+
+    def reset(self):
+        """Reset Tuner."""
+
     def pause(self):
+        """Pause tuner"""
+
+    def resume(self):
+        """Resume Tuner"""
+
+    def start(self):
+        """Start Tuner"""
+
+    def stop(self):
+        """Stop Tuner"""
+
+class BaseTuner(BaseDevice):
+    implements(IBeamTuner)
+    __gsignals__ = {
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
+        "percent": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
+    }
+
+    def __init__(self):
+        super(BaseTuner, self).__init__()
+        self.tunable = False
+
+    def tune_up(self):
         pass
-    
+
+    def tune_down(self):
+        pass
+
+    def get_value(self):
+        return 0.0
+
+    def reset(self):
+        pass
+
+    def pause(self):
+       pass
+
     def resume(self):
         pass
-    
+
     def start(self):
         pass
-    
+
     def stop(self):
         pass
-        
-    def wait(self):
-        return
 
-SimOptimizer = Optimizer
-  
-class BossPIDController(BaseDevice):
-    implements(IOptimizer)
-    
-    def __init__(self, name, energy, target='Y', target_func=None):
-        BaseDevice.__init__(self)
+
+class BOSSTuner(BaseTuner):
+    def __init__(self, name, reference=None, off_value=5000, pause_value=1e8):
+        BaseTuner.__init__(self)
         self.name = name
-        self._enable = self.add_pv('%s:EnableDacOUT' % name)
-        self._status = self.add_pv('%s:EnableDacIN' % name)
-        self._targets = {
-           'Y': self.add_pv('%s:SetYOUT' % name),
-           'I': self.add_pv('%s:SetIntOUT' % name),
-           'X': self.add_pv('%s:SetXOUT' % name),
-        }       
-        self._target = self._targets[target]
-        self._beam_off = self.add_pv('%s:OffIntOUT' % name)
-        self._status.connect('changed', self._state_change)
-        self._off_value = 5000
-        self._pause_value = 100000000
-        self._target_func = target_func
-        self._energy = self.add_pv(energy)
-        self._energy.connect('changed',self.update_target)    
-        
-        
-    def _state_change(self, obj, val):
-        self.set_state(busy=(val==1))
-    
-    def update_target(self, obj, energy):
-        if self.active_state and self._target_func:
-            new_target = self._target_func(energy)
-            # FIXME: avoid multiple instances changing value simultaneously
-            if round(self._target.get(),4) != new_target:
-                self._target.set(new_target, flush=True)
-    
+        self.enable_cmd = self.add_pv('{}:EnableDacOUT'.format(name))
+        self.enabled_fbk = self.add_pv('{}:EnableDacIN'.format(name))
+        self.beam_threshold = self.add_pv('{}:OffIntOUT'.format(name))
+        self.value_fbk = self.add_pv('{}:PA_IntRAW'.format(name))
+        self.enabled_fbk.connect('changed', self.on_state_changed)
+        self.value_fbk.connect('changed', self.on_value_changed)
+        if reference:
+            self.reference_fbk = self.add_pv(reference)
+        else:
+            self.reference_fbk = self.value_fbk
+        self._off_value = off_value
+        self._pause_value = pause_value
+
+
+    def reset(self):
+        self.stop()
+        self.start()
+
+    def get_value(self):
+        return self.value_fbk.get()
+
     def pause(self):
-        _logger.debug('Pausing Beam Stabilization')
-        if self.active_state and self._status.get() == 1 and self._beam_off.get() != self._pause_value:
-            self._off_value = self._beam_off.get()
-            self._beam_off.set(self._pause_value)
+        _logger.debug('Pausing BOSS')
+        if self.active_state and self.enabled_state and self.beam_threshold.get() != self._pause_value:
+            self._off_value = self.beam_threshold.get()
+            self.beam_threshold.set(self._pause_value)
 
     def resume(self):
-        _logger.debug('Resuming Beam Stabilization')
+        _logger.debug('Resuming BOSS')
         if self.active_state:
-            self._beam_off.set(self._off_value)
-                
+            self.beam_threshold.set(self._off_value)
+
     def start(self):
-        _logger.debug('Enabling Beam Stabilization')
+        _logger.debug('Enabling BOSS')
         if self.active_state:
-            self._enable.put(1)
-        
+            self.enable_cmd.put(1)
+
     def stop(self):
         _logger.debug('Disabling Beam Stabilization')
         if self.active_state:
-            self._enable.put(0)
-    
-    def wait(self):
-        return
-        
-class MostabPIDController(BaseDevice):
-    
-    implements(IOptimizer)
-    
-    def __init__(self, name):
-        BaseDevice.__init__(self)
-        self.name = name
-        self._start = self.add_pv('%s:Mostab:opt:cmd' % name)
-        self._stop = self.add_pv('%s:abortFlag' % name)
-        self._state = self.add_pv('%s:Mostab:opt:sts'% name)
-        self._enabled = self.add_pv('%s:Mostab:opt:enabled'% name)
-        self._command_active = False
-        self._state.connect('changed', self._state_change)
-        self._enabled.connect('changed', self._on_enable)
-        
-        
-    def _state_change(self, obj, val):
-        if val == 1:
-            self.set_state(busy=True)
-        else:
-            self._command_active = False
-            self.set_state(busy=False)
-    
-    def _on_enable(self, obj, val):
-        if val == 0:
-            self.set_state(health=(16, 'srcheck', "No Beam"))
-        else:
-            self.set_state(health=(0, 'srcheck'))
-        
-    def start(self):
-        if self.health_state[0] == 0:
-            self._command_active = True
-            self._start.put(1)
-        else:
-            _logger.warning('Not enough beam to optimize.')
-        
-    
-    def stop(self):
-        self._stop.put(1)
-    
-    def wait(self):
-        poll=0.05
-        while self.busy_state or self._command_active:
-            time.sleep(poll)
+            self.enable_cmd.put(0)
 
-__all__ = ['BossPIDController', 'MostabPIDController', 'SimOptimizer']
-        
+    def on_state_changed(self, obj, val):
+        self.set_state(enabled=(val==1))
+
+    def on_value_changed(self, obj, val):
+        ref = self.reference_fbk.get()
+        perc = 0.0 if ref != 0 else 100.0 * val/ref
+        self.set_state(changed=val, percent=perc)
+
+
+class MOSTABTuner(BaseTuner):
+    def __init__(self, name, picoameter, reference=None, tune_step=50):
+        BaseTuner.__init__(self)
+        self.name = name
+        self.tunable = True
+        self.tune_cmd = self.add_pv('{}:outPut'.format(name))
+        self.reset_cmd = self.add_pv('{}:Reset.PROC'.format(picoameter))
+        self.acquire_cmd = self.add_pv('{}:Acquire'.format(picoameter))
+        self.value_fbk = self.add_pv('{}:SumAll:MeanValue_RBV'.format(picoameter))
+        self.value_fbk.connect('changed', self.on_value_changed)
+        if reference:
+            self.reference_fbk = self.add_pv(reference)
+        else:
+            self.reference_fbk = self.value_fbk
+        self.tune_step = tune_step
+
+    def tune_up(self):
+        pos = self.tune_cmd.get()
+        self.tune_cmd.put(pos + self.tune_step)
+
+    def tune_down(self):
+        pos = self.tune_cmd.get()
+        self.tune_cmd.put(pos - self.tune_step)
+
+    def reset(self):
+        self.reset_cmd.put(1)
+        self.acquire_cmd.put(1)
+
+    def get_value(self):
+        return self.value_fbk.get()
+
+    def pause(self):
+        self.acquire_cmd.put(0)
+
+    def resume(self):
+        self.acquire_cmd.put(1)
+
+    def start(self):
+        if self.active_state:
+            self.reset()
+
+    def stop(self):
+        if self.active_state:
+            self.acquire_cmd.put(0)
+
+    def on_state_changed(self, obj, val):
+        self.set_state(enabled=(val==1))
+
+    def on_value_changed(self, obj, val):
+        ref = self.reference_fbk.get()
+        perc = 0.0 if ref != 0 else 100.0 * val/ref
+        self.set_state(changed=val, percent=perc)
+
+
+class SimTuner(BaseTuner):
+    def __init__(self, name):
+        BaseTuner.__init__(self)
+        self.set_state(active=True)
+        self.name = name
+        self.pos = -1.0
+        self.reference = 10000
+        self.value = self._calc_int()
+        self.tunable = True
+        GObject.timeout_add(50, self._change_value)
+
+    def tune_up(self):
+        self.pos += 0.01
+
+    def tune_down(self):
+        self.pos -= 0.01
+
+    def reset(self):
+        self.pos = -1.0
+
+    def _calc_int(self):
+        return self.reference * (1/math.sqrt(0.4*math.pi)) * math.exp(-0.5*(self.pos**2)/0.2)/0.892
+
+    def _change_value(self):
+        self.value = self._calc_int()
+        noise = 10 * (random.random() - 0.5)
+        value = noise + self.value
+        perc = 100.0 * value / self.reference
+        self.set_state(changed=value, percent=perc)
+        return True
+
+__all__ = ['BOSSTuner', 'MOSTABTuner', 'SimTuner']

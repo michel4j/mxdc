@@ -6,14 +6,58 @@ import shutil
 import random
 
 from datetime import datetime
-from zope.interface import implements
-from mxdc.interface.devices import IImagingDetector
+from zope.interface import implements, Attribute
+from mxdc.interface.devices import IDevice
 from mxdc.com import ca
 from mxdc.device.base import BaseDevice
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
+
+
+class IImagingDetector(IDevice):
+    """An imaging detector device for aquiring image frames."""
+
+    size = Attribute("""A size in pixels along x-axis.""")
+    resolution = Attribute("""Pixel resolution in mm.""")
+    mm_size = Attribute("""Minimum detector size in mm""")
+
+
+    def initialize():
+        """Reset and initialize the detector."""
+
+    def start():
+        """Start acquiring."""
+
+    def save(props):
+        """Stop acquiring and save the image.
+
+        Arguments:
+        props    -- a dictionary of property name, value pairs to set
+        valid keys for props are:
+            delta       -- rotation range in degrees for this frame
+            distance    -- diffractometer distance for this frame
+            time        -- exposure time for this frame
+            angle       -- starting angle position for this frame
+            index       -- frame number
+            energy      -- beam energy for this frame
+            prefix      -- file name prefix
+            filename    -- name of image file to save
+            directory   -- directory to save image
+        """
+
+    def wait():
+        """Wait for detector to become idle."""
+
+    def stop():
+        """Terminate all detector operations."""
+
+    def get_origin():
+        """Return the current x,y position of the beam on the detector as a tuple"""
+
+    def set_parameters():
+        """Update the device parameters."""
 
 
 class SimCCDImager(BaseDevice):
@@ -26,6 +70,7 @@ class SimCCDImager(BaseDevice):
         BaseDevice.__init__(self)
         self.size = int(size), int(size)
         self.resolution = float(resolution)
+        self.mm_size = self.resolution * min(self.size)
         self.name = name
         self.detector_type = detector_type
         self.shutterless = False
@@ -113,6 +158,7 @@ class PIL6MImager(BaseDevice):
         super(PIL6MImager, self).__init__()
         self.size = 2463, 2527
         self.resolution = 0.172
+        self.mm_size = self.resolution * min(self.size)
         self.name = description
         self.detector_type = 'PILATUS 6M'
         self.shutterless = True
@@ -276,6 +322,7 @@ class ADRayonixImager(BaseDevice):
         super(ADRayonixImager, self).__init__()
         self.size = size, size
         self.resolution = 0.073242
+        self.mm_size = self.resolution * min(self.size)
         self.name = desc
         self.detector_type = detector_type
         self.shutterless = False

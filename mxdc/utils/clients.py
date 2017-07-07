@@ -2,7 +2,7 @@ import json
 import os
 import re
 
-import gobject
+from gi.repository import GObject
 import requests
 from mxdc.service.base import BaseService
 from mxdc.utils import mdns
@@ -39,7 +39,7 @@ class DPMClient(BaseService):
                         }
                 self.on_service_added(None, data)
         else:
-            gobject.idle_add(self.setup)
+            GObject.idle_add(self.setup)
 
     def on_service_added(self, obj, data):
         if self._service_found:
@@ -286,7 +286,7 @@ class MxDCClient(BaseService):
         self.service = None
         self._ready = False
         self.service_type = service_type
-        gobject.idle_add(self.setup)
+        GObject.idle_add(self.setup)
 
     def on_service_added(self, obj, data):
         self._service_found = True
@@ -316,7 +316,7 @@ class MxDCClient(BaseService):
         self.browser = mdns.Browser(self.service_type)
         self.added_id = self.browser.connect('added', self.on_service_added)
         self.removed_id = self.browser.connect('removed', self.on_service_removed)
-        gobject.timeout_add(2000, self.notify_failure)
+        GObject.timeout_add(2000, self.notify_failure)
 
     def on_connected(self, perspective):
         """ I am called when a connection to the MxDC instance has been established.

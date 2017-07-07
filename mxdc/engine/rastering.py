@@ -153,7 +153,7 @@ class RasterCollector(GObject.GObject):
                 if not self.beamline.sample_stage.y.is_busy():
                     self.beamline.sample_stage.y.move_to(cell_y, wait=True)
                                 
-                self.beamline.diffractometer.distance.move_to(frame['distance'], wait=True)              
+                self.beamline.distance.move_to(frame['distance'], wait=True)
                 
                 # Prepare image header
                 header['delta_angle'] = frame['delta_angle']
