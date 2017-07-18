@@ -163,7 +163,11 @@ class MXBeamline(object):
         if 'beam_tuner' in self.registry:
             self.energy.connect('starting', lambda x: self.beam_tuner.pause())
             self.energy.connect('done', lambda x: self.beam_tuner.resume())
-        
+
+        # default detector cover
+        if not 'detector_cover' in self.registry:
+            self.registry['detector_cover'] = SimShutter('Dummy Detector Cover')
+
         # Setup diagnostics on some devices
         self.diagnostics = []
         for k in ['automounter', 'goniometer', 'detector', 'cryojet', 'mca', 'enclosures', 'all_shutters', 'storage_ring']:

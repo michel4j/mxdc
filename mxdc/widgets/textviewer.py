@@ -11,7 +11,11 @@ class GUIHandler(logging.Handler):
         self.viewer = viewer
     
     def emit(self, record):
-        GObject.idle_add(lambda: self.viewer.add_text(self.format(record), level=record.levelno))
+        GObject.idle_add(self._add_text, record)
+
+    def _add_text(self, record):
+        self.viewer.add_text(self.format(record), level=record.levelno)
+
 
 class TextViewer(object):
     def __init__(self, view, size=5000, font='Monospace 8'):  

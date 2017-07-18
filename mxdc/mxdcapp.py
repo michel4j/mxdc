@@ -19,6 +19,7 @@ from twisted.spread import pb
 import os
 import time
 import warnings
+import logging
 from gi.repository import Gtk
 
 USE_TWISTED = True
@@ -110,12 +111,20 @@ def run_main_loop(func):
         Gtk.idle_add(func)
         Gtk.main()
 
+def clear_loggers():
+    # disconnect all log handlers first
+    logger = logging.getLogger('')
+    for h in logger.handlers:
+        logger.removeHandler(h)
+
 
 def exit_main_loop():
+    clear_loggers()
     if USE_TWISTED:
         reactor.stop()
     else:
         Gtk.main_quit()
+
 
 
 def main():

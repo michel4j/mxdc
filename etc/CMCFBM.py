@@ -56,6 +56,7 @@ DEVICES = {
     'detector_z':  ENCMotor('SMTR1608-5-B10-14:mm', precision=2),
     'two_theta':  PseudoMotor('BL08B1:det:2theta:deg'),
     'detector': ADRayonixImager('CCDC1608-B1-01:cam1', 4096, 'MX300HE'),
+
     
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  PseudoMotor('PSMTR1608-5-B10-08:pm:mm'),  

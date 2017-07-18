@@ -6,7 +6,7 @@ from mxdc.utils import json, runlists
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
-from zope.interface import implements
+from zope.interface import Interface, implements
 from gi.repository import GObject
 import os
 import pwd
@@ -37,7 +37,7 @@ DEFAULT_PARAMETERS = {
 class DataCollector(GObject.GObject):
     implements(IDataCollector)
     __gsignals__ = {
-        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
+        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str, )),
         'progress': (GObject.SIGNAL_RUN_LAST, None, (float,)),
         'done': (GObject.SIGNAL_RUN_LAST, None, []),
         'paused': (GObject.SIGNAL_RUN_LAST, None, (bool, object)),
@@ -63,18 +63,20 @@ class DataCollector(GObject.GObject):
         self.new_image_handler_id = self.beamline.detector.connect('new-image', self.on_new_image)
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
         self.beamline.detector.handler_block(self.new_image_handler_id)
+        globalRegistry.register([], IDataCollector, '', self)
 
     def configure(self, run_data, take_snapshots=True):
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
         datasets, wedges = runlists.generate_wedges(self.config['runs'])
+        json.dumps(wedges, indent=4)
         self.config['wedges'] = wedges
         self.config['datasets'] = datasets
         self.beamline.image_server.set_user(pwd.getpwuid(os.geteuid())[0], os.geteuid(), os.getegid())
 
         # delete existing frames
         for wedge in wedges:
-            frame_list = [wedge['frame_template'].format(i + wedge['start_frame']) for i in range(wedge['num_frames'])]
+            frame_list = [wedge['frame_template'].format(i + wedge['first']) for i in range(wedge['num_frames'])]
             self.beamline.detector.delete(wedge['directory'], *frame_list)
 
     def start(self):
@@ -129,37 +131,32 @@ class DataCollector(GObject.GObject):
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
 
-            for frame in runlists.generate_frame_list(wedge):
+            for frame in runlists.generate_frames(wedge):
                 if self.stopped or self.paused: break
                 # Prepare image header
                 detector_parameters = {
-                    'file_prefix': frame['file_prefix'],
-                    'delta_angle': frame['delta_angle'],
+                    'file_prefix': frame['dataset'],
+                    'delta_angle': frame['delta'],
                     'directory': frame['directory'],
                     'distance': frame['distance'],
-                    'exposure_time': frame['exposure_time'],
-                    'start_frame': frame['start_frame'],
+                    'exposure_time': frame['exposure'],
+                    'start_frame': frame['first'],
                     'wavelength': energy_to_wavelength(frame['energy']),
                     'energy': frame['energy'],
                     'frame_name': frame['frame_name'],
-                    'start_angle': frame['start_angle'],
+                    'start_angle': frame['start'],
                 }
 
                 # prepare goniometer for scan
                 self.beamline.goniometer.configure(
-                    time=frame['exposure_time'], delta=frame['delta_angle'], angle=frame['start_angle']
+                    time=frame['exposure'], delta=frame['delta'], angle=frame['start']
                 )
-                if frame.get('dafs', False):
-                    self.beamline.i_0.async_count(frame['exposure_time'])
 
                 if self.stopped or self.paused: break
                 self.beamline.detector.set_parameters(detector_parameters)
                 self.beamline.detector.start(first=is_first_frame)
-                self.beamline.goniometer.scan(wait=True, timeout=frame['exposure_time'] * 4)
+                self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 4)
                 self.beamline.detector.save()
-
-                if frame.get('dafs', False):
-                    _logger.info('DAFS I0  {}\t{}'.format(frame['frame_name'], self.beamline.i_0.avg_value))
 
                 is_first_frame = False
                 time.sleep(0)
@@ -171,17 +168,17 @@ class DataCollector(GObject.GObject):
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
             detector_parameters = {
-                'file_prefix': wedge['file_prefix'],
-                'start_frame': wedge['start_frame'],
+                'file_prefix': wedge['dataset'],
+                'start_frame': wedge['first'],
                 'directory': wedge['directory'],
                 'wavelength': energy_to_wavelength(wedge['energy']),
                 'energy': wedge['energy'],
                 'distance': wedge['distance'],
                 'two_theta': wedge['two_theta'],
-                'exposure_time': wedge['exposure_time'],
+                'exposure_time': wedge['exposure'],
                 'num_frames': wedge['num_frames'],
-                'start_angle': wedge['start_angle'],
-                'delta_angle': wedge['delta_angle'],
+                'start_angle': wedge['start'],
+                'delta_angle': wedge['delta'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
             }
 
@@ -190,39 +187,43 @@ class DataCollector(GObject.GObject):
                 wedge['num_frames'], wedge['frame_template'].format(wedge['start_frame']))
             )
             self.beamline.goniometer.configure(
-                time=wedge['exposure_time'] * wedge['num_frames'],
-                delta=wedge['delta_angle'] * wedge['num_frames'],
-                angle=wedge['start_angle']
+                time=wedge['exposure'] * wedge['num_frames'],
+                delta=wedge['delta'] * wedge['num_frames'],
+                angle=wedge['start']
             )
 
             # Perform scan
             self.beamline.detector.set_parameters(detector_parameters)
             if self.stopped or self.paused: break
             self.beamline.detector.start(first=is_first_frame)
-            self.beamline.goniometer.scan(wait=True, timeout=wedge['exposure_time'] * wedge['num_frames'] * 2)
+            self.beamline.goniometer.scan(wait=True, timeout=wedge['exposure'] * wedge['num_frames'] * 2)
 
             is_first_frame = False
             time.sleep(0)
 
     def take_snapshots(self):
         if self.config['take_snapshots']:
-            datasets = self.config['datasets']
-            name = os.path.commonprefix([dataset['name'] for dataset in datasets])
+            wedges = self.config['wedges']
+            name = os.path.commonprefix([wedge['dataset'] for wedge in wedges])
+            wedge = wedges[0]
             prefix = '{}-pic'.format(name)
-            a1 = datasets[0]['start_angle']
+            a1 = wedge['start']
             a2 = (a1 + 90.0) % 360.0
-            if not os.path.exists(os.path.join(datasets[0]['directory'], '{}_{:0.0f}.png'.format(prefix, a1))):
+
+            # setup folder for wedge
+            self.beamline.image_server.setup_folder(wedge['directory'])
+            if not os.path.exists(os.path.join(wedge['directory'], '{}_{:0.0f}.png'.format(prefix, a1))):
                 _logger.info('Taking snapshots of crystal at {:0.0f} and {:0.0f}'.format(a1, a2))
                 snapshot.take_sample_snapshots(
-                    prefix, os.path.join(datasets[0]['directory']), [a2, a1], decorate=True
+                    prefix, os.path.join(wedge['directory']), [a2, a1], decorate=True
                 )
 
     def prepare_for_wedge(self, wedge):
-        # make sure shutter is closed before starting
-        self.beamline.exposure_shutter.close()
-
         # setup folder for wedge
         self.beamline.image_server.setup_folder(wedge['directory'])
+
+        # make sure shutter is closed before starting
+        self.beamline.exposure_shutter.close()
 
         # setup devices
         if abs(self.beamline.energy.get_position() - wedge['energy']) >= 0.0005:
@@ -353,11 +354,10 @@ class Screener(GObject.GObject):
         self.paused = False
         self.stopped = True
         self.skip_collected = False
-        self.data_collector = None
         self._collect_results = []
         self.last_pause = None
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.data_collector = DataCollector()
+        self.data_collector = globalRegistry.lookup([], IDataCollector)
         self.data_collector.connect('new-image', self.on_new_image)
 
     def configure(self, run_list):

@@ -32,17 +32,7 @@ else:
     VERSION = "- Development -"
 
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
-STYLES = """
-    GTKEntry.squared {
-        border-radius: 0;
-    }
-    GTKButton.small {
-        border-radius: 20;
-        border-width: 0 0 0 0;
-        padding: 0;
-        margin: 0;
-    }
-"""
+
 class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     gui_roots = {
         'data/mxdc_main': ['app_menu', 'header_bar', 'mxdc_main']
@@ -52,10 +42,6 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         super(AppWindow, self).__init__(name='MxDC')
         self.set_wmclass("MxDC", "MxDC")
         self.set_position(Gtk.WindowPosition.CENTER)
-        css = Gtk.CssProvider()
-        css.load_from_data(STYLES)
-        style = self.get_style_context()
-        style.add_provider(css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         settings = self.get_settings()
         settings.props.gtk_enable_animations = True
         self.set_size_request(1290, 884)
