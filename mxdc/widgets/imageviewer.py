@@ -34,7 +34,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         'start_angle': '{:0.2f} deg',
         'exposure_time': '{:0.2f} s',
         'distance': '{:0.1f} mm',
-        'pixel_size': '{:0.3f} um',
+        'pixel_size': '{:0.4f} um',
         'detector_size': '{}x{}',
         'filename': '{}',
         'detector_type': '{}',
