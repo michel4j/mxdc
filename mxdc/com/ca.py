@@ -255,8 +255,7 @@ class PV(BasePV):
     def __init__(self, name, monitor=True, timed=False, connect=False):
         super(PV, self).__init__(name, monitor=monitor, timed=timed)
 
-        self.state_info = {'active': False, 'changed': 0,
-                           'timed-change': (0, 0), 'alarm': (0, 0)}
+        self.state_info = {'active': False, 'changed': 0, 'time': 0, 'alarm': (0, 0)}
         self._dev_state_patt = re.compile('^(\w+)_state$')
         self._name = name
         self._monitor = monitor
@@ -436,22 +435,16 @@ class PV(BasePV):
             else:
                 self._val = dbr.contents.value
 
+
+        self._time = epics_to_posixtime(dbr.contents.stamp)
+        self.set_state(time=self._time)
         self.set_state(changed=self._val)
-        if self._time_changes:
-            self._time = epics_to_posixtime(dbr.contents.stamp)
-            self.set_state(timed_change=(self._val, self._time))
         _alm, _sev = dbr.contents.status, dbr.contents.severity
         if (_alm, _sev) != (self._alarm, self._severity):
             self._alarm, self._severity = _alm, _sev
             self.set_state(alarm=(self._alarm, self._severity))
         # self._lock.release()
         return 0
-
-    def set_state(self, **kwargs):
-        for st, val in kwargs.items():
-            st = st.replace('_', '-')
-            self.state_info.update({st: val})
-            GObject.idle_add(self.emit, st, val)
 
     def connected(self):
         """Returns True if the channel is active"""

@@ -144,13 +144,13 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.build_gui()
 
     def build_gui(self):
-        # self.sizegroup_h = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
-        # self.sizegroup_v = Gtk.SizeGroup(Gtk.SizeGroupMode.VERTICAL)
-        #
-        # #self.sizegroup_h.add_widget(self.entry)
-        # self.sizegroup_h.add_widget(self.fbk_label)
-        # self.sizegroup_v.add_widget(self.entry)
-        # self.sizegroup_v.add_widget(self.fbk_label)
+        self.sizegroup_h = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
+        #self.sizegroup_v = Gtk.SizeGroup(Gtk.SizeGroupMode.VERTICAL)
+
+        #self.sizegroup_h.add_widget(self.entry)
+        #self.sizegroup_h.add_widget(self.fbk_label)
+        #self.sizegroup_v.add_widget(self.entry)
+        #self.sizegroup_v.add_widget(self.fbk_label)
         self.pack_start(self.active_entry, True, True, 0)
 
         # signals and parameters
@@ -162,8 +162,6 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.entry.connect('activate', self._on_activate)
         self.label.set_markup("<span size='small'><b>%s</b></span>" % (self.name,))
         self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#204A87"))
-        self.entry_box.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse("#ffffff"))
-        self.entry.modify_base(Gtk.StateType.NORMAL, Gdk.color_parse("#ffffff"))
 
     def set_feedback(self, val):
         text = self.number_format % val
@@ -259,7 +257,6 @@ class MotorEntry(ActiveEntry):
         self._animation = GdkPixbuf.PixbufAnimation.new_from_file(
             os.path.join(os.path.dirname(__file__), 'data/active_stop.gif')
         )
-        #self.entry.set_progress_fraction(0.0)
 
     def get_fraction(self, val):
         if hasattr(self, 'current') and hasattr(self, 'target'):
@@ -279,7 +276,6 @@ class MotorEntry(ActiveEntry):
             self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#0000ff"))
         else:
             self.running = False
-            #self.entry.set_progress_fraction(0.0)
             self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
             self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
 

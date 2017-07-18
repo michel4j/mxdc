@@ -139,11 +139,11 @@ class LIMSClient(BaseService):
             'id': data.get('id'),
             'name': data['name'],
             'resolution': round(data['resolution'], 5),
-            'start_angle': data['start_angle'],
-            'delta_angle': data['delta_angle'],
-            'first_frame': data['first_frame'],
+            'start_angle': data['start'],
+            'delta_angle': data['delta'],
+            'first_frame': data['first'],
             'frame_sets': data['frame_sets'],
-            'exposure_time': data['exposure_time'],
+            'exposure_time': data['exposure'],
             'two_theta': data['two_theta'],
             'wavelength': round(data['wavelength'], 5),
             'detector': data['detector'],
@@ -154,8 +154,8 @@ class LIMSClient(BaseService):
             'url': data['directory'],
             'staff_comments': data.get('comments'),
         }
-        if data.get('crystal_id'):
-            json_info['crystal_id'] = int(data['crystal_id'])
+        if data.get('sample_id'):
+            json_info['sample_id'] = int(data['sample_id'])
         if data['num_frames'] < 10:
             json_info['kind'] = 0  # screening
         else:
@@ -191,7 +191,7 @@ class LIMSClient(BaseService):
         new_info = {}
 
         if kind == 1:  # Excitation Scan
-            crystal_id = None if not scan['parameters'].get('crystal_id', '') else int(scan['parameters']['crystal_id'])
+            crystal_id = None if not scan['parameters'].get('sample_id', '') else int(scan['parameters']['sample_id'])
             new_info = {
                 'kind': kind,
                 'details': {

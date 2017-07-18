@@ -14,7 +14,7 @@ from mxdc.engine.rastering import RasterCollector
 from mxdc.engine.scripting import get_scripts
 from mxdc.interface.engines import IDataCollector
 from mxdc.utils import config, gui
-from mxdc.utils.runlists import determine_skip, summarize_frame_set
+from mxdc.utils.runlists import summarize_gaps, summarize_list
 from mxdc.widgets import dialogs
 from mxdc.widgets.textviewer import TextViewer, GUIHandler
 
@@ -517,8 +517,8 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
                     'start_angle': 0.0,
                     'wedge': 360.0,
                     'total_angle': (max(collect_frames)) * delta,
-                    'skip': determine_skip(collect_frames),
-                    'frame_set': summarize_frame_set(collect_frames),
+                    'skip': summarize_gaps(collect_frames),
+                    'frame_set': summarize_list(collect_frames),
                 })
 
             # Add dismount task for last item

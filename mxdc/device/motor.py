@@ -25,7 +25,7 @@ class MotorBase(BaseDevice):
           Data contains the current position of the motor.
         - `target-changed` (float): Emitted everytime the requested position of the motor changes.
           Data is a tuple containing the previous set point and the current one.
-        - `timed-change` (tuple(float, float)): Emitted everytime the motor changes.
+        - `time` (float): Emitted everytime the motor changes.
           Data is a 2-tuple with the current position and the timestamp of the last change.
         - `starting` (None): Emitted when this a command to move has been accepted by this instance of the motor.
         - `done` (None): Emitted within the instance when a commanded move has completed.
@@ -38,12 +38,11 @@ class MotorBase(BaseDevice):
         "starting": (GObject.SignalFlags.RUN_FIRST, None, []),
         "done": (GObject.SignalFlags.RUN_FIRST, None, []),
         "target-changed": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_PYOBJECT,)),        
-        "timed-change": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_PYOBJECT,)),
+        "time": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_PYOBJECT,)),
         }  
 
     def __init__(self, name):
         BaseDevice.__init__(self)
-        #self.set_state(changed=0.0)
         self.name = name
         self._moving = False
         self._command_sent = False
@@ -60,7 +59,7 @@ class MotorBase(BaseDevice):
     def do_changed(self, st):
         pass
     
-    def do_timed_change(self, st):
+    def do_time(self, st):
         pass
     
     def do_starting(self):
@@ -74,14 +73,12 @@ class MotorBase(BaseDevice):
             self.set_state(done=None)
 
     def _signal_change(self, obj, value):
+        self.set_state(time=obj.time_state)
         self.set_state(changed=self.get_position())
 
     def _signal_target(self, obj, value):
         self.set_state(target_changed=(self._prev_target, value))
         self._prev_target = value
-
-    def _signal_timed_change(self, obj, data):
-        self.set_state(timed_change=data, changed=data[0])
     
     def _signal_move(self, obj, state):
         if state == self._move_active_value:
@@ -125,7 +122,7 @@ class SimMotor(MotorBase):
         self._stopped = False
         self._enabled = True
         self._command_sent = False
-        self.set_state(health=(0,''), active=active, changed=pos)
+        self.set_state(health=(0,''), active=active, changed=pos, target_changed=[pos])
         self._position = pos
         self._target = None
         self.default_precision = precision
@@ -135,7 +132,7 @@ class SimMotor(MotorBase):
     
     def _set_speed(self, val):
         self._speed = val # speed
-        self._steps_per_second = 20
+        self._steps_per_second = 2
         self._stepsize = self._speed/self._steps_per_second
         
     @async
@@ -151,8 +148,7 @@ class SimMotor(MotorBase):
         self._command_sent = False
         for pos in targets:
             self._position = pos
-            data = (pos, time.time())
-            self._signal_timed_change(self, data)
+            self.set_state(changed=self._position, time=time.time())
             if self._stopped:
                 break
             time.sleep(1.0/self._steps_per_second)
@@ -315,7 +311,7 @@ class Motor(MotorBase):
             
                      
         # connect monitors
-        self._rbid = self.RBV.connect('timed-change', self._signal_timed_change)
+        self._rbid = self.RBV.connect('time', self._signal_change)
         self._vid = self.VAL.connect('changed', self._signal_target)
 
         self.MOVN.connect('changed', self._signal_move)
@@ -514,16 +510,12 @@ class EnergyMotor(Motor):
         self.ENAB = self.CALIB
         
         # connect monitors
-        self._rbid = self.RBV.connect('timed-change', self._signal_timed_change)
+        self._rbid = self.RBV.connect('changed', self._signal_change)
         self._vid = self.VAL.connect('changed', self._signal_target)
         self.MOVN.connect('changed', self._signal_move)
         self.CALIB.connect('changed', self._on_calib_changed)
         self.ENAB.connect('changed', self._signal_enable)
         self.LOG.connect('changed', self._send_log)
-    
-    def _signal_timed_change(self, obj, data):
-        val = converter.bragg_to_energy(data[0])
-        self.set_state(timed_change=(val, data[1]), changed=val)
 
     def _send_log(self, obj, msg):
         _logger.info("(%s) %s" % (self.name, msg))
@@ -560,7 +552,7 @@ class BraggEnergyMotor(Motor):
             del self.RBV          
             self.RBV = self.add_pv(enc, timed=True)
             GObject.source_remove(self._rbid)
-            self.RBV.connect('timed-change', self._signal_timed_change)
+            self.RBV.connect('changed', self._signal_change)
         GObject.source_remove(self._vid) # Not needed for Bragg
         self.name = 'Bragg Energy'
         self._motor_type = 'vmeenc'
@@ -571,9 +563,10 @@ class BraggEnergyMotor(Motor):
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())
     
-    def _signal_timed_change(self, obj, data):
-        val = converter.bragg_to_energy(data[0])
-        self.set_state(timed_change=(val, data[1]), changed=val)
+    def _signal_change(self, obj, value):
+        val = converter.bragg_to_energy(value)
+        self.set_state(time=obj.time_state) # make sure time is set before changed value
+        self.set_state(changed=val)
         
     def move_to(self, pos, wait=False, force=False):
         # Do not move if motor state is not sane.
@@ -738,3 +731,42 @@ class RelVerticalMotor(MotorBase):
         self.y2.wait(start=False, stop=stop)
         self.y1.wait(start=False, stop=stop)
         
+
+class ResolutionMotor(MotorBase):
+    def __init__(self, energy, detector, distance):
+        MotorBase.__init__(self, 'Max Detector Resolution')
+        self.energy = energy
+        self.detector = detector
+        self.distance = distance
+        self.energy.connect('changed', self.on_update_pos)
+        self.distance.connect('changed', self.on_update_pos)
+        self.detector.connect('changed', self.on_update_pos)
+
+        self.detector.connect('busy', lambda obj, val: self.set_state(busy=val))
+        self.detector.connect('started', lambda obj: self.set_state(started=None))
+        self.detector.connect('done', lambda obj: self.set_state(done=None))
+
+
+    def on_update_pos(self, obj, val):
+        pos = self.get_position()
+        self.set_state(changed=self.get_position(), time=obj.time_state)
+
+    def on_busy(self, obj, val):
+        self.set_state(busy=val)
+
+    def get_position(self):
+        return converter.dist_to_resol(self.distance.get_position(), self.detector.size[0], self.energy.get_position())
+
+    def move_by(self, val, wait=False, force=False):
+        if val == 0.0: return
+        self.move_to(val + self.get_position(), wait=wait, force=force)
+
+    def move_to(self, val, wait=False, force=False):
+        target = converter.resol_to_dist(val, self.detector.size[0], self.energy.get_position())
+        self.distance.move_to(target, wait=wait, force=force)
+
+    def stop(self):
+        self.distance.stop()
+
+    def wait(self, start=True, stop=True):
+        self.distance.wait(start=start, stop=stop)
