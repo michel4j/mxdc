@@ -281,13 +281,15 @@ class SampleStore(GObject.GObject):
         if len(paths) > 1:
             for path in paths:
                 itr = self.filter_model.get_iter(path)
-                self.searc_filter.set_value(itr, self.Data.SELECTED, option)
+                sitr = self.filter_model.convert_iter_to_child_iter(itr)
+                self.search_filter.set_value(sitr, self.Data.SELECTED, option)
         else:
             itr = self.filter_model.get_iter_first()
             while itr:
-                state = self.filter_model.get_value(itr, self.Data.STATE)
+                sitr = self.filter_model.convert_iter_to_child_iter(itr)
+                state = self.search_model.get_value(sitr, self.Data.STATE)
                 if state not in [self.State.JAMMED, self.State.EMPTY]:
-                    self.filter_model.set_value(itr, self.Data.SELECTED, option)
+                    self.search_model.set_value(sitr, self.Data.SELECTED, option)
                 itr = self.filter_model.iter_next(itr)
         self.update_next_sample()
 

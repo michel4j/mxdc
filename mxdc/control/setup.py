@@ -30,6 +30,9 @@ class SetupController(object):
         self.hutch_viewer = None
         self.setup()
 
+    def __del__(self):
+        print "Destroying Setup Controller ..."
+
     def setup(self):
         self.hutch_viewer = AxisController(self.widget, self.beamline.registry['hutch_video'])
         # Some scripts need to reactivate settings frame on completion
@@ -73,7 +76,7 @@ class SetupController(object):
         self.widget.setup_status_box.pack_end(self.diagnostics, True, True, 0)
 
         # logging
-        self.log_viewer = common.LogMonitor(self.widget.setup_log_view, 'Candara 7')
+        self.log_viewer = common.LogMonitor(self.widget.setup_log_box, 'Candara 7')
         log_handler = GUIHandler(self.log_viewer)
         log_handler.setLevel(logging.NOTSET)
         formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')

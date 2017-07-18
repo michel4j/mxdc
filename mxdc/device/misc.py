@@ -419,21 +419,25 @@ class BasicShutter(BaseDevice):
         """Convenience function for open state"""
         return self.changed_state
 
-    def open(self):
+    def open(self, wait=False):
         if self.changed_state:
             return
         _logger.debug(' '.join([self._messages[0], self.name]))
         self._open_cmd.set(1)
         ca.flush()
         self._open_cmd.set(0)
+        if wait:
+            self.wait(state=True)
 
-    def close(self):
+    def close(self, wait=False):
         if not self.changed_state:
             return
         _logger.debug(' '.join([self._messages[1], self.name]))
         self._close_cmd.set(1)
         ca.flush()
         self._close_cmd.set(0)
+        if wait:
+            self.wait(state=False)
 
     def wait(self, state=True, timeout=5.0):
         while self.changed_state != state and timeout > 0:
@@ -466,17 +470,16 @@ class StateLessShutter(BaseDevice):
         self._messages = ['Opening', 'Closing']
         self.name = open_name.split(':')[0]
 
-    def is_open(self):
-        """Convenience function for open state"""
-        return self.changed_state
-
-    def open(self):
+    def open(self, wait=False):
         _logger.debug(' '.join([self._messages[0], self.name]))
         self._open_cmd.toggle(1, 0)
 
-    def close(self):
+    def close(self, wait=False):
         _logger.debug(' '.join([self._messages[1], self.name]))
         self._close_cmd.toggle(1, 0)
+
+    def wait(self, state=True, timeout=5.0):
+        _logger.warning('Stateless Shutter wont wait (%s).' % (self.name))
 
 
 class ShutterGroup(BaseDevice):
@@ -503,27 +506,27 @@ class ShutterGroup(BaseDevice):
         if val:
             if misc.every([dev.changed_state for dev in self._dev_list]):
                 self.set_state(changed=True, health=(0, 'state'))
-
         else:
             self.set_state(changed=False, health=(2, 'state', 'Not Open!'))
 
     @async
-    def open(self):
-        for i, dev in enumerate(self._dev_list):
-            if i > 0:
-                self._dev_list[i - 1].wait(True)  # Wait for prev to open
-            dev.open()
+    def open(self, wait=False):
+        for dev in self._dev_list:
+            dev.open(wait=True)
 
     @async
-    def close(self):
+    def close(self, wait=False):
         newlist = self._dev_list[:]
         newlist.reverse()
         for i, dev in enumerate(newlist):
-            if i > 0:
-                self._dev_list[i - 1].wait(False)  # Wait for prev to close
-            dev.close()
-            while dev.changed_state:
-                time.sleep(0.1)
+            dev.close(wait=True)
+
+    def wait(self, state=True, timeout=5.0):
+        while self.changed_state != state and timeout > 0:
+            time.sleep(0.1)
+            timeout -= 0.1
+        if timeout <= 0:
+            _logger.warning('Timed-out waiting for %s.' % (self.name))
 
 
 class SimShutter(BaseDevice):
@@ -545,11 +548,11 @@ class SimShutter(BaseDevice):
         """Convenience function for open state"""
         return self.changed_state
 
-    def open(self):
+    def open(self, wait=False):
         self._state = True
         self.set_state(changed=True)
 
-    def close(self):
+    def close(self, wait=False):
         self._state = False
         self.set_state(changed=False)
 
@@ -585,7 +588,6 @@ class XYZStage(BaseDevice):
         self.x.stop()
         self.y.stop()
         self.z.stop()
-
 
 class SampleStage(BaseDevice):
     implements(IStage)
@@ -705,7 +707,7 @@ class SimStorageRing(BaseDevice):
         self.name = name
         self.message = 'Sim SR Testing!'
         self.set_state(beam=False, active=True, health=(0, ''))
-        GObject.timeout_add(30000, self._change_beam)
+        GObject.timeout_add(1200000, self._change_beam)
 
     def _change_beam(self):
         _beam = not self.beam_state

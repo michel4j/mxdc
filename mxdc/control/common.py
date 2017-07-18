@@ -133,9 +133,10 @@ class GUIHandler(logging.Handler):
 
 
 class LogMonitor(object):
-    def __init__(self, view, size=5000, font='Monospace 8'):
+    def __init__(self, log_box, size=5000, font='Monospace 8'):
         self.buffer_size = size
-        self.view = view
+        self.scroll_win = log_box
+        self.view = log_box.get_child()
         self.text_buffer = self.view.get_buffer()
         self.view.set_editable(False)
         pango_font = Pango.FontDescription(font)
@@ -152,6 +153,11 @@ class LogMonitor(object):
         self.tags = {}
         for key, v in color_chart.items():
             self.tags[key] = self.text_buffer.create_tag(foreground=v)
+        self.view.connect('size-allocate', self.content_changed)
+
+    def content_changed(self, widget, event, data=None):
+        adj = self.scroll_win.get_vadjustment()
+        adj.set_value(adj.get_upper() - adj.get_page_size())
 
     def set_prefix(self, txt):
         self.prefix = txt
@@ -166,8 +172,10 @@ class LogMonitor(object):
             end_iter = self.text_buffer.get_start_iter()
             end_iter.forward_lines(10)
             self.text_buffer.delete(start_iter, end_iter)
+
         _iter = self.text_buffer.get_end_iter()
         tag = self.tags[level]
         self.text_buffer.insert_with_tags(_iter, "%s%s\n" % (self.prefix, text), tag)
         _iter = self.text_buffer.get_end_iter()
-        self.view.scroll_to_iter(_iter, 0, True, 0.5, 0.5)
+        #self.view.scroll_to_iter(_iter, 0, True, 0.5, 0.5)
+
