@@ -251,7 +251,7 @@ class ImageWidget(Gtk.DrawingArea):
         self.emit('image-loaded')
         self.src_image = self.img_info['src-image']
         self.histogram = self.img_info['histogram']
-        #self._plot_histogram(self.histogram, show_axis=['xzero', ], distance=False)
+        self._plot_histogram(self.histogram, show_axis=['xzero', ], distance=False)
         self._set_cursor_mode()
 
     def _create_surface(self):
