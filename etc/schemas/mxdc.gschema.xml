@@ -13,7 +13,7 @@
             <summary>Directory Template</summary>
             <description>The template to be used for creating directories. use '{varname}' syntax
                 to use variable substitution. Available variables include {session}, {group}, {sample},
-                {task}, and {date}. Initial slash will be ignored. Only the characters
+                {task}, {port}, {container}, and {date}. Initial slash will be ignored. Only the characters
                 AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789-_ are allowed.
             </description>
         </key>

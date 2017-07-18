@@ -191,7 +191,7 @@ def _simple1(dialog_type, header, sub_header=None, details=None, parent=None, bu
     return messagedialog()
 
 
-def _simple(dialog_type, title, sub_header=None, details=None, buttons=Gtk.ButtonsType.OK, default=-1, extra_widgets=None, parent=None):
+def make_dialog(dialog_type, title, sub_header=None, details=None, buttons=Gtk.ButtonsType.OK, default=-1, extra_widgets=None, parent=None):
     msg_dialog = Gtk.MessageDialog(MAIN_WINDOW, 0, dialog_type, Gtk.ButtonsType.NONE, title)
     if isinstance(buttons, tuple):
         for button in buttons:
@@ -200,6 +200,11 @@ def _simple(dialog_type, title, sub_header=None, details=None, buttons=Gtk.Butto
         msg_dialog.add_buttons(*BUTTON_TYPES[buttons])
     if sub_header:
         msg_dialog.format_secondary_markup(sub_header)
+    return msg_dialog
+
+
+def _simple(*args, **kwargs):
+    msg_dialog = make_dialog(*args, **kwargs)
     result = msg_dialog.run()
     msg_dialog.destroy()
     return result

@@ -99,20 +99,6 @@ class ImageSyncClient(BaseService):
         failure.printTraceback()
 
 
-class SimImageSyncClient(BaseService):
-    implements(IImageSyncService)
-
-    def __init__(self, *args, **kwargs):
-        BaseService.__init__(self)
-        self.name = "Simulated ImgSync Service"
-        self.set_state(active=True)
-
-    def set_user(self, user, uid, gid):
-        return True
-
-    def setup_folder(self, folder):
-        return True
-
 
 class LocalImageSyncClient(BaseService):
     implements(IImageSyncService)
@@ -134,4 +120,4 @@ class LocalImageSyncClient(BaseService):
         return True
 
 
-__all__ = ['ImageSyncClient', 'LocalImageSyncClient', 'SimImageSyncClient']
+__all__ = ['ImageSyncClient', 'LocalImageSyncClient']

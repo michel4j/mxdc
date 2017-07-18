@@ -24,6 +24,21 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     gui_roots = {
         'data/image_viewer': ['image_viewer', 'brightness_popup', 'contrast_popup', 'colorize_popup', 'info_dialog']
     }
+    Formats = {
+        'average_intensity': '{:0.0f}',
+        'max_intensity': '{:0.0f}',
+        'overloads': '{:0.0f}',
+        'wavelength': u'{:0.4f} \u212B',
+        'delta_angle': '{:0.2f} deg',
+        'two_theta': '{:0.1f} deg',
+        'start_angle': '{:0.2f} deg',
+        'exposure_time': '{:0.2f} s',
+        'distance': '{:0.1f} mm',
+        'pixel_size': '{:0.3f} um',
+        'detector_size': '{}x{}',
+        'filename': '{}',
+        'detector_type': '{}',
+    }
 
     def __init__(self, size=512):
         super(ImageViewer, self).__init__()
@@ -234,22 +249,15 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     def _update_info(self, obj=None):
         info = self.image_canvas.get_image_info()
         self._set_file_specs(info['filename'])
-        for key, val in info.items():
-            wname = '%s_lbl' % key
-            widget = getattr(self, wname, None)
-            if not widget:
-                continue
-            if key == "two_theta":
-                val = numpy.radians(val)
-            if key in ['detector_size', 'beam_center']:
-                txt = "%0.0f, %0.0f" % (val[0], val[1])
-            elif key in ['filename']:
-                txt = os.path.basename(val)
-            elif key in ['detector_type']:
-                txt = val
-            else:
-                txt = "%g" % val
-            widget.set_markup(txt)
+
+        for name, format in self.Formats.items():
+            field_name = '{}_lbl'.format(name)
+            field = getattr(self, field_name, None)
+            if field and name in info:
+                if isinstance(info[name], (tuple, list)):
+                    field.set_text(format.format(*info[name]))
+                else:
+                    field.set_text(format.format(info[name]))
 
     def add_frame(self, filename):
         if self._collecting and self._following:

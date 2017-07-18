@@ -97,7 +97,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'image_server': SimImageSyncClient(),
+    'image_server': LocalImageSyncClient(),
     'lims': LIMSClient('https://cmcf.lightsource.ca'),
     'dpm': DPMClient(),
 }

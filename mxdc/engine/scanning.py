@@ -311,7 +311,7 @@ class CntScan(BasicScan):
         
         self._motor.move_to(self._start_pos, wait=True)
         self._motor.move_to(self._end_pos, wait=False)
-        src_id = self._motor.connect('timed-change', lambda x,y: x_ot.append(y))
+        src_id = self._motor.connect('change', lambda x,y: x_ot.append((x.time_state, y)))
         self._motor.wait(start=True, stop=False)
         
         while self._motor.busy_state:

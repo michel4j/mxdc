@@ -1,34 +1,48 @@
-from gi.repository import Gtk
-from mxdc.utils import gui, converter, config
-from twisted.python.components import globalRegistry
 from datetime import date
+import os
+from gi.repository import Gtk, Gdk
 from mxdc.beamline.mx import IBeamline
-
+from mxdc.utils import gui, converter, config, misc
+from twisted.python.components import globalRegistry
+from mxdc.utils.config import settings
 
 STRATEGIES = {
-    0: {'range': 180},
-    1: {'delta': 1.0, 'range': 92, 'start': 0.0, 'helical': False, 'inverse': False},
-    2: {'delta': 1.0, 'range': 92, 'start': 0.0, 'helical': False, 'inverse': False},
-    3: {'delta': 180.0, 'exposure': 30.0, 'range': 360.0, 'helical': False, 'inverse': False}
+    0: {'range': 180, 'desc': 'Collect'},
+    1: {'delta': 1.0, 'range': 182, 'start': 0.0, 'helical': False, 'inverse': False,
+        'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0'},
+    2: {'delta': 1.0, 'range': 92, 'start': 0.0, 'helical': False, 'inverse': False,
+        'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0'},
+    3: {'delta': 1.0, 'range': 92, 'start': 0.0, 'helical': False, 'inverse': False,
+        'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0'},
+    4: {'delta': 180.0, 'exposure': 30.0, 'range': 360.0, 'helical': False, 'inverse': False, 'desc': 'Powder'}
 }
 
 
 def _calc_skip(strategy, delta, first):
-    if strategy in [0, 3]:
+    if strategy in [0, 4]:
         return ''
     elif strategy == 1:
-        return '{}-{},{}-{}'.format(
-            first + int(2/delta),
-            first + int(45/delta) - 1,
-            first + int(47/delta),
-            first + int(90/delta) - 1,
+        return '{}-{},{}-{},{}-{}'.format(
+            first + int(2 / delta),
+            first + int(45 / delta) - 1,
+            first + int(47 / delta),
+            first + int(90 / delta) - 1,
+            first + int(92 / delta),
+            first + int(180 /delta) - 1
         )
+
     elif strategy == 2:
+        return '{}-{},{}-{}'.format(
+            first + int(2 / delta),
+            first + int(45 / delta) - 1,
+            first + int(47 / delta),
+            first + int(90 / delta) - 1,
+        )
+    elif strategy == 3:
         return '{}-{}'.format(
             first + int(2 / delta),
             first + int(90 / delta) - 1,
         )
-
 
 class RunEditor(gui.BuilderMixin):
     gui_roots = {
@@ -104,14 +118,17 @@ class RunEditor(gui.BuilderMixin):
         # Calculate skip, and update sample variables info
         info.update({
             'skip': _calc_skip(info['strategy'], info['delta'], info['first']),
-            'sample': self.sample.get('name'),
+            'sample': self.sample.get('name', info['name']),
             'sample_id': self.sample.get('id'),
             'date': date.today().strftime('%Y%m%d'),
-            'group': self.sample.get('group'),
+            'group': misc.slugify(self.sample.get('group', '')),
             'session': config.get_session(),
-            'port': self.sample.get('port')
+            'port': self.sample.get('port', ''),
+            'container': misc.slugify(self.sample.get('container', '')),
+            'strategy_desc': STRATEGIES[info['strategy']]['desc'],
         })
-
+        dir_template = '{}/{}'.format(os.environ['HOME'], settings.get_string('directory-template'))
+        info['directory'] = dir_template.format(**info).replace('//', '/')
         return info
 
     def build_gui(self):
@@ -125,6 +142,8 @@ class RunEditor(gui.BuilderMixin):
                 field.connect('changed', self.on_entry_changed, None, name)
             else:
                 field.connect('focus-out-event', self.on_entry_changed, name)
+        for id, params in STRATEGIES.items():
+            self.run_strategy_cbox.append(str(id), params['desc'])
 
     def on_entry_changed(self, obj, event, field_name):
         params = self.get_parameters()
@@ -158,6 +177,47 @@ class RunConfig(gui.Builder):
     gui_roots = {
         'data/run_editor': ['dataset_run_row']
     }
+    Formats = {
+        'resolution': '{:0.2f}',
+        'delta': '{:0.2f} deg',
+        'range': '{:0.1f} deg',
+        'start': '{:0.1f} deg',
+        'wedge': '{:0.1f} deg',
+        'energy': '{:0.3f} keV',
+        'distance': '{:0.1f} mm',
+        'exposure': '{:0.3f} s',
+        'attenuation': '{:0.1f} %',
+        'strategy_desc': '{}',
+        'first': '{}',
+        'name': '{}',
+        'strategy': '{}',
+        'helical': '{}',
+        'inverse': '{}',
+        'directory': '{}',
+    }
+
+    def set_item(self, item):
+        self.item = item
+        for param in ['state', 'info', 'position', 'progress', 'warning']:
+            item.connect('notify::{}'.format(param), self.on_item_changed)
+        self.update()
+
+    def on_item_changed(self, item, param):
+        self.update()
+
+    def update(self):
+        self.run_error_msg.set_text(self.item.props.warning)
+        self.run_error_msg.set_visible(self.item.props.state == self.item.StateType.ERROR)
+        for name, format in self.Formats.items():
+            field_name = 'run_{}_lbl'.format(name, name)
+            field = getattr(self, field_name, None)
+            if field and name in self.item.props.info:
+                field.set_text(format.format(self.item.props.info[name]))
+        if self.item.props.progress > 0.0:
+            self.run_progress_lbl.set_text('{:0.1f} %'.format(self.item.props.progress))
+        self.dataset_run_row.override_background_color(Gtk.StateFlags.NORMAL, self.item.get_color())
+        if self.item.props.state == self.item.StateType.COMPLETE:
+            self.edit_run_btn.set_sensitive(False)
 
 
 class EmptyConfigFull(Gtk.ListBoxRow, gui.BuilderMixin):
