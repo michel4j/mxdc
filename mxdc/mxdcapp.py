@@ -20,7 +20,7 @@ import os
 import time
 import warnings
 import logging
-from gi.repository import Gtk
+from gi.repository import Gtk, GObject
 
 USE_TWISTED = True
 MXDC_PORT = 9898
@@ -108,7 +108,7 @@ def run_main_loop(func):
         reactor.callWhenRunning(func)
         reactor.run()
     else:
-        Gtk.idle_add(func)
+        GObject.idle_add(func)
         Gtk.main()
 
 def clear_loggers():
