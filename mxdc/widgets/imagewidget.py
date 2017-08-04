@@ -3,7 +3,7 @@ from gi.repository import GObject
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import Gtk
-from gi.repository import Pango
+
 import matplotlib
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
@@ -15,7 +15,7 @@ from mxdc.utils.science import find_peaks
 from mxdc.utils.video import image_to_surface
 import Queue
 import cairo
-import gc
+
 import logging
 import math
 import numpy
@@ -53,25 +53,36 @@ def image2pixbuf(im):
     return GdkPixbuf.Pixbuf.new_from_data(arr, GdkPixbuf.Colorspace.RGB, True, 8, width, height, width * 4)
 
 
-def _load_frame_image(filename, gamma_offset=0.0):
+def _lut(offset=0, scale=1.0, lo=0, hi=65536):
+    nlo = offset + lo
+    lut = scale * 254. * (numpy.arange(65536) - nlo) / (hi - nlo)
+    lut[lut>254] = 254
+    lut[lut<1] = 1
+    lut[:2] = 0
+    return lut.astype(int)
+
+
+def _histogram(data, lo=0.1, hi=95, bins='auto'):
+    rmin, rmax = numpy.percentile(data, (lo,hi))
+    hist, edges = numpy.histogram(data, bins=bins, range=(rmin, rmax))
+    return numpy.stack((edges[2:], hist[1:]), axis=1)
+
+
+
+def _load_frame_image(filename,  offset=0, scale=1.0):
     image_info = {}
     image_obj = read_image(filename)
     image_info['header'] = image_obj.header
     image_info['data'] = image_obj.data  # numpy.transpose(numpy.asarray(image_obj.image))
+    mask = (image_obj.data > 0.0) & (image_obj.data < image_obj.header['saturated_value'])
 
-    disp_gamma = image_info['header']['gamma'] * numpy.exp(-gamma_offset + _GAMMA_SHIFT) / 30.0
     image_info['src-image'] = image_obj.image
-    img_min, img_max = image_obj.image.getextrema()
-    lut = stretch(disp_gamma)
+    lo, md, hi = numpy.percentile(image_obj.data[mask], [1., 50., 99.])
+    image_info['percentiles'] = lo, md, hi
+    lut = _lut(offset=offset, scale=scale, lo=lo, hi=hi)
 
     image_info['image'] = image_obj.image.point(lut.tolist(), 'L')
-    hist = image_info['image'].histogram()
-
-    idx = range(len(hist))
-    x = numpy.linspace(img_min, img_max, len(hist))
-    l = 2
-    r = len(hist) - 1
-    image_info['histogram'] = numpy.array(zip(idx[l:r], x[l:r], hist[l:r]))
+    image_info['histogram'] = _histogram(image_obj.data[mask], lo=1, hi=98, bins=255)
     return image_info
 
 
@@ -104,7 +115,8 @@ class FileLoader(GObject.GObject):
         self.outbox = Queue.Queue(1000)
         self._stopped = False
         self._paused = False
-        self.gamma_offset = 0.0
+        self.lut_offset = 0
+        self.lut_scale = 1.0
 
     def queue_file(self, filename):
         if not self._paused and not self._stopped:
@@ -115,7 +127,7 @@ class FileLoader(GObject.GObject):
 
     def load_file(self, filename):
         if image_loadable(filename):
-            self.outbox.put(_load_frame_image(filename, self.gamma_offset))
+            self.outbox.put(_load_frame_image(filename, offset=self.lut_offset, scale=self.lut_scale))
             GObject.idle_add(self.emit, 'new-image')
 
     def reset(self):
@@ -148,7 +160,7 @@ class FileLoader(GObject.GObject):
                 _search_t = time.time()
             elif image_loadable(filename):
                 try:
-                    img_info = _load_frame_image(filename, self.gamma_offset)
+                    img_info = _load_frame_image(filename,  offset=self.lut_offset, scale=self.lut_scale)
                 except:
                     pass
                 else:
@@ -251,7 +263,6 @@ class ImageWidget(Gtk.DrawingArea):
         self.emit('image-loaded')
         self.src_image = self.img_info['src-image']
         self.histogram = self.img_info['histogram']
-        self._plot_histogram(self.histogram, show_axis=['xzero', ], distance=False)
         self._set_cursor_mode()
 
     def _create_surface(self):
@@ -336,7 +347,7 @@ class ImageWidget(Gtk.DrawingArea):
             data[n][2] = val
             data[n][1] = self._rdist(ix, iy, coords[0][0], coords[0][1])
             n += 1
-        return data
+        return data[:, 1:]
 
     def _plot_histogram(self, data, show_axis=None, distance=True):
         def _adjust_spines(ax, spines):
@@ -371,17 +382,17 @@ class ImageWidget(Gtk.DrawingArea):
         plot.yaxis.set_major_locator(MaxNLocator(5))
 
         if distance:
-            plot.plot(data[:, 1], data[:, 2])
+            plot.plot(data[:, 0], data[:, 1])
         else:
-            plot.vlines(data[:, 1], 0, data[:, 2])
+            plot.vlines(data[:, 0], 0, data[:, 1])
 
         if distance:
-            peaks = find_peaks(data[:, 1], data[:, 2], sensitivity=0.1)
+            peaks = find_peaks(data[:, 0], data[:, 1], sensitivity=0.1)
             if len(peaks) > 0:
                 plot.set_ylim(0, 1.1 * max([p[1] for p in peaks]))
 
         # Ask matplotlib to render the figure to a bitmap using the Agg backend
-        plot.set_xlim(min(data[:, 1]), max(data[:, 1]))
+        plot.set_xlim(min(data[:, 0]), max(data[:, 0]))
 
         canvas = FigureCanvasCairo(figure)
         width, height = canvas.get_width_height()
@@ -391,6 +402,30 @@ class ImageWidget(Gtk.DrawingArea):
         renderer.set_ctx_from_surface(self.plot_surface)
         canvas.figure.draw(renderer)
         self._draw_histogram = True
+
+    def img_histogram(self, widget, cr):
+        data = self.img_info['histogram']
+        matplotlib.rcParams.update({'font.size': 9.5})
+        figure = matplotlib.figure.Figure(frameon=False, figsize=(5.5, 2), dpi=80)
+        figure.subplots_adjust(left=0.03, right=0.98)
+        plot = figure.add_subplot(111)
+        formatter = FormatStrFormatter('%g')
+        plot.yaxis.set_major_formatter(formatter)
+        plot.yaxis.set_major_locator(MaxNLocator(5))
+        sel = data[:, 1] > 0
+        plot.plot(data[sel, 0], data[sel, 1])
+        plot.set_xlim(min(data[:, 0]), max(data[:, 0]))
+        plot.yaxis.set_visible(False)
+
+        canvas = FigureCanvasCairo(figure)
+        width, height = canvas.get_width_height()
+        renderer = RendererCairo(canvas.figure.dpi)
+        renderer.set_width_height(width, height)
+        plot_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+        renderer.set_ctx_from_surface(plot_surface)
+        canvas.figure.draw(renderer)
+        cr.set_source_surface(plot_surface, 0, 0)
+        cr.paint()
 
     def _calc_palette(self, percent):
         frac = percent / 100.0
@@ -479,17 +514,20 @@ class ImageWidget(Gtk.DrawingArea):
 
     def set_brightness(self, value):
         # new images need to respect this so file_loader should be informed
-        if (value == self.file_loader.gamma_offset) or (not self._canvas_is_clean):
-            return
-        self.file_loader.gamma_offset = value
-        gamma = self.gamma * numpy.exp(-self.file_loader.gamma_offset + _GAMMA_SHIFT) / 30.0
-        if gamma != self.display_gamma:
-            lut = stretch(gamma)
-            self.raw_img = self.src_image.point(lut.tolist(), 'L')
-            self._create_surface()
-            self._canvas_is_clean = False
-            self.queue_draw()
-            self.display_gamma = gamma
+
+        self.file_loader.lut_offset = value
+        self.file_loader.lut_scale = 1.0
+        lut = _lut(
+            self.file_loader.lut_offset, self.file_loader.lut_scale,
+            lo=self.img_info['percentiles'][0],
+            hi=self.img_info['percentiles'][-1],
+        )
+
+        self.raw_img = self.src_image.point(lut.tolist(), 'L')
+        self._create_surface()
+        self._canvas_is_clean = False
+        self.queue_draw()
+
 
     def colorize(self, value):
         self.set_colormap(index=value)
@@ -499,9 +537,13 @@ class ImageWidget(Gtk.DrawingArea):
 
     def reset_filters(self):
         self.set_colormap('gist_yarg')
-        self.display_gamma = self.gamma
-        self.file_loader.gamma_offset = 0.0
-        lut = stretch(self.gamma)
+        self.file_loader.lut_offset = 0
+        self.file_loader.lut_scale = 1.0
+        lut = _lut(
+            self.file_loader.lut_offset, self.file_loader.lut_scale,
+            lo=self.img_info['percentiles'][0],
+            hi=self.img_info['percentiles'][-1],
+        )
         self.raw_img = self.src_image.point(lut.tolist(), 'L')
         self._create_surface()
         self.queue_draw()
@@ -587,9 +629,9 @@ class ImageWidget(Gtk.DrawingArea):
         if not self.image_loaded:
             return False
         if event.direction == Gdk.ScrollDirection.UP:
-            self.set_brightness(min(5, self.file_loader.gamma_offset + 0.2))
+            self.set_brightness(min(128, self.file_loader.lut_offset + 2))
         elif event.direction == Gdk.ScrollDirection.DOWN:
-            self.set_brightness(max(-5, self.file_loader.gamma_offset - 0.2))
+            self.set_brightness(max(-128, self.file_loader.lut_offset - 2))
 
     def on_mouse_press(self, widget, event):
         self._draw_histogram = False

@@ -35,7 +35,8 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         'exposure_time': '{:0.2f} s',
         'distance': '{:0.1f} mm',
         'pixel_size': '{:0.4f} um',
-        'detector_size': '{}x{}',
+        'detector_size': '{}, {}',
+        'beam_center': '{:0.0f}, {:0.0f}',
         'filename': '{}',
         'detector_type': '{}',
     }
@@ -69,6 +70,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.image_canvas.connect('image-loaded', self._update_info)
         self.image_frame.add(self.image_canvas)
         self.image_canvas.connect('motion_notify_event', self.on_mouse_motion)
+        self.histogram.connect('draw', self.image_canvas.img_histogram)
 
         self.info_btn.connect('clicked', self.on_image_info)
         self.follow_tbtn.connect('toggled', self.on_follow_toggled)
@@ -258,6 +260,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                     field.set_text(format.format(*info[name]))
                 else:
                     field.set_text(format.format(info[name]))
+        self.histogram.queue_draw()
 
     def add_frame(self, filename):
         if self._collecting and self._following:
