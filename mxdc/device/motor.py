@@ -113,27 +113,29 @@ class MotorBase(BaseDevice):
 class SimMotor(MotorBase):
     implements(IMotor)
      
-    def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=3):
+    def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=4):
         MotorBase.__init__(self,name)
         pos = pos
-        self._set_speed(speed)
+
         self.units = units
         self._status = 0
         self._stopped = False
         self._enabled = True
         self._command_sent = False
-        self.set_state(health=(0,''), active=active, changed=pos, target_changed=[pos])
+
         self._position = pos
         self._target = None
         self.default_precision = precision
+        self._set_speed(speed)
+        self.set_state(health=(0, ''), active=active, changed=pos, target_changed=[pos])
         
     def get_position(self):
         return self._position
     
     def _set_speed(self, val):
         self._speed = val # speed
-        self._steps_per_second = 2
-        self._stepsize = self._speed/self._steps_per_second
+        self._step_size = 10 ** -self.default_precision
+        self._step_time = self._step_size / self._speed
         
     @async
     def _move_action(self, target):
@@ -142,7 +144,7 @@ class SimMotor(MotorBase):
         import numpy
         self.set_state(target_changed=(self._target, target))
         self._target = target
-        _num_steps = max(5, int(abs(self._position - target)/self._stepsize))
+        _num_steps = int(abs(self._position - target) / self._step_size)
         targets = numpy.linspace(self._position, target, _num_steps)
         self.set_state(busy=True)
         self._command_sent = False
@@ -151,10 +153,9 @@ class SimMotor(MotorBase):
             self.set_state(changed=self._position, time=time.time())
             if self._stopped:
                 break
-            time.sleep(1.0/self._steps_per_second)
+            time.sleep(self._step_time)
         self.set_state(busy=False)
 
-            
     def move_to(self, pos, wait=False, force=False):
         if pos == self._position:
             _logger.debug( "(%s) is already at %s" % (self.name, pos) )
