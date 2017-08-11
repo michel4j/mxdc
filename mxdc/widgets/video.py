@@ -2,8 +2,9 @@ import os
 import pickle
 import time
 
-from PIL import Image
 import gi
+from PIL import Image
+
 gi.require_version('Gtk', '3.0')
 
 from gi.repository import GObject
@@ -32,10 +33,13 @@ class VideoWidget(Gtk.DrawingArea):
         self.stopped = False
         self._colorize = False
         self._palette = None
-        self.display_width  = 0
+        self.display_width = 0
         self.display_height = 0
+
         self.fps = 0
-        self._last_frame = 0
+        self._frame_count = 0
+        self._frame_time = time.time()
+
         self.overlay_func = None
         self.display_func = None
         self.set_events(Gdk.EventMask.EXPOSURE_MASK |
@@ -69,30 +73,37 @@ class VideoWidget(Gtk.DrawingArea):
         frame_width, frame_height = event.width, event.height
         video_width, video_height = self.camera.size
 
-        video_ratio = float(video_width)/video_height
-        frame_ratio = float(frame_width)/frame_height
+        video_ratio = float(video_width) / video_height
+        frame_ratio = float(frame_width) / frame_height
 
         if frame_ratio < video_ratio:
             width = frame_width
-            height = int(round(width/video_ratio))
-            self.voffset = (frame_height - height)//2
+            height = int(round(width / video_ratio))
+            self.voffset = (frame_height - height) // 2
             self.hoffset = 0
         else:
             height = frame_height
-            width = int(round(video_ratio*height))
-            self.hoffset = (frame_width - width)//2
+            width = int(round(video_ratio * height))
+            self.hoffset = (frame_width - width) // 2
             self.voffset = 0
 
         self.scale = float(width) / video_width
         self.display_width, self.display_height = width, height
-        self.props.parent.set(0.5, 0.5, video_ratio, False)
-
+        if event.width > 12:
+            self.props.parent.set(0.5, 0.5, video_ratio, False)
 
     def set_overlay_func(self, func):
         self.overlay_func = func
 
     def set_display_func(self, func):
         self.display_func = func
+
+    def update_fps(self, frames=10):
+        self._frame_count += 1
+        if self._frame_count == frames:
+            self.fps = self._frame_count / (time.time() - self._frame_time)
+            self._frame_time = time.time()
+            self._frame_count = 0
 
     def display(self, img):
         img = img.resize((self.display_width, self.display_height), Image.BICUBIC)
@@ -103,6 +114,7 @@ class VideoWidget(Gtk.DrawingArea):
         img = img.convert('RGB')
         self.surface = image_to_surface(img)
         GObject.idle_add(self.queue_draw)
+        self.update_fps()
         if self.display_func is not None:
             self.display_func(img, scale=self.scale)
 
@@ -119,8 +131,6 @@ class VideoWidget(Gtk.DrawingArea):
             cr.paint()
             if self.overlay_func is not None:
                 self.overlay_func(cr)
-            self.fps = 1.0 / (time.time() - self._last_frame)
-            self._last_frame = time.time()
 
     def on_realized(self, obj):
         self.camera.add_sink(self)
