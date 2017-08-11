@@ -23,7 +23,7 @@ class MotorBase(BaseDevice):
     Signals:
         - `changed` (float): Emitted everytime the position of the motor changes.
           Data contains the current position of the motor.
-        - `target-changed` (float): Emitted everytime the requested position of the motor changes.
+        - `target` (float): Emitted everytime the requested position of the motor changes.
           Data is a tuple containing the previous set point and the current one.
         - `time` (float): Emitted everytime the motor changes.
           Data is a 2-tuple with the current position and the timestamp of the last change.
@@ -34,11 +34,11 @@ class MotorBase(BaseDevice):
 
     # Motor signals
     __gsignals__ =  { 
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_PYOBJECT,)),
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
         "starting": (GObject.SignalFlags.RUN_FIRST, None, []),
         "done": (GObject.SignalFlags.RUN_FIRST, None, []),
-        "target-changed": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_PYOBJECT,)),        
-        "time": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_PYOBJECT,)),
+        "target": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        "time": (GObject.SignalFlags.RUN_FIRST, None, (int,)),
         }  
 
     def __init__(self, name):
@@ -61,6 +61,9 @@ class MotorBase(BaseDevice):
     
     def do_time(self, st):
         pass
+
+    def do_target(self, target):
+        pass
     
     def do_starting(self):
         self._starting_flag = True
@@ -73,7 +76,8 @@ class MotorBase(BaseDevice):
             self.set_state(done=None)
 
     def _signal_change(self, obj, value):
-        self.set_state(time=obj.time_state)
+        t = obj.time_state or time.time()
+        self.set_state(time=t)
         self.set_state(changed=self.get_position())
 
     def _signal_target(self, obj, value):

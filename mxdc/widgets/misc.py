@@ -251,7 +251,7 @@ class MotorEntry(ActiveEntry):
         super(MotorEntry, self).__init__(mtr, label=label, fmt=fmt, width=width)
         self._set_active(False)
         self.device.connect('busy', self._on_motion_changed)
-        self.device.connect('target-changed', self._on_target_changed)
+        self.device.connect('target', self._on_target_changed)
         self.device.connect('changed', self._on_progress)
 
         self._animation = GdkPixbuf.PixbufAnimation.new_from_file(
