@@ -1,5 +1,6 @@
 import math
 import os
+import time
 from collections import OrderedDict
 
 import common
@@ -20,6 +21,7 @@ class MicroscopeController(object):
     def __init__(self, widget):
         self.timeout_id = None
         self.max_fps = 20
+        self.fps_update = 0
         self.widget = widget
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.camera = self.beamline.sample_video
@@ -147,7 +149,10 @@ class MicroscopeController(object):
 
             self.widget.microscope_meas_lbl.set_text("%0.2g mm" % dist)
         else:
-            self.widget.microscope_meas_lbl.set_text("%4.1f fps" % self.video.fps)
+            # Update FPS ever 5 seconds
+            if time.time() - self.fps_update > 1:
+                self.widget.microscope_meas_lbl.set_text("%4.1f fps" % self.video.fps)
+                self.fps_update = time.time()
         return True
 
     def _calc_grid_params(self):
@@ -400,7 +405,6 @@ class MicroscopeController(object):
         self.video.scale = float(width) / video_width
         self._img_width, self._img_height = width, height
         self.set_size_request(width, height)
-        print "RESIZING", width, height, event.width, event.height
         # return True
 
     def on_save(self, obj=None, arg=None):

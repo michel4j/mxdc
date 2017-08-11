@@ -145,6 +145,7 @@ class BaseDevice(GObject.GObject):
                                health=(1, 'error','too hot'),
                                message="the device is overheating")
         """
+
         for st, val in kwargs.items():
             if st != 'health':
                 # only signal a state change if it actually changes for non

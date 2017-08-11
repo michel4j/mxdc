@@ -5,10 +5,10 @@ from zope.interface import implements   # @UnresolvedImport
 class BasePV(GObject.GObject):
     implements(IProcessVariable)
     __gsignals__ = {
-        'changed':      (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-        'time':         (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-        'active' :      (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_BOOLEAN,)),
-        'alarm' :       (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
+        'changed':      (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'time':         (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'active' :      (GObject.SignalFlags.RUN_LAST, None, (bool,)),
+        'alarm' :       (GObject.SignalFlags.RUN_LAST, None, (object,))
     }
     
     def __init__(self, name, monitor=True, timed=False):
