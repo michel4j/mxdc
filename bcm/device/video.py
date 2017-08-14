@@ -1,19 +1,21 @@
-from bcm.device.base import BaseDevice
-from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor, IVideoSink
-from bcm.utils.log import get_module_logger
-from scipy import misc
-from zope.interface import implements
-from PIL import Image
-import requests
-from StringIO import StringIO
-import numpy
 import os
 import re
 import socket
 import threading
 import time
 import zlib
+from StringIO import StringIO
+
+import numpy
 import redis
+import requests
+from PIL import Image
+from scipy import misc
+from zope.interface import implements
+
+from bcm.device.base import BaseDevice
+from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor, IVideoSink
+from bcm.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -93,7 +95,6 @@ class VideoSrc(BaseDevice):
         pass
 
 
-
 class SimCamera(VideoSrc):
     implements(ICamera)
 
@@ -156,6 +157,7 @@ class SimPTZCamera(SimCamera):
     def get_presets(self):
         presets = ["Hutch", "Detector", "Robot", "Goniometer", "Sample", "Panel"]
         return presets
+
 
 class MJPGCamera(VideoSrc):
     implements(ICamera)
