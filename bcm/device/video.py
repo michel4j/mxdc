@@ -1,13 +1,11 @@
 from bcm.device.base import BaseDevice
 from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor, IVideoSink
 from bcm.utils.log import get_module_logger
-from bcm.utils.decorators import async
 from scipy import misc
 from zope.interface import implements
 from PIL import Image
 import requests
 from StringIO import StringIO
-import urllib2
 import numpy
 import os
 import re
@@ -15,13 +13,10 @@ import socket
 import threading
 import time
 import zlib
-import gobject
 import cv2
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
-
-session = requests.Session()
 
 
 class VideoSrc(BaseDevice):
@@ -77,7 +72,8 @@ class VideoSrc(BaseDevice):
     def _stream_video(self):
         dur = 1.0 / self.maxfps
         while not self._stopped:
-            if self._active:
+            t = time.time()
+            if self._active and any(not (sink.stopped) for sink in self.sinks):
                 try:
                     img = self.get_frame()
                     if not img: continue
@@ -86,7 +82,7 @@ class VideoSrc(BaseDevice):
                             sink.display(img)
                 except Exception as e:
                     _logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
-            time.sleep(dur)
+            time.sleep(max(0, dur - (time.time() - t)))
 
     def get_frame(self):
         """Obtain the most recent video frame.
@@ -95,6 +91,7 @@ class VideoSrc(BaseDevice):
             A :class:`Image.Image` (Python Imaging Library) image object.
         """
         pass
+
 
 
 class SimCamera(VideoSrc):
@@ -160,62 +157,79 @@ class SimPTZCamera(SimCamera):
         presets = ["Hutch", "Detector", "Robot", "Goniometer", "Sample", "Panel"]
         return presets
 
-
-class CACamera(VideoSrc):
-    implements(IZoomableCamera)
-
-    def __init__(self, pv_name, zoom_motor, name='Camera'):
-        VideoSrc.__init__(self, name, maxfps=20.0)
-        self._active = False
-        self.size = (640, 480)
-        self.resolution = 1.0
-        self._packet_size = self.size[0] * self.size[1]
-        self._cam = self.add_pv(pv_name)
-        self._zoom = IMotor(zoom_motor)
-        self._cam.connect('active', self._activate)
-        self._zoom.connect('changed', self._on_zoom_change)
-
-    def _activate(self, obj, val):
-        self._active = val
-        if not val:
-            self._stopped = True
-
-    def _on_zoom_change(self, obj, val):
-        self.resolution = 5.34e-3 * numpy.exp(-0.18 * val)
-
-    def get_frame(self):
-        data = self._cam.get()
-        # Make sure full frame is obtained otherwise iterate until we
-        # get a full frame. This is required because sometimes the frame
-        # data is incomplete.
-        while len(data) != self._packet_size:
-            data = self._cam.get()
-
-        frame = misc.toimage(numpy.fromstring(data, 'B').reshape(
-            self.size[1],
-            self.size[0]))
-        return frame
-
-    def zoom(self, val):
-        self._zoom.move_to(val)
-
-
-class AxisCamera(VideoSrc):
+class MJPGCamera(VideoSrc):
     implements(ICamera)
 
-    def __init__(self, hostname, idx=None, name='Axis Camera'):
-        VideoSrc.__init__(self, name, maxfps=20.0)
-        self.size = (768, 576)
+    def __init__(self, url, size=(768, 576), name='MJPG Camera'):
+        VideoSrc.__init__(self, name, maxfps=10.0)
+        self.size = size
         self._read_size = 1024
-        self.hostname = hostname
-        self.index = idx
-        if idx is None:
-            self.url = 'http://%s/mjpg/video.mjpg' % hostname
-            self.image_url = 'http://%s/jpg/image.jpg' % hostname
-        else:
-            self.url = 'http://%s/mjpg/%s/video.mjpg' % (hostname, idx)
-            self.image_url = 'http://%s/jpg/%s/image.jpg' % (hostname, idx)
+        self.url = url
+        self._last_frame = time.time()
+        self.stream = None
+        self._frame = None
+        self.set_state(active=True)
+        self.lock = threading.Lock()
 
+    def get_frame(self):
+        return self.get_frame_raw()
+
+    def get_frame_raw(self):
+        if not self.stream:
+            self.stream = requests.get(self.url, stream=True).raw
+        try:
+            with self.lock:
+                both_found = False
+                while not both_found:
+                    self.data += self.stream.read(self._read_size)
+                    b = self.data.rfind('\xff\xd9')
+                    a = self.data[:b].rfind('\xff\xd8')
+                    if a != -1 and b != -1:
+                        jpg = self.data[a:b + 2]
+                        self.data = self.data[b + 2:]
+                        self._frame = Image.open(StringIO(jpg))
+                        self.size = self._frame.size
+                        both_found = True
+                    time.sleep(0)
+        except Exception as e:
+            _logger.error(e)
+            self.stream = requests.get(self.url, stream=True).raw
+        return self._frame
+
+
+class JPGCamera(VideoSrc):
+    implements(ICamera)
+
+    def __init__(self, url, size=(768, 576), name='JPG Camera'):
+        VideoSrc.__init__(self, name, maxfps=10.0)
+        self.size = size
+        self.url = url
+        self.session = requests.Session()
+        self._frame = None
+        self.set_state(active=True)
+
+    def get_frame(self):
+        return self.get_frame_raw()
+
+    def get_frame_raw(self):
+        r = self.session.get(self.url, stream=True)
+        if r.status_code == 200:
+            r.raw.decode_content = True
+            self._frame = Image.open(r.raw)
+            self.size = self._frame.size
+        return self._frame
+
+
+class REDISCamera(VideoSrc):
+    implements(ICamera)
+
+    def __init__(self, server, key, size=(768, 576), name='REDIS Camera'):
+        VideoSrc.__init__(self, name, maxfps=15.0)
+        self.size = size
+        self._read_size = 48 * 1024
+        self.store = redis.Redis(host=server, port=6379, db=0)
+        self.key = key
+        self.server = server
         self._last_frame = time.time()
         self.stream = None
         self.data = ''
@@ -227,31 +241,24 @@ class AxisCamera(VideoSrc):
         return self.get_frame_raw()
 
     def get_frame_raw(self):
-        if not self.stream:
-            #self.stream = urllib2.urlopen(self.url)
-            self.stream = requests.get(self.url, stream=True).raw
-        try:
-            with self.lock:
-                self.data += self.stream.read(28000)
-                b = self.data.rfind('\xff\xd9')
-                a = self.data[:b].rfind('\xff\xd8')
-                if a != -1 and b != -1:
-                    jpg = self.data[a:b + 2]
-                    self.data = self.data[b + 2:]
-                    self._frame = Image.open(StringIO(jpg))
-        except Exception as e:
-            _logger.error(e)
-            self.stream = requests.get(self.url, stream=True).raw
+        with self.lock:
+            data = self.store.get(self.key)
+            self._frame = Image.open(StringIO(data))
+            self.size = self._frame.size
         return self._frame
 
-    def get_frame_opencv(self):
-        if not self.stream:
-            self.stream = cv2.VideoCapture(self.url)
-        with self.lock:
-            _, cv2_im = self.stream.read()
-            cv2_im = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
-            self._frame = Image.fromarray(cv2_im)
-        return self._frame
+
+class AxisCamera(JPGCamera):
+    implements(ICamera)
+
+    def __init__(self, hostname, idx=None, name='Axis Camera'):
+        if idx is None:
+            # url = 'http://%s/mjpg/video.mjpg' % hostname
+            url = 'http://%s/jpg/image.jpg' % hostname
+        else:
+            # url = 'http://%s/mjpg/%s/video.mjpg' % (hostname, idx)
+            url = 'http://%s/jpg/%s/image.jpg' % (hostname, idx)
+        super(AxisCamera, self).__init__(url, name=name)
 
 
 class ZoomableAxisCamera(AxisCamera):
