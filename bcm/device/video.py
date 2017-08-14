@@ -301,7 +301,6 @@ class ZoomableCamera(object):
     def _on_zoom_change(self, obj, val):
         scale = 768.0/self._camera.size[0]
         self.resolution = scale * 3.6875e-3 * numpy.exp(-0.2527 * val)
-        self.resolution = 3.6875e-3 * numpy.exp(-0.2527 * val)
 
     def __getattr__(self, key):
         try:
