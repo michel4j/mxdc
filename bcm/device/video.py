@@ -13,7 +13,7 @@ import socket
 import threading
 import time
 import zlib
-import cv2
+import redis
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
