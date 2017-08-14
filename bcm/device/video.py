@@ -223,7 +223,7 @@ class JPGCamera(VideoSrc):
         if r.status_code == 200:
             try:
                 r.raw.decode_content = True
-                self._frame = Image.open(r.raw)
+                self._frame = Image.open(r.content)
             except io.UnsupportedOperation:
                 self._frame = Image.open(StringIO(r.content))
             self.size = self._frame.size
