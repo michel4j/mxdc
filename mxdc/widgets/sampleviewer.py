@@ -118,8 +118,8 @@ class SampleViewer(gtk.Alignment):
             bh = self.beamline.aperture.get() * 0.001
             bx = 0  # self.beamline.beam_x.get_position()
             by = 0  # self.beamline.beam_y.get_position()
-            cx = self.beamline.camera_center_x.get()
-            cy = self.beamline.camera_center_y.get()
+            cx = self.beamline.sample_video.size[0]//2 #self.beamline.camera_center_x.get()
+            cy = self.beamline.sample_video.size[1]//2 #self.beamline.camera_center_y.get()
         except:
             cx = w // 2
             bx = by = 0
@@ -170,8 +170,9 @@ class SampleViewer(gtk.Alignment):
         nX = nY = int(math.ceil(gw / cw))
         gw = nX * cw
 
-        cx = self.beamline.camera_center_x.get()
-        cy = self.beamline.camera_center_y.get()
+        cx = self.beamline.sample_video.size[0] // 2  # self.beamline.camera_center_x.get()
+        cy = self.beamline.sample_video.size[1] // 2  # self.beamline.camera_center_y.get()
+
         sx, sy = self.grid_params.get('origin', (0.0, 0.0))
         ox = self.beamline.sample_stage.x.get_position() - sx
         oy = self.beamline.sample_stage.y.get_position() - sy
@@ -345,8 +346,8 @@ class SampleViewer(gtk.Alignment):
         im_x = int(float(x) / self.video.scale)
         im_y = int(float(y) / self.video.scale)
         try:
-            cx = self.beamline.camera_center_x.get()
-            cy = self.beamline.camera_center_y.get()
+            cx = self.beamline.sample_video.size[0]//2 #self.beamline.camera_center_x.get()
+            cy = self.beamline.sample_video.size[1]//2 #self.beamline.camera_center_y.get()
         except  ca.ChannelAccessError:
             cx, cy = self.beamline.sample_video.size
             cx //= 2
