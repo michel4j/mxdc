@@ -67,7 +67,8 @@ DEVICES = {
     'camera_center_x': Positioner('BL08ID1:video:sample:x'),
     'camera_center_y': Positioner('BL08ID1:video:sample:y'),
     'cryojet': Cryojet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
-    'sample_camera': AxisCamera('V2E1608-001.clsi.ca', 4),  # 4
+    #'sample_camera': AxisCamera('V2E1608-001.clsi.ca', 4),  # 4
+    'sample_camera': REDISCamera('opi1608-101.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
     'sample_backlight': SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk', 'ILC1608-3-I10-02:on', 100.0,
                                     desc='Back'),
     'sample_frontlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk', 'ILC1608-3-I10-01:on', 100.0,
