@@ -451,8 +451,8 @@ class CollectManager(gtk.Alignment):
 
     def on_activate(self, widget):
         if not self.run_list:
-            msg1 = 'Run list is empty!'
-            msg2 = 'Please define and save a run before collecting.'
+            msg1 = 'Dataset list is empty!'
+            msg2 = 'Please create dataset runs before collecting.'
             warning(msg1, msg2)
             return
 
