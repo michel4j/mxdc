@@ -17,8 +17,11 @@ from bcm.device.base import BaseDevice
 from bcm.device.interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor, IVideoSink
 from bcm.utils.log import get_module_logger
 
+
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
+
+session = requests.Session()
 
 
 class VideoSrc(BaseDevice):
@@ -157,6 +160,7 @@ class SimPTZCamera(SimCamera):
     def get_presets(self):
         presets = ["Hutch", "Detector", "Robot", "Goniometer", "Sample", "Panel"]
         return presets
+
 
 
 class MJPGCamera(VideoSrc):
