@@ -4,7 +4,7 @@ import socket
 import threading
 import time
 import zlib
-import io
+import urllib
 from StringIO import StringIO
 
 import numpy
@@ -219,14 +219,9 @@ class JPGCamera(VideoSrc):
         return self.get_frame_raw()
 
     def get_frame_raw(self):
-        r = self.session.get(self.url, stream=True)
-        if r.status_code == 200:
-            try:
-                r.raw.decode_content = True
-                self._frame = Image.open(r.content)
-            except io.UnsupportedOperation:
-                self._frame = Image.open(StringIO(r.content))
-            self.size = self._frame.size
+        data = urllib.urlopen(self.url).read()
+        self._frame = Image.open(StringIO(data))
+        self.size = self._frame.size
         return self._frame
 
 
