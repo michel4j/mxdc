@@ -4,6 +4,7 @@ import socket
 import threading
 import time
 import zlib
+import io
 from StringIO import StringIO
 
 import numpy
@@ -220,8 +221,11 @@ class JPGCamera(VideoSrc):
     def get_frame_raw(self):
         r = self.session.get(self.url, stream=True)
         if r.status_code == 200:
-            r.raw.decode_content = True
-            self._frame = Image.open(r.raw)
+            try:
+                r.raw.decode_content = True
+                self._frame = Image.open(r.raw)
+            except io.UnsupportedOperation:
+                self._frame = Image.open(StringIO(r.content))
             self.size = self._frame.size
         return self._frame
 
@@ -313,10 +317,10 @@ class AxisPTZCamera(AxisCamera):
     implements(IPTZCameraController)
 
     def __init__(self, hostname, idx=None, name='Axis PTZ Camera'):
-        AxisCamera.__init__(self, hostname, idx, name)
         self.url_root = 'http://{}/axis-cgi/com/ptz.cgi'.format(hostname)
         self._rzoom = 0
         self.presets = []
+        AxisCamera.__init__(self, hostname, idx, name)
         self.fetch_presets()
 
     def zoom(self, value):
