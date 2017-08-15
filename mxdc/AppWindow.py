@@ -68,7 +68,7 @@ class AppWindow(gtk.Window):
     def run(self):
         icon = gtk.gdk.pixbuf_new_from_file(self.icon_file)
         self.set_icon(icon)
-        self.set_resizable(False)
+        #self.set_resizable(False)
 
         self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
