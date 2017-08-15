@@ -59,11 +59,13 @@ class VideoWidget(gtk.DrawingArea):
         if width < w / 4: width = w / 4
         if height < h / 4: height = h / 4
         if width < ratio * height:
-            height = int(width / ratio)
+            height = width / ratio
         else:
-            width = int(ratio * height)
+            width = ratio * height
         self.scale = float(width) / self.camera.size[0]
+        width, height = map(int, (width, height))
         self._img_width, self._img_height = width, height
+
         self.set_size_request(width, height)
         return True
 
