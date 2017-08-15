@@ -36,6 +36,7 @@ class AppWindow(gtk.Window):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         self._xml = GUIFile(os.path.join(SHARE_DIR, 'mxdc_main'), 'mxdc_main')
         self.set_position(gtk.WIN_POS_CENTER)
+        self.set_size_request(1290, 884)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
         self.set_title('MxDC - Mx Data Collector')
         self.version = version
@@ -68,7 +69,7 @@ class AppWindow(gtk.Window):
     def run(self):
         icon = gtk.gdk.pixbuf_new_from_file(self.icon_file)
         self.set_icon(icon)
-        #self.set_resizable(False)
+        self.set_resizable(False)
 
         self.scan_manager = ScanManager()
         self.collect_manager = CollectManager()
