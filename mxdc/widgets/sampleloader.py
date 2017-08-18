@@ -172,6 +172,7 @@ class DewarLoader(gtk.HBox):
         column = gtk.TreeViewColumn("Name", renderer, text=model.NAME)
         column.set_cell_data_func(renderer, self._row_color)
         column.set_sort_column_id(model.NAME)
+        column.set_resizable(True)
         treeview.append_column(column)
 
         # column for port
@@ -185,6 +186,7 @@ class DewarLoader(gtk.HBox):
         renderer = gtk.CellRendererText()
         column = gtk.TreeViewColumn("Group", renderer, text=model.GROUP)
         column.set_cell_data_func(renderer, self._row_color)
+        column.set_resizable(True)
         column.set_sort_column_id(model.GROUP)
         treeview.append_column(column)                        
 
@@ -193,6 +195,7 @@ class DewarLoader(gtk.HBox):
         column = gtk.TreeViewColumn("Container", renderer, text=model.CONTAINER)
         column.set_sort_column_id(model.CONTAINER)
         column.set_cell_data_func(renderer, self._row_color)
+        column.set_resizable(True)
         treeview.append_column(column)
 
         # column for priority
