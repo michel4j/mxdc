@@ -82,7 +82,7 @@
                     <property name="has_tooltip">True</property>
                     <property name="tooltip_text" translatable="yes">Double-click a crystal to
 to select it for mounting</property>
-                    <property name="hscrollbar_policy">never</property>
+                    <property name="hscrollbar_policy">automatic</property>
                     <property name="vscrollbar_policy">automatic</property>
                     <property name="shadow_type">etched-in</property>
                     <child>
