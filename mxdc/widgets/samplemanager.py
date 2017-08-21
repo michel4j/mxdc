@@ -120,12 +120,10 @@ class SampleManager(gtk.Alignment):
 
     def on_lims_connect(self, obj, state):
         if state:
-            # Load MxLIVE Samples if a new session
-            if config.SESSION_INFO.get('new', False):
-                reply = self.beamline.lims.get_project_samples(self.beamline)
-                self.dewar_loader.import_lims(reply)
-            else:
-                self.dewar_loader.load_saved_database()
+            reply = self.beamline.lims.get_project_samples(self.beamline)
+            self.dewar_loader.import_lims(reply)
+        else:
+            self.dewar_loader.load_saved_database()
 
     def _load_without_lims(self):
         # Called only if lims fails to connect to get previously loaded samples from disk
