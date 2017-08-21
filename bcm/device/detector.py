@@ -533,6 +533,7 @@ class ADRayonixImager(BaseDevice):
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
         self.frame_type = self.add_pv('{}:FrameType'.format(name), monitor=False)
+        self.status_rate = self.add_pv('{}:ReadStatus.SCAN'.format(name))
         self.acquire_status = self.add_pv("{}:Acquire_RBV".format(name))
         self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
         self.write_status = self.add_pv("{}:MarWritingStatus_RBV".format(name))
@@ -581,13 +582,17 @@ class ADRayonixImager(BaseDevice):
     def start(self, first=False):
         _logger.debug('({}) Starting Acquisition ...'.format(self.name))
         self.wait('idle', 'correct', 'saving', 'waiting', 'reading')
+        self.status_rate.put(1)
         self.acquire_cmd.put(1)
         self.wait('acquiring')
+        self.status_rate.put(0)
 
     def stop(self):
         _logger.debug('({}) Stopping Detector ...'.format(self.name))
+        self.status_rate.put(1)
         self.acquire_cmd.put(0)
         self.wait('idle')
+        self.status_rate.put(0)
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
