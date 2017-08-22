@@ -64,9 +64,9 @@ class DataCollector(gobject.GObject):
         self.total_frames = 0
         self.count = 0
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.new_image_handler_id = self.beamline.detector.connect('new-image', self.on_new_image)
+        self.beamline.detector.connect('new-image', self.on_new_image)
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
-        self.beamline.detector.handler_block(self.new_image_handler_id)
+        
 
     def configure(self, run_data, take_snapshots=True):
         self.config['take_snapshots'] = take_snapshots
@@ -97,7 +97,7 @@ class DataCollector(gobject.GObject):
         ca.threads_init()
         self.collecting = True
         self.beamline.detector_cover.open(wait=True)
-        self.beamline.detector.handler_unblock(self.new_image_handler_id)
+        #self.beamline.detector.handler_unblock(self.new_image_handler_id)
         self.total_frames = sum([wedge['num_frames'] for wedge in self.config['wedges']])
         current_attenuation = self.beamline.attenuator.get()
 
@@ -120,7 +120,7 @@ class DataCollector(gobject.GObject):
         self.results = self.save_summary(self.config['datasets'])
         if not (self.stopped or self.paused):
             gobject.idle_add(self.emit, 'done')
-            self.beamline.detector.handler_block(self.new_image_handler_id)
+            #self.beamline.detector.handler_block(self.new_image_handler_id)
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.collecting = False
         self.beamline.detector_cover.close()
