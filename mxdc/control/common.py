@@ -132,6 +132,36 @@ class GUIHandler(logging.Handler):
         GObject.idle_add(self.viewer.add_text, self.format(record), record.levelno)
 
 
+class StatusMonitor(object):
+    def __init__(self, label, spinner, devices=()):
+        self.devices = []
+        self.label = label
+        self.spinner = spinner
+        self.message = ''
+        for dev in devices:
+            self.add(dev)
+
+    def add(self, device):
+        self.devices.append(device)
+        device.connect('busy', self.on_state)
+        device.connect('message', self.on_message)
+
+    def on_message(self, dev, message):
+        """ Set the message directly if spinner is busy otherwise set to blank"""
+        self.message = message
+        if self.spinner.props.active:
+            self.label.set_markup('<small>{}: {}</small>'.format(dev.name, message))
+        else:
+            self.label.set_text('')
+
+    def on_state(self, dev, state):
+        if any(dev.is_busy() for dev in self.devices):
+            self.spinner.start()
+            self.label.set_markup('<small>{}: {}</small>'.format(dev.name, self.message))
+        else:
+            self.spinner.stop()
+            self.label.set_text('')
+
 class LogMonitor(object):
     def __init__(self, log_box, size=5000, font='Monospace 8'):
         self.buffer_size = size

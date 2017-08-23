@@ -9,7 +9,7 @@ from gi.repository import Pango
 from twisted.python.components import globalRegistry
 
 from mxdc.beamline.mx import IBeamline
-from mxdc.engine.diffraction import Screener, DataCollector
+from mxdc.engine.diffraction import Automator, DataCollector
 from mxdc.engine.rastering import RasterCollector
 from mxdc.engine.scripting import get_scripts
 from mxdc.interface.engines import IDataCollector
@@ -21,20 +21,20 @@ from mxdc.widgets.textviewer import TextViewer, GUIHandler
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 TASKLET_NAME_MAP = {
-    Screener.TASK_MOUNT: 'Mount Sample',
-    Screener.TASK_ALIGN: 'Center Sample',
-    Screener.TASK_PAUSE: 'Pause',
-    Screener.TASK_COLLECT: 'Collect Frames',
-    Screener.TASK_ANALYSE: 'Request Analysis',
-    Screener.TASK_DISMOUNT: 'Dismount Last',
+    Automator.TASK_MOUNT: 'Mount Sample',
+    Automator.TASK_ALIGN: 'Center Sample',
+    Automator.TASK_PAUSE: 'Pause',
+    Automator.TASK_COLLECT: 'Collect Frames',
+    Automator.TASK_ANALYSE: 'Request Analysis',
+    Automator.TASK_DISMOUNT: 'Dismount Last',
 }
 
 PAUSE_MSGS = {
-    Screener.PAUSE_ALIGN: 'Screening paused automatically, due to centering error ',
-    Screener.PAUSE_MOUNT: 'Screening stopped, because automounting failed: ',
-    Screener.PAUSE_UNRELIABLE: 'Screening paused automatically, due to unreliable auto-centering ',
-    Screener.PAUSE_TASK: 'Screening paused automatically, as requested, after completing ',
-    Screener.PAUSE_BEAM: 'Beam not Available. Screening has been paused and will automatically resume once the beam becomes available.  Intervene to manually resume screening.'
+    Automator.PAUSE_ALIGN: 'Screening paused automatically, due to centering error ',
+    Automator.PAUSE_MOUNT: 'Screening stopped, because automounting failed: ',
+    Automator.PAUSE_UNRELIABLE: 'Screening paused automatically, due to unreliable auto-centering ',
+    Automator.PAUSE_TASK: 'Screening paused automatically, as requested, after completing ',
+    Automator.PAUSE_BEAM: 'Beam not Available. Screening has been paused and will automatically resume once the beam becomes available.  Intervene to manually resume screening.'
 }
 
 (
@@ -58,9 +58,9 @@ class Tasklet(object):
         self.options.update(kwargs)
 
     def __repr__(self):
-        if self.task_type == Screener.TASK_COLLECT:
+        if self.task_type == Automator.TASK_COLLECT:
             _info = 'Collecting %s' % (self.options.get('frame_set'))
-        elif self.task_type == Screener.TASK_DISMOUNT:
+        elif self.task_type == Automator.TASK_DISMOUNT:
             _info = self.name
         else:
             _info = '%s: %s' % (self.name, self.options.get('sample', {}).get('name', '...'))
@@ -87,7 +87,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
         self.setup_gui()
         self.samples_data = []
         self.build_gui()
-        self.screen_runner = Screener()
+        self.screen_runner = Automator()
 
         self._screening = False
         self._screening_paused = False
@@ -159,15 +159,15 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
         # Task Configuration
         self.TaskList = []
         self.default_tasks = [
-            (Screener.TASK_MOUNT, {'default': True, 'locked': False}),
-            (Screener.TASK_ALIGN,
+            (Automator.TASK_MOUNT, {'default': True, 'locked': False}),
+            (Automator.TASK_ALIGN,
              {'default': False, 'locked': False, 'loop': True, 'crystal': False, 'capillary': False}),
-            (Screener.TASK_PAUSE, {'default': True, 'locked': False}),  # use this line for collect labels
-            (Screener.TASK_COLLECT, {'angle': 0.0, 'default': True, 'locked': False}),
-            (Screener.TASK_COLLECT, {'angle': 45.0, 'default': True, 'locked': False}),
-            (Screener.TASK_COLLECT, {'angle': 90.0, 'default': True, 'locked': False}),
-            (Screener.TASK_ANALYSE, {'default': True, 'locked': False}),
-            (Screener.TASK_PAUSE, {'default': False, 'locked': False}), ]
+            (Automator.TASK_PAUSE, {'default': True, 'locked': False}),  # use this line for collect labels
+            (Automator.TASK_COLLECT, {'angle': 0.0, 'default': True, 'locked': False}),
+            (Automator.TASK_COLLECT, {'angle': 45.0, 'default': True, 'locked': False}),
+            (Automator.TASK_COLLECT, {'angle': 90.0, 'default': True, 'locked': False}),
+            (Automator.TASK_ANALYSE, {'default': True, 'locked': False}),
+            (Automator.TASK_PAUSE, {'default': False, 'locked': False}), ]
         self._settings_sg = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
 
         # connect signals for collect parameters
@@ -191,11 +191,11 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
             tbtn.set_active(options['default'])
             tbtn.set_sensitive(not (options['locked']))
 
-            if key == Screener.TASK_COLLECT:
+            if key == Automator.TASK_COLLECT:
                 ctable = self._get_collect_setup(t)
                 ctable.attach(tbtn, 0, 3, 0, 1)
                 self.task_config_box.pack_start(ctable, True, True, 0)
-            elif key == Screener.TASK_ALIGN:
+            elif key == Automator.TASK_ALIGN:
                 ctable = self._get_centering_setup(t)
                 ctable.attach(tbtn, 0, 3, 0, 1)
                 self.task_config_box.pack_start(ctable, True, True, 0)
@@ -392,7 +392,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
         itr = self.listmodel.append()
         sample = item['task'].options.get('sample', {})  # dismount does not have a sample
         self.listmodel.set(itr,
-                           QUEUE_COLUMN_STATUS, item.get('status', Screener.TASK_STATE_PENDING),
+                           QUEUE_COLUMN_STATUS, item.get('status', Automator.TASK_STATE_PENDING),
                            QUEUE_COLUMN_ID, sample.get('name', '[LAST]'),  # use [LAST] as sample name
                            QUEUE_COLUMN_NAME, item['task'].name,
                            QUEUE_COLUMN_TASK, item['task'],
@@ -402,25 +402,25 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
     def _done_color(self, column, renderer, model, itr):
         status = model.get_value(itr, QUEUE_COLUMN_STATUS)
         _state_colors = {
-            Screener.TASK_STATE_PENDING: None,
-            Screener.TASK_STATE_RUNNING: '#990099',
-            Screener.TASK_STATE_DONE: '#006600',
-            Screener.TASK_STATE_ERROR: '#990000',
-            Screener.TASK_STATE_SKIPPED: '#777777',
+            Automator.TASK_STATE_PENDING: None,
+            Automator.TASK_STATE_RUNNING: '#990099',
+            Automator.TASK_STATE_DONE: '#006600',
+            Automator.TASK_STATE_ERROR: '#990000',
+            Automator.TASK_STATE_SKIPPED: '#777777',
         }
         renderer.set_property("foreground", _state_colors.get(status))
 
     def _done_pixbuf(self, column, renderer, model, itr):
         value = model.get_value(itr, QUEUE_COLUMN_STATUS)
-        if value == Screener.TASK_STATE_PENDING:
+        if value == Automator.TASK_STATE_PENDING:
             renderer.set_property('pixbuf', None)
-        elif value == Screener.TASK_STATE_RUNNING:
+        elif value == Automator.TASK_STATE_RUNNING:
             renderer.set_property('pixbuf', self._wait_img)
-        elif value == Screener.TASK_STATE_DONE:
+        elif value == Automator.TASK_STATE_DONE:
             renderer.set_property('pixbuf', self._ready_img)
-        elif value == Screener.TASK_STATE_ERROR:
+        elif value == Automator.TASK_STATE_ERROR:
             renderer.set_property('pixbuf', self._error_img)
-        elif value == Screener.TASK_STATE_SKIPPED:
+        elif value == Automator.TASK_STATE_SKIPPED:
             renderer.set_property('pixbuf', self._skip_img)
         else:
             renderer.set_property('pixbuf', None)
@@ -488,7 +488,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
                     tsk.options.update({
                         'directory': self.dir_btn.get_current_folder(),
                         'sample': item})
-                    if tsk.task_type == Screener.TASK_COLLECT:
+                    if tsk.task_type == Automator.TASK_COLLECT:
                         for n in range(int(t.options['frames'])):
                             ang = t.options['angle'] + n * delta
                             num = int(round(ang / delta)) + 1
@@ -496,13 +496,13 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
 
                         if collect_task is None:
                             collect_task = tsk
-                            q_item = {'status': Screener.TASK_STATE_PENDING, 'task': tsk}
+                            q_item = {'status': Automator.TASK_STATE_PENDING, 'task': tsk}
                             self._add_item(q_item)
                     else:
-                        if tsk.task_type == Screener.TASK_ANALYSE:
+                        if tsk.task_type == Automator.TASK_ANALYSE:
                             # make sure analyse knows about corresponding collect
                             tsk.options.update(collect_task=collect_task)
-                        q_item = {'status': Screener.TASK_STATE_PENDING, 'task': tsk}
+                        q_item = {'status': Automator.TASK_STATE_PENDING, 'task': tsk}
                         self._add_item(q_item)
 
             # setup collect parameters for this item
@@ -523,9 +523,9 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
 
             # Add dismount task for last item
             if item == items[-1]:
-                tsk = Tasklet(Screener.TASK_DISMOUNT)
+                tsk = Tasklet(Automator.TASK_DISMOUNT)
                 tsk.options.update(sample=item)
-                self._add_item({'status': Screener.TASK_STATE_PENDING, 'task': tsk})
+                self._add_item({'status': Automator.TASK_STATE_PENDING, 'task': tsk})
 
         # Save the configuration everytime we hit apply
         self._save_config()
@@ -558,7 +558,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
         self.screen_runner.stop()
         self.stop_btn.set_sensitive(False)
 
-    def _on_progress(self, obj, fraction, position, status=Screener.TASK_STATE_RUNNING):
+    def _on_progress(self, obj, fraction, position, status=Automator.TASK_STATE_RUNNING):
         elapsed_time = time.time() - self.start_time
         if fraction > 0:
             time_unit = elapsed_time / fraction
@@ -599,7 +599,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
             else:
                 self.lbl_next.set_text('')
                 next_sample = None
-            if cur_sample != next_sample and status == Screener.TASK_STATE_DONE:
+            if cur_sample != next_sample and status == Automator.TASK_STATE_DONE:
                 #self.sample_list.set_row_processed(cur_sample, True)
                 #self.sample_list.set_row_selected(cur_sample, False)
                 pass
@@ -639,7 +639,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
                                          parent=self.get_toplevel(),
                                          buttons=(('Intervene', Gtk.ResponseType.ACCEPT),))
             self._intervening = False
-            if pause_dict['type'] is Screener.PAUSE_BEAM:
+            if pause_dict['type'] is Automator.PAUSE_BEAM:
                 self.beam_connect = self.beamline.storage_ring.connect('beam', self._on_beam_change)
                 try:
                     self.collect_obj = pause_dict['collector']
@@ -647,7 +647,7 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
                 except:
                     self.collect_obj = False
             response = self.resp()
-            if response == Gtk.ResponseType.ACCEPT or (pause_dict['type'] == Screener.PAUSE_BEAM and self._beam_up):
+            if response == Gtk.ResponseType.ACCEPT or (pause_dict['type'] == Automator.PAUSE_BEAM and self._beam_up):
                 self._intervening = True
                 self._beam_up = False
                 if self.collect_obj:

@@ -1,17 +1,21 @@
-from mxdc.interface.beamlines import IBeamline
-from mxdc.engine import centering, snapshot, auto
-from mxdc.interface.engines import IDataCollector
-from mxdc.com import ca
-from mxdc.utils import json, runlists
-from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
-from mxdc.utils.log import get_module_logger
-from twisted.python.components import globalRegistry
-from zope.interface import Interface, implements
-from gi.repository import GObject
 import os
 import pwd
 import threading
 import time
+
+from gi.repository import GObject
+from twisted.python.components import globalRegistry
+from zope.interface import implements
+
+from mxdc.com import ca
+from mxdc.engine import centering, snapshot, auto
+from mxdc.interface.beamlines import IBeamline
+from mxdc.interface.engines import IDataCollector
+from mxdc.utils import json, runlists
+from mxdc.utils import misc
+from mxdc.utils.config import settings
+from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
+from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -37,7 +41,7 @@ DEFAULT_PARAMETERS = {
 class DataCollector(GObject.GObject):
     implements(IDataCollector)
     __gsignals__ = {
-        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str, )),
+        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
         'progress': (GObject.SIGNAL_RUN_LAST, None, (float,)),
         'done': (GObject.SIGNAL_RUN_LAST, None, []),
         'paused': (GObject.SIGNAL_RUN_LAST, None, (bool, object)),
@@ -60,9 +64,8 @@ class DataCollector(GObject.GObject):
         self.total_frames = 0
         self.count = 0
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.new_image_handler_id = self.beamline.detector.connect('new-image', self.on_new_image)
+        self.beamline.detector.connect('new-image', self.on_new_image)
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
-        self.beamline.detector.handler_block(self.new_image_handler_id)
         globalRegistry.register([], IDataCollector, '', self)
 
     def configure(self, run_data, take_snapshots=True):
@@ -95,7 +98,6 @@ class DataCollector(GObject.GObject):
         ca.threads_init()
         self.collecting = True
         self.beamline.detector_cover.open(wait=True)
-        self.beamline.detector.handler_unblock(self.new_image_handler_id)
         self.total_frames = sum([wedge['num_frames'] for wedge in self.config['wedges']])
         current_attenuation = self.beamline.attenuator.get()
 
@@ -116,9 +118,9 @@ class DataCollector(GObject.GObject):
         time.sleep(2.0)
 
         self.results = self.save_summary(self.config['datasets'])
+        self.beamline.lims.upload_datasets(self.beamline, self.results)
         if not (self.stopped or self.paused):
             GObject.idle_add(self.emit, 'done')
-            self.beamline.detector.handler_block(self.new_image_handler_id)
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.collecting = False
         self.beamline.detector_cover.close()
@@ -331,245 +333,170 @@ class DataCollector(GObject.GObject):
         GObject.idle_add(self.emit, 'stopped')
 
 
-class Screener(GObject.GObject):
-    __gsignals__ = {}
-    __gsignals__['progress'] = (GObject.SIGNAL_RUN_LAST, None, (float, int, int))
-    __gsignals__['done'] = (GObject.SIGNAL_RUN_LAST, None, [])
-    __gsignals__['paused'] = (GObject.SIGNAL_RUN_LAST, None, (bool, object))
-    __gsignals__['started'] = (GObject.SIGNAL_RUN_LAST, None, [])
-    __gsignals__['stopped'] = (GObject.SIGNAL_RUN_LAST, None, [])
-    __gsignals__['sync'] = (GObject.SIGNAL_RUN_LAST, None, (bool, str))
-    __gsignals__['error'] = (GObject.SIGNAL_RUN_LAST, None, (str,))
-    __gsignals__['analyse-request'] = (GObject.SIGNAL_RUN_LAST, None, (object,))
-    __gsignals__['new-datasets'] = (GObject.SIGNAL_RUN_LAST, None, (object,))
-    __gsignals__['new-image'] = (GObject.SIGNAL_RUN_LAST, None, (str,))
+class Automator(GObject.GObject):
+    class Task:
+        (MOUNT, CENTER, PAUSE, ACQUIRE, ANALYSE, DISMOUNT) = range(6)
 
-    TASK_MOUNT, TASK_ALIGN, TASK_PAUSE, TASK_COLLECT, TASK_ANALYSE, TASK_DISMOUNT = range(6)
-    TASK_STATE_PENDING, TASK_STATE_RUNNING, TASK_STATE_DONE, TASK_STATE_ERROR, TASK_STATE_SKIPPED = range(5)
+    TaskNames = ('Mount', 'Center', 'Pause', 'Acquire', 'Analyse', 'Dismount')
 
-    PAUSE_TASK, PAUSE_BEAM, PAUSE_ALIGN, PAUSE_MOUNT, PAUSE_UNRELIABLE = range(5)
+    __gsignals__ = {
+        'analysis-request': (GObject.SIGNAL_RUN_LAST, None, (object,)),
+        'progress': (GObject.SIGNAL_RUN_LAST, None, (float, str)),
+        'sample-done': (GObject.SIGNAL_RUN_LAST, None, (str,)),
+        'sample-started': (GObject.SIGNAL_RUN_LAST, None, (str,)),
+        'done': (GObject.SIGNAL_RUN_LAST, None, []),
+        'paused': (GObject.SIGNAL_RUN_LAST, None, (bool, str)),
+        'started': (GObject.SIGNAL_RUN_LAST, None, []),
+        'stopped': (GObject.SIGNAL_RUN_LAST, None, []),
+        'error': (GObject.SIGNAL_RUN_LAST, None, (str,)),
+    }
 
     def __init__(self):
-        GObject.GObject.__init__(self)
+        super(Automator, self).__init__()
         self.paused = False
+        self.pause_message = ''
         self.stopped = True
-        self.skip_collected = False
-        self._collect_results = []
-        self.last_pause = None
+        self.total = 1
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.data_collector = globalRegistry.lookup([], IDataCollector)
-        self.data_collector.connect('new-image', self.on_new_image)
+        self.collector = globalRegistry.lookup([], IDataCollector)
 
-    def configure(self, run_list):
-        self.run_list = run_list
-        self.total_items = len(self.run_list)
+    def configure(self, samples, tasks):
+        self.samples = samples
+        self.tasks = tasks
+        self.total = len(tasks) * len(samples)
 
     def start(self):
         worker_thread = threading.Thread(target=self.run)
         worker_thread.setDaemon(True)
-        worker_thread.setName('Screener')
+        worker_thread.setName('Automator')
         self.paused = False
         self.stopped = False
         worker_thread.start()
 
-    def notify_progress(self, status):
-        # Notify progress
-        if status == self.TASK_STATE_DONE:
-            fraction = float(self.pos + 1) / self.total_items
-        else:
-            fraction = float(self.pos) / self.total_items
-        GObject.idle_add(self.emit, 'progress', fraction, self.pos, status)
-
-    def on_new_image(self, obj, file_path):
-        GObject.idle_add(self.emit, 'new-image', file_path)
+    def notify_progress(self, pos, task, sample):
+        fraction = float(pos) / self.total
+        msg = '{}: {}/{}'.format(self.TaskNames[task['type']], sample['group'], sample['name'])
+        GObject.idle_add(self.emit, 'progress', fraction, msg)
 
     def run(self):
         ca.threads_init()
         GObject.idle_add(self.emit, 'started')
-        pause_info = {}
+        pos = 0
+        self.pause_message = ''
+        for sample in self.samples:
+            if self.stopped: break
+            GObject.idle_add(self.emit, 'sample-started', sample['uuid'])
+            for task in self.tasks:
+                if self.paused:
+                    GObject.idle_add(self.emit, 'paused', True, self.pause_message)
+                    while self.paused and not self.stopped:
+                        time.sleep(0.1)
+                    GObject.idle_add(self.emit, 'paused', False, '')
 
-        for self.pos, task in enumerate(self.run_list):
-            _logger.debug('TASK: "%s"' % str(task))
+                if self.stopped: break
+                pos += 1
+                self.notify_progress(pos, task, sample)
+                _logger.info(
+                    'Sample: {}/{}, Task: {}'.format(sample['group'], sample['name'], self.TaskNames[task['type']])
+                )
+                time.sleep(5)
 
-            if self.paused:
-                GObject.idle_add(self.emit, 'paused', True, pause_info)
-                self.last_pause = pause_info.get('type', None)
-                pause_info = {}
-                while self.paused and not self.stopped:
-                    time.sleep(0.1)
-                GObject.idle_add(self.emit, 'paused', False, pause_info)
+                if task['type'] == self.Task.PAUSE:
+                    self.pause(
+                        'As requested, automation has been paused for manual intervention. '
+                        'Please resume after intervening to continue the sequence. '
+                    )
+                elif task['type'] == self.Task.CENTER:
+                    if self.beamline.automounter.is_mounted(sample['port']):
+                        method = task['options'].get('method')
+                        quality = centering.auto_center(method=method)
+                        if quality < 70:
+                            self.pause('Error attempting auto {} centering {}'.format(method, sample['name']))
+                    else:
+                        self.stop(error='Sample not mounted. Unable to continue automation!')
 
-            if self.stopped:
-                GObject.idle_add(self.emit, 'stopped')
-                break
-
-            # Perform the screening task here
-            if task.task_type == Screener.TASK_PAUSE:
-                pause_info = {
-                    'type': Screener.PAUSE_TASK,
-                    'task': self.run_list[self.pos - 1].name,
-                    'sample': self.run_list[self.pos]['sample']['name'],
-                    'port': self.run_list[self.pos]['sample']['port']
-                }
-                self.pause()
-                self.notify_progress(Screener.TASK_STATE_DONE)
-
-            elif task.task_type == Screener.TASK_MOUNT:
-                _logger.debug('TASK: Mount "%s"' % task['sample']['port'])
-                self.notify_progress(Screener.TASK_STATE_RUNNING)
-                success = auto.auto_mount_manual(self.beamline, task['sample']['port'])
-                mounted_info = self.beamline.automounter.mounted_state
-                if not success or mounted_info is None:
-                    self.stop()
-                    self.pause()
-                    pause_info = {
-                        'type': Screener.PAUSE_MOUNT,
-                        'task': self.run_list[self.pos - 1].name,
-                        'sample': self.run_list[self.pos]['sample']['name'],
-                        'port': self.run_list[self.pos]['sample']['port']
-                    }
-                    self.notify_progress(Screener.TASK_STATE_ERROR)
-                else:
-                    port, barcode = mounted_info
-                    if port != self.run_list[self.pos]['sample']['port']:
-                        GObject.idle_add(
-                            self.emit, 'sync', False,
-                            'Port mismatch. Expected {}.'.format(
-                                self.run_list[self.pos]['sample']['port']
+                elif task['type'] == self.Task.MOUNT:
+                    success = auto.auto_mount_manual(self.beamline, sample['port'])
+                    mounted_info = self.beamline.automounter.mounted_state
+                    if not success or mounted_info is None:
+                        self.stop(error='Mouting Failed. Unable to continue automation!')
+                    else:
+                        port, barcode = mounted_info
+                        if port != sample['port']:
+                            GObject.idle_add(
+                                self.emit, 'mismatch',
+                                'Port mismatch. Expected {}.'.format(
+                                    sample['port']
+                                )
                             )
-                        )
-                    elif barcode != self.run_list[self.pos]['sample']['barcode']:
-                        GObject.idle_add(
-                            self.emit, 'sync', False,
-                            'Barcode mismatch. Expected {}.'.format(
-                                self.run_list[self.pos]['sample']['barcode']
+                        elif sample['barcode'] and barcode and barcode != sample['barcode']:
+                            GObject.idle_add(
+                                self.emit, 'mismatch',
+                                'Barcode mismatch. Expected {}.'.format(
+                                    sample['barcode']
+                                )
                             )
-                        )
+                elif task['type'] == self.Task.ACQUIRE:
+                    if self.beamline.automounter.is_mounted(sample['port']):
+                        params = {}
+                        params.update(task['options'])
+                        params['name'] = "{}_test".format(sample['name'])
+                        params.update({
+                            'sample': sample.get('name', params['name']),
+                            'sample_id': sample.get('id'),
+                            'port': sample.get('port', ''),
+                            'container': misc.slugify(sample.get('container', '')),
+                            'group': misc.slugify(sample.get('group', '')),
+                        })
+                        dir_template = '{}/{}'.format(os.environ['HOME'], settings.get_string('directory-template'))
+                        params['directory'] = dir_template.format(**params).replace('//', '/')
+
+                        _logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
+                            params['name'], params['directory']
+                        ))
+                        self.collector.configure(params, take_snapshots=True)
+                        sample['results'] = self.collector.run()
                     else:
-                        GObject.idle_add(self.emit, 'sync', True, '')
-                        self.notify_progress(Screener.TASK_STATE_DONE)
+                        self.stop(error='Sample not mounted. Unable to continue automation!')
 
-            elif task.task_type == Screener.TASK_DISMOUNT:
-                _logger.warn('TASK: Dismounting Last Sample')
-                if self.beamline.automounter.is_mounted():  # only attempt if any sample is mounted
-                    self.notify_progress(Screener.TASK_STATE_RUNNING)
-                    success = auto.auto_dismount_manual(self.beamline, task['sample']['port'])
-                    self.notify_progress(Screener.TASK_STATE_DONE)
-
-            elif task.task_type == Screener.TASK_ALIGN:
-                _logger.warn('TASK: Align sample "%s"' % task['sample']['name'])
-
-                if self.beamline.automounter.is_mounted(task['sample']['port']):
-                    self.notify_progress(Screener.TASK_STATE_RUNNING)
-
-                    for method in ['crystal', 'capillary', 'loop']:
-                        if task.options.get(method):
-                            break
-                    if method == 'crystal':
-                        _out = centering.auto_center_crystal()
-                    elif method == 'capillary':
-                        _out = centering.auto_center_capillary()
-                    else:
-                        _out = centering.auto_center_loop()
-
-                    if not _out:
-                        _logger.error('Error attempting auto loop centering "%s"' % task['sample']['name'])
-                        pause_info = {'type': Screener.PAUSE_ALIGN,
-                                      'task': self.run_list[self.pos - 1].name,
-                                      'sample': self.run_list[self.pos]['sample']['name'],
-                                      'port': self.run_list[self.pos]['sample']['port']}
-                        self.pause()
-                        self.notify_progress(Screener.TASK_STATE_ERROR)
-                    elif _out < 70:
-                        pause_info = {'type': Screener.PAUSE_UNRELIABLE,
-                                      'task': self.run_list[self.pos - 1].name,
-                                      'sample': self.run_list[self.pos]['sample']['name'],
-                                      'port': self.run_list[self.pos]['sample']['port']}
-                        self.pause()
-                        self.notify_progress(Screener.TASK_STATE_ERROR)
-                    else:
-                        self.notify_progress(Screener.TASK_STATE_DONE)
-                    directory = os.path.join(task['directory'], task['sample']['name'], 'test')
-                    if not os.path.exists(directory):
-                        os.makedirs(directory)  # make sure directories exist
-                    prefix = '%s_test-pic' % (task['sample']['name'])
-                    if not os.path.exists(os.path.join(directory, '%s_%0.1f.png' % (prefix, 0.0))):
-                        _logger.info('Taking snapshots of crystal at %0.1f and %0.1f' % (0.0, 90.0))
-                        snapshot.take_sample_snapshots(prefix, directory, [0.0, 90.0], decorate=True)
-                else:
-                    self.notify_progress(Screener.TASK_STATE_SKIPPED)
-                    _logger.warn('Skipping task because given sample is not mounted')
-
-            elif task.task_type == Screener.TASK_COLLECT:
-                _logger.warn('TASK: Collect frames for "%s"' % task['sample']['name'])
-
-                if self.beamline.automounter.is_mounted(task['sample']['port']):
-                    self.notify_progress(Screener.TASK_STATE_RUNNING)
-                    sample = task['sample']
-                    params = DEFAULT_PARAMETERS.copy()
-                    params['name'] = "%s_test" % sample['name']
-                    params['two_theta'] = self.beamline.two_theta.get_position()
-                    params['crystal_id'] = sample.get('id', None)
-                    params['experiment_id'] = sample.get('experiment_id', None)
-                    params['directory'] = os.path.join(task['directory'], sample['name'], 'test')
-                    params['energy'] = [self.beamline.energy.get_position()]
-                    for k in ['distance', 'delta_angle', 'exposure_time', 'start_angle', 'total_angle',
-                              'first_frame', 'skip']:
-                        params[k] = task.options[k]
-
-                    _logger.debug('Collecting frames for crystal `%s`, in directory `%s`.' % (
-                        params['name'], params['directory']))
-                    if not os.path.exists(params['directory']):
-                        os.makedirs(params['directory'])  # make sure directories exist
-                    self.data_collector.configure(params, take_snapshots=False)
-                    results = self.data_collector.run()
-                    task.options['results'] = results
-                    GObject.idle_add(self.emit, 'new-datasets', results)
-                    self.notify_progress(Screener.TASK_STATE_DONE)
-                else:
-                    self.notify_progress(Screener.TASK_STATE_SKIPPED)
-                    _logger.warn('Skipping task because given sample is not mounted')
-
-            elif task.task_type == Screener.TASK_ANALYSE:
-                collect_task = task.options.get('collect_task')
-                if collect_task is not None:
-                    collect_results = collect_task.options.get('results', [])
-                    if len(collect_results) > 0:
-                        images = runlists.get_disk_dataset(
-                            collect_results[0]['directory'],
-                            collect_results[0]['name']
-                        )
-                        _a_params = {
-                            'directory': os.path.join(task['directory'], task['sample']['name'], 'scrn'),
-                            'info': {'anomalous': False, 'file_names': images[:1]},
-                            'type': 'SCRN',
-                            'crystal': task.options['sample'],
-                            'name': collect_results[0]['name']
+                elif task['type'] == Automator.Task.ANALYSE:
+                    if sample.get('results') is not None:
+                        a_params = {
+                            'directory': os.path.join(sample['results'][0]['directory'], 'proc'),
+                            'method': task['options'].get('method'),
+                            'sample': sample
                         }
-
-                        if not os.path.exists(_a_params['directory']):
-                            os.makedirs(_a_params['directory'])  # make sure directories exist
-                        GObject.idle_add(self.emit, 'analyse-request', _a_params)
-                        self._collect_results = []
-                        _logger.warn('Requesting analysis')
-                        self.notify_progress(Screener.TASK_STATE_DONE)
+                        GObject.idle_add(self.emit, 'analysis-request', a_params)
                     else:
-                        self.notify_progress(Screener.TASK_STATE_SKIPPED)
-                        _logger.warn('Skipping task because frames were not collected')
-                else:
-                    self.notify_progress(Screener.TASK_STATE_SKIPPED)
-                    _logger.warn('Skipping task because frames were not collected')
+                        self.stop(error='Data not available. Unable to continue automation!')
+            GObject.idle_add(self.emit, 'sample-done', sample['uuid'])
 
-        GObject.idle_add(self.emit, 'done')
-        self.stopped = True
-        self.beamline.exposure_shutter.close()
+        if self.stopped:
+            GObject.idle_add(self.emit, 'stopped')
+            _logger.info('Automation stopped')
 
-    def pause(self):
+        if not self.stopped:
+            if self.beamline.automounter.is_mounted():
+                port, barcode = self.beamline.automounter.mounted_state
+                auto.auto_dismount_manual(self.beamline, port)
+            GObject.idle_add(self.emit, 'done')
+            _logger.info('Automation complete')
+
+    def pause(self, message=''):
+        if message:
+            _logger.warn(message)
+        self.pause_message = message
         self.paused = True
 
     def resume(self):
         self.paused = False
+        self.pause_message = ''
+        self.collector.resume()
 
-    def stop(self):
+    def stop(self, error=''):
+        self.collector.stop()
         self.stopped = True
-        self.data_collector.stop()
+        self.paused = False
+        if error:
+            _logger.error(error)
+            GObject.idle_add(self.emit, 'error', error)

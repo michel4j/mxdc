@@ -1,0 +1,6 @@
+.section-box {
+    background: rgba(0,0,0,0.15);
+}
+.section-box > * {
+    margin: 6px;
+}

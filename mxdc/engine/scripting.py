@@ -43,7 +43,8 @@ class Script(GObject.GObject):
     implements(IScript)
     __gsignals__ = {}
     __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
-    __gsignals__['started'] = (GObject.SignalFlags.RUN_LAST, None, [])
+    __gsignals__['busy'] = (GObject.SignalFlags.RUN_LAST, None, (bool,))
+    __gsignals__['message'] = (GObject.SignalFlags.RUN_LAST, None, (str,))
     __gsignals__['enabled'] = (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_BOOLEAN,))
     __gsignals__['error'] = (GObject.SignalFlags.RUN_LAST, None, [])
     description = 'A Script'
@@ -74,13 +75,17 @@ class Script(GObject.GObject):
             _logger.warning('Script "%s" disabled or busy.' % (self,))
         
     def _thread_run(self, *args, **kwargs):
+
         try:
             ca.threads_init()
-            GObject.idle_add(self.emit, "started")
+            GObject.idle_add(self.emit, "busy", True)
+            GObject.idle_add(self.emit, "message", self.description)
             self.output = self.run(*args, **kwargs)
             _logger.info('Script `%s` terminated successfully' % (self.name) )
         finally:
             GObject.idle_add(self.emit, "done", self.output)
+            GObject.idle_add(self.emit, "busy", False)
+            GObject.idle_add(self.emit, "message", 'Done.')
             self.run_after(*args, **kwargs)
             self._active = False
                 
@@ -106,6 +111,9 @@ class Script(GObject.GObject):
     
     def is_active(self):
         return self._active
+
+    def is_busy(self):
+        return self.is_active()
 
     def is_enabled(self):
         return self._enabled

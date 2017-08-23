@@ -8,6 +8,7 @@ from mxdc.com import ca
 from gi.repository import GObject
 import numpy
 import time
+from threading import Lock
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger('devices')
@@ -55,15 +56,7 @@ class MotorBase(BaseDevice):
         self._disabled_value = 0
         self._calib_good_value = 1
         self.default_precision = 2
-        
-    def do_changed(self, st):
-        pass
-    
-    def do_time(self, st):
-        pass
 
-    def do_target(self, target):
-        pass
     
     def do_starting(self):
         self._starting_flag = True
@@ -117,47 +110,56 @@ class MotorBase(BaseDevice):
 class SimMotor(MotorBase):
     implements(IMotor)
      
-    def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=4):
+    def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=3):
         MotorBase.__init__(self,name)
         pos = pos
 
         self.units = units
         self._status = 0
+        self._step_time = .001  # 1000 steps per second
         self._stopped = False
         self._enabled = True
         self._command_sent = False
+        self._lock = Lock()
+        self._active = active
 
         self._position = pos
         self._target = None
         self.default_precision = precision
         self._set_speed(speed)
-        self.set_state(health=(0, ''), active=active, changed=pos, target_changed=[pos])
+        self.initialize()
+
+    def initialize(self):
+        self.set_state(health=(0, ''), active=self._active)
+        self._signal_target(self, self._position)
+        self._signal_change(self, self._position)
         
     def get_position(self):
         return self._position
     
     def _set_speed(self, val):
         self._speed = val # speed
-        self._step_size = 10 ** -self.default_precision
-        self._step_time = self._step_size / self._speed
-        
+        self._step_size = self._speed * self._step_time
+
     @async
     def _move_action(self, target):
         self._stopped = False
         self._command_sent = True
-        import numpy
-        self.set_state(target_changed=(self._target, target))
-        self._target = target
-        _num_steps = int(abs(self._position - target) / self._step_size)
-        targets = numpy.linspace(self._position, target, _num_steps)
-        self.set_state(busy=True)
-        self._command_sent = False
-        for pos in targets:
-            self._position = pos
-            self.set_state(changed=self._position, time=time.time())
-            if self._stopped:
-                break
-            time.sleep(self._step_time)
+        with self._lock:
+            self.set_state(busy=True)
+            self.set_state(target_changed=(self._target, target))
+            self._target = target
+            _num_steps = int(abs(self._position - target) / self._step_size)
+            targets = numpy.linspace(self._position, target, _num_steps)
+
+
+            self._command_sent = False
+            for pos in targets:
+                self._position = pos
+                self.set_state(changed=self._position, time=time.time())
+                if self._stopped:
+                    break
+                time.sleep(self._step_time)
         self.set_state(busy=False)
 
     def move_to(self, pos, wait=False, force=False):
@@ -738,19 +740,17 @@ class RelVerticalMotor(MotorBase):
         
 
 class ResolutionMotor(MotorBase):
-    def __init__(self, energy, detector, distance):
+    def __init__(self, energy, distance, detector_size):
         MotorBase.__init__(self, 'Max Detector Resolution')
         self.energy = energy
-        self.detector = detector
+        self.detector_size = detector_size
         self.distance = distance
         self.energy.connect('changed', self.on_update_pos)
         self.distance.connect('changed', self.on_update_pos)
-        self.detector.connect('changed', self.on_update_pos)
 
-        self.detector.connect('busy', lambda obj, val: self.set_state(busy=val))
-        self.detector.connect('started', lambda obj: self.set_state(started=None))
-        self.detector.connect('done', lambda obj: self.set_state(done=None))
-
+        self.distance.connect('busy', lambda obj, val: self.set_state(busy=val))
+        self.distance.connect('starting', lambda obj, val: self.set_state(starting=val))
+        self.distance.connect('done', lambda obj: self.set_state(done=None))
 
     def on_update_pos(self, obj, val):
         pos = self.get_position()
@@ -760,14 +760,14 @@ class ResolutionMotor(MotorBase):
         self.set_state(busy=val)
 
     def get_position(self):
-        return converter.dist_to_resol(self.distance.get_position(), self.detector.size[0], self.energy.get_position())
+        return converter.dist_to_resol(self.distance.get_position(), self.detector_size, self.energy.get_position())
 
     def move_by(self, val, wait=False, force=False):
         if val == 0.0: return
         self.move_to(val + self.get_position(), wait=wait, force=force)
 
     def move_to(self, val, wait=False, force=False):
-        target = converter.resol_to_dist(val, self.detector.size[0], self.energy.get_position())
+        target = converter.resol_to_dist(val, self.detector_size, self.energy.get_position())
         self.distance.move_to(target, wait=wait, force=force)
 
     def stop(self):

@@ -30,15 +30,11 @@ class SetupController(object):
         self.hutch_viewer = None
         self.setup()
 
-    def __del__(self):
-        print "Destroying Setup Controller ..."
-
     def setup(self):
         self.hutch_viewer = AxisController(self.widget, self.beamline.registry['hutch_video'])
         # Some scripts need to reactivate settings frame on completion
         for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam', 'SetBeamMode']:
-            self.scripts[sc].connect('started', self.on_scripts_started)
-            self.scripts[sc].connect('done', self.on_scripts_done)
+            self.scripts[sc].connect('busy', self.on_scripts_busy)
 
         # create and pack devices into settings frame
         entry_list = [
@@ -118,8 +114,8 @@ class SetupController(object):
             for script_name in script_names:
                 self.scripts[script_name].enable()
 
-    def on_scripts_started(self, obj, event=None):
-        self.widget.setup_device_box.set_sensitive(False)
-
-    def on_scripts_done(self, obj, event=None):
-        self.widget.setup_device_box.set_sensitive(True)
+    def on_scripts_busy(self, obj, busy):
+        if busy:
+            self.widget.setup_device_box.set_sensitive(False)
+        else:
+            self.widget.setup_device_box.set_sensitive(True)

@@ -7,7 +7,8 @@ from mxdc.engine import auto
 from mxdc.utils.decorators import async
 from twisted.python.components import globalRegistry
 from zope.interface import Interface, implements
-
+from copy import copy
+import uuid
 
 class ISampleStore(Interface):
     """Sample information database."""
@@ -41,9 +42,13 @@ class SampleStore(GObject.GObject):
             COMMENTS,
             STATE,
             CONTAINER_TYPE,
-            PROCESSED,
+            PROGRESS,
+            UUID,
             DATA,
-        ) = range(13)
+        ) = range(14)
+
+    class Progress(object):
+        NONE, PENDING, ACTIVE, DONE = range(4)
 
     class State(object):
         (
@@ -73,7 +78,7 @@ class SampleStore(GObject.GObject):
     def __init__(self, view, widget):
         super(SampleStore, self).__init__()
         self.model = Gtk.ListStore(
-            bool, str, str, str, str, bool, str, int, str, int, str, bool, object
+            bool, str, str, str, str, bool, str, int, str, int, str, int, str, object
         )
         self.search_model = self.model.filter_new()
         self.search_model.set_visible_func(self.search_data)
@@ -127,7 +132,7 @@ class SampleStore(GObject.GObject):
                 column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
                 column.set_expand(True)
                 column.set_sort_column_id(data)
-                column.set_cell_data_func(renderer, self.format_processed)
+                column.set_cell_data_func(renderer, self.format_progress)
                 if data in [self.Data.NAME, self.Data.GROUP]:
                     column.set_resizable(True)
             column.set_clickable(True)
@@ -159,6 +164,7 @@ class SampleStore(GObject.GObject):
 
     def add_item(self, item):
         itr = self.model.append()
+        item['uuid'] = str(uuid.uuid4())
         self.model.set(
             itr,
             self.Data.SELECTED, item.get('selected', False),
@@ -172,7 +178,8 @@ class SampleStore(GObject.GObject):
             self.Data.COMMENTS, item.get('comments', ''),
             self.Data.BARCODE, item.get('barcode', ''),
             self.Data.LOADED, item.get('loaded', False),
-            self.Data.PROCESSED, False,
+            self.Data.PROGRESS, self.Progress.NONE,
+            self.Data.UUID, item['uuid'],
             self.Data.DATA, item,
         )
         self.ports.add(item.get('port'))
@@ -185,7 +192,8 @@ class SampleStore(GObject.GObject):
         """Test if the row is visible"""
         search_text = " ".join([
             str(self.model.get_value(itr, col)) for col in
-            [self.Data.NAME, self.Data.GROUP, self.Data.CONTAINER, self.Data.PORT, self.Data.COMMENTS, self.Data.BARCODE]
+            [self.Data.NAME, self.Data.GROUP, self.Data.CONTAINER, self.Data.PORT, self.Data.COMMENTS,
+             self.Data.BARCODE]
         ])
         return (not self.filter_text) or (self.filter_text in search_text)
 
@@ -204,9 +212,9 @@ class SampleStore(GObject.GObject):
             cell.set_property("foreground-rgba", col)
             cell.set_property("text", u"\u2b24")
 
-    def format_processed(self, column, cell, model, itr, data):
-        value = model.get_value(itr, self.Data.PROCESSED)
-        if value:
+    def format_progress(self, column, cell, model, itr, data):
+        value = model.get_value(itr, self.Data.PROGRESS)
+        if value == self.Progress.DONE:
             cell.set_property("style", Pango.Style.ITALIC)
         else:
             cell.set_property("style", Pango.Style.NORMAL)
@@ -215,10 +223,12 @@ class SampleStore(GObject.GObject):
         items = self.get_selected()
         if items:
             self.widget.samples_info1_lbl.set_markup('{} Selected'.format(len(items)))
+            self.widget.auto_queue_lbl.set_markup('{} Samples in Queue'.format(len(items)))
             self.next_sample = items[0]
             self.widget.samples_mount_btn.set_sensitive(True)
         else:
             self.widget.samples_info1_lbl.set_markup('')
+            self.widget.auto_queue_lbl.set_markup('0 Samples in Queue')
             self.next_sample = {}
             self.widget.samples_mount_btn.set_sensitive(False)
 
@@ -282,7 +292,7 @@ class SampleStore(GObject.GObject):
             for path in paths:
                 itr = self.filter_model.get_iter(path)
                 sitr = self.filter_model.convert_iter_to_child_iter(itr)
-                self.search_filter.set_value(sitr, self.Data.SELECTED, option)
+                self.search_model.set_value(sitr, self.Data.SELECTED, option)
         else:
             itr = self.filter_model.get_iter_first()
             while itr:
@@ -309,7 +319,7 @@ class SampleStore(GObject.GObject):
             selected = not value
             self.search_model.set_value(itr, self.Data.SELECTED, selected)
             if selected:
-                self.search_model.set_value(itr, self.Data.PROCESSED, False)
+                self.search_model.set_value(itr, self.Data.PROGRESS, self.Progress.NONE)
         self.update_next_sample()
 
     def update_states(self, states):
@@ -317,8 +327,7 @@ class SampleStore(GObject.GObject):
         itr = self.model.get_iter_first()
         while itr:
             port = self.model.get_value(itr, self.Data.PORT)
-            if port in self.states:
-                self.model.set(itr, self.Data.STATE, self.states[port])
+            self.model.set(itr, self.Data.STATE, self.states.get(port, self.State.UNKNOWN))
             itr = self.model.iter_next(itr)
 
     def on_automounter_states(self, obj, states):
@@ -342,7 +351,7 @@ class SampleStore(GObject.GObject):
             port, barcode = info
             self.current_sample, itr = self.find_by_port(port)
             self.model.set(
-                itr, self.Data.SELECTED, False, self.Data.PROCESSED, True
+                itr, self.Data.SELECTED, False,
             )
             self.widget.samples_dismount_btn.set_sensitive(True)
         else:
@@ -372,6 +381,89 @@ class SampleStore(GObject.GObject):
         self.widget.spinner.start()
         if self.current_sample and self.beamline.automounter.is_mounted(self.current_sample['port']):
             auto.auto_dismount_manual(self.beamline, self.current_sample['port'])
+
+
+class SampleQueue(GObject.GObject):
+    Column = OrderedDict([
+        (SampleStore.Data.STATE, ''),
+        (SampleStore.Data.NAME, 'Name'),
+        (SampleStore.Data.GROUP, 'Group'),
+        (SampleStore.Data.CONTAINER, 'Container'),
+        (SampleStore.Data.PORT, 'Port'),
+    ])
+
+    def __init__(self, view):
+        super(SampleQueue, self).__init__()
+        self.view = view
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.sample_store = globalRegistry.lookup([], ISampleStore)
+        self.model = self.sample_store.model
+        self.auto_queue = self.model.filter_new()
+        self.auto_queue.set_visible_func(self.queued_data)
+        self.view.set_model(self.auto_queue)
+
+        self.setup()
+
+    def setup(self):
+        # Selected Column
+        for data, title in self.Column.items():
+            if data == SampleStore.Data.STATE:
+                renderer = Gtk.CellRendererPixbuf()
+                column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer)
+                column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
+                column.set_fixed_width(32)
+                column.set_cell_data_func(renderer, self.format_state)
+            else:
+                renderer = Gtk.CellRendererText()
+                column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer, text=data)
+                column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
+                column.set_expand(True)
+
+                column.set_cell_data_func(renderer, self.format_processed)
+                if data in [SampleStore.Data.NAME, SampleStore.Data.GROUP]:
+                    column.set_resizable(True)
+            column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
+            self.view.append_column(column)
+        self.view.set_tooltip_column(SampleStore.Data.COMMENTS)
+        self.model.set_sort_column_id(SampleStore.Data.PRIORITY, Gtk.SortType.DESCENDING)
+
+    def mark_progress(self, uuid, state):
+        for item in self.auto_queue:
+            if item[SampleStore.Data.UUID] == uuid:
+                item[SampleStore.Data.PROGRESS] = state
+                break
+
+    def queued_data(self, model, itr, dat):
+        """Test if the row is visible"""
+        return any(self.model.get_value(itr, col) for col in
+                   [SampleStore.Data.SELECTED, SampleStore.Data.PROGRESS]
+                   )
+
+    def format_state(self, column, cell, model, itr, data):
+        value = model.get_value(itr, SampleStore.Data.STATE)
+        processed = model.get_value(itr, SampleStore.Data.PROGRESS)
+        if processed == SampleStore.Progress.ACTIVE:
+            #cell.set_property("foreground-rgba", Gdk.RGBA(alpha=1.0, **DewarController.Color[value]))
+            cell.set_property("icon-name",'emblem-synchronizing-symbolic')
+        elif processed == SampleStore.Progress.DONE:
+            #cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.5, blue=0.0, alpha=1.0))
+            cell.set_property("icon-name", "object-select-symbolic")
+        else:
+            cell.set_property("icon-name", "content-loading-symbolic")
+
+    def format_processed(self, column, cell, model, itr, data):
+        value = model.get_value(itr, SampleStore.Data.PROGRESS)
+        if value == SampleStore.Progress.DONE:
+            cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.5, blue=0.0, alpha=1.0))
+        else:
+            cell.set_property("foreground-rgba", None)
+
+
+    def get_samples(self):
+        return [
+            copy(item[SampleStore.Data.DATA])
+            for item in self.auto_queue if item[SampleStore.Data.SELECTED]
+        ]
 
 
 TEST_DATA = {
