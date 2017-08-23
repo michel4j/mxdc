@@ -168,6 +168,10 @@ class MXBeamline(object):
         if not 'detector_cover' in self.registry:
             self.registry['detector_cover'] = SimShutter('Dummy Detector Cover')
 
+
+        # detector max resolution
+        self.registry['maxres'] = ResolutionMotor(self.energy, self.distance, self.detector.mm_size)
+
         # Setup diagnostics on some devices
         self.diagnostics = []
         for k in ['automounter', 'goniometer', 'detector', 'cryojet', 'mca', 'enclosures', 'all_shutters', 'storage_ring']:

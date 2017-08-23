@@ -1,23 +1,35 @@
 # -*- coding: UTF8 -*-
 
-from mxdc.utils import gui
-from mxdc.widgets import dialogs
-from mxdc.widgets.imagewidget import ImageWidget, image_loadable
-from gi.repository import GObject
-from gi.repository import Gtk
-import logging
-import math
-import numpy
 import glob
+import logging
 import os
 import re
 import sys
+
+import numpy
+from gi.repository import GObject
+from gi.repository import Gtk
+from mxdc.utils import gui
+from mxdc.widgets import dialogs
+from mxdc.widgets.imagewidget import ImageWidget, image_loadable
+from twisted.python.components import globalRegistry
+from zope.interface import Interface
 
 __log_section__ = 'mxdc.imageviewer'
 img_logger = logging.getLogger(__log_section__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 FILE_PATTERN = re.compile('^(?P<base>[\w-]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.?[\w.]+)?$')
+
+
+class IImageViewer(Interface):
+    """Image Viewer."""
+
+    def queue_frame(filename):
+        pass
+
+    def add_frame(filename):
+        pass
 
 
 class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
@@ -63,6 +75,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.filename = None
         self.all_spots = []
         self.build_gui()
+        globalRegistry.register([], IImageViewer, '', self)
 
     def build_gui(self):
         self.info_dialog.set_transient_for(dialogs.MAIN_WINDOW)

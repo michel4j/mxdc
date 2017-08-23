@@ -9,8 +9,8 @@ from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as Figur
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
-rcParams['font.family'] = 'sans-serif'
-rcParams['font.size'] = 10
+rcParams['font.family'] = 'Cantarell'
+rcParams['font.size'] = 9
 
 
 def get_min_max(a, ldev=5, rdev=5):

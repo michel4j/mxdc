@@ -64,7 +64,7 @@ def generate_frames(wedge):
         # generate frame info
         frame = {
             'dataset': wedge['name'],
-            'uuid': wedge['uuid'],
+            'uuid': wedge.get('uuid'),
             'saved': False,
             'first': i + wedge['first'],
             'frame_name': wedge['frame_template'].format(i + wedge['first']),
@@ -144,7 +144,7 @@ def generate_collection_list(run, frame_set):
     # generate frame info
     first_frame, start_angle = frame_set[0]
     data_set = {
-        'uuid': run['uuid'],
+        'uuid': run.get('uuid'),
         'dataset': run['name'],
         'name': run['name'],
         'frame_template': '{}_{}'.format(run['name'], '{{:0{}d}}'.format(FRAME_NUMBER_DIGITS)),

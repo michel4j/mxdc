@@ -1,6 +1,7 @@
 import re
 import time
 import warnings
+from threading import Lock
 
 from gi.repository import GObject
 
@@ -217,10 +218,10 @@ class Goniometer(GoniometerBase):
             self.wait(start=False, stop=True)
         self._requested_mode = mode
         bl = globalRegistry.lookup([], IBeamline)
-        if bl is None:
-            _logger.error('Beamline is not available.')
-            return
-        _logger.info('Requesting {} mode'.format(mode))
+
+        message = 'Switching mode to {}'.format(mode)
+        self.set_state(message=message)
+        self._logger.info('{}: {}'.format(self.name, message))
         if mode == 'CENTERING':
             self._cnt_cmd.put(1)
         elif mode in ['MOUNTING']:
@@ -248,10 +249,12 @@ class Goniometer(GoniometerBase):
             - `wait` (bool): if True, wait until the scan is complete otherwise run
             asynchronously.
         """
+        self.set_state(message='Scanning ...', busy=True)
         self.wait(start=False, stop=True, timeout=timeout)
         self._scan_cmd.put(1)
-        self.wait(start=True, stop=wait, timeout=timeout)
-        _logger.debug('Scan complete...')
+        self.wait(start=True, stop=wait, timeout=timeout, busy=False)
+        if wait:
+            self.set_state(message='Scan complete!')
 
     def stop(self):
         _logger.debug('Stopping goniometer ...')
@@ -345,6 +348,9 @@ class MD2Goniometer(GoniometerBase):
         if self.is_busy():
             self.wait(start=False, stop=True)
 
+        message = 'Switching mode to {}'.format(mode)
+        self.set_state(message=message)
+
         # cmd_template = "SET_CLSMDPhasePosition=%d"
         mode = mode.strip().upper()
         if mode == 'CENTERING':
@@ -411,9 +417,13 @@ class MD2Goniometer(GoniometerBase):
             - `wait` (bool): if True, wait until the scan is complete otherwise run
               asynchronously.
         """
+
+        self.set_state(message='Scanning ...')
         self.wait(stop=True, start=False, timeout=timeout)
         self._scan_cmd.put(1)
         self.wait(start=True, stop=wait, timeout=timeout)
+        if wait:
+            self.set_state(message='Scan complete!')
 
     def stop(self):
         """Stop and abort the current scan if any."""
@@ -426,6 +436,7 @@ class SimGoniometer(GoniometerBase):
         GoniometerBase.__init__(self, 'Simulated Goniometer')
         GObject.idle_add(self.emit, 'mode', 'INIT')
         self._scanning = False
+        self._lock = Lock()
         self.set_state(active=True, health=(0, ''))
 
     def configure(self, **kwargs):
@@ -441,18 +452,21 @@ class SimGoniometer(GoniometerBase):
         self._scan_sync(wait=False)
 
     def _scan_sync(self, wait=True):
-        self._scanning = True
-        bl = globalRegistry.lookup([], IBeamline)
-        st = time.time()
-        _logger.debug('Starting scan at: %s' % datetime.now().isoformat())
-        bl.omega.move_to(self._settings['angle'] - 0.05, wait=True)
-        old_speed = bl.omega._speed
-        bl.omega._set_speed(float(self._settings['delta']) / self._settings['time'])
-        if wait:
-            _logger.debug('Waiting for scan to complete ...')
-        bl.omega.move_to(self._settings['angle'] + self._settings['delta'] + 0.05, wait=True)
-        bl.omega._set_speed(old_speed)
-        _logger.debug('Scan done at: %s' % datetime.now().isoformat())
+        self.set_state(message='Scanning ...', busy=True)
+        with self._lock:
+            self._scanning = True
+            bl = globalRegistry.lookup([], IBeamline)
+            st = time.time()
+            _logger.debug('Starting scan at: %s' % datetime.now().isoformat())
+            bl.omega.move_to(self._settings['angle'] - 0.05, wait=True)
+            old_speed = bl.omega._speed
+            bl.omega._set_speed(float(self._settings['delta']) / self._settings['time'])
+            if wait:
+                _logger.debug('Waiting for scan to complete ...')
+            bl.omega.move_to(self._settings['angle'] + self._settings['delta'] + 0.05, wait=True)
+            bl.omega._set_speed(old_speed)
+            _logger.debug('Scan done at: %s' % datetime.now().isoformat())
+        self.set_state(message='Scan complete!', busy=False)
         self._scanning = False
 
     def scan(self, wait=True, timeout=None):

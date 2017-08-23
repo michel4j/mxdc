@@ -147,7 +147,7 @@ Add runs using the buttons above.</property>
                               <object class="GtkImage">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="icon_name">emblem-system-symbolic</property>
+                                <property name="icon_name">preferences-system-symbolic</property>
                               </object>
                             </child>
                           </object>

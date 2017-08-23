@@ -144,7 +144,7 @@ class LIMSClient(BaseService):
             'first_frame': data['first'],
             'frame_sets': data['frame_sets'],
             'exposure_time': data['exposure'],
-            'two_theta': data['two_theta'],
+            'two_theta': data.get('two_theta', 0.0),
             'wavelength': round(data['wavelength'], 5),
             'detector': data['detector'],
             'detector_size': data['detector_size'],
