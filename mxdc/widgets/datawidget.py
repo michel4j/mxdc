@@ -44,6 +44,7 @@ def _calc_skip(strategy, delta, first):
             first + int(90 / delta) - 1,
         )
 
+
 class RunEditor(gui.BuilderMixin):
     gui_roots = {
         'data/run_editor': ['run_editor']
@@ -73,9 +74,10 @@ class RunEditor(gui.BuilderMixin):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.new_run = True
         self.run_index = 0
+        self.sample = None
         self.build_gui()
 
-    def configure(self, info):
+    def configure(self, info, disable=()):
         for name, details in self.Specs.items():
             field_type, fmt, conv, default = details
             field_name = 'run_{}_{}'.format(name, field_type)
@@ -87,6 +89,9 @@ class RunEditor(gui.BuilderMixin):
                 field.set_active(value)
             elif field_type == 'cbox':
                 field.set_active_id(str(value))
+            if name in disable:
+                field.set_sensitive(False)
+
 
     def set_sample(self, sample):
         self.run_sample_entry.set_text(sample.get('name', '...'))
@@ -118,17 +123,20 @@ class RunEditor(gui.BuilderMixin):
         # Calculate skip, and update sample variables info
         info.update({
             'skip': _calc_skip(info['strategy'], info['delta'], info['first']),
-            'sample': self.sample.get('name', info['name']),
-            'sample_id': self.sample.get('id'),
             'date': date.today().strftime('%Y%m%d'),
-            'group': misc.slugify(self.sample.get('group', '')),
             'session': config.get_session(),
-            'port': self.sample.get('port', ''),
-            'container': misc.slugify(self.sample.get('container', '')),
             'strategy_desc': STRATEGIES[info['strategy']]['desc'],
         })
-        dir_template = '{}/{}'.format(os.environ['HOME'], settings.get_string('directory-template'))
-        info['directory'] = dir_template.format(**info).replace('//', '/')
+        if self.sample:
+            info.update({
+                'sample': self.sample.get('name', info['name']),
+                'sample_id': self.sample.get('id'),
+                'port': self.sample.get('port', ''),
+                'container': misc.slugify(self.sample.get('container', '')),
+                'group': misc.slugify(self.sample.get('group', '')),
+            })
+            dir_template = '{}/{}'.format(os.environ['HOME'], settings.get_string('directory-template'))
+            info['directory'] = dir_template.format(**info).replace('//', '/')
         return info
 
     def build_gui(self):

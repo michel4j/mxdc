@@ -17,7 +17,7 @@ from mxdc.widgets.resultmanager import ResultManager
 from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.splash import Splash
 from twisted.python.components import globalRegistry
-from gi.repository import Gtk, GdkPixbuf, GObject
+from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import os
 from datetime import datetime
 
@@ -33,6 +33,12 @@ else:
 
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
+STYLES = """
+    .section-box {
+        background: #cccccc;
+    }
+"""
+
 class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     gui_roots = {
         'data/mxdc_main': ['app_menu', 'header_bar', 'mxdc_main']
@@ -44,7 +50,15 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.set_position(Gtk.WindowPosition.CENTER)
         settings = self.get_settings()
         settings.props.gtk_enable_animations = True
+        css = Gtk.CssProvider()
+        with open(os.path.join(SHARE_DIR, 'styles.css'), 'r') as handle:
+            css_data = handle.read()
+            css.load_from_data(css_data)
+        style = self.get_style_context()
+        style.add_provider_for_screen(Gdk.Screen.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
         self.set_size_request(1290, 884)
+        self.set_resizable(False)
         self.icon_file = os.path.join(SHARE_DIR, 'icon.png')
 
         self.version = version
@@ -80,6 +94,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.status_panel = status.StatusPanel(self)
         self.samples = samples.SamplesController(self)
         self.datasets = datasets.DatasetsController(self)
+        self.automation = datasets.AutomationController(self)
         self.scans = ScanManager()
 
         #self.scans.connect('create-run', self.on_create_run)

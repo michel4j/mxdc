@@ -25,7 +25,7 @@ def _energy2pitch(x):
     return 0.0
 
 # maps names to device objects
-_tmp1 = SimMotor('Detector Distance', 150.0, 'mm', speed=10.0) # use the same motor for distance and z
+_tmp1 = SimMotor('Detector Distance', 150.0, 'mm', speed=50.0) # use the same motor for distance and z
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
     'energy':   SimMotor('Energy', 12.5, 'keV'),
@@ -62,14 +62,15 @@ DEVICES = {
     'cryojet':  SimCryojet('Simulated Cryojet'),
     #'sample_camera': SimCamera(),
     #'sample_camera': AxisCamera('V2E1608-400.clsi.ca', 1),
+    #'sample_camera': AxisPTZCamera('ccd1608-301.clsi.ca'),
     #'sample_camera': MJPGCamera('http://opi2051-002.clsi.ca:9999/video.mjpg', size=(1360, 1024)),
     #'sample_camera': JPGCamera('http://opi2051-002.clsi.ca:9999/image.jpg', size=(1360, 1024)),
-    'sample_camera': REDISCamera('opi2051-002.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
+    'sample_camera': REDISCamera('opi1608-101.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
 
     'sample_backlight': SimLight('Back light', 45.0, '%'),
     'sample_frontlight': SimLight('Front light', 55.0, '%'),    
     #'hutch_video':  SimPTZCamera(),
-    'hutch_video':  AxisPTZCamera('ccd1608-500'),
+    'hutch_video':  AxisPTZCamera('ccd1608-301.clsi.ca'),
     
     # Facility, storage-ring, shutters, etc
     'ring_current':  PV('PCT1402-01:mA:fbk'),
@@ -102,7 +103,7 @@ DEVICES = {
 # lims, dpm, imagesync and other services
 SERVICES = {
     'image_server': LocalImageSyncClient(),
-    'lims': LIMSClient('https://cmcf.lightsource.ca'),
+    'lims': LIMSClient('https://opi2051-002.clsi.ca:9393'),
     'dpm': DPMClient(),
 }
 

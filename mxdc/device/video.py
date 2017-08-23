@@ -76,7 +76,7 @@ class VideoSrc(BaseDevice):
         dur = 1.0 / self.maxfps
         while not self._stopped:
             t = time.time()
-            if self._active and any(not(sink.stopped) for sink in self.sinks):
+            if self._active and any(not (sink.stopped) for sink in self.sinks):
                 try:
                     img = self.get_frame()
                     if not img: continue
@@ -94,7 +94,6 @@ class VideoSrc(BaseDevice):
             A :class:`Image.Image` (Python Imaging Library) image object.
         """
         pass
-
 
 
 class SimCamera(VideoSrc):
@@ -160,44 +159,6 @@ class SimPTZCamera(SimCamera):
         presets = ["Hutch", "Detector", "Robot", "Goniometer", "Sample", "Panel"]
         return presets
 
-
-class CACamera(VideoSrc):
-    implements(IZoomableCamera)
-
-    def __init__(self, pv_name, zoom_motor, name='Camera'):
-        VideoSrc.__init__(self, name, maxfps=20.0)
-        self._active = False
-        self.size = (640, 480)
-        self.resolution = 1.0
-        self._packet_size = self.size[0] * self.size[1]
-        self._cam = self.add_pv(pv_name)
-        self._zoom = IMotor(zoom_motor)
-        self._cam.connect('active', self._activate)
-        self._zoom.connect('changed', self._on_zoom_change)
-
-    def _activate(self, obj, val):
-        self._active = val
-        if not val:
-            self._stopped = True
-
-    def _on_zoom_change(self, obj, val):
-        self.resolution = 5.34e-3 * numpy.exp(-0.18 * val)
-
-    def get_frame(self):
-        data = self._cam.get()
-        # Make sure full frame is obtained otherwise iterate until we
-        # get a full frame. This is required because sometimes the frame
-        # data is incomplete.
-        while len(data) != self._packet_size:
-            data = self._cam.get()
-
-        frame = misc.toimage(numpy.fromstring(data, 'B').reshape(
-            self.size[1],
-            self.size[0]))
-        return frame
-
-    def zoom(self, val):
-        self._zoom.move_to(val)
 
 
 class MJPGCamera(VideoSrc):
@@ -337,7 +298,8 @@ class ZoomableCamera(object):
         self._zoom.move_to(value)
 
     def _on_zoom_change(self, obj, val):
-        self.resolution = 3.6875e-3 * numpy.exp(-0.2527 * val)
+        scale = 768.0/self._camera.size[0]
+        self.resolution = scale * 3.6875e-3 * numpy.exp(-0.2527 * val)
 
     def __getattr__(self, key):
         try:

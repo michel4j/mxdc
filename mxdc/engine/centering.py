@@ -1,18 +1,17 @@
-from mxdc.interface.beamlines import IBeamline
-from mxdc.engine import fitting
-from mxdc.engine.snapshot import take_sample_snapshots
-from mxdc.utils import imgproc
-from mxdc.utils.log import get_module_logger
-from mxdc.utils.misc import get_short_uuid, logistic_score
-from twisted.python.components import globalRegistry
-from PIL import Image
-from PIL import ImageChops
 import commands
-import numpy
 import os
 import shutil
 import tempfile
 import time
+
+import numpy
+from twisted.python.components import globalRegistry
+
+from mxdc.engine.snapshot import take_sample_snapshots
+from mxdc.interface.beamlines import IBeamline
+from mxdc.utils import imgproc
+from mxdc.utils.log import get_module_logger
+from mxdc.utils.misc import get_short_uuid, logistic_score
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -402,3 +401,14 @@ def auto_center_crystal():
         _logger.info('Crystal centering was not reliable enough.')
     _logger.info('Crystal centering complete in %d seconds.' % (time.time() - tst))
     return result['RELIABILITY']
+
+
+def auto_center(method='loop'):
+    if method == 'loop':
+        return auto_center_loop()
+    elif method == 'capillary':
+        return auto_center_capillary()
+    elif method == 'crystal':
+        return auto_center_crystal()
+    else:
+        return 0
