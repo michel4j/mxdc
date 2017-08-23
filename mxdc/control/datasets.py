@@ -4,9 +4,9 @@ from mxdc.utils import converter, runlists
 from mxdc.utils.config import settings
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import datawidget, dialogs
-from mxdc.widgets.imageviewer import ImageViewer
-from mxdc.engine.diffraction import DataCollector
-from samplestore import ISampleStore
+from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
+from mxdc.engine.diffraction import DataCollector, Automator
+from samplestore import ISampleStore, SampleQueue, SampleStore
 import common
 import uuid
 import copy
@@ -35,17 +35,19 @@ class RunItem(GObject.GObject):
     progress = GObject.Property(type=float, default=0.0)
     warning = GObject.Property(type=str, default="")
 
-    def __init__(self, info):
+    def __init__(self, info, generate_frames=True):
         super(RunItem, self).__init__()
         self.frames = []
         self.collected = []
+        self.generate_frames = generate_frames
 
         self.connect('notify::info', self.on_info_changed)
         self.props.info = info
         self.uuid = str(uuid.uuid4())
 
     def on_info_changed(self, item, param):
-        self.frames = runlists.generate_frame_names(self.props.info)
+        if self.generate_frames:
+            self.frames = runlists.generate_frame_names(self.props.info)
 
     def set_collected(self, frame):
         self.collected.append(frame)
@@ -72,6 +74,279 @@ STATE_COLORS = {
     RunItem.StateType.COMPLETE:  [(0.0, 1.0, 0.0, 0.1), (0.0, 1.0, 0.0, 0.2)],
     RunItem.StateType.ERROR:     [(1.0, 0.0, 0.5, 0.1), (1.0, 0.0, 0.0, 0.2)],
 }
+
+DEFAULT_CONFIG = {
+    'resolution': 1.8,
+    'delta': 0.5,
+    'range': 182.,
+    'start': 0.,
+    'wedge': 360.,
+    'energy': 12.658,
+    'distance': 250,
+    'exposure': 0.5,
+    'attenuation': 0.,
+    'first': 1,
+    'strategy': 1,
+    'name': 'test',
+    'helical': False,
+    'inverse': False,
+}
+
+
+class ConfigDisplay(object):
+    Formats = {
+        'resolution': '{:0.2f}',
+        'delta': '{:0.2f} deg',
+        'range': '{:0.1f} deg',
+        'start': '{:0.1f} deg',
+        'wedge': '{:0.1f} deg',
+        'energy': '{:0.3f} keV',
+        'distance': '{:0.1f} mm',
+        'exposure': '{:0.3f} s',
+        'attenuation': '{:0.1f} %',
+        'strategy_desc': '{}',
+        'first': '{}',
+        'name': '{}',
+        'strategy': '{}',
+        'helical': '{}',
+        'inverse': '{}',
+        'directory': '{}',
+    }
+
+    def __init__(self, item, widget, label_prefix='run'):
+        self.item = item
+        self.widget = widget
+        self.prefix = label_prefix
+        item.connect('notify::info', self.on_item_changed)
+
+    def on_item_changed(self, item, param):
+        for name, format in self.Formats.items():
+            field_name = '{}_{}_lbl'.format(self.prefix, name, name)
+            field = getattr(self.widget, field_name, None)
+            if field and name in self.item.props.info:
+                field.set_text(format.format(self.item.props.info[name]))
+
+
+class AutomationController(GObject.GObject):
+    class State:
+        STOPPED, PAUSED, ACTIVE, PENDING = range(4)
+
+    state = GObject.Property(type=int, default=0)
+
+
+    def __init__(self, widget):
+        super(AutomationController, self).__init__()
+        self.widget = widget
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.image_viewer = globalRegistry.lookup([], IImageViewer)
+        self.run_editor = datawidget.RunEditor()
+        self.run_editor.window.set_transient_for(dialogs.MAIN_WINDOW)
+        self.automation_queue = SampleQueue(self.widget.auto_queue)
+        self.automator = Automator()
+        self.config = RunItem({}, generate_frames=False)
+        self.config_display = ConfigDisplay(self.config, self.widget, 'auto')
+
+        self.start_time = 0
+        self.pause_dialog = None
+        self.automator.connect('done', self.on_done)
+        self.automator.connect('paused', self.on_pause)
+        self.automator.connect('analysis-request', self.on_analysis)
+        self.automator.connect('stopped', self.on_stopped)
+        self.automator.connect('progress', self.on_progress)
+        self.automator.connect('sample-done', self.on_sample_done)
+        self.automator.connect('sample-started', self.on_sample_started)
+        self.automator.connect('started', self.on_started)
+        self.automator.connect('error', self.on_error)
+
+        self.connect('notify::state', self.on_state_changed)
+
+        # default
+        params = {}
+        params.update(DEFAULT_CONFIG)
+        params.update({
+            'resolution': converter.dist_to_resol(
+                250, self.beamline.detector.mm_size, 12.658
+            ),
+            'strategy': 1,
+            'exposure':self.beamline.config['default_exposure'],
+            'delta': self.beamline.config['default_delta'],
+        })
+        self.run_editor.configure(params)
+        self.config.props.info = self.run_editor.get_parameters()
+
+
+        # btn, type, options method
+        self.task_templates = [
+            (self.widget.mount_task_btn, Automator.Task.MOUNT),
+            (self.widget.center_task_btn, Automator.Task.CENTER),
+            (self.widget.pause1_task_btn, Automator.Task.PAUSE),
+            (self.widget.acquire_task_btn, Automator.Task.ACQUIRE),
+            (self.widget.analyse_task_btn, Automator.Task.ANALYSE),
+            (self.widget.pause2_task_btn, Automator.Task.ANALYSE)
+        ]
+        self.options = {
+            'capillary': self.widget.center_cap_option,
+            'loop': self.widget.center_loop_option,
+            'crystal': self.widget.center_xtal_option,
+            'screen': self.widget.analyse_screen_option,
+            'native': self.widget.analyse_native_option,
+            'anomalous': self.widget.analyse_anom_option,
+            'powder': self.widget.analyse_powder_option,
+        }
+        self.setup()
+
+    def get_options(self, task_type):
+        if task_type == Automator.Task.CENTER:
+            for name in ['loop', 'crystal', 'capillary']:
+                if self.options[name].get_active():
+                    return {'method': name}
+        elif task_type == Automator.Task.ANALYSE:
+            for name in ['screen', 'native', 'anomalous', 'powder']:
+                if self.options[name].get_active():
+                    return {'method': name}
+        elif task_type == Automator.Task.ACQUIRE:
+            return self.config.props.info
+        return {}
+
+    def get_task_list(self):
+        return [
+            {'type': kind, 'options': self.get_options(kind)}
+            for btn, kind in self.task_templates if btn.get_active()
+        ]
+
+    def get_sample_list(self):
+        return self.automation_queue.get_samples()
+
+    def on_state_changed(self, obj, param):
+        if self.props.state == self.State.ACTIVE:
+            self.widget.auto_collect_icon.set_from_icon_name(
+                "media-playback-pause-symbolic",Gtk.IconSize.LARGE_TOOLBAR
+            )
+            self.widget.auto_stop_btn.set_sensitive(True)
+            self.widget.auto_collect_btn.set_sensitive(True)
+            self.widget.auto_sequence_box.set_sensitive(False)
+        elif self.props.state == self.State.PAUSED:
+            self.widget.auto_progress_lbl.set_text("Automation paused!")
+            self.widget.auto_collect_icon.set_from_icon_name(
+                "media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+            )
+            self.widget.auto_stop_btn.set_sensitive(True)
+            self.widget.auto_collect_btn.set_sensitive(True)
+            self.widget.auto_sequence_box.set_sensitive(False)
+        elif self.props.state == self.State.PENDING:
+            self.widget.auto_collect_icon.set_from_icon_name(
+                "media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+            )
+            self.widget.auto_sequence_box.set_sensitive(False)
+            self.widget.auto_collect_btn.set_sensitive(False)
+            self.widget.auto_stop_btn.set_sensitive(False)
+        else:
+            self.widget.auto_collect_icon.set_from_icon_name(
+                "media-playback-start-symbolic",Gtk.IconSize.LARGE_TOOLBAR
+            )
+            self.widget.auto_stop_btn.set_sensitive(False)
+            self.widget.auto_collect_btn.set_sensitive(True)
+            self.widget.auto_sequence_box.set_sensitive(True)
+
+    def on_edit_acquisition(self, obj):
+        self.run_editor.configure(self.config.info, disable=('helical', 'inverse'))
+        self.run_editor.window.show_all()
+
+    def on_save_acquisition(self, obj):
+        self.config.props.info = self.run_editor.get_parameters()
+        self.run_editor.window.hide()
+
+    def setup(self):
+        self.widget.auto_edit_acq_btn.connect('clicked', self.on_edit_acquisition)
+        self.run_editor.run_cancel_btn.connect('clicked', lambda x: self.run_editor.window.hide())
+        self.run_editor.run_save_btn.connect('clicked', self.on_save_acquisition)
+        self.widget.auto_collect_btn.connect('clicked', self.on_start_automation)
+        self.widget.auto_stop_btn.connect('clicked', self.on_stop_automation)
+
+    def on_progress(self, obj, fraction, message):
+        used_time = time.time() - self.start_time
+        remaining_time = (1 - fraction) * used_time / fraction
+        eta_time = remaining_time
+        self.widget.auto_eta.set_text('{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60)))
+        self.widget.auto_pbar.set_fraction(fraction)
+        self.widget.auto_progress_lbl.set_text(message)
+
+    def on_sample_done(self, obj, uuid):
+        self.automation_queue.mark_progress(uuid, SampleStore.Progress.DONE)
+
+    def on_sample_started(self, obj, uuid):
+        self.automation_queue.mark_progress(uuid, SampleStore.Progress.ACTIVE)
+
+    def on_done(self, obj=None):
+        self.props.state = self.State.STOPPED
+        self.widget.auto_progress_lbl.set_text("Automation Completed.")
+        self.widget.auto_eta.set_text('--:--')
+        self.widget.auto_pbar.set_fraction(1.0)
+
+    def on_stopped(self, obj=None):
+        self.props.state = self.State.STOPPED
+        self.widget.auto_progress_lbl.set_text("Automation Stopped.")
+        self.widget.auto_eta.set_text('--:--')
+
+    def on_pause(self, obj, paused, reason):
+        if paused:
+            self.props.state = self.State.PAUSED
+            if reason:
+                # Build the dialog message
+                self.pause_dialog = dialogs.make_dialog(
+                    Gtk.MessageType.WARNING, 'Automation Paused', reason,
+                    buttons=(('OK', Gtk.ResponseType.OK),)
+                )
+                response = self.pause_dialog.run()
+                self.pause_dialog.destroy()
+                self.pause_dialog = None
+        else:
+            self.props.state = self.State.ACTIVE
+            if self.pause_dialog:
+                self.pause_dialog.destroy()
+                self.pause_dialog = None
+
+    def on_error(self, obj, reason):
+        # Build the dialog message
+        error_dialog = dialogs.make_dialog(
+            Gtk.MessageType.WARNING, 'Automation Error!', reason,
+            buttons=(('OK', Gtk.ResponseType.OK),)
+        )
+        response = error_dialog.run()
+        error_dialog.destroy()
+
+    def on_analysis(self, obj, params):
+        pass
+
+    def on_started(self, obj):
+        self.start_time = time.time()
+        self.props.state = self.State.ACTIVE
+        _logger.info("Automation Started.")
+
+    def on_stop_automation(self, obj):
+        self.automator.stop()
+
+    def on_start_automation(self, obj):
+        if self.props.state == self.State.ACTIVE:
+            self.widget.auto_progress_lbl.set_text("Pausing automation ...")
+            self.automator.pause()
+        elif self.props.state == self.State.PAUSED:
+            self.widget.auto_progress_lbl.set_text("Resuming automation ...")
+            self.automator.resume()
+        elif self.props.state == self.State.STOPPED:
+            tasks = self.get_task_list()
+            samples = self.get_sample_list()
+            if not samples:
+                msg1 = 'Queue is empty!'
+                msg2 = 'Please select samples on the Samples page.'
+                dialogs.warning(msg1, msg2)
+            else:
+                self.widget.auto_progress_lbl.set_text("Starting automation ...")
+                self.props.state = self.State.PENDING
+                self.automator.configure(samples, tasks)
+                self.widget.auto_pbar.set_fraction(0)
+                self.automator.start()
+                self.image_viewer.set_collect_mode(True)
 
 
 class DatasetsController(GObject.GObject):
@@ -128,7 +403,7 @@ class DatasetsController(GObject.GObject):
             'energy': (self.beamline.energy, self.widget.dsets_energy_fbk, '{:0.3f} keV'),
             #'sample': (self.sample_store, self.widget.dsets_sample_fbk, '{}'),
             'attenuation': (self.beamline.attenuator, self.widget.dsets_attenuation_fbk, '{:0.0f} %'),
-            #'maxres': self.widget.dsets_maxres_fbk,
+            'maxres': (self.beamline.maxres, self.widget.dsets_maxres_fbk,'{:0.2f} A'),
             'aperture': (self.beamline.aperture, self.widget.dsets_aperture_fbk,'{:0.0f} um'),
             'two_theta': (self.beamline.two_theta, self.widget.dsets_2theta_fbk,'{:0.0f} deg'),
         }
@@ -235,7 +510,7 @@ class DatasetsController(GObject.GObject):
             'wedge': 360.,
             'energy': energy,
             'distance': distance,
-            'exposure': self.beamline.config['default_delta'],
+            'exposure': self.beamline.config['default_exposure'],
             'attenuation': 0.,
             'first': 1,
             'name': sample.get('name', 'test'),
@@ -317,7 +592,6 @@ class DatasetsController(GObject.GObject):
     def on_complete(self, obj=None):
         self.widget.datasets_collect_btn.set_sensitive(True)
         #gobject.idle_add(self.emit, 'new-datasets', obj.results)
-        #self.beamline.lims.upload_datasets(self.beamline, obj.results)
         self.widget.collect_btn_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
         self.widget.datasets_add_btn.set_sensitive(True)
         self.widget.datasets_clear_btn.set_sensitive(True)

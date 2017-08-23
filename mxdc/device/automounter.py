@@ -157,24 +157,6 @@ class BasicAutomounter(BaseDevice):
         self._last_warn = ''
         self.set_state(active=False, enabled=False, status='fault', preparing=False)
 
-    def do_state(self, st):
-        pass
-
-    def do_enabled(self, st):
-        pass
-
-    def do_mounted(self, st):
-        pass
-
-    def do_preparing(self, st):
-        pass
-
-    def do_progress(self, st):
-        pass
-
-    def do_samples_update(self, states):
-        pass
-
     def parse_states(self, state):
         """This method sets up all the container types and states from a DCSS type status string.
         If no status string.
@@ -714,11 +696,10 @@ class SimAutomounter(BasicAutomounter):
             return False
         if self._mounted_port is not None:
             self._sim_mount_start(None)
-            GObject.timeout_add(3000, self._sim_dismount_done, False)
-            GObject.timeout_add(4000, self._sim_mount_start, port)
+            GObject.timeout_add(8000, self._sim_mountnext_done, port)
         else:
             self._sim_mount_start(port)
-        GObject.timeout_add(8000, self._sim_mount_done, port)
+            GObject.timeout_add(6000, self._sim_mount_done, port)
         if wait:
             return self.wait(start=True, stop=True)
         return True
@@ -750,6 +731,15 @@ class SimAutomounter(BasicAutomounter):
             port_state={self._mounted_port: self.PortState.GOOD}
         )
         self._mounted_port = None
+        if dry:
+            self.dry_gripper()
+
+    def _sim_mountnext_done(self, port=None, dry=True):
+        self.set_state(
+            busy=False, status='ready', enabled=True, message="Sample mounted",
+            mounted=(port, ''), preparing=False, progress=(1.0, 'unknown', 'on gonio', 'in cradle'),
+            port_state={self._mounted_port: self.PortState.GOOD, port: self.PortState.MOUNTED}
+        )
         if dry:
             self.dry_gripper()
 

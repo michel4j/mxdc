@@ -707,7 +707,7 @@ class SimStorageRing(BaseDevice):
         self.name = name
         self.message = 'Sim SR Testing!'
         self.set_state(beam=False, active=True, health=(0, ''))
-        GObject.timeout_add(1200000, self._change_beam)
+        #GObject.timeout_add(1200000, self._change_beam)
 
     def _change_beam(self):
         _beam = not self.beam_state
@@ -782,7 +782,6 @@ class DiskSpaceMonitor(BaseDevice):
                 _logger.warn(msg)
             else:
                 self.set_state(health=(0, 'usage', msg))
-                _logger.info(msg)
         return True
 
 

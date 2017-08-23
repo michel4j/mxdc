@@ -35,11 +35,15 @@ class StatusPanel(object):
         self.monitors = []
         self.setup()
 
+        # connect gonio and automounter to status bar
+        self.status_monitor = common.StatusMonitor(
+            self.widget.status_lbl, self.widget.spinner, devices=(self.beamline.goniometer, self.beamline.automounter)
+        )
         # Some scripts need to reactivate settings frame on completion
         for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam', 'SetBeamMode']:
-            self.scripts[sc].connect('started', self.on_scripts_started)
-            self.scripts[sc].connect('done', self.on_scripts_done)
-            self.scripts[sc].connect('error', self.on_scripts_done)
+            self.scripts[sc].connect('busy', self.on_scripts_busy)
+            self.scripts[sc].connect('error', self.on_scripts_busy, False)
+            self.status_monitor.add(self.scripts[sc])
 
     def setup(self):
         msg = ("Are you sure? This procedure may damage \n"
@@ -110,12 +114,12 @@ class StatusPanel(object):
         for btn in disabled:
             btn.set_sensitive(False)
 
-    def on_scripts_started(self, obj, event=None):
-        self.widget.status_commands.set_sensitive(False)
-        self.widget.spinner.start()
-        self.widget.status_lbl.set_markup('<small>{}</small>'.format(obj.description))
-
-    def on_scripts_done(self, obj, event=None):
-        self.widget.status_commands.set_sensitive(True)
-        self.widget.spinner.stop()
-        self.widget.status_lbl.set_text('')
+    def on_scripts_busy(self, obj, busy):
+        if busy:
+            self.widget.status_commands.set_sensitive(False)
+            #self.widget.spinner.start()
+            #self.widget.status_lbl.set_markup('<small>{}</small>'.format(obj.description))
+        else:
+            self.widget.status_commands.set_sensitive(True)
+            #self.widget.spinner.stop()
+            #self.widget.status_lbl.set_text('')
