@@ -214,28 +214,17 @@
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
-                  <object class="GtkFrame">
+                  <object class="GtkEntry" id="status_current_fbk">
                     <property name="visible">True</property>
+                    <property name="app_paintable">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label_xalign">0</property>
-                    <property name="shadow_type">in</property>
-                    <child>
-                      <object class="GtkLabel" id="status_current_lbl">
-                        <property name="width_request">90</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">0.0</property>
-                        <property name="justify">fill</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                          <attribute name="scale" value="0.90000000000000002"/>
-                          <attribute name="foreground" value="#20204a4a8787"/>
-                        </attributes>
-                      </object>
-                    </child>
-                    <child type="label_item">
-                      <placeholder/>
-                    </child>
+                    <property name="editable">False</property>
+                    <property name="width_chars">12</property>
+                    <property name="text" translatable="yes">0.0</property>
+                    <property name="xalign">0.5</property>
+                    <style>
+                      <class name="device-fbk"/>
+                    </style>
                   </object>
                 </child>
                 <child type="label">
@@ -260,27 +249,16 @@
                 <property name="label_xalign">0.10000000149011612</property>
                 <property name="shadow_type">none</property>
                 <child>
-                  <object class="GtkFrame">
+                  <object class="GtkEntry" id="status_i1_fbk">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label_xalign">0</property>
-                    <property name="shadow_type">in</property>
-                    <child>
-                      <object class="GtkLabel" id="status_i1_lbl">
-                        <property name="width_request">90</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">0.0</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                          <attribute name="scale" value="0.90000000000000002"/>
-                          <attribute name="foreground" value="#20204a4a8787"/>
-                        </attributes>
-                      </object>
-                    </child>
-                    <child type="label_item">
-                      <placeholder/>
-                    </child>
+                    <property name="editable">False</property>
+                    <property name="width_chars">12</property>
+                    <property name="text" translatable="yes">0.0</property>
+                    <property name="xalign">0.5</property>
+                    <style>
+                      <class name="device-fbk"/>
+                    </style>
                   </object>
                 </child>
                 <child type="label">
@@ -305,27 +283,16 @@
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
-                  <object class="GtkFrame">
+                  <object class="GtkEntry" id="status_i0_fbk">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label_xalign">0</property>
-                    <property name="shadow_type">in</property>
-                    <child>
-                      <object class="GtkLabel" id="status_i0_lbl">
-                        <property name="width_request">90</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">0.0</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                          <attribute name="scale" value="0.90000000000000002"/>
-                          <attribute name="foreground" value="#20204a4a8787"/>
-                        </attributes>
-                      </object>
-                    </child>
-                    <child type="label_item">
-                      <placeholder/>
-                    </child>
+                    <property name="editable">False</property>
+                    <property name="width_chars">12</property>
+                    <property name="text" translatable="yes">0.0</property>
+                    <property name="xalign">0.5</property>
+                    <style>
+                      <class name="device-fbk"/>
+                    </style>
                   </object>
                 </child>
                 <child type="label">
@@ -995,6 +962,7 @@
                             <property name="min_children_per_line">1</property>
                             <property name="max_children_per_line">3</property>
                             <property name="selection_mode">none</property>
+                            <property name="activate_on_single_click">False</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -1280,208 +1248,45 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="spacing">6</property>
-                        <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="margin_top">12</property>
-                            <property name="margin_bottom">12</property>
+                            <property name="margin_top">6</property>
+                            <property name="margin_bottom">6</property>
                             <property name="row_spacing">6</property>
                             <property name="column_spacing">6</property>
                             <property name="row_homogeneous">True</property>
                             <property name="column_homogeneous">True</property>
                             <child>
-                              <object class="GtkFrame">
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label_xalign">0</property>
-                                <property name="shadow_type">none</property>
+                                <property name="orientation">vertical</property>
                                 <child>
-                                  <object class="GtkFrame">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label_xalign">0</property>
-                                    <property name="shadow_type">in</property>
-                                    <child>
-                                      <object class="GtkLabel" id="cryo_temp_fbk">
-                                        <property name="width_request">90</property>
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="label" translatable="yes">0.0 K</property>
-                                        <attributes>
-                                          <attribute name="weight" value="semibold"/>
-                                          <attribute name="scale" value="0.90000000000000002"/>
-                                        </attributes>
-                                      </object>
-                                    </child>
-                                    <child type="label_item">
-                                      <placeholder/>
-                                    </child>
-                                  </object>
-                                </child>
-                                <child type="label">
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Temperature&lt;/small&gt;&lt;/b&gt;</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Cryo Nozzle&lt;/small&gt;&lt;/b&gt;</property>
                                     <property name="use_markup">True</property>
                                   </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
                                 </child>
-                              </object>
-                              <packing>
-                                <property name="left_attach">0</property>
-                                <property name="top_attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFrame">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label_xalign">0</property>
-                                <property name="shadow_type">none</property>
-                                <child>
-                                  <object class="GtkFrame">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label_xalign">0</property>
-                                    <property name="shadow_type">in</property>
-                                    <child>
-                                      <object class="GtkLabel" id="cryo_level_fbk">
-                                        <property name="width_request">90</property>
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="label" translatable="yes">0.0 %</property>
-                                        <attributes>
-                                          <attribute name="weight" value="semibold"/>
-                                          <attribute name="scale" value="0.90000000000000002"/>
-                                        </attributes>
-                                      </object>
-                                    </child>
-                                    <child type="label_item">
-                                      <placeholder/>
-                                    </child>
-                                  </object>
-                                </child>
-                                <child type="label">
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Cryo Level&lt;/small&gt;&lt;/b&gt;</property>
-                                    <property name="use_markup">True</property>
-                                  </object>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="left_attach">1</property>
-                                <property name="top_attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFrame">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label_xalign">0</property>
-                                <property name="shadow_type">none</property>
-                                <child>
-                                  <object class="GtkFrame">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label_xalign">0</property>
-                                    <property name="shadow_type">in</property>
-                                    <child>
-                                      <object class="GtkLabel" id="cryo_sample_fbk">
-                                        <property name="width_request">90</property>
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="label" translatable="yes">0.0 L/min</property>
-                                        <attributes>
-                                          <attribute name="weight" value="semibold"/>
-                                          <attribute name="scale" value="0.90000000000000002"/>
-                                        </attributes>
-                                      </object>
-                                    </child>
-                                    <child type="label_item">
-                                      <placeholder/>
-                                    </child>
-                                  </object>
-                                </child>
-                                <child type="label">
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Sample flow&lt;/small&gt;&lt;/b&gt;</property>
-                                    <property name="use_markup">True</property>
-                                  </object>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="left_attach">0</property>
-                                <property name="top_attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFrame">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label_xalign">0</property>
-                                <property name="shadow_type">none</property>
-                                <child>
-                                  <object class="GtkFrame">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label_xalign">0</property>
-                                    <property name="shadow_type">in</property>
-                                    <child>
-                                      <object class="GtkLabel" id="cryo_shield_fbk">
-                                        <property name="width_request">90</property>
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="label" translatable="yes">0.0 L/min</property>
-                                        <attributes>
-                                          <attribute name="weight" value="semibold"/>
-                                          <attribute name="scale" value="0.90000000000000002"/>
-                                        </attributes>
-                                      </object>
-                                    </child>
-                                    <child type="label_item">
-                                      <placeholder/>
-                                    </child>
-                                  </object>
-                                </child>
-                                <child type="label">
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Shield Flow&lt;/small&gt;&lt;/b&gt;</property>
-                                    <property name="use_markup">True</property>
-                                  </object>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="left_attach">1</property>
-                                <property name="top_attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFrame">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label_xalign">0</property>
-                                <property name="shadow_type">none</property>
                                 <child>
                                   <object class="GtkSwitch" id="cryo_nozzle_switch">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                   </object>
-                                </child>
-                                <child type="label">
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Cryo Nozzle&lt;/small&gt;&lt;/b&gt;</property>
-                                    <property name="use_markup">True</property>
-                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
                                 </child>
                               </object>
                               <packing>
@@ -1490,29 +1295,211 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkFrame">
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label_xalign">0</property>
-                                <property name="shadow_type">none</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Annealing&lt;/small&gt;&lt;/b&gt;</property>
+                                    <property name="use_markup">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
                                 <child>
                                   <object class="GtkSwitch" id="cryo_anneal_switch">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                   </object>
-                                </child>
-                                <child type="label">
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Annealing&lt;/small&gt;&lt;/b&gt;</property>
-                                    <property name="use_markup">True</property>
-                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
                                 </child>
                               </object>
                               <packing>
                                 <property name="left_attach">2</property>
                                 <property name="top_attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Shield Flow&lt;/small&gt;&lt;/b&gt;</property>
+                                    <property name="use_markup">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="cryo_shield_fbk">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="editable">False</property>
+                                    <property name="width_chars">6</property>
+                                    <property name="text" translatable="yes">0.0 L/min</property>
+                                    <property name="xalign">0.5</property>
+                                    <style>
+                                      <class name="device-fbk"/>
+                                    </style>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left_attach">1</property>
+                                <property name="top_attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Sample flow&lt;/small&gt;&lt;/b&gt;</property>
+                                    <property name="use_markup">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="cryo_sample_fbk">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="editable">False</property>
+                                    <property name="width_chars">6</property>
+                                    <property name="text" translatable="yes">0.0 L/min</property>
+                                    <property name="xalign">0.5</property>
+                                    <style>
+                                      <class name="device-fbk"/>
+                                    </style>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left_attach">0</property>
+                                <property name="top_attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Cryo Level&lt;/small&gt;&lt;/b&gt;</property>
+                                    <property name="use_markup">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="cryo_level_fbk">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="editable">False</property>
+                                    <property name="width_chars">6</property>
+                                    <property name="text" translatable="yes">0.0 %</property>
+                                    <property name="xalign">0.5</property>
+                                    <style>
+                                      <class name="device-fbk"/>
+                                    </style>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left_attach">1</property>
+                                <property name="top_attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Temperature&lt;/small&gt;&lt;/b&gt;</property>
+                                    <property name="use_markup">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="cryo_temp_fbk">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="editable">False</property>
+                                    <property name="width_chars">6</property>
+                                    <property name="text" translatable="yes">0.0 K</property>
+                                    <property name="xalign">0.5</property>
+                                    <style>
+                                      <class name="device-fbk"/>
+                                    </style>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left_attach">0</property>
+                                <property name="top_attach">0</property>
                               </packing>
                             </child>
                           </object>
@@ -1523,15 +1510,36 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel">
+                          <object class="GtkFlowBox" id="samples_device_box">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">HC1 to be determined ...</property>
+                            <property name="margin_top">6</property>
+                            <property name="margin_bottom">6</property>
+                            <property name="orientation">vertical</property>
+                            <property name="homogeneous">True</property>
+                            <property name="column_spacing">3</property>
+                            <property name="row_spacing">3</property>
+                            <property name="min_children_per_line">2</property>
+                            <property name="max_children_per_line">2</property>
+                            <property name="selection_mode">none</property>
+                            <property name="activate_on_single_click">False</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
                             <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">label</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                       </object>
@@ -3134,64 +3142,50 @@
                             <property name="can_focus">False</property>
                             <property name="orientation">vertical</property>
                             <child>
-                              <object class="GtkBox">
+                              <object class="GtkEventBox">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="margin_top">6</property>
-                                <property name="margin_bottom">6</property>
                                 <child>
-                                  <object class="GtkButton" id="datasets_clear_btn">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="receives_default">True</property>
-                                    <property name="tooltip_text" translatable="yes">Clear dataset runs</property>
-                                    <child>
-                                      <object class="GtkImage">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="icon_name">edit-clear-all-symbolic</property>
-                                      </object>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child type="center">
-                                  <object class="GtkLabel">
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Dataset Runs</property>
-                                    <attributes>
-                                      <attribute name="weight" value="bold"/>
-                                      <attribute name="foreground" value="#555557575353"/>
-                                    </attributes>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">True</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="datasets_add_btn">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="receives_default">True</property>
-                                    <property name="tooltip_text" translatable="yes">Add dataset run</property>
-                                    <property name="always_show_image">True</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">Data Runs</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"/>
+                                        </attributes>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
                                     <child>
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="spacing">3</property>
+                                        <property name="spacing">6</property>
                                         <child>
-                                          <object class="GtkImage">
+                                          <object class="GtkButton" id="datasets_clear_btn">
                                             <property name="visible">True</property>
-                                            <property name="can_focus">False</property>
-                                            <property name="icon_name">list-add-symbolic</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <property name="tooltip_text" translatable="yes">Clear dataset runs</property>
+                                            <property name="relief">none</property>
+                                            <child>
+                                              <object class="GtkImage">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="icon_name">edit-clear-all-symbolic</property>
+                                              </object>
+                                            </child>
+                                            <style>
+                                              <class name="destructive-action"/>
+                                            </style>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -3200,27 +3194,53 @@
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkLabel">
+                                          <object class="GtkButton" id="datasets_add_btn">
                                             <property name="visible">True</property>
-                                            <property name="can_focus">False</property>
-                                            <property name="label" translatable="yes">Dataset</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <property name="tooltip_text" translatable="yes">Add dataset run</property>
+                                            <property name="relief">none</property>
+                                            <property name="always_show_image">True</property>
+                                            <child>
+                                              <object class="GtkBox">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="spacing">3</property>
+                                                <child>
+                                                  <object class="GtkImage">
+                                                    <property name="visible">True</property>
+                                                    <property name="can_focus">False</property>
+                                                    <property name="icon_name">list-add-symbolic</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">0</property>
+                                                  </packing>
+                                                </child>
+                                              </object>
+                                            </child>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
+                                            <property name="pack_type">end</property>
                                             <property name="position">1</property>
                                           </packing>
                                         </child>
                                       </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack_type">end</property>
+                                        <property name="position">1</property>
+                                      </packing>
                                     </child>
                                   </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="pack_type">end</property>
-                                    <property name="position">2</property>
-                                  </packing>
                                 </child>
+                                <style>
+                                  <class name="section-box"/>
+                                </style>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
