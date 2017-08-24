@@ -50,10 +50,10 @@ class StatusPanel(object):
                "mounted samples. It is recommended to dismount \n"
                "any samples before switching to BEAM mode. ")
         self.monitors = [
-            common.DeviceMonitor(self.beamline.i_0, self.widget.status_i0_lbl, format='{:0.3e}'),
-            common.DeviceMonitor(self.beamline.i_1, self.widget.status_i1_lbl, format='{:0.3e}'),
+            common.DeviceMonitor(self.beamline.i_0, self.widget.status_i0_fbk, format='{:0.3e}'),
+            common.DeviceMonitor(self.beamline.i_1, self.widget.status_i1_fbk, format='{:0.3e}'),
             common.DeviceMonitor(
-                self.beamline.ring_current, self.widget.status_current_lbl, format='{:0.1f} mA'
+                self.beamline.ring_current, self.widget.status_current_fbk, format='{:0.1f} mA'
             ),
             common.ShutterSwitcher(self.beamline.all_shutters, self.widget.beam_switch),
             common.ShutterSwitcher(self.beamline.exposure_shutter, self.widget.shutter_switch),
