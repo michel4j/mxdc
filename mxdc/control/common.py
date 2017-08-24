@@ -18,7 +18,7 @@ def value_color(val, warning, error):
 
 class DeviceMonitor(object):
     def __init__(self, device, label, format='{:.3e}', signal='changed', warning=None, error=None):
-        self.label = label
+        self.text = label
         self.device = device
         self.format = format
         self.warning = warning
@@ -26,10 +26,11 @@ class DeviceMonitor(object):
         self.device.connect(signal, self.on_signal)
 
     def on_signal(self, obj, *args):
-        self.label.set_markup(self.format.format(*args))
+        self.text.set_text(self.format.format(*args))
         if self.warning and self.error:
             col = value_color(args[0], self.warning, self.error)
-            self.label.modify_fg(Gtk.StateType.NORMAL, col)
+            self.text.modify_fg(Gtk.StateType.NORMAL, col)
+
 
 
 class ShutterSwitcher(object):

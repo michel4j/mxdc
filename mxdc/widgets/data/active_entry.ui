@@ -32,10 +32,14 @@
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">6</property>
+                <property name="editable">False</property>
+                <property name="width_chars">8</property>
                 <property name="text" translatable="yes">0.0</property>
                 <property name="xalign">1</property>
                 <property name="input_purpose">number</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -47,7 +51,7 @@
               <object class="GtkEntry" id="entry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">6</property>
+                <property name="width_chars">8</property>
                 <property name="text" translatable="yes">0.0</property>
                 <property name="xalign">1</property>
                 <property name="input_purpose">number</property>
@@ -86,9 +90,9 @@
             </style>
           </object>
           <packing>
-            <property name="expand">True</property>
+            <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">1</property>
           </packing>
         </child>
       </object>
