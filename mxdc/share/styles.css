@@ -1,6 +1,16 @@
 .section-box {
-    background: rgba(0,0,0,0.15);
+    background: rgba(0,0,0,0.08);
 }
 .section-box > * {
     margin: 6px;
+}
+.device-fbk {
+    background: rgba(255,255,255,0.75);
+    font-weight: bold;
+    font-size: 95%;
+    border-radius: 0;
+}
+.value-fbk {
+    font-size: 95%;
+    font-weight: bold;
 }

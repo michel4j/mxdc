@@ -1,20 +1,31 @@
-from datetime import date
 import os
-from gi.repository import Gtk, Gdk
+from datetime import date
+
+from gi.repository import Gtk
+from twisted.python.components import globalRegistry
+
 from mxdc.beamline.mx import IBeamline
 from mxdc.utils import gui, converter, config, misc
-from twisted.python.components import globalRegistry
 from mxdc.utils.config import settings
 
 STRATEGIES = {
-    0: {'range': 180, 'desc': 'Collect'},
-    1: {'delta': 1.0, 'range': 182, 'start': 0.0, 'helical': False, 'inverse': False,
-        'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0'},
+    0: {
+        'range': 180, 'desc': 'Collect'
+    },
+    1: {
+        'delta': 1.0, 'range': 182, 'start': 0.0, 'helical': False, 'inverse': False,
+        'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0'
+    },
     2: {'delta': 1.0, 'range': 92, 'start': 0.0, 'helical': False, 'inverse': False,
-        'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0'},
-    3: {'delta': 1.0, 'range': 92, 'start': 0.0, 'helical': False, 'inverse': False,
-        'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0'},
-    4: {'delta': 180.0, 'exposure': 30.0, 'range': 360.0, 'helical': False, 'inverse': False, 'desc': 'Powder'}
+        'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0'
+        },
+    3: {
+        'delta': 1.0, 'range': 92, 'start': 0.0, 'helical': False, 'inverse': False,
+        'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0'
+    },
+    4: {
+        'delta': 180.0, 'exposure': 30.0, 'range': 360.0, 'helical': False, 'inverse': False, 'desc': 'Powder',
+    }
 }
 
 
@@ -28,7 +39,7 @@ def _calc_skip(strategy, delta, first):
             first + int(47 / delta),
             first + int(90 / delta) - 1,
             first + int(92 / delta),
-            first + int(180 /delta) - 1
+            first + int(180 / delta) - 1
         )
 
     elif strategy == 2:
@@ -92,7 +103,6 @@ class RunEditor(gui.BuilderMixin):
             if name in disable:
                 field.set_sensitive(False)
 
-
     def set_sample(self, sample):
         self.run_sample_entry.set_text(sample.get('name', '...'))
         if not self.run_name_entry.get_text():
@@ -135,8 +145,16 @@ class RunEditor(gui.BuilderMixin):
                 'container': misc.slugify(self.sample.get('container', '')),
                 'group': misc.slugify(self.sample.get('group', '')),
             })
-            dir_template = '{}/{}'.format(os.environ['HOME'], settings.get_string('directory-template'))
-            info['directory'] = dir_template.format(**info).replace('//', '/')
+        else:
+            info.update({
+                'sample': info['name'],
+                'sample_id': '',
+                'port': '',
+                'container': '',
+                'group': '',
+            })
+        dir_template = '{}/{}'.format(os.environ['HOME'], settings.get_string('directory-template'))
+        info['directory'] = dir_template.format(**info).replace('//', '/')
         return info
 
     def build_gui(self):
