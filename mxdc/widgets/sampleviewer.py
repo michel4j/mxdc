@@ -529,13 +529,13 @@ class SampleViewer(gtk.Alignment):
                              self.width, self.height)
 
     def on_zoom_in(self, widget):
-        self.beamline.sample_video.zoom(8)
+        self.beamline.sample_video.zoom(self.beamline.config['zoom_levels'][-1])
 
     def on_zoom_out(self, widget):
-        self.beamline.sample_video.zoom(2)
+        self.beamline.sample_video.zoom(self.beamline.config['zoom_levels'][0])
 
     def on_unzoom(self, widget):
-        self.beamline.sample_video.zoom(5)
+        self.beamline.sample_video.zoom(self.beamline.config['zoom_levels'][1])
 
     def on_incr_omega(self, widget):
         cur_omega = int(self.beamline.omega.get_position())

@@ -119,6 +119,7 @@ class MXBeamline(object):
             'shutter_sequence': getattr(l_settings, 'BEAMLINE_SHUTTERS', getattr(g_settings, 'BEAMLINE_SHUTTERS')),
             'orientation': getattr(l_settings, 'BEAMLINE_GONIO_POSITION', getattr(g_settings, 'BEAMLINE_GONIO_POSITION')),
             'centering_backlight': getattr(l_settings, 'CENTERING_BACKLIGHT', getattr(g_settings, 'CENTERING_BACKLIGHT')),
+            'zoom_levels': getattr(l_settings, 'ZOOM_LEVELS', getattr(g_settings, 'ZOOM_LEVELS', (2,5,8))),
             'misc': _misc,        
             })
                     
