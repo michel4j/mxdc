@@ -5,6 +5,8 @@ from PIL import Image
 from PIL import ImageChops
 from PIL import ImageFilter
 import numpy
+import cv2
+from scipy import ndimage
 
 THRESHOLD = 20
 BORDER = 10
@@ -118,3 +120,55 @@ def get_cap_center(orig, bkg, orientation=2):
 def _normalize(data):
     data = data - data.min()
     return (100.0 * data) / data.max()
+
+EDGE_TOLERANCE = 5
+
+def get_sample_bbox(img):
+    img_arr = numpy.asarray(img.convert('L'))
+    full = numpy.array([[0,0], img_arr.shape[::-1]])
+    full[1] -= EDGE_TOLERANCE
+    bbox = numpy.copy(full)
+    for i in range(2):
+        profile = numpy.min(img_arr[EDGE_TOLERANCE:-EDGE_TOLERANCE, EDGE_TOLERANCE:-EDGE_TOLERANCE], i)*-1
+        profile -= profile.min()
+        envelope = numpy.where(profile > profile.max() / 2)[0]
+        if len(envelope):
+            bbox[0][i] = max(envelope[0], bbox[0][i])
+            bbox[1][i] = min(envelope[-1], bbox[1][i])
+
+    # check the boxes and adjust if one horizontal side on edge:
+    if bbox[0][0] > 2*EDGE_TOLERANCE and full[1][0] - bbox[1][0] < 2*EDGE_TOLERANCE:
+        bbox[1][0] = full[1][0] - bbox[0][0]//2
+    elif bbox[0][0] < 2*EDGE_TOLERANCE and full[1][0] - bbox[1][0] > 2*EDGE_TOLERANCE:
+        bbox[0][0] = (full[1][0] - bbox[1][0])//2
+
+    return bbox + EDGE_TOLERANCE
+
+
+
+def get_sample_bbox2(img):
+    img_arr = ndimage.morphological_gradient(numpy.asarray(img.convert('L')), size=(10, 10))
+    full = numpy.array([[0, 0], img_arr.shape[::-1]])
+    full[1] -= EDGE_TOLERANCE
+    bbox = numpy.copy(full)
+    for i in range(2):
+        profile = numpy.max(img_arr[EDGE_TOLERANCE:-EDGE_TOLERANCE, EDGE_TOLERANCE:-EDGE_TOLERANCE], i)
+        profile -= profile.min()
+        envelope = numpy.where(profile > profile.max()/2)[0]
+        if len(envelope):
+            bbox[0][i] = max(envelope[0], bbox[0][i])
+            bbox[1][i] = min(envelope[-1], bbox[1][i])
+
+    # check the boxes and adjust if one horizontal side on edge:
+    if bbox[0][0] > 2*EDGE_TOLERANCE and full[1][0] - bbox[1][0] < 2*EDGE_TOLERANCE:
+        bbox[1][0] = full[1][0] - bbox[0][0]//2
+    elif bbox[0][0] < 2*EDGE_TOLERANCE and full[1][0] - bbox[1][0] > 2*EDGE_TOLERANCE:
+        bbox[0][0] = (full[1][0] - bbox[1][0])//2
+
+    return bbox
+
+def get_bbox(pil_img):
+    img = cv2.cvtColor(numpy.asarray(pil_img), cv2.COLOR_RGB2BGR)
+    edges = cv2.Canny(img, 100, 200)
+    im2, contours, hierarchy = cv2.findContours(edges)
+    return

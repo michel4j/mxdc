@@ -57,7 +57,7 @@ class ActiveMenu(Gtk.Box, gui.BuilderMixin):
         # initialize housekeeping
         self.device = device
         self.name = label or self.device.name
-        self.name = self.name if not self.device.units else '%s (%s)' % (self.name, self.device.units)
+        self.name = self.name if not self.device.units else '{} ({})'.format(self.name, self.device.units)
         self.target = 0.0
         self.current = 0.0
         self._first_change = True
@@ -85,7 +85,7 @@ class ActiveMenu(Gtk.Box, gui.BuilderMixin):
         self.device.connect('active', self.on_active_changed)
         self.device.connect('health', self.on_health_changed)
         self.entry.connect('changed', self.on_activate)
-        self.label.set_markup("<span size='small'><b>%s</b></span>" % (self.name,))
+        self.label.set_text(self.name)
 
     def on_activate(self, val):
         target = float(self.entry.get_active_text())
@@ -128,7 +128,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         # initialize housekeeping
         self.device = device
         self.name = label or self.device.name
-        self.name = self.name if not self.device.units else '%s (%s)' % (self.name, self.device.units)
+        self.name = self.name if not self.device.units else '{} ({})'.format(self.name, self.device.units)
         self.target = 0.0
         self.current = 0.0
         self._first_change = True
@@ -160,7 +160,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.action_btn.connect('clicked', self._on_activate)
         self.entry.connect('icon-press', self._on_activate)
         self.entry.connect('activate', self._on_activate)
-        self.label.set_markup("<span size='small'><b>%s</b></span>" % (self.name,))
+        self.label.set_text(self.name)
         self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#204A87"))
 
     def set_feedback(self, val):

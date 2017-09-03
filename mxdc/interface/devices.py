@@ -229,7 +229,7 @@ class IVideoSink(IDevice):
     def display(frame):
         """Used by video sources to update the video frame."""
         
-class IHumidityController(IDevice):
+class IHumidifier(IDevice):
     """A humidity control device"""
     
     relative_humidity = Attribute("""A Positioner for relative humidity.""")

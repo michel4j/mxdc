@@ -1,9 +1,11 @@
-.section-box {
+.section-box, .tool-box {
     background: rgba(0,0,0,0.08);
 }
-.section-box > * {
+.section-box > * > label, .section-box > label{
+    font-weight: bold;
     margin: 6px;
 }
+
 .device-fbk {
     background: rgba(255,255,255,0.75);
     font-weight: bold;
@@ -14,3 +16,16 @@
     font-size: 95%;
     font-weight: bold;
 }
+.value-sp {
+    font-size: 95%;
+}
+
+.list-action-box {
+    background: rgba(0,0,0,0.1);
+}
+
+.device-label {
+    font-size: 80%;
+    font-weight: bold;
+}
+

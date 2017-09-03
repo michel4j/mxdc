@@ -4,7 +4,7 @@ from mxdc.utils.decorators import ca_thread_enable
 import time
 
 from mxdc.utils.log import get_module_logger
-_logger = get_module_logger('mxdc.engine.auto')
+_logger = get_module_logger(__name__)
 
 @ca_thread_enable
 def auto_mount(bl, port):

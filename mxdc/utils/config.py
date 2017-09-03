@@ -6,7 +6,7 @@ from gi.repository import Gio
 from mxdc.utils import json
 from mxdc.utils.log import get_module_logger
 
-_logger = get_module_logger('mxdc.config')
+_logger = get_module_logger(__name__)
 
 CONFIG_DIR = os.path.join(os.environ['HOME'], '.config', 'mxdc')
 SESSION_CONFIG_FILE = '{}.conf'.format(os.environ['MXDC_CONFIG'])

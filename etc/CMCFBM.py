@@ -91,7 +91,7 @@ DEVICES = {
     
     # Misc: Automounter, HC1 etc
     'automounter':  Automounter('ROB16085B', 'ROB1608-500'),
-    'humidifier': HumidityController('HC1608-01'),
+    'humidifier': Humidifier('HC1608-01'),
     'attenuator': Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
     'mca_nozzle': Positioner('BL08B1:MD2:S:MoveFluoDetFront'),
     'mca': XFlashMCA('XFD1608-501'),

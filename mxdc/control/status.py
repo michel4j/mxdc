@@ -4,7 +4,7 @@ from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger('mxdc.statuspanel')
+_logger = get_module_logger(__name__)
 
 MODE_MAP = {
     'MOUNTING': 'blue',

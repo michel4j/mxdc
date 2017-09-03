@@ -16,7 +16,7 @@ from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from ptzvideo import AxisViewer
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger('mxdc.hutchmanager')
+_logger = get_module_logger(__name__)
 
 (
   COLUMN_NAME,

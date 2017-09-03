@@ -1,14 +1,16 @@
+import uuid
 from collections import OrderedDict
+from collections import defaultdict
+from copy import copy
 
 from automounter import DewarController
-from gi.repository import Gtk, Gdk, Pango, GObject
+from gi.repository import Gio, Gtk, Gdk, Pango, GObject
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine import auto
 from mxdc.utils.decorators import async
 from twisted.python.components import globalRegistry
 from zope.interface import Interface, implements
-from copy import copy
-import uuid
+
 
 class ISampleStore(Interface):
     """Sample information database."""
@@ -24,6 +26,46 @@ class ISampleStore(Interface):
 
     def get_state(self, port):
         pass
+
+
+class GroupItem(GObject.GObject):
+    selected = GObject.Property(type=bool, default=False)
+    name = GObject.Property(type=str, default="")
+
+    def __init__(self, name, sample_model, items=()):
+        super(GroupItem, self).__init__()
+        self.props.name = name
+        self.sample_model = sample_model
+        self.items = {path: False for path in items}
+        self.uuid = str(uuid.uuid4())
+        self.notify_id = self.connect('notify::selected', self.on_selected)
+        self.propagate = True
+
+    def update_item(self, key, value):
+        """propagate sample selection to whole group preventing cyclic propagation"""
+        if key in self.items and self.items[key] != value:
+            self.items[key] = value
+            if self.propagate:
+                selected = all(self.items.values())
+                if self.props.selected != selected:
+                    self.handler_block(self.notify_id)  # do not propagate if group was set/unset from item
+                    self.props.selected = selected
+                    self.handler_unblock(self.notify_id)
+
+    def on_selected(self, obj, param):
+        """Propagate group selection to individual samples preventing cyclic propagation"""
+        for sample in self.sample_model:
+            can_change = (
+                sample[SampleStore.Data.GROUP] == self.props.name and
+                sample[SampleStore.Data.SELECTED] != self.props.selected
+            )
+            if can_change:
+                self.items[sample[SampleStore.Data.UUID]] = self.props.selected
+                sample[SampleStore.Data.SELECTED] = self.props.selected
+                sample[SampleStore.Data.PROGRESS] = SampleStore.Progress.NONE
+
+    def __str__(self):
+        return '<Group: {}|{}>'.format(self.props.name, self.props.selected)
 
 
 class SampleStore(GObject.GObject):
@@ -83,6 +125,8 @@ class SampleStore(GObject.GObject):
         self.search_model = self.model.filter_new()
         self.search_model.set_visible_func(self.search_data)
         self.filter_model = Gtk.TreeModelSort(model=self.search_model)
+        self.group_model = Gio.ListStore(item_type=GroupItem)
+        self.group_registry = {}
         self.next_sample = {}
         self.current_sample = {}
         self.ports = set()
@@ -92,14 +136,15 @@ class SampleStore(GObject.GObject):
         self.view = view
         self.widget = widget
         self.view.set_model(self.filter_model)
+
         self.beamline = globalRegistry.lookup([], IBeamline)
 
         self.setup()
+        self.model.connect('row-changed', self.on_sample_row_changed)
         self.widget.samples_selectall_btn.connect('clicked', lambda x: self.select_all(True))
         self.widget.samples_selectnone_btn.connect('clicked', lambda x: self.select_all(False))
-        self.widget.samples_clear_btn.connect('clicked', lambda x: self.clear())
         self.view.connect('key-press-event', self.on_key_press)
-        self.widget.mxlive_import_btn.connect('clicked', lambda x: self.import_mxlive())
+        self.widget.samples_reload_btn.connect('clicked', lambda x: self.import_mxlive())
         self.beamline.automounter.connect('mounted', self.on_sample_mounted)
         self.beamline.automounter.connect('port-state', self.on_automounter_states)
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
@@ -153,13 +198,21 @@ class SampleStore(GObject.GObject):
         self.update_current_sample()
         self.update_next_sample()
 
+        self.widget.auto_groups_box.bind_model(self.group_model, self.create_group_selector)
+
         self.sample_dewar = DewarController(self.widget, self)
         self.sample_dewar.connect('selected', self.on_dewar_selected)
 
     def load_data(self, data):
         self.clear()
+        groups = defaultdict(list)
         for item in data:
-            self.add_item(item)
+            key = self.add_item(item)
+            groups[item['group']].append(key)
+        for name, samples in groups.items():
+            group_item = GroupItem(name, self.model, items=samples)
+            self.group_model.append(group_item)
+            self.group_registry[name] = group_item
         GObject.idle_add(self.emit, 'updated')
 
     def add_item(self, item):
@@ -183,6 +236,22 @@ class SampleStore(GObject.GObject):
             self.Data.DATA, item,
         )
         self.ports.add(item.get('port'))
+        return item['uuid']
+
+    def create_group_selector(self, item):
+        btn = Gtk.CheckButton(item.props.name)
+        btn.set_active(item.selected)
+        btn.connect('toggled', self.on_group_btn_toggled, item)
+        item.connect('notify::selected', self.on_group_item_toggled, btn)
+        return btn
+
+    def on_group_btn_toggled(self, btn, item):
+        if item.props.selected != btn.get_active():
+            item.props.selected = btn.get_active()
+
+    def on_group_item_toggled(self, item, param, btn):
+        if item.props.selected != btn.get_active():
+            btn.set_active(item.props.selected)
 
     def on_search(self, obj):
         self.filter_text = obj.get_text()
@@ -223,12 +292,12 @@ class SampleStore(GObject.GObject):
         items = self.get_selected()
         if items:
             self.widget.samples_info1_lbl.set_markup('{} Selected'.format(len(items)))
-            self.widget.auto_queue_lbl.set_markup('{} Samples in Queue'.format(len(items)))
+            self.widget.auto_queue_lbl.set_markup('{} Selected Samples'.format(len(items)))
             self.next_sample = items[0]
             self.widget.samples_mount_btn.set_sensitive(True)
         else:
             self.widget.samples_info1_lbl.set_markup('')
-            self.widget.auto_queue_lbl.set_markup('0 Samples in Queue')
+            self.widget.auto_queue_lbl.set_markup('0 Selected Samples')
             self.next_sample = {}
             self.widget.samples_mount_btn.set_sensitive(False)
 
@@ -301,11 +370,12 @@ class SampleStore(GObject.GObject):
                 if state not in [self.State.JAMMED, self.State.EMPTY]:
                     self.search_model.set_value(sitr, self.Data.SELECTED, option)
                 itr = self.filter_model.iter_next(itr)
-        self.update_next_sample()
+        #self.update_next_sample()
 
     def clear(self):
         self.model.clear()
-        self.update_next_sample()
+        self.group_model.remove_all()
+        self.group_registry = {}
         GObject.idle_add(self.emit, 'updated')
 
     def has_port(self, port):
@@ -320,7 +390,6 @@ class SampleStore(GObject.GObject):
             self.search_model.set_value(itr, self.Data.SELECTED, selected)
             if selected:
                 self.search_model.set_value(itr, self.Data.PROGRESS, self.Progress.NONE)
-        self.update_next_sample()
 
     def update_states(self, states):
         self.states.update(states)
@@ -329,6 +398,14 @@ class SampleStore(GObject.GObject):
             port = self.model.get_value(itr, self.Data.PORT)
             self.model.set(itr, self.Data.STATE, self.states.get(port, self.State.UNKNOWN))
             itr = self.model.iter_next(itr)
+
+    def on_sample_row_changed(self, model, path, itr):
+        if self.group_registry:
+            val = model.get_value(itr, self.Data.SELECTED)
+            group = model.get_value(itr, self.Data.GROUP)
+            key = model.get_value(itr, self.Data.UUID)
+            self.group_registry[group].update_item(key, val)
+            self.update_next_sample()
 
     def on_automounter_states(self, obj, states):
         self.update_states(states)
@@ -358,11 +435,11 @@ class SampleStore(GObject.GObject):
             self.current_sample = {}
 
         self.widget.spinner.stop()
-        self.update_next_sample()
+        #self.update_next_sample()
         self.update_current_sample()
 
     def on_key_press(self, obj, event):
-        return self.widget.samples_search_bar.handle_event(event)
+        return self.widget.samples_search_entry.handle_event(event)
 
     def on_row_activated(self, obj, path, column):
         self.toggle_row(path)
@@ -435,18 +512,23 @@ class SampleQueue(GObject.GObject):
 
     def queued_data(self, model, itr, dat):
         """Test if the row is visible"""
-        return any(self.model.get_value(itr, col) for col in
-                   [SampleStore.Data.SELECTED, SampleStore.Data.PROGRESS]
-                   )
+        return (
+            self.model.get_value(itr, SampleStore.Data.SELECTED) or
+            self.model.get_value(itr, SampleStore.Data.PROGRESS) != SampleStore.Progress.NONE
+        )
+
+    def clean(self):
+        for item in self.model:
+            item[SampleStore.Data.PROGRESS] = SampleStore.Progress.NONE
 
     def format_state(self, column, cell, model, itr, data):
         value = model.get_value(itr, SampleStore.Data.STATE)
         processed = model.get_value(itr, SampleStore.Data.PROGRESS)
         if processed == SampleStore.Progress.ACTIVE:
-            #cell.set_property("foreground-rgba", Gdk.RGBA(alpha=1.0, **DewarController.Color[value]))
-            cell.set_property("icon-name",'emblem-synchronizing-symbolic')
+            # cell.set_property("foreground-rgba", Gdk.RGBA(alpha=1.0, **DewarController.Color[value]))
+            cell.set_property("icon-name", 'emblem-synchronizing-symbolic')
         elif processed == SampleStore.Progress.DONE:
-            #cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.5, blue=0.0, alpha=1.0))
+            # cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.5, blue=0.0, alpha=1.0))
             cell.set_property("icon-name", "object-select-symbolic")
         else:
             cell.set_property("icon-name", "content-loading-symbolic")
@@ -457,7 +539,6 @@ class SampleQueue(GObject.GObject):
             cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.5, blue=0.0, alpha=1.0))
         else:
             cell.set_property("foreground-rgba", None)
-
 
     def get_samples(self):
         return [

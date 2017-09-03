@@ -7,7 +7,7 @@ import math
 from gi.repository import Pango
 import os
 
-_logger = get_module_logger('mxdc.videoviewer')
+_logger = get_module_logger(__name__)
 
 COLOR_MAPS = [None, 'Spectral', 'hsv', 'jet', 'RdYlGn', 'hot', 'PuBu']
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -112,7 +112,6 @@ class SimpleVideo(Gtk.Frame):
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(
             'Save Video Snapshot',
-            parent=self.get_toplevel(),
             formats=[('PNG Image', 'png'), ('JPEG Image', 'jpg')])
         if not img_filename:
             return

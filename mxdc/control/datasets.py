@@ -3,6 +3,7 @@ from mxdc.beamline.mx import IBeamline
 from mxdc.utils import converter, runlists
 from mxdc.utils.config import settings
 from mxdc.utils.log import get_module_logger
+from mxdc.utils import glibref
 from mxdc.widgets import datawidget, dialogs
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
 from mxdc.engine.diffraction import DataCollector, Automator
@@ -14,7 +15,7 @@ import time
 import os
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger('mxdc.samples')
+_logger = get_module_logger(__name__)
 
 
 (
@@ -27,22 +28,25 @@ _logger = get_module_logger('mxdc.samples')
 
 class RunItem(GObject.GObject):
     class StateType:
-        (DRAFT, ACTIVE, COMPLETE, ERROR) = range(4)
+        (ADD, DRAFT, ACTIVE, COMPLETE, ERROR) = range(5)
 
-    state = GObject.Property(type=int, default=0)
+    state = GObject.Property(type=int, default=StateType.DRAFT)
     position = GObject.Property(type=int, default=0)
     info = GObject.Property(type=GObject.TYPE_PYOBJECT)
     progress = GObject.Property(type=float, default=0.0)
     warning = GObject.Property(type=str, default="")
+    created = GObject.Property(type=float, default=0.0)
 
-    def __init__(self, info, generate_frames=True):
+    def __init__(self, info, generate_frames=True, state=StateType.DRAFT):
         super(RunItem, self).__init__()
         self.frames = []
         self.collected = []
         self.generate_frames = generate_frames
 
         self.connect('notify::info', self.on_info_changed)
+        self.props.state = state
         self.props.info = info
+        self.props.created = time.time()
         self.uuid = str(uuid.uuid4())
 
     def on_info_changed(self, item, param):
@@ -58,8 +62,26 @@ class RunItem(GObject.GObject):
         elif prog == 100.0:
             self.props.state = RunItem.StateType.COMPLETE
 
+    @staticmethod
+    def sorter(a_pointer, b_pointer):
+
+        a = glibref.capi.to_object(a_pointer)
+        b = glibref.capi.to_object(b_pointer)
+
+        if a.props.state < b.props.state:
+            return -1
+        elif a.props.state > b.props.state:
+            return 1
+        else:
+            if a.props.created > b.props.created:
+                return -1
+            elif a.props.created < b.props.created:
+                return 1
+            else:
+                return 0
+
     def get_color(self):
-        return  Gdk.RGBA(*STATE_COLORS[self.props.state][self.props.position % 2])
+        return  Gdk.RGBA(*STATE_COLORS[self.props.state])
 
     def __getitem__(self, item):
         return self.info[item]
@@ -69,10 +91,11 @@ class RunItem(GObject.GObject):
 
 
 STATE_COLORS = {
-    RunItem.StateType.DRAFT:     [(1.0, 1.0, 1.0, 0.0), (0.9, 0.9, 0.9, 0.5)],
-    RunItem.StateType.ACTIVE:    [(1.0, 1.0, 0.0, 0.1), (1.0, 1.0, 0.0, 0.2)],
-    RunItem.StateType.COMPLETE:  [(0.0, 1.0, 0.0, 0.1), (0.0, 1.0, 0.0, 0.2)],
-    RunItem.StateType.ERROR:     [(1.0, 0.0, 0.5, 0.1), (1.0, 0.0, 0.0, 0.2)],
+    RunItem.StateType.ADD:       (1.0, 1.0, 1.0, 0.0),
+    RunItem.StateType.DRAFT:     (1.0, 1.0, 1.0, 0.0),
+    RunItem.StateType.ACTIVE:    (1.0, 1.0, 0.0, 0.1),
+    RunItem.StateType.COMPLETE:  (0.2, 1.0, 0.2, 0.5),
+    RunItem.StateType.ERROR:     (1.0, 0.0, 0.5, 0.1),
 }
 
 DEFAULT_CONFIG = {
@@ -225,6 +248,7 @@ class AutomationController(GObject.GObject):
             self.widget.auto_stop_btn.set_sensitive(True)
             self.widget.auto_collect_btn.set_sensitive(True)
             self.widget.auto_sequence_box.set_sensitive(False)
+            self.widget.auto_groups_btn.set_sensitive(False)
         elif self.props.state == self.State.PAUSED:
             self.widget.auto_progress_lbl.set_text("Automation paused!")
             self.widget.auto_collect_icon.set_from_icon_name(
@@ -233,6 +257,7 @@ class AutomationController(GObject.GObject):
             self.widget.auto_stop_btn.set_sensitive(True)
             self.widget.auto_collect_btn.set_sensitive(True)
             self.widget.auto_sequence_box.set_sensitive(False)
+            self.widget.auto_groups_btn.set_sensitive(False)
         elif self.props.state == self.State.PENDING:
             self.widget.auto_collect_icon.set_from_icon_name(
                 "media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR
@@ -240,6 +265,7 @@ class AutomationController(GObject.GObject):
             self.widget.auto_sequence_box.set_sensitive(False)
             self.widget.auto_collect_btn.set_sensitive(False)
             self.widget.auto_stop_btn.set_sensitive(False)
+            self.widget.auto_groups_btn.set_sensitive(False)
         else:
             self.widget.auto_collect_icon.set_from_icon_name(
                 "media-playback-start-symbolic",Gtk.IconSize.LARGE_TOOLBAR
@@ -247,6 +273,7 @@ class AutomationController(GObject.GObject):
             self.widget.auto_stop_btn.set_sensitive(False)
             self.widget.auto_collect_btn.set_sensitive(True)
             self.widget.auto_sequence_box.set_sensitive(True)
+            self.widget.auto_groups_btn.set_sensitive(True)
 
     def on_edit_acquisition(self, obj):
         self.run_editor.configure(self.config.info, disable=('helical', 'inverse'))
@@ -262,6 +289,7 @@ class AutomationController(GObject.GObject):
         self.run_editor.run_save_btn.connect('clicked', self.on_save_acquisition)
         self.widget.auto_collect_btn.connect('clicked', self.on_start_automation)
         self.widget.auto_stop_btn.connect('clicked', self.on_stop_automation)
+        self.widget.auto_clean_btn.connect('clicked', self.on_clean_automation)
 
     def on_progress(self, obj, fraction, message):
         used_time = time.time() - self.start_time
@@ -325,6 +353,9 @@ class AutomationController(GObject.GObject):
 
     def on_stop_automation(self, obj):
         self.automator.stop()
+
+    def on_clean_automation(self, obj):
+        self.automation_queue.clean()
 
     def on_start_automation(self, obj):
         if self.props.state == self.State.ACTIVE:
@@ -391,12 +422,15 @@ class DatasetsController(GObject.GObject):
     def setup(self):
         self.widget.datasets_list.bind_model(self.run_store, self.create_run_config)
         self.widget.datasets_viewer_box.add(self.image_viewer)
-        self.widget.datasets_add_btn.connect('clicked', self.on_add_run)
-        self.widget.datasets_clear_btn.connect('clicked', self.on_clear_runs)
+        self.widget.datasets_clean_btn.connect('clicked', self.on_clean_runs)
+
         self.run_editor.run_cancel_btn.connect('clicked', lambda x: self.run_editor.window.hide())
         self.run_editor.run_save_btn.connect('clicked', self.on_save_run)
         self.sample_store = globalRegistry.lookup([], ISampleStore)
         self.sample_store.connect('updated', self.on_sample_updated)
+
+        new_item = RunItem({}, generate_frames=False, state=RunItem.StateType.ADD)
+        self.run_store.insert_sorted(new_item, RunItem.sorter)
 
         labels = {
             'omega': (self.beamline.omega, self.widget.dsets_omega_fbk, '{:0.1f} deg'),
@@ -407,6 +441,7 @@ class DatasetsController(GObject.GObject):
             'aperture': (self.beamline.aperture, self.widget.dsets_aperture_fbk,'{:0.0f} um'),
             'two_theta': (self.beamline.two_theta, self.widget.dsets_2theta_fbk,'{:0.0f} deg'),
         }
+        self.group_selectors = []
         self.monitors = {
             name: common.DeviceMonitor(dev, lbl, fmt)
             for name, (dev, lbl, fmt) in labels.items()
@@ -416,10 +451,13 @@ class DatasetsController(GObject.GObject):
     def create_run_config(self, item):
         config = datawidget.RunConfig()
         config.set_item(item)
-        config.delete_run_btn.connect('clicked', self.on_delete_run, item)
-        config.edit_run_btn.connect('clicked', self.on_edit_run, item)
-        config.copy_run_btn.connect('clicked', self.on_copy_run, item)
-        return config.dataset_run_row
+        if item.props.state != item.StateType.ADD:
+            config.delete_run_btn.connect('clicked', self.on_delete_run, item)
+            config.edit_run_btn.connect('clicked', self.on_edit_run, item)
+            config.copy_run_btn.connect('clicked', self.on_copy_run, item)
+        else:
+            config.empty_run_row.connect('button-release-event', self.on_add_run)
+        return config.get_widget()
 
     def generate_run_list(self):
         runs = []
@@ -427,7 +465,7 @@ class DatasetsController(GObject.GObject):
         pos = 0
         item = self.run_store.get_item(pos)
         while item:
-            if item.state != item.StateType.COMPLETE:
+            if item.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
                 run = {'uuid': item.uuid}
                 run.update(item.info)
                 runs.append(run)
@@ -436,7 +474,7 @@ class DatasetsController(GObject.GObject):
                 })
             pos += 1
             item = self.run_store.get_item(pos)
-        return runs
+        return runs[::-1]
 
     def check_runlist(self, runs):
         frame_list = runlists.generate_run_list(runs)
@@ -474,7 +512,7 @@ class DatasetsController(GObject.GObject):
         item = self.run_store.get_item(count)
         names = set()
         while item:
-            if item.props.state !=  item.StateType.COMPLETE:
+            if item.props.state in  [item.StateType.DRAFT, item.StateType.ACTIVE]:
                 if item.props.info['name'] in names:
                     item.props.warning = 'Dataset with this name already exists!'
                     item.props.state = item.StateType.ERROR
@@ -495,7 +533,9 @@ class DatasetsController(GObject.GObject):
         ).replace('|...', '')
         self.widget.dsets_sample_fbk.set_text(sample_text)
 
-    def on_add_run(self, obj):
+    def on_add_run(self, obj, event=None):
+        if event and not event.button == 1:
+            return
         sample = self.sample_store.get_current()
         energy = self.beamline.bragg_energy.get_position()
         distance = self.beamline.distance.get_position()
@@ -521,16 +561,24 @@ class DatasetsController(GObject.GObject):
         self.run_editor.item = None
         self.run_editor.window.show_all()
 
+    def on_clean_runs(self, obj):
+        done = 0
+        count = 0
+        item = self.run_store.get_item(count)
+        while item:
+            if item.state in [item.StateType.COMPLETE, item.StateType.ERROR]:
+                done += 1
+            count += 1
+            item = self.run_store.get_item(count)
+        if done > 0:
+            self.run_store.splice(count - done, done, [])
+
+
     def on_save_run(self, obj):
         if not self.run_editor.item:
             # insert item after all other draft items
-            pos = 0
-            item = self.run_store.get_item(pos)
-            while item and item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
-                pos += 1
-                item = self.run_store.get_item(pos)
             new_item = RunItem(self.run_editor.get_parameters())
-            self.run_store.insert(pos, new_item)
+            self.run_store.insert_sorted(new_item, RunItem.sorter)
             self.run_editor.window.hide()
         else:
             item = self.run_editor.item
@@ -551,9 +599,6 @@ class DatasetsController(GObject.GObject):
         self.run_editor.configure(item.info)
         self.run_editor.item = None
         self.run_editor.window.show_all()
-
-    def on_clear_runs(self, obj):
-        self.run_store.remove_all()
 
     def on_progress(self, obj, fraction):
         used_time = time.time() - self.start_time
@@ -593,17 +638,16 @@ class DatasetsController(GObject.GObject):
         self.widget.datasets_collect_btn.set_sensitive(True)
         #gobject.idle_add(self.emit, 'new-datasets', obj.results)
         self.widget.collect_btn_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
-        self.widget.datasets_add_btn.set_sensitive(True)
-        self.widget.datasets_clear_btn.set_sensitive(True)
+        self.widget.datasets_clean_btn.set_sensitive(True)
         self.widget.datasets_list.set_sensitive(True)
         self.collecting = False
         self.stopping = False
+        self.run_store.sort(RunItem.sorter)
 
     def on_started(self, obj):
         self.start_time = time.time()
         self.widget.datasets_collect_btn.set_sensitive(True)
-        self.widget.datasets_add_btn.set_sensitive(False)
-        self.widget.datasets_clear_btn.set_sensitive(False)
+        self.widget.datasets_clean_btn.set_sensitive(False)
         self.widget.datasets_list.set_sensitive(False)
         _logger.info("Data Acquisition Started.")
 
@@ -622,6 +666,7 @@ class DatasetsController(GObject.GObject):
                 self.widget.collect_progress_lbl.set_text(
                     'Stopped at dataset {}: {} ...'.format(run_item.props.info['name'], frame)
                 )
+            self.run_store.sort(RunItem.sorter)
         _logger.info('Frame acquired: {}'.format(frame))
 
     def on_collect_btn(self, obj):

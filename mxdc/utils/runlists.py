@@ -90,6 +90,7 @@ def generate_frame_names(run):
         template.format(index) for frameset in run['frame_sets'] for index, angle in frameset
     ]
 
+
 class FrameChecker(object):
     def __init__(self, ext, detect_bad=False):
         self.ext = ext
@@ -233,18 +234,45 @@ def generate_run_list(runs):
     return run_list
 
 
+class Chunker(object):
+    """Produce lists of framesets for specified wedge at a time until consumed"""
+
+    def __init__(self, dataset):
+        self.dataset = dataset
+        self.wedge = dataset['wedge']
+        self.framesets = dataset['frame_sets']
+        self.end = dataset['start'] + self.wedge
+
+    def has_items(self):
+        return bool(self.framesets)
+
+    def fetch(self):
+        stride = []
+        for i, frameset in enumerate(self.framesets):
+            if frameset[0][1] < self.end:
+                stride.append(frameset)
+                self.framesets = self.framesets[1:]
+            else:
+                self.end = frameset[0][1] + self.wedge
+                break
+        return stride
+
+
 def generate_wedges(runs):
-    datasets = [
-        add_framsets(r) for r in runs
-    ]
-
     wedges = []
-    max_sets = max([len(dataset['frame_sets']) for dataset in datasets])
-
-    for i in range(max_sets):
-        for dataset in datasets:
-            if i < len(dataset['frame_sets']):
-                wedges.extend(generate_collection_list(dataset, dataset['frame_sets'][i]))
+    datasets = [add_framsets(r) for r in runs]
+    chunkers = [Chunker(d) for d in datasets]
+    num_sets = len(datasets)
+    items_exist = any(ch.has_items() for ch in chunkers)
+    pos = 0
+    while items_exist:
+        chunk = chunkers[pos].fetch()
+        dataset = datasets[pos]
+        for frameset in chunk:
+            print dataset['name'], frameset
+            wedges.extend(generate_collection_list(dataset, frameset))
+        items_exist = any(ch.has_items() for ch in chunkers)
+        pos = (pos + 1) % num_sets
 
     return datasets, wedges
 
