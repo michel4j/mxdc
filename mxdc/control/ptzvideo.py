@@ -6,7 +6,7 @@ from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget
 
-_logger = get_module_logger('mxdc.ptzvideo')
+_logger = get_module_logger(__name__)
 
 
 class AxisController(object):

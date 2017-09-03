@@ -29,7 +29,7 @@ import traceback
 import getpass
 import socket
 
-_logger = get_module_logger('mxdc')
+_logger = get_module_logger(__name__)
 _exception_in_progress = threading.Lock()
 
 QUIT_FUNCTION = sys.exit

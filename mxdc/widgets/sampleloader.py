@@ -8,7 +8,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 import os
 
-_logger = get_module_logger('mxdc')
+_logger = get_module_logger(__name__)
 
 SAMPLES_DB_CONFIG = 'samples_db.json'
 XTALS_DB_CONFIG = 'crystals_db.json'

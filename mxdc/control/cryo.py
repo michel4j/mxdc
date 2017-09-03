@@ -4,7 +4,7 @@ from mxdc.beamline.mx import IBeamline
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger('mxdc.cryo')
+_logger = get_module_logger(__name__)
 
 
 class CryoController(object):
@@ -37,7 +37,7 @@ class CryoController(object):
             'shield': (5, 4),
         }
         self.cryojet.connect('notify', self.on_parameter_changed)
-        self.nozzle_switch = common.ShutterSwitcher(self.cryojet.nozzle, self.widget.cryo_nozzle_switch, reverse=True)
+        #self.nozzle_switch = common.ShutterSwitcher(self.cryojet.nozzle, self.widget.cryo_nozzle_switch, reverse=True)
 
     def on_parameter_changed(self, obj, param):
         if param.name in self.labels:

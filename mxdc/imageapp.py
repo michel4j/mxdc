@@ -7,7 +7,7 @@ from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets import dialogs
 import sys, os
 
-_logger = get_module_logger('ImageViewer')
+_logger = get_module_logger(__name__)
 
 def main():
 

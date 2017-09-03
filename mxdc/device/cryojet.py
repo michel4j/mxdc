@@ -7,7 +7,7 @@ from mxdc.utils.log import get_module_logger
 from mxdc.interface.devices import ICryojet
 from mxdc.device import misc
 
-_logger = get_module_logger('devices')
+_logger = get_module_logger(__name__)
 
 
 class CryojetNozzle(misc.BasicShutter):
@@ -145,7 +145,23 @@ class Cryojet5(CryojetBase):
 class SimCryojet(CryojetBase):
     def setup(self, *args, **kwargs):
         self.nozzle = misc.SimShutter('Sim Cryo Nozzle')
+
+        self.temp_fbk = misc.SimPositioner('Cryo Temperature', pos=102.5, noise=3)
+        self.sample_fbk = misc.SimPositioner('Cryo Sample flow', pos=6.5, noise=0.2)
+        self.shield_fbk = misc.SimPositioner('Cryo Shield flow', pos=9.5, noise=0.2)
+        self.level_fbk = misc.SimPositioner('Cryo Level', pos=25.5, noise=10)
+
         self.name = 'Sim Cryojet'
+        # connect signals for monitoring state
+        self.temp_fbk.connect('changed', self.on_temp)
+        self.level_fbk.connect('changed', self.on_level)
+        self.sample_fbk.connect('changed', self.on_sample)
+        self.shield_fbk.connect('changed', self.on_shield)
+        self.nozzle.connect('changed', self.on_nozzle)
+
+
+
+
 
 
 __all__ = ['Cryojet', 'Cryojet5', 'SimCryojet']

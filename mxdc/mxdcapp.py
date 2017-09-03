@@ -27,7 +27,7 @@ MXDC_PORT = 9898
 
 warnings.simplefilter("ignore")
 
-_logger = get_module_logger('mxdc')
+_logger = get_module_logger(__name__)
 
 
 class MXDCApp(object):

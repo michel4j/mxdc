@@ -4,10 +4,12 @@ from twisted.python import log
 import logging
 import os
 
-if os.environ.get('BCM_DEBUG', '0') in ['1', 'True', 'TRUE', 'true']:
+if os.environ.get('MXDC_DEBUG', '0') in ['1', 'True', 'TRUE', 'true']:
     LOG_LEVEL = logging.DEBUG
+    DEBUGGING = True
 else:   
     LOG_LEVEL = logging.INFO
+    DEBUGGING = False
 
 class TermColor(object):
     HEADER = '\033[95m'
@@ -97,7 +99,10 @@ def log_to_console(level=LOG_LEVEL):
     
     console = ColoredConsoleHandler()
     console.setLevel(level)
-    formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
+    if DEBUGGING:
+        formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
+    else:
+        formatter = logging.Formatter('%(asctime)s - %(message)s', '%b/%d %H:%M:%S')
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)
 

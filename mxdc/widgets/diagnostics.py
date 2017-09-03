@@ -5,7 +5,7 @@ from twisted.python.components import globalRegistry
 from gi.repository import Gtk, Gdk
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger('mxdc')
+_logger = get_module_logger(__name__)
 try:
     from gi.repository import Notify
 

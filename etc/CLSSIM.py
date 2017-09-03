@@ -40,7 +40,7 @@ DEVICES = {
     'sample_y':  SimMotor('Sample Y', 0.0, 'mm'),
     
     # Beam position & Size
-    'aperture': SimChoicePositioner('Beam Size', 100, choices=[200, 150, 100, 50, 20], units='um'),
+    'aperture': SimChoicePositioner('Beam Size', 50, choices=[200, 150, 100, 50, 25], units='um'),
     'beam_x':   SimMotor('Beam X', 0.0, 'mm'),
     'beam_y':   SimMotor('Beam Y', 0.0, 'mm'),
     'beam_w':   SimMotor('Beam W', 0.2, 'mm'),
@@ -71,6 +71,7 @@ DEVICES = {
     'sample_frontlight': SimLight('Front light', 55.0, '%'),    
     #'hutch_video':  SimPTZCamera(),
     'hutch_video':  AxisPTZCamera('ccd1608-301.clsi.ca'),
+
     
     # Facility, storage-ring, shutters, etc
     'ring_current':  PV('PCT1402-01:mA:fbk'),
@@ -85,13 +86,13 @@ DEVICES = {
     'enclosures': Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
     
     # Intensity monitors, shutter, attenuation, mca etc
-    'i_0': SimCounter('I_0'),
-    'i_1': SimCounter('I_1'),
-    'i_2': SimCounter('I_2'),
+    'i_0': SimCounter('I_0', zero=26931),
+    'i_1': SimCounter('I_1', zero=35019),
+    'i_2': SimCounter('I_2', zero=65228),
     
     # Misc: Automounter, HC1 etc
     'automounter':  SimAutomounter(),
-    'humidifier': HumidityController('HC1608-01'),
+    'humidifier': SimHumidifier(),
     'attenuator': SimPositioner('Attenuator', 0.0, '%'),
     'mca': SimMultiChannelAnalyzer('Simulated MCA'),
     'multi_mca' : SimMultiChannelAnalyzer('Simulated MCA'),
