@@ -12,7 +12,7 @@ from mxdc.widgets.ticker import ChartManager
 from ptzvideo import AxisController
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger('mxdc.setup')
+_logger = get_module_logger(__name__)
 
 
 class SetupController(object):
@@ -82,11 +82,11 @@ class SetupController(object):
         # Beam Tuner
         self.tuner = ChartManager(interval=100, view=10)
         self.widget.tuner_box.pack_start(self.tuner.chart, True, True, 0)
-        self.tuner.add_plot(self.beamline.beam_tuner, 'beam_tuner')
+        self.tuner.add_plot(self.beamline.beam_tuner, 'Beam Intensity')
         self.tuner_monitors = [
             common.DeviceMonitor(self.beamline.beam_tuner, self.widget.tuner_left_lbl),
             common.DeviceMonitor(
-                self.beamline.beam_tuner, self.widget.tuner_right_lbl, format='<b>{:0.1f} %</b>',
+                self.beamline.beam_tuner, self.widget.tuner_right_lbl, format='{:0.1f} %',
                 signal='percent', warning=90.0, error=80.0
             )
         ]

@@ -2,6 +2,9 @@ import threading
 import time
 
 import numpy
+import os
+from mxdc.widgets import dialogs
+from collections import defaultdict
 from gi.repository import Gtk, GObject
 from matplotlib import rcParams
 from matplotlib.animation import FuncAnimation
@@ -13,22 +16,34 @@ rcParams['font.family'] = 'Cantarell'
 rcParams['font.size'] = 9
 
 
-def get_min_max(a, ldev=5, rdev=5):
+def get_min_max(a, ldev=10, rdev=10):
     a = a[(numpy.isnan(a) == False)]
     if len(a) == 0:
         return -0.1, 0.1
     _std = a.std()
-    if _std == 0:  _std = 0.1
+    if _std < 1e-10:  _std = 0.1
     mn, mx = a.min() - ldev * _std, a.max() + rdev * _std
     return mn, mx
 
+COLORS = [
+    '#1f77b4',
+    '#ff7f0e',
+    '#2ca02c',
+    '#d62728',
+    '#9467bd',
+    '#8c564b',
+    '#e377c2',
+    '#7f7f7f',
+    '#bcbd22',
+    '#17becf'
+]
 
 class TickerChart(Gtk.Box):
     __gsignals__ = {
         'cursor-time': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
 
-    def __init__(self, interval=100, view=20, keep=40, linewidth=1):
+    def __init__(self, interval=100, view=20, keep=None, linewidth=1):
         Gtk.Box.__init__(self)
         self.fig = Figure(facecolor='w')
         self.canvas = FigureCanvas(self.fig)
@@ -36,26 +51,55 @@ class TickerChart(Gtk.Box):
 
         self.data = {}
         self.plots = {}
+        self.info = {}
 
-        self.axis = self.fig.add_subplot(111)
-        self.axis.set_xlabel('seconds ago')
+        self.axes = []
+        self.axes.append(self.fig.add_subplot(111))
+
+        self.axes[0].set_xlabel('seconds ago')
         self.interval = interval  # milliseconds
         self.view_range = view  # seconds
-        self.keep_range = keep  # seconds
+
+        self.keep_range = keep or (view*4)  # seconds
         self.linewidth = linewidth
 
-        self.view_size = view * 1000 // self.interval
-        self.keep_size = keep * 1000 // self.interval
+        self.keep_size = int(self.keep_range * 1000 / self.interval)
+        self.view_step = view//2
+        self.deviation = 10
 
         self.view_time = time.time()
         self.add_data('time')
+        self.paused = False
         self.show_all()
+
+    def pause(self):
+        self.paused = True
+
+    def resume(self):
+        self.paused = False
+
+    def zoom_out(self):
+        self.view_range = max(self.view_range - self.view_step, self.view_step)
+        self.update()
+
+    def zoom_in(self):
+        self.view_range = min(self.view_range + self.view_step, self.keep_range)
+        self.update()
+
+    def incr_margin(self):
+        self.deviation = min(self.deviation + 5, 50)
+        self.update()
+
+    def decr_margin(self):
+        self.deviation = max(self.deviationi - 5, 5)
+        self.update()
 
     def add_data(self, name):
         if name in self.data:
             return
         self.data[name] = numpy.empty(self.keep_size)
         self.data[name][:] = numpy.nan
+
 
     def resize_data(self):
         for name, data in self.data.items():
@@ -69,31 +113,44 @@ class TickerChart(Gtk.Box):
         for name, data in self.data.items():
             data[:-1] = data[1:]
 
-    def add_plot(self, name, color):
-        self.plots[name] = Line2D([], [], color=color, linewidth=self.linewidth)
-        self.axis.add_line(self.plots[name])
+    def add_plot(self, name, color=None, linestyle='-', axis=0):
+        assert axis in [0, 1], 'axis must be 0 or 1'
+        if axis == 1 and len(self.axes) == 1:
+            self.axes.append(self.axes[0].twinx())
+        if not color:
+            color=COLORS[len(self.plots)]
+        self.plots[name] = Line2D([], [], color=color, linewidth=self.linewidth, linestyle=linestyle)
+        self.axes[axis].add_line(self.plots[name])
+        self.axes[axis].set_ylabel(name, color=color)
+        self.info[name] = {'color': color, 'linestyle': linestyle, 'axis': axis}
         self.add_data(name)
 
     def clear(self):
         for name, line in self.plots.items():
-            line.set_data([], [])
+            self.data[name][:] = numpy.nan
 
     def update(self):
+        if self.paused: return
         selector = (self.data['time'] > self.view_time - self.view_range) & (self.data['time'] <= self.view_time)
         if selector.sum() < 2: return
         now = self.data['time'][selector][-1]
         x_data = self.data['time'][selector] - now
         xmin, xmax = min(x_data.min(), -self.view_range), x_data.max()
 
-        ymin, ymax = numpy.nan, numpy.nan
+        extrema = defaultdict(lambda: (numpy.nan, numpy.nan))
+
         for name, line in self.plots.items():
+            axis = self.info[name]['axis']
+            ymin, ymax = extrema[axis]
             y_data = self.data[name][selector]
-            mn, mx = get_min_max(y_data)
+            mn, mx = get_min_max(y_data, ldev=self.deviation, rdev=self.deviation)
             ymin, ymax = numpy.nanmin([ymin, mn]), numpy.nanmax([ymax, mx])
+            extrema[axis] = (ymin, ymax)
             line.set_data(x_data, y_data)
 
-        self.axis.set_ylim(ymin, ymax)
-        self.axis.set_xlim(xmin, xmax)
+        for i, (ymin, ymax) in extrema.items():
+            self.axes[i].set_ylim(ymin, ymax)
+            self.axes[i].set_xlim(xmin, xmax)
 
     def redraw(self):
         self.canvas.draw_idle()
@@ -102,21 +159,46 @@ class TickerChart(Gtk.Box):
         self.update()
         return self.plots.values()
 
+    def save(self):
+        dialog = Gtk.FileChooserDialog(
+            "Save Chart ...", dialogs.MAIN_WINDOW,  Gtk.FileChooserAction.SAVE,
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+        )
+        dialog.set_size_request(600, 300)
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            img_filename = dialog.get_filename()
+            if os.access(os.path.dirname(img_filename), os.W_OK):
+                self.fig.savefig(img_filename)
+        dialog.destroy()
+
 
 class ChartManager(GObject.GObject):
     def __init__(self, interval=100, view=20):
         GObject.GObject.__init__(self)
-        self.chart = TickerChart(interval=interval * 2, view=view, keep=view*2)
+        self.chart = TickerChart(interval=interval, view=view)
         self.sources = {}
         self.values = {}
         self.interval = interval / 1000.  # convert from milliseconds to seconds
         self.animation = FuncAnimation(self.chart.fig, self.chart.animate, None, interval=interval, blit=False)
         self.start()
 
-    def add_plot(self, dev, name, color='#FF0000'):
-        self.chart.add_plot(name, color)
+    def add_plot(self, dev, name, color=None, linestyle='-', axis=0):
+        self.chart.add_plot(name, color=color, linestyle=linestyle, axis=axis)
         self.values[name] = numpy.nan
         self.sources[name] = dev.connect('changed', self.collect_data, name)
+
+    def zoom_in(self, *args, **kwargs):
+        self.chart.zoom_in()
+
+    def zoom_out(self, *args, **kwargs):
+        self.chart.zoom_out()
+
+    def clear(self, *args, **kwargs):
+        self.chart.clear()
+
+    def save(self, *args, **kwargs):
+        self.chart.save()
 
     def collect_data(self, dev, value, name):
         self.values[name] = value
@@ -124,17 +206,27 @@ class ChartManager(GObject.GObject):
     def start(self):
         """Start the Data monitor thread """
         self._stopped = False
-        worker_thread = threading.Thread(name="PVSampler", target=self.update_data)
+        worker_thread = threading.Thread(name="TickerSampler", target=self.update_data)
         worker_thread.setDaemon(True)
         worker_thread.start()
+
+    def pause(self, *args, **kwargs):
+        self.chart.pause()
+
+    def resume(self, *args, **kwargs):
+        self.chart.resume()
+
+    def is_paused(self):
+        return self.chart.paused
 
     def update_data(self):
         # update the values of the array every interval seconds, shift left
         while not self._stopped:
             self.chart.shift_data()
-            for name, value in self.values.items():
-                if name in self.chart.data:
-                    self.chart.data[name][-1] = value
+            if not self.is_paused():
+                for name, value in self.values.items():
+                    if name in self.chart.data:
+                        self.chart.data[name][-1] = value
             self.chart.data['time'][-1] = time.time()
             self.chart.view_time = time.time()
             time.sleep(self.interval)

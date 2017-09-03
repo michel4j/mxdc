@@ -8,7 +8,7 @@ from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 import re
 
-logger = get_module_logger('devices')
+logger = get_module_logger(__name__)
 
 class BaseDevice(GObject.GObject):
     """A generic device object class.  All devices should be derived from this 

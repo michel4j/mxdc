@@ -10,6 +10,7 @@ from mxdc.device.goniometer import *
 from mxdc.device.automounter import *
 from mxdc.device.mca import *
 from mxdc.device.cryojet import *
+from mxdc.device.humidity import *
 from mxdc.device.boss import *
 from mxdc.device.video import *
 from mxdc.service.imagesync_client import *

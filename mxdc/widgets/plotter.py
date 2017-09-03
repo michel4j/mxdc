@@ -3,12 +3,11 @@ A Plotting widget using matplotlib - several lines can be added to multiple axes
 points can be added to each line and the plot is automatically updated.
 """
 
-from gi.repository import Gtk
-from gi.repository import Pango
-from gi.repository import GObject
+from gi.repository import Gtk, GObject, Gdk
 from matplotlib import rcParams
 from matplotlib.backends.backend_gtk3 import FileChooserDialog
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
+from matplotlib.backend_tools import ToolBase, ToolToggleBase
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.colors import Normalize
 from matplotlib.dates import MinuteLocator, SecondLocator

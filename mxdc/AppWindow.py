@@ -21,7 +21,7 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import os
 from datetime import datetime
 
-_logger = get_module_logger('mxdc')
+_logger = get_module_logger(__name__)
 
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
 
@@ -41,7 +41,7 @@ STYLES = """
 
 class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     gui_roots = {
-        'data/mxdc_main': ['app_menu', 'header_bar', 'mxdc_main']
+        'data/mxdc_main': ['auto_groups_pop', 'app_menu', 'header_bar', 'mxdc_main', ]
     }
 
     def __init__(self, version=VERSION):
@@ -101,6 +101,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.analysis = ResultManager()
 
         self.app_mnu_btn.set_popup(self.app_menu)
+        self.auto_groups_btn.set_popover(self.auto_groups_pop)
         self.add_menu_actions()
         self.page_switcher.set_stack(self.main_stack)
         self.main_stack.connect('notify::visible-child', self.on_page_switched)

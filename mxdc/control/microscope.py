@@ -4,17 +4,25 @@ import time
 from collections import OrderedDict
 
 import common
+import numpy
 from gi.repository import Gtk, Pango, Gdk
+from matplotlib.path import Path
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine.scripting import get_scripts
-from mxdc.utils import colors
+from mxdc.utils import colors, imgproc
 from mxdc.utils.decorators import async
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger('mxdc.microscope')
+_logger = get_module_logger(__name__)
+
+
+def orientation(p):
+    verts = p.vertices
+    orient = ((verts[1:, 0] - verts[:-1, 0]) * (verts[1:, 1] + verts[:-1, 1])).sum()
+    return -numpy.sign(orient) or 1
 
 
 class MicroscopeController(object):
@@ -22,6 +30,11 @@ class MicroscopeController(object):
         self.timeout_id = None
         self.max_fps = 20
         self.fps_update = 0
+        self.grid = None
+        self.polygon = []
+        self.points = []
+        self._click_centering = False
+        self.create_polygon = False
         self.widget = widget
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.camera = self.beamline.sample_video
@@ -44,11 +57,11 @@ class MicroscopeController(object):
         self.widget.microscope_rot180_btn.connect('clicked', self.on_rot180)
 
         # centering
-        self.widget.microscope_click_btn.connect('clicked', self.toggle_click_centering)
         self.widget.microscope_loop_btn.connect('clicked', self.on_center_loop)
         self.widget.microscope_crystal_btn.connect('clicked', self.on_center_crystal)
         self.widget.microscope_capillary_btn.connect('clicked', self.on_center_capillary)
         self.beamline.goniometer.connect('mode', self.on_gonio_mode)
+        self.beamline.aperture.connect('changed', self.on_aperture)
 
         # Video Area
         self.video = VideoWidget(self.camera)
@@ -56,6 +69,9 @@ class MicroscopeController(object):
 
         # status, save, etc
         self.widget.microscope_save_btn.connect('clicked', self.on_save)
+        self.widget.microscope_grid_btn.connect('toggled', self.make_grid)
+        self.widget.microscope_point_btn.connect('clicked', self.add_point)
+        self.widget.microscope_clear_btn.connect('clicked', self.clear_objects)
 
         # lighting monitors
         self.monitors = [
@@ -95,7 +111,7 @@ class MicroscopeController(object):
             self.widget.microscope_zoomin_btn,
             self.widget.microscope_ccw90_btn, self.widget.microscope_cw90_btn,
             self.widget.microscope_rot180_btn, self.widget.microscope_loop_btn,
-            self.widget.microscope_crystal_btn, self.widget.microscope_click_btn,
+            # self.widget.microscope_crystal_btn, self.widget.microscope_click_btn,
             self.widget.microscope_capillary_btn, self.widget.microscope_save_btn
         ]
         self.size_grp = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.BOTH)
@@ -109,29 +125,39 @@ class MicroscopeController(object):
     def save_image(self, filename):
         self.video.save_image(filename)
 
-    def draw_beam_overlay(self, cr):
-        pix_size = self.beamline.sample_video.resolution
-        bh = self.beamline.aperture.get() * 0.001
-        bx = by = 0
-        cx = self.beamline.camera_center_x.get()
-        cy = self.beamline.camera_center_y.get()
+    def draw_beam(self, cr):
+        pix_scale = self.video.scale/self.beamline.sample_video.resolution
+        radius = pix_scale * 0.5e-3 * self.beamline.aperture.get()
+        tick_in = radius * 0.8
+        tick_out = radius * 1.2
+        center = numpy.array(self.video.get_size())/2
 
-        # slit sizes in pixels
-        sh = bh / pix_size
-        x = int((cx - (bx / pix_size)) * self.video.scale)
-        y = int((cy - (by / pix_size)) * self.video.scale)
-        hh = int(0.5 * sh * self.video.scale)
 
         cr.set_source_rgba(1, 0.2, 0.1, 0.3)
         cr.set_line_width(2.0)
 
-        # beam size
-        cr.arc(x, y, hh, 0, 2.0 * 3.14)
+        # beam circle
+        cr.arc(center[0], center[1], radius, 0, 2.0 * 3.14)
         cr.stroke()
 
-        return
+        # beam target ticks
+        cr.move_to(center[0], center[1] - tick_in)
+        cr.line_to(center[0], center[1] - tick_out)
+        cr.stroke()
 
-    def draw_meas_overlay(self, cr):
+        cr.move_to(center[0], center[1] + tick_in)
+        cr.line_to(center[0], center[1] + tick_out)
+        cr.stroke()
+
+        cr.move_to(center[0] - tick_in, center[1])
+        cr.line_to(center[0] - tick_out, center[1])
+        cr.stroke()
+
+        cr.move_to(center[0] + tick_in, center[1])
+        cr.line_to(center[0] + tick_out, center[1])
+        cr.stroke()
+
+    def draw_measurement(self, cr):
         pix_size = self.beamline.sample_video.resolution
         if self.measuring == True:
             x1 = self.measure_x1
@@ -154,6 +180,145 @@ class MicroscopeController(object):
                 self.widget.microscope_meas_lbl.set_text("%4.1f fps" % self.video.fps)
                 self.fps_update = time.time()
         return True
+
+    def clear_objects(self, *args, **kwargs):
+        self.grid = None
+        self.polygon = []
+        self.points = []
+        self.create_polygon = False
+        self.widget.microscope_grid_btn.set_active(False)
+
+    def make_grid(self, *args, **kwargs):
+        if self.widget.microscope_grid_btn.get_active():
+            self.create_polygon = True
+            self.widget.microscope_bkg.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.CROSSHAIR))
+            self.polygon = []
+        else:
+            self.create_polygon = False
+            self.widget.microscope_bkg.get_window().set_cursor(None)
+
+    def bbox_grid(self, bbox):
+        step_mm = self.beamline.aperture.get()
+        grid_size = bbox[1] - bbox[0]
+        step_size = self.video.scale * 1e-3 * step_mm / self.beamline.sample_video.resolution
+
+        nX, nY = grid_size / step_size
+        nX = numpy.ceil(nX)
+        nY = numpy.ceil(numpy.sqrt(2) * nY)
+
+        xi = numpy.linspace(bbox[0][0], bbox[1][0], nX)
+        yi = numpy.linspace(bbox[0][1], bbox[1][1], nY)
+        x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False, indexing='ij')
+        radius = step_size * 0.5
+        return numpy.array([
+            (x_ij[i, j] + (j % 2) * radius, y_ij[i, j])
+            for j in numpy.arange(nY).astype(int)
+            for i in numpy.arange(nX).astype(int)
+            if nX - i != j % 2
+        ])
+
+    def auto_grid(self, *args, **kwargs):
+        img = self.beamline.sample_video.get_frame()
+        bbox = self.video.scale * imgproc.get_sample_bbox2(img)
+        self.grid = self.bbox_grid(bbox)
+
+    def draw_grid(self, cr):
+        if self.grid is not None:
+            radius = 0.5e-3 * self.video.scale * self.beamline.aperture.get() / self.beamline.sample_video.resolution
+            cr.set_source_rgba(0.2, 1.0, 0.5, 0.5)
+            cr.set_line_width(1.0)
+            cr.set_font_size(10)
+            for i, (x, y) in enumerate(self.grid):
+                cr.arc(x, y, radius, 0, 2.0 * 3.14)
+                cr.stroke()
+                name = '{}'.format(i)
+                xb, yb, w, h = cr.text_extents(name)[:4]
+                cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
+                cr.show_text(name)
+                cr.stroke()
+
+    def draw_polygon(self, cr):
+        if self.polygon:
+            cr.set_source_rgba(0.0, 1.0, 0.0, 0.5)
+            cr.set_line_width(1.0)
+            cr.move_to(*self.polygon[0])
+            for x, y in self.polygon[1:]:
+                cr.line_to(x, y)
+            cr.stroke()
+            cr.set_source_rgba(1.0, 0.0, 0.0, 0.5)
+            first = True
+            radius = 5
+            for x, y in self.polygon:
+                cr.arc(x, y, radius, 0, 2.0 * 3.14)
+                if first:
+                    cr.fill()
+                    cr.set_source_rgba(1.0, 1.0, 0.0, 0.5)
+                    radius = 2
+                    first = False
+                else:
+                    cr.stroke()
+
+    def draw_points(self, cr):
+        if self.points:
+            # convert coordinatets to current video pixel coordinates
+            scale = self.video.scale / self.beamline.sample_video.resolution
+            pos = numpy.array([
+                self.beamline.sample_stage.x.get_position(),
+                self.beamline.sample_stage.y.get_position(),
+                self.beamline.omega.get_position()
+            ])
+            center = numpy.array(self.video.get_size()) / 2
+            points = numpy.array(self.points) - pos
+            points[:, 2] = numpy.cos(numpy.radians(points[:, 2]))
+            points[:, 1] *= points[:, 2]
+            points[:, :2] *= scale
+            points[:, :2] += center
+
+            cr.set_source_rgba(1.0, 0.25, 0.75, 0.5)
+            for i, (x, y, a) in enumerate(points):
+                cr.arc(x, y, 3 * abs(a) + 3, 0, 2.0 * 3.14)
+                cr.fill()
+                cr.move_to(x + 6, y)
+                cr.show_text('P{}'.format(i))
+
+    def add_point(self, *args, **kwargs):
+        x = self.beamline.sample_stage.x.get_position()
+        y = self.beamline.sample_stage.y.get_position()
+        a = self.beamline.omega.get_position()
+        self.points.append((x, y, a))
+        print(self.points)
+
+    def add_polygon_point(self, x, y):
+        if not len(self.polygon):
+            self.polygon.append((x, y))
+        else:
+            d = numpy.sqrt((x - self.polygon[0][0]) ** 2 + (y - self.polygon[0][1]))
+            if d > 10:
+                self.polygon.append((x, y))
+            else:
+                self.polygon.append(self.polygon[0])
+                # make polygon clockwise
+                self.make_polygon_grid()
+                self.widget.microscope_grid_btn.set_active(False)
+
+    def make_polygon_grid(self):
+        step_size = 1e-3 * self.video.scale * self.beamline.aperture.get() / self.beamline.sample_video.resolution
+        if len(self.polygon) == 3:
+            points = numpy.array(self.polygon[:-1])
+            grid_size = points[1] - points[0]
+            shape = 1 + grid_size / step_size
+            n = numpy.ceil(numpy.sqrt((shape ** 2).sum()))
+            x = numpy.linspace(points[0][0], points[1][0], n)
+            y = numpy.linspace(points[0][1], points[1][1], n)
+            self.grid = numpy.array(zip(x, y))
+        else:
+            points = numpy.array(self.polygon)
+            bbox = numpy.array([points.min(axis=0), points.max(axis=0)])
+            full_grid = self.bbox_grid(bbox)
+            poly = Path(points)
+            radius = orientation(poly) * step_size
+
+            self.grid = full_grid[poly.contains_points(full_grid, radius=radius)]
 
     def _calc_grid_params(self):
         pix_size = self.beamline.sample_video.resolution
@@ -181,44 +346,6 @@ class MicroscopeController(object):
         y0 = int((cy - by) * self.video.scale) - hgw * math.sqrt(1 - 0.5 ** 2)
 
         return (x0, y0, grid_size, cell_size, nX, nY)
-
-    def draw_grid_overlay(self, cr):
-        if self.show_grid:
-
-            cell_size, nX, nY = self._calc_grid_params()[3:]
-            cr.set_line_width(0.5)
-            cr.set_source_rgba(0.5, 0.5, 0.5, 0.5)
-            for i in range(nX):
-                for j in range(nY):
-
-                    # x1 = x0 + i*cell_size
-                    # y1 = y0 + j*cell_size
-                    cell = (i, j)
-                    loc = self._get_grid_center(cell)
-                    if cell in self.grid_params['ignore']:
-                        # cr.rectangle(x1, y1, cell_size, cell_size)
-                        cr.arc(loc[0], loc[1], cell_size / 2, 0, 2.0 * 3.14)
-                        cr.set_source_rgba(0.0, 0.0, 0.0, 0.5)
-                        cr.stroke()
-                    else:
-                        score = self.grid_params['scores'].get(cell, None)
-                        if self.edit_grid:
-                            cr.set_source_rgba(0.0, 0.0, 1, 0.2)
-                        elif score is None:
-                            cr.set_source_rgba(0.9, 0.9, 0.9, 0.3)
-                        else:
-                            R, G, B = self._grid_colormap.get_rgb(score)
-                            cr.set_source_rgba(R, G, B, 0.3)
-                        # cr.rectangle(x1, y1, cell_size, cell_size)
-                        cr.arc(loc[0], loc[1], cell_size / 2, 0, 2.0 * 3.14)
-                        cr.fill()
-
-                        # cr.rectangle(x1, y1, cell_size, cell_size)
-                        cr.arc(loc[0], loc[1], cell_size / 2, 0, 2.0 * 3.14)
-
-                        cr.set_source_rgba(0.1, 0.1, 0.1, 0.5)
-                        cr.stroke()
-        return True
 
     def init_grid_settings(self):
         self.grid_params = {}
@@ -346,13 +473,6 @@ class MicroscopeController(object):
         ymm = (cy - im_y) * self.beamline.sample_video.resolution
         return (im_x, im_y, xmm, ymm)
 
-    def toggle_click_centering(self, widget=None):
-        if self._click_centering == True:
-            self._click_centering = False
-        else:
-            self._click_centering = True
-        return False
-
     @async
     def center_pixel(self, x, y):
         im_x, im_y, xmm, ymm = self._img_position(x, y)  # @UnusedVariable
@@ -362,13 +482,18 @@ class MicroscopeController(object):
             self.beamline.sample_stage.y.move_by(-ymm)
 
     def overlay_function(self, cr):
-        self.draw_beam_overlay(cr)
-        self.draw_meas_overlay(cr)
-        self.draw_grid_overlay(cr)
+        self.draw_beam(cr)
+        self.draw_measurement(cr)
+        self.draw_grid(cr)
+        self.draw_polygon(cr)
+        self.draw_points(cr)
         return True
 
-
         # callbacks
+
+    def on_aperture(self, obj, val):
+        if self.grid is not None and self.polygon:
+            self.make_polygon_grid()
 
     def on_gonio_mode(self, obj, mode):
         if mode != 'CENTERING':
@@ -410,7 +535,6 @@ class MicroscopeController(object):
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(
             'Save Video Snapshot',
-            parent=self.widget,
             formats=[('PNG Image', 'png'), ('JPEG Image', 'jpg')])
         if not img_filename:
             return
@@ -483,11 +607,10 @@ class MicroscopeController(object):
 
     def on_image_click(self, widget, event):
         if event.button == 1:
-            if self._click_centering:
+            if self.create_polygon:
+                self.add_polygon_point(event.x, event.y)
+            else:
                 self.center_pixel(event.x, event.y)
-            elif self.show_grid and self.edit_grid:
-                self.toggle_grid_cell(event.x, event.y)
-
         elif event.button == 2:
             self.measuring = True
             self.measure_x1, self.measure_y1 = event.x, event.y

@@ -93,7 +93,7 @@ class SimCounter(BaseDevice):
     SIM_COUNTER_DATA = numpy.loadtxt(os.path.join(os.path.dirname(__file__),'data','simcounter.dat'))
     implements(ICounter)
     
-    def __init__(self, name, zero=1.0, real=True):
+    def __init__(self, name, zero=12345, real=True):
         """        
         Args:
             name (str): Device Name.
@@ -112,8 +112,9 @@ class SimCounter(BaseDevice):
         self.zero = float(zero)
         self.name = name
         self.real = int(real)
-        self.value = SimPositioner('PV', self.zero, '')
+        self.value = SimPositioner('PV', self.zero, '', noise=50)
         self.set_state(active=True, health=(0,''))
+        self.value.connect('changed', self.on_change)
         self._counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0]**2)
         
     def __repr__(self):
@@ -139,6 +140,9 @@ class SimCounter(BaseDevice):
             return self.zero
         else:
             return self.SIM_COUNTER_DATA[i,j]
+
+    def on_change(self, obj, val):
+        self.set_state(changed=val)
 
     @decorators.async
     def async_count(self, t):

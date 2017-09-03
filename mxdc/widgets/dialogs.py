@@ -306,8 +306,8 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[], def
         return filename, fltr
                 
 
-def select_save_file(title, parent=None, formats=[], default_folder=None):
-    return select_opensave_file(title, Gtk.FileChooserAction.SAVE, parent=parent, formats=formats, default_folder=default_folder)
+def select_save_file(title, formats=[], default_folder=None):
+    return select_opensave_file(title, Gtk.FileChooserAction.SAVE, parent=MAIN_WINDOW, formats=formats, default_folder=default_folder)
 
 def select_open_file(title, parent=None, filters=[], default_folder=None):
     return select_opensave_file(title, Gtk.FileChooserAction.OPEN, parent=parent, filters=filters, default_folder=default_folder)
