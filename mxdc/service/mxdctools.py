@@ -5,7 +5,7 @@ from twisted.python import components
 from zope.interface import Interface, implements
 from mxdc.utils.log import get_module_logger
 
-_logger = get_module_logger('mxdc')
+_logger = get_module_logger(__name__)
 
  
 class IMXDCService(Interface):    

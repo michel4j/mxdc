@@ -459,7 +459,7 @@ class SimGoniometer(GoniometerBase):
             st = time.time()
             _logger.debug('Starting scan at: %s' % datetime.now().isoformat())
             bl.omega.move_to(self._settings['angle'] - 0.05, wait=True)
-            old_speed = bl.omega._speed
+            old_speed = bl.omega.default_speed
             bl.omega._set_speed(float(self._settings['delta']) / self._settings['time'])
             if wait:
                 _logger.debug('Waiting for scan to complete ...')

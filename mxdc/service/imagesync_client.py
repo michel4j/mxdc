@@ -10,7 +10,7 @@ from twisted.internet import reactor
 from twisted.spread import pb
 from zope.interface import implements
 
-_logger = get_module_logger("clients")
+_logger = get_module_logger(__name__)
 
 
 class ImageSyncClient(BaseService):

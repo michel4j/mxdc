@@ -16,7 +16,7 @@ from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger('mxdc.sampleviewer')
+_logger = get_module_logger(__name__)
 
 COLOR_MAPS = [None, 'Spectral', 'hsv', 'jet', 'RdYlGn', 'hot', 'PuBu']
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -459,7 +459,6 @@ class SampleViewer(Gtk.Alignment, gui.BuilderMixin):
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(
             'Save Video Snapshot',
-            parent=self.get_toplevel(),
             formats=[('PNG Image', 'png'), ('JPEG Image', 'jpg')])
         if not img_filename:
             return

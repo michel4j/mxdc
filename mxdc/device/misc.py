@@ -1,4 +1,5 @@
 import os
+import random
 import time
 
 import numpy
@@ -60,22 +61,42 @@ class PositionerBase(BaseDevice):
 
 
 class SimPositioner(PositionerBase):
-    def __init__(self, name, pos=0, units="", active=True):
+    def __init__(self, name, pos=0.0, units="", active=True, delay=True, noise=0):
         PositionerBase.__init__(self)
         self.name = name
-        self._pos = float(pos)
+        self._pos = pos
+        self._fbk = self._pos
+        self._delay = delay
+        self._noise = noise
+        self._step = 0.0
+        self._min_step = 0.0
+
         self.units = units
         if active:
             self.set_state(changed=self._pos, active=active, health=(0, ''))
         else:
             self.set_state(changed=self._pos, active=active, health=(16, 'disabled'))
 
+        if not isinstance(pos, (list, tuple)) and (self._noise > 0 or self._delay):
+            GObject.timeout_add(1000, self._drive)
+
     def set(self, pos, wait=False):
         self._pos = pos
-        self.set_state(changed=self._pos)
+        if not self._delay:
+            self._fbk = pos
+            self.set_state(changed=self._pos)
 
     def get(self):
-        return self._pos
+        return self._fbk
+
+    def _drive(self):
+        if abs(self._pos - self._fbk) > self._noise:
+            self._fbk += (self._pos - self._fbk)/3
+        else:
+            self._fbk = numpy.random.normal(self._pos, 0.5*self._noise/2.35)
+        if self._fbk != self._pos:
+            self.set_state(changed=self._fbk)
+        return True
 
 
 class Positioner(PositionerBase):
@@ -186,10 +207,12 @@ class SampleLight(Positioner):
 
     def set_on(self):
         self.onoff_cmd.put(1)
+
     on = set_on
 
     def set_off(self):
         self.onoff_cmd.put(0)
+
     off = set_off
 
     def is_on(self):
@@ -209,10 +232,12 @@ class OnOffToggle(BaseDevice):
 
     def set_on(self):
         self.onoff_cmd.put(1)
+
     on = set_on
 
     def set_off(self):
         self.onoff_cmd.put(0)
+
     off = set_off
 
     def is_on(self):
@@ -589,6 +614,7 @@ class XYZStage(BaseDevice):
         self.y.stop()
         self.z.stop()
 
+
 class SampleStage(BaseDevice):
     implements(IStage)
 
@@ -653,47 +679,6 @@ class Collimator(BaseDevice):
         self.y.stop()
 
 
-class HumidityController(BaseDevice):
-    implements(IHumidityController)
-
-    def __init__(self, root_name):
-        BaseDevice.__init__(self)
-        self.name = 'Humidity Controller'
-        self.humidity = Positioner('%s:SetpointRH' % root_name, '%s:RH' % root_name)
-        self.temperature = Positioner('%s:SetpointSampleTemp' % root_name, '%s:SampleTemp' % root_name)
-        self.dew_point = Positioner('%s:SetpointDewPointTemp' % root_name, '%s:DewPointTemp' % root_name)
-        self.session = self.add_pv('%s:Session' % root_name)
-        self.ROI = self.add_pv('%s:ROI' % root_name)
-        self.modbus_state = self.add_pv('%s:ModbusControllerState' % root_name)
-        self.drop_size = self.add_pv('%s:DropSize' % root_name)
-        self.drop_coords = self.add_pv('%s:DropCoordinates' % root_name)
-        self.status = self.add_pv('%s:State' % root_name)
-
-        self.add_devices(self.humidity, self.temperature)
-        self.modbus_state.connect('changed', self.on_modbus_changed)
-        self.status.connect('changed', self.on_status_changed)
-        self.set_state(health=(4, 'status', 'Disconnected'))
-
-    def on_status_changed(self, obj, state):
-        if state == 'Initializing':
-            self.set_state(health=(1, 'status', state))
-        elif state == 'Closing':
-            self.set_state(health=(4, 'status', 'Disconnected'))
-            self.set_state(health=(0, 'modbus'))
-        elif state == 'Ready':
-            self.set_state(health=(0, 'status'))
-
-    def on_modbus_changed(self, obj, state):
-        if state == 'Disable':
-            self.set_state(health=(0, 'modbus'))
-            self.set_state(health=(4, 'modbus', 'Communication disconnected'))
-        elif state == 'Unknown':
-            self.set_state(health=(0, 'modbus'))
-            self.set_state(health=(4, 'modbus', 'Communication state unknown'))
-        elif state == 'Enable':
-            self.set_state(health=(0, 'modbus'))
-
-
 class SimStorageRing(BaseDevice):
     implements(IStorageRing)
     __gsignals__ = {
@@ -707,7 +692,7 @@ class SimStorageRing(BaseDevice):
         self.name = name
         self.message = 'Sim SR Testing!'
         self.set_state(beam=False, active=True, health=(0, ''))
-        #GObject.timeout_add(1200000, self._change_beam)
+        # GObject.timeout_add(1200000, self._change_beam)
 
     def _change_beam(self):
         _beam = not self.beam_state

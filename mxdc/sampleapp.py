@@ -12,7 +12,7 @@ from mxdc.widgets.sampleviewer import SampleViewer
 from twisted.internet import reactor
 import sys, os
 
-_logger = get_module_logger('sampleviewer')
+_logger = get_module_logger(__name__)
     
 def main():
 

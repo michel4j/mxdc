@@ -7,7 +7,7 @@ from gi.repository import GObject
 
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger('diagnostics')
+_logger = get_module_logger(__name__)
 
 (DIAG_STATUS_GOOD, 
  DIAG_STATUS_WARN, 

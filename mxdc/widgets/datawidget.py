@@ -201,7 +201,7 @@ class RunConfigFull(Gtk.ListBoxRow, gui.BuilderMixin):
 
 class RunConfig(gui.Builder):
     gui_roots = {
-        'data/run_editor': ['dataset_run_row']
+        'data/run_editor': ['dataset_run_row', 'empty_run_row']
     }
     Formats = {
         'resolution': '{:0.2f}',
@@ -222,11 +222,18 @@ class RunConfig(gui.Builder):
         'directory': '{}',
     }
 
+    def get_widget(self):
+        if self.item.state == self.item.StateType.ADD:
+            return self.empty_run_row
+        else:
+            return self.dataset_run_row
+
     def set_item(self, item):
         self.item = item
-        for param in ['state', 'info', 'position', 'progress', 'warning']:
-            item.connect('notify::{}'.format(param), self.on_item_changed)
-        self.update()
+        if self.item.state != self.item.StateType.ADD:
+            for param in ['state', 'info', 'position', 'progress', 'warning']:
+                item.connect('notify::{}'.format(param), self.on_item_changed)
+            self.update()
 
     def on_item_changed(self, item, param):
         self.update()

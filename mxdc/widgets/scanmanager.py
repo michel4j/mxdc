@@ -14,7 +14,7 @@ from gi.repository import Gtk
 import os, sys
 import time
 
-_logger = get_module_logger('mxdc.scanmanager')
+_logger = get_module_logger(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 (

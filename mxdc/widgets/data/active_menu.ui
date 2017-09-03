@@ -13,9 +13,11 @@
           <object class="GtkLabel" id="label">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">&lt;span size='small'&gt;&lt;b&gt;Motor Name (units)&lt;/b&gt;&lt;/span&gt;</property>
-            <property name="use_markup">True</property>
-            <property name="xalign">0</property>
+            <property name="halign">start</property>
+            <property name="label" translatable="yes">Motor Name (units)</property>
+            <style>
+              <class name="device-label"/>
+            </style>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -24,25 +26,14 @@
           </packing>
         </child>
         <child>
-          <object class="GtkFrame">
+          <object class="GtkAlignment">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="label_xalign">0</property>
-            <property name="shadow_type">none</property>
             <child>
-              <object class="GtkAlignment">
+              <object class="GtkComboBoxText" id="entry">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <child>
-                  <object class="GtkComboBoxText" id="entry">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                  </object>
-                </child>
               </object>
-            </child>
-            <child type="label_item">
-              <placeholder/>
             </child>
           </object>
           <packing>

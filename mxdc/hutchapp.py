@@ -13,7 +13,7 @@ from mxdc.widgets.samplepicker import SamplePicker
 from twisted.python.components import globalRegistry
 import os
 
-_logger = get_module_logger('hutchviewer')
+_logger = get_module_logger(__name__)
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
 COPYRIGHT = "Copyright (c) 2006-2010, Canadian Light Source, Inc. All rights reserved."
 

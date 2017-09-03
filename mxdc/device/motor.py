@@ -11,7 +11,7 @@ import time
 from threading import Lock
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger('devices')
+_logger = get_module_logger(__name__)
 
 
 class MotorError(Exception):
@@ -126,7 +126,9 @@ class SimMotor(MotorBase):
         self._position = pos
         self._target = None
         self.default_precision = precision
+        self.default_speed = speed
         self._set_speed(speed)
+
         self.initialize()
 
     def initialize(self):

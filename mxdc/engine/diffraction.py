@@ -72,10 +72,12 @@ class DataCollector(GObject.GObject):
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
         datasets, wedges = runlists.generate_wedges(self.config['runs'])
-        json.dumps(wedges, indent=4)
         self.config['wedges'] = wedges
         self.config['datasets'] = datasets
         self.beamline.image_server.set_user(pwd.getpwuid(os.geteuid())[0], os.geteuid(), os.getegid())
+
+        import json
+        print json.dumps(wedges, indent=4)
 
         # delete existing frames
         for wedge in wedges:
@@ -83,10 +85,6 @@ class DataCollector(GObject.GObject):
             self.beamline.detector.delete(wedge['directory'], *frame_list)
 
     def start(self):
-        if self.beamline is None:
-            _logger.error('No Beamline found. Aborting data collection...')
-            return False
-
         worker = threading.Thread(target=self.run)
         worker.setDaemon(True)
         worker.setName('Data Collector')

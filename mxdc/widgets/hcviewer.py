@@ -13,7 +13,7 @@ import math
 import os
 from gi.repository import Pango
 
-_logger = get_module_logger('mxdc.hcviewer')
+_logger = get_module_logger(__name__)
 
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 

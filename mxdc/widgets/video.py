@@ -92,6 +92,9 @@ class VideoWidget(Gtk.DrawingArea):
         if event.width > 12:
             self.props.parent.set(0.5, 0.5, video_ratio, False)
 
+    def get_size(self):
+        return self.display_width, self.display_height
+
     def set_overlay_func(self, func):
         self.overlay_func = func
 

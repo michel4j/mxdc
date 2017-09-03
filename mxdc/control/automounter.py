@@ -8,7 +8,7 @@ from mxdc.beamline.mx import IBeamline
 from mxdc.utils.automounter import ContainerCoords
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
-_logger = get_module_logger('mxdc.samples')
+_logger = get_module_logger(__name__)
 
 
 class DewarLayout(object):
