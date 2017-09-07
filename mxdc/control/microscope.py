@@ -227,7 +227,7 @@ class MicroscopeController(object):
             radius = 0.5e-3 * self.video.scale * self.beamline.aperture.get() / self.beamline.sample_video.resolution
             cr.set_source_rgba(0.2, 1.0, 0.5, 0.5)
             cr.set_line_width(1.0)
-            cr.set_font_size(10)
+            cr.set_font_size(8)
             for i, (x, y) in enumerate(self.grid):
                 cr.arc(x, y, radius, 0, 2.0 * 3.14)
                 cr.stroke()

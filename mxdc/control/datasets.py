@@ -3,13 +3,12 @@ from mxdc.beamline.mx import IBeamline
 from mxdc.utils import converter, runlists
 from mxdc.utils.config import settings
 from mxdc.utils.log import get_module_logger
-from mxdc.utils import glibref
-from mxdc.widgets import datawidget, dialogs
+from mxdc.widgets import datawidget, dialogs, arrowframe
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
 from mxdc.engine.diffraction import DataCollector, Automator
 from samplestore import ISampleStore, SampleQueue, SampleStore
+
 import common
-import uuid
 import copy
 import time
 import os
@@ -24,96 +23,6 @@ _logger = get_module_logger(__name__)
     RESPONSE_SKIP,
     RESPONSE_CANCEL,
 ) = range(4)
-
-
-class RunItem(GObject.GObject):
-    class StateType:
-        (ADD, DRAFT, ACTIVE, COMPLETE, ERROR) = range(5)
-
-    state = GObject.Property(type=int, default=StateType.DRAFT)
-    position = GObject.Property(type=int, default=0)
-    info = GObject.Property(type=GObject.TYPE_PYOBJECT)
-    progress = GObject.Property(type=float, default=0.0)
-    warning = GObject.Property(type=str, default="")
-    created = GObject.Property(type=float, default=0.0)
-
-    def __init__(self, info, generate_frames=True, state=StateType.DRAFT):
-        super(RunItem, self).__init__()
-        self.frames = []
-        self.collected = []
-        self.generate_frames = generate_frames
-
-        self.connect('notify::info', self.on_info_changed)
-        self.props.state = state
-        self.props.info = info
-        self.props.created = time.time()
-        self.uuid = str(uuid.uuid4())
-
-    def on_info_changed(self, item, param):
-        if self.generate_frames:
-            self.frames = runlists.generate_frame_names(self.props.info)
-
-    def set_collected(self, frame):
-        self.collected.append(frame)
-        prog = 100.0 * len(self.collected)/len(self.frames)
-        self.props.progress = prog
-        if 0.0 < prog < 100.0:
-            self.props.state = RunItem.StateType.ACTIVE
-        elif prog == 100.0:
-            self.props.state = RunItem.StateType.COMPLETE
-
-    @staticmethod
-    def sorter(a_pointer, b_pointer):
-
-        a = glibref.capi.to_object(a_pointer)
-        b = glibref.capi.to_object(b_pointer)
-
-        if a.props.state < b.props.state:
-            return -1
-        elif a.props.state > b.props.state:
-            return 1
-        else:
-            if a.props.created > b.props.created:
-                return -1
-            elif a.props.created < b.props.created:
-                return 1
-            else:
-                return 0
-
-    def get_color(self):
-        return  Gdk.RGBA(*STATE_COLORS[self.props.state])
-
-    def __getitem__(self, item):
-        return self.info[item]
-
-    def __unicode__(self):
-        return '<Run Item: {}|{}|{}>'.format(self.props.position, self.props.info['strategy_desc'], self.uuid)
-
-
-STATE_COLORS = {
-    RunItem.StateType.ADD:       (1.0, 1.0, 1.0, 0.0),
-    RunItem.StateType.DRAFT:     (1.0, 1.0, 1.0, 0.0),
-    RunItem.StateType.ACTIVE:    (1.0, 1.0, 0.0, 0.1),
-    RunItem.StateType.COMPLETE:  (0.2, 1.0, 0.2, 0.5),
-    RunItem.StateType.ERROR:     (1.0, 0.0, 0.5, 0.1),
-}
-
-DEFAULT_CONFIG = {
-    'resolution': 1.8,
-    'delta': 0.5,
-    'range': 182.,
-    'start': 0.,
-    'wedge': 360.,
-    'energy': 12.658,
-    'distance': 250,
-    'exposure': 0.5,
-    'attenuation': 0.,
-    'first': 1,
-    'strategy': 1,
-    'name': 'test',
-    'helical': False,
-    'inverse': False,
-}
 
 
 class ConfigDisplay(object):
@@ -133,7 +42,6 @@ class ConfigDisplay(object):
         'strategy': '{}',
         'helical': '{}',
         'inverse': '{}',
-        'directory': '{}',
     }
 
     def __init__(self, item, widget, label_prefix='run'):
@@ -162,11 +70,11 @@ class AutomationController(GObject.GObject):
         self.widget = widget
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.image_viewer = globalRegistry.lookup([], IImageViewer)
-        self.run_editor = datawidget.RunEditor()
-        self.run_editor.window.set_transient_for(dialogs.MAIN_WINDOW)
+        self.run_dialog = datawidget.RunEditor()
+        self.run_dialog.window.set_transient_for(dialogs.MAIN_WINDOW)
         self.automation_queue = SampleQueue(self.widget.auto_queue)
         self.automator = Automator()
-        self.config = RunItem({}, generate_frames=False)
+        self.config = datawidget.RunItem()
         self.config_display = ConfigDisplay(self.config, self.widget, 'auto')
 
         self.start_time = 0
@@ -184,18 +92,17 @@ class AutomationController(GObject.GObject):
         self.connect('notify::state', self.on_state_changed)
 
         # default
-        params = {}
-        params.update(DEFAULT_CONFIG)
+        params = datawidget.RunEditor.get_default(
+            strategy_type=datawidget.StrategyType.SINGLE, delta=self.beamline.config['default_delta']
+        )
         params.update({
             'resolution': converter.dist_to_resol(
-                250, self.beamline.detector.mm_size, 12.658
+                250, self.beamline.detector.mm_size, self.beamline.energy.get_position()
             ),
-            'strategy': 1,
             'exposure':self.beamline.config['default_exposure'],
-            'delta': self.beamline.config['default_delta'],
         })
-        self.run_editor.configure(params)
-        self.config.props.info = self.run_editor.get_parameters()
+        self.run_dialog.configure(params)
+        self.config.props.info = self.run_dialog.get_parameters()
 
 
         # btn, type, options method
@@ -226,7 +133,7 @@ class AutomationController(GObject.GObject):
         elif task_type == Automator.Task.ANALYSE:
             for name in ['screen', 'native', 'anomalous', 'powder']:
                 if self.options[name].get_active():
-                    return {'method': name}
+                    return {'method': name, 'task': 'proc-{}'.format(name)}
         elif task_type == Automator.Task.ACQUIRE:
             return self.config.props.info
         return {}
@@ -276,17 +183,17 @@ class AutomationController(GObject.GObject):
             self.widget.auto_groups_btn.set_sensitive(True)
 
     def on_edit_acquisition(self, obj):
-        self.run_editor.configure(self.config.info, disable=('helical', 'inverse'))
-        self.run_editor.window.show_all()
+        self.run_dialog.configure(self.config.info, disable=('helical', 'inverse'))
+        self.run_dialog.window.show_all()
 
     def on_save_acquisition(self, obj):
-        self.config.props.info = self.run_editor.get_parameters()
-        self.run_editor.window.hide()
+        self.config.props.info = self.run_dialog.get_parameters()
+        self.run_dialog.window.hide()
 
     def setup(self):
         self.widget.auto_edit_acq_btn.connect('clicked', self.on_edit_acquisition)
-        self.run_editor.run_cancel_btn.connect('clicked', lambda x: self.run_editor.window.hide())
-        self.run_editor.run_save_btn.connect('clicked', self.on_save_acquisition)
+        self.run_dialog.data_cancel_btn.connect('clicked', lambda x: self.run_dialog.window.hide())
+        self.run_dialog.data_save_btn.connect('clicked', self.on_save_acquisition)
         self.widget.auto_collect_btn.connect('clicked', self.on_start_automation)
         self.widget.auto_stop_btn.connect('clicked', self.on_stop_automation)
         self.widget.auto_clean_btn.connect('clicked', self.on_clean_automation)
@@ -398,9 +305,14 @@ class DatasetsController(GObject.GObject):
         self.frame_manager = {}
         self.image_viewer = ImageViewer()
         self.run_editor = datawidget.RunEditor()
+        self.data_editor = datawidget.DataEditor()
+        self.editor_frame = arrowframe.ArrowFrame()
+        self.editor_frame.add(self.data_editor.data_form)
+        self.editor_frame.set_size_request(300, -1)
+        self.widget.datasets_overlay.add_overlay(self.editor_frame)
         self.run_editor.window.set_transient_for(dialogs.MAIN_WINDOW)
-        self.run_store = Gio.ListStore(item_type=RunItem)
-        self.run_store.connect('items-changed', self.update_positions)
+        self.run_store = Gio.ListStore(item_type=datawidget.RunItem)
+        self.run_store.connect('items-changed', self.on_runs_changed)
 
         self.collector.connect('done', self.on_done)
         self.collector.connect('paused', self.on_pause)
@@ -410,27 +322,31 @@ class DatasetsController(GObject.GObject):
         self.collector.connect('started', self.on_started)
         self.setup()
 
-    @staticmethod
-    def update_positions(model, position, removed, added):
+    def update_positions(self):
         pos = 0
-        item = model.get_item(pos)
+        item = self.run_store.get_item(pos)
         while item:
             item.props.position = pos
             pos += 1
-            item = model.get_item(pos)
+            item = self.run_store.get_item(pos)
 
     def setup(self):
         self.widget.datasets_list.bind_model(self.run_store, self.create_run_config)
         self.widget.datasets_viewer_box.add(self.image_viewer)
         self.widget.datasets_clean_btn.connect('clicked', self.on_clean_runs)
+        self.widget.datasets_list.connect('row-activated', self.on_row_activated)
 
-        self.run_editor.run_cancel_btn.connect('clicked', lambda x: self.run_editor.window.hide())
-        self.run_editor.run_save_btn.connect('clicked', self.on_save_run)
+        self.data_editor.data_delete_btn.connect('clicked', self.on_delete_run)
+        self.data_editor.data_copy_btn.connect('clicked', self.on_copy_run)
+        self.data_editor.data_save_btn.connect('clicked', self.on_save_run)
         self.sample_store = globalRegistry.lookup([], ISampleStore)
         self.sample_store.connect('updated', self.on_sample_updated)
 
-        new_item = RunItem({}, generate_frames=False, state=RunItem.StateType.ADD)
-        self.run_store.insert_sorted(new_item, RunItem.sorter)
+        new_item = datawidget.RunItem(state=datawidget.RunItem.StateType.ADD)
+        pos = self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+        self.data_editor.set_item(new_item)
+        first_row = self.widget.datasets_list.get_row_at_index(pos)
+        self.editor_frame.set_row(first_row)
 
         labels = {
             'omega': (self.beamline.omega, self.widget.dsets_omega_fbk, '{:0.1f} deg'),
@@ -451,23 +367,55 @@ class DatasetsController(GObject.GObject):
     def create_run_config(self, item):
         config = datawidget.RunConfig()
         config.set_item(item)
-        if item.props.state != item.StateType.ADD:
-            config.delete_run_btn.connect('clicked', self.on_delete_run, item)
-            config.edit_run_btn.connect('clicked', self.on_edit_run, item)
-            config.copy_run_btn.connect('clicked', self.on_copy_run, item)
-        else:
-            config.empty_run_row.connect('button-release-event', self.on_add_run)
         return config.get_widget()
+
+    def on_row_activated(self, list, row):
+        position = row.get_index()
+        item = self.run_store.get_item(position)
+        if position > 8:
+            return
+        self.editor_frame.set_row(row)
+        if item.state == item.StateType.ADD:
+            sample = self.sample_store.get_current()
+            energy = self.beamline.bragg_energy.get_position()
+            distance = self.beamline.distance.get_position()
+            resolution = converter.dist_to_resol(
+                distance, self.beamline.detector.mm_size, energy
+            )
+            config = datawidget.RunEditor.get_default()
+            config.update({
+                'resolution': resolution,
+                'strategy': datawidget.StrategyType.SINGLE,
+                'energy': energy,
+                'distance': distance,
+                'exposure': self.beamline.config['default_exposure'],
+                'name': sample.get('name', 'test'),
+            })
+            item.props.info = config
+            item.props.position = position # make sure position is up to date for removal
+            item.props.state = datawidget.RunItem.StateType.DRAFT
+            new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
+            self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+        self.data_editor.set_item(item)
+        self.check_run_store()
+
+
+    def on_runs_changed(self, model, position, removed, added):
+        self.update_positions()
+        if self.run_store.get_n_items() < 2:
+            self.widget.datasets_collect_btn.set_sensitive(False)
 
     def generate_run_list(self):
         runs = []
         self.frame_manager = {} # initialize frame manager
         pos = 0
         item = self.run_store.get_item(pos)
+        sample = self.sample_store.get_current()
         while item:
             if item.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
                 run = {'uuid': item.uuid}
                 run.update(item.info)
+                run = runlists.prepare_run(run, sample)
                 runs.append(run)
                 self.frame_manager.update({
                     frame: item for frame in item.frames
@@ -488,12 +436,12 @@ class DatasetsController(GObject.GObject):
             header = 'Frames from this sequence already exist!\n'
             sub_header = details + (
                 '\n\n<b>What would you like to do with them? </b>\n'
-                'NOTE: Re-collecting will delete existing frames!\n'
+                'NOTE: Starting over will delete existing frames!\n'
             )
             buttons = (
                 ('Cancel', RESPONSE_CANCEL),
-                ('Re-Collect', RESPONSE_REPLACE_ALL),
-                ('Continue', RESPONSE_SKIP)
+                ('Start Over', RESPONSE_REPLACE_ALL),
+                ('Resume', RESPONSE_SKIP)
             )
 
             response = dialogs.warning(header, sub_header, buttons=buttons)
@@ -512,54 +460,47 @@ class DatasetsController(GObject.GObject):
         item = self.run_store.get_item(count)
         names = set()
         while item:
-            if item.props.state in  [item.StateType.DRAFT, item.StateType.ACTIVE]:
-                if item.props.info['name'] in names:
-                    item.props.warning = 'Dataset with this name already exists!'
-                    item.props.state = item.StateType.ERROR
-                else:
-                    item.props.warning = ''
-                    item.props.state = item.StateType.DRAFT
-                names.add(item.props.info['name'])
+            if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
+                item.info['name'] = runlists.fix_name(item.info['name'], names)
+                item.props.info = item.info
+                names.add(item.info['name'])
             count += 1
             item = self.run_store.get_item(count)
         self.widget.datasets_collect_btn.set_sensitive(count > 0)
 
     def on_sample_updated(self, obj):
         sample = self.sample_store.get_current()
-        self.run_editor.set_sample(sample)
         sample_text = '{name}|{group}|{container}|{port}'.format(
             name=sample.get('name', '...'), group=sample.get('group', '...'), container=sample.get('container', '...'),
             port=sample.get('port', '...')
         ).replace('|...', '')
         self.widget.dsets_sample_fbk.set_text(sample_text)
 
-    def on_add_run(self, obj, event=None):
-        if event and not event.button == 1:
-            return
-        sample = self.sample_store.get_current()
-        energy = self.beamline.bragg_energy.get_position()
-        distance = self.beamline.distance.get_position()
-        resolution = converter.dist_to_resol(
-            distance, self.beamline.detector.mm_size, energy
-        )
-        config = {
-            'resolution': resolution,
-            'delta': self.beamline.config['default_delta'],
-            'range': 180.,
-            'start': 0.,
-            'wedge': 360.,
-            'energy': energy,
-            'distance': distance,
-            'exposure': self.beamline.config['default_exposure'],
-            'attenuation': 0.,
-            'first': 1,
-            'name': sample.get('name', 'test'),
-            'helical': False,
-            'inverse': False,
-        }
-        self.run_editor.configure(config)
-        self.run_editor.item = None
-        self.run_editor.window.show_all()
+    def on_save_run(self, obj):
+        item = self.data_editor.item
+        if item.props.state == datawidget.RunItem.StateType.ADD:
+            item.props.info = self.data_editor.get_parameters()
+            item.props.state = datawidget.RunItem.StateType.DRAFT
+            new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
+            self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+        elif item.props.state != datawidget.RunItem.StateType.COMPLETE:
+            item.props.state = datawidget.RunItem.StateType.DRAFT
+            item.props.info = self.data_editor.get_parameters()
+            self.data_editor.data_save_btn.set_sensitive(False)
+            self.data_editor.data_copy_btn.set_sensitive(True)
+            self.data_editor.data_delete_btn.set_sensitive(True)
+        self.check_run_store()
+
+    def on_delete_run(self, obj):
+        item = self.data_editor.item
+        if item.state != datawidget.RunItem.StateType.ADD:
+            pos = item.position
+            self.run_store.remove(item.position)
+            item = self.run_store.get_item(pos)
+            next_row = self.widget.datasets_list.get_row_at_index(pos)
+            self.data_editor.set_item(item)
+            self.editor_frame.set_row(next_row)
+        self.check_run_store()
 
     def on_clean_runs(self, obj):
         done = 0
@@ -573,32 +514,20 @@ class DatasetsController(GObject.GObject):
         if done > 0:
             self.run_store.splice(count - done, done, [])
 
-
-    def on_save_run(self, obj):
-        if not self.run_editor.item:
-            # insert item after all other draft items
-            new_item = RunItem(self.run_editor.get_parameters())
-            self.run_store.insert_sorted(new_item, RunItem.sorter)
-            self.run_editor.window.hide()
-        else:
-            item = self.run_editor.item
-            item.info = self.run_editor.get_parameters()
-            self.run_editor.window.hide()
+    def on_copy_run(self, obj):
+        num_items = self.run_store.get_n_items()
+        if num_items > 7:
+            return
+        new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.DRAFT)
+        new_item.props.info = self.data_editor.get_parameters()
+        pos = self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
         self.check_run_store()
 
-    def on_delete_run(self, obj, item):
-        self.run_store.remove(item.position)
-        self.check_run_store()
+        new_item.props.position = pos
+        next_row = self.widget.datasets_list.get_row_at_index(pos)
+        self.data_editor.set_item(new_item)
+        self.editor_frame.set_row(next_row)
 
-    def on_edit_run(self, obj, item):
-        self.run_editor.configure(item.info)
-        self.run_editor.item = item
-        self.run_editor.window.show_all()
-
-    def on_copy_run(self, obj, item):
-        self.run_editor.configure(item.info)
-        self.run_editor.item = None
-        self.run_editor.window.show_all()
 
     def on_progress(self, obj, fraction):
         used_time = time.time() - self.start_time
@@ -639,16 +568,16 @@ class DatasetsController(GObject.GObject):
         #gobject.idle_add(self.emit, 'new-datasets', obj.results)
         self.widget.collect_btn_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
         self.widget.datasets_clean_btn.set_sensitive(True)
-        self.widget.datasets_list.set_sensitive(True)
+        self.widget.datasets_overlay.set_sensitive(True)
         self.collecting = False
         self.stopping = False
-        self.run_store.sort(RunItem.sorter)
+        self.run_store.sort(datawidget.RunItem.sorter)
 
     def on_started(self, obj):
         self.start_time = time.time()
         self.widget.datasets_collect_btn.set_sensitive(True)
         self.widget.datasets_clean_btn.set_sensitive(False)
-        self.widget.datasets_list.set_sensitive(False)
+        self.widget.datasets_overlay.set_sensitive(False)
         _logger.info("Data Acquisition Started.")
 
     def on_new_image(self, widget, file_path):
@@ -666,7 +595,7 @@ class DatasetsController(GObject.GObject):
                 self.widget.collect_progress_lbl.set_text(
                     'Stopped at dataset {}: {} ...'.format(run_item.props.info['name'], frame)
                 )
-            self.run_store.sort(RunItem.sorter)
+            self.run_store.sort(datawidget.RunItem.sorter)
         _logger.info('Frame acquired: {}'.format(frame))
 
     def on_collect_btn(self, obj):
