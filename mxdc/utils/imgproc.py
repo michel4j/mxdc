@@ -1,11 +1,9 @@
-
-
-from mxdc.utils.science import find_peaks
+import cv2
+import numpy
 from PIL import Image
 from PIL import ImageChops
 from PIL import ImageFilter
-import numpy
-import cv2
+from mxdc.utils.science import find_peaks
 from scipy import ndimage
 
 THRESHOLD = 20
@@ -121,15 +119,17 @@ def _normalize(data):
     data = data - data.min()
     return (100.0 * data) / data.max()
 
+
 EDGE_TOLERANCE = 5
+
 
 def get_sample_bbox(img):
     img_arr = numpy.asarray(img.convert('L'))
-    full = numpy.array([[0,0], img_arr.shape[::-1]])
+    full = numpy.array([[0, 0], img_arr.shape[::-1]])
     full[1] -= EDGE_TOLERANCE
     bbox = numpy.copy(full)
     for i in range(2):
-        profile = numpy.min(img_arr[EDGE_TOLERANCE:-EDGE_TOLERANCE, EDGE_TOLERANCE:-EDGE_TOLERANCE], i)*-1
+        profile = numpy.min(img_arr[EDGE_TOLERANCE:-EDGE_TOLERANCE, EDGE_TOLERANCE:-EDGE_TOLERANCE], i) * -1
         profile -= profile.min()
         envelope = numpy.where(profile > profile.max() / 2)[0]
         if len(envelope):
@@ -137,13 +137,12 @@ def get_sample_bbox(img):
             bbox[1][i] = min(envelope[-1], bbox[1][i])
 
     # check the boxes and adjust if one horizontal side on edge:
-    if bbox[0][0] > 2*EDGE_TOLERANCE and full[1][0] - bbox[1][0] < 2*EDGE_TOLERANCE:
-        bbox[1][0] = full[1][0] - bbox[0][0]//2
-    elif bbox[0][0] < 2*EDGE_TOLERANCE and full[1][0] - bbox[1][0] > 2*EDGE_TOLERANCE:
-        bbox[0][0] = (full[1][0] - bbox[1][0])//2
+    if bbox[0][0] > 2 * EDGE_TOLERANCE and full[1][0] - bbox[1][0] < 2 * EDGE_TOLERANCE:
+        bbox[1][0] = full[1][0] - bbox[0][0] // 2
+    elif bbox[0][0] < 2 * EDGE_TOLERANCE and full[1][0] - bbox[1][0] > 2 * EDGE_TOLERANCE:
+        bbox[0][0] = (full[1][0] - bbox[1][0]) // 2
 
     return bbox + EDGE_TOLERANCE
-
 
 
 def get_sample_bbox2(img):
@@ -154,21 +153,44 @@ def get_sample_bbox2(img):
     for i in range(2):
         profile = numpy.max(img_arr[EDGE_TOLERANCE:-EDGE_TOLERANCE, EDGE_TOLERANCE:-EDGE_TOLERANCE], i)
         profile -= profile.min()
-        envelope = numpy.where(profile > profile.max()/2)[0]
+        envelope = numpy.where(profile > profile.max() / 2)[0]
         if len(envelope):
             bbox[0][i] = max(envelope[0], bbox[0][i])
             bbox[1][i] = min(envelope[-1], bbox[1][i])
 
     # check the boxes and adjust if one horizontal side on edge:
-    if bbox[0][0] > 2*EDGE_TOLERANCE and full[1][0] - bbox[1][0] < 2*EDGE_TOLERANCE:
-        bbox[1][0] = full[1][0] - bbox[0][0]//2
-    elif bbox[0][0] < 2*EDGE_TOLERANCE and full[1][0] - bbox[1][0] > 2*EDGE_TOLERANCE:
-        bbox[0][0] = (full[1][0] - bbox[1][0])//2
+    if bbox[0][0] > 2 * EDGE_TOLERANCE and full[1][0] - bbox[1][0] < 2 * EDGE_TOLERANCE:
+        bbox[1][0] = full[1][0] - bbox[0][0] // 2
+    elif bbox[0][0] < 2 * EDGE_TOLERANCE and full[1][0] - bbox[1][0] > 2 * EDGE_TOLERANCE:
+        bbox[0][0] = (full[1][0] - bbox[1][0]) // 2
 
     return bbox
+
 
 def get_bbox(pil_img):
     img = cv2.cvtColor(numpy.asarray(pil_img), cv2.COLOR_RGB2BGR)
     edges = cv2.Canny(img, 100, 200)
     im2, contours, hierarchy = cv2.findContours(edges)
     return
+
+
+def find_profile(pil_img, scale=20):
+    from scipy import signal
+    raw_img = numpy.asarray(pil_img.convert('L'))
+
+    img = cv2.resize(raw_img, (0, 0), fx=1./scale, fy=1./scale, interpolation=cv2.INTER_LANCZOS4)
+    std = img.std()
+    verts_top = []
+    verts_bot = []
+    nX, nY = img.shape
+    xcoords = numpy.arange(nX)
+    for i in range(nY):
+        x = img[:, i]
+        xd = numpy.abs(signal.savgol_filter(x, 3, 1, deriv=1))
+        if xd.std() < 0.25*std: continue
+        print xd.std()
+        xpin = xcoords[xd >= 0.25 * xd.max()]
+        if len(xpin) > 1:
+            verts_top.append((i, xpin[0]))
+            verts_bot.append((i, xpin[-1]))
+    return scale * numpy.array(verts_top + verts_bot[::-1])
