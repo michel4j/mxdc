@@ -5,12 +5,49 @@ import itertools
 import os
 import re
 from collections import defaultdict
-
+from datetime import date
 import numpy
 from mxdc.libs.imageio import read_header
+from mxdc.utils import config, misc
+
 
 FRAME_NUMBER_DIGITS = 4
 OUTLIER_DEVIATION = 50
+
+
+def prepare_run(info, sample=None):
+    # Add auxillary information to run information
+    info.update({
+        'date': date.today().strftime('%Y%m%d'),
+        'session': config.get_session(),
+    })
+    if sample:
+        info.update({
+            'sample': sample.get('name', info['name']),
+            'sample_id': sample.get('id'),
+            'port': sample.get('port', ''),
+            'container': misc.slugify(sample.get('container', '')),
+            'group': misc.slugify(sample.get('group', '')),
+        })
+    else:
+        info.update({
+            'sample': info['name'],
+            'sample_id': '',
+            'port': '',
+            'container': '',
+            'group': '',
+        })
+    dir_template = '{}/{}'.format(os.environ['HOME'], config.settings.get_string('directory-template'))
+    info['directory'] = dir_template.format(**info).replace('//', '/')
+    return info
+
+
+def fix_name(name, names, index=0):
+    test_name = name if not index else '{}{}'.format(name, index)
+    if not test_name in names:
+        return test_name
+    else:
+        return fix_name(name, names, index=index+1)
 
 
 def add_framsets(run):
@@ -269,7 +306,6 @@ def generate_wedges(runs):
         chunk = chunkers[pos].fetch()
         dataset = datasets[pos]
         for frameset in chunk:
-            print dataset['name'], frameset
             wedges.extend(generate_collection_list(dataset, frameset))
         items_exist = any(ch.has_items() for ch in chunkers)
         pos = (pos + 1) % num_sets
