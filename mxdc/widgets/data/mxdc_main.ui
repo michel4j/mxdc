@@ -2059,7 +2059,7 @@
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="label" translatable="yes">Tools:</property>
+                                        <property name="label" translatable="yes">Grids / Points::</property>
                                         <attributes>
                                           <attribute name="weight" value="bold"/>
                                           <attribute name="scale" value="0.75"/>
@@ -3644,31 +3644,43 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkScrolledWindow">
+                              <object class="GtkOverlay" id="datasets_overlay">
                                 <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="hscrollbar_policy">never</property>
-                                <property name="shadow_type">in</property>
+                                <property name="can_focus">False</property>
                                 <child>
-                                  <object class="GtkViewport">
+                                  <object class="GtkScrolledWindow">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="vscroll_policy">natural</property>
-                                    <property name="shadow_type">none</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="hscrollbar_policy">never</property>
+                                    <property name="shadow_type">in</property>
                                     <child>
-                                      <object class="GtkListBox" id="datasets_list">
+                                      <object class="GtkViewport">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="selection_mode">none</property>
+                                        <property name="vscroll_policy">natural</property>
+                                        <property name="shadow_type">none</property>
+                                        <child>
+                                          <object class="GtkListBox" id="datasets_list">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="selection_mode">none</property>
+                                            <style>
+                                              <class name="datatset-list"/>
+                                            </style>
+                                          </object>
+                                        </child>
                                       </object>
                                     </child>
                                   </object>
+                                  <packing>
+                                    <property name="index">-1</property>
+                                  </packing>
                                 </child>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
-                                <property name="position">2</property>
+                                <property name="position">1</property>
                               </packing>
                             </child>
                             <child>

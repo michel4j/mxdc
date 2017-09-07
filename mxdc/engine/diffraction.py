@@ -76,9 +76,6 @@ class DataCollector(GObject.GObject):
         self.config['datasets'] = datasets
         self.beamline.image_server.set_user(pwd.getpwuid(os.geteuid())[0], os.geteuid(), os.getegid())
 
-        import json
-        print json.dumps(wedges, indent=4)
-
         # delete existing frames
         for wedge in wedges:
             frame_list = [wedge['frame_template'].format(i + wedge['first']) for i in range(wedge['num_frames'])]
@@ -438,17 +435,7 @@ class Automator(GObject.GObject):
                     if self.beamline.automounter.is_mounted(sample['port']):
                         params = {}
                         params.update(task['options'])
-                        params['name'] = "{}_test".format(sample['name'])
-                        params.update({
-                            'sample': sample.get('name', params['name']),
-                            'sample_id': sample.get('id'),
-                            'port': sample.get('port', ''),
-                            'container': misc.slugify(sample.get('container', '')),
-                            'group': misc.slugify(sample.get('group', '')),
-                        })
-                        dir_template = '{}/{}'.format(os.environ['HOME'], settings.get_string('directory-template'))
-                        params['directory'] = dir_template.format(**params).replace('//', '/')
-
+                        params = runlists.prepare_run(params, sample)
                         _logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
                             params['name'], params['directory']
                         ))
@@ -459,12 +446,12 @@ class Automator(GObject.GObject):
 
                 elif task['type'] == Automator.Task.ANALYSE:
                     if sample.get('results') is not None:
-                        a_params = {
-                            'directory': os.path.join(sample['results'][0]['directory'], 'proc'),
+                        params = {
                             'method': task['options'].get('method'),
-                            'sample': sample
+                            'sample': sample,
                         }
-                        GObject.idle_add(self.emit, 'analysis-request', a_params)
+                        params = runlists.prepare_run(params, sample)
+                        GObject.idle_add(self.emit, 'analysis-request', params)
                     else:
                         self.stop(error='Data not available. Unable to continue automation!')
             GObject.idle_add(self.emit, 'sample-done', sample['uuid'])
