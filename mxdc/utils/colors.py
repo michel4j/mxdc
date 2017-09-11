@@ -42,19 +42,30 @@ def cmap_discretize(cmap_name="spectral", N=10):
 class ColorMapper(object):
     def __init__(self, color_map="jet", min_val=-0.5, max_val=1.0):
         self.cmap =  cm.get_cmap(color_map)
-        #self.cmap = cmap_discretize(cmap_name=color_map, N=20)
         self.norm = colors.Normalize(vmin=min_val, vmax=max_val)
     
     def autoscale(self, values):
         self.norm.autoscale(values)
          
-    def get_rgb(self, val):
-        R,G,B,A = self.cmap(self.norm(val))
-        return R,G,B
+    def rgb_values(self, val):
+        return self.rgba_values(val)[:3]
+
+    def rgba_values(self, val):
+        return self.cmap(self.norm(val))
+
+    def rgba(self, val):
+        red, green, blue, alpha = self.rgba_values(val)
+        return {'red': red, 'green': green, 'blue': blue, 'alpha': alpha}
+
+    def rgb(self, val):
+        red, green, blue, alpha = self.rgba_values(val)
+        return {'red': red, 'green': green, 'blue': blue}
 
     def get_hex(self, val):
-        R,G,B = self.get_rgb(val)
+        R,G,B = self.rgb_values(val)
         R,G,B = int(round(255*R)), int(round(255*G)), int(round(255*B))
         return ("#%02x%02x%02x" % (R,G,B)).upper()
         
-        
+
+PERCENT_COLORMAP = ColorMapper(color_map='jet', min_val=10, max_val=90)
+FRACTION_COLORMAP = ColorMapper(color_map='jet', min_val=0.1, max_val=0.9)

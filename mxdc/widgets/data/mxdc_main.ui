@@ -502,35 +502,28 @@
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
-                  <object class="GtkFrame">
+                  <object class="GtkEntry" id="status_beamline_fbk">
                     <property name="visible">True</property>
+                    <property name="sensitive">False</property>
                     <property name="can_focus">False</property>
-                    <property name="label_xalign">0</property>
-                    <property name="shadow_type">in</property>
-                    <child>
-                      <object class="GtkLabel" id="status_beamline_lbl">
-                        <property name="width_request">90</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">SIM-1</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                          <attribute name="scale" value="0.90000000000000002"/>
-                          <attribute name="foreground" value="#20204a4a8787"/>
-                        </attributes>
-                      </object>
-                    </child>
-                    <child type="label_item">
-                      <placeholder/>
-                    </child>
+                    <property name="editable">False</property>
+                    <property name="width_chars">12</property>
+                    <property name="text" translatable="yes">SIM-1</property>
+                    <property name="xalign">0.5</property>
+                    <style>
+                      <class name="device-fbk"/>
+                    </style>
                   </object>
                 </child>
                 <child type="label">
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Beamline:&lt;/small&gt;&lt;/b&gt;</property>
+                    <property name="label" translatable="yes">Beamline:</property>
                     <property name="use_markup">True</property>
+                    <style>
+                      <class name="device-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -1442,6 +1435,7 @@
                               <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="margin_left">6</property>
                                 <property name="orientation">vertical</property>
                                 <child>
                                   <object class="GtkLabel">
@@ -1993,7 +1987,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="receives_default">True</property>
-                                                <property name="tooltip_text" translatable="yes">Clear Previous</property>
+                                                <property name="tooltip_text" translatable="yes">Clear grids/points</property>
                                                 <child>
                                                   <object class="GtkImage">
                                                     <property name="visible">True</property>
@@ -2698,6 +2692,45 @@
                               <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label" translatable="yes">Analyze diffraction on grid:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="raster_grid_info">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label" translatable="yes"> (no grid defined)</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <style>
+                                  <class name="section-box"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox" id="raster_command_box">
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can_focus">False</property>
                                 <property name="margin_top">12</property>
                                 <property name="margin_bottom">12</property>
                                 <property name="spacing">6</property>
@@ -2711,8 +2744,11 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="halign">start</property>
-                                        <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Exposure Time&lt;/small&gt;&lt;/b&gt;</property>
+                                        <property name="label" translatable="yes">Exposure Time</property>
                                         <property name="use_markup">True</property>
+                                        <style>
+                                          <class name="device-label"/>
+                                        </style>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -2724,9 +2760,9 @@
                                       <object class="GtkEntry" id="raster_exposure_entry">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
-                                        <property name="width_chars">12</property>
+                                        <property name="width_chars">10</property>
                                         <property name="text" translatable="yes">0.5</property>
-                                        <property name="xalign">0.5</property>
+                                        <property name="xalign">1</property>
                                         <property name="secondary_icon_pixbuf">units-sec.svg</property>
                                         <property name="secondary_icon_activatable">False</property>
                                       </object>
@@ -2753,8 +2789,11 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="halign">start</property>
-                                        <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Max Resolution&lt;/small&gt;&lt;/b&gt;</property>
+                                        <property name="label" translatable="yes">Max Resolution</property>
                                         <property name="use_markup">True</property>
+                                        <style>
+                                          <class name="device-label"/>
+                                        </style>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -2766,9 +2805,9 @@
                                       <object class="GtkEntry" id="raster_maxres_entry">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
-                                        <property name="width_chars">12</property>
+                                        <property name="width_chars">10</property>
                                         <property name="text" translatable="yes">2.0</property>
-                                        <property name="xalign">0.5</property>
+                                        <property name="xalign">1</property>
                                         <property name="secondary_icon_pixbuf">units-ang.svg</property>
                                         <property name="secondary_icon_activatable">False</property>
                                       </object>
@@ -2786,149 +2825,106 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkFrame">
+                                  <object class="GtkSeparator">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label_xalign">0</property>
-                                    <property name="shadow_type">none</property>
+                                    <property name="margin_left">12</property>
+                                    <property name="margin_right">12</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="valign">center</property>
+                                    <property name="spacing">6</property>
+                                    <child>
+                                      <object class="GtkButton" id="raster_start_btn">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
+                                        <child>
+                                          <object class="GtkImage" id="raster_start_icon">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="icon_name">media-playback-start-symbolic</property>
+                                            <property name="icon_size">3</property>
+                                          </object>
+                                        </child>
+                                        <style>
+                                          <class name="suggested-action"/>
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="raster_eta">
+                                        <property name="width_request">50</property>
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">--:--</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack_type">end</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                     <child>
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="spacing">6</property>
+                                        <property name="margin_top">6</property>
+                                        <property name="margin_bottom">6</property>
+                                        <property name="orientation">vertical</property>
                                         <child>
-                                          <object class="GtkBox">
+                                          <object class="GtkLabel" id="raster_progress_lbl">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
-                                            <property name="homogeneous">True</property>
-                                            <child>
-                                              <object class="GtkButton" id="raster_grid_btn">
-                                                <property name="visible">True</property>
-                                                <property name="can_focus">True</property>
-                                                <property name="receives_default">True</property>
-                                                <property name="tooltip_text" translatable="yes">Create Grid</property>
-                                                <child>
-                                                  <object class="GtkImage">
-                                                    <property name="visible">True</property>
-                                                    <property name="can_focus">False</property>
-                                                    <property name="icon_name">view-app-grid-symbolic</property>
-                                                  </object>
-                                                </child>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <style>
-                                              <class name="linked"/>
-                                            </style>
+                                            <property name="halign">start</property>
                                           </object>
                                           <packing>
-                                            <property name="expand">False</property>
+                                            <property name="expand">True</property>
                                             <property name="fill">True</property>
                                             <property name="position">0</property>
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkBox">
+                                          <object class="GtkProgressBar" id="raster_pbar">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
-                                            <child>
-                                              <object class="GtkButton" id="raster_reset_btn">
-                                                <property name="visible">True</property>
-                                                <property name="can_focus">True</property>
-                                                <property name="receives_default">False</property>
-                                                <property name="tooltip_text" translatable="yes">Save Image</property>
-                                                <child>
-                                                  <object class="GtkImage" id="image5">
-                                                    <property name="visible">True</property>
-                                                    <property name="can_focus">False</property>
-                                                    <property name="tooltip_text" translatable="yes">Reset to default</property>
-                                                    <property name="halign">center</property>
-                                                    <property name="icon_name">view-refresh-symbolic</property>
-                                                    <property name="icon_size">2</property>
-                                                  </object>
-                                                </child>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkButton" id="raster_clear_btn">
-                                                <property name="visible">True</property>
-                                                <property name="can_focus">True</property>
-                                                <property name="receives_default">True</property>
-                                                <property name="tooltip_text" translatable="yes">Clear Results</property>
-                                                <child>
-                                                  <object class="GtkImage">
-                                                    <property name="visible">True</property>
-                                                    <property name="can_focus">False</property>
-                                                    <property name="icon_name">edit-clear-all-symbolic</property>
-                                                    <property name="icon_size">1</property>
-                                                  </object>
-                                                </child>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">1</property>
-                                              </packing>
-                                            </child>
-                                            <style>
-                                              <class name="linked"/>
-                                            </style>
+                                            <property name="ellipsize">end</property>
                                           </object>
                                           <packing>
-                                            <property name="expand">False</property>
+                                            <property name="expand">True</property>
                                             <property name="fill">True</property>
                                             <property name="position">1</property>
                                           </packing>
                                         </child>
                                       </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">2</property>
+                                      </packing>
                                     </child>
-                                    <child type="label">
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Tools:&lt;/small&gt;&lt;/b&gt;</property>
-                                        <property name="use_markup">True</property>
-                                      </object>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="pack_type">end</property>
-                                    <property name="position">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
                                     <property name="fill">True</property>
-                                    <property name="position">4</property>
+                                    <property name="position">3</property>
                                   </packing>
                                 </child>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -2937,13 +2933,9 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel">
+                              <object class="GtkSeparator">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="margin_top">12</property>
-                                <property name="margin_bottom">12</property>
-                                <property name="label" translatable="yes">Grid: 34 points, Directory: /home/michel/rastering</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -2957,9 +2949,10 @@
                                 <property name="can_focus">True</property>
                                 <property name="shadow_type">in</property>
                                 <child>
-                                  <object class="GtkTreeView">
+                                  <object class="GtkTreeView" id="raster_list">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
+                                    <property name="enable_grid_lines">horizontal</property>
                                     <child internal-child="selection">
                                       <object class="GtkTreeSelection"/>
                                     </child>
@@ -2971,107 +2964,6 @@
                                 <property name="fill">True</property>
                                 <property name="pack_type">end</property>
                                 <property name="position">3</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparator">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">4</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkBox">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="margin_top">12</property>
-                                <property name="margin_bottom">12</property>
-                                <property name="spacing">6</property>
-                                <child>
-                                  <object class="GtkButton" id="raster_start_btn">
-                                    <property name="visible">True</property>
-                                    <property name="sensitive">False</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="receives_default">True</property>
-                                    <child>
-                                      <object class="GtkImage" id="raster_start_icon">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="icon_name">media-playback-start-symbolic</property>
-                                        <property name="icon_size">3</property>
-                                      </object>
-                                    </child>
-                                    <style>
-                                      <class name="suggested-action"/>
-                                    </style>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel" id="raster_eta">
-                                    <property name="width_request">50</property>
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">--:--</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="pack_type">end</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkBox">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="margin_top">6</property>
-                                    <property name="margin_bottom">6</property>
-                                    <property name="orientation">vertical</property>
-                                    <child>
-                                      <object class="GtkLabel" id="raster_progress_lbl">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="halign">start</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">True</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkProgressBar" id="raster_pbar">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="ellipsize">end</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">True</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">True</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">2</property>
-                                  </packing>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">5</property>
                               </packing>
                             </child>
                           </object>
@@ -3349,6 +3241,9 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="label" translatable="yes">Container/Port</property>
+                                        <style>
+                                          <class name="status-fbk"/>
+                                        </style>
                                       </object>
                                       <packing>
                                         <property name="expand">True</property>
@@ -3361,6 +3256,9 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="label" translatable="yes">Sample/Group</property>
+                                        <style>
+                                          <class name="status-label"/>
+                                        </style>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -3395,8 +3293,10 @@
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">&lt;small&gt;&lt;b&gt;Next Sample&lt;/b&gt;&lt;/small&gt;</property>
-                                <property name="use_markup">True</property>
+                                <property name="label" translatable="yes">Next Sample</property>
+                                <style>
+                                  <class name="device-label"/>
+                                </style>
                               </object>
                             </child>
                           </object>
@@ -3427,6 +3327,9 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="label" translatable="yes">Container/Port</property>
+                                        <style>
+                                          <class name="status-fbk"/>
+                                        </style>
                                       </object>
                                       <packing>
                                         <property name="expand">True</property>
@@ -3439,6 +3342,9 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="label" translatable="yes">Sample/Group</property>
+                                        <style>
+                                          <class name="status-label"/>
+                                        </style>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -3473,8 +3379,10 @@
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">&lt;small&gt;&lt;b&gt;Current Sample&lt;/b&gt;&lt;/small&gt;</property>
-                                <property name="use_markup">True</property>
+                                <property name="label" translatable="yes">Current Sample</property>
+                                <style>
+                                  <class name="device-label"/>
+                                </style>
                               </object>
                             </child>
                           </object>
@@ -4595,6 +4503,8 @@
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="row_spacing">6</property>
+                        <property name="column_spacing">6</property>
                         <property name="row_homogeneous">True</property>
                         <property name="column_homogeneous">True</property>
                         <child>
@@ -4603,9 +4513,9 @@
                             <property name="can_focus">False</property>
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Gonio ω Angle:</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                            </attributes>
+                            <style>
+                              <class name="status-label"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -4618,9 +4528,9 @@
                             <property name="can_focus">False</property>
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Max Resolution:</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                            </attributes>
+                            <style>
+                              <class name="status-label"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -4633,9 +4543,9 @@
                             <property name="can_focus">False</property>
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">2θ Angle:</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                            </attributes>
+                            <style>
+                              <class name="status-label"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">4</property>
@@ -4648,9 +4558,9 @@
                             <property name="can_focus">False</property>
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Energy:</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                            </attributes>
+                            <style>
+                              <class name="status-label"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
@@ -4661,12 +4571,12 @@
                           <object class="GtkLabel" id="dsets_omega_fbk">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="halign">start</property>
                             <property name="label" translatable="yes">0.00 deg</property>
                             <property name="justify">center</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                              <attribute name="foreground" value="#20204a4a8787"/>
-                            </attributes>
+                            <style>
+                              <class name="status-fbk"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -4677,12 +4587,12 @@
                           <object class="GtkLabel" id="dsets_maxres_fbk">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="halign">start</property>
                             <property name="label" translatable="yes">1.8 A</property>
                             <property name="justify">center</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                              <attribute name="foreground" value="#20204a4a8787"/>
-                            </attributes>
+                            <style>
+                              <class name="status-fbk"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -4693,12 +4603,12 @@
                           <object class="GtkLabel" id="dsets_energy_fbk">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="halign">start</property>
                             <property name="label" translatable="yes">12.658 KeV</property>
                             <property name="justify">center</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                              <attribute name="foreground" value="#20204a4a8787"/>
-                            </attributes>
+                            <style>
+                              <class name="status-fbk"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">3</property>
@@ -4709,12 +4619,12 @@
                           <object class="GtkLabel" id="dsets_2theta_fbk">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="halign">start</property>
                             <property name="label" translatable="yes">0.0 deg</property>
                             <property name="justify">center</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                              <attribute name="foreground" value="#20204a4a8787"/>
-                            </attributes>
+                            <style>
+                              <class name="status-fbk"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">5</property>
@@ -4727,9 +4637,9 @@
                             <property name="can_focus">False</property>
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Current Sample:</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                            </attributes>
+                            <style>
+                              <class name="status-label"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -4742,10 +4652,9 @@
                             <property name="can_focus">False</property>
                             <property name="halign">start</property>
                             <property name="selectable">True</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                              <attribute name="foreground" value="#34346565a4a4"/>
-                            </attributes>
+                            <style>
+                              <class name="status-fbk"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
@@ -4757,12 +4666,12 @@
                           <object class="GtkLabel" id="dsets_aperture_fbk">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="halign">start</property>
                             <property name="label" translatable="yes">0.25 s</property>
                             <property name="justify">center</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                              <attribute name="foreground" value="#20204a4a8787"/>
-                            </attributes>
+                            <style>
+                              <class name="status-fbk"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">5</property>
@@ -4775,9 +4684,9 @@
                             <property name="can_focus">False</property>
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Beam Size:</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                            </attributes>
+                            <style>
+                              <class name="status-label"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">4</property>
@@ -4790,9 +4699,9 @@
                             <property name="can_focus">False</property>
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Attenuation:</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                            </attributes>
+                            <style>
+                              <class name="status-label"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
@@ -4803,12 +4712,12 @@
                           <object class="GtkLabel" id="dsets_attenuation_fbk">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="halign">start</property>
                             <property name="label" translatable="yes">60 %</property>
                             <property name="justify">center</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                              <attribute name="foreground" value="#20204a4a8787"/>
-                            </attributes>
+                            <style>
+                              <class name="status-fbk"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="left_attach">3</property>

@@ -5,16 +5,15 @@ from gi.repository import Gtk, Gdk, Pango, GObject
 from mxdc.widgets import dialogs
 
 
-def value_color(val, warning, error):
+def value_class(val, warning, error):
     if (val < warning < error) or (val > warning > error):
-        return Gdk.color_parse("#204A87")
+        return ""
     elif (warning < val < error) or (warning > val > error):
-        return Gdk.color_parse("#CE5C00")
+        return "dev-warning"
     elif (warning < error < val) or (warning > error > val):
-        return Gdk.color_parse("#A40000")
+        return "dev-error"
     else:
-        return Gdk.color_parse("#204A87")
-
+        return ""
 
 class DeviceMonitor(object):
     def __init__(self, device, label, format='{:.3e}', signal='changed', warning=None, error=None):
@@ -27,10 +26,14 @@ class DeviceMonitor(object):
 
     def on_signal(self, obj, *args):
         self.text.set_text(self.format.format(*args))
+        style = self.text.get_style_context()
         if self.warning and self.error:
-            col = value_color(args[0], self.warning, self.error)
-            self.text.modify_fg(Gtk.StateType.NORMAL, col)
-
+            style_class = value_class(args[0], self.warning, self.error)
+            for name in ['dev-waring', 'dev-error']:
+                if style_class == name:
+                    style.add_class(name)
+                else:
+                    style.remove_class(name)
 
 
 class ShutterSwitcher(object):
