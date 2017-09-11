@@ -143,20 +143,6 @@ class IDiffractometer(IDevice):
         """Terminate all diffractometer operations."""
 
 
-class IStage(IDevice):
-    """An X,Y,Z stage device object."""
-    
-    x = Attribute("""Stage X motor.""")
-    y = Attribute("""Stage Y motor.""")
-    z = Attribute("""Stage Z motor.""")
-
-    def wait():
-        """Wait for stage become idle."""
-        
-    def stop():
-        """Terminate all operations."""
-
-
 class IMultiChannelAnalyzer(ICounter):
     """A Multi Channel Analyzer device object"""
     

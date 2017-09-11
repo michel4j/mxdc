@@ -9,7 +9,8 @@ from gi.repository import Pango
 from twisted.python.components import globalRegistry
 
 from mxdc.beamline.mx import IBeamline
-from mxdc.engine.diffraction import Automator, DataCollector
+from mxdc.engine.diffraction import DataCollector
+from engine.automation import Automator
 from mxdc.engine.rastering import RasterCollector
 from mxdc.engine.scripting import get_scripts
 from mxdc.interface.engines import IDataCollector

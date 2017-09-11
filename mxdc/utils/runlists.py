@@ -15,31 +15,27 @@ FRAME_NUMBER_DIGITS = 4
 OUTLIER_DEVIATION = 50
 
 
-def prepare_run(info, sample=None):
-    # Add auxillary information to run information
-    info.update({
-        'date': date.today().strftime('%Y%m%d'),
+def update_for_sample(info, sample=None):
+    # Add directory and related auxillary information to dictionary
+    # provides values for {session} {sample}, {group}, {container}, {port}, {date}, {activity}
+
+    sample = {} if not sample else sample
+    params = copy.deepcopy(info)
+
+    params.update({
         'session': config.get_session(),
+        'sample': sample.get('name', 'unknown'),
+        'group': misc.slugify(sample.get('group', '')),
+        'container': misc.slugify(sample.get('container', '')),
+        'port': sample.get('port', ''),
+        'date': date.today().strftime('%Y%m%d'),
+        'activity': params.get('activity', 'unknown'),
+        'sample_id': sample.get('id'),
     })
-    if sample:
-        info.update({
-            'sample': sample.get('name', info['name']),
-            'sample_id': sample.get('id'),
-            'port': sample.get('port', ''),
-            'container': misc.slugify(sample.get('container', '')),
-            'group': misc.slugify(sample.get('group', '')),
-        })
-    else:
-        info.update({
-            'sample': info['name'],
-            'sample_id': '',
-            'port': '',
-            'container': '',
-            'group': '',
-        })
+
     dir_template = '{}/{}'.format(os.environ['HOME'], config.settings.get_string('directory-template'))
-    info['directory'] = dir_template.format(**info).replace('//', '/')
-    return info
+    params['directory'] = dir_template.format(**params).replace('//', '/')
+    return params
 
 
 def fix_name(name, names, index=0):
@@ -364,3 +360,6 @@ def merge_framesets(*args):
     frame_set = ','.join(filter(None, args))
     sequence = frameset_to_list(frame_set)
     return summarize_list(sequence)
+
+def generate_grid_frames(grid, params):
+    pass

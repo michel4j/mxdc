@@ -61,8 +61,6 @@ DEVICES = {
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  PseudoMotor('PSMTR1608-5-B10-08:pm:mm'),  
     'sample_zoom':  Positioner('BL08B1:MD2:S:ZoomLevel', 'BL08B1:MD2:G:ZoomLevel'),
-    'camera_center_x':  Positioner('BL08B1:MD2:cam:x'),
-    'camera_center_y':  Positioner('BL08B1:MD2:cam:y'),
     #'cryojet':  Cryojet('CSC1608-5-01', 'CSCLVM1608-5-01', 'CSC1608-5-B10-01'),
     'cryojet':  Cryojet5('CSC1608-5-03', 'CSC1608-5-B10-01'),
     'sample_camera': AxisCamera('V2E1608-400', 1),

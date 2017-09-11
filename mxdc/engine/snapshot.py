@@ -22,12 +22,10 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
         beamline = None
         _logger.warning('No registered beamline found.')
         return None
-    #beamline.lock.acquire()
     bw = beamline.aperture.get() * 0.001
     bh = beamline.aperture.get() * 0.001
     pix_size = beamline.sample_video.resolution
-    x = beamline.camera_center_x.get()
-    y = beamline.camera_center_y.get()
+    x, y = map(lambda x: 0.5*x, beamline.sample_video.size)
     w = int(bw / pix_size) 
     h = int(bh / pix_size)
 

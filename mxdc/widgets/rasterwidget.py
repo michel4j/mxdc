@@ -348,10 +348,8 @@ class RasterWidget(Gtk.Frame):
     @async
     def _center_xyz(self, angle, x, y):
         self.beamline.omega.move_to(angle, wait=True)
-        if not self.beamline.sample_stage.x.is_busy():
-            self.beamline.sample_stage.x.move_to(x, wait=True)
-        if not self.beamline.sample_stage.y.is_busy():
-            self.beamline.sample_stage.y.move_to(y)        
+        if not self.beamline.sample_stage.is_busy():
+            self.beamline.sample_stage.move_screen(x, y, 0.0)
        
     def on_result_activated(self, cell, path, column=None):
         itr = self.results.get_iter_first()

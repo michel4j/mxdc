@@ -1,8 +1,10 @@
+import imp
 
+from twisted.python.components import globalRegistry
+
+from device.stages import Sample3Stage, Sample2Stage
 from mxdc.interface.beamlines import IBeamline
 from mxdc.settings import *  # @UnusedWildImport
-from twisted.python.components import globalRegistry
-import imp
 
 
 class MXBeamline(object):
@@ -145,9 +147,9 @@ class MXBeamline(object):
         # Create and register other/compound devices
         self.registry['collimator'] = Collimator(self.beam_x, self.beam_y, self.beam_w, self.beam_h)
         if 'sample_y' in self.registry:
-            self.registry['sample_stage'] = XYStage(self.sample_x, self.sample_y)
+            self.registry['sample_stage'] = Sample2Stage(self.sample_x, self.sample_y, self.omega)
         else:
-            self.registry['sample_stage'] = SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega)
+            self.registry['sample_stage'] = Sample3Stage(self.sample_x, self.sample_y1, self.sample_y2, self.omega)
         self.registry['sample_video'] = ZoomableCamera(self.sample_camera, self.sample_zoom)
         self.registry['manualmounter'] = ManualMounter()
         self.mca.nozzle = self.registry.get('mca_nozzle', None)

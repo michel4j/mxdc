@@ -1,0 +1,100 @@
+/* define colors */
+.section-box, .tool-box {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.section-box > * > label, .section-box > label {
+  font-weight: bold;
+  margin: 6px;
+}
+
+.device-fbk {
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 90%;
+  border-radius: 0;
+  color: DarkSlateGray;
+  font-weight: bold;
+}
+
+
+.value-fbk {
+  font-size: 90%;
+  color: DarkSlateGray;
+  font-weight: bold;
+}
+
+.value-sp {
+  font-size: 95%;
+}
+
+.list-action-box {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.device-label {
+  font-size: 85%;
+  opacity: 0.85;
+  font-weight: bold;
+}
+
+.arrow-frame {
+  border: solid 1px;
+  border-bottom-width: 0px;
+  border-top-width: 0px;
+  background-color: @theme_bg_color;
+  border-color: @borders;
+}
+
+.arrow-frame:dir(ltr) {
+  border-right-width: 0px;
+}
+
+.arrow-frame:dir(rtl) {
+  border-left-width: 0px;
+}
+
+.run-row {
+  border-bottom: 1px solid alpha(@borders, 0.4);
+}
+
+.add-tool, .complete-run {
+  opacity: 0.5;
+}
+.active-run image {
+  color: @warning_color;
+}
+.complete-run image {
+  color: @success_color;
+}
+
+.error-run image {
+  color: @error_color;
+}
+
+.hint-text {
+  font-size: 90%;
+  opacity: .8;
+}
+
+.changed {
+  color: red;
+}
+label.status-fbk, label.status-label {
+  font-size: 95%;
+}
+label.status-label {
+  opacity: 0.8;
+}
+label.status-fbk {
+  color: DarkSlateGray;
+  font-weight: bold;
+}
+.dev-warning {
+  color: @warning_color;
+}
+.dev-error {
+  color: @error_color;
+}
+.dev-active {
+  color: @error_color;
+}

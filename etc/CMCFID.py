@@ -61,8 +61,6 @@ DEVICES = {
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  VMEMotor('SMTR16083I1016:mm'),  
     'sample_zoom':  VMEMotor('SMTR16083I1025:mm'),
-    'camera_center_x':  Positioner('BL08ID1:video:sample:x'),
-    'camera_center_y':  Positioner('BL08ID1:video:sample:y'),
     'cryojet':  Cryojet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
     'sample_camera': AxisCamera('V2E1608-001', 4),
     'sample_backlight': SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk','ILC1608-3-I10-02:on', 100.0),

@@ -3,9 +3,9 @@ from twisted.python.components import globalRegistry
 
 import cryo
 from mxdc.beamline.mx import IBeamline
-from mxdc.control import microscope, samplestore, humidity
+from mxdc.control import microscope, samplestore, humidity, rastering
 from mxdc.utils.log import get_module_logger
-from mxdc.widgets import rasterwidget, misc
+from mxdc.widgets import misc
 
 _logger = get_module_logger(__name__)
 
@@ -15,22 +15,20 @@ class SamplesController(GObject.GObject):
         super(SamplesController, self).__init__()
         self.widget = widget
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.sample_microscope = microscope.MicroscopeController(self.widget)
-        self.cryo_controller = cryo.CryoController(self.widget)
+        self.microscope = microscope.Microscope(self.widget)
+        self.cryo_tool = cryo.CryoController(self.widget)
         self.sample_store = samplestore.SampleStore(self.widget.samples_list, self.widget)
         self.humidity_controller = humidity.HumidityController(self.widget)
-        #self.raster_tool = rasterwidget.RasterWidget()
+        self.raster_tool = rastering.RasterController(self.widget.raster_list, self.widget)
         self.setup()
 
     def setup(self):
-        #self.widget.rastering_box.pack_start(self.raster_tool, True, True, 0)
-
         # create and pack devices into settings frame
-        entry_list = ['omega', 'beam_size']
         entries = {
             'omega': misc.MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f"),
             'beam_size': misc.ActiveMenu(self.beamline.aperture, 'Beam Aperture', fmt="%0.0f"),
+            'sample_y1': misc.MotorEntry(self.beamline.sample_y1, 'Sample Y1', fmt="%0.4f"),
+            'sample_y2': misc.MotorEntry(self.beamline.sample_y2, 'Sample Y2', fmt="%0.4f"),
         }
-
-        for key in entry_list:
+        for key in ['omega', 'beam_size', 'sample_y1', 'sample_y2']:
             self.widget.samples_control_box.pack_start(entries[key], False, True, 0)

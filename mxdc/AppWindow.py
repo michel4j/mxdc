@@ -51,7 +51,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         settings = self.get_settings()
         settings.props.gtk_enable_animations = True
         css = Gtk.CssProvider()
-        with open(os.path.join(SHARE_DIR, 'styles.css'), 'r') as handle:
+        with open(os.path.join(SHARE_DIR, 'styles.less'), 'r') as handle:
             css_data = handle.read()
             css.load_from_data(css_data)
         style = self.get_style_context()
