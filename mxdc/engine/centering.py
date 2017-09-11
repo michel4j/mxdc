@@ -39,7 +39,7 @@ def get_current_bkg():
     dev = 100
 
     # Save current position to return to
-    start_x = beamline.sample_stage.x.get_position()
+    start_x, start_y, start_z = beamline.sample_stage.get_xyz()
     number_left = 10
 
     if beamline.config['orientation'] == 2:
@@ -51,12 +51,12 @@ def get_current_bkg():
 
     while dev > 1.0 and number_left > 0:
         img1 = beamline.sample_video.get_frame()
-        beamline.sample_stage.x.move_by(offset, wait=True)
+        beamline.sample_stage.move_xyz_by(offset, 0.0, 0.0)
         img2 = beamline.sample_video.get_frame()
         dev = imgproc.image_deviation(img1, img2)
         number_left = number_left - 1
     bkg = beamline.sample_video.get_frame()
-    beamline.sample_stage.x.move_to(start_x, wait=True)
+    beamline.sample_stage.move_xyz(start_x, start_y, start_z)
     return bkg
 
 
@@ -72,8 +72,7 @@ def center_loop():
     beamline.sample_backlight.set(beamline.config.get('centering_backlight', _CENTERING_BLIGHT))
     # beamline.sample_frontlight.set(_CENTERING_FLIGHT)
 
-    cx = beamline.camera_center_x.get()
-    cy = beamline.camera_center_y.get()
+    cx, cy = map(lambda x: 0.5*x, beamline.sample_video.size)
 
     bkg_img = get_current_bkg()
 
@@ -82,10 +81,7 @@ def center_loop():
     dev = imgproc.image_deviation(bkg_img, img1)
     if dev < 1.0:
         # Nothing on screen, go to default start
-        beamline.sample_stage.y.move_to(0.0, wait=True)
-        beamline.sample_stage.x.move_to(0.0, wait=True)
-        beamline.omega.move_by(90.0, wait=True)
-        beamline.sample_stage.y.move_to(0.0, wait=True)
+        beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
 
     _logger.debug('Attempting to center loop')
 
@@ -113,10 +109,8 @@ def center_loop():
         xmm = 0
         if count <= _MAX_TRIES // 2 or loop_w > 0.6 * max_width or loop_w < 0:
             xmm = (cx - x) * beamline.sample_video.resolution
-            beamline.sample_stage.x.move_by(-xmm, wait=True)
+        beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
         adj_mm.append((xmm, ymm))
-
-        beamline.sample_stage.y.move_by(-ymm, wait=True)
         beamline.omega.move_by(ANGLE_STEP, wait=True)
 
         # check progress quality
@@ -162,8 +156,7 @@ def center_capillary():
     beamline.sample_backlight.set(beamline.config.get('centering_backlight', _CENTERING_BLIGHT))
     # beamline.sample_frontlight.set(_CENTERING_FLIGHT)
 
-    cx = beamline.camera_center_x.get()
-    cy = beamline.camera_center_y.get()
+    cx, cy = map(lambda x: 0.5*x, beamline.sample_video.size)
 
     bkg_img = get_current_bkg()  # sample will move off screen, take bkgd, then return sample.
 
@@ -172,16 +165,12 @@ def center_capillary():
     dev = imgproc.image_deviation(bkg_img, img1)
     if dev < 1.0:
         # Nothing on screen, go to default start
-        beamline.sample_stage.y.move_to(0.0, wait=True)
-        beamline.sample_stage.x.move_to(0.0, wait=True)
-        beamline.omega.move_by(90.0, wait=True)
-        beamline.sample_stage.y.move_to(0.0, wait=True)
+        beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
 
     _logger.debug('Attempting to center capillary')
 
     ANGLE_STEP = 90.0
     count = 0
-    max_width = 0.0
     x_offset = 1.5  # milimeters
     adj_mm = []
     avg_devs = []
@@ -196,13 +185,12 @@ def center_capillary():
         # calculate motor positions and move
         ymm = (cy - y) * beamline.sample_video.resolution
         xmm = (cx - x) * beamline.sample_video.resolution
-        beamline.sample_stage.x.move_by(-xmm, wait=True)
+        beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
         _logger.debug("TESTING OMEGA: {}, XMM: {}, YMM: {}".format(
             beamline.omega.get_position(),
             xmm / beamline.sample_video.resolution, ymm / beamline.sample_video.resolution)
         )
         adj_mm.append(ymm)
-        beamline.sample_stage.y.move_by(-ymm, wait=True)
         beamline.omega.move_by(ANGLE_STEP, wait=True)
 
         # check progress quality
@@ -219,8 +207,8 @@ def center_capillary():
                 converged = True
         _logger.info("Centering ... [%d] (V): %0.3f, Converged: %s" % (count, _dev, converged))
 
-    beamline.sample_stage.x.wait(start=False, stop=True)
-    beamline.sample_stage.x.move_by(x_offset * direction, wait=True)
+    beamline.sample_stage.wait()
+    beamline.sample_stage.move_by(x_offset * direction, 0.0, 0.0)
 
     # calculate score based on average and maximum of last two adjustments
     # an average of 20 pixels and a max of 20 pixels will give a score of 50%
@@ -291,13 +279,15 @@ def center_crystal():
     back_filename = os.path.join(directory, "%s-bg.png" % prefix)
     bkg_img.save(back_filename)
 
+    cx, cy = map(lambda x: x//2, beamline.sample_video.size)
+
     # create XREC input
     infile_name = os.path.join(directory, '%s.inp' % prefix)
     outfile_name = os.path.join(directory, '%s.out' % prefix)
     infile = open(infile_name, 'w')
     in_data = 'LOOP_POSITION  %s\n' % beamline.config['orientation']
     in_data += 'NUMBER_OF_IMAGES 8 \n'
-    in_data += 'CENTER_COORD %d\n' % (beamline.camera_center_y.get())
+    in_data += 'CENTER_COORD %d\n' % (cy)
     in_data += 'BORDER 4\n'
     if os.path.exists(back_filename):
         in_data += 'BACK %s\n' % (back_filename)
@@ -335,20 +325,18 @@ def center_crystal():
             return results
 
     # calculate motor positions and move
-    cx = beamline.camera_center_x.get()
-    cy = beamline.camera_center_y.get()
+    cx, cy = map(lambda x:x*0.5, beamline.sample_video.size)
     beamline.omega.move_to(results['TARGET_ANGLE'] % 360.0, wait=True)
+    xmm = ymm = 0.0
     if results['Y_CENTRE'] != -1:
         x = results['Y_CENTRE']
         xmm = (cx - x) * beamline.sample_video.resolution
-        beamline.sample_stage.x.move_by(-xmm, wait=True)
     if results['X_CENTRE'] != -1:
         y = results['X_CENTRE'] - results['RADIUS']
         ymm = (cy - y) * beamline.sample_video.resolution
-        if int(beamline.config['orientation']) == 2:
-            beamline.sample_stage.y.move_by(ymm)
-        else:
-            beamline.sample_stage.y.move_by(-ymm)
+        if int(beamline.config['orientation']) != 2:
+            ymm = -ymm
+    beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
 
     beamline.sample_frontlight.set_on()
     beamline.sample_backlight.set(backlt)

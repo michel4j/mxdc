@@ -1,9 +1,10 @@
 import os
-import random
 import time
 
 import numpy
 from gi.repository import GObject
+from zope.interface import implements
+
 from mxdc import registry
 from mxdc.com import ca
 from mxdc.com.ca import PV
@@ -13,7 +14,6 @@ from mxdc.interface.devices import *
 from mxdc.utils import converter, misc
 from mxdc.utils.decorators import async
 from mxdc.utils.log import get_module_logger
-from zope.interface import implements
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
@@ -591,67 +591,6 @@ class Shutter(BasicShutter):
         close_name = "%s:opr:close" % name
         state_name = "%s:state" % name
         BasicShutter.__init__(self, open_name, close_name, state_name)
-
-
-class XYZStage(BaseDevice):
-    implements(IStage)
-
-    def __init__(self, x, y, z, name='XYZ Stage'):
-        BaseDevice.__init__(self)
-        self.name = name
-        self.x = x
-        self.y = y
-        self.z = z
-        self.add_devices(x, y, z)
-
-    def wait(self):
-        self.x.wait()
-        self.y.wait()
-        self.z.wait()
-
-    def stop(self):
-        self.x.stop()
-        self.y.stop()
-        self.z.stop()
-
-
-class SampleStage(BaseDevice):
-    implements(IStage)
-
-    def __init__(self, x, y1, y2, omega, name='Sample Stage'):
-        BaseDevice.__init__(self)
-        from mxdc.device.motor import RelVerticalMotor
-        self.name = name
-        self.x = x
-        self.y = RelVerticalMotor(y1, y2, omega)
-        self.add_devices(x, y1, y2)
-
-    def wait(self):
-        self.x.wait()
-        self.y.wait()
-
-    def stop(self):
-        self.x.stop()
-        self.y.stop()
-
-
-class XYStage(BaseDevice):
-    implements(IStage)
-
-    def __init__(self, x, y, name='XY Stage'):
-        BaseDevice.__init__(self)
-        self.name = name
-        self.x = x
-        self.y = y
-        self.add_devices(x, y)
-
-    def wait(self):
-        self.x.wait()
-        self.y.wait()
-
-    def stop(self):
-        self.x.stop()
-        self.y.stop()
 
 
 class Collimator(BaseDevice):

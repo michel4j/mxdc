@@ -1,7 +1,7 @@
 import os
 import pickle
 import time
-
+import numpy
 import gi
 from PIL import Image
 
@@ -61,6 +61,18 @@ class VideoWidget(Gtk.DrawingArea):
     def set_src(self, src):
         self.camera = src
         self.camera.start()
+
+    def mm_scale(self):
+        return self.camera.resolution / self.scale
+
+    def screen_to_mm(self, x, y):
+        mm_scale = self.mm_scale()
+        cx, cy = numpy.array(self.get_size()) * 0.5
+        xmm = (cx - x) * mm_scale
+        ymm = (cy - y) * mm_scale
+        ix = x / self.scale
+        iy = y / self.scale
+        return ix, iy, xmm, ymm
 
     def set_display_size(self, width, height):
         self.display_width, self.display_height = width, height

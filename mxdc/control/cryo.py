@@ -1,5 +1,4 @@
 import common
-from gi.repository import Gtk
 from mxdc.beamline.mx import IBeamline
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
@@ -43,6 +42,11 @@ class CryoController(object):
         if param.name in self.labels:
             val = obj.get_property(param.name)
             txt = self.formats[param.name].format(val)
-            col = common.value_color(val, *self.limits[param.name])
+            col = common.value_class(val, *self.limits[param.name])
             self.labels[param.name].set_text(txt)
-            self.labels[param.name].modify_fg(Gtk.StateType.NORMAL, col)
+            style = self.labels[param.name].get_style_context()
+            for name in ['dev-error', 'dev-warning']:
+                if col == name:
+                    style.add_class(name)
+                else:
+                    style.remove_class(name)

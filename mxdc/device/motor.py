@@ -127,7 +127,7 @@ class SimMotor(MotorBase):
         self._target = None
         self.default_precision = precision
         self.default_speed = speed
-        self._set_speed(speed)
+        self.configure(speed=speed)
 
         self.initialize()
 
@@ -139,9 +139,11 @@ class SimMotor(MotorBase):
     def get_position(self):
         return self._position
     
-    def _set_speed(self, val):
-        self._speed = val # speed
-        self._step_size = self._speed * self._step_time
+    def configure(self, *args, **kwargs):
+        with self._lock:
+            if 'speed' in kwargs:
+                self._speed = kwargs['speed'] # speed
+                self._step_size = self._speed * self._step_time
 
     @async
     def _move_action(self, target):
@@ -154,7 +156,6 @@ class SimMotor(MotorBase):
             _num_steps = int(abs(self._position - target) / self._step_size)
             targets = numpy.linspace(self._position, target, _num_steps)
 
-
             self._command_sent = False
             for pos in targets:
                 self._position = pos
@@ -164,7 +165,8 @@ class SimMotor(MotorBase):
                 time.sleep(self._step_time)
         self.set_state(busy=False)
 
-    def move_to(self, pos, wait=False, force=False):
+    def move_to(self, pos, wait=False, force=False, **kwargs):
+        self.configure(**kwargs)
         if pos == self._position:
             _logger.debug( "(%s) is already at %s" % (self.name, pos) )
             return
@@ -172,7 +174,8 @@ class SimMotor(MotorBase):
         if wait:
             self.wait()
     
-    def move_by(self, pos, wait=False):
+    def move_by(self, pos, wait=False, **kwargs):
+        self.configure(**kwargs)
         self.move_to(self._position+pos, wait)
     
     def wait(self, start=True, stop=True):
@@ -347,7 +350,7 @@ class Motor(MotorBase):
             val = 0.0001
         return val
               
-    def move_to(self, pos, wait=False, force=False):
+    def move_to(self, pos, wait=False, force=False, **kwargs):
         """Request the motor to move to an absolute position. By default, the 
         command will not be sent to the motor if its current position is the 
         same as the requested position within its preset precision. In addition
@@ -389,7 +392,7 @@ class Motor(MotorBase):
         if wait:
             self.wait()
 
-    def move_by(self, val, wait=False, force=False):
+    def move_by(self, val, wait=False, force=False, **kwargs):
         """Similar to :func:`move_to`, except request the motor to move by a 
         relative amount.
         
@@ -577,7 +580,7 @@ class BraggEnergyMotor(Motor):
         self.set_state(time=obj.time_state) # make sure time is set before changed value
         self.set_state(changed=val)
         
-    def move_to(self, pos, wait=False, force=False):
+    def move_to(self, pos, wait=False, force=False, **kwargs):
         # Do not move if motor state is not sane.
         sanity, msg = self.health_state
         if sanity != 0:
@@ -638,7 +641,7 @@ class FixedLine2Motor(MotorBase):
         """Obtain the position of the `x` motor only."""
         return self.x.get_position()
         
-    def move_to(self, pos, wait=False, force=False):
+    def move_to(self, pos, wait=False, force=False, **kwargs):
         px = pos
         self.x.move_to(px, force=force)
         if self.linked:
@@ -648,7 +651,7 @@ class FixedLine2Motor(MotorBase):
         if wait:
             self.wait()
 
-    def move_by(self, val, wait=False, force=False):
+    def move_by(self, val, wait=False, force=False, **kwargs):
         if val == 0.0:
             return
         cur_pos = self.get_position()
@@ -702,9 +705,9 @@ class RelVerticalMotor(MotorBase):
         return '<RelVerticalMotor: %s, %s >' % (self.y1, self.y2)
 
     def _calc_position(self, obj, val):
-        tmp_omega = self.omega.get_position() - self.offset
-        sin_w = numpy.sin(numpy.radians(tmp_omega))
-        cos_w = numpy.cos(numpy.radians(tmp_omega))
+        tmp_omega = numpy.radians(self.omega.get_position() - self.offset)
+        sin_w = numpy.sin(tmp_omega)
+        cos_w = numpy.cos(tmp_omega)
         y1 = self.y1.get_position()*sin_w
         y2 = self.y2.get_position()*cos_w
         z1 = self.y1.get_position()*cos_w
@@ -716,17 +719,17 @@ class RelVerticalMotor(MotorBase):
     def get_position(self):
         return self._status[0]
                                                             
-    def move_by(self, val, wait=False, force=False):
-        if val == 0.0:  return
-        tmp_omega = self.omega.get_position() - self.offset
-        sin_w = numpy.sin(numpy.radians(tmp_omega))
-        cos_w = numpy.cos(numpy.radians(tmp_omega))
+    def move_by(self, val, wait=False, force=False, **kwargs):
+        if val == 0.0: return
+        tmp_omega = numpy.radians(self.omega.get_position() - self.offset)
+        sin_w = numpy.sin(tmp_omega)
+        cos_w = numpy.cos(tmp_omega)
         self.y1.move_by(val * sin_w)
         self.y2.move_by(val * cos_w)
         if wait:
             self.wait()
     
-    def move_to(self, val, wait=False, force=False):
+    def move_to(self, val, wait=False, force=False, **kwargs):
         relval = val - self.get_position()
         self.move_by(relval, wait=wait, force=force)
                 
@@ -764,11 +767,11 @@ class ResolutionMotor(MotorBase):
     def get_position(self):
         return converter.dist_to_resol(self.distance.get_position(), self.detector_size, self.energy.get_position())
 
-    def move_by(self, val, wait=False, force=False):
+    def move_by(self, val, wait=False, force=False, **kwargs):
         if val == 0.0: return
         self.move_to(val + self.get_position(), wait=wait, force=force)
 
-    def move_to(self, val, wait=False, force=False):
+    def move_to(self, val, wait=False, force=False, **kwargs):
         target = converter.resol_to_dist(val, self.detector_size, self.energy.get_position())
         self.distance.move_to(target, wait=wait, force=force)
 
