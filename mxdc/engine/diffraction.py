@@ -4,38 +4,18 @@ import threading
 import time
 
 from gi.repository import GObject
-from twisted.python.components import globalRegistry
-from zope.interface import implements
-
 from mxdc.com import ca
-from mxdc.engine import centering, snapshot, auto
+from mxdc.engine import snapshot
 from mxdc.interface.beamlines import IBeamline
 from mxdc.interface.engines import IDataCollector
 from mxdc.utils import json, runlists
-from mxdc.utils import misc
-from mxdc.utils.config import settings
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.log import get_module_logger
+from twisted.python.components import globalRegistry
+from zope.interface import implements
 
 # setup module logger with a default do-nothing handler
 _logger = get_module_logger(__name__)
-
-DEFAULT_PARAMETERS = {
-    'name': 'test',
-    'directory': '/tmp',
-    'distance': 250.0,
-    'delta_angle': 1.0,
-    'exposure_time': 1.0,
-    'start_angle': 0,
-    'total_angle': 1.0,
-    'first_frame': 1,
-    'num_frames': 1,
-    'inverse_beam': False,
-    'wedge': 360.0,
-    'energy_label': ['E0'],
-    'number': 1,
-    'two_theta': 0.0,
-}
 
 
 class DataCollector(GObject.GObject):
@@ -49,8 +29,6 @@ class DataCollector(GObject.GObject):
         'stopped': (GObject.SIGNAL_RUN_LAST, None, []),
         'error': (GObject.SIGNAL_RUN_LAST, None, (str,))
     }
-
-    STATE_PENDING, STATE_RUNNING, STATE_DONE, STATE_SKIPPED = range(4)
 
     def __init__(self):
         GObject.GObject.__init__(self)
@@ -133,15 +111,16 @@ class DataCollector(GObject.GObject):
                 # Prepare image header
                 detector_parameters = {
                     'file_prefix': frame['dataset'],
-                    'delta_angle': frame['delta'],
-                    'directory': frame['directory'],
-                    'distance': frame['distance'],
-                    'exposure_time': frame['exposure'],
                     'start_frame': frame['first'],
+                    'directory': frame['directory'],
                     'wavelength': energy_to_wavelength(frame['energy']),
                     'energy': frame['energy'],
-                    'frame_name': frame['frame_name'],
+                    'distance': frame['distance'],
+                    'exposure_time': frame['exposure'],
+                    'num_frames': 1,
                     'start_angle': frame['start'],
+                    'delta_angle': frame['delta'],
+                    'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
                 }
 
                 # prepare goniometer for scan
@@ -189,9 +168,9 @@ class DataCollector(GObject.GObject):
                 angle=wedge['start']
             )
 
+            if self.stopped or self.paused: break
             # Perform scan
             self.beamline.detector.set_parameters(detector_parameters)
-            if self.stopped or self.paused: break
             self.beamline.detector.start(first=is_first_frame)
             self.beamline.goniometer.scan(wait=True, timeout=wedge['exposure'] * wedge['num_frames'] * 2)
 
@@ -231,6 +210,10 @@ class DataCollector(GObject.GObject):
 
         if abs(self.beamline.attenuator.get() - wedge['attenuation']) >= 25:
             self.beamline.attenuator.set(wedge['attenuation'], wait=True)
+
+        if wedge.get('point'):
+            x, y, z  = wedge['point']
+            self.beamline.sample_stage.move_xyz(x, y, z)
 
     def save_summary(self, data_list):
         results = []
@@ -326,162 +309,3 @@ class DataCollector(GObject.GObject):
         while self.collecting:
             time.sleep(0.1)
         GObject.idle_add(self.emit, 'stopped')
-
-
-class Automator(GObject.GObject):
-    class Task:
-        (MOUNT, CENTER, PAUSE, ACQUIRE, ANALYSE, DISMOUNT) = range(6)
-
-    TaskNames = ('Mount', 'Center', 'Pause', 'Acquire', 'Analyse', 'Dismount')
-
-    __gsignals__ = {
-        'analysis-request': (GObject.SIGNAL_RUN_LAST, None, (object,)),
-        'progress': (GObject.SIGNAL_RUN_LAST, None, (float, str)),
-        'sample-done': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'sample-started': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'done': (GObject.SIGNAL_RUN_LAST, None, []),
-        'paused': (GObject.SIGNAL_RUN_LAST, None, (bool, str)),
-        'started': (GObject.SIGNAL_RUN_LAST, None, []),
-        'stopped': (GObject.SIGNAL_RUN_LAST, None, []),
-        'error': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-    }
-
-    def __init__(self):
-        super(Automator, self).__init__()
-        self.paused = False
-        self.pause_message = ''
-        self.stopped = True
-        self.total = 1
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.collector = globalRegistry.lookup([], IDataCollector)
-
-    def configure(self, samples, tasks):
-        self.samples = samples
-        self.tasks = tasks
-        self.total = len(tasks) * len(samples)
-
-    def start(self):
-        worker_thread = threading.Thread(target=self.run)
-        worker_thread.setDaemon(True)
-        worker_thread.setName('Automator')
-        self.paused = False
-        self.stopped = False
-        worker_thread.start()
-
-    def notify_progress(self, pos, task, sample):
-        fraction = float(pos) / self.total
-        msg = '{}: {}/{}'.format(self.TaskNames[task['type']], sample['group'], sample['name'])
-        GObject.idle_add(self.emit, 'progress', fraction, msg)
-
-    def run(self):
-        ca.threads_init()
-        GObject.idle_add(self.emit, 'started')
-        pos = 0
-        self.pause_message = ''
-        for sample in self.samples:
-            if self.stopped: break
-            GObject.idle_add(self.emit, 'sample-started', sample['uuid'])
-            for task in self.tasks:
-                if self.paused:
-                    GObject.idle_add(self.emit, 'paused', True, self.pause_message)
-                    while self.paused and not self.stopped:
-                        time.sleep(0.1)
-                    GObject.idle_add(self.emit, 'paused', False, '')
-
-                if self.stopped: break
-                pos += 1
-                self.notify_progress(pos, task, sample)
-                _logger.info(
-                    'Sample: {}/{}, Task: {}'.format(sample['group'], sample['name'], self.TaskNames[task['type']])
-                )
-                time.sleep(5)
-
-                if task['type'] == self.Task.PAUSE:
-                    self.pause(
-                        'As requested, automation has been paused for manual intervention. '
-                        'Please resume after intervening to continue the sequence. '
-                    )
-                elif task['type'] == self.Task.CENTER:
-                    if self.beamline.automounter.is_mounted(sample['port']):
-                        method = task['options'].get('method')
-                        quality = centering.auto_center(method=method)
-                        if quality < 70:
-                            self.pause('Error attempting auto {} centering {}'.format(method, sample['name']))
-                    else:
-                        self.stop(error='Sample not mounted. Unable to continue automation!')
-
-                elif task['type'] == self.Task.MOUNT:
-                    success = auto.auto_mount_manual(self.beamline, sample['port'])
-                    mounted_info = self.beamline.automounter.mounted_state
-                    if not success or mounted_info is None:
-                        self.stop(error='Mouting Failed. Unable to continue automation!')
-                    else:
-                        port, barcode = mounted_info
-                        if port != sample['port']:
-                            GObject.idle_add(
-                                self.emit, 'mismatch',
-                                'Port mismatch. Expected {}.'.format(
-                                    sample['port']
-                                )
-                            )
-                        elif sample['barcode'] and barcode and barcode != sample['barcode']:
-                            GObject.idle_add(
-                                self.emit, 'mismatch',
-                                'Barcode mismatch. Expected {}.'.format(
-                                    sample['barcode']
-                                )
-                            )
-                elif task['type'] == self.Task.ACQUIRE:
-                    if self.beamline.automounter.is_mounted(sample['port']):
-                        params = {}
-                        params.update(task['options'])
-                        params = runlists.prepare_run(params, sample)
-                        _logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
-                            params['name'], params['directory']
-                        ))
-                        self.collector.configure(params, take_snapshots=True)
-                        sample['results'] = self.collector.run()
-                    else:
-                        self.stop(error='Sample not mounted. Unable to continue automation!')
-
-                elif task['type'] == Automator.Task.ANALYSE:
-                    if sample.get('results') is not None:
-                        params = {
-                            'method': task['options'].get('method'),
-                            'sample': sample,
-                        }
-                        params = runlists.prepare_run(params, sample)
-                        GObject.idle_add(self.emit, 'analysis-request', params)
-                    else:
-                        self.stop(error='Data not available. Unable to continue automation!')
-            GObject.idle_add(self.emit, 'sample-done', sample['uuid'])
-
-        if self.stopped:
-            GObject.idle_add(self.emit, 'stopped')
-            _logger.info('Automation stopped')
-
-        if not self.stopped:
-            if self.beamline.automounter.is_mounted():
-                port, barcode = self.beamline.automounter.mounted_state
-                auto.auto_dismount_manual(self.beamline, port)
-            GObject.idle_add(self.emit, 'done')
-            _logger.info('Automation complete')
-
-    def pause(self, message=''):
-        if message:
-            _logger.warn(message)
-        self.pause_message = message
-        self.paused = True
-
-    def resume(self):
-        self.paused = False
-        self.pause_message = ''
-        self.collector.resume()
-
-    def stop(self, error=''):
-        self.collector.stop()
-        self.stopped = True
-        self.paused = False
-        if error:
-            _logger.error(error)
-            GObject.idle_add(self.emit, 'error', error)

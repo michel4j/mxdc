@@ -458,16 +458,17 @@ class SimGoniometer(GoniometerBase):
             bl = globalRegistry.lookup([], IBeamline)
             st = time.time()
             _logger.debug('Starting scan at: %s' % datetime.now().isoformat())
-            bl.omega.move_to(self._settings['angle'] - 0.05, wait=True)
-            old_speed = bl.omega.default_speed
-            bl.omega._set_speed(float(self._settings['delta']) / self._settings['time'])
+            _logger.debug('Moving to scan starting position')
+            bl.omega.move_to(self._settings['angle'] - 0.05, wait=True, speed=bl.omega.default_speed)
+            scan_speed = float(self._settings['delta']) / self._settings['time']
             if wait:
                 _logger.debug('Waiting for scan to complete ...')
-            bl.omega.move_to(self._settings['angle'] + self._settings['delta'] + 0.05, wait=True)
-            bl.omega._set_speed(old_speed)
+            bl.omega.move_to(self._settings['angle'] + self._settings['delta'] + 0.05, wait=True, speed=scan_speed)
+            time.sleep(0.5)
+            bl.omega.configure(speed=bl.omega.default_speed)
             _logger.debug('Scan done at: %s' % datetime.now().isoformat())
-        self.set_state(message='Scan complete!', busy=False)
-        self._scanning = False
+            self.set_state(message='Scan complete!', busy=False)
+            self._scanning = False
 
     def scan(self, wait=True, timeout=None):
         if wait:

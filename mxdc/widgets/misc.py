@@ -161,7 +161,6 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.entry.connect('icon-press', self._on_activate)
         self.entry.connect('activate', self._on_activate)
         self.label.set_text(self.name)
-        self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#204A87"))
 
     def set_feedback(self, val):
         text = self.number_format % val
@@ -200,19 +199,18 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
 
     def _on_health_changed(self, obj, health):
         state, _ = health
-
+        style = self.fbk_label.get_style_context()
         if state == 0:
-            self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#204A87"))
             self.action_icon.set_from_icon_name("media-playback-start-symbolic",Gtk.IconSize.BUTTON)
             self._set_active(True)
+            style.remove_class('dev-error')
+            style.remove_class('dev-warning')
         else:
-            if (state | 16) == state:
-                self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#CE5C00"))
-            else:
-                self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#A40000"))
-                self.action_icon.set_from_stock('gtk-dialog-warning', Gtk.IconSize.BUTTON)
-
+            cls =  "dev-warning" if (state | 16) == state else "dev-error"
+            self.action_icon.set_from_stock('gtk-dialog-warning', Gtk.IconSize.BUTTON)
             self._set_active(False)
+            style.add_class(cls)
+
 
     def get_fraction(self, val):
         return 0.0
@@ -270,15 +268,15 @@ class MotorEntry(ActiveEntry):
         self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
 
     def _on_motion_changed(self, obj, motion):
+        style = self.fbk_label.get_style_context()
         if motion:
             self.running = True
             self.action_icon.set_from_animation(self._animation)
-            self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#0000ff"))
+            style.add_class('dev-active')
         else:
             self.running = False
             self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
-            self.fbk_label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("#000066"))
-
+            style.remove_class('dev-active')
         self.set_feedback(self.device.get_position())
         return True
 

@@ -35,7 +35,7 @@ class VideoSrc(BaseDevice):
         self.frame = None
         self.name = name
         self.maxfps = max(1.0, maxfps)
-        self.resolution = 1.0
+        self.resolution = 1.0e-3
         self.sinks = []
         self._stopped = True
         self._active = True
@@ -105,7 +105,7 @@ class SimCamera(VideoSrc):
             fname = '%s/data/%s' % (os.environ.get('BCM_CONFIG_PATH'), img)
             self._frame = Image.open(fname)
             self.size = self._frame.size
-            self.resolution = 1.0
+            self.resolution = 1.0e-3
         else:
             self.size = (640, 480)
             self.resolution = 5.34e-3 * numpy.exp(-0.18)
@@ -137,7 +137,7 @@ class SimZoomableCamera(SimCamera):
         self._zoom.move_to(value)
 
     def _on_zoom_change(self, obj, val):
-        self.resolution = 5.34e-3 * numpy.exp(-0.18 * val)
+        self.resolution = 5.34e-6 * numpy.exp(-0.18 * val)
 
 
 class SimPTZCamera(SimCamera):
@@ -265,28 +265,12 @@ class AxisCamera(JPGCamera):
         super(AxisCamera, self).__init__(url, name=name)
 
 
-class ZoomableAxisCamera(AxisCamera):
-    implements(IZoomableCamera)
-
-    def __init__(self, hostname, zoom_motor, idx=None, name="Zoomable Axis Camera"):
-        AxisCamera.__init__(self, hostname, idx=idx, name=name)
-        self._zoom = IMotor(zoom_motor)
-        self.resolution = 1.0
-        self._zoom.connect('changed', self._on_zoom_change)
-
-    def zoom(self, value):
-        self._zoom.move_to(value)
-
-    def _on_zoom_change(self, obj, val):
-        self.resolution = 3.6875e-3 * numpy.exp(-0.2527 * val)
-
-
 class ZoomableCamera(object):
     implements(IZoomableCamera)
 
     def __init__(self, camera, zoom_device, name="Zoomable Camera"):
         self._camera = camera
-        self.resolution = 1.0
+        self.resolution = 1.0e-3
         self._zoom = IMotor(zoom_device)
         self._zoom.connect('changed', self._on_zoom_change)
 
@@ -299,7 +283,7 @@ class ZoomableCamera(object):
 
     def _on_zoom_change(self, obj, val):
         scale = 768.0/self._camera.size[0]
-        self.resolution = scale * 3.6875e-3 * numpy.exp(-0.2527 * val)
+        self.resolution = scale * 3.6875e-6 * numpy.exp(-0.2527 * val)
 
     def __getattr__(self, key):
         try:
@@ -373,7 +357,7 @@ class FDICamera(VideoSrc):
         self._hostname = hostname
         self._name = name
         self.size = (1388, 1040)
-        self.resolution = 0.0064
+        self.resolution = 0.0064e-3
         self._open_socket()
 
     def _open_socket(self):
