@@ -107,8 +107,8 @@ class Provider(GObject.GObject):
 
 class Browser(GObject.GObject):
     __gsignals__ = {
-        'added' : (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-        'removed' : (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
+        'added' : (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'removed' : (GObject.SignalFlags.RUN_LAST, None, (object,)),
     }
 
     def __init__(self, service_type):

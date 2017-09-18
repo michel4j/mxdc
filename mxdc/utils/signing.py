@@ -1,16 +1,22 @@
 import base64
 import time
 
-import baseconv
 from cryptography.hazmat.primitives import hashes
 from cryptography import exceptions
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+
+try:
+    from django.utils import baseconv
+except ImportError:
+    import baseconv
 
 
 class Signer(object):
-    def __init__(self, public_key=None, private_key=None, sep=':', salt=None, max_delta=60):
-        assert public_key or private_key, "Must provide either a public key or a private key, or both."
-        self.public_key = public_key
-        self.private_key = private_key
+    def __init__(self, public=None, private=None, sep=':', salt=None, max_delta=60):
+        assert public or private, "Must provide either a public key or a private key, or both."
+        self.private_key = None if not private else serialization.load_der_private_key(private, None, default_backend())
+        self.public_key = None if not public else serialization.load_ssh_public_key(public, default_backend())
         self.sep = sep
         self.salt = salt or 'ca.clsi.cmcf'
         self.max_delta = max_delta
@@ -33,7 +39,7 @@ class Signer(object):
     def unsign(self, signed_value):
         if self.sep not in signed_value:
             raise exceptions.InvalidSignature('No "%s" found in value' % self.sep)
-        timed_value, b64_sig = signed_value.rsplit(self.sep, 1)
+        timed_value, b64_sig = str(signed_value).rsplit(self.sep, 1)
         value, b62_time = timed_value.rsplit(self.sep, 1)
         signature = base64.urlsafe_b64decode(b64_sig)
         signature_time = baseconv.base62.decode(b62_time)

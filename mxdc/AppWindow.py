@@ -10,11 +10,10 @@ from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.control import status
 from mxdc.control import datasets
-from mxdc.control import setup
+from mxdc.control import setup, scans
 from mxdc.control import samples
 from mxdc.widgets import dialogs
 from mxdc.widgets.resultmanager import ResultManager
-from mxdc.widgets.scanmanager import ScanManager
 from mxdc.widgets.splash import Splash
 from twisted.python.components import globalRegistry
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
@@ -41,7 +40,7 @@ STYLES = """
 
 class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     gui_roots = {
-        'data/mxdc_main': ['auto_groups_pop', 'app_menu', 'header_bar', 'mxdc_main', ]
+        'data/mxdc_main': ['auto_groups_pop','scans_ptable_pop', 'app_menu', 'header_bar', 'mxdc_main']
     }
 
     def __init__(self, version=VERSION):
@@ -95,13 +94,13 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.samples = samples.SamplesController(self)
         self.datasets = datasets.DatasetsController(self)
         self.automation = datasets.AutomationController(self)
-        self.scans = ScanManager()
+        self.scans = scans.ScanManager(self.datasets, self)
 
         #self.scans.connect('create-run', self.on_create_run)
         self.analysis = ResultManager()
 
         self.app_mnu_btn.set_popup(self.app_menu)
-        self.auto_groups_btn.set_popover(self.auto_groups_pop)
+
         self.add_menu_actions()
         self.page_switcher.set_stack(self.main_stack)
         self.main_stack.connect('notify::visible-child', self.on_page_switched)
@@ -126,7 +125,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         #self.automounter_box.pack_start(self.sample_picker, True, True, 0)
         #self.datasets_box.pack_start(self.collect_manager, True, True, 0)
         #self.screen_box.pack_start(self.screen_manager, True, True, 0)
-        self.scans_box.pack_start(self.scans, True, True, 0)
+        #self.scans_box.pack_start(self.scans, True, True, 0)
         self.analysis_box.pack_start(self.analysis, True, True, 0)
 
         self.add(self.mxdc_main)

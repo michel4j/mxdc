@@ -118,11 +118,11 @@ class Automator(GObject.GObject):
                             )
                 elif task['type'] == self.Task.ACQUIRE:
                     if self.beamline.automounter.is_mounted(sample['port']):
-                        params = {}
+                        params = {'name': sample['name']}
                         params.update(task['options'])
                         params = runlists.update_for_sample(params, sample)
                         _logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
-                            params['name'], params['directory']
+                            sample['name'], params['directory']
                         ))
                         self.collector.configure(params, take_snapshots=True)
                         sample['results'] = self.collector.run()

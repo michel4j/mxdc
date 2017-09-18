@@ -80,7 +80,7 @@ class DetailStore(Gtk.ListStore):
 class RasterWidget(Gtk.Frame):    
     __gsignals__ = {
         'show-raster': (GObject.SignalFlags.RUN_LAST, None, []),
-        'show-image':  (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT, GObject.TYPE_PYOBJECT)),
+        'show-image':  (GObject.SignalFlags.RUN_LAST, None, (object, object)),
     }
     
     def do_show_raster(self):

@@ -4,6 +4,7 @@ import time
 import numpy
 import os
 from mxdc.widgets import dialogs
+from mxdc.utils import misc
 from collections import defaultdict
 from gi.repository import Gtk, GObject
 from matplotlib import rcParams
@@ -14,16 +15,6 @@ from matplotlib.lines import Line2D
 
 rcParams['font.family'] = 'Cantarell'
 rcParams['font.size'] = 9
-
-
-def get_min_max(a, ldev=10, rdev=10):
-    a = a[(numpy.isnan(a) == False)]
-    if len(a) == 0:
-        return -0.1, 0.1
-    _std = a.std()
-    if _std < 1e-10:  _std = 0.1
-    mn, mx = a.min() - ldev * _std, a.max() + rdev * _std
-    return mn, mx
 
 COLORS = [
     '#1f77b4',
@@ -143,7 +134,7 @@ class TickerChart(Gtk.Box):
             axis = self.info[name]['axis']
             ymin, ymax = extrema[axis]
             y_data = self.data[name][selector]
-            mn, mx = get_min_max(y_data, ldev=self.deviation, rdev=self.deviation)
+            mn, mx = misc.get_min_max(y_data, ldev=self.deviation, rdev=self.deviation)
             ymin, ymax = numpy.nanmin([ymin, mn]), numpy.nanmax([ymax, mx])
             extrema[axis] = (ymin, ymax)
             line.set_data(x_data, y_data)

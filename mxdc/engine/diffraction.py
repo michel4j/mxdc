@@ -42,7 +42,8 @@ class DataCollector(GObject.GObject):
         self.total_frames = 0
         self.count = 0
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.beamline.detector.connect('new-image', self.on_new_image)
+        self.frame_link = self.beamline.detector.connect('new-image', self.on_new_image)
+        self.unwatch_frames()
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
         globalRegistry.register([], IDataCollector, '', self)
 
@@ -73,6 +74,7 @@ class DataCollector(GObject.GObject):
         self.beamline.detector_cover.open(wait=True)
         self.total_frames = sum([wedge['num_frames'] for wedge in self.config['wedges']])
         current_attenuation = self.beamline.attenuator.get()
+        self.watch_frames()
 
         with self.beamline.lock:
             # Take snapshots and prepare endstation mode
@@ -97,6 +99,7 @@ class DataCollector(GObject.GObject):
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.collecting = False
         self.beamline.detector_cover.close()
+        GObject.timeout_add(5000, self.unwatch_frames)
         return self.results
 
     def run_default(self):
@@ -309,3 +312,9 @@ class DataCollector(GObject.GObject):
         while self.collecting:
             time.sleep(0.1)
         GObject.idle_add(self.emit, 'stopped')
+
+    def watch_frames(self):
+        self.beamline.detector.handler_unblock(self.frame_link)
+
+    def unwatch_frames(self):
+        self.beamline.detector.handler_block(self.frame_link)

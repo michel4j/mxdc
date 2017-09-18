@@ -268,11 +268,12 @@ class AxisCamera(JPGCamera):
 class ZoomableCamera(object):
     implements(IZoomableCamera)
 
-    def __init__(self, camera, zoom_device, name="Zoomable Camera"):
+    def __init__(self, camera, zoom_device):
         self._camera = camera
-        self.resolution = 1.0e-3
         self._zoom = IMotor(zoom_device)
-        self._zoom.connect('changed', self._on_zoom_change)
+        self._zoom.connect('changed', self.update_resolution)
+        self._zoom.connect('active', self.update_resolution)
+
 
     def zoom(self, value):
         """Set the zoom position of the camera
@@ -281,9 +282,9 @@ class ZoomableCamera(object):
         """
         self._zoom.move_to(value)
 
-    def _on_zoom_change(self, obj, val):
+    def update_resolution(self, *args, **kwar):
         scale = 768.0/self._camera.size[0]
-        self.resolution = scale * 3.6875e-6 * numpy.exp(-0.2527 * val)
+        self._camera.resolution = scale * 3.6875e-3 * numpy.exp(-0.2527 * self._zoom.get_position())
 
     def __getattr__(self, key):
         try:

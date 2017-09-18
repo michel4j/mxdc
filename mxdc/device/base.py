@@ -60,10 +60,10 @@ class BaseDevice(GObject.GObject):
     """
     # signals
     __gsignals__ =  { 
-        "active": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_BOOLEAN,)),
-        "busy": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_BOOLEAN,)),
-        "health": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_PYOBJECT,)),
-        "message": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_STRING,)),
+        "active": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        "busy": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        "health": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        "message": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         }
     
     def __init__(self):
@@ -223,8 +223,8 @@ class BaseDevice(GObject.GObject):
             key = n.group(1)
             val = self.state_info.get(key, None)
             if (val is True) or (val is False):
-                def dyn_func(): return val
-                return dyn_func
+                #def dyn_func(): return val
+                return lambda: val
             else:
                 raise AttributeError("%s is not a boolean '%s'" % (self.__class__.__name__, key))
         else:

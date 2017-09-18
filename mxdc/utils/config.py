@@ -3,7 +3,7 @@ import msgpack
 from datetime import date, datetime
 
 from gi.repository import Gio
-from mxdc.utils import json
+from mxdc.utils import json, misc
 from mxdc.utils.log import get_module_logger
 
 _logger = get_module_logger(__name__)
@@ -11,7 +11,7 @@ _logger = get_module_logger(__name__)
 CONFIG_DIR = os.path.join(os.environ['HOME'], '.config', 'mxdc')
 SESSION_CONFIG_FILE = '{}.conf'.format(os.environ['MXDC_CONFIG'])
 SCHEMA_DIR = os.path.join(os.environ['MXDC_PATH'], 'etc', 'schemas')
-
+KEY_FILE = os.path.join(CONFIG_DIR, 'keys.dsa')
 _schema_source = Gio.SettingsSchemaSource.new_from_directory(
     SCHEMA_DIR,
     Gio.SettingsSchemaSource.get_default(),
@@ -32,14 +32,15 @@ def load_config(fname):
     return config
 
 
+def has_keys():
+    return os.path.exists(KEY_FILE)
+
+
 def fetch_keys():
     from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives.asymmetric import dsa
     from cryptography.hazmat.primitives import serialization
-
-    key_file = os.path.join(CONFIG_DIR, 'keys.dsa')
-
-    if not os.path.exists(key_file):
+    if not has_keys():
         key = dsa.generate_private_key(key_size=1024, backend=default_backend())
         key_data = {
             'private': key.private_bytes(
@@ -52,16 +53,13 @@ def fetch_keys():
                 serialization.PublicFormat.OpenSSH
             )
         }
-        with open(key_file, 'wb') as handle:
+        with open(KEY_FILE, 'wb') as handle:
             handle.write(msgpack.packb(key_data))
-            os.chmod(key_file, 0o600)
+            os.chmod(KEY_FILE, 0o600)
     else:
-        with open(key_file, 'rb') as handle:
+        with open(KEY_FILE, 'rb') as handle:
             key_data = msgpack.unpackb(handle.read())
-    return {
-        'private': serialization.load_der_private_key(key_data['private'], None, default_backend()),
-        'public': serialization.load_ssh_public_key(key_data['public'], default_backend()),
-    }
+    return key_data
 
 
 def save_config(fname, config):
@@ -84,3 +82,9 @@ def get_session():
         config['session-start'] = date_string
         save_config(SESSION_CONFIG_FILE, config)
     return config['session-key']
+
+def get_activity_template(activity='{activity}'):
+    template = settings.get_string('directory-template')
+    activity_template = template[1:] if template[0] == os.sep else template
+    dir_template = os.path.join(misc.get_project_home(), '{session}', activity_template)
+    return misc.format_partial(dir_template, activity=activity, session=get_session())

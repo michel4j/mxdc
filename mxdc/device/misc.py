@@ -29,7 +29,7 @@ class PositionerBase(BaseDevice):
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST,
                     None,
-                    (GObject.TYPE_PYOBJECT,)),
+                    (object,)),
     }
 
     def __init__(self):
@@ -222,7 +222,7 @@ class SampleLight(Positioner):
 class OnOffToggle(BaseDevice):
     implements(IOnOff)
     __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_PYOBJECT,)),
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
 
     def __init__(self, pv_name):
@@ -427,7 +427,7 @@ class BasicShutter(BaseDevice):
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST,
                     None,
-                    (GObject.TYPE_BOOLEAN,)),
+                    (bool,)),
     }
 
     def __init__(self, open_name, close_name, state_name):
@@ -484,7 +484,7 @@ class StateLessShutter(BaseDevice):
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST,
                     None,
-                    (GObject.TYPE_BOOLEAN,)),
+                    (bool,)),
     }
 
     def __init__(self, open_name, close_name):
@@ -512,7 +512,7 @@ class ShutterGroup(BaseDevice):
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST,
                     None,
-                    (GObject.TYPE_BOOLEAN,)),
+                    (bool,)),
     }
 
     def __init__(self, *args, **kwargs):
@@ -560,7 +560,7 @@ class SimShutter(BaseDevice):
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST,
                     None,
-                    (GObject.TYPE_PYOBJECT,)),
+                    (object,)),
     }
 
     def __init__(self, name):
@@ -623,7 +623,7 @@ class SimStorageRing(BaseDevice):
     __gsignals__ = {
         "beam": (GObject.SignalFlags.RUN_FIRST,
                  None,
-                 (GObject.TYPE_BOOLEAN,)),
+                 (bool,)),
     }
 
     def __init__(self, name, pv1=None, pv2=None, pv3=None):
@@ -714,7 +714,7 @@ class StorageRing(BaseDevice):
     __gsignals__ = {
         "beam": (GObject.SignalFlags.RUN_FIRST,
                  None,
-                 (GObject.TYPE_BOOLEAN,)),
+                 (bool,)),
     }
 
     def __init__(self, pv1, pv2, pv3):
@@ -781,7 +781,7 @@ class Enclosures(BaseDevice):
     __gsignals__ = {
         "ready": (GObject.SignalFlags.RUN_FIRST,
                   None,
-                  (GObject.TYPE_BOOLEAN,)),
+                  (bool,)),
     }
 
     def __init__(self, **kwargs):
