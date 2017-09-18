@@ -1,4 +1,5 @@
 from matplotlib import cm, colors
+import cmaps
 import numpy
 from scipy import interpolate
 
@@ -39,22 +40,58 @@ def cmap_discretize(cmap_name="spectral", N=10):
     # Return colormap object.
     return colors.LinearSegmentedColormap('colormap',cdict,1024)
 
+
+class Category:
+    WIKI = [
+        "#ff9999","#ff99ff","#9999ff","#cc99ff", "#99ccff","#99ffff","#99ff99","#ccff99",
+            "#ffcc99","#ff6666", "#cccccc", "#ffff99"
+    ]
+    CAT20C = [
+        "#3182bd", "#6baed6", "#9ecae1", "#c6dbef", "#e6550d", "#fd8d3c", "#fdae6b", "#fdd0a2",
+        "#31a354", "#74c476","#a1d99b", "#c7e9c0", "#756bb1", "#9e9ac8", "#bcbddc", "#dadaeb",
+        "#636363", "#969696", "#bdbdbd", "#d9d9d9"
+    ]
+    CAT20 = [
+        "#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c", "#98df8a", "#d62728", "#ff9896",
+        "#9467bd", "#c5b0d5", "#8c564b", "#c49c94", "#e377c2", "#f7b6d2", "#7f7f7f", "#c7c7c7",
+        "#bcbd22", "#dbdb8d", "#17becf", "#9edae5"
+    ]
+    CAT16C = [
+        "#aec7e8", "#ff7f0e", "#ffbb78", "#98df8a", "#d62728", "#ff9896",
+        "#c5b0d5", "#8c564b", "#c49c94", "#f7b6d2", "#7f7f7f", "#c7c7c7",
+        "#dbdb8d", "#17becf", "#9edae5"
+    ]
+    CAT20B = [
+        "#393b79", "#5254a3", "#6b6ecf", "#9c9ede", "#637939", "#8ca252", "#b5cf6b", "#cedb9c", "#8c6d31", "#bd9e39",
+        "#e7ba52", "#e7cb94", "#843c39", "#ad494a", "#d6616b", "#e7969c", "#7b4173", "#a55194", "#ce6dbd", "#de9ed6"
+    ]
+    GOOG20 = [
+        "#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e",
+        "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"
+    ]
+    EDGES = [
+        "#de7878","#de78de","#7878de","#ab78de", "#7899de","#78dede","#78de78","#abde78",
+        "#deab78","#de4545", "#ababab", "#dede78"
+    ]
+
+
 class ColorMapper(object):
-    def __init__(self, color_map="jet", min_val=-0.5, max_val=1.0):
+    def __init__(self, color_map=cmaps.inferno, min_val=-0.5, max_val=1.0):
         self.cmap =  cm.get_cmap(color_map)
         self.norm = colors.Normalize(vmin=min_val, vmax=max_val)
-    
+
     def autoscale(self, values):
         self.norm.autoscale(values)
          
     def rgb_values(self, val):
         return self.rgba_values(val)[:3]
 
-    def rgba_values(self, val):
-        return self.cmap(self.norm(val))
+    def rgba_values(self, val, alpha=1.0):
+        values = self.cmap(self.norm(val))
+        return values[0], values[1], values[2], values[3]*alpha
 
-    def rgba(self, val):
-        red, green, blue, alpha = self.rgba_values(val)
+    def rgba(self, val, alpha=1.0):
+        red, green, blue, a = self.rgba_values(val, alpha=alpha)
         return {'red': red, 'green': green, 'blue': blue, 'alpha': alpha}
 
     def rgb(self, val):
@@ -67,5 +104,5 @@ class ColorMapper(object):
         return ("#%02x%02x%02x" % (R,G,B)).upper()
         
 
-PERCENT_COLORMAP = ColorMapper(color_map='jet', min_val=10, max_val=90)
-FRACTION_COLORMAP = ColorMapper(color_map='jet', min_val=0.1, max_val=0.9)
+PERCENT_COLORMAP = ColorMapper(min_val=10, max_val=90)
+FRACTION_COLORMAP = ColorMapper(min_val=0.1, max_val=0.9)

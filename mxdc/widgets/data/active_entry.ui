@@ -54,7 +54,7 @@
               <object class="GtkEntry" id="entry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">7</property>
+                <property name="width_chars">6</property>
                 <property name="text" translatable="yes">0.0</property>
                 <property name="xalign">1</property>
                 <property name="input_purpose">number</property>

@@ -26,10 +26,11 @@ def _energy2pitch(x):
 
 # maps names to device objects
 _tmp1 = SimMotor('Detector Distance', 150.0, 'mm', speed=50.0) # use the same motor for distance and z
+_tmp2 = SimMotor('Energy', 12.5, 'keV', speed=0.2, precision=4)
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
-    'energy':   SimMotor('Energy', 12.5, 'keV'),
-    'bragg_energy': SimMotor('Bragg Energy', 12.5, 'keV'),
+    'energy':   _tmp2,
+    'bragg_energy': _tmp2,
     'dcm_pitch':  SimMotor('DCM Pitch', 0.0, 'deg'),
     'beam_tuner': SimTuner('Simulated Beam Tuner'),
     
@@ -41,7 +42,7 @@ DEVICES = {
     'sample_y2': SimMotor('Sample Y', 0.0, 'mm'),
     
     # Beam position & Size
-    'aperture': SimChoicePositioner('Beam Size', 100, choices=[200, 150, 100, 50, 25], units='um'),
+    'aperture': SimChoicePositioner('Beam Size', 50, choices=[200, 150, 100, 50, 25], units='um'),
     'beam_x':   SimMotor('Beam X', 0.0, 'mm'),
     'beam_y':   SimMotor('Beam Y', 0.0, 'mm'),
     'beam_w':   SimMotor('Beam W', 0.2, 'mm'),
@@ -57,7 +58,7 @@ DEVICES = {
     'beamstop_x':  SimMotor('Beamstop X', 0.0, 'mm'),
     'beamstop_y':  SimMotor('Beamstop Y', 0.0, 'mm'),
     'beamstop_z':  SimMotor('Beamstop Z', 30.0, 'mm'),  
-    'sample_zoom':  SimPositioner('Sample Zoom', 2, delay=0),
+    'sample_zoom':  SimMotor('Sample Zoom', 2.0, speed=8),
     'cryojet':  SimCryojet('Simulated Cryojet'),
     #'sample_camera': SimCamera(),
     #'sample_camera': AxisCamera('V2E1608-400.clsi.ca', 1),
@@ -67,7 +68,9 @@ DEVICES = {
     'sample_camera': REDISCamera('opi1608-101.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
 
     'sample_backlight': SimLight('Back light', 45.0, '%'),
-    'sample_frontlight': SimLight('Front light', 55.0, '%'),    
+    'sample_frontlight': SimLight('Front light', 55.0, '%'),
+    'sample_uvlight': SimLight('UV light', 25.0, '%'),
+
     #'hutch_video':  SimPTZCamera(),
     'hutch_video':  AxisPTZCamera('ccd1608-301.clsi.ca'),
 
@@ -97,13 +100,13 @@ DEVICES = {
     'multi_mca' : SimMultiChannelAnalyzer('Simulated MCA'),
 
     #disk space monitor
-    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.4, critical=0.1, freq=2),
+    'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.2, critical=0.1, freq=30),
 }
 
 # lims, dpm, imagesync and other services
 SERVICES = {
     'image_server': LocalImageSyncClient(),
-    'lims': LIMSClient('https://opi2051-002.clsi.ca:9393'),
+    'lims': MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
     'dpm': DPMClient(),
 }
 

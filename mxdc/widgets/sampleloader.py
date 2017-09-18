@@ -77,7 +77,7 @@ class ContainerStore(Gtk.ListStore):
 class DewarLoader(Gtk.Box):
     __gsignals__ = {
             'samples-changed': (GObject.SignalFlags.RUN_FIRST, None, []),
-            'sample-selected': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
+            'sample-selected': (GObject.SignalFlags.RUN_FIRST, None, [object,]),
     }
     
     def __init__(self):

@@ -15,4 +15,4 @@ from mxdc.device.boss import *
 from mxdc.device.video import *
 from mxdc.service.imagesync_client import *
 from mxdc.interface.engines import *
-from mxdc.utils.clients import LIMSClient, DPMClient
+from mxdc.utils.clients import *

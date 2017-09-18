@@ -108,13 +108,13 @@ class BasicAutomounter(BaseDevice):
     """
     implements(IAutomounter)
     __gsignals__ = {
-        'status': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING,)),
-        'layout': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-        'port-state': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-        'enabled': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_BOOLEAN,)),
-        'preparing': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_BOOLEAN,)),
-        'mounted': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-        'progress': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
+        'status': (GObject.SignalFlags.RUN_LAST, None, (str,)),
+        'layout': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'port-state': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'enabled': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
+        'preparing': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
+        'mounted': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'progress': (GObject.SignalFlags.RUN_LAST, None, (object,)),
     }
 
     class ContainerType(object):

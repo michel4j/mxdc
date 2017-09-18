@@ -1,53 +1,82 @@
+import os
+import time
+import uuid
+import copy
 from collections import OrderedDict
-
+from datetime import datetime
+import numpy
 from gi.repository import Gtk, GObject, Gdk
+from twisted.python.components import globalRegistry
+
 from microscope import IMicroscope
 from mxdc.beamline.mx import IBeamline
-from engine.rastering import RasterCollector
-from mxdc.utils import colors
-from twisted.python.components import globalRegistry
+from mxdc.engine.rastering import RasterCollector
+from mxdc.utils import colors, runlists, config, misc
+from mxdc.utils.converter import resol_to_dist
+from mxdc.utils.log import get_module_logger
+from mxdc.widgets import dialogs
+from mxdc.widgets.imageviewer import IImageViewer
+from samplestore import ISampleStore
+import common
+
+RASTER_DELTA = 0.5
+
+_logger = get_module_logger(__name__)
+
+
+def frame_score(info):
+    if info:
+        bragg = info['bragg_spots']
+        ice = 1 / (1.0 + info['ice_rings'])
+        saturation = info['saturation'][1]
+        sc_x = numpy.array([bragg, saturation, ice])
+        sc_w = numpy.array([5, 10, 0.2])
+        score = numpy.exp((sc_w * numpy.log(sc_x)).sum() / sc_w.sum())
+    else:
+        score = 0.0
+    return score
 
 
 class RasterStore(Gtk.TreeStore):
     class Data(object):
-        NAME, ANGLE, X_POS, Y_POS, SCORE, CELL, STATE, DATA = range(8)
+        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, STATE, UUID = range(9)
 
     class State(object):
         PARENT, PENDING, ACTIVE, COMPLETE = range(4)
 
     def __init__(self):
-        super(RasterStore, self).__init__(str, float, float, float, float, int, int, object)
+        super(RasterStore, self).__init__(str, float, float, float, float, float, int, int, str)
 
     def find_parent(self, name):
-        for row in self:
-            if row[self.Data.NAME] == name:
-                return row
-
-    def add_item(self, item):
-        """Add one item to the tree store. Items with the same name will be grouped with same parent"""
-        parent = None
-        itr = self.get_iter_first()
-        while itr:
-            if self[itr][self.Data.NAME] == item['name']:
-                parent = itr
+        parent = self.get_iter_first()
+        while parent:
+            if self[parent][self.Data.NAME] == name:
                 break
-            itr = self.iter_next(itr)
+            parent = self.iter_next(parent)
+        return parent
 
+    def add_item(self, item, parent=None):
+        """Add one item to the tree store. Items with the same name will be grouped with same parent"""
+        if not parent:
+            parent = self.find_parent(item['name'])
+
+        # No parent exists, create one
         if not parent:
             parent = self.append(
                 None,
-                row=[item['name'], item['angle'], 0.0, 0.0, 0.0, 0, self.State.PARENT, {}]
+                row=[item['name'], item['angle'], 0.0, 0.0, 0.0, 0.0, 0, self.State.PARENT, item['uuid']]
             )
-        self.append(
+        child = self.append(
             parent,
             row=[
-                'cell-{}'.format(item['cell']), item['angle'], item['x'], item['y'],
-               item.get('score', 0.0), item['cell'], item.get('state', self.State.PENDING), item
+                'cell-{}'.format(item['cell']), item['angle'], item['xyz'][0], item['xyz'][1],item['xyz'][2],
+                item.get('score', 0.0), item['cell'], item.get('state', self.State.PENDING), item['uuid']
             ]
         )
+        return self.get_path(parent), self.get_path(child)
 
     def add_items(self, items):
-        """Add a list of items to the tree store. The tree will be cleared first"""
+        """Add a list of items to the tree store with the same parent. The tree will be cleared first"""
         self.clear()
         for item in items:
             self.add_item(item)
@@ -74,19 +103,32 @@ class RasterStore(Gtk.TreeStore):
 class RasterController(GObject.GObject):
     Column = OrderedDict([
         (RasterStore.Data.NAME, 'Name'),
-        (RasterStore.Data.ANGLE, 'Angle (deg)'),
+        (RasterStore.Data.ANGLE, 'Angle'),
         (RasterStore.Data.X_POS, 'X (mm)'),
         (RasterStore.Data.Y_POS, 'Y (mm)'),
+        (RasterStore.Data.Z_POS, 'Z (mm)'),
         (RasterStore.Data.SCORE, 'Score (%)'),
         (RasterStore.Data.STATE, ''),
     ])
-    Formats = {
+    Format = {
         RasterStore.Data.NAME: '{}',
-        RasterStore.Data.ANGLE: '{:0.4g}',
-        RasterStore.Data.X_POS: '{:0.4g}',
-        RasterStore.Data.Y_POS: '{:0.4g}',
+        RasterStore.Data.ANGLE: '{:0.1f}\xc2\xb0',
+        RasterStore.Data.X_POS: '{:0.4f}',
+        RasterStore.Data.Y_POS: '{:0.4f}',
+        RasterStore.Data.Z_POS: '{:0.4f}',
         RasterStore.Data.SCORE: '{:0.2f}',
     }
+    Specs = {
+        # field: ['field_type', format, type, default]
+        'resolution': ['entry', '{:0.3g}', float, 2.0],
+        'exposure': ['entry', '{:0.3g}', float, 1.0],
+    }
+
+    class StateType:
+        READY, ACTIVE, PAUSED = range(3)
+
+    state = GObject.Property(type=int, default=StateType.READY)
+    config = GObject.Property(type=object)
 
     def __init__(self, view, widget):
         super(RasterController, self).__init__()
@@ -94,13 +136,31 @@ class RasterController(GObject.GObject):
         self.view = view
         self.widget = widget
 
+        # housekeeping
+        self.start_time = 0
+        self.pause_dialog = None
+        self.results = {}
+
         self.view.set_model(self.model)
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.microscope = globalRegistry.lookup([], IMicroscope)
-        self.setup()
-
-        self.microscope.connect('notify::grid', self.on_grid_changed)
+        self.sample_store = globalRegistry.lookup([], ISampleStore)
         self.collector = RasterCollector()
+
+        # signals
+        self.microscope.connect('notify::grid-xyz', self.on_grid_changed)
+        self.connect('notify::state', self.on_state_changed)
+        self.collector.connect('done', self.on_done)
+        self.collector.connect('new-image', self.on_new_image)
+        self.collector.connect('paused', self.on_pause)
+        self.collector.connect('stopped', self.on_stopped)
+        self.collector.connect('progress', self.on_progress)
+        self.collector.connect('started', self.on_started)
+        self.collector.connect('result', self.on_results)
+
+        self.sample_store.connect('updated', self.on_sample_updated)
+
+        self.setup()
 
     def setup(self):
         # Selected Column
@@ -120,1240 +180,258 @@ class RasterController(GObject.GObject):
                 column.set_cell_data_func(renderer, self.format_cell, data)
                 if data == RasterStore.Data.NAME:
                     column.set_resizable(True)
+                else:
+                    renderer.set_alignment(1.0, 0.5)
+                    renderer.props.family = 'Monospace'
             column.set_clickable(True)
             column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
             self.view.append_column(column)
 
         self.view.props.activate_on_single_click = False
-        self.model.add_items(TEST_DATA)
+        self.widget.raster_start_btn.connect('clicked', self.start_raster)
+        self.widget.raster_stop_btn.connect('clicked', self.stop_raster)
+        self.view.connect('row-activated', self.on_result_activated)
+
+        labels = {
+            'energy': (self.beamline.energy, self.widget.raster_energy_fbk, {'format': '{:0.3f} keV'}),
+            'attenuation': (self.beamline.attenuator, self.widget.raster_attenuation_fbk, {'format': '{:0.0f} %'}),
+            'aperture': (self.beamline.aperture, self.widget.raster_aperture_fbk, {'format': '{:0.0f} \xc2\xb5m'}),
+            'omega': (self.beamline.omega, self.widget.raster_angle_fbk, {'format': '{:0.2f} deg'}),
+            'maxres': (self.beamline.maxres, self.widget.raster_maxres_fbk, {'format': '{:0.2f} A'}),
+        }
+        self.monitors = {
+            name: common.DeviceMonitor(dev, lbl, **kw)
+            for name, (dev, lbl, kw) in labels.items()
+        }
 
     def format_cell(self, column, renderer, model, itr, data):
-        if model[itr][RasterStore.Data.STATE] == RasterStore.State.PARENT and not data in [RasterStore.Data.NAME, RasterStore.Data.ANGLE]:
+        if model[itr][RasterStore.Data.STATE] == RasterStore.State.PARENT and not data in [RasterStore.Data.NAME,
+                                                                                           RasterStore.Data.ANGLE]:
             renderer.set_property('text', '')
         else:
             value = model[itr][data]
-            renderer.set_property('text', self.Formats[data].format(value))
+            renderer.set_property('text', self.Format[data].format(value))
 
     def format_state(self, column, renderer, model, itr, data):
         value = model[itr][data]
-        if value  == RasterStore.State.PARENT:
+        if value == RasterStore.State.PARENT:
             col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.0)
             renderer.set_property("foreground-rgba", col)
             renderer.set_property("text", "")
         else:
             score = model[itr][RasterStore.Data.SCORE]
-            col = Gdk.RGBA(**colors.PERCENT_COLORMAP.rgba(score))
+            col = Gdk.RGBA(**self.microscope.grid_cmap.rgba(score))
             renderer.set_property("foreground-rgba", col)
             renderer.set_property("text", u"\u25a0")
 
-    def on_grid_changed(self, obj, param):
-        grid = obj.get_property(param.name)
-        if grid is not None:
-            self.widget.raster_grid_info.set_text('Grid with {} cells'.format(len(grid)))
-            self.widget.raster_command_box.set_sensitive(True)
-        else:
-            self.widget.raster_grid_info.set_text('(please define a grid)')
-            self.widget.raster_command_box.set_sensitive(False)
+    def get_parameters(self):
+        info = {}
+        for name, details in self.Specs.items():
+            field_type, fmt, conv, default = details
+            field_name = 'raster_{}_{}'.format(name, field_type)
+            field = getattr(self.widget, field_name)
+            raw_value = default
+            if field_type == 'entry':
+                raw_value = field.get_text()
+            elif field_type == 'switch':
+                raw_value = field.get_active()
+            elif field_type == 'cbox':
+                raw_value = field.get_active_id()
+            try:
+                value = conv(raw_value)
+            except (TypeError, ValueError):
+                value = default
+            info[name] = value
 
-TEST_DATA = [
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 0,
-        "score": 69.55433524997771,
-        "y": 0.975250122996875,
-        "x": 0.42084424406576715
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 1,
-        "score": 85.39115520611796,
-        "y": 0.2225988838507562,
-        "x": 0.7667501810560232
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 2,
-        "score": 99.49951300289207,
-        "y": 0.7093354674343401,
-        "x": 0.14273294044159557
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 3,
-        "score": 47.23169483259334,
-        "y": 0.772546772332969,
-        "x": 0.8193983610073015
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 4,
-        "score": 86.38594695073141,
-        "y": 0.047921308423389486,
-        "x": 0.3789852650675285
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 5,
-        "score": 78.76764787142476,
-        "y": 0.5349895163389136,
-        "x": 0.21557557451874398
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 6,
-        "score": 14.296539770020733,
-        "y": 0.9767309613316184,
-        "x": 0.6221676571814925
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 7,
-        "score": 98.4298535233376,
-        "y": 0.3731030339450082,
-        "x": 0.968300325114399
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 8,
-        "score": 74.5548345659936,
-        "y": 0.17770210144829468,
-        "x": 0.5682534686066483
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 9,
-        "score": 81.59026939355401,
-        "y": 0.952688935299198,
-        "x": 0.9409059059911509
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 10,
-        "score": 76.75298806393744,
-        "y": 0.1698546973689774,
-        "x": 0.6389868682627977
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 11,
-        "score": 79.21855792728726,
-        "y": 0.14827278160358992,
-        "x": 0.4501337388988338
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 12,
-        "score": 39.92077441489476,
-        "y": 0.5382454321135501,
-        "x": 0.6587837246482888
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 13,
-        "score": 28.512469726540214,
-        "y": 0.13499796799870556,
-        "x": 0.7412158347953447
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 14,
-        "score": 15.169111460794182,
-        "y": 0.9389145176765678,
-        "x": 0.3099349011098227
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 15,
-        "score": 8.620176533365553,
-        "y": 0.707286898200174,
-        "x": 0.19830926692363282
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 16,
-        "score": 20.442919144529238,
-        "y": 0.2761591284697805,
-        "x": 0.9306955845518471
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 17,
-        "score": 57.66660374176258,
-        "y": 0.4162232915697026,
-        "x": 0.4860795182730804
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 18,
-        "score": 34.348796097227755,
-        "y": 0.07937861315986261,
-        "x": 0.3462792681370007
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 19,
-        "score": 18.77342130710977,
-        "y": 0.29836641520646157,
-        "x": 0.22240868685359472
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 20,
-        "score": 29.893889454695387,
-        "y": 0.24708509053544958,
-        "x": 0.5301161309009924
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 21,
-        "score": 93.06655427175252,
-        "y": 0.22323149402636533,
-        "x": 0.2980043882274376
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 22,
-        "score": 93.78027766813214,
-        "y": 0.3613865536887426,
-        "x": 0.8110122061598947
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 23,
-        "score": 63.84919606962467,
-        "y": 0.17801581900968044,
-        "x": 0.4383741160551978
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 24,
-        "score": 28.361088964235325,
-        "y": 0.7173537453196699,
-        "x": 0.37720530478758485
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 25,
-        "score": 73.17112257415066,
-        "y": 0.8031316220129465,
-        "x": 0.5153440830473172
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 26,
-        "score": 4.461356240203962,
-        "y": 0.24406136270095502,
-        "x": 0.17098663964933936
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 27,
-        "score": 81.34710773545906,
-        "y": 0.5577234874918553,
-        "x": 0.1499241591950764
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 28,
-        "score": 38.35937706345859,
-        "y": 0.39940714978714187,
-        "x": 0.8944674065164363
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 29,
-        "score": 72.10948500651656,
-        "y": 0.8395422609998041,
-        "x": 0.6019323529381364
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 30,
-        "score": 35.69592980821944,
-        "y": 0.12697700411498103,
-        "x": 0.9467734670785217
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 31,
-        "score": 47.66609402471117,
-        "y": 0.2195413496821419,
-        "x": 0.5883666673651734
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 32,
-        "score": 90.9119234179894,
-        "y": 0.708227064805476,
-        "x": 0.670487990584758
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 33,
-        "score": 78.57742733444344,
-        "y": 0.28655647774084836,
-        "x": 0.31626771202720916
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 34,
-        "score": 82.95372721764853,
-        "y": 0.7150335402158475,
-        "x": 0.33918884943979355
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 35,
-        "score": 20.75130356157566,
-        "y": 0.8878876799366374,
-        "x": 0.9227121677339324
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 36,
-        "score": 91.38780872924866,
-        "y": 0.00021326836388979586,
-        "x": 0.5112076840309697
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 37,
-        "score": 22.93427701758034,
-        "y": 0.29482470928919435,
-        "x": 0.06463754824286183
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 38,
-        "score": 80.21670309680808,
-        "y": 0.801131364403608,
-        "x": 0.9320157148172104
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 39,
-        "score": 60.61995022963637,
-        "y": 0.16855954903976667,
-        "x": 0.21023978372407515
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 40,
-        "score": 26.607204522504546,
-        "y": 0.06646830512858559,
-        "x": 0.7576472851718745
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 41,
-        "score": 96.97757084828908,
-        "y": 0.41052012839157437,
-        "x": 0.507951300567664
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 42,
-        "score": 16.366584164948417,
-        "y": 0.2726334427315189,
-        "x": 0.4549984906176556
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 43,
-        "score": 74.62488065284117,
-        "y": 0.6563130203326456,
-        "x": 0.6581150749217151
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 44,
-        "score": 35.41837626091448,
-        "y": 0.10168019091685487,
-        "x": 0.9539338472742518
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 45,
-        "score": 44.59281177073547,
-        "y": 0.40692667803455573,
-        "x": 0.8096890229129091
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 46,
-        "score": 28.0515618621212,
-        "y": 0.885712032753787,
-        "x": 0.8051632830937139
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 47,
-        "score": 59.47171154984373,
-        "y": 0.14247774686163517,
-        "x": 0.14098904521085065
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 48,
-        "score": 82.03425684565337,
-        "y": 0.6482816334448805,
-        "x": 0.33997277606394205
-    },
-    {
-        "angle": 0.0,
-        "name": "2017-09-07T14:10:57",
-        "cell": 49,
-        "score": 26.450060140006105,
-        "y": 0.2999946084512317,
-        "x": 0.8328383237555192
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 0,
-        "score": 24.892385485349287,
-        "y": 0.11217545372481974,
-        "x": 0.8545980082537825
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 1,
-        "score": 74.70385484230448,
-        "y": 0.7903667670965702,
-        "x": 0.6689460268588333
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 2,
-        "score": 67.97562176082299,
-        "y": 0.29005709880047914,
-        "x": 0.7633501949903774
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 3,
-        "score": 59.350733576209954,
-        "y": 0.8707531522915123,
-        "x": 0.9722660415322398
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 4,
-        "score": 95.92534294016824,
-        "y": 0.8923968963569667,
-        "x": 0.9917967263889074
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 5,
-        "score": 57.38475441432067,
-        "y": 0.7021593915886107,
-        "x": 0.6408070968886541
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 6,
-        "score": 84.67594761166505,
-        "y": 0.6091407267499052,
-        "x": 0.35333804220503995
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 7,
-        "score": 29.35151741337775,
-        "y": 0.863688009243303,
-        "x": 0.954913885306024
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 8,
-        "score": 21.496272274242102,
-        "y": 0.8168108728941551,
-        "x": 0.3130298077884518
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 9,
-        "score": 62.602149849825835,
-        "y": 0.5441790672263471,
-        "x": 0.24685938461798518
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 10,
-        "score": 44.23403350655924,
-        "y": 0.5512808113913188,
-        "x": 0.929880495655625
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 11,
-        "score": 28.64829695359252,
-        "y": 0.060000954706850185,
-        "x": 0.13059394359776777
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 12,
-        "score": 36.429249384535325,
-        "y": 0.4057656723350279,
-        "x": 0.427021269375909
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 13,
-        "score": 1.8330750524096384,
-        "y": 0.32163884267162357,
-        "x": 0.1596657643002184
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 14,
-        "score": 80.2581098564863,
-        "y": 0.8561071767779334,
-        "x": 0.4002209954549669
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 15,
-        "score": 58.033332585829775,
-        "y": 0.4916164958162401,
-        "x": 0.20339888669385375
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 16,
-        "score": 6.388998010637959,
-        "y": 0.07697259574143323,
-        "x": 0.1735999231176154
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 17,
-        "score": 70.52121625302465,
-        "y": 0.8708079260148202,
-        "x": 0.48526079712523085
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 18,
-        "score": 61.60213533417986,
-        "y": 0.8116731740707519,
-        "x": 0.1419710393357747
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 19,
-        "score": 46.40801958295063,
-        "y": 0.5747697779143414,
-        "x": 0.3613094853596276
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 20,
-        "score": 19.69724537762756,
-        "y": 0.04179253126041782,
-        "x": 0.5627092102676668
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 21,
-        "score": 24.10408910892434,
-        "y": 0.8188622755972882,
-        "x": 0.5066485080736872
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 22,
-        "score": 54.92509333085626,
-        "y": 0.08269873894648705,
-        "x": 0.16423727183700132
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 23,
-        "score": 40.0777842778132,
-        "y": 0.39647427680627834,
-        "x": 0.476925086432164
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 24,
-        "score": 86.36517772359142,
-        "y": 0.690959650817234,
-        "x": 0.48883150850022417
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 25,
-        "score": 5.678156633746367,
-        "y": 0.6237111828774208,
-        "x": 0.9355656602725478
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 26,
-        "score": 97.00541999306914,
-        "y": 0.009639857561682286,
-        "x": 0.013013469441607639
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 27,
-        "score": 64.38444282110102,
-        "y": 0.19282954367975658,
-        "x": 0.027793095150062008
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 28,
-        "score": 53.7110679522085,
-        "y": 0.016270303738497582,
-        "x": 0.1898194964697515
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 29,
-        "score": 34.65472726407997,
-        "y": 0.5836608290220988,
-        "x": 0.6125392301579042
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 30,
-        "score": 29.42691803746427,
-        "y": 0.9339832894767051,
-        "x": 0.41113136336660183
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 31,
-        "score": 11.26123536864304,
-        "y": 0.8821746478847481,
-        "x": 0.17379749897104035
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 32,
-        "score": 20.93832039461977,
-        "y": 0.1535485760626064,
-        "x": 0.6907085094880573
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 33,
-        "score": 8.621153464088927,
-        "y": 0.7197748142566903,
-        "x": 0.7970379177001814
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 34,
-        "score": 17.326437760674086,
-        "y": 0.783988769789974,
-        "x": 0.9265792820171892
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 35,
-        "score": 72.57772424338388,
-        "y": 0.44920964202828295,
-        "x": 0.25947558589242714
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 36,
-        "score": 64.29934065071097,
-        "y": 0.6065902325260861,
-        "x": 0.539292207043608
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 37,
-        "score": 64.24038004013595,
-        "y": 0.13602795402148748,
-        "x": 0.6906722139561947
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 38,
-        "score": 29.16451820625681,
-        "y": 0.4976103476731576,
-        "x": 0.15589917421506494
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 39,
-        "score": 36.06522346375108,
-        "y": 0.2477431981970739,
-        "x": 0.17397650873427573
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 40,
-        "score": 72.3642780209853,
-        "y": 0.6255047427237276,
-        "x": 0.12193935460889127
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 41,
-        "score": 75.82702035265659,
-        "y": 0.7480862766878315,
-        "x": 0.7127318108497348
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 42,
-        "score": 65.70487023939195,
-        "y": 0.8703259784568618,
-        "x": 0.06872278212871685
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 43,
-        "score": 65.2076298561983,
-        "y": 0.7048678153252348,
-        "x": 0.8103410159813198
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 44,
-        "score": 30.961829861877543,
-        "y": 0.6536116624659314,
-        "x": 0.049524374245206615
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 45,
-        "score": 74.94794810990734,
-        "y": 0.81998409929775,
-        "x": 0.7747233714289588
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 46,
-        "score": 63.257015323510124,
-        "y": 0.9626551641981886,
-        "x": 0.7880383003581058
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 47,
-        "score": 48.58947198461999,
-        "y": 0.3237343448501804,
-        "x": 0.5620750885868323
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 48,
-        "score": 7.628156034595291,
-        "y": 0.4424812026296465,
-        "x": 0.48100844462696524
-    },
-    {
-        "angle": 45.0,
-        "name": "2017-09-07T14:11:39",
-        "cell": 49,
-        "score": 89.92082219030284,
-        "y": 0.2209488906746282,
-        "x": 0.9861886781865005
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 0,
-        "score": 35.464989463135666,
-        "y": 0.059020015288146266,
-        "x": 0.5283569453413315
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 1,
-        "score": 78.08058503812117,
-        "y": 0.30563094612211217,
-        "x": 0.9363742732779395
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 2,
-        "score": 30.042832428322598,
-        "y": 0.30284557067616835,
-        "x": 0.5713119849345532
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 3,
-        "score": 3.4274365830381237,
-        "y": 0.6291328605459086,
-        "x": 0.8598301340118956
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 4,
-        "score": 93.06705890619477,
-        "y": 0.5351272226367904,
-        "x": 0.9227016303546185
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 5,
-        "score": 82.55249874145093,
-        "y": 0.945107146674532,
-        "x": 0.8249266973694999
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 6,
-        "score": 85.29843765869224,
-        "y": 0.2934280923326483,
-        "x": 0.6006333919896264
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 7,
-        "score": 28.33047122892821,
-        "y": 0.641340865696471,
-        "x": 0.7674441843695083
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 8,
-        "score": 62.7282544890994,
-        "y": 0.6357785257831003,
-        "x": 0.2475153414824317
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 9,
-        "score": 62.68407925381726,
-        "y": 0.6382729702154041,
-        "x": 0.5824347053324241
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 10,
-        "score": 46.354336413087736,
-        "y": 0.9834499810481355,
-        "x": 0.613588178712443
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 11,
-        "score": 12.946467093036917,
-        "y": 0.7796914514301985,
-        "x": 0.2769278923409749
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 12,
-        "score": 69.53979101543972,
-        "y": 0.7204051207850649,
-        "x": 0.6245957600192497
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 13,
-        "score": 27.775510122267498,
-        "y": 0.5287891315879488,
-        "x": 0.6019702778864703
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 14,
-        "score": 19.391390221911863,
-        "y": 0.0938216344475804,
-        "x": 0.5185974536200246
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 15,
-        "score": 49.05216783571458,
-        "y": 0.6459606538359725,
-        "x": 0.0200228475128571
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 16,
-        "score": 1.9159217517454419,
-        "y": 0.9260849320054829,
-        "x": 0.9140421286767568
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 17,
-        "score": 71.84152033582359,
-        "y": 0.30061077803470515,
-        "x": 0.6720663691538133
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 18,
-        "score": 76.72857472761405,
-        "y": 0.6482396190596202,
-        "x": 0.834690466835952
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 19,
-        "score": 53.51904032132857,
-        "y": 0.925835294693766,
-        "x": 0.6244220970689045
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 20,
-        "score": 71.7687768209359,
-        "y": 0.962699346850739,
-        "x": 0.7809043585423104
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 21,
-        "score": 93.43305141773757,
-        "y": 0.6790553629136925,
-        "x": 0.8565296409443443
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 22,
-        "score": 80.60793891567056,
-        "y": 0.9060756245092477,
-        "x": 0.09585323170496918
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 23,
-        "score": 19.657027471072496,
-        "y": 0.7933834616143881,
-        "x": 0.11275596613286487
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 24,
-        "score": 51.97758385060066,
-        "y": 0.04175788373118072,
-        "x": 0.9508522539501676
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 25,
-        "score": 68.46256384065302,
-        "y": 0.808091456791115,
-        "x": 0.9803277189020363
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 26,
-        "score": 93.66032861597265,
-        "y": 0.6229994140339858,
-        "x": 0.8336279870595548
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 27,
-        "score": 54.204373275967896,
-        "y": 0.21490305623260075,
-        "x": 0.558921004711251
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 28,
-        "score": 41.72665154314266,
-        "y": 0.10869943318386,
-        "x": 0.17452202164506037
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 29,
-        "score": 35.457306276774446,
-        "y": 0.7347060783462066,
-        "x": 0.5917290684799202
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 30,
-        "score": 34.38113415219918,
-        "y": 0.09440786464606787,
-        "x": 0.5060225739209283
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 31,
-        "score": 96.67289477220939,
-        "y": 0.3760289962809883,
-        "x": 0.7548607239186397
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 32,
-        "score": 32.928863368363004,
-        "y": 0.9095304502559303,
-        "x": 0.13433156247700673
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 33,
-        "score": 20.761837933038596,
-        "y": 0.009804194027897006,
-        "x": 0.2562049078282481
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 34,
-        "score": 57.866221216452665,
-        "y": 0.4055762434222213,
-        "x": 0.3448795578854542
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 35,
-        "score": 9.760134836533696,
-        "y": 0.27670533597574853,
-        "x": 0.18321914749360613
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 36,
-        "score": 4.0878589515473855,
-        "y": 0.4746932486806801,
-        "x": 0.8172712586857782
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 37,
-        "score": 89.79235894945164,
-        "y": 0.3251277387659077,
-        "x": 0.047149613025531
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 38,
-        "score": 65.69292802840381,
-        "y": 0.5079437571231372,
-        "x": 0.643179163547449
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 39,
-        "score": 55.402367866458476,
-        "y": 0.5493592755978061,
-        "x": 0.5986441678122666
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 40,
-        "score": 30.776031631422075,
-        "y": 0.4349033445027848,
-        "x": 0.7583111046086118
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 41,
-        "score": 17.490202572104096,
-        "y": 0.48528349096666534,
-        "x": 0.19657851404254068
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 42,
-        "score": 17.084563661287778,
-        "y": 0.25111926264604223,
-        "x": 0.716498380000811
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 43,
-        "score": 51.865559522235,
-        "y": 0.8625665970675106,
-        "x": 0.6701881106672153
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 44,
-        "score": 79.53433576230205,
-        "y": 0.5590195881702414,
-        "x": 0.6397969634661637
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 45,
-        "score": 51.45295197214268,
-        "y": 0.4106151830663003,
-        "x": 0.17658984779698628
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 46,
-        "score": 86.35449486563897,
-        "y": 0.8568259555296354,
-        "x": 0.25959781318643016
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 47,
-        "score": 28.77678819746585,
-        "y": 0.2417878446023629,
-        "x": 0.780581385689914
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 48,
-        "score": 30.577953820139935,
-        "y": 0.2164337546564099,
-        "x": 0.9816132132745437
-    },
-    {
-        "angle": 90.0,
-        "name": "2017-09-07T14:10:06",
-        "cell": 49,
-        "score": 62.74791842391452,
-        "y": 0.710250786047888,
-        "x": 0.29182426628402425
-    }
-]
+        return info
+
+    def start_raster(self, *args, **kwargs):
+        if self.props.state == self.StateType.ACTIVE:
+            self.widget.raster_progress_lbl.set_text("Pausing raster ...")
+            self.collector.pause()
+        elif self.props.state == self.StateType.PAUSED:
+            self.widget.raster_progress_lbl.set_text("Resuming raster ...")
+            self.collector.resume()
+        elif self.props.state == self.StateType.READY:
+            self.widget.raster_progress_lbl.set_text("Starting raster ...")
+            grid = self.microscope.grid_xyz
+            params = self.get_parameters()
+            params['angle'] = self.microscope.grid_params['angle']
+            params['origin'] = self.microscope.grid_params['origin']
+            params['energy'] = self.beamline.energy.get_position()
+            params['distance'] = resol_to_dist(params['resolution'], self.beamline.detector.mm_size, params['energy'])
+            params['delta'] = RASTER_DELTA
+            params['uuid'] = str(uuid.uuid4())
+            params['name'] = datetime.now().strftime('%Y%m%d-%H%M')
+            params['activity'] = 'raster'
+            params = runlists.update_for_sample(params, self.sample_store.get_current())
+
+            self.props.config = params
+            self.collector.configure(grid, self.props.config)
+            self.collector.start()
+
+    def stop_raster(self, *args, **kwargs):
+        self.widget.raster_progress_lbl.set_text("Stopping raster ...")
+        self.collector.stop()
+
+    def on_sample_updated(self, obj):
+        sample = self.sample_store.get_current()
+        sample_text = '{name}|{group}|{container}|{port}'.format(
+            name=sample.get('name', '...'), group=sample.get('group', '...'), container=sample.get('container', '...'),
+            port=sample.get('port', '...')
+        ).replace('|...', '')
+        self.widget.raster_sample_fbk.set_text(sample_text)
+
+    def on_state_changed(self, obj, param):
+        if self.props.state == self.StateType.ACTIVE:
+            self.widget.raster_start_icon.set_from_icon_name(
+                "media-playback-pause-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+            )
+            self.widget.raster_stop_btn.set_sensitive(True)
+            self.widget.raster_start_btn.set_sensitive(True)
+            self.widget.raster_config_box.set_sensitive(False)
+            self.view.set_sensitive(False)
+        elif self.props.state == self.StateType.PAUSED:
+            self.widget.raster_progress_lbl.set_text("Rastering paused!")
+            self.widget.raster_start_icon.set_from_icon_name(
+                "media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+            )
+            self.widget.raster_stop_btn.set_sensitive(True)
+            self.widget.raster_start_btn.set_sensitive(True)
+            self.widget.raster_config_box.set_sensitive(False)
+            self.view.set_sensitive(True)
+        else:
+            self.widget.raster_start_icon.set_from_icon_name(
+                "media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+            )
+            self.widget.raster_config_box.set_sensitive(True)
+            self.widget.raster_start_btn.set_sensitive(True)
+            self.widget.raster_stop_btn.set_sensitive(False)
+            self.view.set_sensitive(True)
+
+    def on_started(self, obj):
+        self.start_time = time.time()
+        self.props.state = self.StateType.ACTIVE
+        _logger.info("Rastering Started.")
+
+        self.results[self.props.config['uuid']] = {
+            'config': copy.deepcopy(self.props.config),
+            'grid': self.microscope.grid_xyz,
+            'scores': {}
+        }
+
+        directory = self.props.config['directory']
+        home_dir = misc.get_project_home()
+        current_dir = directory.replace(home_dir, '~')
+        self.widget.raster_dir_fbk.set_text(current_dir)
+
+        #self.widget.raster_points_fbk.set_text('{}'.format(len(self.microscope.grid_xyz)))
+
+    def on_done(self, obj=None):
+        self.props.state = self.StateType.READY
+        self.widget.raster_progress_lbl.set_text("Rastering Completed.")
+        self.widget.raster_eta.set_text('--:--')
+        self.widget.raster_pbar.set_fraction(1.0)
+
+    def on_pause(self, obj, paused, reason):
+        if paused:
+            self.props.state = self.StateType.PAUSED
+            if reason:
+                # Build the dialog message
+                self.pause_dialog = dialogs.make_dialog(
+                    Gtk.MessageType.WARNING, 'Rastering Paused', reason,
+                    buttons=(('OK', Gtk.ResponseType.OK),)
+                )
+                self.pause_dialog.run()
+                self.pause_dialog.destroy()
+                self.pause_dialog = None
+        else:
+            self.props.state = self.StateType.ACTIVE
+            if self.pause_dialog:
+                self.pause_dialog.destroy()
+                self.pause_dialog = None
+
+    def on_error(self, obj, reason):
+        error_dialog = dialogs.make_dialog(
+            Gtk.MessageType.WARNING, 'Rastering Error!', reason,
+            buttons=(('OK', Gtk.ResponseType.OK),)
+        )
+        error_dialog.run()
+        error_dialog.destroy()
+
+    def on_stopped(self, obj=None):
+        self.props.state = self.StateType.READY
+        self.widget.raster_progress_lbl.set_text("Rastering Stopped.")
+        self.widget.raster_eta.set_text('--:--')
+
+    def on_progress(self, obj, fraction, message):
+        used_time = time.time() - self.start_time
+        remaining_time = (1 - fraction) * used_time / fraction
+        eta_time = remaining_time
+        self.widget.raster_eta.set_text('{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60)))
+        self.widget.raster_pbar.set_fraction(fraction)
+        self.widget.raster_progress_lbl.set_text(message)
+
+    def on_new_image(self, widget, file_path):
+        image_viewer = globalRegistry.lookup([], IImageViewer)
+        frame = os.path.splitext(os.path.basename(file_path))[0]
+        image_viewer.queue_frame(file_path)
+        _logger.info('Frame acquired: {}'.format(frame))
+
+    def on_results(self, obj, cell, results):
+        score = frame_score(results)
+        self.microscope.add_grid_score(cell, score)
+        parent, child = self.model.add_item({
+            'name': self.props.config['name'],
+            'angle': self.props.config['angle'],
+            'origin': self.props.config['origin'],
+            'cell': cell,
+            'xyz': self.microscope.props.grid_xyz[cell],
+            'score': score,
+            'state': RasterStore.State.ACTIVE,
+            'uuid': self.props.config['uuid'],
+        })
+        self.results[self.props.config['uuid']]['scores'][cell] = score
+        self.view.expand_row(parent, False)
+        self.view.scroll_to_cell(child, None, True, 0.5, 0.5)
+
+    def on_result_activated(self, view, path, column=None):
+        itr = self.model.get_iter(path)
+        uid, angle, x, y, z, state = self.model.get(
+            itr,
+            RasterStore.Data.UUID, RasterStore.Data.ANGLE, RasterStore.Data.X_POS,
+            RasterStore.Data.Y_POS, RasterStore.Data.Z_POS, RasterStore.Data.STATE
+        )
+        if state == RasterStore.State.PARENT:
+            self.beamline.omega.move_to(angle, wait=True)
+            grid = self.results[uid]
+            self.microscope.load_grid(
+                grid['grid'],
+                {'origin': grid['config']['origin'], 'angle': grid['config']['angle']},
+                grid['scores']
+            )
+            self.beamline.sample_stage.move_xyz(*grid['config']['origin'])
+            self.widget.raster_name_fbk.set_text(grid['config']['name'])
+            self.widget.raster_directory_fbk.set_text(grid['config']['directory'])
+            self.widget.raster_angle_fbk.set_text('{:0.2f}'.format(grid['config']['angle']))
+            self.widget.raster_points_fbk.set_text('{}'.format(len(grid['grid'])))
+        else:
+            self.beamline.sample_stage.move_xyz(x, y, z)
+
+    def on_grid_changed(self, obj, param):
+        grid = self.microscope.props.grid_xyz
+        state = self.microscope.props.grid_state
+        raster_page = self.widget.samples_stack.get_child_by_name('rastering')
+        if grid is not None and state == self.microscope.GridState.PENDING:
+            self.widget.raster_grid_info.set_text('Defined grid has {} points'.format(len(grid)))
+            self.widget.raster_command_box.set_sensitive(True)
+            #self.widget.samples_stack.set_visible_child_name('rastering')
+            self.widget.samples_stack.child_set(raster_page, needs_attention=True)
+        else:
+            msg = 'Please define a new grid using the sample viewer!'
+            self.widget.raster_grid_info.set_text(msg)
+            self.widget.raster_command_box.set_sensitive(False)
+            self.widget.samples_stack.child_set(raster_page, needs_attention = False)
+            self.widget.raster_points_fbk.set_text('...')
+            self.widget.raster_angle_fbk.set_text('...')
+

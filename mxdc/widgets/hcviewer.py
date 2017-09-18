@@ -20,9 +20,9 @@ _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class HCViewer(SampleViewer):
     __gsignals__ = {
-        'plot-changed': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, GObject.TYPE_BOOLEAN]),
-        'plot-paused': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, GObject.TYPE_BOOLEAN]),
-        'plot-cleared': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT]),
+        'plot-changed': (GObject.SignalFlags.RUN_FIRST, None, [object, bool]),
+        'plot-paused': (GObject.SignalFlags.RUN_FIRST, None, [object, bool]),
+        'plot-cleared': (GObject.SignalFlags.RUN_FIRST, None, [object]),
     }
 
     gui_file = 'hc_viewer'
@@ -81,7 +81,7 @@ class HCViewer(SampleViewer):
         self.stat_panel.pack_start(stat_box, True, False, 0)
         self.hc_panel.pack_start(entry_box, True, False, 0)
 
-        store = Gtk.ListStore(GObject.TYPE_STRING)
+        store = Gtk.ListStore(str)
         for t in ['5', '10', '20']:
             store.append(['%s min' % t])
         self.time_btn.set_model(store)

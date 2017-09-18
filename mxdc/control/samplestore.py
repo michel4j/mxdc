@@ -73,34 +73,19 @@ class SampleStore(GObject.GObject):
 
     class Data(object):
         (
-            SELECTED,
-            NAME,
-            GROUP,
-            CONTAINER,
-            PORT,
-            LOADED,
-            BARCODE,
-            PRIORITY,
-            COMMENTS,
-            STATE,
-            CONTAINER_TYPE,
-            PROGRESS,
-            UUID,
-            DATA,
-        ) = range(14)
+            SELECTED, NAME, GROUP, CONTAINER, PORT, BARCODE,
+            PRIORITY, COMMENTS, STATE, CONTAINER_TYPE, PROGRESS, UUID, DATA
+        ) = range(13)
+        TYPES = (
+            bool, str, str, str, str, str,
+            int, str, int, str, int, str, object
+        )
 
     class Progress(object):
         NONE, PENDING, ACTIVE, DONE = range(4)
 
     class State(object):
-        (
-            EMPTY,
-            GOOD,
-            UNKNOWN,
-            MOUNTED,
-            JAMMED,
-            NONE
-        ) = range(6)
+        EMPTY, GOOD, UNKNOWN, MOUNTED, JAMMED, NONE = range(6)
 
     Column = OrderedDict([
         (Data.SELECTED, ''),
@@ -119,9 +104,7 @@ class SampleStore(GObject.GObject):
 
     def __init__(self, view, widget):
         super(SampleStore, self).__init__()
-        self.model = Gtk.ListStore(
-            bool, str, str, str, str, bool, str, int, str, int, str, int, str, object
-        )
+        self.model = Gtk.ListStore(*self.Data.TYPES)
         self.search_model = self.model.filter_new()
         self.search_model.set_visible_func(self.search_data)
         self.filter_model = Gtk.TreeModelSort(model=self.search_model)
@@ -152,7 +135,7 @@ class SampleStore(GObject.GObject):
         self.widget.samples_search_entry.connect('search-changed', self.on_search)
 
         globalRegistry.register([], ISampleStore, '', self)
-        self.load_data(TEST_DATA.values())
+        self.import_mxlive()
 
     def get_current(self):
         return self.current_sample
@@ -216,25 +199,22 @@ class SampleStore(GObject.GObject):
         GObject.idle_add(self.emit, 'updated')
 
     def add_item(self, item):
-        itr = self.model.append()
         item['uuid'] = str(uuid.uuid4())
-        self.model.set(
-            itr,
-            self.Data.SELECTED, item.get('selected', False),
-            self.Data.NAME, item.get('name', 'unknown'),
-            self.Data.GROUP, item.get('group', ''),
-            self.Data.CONTAINER, item.get('container_name', ''),
-            self.Data.CONTAINER_TYPE, item.get('container_type', ''),
-            self.Data.PORT, item.get('port', ''),
-            self.Data.PRIORITY, item.get('priority', 0),
-            self.Data.STATE, self.states.get(item.get('port', ''), self.State.UNKNOWN),
-            self.Data.COMMENTS, item.get('comments', ''),
-            self.Data.BARCODE, item.get('barcode', ''),
-            self.Data.LOADED, item.get('loaded', False),
-            self.Data.PROGRESS, self.Progress.NONE,
-            self.Data.UUID, item['uuid'],
-            self.Data.DATA, item,
-        )
+        self.model.append([
+            item.get('selected', False),
+            item.get('name', 'unknown'),
+            item.get('group', ''),
+            item.get('container', ''),
+            item.get('port', ''),
+            item.get('barcode', ''),
+            item.get('priority', 0),
+            item.get('comments', ''),
+            self.states.get(item.get('port', ''), self.State.UNKNOWN),
+            item.get('container_type', ''),
+            self.Progress.NONE,
+            item['uuid'],
+            item
+        ])
         self.ports.add(item.get('port'))
         return item['uuid']
 
@@ -267,8 +247,10 @@ class SampleStore(GObject.GObject):
         return (not self.filter_text) or (self.filter_text in search_text)
 
     def import_mxlive(self):
-        # data = self.beamline.lims.get_project_samples()
-        self.load_data(TEST_DATA.values())
+        data = self.beamline.lims.get_samples(self.beamline.name)
+        if not 'error' in data:
+            self.load_data(data)
+
 
     def format_state(self, column, cell, model, itr, data):
         value = model.get_value(itr, self.Data.STATE)
@@ -370,7 +352,7 @@ class SampleStore(GObject.GObject):
                 if state not in [self.State.JAMMED, self.State.EMPTY]:
                     self.search_model.set_value(sitr, self.Data.SELECTED, option)
                 itr = self.filter_model.iter_next(itr)
-        #self.update_next_sample()
+                # self.update_next_sample()
 
     def clear(self):
         self.model.clear()
@@ -435,7 +417,7 @@ class SampleStore(GObject.GObject):
             self.current_sample = {}
 
         self.widget.spinner.stop()
-        #self.update_next_sample()
+        # self.update_next_sample()
         self.update_current_sample()
 
     def on_key_press(self, obj, event):
@@ -545,711 +527,3 @@ class SampleQueue(GObject.GObject):
             copy(item[SampleStore.Data.DATA])
             for item in self.auto_queue if item[SampleStore.Data.SELECTED]
         ]
-
-
-TEST_DATA = {
-    "46889": {
-        "barcode": "",
-        "group": "N110A+NADH",
-        "name": "N110A_NADH_16_1",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46889,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "9",
-        "experiment_id": 7652,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB9"
-    },
-    "46888": {
-        "barcode": "",
-        "group": "W128Y+NADH",
-        "name": "W128Y_NADH_15_4",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46888,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "8",
-        "experiment_id": 7648,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB8"
-    },
-    "46883": {
-        "barcode": "",
-        "group": "ScabinWT+nicotinamide",
-        "name": "WT_nico_14_3",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46883,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "3",
-        "experiment_id": 7651,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB3"
-    },
-    "46882": {
-        "barcode": "",
-        "group": "ScabinWT+nicotinamide",
-        "name": "WT_nico_10_2",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46882,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "2",
-        "experiment_id": 7651,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB2"
-    },
-    "46881": {
-        "barcode": "",
-        "group": "ScabinWT+nicotinamide",
-        "name": "WT_nico_11_1",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46881,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "1",
-        "experiment_id": 7651,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB1"
-    },
-    "46880": {
-        "barcode": "",
-        "group": "S117A",
-        "name": "S117A_14_4",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46880,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "15",
-        "experiment_id": 7650,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC15"
-    },
-    "46887": {
-        "barcode": "",
-        "group": "W128Y+NADH",
-        "name": "W128Y_NADH_15_3",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46887,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "7",
-        "experiment_id": 7648,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB7"
-    },
-    "46886": {
-        "barcode": "",
-        "group": "W128Y+NADH",
-        "name": "W128Y_NADH_15_2",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46886,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "6",
-        "experiment_id": 7648,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB6"
-    },
-    "46885": {
-        "barcode": "",
-        "group": "W128Y+NADH",
-        "name": "W128Y_NADH_15_1",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46885,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "5",
-        "experiment_id": 7648,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB5"
-    },
-    "46884": {
-        "barcode": "",
-        "group": "ScabinWT+nicotinamide",
-        "name": "WT_nico_12_4",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46884,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "4",
-        "experiment_id": 7651,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB4"
-    },
-    "46869": {
-        "barcode": "",
-        "group": "W128Y ",
-        "name": "W128Y_14_4",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46869,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "4",
-        "experiment_id": 7647,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC4"
-    },
-    "46868": {
-        "barcode": "",
-        "group": "W128Y ",
-        "name": "W128Y_14_3",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46868,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "3",
-        "experiment_id": 7647,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC3"
-    },
-    "46902": {
-        "barcode": "",
-        "group": "W155A",
-        "name": "W155A_15_2",
-        "container_id": 3988,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46902,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "6",
-        "experiment_id": 7656,
-        "container_name": "CLS-0057",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RA6"
-    },
-    "46903": {
-        "barcode": "",
-        "group": "W155A",
-        "name": "W155A_15_3",
-        "container_id": 3988,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46903,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "7",
-        "experiment_id": 7656,
-        "container_name": "CLS-0057",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RA7"
-    },
-    "46900": {
-        "barcode": "",
-        "group": "WT+ADPr",
-        "name": "WT_ADPr_11_4",
-        "container_id": 3988,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46900,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "4",
-        "experiment_id": 7653,
-        "container_name": "CLS-0057",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RA4"
-    },
-    "46901": {
-        "barcode": "",
-        "group": "W155A",
-        "name": "W155A_15_1",
-        "container_id": 3988,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46901,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "5",
-        "experiment_id": 7656,
-        "container_name": "CLS-0057",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RA5"
-    },
-    "46865": {
-        "barcode": "",
-        "group": "W128Y ",
-        "name": "W128Y_14_2",
-        "container_id": 3985,
-        "comments": "12% glycerol cryo",
-        "id": 46865,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "4",
-        "experiment_id": 7647,
-        "container_name": "CLS-0054",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RD4"
-    },
-    "46864": {
-        "barcode": "",
-        "group": "W128Y ",
-        "name": "W128Y_14_1",
-        "container_id": 3985,
-        "comments": "12% glycerol cryo",
-        "id": 46864,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "3",
-        "experiment_id": 7647,
-        "container_name": "CLS-0054",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RD3"
-    },
-    "46867": {
-        "barcode": "",
-        "group": "N110A",
-        "name": "N110A_14_1",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46867,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "2",
-        "experiment_id": 7649,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC2"
-    },
-    "46905": {
-        "barcode": "",
-        "group": "Plx2Atest",
-        "name": "Plx2Atest",
-        "container_id": 3988,
-        "comments": "",
-        "id": 46905,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "10",
-        "experiment_id": 7657,
-        "container_name": "CLS-0057",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RA10"
-    },
-    "46862": {
-        "barcode": "",
-        "group": "W128Y ",
-        "name": "W128Y_16",
-        "container_id": 3985,
-        "comments": "12% glycerol cryo",
-        "id": 46862,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "1",
-        "experiment_id": 7647,
-        "container_name": "CLS-0054",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RD1"
-    },
-    "46894": {
-        "barcode": "",
-        "group": "WT+ADPr+nicotinamide",
-        "name": "WT_ADPr_nico_13_2",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46894,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "14",
-        "experiment_id": 7654,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB14"
-    },
-    "46895": {
-        "barcode": "",
-        "group": "WT+ADPr+nicotinamide",
-        "name": "WT_ADPr_nico_13_3",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46895,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "15",
-        "experiment_id": 7654,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB15"
-    },
-    "46896": {
-        "barcode": "",
-        "group": "WT+ADPr+nicotinamide",
-        "name": "WT_ADPr_nico_12_4",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46896,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "16",
-        "experiment_id": 7654,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB16"
-    },
-    "46897": {
-        "barcode": "",
-        "group": "WT+ADPr",
-        "name": "WT_ADPr_11_1",
-        "container_id": 3988,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46897,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "1",
-        "experiment_id": 7653,
-        "container_name": "CLS-0057",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RA1"
-    },
-    "46890": {
-        "barcode": "",
-        "group": "N110A+NADH",
-        "name": "N110A_NADH_15_2",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46890,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "10",
-        "experiment_id": 7652,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB10"
-    },
-    "46904": {
-        "barcode": "",
-        "group": "S117A+NADH",
-        "name": "S117A_NADH_16_1",
-        "container_id": 3988,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46904,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "8",
-        "experiment_id": 7655,
-        "container_name": "CLS-0057",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RA8"
-    },
-    "46892": {
-        "barcode": "",
-        "group": "N110A+NADH",
-        "name": "N110A_NADH_16_4",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46892,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "12",
-        "experiment_id": 7652,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB12"
-    },
-    "46893": {
-        "barcode": "",
-        "group": "WT+ADPr+nicotinamide",
-        "name": "WT_ADPr_nico_13_1",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46893,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "13",
-        "experiment_id": 7654,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB13"
-    },
-    "46866": {
-        "barcode": "",
-        "group": "W128Y ",
-        "name": "W128Y_15_1",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46866,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "1",
-        "experiment_id": 7647,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC1"
-    },
-    "46898": {
-        "barcode": "",
-        "group": "WT+ADPr",
-        "name": "WT_ADPr_14_2",
-        "container_id": 3988,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46898,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "2",
-        "experiment_id": 7653,
-        "container_name": "CLS-0057",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RA2"
-    },
-    "46899": {
-        "barcode": "",
-        "group": "WT+ADPr",
-        "name": "WT_ADPr_14_3",
-        "container_id": 3988,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46899,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "3",
-        "experiment_id": 7653,
-        "container_name": "CLS-0057",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RA3"
-    },
-    "46891": {
-        "barcode": "",
-        "group": "N110A+NADH",
-        "name": "N110A_NADH_16_3",
-        "container_id": 3987,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46891,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "11",
-        "experiment_id": 7652,
-        "container_name": "CLS-0056",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RB11"
-    },
-    "46863": {
-        "barcode": "",
-        "group": "W128Y ",
-        "name": "W128Y_16_2",
-        "container_id": 3985,
-        "comments": "12% glycerol cryo",
-        "id": 46863,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "2",
-        "experiment_id": 7647,
-        "container_name": "CLS-0054",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RD2"
-    },
-    "46878": {
-        "barcode": "",
-        "group": "S117A",
-        "name": "S117A_15_2",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46878,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "13",
-        "experiment_id": 7650,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC13"
-    },
-    "46879": {
-        "barcode": "",
-        "group": "S117A",
-        "name": "S117A_14_3",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46879,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "14",
-        "experiment_id": 7650,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC14"
-    },
-    "46872": {
-        "barcode": "",
-        "group": "N110A",
-        "name": "N110A_14_3",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46872,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "7",
-        "experiment_id": 7649,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC7"
-    },
-    "46873": {
-        "barcode": "",
-        "group": "N110A",
-        "name": "N110A_14_4",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46873,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "8",
-        "experiment_id": 7649,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC8"
-    },
-    "46870": {
-        "barcode": "",
-        "group": "W128Y ",
-        "name": "W128Y_15_2",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46870,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "5",
-        "experiment_id": 7647,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC5"
-    },
-    "46871": {
-        "barcode": "",
-        "group": "N110A",
-        "name": "N110A_14_2",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46871,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "6",
-        "experiment_id": 7649,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC6"
-    },
-    "46876": {
-        "barcode": "",
-        "group": "S117A",
-        "name": "S117A_14_2",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46876,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "11",
-        "experiment_id": 7650,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC11"
-    },
-    "46877": {
-        "barcode": "",
-        "group": "S117A",
-        "name": "S117A_15_1",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46877,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "12",
-        "experiment_id": 7650,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC12"
-    },
-    "46874": {
-        "barcode": "",
-        "group": "N110A",
-        "name": "N110A_14_5",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46874,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "9",
-        "experiment_id": 7649,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC9"
-    },
-    "46875": {
-        "barcode": "",
-        "group": "S117A",
-        "name": "S117A_14_1",
-        "container_id": 3986,
-        "comments": "12%->13.5%->15% glycerol cryo",
-        "id": 46875,
-        "state": 1,
-        "container_type": "Uni-Puck",
-        "container_location": "10",
-        "experiment_id": 7650,
-        "container_name": "CLS-0055",
-        "loaded": True,
-        "project_id": 47,
-        "port": "RC10"
-    }
-}

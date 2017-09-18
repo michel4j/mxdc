@@ -15,6 +15,7 @@ def value_class(val, warning, error):
     else:
         return ""
 
+
 class DeviceMonitor(object):
     def __init__(self, device, label, format='{:.3e}', signal='changed', warning=None, error=None):
         self.text = label
@@ -29,7 +30,7 @@ class DeviceMonitor(object):
         style = self.text.get_style_context()
         if self.warning and self.error:
             style_class = value_class(args[0], self.warning, self.error)
-            for name in ['dev-waring', 'dev-error']:
+            for name in ['dev-warning', 'dev-error']:
                 if style_class == name:
                     style.add_class(name)
                 else:

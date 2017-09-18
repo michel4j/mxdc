@@ -56,10 +56,10 @@ class DiagnosticsWidget(Gtk.Frame):
         logging.getLogger('').addHandler(log_handler)
 
         self.listmodel = Gtk.ListStore(
-            GObject.TYPE_BOOLEAN,
-            GObject.TYPE_STRING,
-            GObject.TYPE_STRING,
-            GObject.TYPE_PYOBJECT)
+            bool,
+            str,
+            str,
+            object)
         self.listview.set_rules_hint(True)
 
         self.listview.set_model(self.listmodel)

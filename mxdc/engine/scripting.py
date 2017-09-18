@@ -42,10 +42,10 @@ class ScriptError(Exception):
 class Script(GObject.GObject):
     implements(IScript)
     __gsignals__ = {}
-    __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
+    __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, (object,))
     __gsignals__['busy'] = (GObject.SignalFlags.RUN_LAST, None, (bool,))
     __gsignals__['message'] = (GObject.SignalFlags.RUN_LAST, None, (str,))
-    __gsignals__['enabled'] = (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_BOOLEAN,))
+    __gsignals__['enabled'] = (GObject.SignalFlags.RUN_LAST, None, (bool,))
     __gsignals__['error'] = (GObject.SignalFlags.RUN_LAST, None, [])
     description = 'A Script'
     progress = None

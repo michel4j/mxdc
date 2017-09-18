@@ -1,123 +1,131 @@
-from gi.repository import Gtk, Gdk
 from gi.repository import GObject
-from mxdc.utils import science
+from gi.repository import Gtk, Gdk
+from mxdc.utils import science, colors, gui
 
-def _create_color(spec):
-    col = Gdk.RGBA(alpha=0.15)
-    created = col.parse(spec)
+
+def hex2rgba(spec, alpha=0.5):
+    col = Gdk.RGBA()
+    col.parse(spec)
+    col.alpha = alpha
     return col
 
-class PeriodicTable(Gtk.Alignment):
-    __gsignals__ = {
-        'edge-selected': (GObject.SignalFlags.RUN_FIRST, None,
-                      (GObject.TYPE_STRING,))
+
+TYPE_COLORS = map(hex2rgba, colors.Category.CAT20)
+EDGE_COLORS = map(hex2rgba, colors.Category.EDGES)
+
+
+def set_area_cursor(widget, cursor='pointer'):
+    widget.get_window().set_cursor(
+        Gdk.Cursor.new_from_name(Gdk.Display.get_default(), cursor)
+    )
+    return True
+
+
+class EdgeMenu(gui.BuilderMixin):
+    gui_roots = {
+        'data/edge_menu': ['edge_menu']
     }
 
-    def __init__(self, loE=4, hiE=18):
-        super(PeriodicTable, self).__init__(xalign=0.5, yalign=0.5, xscale=0.75, yscale=0.75)
-        
-        # set parameters
-        self.low_energy = loE
-        self.high_energy = hiE
-        self.edge = 'Se-K'
-        self.energy = 12.658
-        self.type_colors = map(
-            _create_color,
-            ["#ff9999","#ff99ff","#9999ff","#cc99ff",
-            "#99ccff","#99ffff","#99ff99","#ccff99",
-            "#ffcc99","#ff6666", "#cccccc", "#ffff99"]
-        )
-        self.edge_colors = map(
-            _create_color,
-            ["#de7878","#de78de","#7878de","#ab78de",
-            "#7899de","#78dede","#78de78","#abde78",
-            "#deab78","#de4545", "#ababab", "#dede78"]
-        )
+    def __init__(self):
+        self.setup_gui()
+        self.build_gui()
+        self.entry = None
+        self.element = None
+        for edge in ['K', 'L1', 'L2', 'L3']:
+            ebox = getattr(self, 'edge_{}'.format(edge), None)
+            ebox.connect('realize', set_area_cursor, 'pointer')
+            ebox.connect('button-release-event', self.edge_selected, edge)
+
+    def set_entry(self, entry):
+        self.entry = entry
+
+    def edge_selected(self, widget, event, edge):
+        self.entry.set_text('') # make sure 'changed' signal fires at least once
+        self.entry.set_text('{}-{}'.format(self.element['symbol'], edge))
+
+    def configure(self, element, edges):
+        self.edge_menu.set_sensitive(True)
+        self.element = element
+        self.elem_z_lbl.set_text(str(element['Z']))
+        self.elem_sym_lbl.set_text(element['symbol'])
+        self.elem_name_lbl.set_text(element['name'])
+        self.elem_mass_lbl.set_text('{:0.2f}'.format(element['mass']))
+        for edge in ['K', 'L1', 'L2', 'L3']:
+            elem_edge = "{}-{}".format(element['symbol'], edge)
+            ebox = getattr(self, 'edge_{}'.format(edge), None)
+            if elem_edge in edges:
+                ebox.set_sensitive(True)
+                ebox.get_style_context().remove_class('disabled')
+            else:
+                ebox.set_sensitive(False)
+                ebox.get_style_context().add_class('disabled')
 
 
 
-        self.table = Gtk.Table(4,18,True)
-        science.PERIODIC_TABLE = science.PERIODIC_TABLE
-                    
-        # set the title
-        self.title = Gtk.Label(label='<big><big><b>Select an X-ray Absorption Edge</b></big></big>')
-        self.title.set_use_markup(True)
-        self.table.attach(self.title,3,14,0,1)
-                
-        # populate table and display it
-        self._populate_table()
-        self.table.set_row_spacings(1)
-        self.table.set_col_spacings(1)
-        self.table.set_row_spacing(6,2)
-        self.add(self.table)
+class EdgeSelector(Gtk.Grid):
+    __gsignals__ = {
+        'edge': (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        'element': (GObject.SignalFlags.RUN_FIRST, None, (str,))
+    }
+
+    def __init__(self, min_energy=2.0, max_energy=20.0):
+        super(EdgeSelector, self).__init__(column_spacing=1, row_spacing=1)
+        self.set_column_homogeneous(True)
+        self.set_row_homogeneous(True)
+        self.min_energy = min_energy
+        self.max_energy = max_energy
+        self.menu = EdgeMenu()
+        self.attach(self.menu.edge_menu, 2, 1, 10, 3)
+        self.entry = None
+        self.emissions = science.get_energy_database(min_energy, max_energy)
+        for symbol in science.PERIODIC_TABLE.keys():
+            element, edges = self.get_element(symbol)
+            elm_box = Gtk.EventBox()
+            elm_box.override_background_color(Gtk.StateType.NORMAL, TYPE_COLORS[int(element['type'])])
+            label = Gtk.Label(label=element['symbol'], margin=1)
+            label.set_padding(2, 6)
+            elm_box.add(label)
+            style = elm_box.get_style_context()
+            style.add_class('element-box')
+
+            if element['period'] in [8,9] and element['group'] == 4:
+                style.add_class('la-ac-gap-left')
+            elif element['group'] == 3 and element['period'] in [6,7]:
+                style.add_class('la-ac-gap-right')
+            if edges:
+                elm_box.connect('button-release-event', self.select_element, element['symbol'])
+                elm_box.set_sensitive(True)
+                elm_box.connect('realize', set_area_cursor, 'pointer')
+            else:
+                elm_box.set_sensitive(False)
+
+            self.attach(elm_box, element['group'] - 1, element['period'], 1, 1)
         self.show_all()
 
-    def _populate_table(self):
-        # parse data file and populate table
-        edge_names = ['K','L1','L2','L3']
-        # Verify L1 emission lines
-        emissions = science.get_energy_database()
-        
-        for key in science.PERIODIC_TABLE.keys():
-            element_container = Gtk.VBox(False, 0)
-            element_container.set_border_width(0)
+    def set_entry(self, entry):
+        self.menu.set_entry(entry)
 
-            # Atomic number
-            label1 = Gtk.Label(label="<small><span color='slategray'><tt>%s</tt></span></small>" % (science.PERIODIC_TABLE[key]['Z']))
-            label1.set_use_markup(True)
-            label1.set_alignment(0.1,0.5)
-            element_container.pack_start(label1, True, True, 0)
-            
-            # Element Symbol
-            label2 = Gtk.Label(label="<big>%s</big>" % (key) )
-            label2.set_use_markup(True)
-            element_container.pack_start(label2,True, True,0)
+    def get_element(self, symbol):
+        edge_list = [
+            "{}-{}".format(symbol, edge)
+            for edge in ['K', 'L1', 'L2', 'L3']
+            if "{}-{}".format(symbol, edge) in self.emissions
+        ]
+        element = science.PERIODIC_TABLE[symbol]
+        return element, edge_list
 
-            # Edges
-            edge_container = Gtk.HBox(True,0)
-            edge_container.set_spacing(1)           
-            el_type = int( science.PERIODIC_TABLE[key]['type'] )
-            el_name = science.PERIODIC_TABLE[key]['name']
-            for edge in edge_names:
-                edge_descr = "%s-%s" % (key, edge)
-                val, e_val = emissions.get(edge_descr, (0.0, 0.0))
-                if val > self.low_energy and val < self.high_energy and e_val < self.high_energy:
-                    event_data = "%s:%s:%s" % (edge_descr,val,e_val)
-                    edge_label = Gtk.Label(label="<small><b><sub><span color='blue'>%s</span></sub></b></small>" % (edge) )
-                    edge_label.set_padding(1,1)
-                    edge_label.set_use_markup(True)
-                    edge_bgbox = Gtk.EventBox()
-                    edge_bgbox.add(edge_label)
-                    edge_bgbox.override_background_color(Gtk.StateType.NORMAL, self.edge_colors[el_type])
-                    edge_bgbox.connect('button_press_event',self.select_edge,event_data)
-                    edge_bgbox.connect('realize',self.set_area_cursor)
-                    edge_container.pack_start(edge_bgbox, True, True, 0)
-                    edge_bgbox.set_tooltip_markup("Edge: %s (%s)\nAbsorption: %g keV\nEmission: %g keV" % (el_name, edge_descr, val,e_val) )
+    def get_edge_specs(self, edge):
+        return self.emissions[edge]
 
-            element_container.pack_start(edge_container,True, True,0)
+    def get_excitation_for(self, edge):
+        if not edge:
+            return self.max_energy
+        else:
+            absorption, emission = self.emissions[edge]
+            return min(absorption + 1.0, self.max_energy)
 
-            # determine where to place in table from Group and Period fields
-            ra = int(science.PERIODIC_TABLE[key]['group']) # Group
-            la = ra -1
-            ba = int(science.PERIODIC_TABLE[key]['period']) # period
-            ta = ba -1
-            element_bgbox = Gtk.EventBox() 
-            element_bgbox.add(element_container)
-            element_bgbox.override_background_color(Gtk.StateType.NORMAL, self.type_colors[ el_type ])
-            element_bgbox.show()          
-            self.table.attach(element_bgbox,la,ra,ta,ba)
-
-    def select_edge(self,widget,event,data):
-        vals = data.split(':')
-        self.edge = vals[0]
-        self.energy = float(vals[1])
-        self.emission = float(vals[2])
-        #self.edge_label.set_text("Edge: %11s" % vals[0])
-        #self.energy_label.set_text("Energy: %8s keV" % vals[1])
-        self.emit('edge-selected', data)
-        return True
-
-    def set_area_cursor(self,widget):
-        widget.get_window().set_cursor(Gdk.Cursor.new(Gdk.CursorType.HAND2))
-        return True
+    def select_element(self, widget, event, symbol):
+        if event.button == 1:
+            element, edges = self.get_element(symbol)
+            self.menu.configure(element, edges)
 

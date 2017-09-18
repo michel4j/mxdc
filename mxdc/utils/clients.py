@@ -5,10 +5,11 @@ import re
 from gi.repository import GObject
 import requests
 from mxdc.service.base import BaseService
-from mxdc.utils import mdns
+from mxdc.utils import mdns, config, signing, misc
 from mxdc.utils.misc import get_project_name
 from mxdc.utils.log import get_module_logger
 from twisted.internet import reactor, error
+
 from twisted.spread import pb
 
 _logger = get_module_logger(__name__)
@@ -46,7 +47,7 @@ class DPMClient(BaseService):
             return
         self._service_found = True
         self._service_data = data
-        self.factory = ServerClientFactory()  # pb.PBClientFactory()
+        self.factory =  ServerClientFactory()
         self.factory.getRootObject().addCallback(self.on_connected).addErrback(self.on_connection_failed)
         reactor.connectTCP(self._service_data['address'], self._service_data['port'], self.factory)
         _logger.info(
@@ -91,6 +92,77 @@ class DPMClient(BaseService):
         return self._ready
 
 
+class MxLIVEClient(BaseService):
+    def __init__(self, address):
+        BaseService.__init__(self)
+        self.name = "MxLIVE Service"
+        self.address = address
+        self.cookies = {}
+        self.set_state(active=True)
+        self.keys = config.fetch_keys()
+        self.signer = signing.Signer(**self.keys)
+        if not config.has_keys():
+            try:
+                res = self.register()
+                _logger.info('MxLIVE Service configured for {}'.format(address))
+            except (IOError, ValueError, requests.HTTPError) as e:
+                _logger.error('MxLIVE Service will not be available')
+                raise
+
+    def is_ready(self):
+        return True
+
+    def url(self, path):
+        url_path = path[1:] if path[0] == '/' else path
+        return '{}/api/v2/{}/{}'.format(
+            self.address,
+            self.signer.sign(misc.get_project_name()),
+            url_path
+        )
+
+    def get(self, path, *args, **kwargs):
+        r = requests.get(self.url(path), *args, verify=False, cookies=self.cookies, **kwargs)
+        if r.status_code == requests.codes.ok:
+            return r.json()
+        else:
+            r.raise_for_status()
+
+    def post(self, path, *args, **kwargs):
+        r = requests.post(self.url(path), verify=False, cookies=self.cookies, **kwargs)
+        if r.status_code == requests.codes.ok:
+            return r.json()
+        else:
+            r.raise_for_status()
+
+    def register(self):
+        response = self.post('/project/', data={'public': self.keys['public']})
+        return response
+
+    def get_samples(self, beamline):
+        _logger.debug('Requesting Samples from MxLIVE ...')
+        path = '/samples/{}/'.format(beamline)
+        try:
+            reply = self.get(path)
+        except (IOError, ValueError, requests.HTTPError) as e:
+            _logger.error('Unable to fetch Samples from MxLIVE: \n {}'.format(e))
+            reply = {'error': 'Unable to fetch Samples from MxLIVE', 'details': '{}'.format(e)}
+        return reply
+
+    def upload_dataset(self, beamline, data):
+        return
+
+    def upload_datasets(self, beamline, datasets):
+        for data in datasets:
+            self.upload_dataset(beamline, data)
+        return
+
+    def upload_scan(self, beamline, scan):
+        return
+
+    def upload_report(self, beamline, report):
+        return {}
+
+
 class LIMSClient(BaseService):
     def __init__(self, address):
         BaseService.__init__(self)
@@ -118,7 +190,7 @@ class LIMSClient(BaseService):
             _logger.error('Failed posting data to MxLIVE: HTTP-{}'.format(r.status_code))
             r.raise_for_status()
 
-    def get_project_samples(self, beamline):
+    def get_samples(self, beamline):
         _logger.debug('Requesting Samples from MxLIVE ...')
         url = "{}/api/{}/samples/{}/{}/".format(
             self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
@@ -345,4 +417,4 @@ class MxDCClient(BaseService):
         return self._ready
 
 
-__all__ = ['DPMClient', 'MxDCClient', 'LIMSClient']
+__all__ = ['DPMClient', 'MxDCClient', 'MxLIVEClient', 'LIMSClient']

@@ -22,8 +22,8 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class ResultManager(Gtk.Alignment):
     __gsignals__ = {
-        'sample-selected': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_PYOBJECT,]),
-        'update-strategy': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
+        'sample-selected': (GObject.SignalFlags.RUN_LAST, None, [object,]),
+        'update-strategy': (GObject.SignalFlags.RUN_FIRST, None, [object,]),
     }
     
     def __init__(self):

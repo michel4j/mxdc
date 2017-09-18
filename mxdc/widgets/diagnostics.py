@@ -70,7 +70,7 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
 
         # Set Icon and message
         _state, _msg = data
-        color = Gdk.RGBA();
+        color = Gdk.RGBA()
         color.parse(ICON_COLORS[_state])
         self.icon.set_from_icon_name(MSG_ICONS.get(_state, 'dialog-question-symbolic'), Gtk.IconSize.SMALL_TOOLBAR)
         self.override_color(Gtk.StateFlags.NORMAL, color)

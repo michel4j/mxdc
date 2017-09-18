@@ -5,7 +5,7 @@ from mxdc.widgets.runwidget import RunWidget
 class RunManager(Gtk.Notebook):
     __gsignals__ = {
         'saved' : (GObject.SignalFlags.RUN_LAST, None, []),
-        'del-run' : (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
+        'del-run' : (GObject.SignalFlags.RUN_LAST, None, (object,)),
     }
     def __init__(self):
         GObject.GObject.__init__(self)
