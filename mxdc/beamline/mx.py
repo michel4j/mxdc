@@ -70,10 +70,10 @@ class MXBeamline(object):
             return v        
     
     def __getattr__(self, key):
-        try:
-            return super(MXBeamline).__getattr__(self, key)
-        except AttributeError:
+        if key in self.registry:
             return self.registry[key]
+        else:
+            raise AttributeError('{} does not have attribute: {}'.format(self, key))
             
     def setup(self):
         """Setup and register the beamline devices from configuration files."""

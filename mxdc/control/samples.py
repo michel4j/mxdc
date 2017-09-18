@@ -32,3 +32,9 @@ class SamplesController(GObject.GObject):
         }
         for key in ['omega', 'beam_size', 'sample_y1', 'sample_y2']:
             self.widget.samples_control_box.pack_start(entries[key], False, True, 0)
+
+        self.widget.samples_stack.connect('notify::visible-child', self.reset_attention)
+
+    def reset_attention(self, stack, param):
+        stack.child_set(stack.props.visible_child, needs_attention=False)
+

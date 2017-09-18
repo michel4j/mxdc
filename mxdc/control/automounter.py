@@ -109,7 +109,7 @@ class DewarController(GObject.GObject):
 
     __gsignals__ = {
         'selected': (GObject.SignalFlags.RUN_FIRST, None,
-                     (GObject.TYPE_STRING,)),
+                     (str,)),
     }
 
     def __init__(self, widget, store):

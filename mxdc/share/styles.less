@@ -89,12 +89,43 @@ label.status-fbk {
   color: DarkSlateGray;
   font-weight: bold;
 }
-.dev-warning {
+.dev-warning, label.status-fbk.dev-warning {
   color: @warning_color;
 }
-.dev-error {
+.dev-error, label.status-fbk.dev-error {
   color: @error_color;
 }
 .dev-active {
   color: @error_color;
+}
+.periodic-table label {
+  font-size: 90%;
+}
+.edge-menu {
+  background: rgba(0, 0, 0, 0.08);
+}
+.edge-box {
+  background: DodgerBlue;
+  color: #fff;
+  font-weight: bold;
+  border-radius: 2px;
+}
+.edge-box.disabled {
+  border: 1px solid alpha(@borders, 0.4);
+  background: transparent;
+  color: @borders;
+}
+.element-box {
+  border-radius: 2px;
+  font-weight: bold;
+}
+.la-ac-gap-right {
+  border-right: 4px solid rgba(0, 0, 0, 0.2);
+}
+.la-ac-gap-left {
+  border-left: 4px solid rgba(0, 0, 0, 0.2);
+}
+.plot-tool-message {
+  font-family: monospace;
+  font-size: 85%;
 }

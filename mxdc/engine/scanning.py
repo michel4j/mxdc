@@ -25,22 +25,22 @@ class BasicScan(GObject.GObject):
     
     implements(IScan)
     __gsignals__ = {}
-    __gsignals__['new-point'] = (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
-    __gsignals__['progress'] = (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_FLOAT, GObject.TYPE_STRING,))
+    __gsignals__['new-point'] = (GObject.SignalFlags.RUN_LAST, None, (object,))
+    __gsignals__['progress'] = (GObject.SignalFlags.RUN_LAST, None, (float, str,))
     __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, [])
     __gsignals__['started'] = (GObject.SignalFlags.RUN_LAST, None, [])
-    __gsignals__['error'] = ( GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING,))
+    __gsignals__['error'] = ( GObject.SignalFlags.RUN_LAST, None, (str,))
     __gsignals__['stopped'] = ( GObject.SignalFlags.RUN_LAST, None, [])
-    __gsignals__['paused'] = ( GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_PYOBJECT,GObject.TYPE_BOOLEAN])
+    __gsignals__['paused'] = ( GObject.SignalFlags.RUN_LAST, None, [object,bool])
    
 
     def __init__(self):
         GObject.GObject.__init__(self)
-        self._stopped = False
-        self._paused = False
+        self.stopped = False
+        self.paused = False
         self._notify = False
         self.append = False
-        self.meta_data = None
+        self.config = {}
         self.data = []
         self.data_names = []
         try:
@@ -60,7 +60,7 @@ class BasicScan(GObject.GObject):
         return {}
         
     def start(self, append=None):
-        self._stopped = False
+        self.stopped = False
         if append is not None and append:
             self.append = True
         if not self.append:
@@ -75,17 +75,17 @@ class BasicScan(GObject.GObject):
         pass
 
     def pause(self, state):
-        self._paused = state    
+        self.paused = state
         
     def stop(self):
-        self._stopped = True    
+        self.stopped = True
 
     def run(self):
         pass # derived classes should implement this
 
     def on_beam_change(self, obj, beam_available):
         self._notify = not beam_available
-        if self._notify and (not self._paused) and (not self._stopped):
+        if self._notify and (not self.paused) and (not self.stopped):
             self.pause(True)
     
     def save(self, filename=None):
@@ -98,7 +98,7 @@ class BasicScan(GObject.GObject):
             _logger.error("Could not open file '%s' for writing" % filename)
             return
         f.write('# Scan Type: %s -- %s\n' % (self.__class__.__name__, self.__class__.__doc__))
-        f.write('# Meta Data: %s\n' % json.dumps(self.meta_data))
+        f.write('# Meta Data: %s\n' % json.dumps(self.config))
         f.write('# Column descriptions: \n')
         header = ''
         for i , name in enumerate(self.data_names):
@@ -155,7 +155,7 @@ class AbsScan(BasicScan):
                                                    'I_0',
                                                    self._counter.name))
         for i in xrange(self._start_step, self._steps):
-            if self._stopped:
+            if self.stopped:
                 _logger.info( "Scan stopped!" )
                 break
             x = self._start_pos + (i * self._step_size)
@@ -224,7 +224,7 @@ class AbsScan2(BasicScan):
                                                    'I_0',
                                                    self._counter.name))
         for i in xrange(self._start_step, self._steps):
-            if self._stopped:
+            if self.stopped:
                 _logger.info( "Scan stopped!" )
                 break
             x1 = self._start_pos1 + (i * self._step_size1)
@@ -315,7 +315,7 @@ class CntScan(BasicScan):
         self._motor.wait(start=True, stop=False)
         
         while self._motor.busy_state:
-            if self._stopped:
+            if self.stopped:
                 _logger.info( "Scan stopped!" )
                 break
             ts= time.time()
@@ -458,7 +458,7 @@ class GridScan(BasicScan):
         pos = 0
         for x2 in self._points2:
             for x1 in self._points1:
-                if self._stopped:
+                if self.stopped:
                     _logger.info( "Scan stopped!" )
                     break
                 self._motor2.move_to(x2)

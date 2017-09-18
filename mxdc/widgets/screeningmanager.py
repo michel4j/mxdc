@@ -73,7 +73,7 @@ class Tasklet(object):
 
 class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
     __gsignals__ = {
-        'new-datasets': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_PYOBJECT, ]),
+        'new-datasets': (GObject.SignalFlags.RUN_LAST, None, [object, ]),
     }
     gui_roots = {
         'data/screening_widget': ['screening_widget', 'centering_tools', 'collect_settings', 'collect_labels']
@@ -216,9 +216,9 @@ class ScreenManager(Gtk.Alignment, gui.BuilderMixin):
         # Run List
         self.listmodel = Gtk.ListStore(
             GObject.TYPE_INT,
-            GObject.TYPE_STRING,
-            GObject.TYPE_STRING,
-            GObject.TYPE_PYOBJECT,
+            str,
+            str,
+            object,
         )
         self.listview = Gtk.TreeView(self.listmodel)
         self.listview.set_rules_hint(True)

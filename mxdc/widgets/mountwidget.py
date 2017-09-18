@@ -22,8 +22,8 @@ _logger = get_module_logger(__name__)
 
 class MountWidget(Gtk.Alignment):
     __gsignals__ = {
-        'active-sample': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
-        'mount-action-progress': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, GObject.TYPE_BOOLEAN]),
+        'active-sample': (GObject.SignalFlags.RUN_FIRST, None, [object,]),
+        'mount-action-progress': (GObject.SignalFlags.RUN_FIRST, None, [object, bool]),
     }
     def __init__(self):
         super(MountWidget,self).__init__()

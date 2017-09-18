@@ -26,11 +26,11 @@ class _DummyEvent(object):
 class ContainerWidget(Gtk.DrawingArea):
     __gsignals__ = {
         'pin-selected': (GObject.SignalFlags.RUN_FIRST, None,
-                      (GObject.TYPE_STRING,)),
+                      (str,)),
         'probe-select': (GObject.SignalFlags.RUN_FIRST, None,
-                      (GObject.TYPE_STRING,)),
+                      (str,)),
         'pin-hover': (GObject.SignalFlags.RUN_FIRST, None,
-                      (GObject.TYPE_STRING,)),
+                      (str,)),
         'draw': 'override',
         'configure-event': 'override',
         'motion-notify-event': 'override',
@@ -288,7 +288,7 @@ class ContainerWidget(Gtk.DrawingArea):
 class SamplePicker(Gtk.Box):
     __gsignals__ = {
         'pin-hover': (GObject.SignalFlags.RUN_FIRST, None,
-                      (GObject.TYPE_PYOBJECT, GObject.TYPE_STRING,)),
+                      (object, str,)),
     }
     def __init__(self, automounter=None):
         super(SamplePicker, self).__init__(orientation=Gtk.Orientation.HORIZONTAL)

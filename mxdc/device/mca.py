@@ -1,12 +1,14 @@
-import time
-import numpy
 import os
-from gi.repository import GObject
 import random
+import time
+
+import numpy
+from gi.repository import GObject
 from zope.interface import implements
-from mxdc.interface.devices import IMultiChannelAnalyzer
+
 from mxdc.com import ca
 from mxdc.device.base import BaseDevice
+from mxdc.interface.devices import IMultiChannelAnalyzer
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -15,9 +17,13 @@ _logger = get_module_logger(__name__)
 
 class BasicMCA(BaseDevice):
     """Base class for single and multi-element fluorescence MCA detector objects."""
-    
+
     implements(IMultiChannelAnalyzer)
-    
+
+    __gsignals__ = {
+        "deadtime": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
+    }
+
     def __init__(self, *args, **kwargs):
         """All arguments and key-worded arguments are passed to :func:`custom_setup`
         but before that, the following key-worded arguments are used if available.
@@ -35,43 +41,43 @@ class BasicMCA(BaseDevice):
         self.elements = kwargs.get('elements', 1)
         self.region_of_interest = (0, self.channels)
         self.data = None
-        
+
         # Setup the PVS
         self.custom_setup(*args, **kwargs)
-        
+
         # Default parameters
-        self.half_roi_width = 0.075 # energy units
+        self.half_roi_width = 0.075  # energy units
         self._monitor_id = None
         self._acquiring = False
         self._command_sent = False
         self.nozzle = kwargs.get('nozzle', None)
-        
+
     def custom_setup(self, *args, **kwargs):
         """This is where all the custom setup for derived classes is performed. 
         Must be overridden for derived classes. Care must be taken to make sure 
         call signatures of derived classes are compatible if using explicitly
         named ordered arguments. 
         """
-        
+
         # Overwrite this method to setup PVs. follow are examples only
-        #self.spectra = [self.add_pv("%s:mca%d" % (name, d+1), monitor=False) for d in range(elements)]
-        #self.READ = self.add_pv("%s:mca1.READ" % pv_root, monitor=False)
-        #self.RDNG = self.add_pv("%s:mca1.RDNG" % pv_root)
-        #self.START = self.add_pv("%s:mca1.ERST" % pv_root, monitor=False)
-        #self.ERASE = self.add_pv("%s:mca1.ERAS" % pv_root, monitor=False)
-        #self.IDTIM = self.add_pv("%s:mca1.IDTIM" % pv_root, monitor=False)
-        #self.ACQG = self.add_pv("%s:mca1.ACQG" % pv_root)
-        #self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
-        #self._count_time = self.add_pv("%s:mca1.PRTM" % pv_root)
+        # self.spectra = [self.add_pv("%s:mca%d" % (name, d+1), monitor=False) for d in range(elements)]
+        # self.READ = self.add_pv("%s:mca1.READ" % pv_root, monitor=False)
+        # self.RDNG = self.add_pv("%s:mca1.RDNG" % pv_root)
+        # self.START = self.add_pv("%s:mca1.ERST" % pv_root, monitor=False)
+        # self.ERASE = self.add_pv("%s:mca1.ERAS" % pv_root, monitor=False)
+        # self.IDTIM = self.add_pv("%s:mca1.IDTIM" % pv_root, monitor=False)
+        # self.ACQG = self.add_pv("%s:mca1.ACQG" % pv_root)
+        # self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
+        # self._count_time = self.add_pv("%s:mca1.PRTM" % pv_root)
 
         # Calibration parameters
-        #self._slope = self.add_pv("%s:mca1.CALS" % pv_root)
-        #self._offset = self.add_pv("%s:mca1.CALO" % pv_root)
+        # self._slope = self.add_pv("%s:mca1.CALS" % pv_root)
+        # self._offset = self.add_pv("%s:mca1.CALO" % pv_root)
 
         # Signal handlers, RDNG and ACQG must be PVs defined in custom_setup
-        #self.ACQG.connect('changed', self._monitor_state)
+        # self.ACQG.connect('changed', self._monitor_state)
         raise NotImplementedError, "Derived class does not implement a`custom_setup` method!"
-                
+
     def configure(self, **kwargs):
         """Configure the detector for data acquisition.
         
@@ -85,8 +91,8 @@ class BasicMCA(BaseDevice):
         """
         if 'retract' in kwargs.keys():
             self._set_nozzle(kwargs['retract'])
-            
-        for k,v in kwargs.items():                   
+
+        for k, v in kwargs.items():
             if k == 'roi':
                 if v is None:
                     self.region_of_interest = (0, self.channels)
@@ -97,8 +103,9 @@ class BasicMCA(BaseDevice):
                     self.region_of_interest = (0, self.channels)
                 else:
                     self.region_of_interest = (
-                                self.energy_to_channel(v - self.half_roi_width),
-                                self.energy_to_channel(v + self.half_roi_width))
+                        self.energy_to_channel(v - self.half_roi_width),
+                        self.energy_to_channel(v + self.half_roi_width))
+
     def _set_nozzle(self, out):
         if self.nozzle is None:
             return
@@ -110,7 +117,7 @@ class BasicMCA(BaseDevice):
             self.nozzle.set(1)
         ca.flush()
         time.sleep(2)
-                
+
     def _monitor_state(self, obj, state):
         if state == 1:
             self.set_state(busy=True)
@@ -127,11 +134,11 @@ class BasicMCA(BaseDevice):
         Returns:
             float. Energy in keV
         """
-        
+
         self.slope = self._slope.get()
         self.offset = self._offset.get()
-        return self.slope*chn + self.offset
-    
+        return self.slope * chn + self.offset
+
     def energy_to_channel(self, e):
         """Convert a an energy to a channel number using the detectors
         calibration tables.
@@ -144,9 +151,9 @@ class BasicMCA(BaseDevice):
         """
         self.slope = self._slope.get()
         self.offset = self._offset.get()
-        return  int((e-self.offset)/self.slope)
-    
-    def get_roi_counts(self):                            
+        return int((e - self.offset) / self.slope)
+
+    def get_roi_counts(self):
         """Obtain the counts for the region of interest for each element of the 
         detector for the last performed data acquisition.
         
@@ -158,7 +165,7 @@ class BasicMCA(BaseDevice):
         values = self.data[self.region_of_interest[0]:self.region_of_interest[1], 1:].sum(0)
         return values
 
-    def get_count_rates(self):                            
+    def get_count_rates(self):
         """Obtain the input and output count rates for last performed data 
         acquisition.
         
@@ -169,7 +176,7 @@ class BasicMCA(BaseDevice):
         """
         # get IRC and OCR tuple
         return [(-1, -1)]
-    
+
     def count(self, t):
         """Integrate the detector for the specified amount of time. This method 
         blocks.
@@ -203,30 +210,34 @@ class BasicMCA(BaseDevice):
         """
         self._acquire_data(t)
         return self.data
-        
+
     def stop(self):
         """Stop data acquisition."""
         self.STOP.set(1)
 
     def wait(self):
-        """Wait for the detector to start and then stop data acquisition."""        
+        """Wait for the detector to start and then stop data acquisition."""
         self._wait_start()
         self._wait_stop()
-    
-        
+
     def _start(self, wait=True):
         self.START.set(1)
         if wait:
             self._wait_start()
-                              
+
+    def _calc_deadtime(self, obj, val):
+        req_time = self._count_time.get()
+        pct = 100.0 * val / req_time
+        self.set_state(deadtime=pct)
+
     def _acquire_data(self, t=1.0):
-        self.data = numpy.zeros((self.channels, len(self.spectra)+1)) # one more for x-axis
+        self.data = numpy.zeros((self.channels, len(self.spectra) + 1))  # one more for x-axis
         self._count_time.set(t)
         self._start()
-        self._wait_stop()        
-        self.data[:,0] = self.channel_to_energy(numpy.arange(0,self.channels,1))
+        self._wait_stop()
+        self.data[:, 0] = self.channel_to_energy(numpy.arange(0, self.channels, 1))
         for i, spectrum in enumerate(self.spectra):
-            self.data[:,i+1] = spectrum.get()
+            self.data[:, i + 1] = spectrum.get()
 
     def _wait_start(self, poll=0.05, timeout=2):
         _logger.debug('Waiting for MCA to start acquiring.')
@@ -235,23 +246,24 @@ class BasicMCA(BaseDevice):
             time.sleep(poll)
         if timeout <= 0:
             _logger.warning('Timed out waiting for MCA to start acquiring')
-            return False                
-        return True        
-                
-    def _wait_stop(self, poll=0.05):       
+            return False
+        return True
+
+    def _wait_stop(self, poll=0.05):
         _logger.debug('Waiting for MCA to finish acquiring.')
-        timeout = 5 * self._count_time.get()    # use 5x count time for timeout
+        timeout = 5 * self._count_time.get()  # use 5x count time for timeout
         while self.ACQG.get() == 1 and timeout > 0:
             timeout -= poll
             time.sleep(poll)
         if timeout <= 0:
             _logger.warning('Timed out waiting for MCA finish acquiring')
-            return False                
-        return True        
+            return False
+        return True
+
 
 class XFlashMCA(BasicMCA):
     """mcaRecord based single element fluorescence detector object."""
-    
+
     def __init__(self, name, nozzle=None, channels=4096):
         """
         Args:
@@ -263,36 +275,36 @@ class XFlashMCA(BasicMCA):
         """
         BasicMCA.__init__(self, name, nozzle=nozzle, elements=1, channels=channels)
         self.name = 'XFlash MCA'
-        
+
     def custom_setup(self, pv_root, **kwargs):
-        
-        self.spectra = [self.add_pv("%s:mca%d" % (pv_root, d+1), monitor=False) for d in range(self.elements)]
+
+        self.spectra = [self.add_pv("%s:mca%d" % (pv_root, d + 1), monitor=False) for d in range(self.elements)]
         self.READ = self.add_pv("%s:mca1.READ" % pv_root, monitor=False)
         self.RDNG = self.add_pv("%s:mca1.RDNG" % pv_root)
         self.START = self.add_pv("%s:mca1.ERST" % pv_root, monitor=False)
         self.ERASE = self.add_pv("%s:mca1.ERAS" % pv_root, monitor=False)
-        self.IDTIM = self.add_pv("%s:mca1.IDTIM" % pv_root, monitor=False)
+        self.IDTIM = self.add_pv("%s:mca1.IDTIM" % pv_root)
         self.ACQG = self.add_pv("%s:mca1.ACQG" % pv_root)
         self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
-        
+
         # Calibration parameters
         self._slope = self.add_pv("%s:mca1.CALS" % pv_root)
         self._offset = self.add_pv("%s:mca1.CALO" % pv_root)
-        
+
         # temperature parameters
         self.TMP = self.add_pv("%s:Rontec1Temperature" % pv_root)
         self.TMODE = self.add_pv("%s:Rontec1SetMode" % pv_root, monitor=False)
-        
+
         # others
         self._count_time = self.add_pv("%s:mca1.PRTM" % pv_root)
         self._status_scan = self.add_pv("%s:mca1Status.SCAN" % pv_root, monitor=False)
         self._read_scan = self.add_pv("%s:mca1Read.SCAN" % pv_root, monitor=False)
         self._temp_scan = self.add_pv("%s:Rontec1ReadTemperature.SCAN" % pv_root, monitor=False)
-        
+
         # schecule a warmup at the end of every acquisition
         self.ACQG.connect('changed', self._schedule_warmup)
-        
-        
+        self.IDTIM.connect('changed', self._calc_deadtime)
+
     def configure(self, **kwargs):
         """Configure the detector for data acquisition.
         
@@ -307,11 +319,11 @@ class XFlashMCA(BasicMCA):
               disable it. 
         """
         # configure the mcarecord scan parameters
-        self._temp_scan.put(5) # 2 seconds
-        self._status_scan.put(9) # 0.1 second
-        self._read_scan.put(0) # Passive
-        
-        for k,v in kwargs.items():        
+        self._temp_scan.put(5)  # 2 seconds
+        self._status_scan.put(9)  # 0.1 second
+        self._read_scan.put(0)  # Passive
+
+        for k, v in kwargs.items():
             if k == 'cooling':
                 if self.TMP.get() >= -25.0 and v:
                     self._set_temp(v)
@@ -321,7 +333,7 @@ class XFlashMCA(BasicMCA):
                 else:
                     self._set_temp(v)
         BasicMCA.configure(self, **kwargs)
-        
+
     def _set_temp(self, on):
         if on:
             self.TMODE.set(2)
@@ -334,12 +346,14 @@ class XFlashMCA(BasicMCA):
                 GObject.source_remove(self._monitor_id)
             self._monitor_id = GObject.timeout_add(300000, self._set_temp, False)
 
-    def get_count_rates(self):                            
+    def get_count_rates(self):
         # get IRC and OCR tuple
         return [(-1, -1)]
 
+
 class VortexMCA(BasicMCA):
     """EPICS based 4-element Vortex ME4 detector object."""
+
     def __init__(self, name, channels=2048):
         """
         Args:
@@ -350,14 +364,14 @@ class VortexMCA(BasicMCA):
         """
         BasicMCA.__init__(self, name, nozzle=None, elements=4, channels=channels)
         self.name = 'Vortex MCA'
-        
+
     def custom_setup(self, pv_root, **kwargs):
-        self.spectra = [self.add_pv("%s:mca%d" % (pv_root, d+1), monitor=False) for d in range(self.elements)]
+        self.spectra = [self.add_pv("%s:mca%d" % (pv_root, d + 1), monitor=False) for d in range(self.elements)]
         self.READ = self.add_pv("%s:mca1.READ" % pv_root, monitor=False)
         self.RDNG = self.add_pv("%s:mca1.RDNG" % pv_root)
         self.START = self.add_pv("%s:EraseStart" % pv_root, monitor=False)
         self.ERASE = self.add_pv("%s:mca1.ERAS" % pv_root, monitor=False)
-        self.IDTIM = self.add_pv("%s:DeadTime" % pv_root, monitor=False)
+        self.IDTIM = self.add_pv("%s:DeadTime" % pv_root)
         self.ACQG = self.add_pv("%s:Acquiring" % pv_root)
         self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
         self.ICRS = [
@@ -365,7 +379,7 @@ class VortexMCA(BasicMCA):
             self.add_pv("%s:dxp2.ICR" % pv_root),
             self.add_pv("%s:dxp3.ICR" % pv_root),
             self.add_pv("%s:dxp4.ICR" % pv_root)]
-        
+
         self.OCRS = [
             self.add_pv("%s:dxp1.OCR" % pv_root),
             self.add_pv("%s:dxp2.OCR" % pv_root),
@@ -380,8 +394,9 @@ class VortexMCA(BasicMCA):
 
         # Signal handlers, RDNG and ACQG must be PVs defined in custom_setup
         self.ACQG.connect('changed', self._monitor_state)
-        
-    def get_count_rates(self):                            
+        self.IDTIM.connect('changed', self._calc_deadtime)
+
+    def get_count_rates(self):
         # get IRC and OCR tuples
         pairs = zip(self.ICRS, self.OCRS)
         _crs = []
@@ -389,9 +404,10 @@ class VortexMCA(BasicMCA):
             _crs.append((ICR.get(), OCR.get()))
         return _crs
 
+
 class SimMultiChannelAnalyzer(BasicMCA):
-    """Simulated single channel MCA detector."""   
-    
+    """Simulated single channel MCA detector."""
+
     def __init__(self, name, channels=4096):
         """
         Args:
@@ -401,36 +417,38 @@ class SimMultiChannelAnalyzer(BasicMCA):
             `channels` (int): Number of channels.
         """
         BasicMCA.__init__(self, name, nozzle=None, elements=1, channels=channels)
-        self.name = name        
-    
+        self.name = name
+
     def custom_setup(self, *args, **kwargs):
         # Default parameters
-        self.slope = 17.0/3298 #50000     #0.00498
-        self.offset = -96.0 * self.slope #9600 #-0.45347
-                
-        self._counts_data = numpy.loadtxt(os.path.join(os.environ['MXDC_PATH'],'test/scans/xanes_002.raw'), comments="#")
-        self._counts_data = self._counts_data[:,1]        
+        self.slope = 17.0 / 3298  # 50000     #0.00498
+        self.offset = -96.0 * self.slope  # 9600 #-0.45347
+
+        self._counts_data = numpy.loadtxt(os.path.join(os.environ['MXDC_PATH'], 'test/scans/xanes_002.raw'),
+                                          comments="#")
+        self._counts_data = self._counts_data[:, 1]
         self._last_t = time.time()
         self._last_pos = 0
-        self.set_state(active=True, health=(0,''))
-        
+        self.set_state(active=True, health=(0, ''))
+
     def configure(self, **kwargs):
         self._last_pos = 0
-        self._last_t = time.time()     
+        self._last_t = time.time()
         BasicMCA.configure(self, **kwargs)
-                
+
     def channel_to_energy(self, x):
-        return self.slope*x + self.offset
-    
+        return self.slope * x + self.offset
+
     def energy_to_channel(self, y):
-        return   int((y-self.offset)/self.slope)
-                                   
+        return int((y - self.offset) / self.slope)
+
     def count(self, t):
         self._aquiring = True
+        self.set_state(deadtime=random.random() * 51.0)
         time.sleep(t)
         self._acquiring = False
         val = self._counts_data[self._last_pos]
-        if self._last_pos < len(self._counts_data)-1:
+        if self._last_pos < len(self._counts_data) - 1:
             self._last_pos += 1
         return val
 
@@ -438,20 +456,24 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self._aquiring = True
         time.sleep(t)
         self._acquiring = False
-        fname = os.path.join(os.environ['MXDC_PATH'],'test/scans/xrf_%03d.raw' % random.choice(range(1,7)))
+        fname = os.path.join(os.environ['MXDC_PATH'], 'test/scans/xrf_%03d.raw' % random.choice(range(1, 7)))
         _logger.debug('Simulated Spectrum: %s' % fname)
         self._raw_data = numpy.loadtxt(fname, comments="#")
-        self._x_axis = self._raw_data[:,0]
-        return numpy.array(zip(self._x_axis, self._raw_data[:,1]))
-    
+        self._x_axis = self._raw_data[:, 0]
+        self.set_state(deadtime=random.random() * 51.0)
+        return numpy.array(zip(self._x_axis, self._raw_data[:, 1]))
+
     def get_roi_counts(self):
         return [0.0]
-        
+
+    def get_count_rates(self):
+        self.set_state(deadtime=random.random() * 51.0)
+        return [(-1, -1)]
     def stop(self):
         pass
 
     def wait(self):
         time.sleep(0.5)
-    
+
 
 __all__ = ['XFlashMCA', 'VortexMCA', 'SimMultiChannelAnalyzer']
