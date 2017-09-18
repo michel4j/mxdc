@@ -12,16 +12,16 @@ class StrategyType(object):
 
 
 STRATEGIES = {
-    StrategyType.SINGLE: {'range': 1.0, 'delta': 1.0, 'start': 0.0, 'helical': False, 'inverse': False,
+    StrategyType.SINGLE: {'range': 1.0, 'delta': 1.0, 'start': 0.0, 'inverse': False,
                           'activity': 'test', 'desc': 'Single Frame'},
     StrategyType.FULL: {'range': 180, 'desc': 'Full Dataset', 'activity': 'data'},
-    StrategyType.SCREEN_4: {'delta': 1.0, 'range': 182, 'start': 0.0, 'helical': False, 'inverse': False,
+    StrategyType.SCREEN_4: {'delta': 1.0, 'range': 182, 'start': 0.0, 'inverse': False,
                             'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0', 'activity': 'screen'},
-    StrategyType.SCREEN_3: {'delta': 1.0, 'range': 92, 'start': 0.0, 'helical': False, 'inverse': False,
+    StrategyType.SCREEN_3: {'delta': 1.0, 'range': 92, 'start': 0.0, 'inverse': False,
                             'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0', 'activity': 'screen'},
-    StrategyType.SCREEN_2: {'delta': 1.0, 'range': 92, 'start': 0.0, 'helical': False, 'inverse': False,
+    StrategyType.SCREEN_2: {'delta': 1.0, 'range': 92, 'start': 0.0, 'inverse': False,
                             'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0', 'activity': 'screen'},
-    StrategyType.POWDER: {'delta': 180.0, 'exposure': 30.0, 'range': 360.0, 'helical': False, 'inverse': False,
+    StrategyType.POWDER: {'delta': 180.0, 'exposure': 30.0, 'range': 360.0, 'inverse': False,
                           'desc': 'Powder', 'activity': 'data'}
 }
 
@@ -60,7 +60,7 @@ class RunItem(GObject.GObject):
     state = GObject.Property(type=int, default=StateType.DRAFT)
     position = GObject.Property(type=int, default=0)
     size = GObject.Property(type=int, default=0)
-    info = GObject.Property(type=GObject.TYPE_PYOBJECT)
+    info = GObject.Property(type=object)
     progress = GObject.Property(type=float, default=0.0)
     warning = GObject.Property(type=str, default="")
     title = GObject.Property(type=str, default="Add run ...")
@@ -146,70 +146,110 @@ STATE_PROPERTIES = {
 }
 
 
+def exlude_by_column(model, column, invert=True):
+    """Generate a model from another model filtering by the boolean value of a specified column"""
+    filter_model = model.filter_new()
+    filter_model.set_visible_func(lambda model, itr, data: bool(model[itr][column]) != invert)
+    return filter_model
+
+
 class DataEditor(gui.BuilderMixin):
     gui_roots = {
         'data/data_form': ['data_form']
     }
     Specs = {
         # field: ['field_type', format, type, default]
-        'resolution': ['entry', '{:0.3g}', float, 2.0],
+        'resolution': ['entry', '{:0.1f}', float, 2.0],
         'delta': ['entry', '{:0.3g}', float, 1.0],
         'range': ['entry', '{:0.4g}', float, 1.],
         'start': ['entry', '{:0.4g}', float, 0.],
         'wedge': ['entry', '{:0.4g}', float, 360.],
         'energy': ['entry', '{:0.3f}', float, 12.658],
-        'distance': ['entry', '{:0.2f}', float, 200],
+        'distance': ['entry', '{:0.1f}', float, 200],
         'exposure': ['entry', '{:0.3g}', float, 1.0],
         'attenuation': ['entry', '{:0.3g}', float, 0.0],
         'first': ['entry', '{}', int, 1],
+        'frames': ['entry', '{}', int, ''],
         'name': ['entry', '{}', str, ''],
         'strategy': ['cbox', '{}', int, StrategyType.SINGLE],
         'inverse': ['check', '{}', bool, False],
+        'point': ['pbox', '{}', tuple, None],
+        'end_point': ['pbox', '{}', tuple, None],
+        'vector_size': ['spin', '{}', int, 10],
     }
-    dialog_buttons = False
+    disabled = []
+    use_dialog = False
 
     def __init__(self):
         self.setup_gui()
         self.beamline = globalRegistry.lookup([], IBeamline)
+        self.points = Gtk.ListStore(str, object, bool, bool)
         self.new_run = True
         self.run_index = 0
         self.item = None
-        self.item_link = None
+        self.item_links = []
         self.build_gui()
 
     def set_item(self, item):
-        if self.item_link and self.item:
-            self.item.handler_disconnect(self.item_link)
+        for link in self.item_links:
+            self.item.handler_disconnect(link)
         self.item = item
         self.update()
         self.data_save_btn.set_sensitive(True)
 
-        self.item_link = self.item.connect('notify::state', self.update)
+        self.item_links = [
+            self.item.connect('notify::state', self.update),
+            self.item.connect('notify::info', self.update),
+        ]
 
-    def configure(self, info, disable=()):
+    def configure(self, info):
+        frames = runlists.generate_frame_names(info)
+        info['frames'] = len(frames)
+        info['distance'] = round(
+            converter.resol_to_dist(info['resolution'], self.beamline.detector.mm_size, info['energy']), 1
+        )
+
         for name, details in self.Specs.items():
             field_type, fmt, conv, default = details
             field_name = 'data_{}_{}'.format(name, field_type)
             value = info.get(name, default)
-            field = getattr(self, field_name)
+            field = getattr(self, field_name, None)
+            if not field: continue
             if field_type == 'entry':
                 field.set_text(fmt.format(value))
             elif field_type == 'check':
                 field.set_active(value)
+            elif field_type == 'spin':
+                field.set_value(value)
             elif field_type == 'cbox':
                 field.set_active_id(str(value))
-            if name in disable:
+            elif field_type == 'pbox':
+                if value:
+                    name, point = value
+                    field.set_active_id(name)
+                else:
+                    field.set_active_id(None)
+            if name in self.disabled:
                 field.set_sensitive(False)
-        name_exists = bool(info.get('name'))
-        if self.has_changed(info) and name_exists:
+
+        if 'name' not in self.disabled:
+            name_exists = bool(info.get('name'))
+            self.data_save_btn.set_sensitive(name_exists and self.has_changed(info))
+            if not name_exists:
+                self.data_name_entry.get_style_context().add_class('error')
+            else:
+                self.data_name_entry.get_style_context().remove_class('error')
+        if self.use_dialog:
             self.data_save_btn.set_sensitive(True)
+
 
     def get_parameters(self):
         info = {}
         for name, details in self.Specs.items():
             field_type, fmt, conv, default = details
             field_name = 'data_{}_{}'.format(name, field_type)
-            field = getattr(self, field_name)
+            field = getattr(self, field_name, None)
+            if not field: continue
             raw_value = default
             if field_type == 'entry':
                 raw_value = field.get_text()
@@ -217,6 +257,12 @@ class DataEditor(gui.BuilderMixin):
                 raw_value = field.get_active()
             elif field_type == 'cbox':
                 raw_value = field.get_active_id()
+            elif field_type == 'spin':
+                raw_value = field.get_value()
+            elif field_type == 'pbox':
+                point_name = field.get_active_id()
+                raw_value = self.get_point(point_name)
+                if not raw_value: continue
             try:
                 value = conv(raw_value)
             except (TypeError, ValueError):
@@ -228,9 +274,13 @@ class DataEditor(gui.BuilderMixin):
         info.update({
             'skip': _calc_skip(info['strategy'], info['delta'], info['first']),
             'strategy_desc': STRATEGIES[info['strategy']]['desc'],
+            'activity': STRATEGIES[info['strategy']]['activity'],
         })
-        frames = runlists.generate_frame_names(info)
-        info['frames'] = len(frames)
+
+        # make sure point is not empty if end_point is set
+        if info.get('end_point') and not info.get('point'):
+            info['point'] = info.pop('end_point')
+
         return info
 
     @classmethod
@@ -251,10 +301,11 @@ class DataEditor(gui.BuilderMixin):
         for name, details in self.Specs.items():
             field_type, fmt, conv, default = details
             field_name = 'data_{}_{}'.format(name, field_type)
-            field = getattr(self, field_name)
+            field = getattr(self, field_name, None)
+            if not field: continue
             if field_type in ['switch']:
                 field.connect('activate', self.on_entry_changed, name)
-            elif field_type in ['cbox']:
+            elif field_type in ['cbox', 'pbox']:
                 field.connect('changed', self.on_entry_changed, None, name)
             else:
                 field.connect('activate', self.on_entry_changed, None, name)
@@ -279,8 +330,13 @@ class DataEditor(gui.BuilderMixin):
                 defaults['delta'] = self.beamline.config['default_delta']
             if new_values['strategy'] not in [StrategyType.SINGLE, StrategyType.POWDER]:
                 defaults['exposure'] = self.beamline.config['default_exposure']
-
             new_values.update(defaults)
+        elif field_name == 'end_point':
+            if new_values.get('end_point'):
+                self.data_vector_size_spin.set_sensitive(True)
+            else:
+                self.data_vector_size_spin.set_sensitive(False)
+
         self.configure(new_values)
 
     def update(self, *args, **kwargs):
@@ -303,17 +359,76 @@ class DataEditor(gui.BuilderMixin):
 
 
 class RunEditor(DataEditor):
+    class Column:
+        NAME, COORDS, CHOICE1, CHOICE2 = range(4)
+
+    def build_gui(self):
+        super(RunEditor, self).build_gui()
+        self.points.connect('row-changed', self.on_points_updated)
+        self.points.connect('row-deleted', self.on_points_updated)
+        self.points.connect('row-inserted', self.on_points_updated)
+        adjustment = Gtk.Adjustment(10, 2, 100, 1, 5, 0)
+        self.data_vector_size_spin.set_adjustment(adjustment)
+        for i, field_name in enumerate(['point', 'end_point']):
+            field_name = 'data_{}_pbox'.format(field_name)
+            field = getattr(self, field_name, None)
+            if not field: continue
+            renderer_text = Gtk.CellRendererText()
+            field.pack_start(renderer_text, True)
+            field.add_attribute(renderer_text, "text", self.Column.NAME)
+            choice_column = self.Column.CHOICE1 + i
+            field.set_model(exlude_by_column(self.points, choice_column))
+            field.set_id_column(self.Column.NAME)
+            field.connect('changed', self.sync_choices, choice_column)
+
+    def add_point(self, name, point):
+        if not len(self.points):
+            self.points.append([None, None, False, False])
+        self.points.append([name, point, False, False])
+
+    def get_point(self, name):
+        value = None
+        if name:
+            for row in self.points:
+                if row[self.Column.NAME] == name:
+                    value = (name, row[self.Column.COORDS])
+        return value
+
+    def sync_choices(self, obj, column):
+        name = obj.get_active_id()
+        self.select_point(name, column)
+
+    def select_point(self, name, column):
+        for row in self.points:
+            if name and row[self.Column.NAME] == name:
+                for col in [self.Column.CHOICE1, self.Column.CHOICE2]:
+                    row[col] = (col != column)
+            else:
+                row[self.Column.CHOICE1] = False
+                row[self.Column.CHOICE2] = False
+
+    def clear_points(self):
+        self.points.clear()
+
+    def on_points_updated(self, *args, **kwargs):
+        num_points = len(self.points)
+        self.data_vector_box.set_sensitive(num_points > 1)
+        self.data_end_point_pbox.set_sensitive(num_points > 2)
+
+
+class DataDialog(DataEditor):
     gui_roots = {
         'data/data_dialog': ['data_dialog'],
         'data/data_form': ['data_form_fields'],
     }
-    dialog_buttons = True
+    disabled = ['name', 'inverse']
+    use_dialog = True
 
     def build_gui(self):
         self.window = self.data_dialog
         self.window.set_property('use-header-bar', True)
         self.content_box.pack_start(self.data_form_fields, True, True, 0)
-        super(RunEditor, self).build_gui()
+        super(DataDialog, self).build_gui()
 
 
 class RunConfig(gui.Builder):

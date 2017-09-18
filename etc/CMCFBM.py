@@ -3,9 +3,9 @@ from mxdc.settings import *
 import os
 import numpy
 
-BEAMLINE_NAME = '08B1-1'
+BEAMLINE_NAME = 'CMCF-BM'
 BEAMLINE_TYPE = 'MX'
-BEAMLINE_ENERGY_RANGE = (4.0, 18.5)
+BEAMLINE_ENERGY_RANGE = (4.5, 18.0)
 BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
 ADMIN_GROUPS = [2000]
 
@@ -41,8 +41,9 @@ DEVICES = {
     'chi': PseudoMotor('PSMTR1608-5-B10-13:pm:deg'),
     'kappa': PseudoMotor('PSMTR1608-5-B10-11:pm:deg'),
     'sample_x':  PseudoMotor('PSMTR1608-5-B10-02:pm:mm', precision=3),
-    'sample_y':  PseudoMotor('PSMTR1608-5-B10-07:pm:mm', precision=3),
-    
+    #'sample_y':  PseudoMotor('PSMTR1608-5-B10-07:pm:mm', precision=3),
+    'sample_y1':  PseudoMotor('PSMTR1608-5-B10-05:pm:mm', precision=3),
+    'sample_y2':  PseudoMotor('PSMTR1608-5-B10-04:pm:mm', precision=3),
     
     # Beam position & Size
     'aperture': ChoicePositioner('BL08B1:MD2:S:SelectedAperture', choices=[200, 150, 100, 50, 20], units='um'),
@@ -103,7 +104,7 @@ DEVICES = {
 # lims, dpm, imagesync and other services
 SERVICES = {
     'image_server': ImageSyncClient(),
-    'lims': LIMSClient('https://cmcf.lightsource.ca'),
+    'lims': MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
     'dpm': DPMClient(),
 }
 

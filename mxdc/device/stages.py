@@ -1,6 +1,6 @@
 import numpy
 from zope.interface import implements, Attribute
-
+from gi.repository import GObject
 from mxdc.device.base import BaseDevice
 from mxdc.interface.devices import IDevice
 
@@ -43,6 +43,10 @@ class ISampleStage(IDevice):
 
 
 class SampleStageBase(BaseDevice):
+    __gsignals__ = {
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+    }
+
     def xyz_to_xvw(self, x, y, z):
         return x, numpy.hypot(y, z), numpy.arctan2(z, y)
 
@@ -70,8 +74,7 @@ class Sample3Stage(SampleStageBase):
     implements(ISampleStage)
 
     def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, independent=False):
-        super(Sample3Stage, self).__init__()
-        from mxdc.device.motor import RelVerticalMotor
+        SampleStageBase.__init__(self)
         self.name = name
         self.x = x
         self.y1 = y1
@@ -80,6 +83,12 @@ class Sample3Stage(SampleStageBase):
         self.independent = independent
         self.omega = omega
         self.add_devices(x, y1, y2, omega)
+        for dev in (self.x, self.y1, self.y2, self.omega):
+            dev.connect('changed', self.emit_change)
+
+    def emit_change(self, *args, **kwargs):
+        pos = (self.get_omega(), self.x.get_position(), self.y1.get_position(), self.y2.get_position())
+        self.set_state(changed=pos)
 
     def get_xvw(self):
         """x = horizontal, v = vertical, w= angle in radians"""

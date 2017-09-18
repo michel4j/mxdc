@@ -8,7 +8,7 @@ from gi.repository import Gtk, Pango, Gdk, GObject
 from matplotlib.path import Path
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine.scripting import get_scripts
-from mxdc.utils import imgproc
+from mxdc.utils import imgproc, colors
 from mxdc.utils.decorators import async
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -18,14 +18,6 @@ from zope.interface import Interface, Attribute, implements
 
 _logger = get_module_logger(__name__)
 
-def coords_to_xyz(coords, omega):
-    xyz = numpy.empty_like(coords)
-    xyz[:,0] = coords[:,0]
-    h = numpy.hypot(coords[:,1], coords[:,2])
-    delta  = numpy.radians(omega) - numpy.arctan(numpy.divide(coords[:,1]+1e-10, coords[:,2]))
-    xyz[:,1] = numpy.cos(delta)*h
-    xyz[:,2] = numpy.sin(delta)*h
-    return xyz
 
 def orientation(p):
     verts = p.vertices
@@ -55,6 +47,7 @@ class Microscope(GObject.GObject):
     grid_state = GObject.Property(type=int, default=GridState.PENDING)
     grid_params = GObject.Property(type=object)
     grid_scores = GObject.Property(type=object)
+    grid_cmap = GObject.Property(type=object)
     points = GObject.Property(type=object)
     polygon = GObject.Property(type=object)
 
@@ -65,11 +58,13 @@ class Microscope(GObject.GObject):
         self.fps_update = 0
 
         self.props.grid = None
+        self.props.grid_xyz = None
         self.props.points = []
         self.props.polygon = []
         self.props.grid_scores = {}
         self.props.grid_params = {}
         self.props.grid_state = self.GridState.PENDING
+        self.props.grid_cmap = colors.ColorMapper(min_val=0, max_val=100)
 
         self.allow_centering = False
         self.create_polygon = False
@@ -93,16 +88,15 @@ class Microscope(GObject.GObject):
         self.widget.microscope_ccw90_btn.connect('clicked', self.on_rotate, -90)
         self.widget.microscope_cw90_btn.connect('clicked', self.on_rotate, 90)
         self.widget.microscope_rot180_btn.connect('clicked', self.on_rotate, 180)
-        self.widget.microscope_ccw10_btn.connect('clicked', self.on_rotate, -10)
-        self.widget.microscope_cw10_btn.connect('clicked', self.on_rotate, 10)
 
         # centering
         self.widget.microscope_loop_btn.connect('clicked', self.on_center_loop)
         self.widget.microscope_crystal_btn.connect('clicked', self.on_center_crystal)
         self.widget.microscope_capillary_btn.connect('clicked', self.on_center_capillary)
         self.beamline.goniometer.connect('mode', self.on_gonio_mode)
-        self.beamline.aperture.connect('changed', self.on_aperture)
-        self.beamline.omega.connect('changed', self.rotate_grid)
+        self.beamline.sample_stage.connect('changed', self.update_grid)
+        self.beamline.sample_zoom.connect('changed', self.update_grid)
+        self.connect('notify::grid-xyz', self.update_grid)
 
         # Video Area
         self.video = VideoWidget(self.camera)
@@ -115,19 +109,25 @@ class Microscope(GObject.GObject):
         self.widget.microscope_clear_btn.connect('clicked', self.clear_objects)
 
         # lighting monitors
-        self.monitors = [
-            common.ScaleMonitor(self.widget.microscope_backlight_scale, self.beamline.sample_backlight),
-            common.ScaleMonitor(self.widget.microscope_frontlight_scale, self.beamline.sample_frontlight),
-        ]
-        self.widget.microscope_backlight_scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
-        self.widget.microscope_frontlight_scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
+        self.monitors = []
+        for key in ['backlight', 'frontlight', 'uvlight']:
+            light = getattr(self.beamline, 'sample_{}'.format(key), None)
+            scale = getattr(self.widget, 'microscope_{}_scale'.format(key), None)
+            box = getattr(self.widget, '{}_box'.format(key), None)
+            if all([light, scale, box]):
+                self.monitors.append(
+                    common.ScaleMonitor(scale, light),
+                )
+                scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
+                box.set_sensitive(True)
+            else:
+                box.destroy()
+            if key == 'uvlight':
+                color = Gdk.RGBA(red=0.5, green=0.1, blue=0.9, alpha=0.75)
+                box.override_color(Gtk.StateFlags.NORMAL, color)
 
-        pango_font = Pango.FontDescription('Monospace 7.5')
-        self.widget.microscope_pos_lbl.modify_font(pango_font)
-        self.widget.microscope_meas_lbl.modify_font(pango_font)
-
-        self.video.connect('motion_notify_event', self.on_mouse_motion)
-        self.video.connect('button_press_event', self.on_image_click)
+        self.video.connect('motion-notify-event', self.on_mouse_motion)
+        self.video.connect('button-press-event', self.on_image_click)
         self.video.set_overlay_func(self.overlay_function)
         self.video.connect('realize', self.on_realize)
 
@@ -191,17 +191,16 @@ class Microscope(GObject.GObject):
             cr.move_to(x1, y1)
             cr.line_to(x2, y2)
             cr.stroke()
-
-            self.widget.microscope_meas_lbl.set_text("%0.2g mm" % dist)
-        else:
-            # Update FPS ever 5 seconds
-            if time.time() - self.fps_update > 1:
-                self.widget.microscope_meas_lbl.set_text("%4.1f fps" % self.video.fps)
-                self.fps_update = time.time()
-        return True
+            label = '{:0.3f} mm'.format(dist)
+            lx, ly = (x1 + x2)*0.5, (y1 + y2)*0.5
+            xb, yb, w, h = cr.text_extents(label)[:4]
+            cr.move_to(lx + h, ly + h)
+            cr.show_text(label)
+            cr.stroke()
 
     def clear_objects(self, *args, **kwargs):
         self.props.grid = None
+        self.props.grid_xyz = None
         self.props.grid_scores = {}
         self.props.points = []
         self.props.polygon = []
@@ -237,7 +236,7 @@ class Microscope(GObject.GObject):
         ])
 
     def auto_grid(self, *args, **kwargs):
-        img = self.beamline.sample_video.get_frame()
+        img = self.camera.get_frame()
         bbox = self.video.scale * imgproc.get_sample_bbox2(img)
         self.props.grid = self.bbox_grid(bbox)
         self.props.grid_params = {
@@ -250,10 +249,16 @@ class Microscope(GObject.GObject):
     def draw_grid(self, cr):
         if self.props.grid is not None:
             radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
-            cr.set_source_rgba(0.2, 1.0, 0.5, 0.5)
+
             cr.set_line_width(1.0)
             cr.set_font_size(8)
             for i, (x, y, z) in enumerate(self.props.grid):
+                if i in self.props.grid_scores:
+                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i], alpha=0.35)
+                    cr.set_source_rgba(*col)
+                    cr.arc(x, y, radius, 0, 2.0 * 3.14)
+                    cr.fill()
+                cr.set_source_rgba(0.2, 1.0, 0.5, 0.5)
                 cr.arc(x, y, radius, 0, 2.0 * 3.14)
                 cr.stroke()
                 name = '{}'.format(i)
@@ -302,22 +307,23 @@ class Microscope(GObject.GObject):
                 cr.arc(x, y, radii[i], 0, 2.0 * 3.14)
                 cr.fill()
                 cr.move_to(x + 6, y)
-                cr.show_text('P{}'.format(i))
+                cr.show_text('P{}'.format(i+1))
+                cr.stroke()
             cr.restore()
 
     def add_point(self, *args, **kwargs):
-        self.props.points.append(self.beamline.sample_stage.get_xyz())
+        self.props.points = self.props.points + [self.beamline.sample_stage.get_xyz()]
 
     def add_polygon_point(self, x, y):
+        radius = 0.25e-3*self.beamline.aperture.get() / self.video.mm_scale()
         if not len(self.props.polygon):
             self.props.polygon.append((x, y))
         else:
             d = numpy.sqrt((x - self.props.polygon[0][0]) ** 2 + (y - self.props.polygon[0][1]))
-            if d > 10:
+            if d > radius:
                 self.props.polygon.append((x, y))
             else:
                 self.props.polygon.append(self.props.polygon[0])
-                # make polygon clockwise
                 self.make_polygon_grid()
                 self.widget.microscope_grid_btn.set_active(False)
 
@@ -342,23 +348,30 @@ class Microscope(GObject.GObject):
 
         xmm, ymm = self.video.screen_to_mm(grid[:, 0], grid[:, 1])[2:]
         ox, oy, oz =self.beamline.sample_stage.get_xyz()
-        gx, gy, gz = self.beamline.sample_stage.xvw_to_xyz(-xmm, -ymm, numpy.zeros_like(ymm))
+        angle = self.beamline.omega.get_position()
+        gx, gy, gz = self.beamline.sample_stage.xvw_to_xyz(-xmm, -ymm, numpy.radians(angle))
         grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
 
         self.props.grid_state = self.GridState.PENDING
-        self.props.grid = grid
         self.props.grid_xyz = grid_xyz
         self.props.grid_params = {
             'origin': (ox, oy, oz),
-            'angle': self.beamline.omega.get_position()
+            'angle': angle
         }
         self.props.grid_scores = {}
-
+        self.props.polygon = [] # delete polygon after making grid
 
     def add_grid_score(self, position, score):
         self.props.grid_scores[position] = score
-        values = [v for v in self.props.grid_params['scores'].values()]
-        self._grid_colormap.autoscale(values)
+        self.props.grid_cmap.autoscale(self.props.grid_scores.values())
+        self.props.grid_state = self.GridState.COMPLETE
+
+    def load_grid(self, grid_xyz, params, scores):
+        self.props.grid_xyz = grid_xyz
+        self.props.grid_scores = scores
+        self.props.grid_params = params
+        self.props.grid_state = self.GridState.COMPLETE
+        self.props.grid_cmap.autoscale(self.props.grid_scores.values())
 
     def lock_grid(self):
         self.show_grid = True
@@ -371,6 +384,7 @@ class Microscope(GObject.GObject):
             self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
 
     def overlay_function(self, cr):
+        # FIXME: For performance and efficiency, use overlay surface and only recreate it if objects have changed
         self.draw_beam(cr)
         self.draw_measurement(cr)
         self.draw_grid(cr)
@@ -379,18 +393,9 @@ class Microscope(GObject.GObject):
         return True
 
     # callbacks
-    def on_aperture(self, *args, **kwargs):
-        can_remake_grid = (
-            self.props.grid is not None and
-            self.props.polygon and
-            self.beamline.omega.get_position() == self.props.grid_params.get('angle', 0.0) and
-            self.props.grid_state == self.GridState.PENDING
-        )
-        if can_remake_grid:
-            self.make_polygon_grid()
 
-    def rotate_grid(self, *args, **kwargs):
-        if self.props.grid is not None and self.props.grid_xyz is not None:
+    def update_grid(self, *args, **kwargs):
+        if self.props.grid_xyz is not None:
             center = numpy.array(self.video.get_size()) * 0.5
             points = self.grid_xyz - numpy.array(self.beamline.sample_stage.get_xyz())
             xyz = numpy.empty_like(points)
@@ -398,6 +403,8 @@ class Microscope(GObject.GObject):
             xyz /= self.video.mm_scale()
             xyz[:, :2] += center
             self.props.grid = xyz
+        else:
+            self.props.grid = None
 
 
     def on_gonio_mode(self, obj, mode):
@@ -461,7 +468,7 @@ class Microscope(GObject.GObject):
         return True
 
     def on_zoom(self, widget, position):
-        self.beamline.sample_video.zoom(position)
+        self.camera.zoom(position)
 
     def on_rotate(self, widget, angle):
         cur_omega = int(self.beamline.omega.get_position())
@@ -475,7 +482,9 @@ class Microscope(GObject.GObject):
         else:
             x, y = event.x, event.y
         ix, iy, xmm, ymm = self.video.screen_to_mm(x, y)
-        self.widget.microscope_pos_lbl.set_markup("%4d,%4d [%6.3f, %6.3f mm]" % (ix, iy, xmm, ymm))
+        self.widget.microscope_pos_lbl.set_markup(
+            "<small><tt>X:{:5.0f} {:6.3f} mm\nY:{:5.0f} {:6.3f} mm</tt></small>".format(ix, xmm, iy, ymm)
+        )
         if 'GDK_BUTTON2_MASK' in event.get_state().value_names:
             self.measurement[1] = (x, y)
         else:

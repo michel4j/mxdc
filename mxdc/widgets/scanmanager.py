@@ -1,11 +1,11 @@
 
 from mxdc.beamline.mx import IBeamline
-from mxdc.engine.spectroscopy import XRFScan, XANESScan, EXAFSScan
+from mxdc.engine.spectroscopy import XRFScanner, MADScanner, XASScanner
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import config, gui
 from mxdc.widgets import dialogs
 from mxdc.widgets.misc import ActiveProgressBar
-from mxdc.widgets.periodictable import PeriodicTable
+from mxdc.widgets.periodictable import PeriodicTable, EdgeSelector
 from mxdc.widgets.plotter import Plotter
 from mxdc.widgets.textviewer import TextViewer
 from twisted.python.components import globalRegistry
@@ -80,7 +80,7 @@ XRF_COLOR_LIST = ['#4185b4', '#ff7f0e', '#2ca02c', '#ff2627',
 class ScanManager(Gtk.Alignment):
     __gsignals__ = {
         'create-run': (GObject.SignalFlags.RUN_LAST, None, []),
-        'update-strategy': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT,]),
+        'update-strategy': (GObject.SignalFlags.RUN_FIRST, None, [object,]),
     }
 
     def __init__(self):
@@ -89,9 +89,9 @@ class ScanManager(Gtk.Alignment):
 
         self._create_widgets()
 
-        self.xanes_scanner = XANESScan()
-        self.xrf_scanner = XRFScan()
-        self.exafs_scanner = EXAFSScan()
+        self.xanes_scanner = MADScanner()
+        self.xrf_scanner = XRFScanner()
+        self.exafs_scanner = XASScanner()
         
         # XANES   
         self.xanes_scanner.connect('new-point', self.on_new_scan_point)    
@@ -209,7 +209,7 @@ class ScanManager(Gtk.Alignment):
         else:
             self.exafs_btn.set_sensitive(True)
             
-        self.periodic_table = PeriodicTable(loE, hiE)
+        self.periodic_table = EdgeSelector() #PeriodicTable(loE, hiE)
         self.periodic_table.connect('edge-selected',self.on_edge_selected)
         self.plotter = Plotter(xformat='%g')
         self.periodic_frame.add(self.periodic_table)
@@ -218,10 +218,10 @@ class ScanManager(Gtk.Alignment):
 
         # XANES Results section
         self.energy_store = Gtk.ListStore(
-            GObject.TYPE_STRING,
-            GObject.TYPE_FLOAT,
-            GObject.TYPE_FLOAT,
-            GObject.TYPE_FLOAT
+            str,
+            float,
+            float,
+            float
         )
         self.energy_list = Gtk.TreeView(model=self.energy_store)
         self.energy_list.set_rules_hint(True)
@@ -256,9 +256,9 @@ class ScanManager(Gtk.Alignment):
         
         # XRF Results section
         self.xrf_store = Gtk.ListStore(
-            GObject.TYPE_BOOLEAN,                          
-            GObject.TYPE_STRING,
-            GObject.TYPE_FLOAT
+            bool,
+            str,
+            float
         )
         self.xrf_list = Gtk.TreeView(model=self.xrf_store)
         self.xrf_list.set_rules_hint(True)

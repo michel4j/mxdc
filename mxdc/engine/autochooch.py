@@ -14,7 +14,7 @@ class AutoChooch(GObject.GObject):
         - `error`: Emitted if an error occurs.
     """
     __gsignals__ = {}
-    __gsignals__['error'] = (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING,))
+    __gsignals__['error'] = (GObject.SignalFlags.RUN_LAST, None, (str,))
     __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, [])
     
     def __init__(self):

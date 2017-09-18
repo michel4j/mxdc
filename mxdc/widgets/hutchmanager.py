@@ -26,7 +26,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class HutchManager(Gtk.Alignment, gui.BuilderMixin):
     __gsignals__ = {
-        'beam-change': (GObject.SignalFlags.RUN_LAST, None, [GObject.TYPE_BOOLEAN, ]),
+        'beam-change': (GObject.SignalFlags.RUN_LAST, None, [bool, ]),
     }
     gui_roots = {
         'data/hutch_manager': ['hutch_widget'],

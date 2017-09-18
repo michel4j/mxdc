@@ -32,8 +32,9 @@ def update_for_sample(info, sample=None):
         'activity': params.get('activity', 'unknown'),
         'sample_id': sample.get('id'),
     })
-
-    dir_template = '{}/{}'.format(os.environ['HOME'], config.settings.get_string('directory-template'))
+    template = config.settings.get_string('directory-template')
+    activity_template = template[1:] if template[0] == os.sep else template
+    dir_template = os.path.join(misc.get_project_home(), '{session}', activity_template)
     params['directory'] = dir_template.format(**params).replace('//', '/')
     return params
 
@@ -192,6 +193,7 @@ def generate_collection_list(run, frame_set):
         'two_theta': run.get('two_theta', 0.0),
         'attenuation': run.get('attenuation', 0.0),
         'directory': run['directory'],
+        'point': run.get('point', None)
     }
     collection_list.append(data_set)
     return collection_list
@@ -362,4 +364,23 @@ def merge_framesets(*args):
     return summarize_list(sequence)
 
 def generate_grid_frames(grid, params):
-    pass
+    frame_template = '{}_{}'.format(params['name'], '{{:0{}d}}'.format(FRAME_NUMBER_DIGITS))
+    return [
+        {
+            'dataset': params['name'],
+            'uuid': params['uuid'],
+            'saved': False,
+            'first': i,
+            'frame_name': frame_template.format(i),
+            'start': params['angle'],
+            'delta': params['delta'],
+            'exposure': params['exposure'],
+            'energy': params['energy'],
+            'distance': params['distance'],
+            'two_theta': params.get('two_theta', 0.0),
+            'attenuation': params.get('attenuation', 0.0),
+            'directory': params['directory'],
+            'point': point,
+        }
+        for i, point in enumerate(grid)
+    ]

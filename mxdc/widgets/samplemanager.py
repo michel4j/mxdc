@@ -27,9 +27,9 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class SampleManager(Gtk.Alignment, gui.BuilderMixin):
     __gsignals__ = {
-        'samples-changed': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-        'active-sample': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, ]),
-        'sample-selected': (GObject.SignalFlags.RUN_FIRST, None, [GObject.TYPE_PYOBJECT, ]),
+        'samples-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'active-sample': (GObject.SignalFlags.RUN_FIRST, None, [object, ]),
+        'sample-selected': (GObject.SignalFlags.RUN_FIRST, None, [object, ]),
     }
     gui_roots = {
         'data/sample_widget': ['sample_widget']
@@ -89,7 +89,7 @@ class SampleManager(Gtk.Alignment, gui.BuilderMixin):
         if state:
             # Load MxLIVE Samples if a new session
             if config.SESSION_INFO.get('new', False):
-                reply = self.beamline.lims.get_project_samples(self.beamline)
+                reply = self.beamline.lims.get_samples(self.beamline)
                 if reply.get('error'):
                     _logger.error('Containers and Samples could not be imported from MxLIVE.')
                 else:
@@ -170,7 +170,7 @@ class SampleManager(Gtk.Alignment, gui.BuilderMixin):
         return self.dewar_loader.samples_database
 
     def on_import_lims(self, obj):
-        reply = self.beamline.lims.get_project_samples(self.beamline)
+        reply = self.beamline.lims.get_samples(self.beamline)
         if 'error' in reply:
             header = 'MxLIVE Error'
             subhead = reply['error']

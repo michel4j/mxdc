@@ -92,10 +92,10 @@ class RunWidget(Gtk.Alignment):
                
         # Energy
         self.energy_store = Gtk.ListStore(
-            GObject.TYPE_STRING,
-            GObject.TYPE_PYOBJECT,
-            GObject.TYPE_BOOLEAN,
-            GObject.TYPE_BOOLEAN,
+            str,
+            object,
+            bool,
+            bool,
         )
         self.energy_list = Gtk.TreeView(model=self.energy_store)
         self.energy_list.set_hover_selection(True)
