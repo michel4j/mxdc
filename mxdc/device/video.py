@@ -17,7 +17,7 @@ from scipy import misc
 from zope.interface import implements
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 session = requests.Session()
 
@@ -84,7 +84,7 @@ class VideoSrc(BaseDevice):
                         if not sink.stopped:
                             sink.display(img)
                 except Exception as e:
-                    _logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
+                    logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
             time.sleep(max(0, dur - (time.time() - t)))
 
     def get_frame(self):
@@ -196,7 +196,7 @@ class MJPGCamera(VideoSrc):
                         both_found = True
                     time.sleep(0)
         except Exception as e:
-            _logger.error(e)
+            logger.error(e)
             self.stream = requests.get(self.url, stream=True).raw
         return self._frame
 

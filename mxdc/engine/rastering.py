@@ -13,7 +13,7 @@ from mxdc.utils import runlists, misc
 from mxdc.utils.converter import energy_to_wavelength
 from mxdc.utils.log import get_module_logger
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class RasterCollector(GObject.GObject):
@@ -159,7 +159,7 @@ class RasterCollector(GObject.GObject):
 
     def pause(self, message=''):
         if message:
-            _logger.warn(message)
+            logger.warn(message)
         self.pause_message = message
         self.paused = True
 
@@ -170,7 +170,7 @@ class RasterCollector(GObject.GObject):
         self.stopped = True
         self.paused = False
         if error:
-            _logger.error(error)
+            logger.error(error)
             GObject.idle_add(self.emit, 'error', error)
 
     def notify_progress(self, pos):
@@ -189,7 +189,7 @@ class RasterCollector(GObject.GObject):
         m = file_pattern.match(frame)
         if m:
             index = int(m.groups()[0])
-            _logger.info("Analyzing frame: {}:{}".format(index, frame))
+            logger.info("Analyzing frame: {}:{}".format(index, frame))
             self.beamline.dpm.service.callRemote(
                 'analyseImage',
                 file_path,
@@ -204,4 +204,4 @@ class RasterCollector(GObject.GObject):
         GObject.idle_add(self.emit, 'result', cell, result)
 
     def _result_fail(self, results, cell):
-        _logger.error("Unable to process data for cell {}".format(cell))
+        logger.error("Unable to process data for cell {}".format(cell))

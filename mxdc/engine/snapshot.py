@@ -9,7 +9,7 @@ import sys
 
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 @ca_thread_enable
 def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
@@ -20,7 +20,7 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
         beamline = globalRegistry.lookup([], IBeamline)
     except:
         beamline = None
-        _logger.warning('No registered beamline found.')
+        logger.warning('No registered beamline found.')
         return None
     bw = beamline.aperture.get() * 0.001
     bh = beamline.aperture.get() * 0.001
@@ -42,6 +42,6 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
             imgname = os.path.join(directory, '%s_%0.0f.png' % (prefix, angle))
             img.save(imgname)
             results.append((angle, imgname))
-            _logger.debug('Saving video snapshot `%s` at omega angle `%0.1f`' % (imgname, angle))
+            logger.debug('Saving video snapshot `%s` at omega angle `%0.1f`' % (imgname, angle))
     return results
 

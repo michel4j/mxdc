@@ -87,10 +87,10 @@ class TwistedLogHandler(logging.StreamHandler):
 def get_module_logger(name):
     """A factory which creates loggers with the given name and returns it."""
     name = name.split('.')[-1]
-    _logger = logging.getLogger(name)
-    _logger.setLevel(LOG_LEVEL)
-    _logger.addHandler( NullHandler() )
-    return _logger
+    logger = logging.getLogger(name)
+    logger.setLevel(LOG_LEVEL)
+    logger.addHandler( NullHandler() )
+    return logger
 
 
 

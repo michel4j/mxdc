@@ -16,7 +16,7 @@ from mxdc.widgets.video import VideoWidget
 from twisted.python.components import globalRegistry
 from zope.interface import Interface, Attribute, implements
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 def orientation(p):

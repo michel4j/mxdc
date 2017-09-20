@@ -1,80 +1,22 @@
-import copy
 import os
 import time
-from collections import OrderedDict
+import copy
 from datetime import datetime
 
-from gi.repository import Gtk, GObject
-from twisted.python.components import globalRegistry
-
 import common
+from datasets import IDatasets
+from enum import Enum
+from gi.repository import Gtk, GObject
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine.spectroscopy import XRFScanner, MADScanner, XASScanner
-from mxdc.utils import colors, runlists, config, misc, science, converter
+from mxdc.utils import colors, runlists, misc, science, converter
+from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs, periodictable, plotter
 from samplestore import ISampleStore
+from twisted.python.components import globalRegistry
 
-_logger = get_module_logger(__name__)
-
-
-class MAD:
-    class Data:
-        NAME, LABEL, ENERGY, WAVELENGTH, FPP, FP, PARENT, DIRECTORY = range(8)
-
-    Types = [str, str, float, float, float, float, bool, str]
-    Keys = [
-        ('name', ''),
-        ('label', ''),
-        ('energy', 0.0),
-        ('wavelength', 0.0),
-        ('fpp', 0.0),
-        ('fp', 0.0),
-        ('parent', False),
-        ('directory', '')
-    ]
-    Columns = OrderedDict([
-        (Data.LABEL, 'Label'),
-        (Data.ENERGY, 'Energy'),
-        (Data.WAVELENGTH, u"\u03BB"),
-        (Data.FP, "f'"),
-        (Data.FPP, 'f"'),
-    ])
-    Formats = {
-        Data.LABEL: '{}',
-        Data.ENERGY: '{:0.4f}',
-        Data.WAVELENGTH: '{:0.4f}',
-        Data.FP: '{:0.2f}',
-        Data.FPP: '{:0.2f}'
-    }
-
-
-class XRF:
-    class Data:
-        SELECTED, SYMBOL, NAME, PERCENT = range(4)
-
-    Types = [bool, str, str, float]
-    Keys = [
-        ('selected', False),
-        ('symbol', ''),
-        ('name', ''),
-        ('percent', 0.0)
-    ]
-    Columns = OrderedDict([
-        (Data.SELECTED, ''),
-        (Data.NAME, 'Element'),
-        (Data.SYMBOL, ''),
-        (Data.PERCENT, 'Relative Amount'),
-    ])
-    Formats = {
-        Data.NAME: '{}',
-        Data.SYMBOL: '{}',
-        Data.PERCENT: '{:0.1f} %',
-    }
-
-
-class XAS:
-    pass
+logger = get_module_logger(__name__)
 
 
 def summarize_lines(data):
@@ -114,13 +56,15 @@ def summarize_lines(data):
 
 
 class ScanController(GObject.GObject):
+
     class StateType:
         READY, ACTIVE, PAUSED = range(3)
 
     state = GObject.Property(type=int, default=StateType.READY)
     config = GObject.Property(type=object)
     desc = 'MAD Scan'
-    specs = None
+    result_class = None
+    ConfigSpec = None
     prefix = 'mad'
 
     def __init__(self, scanner, plotter, widget, edge_selector):
@@ -133,7 +77,7 @@ class ScanController(GObject.GObject):
         self.start_time = 0
         self.axis = 0
         self.pause_dialog = None
-        self.template_dir = config.get_activity_template('{}-scan'.format(self.prefix))
+        self.results = self.result_class(self.results_view)
         self.setup()
 
     def setup(self):
@@ -153,6 +97,12 @@ class ScanController(GObject.GObject):
         self.edge_entry.connect('changed', self.hide_ptable)
         self.edge_entry.connect('changed', self.on_edge_changed)
 
+    def update_directory(self, directory):
+        home = misc.get_project_home()
+        dir_text = directory.replace(home, '~')
+        self.widget.scans_dir_fbk.set_text(dir_text)
+        self.widget.scans_dir_fbk.set_tooltip_text(directory)
+
     def prepare_ptable(self, btn, entry):
         if btn.get_active():
             self.edge_selector.set_entry(entry)
@@ -170,7 +120,7 @@ class ScanController(GObject.GObject):
         elif self.props.state == self.StateType.READY:
             self.progress_lbl.set_text("Starting {} ...".format(self.desc))
             params = self.get_parameters()
-            params['name'] = datetime.now().strftime('%Y%m%d-%H%M')
+            params['name'] = datetime.now().strftime('%y%m%d-%H%M')
             params['activity'] = '{}-scan'.format(self.prefix)
             params = runlists.update_for_sample(params, self.sample_store.get_current())
             self.props.config = params
@@ -182,8 +132,8 @@ class ScanController(GObject.GObject):
         self.scanner.stop()
 
     def configure(self, info, disable=()):
-        if not self.specs: return
-        for name, details in self.specs.items():
+        if not self.ConfigSpec: return
+        for name, details in self.ConfigSpec.items():
             field_type, fmt, conv, default = details
             field_name = '{}_{}'.format(name, field_type)
             value = info.get(name, default)
@@ -213,8 +163,8 @@ class ScanController(GObject.GObject):
 
     def get_parameters(self):
         info = {}
-        if not self.specs: return info
-        for name, details in self.specs.items():
+        if not self.ConfigSpec: return info
+        for name, details in self.ConfigSpec.items():
             field_type, fmt, conv, default = details
             field_name = '{}_{}'.format(name, field_type)
             field = getattr(self, field_name, None)
@@ -299,7 +249,8 @@ class ScanController(GObject.GObject):
         self.start_time = time.time()
         self.plotter.clear()
         self.props.state = self.StateType.ACTIVE
-        _logger.info("{} Started.".format(self.desc))
+        logger.info("{} Started.".format(self.desc))
+        self.update_directory(scanner.config['directory'])
 
     def on_stopped(self, scanner):
         self.props.state = self.StateType.READY
@@ -327,196 +278,93 @@ class ScanController(GObject.GObject):
             raise AttributeError('{} does not have attribute: {}'.format(self, item))
 
 
+class MADResultsManager(TreeManager):
+    class Data(Enum):
+        NAME, LABEL, ENERGY, EDGE, WAVELENGTH, FPP, FP = range(7)
+
+    Types = [str, str, float, str, float, float, float]
+    Columns = ColumnSpec(
+        (Data.LABEL, 'Label', ColumnType.TEXT, '{}'),
+        (Data.ENERGY, 'Energy', ColumnType.NUMBER, '{:0.3f}'),
+        (Data.WAVELENGTH, u"\u03BB", ColumnType.NUMBER, '{:0.4f}'),
+        (Data.FP, "f'", ColumnType.NUMBER, '{:0.1f}'),
+        (Data.FPP, 'f"', ColumnType.NUMBER, '{:0.1f}'),
+    )
+    parent = Data.NAME
+    run_info = GObject.Property(type=object)
+    run_name = GObject.Property(type=str, default='')
+
+    def selection_changed(self, selection):
+        model, itr = selection.get_selected()
+        if not itr:
+            self.props.run_name = ''
+            self.props.run_info = None
+        else:
+            self.props.run_name = model[itr][self.Data.NAME.value]
+            self.props.run_info = self.get_items(itr)
+
+    def make_parent(self, row):
+        parent_row = super(MADResultsManager, self).make_parent(row)
+        parent_row[self.Data.ENERGY.value] = row[self.Data.EDGE.value]
+        return parent_row
+
+
+class XRFResultsManager(TreeManager):
+    class Data(Enum):
+        SELECTED, SYMBOL, NAME, PERCENT = range(4)
+
+    Types = [bool, str, str, float]
+    Columns = ColumnSpec(
+        (Data.SYMBOL, '', ColumnType.TEXT, '{}'),
+        (Data.NAME, 'Element', ColumnType.TEXT, '{}'),
+        (Data.PERCENT, 'Amount', ColumnType.NUMBER, '{:0.1f} %'),
+        (Data.SELECTED, '', ColumnType.TOGGLE, '{}'),
+    )
+    flat = True
+
+    def format_cell(self, column, renderer, model, itr, spec):
+        super(XRFResultsManager, self).format_cell(column, renderer, model, itr, spec)
+        index = model.get_path(itr)[0]
+        renderer.set_property("foreground", colors.Category.GOOG20[index % 20])
+
+
+class XASResultsManager(TreeManager):
+    class Data(Enum):
+        NAME, EDGE, SCAN, TIME, X_PEAK, Y_PEAK = range(6)
+
+    Types = [str, str, int, str, float, float]
+    Columns = ColumnSpec(
+        (Data.SCAN, 'Scan', ColumnType.TEXT, '{}'),
+        (Data.TIME, 'TIME', ColumnType.TEXT, '{}'),
+        (Data.X_PEAK, 'X-Peak', ColumnType.NUMBER, '{:0.3f}'),
+        (Data.Y_PEAK, 'Y-Peak', ColumnType.NUMBER, '{:0.1f}'),
+    )
+    parent = Data.NAME
+
+    def make_parent(self, row):
+        parent_row = super(XASResultsManager, self).make_parent(row)
+        parent_row[self.Data.TIME.value] = row[self.Data.EDGE.value]
+        return parent_row
+
+
 class MADScanController(ScanController):
-    specs = {
+    ConfigSpec = {
         'edge': ['entry', '{}', str, 'Se-K'],
         'exposure': ['entry', '{:0.3g}', float, 1.0],
         'attenuation': ['entry', '{:0.3g}', float, 50.0],
     }
     desc = 'MAD Scan'
     prefix = 'mad'
-
-
-class XRFScanController(ScanController):
-    specs = {
-        'energy': ['entry', '{:0.3f}', float, 12.658],
-        'exposure': ['entry', '{:0.3g}', float, 0.5],
-        'attenuation': ['entry', '{:0.3g}', float, 50.0],
-    }
-    desc = 'XRF Scan'
-    prefix = 'xrf'
-
-    def on_edge_changed(self, entry):
-        super(XRFScanController, self).on_edge_changed(entry)
-        energy = self.edge_selector.get_excitation_for(entry.get_text())
-        self.energy_entry.set_text('{:0.3f}'.format(energy))
-
-
-class XASScanController(ScanController):
-    specs = {
-        'edge': ['entry', '{}', str, 'Se-K'],
-        'exposure': ['entry', '{:0.3g}', float, 1.0],
-        'attenuation': ['entry', '{:0.3g}', float, 50.0],
-        'kmax': ['spin', '{}', int, 10],
-        'scans': ['spin', '{}', int, 5],
-    }
-    desc = 'XAS Scan'
-    prefix = 'xas'
+    result_class = MADResultsManager
 
     def setup(self):
-        super(XASScanController, self).setup()
-        # fix adjustments
-        self.kmax_spin.set_adjustment(Gtk.Adjustment(12, 1, 18, 1, 1, 0))
-        self.scans_spin.set_adjustment(Gtk.Adjustment(1, 1, 128, 1, 10, 0))
-        self.scanner.connect('new-scan', self.on_new_scan)
-
-    def on_new_scan(self, scanner, scan):
-        self.axis = scan
-
-class DataStore(Gtk.TreeStore):
-    def __init__(self, specs, tree=False):
-        self.specs = specs
-        self.use_tree = tree
-        super(DataStore, self).__init__(*self.specs.Types)
-
-    def find_parent(self, name):
-        parent = self.get_iter_first()
-        while parent:
-            if self[parent][self.specs.Data.NAME] == name:
-                break
-            parent = self.iter_next(parent)
-        return parent
-
-    def add_item(self, item, parent=None):
-        row = [
-            item.get(key, default) for key, default in self.specs.Keys
-        ]
-        if self.use_tree:
-            if not parent:
-                parent = self.find_parent(item['name'])
-            if not parent:
-                parent_row = copy.deepcopy(row)
-                parent_row[self.specs.Data.PARENT] = True
-                parent = self.append(None, row=parent_row)
-        child = self.append(parent, row=row)
-        if not parent:
-            return None, self.get_path(child)
-        else:
-            return self.get_path(parent), self.get_path(child)
-
-    def add_items(self, items):
-        """Add a list of items to the tree store with the same parent. The tree will be cleared first"""
-        self.clear()
-        for item in items:
-            self.add_item(item)
-
-
-class ScanManager(GObject.GObject):
-    run_info = GObject.Property(type=object)
-
-    def __init__(self, datasets, widget):
-        super(ScanManager, self).__init__()
-        self.widget = widget
-        self.datasets = datasets
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.sample_store = globalRegistry.lookup([], ISampleStore)
-        min_energy, max_energy = self.beamline.config['energy_range']
-        self.edge_selector = periodictable.EdgeSelector(min_energy=min_energy, max_energy=max_energy)
-        self.setup()
-
-        # XRF Scans
-        self.xrf_scanner = XRFScanController(XRFScanner(), self.plotter, widget, self.edge_selector)
-        self.xrf_scanner.scanner.connect('started', self.on_xrf_started)
-        self.xrf_scanner.scanner.connect('done', self.on_xrf_done)
-        self.xrf_results = DataStore(XRF, tree=False)
-        self.widget.xrf_results_view.set_model(self.xrf_results)
-        self.xrf_annotations = {}
-
-        # XAS Scans
-        self.xas_scanner = XASScanController(XASScanner(), self.plotter, widget, self.edge_selector)
-
-        # MAD Scans
-        self.mad_scanner = MADScanController(MADScanner(), self.plotter, widget, self.edge_selector)
-        self.mad_scanner.scanner.connect('started', self.on_mad_started)
-        self.mad_scanner.scanner.connect('done', self.on_mad_done)
-        self.mad_results = DataStore(MAD, tree=True)
-        self.widget.mad_results_view.set_model(self.mad_results)
-
-        self.make_columns()
-
-    def setup(self):
-        self.widget.scans_ptable_box.add(self.edge_selector)
-        self.plotter = plotter.Plotter(xformat='%g')
-        self.widget.scans_plot_frame.add(self.plotter)
-
-        self.sample_store.connect('updated', self.on_sample_updated)
+        super(MADScanController, self).setup()
+        self.datasets = globalRegistry.lookup([], IDatasets)
         self.widget.mad_runs_btn.connect('clicked', self.add_mad_runs)
-        selection = self.widget.mad_results_view.get_selection()
-        selection.connect('changed', self.on_mad_results_selected)
-
-        labels = {
-            'energy': (self.beamline.energy, self.widget.scans_energy_fbk, {'format': '{:0.3f} keV'}),
-            'attenuation': (self.beamline.attenuator, self.widget.scans_attenuation_fbk, {'format': '{:0.0f} %'}),
-            'aperture': (self.beamline.aperture, self.widget.scans_aperture_fbk, {'format': '{:0.0f} \xc2\xb5m'}),
-            'deadtime': (
-                self.beamline.mca, self.widget.scans_deadtime_fbk,
-                {'format': '{:0.0f} %', 'signal': 'deadtime', 'warning': 20.0, 'error': 40.0}
-            ),
-        }
-        self.group_selectors = []
-        self.monitors = {
-            name: common.DeviceMonitor(dev, lbl, **kw)
-            for name, (dev, lbl, kw) in labels.items()
-        }
-
-    def make_columns(self):
-        # Selected Column
-        for data, title in MAD.Columns.items():
-            renderer = Gtk.CellRendererText()
-            column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer)
-            column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
-            column.set_sort_column_id(data)
-            if data not in [MAD.Data.LABEL]:
-                renderer.set_alignment(0.8, 0.5)
-                renderer.props.family = 'Monospace'
-            column.set_cell_data_func(renderer, self.format_cell, data)
-            column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
-            self.widget.mad_results_view.append_column(column)
-
-        # Selected Column
-        for data, title in XRF.Columns.items():
-            if data == XRF.Data.SELECTED:
-                renderer = Gtk.CellRendererToggle(activatable=True)
-                renderer.connect('toggled', self.on_xrf_toggled, self.xrf_results)
-                column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer, active=data)
-                column.set_fixed_width(40)
-            else:
-                renderer = Gtk.CellRendererText()
-                column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer)
-                column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
-                if data == XRF.Data.PERCENT:
-                    renderer.set_alignment(0.8, 0.5)
-                    renderer.props.family = 'Monospace'
-                column.set_cell_data_func(renderer, self.color_cell, data)
-            column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
-            self.widget.xrf_results_view.append_column(column)
-
-    def format_cell(self, column, renderer, model, itr, data):
-        if model[itr][model.specs.Data.PARENT] and data == model.specs.Columns.keys()[0]:
-            renderer.set_property('text', model[itr][model.specs.Data.NAME])
-        elif model[itr][model.specs.Data.PARENT]:
-            renderer.set_property('text', '')
-        else:
-            renderer.set_property('text', model.specs.Formats[data].format(model[itr][data]))
-
-    def color_cell(self, column, renderer, model, itr, data):
-        index = model.get_path(itr)[0]
-        renderer.set_property("foreground", colors.Category.GOOG20[index % 20])
-        value = model[itr][data]
-        renderer.set_property('text', model.specs.Formats[data].format(value))
+        self.results.connect('notify::run-info', self.on_run_info)
 
     def add_mad_runs(self, btn, *args, **kwargs):
-        if self.props.run_info:
+        if self.results.props.run_info:
             confirm_dialog = dialogs.make_dialog(
                 Gtk.MessageType.QUESTION, 'Add MAD Datasets',
                 ("Three datasets will be added for interactive acquisition. \n"
@@ -526,53 +374,22 @@ class ScanManager(GObject.GObject):
             response = confirm_dialog.run()
             confirm_dialog.destroy()
             if response == Gtk.ResponseType.OK:
-                self.datasets.add_runs(self.props.run_info)
+                runs = copy.deepcopy(self.results.props.run_info)
+                for run in runs:
+                    run['name'] = '{}-{}'.format(run['name'], run['label'])
+                self.datasets.add_runs(runs)
                 btn.set_sensitive(False)
 
-    def update_directory(self, directory):
-        home = misc.get_project_home()
-        dir_text = directory.replace(home, '~')
-        self.widget.scans_dir_fbk.set_text(dir_text)
-
-    def on_sample_updated(self, obj):
-        sample = self.sample_store.get_current()
-        sample_text = '{name}|{group}|{container}|{port}'.format(
-            name=sample.get('name', '...'), group=sample.get('group', '...'), container=sample.get('container', '...'),
-            port=sample.get('port', '...')
-        ).replace('|...', '')
-        self.widget.scans_sample_fbk.set_text(sample_text)
-
-    def on_mad_results_selected(self, selection):
-        model, itr = selection.get_selected()
-        if not itr:
-            self.widget.mad_runs_btn.set_sensitive(False)
-            return
-        if model.iter_has_child(itr):
-            parent = itr
+    def on_run_info(self, *args, **kwargs):
+        if self.results.props.run_info:
+            self.widget.mad_runs_btn.set_sensitive(True)
+            self.widget.mad_selected_lbl.set_text(self.results.props.run_name)
         else:
-            parent = model.iter_parent(itr)
-        itr = model.iter_children(parent)
-        keys = ['name', 'label', 'energy', 'wavelength', 'fpp', 'fp', 'parent', 'directory']
-        runs = []
-        while itr:
-            info = dict(zip(keys, model[itr]))
-            itr = model.iter_next(itr)
-            runs.append({
-                'name': info['label'],
-                'energy': info['energy'],
-            })
-        self.widget.mad_selected_lbl.set_text(model[parent][MAD.Data.NAME])
-        self.props.run_info = runs
-        self.widget.mad_runs_btn.set_sensitive(True)
+            self.widget.mad_runs_btn.set_sensitive(False)
+            self.widget.mad_selected_lbl.set_text('')
 
-    def on_mad_started(self, scanner):
-        self.update_directory(scanner.config['directory'])
-
-    def on_xrf_started(self, scanner):
-        self.update_directory(scanner.config['directory'])
-        self.xrf_results.clear()
-
-    def on_mad_done(self, scanner):
+    def on_done(self, scanner):
+        super(MADScanController, self).on_done(scanner)
         results = scanner.results.get('energies')
         if results is None:
             dialogs.warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed')
@@ -588,126 +405,203 @@ class ScanManager(GObject.GObject):
             self.plotter.axis[0].axvline(results['remo'][1], color='#999999', linestyle='--', linewidth=1)
 
         data = scanner.results.get('efs')
-        self.plotter.add_line(data['energy'], data['fpp'], 'r', label='f"', ax=new_axis)
-        self.plotter.add_line(data['energy'], data['fp'], 'g', label="f'", ax=new_axis, redraw=True)
+        self.plotter.add_line(data['energy'], data['fpp'], '-', color=colors.Category.GOOG20[1], label='f"',
+                              ax=new_axis)
+        self.plotter.add_line(data['energy'], data['fp'], '-', color=colors.Category.CAT20[5], label="f'", ax=new_axis,
+                              redraw=True)
         self.plotter.set_labels(
             title='{} Edge MAD Scan'.format(scanner.config['edge']), x_label='Energy (keV)', y1_label='Fluorescence'
         )
 
         for key in ['peak', 'infl', 'remo']:
             values = results[key]
-            parent, child = self.mad_results.add_item({
+            parent, child = self.results.add_item({
+                'edge': scanner.config['edge'],
                 'name': scanner.config['name'],
                 'label': key,
                 'fpp': values[2],
                 'fp': values[3],
                 'energy': values[1],
                 'wavelength': converter.energy_to_wavelength(values[1]),
-                'directory': scanner.config['directory']
             })
-            self.widget.mad_results_view.expand_row(parent, False)
-            self.widget.mad_results_view.scroll_to_cell(child, None, True, 0.5, 0.5)
+            if parent:
+                self.results_view.expand_row(parent, False)
+            self.results_view.scroll_to_cell(child, None, True, 0.5, 0.5)
 
-    def on_xrf_done(self, scanner):
-        self.xrf_annotations = {}
-        x = scanner.results['data']['energy']
-        y = scanner.results['data']['raw']
+
+class XRFScanController(ScanController):
+    ConfigSpec = {
+        'energy': ['entry', '{:0.3f}', float, 12.658],
+        'exposure': ['entry', '{:0.3g}', float, 0.5],
+        'attenuation': ['entry', '{:0.3g}', float, 50.0],
+    }
+    desc = 'XRF Scan'
+    prefix = 'xrf'
+    result_class = XRFResultsManager
+
+    def setup(self):
+        super(XRFScanController, self).setup()
+        # fix adjustments
+        self.annotations = {}
+        self.results.model.connect('row-changed', self.on_annotation)
+
+    def on_started(self, scanner):
+        super(XRFScanController, self).on_started(scanner)
+        self.results.clear()
+
+    def on_done(self, scanner):
+        super(XRFScanController, self).on_done(scanner)
+        self.annotations = {}
+
+        results = scanner.results['data']
         ys = scanner.results['data']['counts']
-        yc = scanner.results['data']['fit']
         energy = scanner.config['energy']
-        xrf_results = scanner.results['assigned']
+        assignments = scanner.results['assigned']
 
-        self.plotter.set_labels(title='X-Ray Fluorescence', x_label='Energy (keV)', y1_label='Fluorescence')
-
-        self.plotter.add_line(x, yc, 'm:', label='Fit')
+        self.plotter.set_labels(
+            title='X-Ray Fluorescence from Excitation at {:0.3f} keV'.format(energy),
+            x_label='Energy (keV)', y1_label='Fluorescence'
+        )
+        self.plotter.add_line(results['energy'], results['fit'], ':', color=colors.Category.GOOG20[4], label='Fit')
         self.plotter.axis[0].axhline(0.0, color='gray', linewidth=0.5)
-        self.plotter.add_line(x, y, 'k-', label='Experimental', alpha=0.2)
-        self.plotter.add_line(x, ys, 'b-', label='Smoothed')
+        self.plotter.add_line(
+            results['energy'], results['raw'], '-', color=colors.Category.CAT20C[16],
+            label='Experimental', lw=1, alpha=0.2
+        )
+        self.plotter.add_line(
+            results['energy'], results['counts'], '-', color=colors.Category.GOOG20[0], label='Smoothed'
+        )
 
         ax = self.plotter.axis[0]
         ax.axis('tight')
-        ax.set_xlim(
-            -0.25 * self.beamline.config['xrf_energy_offset'],
-            energy + 0.25 * self.beamline.config['xrf_energy_offset']
-        )
+        ax.set_xlim(-0.25, energy + 1.5)
 
         # get list of elements sorted in descending order of prevalence
-        element_list = [(v[0], k) for k, v in xrf_results.items()]
-        element_list.sort()
-        element_list.reverse()
+        element_list = [(v[0], k) for k, v in assignments.items()]
+        element_list.sort(reverse=True)
 
-        peak_log = "%7s %7s %5s %8s %8s\n" % (
-            "Element",
-            "%Cont",
-            "Trans",
-            "Energy",
-            "Height")
-
-        for index, (prob, el) in enumerate(element_list):
-            element = science.PERIODIC_TABLE[el]
-            peak_log += 39 * "-" + "\n"
-            peak_log += "%7s %7.2f %5s %8s %8s\n" % (el, prob, "", "", "")
-            contents = scanner.results['assigned'][el]
-            for trans, _nrg, height in contents[1]:
-                peak_log += "%7s %7s %5s %8.3f %8.2f\n" % (
-                    "", "", trans, _nrg, height)
-            if prob < 0.005 * element_list[0][0] or index > 20:
-                del xrf_results[el]
-                continue
-            show = (prob >= 0.1 * element_list[0][0])
-            self.xrf_results.add_item({
+        for index, (amount, symbol) in enumerate(element_list):
+            element = science.PERIODIC_TABLE[symbol]
+            contents = scanner.results['assigned'][symbol]
+            if amount < 0.005 * element_list[0][0] or index > 20: continue
+            visible = (amount >= 0.1 * element_list[0][0])
+            self.results.add_item({
                 'name': element['name'],
-                'selected': show,
-                'symbol': el,
-                'percent': prob
+                'selected': visible,
+                'symbol': symbol,
+                'percent': amount
             })
-            _color = colors.Category.GOOG20[index % 20]
-            element_info = xrf_results.get(el)
+            color = colors.Category.GOOG20[index % 20]
+            element_info = assignments.get(symbol)
             line_list = summarize_lines(element_info[1])
-            ln_points = []
-            self.xrf_annotations[el] = []
-            for _nm, _pos, _ht in line_list:
-                if _pos > energy: continue
-                ln_points.extend(([_pos, _pos], [0.0, _ht * 0.95]))
-                txt = ax.text(_pos, -0.5,
-                              "%s-%s" % (el, _nm),
-                              rotation=90,
-                              fontsize=8,
-                              horizontalalignment='center',
-                              verticalalignment='top',
-                              color=_color
-                              )
-                self.xrf_annotations[el].append(txt)
-            lns = ax.plot(*ln_points, **{'linewidth': 1.0, 'color': _color})
-            self.xrf_annotations[el].extend(lns)
-            for antn in self.xrf_annotations[el]:
-                antn.set_visible(show)
-        ax.axvline(energy, c='#cccccc', ls='--', lw=0.5, label='Excitation Energy')
+            line_points = []
+            self.annotations[symbol] = []
+            for name, position, height in line_list:
+                if position > energy: continue
+                line_points.extend(([position, position], [0.0, height * 0.95]))
+                annotation = ax.text(
+                    position, -0.5, "{}-{}".format(symbol, name), rotation=90, fontsize=8,
+                    horizontalalignment='center', verticalalignment='top', color=color
+                )
+                self.annotations[symbol].append(annotation)
+            arts = ax.plot(*line_points, **{'linewidth': 1.0, 'color': color})
+            self.annotations[symbol].extend(arts)
+            for annotation in self.annotations[symbol]:
+                annotation.set_visible(visible)
 
-        # self.output_log.add_text(peak_log)
+        ax.axvline(energy, c='#cccccc', ls='--', lw=0.5, label='Excitation Energy')
         self.plotter.axis[0].legend()
+
+        ymin, ymax = misc.get_min_max(ys, ldev=1, rdev=1)
+        ax.axis(ymin=ymin, ymax=ymax)
+        self.plotter.redraw()
 
         # Upload scan to lims
         # lims_tools.upload_scan(self.beamline, [scanner.results])
 
-        ymin, ymax = misc.get_min_max(ys, ldev=1, rdev=1)
-        alims = ax.axis()
-        ax.axis(ymin=ymin, ymax=ymax)
-        self.plotter.redraw()
+    def on_edge_changed(self, entry):
+        super(XRFScanController, self).on_edge_changed(entry)
+        energy = self.edge_selector.get_excitation_for(entry.get_text())
+        self.energy_entry.set_text('{:0.3f}'.format(energy))
 
-    def on_xrf_toggled(self, cell, path, model):
+    def on_annotation(self, model, path, itr):
         itr = model.get_iter(path)
-        index = model.get_path(itr)[0]
+        element = model[itr][self.results.Data.SYMBOL.value]
+        state = model[itr][self.results.Data.SELECTED.value]
+        for annotation in self.annotations[element]:
+            annotation.set_visible(state)
 
-        element = model.get_value(itr, XRF.Data.SYMBOL)
-        state = model.get_value(itr, XRF.Data.SELECTED)
-        model.set(itr, XRF.Data.SELECTED, (not state))
-        if state:
-            # Hide drawings
-            for anotation in self.xrf_annotations[element]:
-                anotation.set_visible(False)
-        else:
-            # Show Drawings
-            for anotation in self.xrf_annotations[element]:
-                anotation.set_visible(True)
         self.plotter.redraw()
+
+
+class XASScanController(ScanController):
+    ConfigSpec = {
+        'edge': ['entry', '{}', str, 'Se-K'],
+        'exposure': ['entry', '{:0.3g}', float, 1.0],
+        'attenuation': ['entry', '{:0.3g}', float, 50.0],
+        'kmax': ['spin', '{}', int, 10],
+        'scans': ['spin', '{}', int, 5],
+    }
+    desc = 'XAS Scan'
+    prefix = 'xas'
+    result_class = XASResultsManager
+
+    def setup(self):
+        super(XASScanController, self).setup()
+        # fix adjustments
+        self.kmax_spin.set_adjustment(Gtk.Adjustment(8, 1, 16, 1, 1, 0))
+        self.scans_spin.set_adjustment(Gtk.Adjustment(4, 1, 128, 1, 10, 0))
+        self.scanner.connect('new-scan', self.on_new_scan)
+
+    def on_new_scan(self, scanner, scan):
+        self.axis = scan
+        self.results.add_item(scanner.results['scans'][-1])
+
+
+class ScanManager(GObject.GObject):
+    def __init__(self, widget):
+        super(ScanManager, self).__init__()
+        self.widget = widget
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.sample_store = globalRegistry.lookup([], ISampleStore)
+        self.plotter = plotter.Plotter(xformat='%g')
+        min_energy, max_energy = self.beamline.config['energy_range']
+        self.edge_selector = periodictable.EdgeSelector(
+            min_energy=min_energy, max_energy=max_energy, xrf_offset=self.beamline.config['xrf_energy_offset']
+        )
+        self.xrf_scanner = XRFScanController(XRFScanner(), self.plotter, widget, self.edge_selector)
+        self.xas_scanner = XASScanController(XASScanner(), self.plotter, widget, self.edge_selector)
+        self.mad_scanner = MADScanController(MADScanner(), self.plotter, widget, self.edge_selector)
+
+        # connect scanners
+        self.status_monitor = common.StatusMonitor(
+            self.widget.status_lbl, self.widget.spinner,
+            devices=(self.mad_scanner.scanner, self.xas_scanner.scanner, self.xrf_scanner.scanner)
+        )
+        self.setup()
+
+    def setup(self):
+        self.widget.scans_ptable_box.add(self.edge_selector)
+        self.widget.scans_plot_frame.add(self.plotter)
+        self.sample_store.connect('updated', self.on_sample_updated)
+        labels = {
+            'energy': (self.beamline.energy, self.widget.scans_energy_fbk, {'format': '{:0.3f} keV'}),
+            'attenuation': (self.beamline.attenuator, self.widget.scans_attenuation_fbk, {'format': '{:0.0f} %'}),
+            'aperture': (self.beamline.aperture, self.widget.scans_aperture_fbk, {'format': '{:0.0f} \xc2\xb5m'}),
+            'deadtime': (
+                self.beamline.mca, self.widget.scans_deadtime_fbk,
+                {'format': '{:0.0f} %', 'signal': 'deadtime', 'warning': 20.0, 'error': 40.0}
+            ),
+        }
+        self.monitors = {
+            name: common.DeviceMonitor(dev, lbl, **kw)
+            for name, (dev, lbl, kw) in labels.items()
+        }
+
+    def on_sample_updated(self, obj):
+        sample = self.sample_store.get_current()
+        sample_text = '{name}|{group}|{container}|{port}'.format(
+            name=sample.get('name', '...'), group=sample.get('group', '...'), container=sample.get('container', '...'),
+            port=sample.get('port', '...')
+        ).replace('|...', '')
+        self.widget.scans_sample_fbk.set_text(sample_text)

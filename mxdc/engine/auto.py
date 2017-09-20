@@ -4,7 +4,7 @@ from mxdc.utils.decorators import ca_thread_enable
 import time
 
 from mxdc.utils.log import get_module_logger
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 @ca_thread_enable
 def auto_mount(bl, port):
@@ -22,7 +22,7 @@ def auto_mount(bl, port):
         success = bl.automounter.mount(port, wait=True)
         mounted_info = bl.automounter.mounted_state
         if not success or mounted_info is None:
-            _logger.error('Sample mounting failed')
+            logger.error('Sample mounting failed')
             #raise MountError('Mounting failed for port `%s`.' % (port))
         else:
             result['mounted'], result['barcode']  = mounted_info
@@ -61,10 +61,10 @@ def auto_center(bl):
 
 def auto_mount_manual(bl, port, wash=False):
     if (bl.automounter.is_preparing() or bl.automounter.is_busy()) or not bl.automounter.is_active():
-        _logger.warning("Automounter is busy or inactive.")
+        logger.warning("Automounter is busy or inactive.")
         return False
     if bl.automounter.is_mounted(port):
-        _logger.warning('Sample is already mounted')
+        logger.warning('Sample is already mounted')
         return True
     elif bl.automounter.is_mountable(port):
         bl.automounter.prepare()
@@ -75,23 +75,23 @@ def auto_mount_manual(bl, port, wash=False):
         mounted_info = bl.automounter.mounted_state
         if success and mounted_info is not None:
             bl.cryojet.nozzle.close()
-            _logger.info('Sample mounting succeeded')
+            logger.info('Sample mounting succeeded')
             time.sleep(0.5)
             bl.goniometer.set_mode('CENTERING', wait=False)
             
             return True
         else:
-            _logger.warning('Sample mounting failed')
+            logger.warning('Sample mounting failed')
             return False
     else:
-        _logger.warning('{} is not mountable'.format(port))
+        logger.warning('{} is not mountable'.format(port))
 
 def auto_dismount_manual(bl, port):
     if bl.automounter.is_preparing() or bl.automounter.is_busy() or not bl.automounter.is_active():
-        _logger.warning("Automounter is busy or inactive.")
+        logger.warning("Automounter is busy or inactive.")
         return False
     if not bl.automounter.is_mounted(port):
-        _logger.warning('Sample is not mounted')
+        logger.warning('Sample is not mounted')
         return True
     else:
         bl.automounter.prepare()
@@ -100,8 +100,8 @@ def auto_dismount_manual(bl, port):
         time.sleep(2)
         success = bl.automounter.dismount(wait=True)
         if not success:
-            _logger.warning('Sample dismounting failed')
+            logger.warning('Sample dismounting failed')
             return False
         else:
-            _logger.info('Sample dismounting succeeded')
+            logger.info('Sample dismounting succeeded')
             return True

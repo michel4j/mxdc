@@ -16,7 +16,7 @@ from mxdc.utils.decorators import async
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class PositionerBase(BaseDevice):
@@ -193,7 +193,7 @@ class SimChoicePositioner(PositionerBase):
         return self._pos
 
     def set(self, value, wait=False):
-        _logger.info('%s requesting %s' % (self.name, value))
+        logger.info('%s requesting %s' % (self.name, value))
         self._pos = value
         self.set_state(changed=self._pos)
 
@@ -366,8 +366,8 @@ class Attenuator(PositionerBase):
         # bitmap of thickness is fillter pattern
         bitmap = '%04d' % int(converter.dec_to_bin(thk))
         self._set_bits(bitmap)
-        _logger.info('Attenuation of %f %s requested' % (target, self.units))
-        _logger.debug('Filters [8421] set to [%s] (0=off,1=on)' % bitmap)
+        logger.info('Attenuation of %f %s requested' % (target, self.units))
+        logger.debug('Filters [8421] set to [%s] (0=off,1=on)' % bitmap)
 
         if wait:
             timeout = 5.0
@@ -375,7 +375,7 @@ class Attenuator(PositionerBase):
                 timeout -= 0.05
                 time.sleep(0.05)
             if timeout <= 0:
-                _logger.warning('Attenuator timed out going to [%s]' % (bitmap))
+                logger.warning('Attenuator timed out going to [%s]' % (bitmap))
 
     def _signal_change(self, obj, value):
         self.set_state(changed=self.get())
@@ -447,7 +447,7 @@ class BasicShutter(BaseDevice):
     def open(self, wait=False):
         if self.changed_state:
             return
-        _logger.debug(' '.join([self._messages[0], self.name]))
+        logger.debug(' '.join([self._messages[0], self.name]))
         self._open_cmd.set(1)
         ca.flush()
         self._open_cmd.set(0)
@@ -457,7 +457,7 @@ class BasicShutter(BaseDevice):
     def close(self, wait=False):
         if not self.changed_state:
             return
-        _logger.debug(' '.join([self._messages[1], self.name]))
+        logger.debug(' '.join([self._messages[1], self.name]))
         self._close_cmd.set(1)
         ca.flush()
         self._close_cmd.set(0)
@@ -469,7 +469,7 @@ class BasicShutter(BaseDevice):
             time.sleep(0.1)
             timeout -= 0.1
         if timeout <= 0:
-            _logger.warning('Timed-out waiting for %s.' % (self.name))
+            logger.warning('Timed-out waiting for %s.' % (self.name))
 
     def _signal_change(self, obj, value):
         if value == 1:
@@ -496,15 +496,15 @@ class StateLessShutter(BaseDevice):
         self.name = open_name.split(':')[0]
 
     def open(self, wait=False):
-        _logger.debug(' '.join([self._messages[0], self.name]))
+        logger.debug(' '.join([self._messages[0], self.name]))
         self._open_cmd.toggle(1, 0)
 
     def close(self, wait=False):
-        _logger.debug(' '.join([self._messages[1], self.name]))
+        logger.debug(' '.join([self._messages[1], self.name]))
         self._close_cmd.toggle(1, 0)
 
     def wait(self, state=True, timeout=5.0):
-        _logger.warning('Stateless Shutter wont wait (%s).' % (self.name))
+        logger.warning('Stateless Shutter wont wait (%s).' % (self.name))
 
 
 class ShutterGroup(BaseDevice):
@@ -551,7 +551,7 @@ class ShutterGroup(BaseDevice):
             time.sleep(0.1)
             timeout -= 0.1
         if timeout <= 0:
-            _logger.warning('Timed-out waiting for %s.' % (self.name))
+            logger.warning('Timed-out waiting for %s.' % (self.name))
 
 
 class SimShutter(BaseDevice):
@@ -651,7 +651,7 @@ class SimStorageRing(BaseDevice):
         while not self.beam_available() and timeout > 0:
             time.sleep(0.05)
             timeout -= 0.05
-        _logger.warn('Timed out waiting for beam!')
+        logger.warn('Timed out waiting for beam!')
 
 
 class DiskSpaceMonitor(BaseDevice):
@@ -692,7 +692,7 @@ class DiskSpaceMonitor(BaseDevice):
         try:
             fs_stat = os.statvfs(self.path)
         except OSError:
-            _logger.error('Error accessing path {0}'.format(self.path))
+            logger.error('Error accessing path {0}'.format(self.path))
         else:
             total = float(fs_stat.f_frsize * fs_stat.f_blocks)
             avail = float(fs_stat.f_frsize * fs_stat.f_bavail)
@@ -700,10 +700,10 @@ class DiskSpaceMonitor(BaseDevice):
             msg = '%s (%0.1f %%) available.' % (self._humanize(avail), fraction * 100)
             if fraction < self.error_threshold:
                 self.set_state(health=(4, 'usage', msg))
-                _logger.error(msg)
+                logger.error(msg)
             elif fraction < self.warn_threshold:
                 self.set_state(health=(2, 'usage', msg))
-                _logger.warn(msg)
+                logger.warn(msg)
             else:
                 self.set_state(health=(0, 'usage', msg))
         return True
@@ -740,7 +740,7 @@ class StorageRing(BaseDevice):
         while not self.beam_available() and timeout > 0:
             time.sleep(0.05)
             timeout -= 0.05
-        _logger.warn('Timed out waiting for beam!')
+        logger.warn('Timed out waiting for beam!')
 
     def _get_message(self):
         return ', '.join([pv.get() for pv in self.messages])

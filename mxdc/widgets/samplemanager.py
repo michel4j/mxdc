@@ -14,7 +14,7 @@ from mxdc.widgets.sampleloader import DewarLoader, STATUS_NOT_LOADED, STATUS_LOA
 from mxdc.widgets.samplepicker import SamplePicker
 from mxdc.widgets.sampleviewer import SampleViewer
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 _HCPLOT_INFO = {
     'temps': {'title': 'Temperature', 'units': 'C', 'color': 'm'},
@@ -91,7 +91,7 @@ class SampleManager(Gtk.Alignment, gui.BuilderMixin):
             if config.SESSION_INFO.get('new', False):
                 reply = self.beamline.lims.get_samples(self.beamline)
                 if reply.get('error'):
-                    _logger.error('Containers and Samples could not be imported from MxLIVE.')
+                    logger.error('Containers and Samples could not be imported from MxLIVE.')
                 else:
                     self.dewar_loader.import_lims(reply)
             else:

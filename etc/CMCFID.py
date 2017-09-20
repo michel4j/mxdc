@@ -14,7 +14,7 @@ DEFAULT_DELTA = 0.2
 SAFE_BEAMSTOP       = 47.0
 SAFE_DISTANCE       = 400.0
 XRF_BEAMSTOP        = 30.0
-XRF_ENERGY_OFFSET   = 0.5              # KeV
+XRF_ENERGY_OFFSET   = 1.5              # KeV
 XRF_FWHM            = 0.15
 
 CENTERING_BACKLIGHT = 37.0
@@ -61,7 +61,7 @@ DEVICES = {
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  VMEMotor('SMTR16083I1016:mm'),  
     'sample_zoom':  VMEMotor('SMTR16083I1025:mm'),
-    'cryojet':  Cryojet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
+    'cryojet':  CryoJet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
     'sample_camera': AxisCamera('V2E1608-001', 4),
     'sample_backlight': SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk','ILC1608-3-I10-02:on', 100.0),
     'sample_frontlight': SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk','ILC1608-3-I10-01:on', 100.0),

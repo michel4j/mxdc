@@ -15,7 +15,7 @@ DEFAULT_BEAMSTOP    = 60.0
 SAFE_DISTANCE       = 400.0
 SAFE_BEAMSTOP       = 80.0
 XRF_BEAMSTOP        = 100.0
-XRF_ENERGY_OFFSET   = 1.0              # KeV
+XRF_ENERGY_OFFSET   = 1.5              # KeV
 
 CENTERING_BACKLIGHT = 65.0
 
@@ -63,7 +63,7 @@ DEVICES = {
     'beamstop_z':  PseudoMotor('PSMTR1608-5-B10-08:pm:mm'),  
     'sample_zoom':  Positioner('BL08B1:MD2:S:ZoomLevel', 'BL08B1:MD2:G:ZoomLevel'),
     #'cryojet':  Cryojet('CSC1608-5-01', 'CSCLVM1608-5-01', 'CSC1608-5-B10-01'),
-    'cryojet':  Cryojet5('CSC1608-5-03', 'CSC1608-5-B10-01'),
+    'cryojet':  CryoJet5('CSC1608-5-03', 'CSC1608-5-B10-01'),
     'sample_camera': AxisCamera('V2E1608-400', 1),
     'sample_backlight': SampleLight('BL08B1:MD2:S:BlightLevel', 'BL08B1:MD2:G:BlightLevel', 'BL08B1:MD2:S:BlightOnOff', 100.0),
     'sample_frontlight': SampleLight('BL08B1:MD2:S:FlightLevel', 'BL08B1:MD2:G:FlightLevel', 'BL08B1:MD2:S:FlightOnOff',100.0),    

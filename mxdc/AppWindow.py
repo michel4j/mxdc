@@ -9,18 +9,16 @@ from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.control import status
-from mxdc.control import datasets
-from mxdc.control import setup, scans
-from mxdc.control import samples
+from mxdc.control import setup, scans, datasets
+from mxdc.control import samples, analysis
 from mxdc.widgets import dialogs
-from mxdc.widgets.resultmanager import ResultManager
 from mxdc.widgets.splash import Splash
 from twisted.python.components import globalRegistry
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import os
 from datetime import datetime
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
 
@@ -94,10 +92,8 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.samples = samples.SamplesController(self)
         self.datasets = datasets.DatasetsController(self)
         self.automation = datasets.AutomationController(self)
-        self.scans = scans.ScanManager(self.datasets, self)
-
-        #self.scans.connect('create-run', self.on_create_run)
-        self.analysis = ResultManager()
+        self.scans = scans.ScanManager(self)
+        self.analysis = analysis.AnalysisController(self)
 
         self.app_mnu_btn.set_popup(self.app_menu)
 
@@ -126,7 +122,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         #self.datasets_box.pack_start(self.collect_manager, True, True, 0)
         #self.screen_box.pack_start(self.screen_manager, True, True, 0)
         #self.scans_box.pack_start(self.scans, True, True, 0)
-        self.analysis_box.pack_start(self.analysis, True, True, 0)
+        #self.analysis_box.pack_start(self.analysis, True, True, 0)
 
         self.add(self.mxdc_main)
 
@@ -202,10 +198,10 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     #     #self.collect_manager.update_selected(sample=data)
     #     self.sample_microscope.update_selected(sample=data)
     #     try:
-    #         _logger.info('The selected sample has been updated to "%s (%s)"' % (data['name'], data['port']))
+    #         logger.info('The selected sample has been updated to "%s (%s)"' % (data['name'], data['port']))
     #         # self.datasets_box.props.needs_attention = True
     #     except KeyError:
-    #         _logger.info('The crystal cannot be selected')
+    #         logger.info('The crystal cannot be selected')
 
     # def on_beam_change(self, obj, beam_available):
     #     if not beam_available:

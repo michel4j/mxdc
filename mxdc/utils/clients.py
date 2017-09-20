@@ -12,7 +12,7 @@ from twisted.internet import reactor, error
 
 from twisted.spread import pb
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 # For some reason clientConnectionMade is not called
@@ -50,7 +50,7 @@ class DPMClient(BaseService):
         self.factory =  ServerClientFactory()
         self.factory.getRootObject().addCallback(self.on_connected).addErrback(self.on_connection_failed)
         reactor.connectTCP(self._service_data['address'], self._service_data['port'], self.factory)
-        _logger.info(
+        logger.info(
             'AutoProcess Service found at {}:{}'.format(self._service_data['host'], self._service_data['port'])
         )
 
@@ -59,7 +59,7 @@ class DPMClient(BaseService):
             return
         self._service_found = False
         self._ready = False
-        _logger.warning(
+        logger.warning(
             'AutoProcess Service {}:{} disconnected.'.format(self._service_data['host'], self._service_data['port'])
         )
         self.set_state(active=False)
@@ -75,7 +75,7 @@ class DPMClient(BaseService):
         """ I am called when a connection to the AutoProcess Server has been established.
         I expect to receive a remote perspective which will be used to call remote methods
         on the DPM server."""
-        _logger.info('Connection to AutoProcess Server established')
+        logger.info('Connection to AutoProcess Server established')
         self.service = perspective
         self.service.notifyOnDisconnect(self.on_disconnected)
         self._ready = True
@@ -86,7 +86,7 @@ class DPMClient(BaseService):
         self.set_state(active=False)
 
     def on_connection_failed(self, reason):
-        _logger.error('Connection to AutoProcess Server Failed')
+        logger.error('Connection to AutoProcess Server Failed')
 
     def is_ready(self):
         return self._ready
@@ -104,9 +104,9 @@ class MxLIVEClient(BaseService):
         if not config.has_keys():
             try:
                 res = self.register()
-                _logger.info('MxLIVE Service configured for {}'.format(address))
+                logger.info('MxLIVE Service configured for {}'.format(address))
             except (IOError, ValueError, requests.HTTPError) as e:
-                _logger.error('MxLIVE Service will not be available')
+                logger.error('MxLIVE Service will not be available')
                 raise
 
     def is_ready(self):
@@ -139,12 +139,12 @@ class MxLIVEClient(BaseService):
         return response
 
     def get_samples(self, beamline):
-        _logger.debug('Requesting Samples from MxLIVE ...')
+        logger.debug('Requesting Samples from MxLIVE ...')
         path = '/samples/{}/'.format(beamline)
         try:
             reply = self.get(path)
         except (IOError, ValueError, requests.HTTPError) as e:
-            _logger.error('Unable to fetch Samples from MxLIVE: \n {}'.format(e))
+            logger.error('Unable to fetch Samples from MxLIVE: \n {}'.format(e))
             reply = {'error': 'Unable to fetch Samples from MxLIVE', 'details': '{}'.format(e)}
         return reply
 
@@ -170,7 +170,7 @@ class LIMSClient(BaseService):
         self.address = address
         self.cookies = {}
         self.set_state(active=True)
-        _logger.info('MxLIVE Service configured for {}'.format(address))
+        logger.info('MxLIVE Service configured for {}'.format(address))
 
     def is_ready(self):
         return True
@@ -187,18 +187,18 @@ class LIMSClient(BaseService):
         if r.status_code == requests.codes.ok:
             return r.json()
         else:
-            _logger.error('Failed posting data to MxLIVE: HTTP-{}'.format(r.status_code))
+            logger.error('Failed posting data to MxLIVE: HTTP-{}'.format(r.status_code))
             r.raise_for_status()
 
     def get_samples(self, beamline):
-        _logger.debug('Requesting Samples from MxLIVE ...')
+        logger.debug('Requesting Samples from MxLIVE ...')
         url = "{}/api/{}/samples/{}/{}/".format(
             self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
         )
         try:
             reply = self.get(url)
         except (IOError, ValueError, requests.HTTPError) as e:
-            _logger.error('Unable to fetch Samples from MxLIVE: \n {}'.format(e))
+            logger.error('Unable to fetch Samples from MxLIVE: \n {}'.format(e))
             reply = {'error': 'Unable to fetch Samples from MxLIVE', 'details': '{}'.format(e)}
         return reply
 
@@ -237,13 +237,13 @@ class LIMSClient(BaseService):
             try:
                 reply = self.post(url, json=json_info)
             except (IOError, ValueError, requests.HTTPError) as e:
-                _logger.error('Dataset meta-data could not be uploaded to MxLIVE, \n {}'.format(e))
+                logger.error('Dataset meta-data could not be uploaded to MxLIVE, \n {}'.format(e))
             else:
                 if reply.get('id') is not None:
                     data['id'] = reply['id']
-                    _logger.info('Dataset meta-data uploaded to MxLIVE.')
+                    logger.info('Dataset meta-data uploaded to MxLIVE.')
                 else:
-                    _logger.error('Invalid Response from MxLIVE: {}'.format(reply))
+                    logger.error('Invalid Response from MxLIVE: {}'.format(reply))
 
         with open(os.path.join(data['directory'], '{}.SUMMARY'.format(data['name'])), 'w') as fobj:
             json.dump(data, fobj, indent=4)
@@ -300,13 +300,13 @@ class LIMSClient(BaseService):
         try:
             reply = self.post(url, json=new_info)
         except (IOError, ValueError, requests.HTTPError) as e:
-            _logger.error('Scan could not be uploaded to MxLIVE, \n {}'.format(e))
+            logger.error('Scan could not be uploaded to MxLIVE, \n {}'.format(e))
         else:
             if reply.get('id'):
                 new_info['id'] = reply['id']
-                _logger.info('Scan successfully uploaded to MxLIVE')
+                logger.info('Scan successfully uploaded to MxLIVE')
             else:
-                _logger.error('Invalid response from to MxLIVE: {}'.format(reply))
+                logger.error('Invalid response from to MxLIVE: {}'.format(reply))
 
         return
 
@@ -319,18 +319,18 @@ class LIMSClient(BaseService):
                 reply = self.post(url, json=report)
             except (IOError, ValueError, requests.HTTPError) as e:
                 msg = 'Report could not be uploaded to MxLIVE, \n {}'.format(e)
-                _logger.error(msg)
+                logger.error(msg)
                 reply = {'error': msg}
             else:
                 if reply.get('id'):
                     report['id'] = reply['id']
-                    _logger.info('Report successfully uploaded to MxLIVE')
+                    logger.info('Report successfully uploaded to MxLIVE')
                 else:
-                    _logger.error('Invalid response from to MxLIVE: {}'.format(reply))
+                    logger.error('Invalid response from to MxLIVE: {}'.format(reply))
         else:
             msg = 'Dataset required to upload report, none found.'
             reply = {'error': msg}
-            _logger.error(msg)
+            logger.error(msg)
         return reply
 
     def upload_reports(self, beamline, reports):
@@ -367,7 +367,7 @@ class MxDCClient(BaseService):
         self.factory.getRootObject().addCallback(self.on_connected).addErrback(self.on_connection_failed)
         reactor.connectTCP(self.service_data['address'], self.service_data['port'], self.factory)
 
-        _logger.warning(
+        logger.warning(
             'Remote MXDC instance {}@{}:{} since {}'.format(
                 self.service_data['data']['user'], self.service_data['address'], self.service_data['port'],
                 self.service_data['data']['started']
@@ -405,7 +405,7 @@ class MxDCClient(BaseService):
 
     def on_connection_failed(self, reason):
         reason.trap(error.ConnectionDone)
-        _logger.warning('Connection to Remote MxDC Failed')
+        logger.warning('Connection to Remote MxDC Failed')
 
     def notify_failure(self):
         if not self.active_state:

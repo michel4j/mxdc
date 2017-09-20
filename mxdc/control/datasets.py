@@ -13,9 +13,10 @@ from mxdc.widgets import datawidget, dialogs, arrowframe
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
 from samplestore import ISampleStore, SampleQueue, SampleStore
 from microscope import IMicroscope
+from zope.interface import Interface, implements
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 (
     RESPONSE_REPLACE_ALL,
@@ -23,6 +24,12 @@ _logger = get_module_logger(__name__)
     RESPONSE_SKIP,
     RESPONSE_CANCEL,
 ) = range(4)
+
+
+
+class IDatasets(Interface):
+    """Sample information database."""
+    pass
 
 
 class ConfigDisplay(object):
@@ -255,7 +262,7 @@ class AutomationController(GObject.GObject):
     def on_started(self, obj):
         self.start_time = time.time()
         self.props.state = self.StateType.ACTIVE
-        _logger.info("Automation Started.")
+        logger.info("Automation Started.")
 
     def on_stop_automation(self, obj):
         self.automator.stop()
@@ -319,6 +326,7 @@ class DatasetsController(GObject.GObject):
         self.collector.connect('progress', self.on_progress)
         self.collector.connect('started', self.on_started)
         self.microscope.connect('notify::points', self.on_points)
+        globalRegistry.register([], IDatasets, '', self)
         self.setup()
 
     def update_positions(self):
@@ -609,7 +617,7 @@ class DatasetsController(GObject.GObject):
         self.widget.datasets_collect_btn.set_sensitive(True)
         self.widget.datasets_clean_btn.set_sensitive(False)
         self.widget.datasets_overlay.set_sensitive(False)
-        _logger.info("Data Acquisition Started.")
+        logger.info("Data Acquisition Started.")
 
     def on_new_image(self, widget, file_path):
         directory = os.path.dirname(file_path)
@@ -630,7 +638,7 @@ class DatasetsController(GObject.GObject):
                 self.widget.collect_progress_lbl.set_text(
                     'Stopped at dataset {}: {} ...'.format(run_item.props.info['name'], frame)
                 )
-        _logger.info('Frame acquired: {}'.format(frame))
+        logger.info('Frame acquired: {}'.format(frame))
 
     def on_collect_btn(self, obj):
         self.widget.datasets_collect_btn.set_sensitive(False)

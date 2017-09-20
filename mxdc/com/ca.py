@@ -39,8 +39,8 @@ import time
 
 # setup module logger with a default do-nothing handler
 module_name = __name__.split('.')[-1]
-_logger = logging.getLogger(module_name)
-_logger.setLevel(logging.INFO)
+logger = logging.getLogger(module_name)
+logger.setLevel(logging.INFO)
 
 # Define EPICS constants
 (DISABLE_PREEMPTIVE_CALLBACK, ENABLE_PREEMPTIVE_CALLBACK) = range(2)
@@ -315,7 +315,7 @@ class PV(BasePV):
         
         """
         if self._connected != CA_OP_CONN_UP:
-            _logger.error('(%s) PV not connected' % (self._name,))
+            logger.error('(%s) PV not connected' % (self._name,))
             return
             # raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         if self._monitor == True and self._val is not None:
@@ -339,7 +339,7 @@ class PV(BasePV):
         """Get control parameters of a Process Variable.
         """
         if self._connected != CA_OP_CONN_UP:
-            _logger.error('(%s) PV not connected' % (self._name,))
+            logger.error('(%s) PV not connected' % (self._name,))
             return
             # raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         else:
@@ -379,7 +379,7 @@ class PV(BasePV):
               will be set to zero.
         """
         if self._connected != CA_OP_CONN_UP:
-            _logger.error('(%s) PV not connected' % (self._name,))
+            logger.error('(%s) PV not connected' % (self._name,))
             return
             # raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         if self._type == DBR_STRING:
@@ -515,7 +515,7 @@ class PV(BasePV):
 
     def _add_handler(self, callback):
         if self._connected != CA_OP_CONN_UP:
-            _logger.error('(%s) PV not connected.' % (self._name,))
+            logger.error('(%s) PV not connected.' % (self._name,))
             return
             # raise ChannelAccessError('PV not connected')
         event_id = c_ulong()
@@ -612,7 +612,7 @@ def ca_exception_handler(event):
                                      event.lineNo,
                                      time.strftime("%X %Z %a, %d %b %Y"),
                                      event.ctx, )
-    _logger.error(msg)
+    logger.error(msg)
     return 0
 
 

@@ -17,7 +17,7 @@ import math
 import numpy
 import os
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 class _DummyEvent(object):
     width = 0
@@ -299,7 +299,7 @@ class SamplePicker(Gtk.Box):
         except:
             self.beamline = None
             self.automounter = automounter
-            _logger.error('No registered beamline found.')
+            logger.error('No registered beamline found.')
 
         self._full_state = []
         # initialization

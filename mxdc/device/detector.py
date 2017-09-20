@@ -13,7 +13,7 @@ from mxdc.device.base import BaseDevice
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class IImagingDetector(IDevice):
@@ -81,16 +81,16 @@ class SimCCDImager(BaseDevice):
         self._bg_taken = False
 
     def initialize(self, wait=True):
-        _logger.debug('(%s) Initializing CCD ...' % (self.name,))
+        logger.debug('(%s) Initializing CCD ...' % (self.name,))
         time.sleep(0.1)
-        _logger.debug('(%s) CCD Initialization complete.' % (self.name,))
+        logger.debug('(%s) CCD Initialization complete.' % (self.name,))
 
     def start(self, first=False):
         self.initialize(True)
         time.sleep(0.1)
 
     def stop(self):
-        _logger.debug('(%s) Stopping CCD ...' % (self.name,))
+        logger.debug('(%s) Stopping CCD ...' % (self.name,))
         time.sleep(0.1)
 
     def get_origin(self):
@@ -110,7 +110,7 @@ class SimCCDImager(BaseDevice):
 
     def _copy_frame(self):
         file_parms = copy.deepcopy(self.parameters)
-        _logger.debug('Saving frame: %s' % datetime.now().isoformat())
+        logger.debug('Saving frame: %s' % datetime.now().isoformat())
         num = 1 + (file_parms['start_frame'] - 1) % self._num_frames
         src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
         file_name = '{}_{:04d}.img'.format(file_parms['file_prefix'], file_parms['start_frame'])
@@ -120,7 +120,7 @@ class SimCCDImager(BaseDevice):
         shutil.copyfile(src_img, dst_img)
 
         os.system('/usr/bin/gunzip -f %s' % dst_img)
-        _logger.debug('Frame saved: %s' % datetime.now().isoformat())
+        logger.debug('Frame saved: %s' % datetime.now().isoformat())
         GObject.idle_add(self.emit, 'new-image', file_path)
 
     def save(self, wait=False):
@@ -133,7 +133,7 @@ class SimCCDImager(BaseDevice):
                 try:
                     os.remove(frame_path)
                 except OSError:
-                    _logger.error('Unable to remove existing frame: {}'.format(frame_name))
+                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
     def wait(self, *states):
         time.sleep(0.1)
@@ -212,17 +212,17 @@ class PIL6MImager(BaseDevice):
         self.connected_status.connect('changed', self.on_connection_changed)
 
     def initialize(self, wait=True):
-        _logger.debug('({}) Initializing Detector ...'.format(self.name))
+        logger.debug('({}) Initializing Detector ...'.format(self.name))
 
     def start(self, first=False):
-        _logger.debug('({}) Starting Acquisition ...'.format(self.name))
+        logger.debug('({}) Starting Acquisition ...'.format(self.name))
         self.wait('idle')
         self.acquire_cmd.put(1)
         ca.flush()
         self.wait('acquiring')
 
     def stop(self):
-        _logger.debug('({}) Stopping Detector ...'.format(self.name))
+        logger.debug('({}) Stopping Detector ...'.format(self.name))
         self.acquire_cmd.put(0)
         self.wait('idle')
 
@@ -239,7 +239,7 @@ class PIL6MImager(BaseDevice):
                 try:
                     os.remove(frame_path)
                 except OSError:
-                    _logger.error('Unable to remove existing frame: {}'.format(frame_name))
+                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
     def on_new_frame(self, obj, frame_name):
         file_path = os.path.join(self.settings['directory'].get(), frame_name)
@@ -268,15 +268,15 @@ class PIL6MImager(BaseDevice):
                 self.settings[k].put(v, flush=True)
 
     def wait_for_state(self, state, timeout=20.0):
-        _logger.debug('({}) Waiting for state: {}'.format(self.name, state, ))
+        logger.debug('({}) Waiting for state: {}'.format(self.name, state, ))
         while timeout > 0 and not self.is_in_state(state):
             timeout -= 0.05
             time.sleep(0.05)
         if timeout > 0:
-            _logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, state, 10 - timeout))
+            logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, state, 10 - timeout))
             return True
         else:
-            _logger.warning('({}) Timed out waiting for state: {}'.format(self.name, state, ))
+            logger.warning('({}) Timed out waiting for state: {}'.format(self.name, state, ))
             return False
 
     def on_connection_changed(self, obj, state):
@@ -286,15 +286,15 @@ class PIL6MImager(BaseDevice):
             self.set_state(health=(0, 'socket'))
 
     def wait_in_state(self, state, timeout=60):
-        _logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, state, ))
+        logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, state, ))
         while self.is_in_state(state) and timeout > 0:
             timeout -= 0.05
             time.sleep(0.05)
         if timeout > 0:
-            _logger.debug('({}) state "{}" expired after: {:0.1f} sec'.format(self.name, state, 10 - timeout))
+            logger.debug('({}) state "{}" expired after: {:0.1f} sec'.format(self.name, state, 10 - timeout))
             return True
         else:
-            _logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, state, ))
+            logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, state, ))
             return False
 
     def is_in_state(self, state):
@@ -366,7 +366,7 @@ class ADRayonixImager(BaseDevice):
         self.connected_status.connect('changed', self.on_connection_changed)
 
     def initialize(self, wait=True):
-        _logger.debug('({}) Initializing Detector ...'.format(self.name))
+        logger.debug('({}) Initializing Detector ...'.format(self.name))
         self.initialized = True
         self.frame_type.put(1)
         for i in range(2):
@@ -378,13 +378,13 @@ class ADRayonixImager(BaseDevice):
         self.wait('idle')
 
     def start(self, first=False):
-        _logger.debug('({}) Starting Acquisition ...'.format(self.name))
+        logger.debug('({}) Starting Acquisition ...'.format(self.name))
         self.wait('idle', 'correct', 'saving', 'waiting', 'reading')
         self.acquire_cmd.put(1)
         self.wait('acquiring')
 
     def stop(self):
-        _logger.debug('({}) Stopping Detector ...'.format(self.name))
+        logger.debug('({}) Stopping Detector ...'.format(self.name))
         self.acquire_cmd.put(0)
         self.wait('idle')
 
@@ -401,7 +401,7 @@ class ADRayonixImager(BaseDevice):
                 try:
                     os.remove(frame_path)
                 except OSError:
-                    _logger.error('Unable to remove existing frame: {}'.format(frame_name))
+                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
     def on_connection_changed(self, obj, state):
         if state == 0:
@@ -434,29 +434,29 @@ class ADRayonixImager(BaseDevice):
 
     def wait_for_state(self, *states, **kwargs):
         timeout = kwargs.get('timeout', 10)
-        _logger.debug('({}) Waiting for state: {}'.format(self.name, '|'.join(states)))
+        logger.debug('({}) Waiting for state: {}'.format(self.name, '|'.join(states)))
         while timeout > 0 and not self.is_in_state(*states):
             timeout -= 0.05
             time.sleep(0.05)
         if timeout > 0:
-            _logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
+            logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
             return True
         else:
-            _logger.warning('({}) Timed out waiting for state: {}'.format(self.name, '|'.join(states), ))
+            logger.warning('({}) Timed out waiting for state: {}'.format(self.name, '|'.join(states), ))
             return False
 
     def wait_in_state(self, *states, **kwargs):
         timeout = kwargs.get('timeout', 60)
-        _logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, '|'.join(states), ))
+        logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, '|'.join(states), ))
         while self.is_in_state(*states) and timeout > 0:
             timeout -= 0.05
             time.sleep(0.05)
         if timeout > 0:
-            _logger.debug(
+            logger.debug(
                 '({}) state "{}" expired after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
             return True
         else:
-            _logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, '|'.join(states), ))
+            logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, '|'.join(states), ))
             return False
 
     def is_in_state(self, *states):

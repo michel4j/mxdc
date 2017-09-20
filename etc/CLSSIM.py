@@ -4,7 +4,7 @@ import os
 
 BEAMLINE_NAME = 'SIM-1'
 BEAMLINE_TYPE = 'MX'
-BEAMLINE_ENERGY_RANGE = (3.0, 18.5)
+BEAMLINE_ENERGY_RANGE = (5.0, 18)
 BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
 ADMIN_GROUPS = [2000]
 
@@ -15,7 +15,7 @@ SAFE_DISTANCE       = 400.0
 SAFE_BEAMSTOP       = 50.0
 XRF_BEAMSTOP        = 90.0
 CENTERING_BACKLIGHT = 50
-XRF_ENERGY_OFFSET   = +1.0              # KeV
+XRF_ENERGY_OFFSET   = +1.5              # KeV
 
 LIMS_API_KEY    = "4A8285AB-9E5F-476E-B17B-92BEB299A985"
 
@@ -59,7 +59,7 @@ DEVICES = {
     'beamstop_y':  SimMotor('Beamstop Y', 0.0, 'mm'),
     'beamstop_z':  SimMotor('Beamstop Z', 30.0, 'mm'),  
     'sample_zoom':  SimMotor('Sample Zoom', 2.0, speed=8),
-    'cryojet':  SimCryojet('Simulated Cryojet'),
+    'cryojet':  SimCryoJet('Simulated Cryojet'),
     #'sample_camera': SimCamera(),
     #'sample_camera': AxisCamera('V2E1608-400.clsi.ca', 1),
     #'sample_camera': AxisPTZCamera('ccd1608-301.clsi.ca'),
@@ -96,8 +96,8 @@ DEVICES = {
     'automounter':  SimAutomounter(),
     'humidifier': SimHumidifier(),
     'attenuator': SimPositioner('Attenuator', 0.0, '%'),
-    'mca': SimMultiChannelAnalyzer('Simulated MCA'),
-    'multi_mca' : SimMultiChannelAnalyzer('Simulated MCA'),
+    'mca': SimMultiChannelAnalyzer('Simulated MCA', energy=_tmp2),
+    'multi_mca' : SimMultiChannelAnalyzer('Simulated MCA', energy=_tmp2),
 
     #disk space monitor
     'disk_space' : DiskSpaceMonitor('Disk Space', '/users', warn=0.2, critical=0.1, freq=30),

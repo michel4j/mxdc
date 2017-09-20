@@ -14,7 +14,7 @@ from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_short_uuid, logistic_score
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 _SAMPLE_SHIFT_STEP = 0.2  # mm
 _CENTERING_ZOOM = 2
@@ -31,7 +31,7 @@ def get_current_bkg():
     try:
         beamline = globalRegistry.lookup([], IBeamline)
     except:
-        _logger.warning('No registered beamline found')
+        logger.warning('No registered beamline found')
         return
 
     # set lighting and zoom
@@ -83,7 +83,7 @@ def center_loop():
         # Nothing on screen, go to default start
         beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
 
-    _logger.debug('Attempting to center loop')
+    logger.debug('Attempting to center loop')
 
     ANGLE_STEP = 90.0
     count = 0
@@ -125,7 +125,7 @@ def center_loop():
         if len(avg_devs) >= 2:
             if numpy.abs(avg_devs[-1:]).mean() <= 5 * beamline.sample_video.resolution:
                 converged = True
-        _logger.info("Centering ... [%d] (H): %0.3f, (V): %0.3f, Converged: %s" % (count, _dev[0], _dev[1], converged))
+        logger.info("Centering ... [%d] (H): %0.3f, (V): %0.3f, Converged: %s" % (count, _dev[0], _dev[1], converged))
 
     # calcualte score based on average and maximum of last two adjustments a
     # an average of 20 pixels and a max of 20 pixels will give a score of 50%
@@ -167,7 +167,7 @@ def center_capillary():
         # Nothing on screen, go to default start
         beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
 
-    _logger.debug('Attempting to center capillary')
+    logger.debug('Attempting to center capillary')
 
     ANGLE_STEP = 90.0
     count = 0
@@ -180,13 +180,13 @@ def center_capillary():
         count += 1
         img = beamline.sample_video.get_frame()  # new frame on each try
         x, y, w = imgproc.get_cap_center(img, bkg_img, orientation=int(beamline.config['orientation']))
-        _logger.debug("GET CAP CENTERING {}, {}, {}".format(x, y, w))
+        logger.debug("GET CAP CENTERING {}, {}, {}".format(x, y, w))
 
         # calculate motor positions and move
         ymm = (cy - y) * beamline.sample_video.resolution
         xmm = (cx - x) * beamline.sample_video.resolution
         beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
-        _logger.debug("TESTING OMEGA: {}, XMM: {}, YMM: {}".format(
+        logger.debug("TESTING OMEGA: {}, XMM: {}, YMM: {}".format(
             beamline.omega.get_position(),
             xmm / beamline.sample_video.resolution, ymm / beamline.sample_video.resolution)
         )
@@ -205,7 +205,7 @@ def center_capillary():
         if len(avg_devs) >= 2:
             if numpy.abs(avg_devs[-1:]).mean() <= 0.1 * w * beamline.sample_video.resolution:  # 10% of cap width
                 converged = True
-        _logger.info("Centering ... [%d] (V): %0.3f, Converged: %s" % (count, _dev, converged))
+        logger.info("Centering ... [%d] (V): %0.3f, Converged: %s" % (count, _dev, converged))
 
     beamline.sample_stage.wait()
     beamline.sample_stage.move_by(x_offset * direction, 0.0, 0.0)
@@ -243,7 +243,7 @@ def center_crystal():
     try:
         beamline = globalRegistry.lookup([], IBeamline)
     except:
-        _logger.warning('No registered beamline found')
+        logger.warning('No registered beamline found')
         return {'RELIABILITY': -99}
 
     # set lighting and zoom
@@ -309,7 +309,7 @@ def center_crystal():
         data = outfile.readlines()
         outfile.close()
     except:
-        _logger.error('XREC cound not be executed')
+        logger.error('XREC cound not be executed')
         return {'RELIABILITY': -99}
 
     results = {'RELIABILITY': -99}
@@ -321,7 +321,7 @@ def center_crystal():
     # verify integrity of results
     for key in ['TARGET_ANGLE', 'Y_CENTRE', 'X_CENTRE', 'RADIUS']:
         if key not in results:
-            _logger.info('Centering failed.')
+            logger.info('Centering failed.')
             return results
 
     # calculate motor positions and move
@@ -345,7 +345,7 @@ def center_crystal():
     # cleanup
     shutil.rmtree(directory)
 
-    _logger.info('Centering reliability is %d%%.' % results['RELIABILITY'])
+    logger.info('Centering reliability is %d%%.' % results['RELIABILITY'])
     return results
 
 
@@ -358,9 +358,9 @@ def auto_center_loop():
     quality = center_loop()
 
     if quality < 75:
-        _logger.warning('Loop centering not reliable enough.')
+        logger.warning('Loop centering not reliable enough.')
 
-    _logger.info('Loop centering complete in %d seconds. [%0.0f %% reliable]' % (time.time() - tst, quality))
+    logger.info('Loop centering complete in %d seconds. [%0.0f %% reliable]' % (time.time() - tst, quality))
     return quality
 
 
@@ -373,9 +373,9 @@ def auto_center_capillary():
     quality = center_capillary()
 
     if quality < 75:
-        _logger.warning('Capillary centering not reliable enough.')
+        logger.warning('Capillary centering not reliable enough.')
 
-    _logger.info('Capillary centering complete in %d seconds. [%0.0f %% reliable]' % (time.time() - tst, quality))
+    logger.info('Capillary centering complete in %d seconds. [%0.0f %% reliable]' % (time.time() - tst, quality))
     return quality
 
 
@@ -386,8 +386,8 @@ def auto_center_crystal():
     tst = time.time()
     result = center_crystal()
     if result['RELIABILITY'] < 75:
-        _logger.info('Crystal centering was not reliable enough.')
-    _logger.info('Crystal centering complete in %d seconds.' % (time.time() - tst))
+        logger.info('Crystal centering was not reliable enough.')
+    logger.info('Crystal centering complete in %d seconds.' % (time.time() - tst))
     return result['RELIABILITY']
 
 
