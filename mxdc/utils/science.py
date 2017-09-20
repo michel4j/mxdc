@@ -2,11 +2,10 @@ import os
 import re
 
 import numpy
-from scipy import interpolate, optimize
-
-from mxdc.engine import fitting
 from mxdc.utils import converter
 from mxdc.utils import json
+from scipy import interpolate, optimize
+from utils import fitting
 
 SPACE_GROUP_NAMES = {
     1: 'P1', 3: 'P2', 4: 'P2(1)', 5: 'C2', 16: 'P222',
@@ -133,7 +132,7 @@ def get_energy_database(min_energy=0, max_energy=1000):
             edge_descr = "{}-{}".format(symbol, edge)
             if emissions[edge] in data[1]:
                 e_val = data[1][emissions[edge]][0]
-                if min_energy <= e_val <= max_energy:
+                if min_energy <= data[0] <= max_energy:
                     val = data[0]
                     data_dict[edge_descr] = (val, e_val)
     return data_dict

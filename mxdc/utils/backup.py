@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     # Setup the logger
     _logger = logging.getLogger('backup')
-    _logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     logfilename = '/var/log/backup.log'
     logfile = logging.handlers.RotatingFileHandler(logfilename, maxBytes=1048576, backupCount=5)
     logfile.setLevel(logging.DEBUG)
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         sources = json.loads(file(os.path.join(confdir, "backup-sources.conf")).read())
         config = json.loads(file(os.path.join(confdir, "backup.conf")).read())
     except:
-        _logger.exception("Backup Failed! Could not read configuration files.")
+        logger.exception("Backup Failed! Could not read configuration files.")
         sys.exit()
             
     # Initialize time variables and options
@@ -46,42 +46,42 @@ if __name__ == '__main__':
     # Check if excludes file exists, otherwise create a blank file
     if  not os.path.exists("%s/%s" % (backupdir, exclude_file)):
         sts, out = commands.getstatusoutput('/bin/touch %s/%s' % (backupdir, exclude_file))
-        _logger.info('Created `excludes` file. Edit it to specify which files should not be backed-up.')
+        logger.info('Created `excludes` file. Edit it to specify which files should not be backed-up.')
     
     # and perform the backups one client at a time
     backup_sources = sources.get('hosts',{})
     backup_sources['global'] = sources.get('global',[])
     for host, directories in backup_sources.items():
-        _logger.info('Performing the backups for %s' % host)
+        logger.info('Performing the backups for %s' % host)
         success = False
         todays_dir = os.path.join(backupdir, host, today)
         yesterdays_dir = os.path.join(backupdir, host, yesterday)
         thisweeks_dir = os.path.join(backupdir, host, 'Week-%s' % thisweek)
         
         # Step 1:  Save previous backup as backup for this week if it exists
-        _logger.info('Save previous backup as backup for this week if it exists')
+        logger.info('Save previous backup as backup for this week if it exists')
         if os.path.exists(todays_dir):
             cmd1 = '/bin/rm -rf %s' % (thisweeks_dir)
             cmd2 = "/bin/mv %s %s" % (todays_dir, thisweeks_dir)
-            _logger.info('Removing %s' % thisweeks_dir)
+            logger.info('Removing %s' % thisweeks_dir)
             sts, out = commands.getstatusoutput(cmd1)
-            _logger.info('Copying %s to %s' % (todays_dir, thisweeks_dir))
+            logger.info('Copying %s to %s' % (todays_dir, thisweeks_dir))
             sts, out = commands.getstatusoutput(cmd2)
     
         # Step 2: Copy yesterdays backup into todays directory before updating it
-        _logger.info('Copy yesterdays backup into todays directory before updating it')
+        logger.info('Copy yesterdays backup into todays directory before updating it')
         if os.path.exists(yesterdays_dir):
             cmd = '/bin/cp -apl %s %s' % (yesterdays_dir, todays_dir)
-            _logger.info(' - Copying %s to %s' % (yesterdays_dir, todays_dir))
+            logger.info(' - Copying %s to %s' % (yesterdays_dir, todays_dir))
             sts, out = commands.getstatusoutput(cmd)
         else:
             cmd = '/bin/mkdir -p %s' % (todays_dir)
-            _logger.info(' - Creating missing directory %s' % (todays_dir))
+            logger.info(' - Creating missing directory %s' % (todays_dir))
             sts, out = commands.getstatusoutput(cmd)
     
         # Step 3: rsync from system into today's snapshot directory
         for directory in directories:
-            _logger.info("rsync from system into today's snapshot directory")
+            logger.info("rsync from system into today's snapshot directory")
             dir_backup_loc = os.path.join(todays_dir, os.path.sep.join(directory.split(os.path.sep)[1:]))
             if host == 'global':
                 command_subst = (rsync_opts_local, directory, dir_backup_loc)
@@ -91,7 +91,7 @@ if __name__ == '__main__':
                 rsync_cmd = "rsync %s  %s@%s:%s/ %s" % (command_subst)
             if not os.path.exists(dir_backup_loc):
                 cmd = 'mkdir -p %s' % (dir_backup_loc)
-                _logger.info(' - Updating %s' % (dir_backup_loc))
+                logger.info(' - Updating %s' % (dir_backup_loc))
                 sts, out = commands.getstatusoutput(cmd)
                 
             #print rsync_cmd
@@ -99,11 +99,11 @@ if __name__ == '__main__':
             success = (sts == 0)
                  
             if success: 
-                _logger.info("%s Backing up %s on %s ... succeeded." % (todaydate, directory, host))
+                logger.info("%s Backing up %s on %s ... succeeded." % (todaydate, directory, host))
             else:
-                _logger.error("%s Backing up %s on %s ... failed." % (todaydate, directory, host))
+                logger.error("%s Backing up %s on %s ... failed." % (todaydate, directory, host))
                 if out.strip() != "":
-                    _logger.error(out)
+                    logger.error(out)
                 
         # Step 4: Update the time on todays backup to reflect the snapshot time
         cmd = "touch %s" % (todays_dir)

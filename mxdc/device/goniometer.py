@@ -17,7 +17,7 @@ from mxdc.utils.decorators import async
 from mxdc.device.base import BaseDevice
 
 # setup module logger with a default handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 # Goniometer state constants
 (GONIO_IDLE, GONIO_ACTIVE) = range(2)
@@ -75,7 +75,7 @@ class GoniometerBase(BaseDevice):
         # if mode_str in ['MOVING', 'UNKNOWN']:
         #    return
         if mode not in [self.mode, 'MOVING', 'UNKNOWN']:
-            _logger.info("Mode changed to `{}`".format(mode_str))
+            logger.info("Mode changed to `{}`".format(mode_str))
         GObject.idle_add(self.emit, 'mode', mode_str)
         self.mode = mode
 
@@ -92,22 +92,22 @@ class GoniometerBase(BaseDevice):
         self.stopped = False
         if (start):
             time_left = timeout
-            _logger.debug('Waiting for goniometer to start moving')
+            logger.debug('Waiting for goniometer to start moving')
             while not self.is_busy() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
                 if self.stopped: break
             if time_left <= 0:
-                _logger.warn('Timed out waiting for goniometer to start moving')
+                logger.warn('Timed out waiting for goniometer to start moving')
         if (stop):
             time_left = timeout
-            _logger.debug('Waiting for goniometer to stop')
+            logger.debug('Waiting for goniometer to stop')
             while self.is_busy() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
                 if self.stopped: break
             if time_left <= 0:
-                _logger.warn('Timed out waiting for goniometer to stop')
+                logger.warn('Timed out waiting for goniometer to stop')
 
     def stop(self):
         """Stop and abort the current scan if any."""
@@ -221,7 +221,7 @@ class Goniometer(GoniometerBase):
 
         message = 'Switching mode to {}'.format(mode)
         self.set_state(message=message)
-        self._logger.info('{}: {}'.format(self.name, message))
+        self.logger.info('{}: {}'.format(self.name, message))
         if mode == 'CENTERING':
             self._cnt_cmd.put(1)
         elif mode in ['MOUNTING']:
@@ -240,7 +240,7 @@ class Goniometer(GoniometerBase):
                 timeout -= 0.01
                 self._check_gonio_pos()
             if timeout <= 0:
-                _logger.warn('Timed out waiting for requested mode `{}`'.format(mode))
+                logger.warn('Timed out waiting for requested mode `{}`'.format(mode))
 
     def scan(self, wait=True, timeout=None):
         """Perform an oscillation scan according to the currently set parameters
@@ -257,7 +257,7 @@ class Goniometer(GoniometerBase):
             self.set_state(message='Scan complete!')
 
     def stop(self):
-        _logger.debug('Stopping goniometer ...')
+        logger.debug('Stopping goniometer ...')
         self.stopped = True
         self._stop_command.put(1)
 
@@ -373,7 +373,7 @@ class MD2Goniometer(GoniometerBase):
                 time.sleep(0.01)
                 timeout -= 0.01
             if timeout <= 0:
-                _logger.warn('Timed out waiting for requested mode `%s`' % mode)
+                logger.warn('Timed out waiting for requested mode `%s`' % mode)
 
         if mode == 'SCANNING':
             bl = globalRegistry.lookup([], IBeamline)
@@ -457,16 +457,16 @@ class SimGoniometer(GoniometerBase):
             self._scanning = True
             bl = globalRegistry.lookup([], IBeamline)
             st = time.time()
-            _logger.debug('Starting scan at: %s' % datetime.now().isoformat())
-            _logger.debug('Moving to scan starting position')
+            logger.debug('Starting scan at: %s' % datetime.now().isoformat())
+            logger.debug('Moving to scan starting position')
             bl.omega.move_to(self._settings['angle'] - 0.05, wait=True, speed=bl.omega.default_speed)
             scan_speed = float(self._settings['delta']) / self._settings['time']
             if wait:
-                _logger.debug('Waiting for scan to complete ...')
+                logger.debug('Waiting for scan to complete ...')
             bl.omega.move_to(self._settings['angle'] + self._settings['delta'] + 0.05, wait=True, speed=scan_speed)
             time.sleep(0.5)
             bl.omega.configure(speed=bl.omega.default_speed)
-            _logger.debug('Scan done at: %s' % datetime.now().isoformat())
+            logger.debug('Scan done at: %s' % datetime.now().isoformat())
             self.set_state(message='Scan complete!', busy=False)
             self._scanning = False
 

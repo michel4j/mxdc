@@ -17,11 +17,11 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter
 from misc import ActiveProgressBar
 from mpl_toolkits.mplot3d import axes3d
-from mxdc.engine import fitting
-from mxdc.widgets import dialogs
-from mxdc.utils import misc
 from mxdc.interface.engines import IScanPlotter
+from mxdc.utils import misc
+from mxdc.widgets import dialogs
 from twisted.python.components import globalRegistry
+from utils import fitting
 from zope.interface import implements
 
 rcParams['legend.loc'] = 'best'
@@ -103,20 +103,18 @@ class Plotter(Gtk.Alignment):
         self.add(box)
         self.show_all()
 
-    def add_line(self, xpoints, ypoints, pattern='', label='', lw=1, ax=0, alpha=1.0, redraw=True):
+    def add_line(self, xpoints, ypoints, pattern='', label='', lw=1, ax=0, alpha=1.0, color=None, redraw=True, markevery=[]):
         assert (len(xpoints) == len(ypoints))
         assert (ax < len(self.axis))
 
         self.axis[ax].autoscale(False)
         ymin_current, ymax_current = self.axis[ax].get_ylim()
         xmin_current, xmax_current = self.axis[ax].get_xlim()
-
         line, = self.axis[ax].plot(
-            xpoints, ypoints, pattern, lw=lw, markersize=3, markerfacecolor='w',
-            markeredgewidth=1, label=label, alpha=alpha
+            xpoints, ypoints, 'o', ls=pattern, lw=lw, markersize=3, markerfacecolor='w',
+            label=label, alpha=alpha, markevery=markevery, color=color
         )
         self.line.append(line)
-
 
         self.x_data.append(list(xpoints))
         self.y_data.append(list(ypoints))
@@ -137,9 +135,7 @@ class Plotter(Gtk.Alignment):
         return True
 
     def add_axis(self, label=""):
-        ax = self.fig.add_axes(self.axis[0].get_position(),
-                               sharex=self.axis[0],
-                               frameon=False)
+        ax = self.fig.add_axes(self.axis[0].get_position(), sharex=self.axis[0], frameon=False)
         ax.yaxis.tick_right()
         ax.yaxis.set_label_position('right')
         ax.set_ylabel(label)
@@ -195,8 +191,8 @@ class Plotter(Gtk.Alignment):
         return True
 
     def add_point(self, x, y, lin=0, redraw=True, resize=False):
-        if lin + 1 > len(self.line):
-            self.add_line([x], [y], '-')
+        if lin >= len(self.line):
+            self.add_line([x], [y], '-', markevery=[-1])
         else:
             # when using ring buffer, remove first element before adding if full
             if self.simulate_ring_buffer and len(self.x_data[lin]) == self.buffer_size:
@@ -214,15 +210,18 @@ class Plotter(Gtk.Alignment):
             ymin_current, ymax_current = self.line[lin].axes.get_ylim()
 
             ymin, ymax = misc.get_min_max(self.y_data[lin], ldev=1, rdev=1)
-            xmin, xmax  = misc.get_min_max(self.x_data[lin], ldev=0, rdev=0)
-            self.line[lin].axes.set_xlim(xmin, xmax)
+            xmin, xmax = misc.get_min_max(self.x_data[lin], ldev=0, rdev=0)
+
+            if len(self.line) > 1:
+                xmin_current, xmax_current = self.axis[0].get_xlim()
+                self.axis[0].set_xlim(min(xmin, xmin_current), max(xmax, xmax_current))
+            else:
+                self.line[lin].axes.set_xlim(xmin, xmax)
             self.line[lin].axes.set_ylim(min(ymin, ymin_current), max(ymax, ymax_current))
             self.axis[0].xaxis.set_major_formatter(self.format_x)
 
             if redraw:
                 self.redraw()
-
-        return True
 
     def redraw(self):
         self.axis[0].legend()

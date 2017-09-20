@@ -6,7 +6,7 @@ from zope.interface import Interface, Attribute, invariant
 import random
 import math
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class IBeamTuner(Interface):
@@ -100,23 +100,23 @@ class BOSSTuner(BaseTuner):
         return self.value_fbk.get()
 
     def pause(self):
-        _logger.debug('Pausing BOSS')
+        logger.debug('Pausing BOSS')
         if self.active_state and self.enabled_state and self.beam_threshold.get() != self._pause_value:
             self._off_value = self.beam_threshold.get()
             self.beam_threshold.set(self._pause_value)
 
     def resume(self):
-        _logger.debug('Resuming BOSS')
+        logger.debug('Resuming BOSS')
         if self.active_state:
             self.beam_threshold.set(self._off_value)
 
     def start(self):
-        _logger.debug('Enabling BOSS')
+        logger.debug('Enabling BOSS')
         if self.active_state:
             self.enable_cmd.put(1)
 
     def stop(self):
-        _logger.debug('Disabling Beam Stabilization')
+        logger.debug('Disabling Beam Stabilization')
         if self.active_state:
             self.enable_cmd.put(0)
 

@@ -15,7 +15,7 @@ from twisted.python.components import globalRegistry
 from zope.interface import implements
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class DataCollector(GObject.GObject):
@@ -162,7 +162,7 @@ class DataCollector(GObject.GObject):
             }
 
             # prepare goniometer for scan
-            _logger.info("Collecting {} images starting at: {}".format(
+            logger.info("Collecting {} images starting at: {}".format(
                 wedge['num_frames'], wedge['frame_template'].format(wedge['start_frame']))
             )
             self.beamline.goniometer.configure(
@@ -192,7 +192,7 @@ class DataCollector(GObject.GObject):
             # setup folder for wedge
             self.beamline.image_server.setup_folder(wedge['directory'])
             if not os.path.exists(os.path.join(wedge['directory'], '{}_{:0.0f}.png'.format(prefix, a1))):
-                _logger.info('Taking snapshots of crystal at {:0.0f} and {:0.0f}'.format(a1, a2))
+                logger.info('Taking snapshots of crystal at {:0.0f} and {:0.0f}'.format(a1, a2))
                 snapshot.take_sample_snapshots(
                     prefix, os.path.join(wedge['directory']), [a2, a1], decorate=True
                 )
@@ -282,7 +282,7 @@ class DataCollector(GObject.GObject):
             self.resume()
 
     def resume(self):
-        _logger.info("Resuming Collection ...")
+        logger.info("Resuming Collection ...")
         if self.paused:
             GObject.idle_add(self.emit, 'paused', False, {})
             self.paused = False
@@ -297,14 +297,14 @@ class DataCollector(GObject.GObject):
             self.start()
 
     def pause(self, info={}):
-        _logger.info("Pausing Collection ...")
+        logger.info("Pausing Collection ...")
         self.paused = True
         self.beamline.detector.stop()
         self.beamline.goniometer.stop()
         GObject.idle_add(self.emit, 'paused', True, info)
 
     def stop(self):
-        _logger.info("Stopping Collection ...")
+        logger.info("Stopping Collection ...")
         self.stopped = True
         self.paused = False
         self.beamline.detector.stop()

@@ -8,7 +8,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 import os
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 SAMPLES_DB_CONFIG = 'samples_db.json'
 XTALS_DB_CONFIG = 'crystals_db.json'
@@ -365,10 +365,10 @@ class DewarLoader(Gtk.Box):
             msg = 'Successfully imported %d containers, with a total of %d samples from MxLIVE.' % (
                 len(self.samples_database['containers']),
                 len(self.samples_database['crystals']))
-            _logger.info(msg)
+            logger.info(msg)
         else:
             dialogs.warning("No Samples in MxLIVE", "Could not find any valid containers to import from MxLIVE.")
-            _logger.warning('No valid containers to import from MxLIVE.')
+            logger.warning('No valid containers to import from MxLIVE.')
 
     def on_import_file(self, obj):
         #FIXME

@@ -8,7 +8,7 @@ from mxdc.widgets import ticker
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class HumidityController(object):
