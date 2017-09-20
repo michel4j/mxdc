@@ -21,7 +21,7 @@ import common
 
 RASTER_DELTA = 0.5
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 def frame_score(info):
@@ -312,7 +312,7 @@ class RasterController(GObject.GObject):
     def on_started(self, obj):
         self.start_time = time.time()
         self.props.state = self.StateType.ACTIVE
-        _logger.info("Rastering Started.")
+        logger.info("Rastering Started.")
 
         self.results[self.props.config['uuid']] = {
             'config': copy.deepcopy(self.props.config),
@@ -376,7 +376,7 @@ class RasterController(GObject.GObject):
         image_viewer = globalRegistry.lookup([], IImageViewer)
         frame = os.path.splitext(os.path.basename(file_path))[0]
         image_viewer.queue_frame(file_path)
-        _logger.info('Frame acquired: {}'.format(frame))
+        logger.info('Frame acquired: {}'.format(frame))
 
     def on_results(self, obj, cell, results):
         score = frame_score(results)
@@ -411,10 +411,7 @@ class RasterController(GObject.GObject):
                 grid['scores']
             )
             self.beamline.sample_stage.move_xyz(*grid['config']['origin'])
-            self.widget.raster_name_fbk.set_text(grid['config']['name'])
             self.widget.raster_directory_fbk.set_text(grid['config']['directory'])
-            self.widget.raster_angle_fbk.set_text('{:0.2f}'.format(grid['config']['angle']))
-            self.widget.raster_points_fbk.set_text('{}'.format(len(grid['grid'])))
         else:
             self.beamline.sample_stage.move_xyz(x, y, z)
 
@@ -432,6 +429,4 @@ class RasterController(GObject.GObject):
             self.widget.raster_grid_info.set_text(msg)
             self.widget.raster_command_box.set_sensitive(False)
             self.widget.samples_stack.child_set(raster_page, needs_attention = False)
-            self.widget.raster_points_fbk.set_text('...')
-            self.widget.raster_angle_fbk.set_text('...')
 

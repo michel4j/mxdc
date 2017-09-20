@@ -20,6 +20,7 @@ import time
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
+
 class XRFScanner(BasicScan):
     def __init__(self):
         BasicScan.__init__(self)
@@ -96,7 +97,7 @@ class XRFScanner(BasicScan):
         x = self.data[:, 0].astype(float)
         y = self.data[:, 1].astype(float)
         energy = self.config['energy']
-        sel = (x < 0.5) | (x > energy - 0.5 * self.beamline.config.get('xrf_energy_offset', 2.0))
+        sel = (x < 0.5) | (x > energy - self.beamline.config.get('xrf_energy_offset', 2.0))
         y[sel] = 0.0
 
         # set FWHM of detector
@@ -229,13 +230,13 @@ class MADScanner(BasicScan):
         self.notify_progress(0.01, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['edge_energy'])
         self.beamline.goniometer.set_mode('SCANNING')
-        self.beamline.mca.configure(retract=True, cooling=True, energy=self.config['roi_energy'])
+        self.beamline.mca.configure(retract=True, cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'])
         self.beamline.attenuator.set(self.config['attenuation'])
         self.beamline.energy.wait()
         self.beamline.bragg_energy.wait()
         self.beamline.goniometer.wait(start=False)
         self.notify_progress(0.02, "Waiting for beam to stabilize ...")
-        time.sleep(5)
+        time.sleep(3)
 
     def run(self):
         logger.info('Edge Scan waiting for beamline to become available.')
@@ -271,10 +272,12 @@ class MADScanner(BasicScan):
                         scale = 1.0
                     else:
                         scale = (self.data[0][2]/i0)
+
                     #x = self.beamline.bragg_energy.get_position()
                     self.data.append( [x, y*scale, i0, y] )
                     GObject.idle_add(self.emit, "new-point", (x, y*scale, i0, y))
                     self.notify_progress(i+1, "Scanning {} of {} ...".format(i, self.total))
+                    time.sleep(0)
 
                 if self.stopped:
                     if len(self.data) < 2:
@@ -336,8 +339,6 @@ class XASScanner(BasicScan):
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
 
-    def analyse(self):
-        pass
 
     def notify_progress(self, used_time, message):
         fraction = float(used_time) / max(abs(self.total_time), 1)
@@ -347,13 +348,13 @@ class XASScanner(BasicScan):
         self.notify_progress(0.001, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['edge_energy'])
         self.beamline.goniometer.set_mode('SCANNING')
-        self.beamline.mca.configure(retract=True, cooling=True, energy=self.config['roi_energy'])
+        self.beamline.multi_mca.configure(retract=True, cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'])
         self.beamline.attenuator.set(self.config['attenuation'])
         self.beamline.energy.wait()
         self.beamline.bragg_energy.wait()
         self.beamline.goniometer.wait(start=False)
         self.notify_progress(0.002, "Waiting for beam to stabilize ...")
-        time.sleep(5)
+        time.sleep(3)
 
     def run(self):
         logger.info('Scan waiting for beamline to become available.')
@@ -362,8 +363,9 @@ class XASScanner(BasicScan):
             saved_attenuation = self.beamline.attenuator.get()
             self.data = []
             self.results = {
-                'x': self.config['targets'],
-                'y': []
+                'data': [],
+                'scans': [],
+
             }
 
             try:
@@ -372,7 +374,7 @@ class XASScanner(BasicScan):
                 self.beamline.exposure_shutter.open()
                 self.beamline.exposure_shutter.open()
                 self.data_names = [  # last string in tuple is format suffix appended to end of '%n'
-                    ('energy', 'eV', '.2f'),
+                    ('energy', 'keV', '.4f'),
                     ('normfluor', '', '.8g'),
                     ('i0', '', '.8g'),
                     ('k', '', '.6f'),
@@ -419,7 +421,7 @@ class XASScanner(BasicScan):
                             scale = (self.data[0][2] / (i0 * t))
 
                         x = self.beamline.bragg_energy.get_position()
-                        data_point = [1000 * x, y * scale, i0, k, t]  # convert KeV to eV
+                        data_point = [x, y * scale, i0, k, t]  # convert KeV to eV
                         corrected_sum = 0
                         rates = self.beamline.multi_mca.get_count_rates()
                         for j in range(self.beamline.multi_mca.elements):
@@ -427,27 +429,29 @@ class XASScanner(BasicScan):
                             data_point.append(rates[j][0])  # icr
                             data_point.append(rates[j][1])  # ocr
                             corrected_sum += mca_values[j] * float(rates[j][0]) / rates[j][1]
-                        # data_point[1] = _corrected_sum * scale
+                        data_point[1] = corrected_sum
                         self.data.append(data_point)
-                        self.results['y'].append(corrected_sum)
                         used_time += t
-                        if i == 0:
-                            GObject.idle_add(self.emit, 'new-scan', scan)
                         GObject.idle_add(self.emit, "new-point", (x, y * scale, i0, y))
                         self.notify_progress(
                             used_time, "Scan {}/{}:  Point {}/{}...".format(
-                                scan, self.config['scans'], i, scan_length
+                                scan + 1, self.config['scans'], i, scan_length
                             )
                         )
+                        time.sleep(0)
 
                     self.config['end_time'] = datetime.now()
                     filename = self.config['filename_template'].format(scan + 1)
                     self.save(filename)
+                    self.results['data'].append(numpy.array(self.data))
+                    self.analyse()
+                    GObject.idle_add(self.emit, 'new-scan', scan + 1)
                     self.data = []
 
                 if self.stopped:
                     logger.warning("Scan stopped.")
                     GObject.idle_add(self.emit, "stopped")
+
                 else:
                     logger.info("Scan complete.")
                     GObject.idle_add(self.emit, "done")
@@ -456,19 +460,34 @@ class XASScanner(BasicScan):
                 self.beamline.energy.move_to(self.config['edge_energy'])
                 self.beamline.exposure_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
-                self.beamline.mca.configure(retract=False)
+                self.beamline.multi_mca.configure(retract=False)
                 logger.info('Edge scan done.')
                 self.beamline.goniometer.set_mode('COLLECT')
         return self.results
+
+    def analyse(self):
+        data = self.results['data'][-1]
+        x = data[:,0]
+        y = data[:,1]
+        y_peak = y.max()
+        x_peak = x[y==y_peak][0]
+        self.results['scans'].append({
+            'scan': len(self.results['data']),
+            'name': self.config['name'],
+            'edge': self.config['edge'],
+            'directory': self.config['directory'],
+            'x_peak': x_peak,
+            'y_peak': y_peak,
+            'time': datetime.now().strftime('%H:%M:%S')
+        })
 
     def save(self, filename=None):
         """Save EXAFS output in XDI 1.0 format"""
         fmt_prefix = '%10'
         with open(filename, 'w') as handle:
-
             handle.write('# XDI/1.0 MXDC\n')
             handle.write('# Beamline.name: CLS %s\n' % self.beamline.name)
-            handle.write('# Beamline.edge-energy: %0.2f\n' % (1000.0 * self.config['edge_energy']))
+            handle.write('# Beamline.edge-energy: %0.2f\n' % (self.config['edge_energy']))
             handle.write('# Beamline.d-spacing: %0.5f\n' % converter.energy_to_d(self.config['edge_energy']))
             handle.write('# Time.start: %s\n' % self.config['start_time'].isoformat())
             handle.write('# Time.end: %s\n' % self.config['end_time'].isoformat())
@@ -493,5 +512,5 @@ class XASScanner(BasicScan):
                     fmt = fmt_prefix + fmts + ' '
                     handle.write(fmt % val)
                 handle.write('\n')
-
+            logger.info('Scan saved: {}'.format(filename))
         return filename

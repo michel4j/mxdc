@@ -11,7 +11,7 @@ from mxdc.utils import runlists
 from mxdc.utils.log import get_module_logger
 
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 class Automator(GObject.GObject):
     class Task:
@@ -76,7 +76,7 @@ class Automator(GObject.GObject):
                 if self.stopped: break
                 pos += 1
                 self.notify_progress(pos, task, sample)
-                _logger.info(
+                logger.info(
                     'Sample: {}/{}, Task: {}'.format(sample['group'], sample['name'], self.TaskNames[task['type']])
                 )
                 time.sleep(5)
@@ -121,7 +121,7 @@ class Automator(GObject.GObject):
                         params = {'name': sample['name']}
                         params.update(task['options'])
                         params = runlists.update_for_sample(params, sample)
-                        _logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
+                        logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
                             sample['name'], params['directory']
                         ))
                         self.collector.configure(params, take_snapshots=True)
@@ -141,18 +141,18 @@ class Automator(GObject.GObject):
 
         if self.stopped:
             GObject.idle_add(self.emit, 'stopped')
-            _logger.info('Automation stopped')
+            logger.info('Automation stopped')
 
         if not self.stopped:
             if self.beamline.automounter.is_mounted():
                 port, barcode = self.beamline.automounter.mounted_state
                 auto.auto_dismount_manual(self.beamline, port)
             GObject.idle_add(self.emit, 'done')
-            _logger.info('Automation complete')
+            logger.info('Automation complete')
 
     def pause(self, message=''):
         if message:
-            _logger.warn(message)
+            logger.warn(message)
         self.pause_message = message
         self.paused = True
 
@@ -166,5 +166,5 @@ class Automator(GObject.GObject):
         self.stopped = True
         self.paused = False
         if error:
-            _logger.error(error)
+            logger.error(error)
             GObject.idle_add(self.emit, 'error', error)

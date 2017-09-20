@@ -10,7 +10,7 @@ from mxdc.utils.decorators import async
 from mxdc.widgets.runmanager import RunManager
 from mxdc.utils import gui
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 (
     MOUNT_ACTION_NONE,

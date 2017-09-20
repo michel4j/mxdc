@@ -3,6 +3,8 @@ import random
 import time
 
 import numpy
+from scipy.special import erf
+from mxdc.utils import fitting
 from gi.repository import GObject
 from zope.interface import implements
 
@@ -12,7 +14,7 @@ from mxdc.interface.devices import IMultiChannelAnalyzer
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class BasicMCA(BaseDevice):
@@ -48,7 +50,7 @@ class BasicMCA(BaseDevice):
         # Default parameters
         self.half_roi_width = 0.075  # energy units
         self._monitor_id = None
-        self._acquiring = False
+        self.acquiring = False
         self._command_sent = False
         self.nozzle = kwargs.get('nozzle', None)
 
@@ -110,10 +112,10 @@ class BasicMCA(BaseDevice):
         if self.nozzle is None:
             return
         if out:
-            _logger.debug('(%s) Moving nozzle closer to sample' % (self.name,))
+            logger.debug('(%s) Moving nozzle closer to sample' % (self.name,))
             self.nozzle.set(0)
         else:
-            _logger.debug('(%s) Moving nozzle away from sample' % (self.name,))
+            logger.debug('(%s) Moving nozzle away from sample' % (self.name,))
             self.nozzle.set(1)
         ca.flush()
         time.sleep(2)
@@ -240,23 +242,23 @@ class BasicMCA(BaseDevice):
             self.data[:, i + 1] = spectrum.get()
 
     def _wait_start(self, poll=0.05, timeout=2):
-        _logger.debug('Waiting for MCA to start acquiring.')
+        logger.debug('Waiting for MCA to start acquiring.')
         while self.ACQG.get() == 0 and timeout > 0:
             timeout -= poll
             time.sleep(poll)
         if timeout <= 0:
-            _logger.warning('Timed out waiting for MCA to start acquiring')
+            logger.warning('Timed out waiting for MCA to start acquiring')
             return False
         return True
 
     def _wait_stop(self, poll=0.05):
-        _logger.debug('Waiting for MCA to finish acquiring.')
+        logger.debug('Waiting for MCA to finish acquiring.')
         timeout = 5 * self._count_time.get()  # use 5x count time for timeout
         while self.ACQG.get() == 1 and timeout > 0:
             timeout -= poll
             time.sleep(poll)
         if timeout <= 0:
-            _logger.warning('Timed out waiting for MCA finish acquiring')
+            logger.warning('Timed out waiting for MCA finish acquiring')
             return False
         return True
 
@@ -327,7 +329,7 @@ class XFlashMCA(BasicMCA):
             if k == 'cooling':
                 if self.TMP.get() >= -25.0 and v:
                     self._set_temp(v)
-                    _logger.debug('(%s) Waiting for MCA to cool down' % (self.name,))
+                    logger.debug('(%s) Waiting for MCA to cool down' % (self.name,))
                     while self.TMP.get() > -25:
                         time.sleep(0.2)
                 else:
@@ -408,7 +410,7 @@ class VortexMCA(BasicMCA):
 class SimMultiChannelAnalyzer(BasicMCA):
     """Simulated single channel MCA detector."""
 
-    def __init__(self, name, channels=4096):
+    def __init__(self, name, energy=None, channels=4096):
         """
         Args:
             `name` (str): Name of device.
@@ -416,25 +418,39 @@ class SimMultiChannelAnalyzer(BasicMCA):
         Kwargs:
             `channels` (int): Number of channels.
         """
+        self.energy = energy
+        self.acquiring = False
+        self.half_life = 60 * 30 # 1 hr
+        self.start_time = time.time()
         BasicMCA.__init__(self, name, nozzle=None, elements=1, channels=channels)
         self.name = name
+
 
     def custom_setup(self, *args, **kwargs):
         # Default parameters
         self.slope = 17.0 / 3298  # 50000     #0.00498
         self.offset = -96.0 * self.slope  # 9600 #-0.45347
-
-        self._counts_data = numpy.loadtxt(os.path.join(os.environ['MXDC_PATH'], 'test/scans/xanes_002.raw'),
-                                          comments="#")
-        self._counts_data = self._counts_data[:, 1]
-        self._last_t = time.time()
-        self._last_pos = 0
+        self._energy_pos = 12.658
+        self._roi_count = 0.0
+        self.energy.connect('changed', self.on_energy_value)
         self.set_state(active=True, health=(0, ''))
 
+    def update_spectrum(self, edge):
+        fwhm = 0.01
+        self.start_time = time.time()
+        x = numpy.linspace(edge - 0.5, edge + 1, 10000)
+        y = (
+            fitting.step_response(x, [0.5+random.random(), fwhm, edge, 0])
+            + fitting.gauss(x, [0.5+random.random(), fwhm, edge + fwhm*0.5, 0])
+        ) + numpy.random.uniform(0.01, 0.02, len(x))
+        self.count_source = fitting.SplineRep(x, 5000 * y)
+
+    def on_energy_value(self, obj, val):
+        self._energy_pos = val
+
     def configure(self, **kwargs):
-        self._last_pos = 0
-        self._last_t = time.time()
         BasicMCA.configure(self, **kwargs)
+        self.update_spectrum(kwargs.get('edge', 12.658))
 
     def channel_to_energy(self, x):
         return self.slope * x + self.offset
@@ -443,32 +459,34 @@ class SimMultiChannelAnalyzer(BasicMCA):
         return int((y - self.offset) / self.slope)
 
     def count(self, t):
-        self._aquiring = True
-        self.set_state(deadtime=random.random() * 51.0)
+        self.aquiring = True
         time.sleep(t)
-        self._acquiring = False
-        val = self._counts_data[self._last_pos]
-        if self._last_pos < len(self._counts_data) - 1:
-            self._last_pos += 1
+        elapsed = time.time() - self.start_time
+        decay = 2.0**(-elapsed/self.half_life)
+        self.acquiring = False
+        val = decay * t * self.count_source(self._energy_pos)
+        self._roi_count = val
+        self.set_state(deadtime=random.random() * 51.0)
         return val
 
     def acquire(self, t=1.0):
-        self._aquiring = True
+        self.aquiring = True
         time.sleep(t)
-        self._acquiring = False
+        self.acquiring = False
         fname = os.path.join(os.environ['MXDC_PATH'], 'test/scans/xrf_%03d.raw' % random.choice(range(1, 7)))
-        _logger.debug('Simulated Spectrum: %s' % fname)
+        logger.debug('Simulated Spectrum: %s' % fname)
         self._raw_data = numpy.loadtxt(fname, comments="#")
         self._x_axis = self._raw_data[:, 0]
         self.set_state(deadtime=random.random() * 51.0)
         return numpy.array(zip(self._x_axis, self._raw_data[:, 1]))
 
     def get_roi_counts(self):
-        return [0.0]
+        return [self._roi_count] * self.elements
 
     def get_count_rates(self):
         self.set_state(deadtime=random.random() * 51.0)
         return [(-1, -1)]
+
     def stop(self):
         pass
 

@@ -13,7 +13,7 @@ from mxdc.utils.log import get_module_logger
 
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class IScript(Interface):
@@ -58,7 +58,7 @@ class Script(GObject.GObject):
             self.beamline = globalRegistry.lookup([], IBeamline)
         except:
             self.beamline = None
-            _logger.warning('No registered beamline found. Beamline will be unavailable "%s"' % (self,))
+            logger.warning('No registered beamline found. Beamline will be unavailable "%s"' % (self,))
         self.enable()
         
     def __repr__(self):
@@ -72,7 +72,7 @@ class Script(GObject.GObject):
             self.output = None
             worker_thread.start()
         else:
-            _logger.warning('Script "%s" disabled or busy.' % (self,))
+            logger.warning('Script "%s" disabled or busy.' % (self,))
         
     def _thread_run(self, *args, **kwargs):
 
@@ -81,7 +81,7 @@ class Script(GObject.GObject):
             GObject.idle_add(self.emit, "busy", True)
             GObject.idle_add(self.emit, "message", self.description)
             self.output = self.run(*args, **kwargs)
-            _logger.info('Script `%s` terminated successfully' % (self.name) )
+            logger.info('Script `%s` terminated successfully' % (self.name) )
         finally:
             GObject.idle_add(self.emit, "done", self.output)
             GObject.idle_add(self.emit, "busy", False)
@@ -94,12 +94,12 @@ class Script(GObject.GObject):
 
     def enable(self):
         self._enabled = True
-        _logger.debug('Script "%s" enabled.' % (self,))
+        logger.debug('Script "%s" enabled.' % (self,))
         GObject.idle_add(self.emit, "enabled", self._enabled)
 
     def disable(self):
         self._enabled = False
-        _logger.debug('Script "%s" disabled.' % (self,))
+        logger.debug('Script "%s" disabled.' % (self,))
         GObject.idle_add(self.emit, "enabled", self._enabled)
         
     def run_after(self, *args, **kwargs):
@@ -122,7 +122,7 @@ _SCRIPTS = {}
 
 def get_scripts():
     from mxdc import scripts
-    _logger.debug('Available Scripts: {}'.format(scripts.__all__))
+    logger.debug('Available Scripts: {}'.format(scripts.__all__))
     for script in Script.__subclasses__():
         name = script.__name__
         if not name in _SCRIPTS:

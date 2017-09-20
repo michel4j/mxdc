@@ -4,7 +4,7 @@ from mxdc.interface.devices import IHumidifier
 from mxdc.utils.log import get_module_logger
 from zope.interface import implements
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class Humidifier(BaseDevice):

@@ -790,11 +790,11 @@
                   <object class="GtkLabel" id="info_pos">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="halign">end</property>
                     <property name="use_markup">True</property>
                     <property name="wrap">True</property>
                     <property name="ellipsize">end</property>
                     <property name="angle">0.040000000000000001</property>
-                    <property name="xalign">1</property>
                   </object>
                 </child>
               </object>
@@ -807,6 +807,7 @@
               <object class="GtkToolItem" id="toolitem2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="halign">end</property>
                 <property name="visible_vertical">False</property>
                 <child>
                   <object class="GtkLabel" id="info_data">

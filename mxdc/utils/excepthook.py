@@ -29,7 +29,7 @@ import traceback
 import getpass
 import socket
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 _exception_in_progress = threading.Lock()
 
 QUIT_FUNCTION = sys.exit
@@ -90,9 +90,9 @@ def _custom_excepthook(exctyp, value, tb):
         if response == Gtk.ResponseType.HELP:
             _out = _send_email('cmcf-support@lightsource.ca', exctyp, trace)
             if _out:
-                _logger.warning("Bug report has been sent to developers.")
+                logger.warning("Bug report has been sent to developers.")
             else:
-                _logger.error("Bug report could not be submitted.")
+                logger.error("Bug report could not be submitted.")
         elif response == Gtk.ResponseType.CLOSE:
             _exception_in_progress.release()
             QUIT_FUNCTION()

@@ -7,7 +7,7 @@ from gi.repository import GObject
 
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 (DIAG_STATUS_GOOD, 
  DIAG_STATUS_WARN, 
@@ -57,7 +57,7 @@ class DiagnosticBase(GObject.GObject):
         GObject.idle_add(self.emit,'status', data)
         
         if self._status[0] != status and status != DIAG_STATUS_GOOD:
-            _logger.warning("%s: %s" % (self.description, msg))
+            logger.warning("%s: %s" % (self.description, msg))
         self._status = data
 
     def do_status(self, st):
