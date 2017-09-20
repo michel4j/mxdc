@@ -13,7 +13,7 @@ from mxdc.utils.log import get_module_logger
 from zope.interface import implements
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class AutomounterContainer(GObject.GObject):
@@ -217,7 +217,7 @@ class BasicAutomounter(BaseDevice):
         """Abort all actions."""
 
     def prepare(self):
-        self.set_state(preparing=True, message='Preparing')
+        self.set_state(preparing=True, message='Preparing mount operation')
 
     def is_preparing(self):
         return self.preparing_state
@@ -267,23 +267,23 @@ class BasicAutomounter(BaseDevice):
         poll = 0.10
 
         if (start and not self.is_busy()):
-            _logger.debug('Waiting for (%s) to start' % (self.name,))
+            logger.debug('Waiting for (%s) to start' % (self.name,))
             _start_timeout = 60
             while not self.is_busy() and _start_timeout > 0:
                 _start_timeout -= poll
                 time.sleep(poll)
             if _start_timeout <= 0:
-                _logger.warning('Timed out waiting for (%s) to start.' % (self.name,))
+                logger.warning('Timed out waiting for (%s) to start.' % (self.name,))
                 self.set_state(preparing=False)
                 return False
 
         if (stop and self.is_busy()):
-            _logger.debug('Waiting for (%s) to stop' % (self.name,))
+            logger.debug('Waiting for (%s) to stop' % (self.name,))
             while self.is_busy() and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
             if timeout <= 0:
-                _logger.warning('Timed out waiting for (%s) to top.' % (self.name,))
+                logger.warning('Timed out waiting for (%s) to top.' % (self.name,))
                 return False
         return True
 
@@ -455,7 +455,7 @@ class Automounter(BasicAutomounter):
         """
         self._wait_for_enable(20)
         if not self.is_enabled():
-            _logger.warning('(%s) command received while disabled. ' % self.name)
+            logger.warning('(%s) command received while disabled. ' % self.name)
             self.set_state(preparing=False, message="Mounting Failed. Endstation was not ready.")
             self._on_state_changed(None, None)
             return False
@@ -469,7 +469,7 @@ class Automounter(BasicAutomounter):
         # do nothing if sample is already mounted
         _mounted_port = self._mounted.get().strip()
         if _mounted_port == param:
-            _logger.info('(%s) Sample at location `%s` already mounted.' % (self.name, port))
+            logger.info('(%s) Sample at location `%s` already mounted.' % (self.name, port))
             self.set_state(message="Sample already mounted.", preparing=False)
             self._on_state_changed(None, None)
             return True
@@ -486,7 +486,7 @@ class Automounter(BasicAutomounter):
             self.reset_progress(self.SEQUENCES['mountnext'])
             self._mount_next_cmd.set(1)
 
-        _logger.info('(%s) Mount command: %s' % (self.name, port))
+        logger.info('(%s) Mount command: %s' % (self.name, port))
         if wait:
             success = self.wait_sequence(port)
             if not success:
@@ -508,7 +508,7 @@ class Automounter(BasicAutomounter):
         """
         self._wait_for_enable(20)
         if not self.is_enabled():
-            _logger.warning('(%s) command received while disabled. ' % self.name)
+            logger.warning('(%s) command received while disabled. ' % self.name)
             self.set_state(preparing=False, message="Dismount failed. Endstation was not ready")
             self._on_state_changed(None, None)
             return False
@@ -517,7 +517,7 @@ class Automounter(BasicAutomounter):
             port = self._mounted.get().strip()
 
         if port == '':
-            _logger.warning(msg)
+            logger.warning(msg)
             self.set_state(message='No sample to dismount', preparing=False)
             return False
         else:
@@ -527,7 +527,7 @@ class Automounter(BasicAutomounter):
         self.reset_progress(self.SEQUENCES['dismount'])
         self._dismount_cmd.set(1)
 
-        _logger.info('(%s) Dismount command: %s' % (self.name, port))
+        logger.info('(%s) Dismount command: %s' % (self.name, port))
         if wait:
             success = self.wait_sequence(None)
             if not success:
@@ -544,10 +544,10 @@ class Automounter(BasicAutomounter):
             time.sleep(poll)
         self.set_state(preparing=False)
         if timeout <= 0:
-            _logger.error('(%s) Operation Timed-out: Port %s' % (self.name, port))
+            logger.error('(%s) Operation Timed-out: Port %s' % (self.name, port))
             return False
         elif not seqs_match or self._mounted_port != port:
-            _logger.error('(%s) Operation failed: Port %s' % (self.name, port))
+            logger.error('(%s) Operation failed: Port %s' % (self.name, port))
             return False
         else:
             return True
@@ -578,7 +578,7 @@ class Automounter(BasicAutomounter):
         if self.busy_state and st != 1:
             msg = "Endstation became unsafe while automounter was busy"
             self.abort()
-            _logger.warning(msg)
+            logger.warning(msg)
 
     def _on_state_changed(self, pv, st):
         normal = self._normal.get()
@@ -629,7 +629,7 @@ class Automounter(BasicAutomounter):
             if self._mounted_port != port:
                 self.set_state(mounted=None)
                 self._mounted_port = port
-                _logger.debug('Sample dismounted')
+                logger.debug('Sample dismounted')
         elif len(vl) >= 3:
             port = vl[0].upper() + vl[2] + vl[1]
             try:
@@ -639,7 +639,7 @@ class Automounter(BasicAutomounter):
             if port != self._mounted_port:
                 self.set_state(mounted=(port, barcode))
                 self._mounted_port = port
-                _logger.debug('Mounted:  port=%s barcode=%s' % (port, barcode))
+                logger.debug('Mounted:  port=%s barcode=%s' % (port, barcode))
 
     def _send_message(self, pv, msg):
         if msg.strip() == 'done':
@@ -650,7 +650,7 @@ class Automounter(BasicAutomounter):
     def _on_status_warning(self, pv, val):
         if val.strip() != '' and val != self._last_warn:
             val = _format_msg(val)
-            _logger.warn('%s' % val)
+            logger.warn('%s' % val)
             self._last_warn = val
             # Warnings expire
             if (time.time() - pv._time) < 10:

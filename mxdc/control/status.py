@@ -4,7 +4,7 @@ from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 MODE_MAP = {
     'MOUNTING': 'blue',
@@ -81,12 +81,12 @@ class StatusPanel(object):
         combined_state = any(states)
         script_names = ['SetCenteringMode', 'SetBeamMode', 'SetCollectMode', 'SetMountMode']
         if combined_state:
-            _logger.debug('Disabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
+            logger.debug('Disabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
                 [{True: 'busy', False: 'idle'}[s] for s in states]))
             for script_name in script_names:
                 self.scripts[script_name].disable()
         else:
-            _logger.debug('Enabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
+            logger.debug('Enabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
                 [{True: 'busy', False: 'idle'}[s] for s in states]))
             for script_name in script_names:
                 self.scripts[script_name].enable()

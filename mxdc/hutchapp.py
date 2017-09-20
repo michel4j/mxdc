@@ -13,7 +13,7 @@ from mxdc.widgets.samplepicker import SamplePicker
 from twisted.python.components import globalRegistry
 import os
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 SHARE_DIR = os.path.join(os.path.dirname(__file__), 'share')
 COPYRIGHT = "Copyright (c) 2006-2010, Canadian Light Source, Inc. All rights reserved."
 
@@ -114,16 +114,16 @@ class HutchApp(object):
         self.main_window.run()        
         
     def _do_quit(self, obj=None):
-        _logger.info('Stopping...')
+        logger.info('Stopping...')
         Gtk.main_quit()
 
 def main():
     try:
         _ = os.environ['MXDC_CONFIG']
-        _logger.info('Starting HutchViewer (%s)... ' % os.environ['MXDC_CONFIG'])
+        logger.info('Starting HutchViewer (%s)... ' % os.environ['MXDC_CONFIG'])
     except:
-        _logger.error('Could not find Beamline Control Module environment variables.')
-        _logger.error('Please make sure the BCM is properly installed and configured.')
+        logger.error('Could not find Beamline Control Module environment variables.')
+        logger.error('Please make sure the BCM is properly installed and configured.')
         Gtk.main_quit()        
     app = HutchApp()
     app.run_local()
@@ -135,5 +135,5 @@ if __name__ == '__main__':
         GObject.idle_add(main)
         Gtk.main()
     finally:
-        _logger.info('Stopping...')
+        logger.info('Stopping...')
 

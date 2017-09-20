@@ -13,7 +13,7 @@ from gi.repository import GObject
 import os
 
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 from gi.repository import WebKit
 browser_engine = 'webkit'
@@ -136,9 +136,9 @@ class ResultManager(Gtk.Alignment):
                 try:
                     data = json.load(file(filename))
                     self.add_dataset(data)
-                    _logger.info('Dataset "%s" loaded.' % data['name'])
+                    logger.info('Dataset "%s" loaded.' % data['name'])
                 except:
-                    _logger.error('Invalid file format. Unable to load dataset')
+                    logger.error('Invalid file format. Unable to load dataset')
             
     def on_datasets_selected(self, selection):
         if selection.count_selected_rows() > 0:
@@ -244,9 +244,9 @@ class ResultManager(Gtk.Alignment):
 
         
     def _result_fail(self, failure, itr):
-        _logger.error("Unable to process data")
+        logger.error("Unable to process data")
         if failure is not None:
-            _logger.error(failure.getErrorMessage())
+            logger.error(failure.getErrorMessage())
             failure.printBriefTraceback()
         item = {'state': resultlist.RESULT_STATE_ERROR}
         self.update_result(itr, item)
@@ -263,7 +263,7 @@ class ResultManager(Gtk.Alignment):
         self.active_sample = sample_data
         
         if result in [None, '']:
-            _logger.info('Results are not yet available')
+            logger.info('Results are not yet available')
             return
                 
         if self.active_sample is not None and self.active_sample != {}:
@@ -272,7 +272,7 @@ class ResultManager(Gtk.Alignment):
             self.crystal_lbl.set_markup(_crystal_string)
             
         if result.get('url', None) in [None, '']:
-            _logger.info('Results are not yet available')
+            logger.info('Results are not yet available')
             return
         
         # Active update buttons if data is available
@@ -292,11 +292,11 @@ class ResultManager(Gtk.Alignment):
         if os.path.exists(filename):
             uri = 'file://%s' % filename
             
-            _logger.info('Loading results in %s' % uri)
+            logger.info('Loading results in %s' % uri)
             if browser_engine == 'webkit':
                 GObject.idle_add(self.browser.load_uri, uri)
             else:
                 GObject.idle_add(self.browser.load_url, uri)            
         else:
-            _logger.warning('Formatted results are not available.')
+            logger.warning('Formatted results are not available.')
                 

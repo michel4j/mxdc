@@ -14,7 +14,7 @@ from gi.repository import Gtk
 import os, sys
 import time
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 (
@@ -663,7 +663,7 @@ class ScanManager(Gtk.Alignment):
             self.beamline.lims.upload_scan(self.beamline, obj.results)
         except:
             print sys.exc_info()
-            _logger.warn('Could not upload scan to MxLIVE.')
+            logger.warn('Could not upload scan to MxLIVE.')
         return True
                 
     def on_create_run(self, obj):

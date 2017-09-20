@@ -15,7 +15,7 @@ import threading
 import time
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 class ScanError(Exception):
     """Scan Error."""
@@ -29,6 +29,8 @@ class BasicScan(GObject.GObject):
     __gsignals__['progress'] = (GObject.SignalFlags.RUN_LAST, None, (float, str,))
     __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, [])
     __gsignals__['started'] = (GObject.SignalFlags.RUN_LAST, None, [])
+    __gsignals__['message'] = ( GObject.SignalFlags.RUN_LAST, None, (str,))
+    __gsignals__['busy'] = (GObject.SignalFlags.RUN_LAST, None, (bool,))
     __gsignals__['error'] = ( GObject.SignalFlags.RUN_LAST, None, (str,))
     __gsignals__['stopped'] = ( GObject.SignalFlags.RUN_LAST, None, [])
     __gsignals__['paused'] = ( GObject.SignalFlags.RUN_LAST, None, [object,bool])
@@ -38,6 +40,7 @@ class BasicScan(GObject.GObject):
         GObject.GObject.__init__(self)
         self.stopped = False
         self.paused = False
+        self.busy = False
         self._notify = False
         self.append = False
         self.config = {}
@@ -48,8 +51,11 @@ class BasicScan(GObject.GObject):
             self.plotter.connect_scanner(self)
         except:
             self.plotter = None
-            #_logger.debug('No TickerChart found.')
-                
+            #logger.debug('No TickerChart found.')
+
+    def is_busy(self):
+        return self.busy
+
     def configure(self, **kwargs):
         self.data = []
     
@@ -70,9 +76,13 @@ class BasicScan(GObject.GObject):
         worker_thread.start()
         
     def _thread_run(self):
+        self.busy = True
+        GObject.idle_add(self.emit, 'message', 'Scan in progress')
+        GObject.idle_add(self.emit, 'busy', True)
         ca.threads_init()
         self.run()
-        pass
+        self.busy = False
+        GObject.idle_add(self.emit, 'busy', False)
 
     def pause(self, state):
         self.paused = state
@@ -95,7 +105,7 @@ class BasicScan(GObject.GObject):
         try:
             f = open(filename,'w')
         except:
-            _logger.error("Could not open file '%s' for writing" % filename)
+            logger.error("Could not open file '%s' for writing" % filename)
             return
         f.write('# Scan Type: %s -- %s\n' % (self.__class__.__name__, self.__class__.__doc__))
         f.write('# Meta Data: %s\n' % json.dumps(self.config))
@@ -148,15 +158,15 @@ class AbsScan(BasicScan):
                            self._counter.name]
         if not self.append:
             GObject.idle_add(self.emit, "started")
-        _logger.info("Scanning '%s' vs '%s' " % (self._motor.name, self._counter.name))
-        _logger.info("%4s '%8s' '%8s_norm' '%8s' '%8s'" % ('#',
+        logger.info("Scanning '%s' vs '%s' " % (self._motor.name, self._counter.name))
+        logger.info("%4s '%8s' '%8s_norm' '%8s' '%8s'" % ('#',
                                                    self._motor.name,
                                                    self._counter.name,
                                                    'I_0',
                                                    self._counter.name))
         for i in xrange(self._start_step, self._steps):
             if self.stopped:
-                _logger.info( "Scan stopped!" )
+                logger.info( "Scan stopped!" )
                 break
             x = self._start_pos + (i * self._step_size)
             self._motor.move_to(x, wait=True)
@@ -167,7 +177,7 @@ class AbsScan(BasicScan):
                 i0 = 1.0
             x = self._motor.get_position()
             self.data.append( [x, y/i0, i0, y] )
-            _logger.info("%4d %8g %8g %8g %8g" % (i, x, y/i0, i0, y))
+            logger.info("%4d %8g %8g %8g %8g" % (i, x, y/i0, i0, y))
             GObject.idle_add(self.emit, "new-point", (x, y/i0, i0, y) )
             GObject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps), "" )
              
@@ -214,10 +224,10 @@ class AbsScan2(BasicScan):
                            self._counter.name]
         if not self.append:
             GObject.idle_add(self.emit, "started")
-        _logger.info("Scanning '%s':'%s' vs '%s' " % (self._motor1.name,
+        logger.info("Scanning '%s':'%s' vs '%s' " % (self._motor1.name,
                                                       self._motor2.name,
                                                       self._counter.name))
-        _logger.info("%4s '%13s' '%13s' '%13s_norm' '%13s' '%13s'" % ('#',
+        logger.info("%4s '%13s' '%13s' '%13s_norm' '%13s' '%13s'" % ('#',
                                                    self._motor1.name,
                                                    self._motor2.name,
                                                    self._counter.name,
@@ -225,7 +235,7 @@ class AbsScan2(BasicScan):
                                                    self._counter.name))
         for i in xrange(self._start_step, self._steps):
             if self.stopped:
-                _logger.info( "Scan stopped!" )
+                logger.info( "Scan stopped!" )
                 break
             x1 = self._start_pos1 + (i * self._step_size1)
             x2 = self._start_pos2 + (i * self._step_size2)
@@ -241,7 +251,7 @@ class AbsScan2(BasicScan):
             x1 = self._motor1.get_position()
             x2 = self._motor2.get_position()
             self.data.append( [x1, x2, y/i0, i0, y] )
-            _logger.info("%4d %15g %15g %15g %15g %15g" % (i, x1, x2, y/i0, i0, y))
+            logger.info("%4d %15g %15g %15g %15g %15g" % (i, x1, x2, y/i0, i0, y))
             GObject.idle_add(self.emit, "new-point", (x1, x2, y/i0, i0, y) )
             GObject.idle_add(self.emit, "progress", (i + 1.0)/(self._steps), "")
              
@@ -296,8 +306,8 @@ class CntScan(BasicScan):
                            self._counter.name]
         if not self.append:
             GObject.idle_add(self.emit, "started")
-        _logger.info("Scanning '%s' vs '%s' " % (self._motor.name, self._counter.name))
-        _logger.info("%4s '%8s' '%8s_norm' '%8s' '%8s'" % ('#',
+        logger.info("Scanning '%s' vs '%s' " % (self._motor.name, self._counter.name))
+        logger.info("%4s '%8s' '%8s_norm' '%8s' '%8s'" % ('#',
                                                    self._motor.name,
                                                    self._counter.name,
                                                    'I_0',
@@ -316,7 +326,7 @@ class CntScan(BasicScan):
         
         while self._motor.busy_state:
             if self.stopped:
-                _logger.info( "Scan stopped!" )
+                logger.info( "Scan stopped!" )
                 break
             ts= time.time()
             y = self._counter.count(self._duration)
@@ -445,10 +455,10 @@ class GridScan(BasicScan):
                            'I_0',
                            self._counter.name]
         GObject.idle_add(self.emit, "started")
-        _logger.info("Scanning '%s':'%s' vs '%s' " % (self._motor1.name,
+        logger.info("Scanning '%s':'%s' vs '%s' " % (self._motor1.name,
                                                       self._motor2.name,
                                                       self._counter.name))
-        _logger.info("%4s '%13s' '%13s' '%13s_normalized' '%13s' '%13s'" % ('#',
+        logger.info("%4s '%13s' '%13s' '%13s_normalized' '%13s' '%13s'" % ('#',
                                                    self._motor1.name,
                                                    self._motor2.name,
                                                    self._counter.name,
@@ -459,7 +469,7 @@ class GridScan(BasicScan):
         for x2 in self._points2:
             for x1 in self._points1:
                 if self.stopped:
-                    _logger.info( "Scan stopped!" )
+                    logger.info( "Scan stopped!" )
                     break
                 self._motor2.move_to(x2)
                 self._motor2.wait()
@@ -472,7 +482,7 @@ class GridScan(BasicScan):
                     y = self._counter.count(self._duration)
                     i0 = 1.0
                 self.data.append( [x1, x2, y/i0, i0, y] )
-                _logger.info("%4d %15g %15g %15g %15g %15g" % (pos, x1, x2, y/i0, i0, y))
+                logger.info("%4d %15g %15g %15g %15g %15g" % (pos, x1, x2, y/i0, i0, y))
                 GObject.idle_add(self.emit, "new-point", (x1, x2, y/i0, i0, y) )
                 GObject.idle_add(self.emit, "progress", (pos + 1.0)/(total_points), "" )
                 pos += 1

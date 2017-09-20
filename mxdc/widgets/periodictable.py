@@ -61,21 +61,25 @@ class EdgeMenu(gui.BuilderMixin):
                 ebox.get_style_context().add_class('disabled')
 
 
-
 class EdgeSelector(Gtk.Grid):
     __gsignals__ = {
         'edge': (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         'element': (GObject.SignalFlags.RUN_FIRST, None, (str,))
     }
 
-    def __init__(self, min_energy=2.0, max_energy=20.0):
+    def __init__(self, min_energy=2.0, max_energy=20.0, xrf_offset=1.5):
         super(EdgeSelector, self).__init__(column_spacing=1, row_spacing=1)
         self.set_column_homogeneous(True)
-        self.set_row_homogeneous(True)
+        self.set_row_homogeneous(False)
         self.min_energy = min_energy
         self.max_energy = max_energy
+        self.xrf_offset = xrf_offset
         self.menu = EdgeMenu()
         self.attach(self.menu.edge_menu, 2, 1, 10, 3)
+        # self.close_btn = Gtk.Button.new_from_icon_name('window-close-symbolic', Gtk.IconSize.BUTTON)
+        # self.close_btn.set_tooltip_text('Close Periodic Table')
+        # self.close_btn.set_relief(Gtk.ReliefStyle.NONE)
+        # self.attach(self.close_btn, 15, 1, 2, 1)
         self.entry = None
         self.emissions = science.get_energy_database(min_energy, max_energy)
         for symbol in science.PERIODIC_TABLE.keys():
@@ -122,7 +126,7 @@ class EdgeSelector(Gtk.Grid):
             return self.max_energy
         else:
             absorption, emission = self.emissions[edge]
-            return min(absorption + 1.0, self.max_energy)
+            return min(absorption + self.xrf_offset, self.max_energy)  # 1.5 keV above desired edge
 
     def select_element(self, widget, event, symbol):
         if event.button == 1:

@@ -7,7 +7,7 @@ from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets import dialogs
 import sys, os
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 def main():
 
@@ -29,4 +29,4 @@ if __name__ == '__main__':
         log_to_console()
         main()
     finally:
-        _logger.info('Stopping...')
+        logger.info('Stopping...')

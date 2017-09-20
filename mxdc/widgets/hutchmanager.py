@@ -13,7 +13,7 @@ from mxdc.widgets.textviewer import TextViewer, GUIHandler
 from ptzvideo import AxisViewer
 from twisted.python.components import globalRegistry
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 (
     COLUMN_NAME,
@@ -122,12 +122,12 @@ class HutchManager(Gtk.Alignment, gui.BuilderMixin):
         combined_state = any(states)
         script_names = ['SetCenteringMode', 'SetBeamMode', 'SetCollectMode', 'SetMountMode']
         if combined_state:
-            _logger.debug('Disabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
+            logger.debug('Disabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
                 [{True: 'busy', False: 'idle'}[s] for s in states]))
             for script_name in script_names:
                 self.scripts[script_name].disable()
         else:
-            _logger.debug('Enabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
+            logger.debug('Enabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
                 [{True: 'busy', False: 'idle'}[s] for s in states]))
             for script_name in script_names:
                 self.scripts[script_name].enable()

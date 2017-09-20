@@ -7,7 +7,7 @@ import math
 from gi.repository import Pango
 import os
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 COLOR_MAPS = [None, 'Spectral', 'hsv', 'jet', 'RdYlGn', 'hot', 'PuBu']
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')

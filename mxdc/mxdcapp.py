@@ -27,7 +27,7 @@ MXDC_PORT = 9898
 
 warnings.simplefilter("ignore")
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class MXDCApp(object):
@@ -68,7 +68,7 @@ class MXDCApp(object):
     def service_failed(self, obj, state):
         if state:
             # broadcast after emote MxDC shuts down
-            _logger.info('Starting MxDC service discovery ...')
+            logger.info('Starting MxDC service discovery ...')
             self.broadcast_service()
 
     def broadcast_service(self):
@@ -89,17 +89,17 @@ class MXDCApp(object):
         self.do_quit()
 
     def on_close_connection(self, reason):
-        _logger.warning('Remote MxDC instance terminated.')
+        logger.warning('Remote MxDC instance terminated.')
 
     def provider_success(self):
-        _logger.info(
+        logger.info(
             'Local MXDC instance {}@{} since {}'.format(
                 self.service_data['user'], self.beamline.name, self.service_data['started']
             )
         )
 
     def do_quit(self, obj=None):
-        _logger.info('Stopping ...')
+        logger.info('Stopping ...')
         exit_main_loop()
 
 
@@ -130,10 +130,10 @@ def exit_main_loop():
 def main():
     try:
         _ = os.environ['MXDC_CONFIG']
-        _logger.info('Starting MXDC ({})... '.format(os.environ['MXDC_CONFIG']))
+        logger.info('Starting MXDC ({})... '.format(os.environ['MXDC_CONFIG']))
     except:
-        _logger.error('Could not find Beamline Configuration.')
-        _logger.error('Please make sure MXDC is properly installed and configured.')
+        logger.error('Could not find Beamline Configuration.')
+        logger.error('Please make sure MXDC is properly installed and configured.')
         exit_main_loop()
 
     app = MXDCApp()

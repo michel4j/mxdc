@@ -11,7 +11,7 @@ import time
 from threading import Lock
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class MotorError(Exception):
@@ -88,7 +88,7 @@ class MotorBase(BaseDevice):
 
         self.set_state(busy=self._moving)
         if not self._moving:
-            _logger.debug( "(%s) stopped at %f" % (self.name, self.get_position()) )
+            logger.debug( "(%s) stopped at %f" % (self.name, self.get_position()) )
                        
     def _on_calib_changed(self, obj, cal):
         if cal == self._calib_good_value:
@@ -168,7 +168,7 @@ class SimMotor(MotorBase):
     def move_to(self, pos, wait=False, force=False, **kwargs):
         self.configure(**kwargs)
         if pos == self._position:
-            _logger.debug( "(%s) is already at %s" % (self.name, pos) )
+            logger.debug( "(%s) is already at %s" % (self.name, pos) )
             return
         self._move_action(pos)
         if wait:
@@ -179,19 +179,17 @@ class SimMotor(MotorBase):
         self.move_to(self._position+pos, wait)
     
     def wait(self, start=True, stop=True):
-        poll=0.01
+        poll=0.005
         timeout = 5.0
         _orig_to = timeout
         if (start and self._command_sent and not self.busy_state):
-            _logger.debug('(%s) Waiting to start moving' % (self.name,))
             while self._command_sent and not self.busy_state and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
             if timeout <= 0:
-                _logger.warning('(%s) Timed out. Did not move after %d sec.' % (self.name, _orig_to))
+                logger.warning('(%s) Timed out. Did not move after %d sec.' % (self.name, _orig_to))
                 return False                
         if (stop and self.busy_state):
-            _logger.debug('(%s) Waiting to stop moving' % (self.name,))
             while self.busy_state:
                 time.sleep(poll)
     
@@ -236,12 +234,12 @@ class Motor(MotorBase):
         pv_parts = pv_name.split(':')
         self.default_precision = precision
         if len(pv_parts)<2:
-            _logger.error("Unable to create motor '%s' of dialog_type '%s'." %
+            logger.error("Unable to create motor '%s' of dialog_type '%s'." %
                              (pv_name, motor_type) )
             raise MotorError("Motor name must be of the format 'name:unit'.")
         
         if motor_type not in ['vme', 'cls', 'pseudo', 'oldpseudo', 'vmeenc', 'maxv', 'aps']:
-            _logger.error("Unable to create motor '%s' of dialog_type '%s'." %
+            logger.error("Unable to create motor '%s' of dialog_type '%s'." %
                              (pv_name, motor_type) )
             raise MotorError("Motor dialog_type must be one of 'vmeenc', \
                 'vme', 'cls', 'pseudo', 'maxv'")
@@ -336,7 +334,7 @@ class Motor(MotorBase):
 
     def _on_log(self, obj, message):
         msg = "(%s) %s" % (self.name, message)
-        _logger.debug(msg)
+        logger.debug(msg)
                                             
     def get_position(self):
         """Obtain the current position of the motor in device units.
@@ -369,7 +367,7 @@ class Motor(MotorBase):
         # Do not move if motor state is not sane.
         sanity, msg = self.health_state
         if sanity != 0:
-            _logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
+            logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
             return
         
         # Do not move if requested position is within precision error
@@ -379,7 +377,7 @@ class Motor(MotorBase):
         _pos_format = "%%0.%df" % prec
         _pos_to = _pos_format % pos
         if misc.same_value(pos, self.get_position(), prec, self.units=='deg') and not force:
-            _logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
+            logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
             return
         
                 
@@ -387,7 +385,7 @@ class Motor(MotorBase):
         self._target_pos = pos
         self.VAL.set(pos)
         _pos_from = _pos_format % self.get_position()
-        _logger.debug( "(%s) moving from %s to %s" % (self.name, _pos_from, _pos_to) )
+        logger.debug( "(%s) moving from %s to %s" % (self.name, _pos_from, _pos_to) )
         
         if wait:
             self.wait()
@@ -430,20 +428,18 @@ class Motor(MotorBase):
         _pos_format = "%%0.%df" % prec
 
         if (start and self._command_sent and not self._moving):
-            _logger.debug('%s waiting to start moving' % (self.name,))
             while self._command_sent and not self._moving and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
                 if misc.same_value(self.get_position(), self._target_pos, prec, self.units=='deg'):
                     self._command_sent = False
-                    _logger.debug('%s already at %g' % (self.name,self._target_pos))
+                    logger.debug('%s already at %g' % (self.name,self._target_pos))
             if timeout <= 0:
                 tgt = _pos_format % self._target_pos
                 cur = _pos_format % self.get_position()
-                _logger.warning('%s timed out moving to %s [currently %s].' % (self.name, tgt, cur))
+                logger.warning('%s timed out moving to %s [currently %s].' % (self.name, tgt, cur))
                 return False                
         if (stop and self._moving):
-            _logger.debug('%s waiting to stop moving' % (self.name,))
             while self._moving:
                 time.sleep(poll)
 
@@ -530,7 +526,7 @@ class EnergyMotor(Motor):
         self.LOG.connect('changed', self._send_log)
 
     def _send_log(self, obj, msg):
-        _logger.info("(%s) %s" % (self.name, msg))
+        logger.info("(%s) %s" % (self.name, msg))
                                  
     def get_position(self):
         return converter.bragg_to_energy(self.RBV.get())           
@@ -584,7 +580,7 @@ class BraggEnergyMotor(Motor):
         # Do not move if motor state is not sane.
         sanity, msg = self.health_state
         if sanity != 0:
-            _logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
+            logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
             return
 
         # Do not move if requested position is within precision error
@@ -594,7 +590,7 @@ class BraggEnergyMotor(Motor):
         _pos_format = "%%0.%df" % prec
         _pos_to = _pos_format % pos
         if misc.same_value(pos, self.get_position(), prec, self.units=='deg') and not force:
-            _logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
+            logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
             return
         
         deg_target = converter.energy_to_bragg(pos)
@@ -602,7 +598,7 @@ class BraggEnergyMotor(Motor):
         self._target_pos = pos
         self.VAL.put(deg_target)
         self._signal_target(None, pos)
-        _logger.info( "(%s) moving to %f" % (self.name, pos) )
+        logger.info( "(%s) moving to %f" % (self.name, pos) )
         
         if wait:
             self.wait()
@@ -714,7 +710,7 @@ class RelVerticalMotor(MotorBase):
         z2 = -self.y1.get_position()*sin_w        
         self._status = (y1+y2, z1+z2, y1, y2, z1, z2)
         self.set_state(changed=self._status[0])
-        #_logger.debug('SAMPLE STAGE Y: %0.4f, Z: %0.4f' % (self._status[0], self._status[1]))
+        #logger.debug('SAMPLE STAGE Y: %0.4f, Z: %0.4f' % (self._status[0], self._status[1]))
                 
     def get_position(self):
         return self._status[0]

@@ -18,7 +18,7 @@ from mxdc.utils import converter
 from mxdc.utils.log import get_module_logger
 import time
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
             
@@ -80,7 +80,7 @@ class Predictor( Gtk.AspectFrame ):
             self.canvas.draw()
             self.last_updated = time.time()
         except ValueError:
-            _logger.debug('Predictor Widget not updating...')
+            logger.debug('Predictor Widget not updating...')
         return False
         
     def configure(self, **kwargs):

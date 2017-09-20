@@ -5,7 +5,7 @@ from twisted.python.components import globalRegistry
 from gi.repository import Gtk, Gdk
 
 # setup module logger with a default do-nothing handler
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 try:
     from gi.repository import Notify
 
@@ -13,7 +13,7 @@ try:
     _NOTIFY_AVAILABLE = True
 except:
     _NOTIFY_AVAILABLE = False
-    _logger.warn('System notifications will not be available.')
+    logger.warn('System notifications will not be available.')
 
 ICON_COLORS = {
     diagnostics.DIAG_STATUS_BAD: '#d9534f',
@@ -93,7 +93,7 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
             try:
                 self._notice.show()
             except:
-                _logger.warn(self._diagnostic.description)
+                logger.warn(self._diagnostic.description)
 
 
 class DiagnosticsViewer(Gtk.Alignment):

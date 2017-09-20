@@ -10,7 +10,7 @@ from twisted.internet import reactor
 from twisted.spread import pb
 from zope.interface import implements
 
-_logger = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 
 class ImageSyncClient(BaseService):
@@ -70,7 +70,7 @@ class ImageSyncClient(BaseService):
             return
         self._service_found = True
         self._service_data = data
-        _logger.info('Image Sync Service found at %s:%s' % (self._service_data['host'],
+        logger.info('Image Sync Service found at %s:%s' % (self._service_data['host'],
                                                             self._service_data['port']))
         self.factory = pb.PBClientFactory()
         self.factory.getRootObject().addCallback(self.on_server_connected).addErrback(self.dump_error)
@@ -81,7 +81,7 @@ class ImageSyncClient(BaseService):
         if not self._service_found and self._service_data['host'] == data['host']:
             return
         self._service_found = False
-        _logger.warning('Image Sync Service %s:%s disconnected.' % (self._service_data['host'],
+        logger.warning('Image Sync Service %s:%s disconnected.' % (self._service_data['host'],
                                                                     self._service_data['port']))
         self.set_state(active=False)
 
@@ -89,7 +89,7 @@ class ImageSyncClient(BaseService):
         """ I am called when a connection to the Server has been established.
         I expect to receive a remote perspective which will be used to call remote methods
         on the remote server."""
-        _logger.info('Connection to Image Sync Server established')
+        logger.info('Connection to Image Sync Server established')
         self.service = perspective
         self.configure(**self.kwargs)
         self._ready = True

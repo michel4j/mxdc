@@ -5,6 +5,7 @@ from gi.repository import Gtk, Gdk, Pango, GObject
 from mxdc.widgets import dialogs
 
 
+
 def value_class(val, warning, error):
     if (val < warning < error) or (val > warning > error):
         return ""
@@ -99,6 +100,28 @@ class ModeMonitor(object):
         self.label.override_color(Gtk.StateType.NORMAL, fg_color)
 
 
+class BoolMonitor(object):
+    def __init__(self, device, entry, value_map, signal='changed', inverted=False):
+        self.device = device
+        self.entry = entry
+        self.value_map = value_map
+        self.inverted = inverted
+        self.device.connect(signal, self.on_signal)
+
+    def on_signal(self, obj, state):
+        txt = self.value_map.get(state, str(state))
+        self.entry.set_text(txt)
+        style = self.entry.get_style_context()
+
+        if state == self.inverted:
+            style.add_class('state-active')
+            style.remove_class('state-inactive')
+        else:
+            style.remove_class('state-active')
+            style.add_class('state-inactive')
+
+
+
 class ScriptMonitor(object):
     def __init__(self, btn, script, spinner=None, status=None, confirm=False, msg=""):
         self.script = script
@@ -155,14 +178,14 @@ class StatusMonitor(object):
         """ Set the message directly if spinner is busy otherwise set to blank"""
         self.message = message
         if self.spinner.props.active:
-            self.label.set_markup('<small>{}: {}</small>'.format(dev.name, message))
+            self.label.set_markup('{}'.format(message))
         else:
             self.label.set_text('')
 
     def on_state(self, dev, state):
         if any(dev.is_busy() for dev in self.devices):
             self.spinner.start()
-            self.label.set_markup('<small>{}: {}</small>'.format(dev.name, self.message))
+            self.label.set_markup('{}'.format(self.message))
         else:
             self.spinner.stop()
             self.label.set_text('')
