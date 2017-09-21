@@ -251,7 +251,6 @@ class SampleStore(GObject.GObject):
         if not 'error' in data:
             self.load_data(data)
 
-
     def format_state(self, column, cell, model, itr, data):
         value = model.get_value(itr, self.Data.STATE)
         if value in [self.State.UNKNOWN, self.State.NONE]:

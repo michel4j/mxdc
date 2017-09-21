@@ -108,6 +108,9 @@ class BasicMCA(BaseDevice):
                         self.energy_to_channel(v - self.half_roi_width),
                         self.energy_to_channel(v + self.half_roi_width))
 
+    def get_roi(self, energy):
+        return [energy - self.half_roi_width, energy + self.half_roi_width]
+
     def _set_nozzle(self, out):
         if self.nozzle is None:
             return

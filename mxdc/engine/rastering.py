@@ -3,6 +3,7 @@ import pwd
 import threading
 import time
 import re
+import json
 
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
@@ -10,7 +11,7 @@ from twisted.python.components import globalRegistry
 from mxdc.com import ca
 from mxdc.interface.beamlines import IBeamline
 from mxdc.utils import runlists, misc
-from mxdc.utils.converter import energy_to_wavelength
+from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
@@ -33,7 +34,7 @@ class RasterCollector(GObject.GObject):
         self.paused = False
         self.stopped = True
         self.collecting = False
-        self.run_list = []
+        self.pending_results = set()
         self.runs = []
         self.results = {}
         self.config = {}
@@ -75,6 +76,8 @@ class RasterCollector(GObject.GObject):
         self.collecting = True
         self.beamline.detector_cover.open(wait=True)
         self.total_frames = len(self.config['frames'])
+        self.pending_results = set()
+        self.results = {}
         current_attenuation = self.beamline.attenuator.get()
 
         with self.beamline.lock:
@@ -89,7 +92,7 @@ class RasterCollector(GObject.GObject):
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
         time.sleep(2.0)
 
-        # self.results = self.save_summary(self.config['datasets'])
+        # self.results = self.save_metadata(self.config['datasets'])
         # self.beamline.lims.upload_datasets(self.beamline, self.results)
         if not self.stopped:
             GObject.idle_add(self.emit, 'done')
@@ -188,6 +191,7 @@ class RasterCollector(GObject.GObject):
         file_pattern = re.compile(r'^{}_(\d{{3,}})$'.format(params['name']))
         m = file_pattern.match(frame)
         if m:
+            self.pending_results.add(file_path)
             index = int(m.groups()[0])
             logger.info("Analyzing frame: {}:{}".format(index, frame))
             self.beamline.dpm.service.callRemote(
@@ -196,12 +200,67 @@ class RasterCollector(GObject.GObject):
                 params['directory'],
                 misc.get_project_name()
             ).addCallbacks(
-                self._result_ready, callbackArgs=[index],
-                errback=self._result_fail, errbackArgs=[index]
+                self._result_ready, callbackArgs=[index, file_path],
+                errback=self._result_fail, errbackArgs=[index, file_path]
             )
 
-    def _result_ready(self, result, cell):
+    def _result_ready(self, result, cell, file_path):
+        self.pending_results.remove(file_path)
         GObject.idle_add(self.emit, 'result', cell, result)
+        self.results[cell] = result
+        if not self.pending_results:
+            self.save_metadata()
 
-    def _result_fail(self, results, cell):
+    def _result_fail(self, result, cell, file_path):
+        self.pending_results.remove(file_path)
+        self.results[cell] = result
         logger.error("Unable to process data for cell {}".format(cell))
+        if not self.pending_results:
+            self.save_metadata()
+
+    def save_metadata(self):
+        params = self.config['params']
+        frames, count = runlists.get_disk_frameset(
+            params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
+        )
+        if count > 1:
+            metadata = {
+                'name': params['name'],
+                'frames':  frames,
+                'filename': '{}.{}'.format(
+                    runlists.make_file_template(params['name']), self.beamline.detector.file_extension
+                ),
+                'container': params['container'],
+                'port': params['port'],
+                'type': 'RASTER',
+                'sample_id': params['sample_id'],
+                'uuid': params['uuid'],
+                'directory': params['directory'],
+
+                'energy': params['energy'],
+                'attenuation': params['attenuation'],
+                'exposure': params['exposure'],
+
+                'detector_type': self.beamline.detector.detector_type,
+                'beam_x': self.beamline.detector.get_origin()[0],
+                'beam_y': self.beamline.detector.get_origin()[1],
+                'pixel_size': self.beamline.detector.resolution,
+                'resolution': params['resolution'],
+                'detector_size': min(self.beamline.detector.size),
+                'start_angle': params['angle'],
+                'delta_angle': params['delta'],
+                'inverse_beam': params.get('inverse', False),
+                'grid_origin': params['origin'],
+                'grid_points': self.config['grid'].tolist()
+            }
+            filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
+            if os.path.exists(filename):
+                with open(filename, 'r') as handle:
+                    old_meta = json.load(handle)
+                    metadata['id'] = old_meta.get('id')
+
+            with open(filename, 'w') as handle:
+                json.dump(metadata, handle, indent=2, separators=(',',':'), sort_keys=True)
+                logger.info("Meta-Data Saved: {}".format(filename))
+
+            return metadata

@@ -92,7 +92,7 @@ class DataCollector(GObject.GObject):
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
         time.sleep(2.0)
 
-        self.results = self.save_summary(self.config['datasets'])
+        self.results = self.save_metadata(self.config['datasets'])
         self.beamline.lims.upload_datasets(self.beamline, self.results)
         if not (self.stopped or self.paused):
             GObject.idle_add(self.emit, 'done')
@@ -218,46 +218,51 @@ class DataCollector(GObject.GObject):
             x, y, z  = wedge['point']
             self.beamline.sample_stage.move_xyz(x, y, z)
 
-    def save_summary(self, data_list):
+    def save_metadata(self, data_list):
         results = []
-        for d in data_list:
-            data = d.copy()
-
-            data['id'] = None
-            data['frame_sets'], data['num_frames'] = runlists.get_disk_frameset(
-                data['directory'],
-                '{}_*.{}'.format(data['name'], self.beamline.detector.file_extension),
+        for params in data_list:
+            frames, count = runlists.get_disk_frameset(
+                params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
             )
+            if count < 2 or params['strategy'] == runlists.StrategyType.SINGLE: continue
+            metadata = {
+                'name': params['name'],
+                'frames':  frames,
+                'filename': '{}.{}'.format(
+                    runlists.make_file_template(params['name']), self.beamline.detector.file_extension
+                ),
+                'group': params['group'],
+                'container': params['container'],
+                'port': params['port'],
+                'type': runlists.StrategyDataType.get(params['strategy']),
+                'sample_id': params['sample_id'],
+                'uuid': params['uuid'],
+                'directory': params['directory'],
 
-            if data['num_frames'] < 2:
-                continue
+                'energy': params['energy'],
+                'attenuation': params['attenuation'],
+                'exposure': params['exposure'],
 
-            data['wavelength'] = energy_to_wavelength(data['energy'])
-            data['resolution'] = dist_to_resol(
-                data['distance'], self.beamline.detector.mm_size, data['energy']
-            )
-            data['beamline_name'] = self.beamline.name
-            data['detector_size'] = min(self.beamline.detector.size)
-            data['pixel_size'] = self.beamline.detector.resolution
-            data['beam_x'], data['beam_y'] = self.beamline.detector.get_origin()
-            data['detector'] = self.beamline.detector.detector_type
-            filename = os.path.join(data['directory'], '{}.SUMMARY'.format(data['name']))
+                'detector_type': self.beamline.detector.detector_type,
+                'beam_x': self.beamline.detector.get_origin()[0],
+                'beam_y': self.beamline.detector.get_origin()[1],
+                'pixel_size': self.beamline.detector.resolution,
+                'resolution': dist_to_resol(params['distance'], self.beamline.detector.mm_size, params['energy']),
+                'detector_size': min(self.beamline.detector.size),
+                'start_angle': params['start'],
+                'delta_angle': params['delta'],
+                'inverse_beam': params.get('inverse', False),
+            }
+            filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
             if os.path.exists(filename):
                 with open(filename, 'r') as handle:
-                    old_data = json.load(handle)
-                data['id'] = data['id'] if not old_data.get('id') else old_data['id']
-                data['crystal_id'] = (
-                    data.get('crystal_id') if not old_data.get('crystal_id')
-                    else old_data['crystal_id']
-                )
-                data['experiment_id'] = (
-                    data.get('experiment_id') if not old_data.get('experiment_id')
-                    else old_data['experiment_id']
-                )
+                    old_meta = json.load(handle)
+                    metadata['id'] = old_meta.get('id')
 
-            with open(filename, 'w') as fobj:
-                json.dump(data, fobj, indent=4)
-            results.append(data)
+            with open(filename, 'w') as handle:
+                json.dump(metadata, handle, indent=2, separators=(',',':'), sort_keys=True)
+                logger.info("Meta-Data Saved: {}".format(filename))
+            results.append(metadata)
         return results
 
     def on_new_image(self, obj, file_path):

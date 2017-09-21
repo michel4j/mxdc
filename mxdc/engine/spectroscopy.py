@@ -3,7 +3,7 @@ from mxdc.interface.beamlines import IBeamline
 from mxdc.engine.autochooch import AutoChooch
 from mxdc.engine.scanning import BasicScan, ScanError
 from mxdc.service.utils import  send_array
-from mxdc.utils import science, json, converter, misc
+from mxdc.utils import science, json, converter, misc, runlists
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_short_uuid, multi_count
 from mxdc.utils.science import *
@@ -34,16 +34,9 @@ class XRFScanner(BasicScan):
         
     def configure(self, info):
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.config = {}
-        self.config['name'] = info['name']
-        self.config['energy'] = info['energy']
-        self.config['exposure'] = info['exposure']
-        self.config['directory'] = info['directory']
-        self.config['filename'] = os.path.join(info['directory'], "{}_{:0.3f}.raw".format(info['name'], info['energy']))
-        self.config['results_file'] = os.path.join(info['directory'], "{}_{:0.3f}.out".format(info['name'], info['energy']))
-        self.config['attenuation'] = info['attenuation']
-        self.config['sample_id'] = info.get('sample_id')
-        self.config['activity'] = info['activity']
+        self.config = copy.deepcopy(info)
+        self.config['filename'] = os.path.join(info['directory'], "{}.xdi".format(info['name'], info['energy']))
+        #self.config['results_file'] = os.path.join(info['directory'], "{}.out".format(info['name'], info['energy']))
         self.config['user'] = misc.get_project_name()
         self.results = {}
 
@@ -79,6 +72,7 @@ class XRFScanner(BasicScan):
                 self.save(self.config['filename'])
                 self.notify_progress(3, "Interpreting spectrum ...")
                 self.analyse()
+                self.save_metadata()
                 GObject.idle_add(self.emit, "done")
             finally:
                 self.beamline.exposure_shutter.close()
@@ -118,25 +112,49 @@ class XRFScanner(BasicScan):
         ys = science.smooth_data(y, times=3, window=11)
         self.results = {
             'data': {
-                'energy': map(float, list(x)),
-                'raw': map(float, list(self.data[:, 1])),
-                'counts': map(float, list(ys)),
-                'fit': map(float, list(bblocks.sum(1)))
+                'energy': x.tolist(),
+                'counts': y.tolist(),
+
+
             },
-            'assigned': assigned,
-            'parameters': {
-                'directory': self.config['directory'],
-                'energy': self.config['energy'],
-                'exposure': self.config['exposure'],
-                'output_file': self.config['filename'],
-                'attenuation': self.config['attenuation'],
-                'sample_id': self.config['sample_id'],
-                'name': self.config['name']
+            'analysis': {
+                'energy': x.tolist(),
+                'counts': ys.tolist(),
+                'fit': bblocks.sum(1).tolist(),
+                'assignments': assigned
             },
-            'kind': self.config['activity'],  # Excitation Scan
         }
-        with open(self.config['results_file'], 'w') as handle:
-            json.dump(self.results, handle)
+        #with open(self.config['results_file'], 'w') as handle:
+        #    json.dump(self.results, handle)
+
+    def save_metadata(self):
+        params = self.config
+        metadata = {
+            'name': params['name'],
+            'frames':  "",
+            'filename': os.path.basename(params['filename']),
+            'container': params['container'],
+            'port': params['port'],
+            'type': 'XRF_SCAN',
+            'sample_id': params['sample_id'],
+            'uuid': params['uuid'],
+            'directory': params['directory'],
+
+            'energy': params['energy'],
+            'attenuation': params['attenuation'],
+            'exposure': params['exposure'],
+        }
+        filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
+        if os.path.exists(filename):
+            with open(filename, 'r') as handle:
+                old_meta = json.load(handle)
+                metadata['id'] = old_meta.get('id')
+
+        with open(filename, 'w') as handle:
+            json.dump(metadata, handle, indent=2, separators=(',',':'), sort_keys=True)
+            logger.info("Meta-Data Saved: {}".format(filename))
+
+        return metadata
 
 
 class MADScanner(BasicScan):
@@ -150,77 +168,27 @@ class MADScanner(BasicScan):
         self.total = 0
         self.config = {}
         self.results = {}
+        self.data = []
 
     def configure(self, info):
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.config = {}
+        self.config = copy.deepcopy(info)
 
-        self.config['name'] = info['name']
-        self.config['edge'] = info['edge']
         self.config['edge_energy'], self.config['roi_energy'] = self._energy_db[info['edge']]
-        self.config['exposure'] = info['exposure']
-        self.config['directory'] = info['directory']
-        self.config['filename'] = os.path.join(info['directory'], "{}_{}.raw".format(info['name'], info['edge']))
-        self.config['attenuation'] = info['attenuation']
-        self.config['sample_id'] = info.get('sample_id')
-        self.config['activity'] = info['activity']
+        self.config['filename'] = os.path.join(info['directory'], "{}_{}.xdi".format(info['name'], info['edge']))
         self.config['targets'] = xanes_targets(self.config['edge_energy'])
         self.config['user'] = misc.get_project_name()
         self.results = {}
-        self.chooch_results = {}
-
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
-
-    def analyse_file(self, filename):
-        data = numpy.loadtxt(filename)
-        with open(filename, 'r') as handle:
-            raw_text = handle.read()
-        self.data = zip(data[:,0], data[:,1], data[:,2], data[:,3])
-        
-        meta = re.search('# Meta Data: ({.+})', raw_text)
-        if meta:
-            self.config = json.loads(meta.group(1))
-
-        self.analyse()
-        GObject.idle_add(self.emit, "done")
     
     def analyse(self):
-        self.autochooch.configure(self.config['edge'], self.config['directory'], self.config['name'])
-        success = self.autochooch.run()
-        res_data = {
-            'energy': [float(v[0]) for v in self.data],
-            'counts': [float(v[1]) for v in self.data]
-        }
-        if success:
-            _efs = self.autochooch.data
-            efs_data = {
-                'energy': map(float, _efs[:,0]),
-                'fp': map(float, _efs[:,2]),
-                'fpp': map(float, _efs[:,1])
-            }
-            self.results = {
-                'data': res_data,
-                'efs': efs_data,
-                'energies': self.autochooch.results,
-                'text': self.autochooch.results_text,
-                'log': self.autochooch.log,
-                'name_template': "%s_%s" % (self.config['name'], self.config['edge']),
-                'directory': self.config['directory'],
-                'edge': self.config['edge'],
-                'sample_id': self.config['sample_id'],
-                'attenuation': self.config['attenuation'],
-                'energy': self.config['edge_energy'],
-                'kind': self.config['activity'],  # Excitation Scan
-            }
+        self.autochooch.configure(self.config, numpy.array(self.data))
+        report = self.autochooch.run()
+        if report:
+            self.results['analysis'] = report
         else:
             GObject.idle_add(self.emit, 'error', 'Analysis Failed')
-            self.results = {
-                'data': res_data,
-                'log': self.autochooch.log,
-                'name_template': "%s_%s" % (self.config['name'], self.config['edge']),
-                'directory': self.config['directory']
-            }
 
     def notify_progress(self, pos, message):
         fraction = float(pos) / self.total
@@ -244,8 +212,8 @@ class MADScanner(BasicScan):
         with self.beamline.lock:
             self.total = len(self.config['targets'])
             saved_attenuation = self.beamline.attenuator.get()
-            self.chooch_results = {}
-
+            self.data = []
+            self.results = {'data': [], 'analysis': {}}
             try:
                 GObject.idle_add(self.emit, 'started')
                 self.prepare_for_scan()
@@ -279,19 +247,25 @@ class MADScanner(BasicScan):
                     self.notify_progress(i+1, "Scanning {} of {} ...".format(i, self.total))
                     time.sleep(0)
 
+                if len(self.data) > 10:
+                    data = numpy.array(self.data)
+                    self.results['data'] = {
+                        'energy': data[:, 0].astype(float),
+                        'counts': data[:, 1].astype(float),
+                        'I0': data[:, 2].astype(float),
+                        'raw_counts': data[:, 3].astype(float),
+                    }
+
                 if self.stopped:
-                    if len(self.data) < 2:
-                        GObject.idle_add(self.emit, "stopped")
-                        self.results = {'energies': None}
-                        return
-                    logger.warning("Scan stopped. Will Attempt Analysis")
+                    logger.warning("Scan stopped.")
                     self.save(self.config['filename'])
-                    self.analyse()
+                    self.save_metadata()
                     GObject.idle_add(self.emit, "stopped")
                 else:
                     logger.info("Scan complete. Performing Analyses")
                     self.save(self.config['filename'])
                     self.analyse()
+                    self.save_metadata()
                     GObject.idle_add(self.emit, "done")
             finally:
                 self.beamline.energy.move_to(self.config['edge_energy'])
@@ -301,6 +275,37 @@ class MADScanner(BasicScan):
                 logger.info('Edge scan done.')
                 self.beamline.goniometer.set_mode('COLLECT')
         return self.results
+
+    def save_metadata(self):
+        params = self.config
+        metadata = {
+            'name': params['name'],
+            'frames':  "",
+            'filename': os.path.basename(params['filename']),
+            'container': params['container'],
+            'port': params['port'],
+            'type': 'MAD_SCAN',
+            'sample_id': params['sample_id'],
+            'uuid': params['uuid'],
+            'directory': params['directory'],
+
+            'energy': params['edge_energy'],
+            'attenuation': params['attenuation'],
+            'exposure': params['exposure'],
+            'edge': params['edge'],
+            'roi': self.beamline.mca.get_roi(params['roi_energy']),
+        }
+        filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
+        if os.path.exists(filename):
+            with open(filename, 'r') as handle:
+                old_meta = json.load(handle)
+                metadata['id'] = old_meta.get('id')
+
+        with open(filename, 'w') as handle:
+            json.dump(metadata, handle, indent=2, separators=(',',':'), sort_keys=True)
+            logger.info("Meta-Data Saved: {}".format(filename))
+
+        return metadata
 
 
 class XASScanner(BasicScan):
@@ -318,27 +323,16 @@ class XASScanner(BasicScan):
         
     def configure(self, info):
         self.beamline = globalRegistry.lookup([], IBeamline)
-        self.config = {}
-
-        self.config['name'] = info['name']
-        self.config['edge'] = info['edge']
+        self.config = copy.deepcopy(info)
         self.config['edge_energy'], self.config['roi_energy'] = self.emissions[info['edge']]
-        self.config['exposure'] = info['exposure']
-        self.config['directory'] = info['directory']
-        self.config['filename_template'] = os.path.join(
-            info['directory'], "{}_{}_{}.raw".format(info['name'], info['edge'], '{:0>3d}')
-        )
-        self.config['attenuation'] = info['attenuation']
-        self.config['sample_id'] = info.get('sample_id')
-        self.config['activity'] = info['activity']
-        self.config['scans'] = info['scans']
+        self.config['frame_template'] = '{}-{}_{}.xdi'.format(info['name'], info['edge'], '{:0>3d}')
+        self.config['frame_glob']     = '{}-{}_{}.xdi'.format(info['name'], info['edge'], '*')
         self.config['targets'] = exafs_targets(self.config['edge_energy'], kmax=info['kmax'])
         self.config['user'] = misc.get_project_name()
         self.results = {}
 
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
-
 
     def notify_progress(self, used_time, message):
         fraction = float(used_time) / max(abs(self.total_time), 1)
@@ -362,11 +356,7 @@ class XASScanner(BasicScan):
         with self.beamline.lock:
             saved_attenuation = self.beamline.attenuator.get()
             self.data = []
-            self.results = {
-                'data': [],
-                'scans': [],
-
-            }
+            self.results = {'data': [], 'scans': []}
 
             try:
                 GObject.idle_add(self.emit, 'started')
@@ -420,7 +410,7 @@ class XASScanner(BasicScan):
                         else:
                             scale = (self.data[0][2] / (i0 * t))
 
-                        x = self.beamline.bragg_energy.get_position()
+                        #x = self.beamline.bragg_energy.get_position()
                         data_point = [x, y * scale, i0, k, t]  # convert KeV to eV
                         corrected_sum = 0
                         rates = self.beamline.multi_mca.get_count_rates()
@@ -441,7 +431,7 @@ class XASScanner(BasicScan):
                         time.sleep(0)
 
                     self.config['end_time'] = datetime.now()
-                    filename = self.config['filename_template'].format(scan + 1)
+                    filename = self.config['frame_template'].format(scan + 1)
                     self.save(filename)
                     self.results['data'].append(numpy.array(self.data))
                     self.analyse()
@@ -450,10 +440,12 @@ class XASScanner(BasicScan):
 
                 if self.stopped:
                     logger.warning("Scan stopped.")
+                    self.save_metadata()
                     GObject.idle_add(self.emit, "stopped")
 
                 else:
                     logger.info("Scan complete.")
+                    self.save_metadata()
                     GObject.idle_add(self.emit, "done")
 
             finally:
@@ -481,10 +473,44 @@ class XASScanner(BasicScan):
             'time': datetime.now().strftime('%H:%M:%S')
         })
 
+    def save_metadata(self):
+        params = self.config
+        frames, count = runlists.get_disk_frameset(params['directory'], params['frame_glob'])
+        if count:
+            metadata = {
+                'name': params['name'],
+                'frames':  frames,
+                'filename': params['frame_template'],
+                'container': params['container'],
+                'port': params['port'],
+                'type': 'XAS_SCAN',
+                'sample_id': params['sample_id'],
+                'uuid': params['uuid'],
+                'directory': params['directory'],
+
+                'energy': params['edge_energy'],
+                'attenuation': params['attenuation'],
+                'exposure': params['exposure'],
+                'edge': params['edge'],
+                'roi': self.beamline.mca.get_roi(params['roi_energy']),
+                'kmax': params['kmax'],
+            }
+            filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
+            if os.path.exists(filename):
+                with open(filename, 'r') as handle:
+                    old_meta = json.load(handle)
+                    metadata['id'] = old_meta.get('id')
+
+            with open(filename, 'w') as handle:
+                json.dump(metadata, handle, indent=2, separators=(',',':'), sort_keys=True)
+                logger.info("Meta-Data Saved: {}".format(filename))
+
+            return metadata
+
     def save(self, filename=None):
         """Save EXAFS output in XDI 1.0 format"""
         fmt_prefix = '%10'
-        with open(filename, 'w') as handle:
+        with open(os.path.join(self.config['directory'], filename), 'w') as handle:
             handle.write('# XDI/1.0 MXDC\n')
             handle.write('# Beamline.name: CLS %s\n' % self.beamline.name)
             handle.write('# Beamline.edge-energy: %0.2f\n' % (self.config['edge_energy']))

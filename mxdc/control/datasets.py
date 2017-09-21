@@ -580,6 +580,7 @@ class DatasetsController(GObject.GObject):
         self.on_complete(obj)
         self.widget.collect_eta.set_text('--:--')
         self.widget.collect_pbar.set_fraction(1.0)
+        self.widget.collect_progress_lbl.set_text('Data acquisition completed.')
 
     def on_stopped(self, obj=None):
         self.widget.collect_eta.set_text('--:--')

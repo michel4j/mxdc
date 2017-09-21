@@ -76,7 +76,7 @@ class Category:
 
 
 class ColorMapper(object):
-    def __init__(self, color_map=cmaps.inferno, min_val=-0.5, max_val=1.0):
+    def __init__(self, color_map=cmaps.viridis, min_val=-0.5, max_val=1.0):
         self.cmap =  cm.get_cmap(color_map)
         self.norm = colors.Normalize(vmin=min_val, vmax=max_val)
 
