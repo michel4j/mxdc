@@ -52,3 +52,6 @@ class AnalysisController(GObject.GObject):
         self.browser.set_settings(browser_settings)
         self.browser.load_uri('http://cmcf.lightsource.ca/')
 
+    def add_dataset(self, dataset):
+        self.reports.add(dataset)
+

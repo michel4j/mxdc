@@ -122,7 +122,6 @@ _SCRIPTS = {}
 
 def get_scripts():
     from mxdc import scripts
-    logger.debug('Available Scripts: {}'.format(scripts.__all__))
     for script in Script.__subclasses__():
         name = script.__name__
         if not name in _SCRIPTS:

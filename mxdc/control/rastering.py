@@ -260,6 +260,7 @@ class RasterController(GObject.GObject):
             params['origin'] = self.microscope.grid_params['origin']
             params['energy'] = self.beamline.energy.get_position()
             params['distance'] = resol_to_dist(params['resolution'], self.beamline.detector.mm_size, params['energy'])
+            params['attenuation'] = self.beamline.attenuator.get()
             params['delta'] = RASTER_DELTA
             params['uuid'] = str(uuid.uuid4())
             params['name'] = datetime.now().strftime('%Y%m%d-%H%M')
