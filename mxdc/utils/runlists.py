@@ -6,13 +6,61 @@ import os
 import re
 from collections import defaultdict
 from datetime import date
+
 import numpy
 from mxdc.libs.imageio import read_header
-from mxdc.utils import config, misc
 
+from mxdc.utils import config, misc
 
 FRAME_NUMBER_DIGITS = 4
 OUTLIER_DEVIATION = 50
+
+
+class StrategyType(object):
+    SINGLE, FULL, SCREEN_2, SCREEN_3, SCREEN_4, POWDER = range(6)
+
+
+Strategy = {
+    StrategyType.SINGLE: {
+        'range': 1.0, 'delta': 1.0, 'start': 0.0, 'inverse': False,
+        'desc': 'Single Frame',
+        'activity': 'test',
+    },
+    StrategyType.FULL: {
+        'range': 180,
+        'desc': 'Full Dataset',
+        'activity': 'data',
+    },
+    StrategyType.SCREEN_4: {
+        'delta': 1.0, 'range': 182, 'start': 0.0, 'inverse': False,
+        'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0',
+        'activity': 'screen'
+    },
+    StrategyType.SCREEN_3: {
+        'delta': 1.0, 'range': 92, 'start': 0.0, 'inverse': False,
+        'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0',
+        'activity': 'screen'
+    },
+    StrategyType.SCREEN_2: {
+        'delta': 1.0, 'range': 92, 'start': 0.0, 'inverse': False,
+        'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0',
+        'activity': 'screen'
+    },
+    StrategyType.POWDER: {
+        'delta': 180.0, 'exposure': 30.0, 'range': 360.0, 'inverse': False,
+        'desc': 'Powder',
+        'activity': 'data'
+    }
+}
+
+StrategyDataType = {
+    StrategyType.SINGLE: '',
+    StrategyType.FULL: 'MX_DATA',
+    StrategyType.SCREEN_4: 'MX_SCREEN',
+    StrategyType.SCREEN_3: 'MX_SCREEN',
+    StrategyType.SCREEN_2: 'MX_SCREEN',
+    StrategyType.POWDER: 'XRD_DATA'
+}
 
 
 def update_for_sample(info, sample=None):
@@ -44,7 +92,7 @@ def fix_name(name, names, index=0):
     if not test_name in names:
         return test_name
     else:
-        return fix_name(name, names, index=index+1)
+        return fix_name(name, names, index=index + 1)
 
 
 def add_framsets(run):
@@ -119,7 +167,7 @@ def generate_frames(wedge):
 def generate_frame_names(run):
     if not 'frame_sets' in run:
         run = add_framsets(run)
-    template = '{}_{}'.format(run['name'], '{{:0{}d}}'.format(FRAME_NUMBER_DIGITS))
+    template = make_file_template(run['name'])
     return [
         template.format(index) for frameset in run['frame_sets'] for index, angle in frameset
     ]
@@ -182,7 +230,7 @@ def generate_collection_list(run, frame_set):
         'uuid': run.get('uuid'),
         'dataset': run['name'],
         'name': run['name'],
-        'frame_template': '{}_{}'.format(run['name'], '{{:0{}d}}'.format(FRAME_NUMBER_DIGITS)),
+        'frame_template': make_file_template(run['name']),
         'start': start_angle,
         'first': first_frame,
         'num_frames': len(frame_set),
@@ -330,20 +378,11 @@ def _all_files(root, patterns='*'):
 def get_disk_frameset(directory, file_glob):
     # Given a glob and pattern, determine the collected frame set and number of frames based on images on disk
 
-    file_pattern = file_glob.replace('*', '(\d{{{}}})'.format(FRAME_NUMBER_DIGITS))
+    file_pattern = file_glob.replace('*', '(\d{2,6})')
     text = ' '.join(_all_files(directory, file_glob))
     full_set = map(int, re.findall(file_pattern, text))
 
     return summarize_list(full_set), len(full_set)
-
-
-def get_disk_dataset(directory, name):
-    # Given a name and directory, determine the collected frames based on images on disk
-    file_pattern = r'^({}/{}_\d{{3,}}\.[^.]+)$'.format(directory, name)
-    file_glob = os.path.join(directory, '{}_*.*'.format(name))
-    text = '\n'.join(glob.glob(file_glob))
-    patt = re.compile(file_pattern, re.MULTILINE)
-    return sorted(patt.findall(text))
 
 
 def frameset_to_list(frame_set):
@@ -363,8 +402,13 @@ def merge_framesets(*args):
     sequence = frameset_to_list(frame_set)
     return summarize_list(sequence)
 
+
+def make_file_template(name):
+    return '{}_{}'.format(name, '{{:0{}d}}'.format(FRAME_NUMBER_DIGITS))
+
+
 def generate_grid_frames(grid, params):
-    frame_template = '{}_{}'.format(params['name'], '{{:0{}d}}'.format(FRAME_NUMBER_DIGITS))
+    frame_template = make_file_template(params['name'])
     return [
         {
             'dataset': params['name'],

@@ -160,9 +160,9 @@ class TreeManager(GObject.GObject):
             parent_path = None
             parent_itr = self.find_parent_iter(item)
             if parent_itr:
-                if self.model.iter_has_child(parent_itr):
+                if not self.model.iter_has_child(parent_itr):
                     row = list(self.model[parent_itr])
-                    self.model.append(parent_itr, row=row)
+                    child_itr = self.model.append(parent_itr, row=row)
                 parent_path = self.model.get_path(parent_itr)
         else:
             parent_itr = parent_path = None

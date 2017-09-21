@@ -4,26 +4,9 @@ import uuid
 from gi.repository import Gtk, Gdk, GObject
 from mxdc.beamline.mx import IBeamline
 from mxdc.utils import gui, converter, runlists, glibref, misc
+from mxdc.utils.runlists import StrategyType, Strategy
 from twisted.python.components import globalRegistry
 
-
-class StrategyType(object):
-    SINGLE, FULL, SCREEN_2, SCREEN_3, SCREEN_4, POWDER = range(6)
-
-
-STRATEGIES = {
-    StrategyType.SINGLE: {'range': 1.0, 'delta': 1.0, 'start': 0.0, 'inverse': False,
-                          'activity': 'test', 'desc': 'Single Frame'},
-    StrategyType.FULL: {'range': 180, 'desc': 'Full Dataset', 'activity': 'data'},
-    StrategyType.SCREEN_4: {'delta': 1.0, 'range': 182, 'start': 0.0, 'inverse': False,
-                            'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0', 'activity': 'screen'},
-    StrategyType.SCREEN_3: {'delta': 1.0, 'range': 92, 'start': 0.0, 'inverse': False,
-                            'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0', 'activity': 'screen'},
-    StrategyType.SCREEN_2: {'delta': 1.0, 'range': 92, 'start': 0.0, 'inverse': False,
-                            'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0', 'activity': 'screen'},
-    StrategyType.POWDER: {'delta': 180.0, 'exposure': 30.0, 'range': 360.0, 'inverse': False,
-                          'desc': 'Powder', 'activity': 'data'}
-}
 
 
 def _calc_skip(strategy, delta, first):
@@ -273,8 +256,8 @@ class DataEditor(gui.BuilderMixin):
         # Calculate skip,
         info.update({
             'skip': _calc_skip(info['strategy'], info['delta'], info['first']),
-            'strategy_desc': STRATEGIES[info['strategy']]['desc'],
-            'activity': STRATEGIES[info['strategy']]['activity'],
+            'strategy_desc': Strategy[info['strategy']]['desc'],
+            'activity': Strategy[info['strategy']]['activity'],
         })
 
         # make sure point is not empty if end_point is set
@@ -288,12 +271,12 @@ class DataEditor(gui.BuilderMixin):
         default = {
             name: details[-1] for name, details in cls.Specs.items()
         }
-        info = STRATEGIES[strategy_type]
+        info = Strategy[strategy_type]
         default.update(info)
         if delta:
             default['delta'] = delta
         default['skip'] = _calc_skip(strategy_type, default['delta'], default['first'])
-        default.update(STRATEGIES[strategy_type])
+        default.update(Strategy[strategy_type])
         default['strategy_desc'] = default.pop('desc')
         return default
 
@@ -310,7 +293,7 @@ class DataEditor(gui.BuilderMixin):
             else:
                 field.connect('activate', self.on_entry_changed, None, name)
                 field.connect('focus-out-event', self.on_entry_changed, name)
-        for id, params in STRATEGIES.items():
+        for id, params in Strategy.items():
             field_name = 'data_strategy_cbox'
             field = getattr(self, field_name)
             field.append(str(id), params['desc'])
@@ -325,7 +308,7 @@ class DataEditor(gui.BuilderMixin):
             )
             new_values[field_name] = round(new_values[field_name], 1)
         elif field_name == 'strategy':
-            defaults = STRATEGIES.get(new_values['strategy'])
+            defaults = Strategy.get(new_values['strategy'])
             if new_values['strategy'] == StrategyType.FULL:
                 defaults['delta'] = self.beamline.config['default_delta']
             if new_values['strategy'] not in [StrategyType.SINGLE, StrategyType.POWDER]:
