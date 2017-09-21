@@ -8,7 +8,7 @@ config.get_session()  # update the session configuration
 from mxdc.engine.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
-from mxdc.control import status
+from mxdc.control import common, status
 from mxdc.control import setup, scans, datasets
 from mxdc.control import samples, analysis
 from mxdc.widgets import dialogs
@@ -30,15 +30,13 @@ else:
 
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
-STYLES = """
-    .section-box {
-        background: #cccccc;
-    }
-"""
 
 class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     gui_roots = {
-        'data/mxdc_main': ['auto_groups_pop','scans_ptable_pop', 'app_menu', 'header_bar', 'mxdc_main']
+        'data/mxdc_main': [
+            'auto_groups_pop','scans_ptable_pop', 'app_menu', 'header_bar',
+            'mxdc_main',
+        ]
     }
 
     def __init__(self, version=VERSION):
@@ -86,7 +84,6 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.beam_mnu.connect('activate', lambda x: self.scripts['SetBeamMode'].start())
 
     def build_gui(self):
-
         self.hutch_manager = setup.SetupController(self)
         self.status_panel = status.StatusPanel(self)
         self.samples = samples.SamplesController(self)
@@ -94,6 +91,8 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.automation = datasets.AutomationController(self)
         self.scans = scans.ScanManager(self)
         self.analysis = analysis.AnalysisController(self)
+
+        self.notifier = common.AppNotifier(self.notification_lbl, self.notification_revealer, self.notification_btn)
 
         self.app_mnu_btn.set_popup(self.app_menu)
 
@@ -107,22 +106,6 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
 
         GObject.timeout_add(1010, lambda: self.present())
         GObject.timeout_add(1000, lambda: self.splash.hide())
-
-        #self.screen_manager.screen_runner.connect('analyse-request', self.on_analyse_request)
-        # self.sample_manager.connect('samples-changed', self.on_samples_changed)
-        # self.sample_manager.connect('sample-selected', self.on_sample_selected)
-        # self.sample_manager.connect('active-sample', self.on_active_sample)
-        #self.result_manager.connect('sample-selected', self.on_sample_selected)
-        #self.result_manager.connect('update-strategy', self.on_update_strategy)
-        #self.scan_manager.connect('update-strategy', self.on_update_strategy)
-        #self.collect_manager.connect('new-datasets', self.on_new_datasets)
-        #self.screen_manager.connect('new-datasets', self.on_new_datasets)
-
-        #self.automounter_box.pack_start(self.sample_picker, True, True, 0)
-        #self.datasets_box.pack_start(self.collect_manager, True, True, 0)
-        #self.screen_box.pack_start(self.screen_manager, True, True, 0)
-        #self.scans_box.pack_start(self.scans, True, True, 0)
-        #self.analysis_box.pack_start(self.analysis, True, True, 0)
 
         self.add(self.mxdc_main)
 
@@ -229,9 +212,9 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     #                 dataset.update(crystal=crystal)
     #     self.result_manager.add_datasets(datasets)
 
-    def on_page_switched(self, obj, params):
-        name = self.main_stack.get_visible_child_name()
-        child = self.main_stack.get_child_by_name(name)
+
+    def on_page_switched(self, stack, params):
+        stack.child_set(stack.props.visible_child, needs_attention=False)
 
     def on_analyse_request(self, obj, data):
         self.analyses.process_dataset(data)

@@ -1,7 +1,8 @@
 import os, re
 from gi.repository import GObject
 import threading
-import commands
+import subprocess
+import numpy
 
 import numpy
 from mxdc.utils import converter
@@ -19,128 +20,113 @@ class AutoChooch(GObject.GObject):
     
     def __init__(self):
         GObject.GObject.__init__(self)
-        self.results_text = ""
-
-    def configure(self, edge, directory, prefix, uname=None):
-        """Prepare the engine for a specific CHOOCH analysis.
-        
-        Args:
-            - `edge` (str): Absorption edge used for the scan, eg 'Se-K'.
-            - `directory` (str): Directory in which to perform analysis.
-            - `prefix` (str): Input and Output file name prefix.
-        
-        Kwargs:
-            uname (str or None): Optional username for owner of input and output files.
-            
-        """       
-        self.directory = directory
-        self._edge = edge
-        self._prefix = prefix
-        self._user_name = uname
         self.results = {}
+
+    def configure(self, config, data, uname=None):
+        """
+        Prepare the run chooch
+        @param config: a dictionary containing the MAD-Scan configuration
+        @param data: a numpy array containing the raw data
+        @param uname: optional username
+        @return:
+        """
+        self.config = config
+        self.data = numpy.empty_like(data)
+        self.data[:] = data
+        self.data[:,0] *= 1000  # Convert keV to eV
+
+        self.inp_file = "{}.dat".format(self.config['name'])
+        self.esf_file = "{}.esf".format(self.config['name'])
+        self.out_file = "{}.out".format(self.config['name'])
     
     def start(self):
         """Start the analysis asynchronously. Use signals to determine completion/failure."""
-        self.raw_file = None
-        self.efs_file = None
-        self.out_file = None
-        self.data = None
         worker = threading.Thread(target=self.run)
         worker.setDaemon(True)
         worker.start()
                         
     def run(self):
-        """Do the analysis synchronously. Blocks until completion/failure.
-        
-        Returns:
-            bool. True if the successful and False otherwise.
-        """
         self.results = {}
-        file_root = os.path.join(self.directory, "%s_%s" % (self._prefix, self._edge))    
-        self.raw_file = "%s.raw" % (file_root)
-        self.dat_file = "%s.dat" % (file_root)
-        self.efs_file = "%s.efs" % (file_root)
-        self.out_file = "%s.out" % (file_root)
-        self.log_file = "%s.log" % (file_root)
-        element, edge = self._edge.split('-')
-        self._prepare_input_data(self.raw_file, self.dat_file)
-        if self._user_name is not None:
-            chooch_command = "su %s -c 'chooch -e %s -a %s %s -o %s'" % (self._user_name, element, edge, self.dat_file, self.efs_file)
-        else:
-            chooch_command = "chooch -e %s -a %s %s -o %s" % (element, edge, self.dat_file, self.efs_file)
-        return_code, self.log = commands.getstatusoutput(chooch_command)
-        self.log = '\n----------------- %s ----------------------\n\n' % (self.log_file) + self.log
-        
-        # save log file
-        f = open(self.log_file, 'w')
-        f.write(self.log)
-        f.close()
-        
-        success = self._read_output()
-        if success and return_code == 0:
-            GObject.idle_add(self.emit, 'done')
-            return success
-        else:
-            GObject.idle_add(self.emit, 'error','CHOOH Failed.')
-            return False
-
-    def _prepare_input_data(self, raw_file, dat_file):
-        dat = numpy.loadtxt(raw_file)
-        f = open(dat_file,'w')
-        f.write('#CHOOCH INPUT DATA\n%d\n' % len(dat[:,0]))
-        dat[:,0] *= 1000    #converting to eV
-        numpy.savetxt(f, dat[:,0:2])
-        f.close()
-        return
-        
-    def _read_output(self):
+        element, edge = self.config['edge'].split('-')
+        self.prepare_input()
         try:
-            self.data = numpy.loadtxt(self.efs_file, comments="#")
-        except IOError:
-            return False
-        
-        self.data[:, 0] *= 1e-3 # convert to keV
-        pattern = re.compile('\|\s+([a-z]+)\s+\|\s+(.+)\s+\|\s+(.+)\s+\|\s+(.+)\s+\|')
-        found_results = False
+            output = subprocess.check_output([
+                'chooch', '-e', element, '-a', edge, self.inp_file, '-o', self.esf_file
+            ], stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            GObject.idle_add(self.emit, 'error','CHOOH Failed.')
+        else:
+            self.read_results(output)
+            GObject.idle_add(self.emit, 'done')
+        finally:
+            os.remove(os.path.join(self.config['directory'], self.inp_file))
 
-        for line in self.log.split('\n'):
-            lm = pattern.search(line)
-            if lm:
-                found_results = True
-                # energy converted to keV
-                self.results[lm.group(1)] =  [lm.group(1), float(lm.group(2))*1e-3, float(lm.group(3)), float(lm.group(4))]
-        
-        if not found_results:
-            self.results = None
-            GObject.idle_add(self.emit, 'error','AutoChooch Failed')
-            return False
-            
-        # select remote energy, maximize f" x delta-f'
-        fpp = self.data[:,1]
-        fp = self.data[:,2]
-        energy = self.data[:,0]
-        opt = fpp * (fp - self.results['infl'][3])
-        opt_i = opt.argmax()
-        
-        # make sure to convert from numpy.float64 to native python float. Twisted doesn't like numpy.float64
-        self.results['remo'] = ['remo', float(energy[opt_i]), float(fpp[opt_i]), float(fp[opt_i])]
-        new_output = "Selected Energies for 3-Wavelength MAD data \n"
-        new_output +="and corresponding anomalous scattering factors.\n"
-        
-        new_output += "+------+------------+----------+-------+-------+\n"
-        new_output += "|      | wavelength |  energy  |   f'' |   f'  |\n"
-        for k in ['peak','infl','remo']:
-            new_output += '| %4s | %10.5f | %8.5f | %5.2f | %5.2f |\n' % (k, converter.energy_to_wavelength(self.results[k][1]),
-                                                                self.results[k][1],
-                                                                self.results[k][2],
-                                                                self.results[k][3]
-                                                                )
-        new_output += "+------+------------+----------+-------+-------+\n"
-        ofile = open(self.out_file, 'w')
-        ofile.write(new_output)
-        ofile.close()
-        self.results_text = new_output
-        return True
+        return self.results
+
+    def prepare_input(self):
+        with open(os.path.join(self.config['directory'], self.inp_file), 'w') as handle:
+            handle.write('#CHOOCH INPUT DATA\n%d\n' % len(self.data[:,0]))
+            numpy.savetxt(handle, self.data[:,0:2], fmt='%0.2f')
+
+    def read_results(self, output):
+        try:
+            data = numpy.loadtxt(os.path.join(self.config['directory'], self.esf_file), comments="#").astype(float)
+            self.results['esf'] = {
+                'energy': data[:,0] * 1e-3, # convert back to keV
+                'fpp': data[:,1],
+                'fp': data[:,2]
+            }
+        except IOError:
+            GObject.idle_add(self.emit, 'error', 'CHOOH Failed.')
+            return
+
+        # extract MAD wavelengths from output
+        r = re.compile(
+            '\|\s+(?P<label>[^|]+)\s+\|\s+(?P<wavelength>(?P<energy>\d+\.\d+))\s+'
+            '\|\s+(?P<fpp>-?\d+\.\d+)\s+\|\s+(?P<fp>-?\d+\.\d+)\s+\|'
+        )
+
+        energies = [m.groupdict() for m in r.finditer(output)]
+        converters = {
+            'energy': lambda x: float(x)*1e-3,
+            'wavelength': lambda x: converter.energy_to_wavelength(float(x)*1e-3),
+            'fpp': float,
+            'fp': float,
+            'label': lambda x: x
+        }
+        choices = [
+            {key: converters[key](value) for key, value in dataset.items()}
+            for dataset in energies
+        ]
+
+        if choices:
+            # select remote energy, maximize f" x delta-f'
+            infl = choices[1]
+            sel  = self.results['esf']['energy'] < (infl['energy'] + 0.1)
+            sel &= self.results['esf']['energy'] > (infl['energy'] + 0.05)
+            fpp = self.results['esf']['fpp'][sel]
+            fp = self.results['esf']['fp'][sel]
+            energy = self.results['esf']['energy'][sel]
+            opt = fpp * (fp - infl['fp'])
+            opt_i = opt.argmax()
+            choices.append({
+                'label': 'remo', 'energy': energy[opt_i], 'fpp': fpp[opt_i], 'fp': fp[opt_i],
+                'wavelength': converter.energy_to_wavelength(energy[opt_i])
+            })
+
+            new_output = "Selected Energies for 3-Wavelength MAD data \n"
+            new_output +="and corresponding anomalous scattering factors.\n"
+            new_output += "+------+------------+----------+--------+--------+\n"
+            new_output += "|      | wavelength |  energy  |   f''  |   f'   |\n"
+            for choice in choices:
+                new_output += '| {label:4s} | {wavelength:10.5f} | {energy:8.5f} | {fpp:6.2f} | {fp:6.2f} |\n'.format(
+                    **choice
+                )
+            new_output += "+------+------------+----------+--------+--------+\n"
+            with open(os.path.join(self.config['directory'], self.out_file), 'w') as handle:
+                handle.write(new_output)
+            self.results['choices'] = choices
+
 
     
 

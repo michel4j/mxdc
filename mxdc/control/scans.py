@@ -2,6 +2,7 @@ import os
 import time
 import copy
 from datetime import datetime
+import uuid
 
 import common
 from datasets import IDatasets
@@ -120,6 +121,7 @@ class ScanController(GObject.GObject):
         elif self.props.state == self.StateType.READY:
             self.progress_lbl.set_text("Starting {} ...".format(self.desc))
             params = self.get_parameters()
+            params['uuid'] = str(uuid.uuid4())
             params['name'] = datetime.now().strftime('%y%m%d-%H%M')
             params['activity'] = '{}-scan'.format(self.prefix)
             params = runlists.update_for_sample(params, self.sample_store.get_current())
@@ -365,20 +367,15 @@ class MADScanController(ScanController):
 
     def add_mad_runs(self, btn, *args, **kwargs):
         if self.results.props.run_info:
-            confirm_dialog = dialogs.make_dialog(
-                Gtk.MessageType.QUESTION, 'Add MAD Datasets',
-                ("Three datasets will be added for interactive acquisition. \n"
-                 "Please switch to the Data Collection page after this, to proceed with acquitision."),
-                buttons=(('Cancel', Gtk.ResponseType.CANCEL), ('Add Datasets', Gtk.ResponseType.OK),)
-            )
-            response = confirm_dialog.run()
-            confirm_dialog.destroy()
-            if response == Gtk.ResponseType.OK:
-                runs = copy.deepcopy(self.results.props.run_info)
-                for run in runs:
-                    run['name'] = '{}-{}'.format(run['name'], run['label'])
-                self.datasets.add_runs(runs)
-                btn.set_sensitive(False)
+            runs = copy.deepcopy(self.results.props.run_info)
+            for run in runs:
+                run['name'] = '{}-{}'.format(run['name'], run['label'])
+            self.datasets.add_runs(runs)
+            btn.set_sensitive(False)
+
+            data_page = self.widget.main_stack.get_child_by_name('Data')
+            self.widget.main_stack.child_set(data_page, needs_attention=True)
+            self.widget.notifier.notify("Datasets added. Switch to Data page to proceed.")
 
     def on_run_info(self, *args, **kwargs):
         if self.results.props.run_info:
@@ -390,39 +387,37 @@ class MADScanController(ScanController):
 
     def on_done(self, scanner):
         super(MADScanController, self).on_done(scanner)
-        results = scanner.results.get('energies')
-        if results is None:
-            dialogs.warning('Error Analysing Scan', 'CHOOCH Analysis of XANES Scan failed')
+        choices = scanner.results['analysis'].get('choices')
+        if choices is None:
+            dialogs.warning('Error Analysing Scan', 'Analysis of MAD Scan failed')
             return
 
         new_axis = self.plotter.add_axis(label="Anomalous scattering factors (f', f'')")
+        for choice in choices:
+            self.plotter.axis[0].axvline(choice['energy'], color='#999999', linestyle='--', linewidth=1)
 
-        if 'infl' in results.keys():
-            self.plotter.axis[0].axvline(results['infl'][1], color='#999999', linestyle='--', linewidth=1)
-        if 'peak' in results.keys():
-            self.plotter.axis[0].axvline(results['peak'][1], color='#999999', linestyle='--', linewidth=1)
-        if 'remo' in results.keys():
-            self.plotter.axis[0].axvline(results['remo'][1], color='#999999', linestyle='--', linewidth=1)
+        data = scanner.results['analysis'].get('esf')
+        if data:
+            self.plotter.add_line(
+                data['energy'], data['fpp'], '-', color=colors.Category.GOOG20[1], label='f"',  ax=new_axis
+            )
+            self.plotter.add_line(
+                data['energy'], data['fp'], '-', color=colors.Category.CAT20[5], label="f'", ax=new_axis, redraw=True
+            )
+            self.plotter.set_labels(
+                title='{} Edge MAD Scan'.format(scanner.config['edge']),
+                x_label='Energy (keV)', y1_label='Fluorescence'
+            )
 
-        data = scanner.results.get('efs')
-        self.plotter.add_line(data['energy'], data['fpp'], '-', color=colors.Category.GOOG20[1], label='f"',
-                              ax=new_axis)
-        self.plotter.add_line(data['energy'], data['fp'], '-', color=colors.Category.CAT20[5], label="f'", ax=new_axis,
-                              redraw=True)
-        self.plotter.set_labels(
-            title='{} Edge MAD Scan'.format(scanner.config['edge']), x_label='Energy (keV)', y1_label='Fluorescence'
-        )
-
-        for key in ['peak', 'infl', 'remo']:
-            values = results[key]
+        for choice in choices:
             parent, child = self.results.add_item({
                 'edge': scanner.config['edge'],
                 'name': scanner.config['name'],
-                'label': key,
-                'fpp': values[2],
-                'fp': values[3],
-                'energy': values[1],
-                'wavelength': converter.energy_to_wavelength(values[1]),
+                'label': choice['label'],
+                'fpp': choice['fpp'],
+                'fp': choice['fp'],
+                'energy': choice['energy'],
+                'wavelength': choice['wavelength'],
             })
             if parent:
                 self.results_view.expand_row(parent, False)
@@ -453,23 +448,24 @@ class XRFScanController(ScanController):
         super(XRFScanController, self).on_done(scanner)
         self.annotations = {}
 
-        results = scanner.results['data']
-        ys = scanner.results['data']['counts']
+        data = scanner.results['data']
+        analysis = scanner.results['analysis']
+        ys = analysis['counts']
         energy = scanner.config['energy']
-        assignments = scanner.results['assigned']
+        assignments = analysis['assignments']
 
         self.plotter.set_labels(
             title='X-Ray Fluorescence from Excitation at {:0.3f} keV'.format(energy),
             x_label='Energy (keV)', y1_label='Fluorescence'
         )
-        self.plotter.add_line(results['energy'], results['fit'], ':', color=colors.Category.GOOG20[4], label='Fit')
+        self.plotter.add_line(analysis['energy'], analysis['fit'], ':', color=colors.Category.GOOG20[4], label='Fit')
         self.plotter.axis[0].axhline(0.0, color='gray', linewidth=0.5)
         self.plotter.add_line(
-            results['energy'], results['raw'], '-', color=colors.Category.CAT20C[16],
+            data['energy'], data['counts'], '-', color=colors.Category.CAT20C[16],
             label='Experimental', lw=1, alpha=0.2
         )
         self.plotter.add_line(
-            results['energy'], results['counts'], '-', color=colors.Category.GOOG20[0], label='Smoothed'
+            analysis['energy'], analysis['counts'], '-', color=colors.Category.GOOG20[0], label='Smoothed'
         )
 
         ax = self.plotter.axis[0]
@@ -482,7 +478,6 @@ class XRFScanController(ScanController):
 
         for index, (amount, symbol) in enumerate(element_list):
             element = science.PERIODIC_TABLE[symbol]
-            contents = scanner.results['assigned'][symbol]
             if amount < 0.005 * element_list[0][0] or index > 20: continue
             visible = (amount >= 0.1 * element_list[0][0])
             self.results.add_item({
@@ -555,7 +550,10 @@ class XASScanController(ScanController):
 
     def on_new_scan(self, scanner, scan):
         self.axis = scan
-        self.results.add_item(scanner.results['scans'][-1])
+        parent, child = self.results.add_item(scanner.results['scans'][-1])
+        if parent:
+            self.results_view.expand_row(parent, False)
+        self.results_view.scroll_to_cell(child, None, True, 0.5, 0.5)
 
 
 class ScanManager(GObject.GObject):

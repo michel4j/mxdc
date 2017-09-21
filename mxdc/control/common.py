@@ -121,6 +121,27 @@ class BoolMonitor(object):
             style.add_class('state-inactive')
 
 
+class AppNotifier(object):
+    def __init__(self, label, revealer, button):
+        self.label = label
+        self.revealer = revealer
+        self.close_button = button
+        self.close_button.connect('clicked', self.on_notifier_closed)
+
+    def on_notifier_closed(self, button):
+        self.revealer.set_reveal_child(False)
+
+    def notify(self, message, important=False):
+        if self.revealer.get_reveal_child():
+            self.revealer.set_reveal_child(False)
+        self.label.set_text(message)
+        self.revealer.set_reveal_child(True)
+        if not important:
+            GObject.timeout_add(7000, self.hide_notification)
+
+    def hide_notification(self):
+        self.revealer.set_reveal_child(False)
+
 
 class ScriptMonitor(object):
     def __init__(self, btn, script, spinner=None, status=None, confirm=False, msg=""):
