@@ -7,7 +7,7 @@ from gi.repository import GObject, Gio, Gtk
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine.diffraction import DataCollector
 from engine.automation import Automator
-from mxdc.utils import converter, runlists, misc
+from mxdc.utils import converter, datatools, misc
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import datawidget, dialogs, arrowframe
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
@@ -429,7 +429,7 @@ class DatasetsController(GObject.GObject):
             if item.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
                 run = {'uuid': item.uuid}
                 run.update(item.info)
-                run = runlists.update_for_sample(run, sample)
+                run = datatools.update_for_sample(run, sample)
                 runs.append(run)
                 self.frame_manager.update({
                     frame: item for frame in item.frames
@@ -445,8 +445,8 @@ class DatasetsController(GObject.GObject):
         return runs
 
     def check_runlist(self, runs):
-        frame_list = runlists.generate_run_list(runs)
-        existing, bad = runlists.check_frame_list(
+        frame_list = datatools.generate_run_list(runs)
+        existing, bad = datatools.check_frame_list(
             frame_list, self.beamline.detector.file_extension, detect_bad=False
         )
         config_data = copy.deepcopy(runs)
@@ -481,7 +481,7 @@ class DatasetsController(GObject.GObject):
         names = set()
         while item:
             if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
-                item.info['name'] = runlists.fix_name(item.info['name'], names)
+                item.info['name'] = datatools.fix_name(item.info['name'], names)
                 item.props.info = item.info
                 names.add(item.info['name'])
             count += 1

@@ -4,6 +4,7 @@ import uuid
 import copy
 from collections import OrderedDict
 from datetime import datetime
+from enum import Enum
 import numpy
 from gi.repository import Gtk, GObject, Gdk
 from twisted.python.components import globalRegistry
@@ -11,7 +12,8 @@ from twisted.python.components import globalRegistry
 from microscope import IMicroscope
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine.rastering import RasterCollector
-from mxdc.utils import colors, runlists, config, misc
+from mxdc.utils import colors, datatools, config, misc
+from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec
 from mxdc.utils.converter import resol_to_dist
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -37,102 +39,37 @@ def frame_score(info):
     return score
 
 
-class RasterStore(Gtk.TreeStore):
-    class Data(object):
-        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, STATE, UUID = range(9)
+class RasterResultsManager(TreeManager):
+    class Data(Enum):
+        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID = range(9)
 
-    class State(object):
-        PARENT, PENDING, ACTIVE, COMPLETE = range(4)
-
-    def __init__(self):
-        super(RasterStore, self).__init__(str, float, float, float, float, float, int, int, str)
-
-    def find_parent(self, name):
-        parent = self.get_iter_first()
-        while parent:
-            if self[parent][self.Data.NAME] == name:
-                break
-            parent = self.iter_next(parent)
-        return parent
-
-    def add_item(self, item, parent=None):
-        """Add one item to the tree store. Items with the same name will be grouped with same parent"""
-        if not parent:
-            parent = self.find_parent(item['name'])
-
-        # No parent exists, create one
-        if not parent:
-            parent = self.append(
-                None,
-                row=[item['name'], item['angle'], 0.0, 0.0, 0.0, 0.0, 0, self.State.PARENT, item['uuid']]
-            )
-        child = self.append(
-            parent,
-            row=[
-                'cell-{}'.format(item['cell']), item['angle'], item['xyz'][0], item['xyz'][1],item['xyz'][2],
-                item.get('score', 0.0), item['cell'], item.get('state', self.State.PENDING), item['uuid']
-            ]
-        )
-        return self.get_path(parent), self.get_path(child)
-
-    def add_items(self, items):
-        """Add a list of items to the tree store with the same parent. The tree will be cleared first"""
-        self.clear()
-        for item in items:
-            self.add_item(item)
-
-    def update_item(self, name, cell, info):
-        """Given the name and the cell number update the row with the specified info dictionary
-        The dictionary should be keyed using the data constants
-        """
-        itr = self.get_iter_first()
-        while itr:
-            if self[itr][self.Data.NAME] == name:
-                if self.has_children(itr):
-                    child_itr = self.iter_children(itr)
-                    while child_itr:
-                        if self[child_itr][self.Data.CELL] == cell:
-                            for column, value in info.items():
-                                self[child_itr][column] = value
-                            break
-                        child_itr = self.iter_next(child_itr)
-                    break
-            itr = self.iter_next(itr)
+    Types = [str, float, float, float, float, float, int, float, str]
+    Columns = ColumnSpec(
+        (Data.NAME, 'Name', ColumnType.TEXT, '{}'),
+        (Data.ANGLE, 'Angle',  ColumnType.NUMBER, '{:0.1f}\xc2\xb0'),
+        (Data.X_POS, 'X (mm)', ColumnType.NUMBER, '{:0.4f}'),
+        (Data.Y_POS, 'Y (mm)', ColumnType.NUMBER, '{:0.4f}'),
+        (Data.Z_POS, 'Z (mm)', ColumnType.NUMBER, '{:0.4f}'),
+        (Data.SCORE, 'Score (%)', ColumnType.NUMBER, '{:0.1f}'),
+        (Data.COLOR, '', ColumnType.COLORSCALE, '{}'),
+    )
+    parent = Data.NAME
 
 
 class RasterController(GObject.GObject):
-    Column = OrderedDict([
-        (RasterStore.Data.NAME, 'Name'),
-        (RasterStore.Data.ANGLE, 'Angle'),
-        (RasterStore.Data.X_POS, 'X (mm)'),
-        (RasterStore.Data.Y_POS, 'Y (mm)'),
-        (RasterStore.Data.Z_POS, 'Z (mm)'),
-        (RasterStore.Data.SCORE, 'Score (%)'),
-        (RasterStore.Data.STATE, ''),
-    ])
-    Format = {
-        RasterStore.Data.NAME: '{}',
-        RasterStore.Data.ANGLE: '{:0.1f}\xc2\xb0',
-        RasterStore.Data.X_POS: '{:0.4f}',
-        RasterStore.Data.Y_POS: '{:0.4f}',
-        RasterStore.Data.Z_POS: '{:0.4f}',
-        RasterStore.Data.SCORE: '{:0.2f}',
-    }
-    Specs = {
-        # field: ['field_type', format, type, default]
-        'resolution': ['entry', '{:0.3g}', float, 2.0],
-        'exposure': ['entry', '{:0.3g}', float, 1.0],
-    }
-
     class StateType:
         READY, ACTIVE, PAUSED = range(3)
+
+    ConfigSpec = {
+        'exposure': ['entry', '{:0.3g}', float, 1.0],
+        'resolution': ['entry', '{:0.3g}', float, 50.0],
+    }
 
     state = GObject.Property(type=int, default=StateType.READY)
     config = GObject.Property(type=object)
 
     def __init__(self, view, widget):
         super(RasterController, self).__init__()
-        self.model = RasterStore()
         self.view = view
         self.widget = widget
 
@@ -141,11 +78,12 @@ class RasterController(GObject.GObject):
         self.pause_dialog = None
         self.results = {}
 
-        self.view.set_model(self.model)
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.microscope = globalRegistry.lookup([], IMicroscope)
         self.sample_store = globalRegistry.lookup([], ISampleStore)
         self.collector = RasterCollector()
+
+        self.manager = RasterResultsManager(self.view, self.microscope.props.grid_cmap)
 
         # signals
         self.microscope.connect('notify::grid-xyz', self.on_grid_changed)
@@ -159,34 +97,9 @@ class RasterController(GObject.GObject):
         self.collector.connect('result', self.on_results)
 
         self.sample_store.connect('updated', self.on_sample_updated)
-
         self.setup()
 
     def setup(self):
-        # Selected Column
-        for data, title in self.Column.items():
-            if data == RasterStore.Data.STATE:
-                renderer = Gtk.CellRendererText(text=u"\u25a0")
-                column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer)
-                column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
-                column.set_fixed_width(40)
-                column.set_cell_data_func(renderer, self.format_state, data)
-            else:
-                renderer = Gtk.CellRendererText()
-                column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer)
-                column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
-                column.set_expand(True)
-                column.set_sort_column_id(data)
-                column.set_cell_data_func(renderer, self.format_cell, data)
-                if data == RasterStore.Data.NAME:
-                    column.set_resizable(True)
-                else:
-                    renderer.set_alignment(1.0, 0.5)
-                    renderer.props.family = 'Monospace'
-            column.set_clickable(True)
-            column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
-            self.view.append_column(column)
-
         self.view.props.activate_on_single_click = False
         self.widget.raster_start_btn.connect('clicked', self.start_raster)
         self.widget.raster_stop_btn.connect('clicked', self.stop_raster)
@@ -204,29 +117,9 @@ class RasterController(GObject.GObject):
             for name, (dev, lbl, kw) in labels.items()
         }
 
-    def format_cell(self, column, renderer, model, itr, data):
-        if model[itr][RasterStore.Data.STATE] == RasterStore.State.PARENT and not data in [RasterStore.Data.NAME,
-                                                                                           RasterStore.Data.ANGLE]:
-            renderer.set_property('text', '')
-        else:
-            value = model[itr][data]
-            renderer.set_property('text', self.Format[data].format(value))
-
-    def format_state(self, column, renderer, model, itr, data):
-        value = model[itr][data]
-        if value == RasterStore.State.PARENT:
-            col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.0)
-            renderer.set_property("foreground-rgba", col)
-            renderer.set_property("text", "")
-        else:
-            score = model[itr][RasterStore.Data.SCORE]
-            col = Gdk.RGBA(**self.microscope.grid_cmap.rgba(score))
-            renderer.set_property("foreground-rgba", col)
-            renderer.set_property("text", u"\u25a0")
-
     def get_parameters(self):
         info = {}
-        for name, details in self.Specs.items():
+        for name, details in self.ConfigSpec.items():
             field_type, fmt, conv, default = details
             field_name = 'raster_{}_{}'.format(name, field_type)
             field = getattr(self.widget, field_name)
@@ -242,7 +135,6 @@ class RasterController(GObject.GObject):
             except (TypeError, ValueError):
                 value = default
             info[name] = value
-
         return info
 
     def start_raster(self, *args, **kwargs):
@@ -263,9 +155,9 @@ class RasterController(GObject.GObject):
             params['attenuation'] = self.beamline.attenuator.get()
             params['delta'] = RASTER_DELTA
             params['uuid'] = str(uuid.uuid4())
-            params['name'] = datetime.now().strftime('%Y%m%d-%H%M')
+            params['name'] = datetime.now().strftime('%y%m%d-%H%M')
             params['activity'] = 'raster'
-            params = runlists.update_for_sample(params, self.sample_store.get_current())
+            params = datatools.update_for_sample(params, self.sample_store.get_current())
 
             self.props.config = params
             self.collector.configure(grid, self.props.config)
@@ -326,8 +218,6 @@ class RasterController(GObject.GObject):
         current_dir = directory.replace(home_dir, '~')
         self.widget.raster_dir_fbk.set_text(current_dir)
 
-        #self.widget.raster_points_fbk.set_text('{}'.format(len(self.microscope.grid_xyz)))
-
     def on_done(self, obj=None):
         self.props.state = self.StateType.READY
         self.widget.raster_progress_lbl.set_text("Rastering Completed.")
@@ -382,30 +272,30 @@ class RasterController(GObject.GObject):
     def on_results(self, obj, cell, results):
         score = frame_score(results)
         self.microscope.add_grid_score(cell, score)
-        parent, child = self.model.add_item({
+        x, y, z = self.microscope.props.grid_xyz[cell]
+        parent, child = self.manager.add_item({
             'name': self.props.config['name'],
             'angle': self.props.config['angle'],
-            'origin': self.props.config['origin'],
             'cell': cell,
-            'xyz': self.microscope.props.grid_xyz[cell],
+            'x_pos': x,
+            'y_pos': y,
+            'z_pos': z,
             'score': score,
-            'state': RasterStore.State.ACTIVE,
+            'color': score,
             'uuid': self.props.config['uuid'],
         })
         self.results[self.props.config['uuid']]['scores'][cell] = score
-        self.view.expand_row(parent, False)
+        if parent:
+            self.view.expand_row(parent, False)
         self.view.scroll_to_cell(child, None, True, 0.5, 0.5)
 
     def on_result_activated(self, view, path, column=None):
-        itr = self.model.get_iter(path)
-        uid, angle, x, y, z, state = self.model.get(
-            itr,
-            RasterStore.Data.UUID, RasterStore.Data.ANGLE, RasterStore.Data.X_POS,
-            RasterStore.Data.Y_POS, RasterStore.Data.Z_POS, RasterStore.Data.STATE
-        )
-        if state == RasterStore.State.PARENT:
-            self.beamline.omega.move_to(angle, wait=True)
-            grid = self.results[uid]
+        itr = self.manager.model.get_iter(path)
+        item = self.manager.get_item(itr)
+
+        if self.manager.model.iter_has_child(itr):
+            self.beamline.omega.move_to(item['angle'], wait=True)
+            grid = self.results[item['uuid']]
             self.microscope.load_grid(
                 grid['grid'],
                 {'origin': grid['config']['origin'], 'angle': grid['config']['angle']},
@@ -414,7 +304,7 @@ class RasterController(GObject.GObject):
             self.beamline.sample_stage.move_xyz(*grid['config']['origin'])
             self.widget.raster_directory_fbk.set_text(grid['config']['directory'])
         else:
-            self.beamline.sample_stage.move_xyz(x, y, z)
+            self.beamline.sample_stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])
 
     def on_grid_changed(self, obj, param):
         grid = self.microscope.props.grid_xyz

@@ -10,7 +10,7 @@ from twisted.python.components import globalRegistry
 
 from mxdc.com import ca
 from mxdc.interface.beamlines import IBeamline
-from mxdc.utils import runlists, misc
+from mxdc.utils import datatools, misc
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.log import get_module_logger
 
@@ -49,7 +49,7 @@ class RasterCollector(GObject.GObject):
         self.config['grid'] = grid
         self.config['params'] = parameters
 
-        self.config['frames'] = runlists.generate_grid_frames(grid, parameters)
+        self.config['frames'] = datatools.generate_grid_frames(grid, parameters)
         self.beamline.image_server.set_user(pwd.getpwuid(os.geteuid())[0], os.geteuid(), os.getegid())
 
     def start(self):
@@ -220,7 +220,7 @@ class RasterCollector(GObject.GObject):
 
     def save_metadata(self):
         params = self.config['params']
-        frames, count = runlists.get_disk_frameset(
+        frames, count = datatools.get_disk_frameset(
             params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
         )
         if count > 1:
@@ -228,7 +228,7 @@ class RasterCollector(GObject.GObject):
                 'name': params['name'],
                 'frames':  frames,
                 'filename': '{}.{}'.format(
-                    runlists.make_file_template(params['name']), self.beamline.detector.file_extension
+                    datatools.make_file_template(params['name']), self.beamline.detector.file_extension
                 ),
                 'container': params['container'],
                 'port': params['port'],
