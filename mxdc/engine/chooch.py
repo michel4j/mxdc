@@ -6,6 +6,10 @@ import numpy
 
 import numpy
 from mxdc.utils import converter
+from mxdc.utils.log import get_module_logger
+
+logger = get_module_logger(__name__)
+
 
 class AutoChooch(GObject.GObject):
     """An event driven engine for performing analysis of MAD Scans with CHOOCH.
@@ -35,9 +39,9 @@ class AutoChooch(GObject.GObject):
         self.data[:] = data
         self.data[:,0] *= 1000  # Convert keV to eV
 
-        self.inp_file = "{}.dat".format(self.config['name'])
-        self.esf_file = "{}.esf".format(self.config['name'])
-        self.out_file = "{}.out".format(self.config['name'])
+        self.inp_file = os.path.join(self.config['directory'], "{}.dat".format(self.config['name']))
+        self.esf_file = os.path.join(self.config['directory'], "{}.esf".format(self.config['name']))
+        self.out_file = os.path.join(self.config['directory'], "{}.out".format(self.config['name']))
     
     def start(self):
         """Start the analysis asynchronously. Use signals to determine completion/failure."""
@@ -54,29 +58,30 @@ class AutoChooch(GObject.GObject):
                 'chooch', '-e', element, '-a', edge, self.inp_file, '-o', self.esf_file
             ], stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            GObject.idle_add(self.emit, 'error','CHOOH Failed.')
+            pass # Chooch sometimes exits with non-zero
+            logger.error(e.output)
         else:
             self.read_results(output)
-            GObject.idle_add(self.emit, 'done')
         finally:
-            os.remove(os.path.join(self.config['directory'], self.inp_file))
-
+            os.remove(self.inp_file)
+            GObject.idle_add(self.emit, 'done')
         return self.results
 
     def prepare_input(self):
-        with open(os.path.join(self.config['directory'], self.inp_file), 'w') as handle:
+        with open(self.inp_file, 'w') as handle:
             handle.write('#CHOOCH INPUT DATA\n%d\n' % len(self.data[:,0]))
             numpy.savetxt(handle, self.data[:,0:2], fmt='%0.2f')
 
     def read_results(self, output):
         try:
-            data = numpy.loadtxt(os.path.join(self.config['directory'], self.esf_file), comments="#").astype(float)
+            data = numpy.loadtxt(self.esf_file, comments="#").astype(float)
             self.results['esf'] = {
                 'energy': data[:,0] * 1e-3, # convert back to keV
                 'fpp': data[:,1],
                 'fp': data[:,2]
             }
-        except IOError:
+        except IOError as e:
+            logger.error(e)
             GObject.idle_add(self.emit, 'error', 'CHOOH Failed.')
             return
 
@@ -123,7 +128,7 @@ class AutoChooch(GObject.GObject):
                     **choice
                 )
             new_output += "+------+------------+----------+--------+--------+\n"
-            with open(os.path.join(self.config['directory'], self.out_file), 'w') as handle:
+            with open(self.out_file, 'w') as handle:
                 handle.write(new_output)
             self.results['choices'] = choices
 

@@ -133,9 +133,9 @@ class SampleStore(GObject.GObject):
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
         self.widget.samples_dismount_btn.connect('clicked', lambda x: self.dismount_action())
         self.widget.samples_search_entry.connect('search-changed', self.on_search)
+        self.widget.connect('realize', self.import_mxlive)
 
         globalRegistry.register([], ISampleStore, '', self)
-        self.import_mxlive()
 
     def get_current(self):
         return self.current_sample
@@ -246,9 +246,10 @@ class SampleStore(GObject.GObject):
         ])
         return (not self.filter_text) or (self.filter_text in search_text)
 
-    def import_mxlive(self):
+    def import_mxlive(self, *args, **kwargs):
         data = self.beamline.lims.get_samples(self.beamline.name)
         if not 'error' in data:
+            self.widget.notifier.notify('{} Samples Imported from MxLIVE'.format(len(data)))
             self.load_data(data)
 
     def format_state(self, column, cell, model, itr, data):

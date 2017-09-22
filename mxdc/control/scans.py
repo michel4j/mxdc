@@ -10,7 +10,7 @@ from enum import Enum
 from gi.repository import Gtk, GObject
 from mxdc.beamline.mx import IBeamline
 from mxdc.engine.spectroscopy import XRFScanner, MADScanner, XASScanner
-from mxdc.utils import colors, runlists, misc, science, converter
+from mxdc.utils import colors, datatools, misc, scitools, converter
 from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs, periodictable, plotter
@@ -124,7 +124,7 @@ class ScanController(GObject.GObject):
             params['uuid'] = str(uuid.uuid4())
             params['name'] = datetime.now().strftime('%y%m%d-%H%M')
             params['activity'] = '{}-scan'.format(self.prefix)
-            params = runlists.update_for_sample(params, self.sample_store.get_current())
+            params = datatools.update_for_sample(params, self.sample_store.get_current())
             self.props.config = params
             self.scanner.configure(self.props.config)
             self.scanner.start()
@@ -477,7 +477,7 @@ class XRFScanController(ScanController):
         element_list.sort(reverse=True)
 
         for index, (amount, symbol) in enumerate(element_list):
-            element = science.PERIODIC_TABLE[symbol]
+            element = scitools.PERIODIC_TABLE[symbol]
             if amount < 0.005 * element_list[0][0] or index > 20: continue
             visible = (amount >= 0.1 * element_list[0][0])
             self.results.add_item({

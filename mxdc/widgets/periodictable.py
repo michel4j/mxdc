@@ -1,6 +1,6 @@
 from gi.repository import GObject
 from gi.repository import Gtk, Gdk
-from mxdc.utils import science, colors, gui
+from mxdc.utils import scitools, colors, gui
 
 
 def hex2rgba(spec, alpha=0.5):
@@ -81,8 +81,8 @@ class EdgeSelector(Gtk.Grid):
         # self.close_btn.set_relief(Gtk.ReliefStyle.NONE)
         # self.attach(self.close_btn, 15, 1, 2, 1)
         self.entry = None
-        self.emissions = science.get_energy_database(min_energy, max_energy)
-        for symbol in science.PERIODIC_TABLE.keys():
+        self.emissions = scitools.get_energy_database(min_energy, max_energy)
+        for symbol in scitools.PERIODIC_TABLE.keys():
             element, edges = self.get_element(symbol)
             elm_box = Gtk.EventBox()
             elm_box.override_background_color(Gtk.StateType.NORMAL, TYPE_COLORS[int(element['type'])])
@@ -115,7 +115,7 @@ class EdgeSelector(Gtk.Grid):
             for edge in ['K', 'L1', 'L2', 'L3']
             if "{}-{}".format(symbol, edge) in self.emissions
         ]
-        element = science.PERIODIC_TABLE[symbol]
+        element = scitools.PERIODIC_TABLE[symbol]
         return element, edge_list
 
     def get_edge_specs(self, edge):

@@ -7,7 +7,7 @@ from gi.repository import GObject
 from mxdc.interface.beamlines import IBeamline
 from mxdc.interface.engines import IDataCollector
 from twisted.python.components import globalRegistry
-from mxdc.utils import runlists
+from mxdc.utils import datatools
 from mxdc.utils.log import get_module_logger
 
 
@@ -120,7 +120,7 @@ class Automator(GObject.GObject):
                     if self.beamline.automounter.is_mounted(sample['port']):
                         params = {'name': sample['name']}
                         params.update(task['options'])
-                        params = runlists.update_for_sample(params, sample)
+                        params = datatools.update_for_sample(params, sample)
                         logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
                             sample['name'], params['directory']
                         ))
@@ -133,7 +133,7 @@ class Automator(GObject.GObject):
                     if sample.get('results') is not None:
                         params = {}
                         params.update(task['options'])
-                        params = runlists.update_for_sample(params, sample)
+                        params = datatools.update_for_sample(params, sample)
                         GObject.idle_add(self.emit, 'analysis-request', params)
                     else:
                         self.stop(error='Data not available. Unable to continue automation!')

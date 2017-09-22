@@ -7,8 +7,8 @@ from enum import Enum
 
 gi.require_version('Gtk', '3.0')
 
-from gi.repository import Gtk, GObject
-
+from gi.repository import Gtk, GObject, Gdk
+from mxdc.utils import colors
 
 class GUIFile(object):
     def __init__(self, name, root=None):
@@ -125,6 +125,7 @@ class ColumnType(object):
     TOGGLE = 'toggle'
     ICON = 'pixbuf'
     NUMBER = 'number'
+    COLORSCALE = 'colorscale'
 
 
 class TreeManager(GObject.GObject):
@@ -138,10 +139,11 @@ class TreeManager(GObject.GObject):
     flat = False  # whether tree is flat single level or not
     single_click = False
 
-    def __init__(self, view):
+    def __init__(self, view, colormap=None):
         super(TreeManager, self).__init__()
         self.model = Gtk.TreeStore(*self.Types)
         self.view = view
+        self.colormap = colormap or colors.PERCENT_COLORMAP
         self.view.set_model(self.model)
         self.add_columns()
         self.selection = self.view.get_selection()
@@ -260,6 +262,13 @@ class TreeManager(GObject.GObject):
                 column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
                 column.set_fixed_width(50)
                 self.view.append_column(column)
+            elif spec.type == ColumnType.COLORSCALE:
+                renderer = Gtk.CellRendererText()
+                column = Gtk.TreeViewColumn(title=spec.title, cell_renderer=renderer)
+                column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
+                column.set_fixed_width(50)
+                self.view.append_column(column)
+                column.set_cell_data_func(renderer, self.format_colorscale, spec)
             elif spec.type in [ColumnType.TEXT, ColumnType.NUMBER]:
                 renderer = Gtk.CellRendererText()
                 column = Gtk.TreeViewColumn(title=spec.title, cell_renderer=renderer, text=spec.data.value)
@@ -271,6 +280,24 @@ class TreeManager(GObject.GObject):
                     renderer.set_alignment(0.8, 0.5)
                     renderer.props.family = 'Monospace'
                 self.view.append_column(column)
+
+    def format_colorscale(self, column, renderer, model, itr,spec):
+        """
+        Format a colorscale color based on a percentage value
+        @param column: Gtk.TreeViewColumn
+        @param renderer: Gtk.CellRenderer
+        @param model: Gtk.TreeModel
+        @param itr: Gtk.TreeIter
+        @param spec:    RowSpec
+        @return:
+        """
+        if model.iter_has_child(itr):
+            renderer.set_property('text', '')
+        else:
+            value = model[itr][spec.data.value]
+            color = Gdk.RGBA(**self.colormap.rgba(value))
+            renderer.set_property("foreground-rgba", color)
+            renderer.set_property("text", u"\u25a0")
 
     def format_cell(self, column, renderer, model, itr, spec):
         """

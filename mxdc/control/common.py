@@ -131,13 +131,21 @@ class AppNotifier(object):
     def on_notifier_closed(self, button):
         self.revealer.set_reveal_child(False)
 
-    def notify(self, message, important=False):
+    def notify(self, message, level=Gtk.MessageType.INFO, important=False, duration=3):
+        """
+        Display an in-app notification.
+        @param message: Text to display
+        @param level: Gtk.MessageType
+        @param duration: Duration too display message in seconds. Ignored if 'important' is True
+        @param important: Boolean, if True, the message stays on until closed manually
+        @return:
+        """
         if self.revealer.get_reveal_child():
             self.revealer.set_reveal_child(False)
         self.label.set_text(message)
         self.revealer.set_reveal_child(True)
         if not important:
-            GObject.timeout_add(7000, self.hide_notification)
+            GObject.timeout_add(1000*duration, self.hide_notification)
 
     def hide_notification(self):
         self.revealer.set_reveal_child(False)
