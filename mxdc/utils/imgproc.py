@@ -3,7 +3,7 @@ import numpy
 from PIL import Image
 from PIL import ImageChops
 from PIL import ImageFilter
-from mxdc.utils.science import find_peaks
+from mxdc.utils.scitools import find_peaks
 from scipy import ndimage
 
 THRESHOLD = 20

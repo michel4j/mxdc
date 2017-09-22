@@ -4,7 +4,7 @@ import re
 import numpy
 from mxdc.utils import converter
 from mxdc.utils import json
-from scipy import interpolate, optimize
+from scipy import interpolate, optimize, signal
 from utils import fitting
 
 SPACE_GROUP_NAMES = {
@@ -23,16 +23,17 @@ SPACE_GROUP_NAMES = {
     211: 'I432', 214: 'I4(1)32'
 }
 
-EMISSIONS_DATA = {}
-PERIODIC_TABLE = {}
 PEAK_FWHM = 0.1
 
 # load data tables
 # Data was compiled from the NIST database
 # Emission rates were compiled using the PyMCA tables
 
-EMISSIONS_DATA = json.load(file(os.path.join(os.path.dirname(__file__), 'data', 'emissions.json')))
-PERIODIC_TABLE = json.load(file(os.path.join(os.path.dirname(__file__), 'data', 'periodictable.json')))
+with open(os.path.join(os.path.dirname(__file__), 'data', 'emissions.json'), 'r') as handle:
+    EMISSIONS_DATA = json.load(handle)
+
+with open(os.path.join(os.path.dirname(__file__), 'data', 'periodictable.json'), 'r') as handle:
+    PERIODIC_TABLE = json.load(handle)
 
 
 def nearest(x, precision):
@@ -138,72 +139,10 @@ def get_energy_database(min_energy=0, max_energy=1000):
     return data_dict
 
 
-def savitzky_golay(data, kernel=9, order=3, deriv=0):
-    """
-        applies a Savitzky-Golay filter
-        input parameters:
-        - data => data as a 1D numpy array
-        - kernel => a positiv integer > 2*order giving the kernel size
-        - order => order of the polynomal
-        - deriv => derivative to return default (smooth only)
-        returns smoothed data as a numpy array
-
-        invoke like:
-        smoothed = savitzky_golay(<rough>, [kernel = value], [order = value]
-    """
-    try:
-        kernel = abs(int(kernel))
-        order = abs(int(order))
-    except ValueError:
-        raise ValueError("kernel and order have to be of type int (floats will be converted).")
-    if kernel % 2 != 1: kernel += 1
-    if kernel < 1: kernel = 1
-
-    if kernel < order + 2:
-        raise TypeError("kernel is to small for the polynomals\nshould be > order + 2")
-
-    # a second order polynomal has 3 coefficients
-    order_range = range(order + 1)
-    half_window = (kernel - 1) // 2
-    b = numpy.mat([[k ** i for i in order_range] for k in range(-half_window, half_window + 1)])
-    # since we don't want the derivative, else choose [1] or [2], respectively
-    assert deriv <= 2
-    m = numpy.linalg.pinv(b).A[deriv]
-    window_size = len(m)
-    half_window = (window_size - 1) // 2
-
-    # precompute the offset values for better performance
-    offsets = range(-half_window, half_window + 1)
-    offset_data = zip(offsets, m)
-
-    smooth_data = list()
-
-    # temporary data, extended with a mirror image to the left and right
-    firstval = data[0]
-    lastval = data[len(data) - 1]
-    # left extension: f(x0-x) = f(x0)-(f(x)-f(x0)) = 2f(x0)-f(x)
-    # right extension: f(xl+x) = f(xl)+(f(xl)-f(xl-x)) = 2f(xl)-f(xl-x)
-    leftpad = numpy.zeros(half_window) + 2 * firstval
-    rightpad = numpy.zeros(half_window) + 2 * lastval
-    leftchunk = data[1:1 + half_window]
-    leftpad = leftpad - leftchunk[::-1]
-    rightchunk = data[len(data) - half_window - 1:len(data) - 1]
-    rightpad = rightpad - rightchunk[::-1]
-    data = numpy.concatenate((leftpad, data))
-    data = numpy.concatenate((data, rightpad))
-
-    for i in range(half_window, len(data) - half_window):
-        value = 0.0
-        for offset, weight in offset_data:
-            value += weight * data[i + offset]
-        smooth_data.append(value)
-    return numpy.array(smooth_data)
-
-
 def smooth_data(data, times=1, window=11, order=1):
     ys = data
     for _ in range(times):
-        ys = savitzky_golay(ys, kernel=window, order=order)
+        ys = signal.savgol_filter(ys, window, order)
     return ys
 
 
@@ -213,10 +152,10 @@ def find_peaks(x, y, w=9, sensitivity=0.01, smooth=True):
         ys = smooth_data(y, times=2, window=w)
     else:
         ys = y
-    ypp = savitzky_golay(ys, w, 2, 2)
+    ypp = signal.savgol_filter(ys, w, 2, deriv=2)
     ypp[ypp > 0] = 0.0
     ypp *= -1
-    yp = savitzky_golay(ypp, 1 + w / 2, 1, 1)
+    yp = signal.savgol_filter(ypp, 1+w/2, 1, deriv=1)
     peak_patt = "(H{%d}.L{%d})" % (hw - 1, hw - 1)
     ps = ""
     for v in yp:
@@ -236,53 +175,6 @@ def find_peaks(x, y, w=9, sensitivity=0.01, smooth=True):
     peaks = [v[:2] for v in peak_positions if (v[1] >= sensitivity * ymax and v[2] > 0.5 * sensitivity * yppmax)]
     return peaks
 
-
-def peak_search(x, y, w=7, threshold=0.01, min_peak=0.01):
-    # make sure x is in ascending order
-    if x[0] > x[-1]:
-        x = x[::-1]
-        y = y[::-1]
-    peaks = []
-    t_peaks = []
-    ypp = savitzky_golay(y, kernel=w, order=3, deriv=2)
-    i = 0
-    while i < len(x):
-        # find start of peak
-        while -ypp[i] <= 0.0 and i < len(x) - 1:
-            i += 1
-        if i < len(x) - 1:
-            lo = i
-            # lo found, now find hi
-            while -ypp[i] > 0.0 and i < (len(x) - 1):
-                i += 1
-            if i < len(x) - 1:
-                hi = i
-                # hi found
-                fwhm = x[hi] - x[lo]
-                if sum(-ypp[lo:hi] ** 4) == 0.0:
-                    continue
-                else:
-                    peak_pos = sum(x[lo:hi] * (-ypp[lo:hi] ** 4)) / sum(-ypp[lo:hi] ** 4)
-                stdpk = numpy.std(y[lo:hi])
-                pk = lo
-                while x[pk] < peak_pos and pk < hi:
-                    pk += 1
-                peak_height = y[pk]
-                t_peaks.append([float(peak_pos), float(peak_height), float(fwhm), float(stdpk)])
-        i += 1
-
-    if len(t_peaks) == 0:
-        return []
-
-    pk_heights = numpy.array([v[1] for v in t_peaks])
-    max_y = max(pk_heights)
-    std_h = numpy.std(pk_heights)
-    std_y = numpy.std(y)
-    for peak in t_peaks:
-        if peak[2] >= 0.8 * threshold and peak[2] <= 10 * threshold and peak[3] > abs(std_h - std_y) * min_peak and \
-                        peak[1] > min_peak * max_y:
-            peaks.append(peak)
-    return peaks
 
 
 def get_peak_elements(energy, peaks=[], prec=0.05):
@@ -367,13 +259,14 @@ def generate_spectrum(info, energy, xa):
 
 
 def _rebin(a, *args):
-    '''rebin ndarray data into a smaller ndarray of the same rank whose dimensions
+    """rebin ndarray data into a smaller ndarray of the same rank whose dimensions
     are factors of the original dimensions. eg. An array with 6 columns and 4 rows
     can be reduced to have 6,3,2 or 1 columns and 4,2 or 1 rows.
     example usages:
     >>> a=rand(6,4); b=rebin(a,3,2)
     >>> a=rand(6); b=rebin(a,2)
-    '''
+    """
+
     shape = a.shape
     lenShape = len(shape)
     factor = numpy.asarray(shape) / numpy.asarray(args)

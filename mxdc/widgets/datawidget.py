@@ -3,8 +3,8 @@ import uuid
 
 from gi.repository import Gtk, Gdk, GObject
 from mxdc.beamline.mx import IBeamline
-from mxdc.utils import gui, converter, runlists, glibref, misc
-from mxdc.utils.runlists import StrategyType, Strategy
+from mxdc.utils import gui, converter, datatools, glibref, misc
+from mxdc.utils.datatools import StrategyType, Strategy
 from twisted.python.components import globalRegistry
 
 
@@ -65,7 +65,7 @@ class RunItem(GObject.GObject):
 
     def on_info_changed(self, item, param):
         if self.props.info:
-            self.frames = runlists.generate_frame_names(self.props.info)
+            self.frames = datatools.generate_frame_names(self.props.info)
             self.props.size = len(self.frames)
             self.props.title = '{},...'.format(self.frames[0])
             self.props.subtitle = '{} \xc3\x97 {:0.2g}\xc2\xb0/{:0.2g}s  @ {:0.5g} keV'.format(
@@ -186,7 +186,7 @@ class DataEditor(gui.BuilderMixin):
         ]
 
     def configure(self, info):
-        frames = runlists.generate_frame_names(info)
+        frames = datatools.generate_frame_names(info)
         info['frames'] = len(frames)
         info['distance'] = round(
             converter.resol_to_dist(info['resolution'], self.beamline.detector.mm_size, info['energy']), 1

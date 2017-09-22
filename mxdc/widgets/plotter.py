@@ -15,7 +15,6 @@ from matplotlib.colors import Normalize
 from matplotlib.dates import MinuteLocator, SecondLocator
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter
-from misc import ActiveProgressBar
 from mpl_toolkits.mplot3d import axes3d
 from mxdc.interface.engines import IScanPlotter
 from mxdc.utils import misc

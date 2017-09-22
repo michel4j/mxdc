@@ -1,5 +1,5 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
-from mxdc.settings import *
+from mxdc.devtypes import *
 import os
 import numpy
 
