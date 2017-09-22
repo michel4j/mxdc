@@ -1,5 +1,5 @@
 # BCM GLOBAL Settings for SIM Beamline
-from mxdc.settings import *
+from mxdc.devtypes import *
 import os
 
 BEAMLINE_NAME = 'SIM-1'

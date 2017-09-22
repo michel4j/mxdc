@@ -4,7 +4,7 @@ from twisted.python.components import globalRegistry
 
 from device.stages import Sample3Stage, Sample2Stage
 from mxdc.interface.beamlines import IBeamline
-from mxdc.settings import *  # @UnusedWildImport
+from mxdc.devtypes import *  # @UnusedWildImport
 
 
 class MXBeamline(object):

@@ -8,7 +8,7 @@ from mxdc.com import ca
 from mxdc.engine import snapshot
 from mxdc.interface.beamlines import IBeamline
 from mxdc.interface.engines import IDataCollector
-from mxdc.utils import json, runlists
+from mxdc.utils import json, datatools
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
@@ -50,7 +50,7 @@ class DataCollector(GObject.GObject):
     def configure(self, run_data, take_snapshots=True):
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
-        datasets, wedges = runlists.generate_wedges(self.config['runs'])
+        datasets, wedges = datatools.generate_wedges(self.config['runs'])
         self.config['wedges'] = wedges
         self.config['datasets'] = datasets
         self.beamline.image_server.set_user(pwd.getpwuid(os.geteuid())[0], os.geteuid(), os.getegid())
@@ -109,7 +109,7 @@ class DataCollector(GObject.GObject):
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
 
-            for frame in runlists.generate_frames(wedge):
+            for frame in datatools.generate_frames(wedge):
                 if self.stopped or self.paused: break
                 # Prepare image header
                 detector_parameters = {
@@ -221,20 +221,20 @@ class DataCollector(GObject.GObject):
     def save_metadata(self, data_list):
         results = []
         for params in data_list:
-            frames, count = runlists.get_disk_frameset(
+            frames, count = datatools.get_disk_frameset(
                 params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
             )
-            if count < 2 or params['strategy'] == runlists.StrategyType.SINGLE: continue
+            if count < 2 or params['strategy'] == datatools.StrategyType.SINGLE: continue
             metadata = {
                 'name': params['name'],
                 'frames':  frames,
                 'filename': '{}.{}'.format(
-                    runlists.make_file_template(params['name']), self.beamline.detector.file_extension
+                    datatools.make_file_template(params['name']), self.beamline.detector.file_extension
                 ),
                 'group': params['group'],
                 'container': params['container'],
                 'port': params['port'],
-                'type': runlists.StrategyDataType.get(params['strategy']),
+                'type': datatools.StrategyDataType.get(params['strategy']),
                 'sample_id': params['sample_id'],
                 'uuid': params['uuid'],
                 'directory': params['directory'],
@@ -291,13 +291,13 @@ class DataCollector(GObject.GObject):
         if self.paused:
             GObject.idle_add(self.emit, 'paused', False, {})
             self.paused = False
-            frame_list = runlists.generate_run_list(self.config['runs'])
-            existing, bad = runlists.check_frame_list(
+            frame_list = datatools.generate_run_list(self.config['runs'])
+            existing, bad = datatools.check_frame_list(
                 frame_list, self.beamline.detector.file_extension, detect_bad=False
             )
             for run in self.config['runs']:
-                run['skip'] = runlists.merge_framesets(existing.get(run['name'], ''), run.get('skip', ''),
-                                                       bad.get(run['name'], ''))
+                run['skip'] = datatools.merge_framesets(existing.get(run['name'], ''), run.get('skip', ''),
+                                                        bad.get(run['name'], ''))
             self.configure(self.config['runs'], take_snapshots=False)
             self.start()
 

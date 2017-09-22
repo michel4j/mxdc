@@ -1,12 +1,12 @@
 """This module defines classes aid interfaces for X-Ray fluorescence."""
 from mxdc.interface.beamlines import IBeamline
-from mxdc.engine.autochooch import AutoChooch
+from mxdc.engine.chooch import AutoChooch
 from mxdc.engine.scanning import BasicScan, ScanError
 from mxdc.service.utils import  send_array
-from mxdc.utils import science, json, converter, misc, runlists
+from mxdc.utils import scitools, json, converter, misc, datatools
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_short_uuid, multi_count
-from mxdc.utils.science import *
+from mxdc.utils.scitools import *
 from datetime import datetime
 from twisted.python.components import globalRegistry
 from zope.interface import Interface, Attribute, invariant
@@ -95,21 +95,21 @@ class XRFScanner(BasicScan):
         y[sel] = 0.0
 
         # set FWHM of detector
-        science.PEAK_FWHM = self.beamline.config.get('xrf_fwhm', 0.1)
-        elements, bblocks, coeffs = science.interprete_xrf(x, y, energy)
+        scitools.PEAK_FWHM = self.beamline.config.get('xrf_fwhm', 0.1)
+        elements, bblocks, coeffs = scitools.interprete_xrf(x, y, energy)
         assigned = {}
         for i, el_info in enumerate(elements):
             symbol = el_info[0]
             if coeffs[i] > 0.001:
                 prob = 100.0 * bblocks[:, i].sum() / y.sum()
                 if prob > 0.1:
-                    line_info = science.get_line_info(el_info, coeffs[i])
+                    line_info = scitools.get_line_info(el_info, coeffs[i])
                     if line_info is not None:
-                        assigned[symbol] = [prob, science.get_line_info(el_info, coeffs[i])]
+                        assigned[symbol] = [prob, scitools.get_line_info(el_info, coeffs[i])]
 
                         # twisted does not like numpy.float64 so we need to convert x, y to native python
         # floats here
-        ys = science.smooth_data(y, times=3, window=11)
+        ys = scitools.smooth_data(y, times=3, window=11)
         self.results = {
             'data': {
                 'energy': x.tolist(),
@@ -381,7 +381,7 @@ class XASScanner(BasicScan):
                 self.config['start_time'] = datetime.now()
                 for i, v in enumerate(self.config['targets']):
                     k = converter.energy_to_kspace(v - self.config['edge_energy'])
-                    t = science.exafs_time_func(self.config['exposure'], k)
+                    t = scitools.exafs_time_func(self.config['exposure'], k)
                     targets_times.append((i, v, k, t))
                     self.total_time += t
                 self.total_time *= self.config['scans']
@@ -475,7 +475,7 @@ class XASScanner(BasicScan):
 
     def save_metadata(self):
         params = self.config
-        frames, count = runlists.get_disk_frameset(params['directory'], params['frame_glob'])
+        frames, count = datatools.get_disk_frameset(params['directory'], params['frame_glob'])
         if count:
             metadata = {
                 'name': params['name'],
