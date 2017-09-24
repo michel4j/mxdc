@@ -1,11 +1,12 @@
 import gi
+import atexit
 
 gi.require_version('Gtk', '3.0')
 from mxdc.beamline.mx import IBeamline
 from mxdc.utils import config
 
 config.get_session()  # update the session configuration
-from mxdc.engine.scripting import get_scripts
+from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.control import common, status
@@ -34,7 +35,7 @@ COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reser
 class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     gui_roots = {
         'data/mxdc_main': [
-            'auto_groups_pop','scans_ptable_pop', 'app_menu', 'header_bar',
+            'auto_groups_pop', 'scans_ptable_pop', 'app_menu', 'header_bar',
             'mxdc_main',
         ]
     }
@@ -74,7 +75,6 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         while Gtk.events_pending():
             Gtk.main_iteration()
 
-
     def add_menu_actions(self):
         self.quit_mnu.connect('activate', lambda x: self.do_quit())
         self.about_mnu.connect('activate', lambda x: self.do_about())
@@ -84,15 +84,16 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.beam_mnu.connect('activate', lambda x: self.scripts['SetBeamMode'].start())
 
     def build_gui(self):
+        self.notifier = common.AppNotifier(self.notification_lbl, self.notification_revealer, self.notification_btn)
+
+        self.analysis = analysis.AnalysisController(self)
+        self.samples = samples.SamplesController(self)
+
         self.hutch_manager = setup.SetupController(self)
         self.status_panel = status.StatusPanel(self)
-        self.samples = samples.SamplesController(self)
         self.datasets = datasets.DatasetsController(self)
         self.automation = datasets.AutomationController(self)
         self.scans = scans.ScanManager(self)
-        self.analysis = analysis.AnalysisController(self)
-
-        self.notifier = common.AppNotifier(self.notification_lbl, self.notification_revealer, self.notification_btn)
 
         self.app_mnu_btn.set_popup(self.app_menu)
 

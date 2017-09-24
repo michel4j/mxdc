@@ -9,7 +9,7 @@ from datasets import IDatasets
 from enum import Enum
 from gi.repository import Gtk, GObject
 from mxdc.beamline.mx import IBeamline
-from mxdc.engine.spectroscopy import XRFScanner, MADScanner, XASScanner
+from mxdc.engines.spectroscopy import XRFScanner, MADScanner, XASScanner
 from mxdc.utils import colors, datatools, misc, scitools, converter
 from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
 from mxdc.utils.log import get_module_logger
@@ -286,11 +286,11 @@ class MADResultsManager(TreeManager):
 
     Types = [str, str, float, str, float, float, float]
     Columns = ColumnSpec(
-        (Data.LABEL, 'Label', ColumnType.TEXT, '{}'),
-        (Data.ENERGY, 'Energy', ColumnType.NUMBER, '{:0.3f}'),
-        (Data.WAVELENGTH, u"\u03BB", ColumnType.NUMBER, '{:0.4f}'),
-        (Data.FP, "f'", ColumnType.NUMBER, '{:0.1f}'),
-        (Data.FPP, 'f"', ColumnType.NUMBER, '{:0.1f}'),
+        (Data.LABEL, 'Label', ColumnType.TEXT, '{}', True),
+        (Data.ENERGY, 'Energy', ColumnType.NUMBER, '{:0.3f}', True),
+        (Data.WAVELENGTH, u"\u03BB", ColumnType.NUMBER, '{:0.4f}', True),
+        (Data.FP, "f'", ColumnType.NUMBER, '{:0.1f}', True),
+        (Data.FPP, 'f"', ColumnType.NUMBER, '{:0.1f}', True),
     )
     parent = Data.NAME
     run_info = GObject.Property(type=object)
@@ -317,10 +317,10 @@ class XRFResultsManager(TreeManager):
 
     Types = [bool, str, str, float]
     Columns = ColumnSpec(
-        (Data.SYMBOL, '', ColumnType.TEXT, '{}'),
-        (Data.NAME, 'Element', ColumnType.TEXT, '{}'),
-        (Data.PERCENT, 'Amount', ColumnType.NUMBER, '{:0.1f} %'),
-        (Data.SELECTED, '', ColumnType.TOGGLE, '{}'),
+        (Data.SYMBOL, '', ColumnType.TEXT, '{}', False),
+        (Data.NAME, 'Element', ColumnType.TEXT, '{}', True),
+        (Data.PERCENT, 'Amount', ColumnType.NUMBER, '{:0.1f} %', False),
+        (Data.SELECTED, '', ColumnType.TOGGLE, '{}', False),
     )
     flat = True
 
@@ -336,10 +336,10 @@ class XASResultsManager(TreeManager):
 
     Types = [str, str, int, str, float, float]
     Columns = ColumnSpec(
-        (Data.SCAN, 'Scan', ColumnType.TEXT, '{}'),
-        (Data.TIME, 'TIME', ColumnType.TEXT, '{}'),
-        (Data.X_PEAK, 'X-Peak', ColumnType.NUMBER, '{:0.3f}'),
-        (Data.Y_PEAK, 'Y-Peak', ColumnType.NUMBER, '{:0.1f}'),
+        (Data.SCAN, 'Scan', ColumnType.TEXT, '{}', True),
+        (Data.TIME, 'TIME', ColumnType.TEXT, '{}', True),
+        (Data.X_PEAK, 'X-Peak', ColumnType.NUMBER, '{:0.3f}', True),
+        (Data.Y_PEAK, 'Y-Peak', ColumnType.NUMBER, '{:0.1f}', True),
     )
     parent = Data.NAME
 

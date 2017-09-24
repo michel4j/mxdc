@@ -1,6 +1,8 @@
-from mxdc.interface.com import IProcessVariable
-from gi.repository import GObject       # @UnresolvedImport
-from zope.interface import implements   # @UnresolvedImport
+from gi.repository import GObject  # @UnresolvedImport
+from zope.interface import implements  # @UnresolvedImport
+
+from mxdc.com.interfaces import IProcessVariable
+
 
 class BasePV(GObject.GObject):
     implements(IProcessVariable)

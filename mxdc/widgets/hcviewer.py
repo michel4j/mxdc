@@ -1,17 +1,15 @@
-from mxdc.interface.beamlines import IBeamline
-from mxdc.engine.scripting import get_scripts
-from mxdc.utils.log import get_module_logger
-from mxdc.utils.video import add_hc_decorations
-from mxdc.utils import gui
-from mxdc.widgets.misc import ActiveEntry, HealthDisplay, ScriptButton
-from mxdc.widgets.sampleviewer import SampleViewer
-from mxdc.widgets.video import VideoWidget
-from twisted.python.components import globalRegistry
-from gi.repository import GObject
-from gi.repository import Gtk
 import math
 import os
+
+from gi.repository import GObject
+from gi.repository import Gtk
 from gi.repository import Pango
+from mxdc.widgets.sampleviewer import SampleViewer
+
+from mxdc.utils.log import get_module_logger
+from mxdc.utils.video import add_hc_decorations
+from mxdc.widgets.misc import ActiveEntry, HealthDisplay, ScriptButton
+from mxdc.widgets.video import VideoWidget
 
 logger = get_module_logger(__name__)
 

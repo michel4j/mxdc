@@ -11,7 +11,7 @@ from twisted.python.components import globalRegistry
 
 from microscope import IMicroscope
 from mxdc.beamline.mx import IBeamline
-from mxdc.engine.rastering import RasterCollector
+from mxdc.engines.rastering import RasterCollector
 from mxdc.utils import colors, datatools, config, misc
 from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec
 from mxdc.utils.converter import resol_to_dist
@@ -45,13 +45,13 @@ class RasterResultsManager(TreeManager):
 
     Types = [str, float, float, float, float, float, int, float, str]
     Columns = ColumnSpec(
-        (Data.NAME, 'Name', ColumnType.TEXT, '{}'),
-        (Data.ANGLE, 'Angle',  ColumnType.NUMBER, '{:0.1f}\xc2\xb0'),
-        (Data.X_POS, 'X (mm)', ColumnType.NUMBER, '{:0.4f}'),
-        (Data.Y_POS, 'Y (mm)', ColumnType.NUMBER, '{:0.4f}'),
-        (Data.Z_POS, 'Z (mm)', ColumnType.NUMBER, '{:0.4f}'),
-        (Data.SCORE, 'Score (%)', ColumnType.NUMBER, '{:0.1f}'),
-        (Data.COLOR, '', ColumnType.COLORSCALE, '{}'),
+        (Data.NAME, 'Name', ColumnType.TEXT, '{}', True),
+        (Data.ANGLE, 'Angle',  ColumnType.NUMBER, '{:0.1f}\xc2\xb0', True),
+        (Data.X_POS, 'X (mm)', ColumnType.NUMBER, '{:0.4f}', True),
+        (Data.Y_POS, 'Y (mm)', ColumnType.NUMBER, '{:0.4f}', True),
+        (Data.Z_POS, 'Z (mm)', ColumnType.NUMBER, '{:0.4f}', True),
+        (Data.SCORE, 'Score (%)', ColumnType.NUMBER, '{:0.1f}', True),
+        (Data.COLOR, '', ColumnType.COLORSCALE, '{}', False),
     )
     parent = Data.NAME
 

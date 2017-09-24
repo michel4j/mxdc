@@ -1,5 +1,5 @@
-from mxdc.engine.centering import auto_center_loop, auto_center_crystal, auto_center_capillary
-from mxdc.engine.scripting import Script
+from mxdc.engines.centering import auto_center_loop, auto_center_crystal, auto_center_capillary
+from mxdc.engines.scripting import Script
 
 
 class CenterSample(Script):

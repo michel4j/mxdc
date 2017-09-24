@@ -62,6 +62,20 @@ StrategyDataType = {
     StrategyType.POWDER: 'XRD_DATA'
 }
 
+StrategyProcType = {
+    StrategyType.SINGLE:   '',
+    StrategyType.FULL:     'proc-native',
+    StrategyType.SCREEN_4: 'proc-screen',
+    StrategyType.SCREEN_3: 'proc-screen',
+    StrategyType.SCREEN_2: 'proc-screen',
+    StrategyType.POWDER:   'proc-powder'
+}
+
+class AnalysisType:
+    MX_NATIVE, MX_ANOM, MX_SCREEN, RASTER, XRD = range(5)
+
+
+
 
 def update_for_sample(info, sample=None):
     # Add directory and related auxillary information to dictionary
@@ -84,6 +98,7 @@ def update_for_sample(info, sample=None):
     activity_template = template[1:] if template[0] == os.sep else template
     dir_template = os.path.join(misc.get_project_home(), '{session}', activity_template)
     params['directory'] = dir_template.format(**params).replace('//', '/')
+    params['sample'] = sample
     return params
 
 

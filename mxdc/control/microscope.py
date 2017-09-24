@@ -7,9 +7,9 @@ import numpy
 from gi.repository import Gtk, Pango, Gdk, GObject
 from matplotlib.path import Path
 from mxdc.beamline.mx import IBeamline
-from mxdc.engine.scripting import get_scripts
+from mxdc.engines.scripting import get_scripts
 from mxdc.utils import imgproc, colors
-from mxdc.utils.decorators import async
+from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget
@@ -377,7 +377,7 @@ class Microscope(GObject.GObject):
         self.show_grid = True
         self.edit_grid = False
 
-    @async
+    @async_call
     def center_pixel(self, x, y):
         ix, iy, xmm, ymm = self.video.screen_to_mm(x, y)
         if not self.beamline.sample_stage.is_busy():

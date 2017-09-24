@@ -5,8 +5,8 @@ import time
 import common
 from gi.repository import GObject, Gio, Gtk
 from mxdc.beamline.mx import IBeamline
-from mxdc.engine.diffraction import DataCollector
-from engine.automation import Automator
+from mxdc.engines.diffraction import DataCollector
+from mxdc.engines.automation import Automator
 from mxdc.utils import converter, datatools, misc
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import datawidget, dialogs, arrowframe
@@ -358,7 +358,6 @@ class DatasetsController(GObject.GObject):
         labels = {
             'omega': (self.beamline.omega, self.widget.dsets_omega_fbk, '{:0.1f} deg'),
             'energy': (self.beamline.energy, self.widget.dsets_energy_fbk, '{:0.3f} keV'),
-            # 'sample': (self.sample_store, self.widget.dsets_sample_fbk, '{}'),
             'attenuation': (self.beamline.attenuator, self.widget.dsets_attenuation_fbk, '{:0.0f} %'),
             'maxres': (self.beamline.maxres, self.widget.dsets_maxres_fbk, '{:0.2f} A'),
             'aperture': (self.beamline.aperture, self.widget.dsets_aperture_fbk, '{:0.0f} \xc2\xb5m'),

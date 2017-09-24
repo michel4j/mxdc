@@ -16,12 +16,13 @@ from matplotlib.dates import MinuteLocator, SecondLocator
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter
 from mpl_toolkits.mplot3d import axes3d
-from mxdc.interface.engines import IScanPlotter
+from twisted.python.components import globalRegistry
+from zope.interface import implements
+
+from mxdc.engines.interfaces import IScanPlotter
+from mxdc.utils import fitting
 from mxdc.utils import misc
 from mxdc.widgets import dialogs
-from twisted.python.components import globalRegistry
-from utils import fitting
-from zope.interface import implements
 
 rcParams['legend.loc'] = 'best'
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')

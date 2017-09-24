@@ -2,14 +2,14 @@ import time
 import uuid
 
 from gi.repository import Gtk, Gdk, GObject
+from twisted.python.components import globalRegistry
+
 from mxdc.beamline.mx import IBeamline
 from mxdc.utils import gui, converter, datatools, glibref, misc
 from mxdc.utils.datatools import StrategyType, Strategy
-from twisted.python.components import globalRegistry
 
 
-
-def _calc_skip(strategy, delta, first):
+def calculate_skip(strategy, delta, first):
     if strategy in [StrategyType.FULL, StrategyType.SINGLE, StrategyType.POWDER]:
         return ''
     elif strategy == StrategyType.SCREEN_4:
@@ -69,7 +69,8 @@ class RunItem(GObject.GObject):
             self.props.size = len(self.frames)
             self.props.title = '{},...'.format(self.frames[0])
             self.props.subtitle = '{} \xc3\x97 {:0.2g}\xc2\xb0/{:0.2g}s  @ {:0.5g} keV'.format(
-                self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'), self.props.info.get('energy')
+                self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
+                self.props.info.get('energy')
             )
 
     def set_collected(self, frame):
@@ -178,7 +179,7 @@ class DataEditor(gui.BuilderMixin):
             self.item.handler_disconnect(link)
         self.item = item
         self.update()
-        self.data_save_btn.set_sensitive(True)
+        # self.data_save_btn.set_sensitive(True)
 
         self.item_links = [
             self.item.connect('notify::state', self.update),
@@ -219,12 +220,11 @@ class DataEditor(gui.BuilderMixin):
             name_exists = bool(info.get('name'))
             self.data_save_btn.set_sensitive(name_exists and self.has_changed(info))
             if not name_exists:
-                self.data_name_entry.get_style_context().add_class('error')
+                self.data_name_entry.get_style_context().add_class('warning')
             else:
-                self.data_name_entry.get_style_context().remove_class('error')
+                self.data_name_entry.get_style_context().remove_class('warning')
         if self.use_dialog:
             self.data_save_btn.set_sensitive(True)
-
 
     def get_parameters(self):
         info = {}
@@ -255,7 +255,7 @@ class DataEditor(gui.BuilderMixin):
 
         # Calculate skip,
         info.update({
-            'skip': _calc_skip(info['strategy'], info['delta'], info['first']),
+            'skip': calculate_skip(info['strategy'], info['delta'], info['first']),
             'strategy_desc': Strategy[info['strategy']]['desc'],
             'activity': Strategy[info['strategy']]['activity'],
         })
@@ -275,7 +275,7 @@ class DataEditor(gui.BuilderMixin):
         default.update(info)
         if delta:
             default['delta'] = delta
-        default['skip'] = _calc_skip(strategy_type, default['delta'], default['first'])
+        default['skip'] = calculate_skip(strategy_type, default['delta'], default['first'])
         default.update(Strategy[strategy_type])
         default['strategy_desc'] = default.pop('desc')
         return default
@@ -297,6 +297,7 @@ class DataEditor(gui.BuilderMixin):
             field_name = 'data_strategy_cbox'
             field = getattr(self, field_name)
             field.append(str(id), params['desc'])
+        self.data_name_entry.connect('changed', self.check_name)
 
     def on_entry_changed(self, obj, event, field_name):
         new_values = self.get_parameters()
@@ -339,6 +340,12 @@ class DataEditor(gui.BuilderMixin):
             return set(info.items()) - set(new_values.items())
         elif self.item:
             return True
+
+    def check_name(self, entry):
+        if entry.get_text().strip():
+            self.data_save_btn.set_sensitive(True)
+        else:
+            self.data_save_btn.set_sensitive(False)
 
 
 class RunEditor(DataEditor):
