@@ -5,15 +5,15 @@ from twisted.internet import gtk3reactor
 
 gtk3reactor.install()
 
-from mxdc.service import mxdctools
+from mxdc.services import mxdctools
 from mxdc.beamline.mx import MXBeamline
 from mxdc.utils import mdns
 from mxdc.utils.log import get_module_logger, log_to_console
 from mxdc.utils.misc import get_project_name, identifier_slug
 from mxdc.AppWindow import AppWindow
 from mxdc.widgets import dialogs
-from mxdc.utils import excepthook
-from mxdc.utils.clients import MxDCClient
+from mxdc.utils import config
+from mxdc.services.clients import MxDCClient
 from twisted.internet import reactor
 from twisted.spread import pb
 import os
@@ -22,7 +22,7 @@ import warnings
 import logging
 from gi.repository import Gtk, GObject
 
-USE_TWISTED = True
+USE_TWISTED = False
 MXDC_PORT = 9898
 
 warnings.simplefilter("ignore")
@@ -68,7 +68,7 @@ class MXDCApp(object):
     def service_failed(self, obj, state):
         if state:
             # broadcast after emote MxDC shuts down
-            logger.info('Starting MxDC service discovery ...')
+            logger.info('Starting MxDC services discovery ...')
             self.broadcast_service()
 
     def broadcast_service(self):
@@ -97,8 +97,11 @@ class MXDCApp(object):
                 self.service_data['user'], self.beamline.name, self.service_data['started']
             )
         )
+        self.beamline.lims.open_session(self.beamline.name, config.get_session())
 
     def do_quit(self, obj=None):
+        logger.info('Closing MxLIVE Session...')
+        self.beamline.lims.close_session(self.beamline.name, config.get_session())
         logger.info('Stopping ...')
         exit_main_loop()
 

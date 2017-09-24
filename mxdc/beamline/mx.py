@@ -1,10 +1,15 @@
 import imp
+import os
+import threading
+import time
 
 from twisted.python.components import globalRegistry
+from zope.interface import implements
 
-from device.stages import Sample3Stage, Sample2Stage
-from mxdc.interface.beamlines import IBeamline
-from mxdc.devtypes import *  # @UnusedWildImport
+from interfaces import IBeamline
+from mxdc.com import ca
+from mxdc.devices import stages, misc, automounter, diagnostics, motor, video
+from mxdc.utils.log import get_module_logger
 
 
 class MXBeamline(object):
@@ -32,12 +37,12 @@ class MXBeamline(object):
               LIMS_API_KEY        = A string
               MISC_SETTINGS       = A dictionary containing any other key value pairs
                                     will be available as beamline.config['misc']
-              DEVICES             = A dictionary mapping device names to device objects.
+              DEVICES             = A dictionary mapping devices names to devices objects.
                                     See CLSSIM.py for a standard set of names.
               CONSOLE_DEVICES = Same as above but only available in the console
                                 in addition to the above
-              SERVICES = A dictionary mapping service names to service client objects
-              BEAMLINE_SHUTTERS = A sequence of shutter device names for all shutters
+              SERVICES = A dictionary mapping services names to services client objects
+              BEAMLINE_SHUTTERS = A sequence of shutter devices names for all shutters
                                  required to allow beam to the end-station in the order 
                                  in which they have to be opened.    
     """
@@ -129,37 +134,35 @@ class MXBeamline(object):
             # Setup devices
             for dev_name, dev in devs.items():
                 self.registry[dev_name] = dev               
-                self.logger.debug('Setting up device: %s' % (dev_name))
+                self.logger.debug('Setting up devices: %s' % (dev_name))
 
             # Setup Console-only Devices
             if self.console:
                 devs = getattr(settings, 'CONSOLE_DEVICES', {})
                 for dev_name, dev in devs.items():
                     self.registry[dev_name] = dev               
-                    self.logger.debug('Setting up device: %s' % (dev_name))
+                    self.logger.debug('Setting up devices: %s' % (dev_name))
             
             # Setup services
             srvs = getattr(settings, 'SERVICES', {})
             for srv_name, srv in srvs.items():
                 self.registry[srv_name] = srv            
-                self.logger.debug('Setting up service: %s' % (srv_name))
+                self.logger.debug('Setting up services: %s' % (srv_name))
         
         # Create and register other/compound devices
-        self.registry['collimator'] = Collimator(self.beam_x, self.beam_y, self.beam_w, self.beam_h)
         if 'sample_y' in self.registry:
-            self.registry['sample_stage'] = Sample2Stage(self.sample_x, self.sample_y, self.omega)
+            self.registry['sample_stage'] = stages.Sample2Stage(self.sample_x, self.sample_y, self.omega)
         else:
-            self.registry['sample_stage'] = Sample3Stage(self.sample_x, self.sample_y1, self.sample_y2, self.omega)
-        self.registry['sample_video'] = ZoomableCamera(self.sample_camera, self.sample_zoom)
-        self.registry['manualmounter'] = ManualMounter()
+            self.registry['sample_stage'] = stages.Sample3Stage(self.sample_x, self.sample_y1, self.sample_y2, self.omega)
+        self.registry['sample_video'] = video.ZoomableCamera(self.sample_camera, self.sample_zoom)
         self.mca.nozzle = self.registry.get('mca_nozzle', None)
-        self.registry['manualmounter'] = ManualMounter()
+        self.registry['manualmounter'] = automounter.ManualMounter()
         
         #Setup Bealine shutters
         _shutter_list = []
         for nm in self.config['shutter_sequence']:
             _shutter_list.append(self.registry[nm])
-        self.registry['all_shutters'] = ShutterGroup(*tuple(_shutter_list))
+        self.registry['all_shutters'] = misc.ShutterGroup(*tuple(_shutter_list))
 
         # Setup coordination between Beam tuner and energy changes
         if 'beam_tuner' in self.registry:
@@ -168,30 +171,30 @@ class MXBeamline(object):
 
         # default detector cover
         if not 'detector_cover' in self.registry:
-            self.registry['detector_cover'] = SimShutter('Dummy Detector Cover')
+            self.registry['detector_cover'] = misc.SimShutter('Dummy Detector Cover')
 
 
         # detector max resolution
-        self.registry['maxres'] = ResolutionMotor(self.energy, self.distance, self.detector.mm_size)
+        self.registry['maxres'] = motor.ResolutionMotor(self.energy, self.distance, self.detector.mm_size)
 
         # Setup diagnostics on some devices
         self.diagnostics = []
         for k in ['automounter', 'goniometer', 'detector', 'cryojet', 'mca', 'enclosures', 'all_shutters', 'storage_ring']:
             try:
-                self.diagnostics.append( DeviceDiag(self.registry[k]) )
+                self.diagnostics.append( diagnostics.DeviceDiag(self.registry[k]) )
             except:
-                self.logger.warning('Could not configure diagnostic device')
+                self.logger.warning('Could not configure diagnostic devices')
             
         for k in ['image_server', 'dpm', 'lims', ]:
             try:
-                self.diagnostics.append( ServiceDiag(self.registry[k]) )
+                self.diagnostics.append( diagnostics.ServiceDiag(self.registry[k]) )
             except:
-                self.logger.warning('Could not configure diagnostic service')
+                self.logger.warning('Could not configure diagnostic services')
         
         try:
-            self.diagnostics.append( DeviceDiag(self.registry['disk_space']) )
+            self.diagnostics.append( diagnostics.DeviceDiag(self.registry['disk_space']) )
         except:
-            self.logger.warning('Could not configure diagnostic service')
+            self.logger.warning('Could not configure diagnostic services')
             
 
 __all__ = ['MXBeamline']

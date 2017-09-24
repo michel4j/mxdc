@@ -1,4 +1,5 @@
-from mxdc.device import diagnostics
+import gi
+from mxdc.devices import diagnostics
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from twisted.python.components import globalRegistry
@@ -7,6 +8,7 @@ from gi.repository import Gtk, Gdk
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 try:
+    gi.require_version('Notify', '0.7')
     from gi.repository import Notify
 
     Notify.init('MxDC')

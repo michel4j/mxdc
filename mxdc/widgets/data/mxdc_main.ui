@@ -1504,9 +1504,6 @@
                                                 <property name="icon_name">media-playback-start-symbolic</property>
                                               </object>
                                             </child>
-                                            <style>
-                                              <class name="destructive-action"/>
-                                            </style>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -3303,8 +3300,8 @@
                                   <object class="GtkGrid" id="hc_control_grid">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="row_spacing">6</property>
-                                    <property name="column_spacing">6</property>
+                                    <property name="row_spacing">10</property>
+                                    <property name="column_spacing">10</property>
                                     <property name="column_homogeneous">True</property>
                                     <child>
                                       <object class="GtkBox">
@@ -3479,9 +3476,6 @@
                                                 <property name="icon_name">edit-clear-all-symbolic</property>
                                               </object>
                                             </child>
-                                            <style>
-                                              <class name="destructive-action"/>
-                                            </style>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -4245,6 +4239,7 @@
                                       <object class="GtkCheckButton" id="analyse_task_btn">
                                         <property name="label" translatable="yes">Analyse Frames:</property>
                                         <property name="visible">True</property>
+                                        <property name="sensitive">False</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">False</property>
                                         <property name="active">True</property>
@@ -7071,7 +7066,7 @@
                             <property name="orientation">vertical</property>
                             <child>
                               <object class="GtkScrolledWindow" id="proc_browser_box">
-                                <property name="width_request">580</property>
+                                <property name="width_request">576</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <child>
