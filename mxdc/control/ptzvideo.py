@@ -1,7 +1,8 @@
 import os
 
 from gi.repository import Gtk, Gdk
-from mxdc.interface.devices import IPTZCameraController
+
+from mxdc.devices.interfaces import IPTZCameraController
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget

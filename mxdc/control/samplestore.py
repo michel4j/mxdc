@@ -6,8 +6,8 @@ from copy import copy
 from automounter import DewarController
 from gi.repository import Gio, Gtk, Gdk, Pango, GObject
 from mxdc.beamline.mx import IBeamline
-from mxdc.engine import auto
-from mxdc.utils.decorators import async
+from mxdc.engines import auto
+from mxdc.utils.decorators import async_call
 from twisted.python.components import globalRegistry
 from zope.interface import Interface, implements
 
@@ -429,13 +429,13 @@ class SampleStore(GObject.GObject):
     def on_row_toggled(self, cell, path, model):
         self.toggle_row(path)
 
-    @async
+    @async_call
     def mount_action(self):
         self.widget.spinner.start()
         if self.next_sample and self.beamline.automounter.is_mountable(self.next_sample['port']):
             auto.auto_mount_manual(self.beamline, self.next_sample['port'])
 
-    @async
+    @async_call
     def dismount_action(self):
         self.widget.spinner.start()
         if self.current_sample and self.beamline.automounter.is_mounted(self.current_sample['port']):

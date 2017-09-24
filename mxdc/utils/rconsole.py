@@ -179,9 +179,9 @@ class BeamlineConsole(GTKInterpreter):
         push = self.shell.push
         lines = ["import os, sys",
                  "from mxdc.beamline.mx import MXBeamline",
-                 "from mxdc.engine.scripting import *",
-                 "from mxdc.engine.scanning import *",
-                 "from mxdc.engine.fitting import *",
+                 "from mxdc.engines.scripting import *",
+                 "from mxdc.engines.scanning import *",
+                 "from mxdc.engines.fitting import *",
                  "from mxdc.widgets.plotter import ScanPlotter",
                  "beamline = MXBeamline(console=True)",
                  "bl = beamline",

@@ -21,7 +21,7 @@ class mDNSError(Exception):
 
 class Provider(GObject.GObject):
     """
-    Provide a multicast DNS service with the given name and type listening on the given
+    Provide a multicast DNS services with the given name and type listening on the given
     port with additional information in the data record.
     """
     __gsignals__ = {
@@ -49,7 +49,7 @@ class Provider(GObject.GObject):
             avahi.PROTO_UNSPEC,         # protocol
             dbus.UInt32(0),                          # flags
             name,                       # name
-            service_type,               # service type
+            service_type,               # services type
             "",                         # domain
             hostname,                   # host
             dbus.UInt16(port),          # port
@@ -68,7 +68,7 @@ class Provider(GObject.GObject):
             
     def _add_service(self, unique=False):
         """
-        Add a service with the given parameters.
+        Add a services with the given parameters.
         """
         retries = 0
         if unique:
@@ -137,7 +137,7 @@ class Browser(GObject.GObject):
 
     def _on_service_removed(self, interface, protocol, name, service_type, domain, flags):
         """
-        Callback from dbus when a service is removed.
+        Callback from dbus when a services is removed.
         """
         key = (str(name), str(service_type))
         if key in self._services:
@@ -145,7 +145,7 @@ class Browser(GObject.GObject):
 
     def _on_service_added(self, interface, protocol, name, service_type, domain, flags):
         """
-        Callback from dbus when a new service is available.
+        Callback from dbus when a new services is available.
         """
         self._avahi.ResolveService(
             interface, protocol, name, service_type, domain, avahi.PROTO_INET, dbus.UInt32(0),
@@ -154,7 +154,7 @@ class Browser(GObject.GObject):
     def _on_service_resolved(self, interface, protocol, name, service_type, domain, host,
                           aprotocol, address, port, txt, flags):
         """
-        Callback from dbus when a new service is available and resolved.
+        Callback from dbus when a new services is available and resolved.
         """
         txtdict = {}
         for record in avahi.txt_array_to_string_array(txt):
