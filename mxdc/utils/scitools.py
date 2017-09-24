@@ -5,7 +5,7 @@ import numpy
 from mxdc.utils import converter
 from mxdc.utils import json
 from scipy import interpolate, optimize, signal
-from utils import fitting
+from mxdc.utils import fitting
 
 SPACE_GROUP_NAMES = {
     1: 'P1', 3: 'P2', 4: 'P2(1)', 5: 'C2', 16: 'P222',

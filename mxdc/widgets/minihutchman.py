@@ -4,7 +4,7 @@ import os
 from gi.repository import GObject
 from gi.repository import Gtk
 from mxdc.beamline.mx import IBeamline
-from mxdc.engine.scripting import get_scripts
+from mxdc.engines.scripting import get_scripts
 from mxdc.utils import gui
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc

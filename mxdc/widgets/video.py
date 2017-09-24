@@ -1,8 +1,9 @@
 import os
 import pickle
 import time
-import numpy
+
 import gi
+import numpy
 from PIL import Image
 
 gi.require_version('Gtk', '3.0')
@@ -13,7 +14,7 @@ from gi.repository import GdkPixbuf
 from gi.repository import Gtk
 from zope.interface import implements
 
-from mxdc.interface.devices import IVideoSink
+from mxdc.devices.interfaces import IVideoSink
 from mxdc.utils.video import image_to_surface
 
 WIDGET_DIR = os.path.dirname(__file__)

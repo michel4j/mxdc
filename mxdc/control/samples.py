@@ -27,8 +27,6 @@ class SamplesController(GObject.GObject):
         entries = {
             'omega': misc.MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f"),
             'beam_size': misc.ActiveMenu(self.beamline.aperture, 'Beam Aperture', fmt="%0.0f"),
-            #'sample_y1': misc.MotorEntry(self.beamline.sample_y1, 'Sample Y1', fmt="%0.4f"),
-            #'sample_y2': misc.MotorEntry(self.beamline.sample_y2, 'Sample Y2', fmt="%0.4f"),
         }
         for key in ['omega', 'beam_size']:
             self.widget.samples_control_box.pack_start(entries[key], False, True, 0)

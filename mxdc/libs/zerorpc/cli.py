@@ -40,7 +40,7 @@ import zerorpc
 
 
 parser = argparse.ArgumentParser(
-    description='Make a zerorpc call to a remote service.'
+    description='Make a zerorpc call to a remote services.'
 )
 
 client_or_server = parser.add_mutually_exclusive_group()

@@ -7,7 +7,7 @@ from enum import Enum
 
 gi.require_version('Gtk', '3.0')
 
-from gi.repository import Gtk, GObject, Gdk
+from gi.repository import Gtk, GObject, Gdk, Pango
 from mxdc.utils import colors
 
 class GUIFile(object):
@@ -90,7 +90,7 @@ class Builder(BuilderMixin):
             self.gui_objects = objects
 
 
-RowSpec = namedtuple('ColRow', ['data', 'title', 'type', 'text'])
+RowSpec = namedtuple('ColRow', ['data', 'title', 'type', 'text', 'expand'])
 
 
 class ColumnSpec(object):
@@ -132,9 +132,14 @@ class TreeManager(GObject.GObject):
     class Data(Enum):  A, B = range(2)
     Types = [int, int]
     Columns = ColumnSpec(
-        (Data.A, 'A', ColumnType.TEXT, '{}'),
-        (Data.B, 'B', ColumnType.TOGGLE, '{:0.3f}'),
+        (Data.A, 'A', ColumnType.TEXT, '{}', True),
+        (Data.B, 'B', ColumnType.TOGGLE, '{:0.3f}', False),
     )
+    Icons = {  # (icon-name, color)
+        Data.A: ('', '#770000'),
+        Data.B: ('', '#770000'),
+    }
+    tooltips = Data.A
     parent = Data.A  # The column used to group items under the same parent
     flat = False  # whether tree is flat single level or not
     single_click = False
@@ -260,26 +265,36 @@ class TreeManager(GObject.GObject):
                 renderer.connect('toggled', self.row_toggled, spec)
                 column = Gtk.TreeViewColumn(title=spec.title, cell_renderer=renderer, active=spec.data.value)
                 column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
-                column.set_fixed_width(50)
+                column.set_fixed_width(32)
                 self.view.append_column(column)
             elif spec.type == ColumnType.COLORSCALE:
                 renderer = Gtk.CellRendererText()
                 column = Gtk.TreeViewColumn(title=spec.title, cell_renderer=renderer)
                 column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
-                column.set_fixed_width(50)
-                self.view.append_column(column)
+                column.set_fixed_width(32)
                 column.set_cell_data_func(renderer, self.format_colorscale, spec)
+                self.view.append_column(column)
+            elif spec.type == ColumnType.ICON:
+                renderer = Gtk.CellRendererPixbuf()
+                column = Gtk.TreeViewColumn(title=spec.title, cell_renderer=renderer)
+                column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
+                column.set_fixed_width(32)
+                column.set_cell_data_func(renderer, self.format_icon, spec)
+                self.view.append_column(column)
             elif spec.type in [ColumnType.TEXT, ColumnType.NUMBER]:
                 renderer = Gtk.CellRendererText()
                 column = Gtk.TreeViewColumn(title=spec.title, cell_renderer=renderer, text=spec.data.value)
                 column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
-                column.set_expand(True)
+                renderer.props.ellipsize = Pango.EllipsizeMode.END
+                column.set_expand(spec.expand)
                 column.set_sort_column_id(spec.data.value)
                 column.set_cell_data_func(renderer, self.format_cell, spec)
                 if spec.type == ColumnType.NUMBER:
                     renderer.set_alignment(0.8, 0.5)
                     renderer.props.family = 'Monospace'
                 self.view.append_column(column)
+            if self.tooltips:
+                self.view.set_tooltip_column(self.tooltips.value)
 
     def format_colorscale(self, column, renderer, model, itr,spec):
         """
@@ -298,6 +313,26 @@ class TreeManager(GObject.GObject):
             color = Gdk.RGBA(**self.colormap.rgba(value))
             renderer.set_property("foreground-rgba", color)
             renderer.set_property("text", u"\u25a0")
+
+    def format_icon(self, column, renderer, model, itr, spec):
+        """
+        Format an icon based on a field value
+        @param column: Gtk.TreeViewColumn
+        @param renderer: Gtk.CellRenderer
+        @param model: Gtk.TreeModel
+        @param itr: Gtk.TreeIter
+        @param spec:    RowSpec
+        @return:
+        """
+        if model.iter_has_child(itr):
+            renderer.set_property('icon-name', None)
+        else:
+            value = model[itr][spec.data.value]
+            name, color = self.Icons.get(value, (None, '#ffffff'))
+            rgba = Gdk.RGBA()
+            rgba.parse(color)
+            #column.set_property("foreground-rgba", rgba)
+            renderer.set_property("icon-name", name)
 
     def format_cell(self, column, renderer, model, itr, spec):
         """
