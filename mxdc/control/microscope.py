@@ -315,7 +315,7 @@ class Microscope(GObject.GObject):
         self.props.points = self.props.points + [self.beamline.sample_stage.get_xyz()]
 
     def add_polygon_point(self, x, y):
-        radius = 0.25e-3*self.beamline.aperture.get() / self.video.mm_scale()
+        radius = 0.5e-3*self.beamline.aperture.get() / self.video.mm_scale()
         if not len(self.props.polygon):
             self.props.polygon.append((x, y))
         else:

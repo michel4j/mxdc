@@ -2,12 +2,14 @@ import os
 import pwd
 import re
 import string
+import subprocess
 import threading
 import time
+import uuid
 
 import numpy
-import uuid
 from gi.repository import GObject
+
 from mxdc.com import ca
 
 
@@ -123,15 +125,18 @@ def format_partial(fmt, *args, **kwargs):
 _COLOR_PATTERN = re.compile('#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2}).*')
 
 
-def lighten_color(s, step=51):
-    R, G, B = [min(max(int('0x' + v, 0) + step, 0), 255) for v in _COLOR_PATTERN.match(s.upper()).groups()]
-    return "#%02x%02x%02x" % (R, G, B)
-
-
-def darken_color(s, step=51):
-    return lighten_color(s, step=-step)
-
-
 def logistic_score(x, best=1, fair=0.5):
     t = 3 * (x - fair) / (best - fair)
     return 1 / (1 + numpy.exp(-t))
+
+def open_terminal(directory=None):
+    if not directory:
+        directory = get_project_home()
+    else:
+        directory = directory.replace('~', get_project_home())
+    commands = [
+        'gnome-terminal',
+        '--geometry=132x32',
+        '--working-directory={}'.format(directory),
+    ]
+    p = subprocess.Popen(commands)

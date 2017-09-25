@@ -581,6 +581,7 @@ class ScanManager(GObject.GObject):
     def setup(self):
         self.widget.scans_ptable_box.add(self.edge_selector)
         self.widget.scans_plot_frame.add(self.plotter)
+        self.widget.scans_dir_btn.connect('clicked', self.open_terminal)
         self.sample_store.connect('updated', self.on_sample_updated)
         labels = {
             'energy': (self.beamline.energy, self.widget.scans_energy_fbk, {'format': '{:0.3f} keV'}),
@@ -595,6 +596,10 @@ class ScanManager(GObject.GObject):
             name: common.DeviceMonitor(dev, lbl, **kw)
             for name, (dev, lbl, kw) in labels.items()
         }
+
+    def open_terminal(self, button):
+        directory = self.widget.scans_dir_fbk.get_text()
+        misc.open_terminal(directory)
 
     def on_sample_updated(self, obj):
         sample = self.sample_store.get_current()

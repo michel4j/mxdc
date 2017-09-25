@@ -38,7 +38,11 @@ class Analyst(GObject.GObject):
         globalRegistry.register([], IAnalyst, '', self)
 
     def make_summary(self, result, result_type):
-        return self.ResultSummary[result_type].format(**result)
+        if result_type == self.ResultType.MX:
+            info = result['result']
+            return self.ResultSummary[result_type].format(**info)
+        else:
+            return self.ResultSummary[result_type].format(**result)
 
     def process_dataset(self, params, screen=False):
         params['uuid'] = str(uuid.uuid4())
@@ -89,12 +93,17 @@ class Analyst(GObject.GObject):
         return d
 
     def result_ready(self, output, result_id, result_type):
-        print output
-        result = output[0]['result']
-        summary = self.make_summary(result, result_type)
-        self.manager.update_item(result_id, data=result, summary=summary)
-
-        return output['result']
+        if result_type == self.ResultType.MX:
+            results = []
+            for info in output:
+                results.append(info)
+                summary = self.make_summary(info, result_type)
+                self.manager.update_item(result_id, data=info['result'], summary=summary)
+            return results
+        else:
+            summary = self.make_summary(output, result_type)
+            self.manager.update_item(result_id, data=output, summary=summary)
+            return output
 
     def result_fail(self, output, result_id, result_type):
         summary = output.getErrorMessage()

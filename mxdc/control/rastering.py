@@ -45,7 +45,7 @@ class RasterResultsManager(TreeManager):
 
     Types = [str, float, float, float, float, float, int, float, str]
     Columns = ColumnSpec(
-        (Data.NAME, 'Name', ColumnType.TEXT, '{}', True),
+        (Data.CELL, 'Label', ColumnType.TEXT, '{}', True),
         (Data.ANGLE, 'Angle',  ColumnType.NUMBER, '{:0.1f}\xc2\xb0', True),
         (Data.X_POS, 'X (mm)', ColumnType.NUMBER, '{:0.4f}', True),
         (Data.Y_POS, 'Y (mm)', ColumnType.NUMBER, '{:0.4f}', True),
@@ -103,6 +103,7 @@ class RasterController(GObject.GObject):
         self.view.props.activate_on_single_click = False
         self.widget.raster_start_btn.connect('clicked', self.start_raster)
         self.widget.raster_stop_btn.connect('clicked', self.stop_raster)
+        self.widget.raster_dir_btn.connect('clicked', self.open_terminal)
         self.view.connect('row-activated', self.on_result_activated)
 
         labels = {
@@ -166,6 +167,10 @@ class RasterController(GObject.GObject):
     def stop_raster(self, *args, **kwargs):
         self.widget.raster_progress_lbl.set_text("Stopping raster ...")
         self.collector.stop()
+
+    def open_terminal(self, button):
+        directory = self.widget.raster_dir_fbk.get_text()
+        misc.open_terminal(directory)
 
     def on_sample_updated(self, obj):
         sample = self.sample_store.get_current()
@@ -302,7 +307,7 @@ class RasterController(GObject.GObject):
                 grid['scores']
             )
             self.beamline.sample_stage.move_xyz(*grid['config']['origin'])
-            self.widget.raster_directory_fbk.set_text(grid['config']['directory'])
+            self.widget.raster_dir_fbk.set_text(grid['config']['directory'])
         else:
             self.beamline.sample_stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])
 
