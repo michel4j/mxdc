@@ -2,19 +2,19 @@ import json
 import os
 import re
 
-from gi.repository import GObject
 import requests
+from gi.repository import GObject
+from twisted.internet import reactor, error, defer
+from twisted.spread import pb
+from zope.interface import implements
+
+from interfaces import IImageSyncService
 from mxdc.devices.base import BaseDevice
 from mxdc.utils import mdns, config, signing, misc
-from mxdc.utils.misc import get_project_name
 from mxdc.utils.log import get_module_logger
-from twisted.internet import reactor, error, defer
-from zope.interface import implements
-from twisted.spread import pb
-from interfaces import IImageSyncService, IPptvISync
+from mxdc.utils.misc import get_project_name
 
 logger = get_module_logger(__name__)
-
 
 
 class BaseService(BaseDevice):
@@ -54,7 +54,7 @@ class DPMClient(BaseService):
             return
         self._service_found = True
         self._service_data = data
-        self.factory =  ServerClientFactory()
+        self.factory = ServerClientFactory()
         self.factory.getRootObject().addCallback(self.on_connected).addErrback(self.on_connection_failed)
         reactor.connectTCP(self._service_data['address'], self._service_data['port'], self.factory)
         logger.info(
@@ -117,7 +117,7 @@ class MxLIVEClient(BaseService):
                 raise
 
     def is_ready(self):
-        return True
+        return self.active_state
 
     def url(self, path):
         url_path = path[1:] if path[0] == '/' else path
@@ -141,6 +141,24 @@ class MxLIVEClient(BaseService):
         else:
             r.raise_for_status()
 
+    def upload(self, path, filename):
+        """
+        Upload the Metadata to the Server
+        @param path: url path to post data to
+        @param filename: json-formatted file containing metadata, file will be updated with object id of
+        newly created object in the database. To update the contents on the server, this file must contain
+        the object id of the existing database entry.
+        @return:
+        """
+        try:
+            data = misc.load_metadata(filename)
+            reply = self.post(path, data=data)
+        except (IOError, ValueError, requests.HTTPError) as e:
+            logger.error('Unable upload to MxLIVE: \n {}'.format(e))
+        else:
+            data.update(reply)
+            misc.save_metadata(data, filename)
+
     def register(self):
         response = self.post('/project/', data={'public': self.keys['public']})
         return response
@@ -163,7 +181,8 @@ class MxLIVEClient(BaseService):
         except (IOError, ValueError, requests.HTTPError) as e:
             logger.error('Unable to Open MxLIVE Session: \n {}'.format(e))
             reply = {'error': 'Unable to Open MxLIVE Session', 'details': '{}'.format(e)}
-        return reply
+        else:
+            print reply
 
     def close_session(self, beamline, session):
         logger.debug('Closing MxLIVE session ...')
@@ -172,220 +191,25 @@ class MxLIVEClient(BaseService):
             reply = self.post(path)
         except (IOError, ValueError, requests.HTTPError) as e:
             logger.error('Unable to close MxLIVE Session: \n {}'.format(e))
-            reply = {'error': 'Unable to close MxLIVE Session', 'details': '{}'.format(e)}
-        return reply
-
-    def upload_dataset(self, beamline, data):
-        path = '/data/{}/'.format(beamline)
-        try:
-            reply = self.post(path, data=data)
-        except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Unable upload data to MxLIVE: \n {}'.format(e))
-            reply = {'error': 'Unable to upload data to MxLIVE', 'details': '{}'.format(e)}
-        return reply
-
-    def upload_datasets(self, beamline, datasets):
-        for data in datasets:
-            self.upload_dataset(beamline, data)
-        return
-
-    def upload_report(self, beamline, report):
-        path = '/report/{}/'.format(beamline)
-        try:
-            reply = self.post(path, data=report)
-        except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Unable upload report to MxLIVE: \n {}'.format(e))
-            reply = {'error': 'Unable to upload report to MxLIVE', 'details': '{}'.format(e)}
-        return reply
-
-    def upload_reports(self, beamline, reports):
-        for report in reports:
-            self.upload_dataset(beamline, report)
-        return
-
-
-class LIMSClient(BaseService):
-    def __init__(self, address):
-        BaseService.__init__(self)
-        self.name = "MxLIVE Service"
-        self.address = address
-        self.cookies = {}
-        self.set_state(active=True)
-        logger.info('MxLIVE Service configured for {}'.format(address))
-
-    def is_ready(self):
-        return True
-
-    def get(self, *args, **kwargs):
-        r = requests.get(*args, verify=False, cookies=self.cookies, **kwargs)
-        if r.status_code == requests.codes.ok:
-            return r.json()
         else:
-            r.raise_for_status()
+            print reply
 
-    def post(self, *args, **kwargs):
-        r = requests.post(*args, verify=False, cookies=self.cookies, **kwargs)
-        if r.status_code == requests.codes.ok:
-            return r.json()
-        else:
-            logger.error('Failed posting data to MxLIVE: HTTP-{}'.format(r.status_code))
-            r.raise_for_status()
+    def upload_dataset(self, beamline, filename):
+        """
+        Upload the Dataset metadata to the Server
+        @param beamline: beamline acronym (str)
+        @param filename: json-formatted file containing metadata
+        """
+        self.upload('/data/{}/'.format(beamline), filename)
 
-    def get_samples(self, beamline):
-        logger.debug('Requesting Samples from MxLIVE ...')
-        url = "{}/api/{}/samples/{}/{}/".format(
-            self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
-        )
-        try:
-            reply = self.get(url)
-        except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Unable to fetch Samples from MxLIVE: \n {}'.format(e))
-            reply = {'error': 'Unable to fetch Samples from MxLIVE', 'details': '{}'.format(e)}
-        return reply
 
-    def upload_dataset(self, beamline, data):
-        url = "{}/api/{}/data/{}/{}/".format(
-            self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
-        )
-
-        json_info = {
-            'id': data.get('id'),
-            'name': data['name'],
-            'resolution': round(data['resolution'], 5),
-            'start_angle': data['start'],
-            'delta_angle': data['delta'],
-            'first_frame': data['first'],
-            'frame_sets': data['frame_sets'],
-            'exposure_time': data['exposure'],
-            'two_theta': data.get('two_theta', 0.0),
-            'wavelength': round(data['wavelength'], 5),
-            'detector': data['detector'],
-            'detector_size': data['detector_size'],
-            'pixel_size': data['pixel_size'],
-            'beam_x': data['beam_x'],
-            'beam_y': data['beam_y'],
-            'url': data['directory'],
-            'staff_comments': data.get('comments'),
-        }
-        if data.get('sample_id'):
-            json_info['sample_id'] = int(data['sample_id'])
-        if data['num_frames'] < 10:
-            json_info['kind'] = 0  # screening
-        else:
-            json_info['kind'] = 1  # collection
-
-        if data['num_frames'] >= 2:
-            try:
-                reply = self.post(url, json=json_info)
-            except (IOError, ValueError, requests.HTTPError) as e:
-                logger.error('Dataset meta-data could not be uploaded to MxLIVE, \n {}'.format(e))
-            else:
-                if reply.get('id') is not None:
-                    data['id'] = reply['id']
-                    logger.info('Dataset meta-data uploaded to MxLIVE.')
-                else:
-                    logger.error('Invalid Response from MxLIVE: {}'.format(reply))
-
-        with open(os.path.join(data['directory'], '{}.SUMMARY'.format(data['name'])), 'w') as fobj:
-            json.dump(data, fobj, indent=4)
-
-        return
-
-    def upload_datasets(self, beamline, datasets):
-        for data in datasets:
-            self.upload_dataset(beamline, data)
-        return
-
-    def upload_scan(self, beamline, scan):
-        url = "{}/api/{}/scan/{}/{}/".format(
-            self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
-        )
-        kind = int(scan.get('kind'))
-        new_info = {}
-
-        if kind == 1:  # Excitation Scan
-            crystal_id = None if not scan['parameters'].get('sample_id', '') else int(scan['parameters']['sample_id'])
-            new_info = {
-                'kind': kind,
-                'details': {
-                    'energy': scan['data'].get('energy'),
-                    'counts': scan['data'].get('counts'),
-                    'fit': scan['data'].get('fit'),
-                    'peaks': scan.get('assigned'),
-                },
-                'name': scan['parameters'].get('prefix'),
-                'crystal_id': crystal_id,
-                'exposure_time': scan['parameters'].get('exposure_time'),
-                'attenuation': scan['parameters'].get('attenuation'),
-                'edge': scan['parameters'].get('edge'),
-                'energy': scan['parameters'].get('energy'),
-            }
-        elif kind is 0:  # MAD Scan
-            crystal_id = None if not scan.get('crystal_id', '') else int(scan['crystal_id'])
-            new_info = {
-                'kind': kind,
-                'details': {
-                    'energies': [scan['energies'].get('peak'), scan['energies'].get('infl'),
-                                 scan['energies'].get('remo')],
-                    'efs': scan.get('efs'),
-                    'data': scan.get('data'),
-                },
-                'name': scan.get('name_template'),
-                'crystal_id': crystal_id,
-                'exposure_time': scan.get('exposure_time'),
-                'attenuation': scan.get('attenuation'),
-                'edge': scan.get('edge'),
-                'energy': scan.get('energy')
-            }
-
-        try:
-            reply = self.post(url, json=new_info)
-        except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Scan could not be uploaded to MxLIVE, \n {}'.format(e))
-        else:
-            if reply.get('id'):
-                new_info['id'] = reply['id']
-                logger.info('Scan successfully uploaded to MxLIVE')
-            else:
-                logger.error('Invalid response from to MxLIVE: {}'.format(reply))
-
-        return
-
-    def upload_report(self, beamline, report):
-        url = "{}/api/{}/report/{}/{}/".format(
-            self.address, beamline.config.get('lims_api_key', ''), beamline.name, get_project_name()
-        )
-        if report.get('data_id'):
-            try:
-                reply = self.post(url, json=report)
-            except (IOError, ValueError, requests.HTTPError) as e:
-                msg = 'Report could not be uploaded to MxLIVE, \n {}'.format(e)
-                logger.error(msg)
-                reply = {'error': msg}
-            else:
-                if reply.get('id'):
-                    report['id'] = reply['id']
-                    logger.info('Report successfully uploaded to MxLIVE')
-                else:
-                    logger.error('Invalid response from to MxLIVE: {}'.format(reply))
-        else:
-            msg = 'Dataset required to upload report, none found.'
-            reply = {'error': msg}
-            logger.error(msg)
-        return reply
-
-    def upload_reports(self, beamline, reports):
-        for data in reports:
-            report = data['result']
-            self.upload_report(beamline, report)
-
-        if reports:
-            result = reports[0]['result']
-            with open(os.path.join(result['url'], 'process.json'), 'w') as fobj:
-                info = {'result': reports, 'error': None}
-                json.dump(info, fobj)
-
-        return reports
+    def upload_report(self, beamline, filename):
+        """
+        Upload the Report metadata to the Server
+        @param beamline: beamline acronym (str)
+        @param filename: json-formatted file containing metadata
+        """
+        self.upload('/report/{}/'.format(beamline), filename)
 
 
 class MxDCClient(BaseService):
@@ -516,7 +340,7 @@ class ImageSyncClient(BaseService):
         self._service_found = True
         self._service_data = data
         logger.info('Image Sync Service found at %s:%s' % (self._service_data['host'],
-                                                            self._service_data['port']))
+                                                           self._service_data['port']))
         self.factory = pb.PBClientFactory()
         self.factory.getRootObject().addCallback(self.on_server_connected).addErrback(self.dump_error)
         reactor.connectTCP(self._service_data['address'],
@@ -527,7 +351,7 @@ class ImageSyncClient(BaseService):
             return
         self._service_found = False
         logger.warning('Image Sync Service %s:%s disconnected.' % (self._service_data['host'],
-                                                                    self._service_data['port']))
+                                                                   self._service_data['port']))
         self.set_state(active=False)
 
     def on_server_connected(self, perspective):
@@ -542,7 +366,6 @@ class ImageSyncClient(BaseService):
 
     def dump_error(self, failure):
         failure.printTraceback()
-
 
 
 class LocalImageSyncClient(BaseService):
@@ -565,4 +388,4 @@ class LocalImageSyncClient(BaseService):
         return True
 
 
-__all__ = ['DPMClient', 'MxDCClient', 'MxLIVEClient', 'LIMSClient', 'ImageSyncClient', 'LocalImageSyncClient']
+__all__ = ['DPMClient', 'MxDCClient', 'MxLIVEClient', 'ImageSyncClient', 'LocalImageSyncClient']

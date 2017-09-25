@@ -11,7 +11,7 @@ from mxdc.beamline.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.engines import snapshot
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
-from mxdc.utils import json, datatools
+from mxdc.utils import json, datatools, misc
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.datatools import StrategyType
 from mxdc.utils.log import get_module_logger
@@ -50,7 +50,8 @@ class DataCollector(GObject.GObject):
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
         globalRegistry.register([], IDataCollector, '', self)
 
-    def configure(self, run_data, take_snapshots=True):
+    def configure(self, run_data, take_snapshots=True, analysis='native'):
+        self.config['analysis'] = analysis
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
         datasets, wedges = datatools.generate_wedges(self.config['runs'])
@@ -97,12 +98,11 @@ class DataCollector(GObject.GObject):
         time.sleep(2.0)
 
         for dataset in self.config['datasets']:
-            metadata = self.save_metadata(dataset)
+            metadata = self.save(dataset)
             self.results.append(metadata)
-            if metadata:
+            if metadata and self.config['analysis']:
                 self.analyse(metadata, dataset['strategy'], dataset['sample'])
 
-        self.beamline.lims.upload_datasets(self.beamline.name, self.results)
         if not (self.stopped or self.paused):
             GObject.idle_add(self.emit, 'done')
 
@@ -228,7 +228,7 @@ class DataCollector(GObject.GObject):
             x, y, z  = wedge['point']
             self.beamline.sample_stage.move_xyz(x, y, z)
 
-    def save_metadata(self, params):
+    def save(self, params, upload=True):
         frames, count = datatools.get_disk_frameset(
             params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
         )
@@ -265,13 +265,11 @@ class DataCollector(GObject.GObject):
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
         if os.path.exists(filename):
-            with open(filename, 'r') as handle:
-                old_meta = json.load(handle)
-                metadata['id'] = old_meta.get('id')
-
-        with open(filename, 'w') as handle:
-            json.dump(metadata, handle, indent=2, separators=(',',':'), sort_keys=True)
-            logger.info("Meta-Data Saved: {}".format(filename))
+            old_metadata = misc.load_metadata(filename)
+            metadata['id'] = old_metadata.get('id')
+        misc.save_metadata(metadata, filename)
+        if upload:
+            self.beamline.lims.upload_dataset(self.beamline.name, filename)
         return metadata
 
     def analyse(self, metadata, strategy, sample):
@@ -282,16 +280,17 @@ class DataCollector(GObject.GObject):
             'sample_id': metadata['sample_id'],
             'name': metadata['name'],
             'activity': datatools.StrategyProcType.get(strategy, 'proc-noname'),
-            'file_names': [filename]
+            'file_names': [filename],
+            'anomalous': self.config['analysis'] == 'anomalous',
         }
-
+        params['activity'] = 'proc-{}'.format(self.config['analysis'][:6])
         params = datatools.update_for_sample(params, sample)
 
-        if strategy in [StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
+        if self.config['analysis'] == 'screen':
             self.analyst.process_dataset(params, screen=True).addCallbacks(self.result_ready, errback=self.result_fail)
-        elif strategy == StrategyType.FULL:
+        elif self.config['analysis'] in ['anomalous', 'native']:
             self.analyst.process_dataset(params).addCallbacks(self.result_ready, errback=self.result_fail)
-        elif strategy == StrategyType.POWDER:
+        elif self.config['analysis'] == 'powder':
             self.analyst.process_powder(params).addCallbacks(self.result_ready, errback=self.result_fail)
 
     def result_ready(self, result):
