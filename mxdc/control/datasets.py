@@ -117,7 +117,7 @@ class AutomationController(GObject.GObject):
             (self.widget.pause1_task_btn, Automator.Task.PAUSE),
             (self.widget.acquire_task_btn, Automator.Task.ACQUIRE),
             (self.widget.analyse_task_btn, Automator.Task.ANALYSE),
-            (self.widget.pause2_task_btn, Automator.Task.ANALYSE)
+            (self.widget.pause2_task_btn, Automator.Task.PAUSE)
         ]
         self.options = {
             'capillary': self.widget.center_cap_option,
@@ -127,6 +127,7 @@ class AutomationController(GObject.GObject):
             'native': self.widget.analyse_native_option,
             'anomalous': self.widget.analyse_anom_option,
             'powder': self.widget.analyse_powder_option,
+            'analyse': self.widget.analyse_task_btn
         }
         self.setup()
 
@@ -135,12 +136,15 @@ class AutomationController(GObject.GObject):
             for name in ['loop', 'crystal', 'raster', 'capillary']:
                 if self.options[name].get_active():
                     return {'method': name}
-        elif task_type == Automator.Task.ANALYSE:
-            for name in ['screen', 'native', 'anomalous', 'powder']:
-                if self.options[name].get_active():
-                    return {'method': name, 'activity': 'proc-{}'.format(name)}
         elif task_type == Automator.Task.ACQUIRE:
-            return self.config.props.info
+            options = {}
+            if self.options['analyse'].get_active():
+                for name in ['screen', 'native', 'anomalous', 'powder']:
+                    if self.options[name].get_active():
+                        options = {'analysis': name}
+                        break
+            options.update(self.config.props.info)
+            return options
         return {}
 
     def get_task_list(self):
