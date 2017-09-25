@@ -84,19 +84,26 @@
             <property name="margin_top">10</property>
             <property name="margin_bottom">10</property>
             <property name="spacing">12</property>
-            <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="data_copy_btn">
-                <property name="label" translatable="yes">Duplicate</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Copy</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="icon_name">edit-copy-symbolic</property>
+                  </object>
+                </child>
               </object>
               <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
+                <property name="non_homogeneous">True</property>
               </packing>
             </child>
             <child>

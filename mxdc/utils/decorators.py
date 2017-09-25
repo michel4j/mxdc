@@ -1,5 +1,5 @@
 import threading
-
+import time
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
@@ -52,3 +52,15 @@ def log_call(f):
 
     new_f.__name__ = f.__name__
     return new_f
+
+
+def timeit(method):
+    def timed(*args, **kw):
+        ts = time.time()
+        result = method(*args, **kw)
+        te = time.time()
+
+        print('%r (%r, %r) %2.2f sec' % (method.__name__, args, kw, te-ts))
+        return result
+
+    return timed

@@ -1,3 +1,4 @@
+import json
 import os
 import pwd
 import re
@@ -10,7 +11,10 @@ import uuid
 import numpy
 from gi.repository import GObject
 
+import log
 from mxdc.com import ca
+
+logger = log.get_module_logger(__name__)
 
 
 def get_short_uuid():
@@ -129,6 +133,7 @@ def logistic_score(x, best=1, fair=0.5):
     t = 3 * (x - fair) / (best - fair)
     return 1 / (1 + numpy.exp(-t))
 
+
 def open_terminal(directory=None):
     if not directory:
         directory = get_project_home()
@@ -140,3 +145,16 @@ def open_terminal(directory=None):
         '--working-directory={}'.format(directory),
     ]
     p = subprocess.Popen(commands)
+
+
+def save_metadata(metadata, filename):
+    with open(filename, 'w') as handle:
+        json.dump(metadata, handle, indent=2, separators=(',', ':'), sort_keys=True)
+        logger.info("Meta-Data Saved: {}".format(filename))
+    return metadata
+
+
+def load_metadata(filename):
+    with open(filename, 'r') as handle:
+        metadata = json.load(handle)
+    return metadata
