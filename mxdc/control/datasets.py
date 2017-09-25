@@ -342,6 +342,7 @@ class DatasetsController(GObject.GObject):
         self.widget.datasets_viewer_box.add(self.image_viewer)
         self.widget.datasets_clean_btn.connect('clicked', self.on_clean_runs)
         self.widget.datasets_list.connect('row-activated', self.on_row_activated)
+        self.widget.dsets_dir_btn.connect('clicked', self.open_terminal)
 
         self.run_editor.data_delete_btn.connect('clicked', self.on_delete_run)
         self.run_editor.data_copy_btn.connect('clicked', self.on_copy_run)
@@ -513,6 +514,10 @@ class DatasetsController(GObject.GObject):
             pos = self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
             self.check_run_store()
             new_item.props.position = pos
+
+    def open_terminal(self, button):
+        directory = self.widget.dsets_dir_fbk.get_text()
+        misc.open_terminal(directory)
 
     def on_sample_updated(self, obj):
         sample = self.sample_store.get_current()

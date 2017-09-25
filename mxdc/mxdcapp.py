@@ -22,7 +22,7 @@ import warnings
 import logging
 from gi.repository import Gtk, GObject
 
-USE_TWISTED = False
+USE_TWISTED = True
 MXDC_PORT = 9898
 
 warnings.simplefilter("ignore")
@@ -97,11 +97,11 @@ class MXDCApp(object):
                 self.service_data['user'], self.beamline.name, self.service_data['started']
             )
         )
-        self.beamline.lims.open_session(self.beamline.name, config.get_session())
+        #self.beamline.lims.open_session(self.beamline.name, config.get_session())
 
     def do_quit(self, obj=None):
         logger.info('Closing MxLIVE Session...')
-        self.beamline.lims.close_session(self.beamline.name, config.get_session())
+        #self.beamline.lims.close_session(self.beamline.name, config.get_session())
         logger.info('Stopping ...')
         exit_main_loop()
 
