@@ -31,16 +31,12 @@ DEVICES = {
     # Goniometer/goniometer head devices
     'goniometer': goniometer.SimGoniometer(),
     'omega':    motor.SimMotor('Omega', 0.0, 'deg', speed=120.0, precision=3),
-    'sample_x':  motor.SimMotor('Sample X', 0.0, 'mm'),
-    'sample_y1':  motor.SimMotor('Sample Y', 0.0, 'mm'),
-    'sample_y2': motor.SimMotor('Sample Y', 0.0, 'mm'),
+    'sample_x':  motor.SimMotor('Sample X', 0.0, units='mm', speed=0.2),
+    'sample_y1':  motor.SimMotor('Sample Y', 0.0, units='mm', speed=0.2),
+    'sample_y2': motor.SimMotor('Sample Y', 0.0, units='mm', speed=0.2),
     
     # Beam position & Size
     'aperture': misc.SimChoicePositioner('Beam Size', 50, choices=[200, 150, 100, 50, 25], units='um'),
-    'beam_x':   motor.SimMotor('Beam X', 0.0, 'mm'),
-    'beam_y':   motor.SimMotor('Beam Y', 0.0, 'mm'),
-    'beam_w':   motor.SimMotor('Beam W', 0.2, 'mm'),
-    'beam_h':  motor. SimMotor('Beam H', 0.2, 'mm'),
     
     # Detector, distance & two_theta
     'distance': _tmp1,

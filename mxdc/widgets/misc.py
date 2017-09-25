@@ -1,4 +1,4 @@
-from mxdc.utils.misc import lighten_color
+from mxdc.utils.colors import lighten_color
 from diagnostics import MSG_COLORS, MSG_ICONS
 from dialogs import warning
 
