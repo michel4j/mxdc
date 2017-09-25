@@ -34,7 +34,7 @@ class IImageViewer(Interface):
 
 class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     gui_roots = {
-        'data/image_viewer': ['image_viewer', 'brightness_popup', 'contrast_popup', 'colorize_popup', 'info_dialog']
+        'data/image_viewer': ['image_viewer', 'brightness_popup', 'contrast_popup', 'info_dialog']
     }
     Formats = {
         'average_intensity': '{:0.0f}',
@@ -94,10 +94,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.brightness.set_adjustment(Gtk.Adjustment(0, 0, 100, 1, 10, 0))
         self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)
         self.brightness.connect('value-changed', self.on_brightness_changed)
-
-        self.colormap.set_adjustment(Gtk.Adjustment(0, 0, 100, 1, 10, 0))
         self.colorize_tbtn.connect('toggled', self.on_colorize_toggled)
-        self.colormap.connect('value-changed', self.on_colormap_changed)
 
         self.reset_btn.connect('clicked', self.on_reset_filters)
 
@@ -215,7 +212,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         cy = oy + iy + ih - 50
         self.contrast_popup.move(cx, cy)
         self.brightness_popup.move(cx, cy)
-        self.colorize_popup.move(cx, cy)
+
 
     # signal handlers
     def on_focus_out(self, obj, event, btn):
@@ -236,12 +233,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         if self._co_hide_id is not None:
             GObject.source_remove(self._co_hide_id)
             self._co_hide_id = GObject.timeout_add(12000, self._timed_hide, self.contrast_tbtn)
-
-    def on_colormap_changed(self, obj):
-        self.image_canvas.colorize(obj.get_value())
-        if self._cl_hide_id is not None:
-            GObject.source_remove(self._cl_hide_id)
-            self._cl_hide_id = GObject.timeout_add(12000, self._timed_hide, self.colorize_tbtn)
 
     def on_reset_filters(self, widget):
         self.contrast_tbtn.set_active(False)
@@ -359,18 +350,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
             self.contrast_popup.hide()
 
     def on_colorize_toggled(self, widget):
-        if self.colorize_tbtn.get_active():
-            self.brightness_tbtn.set_active(False)
-            self.contrast_tbtn.set_active(False)
-            self._position_popups()
-            self.colorize_popup.show_all()
-            self._cl_hide_id = GObject.timeout_add(12000, self._timed_hide, self.colorize_tbtn)
-
-        else:
-            if self._cl_hide_id is not None:
-                GObject.source_remove(self._cl_hide_id)
-                self._cl_hide_id = None
-            self.colorize_popup.hide()
+        self.image_canvas.colorize(self.colorize_tbtn.get_active())
 
     def on_follow_toggled(self, widget):
         self._following = widget.get_active()

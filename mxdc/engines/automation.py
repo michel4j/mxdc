@@ -126,19 +126,11 @@ class Automator(GObject.GObject):
                         logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
                             sample['name'], params['directory']
                         ))
-                        self.collector.configure(params, take_snapshots=True)
+                        self.collector.configure(params, take_snapshots=True, analysis=params.get('analysis', 'native'))
                         sample['results'] = self.collector.run()
                     else:
                         self.stop(error='Sample not mounted. Unable to continue automation!')
 
-                elif task['type'] == Automator.Task.ANALYSE:
-                    if sample.get('results') is not None:
-                        params = {}
-                        #params.update(task['options'])
-                        #params = datatools.update_for_sample(params, sample)
-                        #GObject.idle_add(self.emit, 'analysis-request', params)
-                    else:
-                        self.stop(error='Data not available. Unable to continue automation!')
             GObject.idle_add(self.emit, 'sample-done', sample['uuid'])
 
         if self.stopped:

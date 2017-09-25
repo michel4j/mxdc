@@ -93,7 +93,7 @@ class RasterCollector(GObject.GObject):
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
         time.sleep(2.0)
 
-        # self.results = self.save_metadata(self.config['datasets'])
+        # self.results = self.save(self.config['datasets'])
         # self.beamline.lims.upload_datasets(self.beamline, self.results)
         if not self.stopped:
             GObject.idle_add(self.emit, 'done')
