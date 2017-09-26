@@ -3,27 +3,24 @@ from mxdc.com import ca
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, automounter, humidity, video, misc, mca, counter
 from mxdc.services import clients
 
-BEAMLINE_NAME = 'CMCF-BM'
-BEAMLINE_TYPE = 'MX'
-BEAMLINE_ENERGY_RANGE = (4.5, 18.0)
-BEAMLINE_GONIO_POSITION = 2             # Goniometer orientation (XREC) 1,2,3
-ADMIN_GROUPS = [2000]
-
-DEFAULT_EXPOSURE    = 5.0
-DEFAULT_ATTENUATION = 90.0               # attenuation in %
-DEFAULT_BEAMSTOP    = 60.0
-SAFE_DISTANCE       = 400.0
-SAFE_BEAMSTOP       = 80.0
-XRF_BEAMSTOP        = 100.0
-XRF_ENERGY_OFFSET   = 1.5              # KeV
-
-CENTERING_BACKLIGHT = 65.0
-
-LIMS_API_KEY    = "3B7FF046-2726-4195-AC8A-9AE09B207765"
-
-# miscellaneous settings
-MISC_SETTINGS = {
-    'max_omega_velocity': 120.0,  # deg/sec
+CONFIG = {
+    'name': 'CMCF-BM',
+    'type': 'mx',
+    'admin_groups': [1000, 2000],
+    'energy_range': (5.0, 18.0),
+    'default_attenuation': 90.0,
+    'default_exposure': 5.0,
+    'default_delta': 0.5,
+    'default_beamstop': 60.0,
+    'safe_beamstop': 80.0,
+    'safe_distance': 400.0,
+    'xrf_beamstop': 100.0,
+    'xrf_fwhm': 0.1,
+    'xrf_energy_offset': 2.0,
+    'shutter_sequence': ('ssh1', 'psh1', 'psh2', 'ssh3'),
+    'orientation': 2,
+    'centering_backlight': 65,
+    'bug_report': ['michel.fodje@lightsource.ca']
 }
 
 # maps names to devices objects
@@ -108,11 +105,8 @@ SERVICES = {
     'dpm': clients.DPMClient(),
 }
 
-# Beamline shutters in the order in which they should be opened
-BEAMLINE_SHUTTERS = ('ssh1', 'psh1', 'psh2', 'ssh3')  
-
 # Devices only available in the console
-CONSOLE_DEVICES = {
+CONSOLE = {
     'vcm_y': motor.PseudoMotor('SCM1608-4-B10-01:ht:mm'),
     'vcm_pitch': motor.PseudoMotor('SCM1608-4-B10-01:pitch:mrad'),
     'vcm_x': motor.PseudoMotor('SMTR1608-4-B10-08:mm'),

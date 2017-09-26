@@ -25,8 +25,8 @@ class Provider(GObject.GObject):
     port with additional information in the data record.
     """
     __gsignals__ = {
-        'running' : (GObject.SignalFlags.RUN_LAST, None, []),
-        'collision' : (GObject.SignalFlags.RUN_LAST, None, []),
+        'running' : (GObject.SignalFlags.RUN_FIRST, None, []),
+        'collision' : (GObject.SignalFlags.RUN_FIRST, None, []),
     }
 
 
@@ -107,8 +107,8 @@ class Provider(GObject.GObject):
 
 class Browser(GObject.GObject):
     __gsignals__ = {
-        'added' : (GObject.SignalFlags.RUN_LAST, None, (object,)),
-        'removed' : (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'added' : (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'removed' : (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
 
     def __init__(self, service_type):

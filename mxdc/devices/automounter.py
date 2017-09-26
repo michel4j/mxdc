@@ -25,7 +25,7 @@ class AutomounterContainer(GObject.GObject):
           no data.
     """
     __gsignals__ = {
-        'changed': (GObject.SignalFlags.RUN_LAST, None, []),
+        'changed': (GObject.SignalFlags.RUN_FIRST, None, []),
     }
 
     def __init__(self, location, status_str=None):
@@ -39,13 +39,11 @@ class AutomounterContainer(GObject.GObject):
             - `status_str` (str or None): status string to update container with.       
         """
 
-        GObject.GObject.__init__(self)
+        super(AutomounterContainer, self).__init__()
         self.location = location
         self.samples = {}
         self.configure(status_str)
 
-    def do_changed(self):
-        pass
 
     def configure(self, status_str=None):
         """Sets up the container type and state from a status string.
@@ -109,13 +107,13 @@ class BasicAutomounter(BaseDevice):
     """
     implements(IAutomounter)
     __gsignals__ = {
-        'status': (GObject.SignalFlags.RUN_LAST, None, (str,)),
-        'layout': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-        'port-state': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-        'enabled': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
-        'preparing': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
-        'mounted': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-        'progress': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'status': (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        'layout': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'port-state': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'enabled': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        'preparing': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        'mounted': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'progress': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
 
     class ContainerType(object):
@@ -518,8 +516,9 @@ class Automounter(BasicAutomounter):
             port = self._mounted.get().strip()
 
         if port == '':
+            msg = 'No sample to dismount'
             logger.warning(msg)
-            self.set_state(message='No sample to dismount', preparing=False)
+            self.set_state(message=msg, preparing=False)
             return False
         else:
             param = port[0].lower() + ' ' + port[2:] + ' ' + port[1]
@@ -688,8 +687,6 @@ class SimAutomounter(BasicAutomounter):
     def __init__(self):
         BasicAutomounter.__init__(self)
         self.parse_states(_TEST_STATE)
-        from mxdc.devices.misc import SimPositioner
-        self.nitrogen_level = SimPositioner('Automounter Cryogen Level', 80.0, '%')
         self.set_state(active=True, health=(0, ''), status='ready', message='Ready', enabled=True)
 
     def mount(self, port, wash=False, wait=False):

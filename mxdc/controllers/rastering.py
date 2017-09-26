@@ -41,9 +41,9 @@ def frame_score(info):
 
 class RasterResultsManager(TreeManager):
     class Data(Enum):
-        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID = range(9)
+        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID, FILENAME = range(10)
 
-    Types = [str, float, float, float, float, float, int, float, str]
+    Types = [str, float, float, float, float, float, int, float, str, str]
     Columns = ColumnSpec(
         (Data.CELL, 'Label', ColumnType.TEXT, '{}', True),
         (Data.ANGLE, 'Angle',  ColumnType.NUMBER, '{:0.1f}\xc2\xb0', True),
@@ -287,6 +287,7 @@ class RasterController(GObject.GObject):
             'z_pos': z,
             'score': score,
             'color': score,
+            'filename': results['filename'],
             'uuid': self.props.config['uuid'],
         })
         self.results[self.props.config['uuid']]['scores'][cell] = score
@@ -309,7 +310,9 @@ class RasterController(GObject.GObject):
             self.beamline.sample_stage.move_xyz(*grid['config']['origin'])
             self.widget.raster_dir_fbk.set_text(grid['config']['directory'])
         else:
+            image_viewer = globalRegistry.lookup([], IImageViewer)
             self.beamline.sample_stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])
+            image_viewer.open_image(item['filename'])
 
     def on_grid_changed(self, obj, param):
         grid = self.microscope.props.grid_xyz
@@ -318,8 +321,8 @@ class RasterController(GObject.GObject):
         if grid is not None and state == self.microscope.GridState.PENDING:
             self.widget.raster_grid_info.set_text('Defined grid has {} points'.format(len(grid)))
             self.widget.raster_command_box.set_sensitive(True)
-            #self.widget.samples_stack.set_visible_child_name('rastering')
-            self.widget.samples_stack.child_set(raster_page, needs_attention=True)
+            self.widget.samples_stack.set_visible_child_name('rastering')
+            #self.widget.samples_stack.child_set(raster_page, needs_attention=True)
         else:
             msg = 'Please define a new grid using the sample viewer!'
             self.widget.raster_grid_info.set_text(msg)
