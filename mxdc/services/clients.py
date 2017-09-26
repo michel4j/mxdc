@@ -182,7 +182,7 @@ class MxLIVEClient(BaseService):
             logger.error('Unable to Open MxLIVE Session: \n {}'.format(e))
             reply = {'error': 'Unable to Open MxLIVE Session', 'details': '{}'.format(e)}
         else:
-            print reply
+            logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
 
     def close_session(self, beamline, session):
         logger.debug('Closing MxLIVE session ...')
@@ -192,7 +192,7 @@ class MxLIVEClient(BaseService):
         except (IOError, ValueError, requests.HTTPError) as e:
             logger.error('Unable to close MxLIVE Session: \n {}'.format(e))
         else:
-            print reply
+            logger.info('Leaving session {session} after {duration}.'.format(**reply))
 
     def upload_dataset(self, beamline, filename):
         """

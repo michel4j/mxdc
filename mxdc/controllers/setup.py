@@ -17,7 +17,7 @@ logger = get_module_logger(__name__)
 
 class SetupController(object):
     __gsignals__ = {
-        'beam-change': (GObject.SignalFlags.RUN_LAST, None, [bool, ]),
+        'beam-change': (GObject.SignalFlags.RUN_FIRST, None, [bool, ]),
     }
     gui_roots = {
         'data/hutch_manager': ['hutch_widget'],
@@ -94,9 +94,6 @@ class SetupController(object):
         self.widget.tuner_up_btn.connect('clicked', lambda x: self.beamline.beam_tuner.tune_up())
         self.widget.tuner_dn_btn.connect('clicked', lambda x: self.beamline.beam_tuner.tune_down())
         self.widget.tuner_reset_btn.connect('clicked', lambda x: self.beamline.beam_tuner.reset())
-
-    def do_beam_change(self, state):
-        pass
 
     def on_devices_busy(self, obj, state):
         states = [self.beamline.goniometer.busy_state, self.beamline.automounter.preparing_state,

@@ -1,6 +1,7 @@
 from PIL import Image
 import numpy
 import cairo
+import array
 import sys
 
 
@@ -55,10 +56,31 @@ def add_hc_decorations(img, x1, x2, y1, y2):
     return img
 
 
-def image_to_surface(im):
+def image_to_surface2(img):
     """Transform a PIL Image into a Cairo ImageSurface."""
+
+    if img.mode != 'RGBA':
+        img = img.convert('RGBA')
     return cairo.ImageSurface.create_for_data(
-        numpy.fromstring(im.tobytes('raw', 'BGRA', 0, 1)), cairo.FORMAT_ARGB32, im.size[0], im.size[1], im.size[0] * 4
+        numpy.fromstring(img.tobytes('raw', 'BGRA', 0, 1)), cairo.FORMAT_ARGB32, img.size[0], img.size[1]
     )
 
 
+def image_to_surface(im):
+    """Transform a PIL Image into a Cairo ImageSurface."""
+
+    assert sys.byteorder == 'little', "We don't support big endian"
+    if im.mode != 'RGBA':
+        im = im.convert('RGBA')
+
+    s = im.tobytes('raw', 'BGRA')
+    a = array.array('B', s)
+    dest = cairo.ImageSurface(cairo.FORMAT_ARGB32, im.size[0], im.size[1])
+    ctx = cairo.Context(dest)
+    non_premult_src_wo_alpha = cairo.ImageSurface.create_for_data(
+        a, cairo.FORMAT_RGB24, im.size[0], im.size[1])
+    non_premult_src_alpha = cairo.ImageSurface.create_for_data(
+        a, cairo.FORMAT_ARGB32, im.size[0], im.size[1])
+    ctx.set_source_surface(non_premult_src_wo_alpha)
+    ctx.mask_surface(non_premult_src_alpha)
+    return dest

@@ -49,7 +49,7 @@ class Automator(GObject.GObject):
     def start(self):
         worker_thread = threading.Thread(target=self.run)
         worker_thread.setDaemon(True)
-        worker_thread.setName('Automator')
+        worker_thread.setName('Automation')
         self.paused = False
         self.stopped = False
         worker_thread.start()

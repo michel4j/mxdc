@@ -34,7 +34,7 @@ class IImageViewer(Interface):
 
 class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     gui_roots = {
-        'data/image_viewer': ['image_viewer', 'brightness_popup', 'contrast_popup', 'info_dialog']
+        'data/image_viewer': ['image_viewer', 'brightness_popup', 'info_dialog']
     }
     Formats = {
         'average_intensity': '{:0.0f}',
@@ -59,7 +59,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.set(0.5, 0.5, 1, 1)
         self._canvas_size = size
         self._brightness = 1.0
-        self._contrast = 1.0
         self._following = False
         self._collecting = False
         self._br_hide_id = None
@@ -87,9 +86,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
         self.info_btn.connect('clicked', self.on_image_info)
         self.follow_tbtn.connect('toggled', self.on_follow_toggled)
-        self.contrast.set_adjustment(Gtk.Adjustment(0, 0, 100, 1, 10, 0))
-        self.contrast_tbtn.connect('toggled', self.on_contrast_toggled)
-        self.contrast.connect('value-changed', self.on_contrast_changed)
 
         self.brightness.set_adjustment(Gtk.Adjustment(0, 0, 100, 1, 10, 0))
         self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)
@@ -172,7 +168,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self._rescan_dataset()
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
-        self.contrast_tbtn.set_sensitive(True)
         self.brightness_tbtn.set_sensitive(True)
         self.colorize_tbtn.set_sensitive(True)
         self.reset_btn.set_sensitive(True)
@@ -210,7 +205,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         iw, ih = canvas_window.get_width(), canvas_window.get_height()
         cx = ox + ix + iw / 2 - 100
         cy = oy + iy + ih - 50
-        self.contrast_popup.move(cx, cy)
         self.brightness_popup.move(cx, cy)
 
 
@@ -228,18 +222,8 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
             GObject.source_remove(self._br_hide_id)
             self._br_hide_id = GObject.timeout_add(12000, self._timed_hide, self.brightness_tbtn)
 
-    def on_contrast_changed(self, obj):
-        self.image_canvas.set_contrast(obj.get_value())
-        if self._co_hide_id is not None:
-            GObject.source_remove(self._co_hide_id)
-            self._co_hide_id = GObject.timeout_add(12000, self._timed_hide, self.contrast_tbtn)
-
     def on_reset_filters(self, widget):
-        self.contrast_tbtn.set_active(False)
-        self.brightness_tbtn.set_active(False)
-        self.colorize_tbtn.set_active(False)
         self.image_canvas.reset_filters()
-        return True
 
     def on_go_back(self, widget, full):
         self.image_canvas.go_back(full)
@@ -324,7 +308,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def on_brightness_toggled(self, widget):
         if self.brightness_tbtn.get_active():
-            self.contrast_tbtn.set_active(False)
             self.colorize_tbtn.set_active(False)
             self._position_popups()
             self.brightness_popup.show_all()
@@ -335,21 +318,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                 self._br_hide_id = None
             self.brightness_popup.hide()
 
-    def on_contrast_toggled(self, widget):
-        if self.contrast_tbtn.get_active():
-            self.brightness_tbtn.set_active(False)
-            self.colorize_tbtn.set_active(False)
-            self._position_popups()
-            self.contrast_popup.show_all()
-            self._co_hide_id = GObject.timeout_add(12000, self._timed_hide, self.contrast_tbtn)
-
-        else:
-            if self._co_hide_id is not None:
-                GObject.source_remove(self._co_hide_id)
-                self._co_hide_id = None
-            self.contrast_popup.hide()
-
-    def on_colorize_toggled(self, widget):
+    def on_colorize_toggled(self, button):
         self.image_canvas.colorize(self.colorize_tbtn.get_active())
 
     def on_follow_toggled(self, widget):
@@ -357,28 +326,3 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         if not self._collecting:
             GObject.timeout_add(2500, self._replay_frames)
         return True
-
-
-def main():
-    win = Gtk.Window()
-    win.connect("destroy", lambda x: Gtk.main_quit())
-    win.set_border_width(6)
-    win.set_title("Diffraction Image Viewer")
-    myview = ImageViewer(800)
-    hbox = Gtk.HBox(False)
-    hbox.pack_start(myview, True, True, 0)
-    win.add(hbox)
-    win.show_all()
-
-    if len(sys.argv) == 2:
-        myview.open_image(sys.argv[1])
-
-    try:
-        Gtk.main()
-    except KeyboardInterrupt:
-        print "Quiting..."
-        sys.exit()
-
-
-if __name__ == '__main__':
-    main()

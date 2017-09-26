@@ -66,74 +66,6 @@
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="mount_mnu">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Mount Mode</property>
-        <property name="use_underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="centering_mnu">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Centering Mode</property>
-        <property name="use_underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="collect_mnu">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Collect Mode</property>
-        <property name="use_underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="scan_mnu">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Scan Mode</property>
-        <property name="use_underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="beam_mnu">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Beam Mode</property>
-        <property name="use_underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkSeparatorMenuItem">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="open_shutter_mnu">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Open Shutter</property>
-        <property name="use_underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="close_shutter_mnu">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Close Shutter</property>
-        <property name="use_underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkSeparatorMenuItem">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-      </object>
-    </child>
-    <child>
       <object class="GtkMenuItem" id="about_mnu">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -459,13 +391,14 @@
                         <child>
                           <object class="GtkLabel" id="status_lbl">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                            <property name="can_focus">True</property>
                             <property name="halign">start</property>
-                            <property name="use_markup">True</property>
                             <property name="wrap">True</property>
-                            <property name="selectable">True</property>
-                            <property name="ellipsize">end</property>
+                            <property name="max_width_chars">30</property>
                             <property name="track_visited_links">False</property>
+                            <attributes>
+                              <attribute name="scale" value="0.90000000000000002"/>
+                            </attributes>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -1890,7 +1823,7 @@
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
                                                     <property name="halign">center</property>
-                                                    <property name="icon_name">help-about-symbolic</property>
+                                                    <property name="pixbuf">crystal.png</property>
                                                   </object>
                                                 </child>
                                               </object>
@@ -2879,6 +2812,8 @@
                                       <object class="GtkSeparator">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="margin_left">6</property>
+                                        <property name="margin_right">6</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -3280,7 +3215,6 @@
                                         <property name="tooltip_text" translatable="yes">Open Terminal</property>
                                         <property name="halign">end</property>
                                         <property name="valign">end</property>
-                                        <property name="relief">none</property>
                                         <child>
                                           <object class="GtkImage">
                                             <property name="visible">True</property>
@@ -4716,41 +4650,53 @@
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkButton" id="auto_clean_btn">
+                                          <object class="GtkBox">
                                             <property name="visible">True</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="receives_default">True</property>
-                                            <property name="tooltip_text" translatable="yes">Remove completed items</property>
+                                            <property name="can_focus">False</property>
                                             <property name="border_width">3</property>
-                                            <property name="relief">none</property>
                                             <child>
-                                              <object class="GtkImage">
+                                              <object class="GtkMenuButton" id="auto_groups_btn">
                                                 <property name="visible">True</property>
-                                                <property name="can_focus">False</property>
-                                                <property name="icon_name">edit-clear-all-symbolic</property>
+                                                <property name="can_focus">True</property>
+                                                <property name="receives_default">True</property>
+                                                <child>
+                                                  <object class="GtkImage">
+                                                    <property name="visible">True</property>
+                                                    <property name="can_focus">False</property>
+                                                    <property name="icon_name">list-add-symbolic</property>
+                                                  </object>
+                                                </child>
                                               </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="pack_type">end</property>
+                                                <property name="position">0</property>
+                                              </packing>
                                             </child>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkMenuButton" id="auto_groups_btn">
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="receives_default">True</property>
-                                            <property name="border_width">3</property>
-                                            <property name="relief">none</property>
                                             <child>
-                                              <object class="GtkImage">
+                                              <object class="GtkButton" id="auto_clean_btn">
                                                 <property name="visible">True</property>
-                                                <property name="can_focus">False</property>
-                                                <property name="icon_name">list-add-symbolic</property>
+                                                <property name="can_focus">True</property>
+                                                <property name="receives_default">True</property>
+                                                <property name="tooltip_text" translatable="yes">Remove completed items</property>
+                                                <child>
+                                                  <object class="GtkImage">
+                                                    <property name="visible">True</property>
+                                                    <property name="can_focus">False</property>
+                                                    <property name="icon_name">edit-clear-all-symbolic</property>
+                                                  </object>
+                                                </child>
                                               </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
                                             </child>
+                                            <style>
+                                              <class name="linked"/>
+                                            </style>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -5082,7 +5028,6 @@
                                 <property name="tooltip_text" translatable="yes">Open Terminal</property>
                                 <property name="halign">end</property>
                                 <property name="valign">end</property>
-                                <property name="relief">none</property>
                                 <child>
                                   <object class="GtkImage">
                                     <property name="visible">True</property>
@@ -6905,6 +6850,7 @@
                                 <property name="halign">start</property>
                                 <property name="selectable">True</property>
                                 <property name="ellipsize">start</property>
+                                <property name="width_chars">30</property>
                                 <property name="max_width_chars">30</property>
                                 <style>
                                   <class name="status-fbk"/>
@@ -6913,7 +6859,7 @@
                               <packing>
                                 <property name="left_attach">1</property>
                                 <property name="top_attach">3</property>
-                                <property name="width">2</property>
+                                <property name="width">3</property>
                               </packing>
                             </child>
                             <child>
@@ -6939,7 +6885,6 @@
                                 <property name="tooltip_text" translatable="yes">Open Terminal</property>
                                 <property name="halign">end</property>
                                 <property name="valign">end</property>
-                                <property name="relief">none</property>
                                 <child>
                                   <object class="GtkImage">
                                     <property name="visible">True</property>

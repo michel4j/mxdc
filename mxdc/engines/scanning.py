@@ -26,15 +26,15 @@ class BasicScan(GObject.GObject):
     
     implements(IScan)
     __gsignals__ = {}
-    __gsignals__['new-point'] = (GObject.SignalFlags.RUN_LAST, None, (object,))
-    __gsignals__['progress'] = (GObject.SignalFlags.RUN_LAST, None, (float, str,))
-    __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, [])
-    __gsignals__['started'] = (GObject.SignalFlags.RUN_LAST, None, [])
-    __gsignals__['message'] = ( GObject.SignalFlags.RUN_LAST, None, (str,))
-    __gsignals__['busy'] = (GObject.SignalFlags.RUN_LAST, None, (bool,))
-    __gsignals__['error'] = ( GObject.SignalFlags.RUN_LAST, None, (str,))
-    __gsignals__['stopped'] = ( GObject.SignalFlags.RUN_LAST, None, [])
-    __gsignals__['paused'] = ( GObject.SignalFlags.RUN_LAST, None, [object,bool])
+    __gsignals__['new-point'] = (GObject.SignalFlags.RUN_FIRST, None, (object,))
+    __gsignals__['progress'] = (GObject.SignalFlags.RUN_FIRST, None, (float, str,))
+    __gsignals__['done'] = (GObject.SignalFlags.RUN_FIRST, None, [])
+    __gsignals__['started'] = (GObject.SignalFlags.RUN_FIRST, None, [])
+    __gsignals__['message'] = ( GObject.SignalFlags.RUN_FIRST, None, (str,))
+    __gsignals__['busy'] = (GObject.SignalFlags.RUN_FIRST, None, (bool,))
+    __gsignals__['error'] = ( GObject.SignalFlags.RUN_FIRST, None, (str,))
+    __gsignals__['stopped'] = ( GObject.SignalFlags.RUN_FIRST, None, [])
+    __gsignals__['paused'] = ( GObject.SignalFlags.RUN_FIRST, None, [object,bool])
    
 
     def __init__(self):

@@ -626,19 +626,6 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToggleToolButton" id="contrast_tbtn">
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can_focus">False</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">multimedia-volume-control-symbolic</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="homogeneous">True</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkToggleToolButton" id="brightness_tbtn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
@@ -658,6 +645,7 @@
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Colorize Image</property>
                 <property name="icon_name">applications-graphics-symbolic</property>
+                <property name="active">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>

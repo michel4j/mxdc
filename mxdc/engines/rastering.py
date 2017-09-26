@@ -210,6 +210,7 @@ class RasterCollector(GObject.GObject):
 
     def result_ready(self, result, cell, file_path):
         self.pending_results.remove(file_path)
+        result['filename'] = file_path
         GObject.idle_add(self.emit, 'result', cell, result)
         self.results[cell] = result
         if not self.pending_results:

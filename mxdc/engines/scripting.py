@@ -41,11 +41,11 @@ class ScriptError(Exception):
 class Script(GObject.GObject):
     implements(IScript)
     __gsignals__ = {}
-    __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, (object,))
-    __gsignals__['busy'] = (GObject.SignalFlags.RUN_LAST, None, (bool,))
-    __gsignals__['message'] = (GObject.SignalFlags.RUN_LAST, None, (str,))
-    __gsignals__['enabled'] = (GObject.SignalFlags.RUN_LAST, None, (bool,))
-    __gsignals__['error'] = (GObject.SignalFlags.RUN_LAST, None, [])
+    __gsignals__['done'] = (GObject.SignalFlags.RUN_FIRST, None, (object,))
+    __gsignals__['busy'] = (GObject.SignalFlags.RUN_FIRST, None, (bool,))
+    __gsignals__['message'] = (GObject.SignalFlags.RUN_FIRST, None, (str,))
+    __gsignals__['enabled'] = (GObject.SignalFlags.RUN_FIRST, None, (bool,))
+    __gsignals__['error'] = (GObject.SignalFlags.RUN_FIRST, None, [])
     description = 'A Script'
     progress = None
 
@@ -68,6 +68,7 @@ class Script(GObject.GObject):
             self._active = True
             worker_thread = threading.Thread(target=self._thread_run, args=args, kwargs=kwargs)
             worker_thread.setDaemon(True)
+            worker_thread.setName(self.name)
             self.output = None
             worker_thread.start()
         else:
