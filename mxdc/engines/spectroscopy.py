@@ -34,7 +34,6 @@ class XRFScanner(BasicScan):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.config = copy.deepcopy(info)
         self.config['filename'] = os.path.join(info['directory'], "{}.xdi".format(info['name'], info['energy']))
-        #self.config['results_file'] = os.path.join(info['directory'], "{}.out".format(info['name'], info['energy']))
         self.config['user'] = misc.get_project_name()
         self.results = {}
 
@@ -105,13 +104,12 @@ class XRFScanner(BasicScan):
                     if line_info is not None:
                         assigned[symbol] = [prob, scitools.get_line_info(el_info, coeffs[i])]
 
-                        # twisted does not like numpy.float64 so we need to convert x, y to native python
         # floats here
         ys = scitools.smooth_data(y, times=3, window=11)
         self.results = {
             'data': {
                 'energy': x.tolist(),
-                'counts': y.tolist(),
+                'counts': self.data[:, 1].astype(float).tolist(),
 
 
             },
@@ -122,8 +120,6 @@ class XRFScanner(BasicScan):
                 'assignments': assigned
             },
         }
-        #with open(self.config['results_file'], 'w') as handle:
-        #    json.dump(self.results, handle)
 
     def save_metadata(self):
         params = self.config
@@ -307,7 +303,7 @@ class MADScanner(BasicScan):
 
 
 class XASScanner(BasicScan):
-    __gsignals__ = {'new-scan' : (GObject.SignalFlags.RUN_LAST, None, (int,)) }
+    __gsignals__ = {'new-scan' : (GObject.SignalFlags.RUN_FIRST, None, (int,)) }
 
     def __init__(self):
         BasicScan.__init__(self)

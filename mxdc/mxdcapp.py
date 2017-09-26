@@ -12,7 +12,7 @@ from mxdc.utils.log import get_module_logger, log_to_console
 from mxdc.utils.misc import get_project_name, identifier_slug
 from mxdc.AppWindow import AppWindow
 from mxdc.widgets import dialogs
-from mxdc.utils import config
+from mxdc.utils import config, excepthook
 from mxdc.services.clients import MxDCClient
 from twisted.internet import reactor
 from twisted.spread import pb
@@ -22,7 +22,7 @@ import warnings
 import logging
 from gi.repository import Gtk, GObject
 
-USE_TWISTED = True
+USE_TWISTED = False
 MXDC_PORT = 9898
 
 warnings.simplefilter("ignore")
@@ -35,6 +35,10 @@ class MXDCApp(object):
         # Create application window
         self.main_window = AppWindow()
         self.beamline = MXBeamline()
+
+        self.hook = excepthook.ExceptHook(emails=self.beamline.config['bug_report'], exit_function=exit_main_loop)
+        self.hook.install()
+
         self.service_type = '_mxdc_{}._tcp'.format(identifier_slug(self.beamline.name))
         self.service_data = {
             'user': get_project_name(),
@@ -53,7 +57,6 @@ class MXDCApp(object):
             msg = 'On <i>{}</i>, by user <i>{}</i> since <i>{}</i>. Only one instance permitted!'.format(
                 data['host'], data['data']['user'], data['data']['started']
             )
-
             if set(self.beamline.config['admin_groups']) & set(os.getgroups()):
                 msg += '\n\nDo you want to shut it down?'
                 response = dialogs.yesno('MXDC Already Running', msg)
@@ -114,6 +117,7 @@ def run_main_loop(func):
         GObject.idle_add(func)
         Gtk.main()
 
+
 def clear_loggers():
     # disconnect all log handlers first
     logger = logging.getLogger('')
@@ -129,7 +133,6 @@ def exit_main_loop():
         Gtk.main_quit()
 
 
-
 def main():
     try:
         _ = os.environ['MXDC_CONFIG']
@@ -137,13 +140,12 @@ def main():
     except:
         logger.error('Could not find Beamline Configuration.')
         logger.error('Please make sure MXDC is properly installed and configured.')
-        exit_main_loop()
+    else:
+        app = MXDCApp()
+        app.run_local()
 
-    app = MXDCApp()
-    app.run_local()
 
 
 if __name__ == "__main__":
     log_to_console()
-    #excepthook.install(exit_main_loop)
     run_main_loop(main)

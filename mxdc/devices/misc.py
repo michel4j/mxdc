@@ -33,7 +33,7 @@ class PositionerBase(BaseDevice):
     }
 
     def __init__(self):
-        BaseDevice.__init__(self)
+        super(PositionerBase, self).__init__()
         self.units = ''
 
     def _signal_change(self, obj, value):
@@ -44,7 +44,7 @@ class PositionerBase(BaseDevice):
         Args:
             - `value` : New value to set.
         """
-        raise NotImplementedError, 'Derived class must implement this method'
+        raise NotImplementedError('Derived class must implement this method')
 
     def set_position(self, value):
         return self.set(value)
@@ -54,7 +54,7 @@ class PositionerBase(BaseDevice):
         Returns:
             - The current value.
         """
-        raise NotImplementedError, 'Derived class must implement this method'
+        raise NotImplementedError('Derived class must implement this method')
 
     def get_position(self):
         return self.get()
@@ -62,7 +62,7 @@ class PositionerBase(BaseDevice):
 
 class SimPositioner(PositionerBase):
     def __init__(self, name, pos=0.0, units="", active=True, delay=True, noise=0):
-        PositionerBase.__init__(self)
+        super(SimPositioner, self).__init__()
         self.name = name
         self._pos = pos
         self._fbk = self._pos
@@ -113,7 +113,7 @@ class Positioner(PositionerBase):
             - `scale` (float): A percentage to scale the set and get values by.
             - `units` (str): The units of the value.
         """
-        PositionerBase.__init__(self)
+        super(Positioner, self).__init__()
         self.set_pv = self.add_pv(name)
         self.scale = scale
         if fbk_name is None:
@@ -157,7 +157,7 @@ class Positioner(PositionerBase):
 
 class ChoicePositioner(PositionerBase):
     def __init__(self, pv, choices=[], units=""):
-        PositionerBase.__init__(self)
+        super(ChoicePositioner, self).__init__()
         self.units = units
         self.dev = self.add_pv(pv)
         self.choices = choices
@@ -180,7 +180,7 @@ class ChoicePositioner(PositionerBase):
 class SimChoicePositioner(PositionerBase):
     def __init__(self, name, value, choices=[], units="", active=True):
         self.name = name
-        PositionerBase.__init__(self)
+        super(SimChoicePositioner, self).__init__()
         self.units = units
         self.choices = choices
         self._pos = value
@@ -202,7 +202,7 @@ class SampleLight(Positioner):
     implements(IOnOff)
 
     def __init__(self, set_name, fbk_name, onoff_name, scale=100, units=""):
-        Positioner.__init__(self, set_name, fbk_name, scale, units)
+        super(SampleLight, self).__init__(set_name, fbk_name, scale, units)
         self.onoff_cmd = self.add_pv(onoff_name)
 
     def set_on(self):
@@ -251,7 +251,7 @@ class SimLight(SimPositioner):
     implements(IOnOff)
 
     def __init__(self, name, pos=0, units="", active=True):
-        SimPositioner.__init__(self, name, pos, units, active)
+        super(SimLight, self).__init__(name, pos, units, active)
         self._on = 0
 
     def set_on(self):
@@ -276,7 +276,7 @@ class PositionerMotor(MotorBase):
         Args:
             - `positioner` (:class:`PositionerBase`)
         """
-        MotorBase.__init__(self, 'Positioner Motor')
+        super(PositionerMotor, self).__init__('Positioner Motor')
         self.positioner = positioner
         self.name = positioner.name
         self.units = positioner.units
@@ -431,7 +431,7 @@ class BasicShutter(BaseDevice):
     }
 
     def __init__(self, open_name, close_name, state_name):
-        BaseDevice.__init__(self)
+        super(BasicShutter, self).__init__()
         # initialize variables
         self._open_cmd = self.add_pv(open_name)
         self._close_cmd = self.add_pv(close_name)
@@ -488,7 +488,7 @@ class StateLessShutter(BaseDevice):
     }
 
     def __init__(self, open_name, close_name):
-        BaseDevice.__init__(self)
+        super(StateLessShutter, self).__init__()
         # initialize variables
         self._open_cmd = self.add_pv(open_name)
         self._close_cmd = self.add_pv(close_name)
@@ -521,13 +521,13 @@ class ShutterGroup(BaseDevice):
         self.add_devices(*self._dev_list)
         self.name = 'Beamline Shutters'
         for dev in self._dev_list:
-            dev.connect('changed', self._on_change)
+            dev.connect('changed', self.handle_change)
 
     def is_open(self):
         """Convenience function for open state"""
         return self.changed_state
 
-    def _on_change(self, obj, val):
+    def handle_change(self, obj, val):
         if val:
             if misc.every([dev.changed_state for dev in self._dev_list]):
                 self.set_state(changed=True, health=(0, 'state'))
@@ -558,13 +558,11 @@ class SimShutter(BaseDevice):
     implements(IShutter)
 
     __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST,
-                    None,
-                    (object,)),
+        "changed": (GObject.SignalFlags.RUN_FIRST,                    None,                    (object,)),
     }
 
     def __init__(self, name):
-        BaseDevice.__init__(self)
+        super(SimShutter, self).__init__()
         self.name = name
         self._state = False
         self.set_state(active=True, changed=self._state)
@@ -590,44 +588,17 @@ class Shutter(BasicShutter):
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
         state_name = "%s:state" % name
-        BasicShutter.__init__(self, open_name, close_name, state_name)
-
-
-class Collimator(BaseDevice):
-    implements(ICollimator)
-
-    def __init__(self, x, y, width, height, name='Collimator'):
-        BaseDevice.__init__(self)
-        self.name = name
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.add_devices(x, y, width, height)
-
-    def wait(self):
-        self.width.wait()
-        self.height.wait()
-        self.x.wait()
-        self.y.wait()
-
-    def stop(self):
-        self.width.stop()
-        self.height.stop()
-        self.x.stop()
-        self.y.stop()
+        super(Shutter, self).__init__(open_name, close_name, state_name)
 
 
 class SimStorageRing(BaseDevice):
     implements(IStorageRing)
     __gsignals__ = {
-        "beam": (GObject.SignalFlags.RUN_FIRST,
-                 None,
-                 (bool,)),
+        "beam": (GObject.SignalFlags.RUN_FIRST,  None, (bool,)),
     }
 
     def __init__(self, name, pv1=None, pv2=None, pv3=None):
-        BaseDevice.__init__(self)
+        super(SimStorageRing, self).__init__()
         self.name = name
         self.message = 'Sim SR Testing!'
         self.set_state(beam=False, active=True, health=(0, ''))
@@ -670,7 +641,7 @@ class DiskSpaceMonitor(BaseDevice):
               goes above this value.              
             -`freq` (float): Frequency in minutes to check disk usage. Default (5)
         """
-        BaseDevice.__init__(self)
+        super(DiskSpaceMonitor, self).__init__()
         self.name = descr
         self.path = path
         self.warn_threshold = warn
@@ -718,7 +689,7 @@ class StorageRing(BaseDevice):
     }
 
     def __init__(self, pv1, pv2, pv3):
-        BaseDevice.__init__(self)
+        super(StorageRing, self).__init__()
         self.name = "Storage Ring"
         self.mode = self.add_pv(pv1)
         self.current = self.add_pv(pv2)
@@ -778,32 +749,26 @@ class StorageRing(BaseDevice):
 
 
 class Enclosures(BaseDevice):
-    __gsignals__ = {
-        "ready": (GObject.SignalFlags.RUN_FIRST,
-                  None,
-                  (bool,)),
-    }
-
     def __init__(self, **kwargs):
-        BaseDevice.__init__(self)
+        super(Enclosures, self).__init__()
         self.name = "Beamline Enclosures"
         self.hutches = {}
+        self.ready = False
         for k, n in kwargs.items():
             p = self.add_pv(n)
             self.hutches[k] = p
-            p.connect('changed', self._on_change)
+            p.connect('changed', self.handle_change)
 
-    def _get_message(self):
+    def get_messages(self):
         if self.ready_state:
             return "All enclosures secure"
         else:
             msg = ", ".join([k.upper() for k, v in self.hutches.items() if v.get() == 0])
             return "%s not secure" % msg
 
-    def _on_change(self, obj, val):
-        rd = all([p.get() == 1 for p in self.hutches.values()])
-        self.set_state(ready=rd)
-        if not rd:
-            self.set_state(health=(2, 'ready', self._get_message()))
+    def handle_change(self, obj, val):
+        self.ready = all([p.get() == 1 for p in self.hutches.values()])
+        if not self.ready:
+            self.set_state(health=(2, 'ready', self.get_messages()))
         else:
-            self.set_state(health=(0, 'ready', self._get_message()))
+            self.set_state(health=(0, 'ready', self.get_messages()))

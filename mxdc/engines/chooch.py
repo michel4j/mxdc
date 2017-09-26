@@ -19,8 +19,8 @@ class AutoChooch(GObject.GObject):
         - `error`: Emitted if an error occurs.
     """
     __gsignals__ = {}
-    __gsignals__['error'] = (GObject.SignalFlags.RUN_LAST, None, (str,))
-    __gsignals__['done'] = (GObject.SignalFlags.RUN_LAST, None, [])
+    __gsignals__['error'] = (GObject.SignalFlags.RUN_FIRST, None, (str,))
+    __gsignals__['done'] = (GObject.SignalFlags.RUN_FIRST, None, [])
     
     def __init__(self):
         GObject.GObject.__init__(self)
@@ -46,6 +46,7 @@ class AutoChooch(GObject.GObject):
     def start(self):
         """Start the analysis asynchronously. Use signals to determine completion/failure."""
         worker = threading.Thread(target=self.run)
+        worker.setName('AutoChooch')
         worker.setDaemon(True)
         worker.start()
                         

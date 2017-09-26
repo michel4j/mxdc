@@ -85,15 +85,6 @@ class BaseDevice(GObject.GObject):
         txt = "<{}: {}\n{}\n>".format(self.__class__.__name__, self.name, '\n'.join(state_txts))
         return txt
 
-    def do_busy(self, state):
-        pass
-
-    def do_health(self, state):
-        pass
-
-    def do_message(self, state):
-        pass
-
     def do_active(self, state):
         desc = {True: 'active', False: 'inactive'}
         logger.info("({}) is now {}.".format(self.name, desc[state]))
@@ -136,7 +127,6 @@ class BaseDevice(GObject.GObject):
                                health=(1, 'error','too hot'),
                                message="the devices is overheating")
         """
-
         for signal, value in kwargs.items():
             if signal != 'health':
                 # only signal a state change if it actually changes for non
@@ -177,7 +167,6 @@ class BaseDevice(GObject.GObject):
         """
 
         protocol = kwargs.pop('protocol', ca)
-
         dev = protocol.PV(*args, **kwargs)
         self.pending.append(dev)
         dev.connect('active', self.on_device_active)

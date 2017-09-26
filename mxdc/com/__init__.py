@@ -7,10 +7,10 @@ from mxdc.com.interfaces import IProcessVariable
 class BasePV(GObject.GObject):
     implements(IProcessVariable)
     __gsignals__ = {
-        'changed':      (GObject.SignalFlags.RUN_LAST, None, (object,)),
-        'time':         (GObject.SignalFlags.RUN_LAST, None, (object,)),
-        'active' :      (GObject.SignalFlags.RUN_LAST, None, (bool,)),
-        'alarm' :       (GObject.SignalFlags.RUN_LAST, None, (object,))
+        'changed':      (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'time':         (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'active' :      (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        'alarm' :       (GObject.SignalFlags.RUN_FIRST, None, (object,))
     }
     
     def __init__(self, name, monitor=True, timed=False):
