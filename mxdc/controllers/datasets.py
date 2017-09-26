@@ -299,9 +299,9 @@ class AutomationController(GObject.GObject):
 
 class DatasetsController(GObject.GObject):
     __gsignals__ = {
-        'samples-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-        'active-sample': (GObject.SignalFlags.RUN_LAST, None, [object, ]),
-        'sample-selected': (GObject.SignalFlags.RUN_LAST, None, [object, ]),
+        'samples-changed': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'active-sample': (GObject.SignalFlags.RUN_FIRST, None, [object, ]),
+        'sample-selected': (GObject.SignalFlags.RUN_FIRST, None, [object, ]),
     }
 
     def __init__(self, widget):

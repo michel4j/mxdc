@@ -9,9 +9,9 @@ config.get_session()  # update the session configuration
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
-from mxdc.control import common, status
-from mxdc.control import setup, scans, datasets
-from mxdc.control import samples, analysis
+from mxdc.controllers import common, status
+from mxdc.controllers import setup, scans, datasets
+from mxdc.controllers import samples, analysis
 from mxdc.widgets import dialogs
 from mxdc.widgets.splash import Splash
 from twisted.python.components import globalRegistry
@@ -78,10 +78,7 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
     def add_menu_actions(self):
         self.quit_mnu.connect('activate', lambda x: self.do_quit())
         self.about_mnu.connect('activate', lambda x: self.do_about())
-        self.mount_mnu.connect('activate', lambda x: self.scripts['SetMountMode'].start())
-        self.centering_mnu.connect('activate', lambda x: self.scripts['SetCenteringMode'].start())
-        self.collect_mnu.connect('activate', lambda x: self.scripts['SetCollectMode'].start())
-        self.beam_mnu.connect('activate', lambda x: self.scripts['SetBeamMode'].start())
+
 
     def build_gui(self):
         self.notifier = common.AppNotifier(self.notification_lbl, self.notification_revealer, self.notification_btn)

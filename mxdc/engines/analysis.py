@@ -8,6 +8,7 @@ from zope.interface import implements
 from mxdc.beamline.interfaces import IBeamline
 from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import misc
+from mxdc.utils.decorators import log_call
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -43,7 +44,7 @@ class Analyst(GObject.GObject):
             return self.ResultSummary[result_type].format(**info)
         else:
             return self.ResultSummary[result_type].format(**result)
-
+    @log_call
     def process_dataset(self, params, screen=False):
         params['uuid'] = str(uuid.uuid4())
         params['summary'] = ''

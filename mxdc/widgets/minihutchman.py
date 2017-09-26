@@ -29,7 +29,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 class MiniHutchManager(Gtk.Alignment):
     __gsignals__ = {
-        'beam-change': (GObject.SignalFlags.RUN_LAST, None, [bool,]),
+        'beam-change': (GObject.SignalFlags.RUN_FIRST, None, [bool,]),
     }
     def __init__(self):
 

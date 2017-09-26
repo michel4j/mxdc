@@ -99,7 +99,7 @@ class SampleStore(GObject.GObject):
     ])
 
     __gsignals__ = {
-        'updated': (GObject.SignalFlags.RUN_LAST, None, []),
+        'updated': (GObject.SignalFlags.RUN_FIRST, None, []),
     }
 
     def __init__(self, view, widget):

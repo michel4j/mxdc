@@ -3,7 +3,7 @@ from twisted.python.components import globalRegistry
 
 import cryo
 from mxdc.beamline.mx import IBeamline
-from mxdc.control import microscope, samplestore, humidity, rastering
+from mxdc.controllers import microscope, samplestore, humidity, rastering
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc
 

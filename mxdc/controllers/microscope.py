@@ -254,7 +254,7 @@ class Microscope(GObject.GObject):
             cr.set_font_size(8)
             for i, (x, y, z) in enumerate(self.props.grid):
                 if i in self.props.grid_scores:
-                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i], alpha=0.35)
+                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i], alpha=0.5)
                     cr.set_source_rgba(*col)
                     cr.arc(x, y, radius, 0, 2.0 * 3.14)
                     cr.fill()
