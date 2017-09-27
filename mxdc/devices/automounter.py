@@ -109,7 +109,7 @@ class BasicAutomounter(BaseDevice):
     __gsignals__ = {
         'status': (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         'layout': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        'port-state': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'ports': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
         'enabled': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         'preparing': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         'mounted': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
@@ -148,7 +148,7 @@ class BasicAutomounter(BaseDevice):
     }
 
     def __init__(self):
-        BaseDevice.__init__(self)
+        super(BasicAutomounter, self).__init__()
         self.containers = {'L': AutomounterContainer('L'),
                            'M': AutomounterContainer('M'),
                            'R': AutomounterContainer('R')}
@@ -209,7 +209,7 @@ class BasicAutomounter(BaseDevice):
                     dewar_layout[entry] = SAM_LAYOUTS[entry]
 
         self.set_state(layout=dewar_layout)
-        self.set_state(port_state=port_states)
+        self.set_state(ports=port_states)
 
 
     def abort(self):
@@ -383,7 +383,7 @@ class Automounter(BasicAutomounter):
     }
 
     def __init__(self, pv_name, pv_name2=None):
-        BasicAutomounter.__init__(self)
+        super(Automounter, self).__init__()
         self.name = 'SAM Automounter'
         self._pv_name = pv_name
 
@@ -663,7 +663,7 @@ class ManualMounter(BasicAutomounter):
     """Manual Mounter objects."""
 
     def __init__(self):
-        BasicAutomounter.__init__(self)
+        super(ManualMounter, self).__init__()
         self.sample = None
 
     def mount(self, state):
@@ -685,7 +685,7 @@ uu------uu------uu------uu------uu------uu------uu------uu------uu------u'
 
 class SimAutomounter(BasicAutomounter):
     def __init__(self):
-        BasicAutomounter.__init__(self)
+        super(SimAutomounter, self).__init__()
         self.parse_states(_TEST_STATE)
         self.set_state(active=True, health=(0, ''), status='ready', message='Ready', enabled=True)
 
@@ -716,7 +716,7 @@ class SimAutomounter(BasicAutomounter):
         self.set_state(
             busy=False, status='ready', enabled=True, message="Sample mounted",
             mounted=(port, ''), preparing=False, progress=(1.0, 'unknown', 'on gonio', 'in cradle'),
-            port_state={port: self.PortState.MOUNTED}
+            ports={port: self.PortState.MOUNTED}
         )
         self._mounted_port = port
         if dry:
@@ -726,7 +726,7 @@ class SimAutomounter(BasicAutomounter):
         self.set_state(
             busy=False, status='ready', enabled=True, message="Sample dismounted",
             mounted=None, preparing=False, progress=(1.0, 'unknown', 'in port', 'in cradle'),
-            port_state={self._mounted_port: self.PortState.GOOD}
+            ports={self._mounted_port: self.PortState.GOOD}
         )
         self._mounted_port = None
         if dry:
@@ -736,7 +736,7 @@ class SimAutomounter(BasicAutomounter):
         self.set_state(
             busy=False, status='ready', enabled=True, message="Sample mounted",
             mounted=(port, ''), preparing=False, progress=(1.0, 'unknown', 'on gonio', 'in cradle'),
-            port_state={self._mounted_port: self.PortState.GOOD, port: self.PortState.MOUNTED}
+            ports={self._mounted_port: self.PortState.GOOD, port: self.PortState.MOUNTED}
         )
         if dry:
             self.dry_gripper()

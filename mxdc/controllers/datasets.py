@@ -84,7 +84,7 @@ class AutomationController(GObject.GObject):
         self.config_display = ConfigDisplay(self.config, self.widget, 'auto')
 
         self.start_time = 0
-        self.pause_dialog = None
+        self.pause_info = None
         self.automator.connect('done', self.on_done)
         self.automator.connect('paused', self.on_pause)
         self.automator.connect('analysis-request', self.on_analysis)
@@ -238,18 +238,18 @@ class AutomationController(GObject.GObject):
             self.props.state = self.StateType.PAUSED
             if reason:
                 # Build the dialog message
-                self.pause_dialog = dialogs.make_dialog(
+                self.pause_info = dialogs.make_dialog(
                     Gtk.MessageType.WARNING, 'Automation Paused', reason,
                     buttons=(('OK', Gtk.ResponseType.OK),)
                 )
-                response = self.pause_dialog.run()
-                self.pause_dialog.destroy()
-                self.pause_dialog = None
+                response = self.pause_info.run()
+                self.pause_info.destroy()
+                self.pause_info = None
         else:
             self.props.state = self.StateType.ACTIVE
-            if self.pause_dialog:
-                self.pause_dialog.destroy()
-                self.pause_dialog = None
+            if self.pause_info:
+                self.pause_info.destroy()
+                self.pause_info = None
 
     def on_error(self, obj, reason):
         # Build the dialog message
@@ -455,6 +455,7 @@ class DatasetsController(GObject.GObject):
         )
         config_data = copy.deepcopy(runs)
         success = True
+        collected = 0
         if any(existing.values()):
             details = '\n'.join(['{}: {}'.format(k, v) for k, v in existing.items()])
             header = 'Frames from this sequence already exist!\n'
@@ -471,13 +472,15 @@ class DatasetsController(GObject.GObject):
             response = dialogs.warning(header, sub_header, buttons=buttons)
             if response == RESPONSE_SKIP:
                 success = True
+                collected = 0
                 for run in config_data:
-                    run['skip'] = ','.join([existing.get(run['name'], ''), run.get('skip', '')])
+                    run['existing'] = existing.get(run['name'], '')
+                    collected += len(datatools.frameset_to_list(run['existing']))
             elif response == RESPONSE_REPLACE_ALL:
                 success = True
             else:
                 success = False
-        return success, config_data
+        return success, config_data, collected
 
     def check_run_store(self):
         count = 0
@@ -594,23 +597,13 @@ class DatasetsController(GObject.GObject):
         self.widget.collect_eta.set_text('--:--')
         self.on_complete(obj)
 
-    def on_pause(self, obj, paused, info):
+    def on_pause(self, obj, paused, message):
         if paused:
-            # Build the dialog message
-            title = info.get('reason', '')
-            msg = info.get('details', '')
-            self.pause_dialog = dialogs.make_dialog(
-                Gtk.MessageType.WARNING, title, msg,
-                buttons=(('Stop', Gtk.ResponseType.CANCEL), ('OK', Gtk.ResponseType.OK))
-            )
-            response = self.pause_dialog.run()
-            if response == Gtk.ResponseType.CANCEL:
-                self.collector.stop()
-                self.pause_dialog = None
-        else:
-            if self.pause_dialog:
-                self.pause_dialog.destroy()
-                self.pause_dialog = None
+            self.widget.notifier.notify(message, important=True)
+            self.pause_info = True
+        elif message:
+            self.widget.notifier.notify(message, duration=10)
+            self.pause_info = False
 
     def on_complete(self, obj=None):
         self.widget.datasets_collect_btn.set_sensitive(True)
@@ -620,6 +613,8 @@ class DatasetsController(GObject.GObject):
         self.widget.datasets_overlay.set_sensitive(True)
         self.collecting = False
         self.stopping = False
+        if self.pause_info:
+            self.widget.notifier.close()
 
     def on_started(self, obj):
         self.start_time = time.time()
@@ -662,13 +657,13 @@ class DatasetsController(GObject.GObject):
                 msg2 = 'Please define and save a run before collecting.'
                 dialogs.warning(msg1, msg2)
                 return
-            success, checked_runs = self.check_runlist(runs)
+            success, checked_runs, existing = self.check_runlist(runs)
             if success:
                 self.collecting = True
                 self.widget.collect_btn_icon.set_from_icon_name("media-playback-stop-symbolic",
                                                                 Gtk.IconSize.LARGE_TOOLBAR)
                 self.widget.collect_progress_lbl.set_text("Starting acquisition ...")
                 self.widget.collect_pbar.set_fraction(0)
-                self.collector.configure(checked_runs)
+                self.collector.configure(checked_runs, existing=existing)
                 self.collector.start()
                 self.image_viewer.set_collect_mode(True)

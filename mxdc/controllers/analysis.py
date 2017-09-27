@@ -14,6 +14,7 @@ from twisted.python.components import globalRegistry
 
 logger = get_module_logger(__name__)
 
+DOCS_PATH = os.path.join(os.environ['MXDC_PATH'], 'docs', '_build', 'html', 'index.html')
 
 class ReportManager(TreeManager):
     class Data(Enum):
@@ -73,7 +74,7 @@ class AnalysisController(GObject.GObject):
         browser_settings.set_property("enable-plugins", False)
         browser_settings.set_property("default-font-size", 11)
         self.browser.set_settings(browser_settings)
-        self.browser.load_uri('http://cmcf.lightsource.ca/')
+        self.browser.load_uri('file://{}'.format(DOCS_PATH))
 
     def on_row_activated(self, view, path, column):
         model = view.get_model()

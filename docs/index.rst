@@ -1,30 +1,46 @@
-.. _index:
-
-==========================================
-MxDC Developer/Administrator Documentation
-==========================================
-
-Contents
-========
+==================
+MxDC Documentation
+==================
 
 .. toctree::
-    :maxdepth: 3
-    
-    intro
-    api/index
+    :hidden:
 
-Additional Information
-----------------------
+    overview
+    starting
+    setup
+    samples
+    data
+    scans
+    analysis
 
-.. toctree::
-   :maxdepth: 2
 
-   faq
-   changelog
+Check this out
+--------------
 
-If you can't find the information you're looking for, have a look at the
-index of try to find it using the search function:
+1. Foo
+2. Bar
+3. Baz
 
-* :ref:`genindex`
-* :ref:`search`
 
+Another list
+------------
+
+* `lorem ipsum dolor <https://github.com/guzzle/guzzle_sphinx_theme>`_
+* dolor lorem ipsum
+* lorem ipsum dolor
+* dolor lorem ipsum
+
+
+Some definitions
+----------------
+
+Donec sodales
+    velit ac sagittis fermentum, metus ante pharetra ex, ac eleifend
+    erat ligula in lacus. Donec tincidunt urna est, non mollis turpis lacinia
+
+sit amet
+    Duis ac facilisis libero, ut interdum nibh. Sed rutrum dapibus pharetra.
+
+Ut ac luctus nisi
+    vitae volutpat arcu. Vivamus venenatis eu nibh ut consectetur. Cras
+    tincidunt dui nisi, et facilisis eros feugiat nec.

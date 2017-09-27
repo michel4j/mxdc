@@ -26,7 +26,7 @@ class DataCollector(GObject.GObject):
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
         'progress': (GObject.SIGNAL_RUN_LAST, None, (float,)),
         'done': (GObject.SIGNAL_RUN_LAST, None, []),
-        'paused': (GObject.SIGNAL_RUN_LAST, None, (bool, object)),
+        'paused': (GObject.SIGNAL_RUN_LAST, None, (bool, str)),
         'started': (GObject.SIGNAL_RUN_LAST, None, []),
         'stopped': (GObject.SIGNAL_RUN_LAST, None, []),
         'error': (GObject.SIGNAL_RUN_LAST, None, (str,))
@@ -50,13 +50,14 @@ class DataCollector(GObject.GObject):
         self.beamline.storage_ring.connect('beam', self.on_beam_change)
         globalRegistry.register([], IDataCollector, '', self)
 
-    def configure(self, run_data, take_snapshots=True, analysis='native'):
+    def configure(self, run_data, take_snapshots=True, existing=0, analysis='native'):
         self.config['analysis'] = analysis
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
         datasets, wedges = datatools.generate_wedges(self.config['runs'])
         self.config['wedges'] = wedges
         self.config['datasets'] = datasets
+        self.config['existing'] = existing
         self.beamline.image_server.set_user(pwd.getpwuid(os.geteuid())[0], os.geteuid(), os.getegid())
 
         # delete existing frames
@@ -76,7 +77,9 @@ class DataCollector(GObject.GObject):
         ca.threads_init()
         self.collecting = True
         self.beamline.detector_cover.open(wait=True)
-        self.total_frames = sum([wedge['num_frames'] for wedge in self.config['wedges']])
+        self.count = self.config['existing']
+        self.total_frames = self.count + sum([wedge['num_frames'] for wedge in self.config['wedges']])
+        print self.count, self.total_frames
         current_attenuation = self.beamline.attenuator.get()
         self.watch_frames()
         self.results = []
@@ -114,7 +117,6 @@ class DataCollector(GObject.GObject):
 
     def run_default(self):
         is_first_frame = True
-        self.count = 0
         for wedge in self.config['wedges']:
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
@@ -152,7 +154,6 @@ class DataCollector(GObject.GObject):
 
     def run_shutterless(self):
         is_first_frame = True
-        self.count = 0
         for wedge in self.config['wedges']:
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
@@ -257,6 +258,7 @@ class DataCollector(GObject.GObject):
             'beam_x': self.beamline.detector.get_origin()[0],
             'beam_y': self.beamline.detector.get_origin()[1],
             'pixel_size': self.beamline.detector.resolution,
+            'beam_size': self.beamline.aperture.get_position(),
             'resolution': dist_to_resol(params['distance'], self.beamline.detector.mm_size, params['energy']),
             'detector_size': min(self.beamline.detector.size),
             'start_angle': params['start'],
@@ -279,11 +281,10 @@ class DataCollector(GObject.GObject):
         params = {
             'sample_id': metadata['sample_id'],
             'name': metadata['name'],
-            'activity': datatools.StrategyProcType.get(strategy, 'proc-noname'),
             'file_names': [filename],
             'anomalous': self.config['analysis'] == 'anomalous',
+            'activity': 'proc-{}'.format(self.config['analysis'][:6])
         }
-        params['activity'] = 'proc-{}'.format(self.config['analysis'][:6])
         params = datatools.update_for_sample(params, sample)
 
         if self.config['analysis'] == 'screen':
@@ -308,39 +309,47 @@ class DataCollector(GObject.GObject):
 
     def on_beam_change(self, obj, available):
         if not (self.stopped or self.paused) and self.collecting and not available:
-            info = {
-                'reason': 'No Beam! Data Collection Paused.',
-                'details': (
-                    "Data collection has been paused because there is no beam. It will "
-                    "resume automatically once the beam becomes available."
-                )
-            }
-            self.pause(info)
+            message = (
+                "Data acquisition has paused due to beam loss!\n"
+                "It will resume automatically once the beam becomes available."
+            )
+            self.pause(message)
         elif self.paused and available:
-            # FIXME: restore beam fully before resuming
             self.resume()
+
+    def resume_sequence(self):
+        self.paused = False
+        collected = 0
+
+        # reset 'existing' field
+        for run in self.config['runs']:
+            run['existing'] = ''
+        frame_list = datatools.generate_run_list(self.config['runs'])
+        existing, bad = datatools.check_frame_list(
+            frame_list, self.beamline.detector.file_extension, detect_bad=False
+        )
+
+        for run in self.config['runs']:
+            run['existing'] = existing.get(run['name'], '')
+            collected += len(datatools.frameset_to_list(run['existing']))
+        self.configure(self.config['runs'], existing=collected, take_snapshots=False)
+        self.beamline.all_shutters.open()
+        self.start()
 
     def resume(self):
         logger.info("Resuming Collection ...")
         if self.paused:
-            GObject.idle_add(self.emit, 'paused', False, {})
-            self.paused = False
-            frame_list = datatools.generate_run_list(self.config['runs'])
-            existing, bad = datatools.check_frame_list(
-                frame_list, self.beamline.detector.file_extension, detect_bad=False
-            )
-            for run in self.config['runs']:
-                run['skip'] = datatools.merge_framesets(existing.get(run['name'], ''), run.get('skip', ''),
-                                                        bad.get(run['name'], ''))
-            self.configure(self.config['runs'], take_snapshots=False)
-            self.start()
+            # wait for 1 minute then open all shutters before resuming
+            message = "Beam available! Resuming data acquisition in 10 seconds!"
+            GObject.idle_add(self.emit, 'paused', False, message)
+            GObject.timeout_add(30000, self.resume_sequence)
 
-    def pause(self, info={}):
+    def pause(self, message):
         logger.info("Pausing Collection ...")
         self.paused = True
         self.beamline.detector.stop()
         self.beamline.goniometer.stop()
-        GObject.idle_add(self.emit, 'paused', True, info)
+        GObject.idle_add(self.emit, 'paused', True, message)
 
     def stop(self):
         logger.info("Stopping Collection ...")

@@ -13,11 +13,12 @@ logger = get_module_logger(__name__)
 
 
 class ExceptHook(object):
-    def __init__(self, exit_function=sys.exit, emails=None, prefix='MXDC Bug Report'):
+    def __init__(self, exit_function=sys.exit, emails=None, prefix='MXDC Bug Report', ignore=[]):
         self.exit_function = exit_function
         self.system_hook = sys.excepthook
         self.emails = emails
         self.prefix = prefix
+        self.ignore = ignore
         self.lock = threading.Lock()
 
     def send_mail(self, subject, message):
@@ -56,6 +57,11 @@ class ExceptHook(object):
 
                 header = '\n'.join([exctyp.__name__, '-' * len(exctyp.__name__)])
                 trace = "".join([header, '\n'] + trace_info)
+
+                if exctyp in self.ignore:
+                    logger.error(trace)
+                    return
+
                 title = "MxDC has stopped"
                 message = (
                     "An unexpected problem has been detected. The developers will be notified. "

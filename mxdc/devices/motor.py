@@ -45,7 +45,7 @@ class MotorBase(BaseDevice):
         }  
 
     def __init__(self, name):
-        BaseDevice.__init__(self)
+        super(MotorBase, self).__init__()
         self.name = name
         self._moving = False
         self._command_sent = False
@@ -76,7 +76,7 @@ class MotorBase(BaseDevice):
         self.set_state(changed=self.get_position())
 
     def _signal_target(self, obj, value):
-        self.set_state(target_changed=(self._prev_target, value))
+        self.set_state(target=(self._prev_target, value))
         self._prev_target = value
     
     def _signal_move(self, obj, state):
@@ -113,7 +113,7 @@ class SimMotor(MotorBase):
     implements(IMotor)
      
     def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=3):
-        MotorBase.__init__(self,name)
+        super(SimMotor, self).__init__(name)
         pos = pos
 
         self.units = units
@@ -153,7 +153,7 @@ class SimMotor(MotorBase):
         self._command_sent = True
         with self._lock:
             self.set_state(busy=True)
-            self.set_state(target_changed=(self._target, target))
+            self.set_state(target=(self._target, target))
             self._target = target
             _num_steps = int(abs(self._position - target) / self._step_size)
             targets = numpy.linspace(self._position, target, _num_steps)

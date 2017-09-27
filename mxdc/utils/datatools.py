@@ -276,21 +276,9 @@ def generate_frame_sets(run, show_number=True):
     if wedge < total_angle:
         wedge = delta_angle * round(wedge / delta_angle)
 
-    skip = run.get('skip', '')
-
     # generate list of frames to exclude from skip
-    excluded_frames = []
-    for w in skip.split(','):
-        if w:
-            try:
-                v = map(int, w.split('-'))
-                if len(v) == 2:
-                    excluded_frames.extend(range(v[0], v[1] + 1))
-                elif len(v) == 1:
-                    excluded_frames.extend(v)
-            except:
-                pass
 
+    excluded_frames = frameset_to_list(merge_framesets(run.get('skip', ''), run.get('existing', '')))
     n_wedge = int(round(wedge / delta_angle))  # number of frames in a wedge
 
     # inverse beam

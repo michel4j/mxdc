@@ -601,8 +601,8 @@ class SimStorageRing(BaseDevice):
         super(SimStorageRing, self).__init__()
         self.name = name
         self.message = 'Sim SR Testing!'
-        self.set_state(beam=False, active=True, health=(0, ''))
-        # GObject.timeout_add(1200000, self._change_beam)
+        self.set_state(beam=True, active=True, health=(0, ''))
+        GObject.timeout_add(60000, self._change_beam)
 
     def _change_beam(self):
         _beam = not self.beam_state

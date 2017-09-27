@@ -2,8 +2,8 @@ import logging
 import operator
 
 from gi.repository import Gtk, Gdk, Pango, GObject
-from mxdc.widgets import dialogs
 
+from mxdc.widgets import dialogs
 
 
 def value_class(val, warning, error):
@@ -129,7 +129,7 @@ class AppNotifier(object):
         self.close_button.connect('clicked', self.on_notifier_closed)
 
     def on_notifier_closed(self, button):
-        self.revealer.set_reveal_child(False)
+        self.close()
 
     def notify(self, message, level=Gtk.MessageType.INFO, important=False, duration=3):
         """
@@ -145,9 +145,9 @@ class AppNotifier(object):
         self.label.set_text(message)
         self.revealer.set_reveal_child(True)
         if not important:
-            GObject.timeout_add(1000*duration, self.hide_notification)
+            GObject.timeout_add(1000 * duration, self.close)
 
-    def hide_notification(self):
+    def close(self):
         self.revealer.set_reveal_child(False)
 
 
@@ -219,6 +219,7 @@ class StatusMonitor(object):
             self.spinner.stop()
             self.label.set_text('')
 
+
 class LogMonitor(object):
     def __init__(self, log_box, size=5000, font='Monospace 8'):
         self.buffer_size = size
@@ -264,5 +265,42 @@ class LogMonitor(object):
         tag = self.tags[level]
         self.text_buffer.insert_with_tags(_iter, "%s%s\n" % (self.prefix, text), tag)
         _iter = self.text_buffer.get_end_iter()
-        #self.view.scroll_to_iter(_iter, 0, True, 0.5, 0.5)
+        # self.view.scroll_to_iter(_iter, 0, True, 0.5, 0.5)
 
+
+class Tuner(object):
+    def __init__(self, tuner, tune_up_btn, tune_down_btn, reset_btn=None, repeat_interval=100):
+        self.tuner = tuner
+        self.tune_up_btn = tune_up_btn
+        self.tune_down_btn = tune_down_btn
+        self.reset_btn = reset_btn
+        self.repeat_interval = repeat_interval
+        self.tune_func = None
+
+        self.tune_up_btn.connect('button-press-event', self.on_tune_up)
+        self.tune_down_btn.connect('button-press-event', self.on_tune_down)
+        self.tune_up_btn.connect('button-release-event', self.cancel_tuning)
+        self.tune_down_btn.connect('button-release-event', self.cancel_tuning)
+
+        if self.reset_btn:
+            self.reset_btn.connect('clicked', lambda x: tuner.reset())
+
+    def repeat_tuning(self):
+        if self.tune_func:
+            self.tune_func()
+            return True
+
+    def on_tune_up(self, button, event):
+        if event.button == 1:
+            self.tune_func = self.tuner.tune_up
+            self.tuner.tune_up()
+            GObject.timeout_add(self.repeat_interval, self.repeat_tuning)
+
+    def on_tune_down(self, button, event):
+        if event.button == 1:
+            self.tune_func = self.tuner.tune_down
+            self.tuner.tune_down()
+            GObject.timeout_add(self.repeat_interval, self.repeat_tuning)
+
+    def cancel_tuning(self, *args, **kwargs):
+        self.tune_func = None

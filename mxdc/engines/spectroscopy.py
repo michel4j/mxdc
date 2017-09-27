@@ -137,6 +137,7 @@ class XRFScanner(BasicScan):
             'energy': params['energy'],
             'attenuation': params['attenuation'],
             'exposure': params['exposure'],
+            'beam_size': self.beamline.aperture.get_position(),
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
         if os.path.exists(filename):
@@ -288,6 +289,7 @@ class MADScanner(BasicScan):
             'exposure': params['exposure'],
             'edge': params['edge'],
             'roi': self.beamline.mca.get_roi(params['roi_energy']),
+            'beam_size': self.beamline.aperture.get_position(),
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
         if os.path.exists(filename):
@@ -488,6 +490,7 @@ class XASScanner(BasicScan):
                 'edge': params['edge'],
                 'roi': self.beamline.mca.get_roi(params['roi_energy']),
                 'kmax': params['kmax'],
+                'beam_size': self.beamline.aperture.get_position(),
             }
             filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
             if os.path.exists(filename):

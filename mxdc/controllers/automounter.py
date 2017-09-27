@@ -123,7 +123,7 @@ class DewarController(GObject.GObject):
 
         self.layout = DewarLayout()
 
-        self.beamline.automounter.connect('port-state', self.on_port_state)
+        self.beamline.automounter.connect('ports', self.on_port_state)
         self.beamline.automounter.connect('layout', self.on_dewar_layout)
         self.beamline.automounter.connect('message', self.on_state_changed)
         self.beamline.automounter.connect('status', self.on_state_changed)
