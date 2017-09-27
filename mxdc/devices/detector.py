@@ -6,59 +6,15 @@ import time
 from datetime import datetime
 
 from gi.repository import GObject
-from zope.interface import implements, Attribute
+from zope.interface import implements
 
-from interfaces import IDevice
+from interfaces import IImagingDetector
 from mxdc.com import ca
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
-
-
-class IImagingDetector(IDevice):
-    """An imaging detector devices for aquiring image frames."""
-
-    size = Attribute("""A size in pixels along x-axis.""")
-    resolution = Attribute("""Pixel resolution in mm.""")
-    mm_size = Attribute("""Minimum detector size in mm""")
-
-
-    def initialize():
-        """Reset and initialize the detector."""
-
-    def start():
-        """Start acquiring."""
-
-    def save(props):
-        """Stop acquiring and save the image.
-
-        Arguments:
-        props    -- a dictionary of property name, value pairs to set
-        valid keys for props are:
-            delta       -- rotation range in degrees for this frame
-            distance    -- diffractometer distance for this frame
-            time        -- exposure time for this frame
-            angle       -- starting angle position for this frame
-            index       -- frame number
-            energy      -- beam energy for this frame
-            prefix      -- file name prefix
-            filename    -- name of image file to save
-            directory   -- directory to save image
-        """
-
-    def wait():
-        """Wait for detector to become idle."""
-
-    def stop():
-        """Terminate all detector operations."""
-
-    def get_origin():
-        """Return the current x,y position of the beam on the detector as a tuple"""
-
-    def set_parameters():
-        """Update the devices parameters."""
 
 
 class SimCCDImager(BaseDevice):

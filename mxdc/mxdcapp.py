@@ -36,7 +36,9 @@ class MXDCApp(object):
         self.main_window = AppWindow()
         self.beamline = MXBeamline()
 
-        self.hook = excepthook.ExceptHook(emails=self.beamline.config['bug_report'], exit_function=exit_main_loop)
+        self.hook = excepthook.ExceptHook(
+            emails=self.beamline.config['bug_report'], exit_function=exit_main_loop
+        )
         self.hook.install()
 
         self.service_type = '_mxdc_{}._tcp'.format(identifier_slug(self.beamline.name))

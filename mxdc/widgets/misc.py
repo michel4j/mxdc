@@ -318,11 +318,11 @@ class CryojetWidget(Gtk.Alignment):
         except:
             self.duration_entry.set_text('0.0')
             return
-        msg1 = 'This procedure may damage your sample'
-        msg2 = 'Flow control annealing will turn off the cold stream for the specified '
-        msg2 += 'duration of <b>"%0.1f"</b> seconds. The outer dry nitrogen shroud remains on to protect the crystal ' % duration
-        msg2 += 'from icing. However this procedure may damage the sample.\n\n'
-        msg2 += 'Are you sure you want to continue?'
+        msg1 = 'This procedure may damage your sample.'
+        msg2 = (
+            'The cold cryo stream will be turned off for <b>{duration:0.1f}</b> seconds. '
+            'The dry nitrogen shied remains on to protect the crystal. '
+        ).format(duration=duration)
 
         response = warning(msg1, msg2, buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Anneal', Gtk.ButtonsType.OK)))
         if response == Gtk.ButtonsType.OK:

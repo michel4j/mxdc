@@ -129,7 +129,7 @@ class SampleStore(GObject.GObject):
         self.view.connect('key-press-event', self.on_key_press)
         self.widget.samples_reload_btn.connect('clicked', lambda x: self.import_mxlive())
         self.beamline.automounter.connect('mounted', self.on_sample_mounted)
-        self.beamline.automounter.connect('port-state', self.on_automounter_states)
+        self.beamline.automounter.connect('ports', self.on_automounter_states)
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
         self.widget.samples_dismount_btn.connect('clicked', lambda x: self.dismount_action())
         self.widget.samples_search_entry.connect('search-changed', self.on_search)

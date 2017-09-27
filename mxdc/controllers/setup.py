@@ -32,9 +32,6 @@ class SetupController(object):
 
     def setup(self):
         self.hutch_viewer = AxisController(self.widget, self.beamline.registry['hutch_video'])
-        # Some scripts need to reactivate settings frame on completion
-        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam', 'SetBeamMode']:
-            self.scripts[sc].connect('busy', self.on_scripts_busy)
 
         # create and pack devices into settings frame
         entry_list = [
@@ -82,18 +79,24 @@ class SetupController(object):
         # Beam Tuner
         self.tuner = ChartManager(interval=100, view=10)
         self.widget.tuner_box.pack_start(self.tuner.chart, True, True, 0)
-        self.tuner.add_plot(self.beamline.beam_tuner, 'Beam Intensity')
+        self.tuner.add_plot(self.beamline.beam_tuner, 'Beam Intensity (%)', signal='percent')
         self.tuner_monitors = [
             common.DeviceMonitor(self.beamline.beam_tuner, self.widget.tuner_left_lbl),
             common.DeviceMonitor(
                 self.beamline.beam_tuner, self.widget.tuner_right_lbl, format='{:0.1f} %',
                 signal='percent', warning=90.0, error=80.0
+            ),
+            common.Tuner(
+                self.beamline.beam_tuner, self.widget.tuner_up_btn, self.widget.tuner_dn_btn,
+                reset_btn=self.widget.tuner_reset_btn, repeat_interval=100,
             )
         ]
         self.widget.tuner_control_box.set_sensitive(self.beamline.beam_tuner.tunable)
-        self.widget.tuner_up_btn.connect('clicked', lambda x: self.beamline.beam_tuner.tune_up())
-        self.widget.tuner_dn_btn.connect('clicked', lambda x: self.beamline.beam_tuner.tune_down())
-        self.widget.tuner_reset_btn.connect('clicked', lambda x: self.beamline.beam_tuner.reset())
+
+        # Some scripts need to reactivate settings frame on completion
+        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam', 'SetBeamMode']:
+            self.scripts[sc].connect('busy', self.on_scripts_busy)
+
 
     def on_devices_busy(self, obj, state):
         states = [self.beamline.goniometer.busy_state, self.beamline.automounter.preparing_state,

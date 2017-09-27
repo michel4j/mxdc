@@ -174,10 +174,10 @@ class ChartManager(GObject.GObject):
         self.animation = FuncAnimation(self.chart.fig, self.chart.animate, None, interval=interval, blit=False)
         self.start()
 
-    def add_plot(self, dev, name, color=None, linestyle='-', axis=0):
+    def add_plot(self, dev, name, signal='changed', color=None, linestyle='-', axis=0):
         self.chart.add_plot(name, color=color, linestyle=linestyle, axis=axis)
         self.values[name] = numpy.nan
-        self.sources[name] = dev.connect('changed', self.collect_data, name)
+        self.sources[name] = dev.connect(signal, self.collect_data, name)
 
     def zoom_in(self, *args, **kwargs):
         self.chart.zoom_in()
