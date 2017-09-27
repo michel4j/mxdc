@@ -988,11 +988,15 @@
                                           <object class="GtkBox">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
-                                            <property name="border_width">6</property>
+                                            <property name="margin_left">12</property>
+                                            <property name="margin_right">12</property>
+                                            <property name="margin_top">6</property>
+                                            <property name="margin_bottom">6</property>
                                             <child>
                                               <object class="GtkLabel" id="tuner_left_lbl">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
+                                                <property name="halign">start</property>
                                                 <attributes>
                                                   <attribute name="scale" value="0.90000000000000002"/>
                                                 </attributes>
@@ -1004,11 +1008,9 @@
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkButtonBox" id="tuner_control_box">
+                                              <object class="GtkBox" id="tuner_control_box">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
-                                                <property name="homogeneous">True</property>
-                                                <property name="layout_style">expand</property>
                                                 <child>
                                                   <object class="GtkButton" id="tuner_up_btn">
                                                     <property name="visible">True</property>
@@ -1026,7 +1028,7 @@
                                                   <packing>
                                                     <property name="expand">True</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">0</property>
+                                                    <property name="position">1</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -1045,7 +1047,7 @@
                                                   <packing>
                                                     <property name="expand">True</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">1</property>
+                                                    <property name="position">2</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -1064,7 +1066,7 @@
                                                   <packing>
                                                     <property name="expand">True</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">2</property>
+                                                    <property name="position">3</property>
                                                   </packing>
                                                 </child>
                                                 <style>
@@ -1072,7 +1074,7 @@
                                                 </style>
                                               </object>
                                               <packing>
-                                                <property name="expand">True</property>
+                                                <property name="expand">False</property>
                                                 <property name="fill">True</property>
                                                 <property name="position">1</property>
                                               </packing>
@@ -1081,6 +1083,7 @@
                                               <object class="GtkLabel" id="tuner_right_lbl">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
+                                                <property name="halign">end</property>
                                                 <attributes>
                                                   <attribute name="scale" value="0.90000000000000002"/>
                                                 </attributes>

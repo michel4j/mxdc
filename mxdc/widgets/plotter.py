@@ -35,7 +35,7 @@ class PlotterToolbar(NavigationToolbar):
         ('Forward', 'Forward to next view', 'go-next-symbolic', 'forward'),
         (None, None, None, None),
         ('Pan', 'Pan axes with left mouse, zoom with right', 'view-fullscreen-symbolic', 'pan'),
-        ('Zoom', 'Zoom to rectangle', 'edit-select-all-symbolic', 'zoom'),
+        ('Zoom', 'Zoom to rectangle', 'zoom-fit-best-symbolic', 'zoom'),
         (None, None, None, None),
         ('Save', 'Save the figure', 'media-floppy-symbolic', 'save_figure'),
     )
@@ -111,7 +111,7 @@ class Plotter(Gtk.Alignment):
         ymin_current, ymax_current = self.axis[ax].get_ylim()
         xmin_current, xmax_current = self.axis[ax].get_xlim()
         line, = self.axis[ax].plot(
-            xpoints, ypoints, 'o', ls=pattern, lw=lw, markersize=3, markerfacecolor='w',
+            xpoints, ypoints, 'o', ls=pattern, lw=lw, markersize=4, markerfacecolor='w',
             label=label, alpha=alpha, markevery=markevery, color=color
         )
         self.line.append(line)
@@ -211,7 +211,6 @@ class Plotter(Gtk.Alignment):
 
             ymin, ymax = misc.get_min_max(self.y_data[lin], ldev=1, rdev=1)
             xmin, xmax = misc.get_min_max(self.x_data[lin], ldev=0, rdev=0)
-
             if len(self.line) > 1:
                 xmin_current, xmax_current = self.axis[0].get_xlim()
                 self.axis[0].set_xlim(min(xmin, xmin_current), max(xmax, xmax_current))
