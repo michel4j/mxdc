@@ -8,6 +8,7 @@ from zope.interface import Interface, Attribute
 from zope.interface import implements
 
 from mxdc.beamline.interfaces import IBeamline
+from mxdc.devices.base import BaseDevice
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 
@@ -38,85 +39,63 @@ class ScriptError(Exception):
     """Exceptioins for Scripting Engine."""
 
 
-class Script(GObject.GObject):
+class Script(BaseDevice):
     implements(IScript)
-    __gsignals__ = {}
-    __gsignals__['done'] = (GObject.SignalFlags.RUN_FIRST, None, (object,))
-    __gsignals__['busy'] = (GObject.SignalFlags.RUN_FIRST, None, (bool,))
-    __gsignals__['message'] = (GObject.SignalFlags.RUN_FIRST, None, (str,))
-    __gsignals__['enabled'] = (GObject.SignalFlags.RUN_FIRST, None, (bool,))
-    __gsignals__['error'] = (GObject.SignalFlags.RUN_FIRST, None, [])
+    __gsignals__ = {
+        'done': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'enabled': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        'error': (GObject.SignalFlags.RUN_FIRST, None, []),
+    }
+
     description = 'A Script'
     progress = None
 
     def __init__(self):
-        GObject.GObject.__init__(self)
+        super(Script, self).__init__()
         self.name = self.__class__.__name__
-        self._active = False
-        try:
-            self.beamline = globalRegistry.lookup([], IBeamline)
-        except:
-            self.beamline = None
-            logger.warning('No registered beamline found. Beamline will be unavailable "%s"' % (self,))
+        self.beamline = globalRegistry.lookup([], IBeamline)
         self.enable()
+        self._output = None
 
     def __repr__(self):
         return '<Script:%s>' % self.name
 
     def start(self, *args, **kwargs):
-        if self._enabled and not self._active:
-            self._active = True
+        if self.is_enabled() and not self.is_busy():
             worker_thread = threading.Thread(target=self._thread_run, args=args, kwargs=kwargs)
             worker_thread.setDaemon(True)
             worker_thread.setName(self.name)
-            self.output = None
+            self._output = None
             worker_thread.start()
         else:
             logger.warning('Script "%s" disabled or busy.' % (self,))
 
     def _thread_run(self, *args, **kwargs):
-
-        try:
+        with self.beamline.lock:
             ca.threads_init()
-            GObject.idle_add(self.emit, "busy", True)
-            GObject.idle_add(self.emit, "message", self.description)
-            self.output = self.run(*args, **kwargs)
+            self.set_state(busy=True, message=self.description)
+            self._output = self.run(*args, **kwargs)
             logger.info('Script `%s` terminated successfully' % (self.name))
-        finally:
-            GObject.idle_add(self.emit, "done", self.output)
-            GObject.idle_add(self.emit, "busy", False)
-            GObject.idle_add(self.emit, "message", 'Done.')
-            self.run_after(*args, **kwargs)
-            self._active = False
+            self.set_state(done=self._output, busy=False, message='Done.')
+            self.on_complete(*args, **kwargs)
 
     def run(self, *args, **kwargs):
         raise ScriptError('`run()` not implemented!')
 
     def enable(self):
-        self._enabled = True
+        self.set_state(enabled=True)
         logger.debug('Script "%s" enabled.' % (self,))
-        GObject.idle_add(self.emit, "enabled", self._enabled)
 
     def disable(self):
-        self._enabled = False
+        self.set_state(enabled=False)
         logger.debug('Script "%s" disabled.' % (self,))
-        GObject.idle_add(self.emit, "enabled", self._enabled)
 
-    def run_after(self, *args, **kwargs):
+    def on_complete(self, *args, **kwargs):
         pass
 
     def wait(self):
-        while self._active:
+        while self.is_busy():
             time.sleep(0.05)
-
-    def is_active(self):
-        return self._active
-
-    def is_busy(self):
-        return self.is_active()
-
-    def is_enabled(self):
-        return self._enabled
 
 
 _SCRIPTS = {}

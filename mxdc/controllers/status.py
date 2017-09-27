@@ -35,16 +35,6 @@ class StatusPanel(object):
         self.monitors = []
         self.setup()
 
-        # connect gonio and automounter to status bar
-        self.status_monitor = common.StatusMonitor(
-            self.widget.status_lbl, self.widget.spinner, devices=(self.beamline.goniometer, self.beamline.automounter)
-        )
-        # Some scripts need to reactivate settings frame on completion
-        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam', 'SetBeamMode']:
-            self.scripts[sc].connect('busy', self.on_scripts_busy)
-            self.scripts[sc].connect('error', self.on_scripts_busy, False)
-            self.status_monitor.add(self.scripts[sc])
-
     def setup(self):
         msg = ("Are you sure? This procedure may damage \n"
                "mounted samples. It is recommended to dismount \n"
@@ -74,6 +64,17 @@ class StatusPanel(object):
         self.beamline.automounter.connect('busy', self.on_devices_busy)
         self.beamline.goniometer.connect('busy', self.on_devices_busy)
         self.beamline.goniometer.connect('mode', self.on_mode_change)
+
+        # connect gonio and automounter to status bar
+        self.status_monitor = common.StatusMonitor(
+            self.widget.status_lbl, self.widget.spinner, devices=(self.beamline.goniometer, self.beamline.automounter)
+        )
+
+        # Some scripts need to reactivate settings frame on completion
+        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam', 'SetBeamMode']:
+            self.scripts[sc].connect('busy', self.on_scripts_busy)
+            self.scripts[sc].connect('error', self.on_scripts_busy, False)
+            self.status_monitor.add(self.scripts[sc])
 
     def on_devices_busy(self, obj, state):
         states = [self.beamline.goniometer.busy_state, self.beamline.automounter.preparing_state,

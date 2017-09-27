@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 .. module:: mxdc.device.base
     :synopsis: Basic beamline device housekeeping.
@@ -10,6 +11,28 @@ from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
+
+
+def get_signal_ids(itype):
+    """
+    Get a list of all signal names supported by the object
+    @param itype: type (GObject.GType) - Instance or interface type.
+    @return: [str]
+    """
+    try:
+        ptype = GObject.type_parent(itype)
+        psigs = get_signal_ids(ptype)
+    except:
+        psigs = []
+    return GObject.signal_list_ids(itype) + psigs
+
+
+def get_signal_properties(itype):
+    queries = (GObject.signal_query(sig_id) for sig_id in get_signal_ids(itype))
+    return {
+        query.signal_name.replace('-', '_') : query
+        for query in queries
+    }
 
 
 class BaseDevice(GObject.GObject):
@@ -76,6 +99,7 @@ class BaseDevice(GObject.GObject):
         self.name = self.__class__.__name__
         self.state_pattern = re.compile('^(\w+)_state$')
         self.bool_pattern = re.compile('^is_(\w+)$')
+        self.signals = get_signal_properties(self)
 
     def __repr__(self):
         state_txts = []
@@ -113,9 +137,11 @@ class BaseDevice(GObject.GObject):
         """
         return self.state_info.copy()
 
-    def set_state(self, **kwargs):
+    def set_state(self, *args, **kwargs):
         """Set the state of the devices and emit the corresponding signal.
-        
+
+        args:
+            Non-valued signals are emitted right away and no state is kept
         Kwargs:
             Keyworded arguments follow the same conventions as the state 
             dictionary and correspond to any signals defined for the devices.
@@ -127,18 +153,19 @@ class BaseDevice(GObject.GObject):
                                health=(1, 'error','too hot'),
                                message="the devices is overheating")
         """
+
+        for signal in args:
+            assert signal in self.signals, 'Invalid signal for {}: {}'.format(self.__class__.__name__, signal)
+            GObject.idle_add(self.emit, signal)
+
         for signal, value in kwargs.items():
+            assert signal in self.signals, 'Invalid signal for {}: {}'.format(self.__class__.__name__, signal)
             if signal != 'health':
                 # only signal a state change if it actually changes for non
                 # health signals
-                sid = GObject.signal_lookup(signal, self)
-                if sid == 0: break
                 if self.state_info.get(signal, None) != value:
                     self.state_info.update({signal: value})
                     GObject.idle_add(self.emit, signal, value)
-                elif value == None:
-                    self.state_info.update({signal: None})
-                    GObject.idle_add(self.emit, signal)
             elif signal == 'health':
                 sev, cntx = value[:2]
                 if sev != 0:

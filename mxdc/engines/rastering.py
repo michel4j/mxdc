@@ -247,6 +247,7 @@ class RasterCollector(GObject.GObject):
                 'exposure': params['exposure'],
 
                 'detector_type': self.beamline.detector.detector_type,
+                'beam_size': self.beamline.aperture.get_position(),
                 'beam_x': self.beamline.detector.get_origin()[0],
                 'beam_y': self.beamline.detector.get_origin()[1],
                 'pixel_size': self.beamline.detector.resolution,

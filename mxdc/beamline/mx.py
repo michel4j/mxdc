@@ -34,7 +34,7 @@ class MXBeamline(object):
     def __init__(self, console=False):
         """Kwargs:
             console (bool): Whether the beamline is being used within a console or 
-            not. Used internally to register CONSOLE_DEVICES if True. Default is
+            not. Used internally to register CONSOLE if True. Default is
             False.
         """
         self.console = console
