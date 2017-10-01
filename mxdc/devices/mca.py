@@ -235,13 +235,14 @@ class BasicMCA(BaseDevice):
         self.set_state(deadtime=pct)
 
     def _acquire_data(self, t=1.0):
-        self.data = numpy.zeros((self.channels, len(self.spectra) + 1))  # one more for x-axis
+        self.data = numpy.zeros((self.channels, len(self.spectra) + 2))  # one more for x-axis, one more for sum
         self._count_time.set(t)
         self._start()
         self._wait_stop()
         self.data[:, 0] = self.channel_to_energy(numpy.arange(0, self.channels, 1))
         for i, spectrum in enumerate(self.spectra):
-            self.data[:, i + 1] = spectrum.get()
+            self.data[:, i + 2] = spectrum.get()
+            self.data[:, 1] += spectrum.get()
 
     def _wait_start(self, poll=0.05, timeout=2):
         logger.debug('Waiting for MCA to start acquiring.')
@@ -480,7 +481,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self._raw_data = numpy.loadtxt(fname, comments="#")
         self._x_axis = self._raw_data[:, 0]
         self.set_state(deadtime=random.random() * 51.0)
-        return numpy.array(zip(self._x_axis, self._raw_data[:, 1]))
+        return numpy.array(zip(self._x_axis, self._raw_data[:, 1], self._raw_data[:, 1]))
 
     def get_roi_counts(self):
         return [self._roi_count] * self.elements

@@ -119,7 +119,6 @@ class ColumnSpec(object):
         return self.info.values()
 
 
-
 class ColumnType(object):
     TEXT = 'text'
     TOGGLE = 'toggle'
@@ -144,15 +143,20 @@ class TreeManager(GObject.GObject):
     flat = False  # whether tree is flat single level or not
     single_click = False
 
-    def __init__(self, view, colormap=None):
+    def __init__(self, view, model=None, colormap=None):
         super(TreeManager, self).__init__()
-        self.model = Gtk.TreeStore(*self.Types)
+        if not model:
+            self.model = Gtk.TreeStore(*self.Types)  # make a new model if none is provided
+        else:
+            self.model = model
+
         self.view = view
         self.colormap = colormap or colors.PERCENT_COLORMAP
         self.view.set_model(self.model)
         self.add_columns()
         self.selection = self.view.get_selection()
-        self.selection.connect('changed', self.selection_changed)
+        self.selection.connect('changed', self.do_selection_changed)
+        self.model.connect('row-changed', self.row_changed)
         self.view.props.activate_on_single_click = self.single_click
         self.view.connect('row-activated', self.row_activated)
         self.keys = [item.name.lower() for item in self.Data]
@@ -204,13 +208,16 @@ class TreeManager(GObject.GObject):
             groups.add(parent_path)
         return len(groups)
 
+    def item_to_dict(self, itr, model):
+        return dict(zip(self.keys, model[itr]))
+
     def get_item(self, itr):
         """
         Retrieve the item pointed to by itr
         @param itr: Gtk.TreeItr
         @return:  dict representing the item
         """
-        return dict(zip(self.keys, self.model[itr]))
+        return self.item_to_dict(itr, self.model)
 
     def get_items(self, itr):
         """
@@ -220,6 +227,7 @@ class TreeManager(GObject.GObject):
         @return:  a list of dicts representing the children or siblings
         """
         runs = []
+
 
         if not self.flat:
             if self.model.iter_has_child(itr):
@@ -234,10 +242,7 @@ class TreeManager(GObject.GObject):
         else:
             item = self.get_item(itr)
             runs.append(item)
-
         return runs
-
-
 
     def clear(self):
         """
@@ -358,12 +363,23 @@ class TreeManager(GObject.GObject):
         @param spec: RowSpec
         @return:
         """
-        self.model[path][spec.data.value] = not self.model[path][spec.data.value]
+        model = self.view.get_model()
+        model[path][spec.data.value] = not self.model[path][spec.data.value]
 
-    def selection_changed(self, selection):
+    def do_selection_changed(self, selection):
         """
         Handle changes to the selection
         @param selection: Gtk.TreeSelection
+        @return:
+        """
+        model, itr = selection.get_selected()
+        return self.selection_changed(model, itr)
+
+    def selection_changed(self, model, itr):
+        """
+        Handle changes to the selection
+        @param selection: Gtk.TreeModel
+        @param itr: Gtk.TreeIter
         @return:
         """
         pass
@@ -376,3 +392,31 @@ class TreeManager(GObject.GObject):
         @param column: Gtk.TreeViewColumn
         @return:
         """
+
+    def row_changed(self, model, path, itr):
+        """
+        @param model: Gtk.TreeModel
+        @param path: Gtk.TreePath
+        @param itr: Gtk.TreeIter
+        @return:
+        """
+
+
+class FilteredTreeManager(TreeManager):
+    def __init__(self, view, model=None, colormap=None):
+        super(TreeManager, self).__init__()
+        if not model:
+            self.src_model = Gtk.TreeStore(*self.Types)  # make a new model if none is provided
+        else:
+            self.src_model = model
+
+        self.view = view
+        self.colormap = colormap or colors.PERCENT_COLORMAP
+        self.view.set_model(self.model)
+        self.add_columns()
+        self.selection = self.view.get_selection()
+        self.selection.connect('changed', self.do_selection_changed)
+        self.model.connect('row-changed', self.row_changed)
+        self.view.props.activate_on_single_click = self.single_click
+        self.view.connect('row-activated', self.row_activated)
+        self.keys = [item.name.lower() for item in self.Data]

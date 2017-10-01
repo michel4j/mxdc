@@ -1,15 +1,15 @@
 """This module implements utility classes and functions for logging."""
-
-from twisted.python import log
 import logging
 import os
+
 
 if os.environ.get('MXDC_DEBUG', '0') in ['1', 'True', 'TRUE', 'true']:
     LOG_LEVEL = logging.DEBUG
     DEBUGGING = True
-else:   
+else:
     LOG_LEVEL = logging.INFO
     DEBUGGING = False
+
 
 class TermColor(object):
     HEADER = '\033[95m'
@@ -73,30 +73,18 @@ class ColoredConsoleHandler(logging.StreamHandler):
             self.handleError(record)
 
 
-class TwistedLogHandler(logging.StreamHandler):
-    def emit(self, record):
-        msg = self.format(record)
-        if record.levelno == logging.WARNING:
-            log.msg(msg)
-        elif record.levelno > logging.WARNING:
-            log.err(msg)
-        else:
-            log.msg(msg)
-        self.flush()
-
 def get_module_logger(name):
     """A factory which creates loggers with the given name and returns it."""
     name = name.split('.')[-1]
     logger = logging.getLogger(name)
     logger.setLevel(LOG_LEVEL)
-    logger.addHandler( NullHandler() )
+    logger.addHandler(NullHandler())
     return logger
-
 
 
 def log_to_console(level=LOG_LEVEL):
     """Add a log handler which logs to the console."""
-    
+
     console = ColoredConsoleHandler()
     console.setLevel(level)
     if DEBUGGING:
@@ -106,20 +94,31 @@ def log_to_console(level=LOG_LEVEL):
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)
 
-def log_to_twisted(level=LOG_LEVEL):
-    """Add a log handler which logs to the twisted logger."""
-    
-    console = TwistedLogHandler()
-    console.setLevel(level)
-    formatter = logging.Formatter('%(message)s')
-    console.setFormatter(formatter)
-    logging.getLogger('').addHandler(console)
 
 def log_to_file(filename, level=logging.DEBUG):
-    """Add a log handler which logs to the console."""    
+    """Add a log handler which logs to the console."""
     logfile = logging.FileHandler(filename)
     logfile.setLevel(level)
     formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
     logfile.setFormatter(formatter)
     logging.getLogger('').addHandler(logfile)
-      
+
+
+logger = get_module_logger(__name__)
+
+
+def log_call(f):
+    """
+    Log all calls to the function or method
+    @param f: function or method
+    """
+
+    def new_f(*args, **kwargs):
+        params = ['{}'.format(repr(a)) for a in args[1:]]
+        params.extend(['{}={}'.format(p[0], repr(p[1])) for p in kwargs.items()])
+        params = ', '.join(params)
+        logger.debug('<{}({})>'.format(f.__name__, params))
+        return f(*args, **kwargs)
+
+    new_f.__name__ = f.__name__
+    return new_f

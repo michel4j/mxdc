@@ -4,7 +4,7 @@ import uuid
 from gi.repository import Gtk, Gdk, GObject
 from twisted.python.components import globalRegistry
 
-from mxdc.beamline.mx import IBeamline
+from mxdc.beamlines.mx import IBeamline
 from mxdc.utils import gui, converter, datatools, glibref, misc
 from mxdc.utils.datatools import StrategyType, Strategy
 

@@ -1,0 +1,159 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>MxDC Developer/Administrator Documentation &#8212; Beamline Control Module 5.0.0-222-ge221fe2 documentation</title>
+    <link rel="stylesheet" href="_static/jinja.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '5.0.0-222-ge221fe2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Introduction" href="intro.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="intro.html" title="Introduction"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Beamline Control Module 5.0.0-222-ge221fe2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="mxdc-developer-administrator-documentation">
+<span id="index"></span><h1>MxDC Developer/Administrator Documentation<a class="headerlink" href="#mxdc-developer-administrator-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="intro.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html#usage">Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/interfaces.html">Interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/devices.html">Devices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#base-device">Base Device</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#automounter">Automounter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#counters">Counters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#detector">Detector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#diffractometer">Diffractometer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#goniometer">Goniometer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#multi-channel-analyzer">Multi-Channel Analyzer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#monochromator">Monochromator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#motors">Motors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#video">Video</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/devices.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/engines.html">Engines</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/engines.html#diffraction-engine">Diffraction Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/engines.html#spectroscopy-engine">Spectroscopy Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/engines.html#centering-engine">Centering Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/engines.html#scanning-engine">Scanning Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/engines.html#fitting-engine">Fitting Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/engines.html#scripting-engine">Scripting Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/engines.html#miscelaneous-engines">Miscelaneous Engines</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/beamline.html">Beamline</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/beamline.html#interfaces">Interfaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/beamline.html#mx-beamline">MX Beamline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/beamline.html#remote-client">Remote Client</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="additional-information">
+<h3>Additional Information<a class="headerlink" href="#additional-information" title="Permalink to this headline">¶</a></h3>
+<div class="toctree-wrapper compound">
+</div>
+<p>If you can’t find the information you’re looking for, have a look at the
+index of try to find it using the search function:</p>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><p class="logo"><a href="#">
+  <img class="logo" src="_static/logo-small.png" alt="Logo"/>
+</a></p><h3>About MxDC</h3>
+<p>
+  MxDC is a full featured macromolecular crystallography data acquisition package
+  developed at the Canadian Light Source.  It has an elegant and function graphical user interface.
+</p>
+<h3>Other Formats</h3>
+<p>
+  You can download the documentation in other formats as well:
+</p>
+<ul>
+  <li><a href="../../mxdc-mxdc.pdf">as PDF</a>
+</ul>
+<h3>Useful Links</h3>
+<ul>
+  <li><a href="http://cmcf.lightsource.ca/">CMCF Website</a></li>
+  <li><a href="http://www.lightsource.ca"> CLSI</a></li>
+</ul>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2012, Canadian Light Source, Inc.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+  </body>
+</html>

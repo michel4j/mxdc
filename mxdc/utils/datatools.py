@@ -7,10 +7,11 @@ import re
 from collections import defaultdict
 from datetime import date
 
+from mxdc.conf import settings
 import numpy
 from mxdc.libs.imageio import read_header
 
-from mxdc.utils import config, misc
+from mxdc.utils import misc
 
 FRAME_NUMBER_DIGITS = 4
 OUTLIER_DEVIATION = 50
@@ -85,7 +86,7 @@ def update_for_sample(info, sample=None):
     params = copy.deepcopy(info)
 
     params.update({
-        'session': config.get_session(),
+        'session': settings.get_session(),
         'sample': sample.get('name', 'unknown'),
         'group': misc.slugify(sample.get('group', '')),
         'container': misc.slugify(sample.get('container', '')),
@@ -94,8 +95,9 @@ def update_for_sample(info, sample=None):
         'activity': params.get('activity', 'unknown'),
         'sample_id': sample.get('id'),
     })
-    template = config.settings.get_string('directory-template')
+    template = settings.get_string('directory-template')
     activity_template = template[1:] if template[0] == os.sep else template
+    activity_template = activity_template[:-1] if activity_template[-1] == os.sep else activity_template
     dir_template = os.path.join(misc.get_project_home(), '{session}', activity_template)
     params['directory'] = dir_template.format(**params).replace('//', '/')
     params['sample'] = sample

@@ -230,7 +230,7 @@ class ImageWidget(Gtk.DrawingArea):
         self.connect('scroll-event', self.on_mouse_scroll)
         self.connect('button_release_event', self.on_mouse_release)
         self.set_size_request(size, size)
-        self.pseudocolor = True
+        self.pseudocolor = False
         self.palettes = {
             True: color_palette(cmaps.magma),
             False: gray_palette(0.1)

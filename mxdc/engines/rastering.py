@@ -8,10 +8,10 @@ import time
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
 
-from mxdc.beamline.interfaces import IBeamline
+from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.engines.interfaces import IAnalyst
-from mxdc.utils import datatools
+from mxdc.utils import datatools,  misc
 from mxdc.utils.converter import energy_to_wavelength
 from mxdc.utils.log import get_module_logger
 
@@ -223,7 +223,7 @@ class RasterCollector(GObject.GObject):
         if not self.pending_results:
             self.save_metadata()
 
-    def save_metadata(self):
+    def save_metadata(self, upload=True):
         params = self.config['params']
         frames, count = datatools.get_disk_frameset(
             params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
@@ -260,13 +260,7 @@ class RasterCollector(GObject.GObject):
                 'grid_points': self.config['grid'].tolist()
             }
             filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
-            if os.path.exists(filename):
-                with open(filename, 'r') as handle:
-                    old_meta = json.load(handle)
-                    metadata['id'] = old_meta.get('id')
-
-            with open(filename, 'w') as handle:
-                json.dump(metadata, handle, indent=2, separators=(',',':'), sort_keys=True)
-                logger.info("Meta-Data Saved: {}".format(filename))
-
+            misc.save_metadata(metadata, filename)
+            if upload:
+                self.beamline.lims.upload_data(self.beamline.name, filename)
             return metadata

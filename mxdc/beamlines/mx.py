@@ -4,6 +4,7 @@ import threading
 
 from interfaces import IBeamline
 from mxdc.com import ca
+from mxdc.conf import settings
 from mxdc.devices import stages, misc, automounter, diagnostics, motor, video
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
@@ -38,6 +39,8 @@ class MXBeamline(object):
             False.
         """
         self.console = console
+        self.config_modules = settings.get_configs()
+
         self.registry = {}
         self.config = {}
         self.lock = threading.RLock()
@@ -64,20 +67,22 @@ class MXBeamline(object):
     def setup(self):
         """Setup and register the beamline devices from configuration files."""
         ca.threads_init()
-        mod_name = os.environ.get('MXDC_CONFIG')
-        mod_dir = os.path.join(os.environ.get('MXDC_PATH'), 'etc')
+        gmod_file, lmod_file = self.config_modules
+        mod_dir = os.path.dirname(gmod_file)
+
         self.logger = get_module_logger(__name__)
         try:
-            g_params = imp.find_module(mod_name, [mod_dir])
-
+            gmod = os.path.splitext(os.path.basename(gmod_file))[0]
+            g_params = imp.find_module(gmod, [mod_dir])
             global_settings = imp.load_module('global_settings', *g_params)
             g_params[0].close()
         except ImportError:
-            self.logger.error('settings file %s.py not found' % mod_name)
+            self.logger.error('Config file error')
             raise
 
         try:
-            l_params = imp.find_module(mod_name + '_local', [mod_dir])
+            lmod = os.path.splitext(os.path.basename(lmod_file))[0]
+            l_params = imp.find_module(lmod, [mod_dir])
             local_settings = imp.load_module('local_settings', *l_params)
             l_params[0].close()
         except ImportError:

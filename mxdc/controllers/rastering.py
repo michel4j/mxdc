@@ -10,9 +10,9 @@ from gi.repository import Gtk, GObject, Gdk
 from twisted.python.components import globalRegistry
 
 from microscope import IMicroscope
-from mxdc.beamline.mx import IBeamline
+from mxdc.beamlines.mx import IBeamline
 from mxdc.engines.rastering import RasterCollector
-from mxdc.utils import colors, datatools, config, misc
+from mxdc.utils import datatools, misc
 from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec
 from mxdc.utils.converter import resol_to_dist
 from mxdc.utils.log import get_module_logger
@@ -83,7 +83,7 @@ class RasterController(GObject.GObject):
         self.sample_store = globalRegistry.lookup([], ISampleStore)
         self.collector = RasterCollector()
 
-        self.manager = RasterResultsManager(self.view, self.microscope.props.grid_cmap)
+        self.manager = RasterResultsManager(self.view, colormap=self.microscope.props.grid_cmap)
 
         # signals
         self.microscope.connect('notify::grid-xyz', self.on_grid_changed)
@@ -174,8 +174,8 @@ class RasterController(GObject.GObject):
 
     def on_sample_updated(self, obj):
         sample = self.sample_store.get_current()
-        sample_text = '{name}|{group}|{container}|{port}'.format(
-            name=sample.get('name', '...'), group=sample.get('group', '...'), container=sample.get('container', '...'),
+        sample_text = '{name}|{port}'.format(
+            name=sample.get('name', '...'),
             port=sample.get('port', '...')
         ).replace('|...', '')
         self.widget.raster_sample_fbk.set_text(sample_text)
