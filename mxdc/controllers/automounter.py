@@ -4,7 +4,7 @@ from datetime import datetime
 
 import cairo
 from gi.repository import Gdk, Gtk, GObject
-from mxdc.beamline.mx import IBeamline
+from mxdc.beamlines.mx import IBeamline
 from mxdc.utils.automounter import ContainerCoords
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry

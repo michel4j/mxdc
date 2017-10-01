@@ -4,15 +4,15 @@ gi.require_version('Gtk', '3.0')
 from twisted.internet import gtk3reactor
 
 gtk3reactor.install()
-
+from mxdc.conf import settings
 from mxdc.services import mxdctools
-from mxdc.beamline.mx import MXBeamline
+from mxdc.beamlines.mx import MXBeamline
 from mxdc.utils import mdns
 from mxdc.utils.log import get_module_logger, log_to_console
 from mxdc.utils.misc import get_project_name, identifier_slug
 from mxdc.AppWindow import AppWindow
 from mxdc.widgets import dialogs
-from mxdc.utils import config, excepthook
+from mxdc.utils import excepthook
 from mxdc.services.clients import MxDCClient
 from twisted.internet import reactor
 from twisted.spread import pb
@@ -31,7 +31,11 @@ logger = get_module_logger(__name__)
 
 
 class MXDCApp(object):
-    def run_local(self):
+
+    def run(self):
+        run_main_loop(self.start)
+
+    def start(self):
         # Create application window
         self.main_window = AppWindow()
         self.beamline = MXBeamline()
@@ -39,7 +43,7 @@ class MXDCApp(object):
         self.hook = excepthook.ExceptHook(
             emails=self.beamline.config['bug_report'], exit_function=exit_main_loop
         )
-        self.hook.install()
+        #self.hook.install()
 
         self.service_type = '_mxdc_{}._tcp'.format(identifier_slug(self.beamline.name))
         self.service_data = {
@@ -102,11 +106,11 @@ class MXDCApp(object):
                 self.service_data['user'], self.beamline.name, self.service_data['started']
             )
         )
-        self.beamline.lims.open_session(self.beamline.name, config.get_session())
+        self.beamline.lims.open_session(self.beamline.name, settings.get_session())
 
     def do_quit(self, obj=None):
         logger.info('Closing MxLIVE Session...')
-        self.beamline.lims.close_session(self.beamline.name, config.get_session())
+        self.beamline.lims.close_session(self.beamline.name, settings.get_session())
         logger.info('Stopping ...')
         exit_main_loop()
 
@@ -135,19 +139,3 @@ def exit_main_loop():
         Gtk.main_quit()
 
 
-def main():
-    try:
-        _ = os.environ['MXDC_CONFIG']
-        logger.info('Starting MXDC ({})... '.format(os.environ['MXDC_CONFIG']))
-    except:
-        logger.error('Could not find Beamline Configuration.')
-        logger.error('Please make sure MXDC is properly installed and configured.')
-    else:
-        app = MXDCApp()
-        app.run_local()
-
-
-
-if __name__ == "__main__":
-    log_to_console()
-    run_main_loop(main)

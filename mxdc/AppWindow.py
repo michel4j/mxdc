@@ -2,10 +2,8 @@ import gi
 import atexit
 
 gi.require_version('Gtk', '3.0')
-from mxdc.beamline.mx import IBeamline
-from mxdc.utils import config
+from mxdc.beamlines.mx import IBeamline
 
-config.get_session()  # update the session configuration
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
@@ -44,8 +42,8 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         super(AppWindow, self).__init__(name='MxDC')
         self.set_wmclass("MxDC", "MxDC")
         self.set_position(Gtk.WindowPosition.CENTER)
-        settings = self.get_settings()
-        settings.props.gtk_enable_animations = True
+        app_settings = self.get_settings()
+        app_settings.props.gtk_enable_animations = True
         css = Gtk.CssProvider()
         with open(os.path.join(SHARE_DIR, 'styles.less'), 'r') as handle:
             css_data = handle.read()

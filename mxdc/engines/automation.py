@@ -5,7 +5,7 @@ import uuid
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
 
-from mxdc.beamline.interfaces import IBeamline
+from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.engines import centering, auto
 from mxdc.engines.interfaces import IDataCollector

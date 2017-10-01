@@ -1,9 +1,25 @@
 import threading
 import time
+
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
 
+def memoize(f):
+    """ Memoization decorator for functions taking one or more arguments. """
+
+    class memodict(dict):
+        def __init__(self, f):
+            self.f = f
+
+        def __call__(self, *args):
+            return self[args]
+
+        def __missing__(self, key):
+            ret = self[key] = self.f(*key)
+            return ret
+
+    return memodict(f)
 
 def async_call(f):
     """
@@ -39,22 +55,6 @@ def ca_thread_enable(f):
 
     _f.__name__ = f.__name__
     return _f
-
-
-def log_call(f):
-    """
-    Log all calls to the function or method
-    @param f: function or method
-    """
-    def new_f(*args, **kwargs):
-        params = ['{}'.format(repr(a)) for a in args[1:]]
-        params.extend(['{}={}'.format(p[0], repr(p[1])) for p in kwargs.items()])
-        params = ', '.join(params)
-        logger.debug('<{}({})>'.format(f.__name__, params))
-        return f(*args, **kwargs)
-
-    new_f.__name__ = f.__name__
-    return new_f
 
 
 def timeit(method):

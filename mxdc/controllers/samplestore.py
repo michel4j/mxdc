@@ -5,9 +5,10 @@ from copy import copy
 
 from automounter import DewarController
 from gi.repository import Gio, Gtk, Gdk, Pango, GObject
-from mxdc.beamline.mx import IBeamline
+from mxdc.beamlines.mx import IBeamline
 from mxdc.engines import auto
 from mxdc.utils.decorators import async_call
+from mxdc.utils.gui import ColumnSpec
 from twisted.python.components import globalRegistry
 from zope.interface import Interface, implements
 
@@ -73,11 +74,11 @@ class SampleStore(GObject.GObject):
 
     class Data(object):
         (
-            SELECTED, NAME, GROUP, CONTAINER, PORT, BARCODE,
+            SELECTED, NAME, GROUP, CONTAINER, PORT, LOCATION, BARCODE,
             PRIORITY, COMMENTS, STATE, CONTAINER_TYPE, PROGRESS, UUID, DATA
-        ) = range(13)
+        ) = range(14)
         TYPES = (
-            bool, str, str, str, str, str,
+            bool, str, str, str, str, str, str,
             int, str, int, str, int, str, object
         )
 
@@ -92,9 +93,9 @@ class SampleStore(GObject.GObject):
         (Data.STATE, ''),
         (Data.NAME, 'Name'),
         (Data.GROUP, 'Group'),
-        (Data.CONTAINER, 'Container'),
-        (Data.CONTAINER_TYPE, 'Type'),
         (Data.PORT, 'Port'),
+        (Data.CONTAINER, 'Container'),
+        (Data.LOCATION, ''),
         (Data.PRIORITY, 'Priority'),
     ])
 
@@ -206,6 +207,7 @@ class SampleStore(GObject.GObject):
             item.get('group', ''),
             item.get('container', ''),
             item.get('port', ''),
+            item.get('location', ''),
             item.get('barcode', ''),
             item.get('priority', 0),
             item.get('comments', ''),
@@ -253,8 +255,11 @@ class SampleStore(GObject.GObject):
             self.load_data(data)
 
     def format_state(self, column, cell, model, itr, data):
-        value = model.get_value(itr, self.Data.STATE)
-        if value in [self.State.UNKNOWN, self.State.NONE]:
+        value = model[itr][self.Data.STATE]
+        loaded = model[itr][self.Data.PORT]
+        if not loaded:
+            cell.set_property("text", u"")
+        elif value in [self.State.UNKNOWN, self.State.NONE]:
             col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=1.0)
             cell.set_property("foreground-rgba", col)
             cell.set_property("text", u"\u25ef")
@@ -265,10 +270,15 @@ class SampleStore(GObject.GObject):
 
     def format_progress(self, column, cell, model, itr, data):
         value = model.get_value(itr, self.Data.PROGRESS)
+        loaded = model[itr][self.Data.PORT]
         if value == self.Progress.DONE:
             cell.set_property("style", Pango.Style.ITALIC)
         else:
             cell.set_property("style", Pango.Style.NORMAL)
+        if not loaded:
+            cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.5))
+        else:
+            cell.set_property("foreground-rgba", None)
 
     def update_next_sample(self):
         items = self.get_selected()
@@ -331,7 +341,7 @@ class SampleStore(GObject.GObject):
             state = self.model.get_value(itr, self.Data.STATE)
             if sel and state not in [self.State.JAMMED, self.State.EMPTY]:
                 item = self.model.get_value(itr, self.Data.DATA)
-                item['path'] = self.model.get_path(itr)
+                #item['path'] = self.model.get_path(itr)
                 items.append(item)
             itr = self.model.iter_next(itr)
         return items

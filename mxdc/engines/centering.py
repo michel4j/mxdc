@@ -7,7 +7,7 @@ import time
 import numpy
 from twisted.python.components import globalRegistry
 
-from mxdc.beamline.interfaces import IBeamline
+from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.snapshot import take_sample_snapshots
 from mxdc.utils import imgproc
 from mxdc.utils.log import get_module_logger

@@ -1,6 +1,5 @@
-import os
 import math
-import time
+
 import numpy
 
 # Physical Constats
@@ -9,14 +8,9 @@ _c = 299792458e10  # A/s
 _m = 5.685629904369271e-32  # eV.A^-2 , calculated using
 _hb = _h / (2 * math.pi)
 
-_S111_A_DICT = {
-    'CMCFBM': 5.4310209,
-    'CMCFID': 5.4297575,
-}
 
-
-def energy_to_d(energy):
-    bragg = radians(energy_to_bragg(energy))
+def energy_to_d(energy, unit_cell):
+    bragg = radians(energy_to_bragg(energy, unit_cell=unit_cell))
     return energy_to_wavelength(energy) / (2 * math.sin(bragg))
 
 
@@ -58,29 +52,26 @@ def degrees(angle):
     return 180 * angle / math.pi
 
 
-def bragg_to_energy(bragg):
+def bragg_to_energy(bragg, unit_cell=5.4310209):
     """Convert bragg angle in degrees to energy in keV.
     
     Arguments:
     bragg       --  bragg angle in degrees to convert to energy
     """
 
-    _S111_a = _S111_A_DICT.get(os.environ.get('MXDC_CONFIG', 'CMCFBM'), 5.4310209)
-
-    d = _S111_a / math.sqrt(3.0)
+    d = unit_cell / math.sqrt(3.0)
     wavelength = 2.0 * d * math.sin(radians(bragg))
     return wavelength_to_energy(wavelength)
 
 
-def energy_to_bragg(energy):
+def energy_to_bragg(energy, unit_cell=5.4310209):
     """Convert energy in keV to bragg angle in degrees.
     
     Arguments:
     energy      --  energy value to convert to bragg angle
     """
 
-    _S111_a = _S111_A_DICT.get(os.environ.get('MXDC_CONFIG', 'CMCFID'), 5.4310209)
-    d = _S111_a / math.sqrt(3.0)
+    d = unit_cell / math.sqrt(3.0)
     bragg = math.asin(energy_to_wavelength(energy) / (2.0 * d))
     return degrees(bragg)
 

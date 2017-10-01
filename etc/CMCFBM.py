@@ -5,7 +5,12 @@ from mxdc.services import clients
 
 CONFIG = {
     'name': 'CMCF-BM',
+    'facility': 'CLS',
+    'mono': 'Si 111',
+    'mono_unit_cell': 5.4310209,
+    'source': 'Bend Magnet',
     'type': 'mx',
+    'subnet': '10.52.4.0/22',
     'admin_groups': [1000, 2000],
     'energy_range': (5.0, 18.0),
     'default_attenuation': 90.0,
@@ -27,7 +32,9 @@ CONFIG = {
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
     'energy':   motor.PseudoMotor('DCM1608-4-B10-01:energy:KeV'),
-    'bragg_energy': motor.BraggEnergyMotor('SMTR1608-4-B10-17:deg', motor_type="vmeenc"),
+    'bragg_energy': motor.BraggEnergyMotor(
+        'SMTR1608-4-B10-17:deg', motor_type="vmeenc", mono_unit_cell=CONFIG['mono_unit_cell']
+    ),
     'dcm_pitch':  motor.ENCMotor('SMTR1608-4-B10-15:deg'),
     'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl'),
     
