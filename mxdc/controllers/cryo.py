@@ -1,5 +1,5 @@
 import common
-from mxdc.beamline.mx import IBeamline
+from mxdc.beamlines.mx import IBeamline
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
 from mxdc.utils import colors

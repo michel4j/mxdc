@@ -602,12 +602,12 @@ class SimStorageRing(BaseDevice):
         self.name = name
         self.message = 'Sim SR Testing!'
         self.set_state(beam=True, active=True, health=(0, ''))
-        GObject.timeout_add(60000, self._change_beam)
+        #GObject.timeout_add(60000, self._change_beam)
 
     def _change_beam(self):
         _beam = not self.beam_state
         if self.health_state[0] == 0:
-            _health = 4
+            _health = 2
             _message = "Beam dump."
         else:
             _health = 0

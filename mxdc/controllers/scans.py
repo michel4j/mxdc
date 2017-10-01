@@ -1,21 +1,22 @@
+import copy
 import os
 import time
-import copy
-from datetime import datetime
 import uuid
+from datetime import datetime
+
+from enum import Enum
+from gi.repository import Gtk, GObject
+from twisted.python.components import globalRegistry
 
 import common
 from datasets import IDatasets
-from enum import Enum
-from gi.repository import Gtk, GObject
-from mxdc.beamline.mx import IBeamline
+from mxdc.beamlines.mx import IBeamline
 from mxdc.engines.spectroscopy import XRFScanner, MADScanner, XASScanner
-from mxdc.utils import colors, datatools, misc, scitools, converter
+from mxdc.utils import colors, datatools, misc, scitools
 from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs, periodictable, plotter
 from samplestore import ISampleStore
-from twisted.python.components import globalRegistry
 
 logger = get_module_logger(__name__)
 
@@ -57,7 +58,6 @@ def summarize_lines(data):
 
 
 class ScanController(GObject.GObject):
-
     class StateType:
         READY, ACTIVE, PAUSED = range(3)
 
@@ -282,9 +282,9 @@ class ScanController(GObject.GObject):
 
 class MADResultsManager(TreeManager):
     class Data(Enum):
-        NAME, LABEL, ENERGY, EDGE, WAVELENGTH, FPP, FP = range(7)
+        NAME, LABEL, ENERGY, EDGE, WAVELENGTH, FPP, FP, DIRECTORY = range(8)
 
-    Types = [str, str, float, str, float, float, float]
+    Types = [str, str, float, str, float, float, float, str]
     Columns = ColumnSpec(
         (Data.LABEL, 'Label', ColumnType.TEXT, '{}', True),
         (Data.ENERGY, 'Energy', ColumnType.NUMBER, '{:0.3f}', True),
@@ -295,15 +295,18 @@ class MADResultsManager(TreeManager):
     parent = Data.NAME
     run_info = GObject.Property(type=object)
     run_name = GObject.Property(type=str, default='')
+    directory = GObject.Property(type=str, default='')
 
-    def selection_changed(self, selection):
-        model, itr = selection.get_selected()
-        if not itr:
-            self.props.run_name = ''
-            self.props.run_info = None
-        else:
+    def selection_changed(self, model, itr):
+        if itr:
+            self.props.directory = model[itr][self.Data.DIRECTORY.value]
             self.props.run_name = model[itr][self.Data.NAME.value]
             self.props.run_info = self.get_items(itr)
+
+        else:
+            self.props.directory = ''
+            self.props.run_name = ''
+            self.props.run_info = None
 
     def make_parent(self, row):
         parent_row = super(MADResultsManager, self).make_parent(row)
@@ -313,9 +316,9 @@ class MADResultsManager(TreeManager):
 
 class XRFResultsManager(TreeManager):
     class Data(Enum):
-        SELECTED, SYMBOL, NAME, PERCENT = range(4)
+        SELECTED, SYMBOL, NAME, PERCENT, DIRECTORY = range(5)
 
-    Types = [bool, str, str, float]
+    Types = [bool, str, str, float, str]
     Columns = ColumnSpec(
         (Data.SYMBOL, '', ColumnType.TEXT, '{}', False),
         (Data.NAME, 'Element', ColumnType.TEXT, '{}', True),
@@ -323,18 +326,24 @@ class XRFResultsManager(TreeManager):
         (Data.SELECTED, '', ColumnType.TOGGLE, '{}', False),
     )
     flat = True
+    directory = GObject.Property(type=str, default='')
 
     def format_cell(self, column, renderer, model, itr, spec):
         super(XRFResultsManager, self).format_cell(column, renderer, model, itr, spec)
         index = model.get_path(itr)[0]
         renderer.set_property("foreground", colors.Category.GOOG20[index % 20])
 
+    def selection_changed(self, model, itr):
+        if itr:
+            self.props.directory = model[itr][self.Data.DIRECTORY.value]
+        else:
+            self.props.directory = ''
 
 class XASResultsManager(TreeManager):
     class Data(Enum):
-        NAME, EDGE, SCAN, TIME, X_PEAK, Y_PEAK = range(6)
+        NAME, EDGE, SCAN, TIME, X_PEAK, Y_PEAK, DIRECTORY = range(7)
 
-    Types = [str, str, int, str, float, float]
+    Types = [str, str, int, str, float, float, str]
     Columns = ColumnSpec(
         (Data.SCAN, 'Scan', ColumnType.TEXT, '{}', True),
         (Data.TIME, 'TIME', ColumnType.TEXT, '{}', True),
@@ -342,11 +351,18 @@ class XASResultsManager(TreeManager):
         (Data.Y_PEAK, 'Y-Peak', ColumnType.NUMBER, '{:0.1f}', True),
     )
     parent = Data.NAME
+    directory = GObject.Property(type=str, default='')
 
     def make_parent(self, row):
         parent_row = super(XASResultsManager, self).make_parent(row)
         parent_row[self.Data.TIME.value] = row[self.Data.EDGE.value]
         return parent_row
+
+    def selection_changed(self, model, itr):
+        if itr:
+            self.props.directory = model[itr][self.Data.DIRECTORY.value]
+        else:
+            self.props.directory = ''
 
 
 class MADScanController(ScanController):
@@ -381,6 +397,7 @@ class MADScanController(ScanController):
         if self.results.props.run_info:
             self.widget.mad_runs_btn.set_sensitive(True)
             self.widget.mad_selected_lbl.set_text(self.results.props.run_name)
+            self.widget.scans_dir_fbk.set_text(self.results.props.directory)
         else:
             self.widget.mad_runs_btn.set_sensitive(False)
             self.widget.mad_selected_lbl.set_text('')
@@ -397,9 +414,9 @@ class MADScanController(ScanController):
             self.plotter.axis[0].axvline(choice['energy'], color='#999999', linestyle='--', linewidth=1)
 
         data = scanner.results['analysis'].get('esf')
-        if data:
+        if data is not None:
             self.plotter.add_line(
-                data['energy'], data['fpp'], '-', color=colors.Category.GOOG20[1], label='f"',  ax=new_axis
+                data['energy'], data['fpp'], '-', color=colors.Category.GOOG20[1], label='f"', ax=new_axis
             )
             self.plotter.add_line(
                 data['energy'], data['fp'], '-', color=colors.Category.CAT20[5], label="f'", ax=new_axis, redraw=True
@@ -418,6 +435,7 @@ class MADScanController(ScanController):
                 'fp': choice['fp'],
                 'energy': choice['energy'],
                 'wavelength': choice['wavelength'],
+                'directory': scanner.config['directory'],
             })
             if parent:
                 self.results_view.expand_row(parent, False)
@@ -439,15 +457,19 @@ class XRFScanController(ScanController):
         # fix adjustments
         self.annotations = {}
         self.results.model.connect('row-changed', self.on_annotation)
+        self.results.connect('notify::directory', self.on_scan_selected)
 
     def on_started(self, scanner):
         super(XRFScanController, self).on_started(scanner)
         self.results.clear()
 
+    def on_scan_selected(self, *args, **kwargs):
+        if self.results.props.directory:
+            self.widget.scans_dir_fbk.set_text(self.results.props.directory)
+
     def on_done(self, scanner):
         super(XRFScanController, self).on_done(scanner)
         self.annotations = {}
-
         data = scanner.results['data']
         analysis = scanner.results['analysis']
         ys = analysis['counts']
@@ -461,7 +483,7 @@ class XRFScanController(ScanController):
         self.plotter.add_line(analysis['energy'], analysis['fit'], ':', color=colors.Category.GOOG20[4], label='Fit')
         self.plotter.axis[0].axhline(0.0, color='gray', linewidth=0.5)
         self.plotter.add_line(
-            data['energy'], data['counts'], '-', color=colors.Category.CAT20C[16],
+            data['energy'], data['normfluor'], '-', color=colors.Category.CAT20C[16],
             label='Experimental', lw=1, alpha=0.2
         )
         self.plotter.add_line(
@@ -484,7 +506,8 @@ class XRFScanController(ScanController):
                 'name': element['name'],
                 'selected': visible,
                 'symbol': symbol,
-                'percent': amount
+                'percent': amount,
+                'directory': scanner.config['directory'],
             })
             color = colors.Category.GOOG20[index % 20]
             element_info = assignments.get(symbol)
@@ -511,9 +534,6 @@ class XRFScanController(ScanController):
         ax.axis(ymin=ymin, ymax=ymax)
         self.plotter.redraw()
 
-        # Upload scan to lims
-        # lims_tools.upload_scan(self.beamline, [scanner.results])
-
     def on_edge_changed(self, entry):
         super(XRFScanController, self).on_edge_changed(entry)
         energy = self.edge_selector.get_excitation_for(entry.get_text())
@@ -525,7 +545,6 @@ class XRFScanController(ScanController):
         state = model[itr][self.results.Data.SELECTED.value]
         for annotation in self.annotations[element]:
             annotation.set_visible(state)
-
         self.plotter.redraw()
 
 
@@ -547,6 +566,7 @@ class XASScanController(ScanController):
         self.kmax_spin.set_adjustment(Gtk.Adjustment(8, 1, 16, 1, 1, 0))
         self.scans_spin.set_adjustment(Gtk.Adjustment(4, 1, 128, 1, 10, 0))
         self.scanner.connect('new-scan', self.on_new_scan)
+        self.results.connect('notify::directory', self.on_scan_selected)
 
     def on_new_scan(self, scanner, scan):
         self.axis = scan
@@ -554,6 +574,10 @@ class XASScanController(ScanController):
         if parent:
             self.results_view.expand_row(parent, False)
         self.results_view.scroll_to_cell(child, None, True, 0.5, 0.5)
+
+    def on_scan_selected(self, *args, **kwargs):
+        if self.results.props.directory:
+            self.widget.scans_dir_fbk.set_text(self.results.props.directory)
 
 
 class ScanManager(GObject.GObject):
@@ -603,8 +627,8 @@ class ScanManager(GObject.GObject):
 
     def on_sample_updated(self, obj):
         sample = self.sample_store.get_current()
-        sample_text = '{name}|{group}|{container}|{port}'.format(
-            name=sample.get('name', '...'), group=sample.get('group', '...'), container=sample.get('container', '...'),
+        sample_text = '{name}|{port}'.format(
+            name=sample.get('name', '...'),
             port=sample.get('port', '...')
         ).replace('|...', '')
         self.widget.scans_sample_fbk.set_text(sample_text)

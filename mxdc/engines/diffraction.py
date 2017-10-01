@@ -7,7 +7,7 @@ from gi.repository import GObject
 from twisted.python.components import globalRegistry
 from zope.interface import implements
 
-from mxdc.beamline.interfaces import IBeamline
+from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.engines import snapshot
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
@@ -197,15 +197,13 @@ class DataCollector(GObject.GObject):
             name = os.path.commonprefix([wedge['dataset'] for wedge in wedges])
             wedge = wedges[0]
             prefix = '{}-pic'.format(name)
-            a1 = wedge['start']
-            a2 = (a1 + 90.0) % 360.0
 
             # setup folder for wedge
             self.beamline.image_server.setup_folder(wedge['directory'])
-            if not os.path.exists(os.path.join(wedge['directory'], '{}_{:0.0f}.png'.format(prefix, a1))):
-                logger.info('Taking snapshots of crystal at {:0.0f} and {:0.0f}'.format(a1, a2))
+            if not os.path.exists(os.path.join(wedge['directory'], '{}_{:0.0f}.png'.format(prefix, wedge['start']))):
+                logger.info('Taking snapshots of sample at {:0.0f}'.format(wedge['start']))
                 snapshot.take_sample_snapshots(
-                    prefix, os.path.join(wedge['directory']), [a2, a1], decorate=True
+                    prefix, os.path.join(wedge['directory']), [wedge['start']], decorate=True
                 )
 
     def prepare_for_wedge(self, wedge):
@@ -266,12 +264,9 @@ class DataCollector(GObject.GObject):
             'inverse_beam': params.get('inverse', False),
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
-        if os.path.exists(filename):
-            old_metadata = misc.load_metadata(filename)
-            metadata['id'] = old_metadata.get('id')
         misc.save_metadata(metadata, filename)
         if upload:
-            self.beamline.lims.upload_dataset(self.beamline.name, filename)
+            self.beamline.lims.upload_data(self.beamline.name, filename)
         return metadata
 
     def analyse(self, metadata, strategy, sample):

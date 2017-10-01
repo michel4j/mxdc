@@ -1,7 +1,7 @@
 import common
 
 from gi.repository import Gtk
-from mxdc.beamline.mx import IBeamline
+from mxdc.beamlines.mx import IBeamline
 from mxdc.widgets import misc
 from mxdc.widgets import ticker
 

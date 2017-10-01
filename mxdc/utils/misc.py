@@ -2,16 +2,19 @@ import json
 import os
 import pwd
 import re
+import socket
 import string
+import struct
 import subprocess
 import threading
 import time
 import uuid
 
+import decorators
+import ipaddress
+import log
 import numpy
 from gi.repository import GObject
-
-import log
 from mxdc.com import ca
 
 logger = log.get_module_logger(__name__)
@@ -141,16 +144,19 @@ def open_terminal(directory=None):
         directory = directory.replace('~', get_project_home())
     commands = [
         'gnome-terminal',
-        '--geometry=132x32',
+        '--geometry=132x24',
         '--working-directory={}'.format(directory),
     ]
     p = subprocess.Popen(commands)
 
 
 def save_metadata(metadata, filename):
+    if os.path.exists(filename):
+        old_metadata = load_metadata(filename)
+        metadata['id'] = old_metadata.get('id')
     with open(filename, 'w') as handle:
         json.dump(metadata, handle, indent=2, separators=(',', ':'), sort_keys=True)
-        logger.info("Meta-Data Saved: {}".format(filename))
+        #logger.info("Meta-Data Saved: {}".format(filename))
     return metadata
 
 
@@ -158,3 +164,26 @@ def load_metadata(filename):
     with open(filename, 'r') as handle:
         metadata = json.load(handle)
     return metadata
+
+
+def _get_gateway():
+    """Read the default gateway directly from /proc."""
+    with open("/proc/net/route") as handle:
+        for line in handle:
+            fields = line.strip().split()
+            if fields[1] != '00000000' or not int(fields[3], 16) & 2:
+                continue
+            return socket.inet_ntoa(struct.pack("<L", int(fields[2], 16)))
+
+def _get_address(gateway, port=22):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect((gateway, port))
+    address = (s.getsockname()[0])
+    s.close()
+    return address
+
+
+@decorators.memoize
+def get_address():
+    return ipaddress.ip_address(u'{}'.format(_get_address(_get_gateway())))
+

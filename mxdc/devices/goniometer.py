@@ -10,7 +10,7 @@ from datetime import datetime
 from zope.interface import implements
 from interfaces import IGoniometer
 from twisted.python.components import globalRegistry
-from mxdc.beamline.interfaces import IBeamline
+from mxdc.beamlines.interfaces import IBeamline
 from mxdc.devices.misc import Positioner
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.decorators import async_call

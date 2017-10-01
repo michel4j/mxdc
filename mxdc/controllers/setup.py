@@ -2,7 +2,7 @@ import logging
 
 import common
 from gi.repository import GObject
-from mxdc.beamline.interfaces import IBeamline
+from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc
