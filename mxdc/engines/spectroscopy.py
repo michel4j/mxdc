@@ -2,15 +2,16 @@
 import copy
 import os
 import time
+from collections import OrderedDict
 from datetime import datetime
 
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
 
-from mxdc.beamline.interfaces import IBeamline
+from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.chooch import AutoChooch
 from mxdc.engines.scanning import BasicScan
-from mxdc.utils import scitools, misc, datatools
+from mxdc.utils import scitools, misc, datatools, xdi
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import multi_count
 from mxdc.utils.scitools import *
@@ -20,15 +21,13 @@ logger = get_module_logger(__name__)
 
 
 class XRFScanner(BasicScan):
+    """
+    X-Ray Fluorescence Spectroscopy (XRF) Scan. Sample is exposed at a fixed energy and the
+    spectrum of all emission peaks for elements absorbing at or below the beam
+    energy is acquired for a fixed amount of time.
+    """
     def __init__(self):
-        BasicScan.__init__(self)
-        self.data_names = ['Energy', 'Counts']
-        self.beamline = None
-        self.paused = False
-        self.stopped = False
-        self.total = 0
-        self.config = {}
-        self.results = {}
+        super(XRFScanner, self).__init__()
         
     def configure(self, info):
         self.beamline = globalRegistry.lookup([], IBeamline)
@@ -36,7 +35,7 @@ class XRFScanner(BasicScan):
         self.config['filename'] = os.path.join(info['directory'], "{}.xdi".format(info['name'], info['energy']))
         self.config['user'] = misc.get_project_name()
         self.results = {}
-
+        self.units['energy'] = 'keV'
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
 
@@ -53,6 +52,17 @@ class XRFScanner(BasicScan):
         self.beamline.energy.wait()
         self.beamline.goniometer.wait(start=False)
 
+    def set_data(self, raw_data):
+        self.data_types = {
+            'names': ['energy', 'normfluor'],
+            'formats': [float, float],
+        }
+        extra_names = ['ifluor.{}'.format(i+1) for i in range(self.beamline.mca.elements)]
+        self.data_types['names'] += extra_names
+        self.data_types['formats'] += [float]*len(extra_names)
+        self.data = numpy.core.records.fromarrays(raw_data.transpose(), dtype=self.data_types)
+        return self.data
+
     def run(self):
         logger.debug('Excitation Scan waiting for beamline to become available.')
         self.total = 4
@@ -60,12 +70,14 @@ class XRFScanner(BasicScan):
             saved_attenuation = self.beamline.attenuator.get()
             try:
                 GObject.idle_add(self.emit, 'started')
+                self.config['start_time'] = datetime.now()
                 self.prepare_for_scan()
-                self.data = []
                 self.notify_progress(1, "Acquiring spectrum ...")
                 self.beamline.exposure_shutter.open()
-                self.data = self.beamline.mca.acquire(t=self.config['exposure'])
+                raw_data = self.beamline.mca.acquire(t=self.config['exposure'])
+                self.set_data(raw_data)
                 self.beamline.exposure_shutter.close()
+                self.config['end_time'] = datetime.now()
                 self.save(self.config['filename'])
                 self.notify_progress(3, "Interpreting spectrum ...")
                 self.analyse()
@@ -85,8 +97,8 @@ class XRFScanner(BasicScan):
         pass
 
     def analyse(self):
-        x = self.data[:, 0].astype(float)
-        y = self.data[:, 1].astype(float)
+        x = self.data['energy'].astype(float)
+        y = self.data['normfluor'].astype(float)
         energy = self.config['energy']
         sel = (x < 0.5) | (x > energy - self.beamline.config.get('xrf_energy_offset', 2.0))
         y[sel] = 0.0
@@ -107,21 +119,16 @@ class XRFScanner(BasicScan):
         # floats here
         ys = scitools.smooth_data(y, times=3, window=11)
         self.results = {
-            'data': {
-                'energy': x.tolist(),
-                'counts': self.data[:, 1].astype(float).tolist(),
-
-
-            },
+            'data': self.data,
             'analysis': {
-                'energy': x.tolist(),
-                'counts': ys.tolist(),
-                'fit': bblocks.sum(1).tolist(),
+                'energy': x,
+                'counts': ys,
+                'fit': bblocks.sum(1),
                 'assignments': assigned
             },
         }
 
-    def save_metadata(self):
+    def save_metadata(self, upload=True):
         params = self.config
         metadata = {
             'name': params['name'],
@@ -140,36 +147,27 @@ class XRFScanner(BasicScan):
             'beam_size': self.beamline.aperture.get_position(),
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
-        if os.path.exists(filename):
-            with open(filename, 'r') as handle:
-                old_meta = json.load(handle)
-                metadata['id'] = old_meta.get('id')
-
-        with open(filename, 'w') as handle:
-            json.dump(metadata, handle, indent=2, separators=(',',':'), sort_keys=True)
-            logger.info("Meta-Data Saved: {}".format(filename))
-
+        misc.save_metadata(metadata, filename)
+        if upload:
+            self.beamline.lims.upload_data(self.beamline.name, filename)
         return metadata
 
 
 class MADScanner(BasicScan):
+    """
+    Multi-Wavelength Anomalous Dispersion (MAD) Scan. Monochromator is scanned around a specific  absorption-edge
+    in a stepwise manner and the total emission for the selected absorption-edge is recorded for a fixed amount of time.
+    """
     def __init__(self):
-        BasicScan.__init__(self)
-        self._energy_db = get_energy_database()
+        super(MADScanner, self).__init__()
+        self.emissions = get_energy_database()
         self.autochooch = AutoChooch()
-        self.beamline = None
-        self.paused = False
-        self.stopped = False
-        self.total = 0
-        self.config = {}
-        self.results = {}
-        self.data = []
 
     def configure(self, info):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.config = copy.deepcopy(info)
 
-        self.config['edge_energy'], self.config['roi_energy'] = self._energy_db[info['edge']]
+        self.config['edge_energy'], self.config['roi_energy'] = self.emissions[info['edge']]
         self.config['filename'] = os.path.join(info['directory'], "{}_{}.xdi".format(info['name'], info['edge']))
         self.config['targets'] = xanes_targets(self.config['edge_energy'])
         self.config['user'] = misc.get_project_name()
@@ -177,14 +175,6 @@ class MADScanner(BasicScan):
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
     
-    def analyse(self):
-        self.autochooch.configure(self.config, numpy.array(self.data))
-        report = self.autochooch.run()
-        if report:
-            self.results['analysis'] = report
-        else:
-            GObject.idle_add(self.emit, 'error', 'Analysis Failed')
-
     def notify_progress(self, pos, message):
         fraction = float(pos) / self.total
         GObject.idle_add(self.emit, "progress", fraction, message)
@@ -207,14 +197,14 @@ class MADScanner(BasicScan):
         with self.beamline.lock:
             self.total = len(self.config['targets'])
             saved_attenuation = self.beamline.attenuator.get()
-            self.data = []
-            self.results = {'data': [], 'analysis': {}}
+            self.data_rows = []
+            self.results = {'analysis': {}}
             try:
                 GObject.idle_add(self.emit, 'started')
                 self.prepare_for_scan()
                 self.beamline.exposure_shutter.open()
-                self.data_names = ['Energy', 'Scaled Counts','I_0', 'Raw Counts']
-
+                reference = 0.0
+                self.config['start_time'] = datetime.now()
                 for i, x in enumerate(self.config['targets']):
                     if self.paused:
                         GObject.idle_add(self.emit, 'paused', True, '')
@@ -233,32 +223,24 @@ class MADScanner(BasicScan):
                     y, i0 = multi_count(self.beamline.mca, self.beamline.i_0, self.config['exposure'])
                     if i == 0:
                         scale = 1.0
+                        reference = i0
                     else:
-                        scale = (self.data[0][2]/i0)
+                        scale = float(reference)/i0
 
-                    #x = self.beamline.bragg_energy.get_position()
-                    self.data.append( [x, y*scale, i0, y] )
-                    GObject.idle_add(self.emit, "new-point", (x, y*scale, i0, y))
+                    self.data_rows.append((x, y*scale, y, i0))
+                    GObject.idle_add(self.emit, "new-point", (x, y*scale, y, i0))
                     self.notify_progress(i+1, "Scanning {} of {} ...".format(i, self.total))
                     time.sleep(0)
 
-                if len(self.data) > 10:
-                    data = numpy.array(self.data)
-                    self.results['data'] = {
-                        'energy': data[:, 0].astype(float),
-                        'counts': data[:, 1].astype(float),
-                        'I0': data[:, 2].astype(float),
-                        'raw_counts': data[:, 3].astype(float),
-                    }
-
+                self.set_data(self.data_rows)
+                self.config['end_time'] = datetime.now()
+                self.save(self.config['filename'])
                 if self.stopped:
                     logger.warning("Scan stopped.")
-                    self.save(self.config['filename'])
                     self.save_metadata()
                     GObject.idle_add(self.emit, "stopped")
                 else:
                     logger.info("Scan complete. Performing Analyses")
-                    self.save(self.config['filename'])
                     self.analyse()
                     self.save_metadata()
                     GObject.idle_add(self.emit, "done")
@@ -271,7 +253,43 @@ class MADScanner(BasicScan):
                 self.beamline.goniometer.set_mode('COLLECT')
         return self.results
 
-    def save_metadata(self):
+    def analyse(self):
+        self.results['data'] = self.data
+        self.autochooch.configure(self.config, self.results['data'])
+        report = self.autochooch.run()
+        if report:
+            self.results['analysis'] = report
+        else:
+            GObject.idle_add(self.emit, 'error', 'Analysis Failed')
+
+    def set_data(self, raw_data):
+        self.data_types = {
+            'names': ['energy', 'normfluor', 'ifluor', 'i0'],
+            'formats': [float, float, float, float],
+        }
+        self.units = {
+            'energy': 'keV'
+        }
+        self.data = numpy.array(raw_data, dtype=self.data_types)
+        return self.data
+
+    def prepare_xdi(self):
+        xdi_data = super(MADScanner, self).prepare_xdi()
+        xdi_data['Element.symbol'], xdi_data['Element.edge'] = self.config['edge'].split('-')
+        xdi_data['Scan.edge_energy'] = self.config['edge_energy'], 'keV'
+        if 'sample' in self.config:
+            xdi_data['Sample.name'] = self.config['sample'].get('name', 'unknown')
+            xdi_data['Sample.id'] = self.config['sample'].get('sample_id', 'unknown')
+            xdi_data['Sample.temperature'] = (self.beamline.cryojet.temperature, 'K')
+            xdi_data['Sample.group'] = self.config['sample'].get('group', 'unknown')
+        xdi_data['Scan.end_time'] = self.config['end_time']
+        xdi_data['Scan.start_time'] = self.config['start_time']
+        xdi_data['Mono.d_spacing'] = converter.energy_to_d(
+            self.config['edge_energy'], self.beamline.config['mono_unit_cell']
+        )
+        return xdi_data
+
+    def save_metadata(self, upload=True):
         params = self.config
         metadata = {
             'name': params['name'],
@@ -292,31 +310,25 @@ class MADScanner(BasicScan):
             'beam_size': self.beamline.aperture.get_position(),
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
-        if os.path.exists(filename):
-            with open(filename, 'r') as handle:
-                old_meta = json.load(handle)
-                metadata['id'] = old_meta.get('id')
-
-        with open(filename, 'w') as handle:
-            json.dump(metadata, handle, indent=2, separators=(',',':'), sort_keys=True)
-            logger.info("Meta-Data Saved: {}".format(filename))
-
+        misc.save_metadata(metadata, filename)
+        if upload:
+            self.beamline.lims.upload_data(self.beamline.name, filename)
         return metadata
 
 
 class XASScanner(BasicScan):
+    """
+    X-Ray Absorption Spectroscopy (XAS, XANES, EXAFS). Monochromator is scanned around a specific  absorption-edge
+    in a stepwise manner and the total emission for the selected absorption-edge is recorded.
+    """
     __gsignals__ = {'new-scan' : (GObject.SignalFlags.RUN_FIRST, None, (int,)) }
 
     def __init__(self):
-        BasicScan.__init__(self)
+        super(XASScanner, self).__init__()
         self.emissions = get_energy_database()
-        self.beamline = None
-        self.paused = False
-        self.stopped = False
         self.total_time = 0
-        self.config = {}
-        self.results = {}
-        
+        self.scan_index = 0
+
     def configure(self, info):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.config = copy.deepcopy(info)
@@ -326,7 +338,6 @@ class XASScanner(BasicScan):
         self.config['targets'] = exafs_targets(self.config['edge_energy'], kmax=info['kmax'])
         self.config['user'] = misc.get_project_name()
         self.results = {}
-
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
 
@@ -351,7 +362,7 @@ class XASScanner(BasicScan):
 
         with self.beamline.lock:
             saved_attenuation = self.beamline.attenuator.get()
-            self.data = []
+            self.data_rows = []
             self.results = {'data': [], 'scans': []}
 
             try:
@@ -359,22 +370,10 @@ class XASScanner(BasicScan):
                 self.prepare_for_scan()
                 self.beamline.exposure_shutter.open()
                 self.beamline.exposure_shutter.open()
-                self.data_names = [  # last string in tuple is format suffix appended to end of '%n'
-                    ('energy', 'keV', '.4f'),
-                    ('normfluor', '', '.8g'),
-                    ('i0', '', '.8g'),
-                    ('k', '', '.6f'),
-                    ('time', '', '.4g'),
-                ]
-                for ch in range(self.beamline.multi_mca.elements):
-                    self.data_names.append(('ifluor.%d' % (ch + 1), '', 'g'))
-                    self.data_names.append(('icr.%d' % (ch + 1), '', 'g'))
-                    self.data_names.append(('ocr.%d' % (ch + 1), '', 'g'))
 
                 # calculate k and time for each target point
                 self.total_time = 0.0
                 targets_times = []
-                self.config['start_time'] = datetime.now()
                 for i, v in enumerate(self.config['targets']):
                     k = converter.energy_to_kspace(v - self.config['edge_energy'])
                     t = scitools.exafs_time_func(self.config['exposure'], k)
@@ -383,7 +382,10 @@ class XASScanner(BasicScan):
                 self.total_time *= self.config['scans']
                 used_time = 0.0
                 scan_length = len(self.config['targets'])
+                reference = 1.0
                 for scan in range(self.config['scans']):
+                    self.config['start_time'] = datetime.now()
+                    self.scan_index = scan + 1
                     for i, x, k, t in targets_times:
                         if self.paused:
                             GObject.idle_add(self.emit, 'paused', True, '')
@@ -403,46 +405,43 @@ class XASScanner(BasicScan):
                         mca_values = self.beamline.multi_mca.get_roi_counts()
                         if i == 0:
                             scale = 1.0
+                            reference = i0 * t
                         else:
-                            scale = (self.data[0][2] / (i0 * t))
+                            scale = reference / (i0 * t)
 
-                        #x = self.beamline.bragg_energy.get_position()
-                        data_point = [x, y * scale, i0, k, t]  # convert KeV to eV
+                        data_point = [x, y * scale, i0, k, t]
                         corrected_sum = 0
                         rates = self.beamline.multi_mca.get_count_rates()
                         for j in range(self.beamline.multi_mca.elements):
-                            data_point.append(mca_values[j])  # iflour
-                            data_point.append(rates[j][0])  # icr
-                            data_point.append(rates[j][1])  # ocr
+                            data_point += [mca_values[j], rates[j][0], rates[j][1]]
                             corrected_sum += mca_values[j] * float(rates[j][0]) / rates[j][1]
                         data_point[1] = corrected_sum
-                        self.data.append(data_point)
+                        self.data_rows.append(tuple(data_point))
                         used_time += t
-                        GObject.idle_add(self.emit, "new-point", (x, y * scale, i0, y))
+                        GObject.idle_add(self.emit, "new-point", (x, y * scale, y, i0))
                         self.notify_progress(
                             used_time, "Scan {}/{}:  Point {}/{}...".format(
                                 scan + 1, self.config['scans'], i, scan_length
                             )
                         )
                         time.sleep(0)
-
+                    data = self.set_data(self.data_rows)
+                    self.results['data'].append(data)
                     self.config['end_time'] = datetime.now()
                     filename = self.config['frame_template'].format(scan + 1)
                     self.save(filename)
-                    self.results['data'].append(numpy.array(self.data))
                     self.analyse()
                     GObject.idle_add(self.emit, 'new-scan', scan + 1)
-                    self.data = []
+                    self.data_rows = []
 
                 if self.stopped:
                     logger.warning("Scan stopped.")
-                    self.save_metadata()
                     GObject.idle_add(self.emit, "stopped")
 
                 else:
                     logger.info("Scan complete.")
-                    self.save_metadata()
                     GObject.idle_add(self.emit, "done")
+                self.save_metadata()
 
             finally:
                 self.beamline.energy.move_to(self.config['edge_energy'])
@@ -453,14 +452,30 @@ class XASScanner(BasicScan):
                 self.beamline.goniometer.set_mode('COLLECT')
         return self.results
 
+    def set_data(self, raw_data):
+        self.data_types = {
+            'names': ['energy', 'normfluor', 'i0', 'k', 'exposure'],
+            'formats': [float, float, float, float, float],
+        }
+        self.units = {
+            'energy': 'keV',
+            'exposure': 'seconds'
+        }
+        extra_names = []
+        for ch in range(self.beamline.multi_mca.elements):
+            extra_names.extend(['ifluor.{}'.format(ch + 1), 'icr.{}'.format(ch + 1), 'ocr.{}'.format(ch + 1)])
+        self.data_types['names'] += extra_names
+        self.data_types['formats'] += [float] * len(extra_names)
+        self.data = numpy.array(raw_data, dtype=self.data_types)
+        return self.data
+
     def analyse(self):
-        data = self.results['data'][-1]
-        x = data[:,0]
-        y = data[:,1]
+        x = self.data['energy']
+        y = self.data['normfluor']
         y_peak = y.max()
         x_peak = x[y==y_peak][0]
         self.results['scans'].append({
-            'scan': len(self.results['data']),
+            'scan': self.scan_index,
             'name': self.config['name'],
             'edge': self.config['edge'],
             'directory': self.config['directory'],
@@ -469,7 +484,22 @@ class XASScanner(BasicScan):
             'time': datetime.now().strftime('%H:%M:%S')
         })
 
-    def save_metadata(self):
+    def prepare_xdi(self):
+        xdi_data = super(XASScanner, self).prepare_xdi()
+        xdi_data['Element.symbol'],  xdi_data['Element.edge']= self.config['edge'].split('-')
+        xdi_data['Scan.edge_energy'] = self.config['edge_energy'], 'keV'
+        if 'sample' in self.config:
+            xdi_data['Sample.name'] = self.config['sample'].get('name', 'unknown')
+            xdi_data['Sample.id'] = self.config['sample'].get('sample_id', 'unknown')
+            xdi_data['Sample.temperature'] = (self.beamline.cryojet.temperature, 'K')
+            xdi_data['Sample.group'] = self.config['sample'].get('group', 'unknown')
+        xdi_data['Scan.end_time'] = self.config['end_time']
+        xdi_data['Scan.start_time'] = self.config['start_time']
+        xdi_data['Mono.d_spacing'] = converter.energy_to_d(self.config['edge_energy'], self.beamline.config['mono_unit_cell'])
+        xdi_data['Scan.series'] = '{} of {}'.format(self.scan_index, self.config['scans'])
+        return xdi_data
+
+    def save_metadata(self, upload=True):
         params = self.config
         frames, count = datatools.get_disk_frameset(params['directory'], params['frame_glob'])
         if count:
@@ -493,47 +523,8 @@ class XASScanner(BasicScan):
                 'beam_size': self.beamline.aperture.get_position(),
             }
             filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
-            if os.path.exists(filename):
-                with open(filename, 'r') as handle:
-                    old_meta = json.load(handle)
-                    metadata['id'] = old_meta.get('id')
+            misc.save_metadata(metadata, filename)
 
-            with open(filename, 'w') as handle:
-                json.dump(metadata, handle, indent=2, separators=(',',':'), sort_keys=True)
-                logger.info("Meta-Data Saved: {}".format(filename))
-
+            if upload:
+                self.beamline.lims.upload_data(self.beamline.name, filename)
             return metadata
-
-    def save(self, filename=None):
-        """Save EXAFS output in XDI 1.0 format"""
-        fmt_prefix = '%10'
-        with open(os.path.join(self.config['directory'], filename), 'w') as handle:
-            handle.write('# XDI/1.0 MXDC\n')
-            handle.write('# Beamline.name: CLS %s\n' % self.beamline.name)
-            handle.write('# Beamline.edge-energy: %0.2f\n' % (self.config['edge_energy']))
-            handle.write('# Beamline.d-spacing: %0.5f\n' % converter.energy_to_d(self.config['edge_energy']))
-            handle.write('# Time.start: %s\n' % self.config['start_time'].isoformat())
-            handle.write('# Time.end: %s\n' % self.config['end_time'].isoformat())
-
-            header = ''
-            for i, info in enumerate(self.data_names):
-                name, units, fmts = info
-                fmt = fmt_prefix + 's '
-                header += fmt % (name)
-                handle.write('# Column.%d: %s %s\n' % (i + 1, name, units))
-            meta_data = copy.deepcopy(self.config)
-            meta_data.pop('targets')
-            handle.write('#///\n')
-            handle.write('# %s, EXAFS\n' % (self.config['edge']))
-            #handle.write('# %s\n' % json.dumps(self.config))
-            handle.write('# %d data points\n' % len(self.config['targets']))
-            handle.write('#---\n')
-            handle.write('# %s\n' % header[2:])
-            for point in self.data:
-                for info, val in zip(self.data_names, point):
-                    name, units, fmts = info
-                    fmt = fmt_prefix + fmts + ' '
-                    handle.write(fmt % val)
-                handle.write('\n')
-            logger.info('Scan saved: {}'.format(filename))
-        return filename

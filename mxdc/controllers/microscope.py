@@ -6,7 +6,7 @@ import common
 import numpy
 from gi.repository import Gtk, Pango, Gdk, GObject
 from matplotlib.path import Path
-from mxdc.beamline.mx import IBeamline
+from mxdc.beamlines.mx import IBeamline
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils import imgproc, colors
 from mxdc.utils.decorators import async_call
@@ -290,7 +290,6 @@ class Microscope(GObject.GObject):
 
     def draw_points(self, cr):
         if self.props.points:
-            # convert coordinatets to current video pixel coordinates
             cr.save()
             mm_scale = self.video.mm_scale()
             radius = 0.5e-3*self.beamline.aperture.get()/(8*mm_scale)
@@ -390,7 +389,6 @@ class Microscope(GObject.GObject):
         self.draw_grid(cr)
         self.draw_polygon(cr)
         self.draw_points(cr)
-        return True
 
     # callbacks
 
@@ -405,7 +403,6 @@ class Microscope(GObject.GObject):
             self.props.grid = xyz
         else:
             self.props.grid = None
-
 
     def on_gonio_mode(self, obj, mode):
         if mode != 'CENTERING':

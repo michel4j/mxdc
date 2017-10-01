@@ -12,7 +12,7 @@ from twisted.web import resource, xmlrpc
 from zope.interface import implements
 
 from interfaces import IImageSyncService, IPptvISync
-from mxdc.utils.decorators import log_call
+from mxdc.utils.log import log_call
 
 
 class PptvISyncFromService(pb.Root):

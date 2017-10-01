@@ -3,7 +3,7 @@ import os
 
 from twisted.python.components import globalRegistry
 
-from mxdc.beamline.interfaces import IBeamline
+from mxdc.beamlines.interfaces import IBeamline
 from mxdc.utils.decorators import ca_thread_enable
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.video import add_decorations

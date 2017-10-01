@@ -35,9 +35,7 @@ class AutoChooch(GObject.GObject):
         @return:
         """
         self.config = config
-        self.data = numpy.empty_like(data)
-        self.data[:] = data
-        self.data[:,0] *= 1000  # Convert keV to eV
+        self.data = numpy.dstack([data['energy'] * 1000, data['normfluor']])[0]
 
         self.inp_file = os.path.join(self.config['directory'], "{}.dat".format(self.config['name']))
         self.esf_file = os.path.join(self.config['directory'], "{}.esf".format(self.config['name']))
@@ -71,16 +69,15 @@ class AutoChooch(GObject.GObject):
     def prepare_input(self):
         with open(self.inp_file, 'w') as handle:
             handle.write('#CHOOCH INPUT DATA\n%d\n' % len(self.data[:,0]))
-            numpy.savetxt(handle, self.data[:,0:2], fmt='%0.2f')
+            numpy.savetxt(handle, self.data, fmt='%0.2f')
 
     def read_results(self, output):
         try:
-            data = numpy.loadtxt(self.esf_file, comments="#").astype(float)
-            self.results['esf'] = {
-                'energy': data[:,0] * 1e-3, # convert back to keV
-                'fpp': data[:,1],
-                'fp': data[:,2]
-            }
+            data = numpy.genfromtxt(
+                self.esf_file, comments="#", dtype={'names': ['energy', 'fpp', 'fp'], 'formats': [float, float, float]}
+            )
+            data['energy'] *= 1e-3 # convert back to keV
+            self.results['esf'] = data
         except IOError as e:
             logger.error(e)
             GObject.idle_add(self.emit, 'error', 'CHOOH Failed.')

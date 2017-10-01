@@ -3,9 +3,16 @@ from mxdc.com import ca
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, automounter, humidity, video, misc, mca, counter
 from mxdc.services import clients
 
+
 CONFIG = {
     'name': 'SIM-1',
+    'facility': 'CLS',
+    'mono': 'Si 111',
+    'mono_unit_cell': 5.4297575,
+    'source': 'CLS Sim SGU',
     'type': 'mx',
+    'subnet': '0.0.0.0/32',
+
     'admin_groups': [1000, 2000],
     'energy_range': (5.0, 19.0),
     'default_attenuation': 50.0,

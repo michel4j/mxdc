@@ -36,13 +36,13 @@ class MotorBase(BaseDevice):
     implements(IMotor)
 
     # Motor signals
-    __gsignals__ =  { 
+    __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
         "starting": (GObject.SignalFlags.RUN_FIRST, None, []),
         "done": (GObject.SignalFlags.RUN_FIRST, None, []),
         "target": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
         "time": (GObject.SignalFlags.RUN_FIRST, None, (int,)),
-        }  
+    }
 
     def __init__(self, name):
         super(MotorBase, self).__init__()
@@ -59,10 +59,9 @@ class MotorBase(BaseDevice):
         self._calib_good_value = 1
         self.default_precision = 2
 
-    
     def do_starting(self):
         self._starting_flag = True
-    
+
     def do_done(self):
         self._starting_flag = False
 
@@ -78,10 +77,10 @@ class MotorBase(BaseDevice):
     def _signal_target(self, obj, value):
         self.set_state(target=(self._prev_target, value))
         self._prev_target = value
-    
+
     def _signal_move(self, obj, state):
         if state == self._move_active_value:
-            self._moving = True           
+            self._moving = True
             if self._command_sent:
                 self.set_state(starting=None)
                 self._command_sent = False
@@ -90,8 +89,8 @@ class MotorBase(BaseDevice):
 
         self.set_state(busy=self._moving)
         if not self._moving:
-            logger.debug( "(%s) stopped at %f" % (self.name, self.get_position()) )
-                       
+            logger.debug("(%s) stopped at %f" % (self.name, self.get_position()))
+
     def _on_calib_changed(self, obj, cal):
         if cal == self._calib_good_value:
             self.set_state(health=(0, 'calib'))
@@ -107,11 +106,11 @@ class MotorBase(BaseDevice):
 
     def configure(self, **kwargs):
         pass
-                                            
+
 
 class SimMotor(MotorBase):
     implements(IMotor)
-     
+
     def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=3):
         super(SimMotor, self).__init__(name)
         pos = pos
@@ -137,14 +136,14 @@ class SimMotor(MotorBase):
         self.set_state(health=(0, ''), active=self._active)
         self._signal_target(self, self._position)
         self._signal_change(self, self._position)
-        
+
     def get_position(self):
         return self._position
-    
+
     def configure(self, *args, **kwargs):
         with self._lock:
             if 'speed' in kwargs:
-                self._speed = kwargs['speed'] # speed
+                self._speed = kwargs['speed']  # speed
                 self._step_size = self._speed * self._step_time
 
     @async_call
@@ -170,18 +169,18 @@ class SimMotor(MotorBase):
     def move_to(self, pos, wait=False, force=False, **kwargs):
         self.configure(**kwargs)
         if pos == self._position:
-            logger.debug( "(%s) is already at %s" % (self.name, pos) )
+            logger.debug("(%s) is already at %s" % (self.name, pos))
             return
         self._move_action(pos)
         if wait:
             self.wait()
-    
+
     def move_by(self, pos, wait=False, **kwargs):
         self.configure(**kwargs)
-        self.move_to(self._position+pos, wait)
-    
+        self.move_to(self._position + pos, wait)
+
     def wait(self, start=True, stop=True):
-        poll=0.005
+        poll = 0.005
         timeout = 5.0
         _orig_to = timeout
         if (start and self._command_sent and not self.busy_state):
@@ -190,14 +189,15 @@ class SimMotor(MotorBase):
                 time.sleep(poll)
             if timeout <= 0:
                 logger.warning('(%s) Timed out. Did not move after %d sec.' % (self.name, _orig_to))
-                return False                
+                return False
         if (stop and self.busy_state):
             while self.busy_state:
                 time.sleep(poll)
-    
+
     def stop(self):
         self._stopped = True
-    
+
+
 ENC_SETTINGS = {
     'VEL': '%root:vel:%unitps:sp',
     'VBASE': '%root:vBase:%unitps:sp',
@@ -206,7 +206,7 @@ ENC_SETTINGS = {
     'STEP_SLO': '%root:step:slope',
     'STEP_OFF': '%root:step:offset',
     'ENC_SLO': '%root:enc:slope',
-    'ENC_OFF': '%root:enc:offset',                 
+    'ENC_OFF': '%root:enc:offset',
 }
 SAVE_VALS = {
     'UNIT_ENC': '%root:%unit:fbk',
@@ -214,11 +214,12 @@ SAVE_VALS = {
     'UNIT_VAL': '%root:%unit:sp',
     'STEP_VAL': '%root:step:sp',
 }
-         
+
+
 class Motor(MotorBase):
-    """Motor object for EPICS based motor records."""  
-    implements(IMotor) 
-       
+    """Motor object for EPICS based motor records."""
+    implements(IMotor)
+
     def __init__(self, pv_name, motor_type, precision=4):
         """  
         Args:
@@ -235,57 +236,57 @@ class Motor(MotorBase):
         MotorBase.__init__(self, pv_name)
         pv_parts = pv_name.split(':')
         self.default_precision = precision
-        if len(pv_parts)<2:
+        if len(pv_parts) < 2:
             logger.error("Unable to create motor '%s' of dialog_type '%s'." %
-                             (pv_name, motor_type) )
+                         (pv_name, motor_type))
             raise MotorError("Motor name must be of the format 'name:unit'.")
-        
+
         if motor_type not in ['vme', 'cls', 'pseudo', 'oldpseudo', 'vmeenc', 'maxv', 'aps']:
             logger.error("Unable to create motor '%s' of dialog_type '%s'." %
-                             (pv_name, motor_type) )
+                         (pv_name, motor_type))
             raise MotorError("Motor dialog_type must be one of 'vmeenc', \
                 'vme', 'cls', 'pseudo', 'maxv'")
-          
+
         self.units = pv_parts[-1]
         pv_root = ':'.join(pv_parts[:-1])
         self.pv_root = pv_root
         self._motor_type = motor_type
-        
+
         # initialize process variables based on motor dialog_type
-        if self._motor_type in ['vme','vmeenc']:
-            self.VAL  = self.add_pv("%s" % (pv_name))
-            self.DESC = self.add_pv("%s:desc" % (pv_root))               
+        if self._motor_type in ['vme', 'vmeenc']:
+            self.VAL = self.add_pv("%s" % (pv_name))
+            self.DESC = self.add_pv("%s:desc" % (pv_root))
             if self._motor_type == 'vme':
-                self.RBV  = self.add_pv("%s:sp" % (pv_name), timed=True)
-                self.PREC =    self.add_pv("%s:sp.PREC" % (pv_name))
+                self.RBV = self.add_pv("%s:sp" % (pv_name), timed=True)
+                self.PREC = self.add_pv("%s:sp.PREC" % (pv_name))
             else:
-                self.RBV  = self.add_pv("%s:fbk" % (pv_name), timed=True)
-                self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
+                self.RBV = self.add_pv("%s:fbk" % (pv_name), timed=True)
+                self.PREC = self.add_pv("%s:fbk.PREC" % (pv_name))
             self.STAT = self.add_pv("%s:status" % pv_root)
             self._move_active_value = 1
-            self.MOVN = self.STAT #self.add_pv("%s:moving" % pv_root)
+            self.MOVN = self.STAT  # self.add_pv("%s:moving" % pv_root)
             self.STOP = self.add_pv("%s:stop" % pv_root)
-            self.SET  = self.add_pv("%s:setPosn" % (pv_name))
+            self.SET = self.add_pv("%s:setPosn" % (pv_name))
             self.CALIB = self.add_pv("%s:calibDone" % (pv_root))
             self.ENAB = self.CALIB
             self.CCW_LIM = self.add_pv("%s:ccw" % (pv_root))
             self.CW_LIM = self.add_pv("%s:cw" % (pv_root))
         elif self._motor_type == 'cls':
-            self.VAL  = self.add_pv("%s" % (pv_name))
-            self.DESC = self.add_pv("%s:desc" % (pv_root))               
-            self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
-            self.RBV  = self.add_pv("%s:fbk" % (pv_name), timed=True)
+            self.VAL = self.add_pv("%s" % (pv_name))
+            self.DESC = self.add_pv("%s:desc" % (pv_root))
+            self.PREC = self.add_pv("%s:fbk.PREC" % (pv_name))
+            self.RBV = self.add_pv("%s:fbk" % (pv_name), timed=True)
             self.MOVN = self.add_pv("%s:state" % pv_root)
             self.STAT = self.MOVN
             self.STOP = self.add_pv("%s:emergStop" % pv_root)
             self.CALIB = self.add_pv("%s:isCalib" % (pv_root))
             self.ENAB = self.CALIB
         elif self._motor_type == 'pseudo':
-            self.VAL  = self.add_pv("%s" % (pv_name))
-            self.DESC = self.add_pv("%s:desc" % (pv_root))               
+            self.VAL = self.add_pv("%s" % (pv_name))
+            self.DESC = self.add_pv("%s:desc" % (pv_root))
             self._move_active_value = 1
-            self.PREC =    self.add_pv("%s:fbk.PREC" % (pv_name))
-            self.RBV  = self.add_pv("%s:fbk" % (pv_name), timed=True)
+            self.PREC = self.add_pv("%s:fbk.PREC" % (pv_name))
+            self.RBV = self.add_pv("%s:fbk" % (pv_name), timed=True)
             self.STAT = self.add_pv("%s:status" % pv_root)
             self.MOVN = self.add_pv("%s:moving" % pv_root)
             self.STOP = self.add_pv("%s:stop" % pv_root)
@@ -294,11 +295,11 @@ class Motor(MotorBase):
             self.LOG.connect('changed', self._on_log)
             self.ENAB = self.add_pv("%s:enabled" % (pv_root))
         elif self._motor_type == 'oldpseudo':
-            self.VAL  = self.add_pv("%s" % (pv_name))
-            self.DESC = self.add_pv("%s:desc" % (pv_root))               
+            self.VAL = self.add_pv("%s" % (pv_name))
+            self.DESC = self.add_pv("%s:desc" % (pv_root))
             self._move_active_value = 0
-            self.PREC =    self.add_pv("%s:sp.PREC" % (pv_name))
-            self.RBV  = self.add_pv("%s:sp" % (pv_name), timed=True)
+            self.PREC = self.add_pv("%s:sp.PREC" % (pv_name))
+            self.RBV = self.add_pv("%s:sp" % (pv_name), timed=True)
             self.STAT = self.add_pv("%s:status" % pv_root)
             self.MOVN = self.add_pv("%s:stopped" % pv_root)
             self.STOP = self.add_pv("%s:stop" % pv_root)
@@ -307,21 +308,20 @@ class Motor(MotorBase):
             self.LOG.connect('changed', self._on_log)
             self.ENAB = self.add_pv("%s:enabled" % (pv_root))
         elif self._motor_type == 'aps':
-            self.DESC = self.add_pv("%s.DESC" % pv_name)               
-            self.VAL  = self.add_pv('%s.VAL' % pv_name)    
+            self.DESC = self.add_pv("%s.DESC" % pv_name)
+            self.VAL = self.add_pv('%s.VAL' % pv_name)
             self.PREC = self.add_pv("%s.PREC" % pv_name)
-            self.EGU = self.add_pv("%s.EGU"% pv_name)  
-            self.RBV = self.add_pv("%s.RBV"% pv_name)
+            self.EGU = self.add_pv("%s.EGU" % pv_name)
+            self.RBV = self.add_pv("%s.RBV" % pv_name)
             self.MOVN = self.add_pv("%s.DMOV" % pv_name)
             self.STOP = self.add_pv("%s.STOP" % pv_name)
-            self.CALIB =  self.add_pv("%s.SET" % pv_name)
-            self.STAT =  self.add_pv("%s.STAT" % pv_name)
+            self.CALIB = self.add_pv("%s.SET" % pv_name)
+            self.STAT = self.add_pv("%s.STAT" % pv_name)
             self.ENAB = self.CALIB
             self._move_active_value = 0
             self._calib_good_value = 0
             self._disabled_value = 1
-            
-                     
+
         # connect monitors
         self._rbid = self.RBV.connect('time', self._signal_change)
         self._vid = self.VAL.connect('changed', self._signal_target)
@@ -330,14 +330,14 @@ class Motor(MotorBase):
         self.CALIB.connect('changed', self._on_calib_changed)
         self.ENAB.connect('changed', self._signal_enable)
         self.DESC.connect('changed', self._on_desc_change)
-            
+
     def _on_desc_change(self, pv, val):
         self.name = val
 
     def _on_log(self, obj, message):
         msg = "(%s) %s" % (self.name, message)
         logger.debug(msg)
-                                            
+
     def get_position(self):
         """Obtain the current position of the motor in devices units.
         
@@ -349,7 +349,7 @@ class Motor(MotorBase):
         except ca.ChannelAccessError:
             val = 0.0001
         return val
-              
+
     def move_to(self, pos, wait=False, force=False, **kwargs):
         """Request the motor to move to an absolute position. By default, the 
         command will not be sent to the motor if its current position is the 
@@ -369,26 +369,25 @@ class Motor(MotorBase):
         # Do not move if motor state is not sane.
         sanity, msg = self.health_state
         if sanity != 0:
-            logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
+            logger.warning("(%s) not sane. Reason: '%s'. Move canceled!" % (self.name, msg))
             return
-        
+
         # Do not move if requested position is within precision error
         # from current position.
         prec = self.PREC.get()
         if prec == 0: prec = self.default_precision
         _pos_format = "%%0.%df" % prec
         _pos_to = _pos_format % pos
-        if misc.same_value(pos, self.get_position(), prec, self.units=='deg') and not force:
-            logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
+        if misc.same_value(pos, self.get_position(), prec, self.units == 'deg') and not force:
+            logger.debug("(%s) is already at %s" % (self.name, _pos_to))
             return
-        
-                
+
         self._command_sent = True
         self._target_pos = pos
         self.VAL.set(pos)
         _pos_from = _pos_format % self.get_position()
-        logger.debug( "(%s) moving from %s to %s" % (self.name, _pos_from, _pos_to) )
-        
+        logger.debug("(%s) moving from %s to %s" % (self.name, _pos_from, _pos_to))
+
         if wait:
             self.wait()
 
@@ -409,11 +408,11 @@ class Motor(MotorBase):
             return
         cur_pos = self.get_position()
         self.move_to(cur_pos + val, wait, force)
-                                                     
+
     def stop(self):
         """Stop the motor from moving."""
         self.STOP.set(1)
-    
+
     def wait(self, start=True, stop=True):
         """Wait for the motor busy state to change. 
         
@@ -421,10 +420,10 @@ class Motor(MotorBase):
             - `start` (bool): Wait for the motor to start moving.
             - `stop` (bool): Wait for the motor to stop moving.       
         """
-        poll=0.05
+        poll = 0.05
         timeout = 5.0
-        
-        #initialize precision
+
+        # initialize precision
         prec = self.PREC.get()
         if prec == 0: prec = self.default_precision
         _pos_format = "%%0.%df" % prec
@@ -433,14 +432,14 @@ class Motor(MotorBase):
             while self._command_sent and not self._moving and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)
-                if misc.same_value(self.get_position(), self._target_pos, prec, self.units=='deg'):
+                if misc.same_value(self.get_position(), self._target_pos, prec, self.units == 'deg'):
                     self._command_sent = False
-                    logger.debug('%s already at %g' % (self.name,self._target_pos))
+                    logger.debug('%s already at %g' % (self.name, self._target_pos))
             if timeout <= 0:
                 tgt = _pos_format % self._target_pos
                 cur = _pos_format % self.get_position()
                 logger.warning('%s timed out moving to %s [currently %s].' % (self.name, tgt, cur))
-                return False                
+                return False
         if (stop and self._moving):
             while self._moving:
                 time.sleep(poll)
@@ -451,74 +450,84 @@ class Motor(MotorBase):
         
         Returns:
             A dict.
-        """       
+        """
         self.settings = {}
         PV_DICT = dict(ENC_SETTINGS.items() + SAVE_VALS.items())
         for i in PV_DICT:
             self.settings[i] = self.add_pv(PV_DICT[i].replace('%root', self.pv_root).replace('%unit', self.units))
         return
-        
+
+
 class VMEMotor(Motor):
     """Convenience class for "vme" type motors."""
-    def __init__(self, *args, **kwargs ):
+
+    def __init__(self, *args, **kwargs):
         kwargs['motor_type'] = 'vme'
         Motor.__init__(self, *args, **kwargs)
 
+
 class APSMotor(Motor):
     """Convenience class for "vme" type motors."""
-    def __init__(self, *args, **kwargs ):
+
+    def __init__(self, *args, **kwargs):
         kwargs['motor_type'] = 'aps'
         Motor.__init__(self, *args, **kwargs)
 
 
 class ENCMotor(Motor):
     """Convenience class for "vmeenc" type motors."""
-    def __init__(self, *args, **kwargs ):
+
+    def __init__(self, *args, **kwargs):
         kwargs['motor_type'] = 'vmeenc'
         Motor.__init__(self, *args, **kwargs)
 
+
 class CLSMotor(Motor):
     """Convenience class for "cls" type motors."""
-    def __init__(self, *args, **kwargs ):
+
+    def __init__(self, *args, **kwargs):
         kwargs['motor_type'] = 'cls'
         Motor.__init__(self, *args, **kwargs)
 
+
 class PseudoMotor(Motor):
     """Convenience class for "pseudo" type motors."""
-    def __init__(self, *args, **kwargs ):
+
+    def __init__(self, *args, **kwargs):
         kwargs['motor_type'] = 'pseudo'
         Motor.__init__(self, *args, **kwargs)
 
+
 class PseudoMotor2(Motor):
-    def __init__(self, *args, **kwargs ):
+    def __init__(self, *args, **kwargs):
         kwargs['motor_type'] = 'oldpseudo'
         Motor.__init__(self, *args, **kwargs)
-   
-class EnergyMotor(Motor):
 
+
+class EnergyMotor(Motor):
     implements(IMotor)
-    
-    def __init__(self, pv1, pv2, enc=None):
+
+    def __init__(self, pv1, pv2, enc=None, mono_unit_cell=5.4310209):
         MotorBase.__init__(self, 'Beamline Energy')
         self.units = 'keV'
-        
+        self.mono_unit_cell = mono_unit_cell
         pv2_root = ':'.join(pv2.split(':')[:-1])
         # initialize process variables
-        self.VAL  = self.add_pv(pv1)    
-        self.PREC = self.add_pv("%s.PREC" % pv2)  
+        self.VAL = self.add_pv(pv1)
+        self.PREC = self.add_pv("%s.PREC" % pv2)
         if enc is not None:
             self.RBV = self.add_pv(enc, timed=True)
-            self.PREC = self.add_pv("%s.PREC" % enc)  
+            self.PREC = self.add_pv("%s.PREC" % enc)
         else:
-            self.RBV  = self.add_pv("%s:sp" % pv2, timed=True)
+            self.RBV = self.add_pv("%s:sp" % pv2, timed=True)
             self.PREC = self.add_pv("%s:sp.PREC" % pv2)
         self.MOVN = self.add_pv("%s:moving:fbk" % pv1)
         self.STOP = self.add_pv("%s:stop" % pv1)
-        self.CALIB =  self.add_pv("%s:calibDone" % pv2_root)
-        self.STAT =  self.add_pv("%s:status" % pv2_root)
+        self.CALIB = self.add_pv("%s:calibDone" % pv2_root)
+        self.STAT = self.add_pv("%s:status" % pv2_root)
         self.LOG = self.add_pv("%s:stsLog" % pv1)
         self.ENAB = self.CALIB
-        
+
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
         self._vid = self.VAL.connect('changed', self._signal_target)
@@ -529,18 +538,17 @@ class EnergyMotor(Motor):
 
     def _send_log(self, obj, msg):
         logger.info("(%s) %s" % (self.name, msg))
-                                 
-    def get_position(self):
-        return converter.bragg_to_energy(self.RBV.get())           
 
-                
+    def get_position(self):
+        return converter.bragg_to_energy(self.RBV.get(), unit_cell=self.mono_unit_cell)
+
 
 class BraggEnergyMotor(Motor):
     """A specialized energy motor for using just the monochromator bragg angle."""
 
     implements(IMotor)
-    
-    def __init__(self, name, enc=None, motor_type="vme", precision=3):
+
+    def __init__(self, name, enc=None, motor_type="vme", precision=3, mono_unit_cell=5.4310209):
         """  
         Args:
             - `name` (str): Root PV name of motor record.
@@ -559,30 +567,31 @@ class BraggEnergyMotor(Motor):
         Motor.__init__(self, name, motor_type=motor_type, precision=precision)
         del self.DESC
         if enc is not None:
-            del self.RBV          
+            del self.RBV
             self.RBV = self.add_pv(enc, timed=True)
             GObject.source_remove(self._rbid)
             self.RBV.connect('changed', self._signal_change)
-        GObject.source_remove(self._vid) # Not needed for Bragg
+        GObject.source_remove(self._vid)  # Not needed for Bragg
         self.name = 'Bragg Energy'
         self._motor_type = 'vmeenc'
+        self.mono_unit_cell = mono_unit_cell
 
     def _on_desc_change(self, pv, val):
         pass
-                                   
+
     def get_position(self):
-        return converter.bragg_to_energy(self.RBV.get())
-    
+        return converter.bragg_to_energy(self.RBV.get(), unit_cell=self.mono_unit_cell)
+
     def _signal_change(self, obj, value):
-        val = converter.bragg_to_energy(value)
-        self.set_state(time=obj.time_state) # make sure time is set before changed value
+        val = converter.bragg_to_energy(value, unit_cell=self.mono_unit_cell)
+        self.set_state(time=obj.time_state)  # make sure time is set before changed value
         self.set_state(changed=val)
-        
+
     def move_to(self, pos, wait=False, force=False, **kwargs):
         # Do not move if motor state is not sane.
         sanity, msg = self.health_state
         if sanity != 0:
-            logger.warning( "(%s) not sane. Reason: '%s'. Move canceled!" % (self.name,msg) )
+            logger.warning("(%s) not sane. Reason: '%s'. Move canceled!" % (self.name, msg))
             return
 
         # Do not move if requested position is within precision error
@@ -591,17 +600,17 @@ class BraggEnergyMotor(Motor):
         if prec == 0: prec = self.default_precision
         _pos_format = "%%0.%df" % prec
         _pos_to = _pos_format % pos
-        if misc.same_value(pos, self.get_position(), prec, self.units=='deg') and not force:
-            logger.debug( "(%s) is already at %s" % (self.name, _pos_to) )
+        if misc.same_value(pos, self.get_position(), prec, self.units == 'deg') and not force:
+            logger.debug("(%s) is already at %s" % (self.name, _pos_to))
             return
-        
-        deg_target = converter.energy_to_bragg(pos)
+
+        deg_target = converter.energy_to_bragg(pos, unit_cell=self.mono_unit_cell)
         self._command_sent = True
         self._target_pos = pos
         self.VAL.put(deg_target)
         self._signal_target(None, pos)
-        logger.info( "(%s) moving to %f" % (self.name, pos) )
-        
+        logger.info("(%s) moving to %f" % (self.name, pos))
+
         if wait:
             self.wait()
 
@@ -609,7 +618,7 @@ class BraggEnergyMotor(Motor):
 class FixedLine2Motor(MotorBase):
     """A specialized fixed offset pseudo-motor for moving two motors along a 
     straight line."""
-    
+
     def __init__(self, x, y, slope, intercept, linked=False):
         """  
         Args:
@@ -623,7 +632,7 @@ class FixedLine2Motor(MotorBase):
               linked if they can not be moved at the same time.
         
         """
-        MotorBase.__init__(self, 'FixedOffset')        
+        MotorBase.__init__(self, 'FixedOffset')
         self.y = y
         self.x = x
         self.add_devices(self.x, self.y)
@@ -631,14 +640,15 @@ class FixedLine2Motor(MotorBase):
         self.slope = slope
         self.intercept = intercept
         self.y.connect('changed', self._signal_change)
-                
+
     def __repr__(self):
-        return '<FixedLine2Motor: \n\t%s,\n\t%s,\n\tslope=%0.2f, intercept=%0.2f\n>' % (self.x, self.y, self.slope, self.intercept)
-        
+        return '<FixedLine2Motor: \n\t%s,\n\t%s,\n\tslope=%0.2f, intercept=%0.2f\n>' % (
+        self.x, self.y, self.slope, self.intercept)
+
     def get_position(self):
         """Obtain the position of the `x` motor only."""
         return self.x.get_position()
-        
+
     def move_to(self, pos, wait=False, force=False, **kwargs):
         px = pos
         self.x.move_to(px, force=force)
@@ -654,14 +664,14 @@ class FixedLine2Motor(MotorBase):
             return
         cur_pos = self.get_position()
         self.move_to(cur_pos + val, wait, force)
-                
+
     def is_enabled(self):
         return self.x.is_enabled() and self.y.is_enabled()
-                                 
+
     def stop(self):
         self.x.stop()
         self.y.stop()
-    
+
     def wait(self, start=True, stop=True):
         self.x.wait(start=start, stop=False)
         self.y.wait(start=start, stop=False)
@@ -688,7 +698,7 @@ class RelVerticalMotor(MotorBase):
             - `offset` (float): An angle correction to apply to the rotation 
               axis position to make `y1` vertical.
         """
-        MotorBase.__init__(self, 'Relative Vertical')        
+        MotorBase.__init__(self, 'Relative Vertical')
         self.y1 = y1
         self.y2 = y2
         self.omega = omega
@@ -698,7 +708,7 @@ class RelVerticalMotor(MotorBase):
         self.y1.connect('changed', self._calc_position)
         self.y2.connect('changed', self._calc_position)
         self.omega.connect('changed', self._calc_position)
-               
+
     def __repr__(self):
         return '<RelVerticalMotor: %s, %s >' % (self.y1, self.y2)
 
@@ -706,17 +716,17 @@ class RelVerticalMotor(MotorBase):
         tmp_omega = numpy.radians(self.omega.get_position() - self.offset)
         sin_w = numpy.sin(tmp_omega)
         cos_w = numpy.cos(tmp_omega)
-        y1 = self.y1.get_position()*sin_w
-        y2 = self.y2.get_position()*cos_w
-        z1 = self.y1.get_position()*cos_w
-        z2 = -self.y1.get_position()*sin_w        
-        self._status = (y1+y2, z1+z2, y1, y2, z1, z2)
+        y1 = self.y1.get_position() * sin_w
+        y2 = self.y2.get_position() * cos_w
+        z1 = self.y1.get_position() * cos_w
+        z2 = -self.y1.get_position() * sin_w
+        self._status = (y1 + y2, z1 + z2, y1, y2, z1, z2)
         self.set_state(changed=self._status[0])
-        #logger.debug('SAMPLE STAGE Y: %0.4f, Z: %0.4f' % (self._status[0], self._status[1]))
-                
+        # logger.debug('SAMPLE STAGE Y: %0.4f, Z: %0.4f' % (self._status[0], self._status[1]))
+
     def get_position(self):
         return self._status[0]
-                                                            
+
     def move_by(self, val, wait=False, force=False, **kwargs):
         if val == 0.0: return
         tmp_omega = numpy.radians(self.omega.get_position() - self.offset)
@@ -726,21 +736,21 @@ class RelVerticalMotor(MotorBase):
         self.y2.move_by(val * cos_w)
         if wait:
             self.wait()
-    
+
     def move_to(self, val, wait=False, force=False, **kwargs):
         relval = val - self.get_position()
         self.move_by(relval, wait=wait, force=force)
-                
+
     def stop(self):
         self.y2.stop()
         self.y1.stop()
-    
+
     def wait(self, start=True, stop=True):
         self.y2.wait(start=start, stop=False)
         self.y1.wait(start=start, stop=False)
         self.y2.wait(start=False, stop=stop)
         self.y1.wait(start=False, stop=stop)
-        
+
 
 class ResolutionMotor(MotorBase):
     def __init__(self, energy, distance, detector_size):

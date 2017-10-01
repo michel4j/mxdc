@@ -2,6 +2,7 @@ import json
 import os
 import re
 
+from mxdc.conf import settings
 import requests
 from gi.repository import GObject
 from twisted.internet import reactor, error, defer
@@ -10,7 +11,7 @@ from zope.interface import implements
 
 from interfaces import IImageSyncService
 from mxdc.devices.base import BaseDevice
-from mxdc.utils import mdns, config, signing, misc
+from mxdc.utils import mdns, signing, misc
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_project_name
 
@@ -106,9 +107,9 @@ class MxLIVEClient(BaseService):
         self.address = address
         self.cookies = {}
         self.set_state(active=True)
-        self.keys = config.fetch_keys()
+        self.keys = settings.fetch_keys()
         self.signer = signing.Signer(**self.keys)
-        if not config.has_keys():
+        if not settings.has_keys():
             try:
                 res = self.register()
                 logger.info('MxLIVE Service configured for {}'.format(address))
@@ -194,14 +195,13 @@ class MxLIVEClient(BaseService):
         else:
             logger.info('Leaving session {session} after {duration}.'.format(**reply))
 
-    def upload_dataset(self, beamline, filename):
+    def upload_data(self, beamline, filename):
         """
         Upload the Dataset metadata to the Server
         @param beamline: beamline acronym (str)
         @param filename: json-formatted file containing metadata
         """
         self.upload('/data/{}/'.format(beamline), filename)
-
 
     def upload_report(self, beamline, filename):
         """

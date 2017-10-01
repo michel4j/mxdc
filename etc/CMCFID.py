@@ -5,7 +5,13 @@ from mxdc.services import clients
 
 CONFIG = {
     'name': 'CMCF-ID',
+    'facility': 'CLS',
+    'mono': 'Si 111',
+    'mono_unit_cell': 5.4297575,
+    'source': 'Small-Gap Undulator',
     'type': 'mx',
+    'subnet': '10.52.28.0/22',
+
     'admin_groups': [1000, 2000],
     'energy_range': (6.0, 18.0),
     'default_attenuation': 90.0,
@@ -26,8 +32,10 @@ CONFIG = {
 # maps names to devices objects
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
-    'energy': motor.EnergyMotor('BL08ID1:energy', 'SMTR16082I1005:deg'),
-    'bragg_energy': motor.BraggEnergyMotor('SMTR16082I1005:deg', motor_type="vme"),
+    'energy': motor.EnergyMotor('BL08ID1:energy', 'SMTR16082I1005:deg', mono_unit_cell=CONFIG['mono_unit_cell']),
+    'bragg_energy': motor.BraggEnergyMotor(
+        'SMTR16082I1005:deg', motor_type="vme", mono_unit_cell=CONFIG['mono_unit_cell']
+    ),
     'dcm_pitch': motor.VMEMotor('SMTR16082I1010:deg'),
     'beam_tuner': boss.MOSTABTuner('MOS16082I1001', 'AH501-01:QEM', reference='LUT1608-ID-IONC:control'),
 

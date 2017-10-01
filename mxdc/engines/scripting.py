@@ -7,7 +7,7 @@ from twisted.python.components import globalRegistry
 from zope.interface import Interface, Attribute
 from zope.interface import implements
 
-from mxdc.beamline.interfaces import IBeamline
+from mxdc.beamlines.interfaces import IBeamline
 from mxdc.devices.base import BaseDevice
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger

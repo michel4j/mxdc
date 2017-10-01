@@ -4,7 +4,7 @@ import time
 
 import common
 from gi.repository import GObject, Gio, Gtk
-from mxdc.beamline.mx import IBeamline
+from mxdc.beamlines.mx import IBeamline
 from mxdc.engines.diffraction import DataCollector
 from mxdc.engines.automation import Automator
 from mxdc.utils import converter, datatools, misc
@@ -286,7 +286,7 @@ class AutomationController(GObject.GObject):
             samples = self.get_sample_list()
             if not samples:
                 msg1 = 'Queue is empty!'
-                msg2 = 'Please select samples on the Samples page.'
+                msg2 = 'Please add samples and try again.'
                 dialogs.warning(msg1, msg2)
             else:
                 self.widget.auto_progress_lbl.set_text("Starting automation ...")
@@ -311,6 +311,7 @@ class DatasetsController(GObject.GObject):
         self.collector = DataCollector()
         self.collecting = False
         self.stopping = False
+        self.pause_info = False
         self.monitors = {}
         self.frame_manager = {}
         self.image_viewer = ImageViewer()
@@ -528,8 +529,8 @@ class DatasetsController(GObject.GObject):
 
     def on_sample_updated(self, obj):
         sample = self.sample_store.get_current()
-        sample_text = '{name}|{group}|{container}|{port}'.format(
-            name=sample.get('name', '...'), group=sample.get('group', '...'), container=sample.get('container', '...'),
+        sample_text = '{name}|{port}'.format(
+            name=sample.get('name', '...'),
             port=sample.get('port', '...')
         ).replace('|...', '')
         self.widget.dsets_sample_fbk.set_text(sample_text)

@@ -2,11 +2,10 @@ from gi.repository import GObject
 from twisted.python.components import globalRegistry
 
 import cryo
-from mxdc.beamline.mx import IBeamline
+from mxdc.beamlines.mx import IBeamline
 from mxdc.controllers import microscope, samplestore, humidity, rastering
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc
-
 logger = get_module_logger(__name__)
 
 
@@ -18,7 +17,8 @@ class SamplesController(GObject.GObject):
         self.microscope = microscope.Microscope(self.widget)
         self.cryo_tool = cryo.CryoController(self.widget)
         self.sample_store = samplestore.SampleStore(self.widget.samples_list, self.widget)
-        self.humidity_controller = humidity.HumidityController(self.widget)
+        if hasattr(self.beamline, 'humidifier'):
+            self.humidity_controller = humidity.HumidityController(self.widget)
         self.raster_tool = rastering.RasterController(self.widget.raster_list, self.widget)
         self.setup()
 

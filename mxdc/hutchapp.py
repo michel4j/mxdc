@@ -7,8 +7,8 @@ from gi.repository import Gtk
 from mxdc.widgets.samplepicker import SamplePicker
 from twisted.python.components import globalRegistry
 
-from mxdc.beamline.interfaces import IBeamline
-from mxdc.beamline.mx import MXBeamline
+from mxdc.beamlines.interfaces import IBeamline
+from mxdc.beamlines.mx import MXBeamline
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils import gui
 from mxdc.utils.log import get_module_logger, log_to_console
