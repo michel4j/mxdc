@@ -79,7 +79,6 @@ class DataCollector(GObject.GObject):
         self.beamline.detector_cover.open(wait=True)
         self.count = self.config['existing']
         self.total_frames = self.count + sum([wedge['num_frames'] for wedge in self.config['wedges']])
-        print self.count, self.total_frames
         current_attenuation = self.beamline.attenuator.get()
         self.watch_frames()
         self.results = []
@@ -245,6 +244,7 @@ class DataCollector(GObject.GObject):
             'port': params['port'],
             'type': datatools.StrategyDataType.get(params['strategy']),
             'sample_id': params['sample_id'],
+
             'uuid': params['uuid'],
             'directory': params['directory'],
 
@@ -278,7 +278,8 @@ class DataCollector(GObject.GObject):
             'name': metadata['name'],
             'file_names': [filename],
             'anomalous': self.config['analysis'] == 'anomalous',
-            'activity': 'proc-{}'.format(self.config['analysis'][:6])
+            'activity': 'proc-{}'.format(self.config['analysis'][:6]),
+            'type': metadata['type'],
         }
         params = datatools.update_for_sample(params, sample)
 

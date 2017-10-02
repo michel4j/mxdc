@@ -119,14 +119,33 @@ class XRFScanner(BasicScan):
         # floats here
         ys = scitools.smooth_data(y, times=3, window=11)
         self.results = {
-            'data': self.data,
-            'analysis': {
-                'energy': x,
-                'counts': ys,
-                'fit': bblocks.sum(1),
-                'assignments': assigned
-            },
+            'energy': x.tolist(),
+            'counts': ys.tolist(),
+            'fit': bblocks.sum(1).tolist(),
+            'assignments': assigned
         }
+
+        # save to file
+        filename = os.path.join(self.config['directory'], '{}.xrf'.format(self.config['name']))
+        with open(filename, 'w') as handle:
+            json.dump(self.results, handle)
+            logger.info("XRF Analysis Saved: {}".format(filename))
+
+    def prepare_xdi(self):
+        xdi_data = super(XRFScanner, self).prepare_xdi()
+        xdi_data['Element.symbol'], xdi_data['Element.edge'] = self.config['edge'].split('-')
+        xdi_data['Scan.edge_energy'] = self.config['energy'], 'keV'
+        if 'sample' in self.config:
+            xdi_data['Sample.name'] = self.config['sample'].get('name', 'unknown')
+            xdi_data['Sample.id'] = self.config['sample'].get('sample_id', 'unknown')
+            xdi_data['Sample.temperature'] = (self.beamline.cryojet.temperature, 'K')
+            xdi_data['Sample.group'] = self.config['sample'].get('group', 'unknown')
+        xdi_data['Scan.end_time'] = self.config['end_time']
+        xdi_data['Scan.start_time'] = self.config['start_time']
+        xdi_data['Mono.d_spacing'] = converter.energy_to_d(
+            self.config['energy'], self.beamline.config['mono_unit_cell']
+        )
+        return xdi_data
 
     def save_metadata(self, upload=True):
         params = self.config
@@ -168,7 +187,7 @@ class MADScanner(BasicScan):
         self.config = copy.deepcopy(info)
 
         self.config['edge_energy'], self.config['roi_energy'] = self.emissions[info['edge']]
-        self.config['filename'] = os.path.join(info['directory'], "{}_{}.xdi".format(info['name'], info['edge']))
+        self.config['filename'] = os.path.join(info['directory'], "{}.xdi".format(info['name']))
         self.config['targets'] = xanes_targets(self.config['edge_energy'])
         self.config['user'] = misc.get_project_name()
         self.results = {}
@@ -198,7 +217,7 @@ class MADScanner(BasicScan):
             self.total = len(self.config['targets'])
             saved_attenuation = self.beamline.attenuator.get()
             self.data_rows = []
-            self.results = {'analysis': {}}
+            self.results = {}
             try:
                 GObject.idle_add(self.emit, 'started')
                 self.prepare_for_scan()
@@ -254,11 +273,19 @@ class MADScanner(BasicScan):
         return self.results
 
     def analyse(self):
-        self.results['data'] = self.data
-        self.autochooch.configure(self.config, self.results['data'])
+        self.autochooch.configure(self.config, self.data)
         report = self.autochooch.run()
         if report:
-            self.results['analysis'] = report
+            self.results['choices'] = report['choices']
+            self.results['esf'] = {
+                k: report['esf'][k].tolist() for k in report['esf'].dtype.names
+            }
+            # save to file
+            filename = os.path.join(self.config['directory'], '{}.mad'.format(self.config['name']))
+            with open(filename, 'w') as handle:
+                json.dump(self.results, handle)
+                logger.info("MAD Analysis Saved: {}".format(filename))
+
         else:
             GObject.idle_add(self.emit, 'error', 'Analysis Failed')
 
@@ -364,7 +391,6 @@ class XASScanner(BasicScan):
             saved_attenuation = self.beamline.attenuator.get()
             self.data_rows = []
             self.results = {'data': [], 'scans': []}
-
             try:
                 GObject.idle_add(self.emit, 'started')
                 self.prepare_for_scan()
