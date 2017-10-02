@@ -10,6 +10,7 @@ from gi.repository import Gtk, GObject, Gdk
 from twisted.python.components import globalRegistry
 
 from microscope import IMicroscope
+from mxdc.conf import load_cache, save_cache
 from mxdc.beamlines.mx import IBeamline
 from mxdc.engines.rastering import RasterCollector
 from mxdc.utils import datatools, misc
@@ -117,6 +118,12 @@ class RasterController(GObject.GObject):
             name: common.DeviceMonitor(dev, lbl, **kw)
             for name, (dev, lbl, kw) in labels.items()
         }
+        self.load_from_cache()
+
+    def load_from_cache(self):
+        cache = load_cache('raster')
+        if cache and isinstance(cache, dict):
+            self.configure(cache)
 
     def get_parameters(self):
         info = {}
@@ -138,6 +145,28 @@ class RasterController(GObject.GObject):
             info[name] = value
         return info
 
+    def configure(self, info):
+        if not self.ConfigSpec: return
+        for name, details in self.ConfigSpec.items():
+            field_type, fmt, conv, default = details
+            field_name = 'raster_{}_{}'.format(name, field_type)
+            value = info.get(name, default)
+            field = getattr(self.widget, field_name, None)
+            if not field: continue
+            if field_type == 'entry':
+                field.set_text(fmt.format(value))
+            elif field_type == 'check':
+                field.set_active(value)
+            elif field_type == 'spin':
+                field.set_value(value)
+            elif field_type == 'cbox':
+                field.set_active_id(str(value))
+            try:
+                conv(value)
+                field.get_style_context().remove_class('error')
+            except (TypeError, ValueError):
+                field.get_style_context().add_class('error')
+
     def start_raster(self, *args, **kwargs):
         if self.props.state == self.StateType.ACTIVE:
             self.widget.raster_progress_lbl.set_text("Pausing raster ...")
@@ -149,8 +178,12 @@ class RasterController(GObject.GObject):
             self.widget.raster_progress_lbl.set_text("Starting raster ...")
             grid = self.microscope.grid_xyz
             params = self.get_parameters()
+
+            save_cache(params, 'raster')
+
             params['angle'] = self.microscope.grid_params['angle']
             params['origin'] = self.microscope.grid_params['origin']
+            params['scale'] = self.microscope.grid_params['scale']
             params['energy'] = self.beamline.energy.get_position()
             params['distance'] = resol_to_dist(params['resolution'], self.beamline.detector.mm_size, params['energy'])
             params['attenuation'] = self.beamline.attenuator.get()

@@ -9,6 +9,7 @@ import subprocess
 import threading
 import time
 import uuid
+import hashlib
 
 import decorators
 import ipaddress
@@ -131,6 +132,8 @@ def format_partial(fmt, *args, **kwargs):
 
 _COLOR_PATTERN = re.compile('#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2}).*')
 
+def short_hash(w):
+    return hashlib.md5(w).hexdigest()[:9]
 
 def logistic_score(x, best=1, fair=0.5):
     t = 3 * (x - fair) / (best - fair)

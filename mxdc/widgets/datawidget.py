@@ -44,31 +44,29 @@ class RunItem(GObject.GObject):
     position = GObject.Property(type=int, default=0)
     size = GObject.Property(type=int, default=0)
     info = GObject.Property(type=object)
+    uuid = GObject.Property(type=str, default="")
     progress = GObject.Property(type=float, default=0.0)
     warning = GObject.Property(type=str, default="")
     title = GObject.Property(type=str, default="Add run ...")
     subtitle = GObject.Property(type=str, default="")
     created = GObject.Property(type=float, default=0.0)
 
-    def __init__(self, info=None, state=StateType.DRAFT):
+    def __init__(self, info=None, state=StateType.DRAFT, uid=None, created=None):
         super(RunItem, self).__init__()
+        self.connect('notify::info', self.info_changed)
         self.frames = []
         self.collected = set()
-
-        self.connect('notify::info', self.on_info_changed)
+        self.props.created = created if created else time.time()
+        self.props.uuid = uid if uid else str(uuid.uuid4())
         self.props.state = state
         self.props.info = info
-        self.props.created = time.time()
-        self.uuid = str(uuid.uuid4())
-        self.title = '...'
-        self.subtitle = '...'
 
-    def on_info_changed(self, item, param):
+    def info_changed(self, *args, **kwargs):
         if self.props.info:
             self.frames = datatools.generate_frame_names(self.props.info)
             self.props.size = len(self.frames)
             self.props.title = '{},...'.format(self.frames[0])
-            self.props.subtitle = '{} \xc3\x97 {:0.2g}\xc2\xb0/{:0.2g}s  @ {:0.5g} keV'.format(
+            self.props.subtitle = '{} \xc3\x97 {:0.4g}\xc2\xb0/{:0.2g}s  @ {:0.5g} keV'.format(
                 self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
                 self.props.info.get('energy')
             )

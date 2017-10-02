@@ -3,14 +3,15 @@ from collections import OrderedDict
 from collections import defaultdict
 from copy import copy
 
-from automounter import DewarController
 from gi.repository import Gio, Gtk, Gdk, Pango, GObject
-from mxdc.beamlines.mx import IBeamline
-from mxdc.engines import auto
-from mxdc.utils.decorators import async_call
-from mxdc.utils.gui import ColumnSpec
 from twisted.python.components import globalRegistry
 from zope.interface import Interface, implements
+
+from automounter import DewarController
+from mxdc.beamlines.mx import IBeamline
+from mxdc.conf import load_cache, save_cache
+from mxdc.engines import auto
+from mxdc.utils.decorators import async_call
 
 
 class ISampleStore(Interface):
@@ -32,6 +33,7 @@ class ISampleStore(Interface):
 class GroupItem(GObject.GObject):
     selected = GObject.Property(type=bool, default=False)
     name = GObject.Property(type=str, default="")
+    changed = GObject.Property(type=object)
 
     def __init__(self, name, sample_model, items=()):
         super(GroupItem, self).__init__()
@@ -55,6 +57,7 @@ class GroupItem(GObject.GObject):
 
     def on_selected(self, obj, param):
         """Propagate group selection to individual samples preventing cyclic propagation"""
+        changed = set()
         for sample in self.sample_model:
             can_change = (
                 sample[SampleStore.Data.GROUP] == self.props.name and
@@ -64,6 +67,8 @@ class GroupItem(GObject.GObject):
                 self.items[sample[SampleStore.Data.UUID]] = self.props.selected
                 sample[SampleStore.Data.SELECTED] = self.props.selected
                 sample[SampleStore.Data.PROGRESS] = SampleStore.Progress.NONE
+                changed.add(sample[SampleStore.Data.DATA]['id'])
+        self.props.changed = changed
 
     def __str__(self):
         return '<Group: {}|{}>'.format(self.props.name, self.props.selected)
@@ -94,14 +99,15 @@ class SampleStore(GObject.GObject):
         (Data.NAME, 'Name'),
         (Data.GROUP, 'Group'),
         (Data.PORT, 'Port'),
-        (Data.CONTAINER, 'Container'),
-        (Data.LOCATION, ''),
+        (Data.LOCATION, 'Container'),
         (Data.PRIORITY, 'Priority'),
     ])
 
     __gsignals__ = {
         'updated': (GObject.SignalFlags.RUN_FIRST, None, []),
     }
+
+    cache = GObject.Property(type=object)
 
     def __init__(self, view, widget):
         super(SampleStore, self).__init__()
@@ -114,6 +120,13 @@ class SampleStore(GObject.GObject):
         self.next_sample = {}
         self.current_sample = {}
         self.ports = set()
+
+        try:
+            cache = load_cache('samples')
+            self.props.cache = set() if not cache else set(cache)
+        except:
+            self.props.cache = set()
+
         self.states = {}
         self.filter_text = ''
 
@@ -135,6 +148,7 @@ class SampleStore(GObject.GObject):
         self.widget.samples_dismount_btn.connect('clicked', lambda x: self.dismount_action())
         self.widget.samples_search_entry.connect('search-changed', self.on_search)
         self.widget.connect('realize', self.import_mxlive)
+        self.connect('notify::cache', self.on_cache)
 
         globalRegistry.register([], ISampleStore, '', self)
 
@@ -195,6 +209,7 @@ class SampleStore(GObject.GObject):
             groups[item['group']].append(key)
         for name, samples in groups.items():
             group_item = GroupItem(name, self.model, items=samples)
+            group_item.connect('notify::changed', self.on_group_changed)
             self.group_model.append(group_item)
             self.group_registry[name] = group_item
         GObject.idle_add(self.emit, 'updated')
@@ -202,12 +217,12 @@ class SampleStore(GObject.GObject):
     def add_item(self, item):
         item['uuid'] = str(uuid.uuid4())
         self.model.append([
-            item.get('selected', False),
+            item['id'] in self.cache,
             item.get('name', 'unknown'),
             item.get('group', ''),
             item.get('container', ''),
             item.get('port', ''),
-            item.get('location', ''),
+            '{} ({})'.format(item.get('container'), item.get('location')),
             item.get('barcode', ''),
             item.get('priority', 0),
             item.get('comments', ''),
@@ -235,9 +250,19 @@ class SampleStore(GObject.GObject):
         if item.props.selected != btn.get_active():
             btn.set_active(item.props.selected)
 
+    def on_group_changed(self, item, *args, **kwargs):
+        if item.selected:
+            cache = self.cache | item.changed
+        else:
+            cache = self.cache - item.changed
+        self.props.cache = cache
+
     def on_search(self, obj):
         self.filter_text = obj.get_text()
         self.search_model.refilter()
+
+    def on_cache(self, *args, **kwargs):
+        save_cache(list(self.props.cache), 'samples')
 
     def search_data(self, model, itr, dat):
         """Test if the row is visible"""
@@ -341,7 +366,7 @@ class SampleStore(GObject.GObject):
             state = self.model.get_value(itr, self.Data.STATE)
             if sel and state not in [self.State.JAMMED, self.State.EMPTY]:
                 item = self.model.get_value(itr, self.Data.DATA)
-                #item['path'] = self.model.get_path(itr)
+                # item['path'] = self.model.get_path(itr)
                 items.append(item)
             itr = self.model.iter_next(itr)
         return items
@@ -349,20 +374,29 @@ class SampleStore(GObject.GObject):
     def select_all(self, option=True):
         model, paths = self.selection.get_selected_rows()
         # toggle all selected rows otherwise toggle the whole list
+        changed = set()
         if len(paths) > 1:
             for path in paths:
                 itr = self.filter_model.get_iter(path)
                 sitr = self.filter_model.convert_iter_to_child_iter(itr)
-                self.search_model.set_value(sitr, self.Data.SELECTED, option)
+                self.search_model[sitr][self.Data.SELECTED] = option
+                changed.add(self.search_model[sitr][self.Data.DATA]['id'])
         else:
             itr = self.filter_model.get_iter_first()
             while itr:
                 sitr = self.filter_model.convert_iter_to_child_iter(itr)
-                state = self.search_model.get_value(sitr, self.Data.STATE)
-                if state not in [self.State.JAMMED, self.State.EMPTY]:
-                    self.search_model.set_value(sitr, self.Data.SELECTED, option)
+                if self.search_model[sitr][self.Data.STATE] not in [self.State.JAMMED, self.State.EMPTY]:
+                    self.search_model[sitr][self.Data.SELECTED] = option
+                    changed.add(self.search_model[sitr][self.Data.DATA]['id'])
                 itr = self.filter_model.iter_next(itr)
-                # self.update_next_sample()
+
+        cache = self.props.cache
+        if changed:
+            if option:
+                cache |= changed
+            else:
+                cache -= changed
+            self.props.cache = cache
 
     def clear(self):
         self.model.clear()
@@ -375,13 +409,17 @@ class SampleStore(GObject.GObject):
 
     def toggle_row(self, path):
         itr = self.filter_model.convert_iter_to_child_iter(self.filter_model.get_iter(path))
-        value = self.search_model.get_value(itr, self.Data.SELECTED)
-        state = self.search_model.get_value(itr, self.Data.STATE)
-        if state not in [self.State.JAMMED, self.State.EMPTY]:
-            selected = not value
-            self.search_model.set_value(itr, self.Data.SELECTED, selected)
+        row = self.search_model[itr]
+        if row[self.Data.STATE] not in [self.State.JAMMED, self.State.EMPTY]:
+            selected = not row[self.Data.SELECTED]
+            row[self.Data.SELECTED] = selected
+            cache = self.cache
             if selected:
-                self.search_model.set_value(itr, self.Data.PROGRESS, self.Progress.NONE)
+                row[self.Data.PROGRESS] = self.Progress.NONE
+                cache.add(row[self.Data.DATA]['id'])
+            else:
+                cache.remove(row[self.Data.DATA]['id'])
+            self.props.cache = cache
 
     def update_states(self, states):
         self.states.update(states)

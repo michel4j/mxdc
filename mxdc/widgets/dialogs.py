@@ -2,7 +2,13 @@ import os
 
 from gi.repository import Gtk
 from gi.repository import Pango
-from mxdc.conf import settings
+
+try:
+    from mxdc.conf import settings
+    DEFAULT_DIRECTORY = os.path.join(os.environ['HOME'], settings.get_session())
+except:
+    DEFAULT_DIRECTORY = os.environ['HOME']
+
 
 MAIN_WINDOW = None
 
@@ -123,7 +129,7 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[], def
         parent=parent,
         buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, _stock, Gtk.ResponseType.OK))
     if default_folder is None:
-        dialog.set_current_folder(os.path.join(os.environ['HOME'], settings.get_session()))
+        dialog.set_current_folder(DEFAULT_DIRECTORY)
     else:
         dialog.set_current_folder(default_folder)
     dialog.set_do_overwrite_confirmation(True)

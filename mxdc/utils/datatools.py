@@ -72,10 +72,9 @@ StrategyProcType = {
     StrategyType.POWDER:   'proc-powder'
 }
 
+
 class AnalysisType:
     MX_NATIVE, MX_ANOM, MX_SCREEN, RASTER, XRD = range(5)
-
-
 
 
 def update_for_sample(info, sample=None):
