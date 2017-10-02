@@ -2,17 +2,19 @@ import glob
 import os
 import sys
 
+import msgpack
 from gi.repository import Gio
+
 from mxdc.utils import misc, ipaddress
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
 
-APP_CONFIG_DIR = os.path.join(os.environ['HOME'], '.config', 'mxdc')
-CONFIG_DIR = None
-CONFIG_ROOT = None
-CONFIGS = None
+APP_CACHE_DIR = ''
+CONFIG_DIR = ''
+CONFIGS = ''
 SETTINGS = None
+PROPERTIES = None
 
 
 def _extract_variable(mod_path, variable, default=None):
@@ -63,11 +65,15 @@ def get_config_modules(config_dir, name=None):
 
 
 def initialize(name=None):
-    global CONFIG_DIR, CONFIGS, APP_CONFIG_DIR, CONFIG_ROOT, SETTINGS
+    global CONFIG_DIR, CONFIGS, SETTINGS, APP_CACHE_DIR, PROPERTIES
     CONFIG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'etc')
-
+    app_config_dir = os.path.join(os.environ['HOME'], '.config', 'mxdc')
     try:
         # initiallize users settings
+
+        if not os.path.exists(app_config_dir):
+            os.makedirs(app_config_dir, mode=0o700)
+
         schema_dir = os.path.join(CONFIG_DIR, 'schemas')
         schema_source = Gio.SettingsSchemaSource.new_from_directory(
             schema_dir, Gio.SettingsSchemaSource.get_default(), False
@@ -76,12 +82,41 @@ def initialize(name=None):
         SETTINGS = Gio.Settings.new_full(schema, None, None)
 
         # get config modules
-        CONFIGS, properties = get_config_modules(CONFIG_DIR, name=name)
+        CONFIGS, PROPERTIES = get_config_modules(CONFIG_DIR, name=name)
         assert bool(CONFIGS), 'Configuration error'
-        CONFIG_ROOT = properties['name']
+        APP_CACHE_DIR = os.path.join(app_config_dir, '{}.cache'.format(misc.short_hash(PROPERTIES['name'])))
+
+        for dir in [app_config_dir, APP_CACHE_DIR]:
+            if not os.path.exists(dir):
+                os.makedirs(dir, mode=0o700)
     except:
         logger.error('Could not find Beamline Configuration.')
         logger.error('Please make sure MXDC is properly installed and configured.')
         sys.exit()
     else:
-        logger.info('Starting MXDC ({})... '.format(CONFIG_ROOT))
+        logger.info('Starting MXDC ({})... '.format(PROPERTIES['name']))
+
+
+def load_cache(realm):
+    cache_file = os.path.join(APP_CACHE_DIR, realm)
+    if os.path.exists(cache_file):
+        with open(cache_file, 'r') as handle:
+            data = msgpack.load(handle)
+        return data
+    return {}
+
+
+def save_cache(data, realm):
+    with open(os.path.join(APP_CACHE_DIR, realm), 'w') as handle:
+        msgpack.dump(data, handle)
+
+
+def clear_cache(keep_session=True):
+    for cache_file in os.listdir(APP_CACHE_DIR):
+        if keep_session and cache_file == 'session': continue
+        file_path = os.path.join(APP_CACHE_DIR, cache_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            logger.error('Unable to clear cache.')

@@ -3,7 +3,8 @@ import gi
 
 gi.require_version('WebKit', '3.0')
 from enum import Enum
-from gi.repository import GObject, WebKit
+from gi.repository import GObject, WebKit, Gtk
+from mxdc.conf import settings
 from mxdc.beamlines.mx import IBeamline
 from mxdc.utils import colors, misc
 from mxdc.utils.decorators import async_call
@@ -13,6 +14,7 @@ from mxdc.engines.analysis import Analyst
 from samplestore import ISampleStore
 from twisted.python.components import globalRegistry
 from mxdc.engines import auto
+from mxdc.widgets import dialogs
 
 logger = get_module_logger(__name__)
 
@@ -21,7 +23,7 @@ DOCS_PATH = os.path.join(os.environ['MXDC_PATH'], 'docs', '_build', 'html', 'ind
 
 class ReportManager(TreeManager):
     class Data(Enum):
-        NAME, GROUP, ACTIVITY, SCORE, SUMMARY, STATE, UUID, SAMPLE, DIRECTORY, DATA = range(10)
+        NAME, GROUP, TYPE, SCORE, SUMMARY, STATE, UUID, SAMPLE, DIRECTORY, DATA = range(10)
 
     Types = [str, str, str, float, str, int, str, object, str, object]
 
@@ -30,7 +32,7 @@ class ReportManager(TreeManager):
 
     Columns = ColumnSpec(
         (Data.NAME, 'Name', ColumnType.TEXT, '{}', True),
-        (Data.ACTIVITY, "Type", ColumnType.TEXT, '{}', True),
+        (Data.TYPE, "Type", ColumnType.TEXT, '{}', True),
         (Data.SCORE, 'Score', ColumnType.NUMBER, '{:0.2f}', False),
         (Data.SUMMARY, "Summary", ColumnType.TEXT, '{}', True),
         (Data.STATE, "", ColumnType.ICON, '{}', False),
@@ -42,8 +44,9 @@ class ReportManager(TreeManager):
         State.FAILED: ('computer-fail-symbolic', colors.Category.CAT20[6]),
     }
     tooltips = Data.SUMMARY
-    parent = Data.GROUP
-    flat = True
+    parent = Data.NAME
+    flat = False
+    select_multiple = True
 
     directory = GObject.Property(type=str, default='')
     sample = GObject.Property(type=object)
@@ -71,7 +74,6 @@ class ReportManager(TreeManager):
 
 
 class AnalysisController(GObject.GObject):
-
     def __init__(self, widget):
         super(AnalysisController, self).__init__()
         self.widget = widget
@@ -80,13 +82,8 @@ class AnalysisController(GObject.GObject):
         self.reports = ReportManager(self.widget.proc_reports_view)
         self.analyst = Analyst(self.reports)
         self.browser = WebKit.WebView()
+        self.options = {}
         self.setup()
-        self.widget.proc_reports_view.connect('row-activated', self.on_row_activated)
-        self.reports.connect('notify::directory', self.on_directory)
-        self.reports.connect('notify::sample', self.on_sample)
-        self.reports.connect('notify::strategy', self.on_strategy)
-        self.widget.proc_dir_btn.connect('clicked', self.open_terminal)
-        self.widget.proc_mount_btn.connect('clicked', self.mount_sample)
 
     def setup(self):
         self.widget.proc_browser_box.add(self.browser)
@@ -95,7 +92,25 @@ class AnalysisController(GObject.GObject):
         browser_settings.set_property("enable-plugins", False)
         browser_settings.set_property("default-font-size", 11)
         self.browser.set_settings(browser_settings)
-        self.browser.load_uri('file://{}'.format(DOCS_PATH))
+        #self.browser.load_uri('file://{}'.format(DOCS_PATH))
+        self.widget.proc_dir_btn.connect('clicked', self.open_terminal)
+        self.widget.proc_mount_btn.connect('clicked', self.mount_sample)
+        self.reports.connect('notify::directory', self.on_directory)
+        self.reports.connect('notify::sample', self.on_sample)
+        self.reports.connect('notify::strategy', self.on_strategy)
+        self.widget.proc_reports_view.connect('row-activated', self.on_row_activated)
+        self.widget.proc_run_btn.connect('clicked', self.on_run_analysis)
+        self.widget.proc_clear_btn.connect('clicked', self.clear_reports)
+        self.widget.proc_open_btn.connect('clicked', self.import_metafile)
+
+        self.options = {
+            'screen': self.widget.proc_screen_option,
+            'merge': self.widget.proc_merge_option,
+            'mad': self.widget.proc_mad_option,
+            'calibrate': self.widget.proc_calib_option,
+            'integrate': self.widget.proc_integrate_option,
+            'anomalous': self.widget.proc_anom_btn
+        }
 
     def on_strategy(self, *args, **kwargs):
         self.widget.proc_strategy_btn.set_sensitive(bool(self.reports.strategy))
@@ -104,6 +119,28 @@ class AnalysisController(GObject.GObject):
     def open_terminal(self, button):
         directory = self.widget.proc_dir_fbk.get_text()
         misc.open_terminal(directory)
+
+    def clear_reports(self, *args, **kwargs):
+        self.reports.clear()
+
+    def import_metafile(self, *args, **kwargs):
+        filters = [
+                ('MxDC Meta-File', ["*.meta"]),
+                ('AutoProcess Meta-File', ["*.json"]),
+        ]
+        directory = os.path.join(misc.get_project_home(), settings.get_session())
+        filename, filter =  dialogs.select_opensave_file(
+            'Select Meta-File', Gtk.FileChooserAction.OPEN, parent=dialogs.MAIN_WINDOW, filters=filters,
+            default_folder=directory
+        )
+        if not filename:
+            return
+        if filter.get_name() == filters[0][0]:
+            data = misc.load_metadata(filename)
+            if data.get('type') in ['MX_DATA', 'MX_SCREEN', 'XRD_DATA']:
+                self.reports.add_item(data)
+            else:
+                logger.warning('Only MX or XRD Meta-Files can be imported')
 
     def on_sample(self, *args, **kwargs):
         sample = self.reports.sample
@@ -153,3 +190,9 @@ class AnalysisController(GObject.GObject):
                 # FIXME: Manual mounting here
                 pass
 
+    def on_run_analysis(self, *args, **kwargs):
+        options = [k for k, w in self.options.items() if w.get_active()]
+        model, selected = self.reports.selection.get_selected_rows()
+
+        for path in selected:
+            row = model[path]

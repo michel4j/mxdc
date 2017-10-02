@@ -117,17 +117,17 @@ class AutoChooch(GObject.GObject):
                 'wavelength': converter.energy_to_wavelength(energy[opt_i])
             })
 
-            new_output = "Selected Energies for 3-Wavelength MAD data \n"
-            new_output +="and corresponding anomalous scattering factors.\n"
-            new_output += "+------+------------+----------+--------+--------+\n"
-            new_output += "|      | wavelength |  energy  |   f''  |   f'   |\n"
-            for choice in choices:
-                new_output += '| {label:4s} | {wavelength:10.5f} | {energy:8.5f} | {fpp:6.2f} | {fp:6.2f} |\n'.format(
-                    **choice
-                )
-            new_output += "+------+------------+----------+--------+--------+\n"
-            with open(self.out_file, 'w') as handle:
-                handle.write(new_output)
+            # new_output = "Selected Energies for 3-Wavelength MAD data \n"
+            # new_output +="and corresponding anomalous scattering factors.\n"
+            # new_output += "+------+------------+----------+--------+--------+\n"
+            # new_output += "|      | wavelength |  energy  |   f''  |   f'   |\n"
+            # for choice in choices:
+            #     new_output += '| {label:4s} | {wavelength:10.5f} | {energy:8.5f} | {fpp:6.2f} | {fp:6.2f} |\n'.format(
+            #         **choice
+            #     )
+            # new_output += "+------+------------+----------+--------+--------+\n"
+            # with open(self.out_file, 'w') as handle:
+            #     handle.write(new_output)
             self.results['choices'] = choices
 
 

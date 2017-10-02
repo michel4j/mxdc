@@ -4274,7 +4274,7 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkBox">
+                                      <object class="GtkBox" id="acquire_options_box">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="spacing">12</property>
@@ -4282,17 +4282,18 @@
                                           <object class="GtkGrid">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
+                                            <property name="row_spacing">3</property>
+                                            <property name="column_spacing">6</property>
                                             <property name="row_homogeneous">True</property>
-                                            <property name="column_homogeneous">True</property>
                                             <child>
                                               <object class="GtkLabel">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Angle/Frame:</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                </attributes>
+                                                <property name="halign">end</property>
+                                                <property name="label" translatable="yes">Delta Angle:</property>
+                                                <style>
+                                                  <class name="config-label"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">0</property>
@@ -4303,12 +4304,12 @@
                                               <object class="GtkLabel" id="auto_delta_lbl">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
+                                                <property name="halign">start</property>
                                                 <property name="label" translatable="yes">0.2 deg</property>
                                                 <property name="justify">center</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                  <attribute name="foreground" value="#20204a4a8787"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-value"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">1</property>
@@ -4319,11 +4320,11 @@
                                               <object class="GtkLabel">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Time/Frame:</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                </attributes>
+                                                <property name="halign">end</property>
+                                                <property name="label" translatable="yes">Exposure:</property>
+                                                <style>
+                                                  <class name="config-label"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">2</property>
@@ -4334,12 +4335,12 @@
                                               <object class="GtkLabel" id="auto_exposure_lbl">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
+                                                <property name="halign">start</property>
                                                 <property name="label" translatable="yes">0.25 s</property>
                                                 <property name="justify">center</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                  <attribute name="foreground" value="#20204a4a8787"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-value"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">3</property>
@@ -4350,11 +4351,11 @@
                                               <object class="GtkLabel">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
-                                                <property name="halign">start</property>
+                                                <property name="halign">end</property>
                                                 <property name="label" translatable="yes">Attenuation:</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-label"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">4</property>
@@ -4365,12 +4366,12 @@
                                               <object class="GtkLabel" id="auto_attenuation_lbl">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
+                                                <property name="halign">start</property>
                                                 <property name="label" translatable="yes">60 %</property>
                                                 <property name="justify">center</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                  <attribute name="foreground" value="#20204a4a8787"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-value"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">5</property>
@@ -4381,11 +4382,11 @@
                                               <object class="GtkLabel">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
-                                                <property name="halign">start</property>
+                                                <property name="halign">end</property>
                                                 <property name="label" translatable="yes">Total Angle:</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-label"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">0</property>
@@ -4396,12 +4397,12 @@
                                               <object class="GtkLabel" id="auto_range_lbl">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
+                                                <property name="halign">start</property>
                                                 <property name="label" translatable="yes">45 deg</property>
                                                 <property name="justify">center</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                  <attribute name="foreground" value="#20204a4a8787"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-value"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">1</property>
@@ -4412,11 +4413,11 @@
                                               <object class="GtkLabel">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
-                                                <property name="halign">start</property>
+                                                <property name="halign">end</property>
                                                 <property name="label" translatable="yes">Start Angle:</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-label"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">2</property>
@@ -4427,12 +4428,12 @@
                                               <object class="GtkLabel" id="auto_start_lbl">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
+                                                <property name="halign">start</property>
                                                 <property name="label" translatable="yes">15 deg</property>
                                                 <property name="justify">center</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                  <attribute name="foreground" value="#20204a4a8787"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-value"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">3</property>
@@ -4443,11 +4444,11 @@
                                               <object class="GtkLabel">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
-                                                <property name="halign">start</property>
+                                                <property name="halign">end</property>
                                                 <property name="label" translatable="yes">Energy:</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-label"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">4</property>
@@ -4458,12 +4459,12 @@
                                               <object class="GtkLabel" id="auto_energy_lbl">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
+                                                <property name="halign">end</property>
                                                 <property name="label" translatable="yes">12.658 keV</property>
                                                 <property name="justify">center</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                  <attribute name="foreground" value="#20204a4a8787"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-value"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">5</property>
@@ -4475,9 +4476,9 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
                                                 <property name="halign">start</property>
-                                                <attributes>
-                                                  <attribute name="weight" value="bold"/>
-                                                </attributes>
+                                                <style>
+                                                  <class name="config-title"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="left_attach">0</property>
@@ -4497,6 +4498,8 @@
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
+                                            <property name="halign">end</property>
+                                            <property name="valign">center</property>
                                             <property name="relief">none</property>
                                             <child>
                                               <object class="GtkImage">
@@ -6988,7 +6991,20 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="border_width">12</property>
-                                        <property name="spacing">12</property>
+                                        <property name="orientation">vertical</property>
+                                        <property name="spacing">6</property>
+                                        <child>
+                                          <object class="GtkSeparator">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="pack_type">end</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
                                         <child>
                                           <object class="GtkGrid">
                                             <property name="visible">True</property>
@@ -7092,33 +7108,47 @@
                                           <packing>
                                             <property name="expand">True</property>
                                             <property name="fill">True</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkButton" id="proc_strategy_btn">
-                                            <property name="label" translatable="yes">Use Strategy</property>
-                                            <property name="visible">True</property>
-                                            <property name="sensitive">False</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="receives_default">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
                                             <property name="position">1</property>
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkButton" id="proc_mount_btn">
-                                            <property name="label" translatable="yes">Mount</property>
+                                          <object class="GtkBox">
                                             <property name="visible">True</property>
-                                            <property name="sensitive">False</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="receives_default">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="spacing">12</property>
+                                            <child>
+                                              <object class="GtkButton" id="proc_mount_btn">
+                                                <property name="label" translatable="yes">Mount</property>
+                                                <property name="visible">True</property>
+                                                <property name="sensitive">False</property>
+                                                <property name="can_focus">True</property>
+                                                <property name="receives_default">True</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="pack_type">end</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkButton" id="proc_strategy_btn">
+                                                <property name="label" translatable="yes">Use Strategy</property>
+                                                <property name="visible">True</property>
+                                                <property name="sensitive">False</property>
+                                                <property name="can_focus">True</property>
+                                                <property name="receives_default">True</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="pack_type">end</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
                                           </object>
                                           <packing>
-                                            <property name="expand">False</property>
+                                            <property name="expand">True</property>
                                             <property name="fill">True</property>
                                             <property name="position">2</property>
                                           </packing>

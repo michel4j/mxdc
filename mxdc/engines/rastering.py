@@ -60,15 +60,26 @@ class RasterCollector(GObject.GObject):
         worker_thread.start()
 
     def prepare(self, params):
-        # setup folder for wedge
+        # setup folder for
         self.beamline.image_server.setup_folder(params['directory'])
 
         # make sure shutter is closed before starting
         self.beamline.exposure_shutter.close()
 
+        # take snapshot
+        self.beamline.goniometer.set_mode('CENTERING', wait=True)
+        logger.info('Taking snapshot ...')
+        self.beamline.omega.move_to(params['angle'], wait=True)
+        img = self.beamline.sample_camera.get_frame()
+        img.save(os.path.join(params['directory'], '{}.png'.format(params['name'])))
+
         if abs(self.beamline.distance.get_position() - params['distance']) >= 0.1:
             self.beamline.distance.move_to(params['distance'], wait=True)
-        self.beamline.omega.move_to(params['angle'], wait=True)
+
+        #switch to collect mode
+        self.beamline.goniometer.set_mode('COLLECT', wait=True)
+
+
 
     def run(self):
         self.paused = False
@@ -82,8 +93,6 @@ class RasterCollector(GObject.GObject):
         current_attenuation = self.beamline.attenuator.get()
 
         with self.beamline.lock:
-            # Prepare endstation mode
-            self.beamline.goniometer.set_mode('COLLECT', wait=True)
             GObject.idle_add(self.emit, 'started')
             try:
                 self.acquire()
@@ -198,7 +207,8 @@ class RasterCollector(GObject.GObject):
             info = {
                 'name': params['name'],
                 'activity': 'proc-raster',
-                'filename': file_path
+                'filename': file_path,
+                'type': 'RASTER',
             }
             info = datatools.update_for_sample(info, params['sample'])
             d = self.analyst.process_raster(info)
@@ -206,7 +216,6 @@ class RasterCollector(GObject.GObject):
                 self.result_ready, callbackArgs=[index, file_path],
                 errback=self.result_fail, errbackArgs=[index, file_path]
             )
-
 
     def result_ready(self, result, cell, file_path):
         self.pending_results.remove(file_path)
@@ -257,7 +266,8 @@ class RasterCollector(GObject.GObject):
                 'delta_angle': params['delta'],
                 'inverse_beam': params.get('inverse', False),
                 'grid_origin': params['origin'],
-                'grid_points': self.config['grid'].tolist()
+                'grid_points': self.config['grid'].tolist(),
+                'scale': params['origin'],
             }
             filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
             misc.save_metadata(metadata, filename)

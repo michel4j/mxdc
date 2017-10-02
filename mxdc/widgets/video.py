@@ -26,6 +26,9 @@ class VideoWidget(Gtk.DrawingArea):
 
     def __init__(self, camera):
         super(VideoWidget, self).__init__()
+        self.props.expand = True
+        self.props.halign = Gtk.Align.FILL
+        self.props.valign = Gtk.Align.FILL
         self.camera = camera
         self.scale = 1
         self.voffset = 0
@@ -55,8 +58,8 @@ class VideoWidget(Gtk.DrawingArea):
         self.connect('unmap', self.on_unmap)
         self.connect('draw', self.on_draw)
         self.connect('realize', self.on_realized)
-        self.connect('configure-event', self.on_configure)
         self.connect("unrealize", self.on_destroy)
+        self.connect('configure-event', self.on_configure_event)
         self.override_background_color(Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=1, blue=0, alpha=1))
 
     def set_src(self, src):
@@ -82,7 +85,7 @@ class VideoWidget(Gtk.DrawingArea):
         self.camera.del_sink(self)
         self.camera.stop()
 
-    def on_configure(self, widget, event):
+    def on_configure_event(self, widget, event):
         frame_width, frame_height = event.width, event.height
         video_width, video_height = self.camera.size
 
