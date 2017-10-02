@@ -459,7 +459,7 @@ class ImageWidget(Gtk.DrawingArea):
 
         # measuring
         if self._measuring:
-            cr.set_line_width(0.5)
+            cr.set_line_width(2)
             cr.move_to(self.meas_x0, self.meas_y0)
             cr.line_to(self.meas_x1, self.meas_y1)
             cr.stroke()

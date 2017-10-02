@@ -4,6 +4,7 @@ import time
 
 import common
 from gi.repository import GObject, Gio, Gtk
+from mxdc.conf import load_cache, save_cache
 from mxdc.beamlines.mx import IBeamline
 from mxdc.engines.diffraction import DataCollector
 from mxdc.engines.automation import Automator
@@ -80,6 +81,7 @@ class AutomationController(GObject.GObject):
         self.run_dialog.window.set_transient_for(dialogs.MAIN_WINDOW)
         self.automation_queue = SampleQueue(self.widget.auto_queue)
         self.automator = Automator()
+
         self.config = datawidget.RunItem()
         self.config_display = ConfigDisplay(self.config, self.widget, 'auto')
 
@@ -111,6 +113,14 @@ class AutomationController(GObject.GObject):
         self.config.props.info = self.run_dialog.get_parameters()
 
         # btn, type, options method
+        self.tasks = {
+            'mount': self.widget.mount_task_btn,
+            'center': self.widget.center_task_btn,
+            'pause1': self.widget.pause1_task_btn,
+            'acquire': self.widget.acquire_task_btn,
+            'analyse': self.widget.analyse_task_btn,
+            'pause2': self.widget.pause2_task_btn,
+        }
         self.task_templates = [
             (self.widget.mount_task_btn, Automator.Task.MOUNT),
             (self.widget.center_task_btn, Automator.Task.CENTER),
@@ -130,6 +140,18 @@ class AutomationController(GObject.GObject):
             'analyse': self.widget.analyse_task_btn
         }
         self.setup()
+        self.import_from_cache()
+
+    def import_from_cache(self):
+        config = load_cache('auto')
+        if config:
+            self.config.info = config['info']
+            for name, btn in self.tasks.items():
+                if name in config:
+                    btn.set_active(config[name])
+            for name, option in self.options.items():
+                if name in config:
+                    option.set_active(config[name])
 
     def get_options(self, task_type):
         if task_type == Automator.Task.CENTER:
@@ -199,6 +221,9 @@ class AutomationController(GObject.GObject):
         self.widget.auto_stop_btn.connect('clicked', self.on_stop_automation)
         self.widget.auto_clean_btn.connect('clicked', self.on_clean_automation)
         self.widget.auto_groups_btn.set_popover(self.widget.auto_groups_pop)
+        self.widget.center_task_btn.bind_property('active', self.widget.center_options_box, 'sensitive')
+        self.widget.analyse_task_btn.bind_property('active', self.widget.analyse_options_box, 'sensitive')
+        self.widget.acquire_task_btn.bind_property('active', self.widget.acquire_options_box, 'sensitive')
 
     def on_edit_acquisition(self, obj):
         self.run_dialog.configure(self.config.info)
@@ -207,6 +232,14 @@ class AutomationController(GObject.GObject):
     def on_save_acquisition(self, obj):
         self.config.props.info = self.run_dialog.get_parameters()
         self.run_dialog.window.hide()
+        cache = {
+            'info': self.config.info,
+        }
+        for name, btn in self.tasks.items():
+            cache[name] = btn.get_active()
+        for name, option in self.options.items():
+            cache[name] = option.get_active()
+        save_cache(cache, 'auto')
 
     def on_progress(self, obj, fraction, message):
         used_time = time.time() - self.start_time
@@ -334,6 +367,16 @@ class DatasetsController(GObject.GObject):
         globalRegistry.register([], IDatasets, '', self)
         self.setup()
 
+    def import_from_cache(self):
+        runs = load_cache('runs')
+        if runs:
+            for run in runs:
+                new_item = datawidget.RunItem(
+                    run['info'], state=run['state'], created=run['created'], uid=run['uuid']
+                )
+                self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+            self.widget.datasets_collect_btn.set_sensitive(True)
+
     def update_positions(self):
         pos = 0
         item = self.run_store.get_item(pos)
@@ -355,6 +398,7 @@ class DatasetsController(GObject.GObject):
         self.sample_store = globalRegistry.lookup([], ISampleStore)
         self.sample_store.connect('updated', self.on_sample_updated)
 
+        self.import_from_cache()
         new_item = datawidget.RunItem(state=datawidget.RunItem.StateType.ADD)
         pos = self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
         self.run_editor.set_item(new_item)
@@ -404,12 +448,12 @@ class DatasetsController(GObject.GObject):
                 'name': sample.get('name', 'test'),
             })
             item.props.info = config
-            item.props.position = position  # make sure position is up to date for removal
             item.props.state = datawidget.RunItem.StateType.DRAFT
             new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
             self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+            self.check_run_store()
         self.run_editor.set_item(item)
-        self.check_run_store()
+
 
     def on_runs_changed(self, model, position, removed, added):
         self.update_positions()
@@ -487,14 +531,24 @@ class DatasetsController(GObject.GObject):
         count = 0
         item = self.run_store.get_item(count)
         names = set()
+        cache = []
         while item:
             if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
                 item.info['name'] = datatools.fix_name(item.info['name'], names)
                 item.props.info = item.info
+                item.props.position = count
                 names.add(item.info['name'])
+                cache.append({
+                    'state': item.state,
+                    'created': item.created,
+                    'position': item.position,
+                    'uuid': item.uuid,
+                    'info': item.info
+                })
             count += 1
             item = self.run_store.get_item(count)
         self.widget.datasets_collect_btn.set_sensitive(count > 1)
+        save_cache(cache, 'runs')
 
     def add_runs(self, runs):
         num_items = self.run_store.get_n_items()
@@ -520,8 +574,7 @@ class DatasetsController(GObject.GObject):
             new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.DRAFT)
             new_item.props.info = info
             pos = self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
-            self.check_run_store()
-            new_item.props.position = pos
+        self.check_run_store()
 
     def open_terminal(self, button):
         directory = self.widget.dsets_dir_fbk.get_text()
@@ -576,7 +629,6 @@ class DatasetsController(GObject.GObject):
         new_item.props.info = self.run_editor.get_parameters()
         pos = self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
         self.check_run_store()
-        new_item.props.position = pos
         next_row = self.widget.datasets_list.get_row_at_index(pos)
         self.run_editor.set_item(new_item)
         self.editor_frame.set_row(next_row)

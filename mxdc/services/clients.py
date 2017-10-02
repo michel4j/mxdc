@@ -107,9 +107,9 @@ class MxLIVEClient(BaseService):
         self.address = address
         self.cookies = {}
         self.set_state(active=True)
-        self.keys = settings.fetch_keys()
+        self.keys = settings.get_keys()
         self.signer = signing.Signer(**self.keys)
-        if not settings.has_keys():
+        if not settings.keys_exist():
             try:
                 res = self.register()
                 logger.info('MxLIVE Service configured for {}'.format(address))

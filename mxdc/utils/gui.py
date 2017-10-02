@@ -142,6 +142,7 @@ class TreeManager(GObject.GObject):
     parent = Data.A  # The column used to group items under the same parent
     flat = False  # whether tree is flat single level or not
     single_click = False
+    select_multiple = False
 
     def __init__(self, view, model=None, colormap=None):
         super(TreeManager, self).__init__()
@@ -155,8 +156,11 @@ class TreeManager(GObject.GObject):
         self.view.set_model(self.model)
         self.add_columns()
         self.selection = self.view.get_selection()
+        if self.select_multiple:
+            self.selection.set_mode(Gtk.SelectionMode.MULTIPLE)
         self.selection.connect('changed', self.do_selection_changed)
         self.model.connect('row-changed', self.row_changed)
+        self.model.connect('row-deleted', self.row_deleted)
         self.view.props.activate_on_single_click = self.single_click
         self.view.connect('row-activated', self.row_activated)
         self.keys = [item.name.lower() for item in self.Data]
@@ -264,6 +268,7 @@ class TreeManager(GObject.GObject):
         """
         Add Columns to the TreeView and link all signals
         """
+
         for data, spec in self.Columns.items():
             if spec.type == ColumnType.TOGGLE:
                 renderer = Gtk.CellRendererToggle(activatable=True)
@@ -372,8 +377,9 @@ class TreeManager(GObject.GObject):
         @param selection: Gtk.TreeSelection
         @return:
         """
-        model, itr = selection.get_selected()
-        return self.selection_changed(model, itr)
+        if selection.get_mode() != Gtk.SelectionMode.MULTIPLE:
+            model, itr = selection.get_selected()
+            return self.selection_changed(model, itr)
 
     def selection_changed(self, model, itr):
         """
@@ -398,6 +404,13 @@ class TreeManager(GObject.GObject):
         @param model: Gtk.TreeModel
         @param path: Gtk.TreePath
         @param itr: Gtk.TreeIter
+        @return:
+        """
+
+    def row_deleted(self, model, path):
+        """
+        @param model: Gtk.TreeModel
+        @param path: Gtk.TreePath
         @return:
         """
 

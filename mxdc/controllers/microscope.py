@@ -1,11 +1,12 @@
 import math
 import os
-import time
+
 
 import common
 import numpy
 from gi.repository import Gtk, Pango, Gdk, GObject
 from matplotlib.path import Path
+from mxdc.conf import save_cache, load_cache
 from mxdc.beamlines.mx import IBeamline
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils import imgproc, colors
@@ -56,6 +57,7 @@ class Microscope(GObject.GObject):
         self.timeout_id = None
         self.max_fps = 20
         self.fps_update = 0
+        self.video_ready = False
 
         self.props.grid = None
         self.props.grid_xyz = None
@@ -96,7 +98,6 @@ class Microscope(GObject.GObject):
         self.beamline.goniometer.connect('mode', self.on_gonio_mode)
         self.beamline.sample_stage.connect('changed', self.update_grid)
         self.beamline.sample_zoom.connect('changed', self.update_grid)
-        self.connect('notify::grid-xyz', self.update_grid)
 
         # Video Area
         self.video = VideoWidget(self.camera)
@@ -148,6 +149,35 @@ class Microscope(GObject.GObject):
         self.widget.microscope_bkg.override_background_color(
             Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=0, blue=0, alpha=1)
         )
+
+        # Connect Grid signals
+        self.connect('notify::grid-xyz', self.update_grid)
+
+
+    def init_video(self, *args, **kwargs):
+        if not self.video_ready:
+            self.video_ready = True
+            self.load_from_cache()
+            for param in ['grid-xyz', 'points', 'grid-params']:
+                self.connect('notify::{}'.format(param), self.save_to_cache)
+
+    def save_to_cache(self, *args, **kwargs):
+        cache = {
+            'points': self.props.points,
+            'grid-xyz': None if self.props.grid_xyz is None else self.props.grid_xyz.tolist(),
+            'grid-params': self.props.grid_params,
+            'grid-scores': self.props.grid_scores,
+            'grid-state': self.props.grid_state
+        }
+        save_cache(cache, 'microscope')
+
+    def load_from_cache(self):
+        cache = load_cache('microscope')
+        if cache and isinstance(cache, dict):
+            for name, value in cache.items():
+                if name == 'grid-xyz':
+                    value = None if not isinstance(value, list) else numpy.array(value)
+                self.set_property(name, value)
 
     def save_image(self, filename):
         self.video.save_image(filename)
@@ -241,7 +271,8 @@ class Microscope(GObject.GObject):
         self.props.grid = self.bbox_grid(bbox)
         self.props.grid_params = {
             'origin': self.beamline.sample_stage.get_xyz(),
-            'angle': self.beamline.omega.get_position()
+            'angle': self.beamline.omega.get_position(),
+            'scale': self.video.scale,
         }
         self.props.grid_state = self.GridState.PENDING
         self.props.grid_scores = {}
@@ -355,7 +386,8 @@ class Microscope(GObject.GObject):
         self.props.grid_xyz = grid_xyz
         self.props.grid_params = {
             'origin': (ox, oy, oz),
-            'angle': angle
+            'angle': angle,
+            'scale': self.video.scale,
         }
         self.props.grid_scores = {}
         self.props.polygon = [] # delete polygon after making grid
@@ -421,24 +453,7 @@ class Microscope(GObject.GObject):
     def on_realize(self, obj):
         self.pango_layout = self.video.create_pango_layout("")
         self.pango_layout.set_font_description(Pango.FontDescription('Monospace 8'))
-
-    def on_configure(self, widget, event):
-        frame_width, frame_height = event.width, event.height
-        video_width, video_height = self.camera.size
-
-        video_ratio = float(video_width) / video_height
-        frame_ratio = float(frame_width) / frame_height
-
-        if frame_ratio < video_ratio:
-            width = frame_width
-            height = int(width / video_ratio)
-        else:
-            height = frame_height
-            width = int(video_ratio * height)
-
-        self.video.scale = float(width) / video_width
-        self._img_width, self._img_height = width, height
-        self.set_size_request(width, height)
+        GObject.timeout_add(100, self.init_video)  # delay needed to make sure allocation is right
 
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(

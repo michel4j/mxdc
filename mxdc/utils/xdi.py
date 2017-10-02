@@ -235,6 +235,8 @@ class XDIData(object):
             namespace, tag = key.lower().split('.')
             if not namespace in TAGS.keys():
                 namespace, tag = key.split('.') # preserve case for non-standard namespaces
+            if namespace == 'column':
+                tag = int(tag)
             return self.header[namespace][tag]
         else:
             return self.header[key.lower()]

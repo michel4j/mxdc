@@ -10,6 +10,7 @@ from twisted.python.components import globalRegistry
 
 import common
 from datasets import IDatasets
+from mxdc.conf import load_cache, save_cache
 from mxdc.beamlines.mx import IBeamline
 from mxdc.engines.spectroscopy import XRFScanner, MADScanner, XASScanner
 from mxdc.utils import colors, datatools, misc, scitools
@@ -82,7 +83,8 @@ class ScanController(GObject.GObject):
         self.setup()
 
     def setup(self):
-        self.connect('notify::state', self.on_state_changed)
+
+        self.connect('notify::config', self.on_config_changed)
         self.scanner.connect('new-point', self.on_new_point)
         self.scanner.connect('paused', self.on_paused)
         self.scanner.connect('stopped', self.on_stopped)
@@ -97,6 +99,13 @@ class ScanController(GObject.GObject):
         self.edge_btn.connect('toggled', self.prepare_ptable, self.edge_entry)
         self.edge_entry.connect('changed', self.hide_ptable)
         self.edge_entry.connect('changed', self.on_edge_changed)
+        self.import_from_cache()
+        self.connect('notify::state', self.on_state_changed)
+
+    def import_from_cache(self):
+        config = load_cache('{}-params'.format(self.prefix))
+        if config:
+            self.configure(config)
 
     def update_directory(self, directory):
         home = misc.get_project_home()
@@ -190,6 +199,9 @@ class ScanController(GObject.GObject):
                 value = default
             info[name] = value
         return info
+
+    def on_config_changed(self, *args, **kwargs):
+        save_cache(self.props.config, '{}-params'.format(self.prefix))
 
     def on_edge_changed(self, entry):
         edge = entry.get_text()
@@ -404,7 +416,7 @@ class MADScanController(ScanController):
 
     def on_done(self, scanner):
         super(MADScanController, self).on_done(scanner)
-        choices = scanner.results['analysis'].get('choices')
+        choices = scanner.results.get('choices')
         if choices is None:
             dialogs.warning('Error Analysing Scan', 'Analysis of MAD Scan failed')
             return
@@ -413,7 +425,7 @@ class MADScanController(ScanController):
         for choice in choices:
             self.plotter.axis[0].axvline(choice['energy'], color='#999999', linestyle='--', linewidth=1)
 
-        data = scanner.results['analysis'].get('esf')
+        data = scanner.results.get('esf')
         if data is not None:
             self.plotter.add_line(
                 data['energy'], data['fpp'], '-', color=colors.Category.GOOG20[1], label='f"', ax=new_axis
@@ -441,9 +453,38 @@ class MADScanController(ScanController):
                 self.results_view.expand_row(parent, False)
             self.results_view.scroll_to_cell(child, None, True, 0.5, 0.5)
 
+    def load_data(self, meta, data, analysis):
+        choices = analysis.get('choices')
+        if choices is None:
+            return
+
+        new_axis = self.plotter.add_axis(label="Anomalous scattering factors (f', f'')")
+        for choice in choices:
+            self.plotter.axis[0].axvline(choice['energy'], color='#999999', linestyle='--', linewidth=1)
+
+        if data:
+            self.plotter.add_line(
+                data['energy'], data['normfluor'], '-', color=colors.Category.GOOG20[0], ax=0
+            )
+
+        esf = analysis.get('esf')
+        if esf is not None:
+            self.plotter.add_line(
+                esf['energy'], esf['fpp'], '-', color=colors.Category.GOOG20[1], label='f"', ax=new_axis
+            )
+            self.plotter.add_line(
+                esf['energy'], esf['fp'], '-', color=colors.Category.CAT20[5], label="f'", ax=new_axis, redraw=True
+            )
+            self.plotter.set_labels(
+                title='{} Edge MAD Scan'.format(meta['edge']),
+                x_label='Energy (keV)', y1_label='Fluorescence'
+            )
+
+
 
 class XRFScanController(ScanController):
     ConfigSpec = {
+        'edge': ['entry', '{}', str, 'Se-K'],
         'energy': ['entry', '{:0.3f}', float, 12.658],
         'exposure': ['entry', '{:0.3g}', float, 0.5],
         'attenuation': ['entry', '{:0.3g}', float, 50.0],
@@ -470,8 +511,8 @@ class XRFScanController(ScanController):
     def on_done(self, scanner):
         super(XRFScanController, self).on_done(scanner)
         self.annotations = {}
-        data = scanner.results['data']
-        analysis = scanner.results['analysis']
+        data = scanner.data
+        analysis = scanner.results
         ys = analysis['counts']
         energy = scanner.config['energy']
         assignments = analysis['assignments']
