@@ -67,7 +67,7 @@ def get_config_modules(config_dir, name=None):
 def initialize(name=None):
     global CONFIG_DIR, CONFIGS, SETTINGS, APP_CACHE_DIR, PROPERTIES
     CONFIG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'etc')
-    app_config_dir = os.path.join(os.environ['HOME'], '.config', 'mxdc')
+    app_config_dir = os.path.join(misc.get_project_home(), '.config', 'mxdc')
     try:
         # initiallize users settings
 
