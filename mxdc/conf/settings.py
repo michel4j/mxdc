@@ -10,6 +10,7 @@ if not CONFIGS:
 
 _KEY_FILE = os.path.join(os.path.dirname(APP_CACHE_DIR), 'keys.dsa')
 
+DEBUG = bool(os.environ.get('MXDC_DEBUG'))
 
 def get_string(*args):
     return SETTINGS.get_string(*args)

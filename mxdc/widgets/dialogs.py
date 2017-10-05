@@ -94,7 +94,7 @@ def question(header, sub_header=None, details=None, parent=None, buttons=Gtk.But
 def yesno(header, sub_header=None, details=None, parent=None, default=Gtk.ResponseType.YES):
     buttons = (
         ('Yes', Gtk.ResponseType.YES),
-        ('Yes', Gtk.ResponseType.NO),
+        ('No', Gtk.ResponseType.NO),
     )
     return simple_dialog(Gtk.MessageType.QUESTION, header, sub_header, details, parent=parent,
                          buttons=buttons, default=default, extra_widgets=None)

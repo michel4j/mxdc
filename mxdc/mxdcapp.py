@@ -37,13 +37,14 @@ class MXDCApp(object):
 
     def start(self):
         # Create application window
+        self.session_active = False
         self.main_window = AppWindow()
         self.beamline = MXBeamline()
 
         self.hook = excepthook.ExceptHook(
             emails=self.beamline.config['bug_report'], exit_function=exit_main_loop
         )
-        #self.hook.install()
+        self.hook.install()
 
         self.service_type = '_mxdc_{}._tcp'.format(identifier_slug(self.beamline.name))
         self.service_data = {
@@ -58,7 +59,7 @@ class MXDCApp(object):
         self.main_window.run()
 
     def service_found(self, obj, state):
-        if state:
+        if state and not settings.DEBUG:
             data = self.remote_mxdc.service_data
             msg = 'On <i>{}</i>, by user <i>{}</i> since <i>{}</i>. Only one instance permitted!'.format(
                 data['host'], data['data']['user'], data['data']['started']
@@ -106,11 +107,13 @@ class MXDCApp(object):
                 self.service_data['user'], self.beamline.name, self.service_data['started']
             )
         )
+        self.session_active = True
         self.beamline.lims.open_session(self.beamline.name, settings.get_session())
 
     def do_quit(self, obj=None):
-        logger.info('Closing MxLIVE Session...')
-        self.beamline.lims.close_session(self.beamline.name, settings.get_session())
+        if self.session_active:
+            logger.info('Closing MxLIVE Session...')
+            self.beamline.lims.close_session(self.beamline.name, settings.get_session())
         logger.info('Stopping ...')
         exit_main_loop()
 
