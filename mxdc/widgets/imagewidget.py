@@ -533,8 +533,8 @@ class ImageWidget(Gtk.DrawingArea):
     def _calc_pos(self, x, y):
         Ix = int(x / self.scale) + self.extents[0]
         Iy = int(y / self.scale) + self.extents[1]
-        Ix = max(1, min(Ix, self.image_height - 2))
-        Iy = max(1, min(Iy, self.image_width - 2))
+        Ix = max(1, min(Ix, self.image_width - 2))
+        Iy = max(1, min(Iy, self.image_height - 2))
         return Ix, Iy
 
     def _res(self, x, y):
@@ -554,7 +554,7 @@ class ImageWidget(Gtk.DrawingArea):
 
         Ix, Iy = self._calc_pos(x, y)
         Res = self._res(Ix, Iy)
-        return Ix, Iy, Res, self.pixel_data[Iy, Ix]
+        return Ix, Iy, Res, self.pixel_data[Ix, Iy]
 
     def _set_cursor_mode(self, cursor=None):
         window = self.get_window()
