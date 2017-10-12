@@ -39,15 +39,18 @@ class DeviceMonitor(object):
 
 
 class ShutterSwitcher(object):
-    def __init__(self, device, switch, reverse=False):
+    def __init__(self, device, switch, reverse=False, openonly=False):
         self.device = device
         self.switch = switch
         self.reverse = reverse
+        self.openonly = openonly
         self.device.connect('changed', self.on_state_change)
         self.switch.connect('notify::active', self.on_shutter_activated)
 
     def on_state_change(self, obj, state):
         self.switch.set_state(operator.xor(state, self.reverse))
+        if self.openonly:
+            self.switch.set_sensitive(not state)
 
     def on_shutter_activated(self, obj, param):
         state = self.switch.get_active()

@@ -8,12 +8,12 @@ from mxdc.conf import settings
 from mxdc.services import mxdctools
 from mxdc.beamlines.mx import MXBeamline
 from mxdc.utils import mdns
-from mxdc.utils.log import get_module_logger, log_to_console
+from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_project_name, identifier_slug
 from mxdc.AppWindow import AppWindow
 from mxdc.widgets import dialogs
 from mxdc.utils import excepthook
-from mxdc.services.clients import MxDCClient
+from mxdc.services.clients import MxDCClientFactory
 from twisted.internet import reactor
 from twisted.spread import pb
 import os
@@ -31,7 +31,6 @@ logger = get_module_logger(__name__)
 
 
 class MXDCApp(object):
-
     def run(self):
         run_main_loop(self.start)
 
@@ -44,7 +43,7 @@ class MXDCApp(object):
         self.hook = excepthook.ExceptHook(
             emails=self.beamline.config['bug_report'], exit_function=exit_main_loop
         )
-        self.hook.install()
+        #self.hook.install()
 
         self.service_type = '_mxdc_{}._tcp'.format(identifier_slug(self.beamline.name))
         self.service_data = {
@@ -52,7 +51,7 @@ class MXDCApp(object):
             'started': time.asctime(time.localtime()),
             'beamline': self.beamline.name
         }
-        self.remote_mxdc = MxDCClient(self.service_type)
+        self.remote_mxdc = MxDCClientFactory(self.service_type)()
         self.remote_mxdc.connect('active', self.service_found)
         self.remote_mxdc.connect('health', self.service_failed)
         self.main_window.connect('destroy', self.do_quit)
@@ -68,7 +67,7 @@ class MXDCApp(object):
                 msg += '\n\nDo you want to shut it down?'
                 response = dialogs.yesno('MXDC Already Running', msg)
                 if response == Gtk.ResponseType.YES:
-                    d = self.remote_mxdc.service.callRemote('shutdown')
+                    d = self.remote_mxdc.shutdown()
                     d.addErrback(self.on_close_connection)
                 else:
                     self.do_quit()

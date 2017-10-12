@@ -45,8 +45,8 @@ class StatusPanel(object):
             common.DeviceMonitor(
                 self.beamline.ring_current, self.widget.status_current_fbk, format='{:0.1f} mA'
             ),
-            common.ShutterSwitcher(self.beamline.all_shutters, self.widget.beam_switch),
-            common.ShutterSwitcher(self.beamline.exposure_shutter, self.widget.shutter_switch),
+            common.ShutterSwitcher(self.beamline.all_shutters, self.widget.beam_switch, openonly=True),
+            common.ShutterSwitcher(self.beamline.fast_shutter, self.widget.shutter_switch),
             common.ModeMonitor(self.beamline.goniometer, self.widget.mode_status_box, COLOR_MAP, MODE_MAP,
                                signal='mode'),
             common.ScriptMonitor(self.widget.mode_mount_btn, self.scripts['SetMountMode'], spinner=self.widget.spinner),

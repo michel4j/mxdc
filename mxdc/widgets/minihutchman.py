@@ -224,10 +224,10 @@ class MiniHutchManager(Gtk.Alignment):
         script.start()
     
     def on_open_shutter(self, obj):
-        self.beamline.exposure_shutter.open()
+        self.beamline.fast_shutter.open()
     
     def on_close_shutter(self, obj):
-        self.beamline.exposure_shutter.close()
+        self.beamline.fast_shutter.close()
 
     def on_scripts_started(self, obj, event=None):
         self.device_box.set_sensitive(False)

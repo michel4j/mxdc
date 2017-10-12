@@ -4,18 +4,18 @@ import time
 
 import common
 from gi.repository import GObject, Gio, Gtk
-from mxdc.conf import load_cache, save_cache
+from microscope import IMicroscope
 from mxdc.beamlines.mx import IBeamline
-from mxdc.engines.diffraction import DataCollector
+from mxdc.conf import load_cache, save_cache
 from mxdc.engines.automation import Automator
+from mxdc.engines.diffraction import DataCollector
 from mxdc.utils import converter, datatools, misc
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import datawidget, dialogs, arrowframe
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
 from samplestore import ISampleStore, SampleQueue, SampleStore
-from microscope import IMicroscope
-from zope.interface import Interface, implements
 from twisted.python.components import globalRegistry
+from zope.interface import Interface
 
 logger = get_module_logger(__name__)
 
@@ -25,7 +25,6 @@ logger = get_module_logger(__name__)
     RESPONSE_SKIP,
     RESPONSE_CANCEL,
 ) = range(4)
-
 
 
 class IDatasets(Interface):
@@ -363,7 +362,6 @@ class DatasetsController(GObject.GObject):
         self.collector.connect('stopped', self.on_stopped)
         self.collector.connect('progress', self.on_progress)
         self.collector.connect('started', self.on_started)
-        self.microscope.connect('notify::points', self.on_points)
         globalRegistry.register([], IDatasets, '', self)
         self.setup()
 
@@ -398,7 +396,9 @@ class DatasetsController(GObject.GObject):
         self.sample_store = globalRegistry.lookup([], ISampleStore)
         self.sample_store.connect('updated', self.on_sample_updated)
 
+        self.run_editor.set_points(self.microscope.props.points)
         self.import_from_cache()
+
         new_item = datawidget.RunItem(state=datawidget.RunItem.StateType.ADD)
         pos = self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
         self.run_editor.set_item(new_item)
@@ -419,6 +419,7 @@ class DatasetsController(GObject.GObject):
             for name, (dev, lbl, fmt) in labels.items()
         }
         self.widget.datasets_collect_btn.connect('clicked', self.on_collect_btn)
+        self.microscope.connect('notify::points', self.on_points)
 
     def create_run_config(self, item):
         config = datawidget.RunConfig()
@@ -440,10 +441,10 @@ class DatasetsController(GObject.GObject):
             )
             config = datawidget.DataDialog.get_default()
             config.update({
-                'resolution': round(resolution,1),
+                'resolution': round(resolution, 1),
                 'strategy': datawidget.StrategyType.SINGLE,
                 'energy': energy,
-                'distance': round(distance,1),
+                'distance': round(distance, 1),
                 'exposure': self.beamline.config['default_exposure'],
                 'name': sample.get('name', 'test'),
             })
@@ -454,19 +455,13 @@ class DatasetsController(GObject.GObject):
             self.check_run_store()
         self.run_editor.set_item(item)
 
-
     def on_runs_changed(self, model, position, removed, added):
         self.update_positions()
         if self.run_store.get_n_items() < 2:
             self.widget.datasets_collect_btn.set_sensitive(False)
 
     def on_points(self, *args, **kwargs):
-        if self.microscope.props.points:
-            self.run_editor.add_point(
-                'P{}'.format(len(self.microscope.props.points)), self.microscope.props.points[-1]
-            )
-        else:
-            self.run_editor.clear_points()
+        self.run_editor.set_points(self.microscope.props.points)
 
     def generate_run_list(self):
         runs = []

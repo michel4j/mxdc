@@ -113,3 +113,4 @@ FRACTION_COLORMAP = ColorMapper(min_val=0.1, max_val=0.9)
 def lighten_color(s, step=51):
     R, G, B = [min(max(int('0x' + v, 0) + step, 0), 255) for v in _COLOR_PATTERN.match(s.upper()).groups()]
     return "#%02x%02x%02x" % (R, G, B)
+

@@ -189,4 +189,3 @@ def _get_address(gateway, port=22):
 @decorators.memoize
 def get_address():
     return ipaddress.ip_address(u'{}'.format(_get_address(_get_gateway())))
-
