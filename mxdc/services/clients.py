@@ -1,26 +1,27 @@
-import json
 import os
 import re
+import socket
 
-from mxdc.conf import settings
 import requests
-from gi.repository import GObject
-from twisted.internet import reactor, error, defer
-from twisted.spread import pb
-from zope.interface import implements
+import rpyc
+from rpyc.utils.helpers import BgServingThread
 
+from gi.repository import GObject, GLib
 from interfaces import IImageSyncService
+from mxdc.conf import settings
 from mxdc.devices.base import BaseDevice
 from mxdc.utils import mdns, signing, misc
 from mxdc.utils.log import get_module_logger
-from mxdc.utils.misc import get_project_name
+from twisted.internet import reactor, error
+from twisted.spread import pb
+from zope.interface import implements
 
 logger = get_module_logger(__name__)
 
 
 class BaseService(BaseDevice):
     def __init__(self):
-        BaseDevice.__init__(self)
+        super(BaseService, self).__init__()
         self.name = self.__class__.__name__ + ' Service'
 
 
@@ -31,79 +32,178 @@ class ServerClientFactory(pb.PBClientFactory):
         return broker
 
 
-class DPMClient(BaseService):
+class PBClient(BaseService):
+    NAME = 'PB Server'
+    CODE = ''
+
     def __init__(self, address=None):
-        BaseService.__init__(self)
-        self.name = "AutoProcess Service"
-        self._service_found = False
-        self._service_data = {}
-        self._ready = False
+        super(PBClient, self).__init__()
+        self.service = None
+        self.browser = None
+        self.name = self.NAME
+        self.code = self.CODE
+        self.connection = None
+        self.service_found = False
+        self.service_data = {}
         if address is not None:
             m = re.match('([\w.\-_]+):(\d+)', address)
             if m:
-                data = {'name': 'AutoProcess Service',
-                        'host': m.group(1),
-                        'address': m.group(1),
-                        'port': int(m.group(2)),
-                        }
-                self.on_service_added(None, data)
+                data = {
+                    'name': self.name,
+                    'host': m.group(1),
+                    'address': socket.gethostbyname(m.group(1)),
+                    'port': int(m.group(2)),
+                }
+                self.service_added(None, data)
         else:
             GObject.idle_add(self.setup)
 
-    def on_service_added(self, obj, data):
-        if self._service_found:
-            return
-        self._service_found = True
-        self._service_data = data
-        self.factory = ServerClientFactory()
-        self.factory.getRootObject().addCallback(self.on_connected).addErrback(self.on_connection_failed)
-        reactor.connectTCP(self._service_data['address'], self._service_data['port'], self.factory)
-        logger.info(
-            'AutoProcess Service found at {}:{}'.format(self._service_data['host'], self._service_data['port'])
-        )
+    def service_added(self, obj, data):
+        if self.service_found: return
+        self.service_found = True
+        self.service_data = data
 
-    def on_service_removed(self, obj, data):
-        if not self._service_found and self._service_data['host'] == data['host']:
+        self.factory = ServerClientFactory()
+        self.factory.getRootObject().addCallback(self.on_connect).addErrback(self.on_failure)
+        reactor.connectTCP(self.service_data['address'], self.service_data['port'], self.factory)
+
+
+    def service_removed(self, obj, data):
+        if not self.service_found and self.service_data['host'] == data['host']:
             return
-        self._service_found = False
-        self._ready = False
-        logger.warning(
-            'AutoProcess Service {}:{} disconnected.'.format(self._service_data['host'], self._service_data['port'])
-        )
+        self.service_found = False
+        logger.info('{} {host}:{port} disconnected.'.format(self.name, **data))
         self.set_state(active=False)
 
     def setup(self):
-        """Find out the connection details of the AutoProcess Server using mdns
-        and initiate a connection"""
-        self.browser = mdns.Browser('_cmcf_dpm._tcp')
-        self.browser.connect('added', self.on_service_added)
-        self.browser.connect('removed', self.on_service_removed)
+        """
+        Discover connection details of the Server using mdns
+        and initiate a connection
+        """
+        self.browser = mdns.Browser(self.code)
+        self.browser.connect('added', self.service_added)
+        self.browser.connect('removed', self.service_removed)
 
-    def on_connected(self, perspective):
-        """ I am called when a connection to the AutoProcess Server has been established.
+    def on_connect(self, perspective):
+        """
+        I am called when a connection to the AutoProcess Server has been established.
         I expect to receive a remote perspective which will be used to call remote methods
-        on the DPM server."""
-        logger.info('Connection to AutoProcess Server established')
+        on the DPM server.
+        """
+        logger.info('{} {host}:{port} connected.'.format(self.name, **self.service_data))
         self.service = perspective
-        self.service.notifyOnDisconnect(self.on_disconnected)
-        self._ready = True
+        self.service.notifyOnDisconnect(self.on_disconnect)
         self.set_state(active=True)
 
-    def on_disconnected(self, obj):
+    def on_disconnect(self, obj):
         """Used to detect disconnections if MDNS is not being used."""
         self.set_state(active=False)
 
-    def on_connection_failed(self, reason):
-        logger.error('Connection to AutoProcess Server Failed')
+    def on_failure(self, reason):
+        logger.error('Connection to {} Failed'.format(self.name))
 
-    def is_ready(self):
-        return self._ready
+
+class RPCClient(BaseService):
+    NAME = 'RPC Service'
+    CODE = ''
+
+    def __init__(self, address=None):
+        super(RPCClient, self).__init__()
+        self.service = None
+        self.browser = None
+        self.name = self.NAME
+        self.code = self.CODE
+        self.connection = None
+        self.service_found = False
+        self.service_data = {}
+        if address is not None:
+            m = re.match('([\w.\-_]+):(\d+)', address)
+            if m:
+                data = {
+                    'name': self.name,
+                    'host': m.group(1),
+                    'address': socket.gethostbyname(m.group(1)),
+                    'port': int(m.group(2)),
+                }
+                self.service_added(None, data)
+        else:
+            GObject.idle_add(self.setup)
+
+    def service_added(self, obj, data):
+        if self.service_found: return
+        self.service_found = True
+        self.service_data = data
+        self.connection = rpyc.connect(data['address'], data['port'], config={"allow_public_attrs": True,"allow_pickle": True})
+        self.bg_server = BgServingThread(self.connection)
+        #GLib.io_add_watch(self.connection, GLib.PRIORITY_DEFAULT, GLib.IO_IN|GLib.IO_OUT|GLib.IO_ERR, self.connection.serve )
+        self.service = self.connection.root
+
+        logger.info('{} {host}:{port} connected.'.format(self.name, **data))
+        self.set_state(active=True)
+
+    def service_removed(self, obj, data):
+        if not self.service_found and self.service_data['host'] == data['host']:
+            return
+        self.service_found = False
+        logger.info('{} {host}:{port} disconnected.'.format(self.name, **data))
+        self.set_state(active=False)
+
+    def setup(self):
+        """
+        Discover connection details of the Server using mdns
+        and initiate a connection
+        """
+        self.browser = mdns.Browser(self.code)
+        self.browser.connect('added', self.service_added)
+        self.browser.connect('removed', self.service_removed)
+
+
+class DPSClient(RPCClient):
+    NAME = 'Data Analysis Server'
+    CODE = '_dpm_rpc._tcp'
+
+    def process_mx(self, *args, **kwargs):
+        func = rpyc.async(self.service.process_mx)
+        return func(*args, **kwargs)
+
+    def process_xrd(self, *args, **kwargs):
+        func = rpyc.async(self.service.process_xrd)
+        return func(*args, **kwargs)
+
+    def analyse_frame(self, *args, **kwargs):
+        func = rpyc.async(self.service.analyse_frame)
+        return func(*args, **kwargs)
+
+
+class DPMClient(PBClient):
+    NAME = 'Data Analysis Server'
+    CODE = '_dpm_rpc._tcp'
+
+    def process_mx(self, *args, **kwargs):
+        return self.service.callRemote('process_mx', *args, **kwargs)
+
+    def process_xrd(self, *args, **kwargs):
+        return self.service.callRemote('process_xrd', *args, **kwargs)
+
+    def analyse_frame(self, *args, **kwargs):
+        return self.service.callRemote('analyse_frame', *args, **kwargs)
+
+
+class DSSClient(RPCClient):
+    NAME = 'Data Synchronization Server'
+    CODE = '_imgsync_rpc._tcp'
+
+    def configure(self, *args, **kwargs):
+        return self.service.configure(*args, **kwargs)
+
+    def setup_folder(self, *args, **kwargs):
+        return self.service.setup_folder(*args, **kwargs)
 
 
 class MxLIVEClient(BaseService):
     def __init__(self, address):
         BaseService.__init__(self)
-        self.name = "MxLIVE Service"
+        self.name = "MxLIVE Server"
         self.address = address
         self.cookies = {}
         self.set_state(active=True)
@@ -213,174 +313,27 @@ class MxLIVEClient(BaseService):
         self.upload('/report/{}/'.format(beamline), filename)
 
 
-class MxDCClient(BaseService):
-    def __init__(self, service_type):
-        BaseService.__init__(self)
-        self.name = "Remote MxDC"
-        self._service_found = False
-        self.added_id = None
-        self.removed_id = None
-        self.service_data = {}
-        self.service = None
-        self._ready = False
-        self.service_type = service_type
-        GObject.idle_add(self.setup)
+def MxDCClientFactory(code):
+    class Client(PBClient):
+        NAME = 'Remote MxDC'
+        CODE = code
 
-    def on_service_added(self, obj, data):
-        self._service_found = True
-        self.service_data = data
-        self.factory = ServerClientFactory()  # pb.PBClientFactory()
-        self.factory.getRootObject().addCallback(self.on_connected).addErrback(self.on_connection_failed)
-        reactor.connectTCP(self.service_data['address'], self.service_data['port'], self.factory)
+        def send_message(self, *args, **kwargs):
+            self.service.callRemote('send_message', *args, **kwargs)
 
-        logger.warning(
-            'Remote MXDC instance {}@{}:{} since {}'.format(
-                self.service_data['data']['user'], self.service_data['address'], self.service_data['port'],
-                self.service_data['data']['started']
-            )
-        )
-
-    def on_service_removed(self, obj, data):
-        # if not self._service_found and self.service_data['address'] == data['address']:
-        #     return
-        self._service_found = False
-        self._ready = False
-        self.set_state(active=False)
-        self.notify_failure()
-
-    def setup(self):
-        """Find out the connection details of the Remove MXDC using mdns
-        and initiate a connection"""
-        self.browser = mdns.Browser(self.service_type)
-        self.added_id = self.browser.connect('added', self.on_service_added)
-        self.removed_id = self.browser.connect('removed', self.on_service_removed)
-        GObject.timeout_add(2000, self.notify_failure)
-
-    def on_connected(self, perspective):
-        """ I am called when a connection to the MxDC instance has been established.
-        I expect to receive a remote perspective which will be used to call remote methods
-        on the MxDC instance."""
-        self.service = perspective
-        self.service.notifyOnDisconnect(self.on_disconnected)
-        self._ready = True
-        self.set_state(active=True)
-
-    def on_disconnected(self, remote):
-        """Used to detect disconnections if MDNS is not being used."""
-        self.set_state(active=False)
-
-    def on_connection_failed(self, reason):
-        reason.trap(error.ConnectionDone)
-        logger.warning('Connection to Remote MxDC Failed')
-
-    def notify_failure(self):
-        if not self.active_state:
-            self.browser.disconnect(self.removed_id)
-            self.browser.disconnect(self.added_id)
-            self.set_state(health=(16, 'not-connected'))
-
-    def is_ready(self):
-        return self._ready
+        def shutdown(self, *args, **kwargs):
+            self.service.callRemote('shutdown', *args, **kwargs)
+    return Client
 
 
-class ImageSyncClient(BaseService):
-    implements(IImageSyncService)
-
-    def __init__(self, url=None, **kwargs):
-        BaseService.__init__(self)
-        self.name = "Image Sync Service"
-        self._service_found = False
-        self.kwargs = kwargs
-        if url is None:
-            GObject.idle_add(self.setup)
-        else:
-            address, port = url.split(':')
-            GObject.idle_add(self.setup_manual, address, int(port))
-
-    @defer.deferredGenerator
-    def set_user(self, user, uid, gid):
-        d = self.service.callRemote('set_user', user, uid, gid)
-        v = defer.waitForDeferred(d)
-        yield v
-        yield v.getResult()
-
-    @defer.deferredGenerator
-    def setup_folder(self, folder):
-        d = self.service.callRemote('setup_folder', folder)
-        v = defer.waitForDeferred(d)
-        yield v
-        yield v.getResult()
-
-    @defer.deferredGenerator
-    def configure(self, *args, **kwargs):
-        d = self.service.callRemote('configure', **kwargs)
-        v = defer.waitForDeferred(d)
-        yield v
-        yield v.getResult()
-
-    def setup(self):
-        """Find out the connection details of the ImgSync Server using mdns
-        and initiate a connection"""
-        self.browser = mdns.Browser('_cmcf_imgsync._tcp')
-        self.browser.connect('added', self.on_imgsync_service_added)
-        self.browser.connect('removed', self.on_imgsync_service_removed)
-
-    def setup_manual(self, address, port):
-        self._service_data = {
-            'address': address,
-            'port': port
-        }
-        self.factory = pb.PBClientFactory()
-        self.factory.getRootObject().addCallback(self.on_server_connected).addErrback(self.dump_error)
-        reactor.connectTCP(self._service_data['address'],
-                           self._service_data['port'], self.factory)
-
-    def on_imgsync_service_added(self, obj, data):
-        if self._service_found:
-            return
-        self._service_found = True
-        self._service_data = data
-        logger.info('Image Sync Service found at %s:%s' % (self._service_data['host'],
-                                                           self._service_data['port']))
-        self.factory = pb.PBClientFactory()
-        self.factory.getRootObject().addCallback(self.on_server_connected).addErrback(self.dump_error)
-        reactor.connectTCP(self._service_data['address'],
-                           self._service_data['port'], self.factory)
-
-    def on_imgsync_service_removed(self, obj, data):
-        if not self._service_found and self._service_data['host'] == data['host']:
-            return
-        self._service_found = False
-        logger.warning('Image Sync Service %s:%s disconnected.' % (self._service_data['host'],
-                                                                   self._service_data['port']))
-        self.set_state(active=False)
-
-    def on_server_connected(self, perspective):
-        """ I am called when a connection to the Server has been established.
-        I expect to receive a remote perspective which will be used to call remote methods
-        on the remote server."""
-        logger.info('Connection to Image Sync Server established')
-        self.service = perspective
-        self.configure(**self.kwargs)
-        self._ready = True
-        self.set_state(active=True)
-
-    def dump_error(self, failure):
-        failure.printTraceback()
-
-
-class LocalImageSyncClient(BaseService):
+class LocalDSSClient(BaseService):
     implements(IImageSyncService)
 
     def __init__(self, *args, **kwargs):
-        super(LocalImageSyncClient, self).__init__()
+        super(LocalDSSClient, self).__init__()
         self.name = "ImgSync Service"
         self.set_state(active=True)
         self.params = []
-
-    def set_user(self, user, uid, gid):
-        self.params = [user, uid, gid]
-        return True
 
     def setup_folder(self, folder):
         if not os.path.exists(folder):
@@ -389,4 +342,4 @@ class LocalImageSyncClient(BaseService):
         return True
 
 
-__all__ = ['DPMClient', 'MxDCClient', 'MxLIVEClient', 'ImageSyncClient', 'LocalImageSyncClient']
+__all__ = ['DPMClient', 'DPSClient', 'MxDCClientFactory', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient']

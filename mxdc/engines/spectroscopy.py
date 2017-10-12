@@ -73,10 +73,10 @@ class XRFScanner(BasicScan):
                 self.config['start_time'] = datetime.now()
                 self.prepare_for_scan()
                 self.notify_progress(1, "Acquiring spectrum ...")
-                self.beamline.exposure_shutter.open()
+                self.beamline.fast_shutter.open()
                 raw_data = self.beamline.mca.acquire(t=self.config['exposure'])
                 self.set_data(raw_data)
-                self.beamline.exposure_shutter.close()
+                self.beamline.fast_shutter.close()
                 self.config['end_time'] = datetime.now()
                 self.save(self.config['filename'])
                 self.notify_progress(3, "Interpreting spectrum ...")
@@ -84,7 +84,7 @@ class XRFScanner(BasicScan):
                 self.save_metadata()
                 GObject.idle_add(self.emit, "done")
             finally:
-                self.beamline.exposure_shutter.close()
+                self.beamline.fast_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
                 self.beamline.mca.configure(retract=False)
                 self.beamline.goniometer.set_mode('COLLECT')
@@ -221,7 +221,7 @@ class MADScanner(BasicScan):
             try:
                 GObject.idle_add(self.emit, 'started')
                 self.prepare_for_scan()
-                self.beamline.exposure_shutter.open()
+                self.beamline.fast_shutter.open()
                 reference = 0.0
                 self.config['start_time'] = datetime.now()
                 for i, x in enumerate(self.config['targets']):
@@ -265,7 +265,7 @@ class MADScanner(BasicScan):
                     GObject.idle_add(self.emit, "done")
             finally:
                 self.beamline.energy.move_to(self.config['edge_energy'])
-                self.beamline.exposure_shutter.close()
+                self.beamline.fast_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
                 self.beamline.mca.configure(retract=False)
                 logger.info('Edge scan done.')
@@ -394,8 +394,8 @@ class XASScanner(BasicScan):
             try:
                 GObject.idle_add(self.emit, 'started')
                 self.prepare_for_scan()
-                self.beamline.exposure_shutter.open()
-                self.beamline.exposure_shutter.open()
+                self.beamline.fast_shutter.open()
+                self.beamline.fast_shutter.open()
 
                 # calculate k and time for each target point
                 self.total_time = 0.0
@@ -471,7 +471,7 @@ class XASScanner(BasicScan):
 
             finally:
                 self.beamline.energy.move_to(self.config['edge_energy'])
-                self.beamline.exposure_shutter.close()
+                self.beamline.fast_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
                 self.beamline.multi_mca.configure(retract=False)
                 logger.info('Edge scan done.')

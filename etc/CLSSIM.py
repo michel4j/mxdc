@@ -68,7 +68,8 @@ DEVICES = {
     # 'sample_camera': AxisPTZCamera('ccd1608-301.clsi.ca'),
     # 'sample_camera': MJPGCamera('http://opi2051-002.clsi.ca:9999/video.mjpg', size=(1360, 1024)),
     # 'sample_camera': JPGCamera('http://opi2051-002.clsi.ca:9999/image.jpg', size=(1360, 1024)),
-    'sample_camera': video.REDISCamera('opi1608-101.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
+    'sample_camera': video.AxisCamera('V2E1608-400', 1),
+    #'sample_camera': video.REDISCamera('opi1608-101.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),
@@ -86,7 +87,7 @@ DEVICES = {
     'psh1': misc.SimShutter('PSH1'),
     'ssh1': misc.SimShutter('SSH2'),
     'psh2': misc.SimShutter('PSH2'),
-    'exposure_shutter': misc.SimShutter('Fast Shutter'),
+    'fast_shutter': misc.SimShutter('Fast Shutter'),
     'enclosures': misc.Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
 
     # Intensity monitors, shutter, attenuation, mca etc
@@ -107,7 +108,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'image_server': clients.LocalImageSyncClient(),
+    'dss': clients.DSSClient(),
     'lims': clients.MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
-    'dpm': clients.DPMClient(),
+    'dps': clients.DPMClient(),
 }

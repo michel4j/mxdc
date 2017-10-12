@@ -4,6 +4,7 @@ import pwd
 import re
 import threading
 import time
+import functools
 
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
@@ -51,7 +52,6 @@ class RasterCollector(GObject.GObject):
         self.config['grid'] = grid
         self.config['params'] = parameters
         self.config['frames'] = datatools.generate_grid_frames(grid, parameters)
-        self.beamline.image_server.set_user(pwd.getpwuid(os.geteuid())[0], os.geteuid(), os.getegid())
 
     def start(self):
         worker_thread = threading.Thread(target=self.run)
@@ -61,10 +61,10 @@ class RasterCollector(GObject.GObject):
 
     def prepare(self, params):
         # setup folder for
-        self.beamline.image_server.setup_folder(params['directory'])
+        self.beamline.dss.setup_folder(params['directory'], misc.get_project_name())
 
         # make sure shutter is closed before starting
-        self.beamline.exposure_shutter.close()
+        self.beamline.fast_shutter.close()
 
         # take snapshot
         self.beamline.goniometer.set_mode('CENTERING', wait=True)
@@ -78,8 +78,6 @@ class RasterCollector(GObject.GObject):
 
         #switch to collect mode
         self.beamline.goniometer.set_mode('COLLECT', wait=True)
-
-
 
     def run(self):
         self.paused = False
@@ -97,13 +95,8 @@ class RasterCollector(GObject.GObject):
             try:
                 self.acquire()
             finally:
-                self.beamline.exposure_shutter.close()
+                self.beamline.fast_shutter.close()
 
-        # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
-        time.sleep(2.0)
-
-        # self.results = self.save(self.config['datasets'])
-        # self.beamline.lims.upload_datasets(self.beamline, self.results)
         if not self.stopped:
             GObject.idle_add(self.emit, 'done')
         else:
@@ -164,6 +157,10 @@ class RasterCollector(GObject.GObject):
         self.beamline.omega.move_to(self.config['params']['angle'], wait=True)
         GObject.timeout_add(5000, self.unwatch_frames)
 
+        while self.pending_results:
+            time.sleep(1)
+        self.save_metadata()
+
     def watch_frames(self):
         self.beamline.detector.handler_unblock(self.frame_link)
 
@@ -193,9 +190,9 @@ class RasterCollector(GObject.GObject):
 
     def on_new_image(self, obj, file_path):
         GObject.idle_add(self.emit, 'new-image', file_path)
-        self.analyse_image(file_path)
+        self.analyse_frame(file_path)
 
-    def analyse_image(self, file_path):
+    def analyse_frame(self, file_path):
         frame = os.path.splitext(os.path.basename(file_path))[0]
         file_pattern = re.compile(r'^{}_(\d{{3,}})$'.format(self.config['params']['name']))
         m = file_pattern.match(frame)
@@ -206,31 +203,26 @@ class RasterCollector(GObject.GObject):
             logger.info("Analyzing frame: {}:{}".format(index, frame))
             info = {
                 'name': params['name'],
-                'activity': 'proc-raster',
                 'filename': file_path,
                 'type': 'RASTER',
             }
-            info = datatools.update_for_sample(info, params['sample'])
-            d = self.analyst.process_raster(info)
+            d = self.beamline.dps.analyse_frame(file_path, misc.get_project_name())
             d.addCallbacks(
                 self.result_ready, callbackArgs=[index, file_path],
-                errback=self.result_fail, errbackArgs=[index, file_path]
+                errback=self.result_fail, errbackArgs = [index, file_path]
             )
 
-    def result_ready(self, result, cell, file_path):
-        self.pending_results.remove(file_path)
-        result['filename'] = file_path
-        GObject.idle_add(self.emit, 'result', cell, result)
-        self.results[cell] = result
-        if not self.pending_results:
-            self.save_metadata()
+    def result_ready(self, result, index=None, path=None):
+        info = result
+        self.pending_results.remove(path)
+        info['filename'] = path
+        GObject.idle_add(self.emit, 'result', index, info)
+        self.results[index] = info
 
     def result_fail(self, error, cell, file_path):
         self.pending_results.remove(file_path)
         self.results[cell] = error
         logger.error("Unable to process data for cell {}".format(cell))
-        if not self.pending_results:
-            self.save_metadata()
 
     def save_metadata(self, upload=True):
         params = self.config['params']

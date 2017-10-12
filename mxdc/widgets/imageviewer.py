@@ -9,7 +9,7 @@ import sys
 import numpy
 from gi.repository import GObject
 from gi.repository import Gtk
-from mxdc.utils import gui
+from mxdc.utils import gui, colors
 from mxdc.widgets import dialogs
 from mxdc.widgets.imagewidget import ImageWidget, image_loadable
 from twisted.python.components import globalRegistry
@@ -237,6 +237,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.info_data.set_alignment(1, 0.5)
 
     def _update_info(self, obj=None):
+        color = 'DarkSlateGray' #colors.Category.CAT20C[0]
         info = self.image_canvas.get_image_info()
         self._set_file_specs(info['filename'])
 
@@ -245,9 +246,14 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
             field = getattr(self, field_name, None)
             if field and name in info:
                 if isinstance(info[name], (tuple, list)):
-                    field.set_text(format.format(*info[name]))
+                    txt = u'<span color="{}"><tt>{}</tt></span>'.format(
+                        color, format.format(*info[name])
+                    )
                 else:
-                    field.set_text(format.format(info[name]))
+                    txt = u'<span color="{}"><tt>{}</tt></span>'.format(
+                        color, format.format(info[name])
+                    )
+                field.set_markup(txt)
         self.histogram.queue_draw()
 
     def add_frame(self, filename):

@@ -83,7 +83,7 @@ DEVICES = {
     'ssh1': misc.Shutter('SSH1408-B10-01'),
     'ssh3': misc.Shutter('SSH1608-4-B10-01'),
     'enclosures': misc.Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
-    'exposure_shutter': misc.BasicShutter('BL08B1:MD2:S:OpenFastShutter','BL08B1:MD2:S:CloseFastShutter','BL08B1:MD2:G:ShutterIsOpen'),
+    'fast_shutter': misc.BasicShutter('BL08B1:MD2:S:OpenFastShutter','BL08B1:MD2:S:CloseFastShutter','BL08B1:MD2:G:ShutterIsOpen'),
     
     # Intensity monitors,
     'i_0': counter.Counter('BPM08B1-05:I0:fbk'),
@@ -107,9 +107,9 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'image_server': clients.ImageSyncClient(),
+    'dss': clients.DSSClient(),
     'lims': clients.MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
-    'dpm': clients.DPMClient(),
+    'dps': clients.DPMClient(),
 }
 
 # Devices only available in the console

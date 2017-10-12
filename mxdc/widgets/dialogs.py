@@ -196,3 +196,5 @@ def select_open_image(parent=None, default_folder=None):
     ]
     return select_opensave_file('Select Image', Gtk.FileChooserAction.OPEN, parent=parent, filters=filters,
                                 default_folder=default_folder)
+
+

@@ -9,10 +9,8 @@ from mxdc import conf
 conf.initialize('SIM-1')
 
 from mxdc.mxdcapp import MXDCApp
-from mxdc.utils.log import log_to_console
 
 if __name__ == "__main__":
-    log_to_console()
     app = MXDCApp()
     app.run()
 

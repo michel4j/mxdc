@@ -116,21 +116,18 @@ class ServiceDiag(DiagnosticBase):
     disconnected or disabled.
     """
     
-    def __init__(self, service, descr=None):
+    def __init__(self, service):
         """
         Args:
             `services` (a class::`services.base.BaseService` object) the services to
             monitor.
 
-        Kwargs:
-            `descr` (str): Short description of the diagnostic.
         """
-        if descr is None:
-            descr = service.name
-        super(ServiceDiag, self).__init__(descr)
+        super(ServiceDiag, self).__init__(service.name)
         self.service = service
         self.service.connect('active', self._on_active)
-        
+        self.name = service.name
+
     def _on_active(self, obj, val):
         if val:
             _diag = (DIAG_STATUS_GOOD,'OK!')

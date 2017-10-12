@@ -64,7 +64,7 @@ DEVICES = {
     'beamstop_z': motor.VMEMotor('SMTR16083I1016:mm'),
     'sample_zoom': motor.VMEMotor('SMTR16083I1025:mm'),
     'cryojet': cryojet.CryoJet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
-    'sample_camera': video.AxisCamera('V2E1608-001', 4),
+    'sample_camera': video.REDISCamera('opi1608-101.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
     'sample_backlight': misc.SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk', 'ILC1608-3-I10-02:on', 100.0),
     'sample_frontlight': misc.SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk', 'ILC1608-3-I10-01:on', 100.0),
     'sample_uvlight': misc.SampleLight('BL08ID1:UVLight', 'BL08ID1:UVLight:fbk', 'BL08ID1:UVLight:OnOff', 100.0),
@@ -82,7 +82,7 @@ DEVICES = {
     'enclosures': misc.Enclosures(
         poe1='ACIS1608-3-I10-01:poe1:secure', poe2='ACIS1608-3-I10-01:poe2:secure', soe='ACIS1608-3-I10-01:soe1:secure'
     ),
-    'exposure_shutter': misc.Shutter('PSH16083I1001'),
+    'fast_shutter': misc.Shutter('PSH16083I1001'),
 
     # Intensity monitors,
     'i_0': counter.Counter('AH501-03:QEM:SumAll:MeanValue_RBV'),
@@ -102,9 +102,9 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'image_server': clients.ImageSyncClient(include=['*.cbf'], mode='777'),
+    'dss': clients.DSSClient(include=['*.cbf'], mode='777'),
     'lims': clients.MxLIVEClient('https://cmcf.lightsource.ca'),
-    'dpm': clients.DPMClient(),
+    'dps': clients.DPSClient(),
 }
 
 # Devices only available in the console

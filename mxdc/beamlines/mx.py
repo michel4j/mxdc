@@ -168,7 +168,7 @@ class MXBeamline(object):
         for name in device_list:
             self.diagnostics.append(diagnostics.DeviceDiag(self.registry[name]))
 
-        for name in ['image_server', 'dpm', 'lims', ]:
+        for name in ['dss', 'dps', 'lims', ]:
             self.diagnostics.append(diagnostics.ServiceDiag(self.registry[name]))
 
         self.diagnostics.append(diagnostics.DeviceDiag(self.registry['disk_space']))

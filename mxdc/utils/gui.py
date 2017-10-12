@@ -8,6 +8,7 @@ from enum import Enum
 gi.require_version('Gtk', '3.0')
 
 from gi.repository import Gtk, GObject, Gdk, Pango
+from mxdc import conf
 from mxdc.utils import colors
 
 class GUIFile(object):
@@ -49,7 +50,7 @@ def make_tab_label(txt):
 
 
 class BuilderMixin(object):
-    gui_top = os.path.join(os.environ['MXDC_PATH'], 'mxdc', 'widgets')
+    gui_top = os.path.join(conf.APP_DIR, 'mxdc', 'widgets')
     gui_roots = {
         'relative/path/to/file_without_extension': ['root_object']
     }
@@ -138,7 +139,7 @@ class TreeManager(GObject.GObject):
         Data.A: ('', '#770000'),
         Data.B: ('', '#770000'),
     }
-    tooltips = Data.A
+    tooltips = None
     parent = Data.A  # The column used to group items under the same parent
     flat = False  # whether tree is flat single level or not
     single_click = False
@@ -165,7 +166,7 @@ class TreeManager(GObject.GObject):
         self.view.connect('row-activated', self.row_activated)
         self.keys = [item.name.lower() for item in self.Data]
 
-    def add_item(self, item):
+    def add_item(self, item, add_parent=True):
         """
         Add an item to the tree
         @param item: a dict
@@ -175,9 +176,9 @@ class TreeManager(GObject.GObject):
             parent_path = None
             parent_itr = self.find_parent_iter(item)
             if parent_itr:
-                if not self.model.iter_has_child(parent_itr):
+                if not self.model.iter_has_child(parent_itr) and add_parent:
                     row = list(self.model[parent_itr])
-                    child_itr = self.model.append(parent_itr, row=row)
+                    self.model.append(parent_itr, row=row)
                 parent_path = self.model.get_path(parent_itr)
         else:
             parent_itr = parent_path = None
@@ -212,8 +213,13 @@ class TreeManager(GObject.GObject):
             groups.add(parent_path)
         return len(groups)
 
-    def item_to_dict(self, itr, model):
-        return dict(zip(self.keys, model[itr]))
+    def row_to_dict(self, row):
+        """
+        Convert a model row into a dictionary
+        @param row: TreeModelRow
+        @return: dict representing the item
+        """
+        return dict(zip(self.keys, row))
 
     def get_item(self, itr):
         """
@@ -221,7 +227,7 @@ class TreeManager(GObject.GObject):
         @param itr: Gtk.TreeItr
         @return:  dict representing the item
         """
-        return self.item_to_dict(itr, self.model)
+        return self.row_to_dict(self.model[itr])
 
     def get_items(self, itr):
         """
@@ -341,8 +347,10 @@ class TreeManager(GObject.GObject):
             name, color = self.Icons.get(value, (None, '#ffffff'))
             rgba = Gdk.RGBA()
             rgba.parse(color)
-            #column.set_property("foreground-rgba", rgba)
-            renderer.set_property("icon-name", name)
+            theme = Gtk.IconTheme.get_default()
+            info = theme.lookup_icon(name, 16, Gtk.IconLookupFlags.FORCE_SYMBOLIC)
+            icon, is_symbolic = info.load_symbolic(rgba, None, None, None)
+            renderer.props.pixbuf = icon
 
     def format_cell(self, column, renderer, model, itr, spec):
         """
