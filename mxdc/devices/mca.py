@@ -7,6 +7,7 @@ from gi.repository import GObject
 from zope.interface import implements
 
 from interfaces import IMultiChannelAnalyzer
+from mxdc import conf
 from mxdc.com import ca
 from mxdc.devices.base import BaseDevice
 from mxdc.utils import fitting
@@ -476,7 +477,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self.aquiring = True
         time.sleep(t)
         self.acquiring = False
-        fname = os.path.join(os.environ['MXDC_PATH'], 'test/scans/xrf_%03d.raw' % random.choice(range(1, 7)))
+        fname = os.path.join(conf.APP_DIR, 'test/scans/xrf_%03d.raw' % random.choice(range(1, 7)))
         logger.debug('Simulated Spectrum: %s' % fname)
         self._raw_data = numpy.loadtxt(fname, comments="#")
         self._x_axis = self._raw_data[:, 0]

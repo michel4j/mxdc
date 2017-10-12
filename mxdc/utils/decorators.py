@@ -5,6 +5,7 @@ from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
 
+
 def memoize(f):
     """ Memoization decorator for functions taking one or more arguments. """
 
@@ -20,6 +21,7 @@ def memoize(f):
             return ret
 
     return memodict(f)
+
 
 def async_call(f):
     """

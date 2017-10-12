@@ -1,13 +1,12 @@
 import math
 import os
 
-
 import common
 import numpy
 from gi.repository import Gtk, Pango, Gdk, GObject
 from matplotlib.path import Path
-from mxdc.conf import save_cache, load_cache
 from mxdc.beamlines.mx import IBeamline
+from mxdc.conf import save_cache, load_cache
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils import imgproc, colors
 from mxdc.utils.decorators import async_call
@@ -79,6 +78,7 @@ class Microscope(GObject.GObject):
         self.setup()
         self.video.set_overlay_func(self.overlay_function)
         globalRegistry.register([], IMicroscope, '', self)
+        self.load_from_cache()
 
     def setup(self):
         # zoom
@@ -153,7 +153,6 @@ class Microscope(GObject.GObject):
         # Connect Grid signals
         self.connect('notify::grid-xyz', self.update_grid)
 
-
     def init_video(self, *args, **kwargs):
         if not self.video_ready:
             self.video_ready = True
@@ -183,7 +182,7 @@ class Microscope(GObject.GObject):
         self.video.save_image(filename)
 
     def draw_beam(self, cr):
-        radius = 0.5e-3*self.beamline.aperture.get()/self.video.mm_scale()
+        radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
         tick_in = radius * 0.8
         tick_out = radius * 1.2
         center = numpy.array(self.video.get_size()) / 2
@@ -222,7 +221,7 @@ class Microscope(GObject.GObject):
             cr.line_to(x2, y2)
             cr.stroke()
             label = '{:0.3f} mm'.format(dist)
-            lx, ly = (x1 + x2)*0.5, (y1 + y2)*0.5
+            lx, ly = (x1 + x2) * 0.5, (y1 + y2) * 0.5
             xb, yb, w, h = cr.text_extents(label)[:4]
             cr.move_to(lx + h, ly + h)
             cr.show_text(label)
@@ -323,21 +322,22 @@ class Microscope(GObject.GObject):
         if self.props.points:
             cr.save()
             mm_scale = self.video.mm_scale()
-            radius = 0.5e-3*self.beamline.aperture.get()/(8*mm_scale)
+            radius = 0.5e-3 * self.beamline.aperture.get() / (8 * mm_scale)
             cur_point = numpy.array(self.beamline.sample_stage.get_xyz())
             center = numpy.array(self.video.get_size()) / 2
             points = numpy.array(self.props.points) - cur_point
             xyz = numpy.zeros_like(points)
-            xyz[:,0], xyz[:,1], xyz[:,2] = self.beamline.sample_stage.xyz_to_screen(points[:, 0], points[:, 1], points[:, 2])
+            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.sample_stage.xyz_to_screen(points[:, 0], points[:, 1],
+                                                                                       points[:, 2])
             xyz /= mm_scale
-            radii = (4.0 - (xyz[:, 2] / (center[1]*0.25)))*radius
+            radii = (4.0 - (xyz[:, 2] / (center[1] * 0.25))) * radius
             xyz[:, :2] += center
             cr.set_source_rgba(1.0, 0.25, 0.75, 0.5)
             for i, (x, y, z) in enumerate(xyz):
                 cr.arc(x, y, radii[i], 0, 2.0 * 3.14)
                 cr.fill()
                 cr.move_to(x + 6, y)
-                cr.show_text('P{}'.format(i+1))
+                cr.show_text('P{}'.format(i + 1))
                 cr.stroke()
             cr.restore()
 
@@ -345,7 +345,7 @@ class Microscope(GObject.GObject):
         self.props.points = self.props.points + [self.beamline.sample_stage.get_xyz()]
 
     def add_polygon_point(self, x, y):
-        radius = 0.5e-3*self.beamline.aperture.get() / self.video.mm_scale()
+        radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
         if not len(self.props.polygon):
             self.props.polygon.append((x, y))
         else:
@@ -358,7 +358,7 @@ class Microscope(GObject.GObject):
                 self.widget.microscope_grid_btn.set_active(False)
 
     def make_polygon_grid(self):
-        step_size = 1e-3*self.beamline.aperture.get() / self.video.mm_scale()
+        step_size = 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
         if len(self.props.polygon) == 3:
             points = numpy.array(self.props.polygon[:-1])
             grid_size = points[1] - points[0]
@@ -374,10 +374,10 @@ class Microscope(GObject.GObject):
             full_grid = self.bbox_grid(bbox)
             poly = Path(points)
             radius = orientation(poly) * step_size
-            grid = full_grid[poly.contains_points(full_grid[:,:2], radius=radius)]
+            grid = full_grid[poly.contains_points(full_grid[:, :2], radius=radius)]
 
         xmm, ymm = self.video.screen_to_mm(grid[:, 0], grid[:, 1])[2:]
-        ox, oy, oz =self.beamline.sample_stage.get_xyz()
+        ox, oy, oz = self.beamline.sample_stage.get_xyz()
         angle = self.beamline.omega.get_position()
         gx, gy, gz = self.beamline.sample_stage.xvw_to_xyz(-xmm, -ymm, numpy.radians(angle))
         grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
@@ -390,7 +390,7 @@ class Microscope(GObject.GObject):
             'scale': self.video.scale,
         }
         self.props.grid_scores = {}
-        self.props.polygon = [] # delete polygon after making grid
+        self.props.polygon = []  # delete polygon after making grid
 
     def add_grid_score(self, position, score):
         self.props.grid_scores[position] = score
@@ -429,7 +429,8 @@ class Microscope(GObject.GObject):
             center = numpy.array(self.video.get_size()) * 0.5
             points = self.grid_xyz - numpy.array(self.beamline.sample_stage.get_xyz())
             xyz = numpy.empty_like(points)
-            xyz[:,0],  xyz[:,1], xyz[:,2] = self.beamline.sample_stage.xyz_to_screen(points[:, 0], points[:, 1], points[:, 2])
+            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.sample_stage.xyz_to_screen(points[:, 0], points[:, 1],
+                                                                                       points[:, 2])
             xyz /= self.video.mm_scale()
             xyz[:, :2] += center
             self.props.grid = xyz
