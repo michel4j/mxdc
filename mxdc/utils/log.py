@@ -1,5 +1,7 @@
 """This module implements utility classes and functions for logging."""
 import logging
+from logging.handlers import RotatingFileHandler
+import repr as reprlib
 import os
 
 
@@ -97,7 +99,7 @@ def log_to_console(level=LOG_LEVEL):
 
 def log_to_file(filename, level=logging.DEBUG):
     """Add a log handler which logs to the console."""
-    logfile = logging.FileHandler(filename)
+    logfile = RotatingFileHandler(filename, maxBytes=1e6, backupCount=10)
     logfile.setLevel(level)
     formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
     logfile.setFormatter(formatter)
@@ -114,8 +116,8 @@ def log_call(f):
     """
 
     def new_f(*args, **kwargs):
-        params = ['{}'.format(repr(a)) for a in args[1:]]
-        params.extend(['{}={}'.format(p[0], repr(p[1])) for p in kwargs.items()])
+        params = ['{}'.format(reprlib.repr(a)) for a in args[1:]]
+        params.extend(['{}={}'.format(p[0], reprlib.repr(p[1])) for p in kwargs.items()])
         params = ', '.join(params)
         logger.debug('<{}({})>'.format(f.__name__, params))
         return f(*args, **kwargs)

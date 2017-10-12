@@ -1,333 +1,134 @@
+import argparse
 import os
 import re
-import shutil
-import stat
-from ConfigParser import ConfigParser
+import subprocess
+import threading
+import time
+import rpyc
+import sys
+import pwd
 
-from twisted.application import service
-from twisted.internet import protocol, reactor, defer, interfaces
-from twisted.python import log, components
-from twisted.spread import pb
-from twisted.web import resource, xmlrpc
-from zope.interface import implements
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from interfaces import IImageSyncService, IPptvISync
-from mxdc.utils.log import log_call
+from mxdc.utils import log, mdns
+from mxdc.utils.rpc import expose_service, expose
 
+logger = log.get_module_logger(__name__)
 
-class PptvISyncFromService(pb.Root):
-    implements(IPptvISync)
+def demote(user_name):
+    """Pass the function 'set_user' to preexec_fn, rather than just calling
+    setuid and setgid. This will change the ids for that subprocess only"""
 
-    def __init__(self, service):
-        self.service = service
+    def set_user():
+        pwdb = pwd.getpwnam(user_name)
+        os.setgid(pwdb.pw_gid)
+        os.setuid(pwdb.pw_uid)
 
-    def remote_set_user(self, user, uid, gid):
-        self.service.set_user(user, uid, gid)
-
-    def remote_setup_folder(self, folder):
-        self.service.setup_folder(folder)
+    return set_user
 
 
-components.registerAdapter(PptvISyncFromService,
-                           IImageSyncService,
-                           IPptvISync)
+def get_user(user_name):
+    try:
+        pwdb = pwd.getpwnam(user_name)
+        uid = pwdb.pw_uid
+        gid = pwdb.pw_gid
+    except:
+        raise ValueError('Invalid User "{}"'.format(user_name))
+    return uid, gid
 
 
-class ConfigXR(xmlrpc.XMLRPC):
-    def __init__(self, service):
-        xmlrpc.XMLRPC.__init__(self)
-        self.service = service
+class Archiver(object):
+    def __init__(self, src, dest, include):
+        self.src = os.path.join(src, '')
+        self.dest = os.path.join(dest, '')
+        self.processing = False
+        self.complete = False
+        self.time = 0
+        self.timeout = 60 * 5
+        self.includes = ['--include={0}'.format(i) for i in include]
 
-    def render(self, request):
-        self.client = request.transport
-        return xmlrpc.XMLRPC.render(self, request)
+    def start(self):
+        if self.processing: return
+        worker = threading.Thread(target=self.run)
+        worker.setDaemon(True)
+        worker.setName('Archiver')
+        worker.start()
 
-    def xmlrpc_set_user(self, user, uid, gid):
-        return self.service.set_user(user, uid, gid)
-
-    def xmlrpc_setup_folder(self, folder):
-        return self.service.setup_folder(folder)
-
-
-class ImgSyncResource(resource.Resource):
-    implements(resource.IResource)
-
-    def __init__(self, service):
-        resource.Resource.__init__(self)
-        self.service = service
-        self.putChild('RPC2', ConfigXR(self.service))
-
-
-class ImgSyncService(service.Service):
-    implements(IImageSyncService)
-
-    def __init__(self, config_file, log_file):
-        self.settings = {}
-        self.filename = config_file
-        self._read_config()
-        self.cons = ImgConsumer(self)
-        self.prod = FileTailProducer(log_file)
-        self.prod.addConsumer(self.cons, img_selector)
-
-    def _read_config(self):
-        self.settings['user'] = 500
-        self.settings['uid'] = 500
-        self.settings['gid'] = 500
-        self.settings['base'] = 'users'
-        self.settings['marccd_uid'] = 500
-        self.settings['marccd_gid'] = 500
-        try:
-            self.settings['backup'] = os.path.join('/archive', os.environ['MXDC_CONFIG'].upper())
-        except:
-            self.settings['backup'] = os.path.join('/archive', 'UNDEF')
-
-        config = ConfigParser()
-        if os.path.exists(self.filename):
+    def run(self):
+        self.processing = True
+        self.complete = False
+        args = ['rsync', '-rt', '--stats', '--modify-window=2'] + self.includes + ['--exclude=*', self.src, self.dest]
+        while not self.complete:
             try:
-                config.read(self.filename)
-                self.settings['user'] = config.get('config', 'user')
-                self.settings['uid'] = int(config.get('config', 'uid'))
-                self.settings['gid'] = int(config.get('config', 'gid'))
-                self.settings['base'] = config.get('config', 'base')
-                self.settings['marccd_uid'] = int(config.get('config', 'marccd_uid'))
-                self.settings['marccd_gid'] = int(config.get('config', 'marccd_gid'))
-            except:
-                log.err()
-
-    @log_call
-    def set_user(self, user, uid, gid):
-        config = ConfigParser()
-        config.add_section('config')
-        config.set('config', 'user', user)
-        config.set('config', 'uid', uid)
-        config.set('config', 'gid', gid)
-        config.set('config', 'base', 'users')
-        config.set('config', 'marccd_uid', 500)
-        config.set('config', 'marccd_gid', 500)
-        f = open(self.filename, 'w')
-        config.write(f)
-        f.close()
-        self._read_config()
-        return True
-
-    @log_call
-    def setup_folder(self, folder):
-        if not os.access(folder, os.W_OK):
-            log.err('Directory does not exist or cannot be written to.')
-            return False
-        f_parts = os.path.abspath(folder.strip()).split(os.path.sep)
-        try:
-            if f_parts[1] != '' and len(f_parts) > 2:
-                self.settings['base'] = f_parts[1]
-                f_parts[1] = 'data'
-                raw_dir = os.path.sep.join(f_parts)
-                f_path = os.path.abspath(folder.strip())
-                bkup_dir = os.path.join(os.path.sep, self.settings['backup'], *(f_path.split(os.path.sep)[1:]))
+                output = subprocess.check_output(args)
+            except subprocess.CalledProcessError as e:
+                logger.error('RSYNC Failed: {}'.format(e))
             else:
-                return False
-            _ = run_command('/bin/mkdir',
-                            ['-p', raw_dir],
-                            '/data',
-                            self.settings['marccd_uid'],
-                            self.settings['marccd_gid'])
-            _ = run_command('/bin/mkdir',
-                            ['-p', bkup_dir])
-        except:
-            log.err()
-            return False
+                m = re.search("Number of regular files transferred: (?P<files>\d+)", output)
+                if m and int(m.groupdict()['files']):
+                    self.time = time.time()
+                elif time.time() - self.time > self.timeout:
+                    self.complete = True
+            time.sleep(30)
+        self.processing = False
+
+
+@expose_service
+class ImgSyncService(rpyc.Service):
+    ARCHIVE_ROOT = '/archive'
+    FILE_MODE = 0o777
+    INCLUDE = ['*.img', '*.cbf', '*.xdi', '*.meta', '*.mad', '*.xrf', '*.xas']
+
+    def __init__(self, *args, **kwargs):
+        super(ImgSyncService, self).__init__(*args, **kwargs)
+        self.backups = {}
+
+    @expose
+    def setup_folder(self, folder, user_name):
+        folder = folder.strip()
+        if not os.path.exists(folder):
+            args = ['mkdir', '-p', folder]
+            try:
+                out = subprocess.check_output(args, preexec_fn=demote(user_name))
+            except subprocess.CalledProcessError as e:
+                logger.error('Error analysing frame: {}'.format(e))
+            os.chmod(folder, self.FILE_MODE)
+
+        backup_dir = self.ARCHIVE_ROOT + folder
+        os.chmod(folder, self.FILE_MODE)
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir, 0o700)
+
+        if folder not in self.backups:
+            self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE)
+        self.backups[folder].start()
         return True
 
-    @log_call
-    def shutdown(self):
-        reactor.stop()
+    @expose
+    def configure(self, include=(), mode=0o700, archive_root='/archive'):
+        self.INCLUDE = include
+        self.FILE_MODE = mode
+        self.ARCHIVE_ROOT = archive_root
+
+    def __str__(self):
+        return '[{}:{}]'.format(*self._conn._channel.stream.sock.getpeername())
 
 
-components.registerAdapter(ImgSyncResource, IImageSyncService, resource.IResource)
+if __name__ == '__main__':
+    from rpyc.utils.server import ThreadedServer
+    import rpyc.lib
 
+    rpyc.lib.setup_logger()
 
-class CommandProtocol(protocol.ProcessProtocol):
-    """Twisted protocol for running external commands to collect output, errors 
-    and return status asynchronously.
-    """
+    parser = argparse.ArgumentParser(description='Run Image Synchronization Server')
+    parser.add_argument('--log', metavar='/path/to/logfile.log', type=str, nargs='?', help='full path to log file')
 
-    def __init__(self, path):
-        self.output = ''
-        self.errors = ''
-        self.path = path
+    args = parser.parse_args()
+    if args.log:
+        log.log_to_file(args.log)
+    else:
+        log.log_to_console()
 
-    def outReceived(self, output):
-        self.output += output
-
-    def errReceived(self, error):
-        self.errors += error
-
-    def outConnectionLost(self):
-        pass
-
-    def errConnectionLost(self):
-        pass
-
-    def processEnded(self, reason):
-        # rc = reason.value.exitCode
-        # if rc == 0:
-        #    self.deferred.callback(self.output)
-        # else:
-        #    self.deferred.errback(rc)
-        pass
-
-
-def run_command(command, args, path='/tmp', uid=0, gid=0):
-    """Run an external or system command asynchronously.
-    """
-    prot = CommandProtocol(path)
-    prot.deferred = defer.Deferred()
-    args = [command, ] + map(str, args)
-    p = reactor.spawnProcess(
-        prot,
-        args[0],
-        args,
-        env=os.environ, path=path,
-        uid=uid, gid=gid, usePTY=True
-    )
-    return prot.deferred
-
-
-class FileTailProducer(object):
-    """A pull producer that sends the tail contents of a file to any consumer.
-    """
-    implements(interfaces.IPushProducer)
-    deferred = None
-
-    def __init__(self, filename):
-        """Initialize Producer
-
-        @dialog_type filename: A string
-        @param filename: The file to read data from
-        """
-        self.filename = filename
-        self.consumers = []
-        self.fileobj = None
-        self.fstat = None
-
-    def addConsumer(self, consumer, transform=None):
-        """
-        @type consumer: Any implementor of IConsumer
-        @param consumer: The object to write data to
-
-        @param transform: A callable taking one string argument and returning
-        the same.  All bytes read from the file are passed through this before
-        being written to the consumer.
-        """
-        consumer.registerProducer(self, True)
-        self.consumers.append((consumer, transform))
-
-    def checkWork(self):
-        if self.fileobj is None:
-            self.fileobj = open(self.filename)
-            self.fstat = os.fstat(self.fileobj.fileno())
-            self.fileobj.seek(0, 2)
-
-        # if file shrinks, we will adjust to the new size
-        if os.path.getsize(self.filename) < self.fileobj.tell():
-            self.fileobj.seek(0, 2)
-        chunk = self.fileobj.read()
-
-        try:
-            st = os.stat(self.filename)
-        except:
-            st = self.fstat
-
-        if (st[stat.ST_DEV], st[stat.ST_INO]) != (self.fstat[stat.ST_DEV], self.fstat[stat.ST_INO]):
-            self.fileobj.close()
-            self.fileobj = open(self.filename)
-            self.fstat = os.fstat(self.fileobj.fileno())
-
-        if chunk:
-            for consumer, transform in self.consumers:
-                if transform:
-                    t_chunk = transform(chunk)
-                else:
-                    t_chunk = chunk
-                consumer.write(t_chunk)
-        self._call_id = reactor.callLater(0.1, self.checkWork)
-
-    def resumeProducing(self):
-        self.checkWork()
-
-    def pauseProducing(self):
-        self._call_id.cancel()
-
-    def stopProducing(self):
-        if self.deferred:
-            self.deferred.errback(Exception("Consumer asked us to stop producing"))
-            self.deferred = None
-
-
-class ImgConsumer(object):
-    """
-    A consumer that consumes a stream of text corresponding to a list of files 
-    to transfer.
-
-    The stream contains a list of image files one per line. The consumer makes 
-    a copy of the image file in the owner's home directory and also at a backup
-    location, setting the file ownership permissions appropriately.
-    """
-
-    implements(interfaces.IConsumer)
-
-    def __init__(self, parent=None):
-        self.parent = parent
-
-    def registerProducer(self, producer, streaming):
-        """Connect a stream producer to this consumer.        
-        """
-
-        self.producer = producer
-        assert streaming
-        self.producer.resumeProducing()
-
-    def unregisterProducer(self):
-        """Disconnect a stream producer from this consumer.        
-        """
-        self.producer = None
-
-    def write(self, chunk):
-        """Consume a chunk of text obtained from the stream producer.        
-        """
-        lines = chunk.split('\n')
-        my_match = re.compile('^([^ ]+\.img)$')
-        for line in lines:
-            tm = my_match.match(line)
-            try:
-                if tm:
-                    img_path = os.path.abspath(tm.group(1))
-                    f_parts = img_path.split(os.path.sep)
-                    if f_parts[1] == 'data' and len(f_parts) > 2:
-                        f_parts[1] = self.parent.settings['base']
-                        user_file = os.path.sep.join(f_parts)
-                        bkup_file = self.parent.settings['backup'] + user_file
-                    else:
-                        return
-
-                    # Copy the files and update ownership
-                    shutil.copy2(img_path, user_file)
-                    shutil.copy2(img_path, bkup_file)
-                    os.chown(user_file, self.parent.settings['uid'], self.parent.settings['gid'])
-                    os.chown(bkup_file, self.parent.settings['uid'], self.parent.settings['gid'])
-
-                    log.msg("New Frame '%s" % (user_file))
-            except:
-                log.err()
-
-
-def img_selector(chunk):
-    """A transformer which takes a piece of text and transforms it into a list 
-    of image files on behalf of a producer.
-    
-    This transformer is specific for MarCCD log files. It reads a chunk of data
-    from a MarCCD log file and returns a list of images collected.
-    """
-
-    img_patt = re.compile('.*byte frame written to file:\s+(?P<file>[^ ]+\.img)\s+.*\n')
-    new_images = img_patt.findall(chunk)
-    return '\n'.join(new_images)
+    s = ThreadedServer(ImgSyncService, port=8882)
+    provider = mdns.Provider('Image Synchronization Server', '_imgsync_rpc._tcp', 8882, unique=True)
+    s.start()

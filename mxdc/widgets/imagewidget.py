@@ -35,6 +35,33 @@ def color_palette(colormap):
     return data.ravel().astype(int)
 
 
+def _adjust_spines(ax, spines, color):
+    for loc, spine in ax.spines.items():
+        if loc in spines:
+            spine.set_position(('outward', 10))  # outward by 10 points
+            spine.set_smart_bounds(True)
+            spine.set_color(color)
+        else:
+            spine.set_color('none')  # don't draw spine
+
+    ax.xaxis.set_tick_params(color=color, labelcolor=color)
+    ax.yaxis.set_tick_params(color=color, labelcolor=color)
+    ax.patch.set_alpha(0.0)
+
+    # turn off ticks where there is no spine
+    if 'left' in spines:
+        ax.yaxis.set_ticks_position('left')
+    elif 'right' in spines:
+        ax.yaxis.set_ticks_position('right')
+    else:
+        ax.yaxis.set_ticks([])
+
+    if 'bottom' in spines:
+        ax.xaxis.set_ticks_position('bottom')
+    else:
+        ax.xaxis.set_ticks([])
+
+
 def gray_palette(start=0.0, end=1.0):
     cdict = {
         'red': [
@@ -55,7 +82,8 @@ def gray_palette(start=0.0, end=1.0):
     }
     cmap = LinearSegmentedColormap('_tmp_cmap', cdict)
     a = numpy.arange(256)
-    tpal = cmap(a)[:, :-1].reshape((-1, 1))
+    cpal = cmap(a)[:, :-1]
+    tpal = cpal.reshape((-1, 1))
     rpal = [int(round(v[0] * 255)) for v in tpal]
     return rpal
 
@@ -344,7 +372,7 @@ class ImageWidget(Gtk.DrawingArea):
             ix = max(1, ix)
             iy = max(1, iy)
             data[n][0] = n
-            src = self.pixel_data[iy - lw:iy + lw, ix - lw:ix + lw]
+            src = self.pixel_data[ix - lw:ix + lw, iy - lw:iy + lw]
             sel = (src > vmin) & (src < vmax)
             if sel.sum():
                 val = src[sel].mean()
@@ -357,39 +385,12 @@ class ImageWidget(Gtk.DrawingArea):
 
     def make_histogram(self, data, show_axis=None, distance=True):
         color = colors.Category.CAT20C[0]
-
-        def _adjust_spines(ax, spines):
-            for loc, spine in ax.spines.items():
-                if loc in spines:
-                    spine.set_position(('outward', 10))  # outward by 10 points
-                    spine.set_smart_bounds(True)
-                    spine.set_color(color)
-                else:
-                    spine.set_color('none')  # don't draw spine
-
-            ax.xaxis.set_tick_params(color=color, labelcolor=color)
-            ax.yaxis.set_tick_params(color=color, labelcolor=color)
-            ax.patch.set_alpha(0.0)
-
-            # turn off ticks where there is no spine
-            if 'left' in spines:
-                ax.yaxis.set_ticks_position('left')
-            else:
-                # no yaxis ticks
-                ax.yaxis.set_ticks([])
-
-            if 'bottom' in spines:
-                ax.xaxis.set_ticks_position('bottom')
-            else:
-                # no xaxis ticks
-                ax.xaxis.set_ticks([])
-
         matplotlib.rcParams.update({'font.size': 9.5})
         figure = matplotlib.figure.Figure(frameon=False, figsize=(4, 2), dpi=72, edgecolor=color)
         plot = figure.add_subplot(111)
         plot.patch.set_alpha(1.0)
-        _adjust_spines(plot, ['left'])
-        figure.subplots_adjust(left=0.18, right=0.95)
+        _adjust_spines(plot, ['left'], color)
+        #figure.subplots_adjust(left=0.18, right=0.95)
         formatter = FormatStrFormatter('%g')
         plot.yaxis.set_major_formatter(formatter)
         plot.yaxis.set_major_locator(MaxNLocator(5))
@@ -412,14 +413,22 @@ class ImageWidget(Gtk.DrawingArea):
         self.show_histogram = True
 
     def img_histogram(self, widget, cr):
-        data = self.img_info['histogram']
+        alloc = widget.get_allocation()
+        hw = alloc.width
+        hh = alloc.height
+        dpi = 80
+        color = colors.Category.CAT20C[0]
         matplotlib.rcParams.update({'font.size': 9.5})
-        figure = matplotlib.figure.Figure(frameon=False, figsize=(5.5, 2), dpi=80)
-        figure.subplots_adjust(left=0.03, right=0.98)
+        figure = matplotlib.figure.Figure(frameon=False, figsize=(hw/dpi, hh/dpi), dpi=dpi, edgecolor=color)
         plot = figure.add_subplot(111)
+        plot.patch.set_alpha(1.0)
+        _adjust_spines(plot, ['bottom'], color)
+        figure.subplots_adjust(left=0.05, right=0.95, bottom=0.2, top=0.95)
         formatter = FormatStrFormatter('%g')
-        plot.yaxis.set_major_formatter(formatter)
-        plot.yaxis.set_major_locator(MaxNLocator(5))
+        plot.xaxis.set_major_formatter(formatter)
+        plot.xaxis.set_major_locator(MaxNLocator(5))
+
+        data = self.img_info['histogram']
         sel = data[:, 1] > 0
         plot.plot(data[sel, 0], data[sel, 1])
         plot.set_xlim(min(data[:, 0]), max(data[:, 0]))
@@ -427,12 +436,13 @@ class ImageWidget(Gtk.DrawingArea):
 
         canvas = FigureCanvasCairo(figure)
         width, height = canvas.get_width_height()
+
         renderer = RendererCairo(canvas.figure.dpi)
         renderer.set_width_height(width, height)
         plot_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         renderer.set_ctx_from_surface(plot_surface)
         canvas.figure.draw(renderer)
-        cr.set_source_surface(plot_surface, 0, 0)
+        cr.set_source_surface(plot_surface, 24, 24)
         cr.paint()
 
     def draw_overlay_cairo(self, cr):

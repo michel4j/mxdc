@@ -58,7 +58,6 @@ class DataCollector(GObject.GObject):
         self.config['wedges'] = wedges
         self.config['datasets'] = datasets
         self.config['existing'] = existing
-        self.beamline.image_server.set_user(pwd.getpwuid(os.geteuid())[0], os.geteuid(), os.getegid())
 
         # delete existing frames
         for wedge in wedges:
@@ -94,7 +93,7 @@ class DataCollector(GObject.GObject):
                 else:
                     self.run_default()
             finally:
-                self.beamline.exposure_shutter.close()
+                self.beamline.fast_shutter.close()
 
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
         time.sleep(2.0)
@@ -103,7 +102,7 @@ class DataCollector(GObject.GObject):
             metadata = self.save(dataset)
             self.results.append(metadata)
             if metadata and self.config['analysis']:
-                self.analyse(metadata, dataset['strategy'], dataset['sample'])
+                self.analyse(metadata, dataset['sample'])
 
         if not (self.stopped or self.paused):
             GObject.idle_add(self.emit, 'done')
@@ -191,14 +190,13 @@ class DataCollector(GObject.GObject):
             time.sleep(0)
 
     def take_snapshots(self):
-        if self.config['take_snapshots']:
+        if self.config['take_snapshots'] and self.config['wedges']:
             wedges = self.config['wedges']
-            name = os.path.commonprefix([wedge['dataset'] for wedge in wedges])
+            prefix = os.path.commonprefix([wedge['dataset'] for wedge in wedges]) or 'SNAPSHOT'
             wedge = wedges[0]
-            prefix = '{}-pic'.format(name)
 
             # setup folder for wedge
-            self.beamline.image_server.setup_folder(wedge['directory'])
+            self.beamline.dss.setup_folder(wedge['directory'], misc.get_project_name())
             if not os.path.exists(os.path.join(wedge['directory'], '{}_{:0.0f}.png'.format(prefix, wedge['start']))):
                 logger.info('Taking snapshots of sample at {:0.0f}'.format(wedge['start']))
                 snapshot.take_sample_snapshots(
@@ -207,10 +205,10 @@ class DataCollector(GObject.GObject):
 
     def prepare_for_wedge(self, wedge):
         # setup folder for wedge
-        self.beamline.image_server.setup_folder(wedge['directory'])
+        self.beamline.dss.setup_folder(wedge['directory'], misc.get_project_name())
 
         # make sure shutter is closed before starting
-        self.beamline.exposure_shutter.close()
+        self.beamline.fast_shutter.close()
 
         # setup devices
         if abs(self.beamline.energy.get_position() - wedge['energy']) >= 0.0005:
@@ -222,7 +220,7 @@ class DataCollector(GObject.GObject):
         if abs(self.beamline.attenuator.get() - wedge['attenuation']) >= 25:
             self.beamline.attenuator.set(wedge['attenuation'], wait=True)
 
-        if wedge.get('point'):
+        if wedge.get('point') is not None:
             x, y, z  = wedge['point']
             self.beamline.sample_stage.move_xyz(x, y, z)
 
@@ -261,7 +259,6 @@ class DataCollector(GObject.GObject):
             'detector_size': min(self.beamline.detector.size),
             'start_angle': params['start'],
             'delta_angle': params['delta'],
-            'inverse_beam': params.get('inverse', False),
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
         misc.save_metadata(metadata, filename)
@@ -269,32 +266,20 @@ class DataCollector(GObject.GObject):
             self.beamline.lims.upload_data(self.beamline.name, filename)
         return metadata
 
-    def analyse(self, metadata, strategy, sample):
-        numbers = datatools.frameset_to_list(metadata['frames'])
-        filename = os.path.join(metadata['directory'], metadata['filename'].format(numbers[0]))
+    def analyse(self, metadata, sample):
+        flags = ()
 
-        params = {
-            'sample_id': metadata['sample_id'],
-            'name': metadata['name'],
-            'file_names': [filename],
-            'anomalous': self.config['analysis'] == 'anomalous',
-            'activity': 'proc-{}'.format(self.config['analysis'][:6]),
-            'type': metadata['type'],
-        }
-        params = datatools.update_for_sample(params, sample)
-
-        if self.config['analysis'] == 'screen':
-            self.analyst.process_dataset(params, screen=True).addCallbacks(self.result_ready, errback=self.result_fail)
+        if 'anomalous' in self.config['analysis']:
+            flags = ('anomalous', )
+        if metadata['type'] == 'XRD_DATA':
+            self.analyst.process_powder(metadata, flags=flags, sample=sample)
+        elif self.config['analysis'] == 'screen':
+            self.analyst.screen_dataset(metadata, flags=flags, sample=sample)
         elif self.config['analysis'] in ['anomalous', 'native']:
-            self.analyst.process_dataset(params).addCallbacks(self.result_ready, errback=self.result_fail)
+            self.analyst.process_dataset(metadata, flags=flags, sample=sample)
         elif self.config['analysis'] == 'powder':
-            self.analyst.process_powder(params).addCallbacks(self.result_ready, errback=self.result_fail)
+            self.analyst.process_powder(metadata, flags=flags, sample=sample)
 
-    def result_ready(self, result):
-        pass
-
-    def result_fail(self, result):
-        pass
 
     def on_new_image(self, obj, file_path):
         self.count += 1

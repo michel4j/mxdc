@@ -1,20 +1,25 @@
 import copy
 import os
+import fnmatch
 import random
 import shutil
 import time
 from datetime import datetime
+
 
 from gi.repository import GObject
 from zope.interface import implements
 
 from interfaces import IImagingDetector
 from mxdc.com import ca
+from mxdc.utils import decorators
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
+
+TEST_IMAGES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'test')
 
 
 class SimCCDImager(BaseDevice):
@@ -33,9 +38,37 @@ class SimCCDImager(BaseDevice):
         self.shutterless = False
         self.file_extension = 'img'
         self.set_state(active=True, health=(0, ''))
+        self._datasets = {
+            '/archive/staff/reference/CLS/SIM-1/sim_{:04d}.img': 180,
+            '/archive/staff/reference/CLS/SIM-2/sim_{:04d}.img': 60,
+            '/archive/staff/reference/CLS/SIM-3/sim_{:04d}.img': 93,
+        }
+        self._powders = {
+            '/archive/staff/michel/powder/LaB6-124_{:04d}.img': 2,
+            '/archive/staff/michel/powder/LaB6-125_{:04d}.img': 2,
+            '/archive/staff/michel/powder/LaB6-126_{:04d}.img': 2,
+            '/archive/staff/michel/powder/LaB6-127_{:04d}.img': 2,
+            '/archive/staff/michel/powder/LaB6-128_{:04d}.img': 2,
+            '/archive/staff/michel/powder/LaB6-129_{:04d}.img': 2,
+            '/archive/staff/michel/powder/LaB6-130_{:04d}.img': 2,
+            '/archive/staff/michel/powder/LaB6-134_{:04d}.img': 6,
+            '/archive/staff/michel/powder/LaB6-17700_{:04d}.img': 1,
+        }
         self._select_dir()
         self._state = 'idle'
         self._bg_taken = False
+        self.prepare_datasets()
+
+    @decorators.async_call
+    def prepare_datasets(self):
+        self._datasets = {}
+        for root, dir, files in os.walk('/archive/staff/school'):
+            for file in fnmatch.filter(files, '*_001.img'):
+                key = os.path.join(root, file.replace('_001.', '_{:03d}.'))
+                data_root = file.replace('_001.', '_???.')
+                data_files = fnmatch.filter(files, data_root)
+                if len(data_files) >= 60:
+                    self._datasets[key] = len(data_files)
 
     def initialize(self, wait=True):
         logger.debug('(%s) Initializing CCD ...' % (self.name,))
@@ -53,30 +86,28 @@ class SimCCDImager(BaseDevice):
     def get_origin(self):
         return self.size[0] // 2, self.size[0] // 2
 
-    def _select_dir(self):
-        dirlist = []
-        for i in range(5):
-            src_dir = '/archive/staff/reference/CLS/SIM-%d' % i
-            if os.path.exists(src_dir):
-                dirlist.append(src_dir)
-        if not dirlist:
-            dirlist.append(os.path.join(os.environ['BCM_PATH'], 'test', 'images'))
-        self._src_dir = random.choice(dirlist)
-        self._num_frames = len(
-            [name for name in os.listdir(self._src_dir) if os.path.isfile(os.path.join(self._src_dir, name))])
+    def _select_dir(self, name='junk'):
+        import hashlib
+        # always select the same dataset for the same name and date
+        name_int  = int(hashlib.sha1(name).hexdigest(), 16) % (10 ** 8)
+        chosen = (datetime.today().day + name_int) % len(self._datasets.keys())
+        if 'pow' in name:
+            chosen = (datetime.today().day + name_int) % len(self._powders.keys())
+            self._src_template, self._num_frames = self._powders.items()[chosen]
+        else:
+            chosen = (datetime.today().day + name_int) % len(self._datasets.keys())
+            self._src_template, self._num_frames = self._datasets.items()[chosen]
+        if not os.path.exists(self._src_template.format(1)):
+            self._src_template = os.path.join(TEST_IMAGES, 'sim_{:04d}.img')
+            self._num_frames = 2
 
     def _copy_frame(self):
         file_parms = copy.deepcopy(self.parameters)
         logger.debug('Saving frame: %s' % datetime.now().isoformat())
-        num = 1 + (file_parms['start_frame'] - 1) % self._num_frames
-        src_img = os.path.join(self._src_dir, '_%04d.img.gz' % num)
+        src_img = self._src_template.format(1 + (file_parms['start_frame'] % self._num_frames))
         file_name = '{}_{:04d}.img'.format(file_parms['file_prefix'], file_parms['start_frame'])
-        dst_img = os.path.join(file_parms['directory'], '{}.gz'.format(file_name))
         file_path = os.path.join(file_parms['directory'], file_name)
-
-        shutil.copyfile(src_img, dst_img)
-
-        os.system('/usr/bin/gunzip -f %s' % dst_img)
+        shutil.copyfile(src_img, file_path)
         logger.debug('Frame saved: %s' % datetime.now().isoformat())
         GObject.idle_add(self.emit, 'new-image', file_path)
 
@@ -97,8 +128,7 @@ class SimCCDImager(BaseDevice):
 
     def set_parameters(self, data):
         self.parameters = copy.deepcopy(data)
-        if self.parameters['start_frame'] == 1:
-            self._select_dir()
+        self._select_dir(name=self.parameters['file_prefix'])
 
 
 class PIL6MImager(BaseDevice):

@@ -266,8 +266,9 @@ class SampleStore(GObject.GObject):
 
     def search_data(self, model, itr, dat):
         """Test if the row is visible"""
+        row = model[itr]
         search_text = " ".join([
-            str(self.model.get_value(itr, col)) for col in
+            str(row[col]) for col in
             [self.Data.NAME, self.Data.GROUP, self.Data.CONTAINER, self.Data.PORT, self.Data.COMMENTS,
              self.Data.BARCODE]
         ])
@@ -347,29 +348,23 @@ class SampleStore(GObject.GObject):
             return Gtk.TreeRowReference.new(self.filter_model, self.filter_model.get_path(itr))
 
     def find_by_port(self, port):
-        itr = self.model.get_iter_first()
-        while itr and self.model.get_value(itr, self.Data.PORT) != port:
-            itr = self.model.iter_next(itr)
-        if itr:
-            return self.model.get_value(itr, self.Data.DATA), itr
-        else:
-            return {}, None
+        for row in self.model:
+            if row[self.Data.PORT] == port:
+                return row
+
+    def find_by_id(self, sample_id):
+        for row in self.model:
+            if row[self.Data.DATA].get('id') == sample_id:
+                return row
 
     def get_state(self, port):
         return self.states.get(port, self.State.UNKNOWN)
 
     def get_selected(self):
-        itr = self.model.get_iter_first()
-        items = []
-        while itr:
-            sel = self.model.get_value(itr, self.Data.SELECTED)
-            state = self.model.get_value(itr, self.Data.STATE)
-            if sel and state not in [self.State.JAMMED, self.State.EMPTY]:
-                item = self.model.get_value(itr, self.Data.DATA)
-                # item['path'] = self.model.get_path(itr)
-                items.append(item)
-            itr = self.model.iter_next(itr)
-        return items
+        return [
+            row[self.Data.DATA] for row in self.model
+            if row[self.Data.SELECTED] and row[self.Data.STATE] not in [self.State.JAMMED, self.State.EMPTY]
+        ]
 
     def select_all(self, option=True):
         model, paths = self.selection.get_selected_rows()
@@ -377,18 +372,15 @@ class SampleStore(GObject.GObject):
         changed = set()
         if len(paths) > 1:
             for path in paths:
-                itr = self.filter_model.get_iter(path)
-                sitr = self.filter_model.convert_iter_to_child_iter(itr)
-                self.search_model[sitr][self.Data.SELECTED] = option
-                changed.add(self.search_model[sitr][self.Data.DATA]['id'])
+                path = self.filter_model.convert_path_to_child_path(path)
+                row = self.search_model[path]
+                row[self.Data.SELECTED] = option
+                changed.add(row[self.Data.DATA]['id'])
         else:
-            itr = self.filter_model.get_iter_first()
-            while itr:
-                sitr = self.filter_model.convert_iter_to_child_iter(itr)
-                if self.search_model[sitr][self.Data.STATE] not in [self.State.JAMMED, self.State.EMPTY]:
-                    self.search_model[sitr][self.Data.SELECTED] = option
-                    changed.add(self.search_model[sitr][self.Data.DATA]['id'])
-                itr = self.filter_model.iter_next(itr)
+            for item in self.filter_model:
+                row = self.search_model[self.filter_model.convert_iter_to_child_iter(item.iter)]
+                row[self.Data.SELECTED] = option
+                changed.add(row[self.Data.DATA]['id'])
 
         cache = self.props.cache
         if changed:
@@ -408,8 +400,8 @@ class SampleStore(GObject.GObject):
         return port in self.ports
 
     def toggle_row(self, path):
-        itr = self.filter_model.convert_iter_to_child_iter(self.filter_model.get_iter(path))
-        row = self.search_model[itr]
+        path = self.filter_model.convert_path_to_child_path(path)
+        row = self.search_model[path]
         if row[self.Data.STATE] not in [self.State.JAMMED, self.State.EMPTY]:
             selected = not row[self.Data.SELECTED]
             row[self.Data.SELECTED] = selected
@@ -423,17 +415,14 @@ class SampleStore(GObject.GObject):
 
     def update_states(self, states):
         self.states.update(states)
-        itr = self.model.get_iter_first()
-        while itr:
-            port = self.model.get_value(itr, self.Data.PORT)
-            self.model.set(itr, self.Data.STATE, self.states.get(port, self.State.UNKNOWN))
-            itr = self.model.iter_next(itr)
+        for row in self.model:
+            row[self.Data.STATE] = self.states.get(row[self.Data.PORT], self.State.UNKNOWN)
 
     def on_sample_row_changed(self, model, path, itr):
         if self.group_registry:
-            val = model.get_value(itr, self.Data.SELECTED)
-            group = model.get_value(itr, self.Data.GROUP)
-            key = model.get_value(itr, self.Data.UUID)
+            val = model[path][self.Data.SELECTED]
+            group = model[path][self.Data.GROUP]
+            key = model[path][self.Data.UUID]
             self.group_registry[group].update_item(key, val)
             self.update_next_sample()
 
@@ -441,7 +430,8 @@ class SampleStore(GObject.GObject):
         self.update_states(states)
 
     def on_dewar_selected(self, obj, port):
-        self.next_sample, itr = self.find_by_port(port)
+        row = self.find_by_port(port)
+        self.next_sample = row[self.Data.DATA]
         if self.next_sample:
             self.widget.samples_mount_btn.set_sensitive(True)
         else:
@@ -456,10 +446,9 @@ class SampleStore(GObject.GObject):
     def on_sample_mounted(self, obj, info):
         if info:
             port, barcode = info
-            self.current_sample, itr = self.find_by_port(port)
-            self.model.set(
-                itr, self.Data.SELECTED, False,
-            )
+            row = self.find_by_port(port)
+            self.current_sample = row[self.Data.DATA]
+            row[self.Data.SELECTED] = False
             self.widget.samples_dismount_btn.set_sensitive(True)
         else:
             self.current_sample = {}
@@ -552,8 +541,7 @@ class SampleQueue(GObject.GObject):
             item[SampleStore.Data.PROGRESS] = SampleStore.Progress.NONE
 
     def format_state(self, column, cell, model, itr, data):
-        value = model.get_value(itr, SampleStore.Data.STATE)
-        processed = model.get_value(itr, SampleStore.Data.PROGRESS)
+        processed = model[itr][SampleStore.Data.PROGRESS]
         if processed == SampleStore.Progress.ACTIVE:
             # cell.set_property("foreground-rgba", Gdk.RGBA(alpha=1.0, **DewarController.Color[value]))
             cell.set_property("icon-name", 'emblem-synchronizing-symbolic')
@@ -564,7 +552,7 @@ class SampleQueue(GObject.GObject):
             cell.set_property("icon-name", "content-loading-symbolic")
 
     def format_processed(self, column, cell, model, itr, data):
-        value = model.get_value(itr, SampleStore.Data.PROGRESS)
+        value = model[itr][SampleStore.Data.PROGRESS]
         if value == SampleStore.Progress.DONE:
             cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.5, blue=0.0, alpha=1.0))
         else:
@@ -572,6 +560,6 @@ class SampleQueue(GObject.GObject):
 
     def get_samples(self):
         return [
-            copy(item[SampleStore.Data.DATA])
-            for item in self.auto_queue if item[SampleStore.Data.SELECTED]
+            copy(row[SampleStore.Data.DATA])
+            for row in self.auto_queue if row[SampleStore.Data.SELECTED]
         ]

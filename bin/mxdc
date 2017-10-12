@@ -11,9 +11,7 @@ from mxdc import conf
 conf.initialize()
 
 from mxdc.mxdcapp import MXDCApp
-from mxdc.utils.log import log_to_console
 
 if __name__ == "__main__":
-    log_to_console()
     app = MXDCApp()
     app.run()
