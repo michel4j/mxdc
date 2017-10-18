@@ -280,7 +280,6 @@ class DataCollector(GObject.GObject):
         elif self.config['analysis'] == 'powder':
             self.analyst.process_powder(metadata, flags=flags, sample=sample)
 
-
     def on_new_image(self, obj, file_path):
         self.count += 1
         fraction = float(self.count) / max(1, self.total_frames)

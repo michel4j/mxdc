@@ -209,11 +209,11 @@ class AnalysisController(GObject.GObject):
         item = self.reports.row_to_dict(model[itr])
         report = item['report'] or {}
 
-        sample = item.get('sample')
+        sample = item.get('sample', {})
         strategy = report.get('strategy')
-        self.widget.proc_mount_btn.set_sensitive(bool(sample) and item['state'] == self.reports.State.SUCCESS)
+        self.widget.proc_mount_btn.set_sensitive(bool(sample) and bool(sample.get('port')) and item['state'] == self.reports.State.SUCCESS)
         self.widget.proc_strategy_btn.set_sensitive(bool(self.reports.strategy))
-        if sample:
+        if sample and sample.get('port'):
             sample_text = '{name}|{port}'.format(
                 name=sample.get('name', '...'),
                 port=sample.get('port', '...')
@@ -241,16 +241,12 @@ class AnalysisController(GObject.GObject):
     def add_dataset(self, dataset):
         self.reports.add(dataset)
 
-    @async_call
     def mount_sample(self, *args, **kwargs):
         if self.reports.props.sample:
             port = self.reports.props.sample['port']
             if port and self.beamline.automounter.is_mountable(port):
                 self.widget.spinner.start()
-                auto.auto_mount_manual(self.beamline, port)
-            elif not port:
-                # FIXME: Manual mounting here
-                pass
+                auto.auto_mount(self.beamline, port)
 
     def use_strategy(self, *args, **kwargs):
         strategy = self.reports.strategy
