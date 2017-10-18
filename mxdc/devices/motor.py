@@ -111,7 +111,7 @@ class MotorBase(BaseDevice):
 class SimMotor(MotorBase):
     implements(IMotor)
 
-    def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=3):
+    def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=3, health=(0, '')):
         super(SimMotor, self).__init__(name)
         pos = pos
 
@@ -123,17 +123,17 @@ class SimMotor(MotorBase):
         self._command_sent = False
         self._lock = Lock()
         self._active = active
+        self._health = health
 
         self._position = pos
         self._target = None
         self.default_precision = precision
         self.default_speed = speed
         self.configure(speed=speed)
-
         self.initialize()
 
     def initialize(self):
-        self.set_state(health=(0, ''), active=self._active)
+        self.set_state(health=self._health, active=self._active)
         self._signal_target(self, self._position)
         self._signal_change(self, self._position)
 
