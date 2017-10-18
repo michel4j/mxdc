@@ -47,7 +47,7 @@ class DataCollector(GObject.GObject):
         self.analyst = globalRegistry.lookup([], IAnalyst)
         self.frame_link = self.beamline.detector.connect('new-image', self.on_new_image)
         self.unwatch_frames()
-        self.beamline.storage_ring.connect('beam', self.on_beam_change)
+        self.beamline.synchrotron.connect('ready', self.on_beam_change)
         globalRegistry.register([], IDataCollector, '', self)
 
     def configure(self, run_data, take_snapshots=True, existing=0, analysis='native'):
@@ -321,7 +321,7 @@ class DataCollector(GObject.GObject):
         logger.info("Resuming Collection ...")
         if self.paused:
             # wait for 1 minute then open all shutters before resuming
-            message = "Beam available! Resuming data acquisition in 10 seconds!"
+            message = "Beam available! Resuming data acquisition in 30 seconds!"
             GObject.idle_add(self.emit, 'paused', False, message)
             GObject.timeout_add(30000, self.resume_sequence)
 

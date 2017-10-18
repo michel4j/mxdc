@@ -449,9 +449,7 @@ class MADScanController(ScanController):
                 'wavelength': choice['wavelength'],
                 'directory': scanner.config['directory'],
             })
-            if parent:
-                self.results_view.expand_row(parent, False)
-            self.results_view.scroll_to_cell(child, None, True, 0.5, 0.5)
+
 
     def load_data(self, meta, data, analysis):
         choices = analysis.get('choices')
@@ -612,9 +610,6 @@ class XASScanController(ScanController):
     def on_new_scan(self, scanner, scan):
         self.axis = scan
         parent, child = self.results.add_item(scanner.results['scans'][-1])
-        if parent:
-            self.results_view.expand_row(parent, False)
-        self.results_view.scroll_to_cell(child, None, True, 0.5, 0.5)
 
     def on_scan_selected(self, *args, **kwargs):
         if self.results.props.directory:

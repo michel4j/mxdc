@@ -8,13 +8,14 @@ import functools
 
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
-
+from twisted.internet.defer import returnValue, inlineCallbacks
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import datatools,  misc
 from mxdc.utils.converter import energy_to_wavelength
 from mxdc.utils.log import get_module_logger
+
 
 logger = get_module_logger(__name__)
 
@@ -65,13 +66,6 @@ class RasterCollector(GObject.GObject):
 
         # make sure shutter is closed before starting
         self.beamline.fast_shutter.close()
-
-        # take snapshot
-        self.beamline.goniometer.set_mode('CENTERING', wait=True)
-        logger.info('Taking snapshot ...')
-        self.beamline.omega.move_to(params['angle'], wait=True)
-        img = self.beamline.sample_camera.get_frame()
-        img.save(os.path.join(params['directory'], '{}.png'.format(params['name'])))
 
         if abs(self.beamline.distance.get_position() - params['distance']) >= 0.1:
             self.beamline.distance.move_to(params['distance'], wait=True)
@@ -155,6 +149,13 @@ class RasterCollector(GObject.GObject):
 
         self.beamline.sample_stage.move_xyz(*self.config['params']['origin'])
         self.beamline.omega.move_to(self.config['params']['angle'], wait=True)
+
+        # take snapshot
+        self.beamline.goniometer.set_mode('CENTERING', wait=True)
+        logger.info('Taking snapshot ...')
+        img = self.beamline.sample_camera.get_frame()
+        img.save(os.path.join(self.config['params']['directory'], '{}.png'.format(self.config['params']['name'])))
+
         GObject.timeout_add(5000, self.unwatch_frames)
 
         while self.pending_results:
@@ -192,6 +193,7 @@ class RasterCollector(GObject.GObject):
         GObject.idle_add(self.emit, 'new-image', file_path)
         self.analyse_frame(file_path)
 
+    @inlineCallbacks
     def analyse_frame(self, file_path):
         frame = os.path.splitext(os.path.basename(file_path))[0]
         file_pattern = re.compile(r'^{}_(\d{{3,}})$'.format(self.config['params']['name']))
@@ -206,11 +208,14 @@ class RasterCollector(GObject.GObject):
                 'filename': file_path,
                 'type': 'RASTER',
             }
-            d = self.beamline.dps.analyse_frame(file_path, misc.get_project_name())
-            d.addCallbacks(
-                self.result_ready, callbackArgs=[index, file_path],
-                errback=self.result_fail, errbackArgs = [index, file_path]
-            )
+            try:
+                report = yield self.beamline.dps.analyse_frame(file_path, misc.get_project_name())
+            except Exception as e:
+                self.result_fail(e, index, file_path)
+                returnValue({})
+            else:
+                self.result_ready(report, index, file_path)
+                returnValue(report)
 
     def result_ready(self, result, index=None, path=None):
         info = result

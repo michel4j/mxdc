@@ -1,9 +1,10 @@
 import os
 import uuid
-import functools
+import json
 
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
+from twisted.internet.defer import  inlineCallbacks, returnValue
 from zope.interface import implements
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.interfaces import IAnalyst
@@ -25,27 +26,20 @@ class Analyst(GObject.GObject):
     class ResultType(object):
         MX, XRD, RASTER = range(3)
 
-    ResultSummary = {
-        ResultType.MX: '{space_group} [ ISa={ISa:0.0f} ]',
-        ResultType.XRD: '{peak_count} Peaks',
-    }
-
     def __init__(self, manager):
         GObject.GObject.__init__(self)
         self.manager = manager
         self.beamline = globalRegistry.lookup([], IBeamline)
         globalRegistry.register([], IAnalyst, '', self)
 
-    def make_summary(self, report, result_type):
-        return self.ResultSummary[result_type].format(**report)
-
+    @inlineCallbacks
     def process_dataset(self, metadata, flags=(), sample=None):
         numbers = datatools.frameset_to_list(metadata['frames'])
         filename = os.path.join(metadata['directory'], metadata['filename'].format(numbers[0]))
         suffix = 'anom' if 'anomalous' in flags else 'native'
         params = {
             'uuid': str(uuid.uuid4()),
-            'summary': '',
+            'title': 'MX analysis in progress ...',
             'state': self.manager.State.ACTIVE,
             'data': metadata,
 
@@ -58,14 +52,19 @@ class Analyst(GObject.GObject):
         }
         params = datatools.update_for_sample(params, sample)
         parent, child = self.manager.add_item(params, False)
+        try:
+            report = yield self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
+        except Exception as e:
+            logger.error('MX analysis failed: {}'.format(str(e)))
+            self.failed(e, params['uuid'], self.ResultType.MX)
+            returnValue({})
+        else:
+            report['data_id'] = filter(None, [metadata.get('id')])
+            self.save_report(report)
+            self.succeeded(report, params['uuid'], self.ResultType.MX)
+            returnValue(report)
 
-        d = self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
-        d.addCallbacks(
-            self.result_ready, callbackArgs=[params['uuid'], self.ResultType.MX],
-            errback=self.result_fail, errbackArgs=[params['uuid'], self.ResultType.MX]
-        )
-        return d
-
+    @inlineCallbacks
     def process_multiple(self, *metadatas, **kwargs):
         sample = kwargs.get('sample', None)
         flags = kwargs.get('flags', ())
@@ -80,7 +79,7 @@ class Analyst(GObject.GObject):
         suffix = 'mad' if 'mad' in flags else 'merge'
         params = {
             'uuid': str(uuid.uuid4()),
-            'summary': '',
+            'title': 'MX {} analysis in progress ...'.format(suffix.upper()),
             'state': self.manager.State.ACTIVE,
             'data': metadata,
 
@@ -96,20 +95,26 @@ class Analyst(GObject.GObject):
         params = datatools.update_for_sample(params, sample)
         parent, child = self.manager.add_item(params, False)
 
-        d = self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
-        d.addCallbacks(
-            self.result_ready, callbackArgs=[params['uuid'], self.ResultType.MX],
-            errback=self.result_fail, errbackArgs=[params['uuid'], self.ResultType.MX]
-        )
-        return d
+        try:
+            report = yield self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
+        except Exception as e:
+            logger.error('MX analysis failed: {}'.format(str(e)))
+            self.failed(e, params['uuid'], self.ResultType.MX)
+            returnValue({})
+        else:
+            report['data_id'] = filter(None, [metadata.get('id') for metadata in metadatas])
+            self.save_report(report)
+            self.succeeded(report, params['uuid'], self.ResultType.MX)
+            returnValue(report)
 
+    @inlineCallbacks
     def screen_dataset(self, metadata, flags=(), sample=None):
         numbers = datatools.frameset_to_list(metadata['frames'])
         filename = os.path.join(metadata['directory'], metadata['filename'].format(numbers[0]))
 
         params = {
             'uuid': str(uuid.uuid4()),
-            'summary': '',
+            'title': 'MX screening in progress ...',
             'state': self.manager.State.ACTIVE,
             'data': metadata,
 
@@ -124,28 +129,38 @@ class Analyst(GObject.GObject):
         params = datatools.update_for_sample(params, sample)
         parent, child = self.manager.add_item(params, False)
 
-        d = self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
-        d.addCallbacks(
-            self.result_ready, callbackArgs=[params['uuid'], self.ResultType.MX],
-            errback=self.result_fail, errbackArgs=[params['uuid'], self.ResultType.MX]
-        )
-        return d
+        try:
+            report = yield self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
+        except Exception as e:
+            logger.error('MX analysis failed: {}'.format(str(e)))
+            self.failed(e, params['uuid'], self.ResultType.MX)
+            returnValue({})
+        else:
+            report['data_id'] = filter(None, [metadata.get('id')])
+            self.save_report(report)
+            self.succeeded(report, params['uuid'], self.ResultType.MX)
+            returnValue(report)
 
+    @inlineCallbacks
     def process_raster(self, params, flags=(), sample=None):
-
         params.update({
             'uuid': str(uuid.uuid4()),
             'activity': 'proc-raster',
         })
         params = datatools.update_for_sample(params, sample)
 
-        d = self.beamline.dps.analyse_frame(params['filename'], misc.get_project_name())
-        d.addCallbacks(
-            self.result_ready, callbackArgs=[params['uuid'], self.ResultType.MX],
-            errback=self.result_fail, errbackArgs=[params['uuid'], self.ResultType.MX]
-        )
-        return d
+        try:
+            report = yield self.beamline.dps.analyse_frame(params['filename'], misc.get_project_name())
+        except Exception as e:
+            logger.error('Raster analysis failed: {}'.format(str(e)))
+            self.failed(e, params['uuid'], self.ResultType.RASTER)
+            returnValue({})
+        else:
+            report['data_id'] = filter(None, [params.get('id')])
+            self.succeeded(report, params['uuid'], self.ResultType.RASTER)
+            returnValue(report)
 
+    @inlineCallbacks
     def process_powder(self, metadata, flags=(), sample=None):
         file_names = [
             os.path.join(metadata['directory'], metadata['filename'].format(number))
@@ -154,7 +169,7 @@ class Analyst(GObject.GObject):
 
         params = {
             'uuid': str(uuid.uuid4()),
-            'summary': '',
+            'title': 'XRD Analysis in progress ...',
             'state': self.manager.State.ACTIVE,
             'data': metadata,
 
@@ -168,26 +183,32 @@ class Analyst(GObject.GObject):
         params = datatools.update_for_sample(params, sample)
         parent, child = self.manager.add_item(params, False)
 
-        d = self.beamline.dps.process_xrd(params, params['directory'], misc.get_project_name())
-        d.addCallbacks(
-            self.result_ready, callbackArgs=[params['uuid'], self.ResultType.XRD],
-            errback=self.result_fail, errbackArgs=[params['uuid'], self.ResultType.XRD]
-        )
-        return d
-
-    def result_ready(self, output, uid, restype):
-        if restype == self.ResultType.MX:
-            results = []
-            for report in output:
-                results.append(report)
-                summary = self.make_summary(report, restype)
-                self.manager.update_item(uid, report=report, summary=summary)
-            return output
+        try:
+            report = yield self.beamline.dps.process_xrd(params, params['directory'], misc.get_project_name())
+        except Exception as e:
+            logger.error('XRD analysis failed: {}'.format(str(e)))
+            self.failed(e, params['uuid'], self.ResultType.XRD)
+            returnValue({})
         else:
-            summary = self.make_summary(output, restype)
-            self.manager.update_item(uid, report=output, summary=summary)
-            return output
+            report['data_id'] = filter(None, [metadata.get('id')])
+            self.succeeded(report, params['uuid'], self.ResultType.XRD)
+            returnValue(report)
 
-    def result_fail(self, output, result_id, result_type):
-        self.manager.update_item(result_id, error=output.getErrorMessage(), summary='Failed')
-        return output
+    def save_report(self, report):
+        if 'filename' in report:
+            report_file = os.path.join(report['directory'], report['filename'])
+            misc.save_metadata(report, report_file)
+            self.beamline.lims.upload_report(self.beamline.name, report_file)
+
+    def succeeded(self, report, uid, restype):
+        if restype == self.ResultType.MX:
+            title = report['title']
+            self.manager.update_item(uid, report=report, title=title)
+            return report
+        else:
+            title = report['title']
+            self.manager.update_item(uid, report=report, title=title)
+            return report
+
+    def failed(self, exception, uid, result_type):
+        self.manager.update_item(uid, error=str(exception), title='Analysis Failed!')

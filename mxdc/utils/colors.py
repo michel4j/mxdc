@@ -75,6 +75,8 @@ class Category:
         "#de7878","#de78de","#7878de","#ab78de", "#7899de","#78dede","#78de78","#abde78",
         "#deab78","#de4545", "#ababab", "#dede78"
     ]
+    CAT10 = ['#17becf', '#bcbd22', '#7f7f7f', '#e377c2', '#8c564b', '#9467bd', '#d62728', '#2ca02c', '#ff7f0e', '#1f77b4']
+
 
 
 class ColorMapper(object):
