@@ -108,6 +108,8 @@ class SampleStore(GObject.GObject):
     }
 
     cache = GObject.Property(type=object)
+    current_sample = GObject.Property(type=object)
+    next_sample = GObject.Property(type=object)
 
     def __init__(self, view, widget):
         super(SampleStore, self).__init__()
@@ -117,8 +119,8 @@ class SampleStore(GObject.GObject):
         self.filter_model = Gtk.TreeModelSort(model=self.search_model)
         self.group_model = Gio.ListStore(item_type=GroupItem)
         self.group_registry = {}
-        self.next_sample = {}
-        self.current_sample = {}
+        self.props.next_sample = {}
+        self.props.current_sample = {}
         self.ports = set()
 
         try:
@@ -149,6 +151,8 @@ class SampleStore(GObject.GObject):
         self.widget.samples_search_entry.connect('search-changed', self.on_search)
         self.widget.connect('realize', self.import_mxlive)
         self.connect('notify::cache', self.on_cache)
+        self.connect('notify::current-sample', self.on_cur_changed)
+        self.connect('notify::next-sample', self.on_next_changed)
 
         globalRegistry.register([], ISampleStore, '', self)
 
@@ -192,9 +196,8 @@ class SampleStore(GObject.GObject):
         self.view.set_tooltip_column(self.Data.COMMENTS)
         self.view.set_search_column(self.Data.NAME)
         self.model.set_sort_column_id(self.Data.PRIORITY, Gtk.SortType.DESCENDING)
-        self.model.connect('sort-column-changed', lambda x: self.update_next_sample())
-        self.update_current_sample()
-        self.update_next_sample()
+        self.model.connect('sort-column-changed', lambda x: self.roll_next_sample())
+        self.roll_next_sample()
 
         self.widget.auto_groups_box.bind_model(self.group_model, self.create_group_selector)
 
@@ -264,6 +267,20 @@ class SampleStore(GObject.GObject):
     def on_cache(self, *args, **kwargs):
         save_cache(list(self.props.cache), 'samples')
 
+    def on_next_changed(self, *args, **kwargs):
+        self.widget.samples_next_sample.set_text(self.next_sample.get('name', '...'))
+        port = self.next_sample.get('port', '...') or '<manual>'
+        self.widget.samples_next_port.set_text(port)
+        self.widget.samples_mount_btn.set_sensitive(bool(self.next_sample))
+
+    def on_cur_changed(self, *args, **kwargs):
+        self.widget.samples_cur_sample.set_text(self.current_sample.get('name', '...'))
+        port = self.current_sample.get('port', '...') or '<manual>'
+        self.widget.samples_cur_port.set_text(port)
+        self.widget.samples_dismount_btn.set_sensitive(bool(self.current_sample))
+
+        GObject.idle_add(self.emit, 'updated')
+
     def search_data(self, model, itr, dat):
         """Test if the row is visible"""
         row = model[itr]
@@ -308,39 +325,17 @@ class SampleStore(GObject.GObject):
         else:
             cell.set_property("foreground-rgba", None)
 
-    def update_next_sample(self):
+    def roll_next_sample(self):
         items = self.get_selected()
         if items:
             self.widget.samples_info1_lbl.set_markup('{} Selected'.format(len(items)))
             self.widget.auto_queue_lbl.set_markup('{} Selected Samples'.format(len(items)))
-            self.next_sample = items[0]
-            self.widget.samples_mount_btn.set_sensitive(True)
+            self.props.next_sample = items[0]
         else:
             self.widget.samples_info1_lbl.set_markup('')
             self.widget.auto_queue_lbl.set_markup('0 Selected Samples')
-            self.next_sample = {}
-            self.widget.samples_mount_btn.set_sensitive(False)
+            self.props.next_sample = {}
 
-        self.widget.samples_next_sample.set_markup(
-            '<span color="blue">{}</span>'.format(self.next_sample.get('name', '...'))
-        )
-        self.widget.samples_next_port.set_markup(
-            '{}/{}'.format(self.next_sample.get('container_name', '...'), self.next_sample.get('port', '...'))
-        )
-
-    def update_current_sample(self):
-        if self.current_sample:
-            self.widget.samples_dismount_btn.set_sensitive(True)
-        else:
-            self.widget.samples_dismount_btn.set_sensitive(False)
-
-        self.widget.samples_cur_sample.set_markup(
-            '<span color="blue">{}</span>'.format(self.current_sample.get('name', '...'))
-        )
-        self.widget.samples_cur_port.set_markup(
-            '{}/{}'.format(self.current_sample.get('container_name', '...'), self.current_sample.get('port', '...'))
-        )
-        GObject.idle_add(self.emit, 'updated')
 
     def get_next(self):
         itr = self.filter_model.get_iter_first()
@@ -426,60 +421,69 @@ class SampleStore(GObject.GObject):
             group = model[path][self.Data.GROUP]
             key = model[path][self.Data.UUID]
             self.group_registry[group].update_item(key, val)
-            self.update_next_sample()
 
     def on_automounter_states(self, obj, states):
         self.update_states(states)
 
     def on_dewar_selected(self, obj, port):
         row = self.find_by_port(port)
-        self.next_sample = row[self.Data.DATA]
-        if self.next_sample:
-            self.widget.samples_mount_btn.set_sensitive(True)
-        else:
-            self.widget.samples_mount_btn.set_sensitive(False)
-        self.widget.samples_next_sample.set_markup(
-            '<span color="blue">{}</span>'.format(self.next_sample.get('name', '...'))
-        )
-        self.widget.samples_next_port.set_markup(
-            '{}/{}'.format(self.next_sample.get('container_name', '...'), self.next_sample.get('port', '...'))
-        )
+        if row:
+            self.props.next_sample = row[self.Data.DATA]
+
 
     def on_sample_mounted(self, obj, info):
         if info:
             port, barcode = info
             row = self.find_by_port(port)
-            self.current_sample = row[self.Data.DATA]
+            self.props.current_sample = row[self.Data.DATA]
             row[self.Data.SELECTED] = False
             self.widget.samples_dismount_btn.set_sensitive(True)
         else:
-            self.current_sample = {}
+            self.props.current_sample = {}
 
         self.widget.spinner.stop()
-        # self.update_next_sample()
-        self.update_current_sample()
+        self.roll_next_sample()
 
     def on_key_press(self, obj, event):
         return self.widget.samples_search_entry.handle_event(event)
 
     def on_row_activated(self, cell, path, column):
-        self.toggle_row(path)
+        path = self.filter_model.convert_path_to_child_path(path)
+        row = self.search_model[path]
+        self.props.next_sample = row[self.Data.DATA]
 
     def on_row_toggled(self, cell, path, model):
         path = Gtk.TreePath.new_from_string(path)
         self.toggle_row(path)
 
-    @async_call
     def mount_action(self):
-        self.widget.spinner.start()
-        if self.next_sample and self.beamline.automounter.is_mountable(self.next_sample['port']):
-            auto.auto_mount_manual(self.beamline, self.next_sample['port'])
+        if not self.next_sample.get('port'):
+            if self.current_sample:
+                self.dismount_action()
+                self.widget.notifier.notify('Switching from Automounter to Manual. Try again after '
+                                            'current sample is done dismounting!')
+            else:
+                self.widget.notifier.notify('Manual Mode: Please mount it manually before proceeding')
+                self.props.current_sample = self.next_sample
+                self.props.next_sample = {}
+        elif self.next_sample and self.beamline.automounter.is_mountable(self.next_sample['port']):
+            if self.current_sample and not self.current_sample.get('port'):
+                self.widget.notifier.notify('Switching from Manual to Autmounter. Try again after '
+                                            'current sample is has been dismounted manually!')
+            else:
+                self.widget.spinner.start()
+                auto.auto_mount(self.beamline, self.next_sample['port'])
 
-    @async_call
     def dismount_action(self):
-        self.widget.spinner.start()
-        if self.current_sample and self.beamline.automounter.is_mounted(self.current_sample['port']):
-            auto.auto_dismount_manual(self.beamline, self.current_sample['port'])
+        if not self.current_sample.get('port'):
+            self.widget.notifier.notify('Sample was mounted manually. Please dismount it manually')
+            item = self.find_by_id(self.current_sample.get('id'))
+            item[self.Data.SELECTED] = False
+            self.props.current_sample = {}
+            self.roll_next_sample()
+        elif self.current_sample and self.beamline.automounter.is_mounted(self.current_sample['port']):
+            self.widget.spinner.start()
+            auto.auto_dismount(self.beamline, self.current_sample['port'])
 
 
 class SampleQueue(GObject.GObject):

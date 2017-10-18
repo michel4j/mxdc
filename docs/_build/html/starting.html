@@ -1,10 +1,11 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
   
   <!-- Licensed under the Apache 2.0 License -->
   <link rel="stylesheet" type="text/css" href="_static/fonts/open-sans/stylesheet.css" />
@@ -15,8 +16,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
     <title>Getting Started &#8212; MxDC  documentation</title>
+    
     <link rel="stylesheet" href="_static/guzzle.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
@@ -38,7 +41,7 @@
    
 
   </head>
-  <body>
+  <body role="document">
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -72,7 +75,25 @@
       <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#client">Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#starting-mxdc">Starting MxDC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stopping-mxdc">Stopping MxDC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mxlive-integration">MxLIVE Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-directories">Creating Directories</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="samples.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scans.html">Scans</a></li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#starting-mxdc">Starting MxDC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stopping-mxdc">Stopping MxDC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mxlive-integration">MxLIVE Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-directories">Creating Directories</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a></li>
@@ -91,7 +112,10 @@
     <div class="sidebar-localtoc">
       <ul>
 <li><a class="reference internal" href="#">Getting Started</a><ul>
-<li><a class="reference internal" href="#client">Client</a></li>
+<li><a class="reference internal" href="#starting-mxdc">Starting MxDC</a></li>
+<li><a class="reference internal" href="#stopping-mxdc">Stopping MxDC</a></li>
+<li><a class="reference internal" href="#mxlive-integration">MxLIVE Integration</a></li>
+<li><a class="reference internal" href="#creating-directories">Creating Directories</a></li>
 </ul>
 </li>
 </ul>
@@ -132,165 +156,77 @@
 <div class="contents local topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#client" id="id1">Client</a></li>
+<li><a class="reference internal" href="#starting-mxdc" id="id1">Starting MxDC</a></li>
+<li><a class="reference internal" href="#stopping-mxdc" id="id2">Stopping MxDC</a></li>
+<li><a class="reference internal" href="#mxlive-integration" id="id3">MxLIVE Integration</a></li>
+<li><a class="reference internal" href="#creating-directories" id="id4">Creating Directories</a></li>
 </ul>
 </div>
-<dl class="function">
-<dt id="send_message">
-<code class="descname">send_message</code><span class="sig-paren">(</span><em>sender</em>, <em>recipient</em>, <em>message_body</em><span class="optional">[</span>, <em>priority=1</em><span class="optional">]</span><span class="sig-paren">)</span><a class="headerlink" href="#send_message" title="Permalink to this definition">¶</a></dt>
-<dd><p>Send a message to a recipient</p>
-<dl class="docutils field-list" frame="void" rules="none">
-<dt class="field-name">Parameters</dt><dd class="field-body"><ul class="first simple">
-<li><strong>sender</strong> (<em>str</em>) – The person sending the message</li>
-<li><strong>recipient</strong> (<em>str</em>) – The recipient of the message</li>
-<li><strong>message_body</strong> (<em>str</em>) – The body of the message</li>
-<li><strong>priority</strong> (<em>integer</em><em> or </em><em>None</em>) – The priority of the message, can be a number 1-5</li>
-</ul>
-</dd>
-<dt class="field-name">Returns</dt><dd class="field-body"><p class="first">the message id</p>
-</dd>
-<dt class="field-name">Return type</dt><dd class="field-body"><p class="first">int</p>
-</dd>
-<dt class="field-name">Raises</dt><dd class="field-body"><ul class="first last simple">
-<li><strong>ValueError</strong> – if the message_body exceeds 160 characters</li>
-<li><strong>TypeError</strong> – if the message_body is not a basestring</li>
-</ul>
-</dd>
+<div class="section" id="starting-mxdc">
+<h2><a class="toc-backref" href="#id1">Starting MxDC</a><a class="headerlink" href="#starting-mxdc" title="Permalink to this headline">¶</a></h2>
+<p>MxDC can be started either by double-clicking the application icon on the desktop titled &quot;MX Data Collector&quot;, or by
+typing <cite>mxdc</cite> in a terminal.</p>
+<p>If started from the desktop, a new terminal will be opened for printing console log messages.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Closing the terminal will terminate MxDC.</p>
+</div>
+<p>Only one instance of MxDC can be run on a given network at a given moment. This means another user is currently
+using MxDC, the program will terminate after presenting a warning.</p>
+</div>
+<div class="section" id="stopping-mxdc">
+<h2><a class="toc-backref" href="#id2">Stopping MxDC</a><a class="headerlink" href="#stopping-mxdc" title="Permalink to this headline">¶</a></h2>
+<p>MxDC can be stopped either by using the window close button, the Quit menu action in the header bar menu, or the Quit
+action of the application menu, if applicable. You should avoid closing MxDC by closing the terminal from which MxDC was
+executed, or by using Ctrl-C.</p>
+</div>
+<div class="section" id="mxlive-integration">
+<h2><a class="toc-backref" href="#id3">MxLIVE Integration</a><a class="headerlink" href="#mxlive-integration" title="Permalink to this headline">¶</a></h2>
+<p>MxDC relies on and uses MxLIVE for experiment planning and logging.  Although MxDC can operate without MxLIVE, it
+will be significantly limited in usability.</p>
+<p>Typically, users plan their experiment by organising their samples into <em>groups</em>, and giving each <em>sample</em> a unique
+name.  For experiments making use of the Automounter, the samples are then organized into <em>containers</em>. Before the
+experiment, a <em>shipment</em> consisting of all the relevant <em>groups</em>, <em>samples</em>, and relevant <em>containers</em> is sent
+to the beamline.</p>
+<p>When MxDC starts-up, it fetches sample information from MxLIVE. The information fetched, includes details about exact
+locations in the Automounter as configured by beamline staff. This information can then be used to mount specific
+samples, and also to organize dataset storage in the file system.</p>
+</div>
+<div class="section" id="creating-directories">
+<h2><a class="toc-backref" href="#id4">Creating Directories</a><a class="headerlink" href="#creating-directories" title="Permalink to this headline">¶</a></h2>
+<p>By default, a top-level directory is created for each beamtime <em>session</em>, within which all data will be stored. It is
+no longer possible to store data out-side of this directory using MxDC, and users are strongly advised
+not to move data files from their saved locations.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">For example:   A session directory might look like:  <em>/users/fodje/CMCFBM-20171018</em>. Note that the name
+the beamline acronym and the start date of the <em>session</em>.</p>
+</div>
+<p>MxDC now automatically organizes how directories are created for saving datasets and related output files within the
+<em>session</em> directory. A single configuration parameter <em>Directory Template</em>, accesible through the Application
+Header Bar Menu, allows users to configure a preferred directory template. The parameter only needs to be set once
+but there is no limit on how often it can be changed.</p>
+<div class="topic">
+<p class="topic-title first">Directory Template</p>
+<p>All directories will be created within the top-level session directory
+according to the specified template. You can use variables for substituting context-specific values.</p>
+<p>Available variables: <em>{sample}, {group}, {container}, {port}, {date}, {activity}</em>.</p>
+<p>The default template is <em>&quot;/{group}/{sample}/{activity}/&quot;</em> which will produce the following directories structure
+for a sample named <strong>bchi-1</strong> in a group named <strong>bchi</strong>:</p>
+<dl class="glossary docutils">
+<dt id="term-mad-scan-output-files">MAD Scan output files</dt>
+<dd>/users/fodje/CMCFBM-20171018/bchi/bchi-1/mad-scan/</dd>
+<dt id="term-raster-scan-files">Raster Scan files</dt>
+<dd>/users/fodje/CMCFBM-20171018/bchi/bchi-1/raster/</dd>
+<dt id="term-full-datasets">Full Datasets</dt>
+<dd>/users/fodje/CMCFBM-20171018/bchi/bchi-1/data/</dd>
+<dt id="term-test-images">Test Images</dt>
+<dd>/users/fodje/CMCFBM-20171018/bchi/bchi-1/test/</dd>
 </dl>
-</dd></dl>
-
-<div class="section" id="client">
-<h2><a class="toc-backref" href="#id1">Client</a><a class="headerlink" href="#client" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="Foo.Client">
-<em class="property">class </em><code class="descclassname">Foo.</code><code class="descname">Client</code><a class="headerlink" href="#Foo.Client" title="Permalink to this definition">¶</a></dt>
-<dd><p>Lorem ipsum dolor. Lorem ipsum dolor:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">client</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">create_client</span><span class="p">(</span><span class="s1">&#39;baz&#39;</span><span class="p">)</span>
-</pre></div>
+<p>Note that additional strings can be used in the template as well, and the sequence of template variables
+is arbitrary. For example, the template <em>&quot;/CONFIDENTIAL/{activity}/{group}/{sample}/&quot;</em> will produce a
+directory <em>/users/fodje/CMCFBM-20171018/CONFIDENTIAL/data/bchi/bchi-1/</em> for the data activity.</p>
 </div>
-<p>Available methods:</p>
-<ul class="simple">
-<li><a class="reference internal" href="#bar" title="bar"><code class="xref py py-meth docutils literal"><span class="pre">bar()</span></code></a></li>
-</ul>
-</dd></dl>
-
-<dl class="method">
-<dt id="bar">
-<code class="descname">bar</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#bar" title="Permalink to this definition">¶</a></dt>
-<dd><p>Lorem ipsum dolor. Lorem ipsum dolor.</p>
-<p><strong>Request Syntax</strong></p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">accept_vpc_peering_connection</span><span class="p">(</span>
-    <span class="n">DryRun</span><span class="o">=</span><span class="kc">True</span><span class="o">|</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">VpcPeeringConnectionId</span><span class="o">=</span><span class="s1">&#39;string&#39;</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<dl class="docutils field-list" frame="void" rules="none">
-<dt class="field-name">Parameters</dt><dd class="field-body"><ul class="first simple">
-<li><strong>DryRun</strong> (<em>boolean</em>) – Checks whether you have the required permissions for the action, without
-actually making the request, and provides an error response. If you have
-the required permissions, the error response is <code class="docutils literal"><span class="pre">DryRunOperation</span></code>.
-Otherwise, it is <code class="docutils literal"><span class="pre">UnauthorizedOperation</span></code>.</li>
-<li><strong>VpcPeeringConnectionId</strong> (<em>string</em>) – The ID of the VPC peering connection.</li>
-</ul>
-</dd>
-<dt class="field-name">Return type</dt><dd class="field-body"><p class="first">dict</p>
-</dd>
-<dt class="field-name">Returns</dt><dd class="field-body"><p class="first last"><p><strong>Response Syntax</strong></p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="s1">&#39;VpcPeeringConnection&#39;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s1">&#39;AccepterVpcInfo&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s1">&#39;CidrBlock&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;OwnerId&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;VpcId&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span>
-        <span class="p">},</span>
-        <span class="s1">&#39;ExpirationTime&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2015</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-        <span class="s1">&#39;RequesterVpcInfo&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s1">&#39;CidrBlock&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;OwnerId&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;VpcId&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span>
-        <span class="p">},</span>
-        <span class="s1">&#39;Status&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s1">&#39;Code&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;Message&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span>
-        <span class="p">},</span>
-        <span class="s1">&#39;Tags&#39;</span><span class="p">:</span> <span class="p">[</span>
-            <span class="p">{</span>
-                <span class="s1">&#39;Key&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;Value&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span>
-            <span class="p">},</span>
-        <span class="p">],</span>
-        <span class="s1">&#39;VpcPeeringConnectionId&#39;</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p><strong>Response Structure</strong></p>
-<ul>
-<li><p class="first"><em>(dict) –</em></p>
-<ul>
-<li><p class="first"><strong>VpcPeeringConnection</strong> <em>(dict) –</em> Information about the VPC peering connection.</p>
-<ul>
-<li><p class="first"><strong>AccepterVpcInfo</strong> <em>(dict) –</em> The information of the peer VPC.</p>
-<ul>
-<li><p class="first"><strong>CidrBlock</strong> <em>(string) –</em> The CIDR block for the VPC.</p>
-<ul>
-<li><p class="first"><strong>OwnerId</strong> <em>(string) –</em> The AWS account ID of the VPC owner.</p>
-</li>
-<li><p class="first"><strong>VpcId</strong> <em>(string) –</em> The ID of the VPC.</p>
-</li>
-<li><p class="first"><strong>ExpirationTime</strong> <em>(datetime) –</em> The time that an unaccepted VPC peering connection will expire.</p>
-</li>
-<li><p class="first"><strong>RequesterVpcInfo</strong> <em>(dict) –</em> The information of the requester VPC.</p>
-<ul>
-<li><p class="first"><strong>CidrBlock</strong> <em>(string) –</em> The CIDR block for the VPC.</p>
-</li>
-<li><p class="first"><strong>OwnerId</strong> <em>(string) –</em> The AWS account ID of the VPC owner.</p>
-</li>
-<li><p class="first"><strong>VpcId</strong> <em>(string) –</em> The ID of the VPC.</p>
-</li>
-<li><p class="first"><strong>Status</strong> <em>(dict) –</em> The status of the VPC peering connection.</p>
-</li>
-<li><p class="first"><strong>Code</strong> <em>(string) –</em> The status of the VPC peering connection.</p>
-</li>
-<li><p class="first"><strong>Message</strong> <em>(string) –</em> A message that provides more information about the status, if applicable.</p>
-</li>
-<li><p class="first"><strong>Tags</strong> <em>(list) –</em> Any tags assigned to the resource.</p>
-<ul>
-<li><p class="first"><em>(dict) –</em> Describes a tag.</p>
-<ul>
-<li><p class="first"><strong>Key</strong> <em>(string) –</em> The key of the tag.</p>
-<blockquote>
-<div><p>Constraints: Tag keys are case-sensitive and accept a maximum of 127 Unicode characters. May not begin with <code class="docutils literal"><span class="pre">aws:</span></code></p>
-</div></blockquote>
-</li>
-<li><p class="first"><strong>Value</strong> <em>(string) –</em> The value of the tag.</p>
-<blockquote>
-<div><p>Constraints: Tag values are case-sensitive and accept a maximum of 255 Unicode characters.</p>
-</div></blockquote>
-</li>
-<li><p class="first"><strong>VpcPeeringConnectionId</strong> <em>(string) –</em> The ID of the VPC peering connection.</p>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
 </div>
 </div>
 
