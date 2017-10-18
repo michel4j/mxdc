@@ -6,125 +6,86 @@ Getting Started
     :depth: 2
     :local:
 
-.. py:function:: send_message(sender, recipient, message_body, [priority=1])
+Starting MxDC
+-------------
+MxDC can be started either by double-clicking the application icon on the desktop titled "MX Data Collector", or by
+typing `mxdc` in a terminal.
 
-   Send a message to a recipient
+If started from the desktop, a new terminal will be opened for printing console log messages.
 
-   :param str sender: The person sending the message
-   :param str recipient: The recipient of the message
-   :param str message_body: The body of the message
-   :param priority: The priority of the message, can be a number 1-5
-   :type priority: integer or None
-   :return: the message id
-   :rtype: int
-   :raises ValueError: if the message_body exceeds 160 characters
-   :raises TypeError: if the message_body is not a basestring
+.. note::
+
+   Closing the terminal will terminate MxDC.
+
+Only one instance of MxDC can be run on a given network at a given moment. This means another user is currently
+using MxDC, the program will terminate after presenting a warning.
 
 
-Client
-------
+Stopping MxDC
+-------------
+MxDC can be stopped either by using the window close button, the Quit menu action in the header bar menu, or the Quit
+action of the application menu, if applicable. You should avoid closing MxDC by closing the terminal from which MxDC was
+executed, or by using Ctrl-C.
 
-.. py:class:: Foo.Client
 
-  Lorem ipsum dolor. Lorem ipsum dolor::
+MxLIVE Integration
+------------------
+MxDC relies on and uses MxLIVE for experiment planning and logging.  Although MxDC can operate without MxLIVE, it
+will be significantly limited in usability.
 
-    client = foo.create_client('baz')
+Typically, users plan their experiment by organising their samples into *groups*, and giving each *sample* a unique
+name.  For experiments making use of the Automounter, the samples are then organized into *containers*. Before the
+experiment, a *shipment* consisting of all the relevant *groups*, *samples*, and relevant *containers* is sent
+to the beamline.
 
-  Available methods:
+When MxDC starts-up, it fetches sample information from MxLIVE. The information fetched, includes details about exact
+locations in the Automounter as configured by beamline staff. This information can then be used to mount specific
+samples, and also to organize dataset storage in the file system.
 
-  * :py:meth:`bar`
 
-.. py:method:: bar(**kwargs)
+Creating Directories
+--------------------
 
-  Lorem ipsum dolor. Lorem ipsum dolor.
+By default, a top-level directory is created for each beamtime *session*, within which all data will be stored. It is
+no longer possible to store data out-side of this directory using MxDC, and users are strongly advised
+not to move data files from their saved locations.
 
-  **Request Syntax**
+.. note::
 
-  ::
+   For example:   A session directory might look like:  */users/fodje/CMCFBM-20171018*. Note that the name
+   the beamline acronym and the start date of the *session*.
 
-      response = client.accept_vpc_peering_connection(
-          DryRun=True|False,
-          VpcPeeringConnectionId='string'
-      )
+MxDC now automatically organizes how directories are created for saving datasets and related output files within the
+*session* directory. A single configuration parameter *Directory Template*, accesible through the Application
+Header Bar Menu, allows users to configure a preferred directory template. The parameter only needs to be set once
+but there is no limit on how often it can be changed.
 
-  :type DryRun: boolean
-  :param DryRun:
+.. topic:: Directory Template
 
-      Checks whether you have the required permissions for the action, without
-      actually making the request, and provides an error response. If you have
-      the required permissions, the error response is ``DryRunOperation``.
-      Otherwise, it is ``UnauthorizedOperation``.
+    All directories will be created within the top-level session directory
+    according to the specified template. You can use variables for substituting context-specific values.
 
-  :type VpcPeeringConnectionId: string
-  :param VpcPeeringConnectionId:
+    Available variables: *{sample}, {group}, {container}, {port}, {date}, {activity}*.
 
-    The ID of the VPC peering connection.
+    The default template is *"/{group}/{sample}/{activity}/"* which will produce the following directories structure
+    for a sample named **bchi-1** in a group named **bchi**:
 
-  :rtype: dict
-  :returns:
+    .. glossary::
+        MAD Scan output files
+            /users/fodje/CMCFBM-20171018/bchi/bchi-1/mad-scan/
 
-      **Response Syntax**
+        Raster Scan files
+            /users/fodje/CMCFBM-20171018/bchi/bchi-1/raster/
 
-      ::
+        Full Datasets
+            /users/fodje/CMCFBM-20171018/bchi/bchi-1/data/
 
-          {
-              'VpcPeeringConnection': {
-                  'AccepterVpcInfo': {
-                      'CidrBlock': 'string',
-                      'OwnerId': 'string',
-                      'VpcId': 'string'
-                  },
-                  'ExpirationTime': datetime(2015, 1, 1),
-                  'RequesterVpcInfo': {
-                      'CidrBlock': 'string',
-                      'OwnerId': 'string',
-                      'VpcId': 'string'
-                  },
-                  'Status': {
-                      'Code': 'string',
-                      'Message': 'string'
-                  },
-                  'Tags': [
-                      {
-                          'Key': 'string',
-                          'Value': 'string'
-                      },
-                  ],
-                  'VpcPeeringConnectionId': 'string'
-              }
-          }
+        Test Images
+            /users/fodje/CMCFBM-20171018/bchi/bchi-1/test/
 
-      **Response Structure**
 
-      - *(dict) --*
+    Note that additional strings can be used in the template as well, and the sequence of template variables
+    is arbitrary. For example, the template *"/CONFIDENTIAL/{activity}/{group}/{sample}/"* will produce a
+    directory */users/fodje/CMCFBM-20171018/CONFIDENTIAL/data/bchi/bchi-1/* for the data activity.
 
-        - **VpcPeeringConnection** *(dict) --* Information about the VPC peering connection.
 
-          - **AccepterVpcInfo** *(dict) --* The information of the peer VPC.
-
-            - **CidrBlock** *(string) --* The CIDR block for the VPC.
-
-              - **OwnerId** *(string) --* The AWS account ID of the VPC owner.
-              - **VpcId** *(string) --* The ID of the VPC.
-              - **ExpirationTime** *(datetime) --* The time that an unaccepted VPC peering connection will expire.
-              - **RequesterVpcInfo** *(dict) --* The information of the requester VPC.
-
-                - **CidrBlock** *(string) --* The CIDR block for the VPC.
-                - **OwnerId** *(string) --* The AWS account ID of the VPC owner.
-                - **VpcId** *(string) --* The ID of the VPC.
-                - **Status** *(dict) --* The status of the VPC peering connection.
-                - **Code** *(string) --* The status of the VPC peering connection.
-                - **Message** *(string) --* A message that provides more information about the status, if applicable.
-                - **Tags** *(list) --* Any tags assigned to the resource.
-
-                  - *(dict) --* Describes a tag.
-
-                    - **Key** *(string) --* The key of the tag.
-
-                        Constraints: Tag keys are case-sensitive and accept a maximum of 127 Unicode characters. May not begin with ``aws:``
-
-                    - **Value** *(string) --* The value of the tag.
-
-                        Constraints: Tag values are case-sensitive and accept a maximum of 255 Unicode characters.
-
-                    - **VpcPeeringConnectionId** *(string) --* The ID of the VPC peering connection.

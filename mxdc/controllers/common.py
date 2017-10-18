@@ -165,7 +165,7 @@ class AppNotifier(object):
     def on_notifier_closed(self, button):
         self.close()
 
-    def notify(self, message, level=Gtk.MessageType.INFO, important=False, duration=3, show_timer=False):
+    def notify(self, message, level=Gtk.MessageType.INFO, important=False, duration=6, show_timer=False):
         """
         Display an in-app notification.
         @param message: Text to display
