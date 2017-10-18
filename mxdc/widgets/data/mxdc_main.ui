@@ -887,7 +887,6 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="transition_duration">100</property>
-                                <property name="transition_type">slide-left-right</property>
                                 <child>
                                   <object class="GtkBox" id="setup_status_box">
                                     <property name="visible">True</property>
@@ -897,7 +896,19 @@
                                     <property name="border_width">12</property>
                                     <property name="orientation">vertical</property>
                                     <child>
-                                      <placeholder/>
+                                      <object class="GtkAlignment" id="diagnostics_box">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="border_width">24</property>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
                                     </child>
                                   </object>
                                   <packing>
@@ -1056,7 +1067,7 @@
                                     <property name="can_focus">True</property>
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
-                                    <property name="border_width">6</property>
+                                    <property name="border_width">12</property>
                                     <property name="hscrollbar_policy">never</property>
                                     <property name="vscrollbar_policy">always</property>
                                     <property name="shadow_type">in</property>
@@ -1082,10 +1093,100 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkLabel">
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Chat Window ... TBD</property>
+                                    <property name="border_width">12</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">12</property>
+                                    <child>
+                                      <object class="GtkScrolledWindow">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="shadow_type">in</property>
+                                        <child>
+                                          <object class="GtkViewport">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="shadow_type">none</property>
+                                            <child>
+                                              <object class="GtkListBox" id="chat_messages">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="selection_mode">none</property>
+                                                <property name="activate_on_single_click">False</property>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <child>
+                                          <object class="GtkEntry" id="chat_user_fbk">
+                                            <property name="visible">True</property>
+                                            <property name="sensitive">False</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="editable">False</property>
+                                            <property name="width_chars">8</property>
+                                            <property name="xalign">0.5</property>
+                                            <property name="caps_lock_warning">False</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkEntry" id="chat_msg_entry">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="show_emoji_icon">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">True</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="chat_send_btn">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">True</property>
+                                            <child>
+                                              <object class="GtkImage">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="pixbuf">send.svg</property>
+                                              </object>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                        <style>
+                                          <class name="linked"/>
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="name">Chat</property>
@@ -4104,13 +4205,12 @@
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkRadioButton" id="analyse_anom_option">
+                                          <object class="GtkCheckButton" id="analyse_anom_option">
                                             <property name="label" translatable="yes">Anomalous</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">False</property>
                                             <property name="draw_indicator">True</property>
-                                            <property name="group">analyse_screen_option</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -6936,13 +7036,16 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
-                                    <property name="tooltip_text" translatable="yes">Clear Report List</property>
+                                    <property name="tooltip_text" translatable="yes">Remove items</property>
                                     <property name="border_width">3</property>
                                     <child>
                                       <object class="GtkImage">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="icon_name">user-trash-symbolic</property>
+                                        <style>
+                                          <class name="destructive-action"/>
+                                        </style>
                                       </object>
                                     </child>
                                   </object>
@@ -7071,7 +7174,6 @@
                                               <packing>
                                                 <property name="left_attach">1</property>
                                                 <property name="top_attach">0</property>
-                                                <property name="width">2</property>
                                               </packing>
                                             </child>
                                             <child>
@@ -7125,6 +7227,7 @@
                                                 </child>
                                                 <style>
                                                   <class name="image-button"/>
+                                                  <class name="warning"/>
                                                 </style>
                                               </object>
                                               <packing>
@@ -7173,6 +7276,9 @@
                                                 <property name="position">1</property>
                                               </packing>
                                             </child>
+                                            <child>
+                                              <placeholder/>
+                                            </child>
                                           </object>
                                           <packing>
                                             <property name="expand">True</property>
@@ -7211,7 +7317,7 @@
                                             <property name="receives_default">False</property>
                                             <property name="halign">start</property>
                                             <property name="draw_indicator">True</property>
-                                            <property name="group">proc_single_option</property>
+                                            <property name="group">proc_merge_option</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">2</property>
@@ -7226,7 +7332,7 @@
                                             <property name="receives_default">False</property>
                                             <property name="halign">start</property>
                                             <property name="draw_indicator">True</property>
-                                            <property name="group">proc_single_option</property>
+                                            <property name="group">proc_mad_option</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -7240,26 +7346,12 @@
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">False</property>
                                             <property name="halign">start</property>
-                                            <property name="active">True</property>
                                             <property name="draw_indicator">True</property>
+                                            <property name="group">proc_merge_option</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">0</property>
                                             <property name="top_attach">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkCheckButton" id="proc_screen_btn">
-                                            <property name="label" translatable="yes">Screen</property>
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="receives_default">False</property>
-                                            <property name="halign">start</property>
-                                            <property name="draw_indicator">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left_attach">0</property>
-                                            <property name="top_attach">1</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -7272,7 +7364,23 @@
                                             <property name="draw_indicator">True</property>
                                           </object>
                                           <packing>
-                                            <property name="left_attach">1</property>
+                                            <property name="left_attach">2</property>
+                                            <property name="top_attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkRadioButton" id="proc_screen_option">
+                                            <property name="label" translatable="yes">Screen</property>
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="active">True</property>
+                                            <property name="draw_indicator">True</property>
+                                            <property name="group">proc_merge_option</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left_attach">0</property>
                                             <property name="top_attach">1</property>
                                           </packing>
                                         </child>
@@ -7345,6 +7453,9 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
+                                        <style>
+                                          <class name="suggested-action"/>
+                                        </style>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -7434,6 +7545,7 @@
           <object class="GtkOverlay">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="halign">center</property>
             <property name="valign">start</property>
             <child>
               <object class="GtkRevealer" id="notification_revealer">
@@ -7450,19 +7562,7 @@
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="spacing">20</property>
-                        <child>
-                          <object class="GtkLabel" id="notification_lbl">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">This is an app-notification. Click the button to dismiss</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
+                        <property name="spacing">18</property>
                         <child>
                           <object class="GtkButton" id="notification_btn">
                             <property name="visible">True</property>
@@ -7483,8 +7583,28 @@
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
+                            <property name="pack_type">end</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="notification_lbl">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">This is an app-notification. Click the button to dismiss</property>
+                            <property name="wrap">True</property>
+                            <property name="max_width_chars">40</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="pack_type">end</property>
                             <property name="position">1</property>
                           </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
                         </child>
                       </object>
                     </child>
@@ -7503,6 +7623,9 @@
               </packing>
             </child>
           </object>
+          <packing>
+            <property name="pass_through">True</property>
+          </packing>
         </child>
       </object>
     </child>

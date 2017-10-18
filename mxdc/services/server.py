@@ -13,11 +13,23 @@ class IMXDCService(Interface):
     def send_message(msg):
         """Send a Message"""
 
+    def join(user):
+        """Join the chat"""
+
+    def leave(user):
+        """Leave the chat"""
+
     def shutdown():
         """Shutdown MxDC"""
 
 
 class IPerspectiveMXDC(Interface):
+    def remote_join(*args, **kwargs):
+        """Join Chat"""
+
+    def remote_leave(*args, **kwargs):
+        """Leave Chat"""
+
     def remote_send_message(*args, **kwargs):
         """Send a Message"""
 
@@ -30,6 +42,14 @@ class PerspectiveMXDCFromService(pb.Root):
 
     def __init__(self, service):
         self.service = service
+
+    def remote_join(self, *args, **kwargs):
+        """Join Chat"""
+        return self.service.join(*args, **kwargs)
+
+    def remote_leave(self, *args, **kwargs):
+        """Leave Chat"""
+        return self.service.leave(*args, **kwargs)
 
     def remote_send_message(self, *args, **kwargs):
         """Send a message"""
@@ -48,10 +68,24 @@ class MXDCService(service.Service):
 
     def __init__(self, messenger=None):
         self.messenger = messenger
+        self.messenger.set_root(self)
+        self.clients = set()
 
-    def send_message(self, msg):
-        if self.messenger is not None:
-            self.messenger.emit(msg)
+    def join(self, user):
+        self.clients.add(user)
+
+    def leave(self, user):
+        self.clients.discard(user)
+
+    def send_message(self, user, msg):
+        self.messenger.show(user, msg)
+        missing = set()
+        for client in self.clients:
+            try:
+                client.callRemote('show', user, msg)
+            except pb.DeadReferenceError as e:
+                missing.add(client)
+        self.clients -= missing
         return defer.succeed([])
 
     def shutdown(self):

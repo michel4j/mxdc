@@ -1,6 +1,8 @@
 # BCM GLOBAL Settings for SIM Beamline
+
 from mxdc.com import ca
-from mxdc.devices import motor, goniometer, cryojet, boss, detector, automounter, humidity, video, misc, mca, counter
+from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
+from mxdc.devices import automounter, humidity, video, misc, mca, counter
 from mxdc.services import clients
 
 
@@ -79,11 +81,8 @@ DEVICES = {
     'hutch_video': video.AxisPTZCamera('ccd1608-301.clsi.ca'),
 
     # Facility, storage-ring, shutters, etc
-    'ring_current': ca.PV('PCT1402-01:mA:fbk'),
-    'ring_mode': ca.PV('SYSTEM:mode:fbk'),
-    'ring_status': ca.PV('SRStatus:injecting'),
-    'storage_ring': misc.SimStorageRing('Simulated Storage Ring'),
-    # 'storage_ring':  StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
+    'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),
+    # 'synchrotron':  synchrotron.StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
     'psh1': misc.SimShutter('PSH1'),
     'ssh1': misc.SimShutter('SSH2'),
     'psh2': misc.SimShutter('PSH2'),
@@ -110,5 +109,5 @@ DEVICES = {
 SERVICES = {
     'dss': clients.DSSClient(),
     'lims': clients.MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
-    'dps': clients.DPMClient(),
+    'dps': clients.DPSClient(),
 }

@@ -5,15 +5,15 @@ from twisted.internet import gtk3reactor
 
 gtk3reactor.install()
 from mxdc.conf import settings
-from mxdc.services import mxdctools
+from mxdc.services import server
 from mxdc.beamlines.mx import MXBeamline
 from mxdc.utils import mdns
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_project_name, identifier_slug
-from mxdc.AppWindow import AppWindow
+from mxdc.widgets.AppWindow import AppWindow
 from mxdc.widgets import dialogs
-from mxdc.utils import excepthook
-from mxdc.services.clients import MxDCClientFactory
+from mxdc.utils import excepthook, misc
+from mxdc.services import clients
 from twisted.internet import reactor
 from twisted.spread import pb
 import os
@@ -22,8 +22,8 @@ import warnings
 import logging
 from gi.repository import Gtk, GObject
 
-USE_TWISTED = False
-MXDC_PORT = 9898
+USE_TWISTED = True
+MXDC_PORT = misc.get_free_tcp_port() #9898
 
 warnings.simplefilter("ignore")
 
@@ -43,19 +43,31 @@ class MXDCApp(object):
         self.hook = excepthook.ExceptHook(
             emails=self.beamline.config['bug_report'], exit_function=exit_main_loop
         )
-        #self.hook.install()
+        self.hook.install()
 
+
+        self.broadcast_service()
+        self.main_window.connect('destroy', self.do_quit)
+        self.main_window.run()
+
+    def broadcast_service(self):
+        self.remote_mxdc = None
         self.service_type = '_mxdc_{}._tcp'.format(identifier_slug(self.beamline.name))
         self.service_data = {
             'user': get_project_name(),
             'started': time.asctime(time.localtime()),
             'beamline': self.beamline.name
         }
-        self.remote_mxdc = MxDCClientFactory(self.service_type)()
-        self.remote_mxdc.connect('active', self.service_found)
-        self.remote_mxdc.connect('health', self.service_failed)
-        self.main_window.connect('destroy', self.do_quit)
-        self.main_window.run()
+
+        try:
+            self.provider = mdns.Provider('MXDC Client ({})'.format(
+                self.beamline.name), self.service_type, MXDC_PORT, self.service_data, unique=True
+            )
+        except mdns.mDNSError:
+            self.remote_mxdc = clients.MxDCClientFactory(self.service_type)()
+            self.remote_mxdc.connect('active', self.service_found)
+        else:
+            self.start_server()
 
     def service_found(self, obj, state):
         if state and not settings.DEBUG:
@@ -67,53 +79,36 @@ class MXDCApp(object):
                 msg += '\n\nDo you want to shut it down?'
                 response = dialogs.yesno('MXDC Already Running', msg)
                 if response == Gtk.ResponseType.YES:
+                    self.remote_mxdc.send_message('Hello earth! All your bases are belong to us.')
                     d = self.remote_mxdc.shutdown()
-                    d.addErrback(self.on_close_connection)
+                    d.addCallback(self.start_server)
                 else:
                     self.do_quit()
             else:
-                self.provider_failure()
+                dialogs.error(
+                    'MXDC Already Running',
+                    'An instance of MXDC is already running on the local network. Only one instance permitted.'
+                )
+                self.do_quit()
 
-    def service_failed(self, obj, state):
-        if state:
-            # broadcast after emote MxDC shuts down
-            logger.info('Starting MxDC services discovery ...')
-            self.broadcast_service()
-
-    def broadcast_service(self):
-        self.provider = mdns.Provider(
-            'MXDC Client ({})'.format(self.beamline.name),
-            self.service_type, MXDC_PORT, self.service_data, unique=True
-        )
-        self.provider.connect('collision', lambda x: self.provider_failure())
-        self.provider.connect('running', lambda x: self.provider_success())
-        self.service = mxdctools.MXDCService(None)
-        reactor.listenTCP(MXDC_PORT, pb.PBServerFactory(mxdctools.IPerspectiveMXDC(self.service)))
-
-    def provider_failure(self):
-        dialogs.error(
-            'MXDC Already Running',
-            'An instance of MXDC is already running on the local network. Only one instance permitted.'
-        )
-        self.do_quit()
-
-    def on_close_connection(self, reason):
-        logger.warning('Remote MxDC instance terminated.')
-
-    def provider_success(self):
+    def start_server(self, *args, **kwargs):
+        self.service = server.MXDCService(clients.messenger)
         logger.info(
-            'Local MXDC instance {}@{} since {}'.format(
+            'Local MXDC instance {}@{} started {}'.format(
                 self.service_data['user'], self.beamline.name, self.service_data['started']
             )
         )
         self.session_active = True
         self.beamline.lims.open_session(self.beamline.name, settings.get_session())
+        reactor.listenTCP(MXDC_PORT, pb.PBServerFactory(server.IPerspectiveMXDC(self.service)))
 
     def do_quit(self, obj=None):
         if self.session_active:
             logger.info('Closing MxLIVE Session...')
             self.beamline.lims.close_session(self.beamline.name, settings.get_session())
         logger.info('Stopping ...')
+        if self.remote_mxdc:
+            self.remote_mxdc.leave()
         exit_main_loop()
 
 

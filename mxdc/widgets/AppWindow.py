@@ -7,7 +7,7 @@ from mxdc.beamlines.mx import IBeamline
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
-from mxdc.controllers import common, status
+from mxdc.controllers import common, status, chat
 from mxdc.controllers import setup, scans, datasets
 from mxdc.controllers import samples, analysis
 from mxdc.controllers.settings import SettingsDialog
@@ -92,11 +92,15 @@ class AppWindow(Gtk.ApplicationWindow, gui.BuilderMixin):
         self.automation = datasets.AutomationController(self)
         self.scans = scans.ScanManager(self)
 
+        # Chat
+        self.chat = chat.ChatController(self)
+
         self.app_mnu_btn.set_popup(self.app_menu)
 
         self.add_menu_actions()
         self.page_switcher.set_stack(self.main_stack)
-        self.main_stack.connect('notify::visible-child', self.on_page_switched)
+        for stack in [self.main_stack, self.setup_status_stack, self.samples_stack]:
+            stack.connect('notify::visible-child', self.on_page_switched)
         self.dir_template_btn.connect('clicked', self.do_settings)
         self.set_titlebar(self.header_bar)
         icon = GdkPixbuf.Pixbuf.new_from_file(self.icon_file)

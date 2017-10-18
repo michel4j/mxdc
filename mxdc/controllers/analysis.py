@@ -1,4 +1,5 @@
 import os
+import numpy
 import gi
 
 gi.require_version('WebKit', '3.0')
@@ -14,7 +15,8 @@ from mxdc.engines.analysis import Analyst
 from samplestore import ISampleStore
 from twisted.python.components import globalRegistry
 from mxdc.engines import auto
-from mxdc.widgets import dialogs
+from mxdc.widgets import dialogs, datawidget
+from mxdc.controllers.datasets import IDatasets
 
 logger = get_module_logger(__name__)
 
@@ -23,7 +25,7 @@ logger = get_module_logger(__name__)
 
 class ReportManager(TreeManager):
     class Data(Enum):
-        NAME, GROUP, ACTIVITY, TYPE, SCORE, SUMMARY, STATE, UUID, SAMPLE, DIRECTORY, DATA, REPORT, ERROR = range(13)
+        NAME, GROUP, ACTIVITY, TYPE, SCORE, TITLE, STATE, UUID, SAMPLE, DIRECTORY, DATA, REPORT, ERROR = range(13)
 
     Types = [str, str, str, str, float, str, int, str, object, str, object, object, object]
 
@@ -32,9 +34,10 @@ class ReportManager(TreeManager):
 
     Columns = ColumnSpec(
         (Data.NAME, 'Name', ColumnType.TEXT, '{}', True),
-        (Data.ACTIVITY, "Type", ColumnType.TEXT, '{}', True),
+        (Data.TITLE, "Title", ColumnType.TEXT, '{}', True),
+        (Data.ACTIVITY, "Type", ColumnType.TEXT, '{}', False),
         (Data.SCORE, 'Score', ColumnType.NUMBER, '{:0.2f}', False),
-        (Data.SUMMARY, "Summary", ColumnType.TEXT, '{}', True),
+
         (Data.STATE, "", ColumnType.ICON, '{}', False),
     )
     Icons = {
@@ -44,7 +47,7 @@ class ReportManager(TreeManager):
         State.FAILED: ('computer-fail-symbolic', colors.Category.CAT20[6]),
     }
     #
-    # tooltips = Data.SUMMARY
+    # tooltips = Data.TITLE
     parent = Data.NAME
     flat = False
     select_multiple = True
@@ -54,7 +57,7 @@ class ReportManager(TreeManager):
     sample = GObject.Property(type=object)
     strategy = GObject.Property(type=object)
 
-    def update_item(self, item_id, report=None, error=None, summary='????'):
+    def update_item(self, item_id, report=None, error=None, title='????'):
         itr = self.model.get_iter_first()
         row = None
         while itr and not row:
@@ -77,7 +80,7 @@ class ReportManager(TreeManager):
             elif error:
                 row[self.Data.ERROR.value] = error
                 row[self.Data.STATE.value] = self.State.FAILED
-            row[self.Data.SUMMARY.value] = summary
+            row[self.Data.TITLE.value] = title
 
 
     def row_activated(self, view, path, column):
@@ -125,16 +128,18 @@ class AnalysisController(GObject.GObject):
         browser_settings.set_property("enable-plugins", False)
         browser_settings.set_property("default-font-size", 11)
         self.browser.set_settings(browser_settings)
+        self.widget.proc_single_option.set_active(True)
 
         self.widget.proc_dir_btn.connect('clicked', self.open_terminal)
         self.widget.proc_mount_btn.connect('clicked', self.mount_sample)
+        self.widget.proc_strategy_btn.connect('clicked', self.use_strategy)
         self.widget.proc_reports_view.connect('row-activated', self.on_row_activated)
         self.widget.proc_run_btn.connect('clicked', self.on_run_analysis)
         self.widget.proc_clear_btn.connect('clicked', self.clear_reports)
         self.widget.proc_open_btn.connect('clicked', self.import_metafile)
 
         self.options = {
-            'screen': self.widget.proc_screen_btn,
+            'screen': self.widget.proc_screen_option,
             'merge': self.widget.proc_merge_option,
             'mad': self.widget.proc_mad_option,
             'calibrate': self.widget.proc_calib_option,
@@ -147,7 +152,7 @@ class AnalysisController(GObject.GObject):
         misc.open_terminal(directory)
 
     def clear_reports(self, *args, **kwargs):
-        self.reports.clear()
+        self.reports.clear_selection()
 
     def import_metafile(self, *args, **kwargs):
         filters = [
@@ -167,11 +172,11 @@ class AnalysisController(GObject.GObject):
             if data.get('type') in ['MX_DATA', 'MX_SCREEN', 'XRD_DATA']:
                 if data.get('sample_id'):
                     row = self.sample_store.find_by_id(data['sample_id'])
-                    sample = row[self.sample_store.Data.DATA]
+                    sample = {} if not row else row[self.sample_store.Data.DATA]
                 else:
                     sample = {}
                 params = {
-                    'summary': '',
+                    'title': '',
                     'state': self.reports.State.PENDING,
                     'data': data,
                     'sample_id': data['sample_id'],
@@ -207,6 +212,7 @@ class AnalysisController(GObject.GObject):
         sample = item.get('sample')
         strategy = report.get('strategy')
         self.widget.proc_mount_btn.set_sensitive(bool(sample) and item['state'] == self.reports.State.SUCCESS)
+        self.widget.proc_strategy_btn.set_sensitive(bool(self.reports.strategy))
         if sample:
             sample_text = '{name}|{port}'.format(
                 name=sample.get('name', '...'),
@@ -224,9 +230,9 @@ class AnalysisController(GObject.GObject):
         self.widget.proc_dir_btn.set_sensitive(bool(directory))
 
         if report:
-            filename = os.path.join(report['url'], 'report', 'index.html')
+            filename = os.path.join(report['directory'], 'report.html')
             if os.path.exists(filename):
-                uri = 'file://{}'.format(filename)
+                uri = 'file://{}?v={}'.format(filename, numpy.random.rand())
                 GObject.idle_add(self.browser.load_uri, uri)
 
         self.widget.proc_mx_box.set_sensitive(item['type'] in ['MX_DATA', 'MX_SCREEN'])
@@ -245,6 +251,23 @@ class AnalysisController(GObject.GObject):
             elif not port:
                 # FIXME: Manual mounting here
                 pass
+
+    def use_strategy(self, *args, **kwargs):
+        strategy = self.reports.strategy
+        dataset_controller = globalRegistry.lookup([], IDatasets)
+        if strategy:
+            run = {
+                'attenuation': strategy.get('attenuation', 0),
+                'start': strategy.get('start_angle', 0.0),
+                'range': strategy.get('tatal_angle', 180),
+                'resolution': strategy.get('exp_resolution'),
+                'name': 'data',
+            }
+
+            dataset_controller.add_runs([run])
+            data_page = self.widget.main_stack.get_child_by_name('Data')
+            self.widget.main_stack.child_set(data_page, needs_attention=True)
+            self.widget.notifier.notify("Datasets added. Switch to Data page to proceed.")
 
     def get_options(self):
         return [k for k, w in self.options.items() if w.get_active()]

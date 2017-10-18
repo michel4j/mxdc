@@ -279,6 +279,8 @@ class SampleStore(GObject.GObject):
         if not 'error' in data:
             self.widget.notifier.notify('{} Samples Imported from MxLIVE'.format(len(data)))
             self.load_data(data)
+        else:
+            self.widget.notifier.notify(data['error'])
 
     def format_state(self, column, cell, model, itr, data):
         value = model[itr][self.Data.STATE]
@@ -460,10 +462,11 @@ class SampleStore(GObject.GObject):
     def on_key_press(self, obj, event):
         return self.widget.samples_search_entry.handle_event(event)
 
-    def on_row_activated(self, obj, path, column):
+    def on_row_activated(self, cell, path, column):
         self.toggle_row(path)
 
     def on_row_toggled(self, cell, path, model):
+        path = Gtk.TreePath.new_from_string(path)
         self.toggle_row(path)
 
     @async_call

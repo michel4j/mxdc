@@ -551,18 +551,18 @@ class DatasetsController(GObject.GObject):
             return
 
         default = datawidget.DataDialog.get_default(strategy_type=datawidget.StrategyType.FULL)
-        distance = self.beamline.distance.get_position()
+        dist = self.beamline.distance.get_position()
         for run in runs:
-            energy = run['energy']
-            resolution = converter.dist_to_resol(
-                distance, self.beamline.detector.mm_size, energy
+            energy = run.get('energy', self.beamline.energy.get_position())
+            res = converter.dist_to_resol(
+                dist, self.beamline.detector.mm_size, energy
             )
+            resolution = run.get('resolution', res)
             info = copy.copy(default)
             info.update({
                 'resolution': round(resolution, 1),
                 'strategy': datawidget.StrategyType.FULL,
                 'energy': energy,
-                'distance': round(distance, 1),
                 'exposure': self.beamline.config['default_exposure'],
                 'name': run['name'],
             })
@@ -650,7 +650,7 @@ class DatasetsController(GObject.GObject):
             self.widget.notifier.notify(message, important=True)
             self.pause_info = True
         elif message:
-            self.widget.notifier.notify(message, duration=10)
+            self.widget.notifier.notify(message, duration=30, show_timer=True)
             self.pause_info = False
 
     def on_complete(self, obj=None):
