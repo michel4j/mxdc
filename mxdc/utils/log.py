@@ -119,7 +119,7 @@ def log_call(f):
         params = ['{}'.format(reprlib.repr(a)) for a in args[1:]]
         params.extend(['{}={}'.format(p[0], reprlib.repr(p[1])) for p in kwargs.items()])
         params = ', '.join(params)
-        logger.debug('<{}({})>'.format(f.__name__, params))
+        logger.info('<{}({})>'.format(f.__name__, params))
         return f(*args, **kwargs)
 
     new_f.__name__ = f.__name__

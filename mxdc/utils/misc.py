@@ -43,6 +43,17 @@ def same_value(a, b, prec, deg=False):
     return abs(round(a - b, prec)) <= 10 ** -prec
 
 
+class NameToInt(object):
+    registry = {}
+
+    @classmethod
+    def get(cls, name):
+        if name in cls.registry:
+            return cls.registry[name]
+        else:
+            cls.registry[name] = len(cls.registry)
+            return cls.registry[name]
+
 class SignalWatcher(object):
     def __init__(self):
         self.activated = False
@@ -154,12 +165,14 @@ def open_terminal(directory=None):
 
 
 def save_metadata(metadata, filename):
-    if os.path.exists(filename):
-        old_metadata = load_metadata(filename)
-        metadata['id'] = old_metadata.get('id')
+    try:
+        if os.path.exists(filename):
+            old_metadata = load_metadata(filename)
+            metadata['id'] = old_metadata.get('id')
+    except ValueError as e:
+        logger.error('Existing meta-data corrupted. Overwriting ...')
     with open(filename, 'w') as handle:
         json.dump(metadata, handle, indent=2, separators=(',', ':'), sort_keys=True)
-        #logger.info("Meta-Data Saved: {}".format(filename))
     return metadata
 
 
@@ -189,3 +202,11 @@ def _get_address(gateway, port=22):
 @decorators.memoize
 def get_address():
     return ipaddress.ip_address(u'{}'.format(_get_address(_get_gateway())))
+
+
+def get_free_tcp_port():
+    tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp.bind(('', 0))
+    addr, port = tcp.getsockname()
+    tcp.close()
+    return port

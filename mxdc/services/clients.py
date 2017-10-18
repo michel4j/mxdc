@@ -7,7 +7,6 @@ import rpyc
 from rpyc.utils.helpers import BgServingThread
 
 from gi.repository import GObject, GLib
-from interfaces import IImageSyncService
 from mxdc.conf import settings
 from mxdc.devices.base import BaseDevice
 from mxdc.utils import mdns, signing, misc
@@ -103,79 +102,7 @@ class PBClient(BaseService):
         logger.error('Connection to {} Failed'.format(self.name))
 
 
-class RPCClient(BaseService):
-    NAME = 'RPC Service'
-    CODE = ''
-
-    def __init__(self, address=None):
-        super(RPCClient, self).__init__()
-        self.service = None
-        self.browser = None
-        self.name = self.NAME
-        self.code = self.CODE
-        self.connection = None
-        self.service_found = False
-        self.service_data = {}
-        if address is not None:
-            m = re.match('([\w.\-_]+):(\d+)', address)
-            if m:
-                data = {
-                    'name': self.name,
-                    'host': m.group(1),
-                    'address': socket.gethostbyname(m.group(1)),
-                    'port': int(m.group(2)),
-                }
-                self.service_added(None, data)
-        else:
-            GObject.idle_add(self.setup)
-
-    def service_added(self, obj, data):
-        if self.service_found: return
-        self.service_found = True
-        self.service_data = data
-        self.connection = rpyc.connect(data['address'], data['port'], config={"allow_public_attrs": True,"allow_pickle": True})
-        self.bg_server = BgServingThread(self.connection)
-        #GLib.io_add_watch(self.connection, GLib.PRIORITY_DEFAULT, GLib.IO_IN|GLib.IO_OUT|GLib.IO_ERR, self.connection.serve )
-        self.service = self.connection.root
-
-        logger.info('{} {host}:{port} connected.'.format(self.name, **data))
-        self.set_state(active=True)
-
-    def service_removed(self, obj, data):
-        if not self.service_found and self.service_data['host'] == data['host']:
-            return
-        self.service_found = False
-        logger.info('{} {host}:{port} disconnected.'.format(self.name, **data))
-        self.set_state(active=False)
-
-    def setup(self):
-        """
-        Discover connection details of the Server using mdns
-        and initiate a connection
-        """
-        self.browser = mdns.Browser(self.code)
-        self.browser.connect('added', self.service_added)
-        self.browser.connect('removed', self.service_removed)
-
-
-class DPSClient(RPCClient):
-    NAME = 'Data Analysis Server'
-    CODE = '_dpm_rpc._tcp'
-
-    def process_mx(self, *args, **kwargs):
-        func = rpyc.async(self.service.process_mx)
-        return func(*args, **kwargs)
-
-    def process_xrd(self, *args, **kwargs):
-        func = rpyc.async(self.service.process_xrd)
-        return func(*args, **kwargs)
-
-    def analyse_frame(self, *args, **kwargs):
-        func = rpyc.async(self.service.analyse_frame)
-        return func(*args, **kwargs)
-
-
-class DPMClient(PBClient):
+class DPSClient(PBClient):
     NAME = 'Data Analysis Server'
     CODE = '_dpm_rpc._tcp'
 
@@ -189,15 +116,15 @@ class DPMClient(PBClient):
         return self.service.callRemote('analyse_frame', *args, **kwargs)
 
 
-class DSSClient(RPCClient):
+class DSSClient(PBClient):
     NAME = 'Data Synchronization Server'
     CODE = '_imgsync_rpc._tcp'
 
     def configure(self, *args, **kwargs):
-        return self.service.configure(*args, **kwargs)
+        return self.service.callRemote('configure', *args, **kwargs)
 
     def setup_folder(self, *args, **kwargs):
-        return self.service.setup_folder(*args, **kwargs)
+        return self.service.callRemote('setup_folder', *args, **kwargs)
 
 
 class MxLIVEClient(BaseService):
@@ -271,8 +198,8 @@ class MxLIVEClient(BaseService):
         try:
             reply = self.get(path)
         except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Unable to fetch Samples from MxLIVE: \n {}'.format(e))
-            reply = {'error': 'Unable to fetch Samples from MxLIVE', 'details': '{}'.format(e)}
+            logger.error('Unable to fetch Samples from MxLIVE: \n {}'.format(str(e)))
+            reply = {'error': 'Unable to fetch Samples from MxLIVE'}
         return reply
 
     def open_session(self, beamline, session):
@@ -282,7 +209,7 @@ class MxLIVEClient(BaseService):
             reply = self.post(path)
         except (IOError, ValueError, requests.HTTPError) as e:
             logger.error('Unable to Open MxLIVE Session: \n {}'.format(e))
-            reply = {'error': 'Unable to Open MxLIVE Session', 'details': '{}'.format(e)}
+            reply = {'error': 'Unable to Open MxLIVE Session'}
         else:
             logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
 
@@ -313,22 +240,61 @@ class MxLIVEClient(BaseService):
         self.upload('/report/{}/'.format(beamline), filename)
 
 
+class Referenceable(pb.Referenceable, object):
+    pass
+
+class ChatClient(GObject.GObject, Referenceable):
+    __gsignals__ = {
+        'message': (GObject.SignalFlags.RUN_FIRST, None, [str, str]),
+    }
+
+    def __init__(self):
+        super(ChatClient, self).__init__()
+        self.service = None
+
+    def set_root(self, service):
+        self.service = service
+
+    def show(self, user, message):
+        GObject.idle_add(self.emit, 'message', user, message)
+
+    def send(self, message):
+        if self.service:
+            user = misc.get_project_name()
+            self.service.send_message(user, message)
+
+    def remote_show(self, *args, **kwargs):
+        self.show(*args, **kwargs)
+
+messenger = ChatClient()
+
+
 def MxDCClientFactory(code):
     class Client(PBClient):
         NAME = 'Remote MxDC'
         CODE = code
 
-        def send_message(self, *args, **kwargs):
-            self.service.callRemote('send_message', *args, **kwargs)
+        def join(self, *args, **kwargs):
+            self.service.callRemote('join', messenger)
+
+        def leave(self, *args, **kwargs):
+            self.service.callRemote('leave', messenger)
+
+        def send_message(self, user, message):
+            self.service.callRemote('send_message', user, message)
 
         def shutdown(self, *args, **kwargs):
-            self.service.callRemote('shutdown', *args, **kwargs)
+            return self.service.callRemote('shutdown', *args, **kwargs)
+
+        def on_connect(self, perspective):
+            super(Client, self).on_connect(perspective)
+            messenger.set_root(self)
+            GObject.timeout_add(1000, self.join)
+
     return Client
 
 
 class LocalDSSClient(BaseService):
-    implements(IImageSyncService)
-
     def __init__(self, *args, **kwargs):
         super(LocalDSSClient, self).__init__()
         self.name = "ImgSync Service"
@@ -342,4 +308,4 @@ class LocalDSSClient(BaseService):
         return True
 
 
-__all__ = ['DPMClient', 'DPSClient', 'MxDCClientFactory', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient']
+__all__ = ['DPSClient', 'MxDCClientFactory', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient']

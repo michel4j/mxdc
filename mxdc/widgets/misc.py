@@ -1,16 +1,11 @@
-from mxdc.utils.colors import lighten_color
-from diagnostics import MSG_COLORS, MSG_ICONS
-from dialogs import warning
-
-from mxdc.utils import gui
-from gi.repository import GObject
-from gi.repository import Gtk
-from gi.repository import GdkPixbuf
-from gi.repository import Gdk
-from gi.repository import cairo
-
 import os
 import time
+
+from dialogs import warning
+from gi.repository import GObject
+from gi.repository import GdkPixbuf
+from gi.repository import Gtk
+from mxdc.utils import gui
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
