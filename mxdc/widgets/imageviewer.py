@@ -106,6 +106,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.add(self.image_viewer)
         self.show_all()
 
+
     def log(self, msg):
         img_logger.info(msg)
 

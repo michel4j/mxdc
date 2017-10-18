@@ -14,7 +14,7 @@
 servicename='imgsync'
 pidfile='/var/run/imgsync.pid'
 logfile='/var/log/imgsync.log'
-appfile=$MXDC_PATH/bcm/service/imagesync_server.py
+appfile=$MXDC_PATH/mxdc/services/imagesync.py
 umask=022
 
 # Sanity checks.

@@ -3,10 +3,10 @@ import logging
 import common
 from gi.repository import GObject
 from mxdc.beamlines.interfaces import IBeamline
+from mxdc.controllers.diagnostics import DiagnosticsController
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc
-from mxdc.widgets.diagnostics import DiagnosticsViewer
 from mxdc.widgets.textviewer import GUIHandler
 from mxdc.widgets.ticker import ChartManager
 from ptzvideo import AxisController
@@ -65,8 +65,7 @@ class SetupController(object):
         self.beamline.goniometer.connect('busy', self.on_devices_busy)
 
         # status, cryo, log
-        self.diagnostics = DiagnosticsViewer()
-        self.widget.setup_status_box.pack_end(self.diagnostics, True, True, 0)
+        self.diagnostics = DiagnosticsController(self.widget, self.widget.diagnostics_box)
 
         # logging
         self.log_viewer = common.LogMonitor(self.widget.setup_log_box, 'Candara 7')
@@ -92,6 +91,8 @@ class SetupController(object):
             )
         ]
         self.widget.tuner_control_box.set_sensitive(self.beamline.beam_tuner.tunable)
+
+
 
         # Some scripts need to reactivate settings frame on completion
         for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam', 'SetBeamMode']:

@@ -162,6 +162,7 @@ class TreeManager(GObject.GObject):
         self.selection.connect('changed', self.do_selection_changed)
         self.model.connect('row-changed', self.row_changed)
         self.model.connect('row-deleted', self.row_deleted)
+        self.model.connect('row-inserted', self.row_inserted)
         self.view.props.activate_on_single_click = self.single_click
         self.view.connect('row-activated', self.row_activated)
         self.keys = [item.name.lower() for item in self.Data]
@@ -259,6 +260,14 @@ class TreeManager(GObject.GObject):
         Remove all items from the data store
         """
         self.model.clear()
+
+    def clear_selection(self):
+        """Remove all selected items"""
+        model, selected = self.selection.get_selected_rows()
+        for path in selected:
+            row = model[path]
+            model.remove(row.iter)
+
 
     def make_parent(self, row):
         """
@@ -414,6 +423,20 @@ class TreeManager(GObject.GObject):
         @param itr: Gtk.TreeIter
         @return:
         """
+
+    def row_inserted(self, model, path, itr):
+        """
+        @param model: Gtk.TreeModel
+        @param path: Gtk.TreePath
+        @param itr: Gtk.TreeIter
+        @return:
+        """
+        parent_itr = model.iter_parent(itr)
+        if parent_itr:
+            parent = model.get_path(parent_itr)
+            self.view.expand_row(parent, False)
+        child = model.get_path(itr)
+        self.view.scroll_to_cell(child, None, True, 0.5, 0.5)
 
     def row_deleted(self, model, path):
         """

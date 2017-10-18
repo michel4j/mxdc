@@ -162,7 +162,7 @@ class MXBeamline(object):
         # Setup diagnostics on some devices
         device_list = [
             'automounter', 'goniometer', 'detector', 'cryojet', 'mca',
-            'enclosures', 'all_shutters', 'storage_ring'
+            'enclosures', 'all_shutters', 'synchrotron'
         ]
         self.diagnostics = []
         for name in device_list:

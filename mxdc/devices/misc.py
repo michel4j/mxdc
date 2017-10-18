@@ -3,8 +3,6 @@ import time
 
 import numpy
 from gi.repository import GObject
-from zope.interface import implements
-
 from interfaces import *
 from mxdc import registry
 from mxdc.com import ca
@@ -14,6 +12,7 @@ from mxdc.devices.motor import MotorBase
 from mxdc.utils import converter, misc
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
+from zope.interface import implements
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -591,40 +590,6 @@ class Shutter(BasicShutter):
         super(Shutter, self).__init__(open_name, close_name, state_name)
 
 
-class SimStorageRing(BaseDevice):
-    implements(IStorageRing)
-    __gsignals__ = {
-        "beam": (GObject.SignalFlags.RUN_FIRST,  None, (bool,)),
-    }
-
-    def __init__(self, name, pv1=None, pv2=None, pv3=None):
-        super(SimStorageRing, self).__init__()
-        self.name = name
-        self.message = 'Sim SR Testing!'
-        self.set_state(beam=True, active=True, health=(0, ''))
-        #GObject.timeout_add(60000, self._change_beam)
-
-    def _change_beam(self):
-        _beam = not self.beam_state
-        if self.health_state[0] == 0:
-            _health = 2
-            _message = "Beam dump."
-        else:
-            _health = 0
-            _message = "Beam available."
-        self.set_state(beam=_beam, health=(_health, 'mode', _message), active=True)
-        return True
-
-    def beam_available(self):
-        return self.beam_state
-
-    def wait_for_beam(self, timeout=60):
-        while not self.beam_available() and timeout > 0:
-            time.sleep(0.05)
-            timeout -= 0.05
-        logger.warn('Timed out waiting for beam!')
-
-
 class DiskSpaceMonitor(BaseDevice):
     """An object which periodically monitors a given path for available space."""
 
@@ -678,74 +643,6 @@ class DiskSpaceMonitor(BaseDevice):
             else:
                 self.set_state(health=(0, 'usage', msg))
         return True
-
-
-class StorageRing(BaseDevice):
-    implements(IStorageRing)
-    __gsignals__ = {
-        "beam": (GObject.SignalFlags.RUN_FIRST,
-                 None,
-                 (bool,)),
-    }
-
-    def __init__(self, pv1, pv2, pv3):
-        super(StorageRing, self).__init__()
-        self.name = "Storage Ring"
-        self.mode = self.add_pv(pv1)
-        self.current = self.add_pv(pv2)
-        self.control = self.add_pv('%s:shutters' % pv3)
-        self.messages = [
-            self.add_pv('%s:msg:L1' % pv3),
-            self.add_pv('%s:msg:L2' % pv3),
-            self.add_pv('%s:msg:L3' % pv3)]
-
-        self.mode.connect('changed', self._on_mode_change)
-        self.current.connect('changed', self._on_current_change)
-        self.control.connect('changed', self._on_control_change)
-        self._last_current = 0.0
-
-    def beam_available(self):
-        return self.beam_state
-
-    def wait_for_beam(self, timeout=60):
-        while not self.beam_available() and timeout > 0:
-            time.sleep(0.05)
-            timeout -= 0.05
-        logger.warn('Timed out waiting for beam!')
-
-    def _get_message(self):
-        return ', '.join([pv.get() for pv in self.messages])
-
-    def _check_beam(self):
-        if self.health_state[0] == 0:
-            self.set_state(beam=True)
-        else:
-            self.set_state(beam=False)
-
-    def _on_mode_change(self, obj, val):
-        if val != 4:
-            self.set_state(health=(4, 'mode', self._get_message()))
-        else:
-            self.set_state(health=(0, 'mode'))
-        self._check_beam()
-
-    def _on_control_change(self, obj, val):
-        if val != 1:
-            self.set_state(health=(1, 'control', 'Beamlines disabled.'))
-        else:
-            self.set_state(health=(0, 'control'))
-        self._check_beam()
-
-    def _on_current_change(self, obj, val):
-        if val <= 5:
-            if (self._last_current - val) >= 50.0:
-                self.set_state(health=(4, 'beam', 'Beam lost!'))
-            else:
-                self.set_state(health=(4, 'beam', self._get_message()))
-        else:
-            self.set_state(health=(0, 'beam'))
-        self._last_current = val
-        self._check_beam()
 
 
 class Enclosures(BaseDevice):

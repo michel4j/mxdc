@@ -1,6 +1,8 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
+
 from mxdc.com import ca
-from mxdc.devices import motor, goniometer, cryojet, boss, detector, automounter, video, misc, mca, counter
+from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
+from mxdc.devices import automounter, humidity, video, misc, mca, counter
 from mxdc.services import clients
 
 CONFIG = {
@@ -74,7 +76,7 @@ DEVICES = {
     'ring_current': ca.PV('PCT1402-01:mA:fbk'),
     'ring_mode': ca.PV('SYSTEM:mode:fbk'),
     'ring_status': ca.PV('SRStatus:injecting'),
-    'storage_ring': misc.StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
+    'synchrotron':  synchrotron.StorageRing('PCT1402-01:mA:fbk', 'SYSTEM:mode:fbk', 'SRStatus'),
     'psh1': misc.Shutter('PSH1408-I00-01'),
     'psh2': misc.Shutter('PSH1408-I00-02'),
     'ssh1': misc.Shutter('SSH1408-I00-01'),
@@ -102,7 +104,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'dss': clients.DSSClient(include=['*.cbf'], mode='777'),
+    'dss': clients.DSSClient(),
     'lims': clients.MxLIVEClient('https://cmcf.lightsource.ca'),
     'dps': clients.DPSClient(),
 }

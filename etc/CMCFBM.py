@@ -1,6 +1,7 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
 from mxdc.com import ca
-from mxdc.devices import motor, goniometer, cryojet, boss, detector, automounter, humidity, video, misc, mca, counter
+from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
+from mxdc.devices import automounter, humidity, video, misc, mca, counter
 from mxdc.services import clients
 
 CONFIG = {
@@ -74,10 +75,7 @@ DEVICES = {
     'hutch_video':  video.AxisPTZCamera('ccd1608-500'),
     
     # Facility, storage-ring, shutters, etc
-    'ring_current':  ca.PV('PCT1402-01:mA:fbk'),
-    'ring_mode':  ca.PV('SYSTEM:mode:fbk'),
-    'ring_status':  ca.PV('SRStatus:injecting'),
-    'storage_ring':  misc.StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
+    'synchrotron':  synchrotron.StorageRing('PCT1402-01:mA:fbk', 'SYSTEM:mode:fbk', 'SRStatus'),
     'psh1': misc.Shutter('PSH1408-B10-01'),
     'psh2': misc.Shutter('PSH1408-B10-02'),
     'ssh1': misc.Shutter('SSH1408-B10-01'),
@@ -109,7 +107,7 @@ DEVICES = {
 SERVICES = {
     'dss': clients.DSSClient(),
     'lims': clients.MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
-    'dps': clients.DPMClient(),
+    'dps': clients.DPSClient(),
 }
 
 # Devices only available in the console

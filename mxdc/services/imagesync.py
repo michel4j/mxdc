@@ -1,19 +1,52 @@
-import argparse
+#!/usr/bin/env python
+
+import logging
 import os
+import pwd
 import re
 import subprocess
-import threading
-import time
-import rpyc
 import sys
-import pwd
+import time
+
+from twisted.application import internet, service
+from twisted.internet import defer, threads
+from twisted.python import components, log as twistedlog
+from twisted.spread import pb
+from zope.interface import implements, Interface
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from mxdc.utils import log, mdns
-from mxdc.utils.rpc import expose_service, expose
 
 logger = log.get_module_logger(__name__)
+
+
+DSS_PORT = 8882
+DSS_CODE = '_imgsync_rpc._tcp'
+
+
+class TwistedLogger(logging.StreamHandler):
+    def emit(self, record):
+        msg = self.format(record)
+        if record.levelno == logging.WARNING:
+            twistedlog.msg(msg)
+        elif record.levelno > logging.WARNING:
+            twistedlog.err(msg)
+        else:
+            twistedlog.msg(msg)
+        self.flush()
+
+
+def log_to_twisted(level=logging.DEBUG):
+    """
+    Add a log handler which logs to the twisted logger.
+    """
+    console = TwistedLogger()
+    console.setLevel(level)
+    formatter = logging.Formatter('%(message)s')
+    console.setFormatter(formatter)
+    logging.getLogger('').addHandler(console)
+
 
 def demote(user_name):
     """Pass the function 'set_user' to preexec_fn, rather than just calling
@@ -27,14 +60,37 @@ def demote(user_name):
     return set_user
 
 
-def get_user(user_name):
-    try:
-        pwdb = pwd.getpwnam(user_name)
-        uid = pwdb.pw_uid
-        gid = pwdb.pw_gid
-    except:
-        raise ValueError('Invalid User "{}"'.format(user_name))
-    return uid, gid
+class IDSService(Interface):
+    def setup_folder(path, user_name):
+        """
+        Setup a directory and prepare it for data acquisition
+        """
+
+    def configure(include=(), mode=0o700, archive_root='/archive'):
+        """
+        Configure the Service
+        """
+
+
+class IDSSPerspective(Interface):
+    def remote_setup_folder(*args, **kwargs):
+        """setup_folder adaptor"""
+
+    def remote_configure(*args, **kwargs):
+        """configure adaptor"""
+
+
+class DSSPerspective2Service(pb.Root):
+    implements(IDSSPerspective)
+
+    def __init__(self, service):
+        self.service = service
+
+    def remote_setup_folder(self, *args, **kwargs):
+        return self.service.setup_folder(*args, **kwargs)
+
+    def remote_configure(self, *args, **kwargs):
+        return self.service.configure(*args, **kwargs)
 
 
 class Archiver(object):
@@ -48,11 +104,9 @@ class Archiver(object):
         self.includes = ['--include={0}'.format(i) for i in include]
 
     def start(self):
-        if self.processing: return
-        worker = threading.Thread(target=self.run)
-        worker.setDaemon(True)
-        worker.setName('Archiver')
-        worker.start()
+        if self.processing:
+            return defer.Deferred({})
+        return threads.deferToThread(self.run)
 
     def run(self):
         self.processing = True
@@ -73,17 +127,16 @@ class Archiver(object):
         self.processing = False
 
 
-@expose_service
-class ImgSyncService(rpyc.Service):
+class DSService(service.Service):
+    implements(IDSService)
     ARCHIVE_ROOT = '/archive'
     FILE_MODE = 0o777
     INCLUDE = ['*.img', '*.cbf', '*.xdi', '*.meta', '*.mad', '*.xrf', '*.xas']
 
-    def __init__(self, *args, **kwargs):
-        super(ImgSyncService, self).__init__(*args, **kwargs)
+    def __init__(self):
         self.backups = {}
 
-    @expose
+    @log.log_call
     def setup_folder(self, folder, user_name):
         folder = folder.strip()
         if not os.path.exists(folder):
@@ -101,34 +154,28 @@ class ImgSyncService(rpyc.Service):
 
         if folder not in self.backups:
             self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE)
-        self.backups[folder].start()
-        return True
+        return self.backups[folder].start()
 
-    @expose
+    @log.log_call
     def configure(self, include=(), mode=0o700, archive_root='/archive'):
         self.INCLUDE = include
         self.FILE_MODE = mode
         self.ARCHIVE_ROOT = archive_root
-
-    def __str__(self):
-        return '[{}:{}]'.format(*self._conn._channel.stream.sock.getpeername())
+        return defer.succeed([])
 
 
-if __name__ == '__main__':
-    from rpyc.utils.server import ThreadedServer
-    import rpyc.lib
+components.registerAdapter(DSSPerspective2Service, IDSService, IDSSPerspective)
 
-    rpyc.lib.setup_logger()
+# twistd stuff goes here
+log_to_twisted()
 
-    parser = argparse.ArgumentParser(description='Run Image Synchronization Server')
-    parser.add_argument('--log', metavar='/path/to/logfile.log', type=str, nargs='?', help='full path to log file')
-
-    args = parser.parse_args()
-    if args.log:
-        log.log_to_file(args.log)
-    else:
-        log.log_to_console()
-
-    s = ThreadedServer(ImgSyncService, port=8882)
-    provider = mdns.Provider('Image Synchronization Server', '_imgsync_rpc._tcp', 8882, unique=True)
-    s.start()
+try:
+    # publish DPS service on network
+    provider = mdns.Provider('Data Synchronization Server', DSS_CODE, DSS_PORT, {}, unique=True)
+except mdns.mDNSError:
+    logger.error('An instance of is already running. Only one permitted.')
+else:
+    application = service.Application('Data Synchronization Server')
+    serviceCollection = service.IServiceCollection(application)
+    srv = DSService()
+    internet.TCPServer(DSS_PORT, pb.PBServerFactory(IDSSPerspective(srv))).setServiceParent(serviceCollection)

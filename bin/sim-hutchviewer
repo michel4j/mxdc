@@ -8,7 +8,7 @@ import mxdc.conf
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from mxdc import conf
-conf.initialize()
+conf.initialize('SIM-1')
 
 from mxdc.hutchapp import HutchApp
 

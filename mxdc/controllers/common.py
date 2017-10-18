@@ -3,7 +3,7 @@ import operator
 
 from gi.repository import Gtk, Gdk, Pango, GObject
 
-from mxdc.widgets import dialogs
+from mxdc.widgets import dialogs, timer
 
 
 def value_class(val, warning, error):
@@ -31,6 +31,32 @@ class DeviceMonitor(object):
         style = self.text.get_style_context()
         if self.warning and self.error:
             style_class = value_class(args[0], self.warning, self.error)
+            for name in ['dev-warning', 'dev-error']:
+                if style_class == name:
+                    style.add_class(name)
+                else:
+                    style.remove_class(name)
+
+
+class PropertyMonitor(object):
+    def __init__(self, device, property, widget, format='{:.3e}', warning=None, error=None):
+        self.widget = widget
+        self.device = device
+        self.property = property
+        self.format = format
+        self.warning = warning
+        self.error = error
+        self.device.connect('notify::{}'.format(self.property), self.on_value_changed)
+        self.device.bind_property(self.property, self.widget, 'text', 0, self.transform)
+
+    def transform(self, obj, value):
+        return self.format.format(value)
+
+    def on_value_changed(self, *args, **kwargs):
+        if self.warning and self.error:
+            value = self.device.get_property(self.property)
+            style = self.widget.get_style_context()
+            style_class = value_class(value, self.warning, self.error)
             for name in ['dev-warning', 'dev-error']:
                 if style_class == name:
                     style.add_class(name)
@@ -129,29 +155,43 @@ class AppNotifier(object):
         self.label = label
         self.revealer = revealer
         self.close_button = button
+        self.box = self.label.get_parent()
         self.close_button.connect('clicked', self.on_notifier_closed)
+        self.timer_shown = False
+        self.timer = timer.Timer()
+        #self.box.pack_start(self.timer, False, False, 0)
+        #self.box.show_all()
 
     def on_notifier_closed(self, button):
         self.close()
 
-    def notify(self, message, level=Gtk.MessageType.INFO, important=False, duration=3):
+    def notify(self, message, level=Gtk.MessageType.INFO, important=False, duration=3, show_timer=False):
         """
         Display an in-app notification.
         @param message: Text to display
         @param level: Gtk.MessageType
         @param duration: Duration too display message in seconds. Ignored if 'important' is True
         @param important: Boolean, if True, the message stays on until closed manually
+        @param show_timer: Boolean, if True, a timer will be shown
         @return:
         """
         if self.revealer.get_reveal_child():
             self.revealer.set_reveal_child(False)
         self.label.set_text(message)
+        if show_timer:
+            self.timer.start(duration)
+            self.box.pack_start(self.timer, False, False, 3)
+            self.timer.show()
+            self.timer_shown = True
         self.revealer.set_reveal_child(True)
         if not important:
             GObject.timeout_add(1000 * duration, self.close)
 
     def close(self):
         self.revealer.set_reveal_child(False)
+        if self.timer_shown:
+            self.box.remove(self.timer)
+            self.timer_shown = False
 
 
 class ScriptMonitor(object):
