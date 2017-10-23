@@ -76,7 +76,7 @@ class GoniometerBase(BaseDevice):
         #    return
         if mode not in [self.mode, 'MOVING', 'UNKNOWN']:
             logger.info("Mode changed to `{}`".format(mode_str))
-        GObject.idle_add(self.emit, 'mode', mode_str)
+        self.set_state(mode=mode_str)
         self.mode = mode
 
     def wait(self, start=True, stop=True, poll=0.05, timeout=None):
@@ -434,10 +434,9 @@ class MD2Goniometer(GoniometerBase):
 class SimGoniometer(GoniometerBase):
     def __init__(self):
         GoniometerBase.__init__(self, 'Simulated Goniometer')
-        GObject.idle_add(self.emit, 'mode', 'INIT')
         self._scanning = False
         self._lock = Lock()
-        self.set_state(active=True, health=(0, ''))
+        self.set_state(active=True, health=(0, ''), mode='MOUNTING')
 
     def configure(self, **kwargs):
         self._settings = kwargs
