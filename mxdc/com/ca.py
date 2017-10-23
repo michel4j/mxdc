@@ -409,8 +409,7 @@ class PV(BasePV):
 
     # provide a put method for those used to EPICS terminology even though
     # set makes more sense
-    def put(self, val):
-        self.set(val)
+    put = set
 
     def toggle(self, val1, val2, delay=0.001):
         """Rapidly switch between two values with a maximum delay between."""
