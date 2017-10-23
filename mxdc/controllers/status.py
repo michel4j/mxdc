@@ -60,7 +60,6 @@ class StatusPanel(object):
         self.widget.beam_switch.connect('notify::activate', self.on_restore_beam)
 
         # disable mode change buttons while automounter is busy
-        self.beamline.automounter.connect('preparing', self.on_devices_busy)
         self.beamline.automounter.connect('busy', self.on_devices_busy)
         self.beamline.goniometer.connect('busy', self.on_devices_busy)
         self.beamline.goniometer.connect('mode', self.on_mode_change)
@@ -75,22 +74,6 @@ class StatusPanel(object):
             self.scripts[sc].connect('busy', self.on_scripts_busy)
             self.scripts[sc].connect('error', self.on_scripts_busy, False)
             self.status_monitor.add(self.scripts[sc])
-
-    def on_devices_busy(self, obj, state):
-        states = [self.beamline.goniometer.busy_state, self.beamline.automounter.preparing_state,
-                  self.beamline.automounter.busy_state]
-        combined_state = any(states)
-        script_names = ['SetCenteringMode', 'SetBeamMode', 'SetCollectMode', 'SetMountMode']
-        if combined_state:
-            logger.debug('Disabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
-                [{True: 'busy', False: 'idle'}[s] for s in states]))
-            for script_name in script_names:
-                self.scripts[script_name].disable()
-        else:
-            logger.debug('Enabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
-                [{True: 'busy', False: 'idle'}[s] for s in states]))
-            for script_name in script_names:
-                self.scripts[script_name].enable()
 
     def on_restore_beam(self, obj):
         script = self.scripts['RestoreBeam']
@@ -115,12 +98,24 @@ class StatusPanel(object):
         for btn in disabled:
             btn.set_sensitive(False)
 
+    def on_devices_busy(self, obj, state):
+        script_names = ['SetCenteringMode', 'SetBeamMode', 'SetCollectMode', 'SetMountMode']
+        if self.beamline.goniometer.is_busy() or self.beamline.automounter.is_busy() or self.beamline.automounter.in_standby():
+            logger.debug('Disabling commands. Reason: Gonio: {}, Robot: {}'.format(
+                self.beamline.goniometer.is_busy(), self.beamline.automounter.is_busy() or self.beamline.automounter.in_standby()
+            ))
+            for script_name in script_names:
+                self.scripts[script_name].disable()
+        else:
+            logger.debug('Enabling commands. Reason: Gonio: {}, Robot: {}'.format(
+                self.beamline.goniometer.is_busy(), self.beamline.automounter.is_busy() or self.beamline.automounter.in_standby()
+            ))
+            for script_name in script_names:
+                self.scripts[script_name].enable()
+
+
     def on_scripts_busy(self, obj, busy):
         if busy:
             self.widget.status_commands.set_sensitive(False)
-            #self.widget.spinner.start()
-            #self.widget.status_lbl.set_markup('<small>{}</small>'.format(obj.description))
         else:
             self.widget.status_commands.set_sensitive(True)
-            #self.widget.spinner.stop()
-            #self.widget.status_lbl.set_text('')

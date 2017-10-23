@@ -32,7 +32,7 @@ class TextViewer(object):
             logging.CRITICAL: 'Red',
             logging.DEBUG: 'Blue',
             logging.ERROR: 'Red',
-            logging.WARNING: 'Orange',
+            logging.WARNING: 'Magenta',
         }
         self.tags = {}
         for key,v in color_chart.items():

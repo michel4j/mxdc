@@ -11,7 +11,7 @@ from automounter import DewarController
 from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines import auto
-from mxdc.utils.decorators import async_call
+from mxdc.utils.automounter import Port, PortColors
 
 
 class ISampleStore(Interface):
@@ -110,6 +110,7 @@ class SampleStore(GObject.GObject):
     cache = GObject.Property(type=object)
     current_sample = GObject.Property(type=object)
     next_sample = GObject.Property(type=object)
+    ports = GObject.Property(type=object)
 
     def __init__(self, view, widget):
         super(SampleStore, self).__init__()
@@ -121,7 +122,7 @@ class SampleStore(GObject.GObject):
         self.group_registry = {}
         self.props.next_sample = {}
         self.props.current_sample = {}
-        self.ports = set()
+        self.props.ports = {}
 
         try:
             cache = load_cache('samples')
@@ -129,7 +130,6 @@ class SampleStore(GObject.GObject):
         except:
             self.props.cache = set()
 
-        self.states = {}
         self.filter_text = ''
 
         self.view = view
@@ -144,12 +144,12 @@ class SampleStore(GObject.GObject):
         self.widget.samples_selectnone_btn.connect('clicked', lambda x: self.select_all(False))
         self.view.connect('key-press-event', self.on_key_press)
         self.widget.samples_reload_btn.connect('clicked', lambda x: self.import_mxlive())
-        self.beamline.automounter.connect('mounted', self.on_sample_mounted)
-        self.beamline.automounter.connect('ports', self.on_automounter_states)
+        self.beamline.automounter.connect('notify::sample', self.on_sample_mounted)
+        self.beamline.automounter.connect('notify::ports', self.update_states)
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
         self.widget.samples_dismount_btn.connect('clicked', lambda x: self.dismount_action())
         self.widget.samples_search_entry.connect('search-changed', self.on_search)
-        self.widget.connect('realize', self.import_mxlive)
+        self.view.connect('realize', self.import_mxlive)
         self.connect('notify::cache', self.on_cache)
         self.connect('notify::current-sample', self.on_cur_changed)
         self.connect('notify::next-sample', self.on_next_changed)
@@ -229,13 +229,14 @@ class SampleStore(GObject.GObject):
             item.get('barcode', ''),
             item.get('priority', 0),
             item.get('comments', ''),
-            self.states.get(item.get('port', ''), self.State.UNKNOWN),
+            self.beamline.automounter.ports.get(item.get('port'), self.State.UNKNOWN),
             item.get('container_type', ''),
             self.Progress.NONE,
             item['uuid'],
             item
         ])
-        self.ports.add(item.get('port'))
+        if item.get('port'):
+            self.props.ports[item['port']] = self.beamline.automounter.ports.get(item['port'], self.State.UNKNOWN)
         return item['uuid']
 
     def create_group_selector(self, item):
@@ -309,7 +310,7 @@ class SampleStore(GObject.GObject):
             cell.set_property("foreground-rgba", col)
             cell.set_property("text", u"\u25ef")
         else:
-            col = Gdk.RGBA(alpha=1.0, **DewarController.Color[value])
+            col = Gdk.RGBA(**PortColors[value])
             cell.set_property("foreground-rgba", col)
             cell.set_property("text", u"\u2b24")
 
@@ -354,8 +355,12 @@ class SampleStore(GObject.GObject):
             if row[self.Data.DATA].get('id') == sample_id:
                 return row
 
-    def get_state(self, port):
-        return self.states.get(port, self.State.UNKNOWN)
+    def get_name(self, port):
+        row = self.find_by_port(port)
+        if row:
+            return row[self.Data.NAME]
+        else:
+            return '...'
 
     def get_selected(self):
         return [
@@ -394,7 +399,7 @@ class SampleStore(GObject.GObject):
         GObject.idle_add(self.emit, 'updated')
 
     def has_port(self, port):
-        return port in self.ports
+        return (port in self.ports) or self.beamline.is_admin()
 
     def toggle_row(self, path):
         path = self.filter_model.convert_path_to_child_path(path)
@@ -410,10 +415,13 @@ class SampleStore(GObject.GObject):
                 cache.remove(row[self.Data.DATA]['id'])
             self.props.cache = cache
 
-    def update_states(self, states):
-        self.states.update(states)
+    def update_states(self, *args, **kwargs):
         for row in self.model:
-            row[self.Data.STATE] = self.states.get(row[self.Data.PORT], self.State.UNKNOWN)
+            port = row[self.Data.PORT]
+            if port:
+                row[self.Data.STATE] = self.beamline.automounter.ports.get(port, Port.UNKNOWN)
+        self.props.ports = self.ports
+
 
     def on_sample_row_changed(self, model, path, itr):
         if self.group_registry:
@@ -422,22 +430,35 @@ class SampleStore(GObject.GObject):
             key = model[path][self.Data.UUID]
             self.group_registry[group].update_item(key, val)
 
-    def on_automounter_states(self, obj, states):
-        self.update_states(states)
-
     def on_dewar_selected(self, obj, port):
         row = self.find_by_port(port)
         if row:
             self.props.next_sample = row[self.Data.DATA]
+        elif self.beamline.is_admin():
+            self.props.next_sample = {
+                'port': port
+            }
+        else:
+            self.props.next_sample = {}
 
-
-    def on_sample_mounted(self, obj, info):
-        if info:
-            port, barcode = info
+    def on_sample_mounted(self, obj, param):
+        if self.beamline.automounter.sample:
+            port = self.beamline.automounter.sample.get('port', '')
             row = self.find_by_port(port)
-            self.props.current_sample = row[self.Data.DATA]
-            row[self.Data.SELECTED] = False
-            self.widget.samples_dismount_btn.set_sensitive(True)
+            if row:
+                self.props.current_sample = row[self.Data.DATA]
+                row[self.Data.SELECTED] = False
+                self.widget.samples_dismount_btn.set_sensitive(True)
+            elif self.beamline.is_admin():
+                self.props.current_sample = {
+                    'port': port,
+                }
+                self.widget.samples_dismount_btn.set_sensitive(True)
+            else:
+                self.props.current_sample = {
+                    'port': port,
+                }
+                self.widget.samples_dismount_btn.set_sensitive(False)
         else:
             self.props.current_sample = {}
 
@@ -483,7 +504,7 @@ class SampleStore(GObject.GObject):
             self.roll_next_sample()
         elif self.current_sample and self.beamline.automounter.is_mounted(self.current_sample['port']):
             self.widget.spinner.start()
-            auto.auto_dismount(self.beamline, self.current_sample['port'])
+            auto.auto_dismount(self.beamline)
 
 
 class SampleQueue(GObject.GObject):

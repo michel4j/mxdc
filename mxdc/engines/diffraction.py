@@ -32,8 +32,10 @@ class DataCollector(GObject.GObject):
         'error': (GObject.SIGNAL_RUN_LAST, None, (str,))
     }
 
+    complete = GObject.Property(type=bool, default=False)
+
     def __init__(self):
-        GObject.GObject.__init__(self)
+        super(DataCollector, self).__init__()
         self.paused = False
         self.stopped = True
         self.collecting = False
@@ -71,6 +73,7 @@ class DataCollector(GObject.GObject):
         worker.start()
 
     def run(self):
+        self.props.complete = False
         self.paused = False
         self.stopped = False
         ca.threads_init()
@@ -105,6 +108,10 @@ class DataCollector(GObject.GObject):
                 self.analyse(metadata, dataset['sample'])
 
         if not (self.stopped or self.paused):
+            GObject.idle_add(self.emit, 'done')
+
+        if self.stopped or not self.paused:
+            self.props.complete = True
             GObject.idle_add(self.emit, 'done')
 
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
