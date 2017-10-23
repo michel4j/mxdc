@@ -5,7 +5,7 @@ import cryo
 from mxdc.beamlines.mx import IBeamline
 from mxdc.controllers import microscope, samplestore, humidity, rastering, automounter
 from mxdc.utils.log import get_module_logger
-from mxdc.widgets import misc
+from mxdc.widgets import misc, imageviewer
 logger = get_module_logger(__name__)
 
 
@@ -33,10 +33,12 @@ class SamplesController(GObject.GObject):
 
 
 class HutchSamplesController(GObject.GObject):
+    ports = GObject.Property(type=object)
     def __init__(self, widget):
         super(HutchSamplesController, self).__init__()
         self.widget = widget
         self.states = {}
+        self.props.ports = {}
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.microscope = microscope.Microscope(self.widget)
         self.cryo_tool = cryo.CryoController(self.widget)
@@ -50,12 +52,13 @@ class HutchSamplesController(GObject.GObject):
 
     def setup(self):
         # create and pack devices into settings frame
-        entries = {
-            'omega': misc.MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f"),
-            'beam_size': misc.ActiveMenu(self.beamline.aperture, 'Beam Aperture', fmt="%0.0f"),
-        }
-        for key in ['omega', 'beam_size']:
-            self.widget.samples_control_box.pack_start(entries[key], False, True, 0)
+        self.image_viewer = imageviewer.ImageViewer()
+        self.widget.datasets_viewer_box.add(self.image_viewer)
+        if self.beamline.is_admin():
+            self.beamline.detector.connect('new-image', self.on_new_image)
+
+    def on_new_image(self, widget, file_path):
+        self.image_viewer.add_frame(file_path)
 
     def on_dewar_selected(self, obj, port):
         row = self.find_by_port(port)

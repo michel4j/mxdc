@@ -11,7 +11,7 @@ from mxdc.controllers import setup, scans, datasets
 from mxdc.controllers import samples, analysis
 from mxdc.controllers.settings import SettingsDialog
 from mxdc.widgets import dialogs
-from mxdc.widgets.splash import Splash
+from mxdc.widgets.imageviewer import ImageViewer
 from twisted.python.components import globalRegistry
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import os
@@ -41,7 +41,7 @@ class AppBuilder(gui.Builder):
         )
 
         self.page_switcher.set_stack(self.main_stack)
-        for stack in [self.main_stack, self.setup_status_stack, self.samples_stack]:
+        for stack in [self.main_stack, self.setup_status_stack]:
             stack.connect('notify::visible-child', self.on_page_switched)
 
     def on_page_switched(self, stack, params):
@@ -75,6 +75,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.hutch_manager = setup.SetupController(self.builder)
         self.status_panel = status.StatusPanel(self.builder)
 
+
         # Chat
         self.chat = chat.ChatController(self.builder)
 
@@ -83,4 +84,6 @@ class AppWindow(Gtk.ApplicationWindow):
         self.set_icon(icon)
         self.add(self.builder.mxdc_main)
         self.show_all()
+
+
 
