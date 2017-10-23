@@ -7,6 +7,7 @@ from mxdc.com import ca
 from mxdc.conf import settings
 from mxdc.devices import stages, misc, automounter, diagnostics, motor, video
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.misc import get_project_id
 from twisted.python.components import globalRegistry
 from zope.interface import implements
 
@@ -63,6 +64,9 @@ class MXBeamline(object):
             return self.registry[key]
         else:
             raise AttributeError('{} does not have attribute: {}'.format(self, key))
+
+    def is_admin(self):
+        return get_project_id() in self.config['admin_groups']
 
     def setup(self):
         """Setup and register the beamline devices from configuration files."""
@@ -139,7 +143,6 @@ class MXBeamline(object):
                                                                 self.omega)
         self.registry['sample_video'] = video.ZoomableCamera(self.sample_camera, self.sample_zoom)
         self.mca.nozzle = self.registry.get('mca_nozzle', None)
-        self.registry['manualmounter'] = automounter.ManualMounter()
 
         # Setup Bealine shutters
         _shutter_list = []

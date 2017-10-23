@@ -91,7 +91,7 @@ DEVICES = {
     'i_scn':  counter.Counter('BL08B1:MD2:G:InternalPhotoDiode'),
     
     # Misc: Automounter, HC1 etc
-    'automounter':  automounter.Automounter('ROB16085B', 'ROB1608-500'),
+    'automounter':  automounter.SAMAutoMounter('ROB16085B'),
     'humidifier': humidity.Humidifier('HC1608-01'),
     'attenuator': misc.Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
     'mca_nozzle': misc.Positioner('BL08B1:MD2:S:MoveFluoDetFront'),

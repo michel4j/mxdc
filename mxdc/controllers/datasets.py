@@ -88,7 +88,6 @@ class AutomationController(GObject.GObject):
         self.pause_info = None
         self.automator.connect('done', self.on_done)
         self.automator.connect('paused', self.on_pause)
-        self.automator.connect('analysis-request', self.on_analysis)
         self.automator.connect('stopped', self.on_stopped)
         self.automator.connect('progress', self.on_progress)
         self.automator.connect('sample-done', self.on_sample_done)
@@ -291,9 +290,6 @@ class AutomationController(GObject.GObject):
         )
         error_dialog.run()
         error_dialog.destroy()
-
-    def on_analysis(self, obj, params):
-        pass
 
     def on_started(self, obj):
         self.start_time = time.time()

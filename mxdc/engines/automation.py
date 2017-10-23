@@ -21,7 +21,6 @@ class Automator(GObject.GObject):
     TaskNames = ('Mount', 'Center', 'Pause', 'Acquire', 'Analyse', 'Dismount')
 
     __gsignals__ = {
-        'analysis-request': (GObject.SIGNAL_RUN_LAST, None, (object,)),
         'progress': (GObject.SIGNAL_RUN_LAST, None, (float, str)),
         'sample-done': (GObject.SIGNAL_RUN_LAST, None, (str,)),
         'sample-started': (GObject.SIGNAL_RUN_LAST, None, (str,)),
@@ -98,25 +97,12 @@ class Automator(GObject.GObject):
 
                 elif task['type'] == self.Task.MOUNT:
                     success = auto.auto_mount_manual(self.beamline, sample['port'])
-                    mounted_info = self.beamline.automounter.mounted_state
-                    if not success or mounted_info is None:
-                        self.stop(error='Mouting Failed. Unable to continue automation!')
+                    if success and self.beamline.automounter.is_mounted(sample['port']):
+                        barcode = self.beamline.automounter.sample.get('barcode')
+                        if sample['barcode'] and barcode and barcode != sample['barcode']:
+                            logger.error('Barcode mismatch: {} vs {}'.format(barcode, sample['barcode']))
                     else:
-                        port, barcode = mounted_info
-                        if port != sample['port']:
-                            GObject.idle_add(
-                                self.emit, 'mismatch',
-                                'Port mismatch. Expected {}.'.format(
-                                    sample['port']
-                                )
-                            )
-                        elif sample['barcode'] and barcode and barcode != sample['barcode']:
-                            GObject.idle_add(
-                                self.emit, 'mismatch',
-                                'Barcode mismatch. Expected {}.'.format(
-                                    sample['barcode']
-                                )
-                            )
+                        self.stop(error='Mouting Failed. Unable to continue automation!')
                 elif task['type'] == self.Task.ACQUIRE:
                     if self.beamline.automounter.is_mounted(sample['port']):
                         params = {}
@@ -128,6 +114,8 @@ class Automator(GObject.GObject):
                         ))
                         self.collector.configure(params, take_snapshots=True, analysis=params.get('analysis', 'native'))
                         sample['results'] = self.collector.run()
+                        while not self.collector.complete:
+                            time.sleep(1)  # wait until collector is stopped
                     else:
                         self.stop(error='Sample not mounted. Unable to continue automation!')
 
@@ -138,9 +126,7 @@ class Automator(GObject.GObject):
             logger.info('Automation stopped')
 
         if not self.stopped:
-            if self.beamline.automounter.is_mounted():
-                port, barcode = self.beamline.automounter.mounted_state
-                auto.auto_dismount_manual(self.beamline, port)
+            auto.auto_dismount_manual(self.beamline)
             GObject.idle_add(self.emit, 'done')
             logger.info('Automation complete')
 

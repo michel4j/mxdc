@@ -8,22 +8,21 @@ from enum import Enum
 gi.require_version('Gtk', '3.0')
 
 from gi.repository import Gtk, GObject, Gdk, Pango
-from mxdc import conf
 from mxdc.utils import colors
+
 
 class GUIFile(object):
     def __init__(self, name, root=None):
         self.name = name
         self.root = root
         self.wTree = Gtk.Builder()
-        self.ui_file = "%s.ui" % self.name
-        if os.path.exists(self.ui_file):
-            if self.root is not None:
-                self.wTree.add_objects_from_file(self.ui_file, [self.root])
-            else:
-                self.wTree.add_from_file(self.ui_file)
+        self.ui_path = '/org/mxdc/{}.ui'.format(self.name)
+        if self.root is not None:
+            self.wTree.add_objects_from_resource(self.ui_path, [self.root])
+        else:
+            self.wTree.add_from_resource(self.ui_path)
 
-    def get_widget(self, name):
+    def get_object(self, name):
         return self.wTree.get_object(name)
 
 
@@ -50,14 +49,13 @@ def make_tab_label(txt):
 
 
 class BuilderMixin(object):
-    gui_top = os.path.join(conf.APP_DIR, 'mxdc', 'widgets')
     gui_roots = {
         'relative/path/to/file_without_extension': ['root_object']
     }
 
     def setup_gui(self):
         self.gui_objects = {
-            root: GUIFile(os.path.join(self.gui_top, path), root)
+            root: GUIFile(path, root)
             for path, roots in self.gui_roots.items() for root in roots
         }
 
@@ -67,7 +65,7 @@ class BuilderMixin(object):
     def clone(self):
         if self.gui_objects:
             builder = Builder({
-                root: GUIFile(os.path.join(self.gui_top, path), root)
+                root: GUIFile(path, root)
                 for path, roots in self.gui_roots.items() for root in roots
             })
             builder.gui_top = self.gui_top
@@ -76,8 +74,8 @@ class BuilderMixin(object):
 
     def __getattr__(self, item):
         if self.gui_objects:
-            for xml in self.gui_objects.values():
-                obj = xml.get_widget(item)
+            for root in self.gui_objects.values():
+                obj = root.get_object(item)
                 if obj:
                     return obj
         raise AttributeError('{} does not have attribute: {}'.format(self, item))

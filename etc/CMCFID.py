@@ -93,7 +93,7 @@ DEVICES = {
     'i_4': counter.Counter('A1608-3-06:A:fbk'),
 
     # Misc: Automounter, HC1 etc
-    'automounter': automounter.Automounter('ROB16083I', 'ROB1608-300'),
+    'automounter': automounter.SAMRobot('ROB16083I', 'ROB1608-300'),
     # 'humidifier': Humidifier('HC1608-01'),
     'attenuator': misc.Attenuator('PFIL1608-3-I10-01', 'BL08ID1:energy'),
     'mca': mca.XFlashMCA('XFD1608-101'),

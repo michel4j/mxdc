@@ -42,8 +42,7 @@ class HutchSamplesController(GObject.GObject):
         self.cryo_tool = cryo.CryoController(self.widget)
         self.sample_dewar = automounter.DewarController(self.widget, self)
         self.sample_dewar.connect('selected', self.on_dewar_selected)
-        self.beamline.automounter.connect('mounted', self.on_sample_mounted)
-        self.beamline.automounter.connect('ports', self.on_automounter_states)
+        self.beamline.automounter.connect('notify::sample', self.on_sample_mounted)
 
         if hasattr(self.beamline, 'humidifier'):
             self.humidity_controller = humidity.HumidityController(self.widget)
@@ -60,7 +59,12 @@ class HutchSamplesController(GObject.GObject):
 
     def on_dewar_selected(self, obj, port):
         row = self.find_by_port(port)
-        self.next_sample = row[self.Data.DATA]
+        if row:
+            self.next_sample = row[self.Data.DATA]
+        elif self.beamline.is_admin():
+            self.next_sample = {
+                'port': port
+            }
         if self.next_sample:
             self.widget.samples_mount_btn.set_sensitive(True)
         else:
@@ -72,13 +76,6 @@ class HutchSamplesController(GObject.GObject):
     def has_port(self, port):
         return port in self.states
 
-    def update_states(self, states):
-        self.states.update(states)
-
-    def on_automounter_states(self, obj, states):
-        self.update_states(states)
-
-    def on_sample_mounted(self, obj, info):
-        if info:
-            port, barcode = info
+    def on_sample_mounted(self, *args, **kwargs):
+        if self.beamline.automounter.sample:
             self.widget.samples_dismount_btn.set_sensitive(True)
