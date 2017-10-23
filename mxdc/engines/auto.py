@@ -20,52 +20,41 @@ def auto_center(bl):
 
 
 def auto_mount_manual(bl, port, wash=False):
-    if (bl.automounter.is_preparing() or bl.automounter.is_busy()) or not bl.automounter.is_active():
-        logger.warning("Automounter is busy or inactive.")
+    if not bl.automounter.is_ready():
+        logger.warning("Automounter is not ready.")
         return False
-    if bl.automounter.is_mounted(port):
-        logger.warning('Sample is already mounted')
-        return True
-    elif bl.automounter.is_mountable(port):
-        bl.automounter.prepare()
-        bl.goniometer.set_mode('MOUNTING', wait=True)
-        bl.cryojet.nozzle.open()
-        time.sleep(2)
-        success = bl.automounter.mount(port, wash=wash, wait=True)
-        mounted_info = bl.automounter.mounted_state
-        if success and mounted_info is not None:
-            bl.cryojet.nozzle.close()
-            logger.info('Sample mounting succeeded')
-            time.sleep(0.5)
-            bl.goniometer.set_mode('CENTERING', wait=False)
-
-            return True
-        else:
-            logger.warning('Sample mounting failed')
-            return False
-    else:
-        logger.warning('{} is not mountable'.format(port))
-
-
-def auto_dismount_manual(bl, port):
-    if bl.automounter.is_preparing() or bl.automounter.is_busy() or not bl.automounter.is_active():
-        logger.warning("Automounter is busy or inactive.")
-        return False
-    if not bl.automounter.is_mounted(port):
-        logger.warning('Sample is not mounted')
+    bl.automounter.standby()
+    bl.goniometer.set_mode('MOUNTING', wait=True)
+    bl.cryojet.nozzle.open()
+    time.sleep(2)
+    success = bl.automounter.mount(port, wait=True)
+    if success:
+        bl.cryojet.nozzle.close()
+        logger.info('Sample mounting succeeded')
+        time.sleep(0.5)
+        bl.goniometer.set_mode('CENTERING', wait=False)
         return True
     else:
-        bl.automounter.prepare()
-        bl.goniometer.set_mode('MOUNTING', wait=True)
-        bl.cryojet.nozzle.open()
-        time.sleep(2)
-        success = bl.automounter.dismount(wait=True)
-        if not success:
-            logger.warning('Sample dismounting failed')
-            return False
-        else:
-            logger.info('Sample dismounting succeeded')
-            return True
+        logger.warning('Sample mounting failed')
+        return False
+
+
+def auto_dismount_manual(bl):
+    if not bl.automounter.is_ready():
+        logger.warning("Automounter is busy or inactive.")
+        return False
+
+    bl.automounter.standby()
+    bl.goniometer.set_mode('MOUNTING', wait=True)
+    bl.cryojet.nozzle.open()
+    time.sleep(2)
+    success = bl.automounter.dismount(wait=True)
+    if success:
+        logger.info('Sample dismounting succeeded')
+        return True
+    else:
+        logger.warning('Sample dismounting failed')
+        return False
 
 
 @async_call

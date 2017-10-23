@@ -24,46 +24,43 @@ class IDevice(Interface):
         
 class IAutomounter(IDevice):    
     """A sample automounter devices interface."""
-     
-    def probe():
-        """Check automounter locations for sample presence and accessibility."""
 
-    def mount(address, wash=False):
+    layout = Attribute("Automounter Layout, a dictionary of containers and pin locations")
+    sample = Attribute("Mounted Sample, a dictionary containing the port location and barcode if any")
+    ports = Attribute("A dictionary mapping ports to corresponding states")
+    status = Attribute("An integer representing the current state of the automounter")
+
+
+    def standby():
+        """Get Ready to start"""
+
+    def cancel():
+        """Relax from standby state"""
+
+    def mount(port):
         """Pick up a sample and mount in on the goniometer."""
             
     def dismount():
-        """Dismount a sample from the goiniometer."""
+        """Dismount currently mounted port."""
+
+    def wait(kwargs):
+        """Wait for a given state."""
 
     def abort():
         """Abort all operations."""
-    
-    def wait(kwargs):
-        """Wait for operation to complete."""
-        
-    def is_mounted(address):
+
+    def is_mounted(port):
         """Check if the provided address is currently mounted."""
 
-    def is_mountable(address):
+    def is_mountable(port):
         """Check if the provided address can be mounted safely. """
-    
-    def get_port_state(address):
-        """Obtain the state of a specified port. """
-        
-  
 
+    def in_standby():
+        """Check if in standby state"""
 
-class ICollimator(IDevice):    
-    """An X-ray beam collimator devices object."""
-    width = Attribute("""A motor controlling the horizontal gap.""")
-    height = Attribute("""A motor controlling the vertical gap.""")
-    x = Attribute("""A motor controlling the horizontal position.""")
-    y = Attribute("""A motor controlling the vertical position.""")   
+    def is_ready():
+        """Check if automounter is ready to receive a command"""
 
-    def wait():
-        """Wait for collimator to become idle."""
-
-    def stop():
-        """Terminate all collimator operations."""
 
 
 class ICounter(IDevice):

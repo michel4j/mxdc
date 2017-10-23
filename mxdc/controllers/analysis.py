@@ -20,7 +20,7 @@ from mxdc.controllers.datasets import IDatasets
 
 logger = get_module_logger(__name__)
 
-#DOCS_PATH = os.path.join(os.environ['MXDC_PATH'], 'docs', '_build', 'html', 'index.html')
+#DOCS_PATH = os.path.join(os.environ['MXDC_PATH'], 'docs-src', '_build', 'html', 'index.html')
 
 
 class ReportManager(TreeManager):

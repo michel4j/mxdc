@@ -14,12 +14,14 @@ log_to_console()
 APP_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SHARE_DIR = os.path.join(APP_DIR, 'share')
 CONFIG_DIR = os.path.join(APP_DIR, 'etc')
+DOCS_DIR = os.path.join(APP_DIR, 'docs/html')
 
 APP_CACHE_DIR = ''
 CONFIGS = ''
 Settings = None
 SettingKeys = None
 PROPERTIES = None
+
 
 
 def _extract_variable(mod_path, variable, default=None):
@@ -81,7 +83,7 @@ def initialize(name=None):
         schema_source = Gio.SettingsSchemaSource.new_from_directory(
             SHARE_DIR, Gio.SettingsSchemaSource.get_default(), False
         )
-        schema = schema_source.lookup('ca.lightsource.mxdc', False)
+        schema = schema_source.lookup('org.mxdc', False)
         SettingKeys = {
             setting: schema.get_key(setting)
             for setting in schema.list_keys()
