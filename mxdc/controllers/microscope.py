@@ -411,9 +411,10 @@ class Microscope(GObject.GObject):
 
     @async_call
     def center_pixel(self, x, y):
-        ix, iy, xmm, ymm = self.video.screen_to_mm(x, y)
-        if not self.beamline.sample_stage.is_busy():
-            self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
+        if self.beamline.goniometer.mode_state in ('CENTERING', 'BEAM', 'MOUNTING'):
+            ix, iy, xmm, ymm = self.video.screen_to_mm(x, y)
+            if not self.beamline.sample_stage.is_busy():
+                self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
 
     def overlay_function(self, cr):
         # FIXME: For performance and efficiency, use overlay surface and only recreate it if objects have changed

@@ -17,6 +17,7 @@
         <file compressed="true">data/mxdc_hutch.ui</file>
         <file compressed="true">data/mxdc_main.ui</file>
         <file compressed="true">data/settings.ui</file>
+
         <file>data/active_stop.gif</file>
         <file>data/colormaps.data</file>
         <file>data/crystal.png</file>
