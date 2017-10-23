@@ -59,11 +59,6 @@ class SetupController(object):
             if key in entries:
                 self.widget.setup_device_box.insert(entries[key], i)
 
-        # disable mode change buttons while automounter is busy
-        self.beamline.automounter.connect('preparing', self.on_devices_busy)
-        self.beamline.automounter.connect('busy', self.on_devices_busy)
-        self.beamline.goniometer.connect('busy', self.on_devices_busy)
-
         # status, cryo, log
         self.diagnostics = DiagnosticsController(self.widget, self.widget.diagnostics_box)
 
@@ -92,28 +87,10 @@ class SetupController(object):
         ]
         self.widget.tuner_control_box.set_sensitive(self.beamline.beam_tuner.tunable)
 
-
-
         # Some scripts need to reactivate settings frame on completion
         for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam', 'SetBeamMode']:
             self.scripts[sc].connect('busy', self.on_scripts_busy)
 
-
-    def on_devices_busy(self, obj, state):
-        states = [self.beamline.goniometer.busy_state, self.beamline.automounter.preparing_state,
-                  self.beamline.automounter.busy_state]
-        combined_state = any(states)
-        script_names = ['SetCenteringMode', 'SetBeamMode', 'SetCollectMode', 'SetMountMode']
-        if combined_state:
-            logger.debug('Disabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
-                [{True: 'busy', False: 'idle'}[s] for s in states]))
-            for script_name in script_names:
-                self.scripts[script_name].disable()
-        else:
-            logger.debug('Enabling commands. Reason: Gonio: %s, Robot: %s, %s' % tuple(
-                [{True: 'busy', False: 'idle'}[s] for s in states]))
-            for script_name in script_names:
-                self.scripts[script_name].enable()
 
     def on_scripts_busy(self, obj, busy):
         if busy:

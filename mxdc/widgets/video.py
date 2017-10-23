@@ -14,12 +14,12 @@ from gi.repository import GdkPixbuf
 from gi.repository import Gtk
 from zope.interface import implements
 
+from mxdc import conf
 from mxdc.devices.interfaces import IVideoSink
 from mxdc.utils.video import image_to_surface
 
-WIDGET_DIR = os.path.dirname(__file__)
-COLORMAPS = pickle.load(file(os.path.join(WIDGET_DIR, 'data/colormaps.data')))
-
+with open(os.path.join(conf.SHARE_DIR, 'data', 'colormaps.data'), 'r') as handle:
+    COLORMAPS = pickle.load(handle)
 
 class VideoWidget(Gtk.DrawingArea):
     implements(IVideoSink)
@@ -56,7 +56,7 @@ class VideoWidget(Gtk.DrawingArea):
 
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
-        self.connect('draw', self.on_draw)
+        #self.connect('draw', self.on_draw)
         self.connect('realize', self.on_realized)
         self.connect("unrealize", self.on_destroy)
         self.connect('configure-event', self.on_configure_event)
@@ -144,7 +144,7 @@ class VideoWidget(Gtk.DrawingArea):
         else:
             self._colorize = False
 
-    def on_draw(self, widget, cr):
+    def do_draw(self, cr):
         if self.surface is not None:
             cr.set_source_surface(self.surface, 0, 0)
             cr.paint()

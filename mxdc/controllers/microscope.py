@@ -3,6 +3,7 @@ import os
 
 import common
 import numpy
+import cairo
 from gi.repository import Gtk, Pango, Gdk, GObject
 from matplotlib.path import Path
 from mxdc.beamlines.mx import IBeamline
@@ -130,8 +131,7 @@ class Microscope(GObject.GObject):
         self.video.connect('motion-notify-event', self.on_mouse_motion)
         self.video.connect('button-press-event', self.on_image_click)
         self.video.set_overlay_func(self.overlay_function)
-        self.video.connect('realize', self.on_realize)
-
+        self.video.connect('configure-event', self.setup_grid)
         self.scripts = get_scripts()
 
         toolbar_btns = [
@@ -153,12 +153,12 @@ class Microscope(GObject.GObject):
         # Connect Grid signals
         self.connect('notify::grid-xyz', self.update_grid)
 
-    def init_video(self, *args, **kwargs):
+    def setup_grid(self, *args, **kwargs):
         if not self.video_ready:
             self.video_ready = True
-            self.load_from_cache()
             for param in ['grid-xyz', 'points', 'grid-params']:
                 self.connect('notify::{}'.format(param), self.save_to_cache)
+        self.update_grid()
 
     def save_to_cache(self, *args, **kwargs):
         cache = {
@@ -187,7 +187,7 @@ class Microscope(GObject.GObject):
         tick_out = radius * 1.2
         center = numpy.array(self.video.get_size()) / 2
 
-        cr.set_source_rgba(1, 0.2, 0.1, 0.3)
+        cr.set_source_rgba(1.0, 0.25, 0.0, 0.5)
         cr.set_line_width(2.0)
 
         # beam circle
@@ -215,8 +215,8 @@ class Microscope(GObject.GObject):
         if self.measuring:
             (x1, y1), (x2, y2) = self.measurement
             dist = self.video.mm_scale() * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0)
-            cr.set_source_rgba(0.2, 1.0, 0.2, 0.3)
-            cr.set_line_width(4.0)
+            cr.set_source_rgba(0.0, 0.5, 0.5, 1.0)
+            cr.set_line_width(2.0)
             cr.move_to(x1, y1)
             cr.line_to(x2, y2)
             cr.stroke()
@@ -226,6 +226,70 @@ class Microscope(GObject.GObject):
             cr.move_to(lx + h, ly + h)
             cr.show_text(label)
             cr.stroke()
+
+    def draw_grid(self, cr):
+        if self.props.grid is not None:
+            radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
+            cr.set_line_width(1.0)
+            cr.set_font_size(8)
+            for i, (x, y, z) in enumerate(self.props.grid):
+                if i in self.props.grid_scores:
+                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i], alpha=0.5)
+                    cr.set_source_rgba(*col)
+                    cr.arc(x, y, radius, 0, 2.0 * 3.14)
+                    cr.fill()
+                cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
+                cr.arc(x, y, radius, 0, 2.0 * 3.14)
+                cr.stroke()
+                name = '{}'.format(i)
+                xb, yb, w, h = cr.text_extents(name)[:4]
+                cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
+                cr.show_text(name)
+                cr.stroke()
+
+    def draw_polygon(self, cr):
+        if self.props.polygon:
+            cr.set_source_rgba(0.0, 0.5, 0.5, 1)
+            cr.set_line_width(1.0)
+            cr.move_to(*self.props.polygon[0])
+            for x, y in self.props.polygon[1:]:
+                cr.line_to(x, y)
+            cr.stroke()
+            cr.set_source_rgba(1.0, 0.0, 0.0, 0.5)
+            first = True
+            radius = 5
+            for x, y in self.props.polygon:
+                cr.arc(x, y, radius, 0, 2.0 * 3.14)
+                if first:
+                    cr.fill()
+                    cr.set_source_rgba(1.0, 1.0, 0.0, 0.5)
+                    radius = 2
+                    first = False
+                else:
+                    cr.stroke()
+
+    def draw_points(self, cr):
+        if self.props.points:
+            cr.save()
+            mm_scale = self.video.mm_scale()
+            radius = 0.5e-3 * self.beamline.aperture.get() / (8 * mm_scale)
+            cur_point = numpy.array(self.beamline.sample_stage.get_xyz())
+            center = numpy.array(self.video.get_size()) / 2
+            points = numpy.array(self.props.points) - cur_point
+            xyz = numpy.zeros_like(points)
+            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.sample_stage.xyz_to_screen(points[:, 0], points[:, 1],
+                                                                                       points[:, 2])
+            xyz /= mm_scale
+            radii = (4.0 - (xyz[:, 2] / (center[1] * 0.25))) * radius
+            xyz[:, :2] += center
+            cr.set_source_rgba(1.0, 0.25, 0.75, 0.5)
+            for i, (x, y, z) in enumerate(xyz):
+                cr.arc(x, y, radii[i], 0, 2.0 * 3.14)
+                cr.fill()
+                cr.move_to(x + 6, y)
+                cr.show_text('P{}'.format(i + 1))
+                cr.stroke()
+            cr.restore()
 
     def clear_objects(self, *args, **kwargs):
         self.props.grid = None
@@ -276,70 +340,7 @@ class Microscope(GObject.GObject):
         self.props.grid_state = self.GridState.PENDING
         self.props.grid_scores = {}
 
-    def draw_grid(self, cr):
-        if self.props.grid is not None:
-            radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
 
-            cr.set_line_width(1.0)
-            cr.set_font_size(8)
-            for i, (x, y, z) in enumerate(self.props.grid):
-                if i in self.props.grid_scores:
-                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i], alpha=0.5)
-                    cr.set_source_rgba(*col)
-                    cr.arc(x, y, radius, 0, 2.0 * 3.14)
-                    cr.fill()
-                cr.set_source_rgba(0.2, 1.0, 0.5, 0.5)
-                cr.arc(x, y, radius, 0, 2.0 * 3.14)
-                cr.stroke()
-                name = '{}'.format(i)
-                xb, yb, w, h = cr.text_extents(name)[:4]
-                cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
-                cr.show_text(name)
-                cr.stroke()
-
-    def draw_polygon(self, cr):
-        if self.props.polygon:
-            cr.set_source_rgba(0.0, 1.0, 0.0, 0.5)
-            cr.set_line_width(1.0)
-            cr.move_to(*self.props.polygon[0])
-            for x, y in self.props.polygon[1:]:
-                cr.line_to(x, y)
-            cr.stroke()
-            cr.set_source_rgba(1.0, 0.0, 0.0, 0.5)
-            first = True
-            radius = 5
-            for x, y in self.props.polygon:
-                cr.arc(x, y, radius, 0, 2.0 * 3.14)
-                if first:
-                    cr.fill()
-                    cr.set_source_rgba(1.0, 1.0, 0.0, 0.5)
-                    radius = 2
-                    first = False
-                else:
-                    cr.stroke()
-
-    def draw_points(self, cr):
-        if self.props.points:
-            cr.save()
-            mm_scale = self.video.mm_scale()
-            radius = 0.5e-3 * self.beamline.aperture.get() / (8 * mm_scale)
-            cur_point = numpy.array(self.beamline.sample_stage.get_xyz())
-            center = numpy.array(self.video.get_size()) / 2
-            points = numpy.array(self.props.points) - cur_point
-            xyz = numpy.zeros_like(points)
-            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.sample_stage.xyz_to_screen(points[:, 0], points[:, 1],
-                                                                                       points[:, 2])
-            xyz /= mm_scale
-            radii = (4.0 - (xyz[:, 2] / (center[1] * 0.25))) * radius
-            xyz[:, :2] += center
-            cr.set_source_rgba(1.0, 0.25, 0.75, 0.5)
-            for i, (x, y, z) in enumerate(xyz):
-                cr.arc(x, y, radii[i], 0, 2.0 * 3.14)
-                cr.fill()
-                cr.move_to(x + 6, y)
-                cr.show_text('P{}'.format(i + 1))
-                cr.stroke()
-            cr.restore()
 
     def add_point(self, *args, **kwargs):
         self.props.points = self.props.points + [self.beamline.sample_stage.get_xyz()]
@@ -349,7 +350,7 @@ class Microscope(GObject.GObject):
         if not len(self.props.polygon):
             self.props.polygon.append((x, y))
         else:
-            d = numpy.sqrt((x - self.props.polygon[0][0]) ** 2 + (y - self.props.polygon[0][1]))
+            d = numpy.sqrt((x - self.props.polygon[0][0]) ** 2 + (y - self.props.polygon[0][1]) ** 2)
             if d > radius:
                 self.props.polygon.append((x, y))
             else:
@@ -450,11 +451,6 @@ class Microscope(GObject.GObject):
 
     def on_scripts_done(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(True)
-
-    def on_realize(self, obj):
-        self.pango_layout = self.video.create_pango_layout("")
-        self.pango_layout.set_font_description(Pango.FontDescription('Monospace 8'))
-        GObject.timeout_add(100, self.init_video)  # delay needed to make sure allocation is right
 
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(
