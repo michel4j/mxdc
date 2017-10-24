@@ -187,6 +187,7 @@ class MxLIVEClient(BaseService):
         else:
             data.update(reply)
             misc.save_metadata(data, filename)
+            return data
 
     def register(self):
         response = self.post('/project/', data={'public': self.keys['public']})
@@ -229,7 +230,7 @@ class MxLIVEClient(BaseService):
         @param beamline: beamline acronym (str)
         @param filename: json-formatted file containing metadata
         """
-        self.upload('/data/{}/'.format(beamline), filename)
+        return self.upload('/data/{}/'.format(beamline), filename)
 
     def upload_report(self, beamline, filename):
         """
@@ -237,7 +238,7 @@ class MxLIVEClient(BaseService):
         @param beamline: beamline acronym (str)
         @param filename: json-formatted file containing metadata
         """
-        self.upload('/report/{}/'.format(beamline), filename)
+        return self.upload('/report/{}/'.format(beamline), filename)
 
 
 class Referenceable(pb.Referenceable, object):

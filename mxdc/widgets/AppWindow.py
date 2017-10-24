@@ -69,12 +69,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.icon_file = os.path.join(conf.SHARE_DIR, 'icon.png')
 
         dialogs.MAIN_WINDOW = self
-        self.settings_active = False
 
-    def add_menu_actions(self):
-        self.quit_mnu.connect('activate', self.do_quit)
-        self.about_mnu.connect('activate', self.do_about)
-        self.preferences_mnu.connect('activate', self.do_settings)
 
     def setup(self):
         self.analysis = analysis.AnalysisController(self.builder)
@@ -85,16 +80,9 @@ class AppWindow(Gtk.ApplicationWindow):
         self.automation = datasets.AutomationController(self.builder)
         self.scans = scans.ScanManager(self.builder)
         self.chat = chat.ChatController(self.builder)
-        self.builder.dir_template_btn.connect('clicked', self.do_settings)
         self.set_titlebar(self.builder.header_bar)
         icon = GdkPixbuf.Pixbuf.new_from_file(self.icon_file)
         self.set_icon(icon)
         self.add(self.builder.mxdc_main)
         self.show_all()
 
-    def do_settings(self, *args):
-        if not self.settings_active:
-            self.settings_active = True
-            dialog = SettingsDialog(self)
-            dialog.run()
-            self.settings_active = False

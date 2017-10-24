@@ -4,16 +4,16 @@ import glob
 import logging
 import os
 import re
-import sys
 
 import numpy
 from gi.repository import GObject
 from gi.repository import Gtk
-from mxdc.utils import gui, colors
-from mxdc.widgets import dialogs
-from mxdc.widgets.imagewidget import ImageWidget, image_loadable
 from twisted.python.components import globalRegistry
 from zope.interface import Interface
+
+from mxdc.utils import gui
+from mxdc.widgets import dialogs
+from mxdc.widgets.imagewidget import ImageWidget, image_loadable
 
 __log_section__ = 'mxdc.imageviewer'
 img_logger = logging.getLogger(__log_section__)
@@ -34,7 +34,7 @@ class IImageViewer(Interface):
 
 class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     gui_roots = {
-        'data/image_viewer': ['image_viewer', 'brightness_popup', 'info_dialog']
+        'data/image_viewer': ['image_viewer', 'info_dialog']
     }
     Formats = {
         'average_intensity': '{:0.0f}',
@@ -87,9 +87,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.info_btn.connect('clicked', self.on_image_info)
         self.follow_tbtn.connect('toggled', self.on_follow_toggled)
 
-        self.brightness.set_adjustment(Gtk.Adjustment(0, 0, 100, 1, 10, 0))
-        self.brightness_tbtn.connect('toggled', self.on_brightness_toggled)
-        self.brightness.connect('value-changed', self.on_brightness_changed)
         self.colorize_tbtn.connect('toggled', self.on_colorize_toggled)
 
         self.reset_btn.connect('clicked', self.on_reset_filters)
@@ -102,10 +99,8 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.zoom_fit_btn.connect('clicked', self.on_go_back, True)
         self.info_close_btn.connect('clicked', self.on_info_hide)
 
-        self.image_canvas.connect('configure-event', self.on_configure)
         self.add(self.image_viewer)
         self.show_all()
-
 
     def log(self, msg):
         img_logger.info(msg)
@@ -169,7 +164,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self._rescan_dataset()
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
-        self.brightness_tbtn.set_sensitive(True)
         self.colorize_tbtn.set_sensitive(True)
         self.reset_btn.set_sensitive(True)
         self.follow_tbtn.set_sensitive(True)
@@ -190,39 +184,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self._collecting = state
         self.follow_tbtn.set_active(state)
 
-    def _get_parent_window(self):
-        parent = self.get_parent()
-        last_parent = parent
-        while parent is not None:
-            last_parent = parent
-            parent = last_parent.get_parent()
-        return last_parent
-
-    def _position_popups(self):
-        main_window = self._get_parent_window()
-        canvas_window = self.image_canvas.get_window()
-        ox, oy = main_window.get_position()
-        ix, iy = canvas_window.get_position()
-        iw, ih = canvas_window.get_width(), canvas_window.get_height()
-        cx = ox + ix + iw / 2 - 100
-        cy = oy + iy + ih - 50
-        self.brightness_popup.move(cx, cy)
-
-
-    # signal handlers
-    def on_focus_out(self, obj, event, btn):
-        btn.set_active(False)
-
-    def on_configure(self, obj, event):
-        self._position_popups()
-        return False
-
-    def on_brightness_changed(self, obj):
-        self.image_canvas.set_brightness(obj.get_value())
-        if self._br_hide_id is not None:
-            GObject.source_remove(self._br_hide_id)
-            self._br_hide_id = GObject.timeout_add(12000, self._timed_hide, self.brightness_tbtn)
-
     def on_reset_filters(self, widget):
         self.image_canvas.reset_filters()
 
@@ -238,7 +199,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.info_data.set_alignment(1, 0.5)
 
     def _update_info(self, obj=None):
-        color = 'DarkSlateGray' #colors.Category.CAT20C[0]
+        color = 'DarkSlateGray'  # colors.Category.CAT20C[0]
         info = self.image_canvas.get_image_info()
         self._set_file_specs(info['filename'])
 
@@ -308,22 +269,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                     GObject.idle_add(self.image_canvas.queue_draw)
             else:
                 self.open_image(filename)
-
-    def _timed_hide(self, obj):
-        obj.set_active(False)
-        return False
-
-    def on_brightness_toggled(self, widget):
-        if self.brightness_tbtn.get_active():
-            self.colorize_tbtn.set_active(False)
-            self._position_popups()
-            self.brightness_popup.show_all()
-            self._br_hide_id = GObject.timeout_add(12000, self._timed_hide, self.brightness_tbtn)
-        else:
-            if self._br_hide_id is not None:
-                GObject.source_remove(self._br_hide_id)
-                self._br_hide_id = None
-            self.brightness_popup.hide()
 
     def on_colorize_toggled(self, button):
         self.image_canvas.colorize(self.colorize_tbtn.get_active())

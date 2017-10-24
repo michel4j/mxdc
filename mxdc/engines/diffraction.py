@@ -231,7 +231,7 @@ class DataCollector(GObject.GObject):
             x, y, z  = wedge['point']
             self.beamline.sample_stage.move_xyz(x, y, z)
 
-    def save(self, params, upload=True):
+    def save(self, params):
         frames, count = datatools.get_disk_frameset(
             params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
         )
@@ -269,9 +269,8 @@ class DataCollector(GObject.GObject):
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
         misc.save_metadata(metadata, filename)
-        if upload:
-            self.beamline.lims.upload_data(self.beamline.name, filename)
-        return metadata
+        reply = self.beamline.lims.upload_data(self.beamline.name, filename)
+        return reply
 
     def analyse(self, metadata, sample):
         flags = ()

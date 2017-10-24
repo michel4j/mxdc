@@ -394,7 +394,7 @@ class SAMAutoMounter(AutoMounter):
 class SimAutoMounter(AutoMounter):
     StateCodes = {
         '0': Port.EMPTY,
-        '1':Port.GOOD,
+        '1': Port.GOOD,
         'u': Port.UNKNOWN,
         'm': Port.MOUNTED,
         'j': Port.BAD,
@@ -542,7 +542,7 @@ class SimAutoMounter(AutoMounter):
         }
         ports = copy.deepcopy(self.ports)
         ports[port] = Port.MOUNTED
-        #self.props.ports = ports
+        self.props.ports = ports
         self.set_state(busy=False, message="Sample mounted")
         GObject.idle_add(self.switch_status, State.IDLE)
 
@@ -550,7 +550,7 @@ class SimAutoMounter(AutoMounter):
         port = self.sample['port']
         ports = self.ports
         ports[port] = Port.GOOD
-        #self.props.ports = ports
+        self.props.ports = ports
         self.props.sample = {}
         self.set_state(busy=False, message="Sample dismounted")
         GObject.idle_add(self.switch_status, State.IDLE)
@@ -559,7 +559,6 @@ class SimAutoMounter(AutoMounter):
         mounted_port = self.sample['port']
         ports = copy.deepcopy(self.ports)
         ports[mounted_port] = Port.GOOD
-        #self.props.ports = ports
         self.props.sample = {}
         self.set_state(busy=False, message="Sample dismounted")
         self.props.sample = {
@@ -688,7 +687,7 @@ class ISARAMounter(AutoMounter):
                 self.PUCKS[i+1] for i, bit in enumerate(sts) if bit == '1'
             ]
             states = {
-                '{}{}'.format(puck, 1+pin) : Port.GOOD for pin in range(16) for puck in pucks
+                '{}{}'.format(puck, 1+pin) : Port.UNKNOWN for pin in range(16) for puck in pucks
             }
             self.props.ports = states
             self.props.layout = ISARA_DEWAR
@@ -696,7 +695,6 @@ class ISARAMounter(AutoMounter):
             self.props.ports = {}
 
     def on_sample_changed(self, obj, value):
-        #FIXME: Russ inverteds
         pin = int(self.gonio_puck_fbk.get())
         puck = int(self.gonio_sample_fbk.get())
 
