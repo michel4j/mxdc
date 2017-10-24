@@ -33,4 +33,5 @@
         <file>data/units-%.svg</file>
         <file>data/folder-template.svg</file>
     </gresource>
+    
 </gresources>
