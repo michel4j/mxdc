@@ -34,14 +34,14 @@ class IDatasets(Interface):
 
 class ConfigDisplay(object):
     Formats = {
-        'resolution': '{:0.2f}',
-        'delta': '{:0.2f} deg',
-        'range': '{:0.1f} deg',
-        'start': '{:0.1f} deg',
-        'wedge': '{:0.1f} deg',
+        'resolution': '{:0.1f} \xc3\x85',
+        'delta': '{:0.2f}\xc2\xb0',
+        'range': '{:0.1f}\xc2\xb0',
+        'start': '{:0.1f}\xc2\xb0',
+        'wedge': '{:0.1f}\xc2\xb0',
         'energy': '{:0.3f} keV',
         'distance': '{:0.1f} mm',
-        'exposure': '{:0.3f} s',
+        'exposure': '{:0.3g} s',
         'attenuation': '{:0.1f} %',
         'strategy_desc': '{}',
         'first': '{}',
@@ -77,7 +77,7 @@ class AutomationController(GObject.GObject):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.image_viewer = globalRegistry.lookup([], IImageViewer)
         self.run_dialog = datawidget.DataDialog()
-        self.run_dialog.window.set_transient_for(dialogs.MAIN_WINDOW)
+        self.widget.auto_edit_acq_btn.set_popover(self.run_dialog.popover)
         self.automation_queue = SampleQueue(self.widget.auto_queue)
         self.automator = Automator()
 
@@ -213,7 +213,6 @@ class AutomationController(GObject.GObject):
 
     def setup(self):
         self.widget.auto_edit_acq_btn.connect('clicked', self.on_edit_acquisition)
-        self.run_dialog.data_cancel_btn.connect('clicked', lambda x: self.run_dialog.window.hide())
         self.run_dialog.data_save_btn.connect('clicked', self.on_save_acquisition)
         self.widget.auto_collect_btn.connect('clicked', self.on_start_automation)
         self.widget.auto_stop_btn.connect('clicked', self.on_stop_automation)
@@ -225,11 +224,9 @@ class AutomationController(GObject.GObject):
 
     def on_edit_acquisition(self, obj):
         self.run_dialog.configure(self.config.info)
-        self.run_dialog.window.show_all()
 
     def on_save_acquisition(self, obj):
         self.config.props.info = self.run_dialog.get_parameters()
-        self.run_dialog.window.hide()
         cache = {
             'info': self.config.info,
         }
@@ -402,12 +399,12 @@ class DatasetsController(GObject.GObject):
         self.editor_frame.set_row(first_row)
 
         labels = {
-            'omega': (self.beamline.omega, self.widget.dsets_omega_fbk, '{:0.1f} deg'),
+            'omega': (self.beamline.omega, self.widget.dsets_omega_fbk, '{:0.1f}\xc2\xb0'),
             'energy': (self.beamline.energy, self.widget.dsets_energy_fbk, '{:0.3f} keV'),
             'attenuation': (self.beamline.attenuator, self.widget.dsets_attenuation_fbk, '{:0.0f} %'),
-            'maxres': (self.beamline.maxres, self.widget.dsets_maxres_fbk, '{:0.2f} A'),
+            'maxres': (self.beamline.maxres, self.widget.dsets_maxres_fbk, '{:0.2f} \xc3\x85'),
             'aperture': (self.beamline.aperture, self.widget.dsets_aperture_fbk, '{:0.0f} \xc2\xb5m'),
-            'two_theta': (self.beamline.two_theta, self.widget.dsets_2theta_fbk, '{:0.0f} deg'),
+            'two_theta': (self.beamline.two_theta, self.widget.dsets_2theta_fbk, '{:0.0f}\xc2\xb0'),
         }
         self.group_selectors = []
         self.monitors = {
