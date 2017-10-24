@@ -1,7 +1,7 @@
 import time
 import uuid
 
-from gi.repository import Gtk, Gdk, GObject
+from gi.repository import Gtk, Gdk, GObject, Gio
 from twisted.python.components import globalRegistry
 
 from mxdc.beamlines.mx import IBeamline
@@ -172,13 +172,13 @@ class DataEditor(gui.BuilderMixin):
         self.item_links = []
         self.handlers = {}
         self.build_gui()
+        self.dir_template_btn.connect('clicked', self.on_dir_template)
 
     def set_item(self, item):
         for link in self.item_links:
             self.item.handler_disconnect(link)
         self.item = item
         self.update()
-        self.data_save_btn.set_sensitive(True)
 
         self.item_links = [
             self.item.connect('notify::state', self.update),
@@ -216,16 +216,12 @@ class DataEditor(gui.BuilderMixin):
             if name in self.disabled:
                 field.set_sensitive(False)
 
-        name_valid = True
         if 'name' not in self.disabled:
             name_valid = bool(info.get('name'))
             if name_valid:
                 self.data_name_entry.get_style_context().remove_class('warning')
             else:
                 self.data_name_entry.get_style_context().add_class('warning')
-        self.data_save_btn.set_sensitive(name_valid and self.has_changed(info))
-        if self.use_dialog:
-            self.data_save_btn.set_sensitive(True)
 
     def get_parameters(self):
         info = {}
@@ -298,7 +294,10 @@ class DataEditor(gui.BuilderMixin):
             field_name = 'data_strategy_cbox'
             field = getattr(self, field_name)
             field.append(str(id), params['desc'])
-        self.data_name_entry.connect('changed', self.check_name)
+
+    def on_dir_template(self, btn):
+        app = Gio.Application.get_default()
+        app.activate_action('preferences')
 
     def on_entry_changed(self, obj, event, field_name):
         new_values = self.get_parameters()
@@ -336,12 +335,6 @@ class DataEditor(gui.BuilderMixin):
         elif self.item:
             return True
         return False
-
-    def check_name(self, entry):
-        if entry.get_text().strip():
-            self.data_save_btn.set_sensitive(True)
-        else:
-            self.data_save_btn.set_sensitive(False)
 
 
 class RunEditor(DataEditor):
@@ -414,7 +407,6 @@ class RunEditor(DataEditor):
         self.data_end_point_pbox.set_sensitive(num_points > 1)
 
 
-
 class DataDialog(DataEditor):
     gui_roots = {
         'data/data_dialog': ['data_dialog'],
@@ -424,10 +416,11 @@ class DataDialog(DataEditor):
     use_dialog = True
 
     def build_gui(self):
-        self.window = self.data_dialog
-        self.window.set_property('use-header-bar', True)
+        self.popover = self.data_dialog
         self.content_box.pack_start(self.data_form_fields, True, True, 0)
         super(DataDialog, self).build_gui()
+        self.data_cancel_btn.connect('clicked', lambda x: self.popover.hide())
+        self.data_save_btn.connect_after('clicked', lambda x: self.popover.hide())
 
 
 class RunConfig(gui.Builder):

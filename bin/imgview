@@ -1,3 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env python
 
-/usr/bin/env python $MXDC_PATH/mxdc/imageapp.py $1
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
+from mxdc.imageapp import ImageApp
+
+if __name__ == "__main__":
+    app = ImageApp()
+    app.run()

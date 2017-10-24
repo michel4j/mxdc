@@ -3825,27 +3825,6 @@
                                             <property name="position">0</property>
                                           </packing>
                                         </child>
-                                        <child>
-                                          <object class="GtkButton" id="dir_template_btn">
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="receives_default">True</property>
-                                            <property name="tooltip_text" translatable="yes">Directory Template</property>
-                                            <property name="always_show_image">True</property>
-                                            <child>
-                                              <object class="GtkImage">
-                                                <property name="visible">True</property>
-                                                <property name="can_focus">False</property>
-                                                <property name="icon_name">folder-templates-symbolic</property>
-                                              </object>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -4160,6 +4139,7 @@
                                     <property name="can_focus">False</property>
                                     <property name="margin_top">12</property>
                                     <property name="margin_bottom">24</property>
+                                    <property name="hexpand">True</property>
                                     <property name="resize_mode">immediate</property>
                                     <property name="row_spacing">3</property>
                                     <property name="column_spacing">6</property>
@@ -4195,6 +4175,7 @@
                                       <object class="GtkBox" id="analyse_options_box">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="hexpand">True</property>
                                         <child>
                                           <object class="GtkRadioButton" id="analyse_screen_option">
                                             <property name="label" translatable="yes">Screen</property>
@@ -4321,6 +4302,7 @@
                                       <object class="GtkBox" id="center_options_box">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="hexpand">True</property>
                                         <child>
                                           <object class="GtkRadioButton" id="center_loop_option">
                                             <property name="label" translatable="yes">Loop</property>
@@ -4337,6 +4319,23 @@
                                           </packing>
                                         </child>
                                         <child>
+                                          <object class="GtkRadioButton" id="center_diff_option">
+                                            <property name="label" translatable="yes">Diffraction</property>
+                                            <property name="visible">True</property>
+                                            <property name="sensitive">False</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">False</property>
+                                            <property name="active">True</property>
+                                            <property name="draw_indicator">True</property>
+                                            <property name="group">center_loop_option</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
                                           <object class="GtkRadioButton" id="center_xtal_option">
                                             <property name="label" translatable="yes">Crystal</property>
                                             <property name="visible">True</property>
@@ -4348,7 +4347,7 @@
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
-                                            <property name="position">1</property>
+                                            <property name="position">2</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -4363,7 +4362,7 @@
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
-                                            <property name="position">2</property>
+                                            <property name="position">3</property>
                                           </packing>
                                         </child>
                                       </object>
@@ -4431,6 +4430,7 @@
                                       <object class="GtkBox" id="acquire_options_box">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="hexpand">True</property>
                                         <property name="spacing">12</property>
                                         <child>
                                           <object class="GtkGrid">
@@ -4462,7 +4462,7 @@
                                                 <property name="label" translatable="yes">0.2 deg</property>
                                                 <property name="justify">center</property>
                                                 <style>
-                                                  <class name="config-value"/>
+                                                  <class name="status-fbk"/>
                                                 </style>
                                               </object>
                                               <packing>
@@ -4493,7 +4493,7 @@
                                                 <property name="label" translatable="yes">0.25 s</property>
                                                 <property name="justify">center</property>
                                                 <style>
-                                                  <class name="config-value"/>
+                                                  <class name="status-fbk"/>
                                                 </style>
                                               </object>
                                               <packing>
@@ -4524,7 +4524,7 @@
                                                 <property name="label" translatable="yes">60 %</property>
                                                 <property name="justify">center</property>
                                                 <style>
-                                                  <class name="config-value"/>
+                                                  <class name="status-fbk"/>
                                                 </style>
                                               </object>
                                               <packing>
@@ -4555,7 +4555,7 @@
                                                 <property name="label" translatable="yes">45 deg</property>
                                                 <property name="justify">center</property>
                                                 <style>
-                                                  <class name="config-value"/>
+                                                  <class name="status-fbk"/>
                                                 </style>
                                               </object>
                                               <packing>
@@ -4586,7 +4586,7 @@
                                                 <property name="label" translatable="yes">15 deg</property>
                                                 <property name="justify">center</property>
                                                 <style>
-                                                  <class name="config-value"/>
+                                                  <class name="status-fbk"/>
                                                 </style>
                                               </object>
                                               <packing>
@@ -4599,7 +4599,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
                                                 <property name="halign">end</property>
-                                                <property name="label" translatable="yes">Energy:</property>
+                                                <property name="label" translatable="yes">Resolution:</property>
                                                 <style>
                                                   <class name="config-label"/>
                                                 </style>
@@ -4610,14 +4610,14 @@
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkLabel" id="auto_energy_lbl">
+                                              <object class="GtkLabel" id="auto_resolution_lbl">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
                                                 <property name="halign">end</property>
                                                 <property name="label" translatable="yes">12.658 keV</property>
                                                 <property name="justify">center</property>
                                                 <style>
-                                                  <class name="config-value"/>
+                                                  <class name="status-fbk"/>
                                                 </style>
                                               </object>
                                               <packing>
@@ -4630,6 +4630,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
                                                 <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Strategy</property>
                                                 <style>
                                                   <class name="config-title"/>
                                                 </style>
@@ -4648,13 +4649,14 @@
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkButton" id="auto_edit_acq_btn">
+                                          <object class="GtkMenuButton" id="auto_edit_acq_btn">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
+                                            <property name="tooltip_text" translatable="yes">Select sample groups</property>
                                             <property name="halign">end</property>
                                             <property name="valign">center</property>
-                                            <property name="relief">none</property>
+                                            <property name="direction">left</property>
                                             <child>
                                               <object class="GtkImage">
                                                 <property name="visible">True</property>
@@ -4665,7 +4667,7 @@
                                             </child>
                                           </object>
                                           <packing>
-                                            <property name="expand">False</property>
+                                            <property name="expand">True</property>
                                             <property name="fill">True</property>
                                             <property name="pack_type">end</property>
                                             <property name="position">1</property>
@@ -4707,7 +4709,7 @@
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Selected Samples</property>
+                                            <property name="label" translatable="yes">Automation Queue</property>
                                           </object>
                                           <packing>
                                             <property name="expand">True</property>
@@ -4725,6 +4727,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="receives_default">True</property>
+                                                <property name="tooltip_text" translatable="yes">Select sample groups</property>
                                                 <child>
                                                   <object class="GtkImage">
                                                     <property name="visible">True</property>

@@ -12,12 +12,9 @@
         <file compressed="true">data/diagnostics.ui</file>
         <file compressed="true">data/edge_menu.ui</file>
         <file compressed="true">data/image_viewer.ui</file>
-        <file compressed="true">data/mini_hutch_widget.ui</file>
-        <file compressed="true">data/mount_widget.ui</file>
         <file compressed="true">data/mxdc_hutch.ui</file>
         <file compressed="true">data/mxdc_main.ui</file>
         <file compressed="true">data/settings.ui</file>
-
         <file>data/active_stop.gif</file>
         <file>data/colormaps.data</file>
         <file>data/crystal.png</file>
@@ -33,8 +30,7 @@
         <file>data/units-mm.svg</file>
         <file>data/units-ms.svg</file>
         <file>data/units-sec.svg</file>
-        <file>data/units-s.svg</file>
         <file>data/units-%.svg</file>
-
+        <file>data/folder-template.svg</file>
     </gresource>
 </gresources>
