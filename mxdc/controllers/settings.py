@@ -38,7 +38,7 @@ class SettingRow(gui.Builder):
         super(SettingRow, self).__init__()
         self.item = item
         self.name.set_text(item.props.name)
-        self.icon.props.icon_name = item.props.icon
+        self.icon.props.resource = '/org/mxdc/data/{}.svg'.format(self.item.icon)
 
     def get_widget(self):
         row = Gtk.ListBoxRow()
@@ -65,7 +65,7 @@ class SettingsDialog(gui.BuilderMixin):
     }
 
     OPTIONS = [
-        ('directory-template', 'folder-templates-symbolic', valid_template)
+        ('directory-template', 'folder-template', valid_template)
     ]
 
     def __init__(self, parent):

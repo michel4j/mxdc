@@ -37,7 +37,9 @@ class HutchSamplesController(GObject.GObject):
     def __init__(self, widget):
         super(HutchSamplesController, self).__init__()
         self.widget = widget
-        self.states = {}
+        self.ports = {}
+        self.containers = {}
+
         self.props.ports = {}
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.microscope = microscope.Microscope(self.widget)
@@ -74,10 +76,10 @@ class HutchSamplesController(GObject.GObject):
             self.widget.samples_mount_btn.set_sensitive(False)
 
     def get_state(self, port):
-        return self.states.get(port, 0)
+        return self.ports.get(port, 0)
 
     def has_port(self, port):
-        return port in self.states
+        return port in self.ports
 
     def on_sample_mounted(self, *args, **kwargs):
         if self.beamline.automounter.sample:

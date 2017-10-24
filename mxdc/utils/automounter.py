@@ -5,16 +5,15 @@ import numpy
 
 
 class Port(object):
-    EMPTY, UNKNOWN, GOOD, MOUNTED, BAD, FORBIDDEN = range(6)
+    EMPTY, UNKNOWN, GOOD, MOUNTED, BAD = range(5)
 
 
 PortColors = {
     Port.EMPTY: {'red': 0.0, 'green': 0.0, 'blue': 0.0, 'alpha': 0.5},
-    Port.GOOD: {'red': 0.7, 'green': 0.9, 'blue': 0.7, 'alpha': 0.8},
+    Port.GOOD: {'red': 0.5, 'green': 0.75, 'blue': 0.8, 'alpha': 0.8},
     Port.UNKNOWN: {'red': 1.0, 'green': 1.0, 'blue': 1.0, 'alpha': 0.8},
     Port.MOUNTED: {'red': 0.5, 'green': .2, 'blue': 0.5, 'alpha': 0.8},
     Port.BAD: {'red': 0.9, 'green': 0.7, 'blue': 0.7, 'alpha': 0.8},
-    Port.FORBIDDEN: {'red': 0.0, 'green': 0.0, 'blue': 0.0, 'alpha': 0.0}
 }
 
 
@@ -58,7 +57,7 @@ def puck_coords():
 
 def text_color(color, alpha):
     br = 0.241 * color['red'] ** 2 + 0.691 * color['green'] ** 2 + 0.068 * color['blue'] ** 2
-    return (0.0, 0.0, 0.0, alpha) if br > 0.5 else  (1.0, 1.0, 1.0, alpha)
+    return (0.0, 0.0, 0.0, alpha) if br > 0.5*alpha else  (1.0, 1.0, 1.0, alpha)
 
 
 class ContainerMeta(type):
@@ -94,7 +93,7 @@ class Container(object):
         self.pin_size = self.PIN * self.WIDTH
         self.loc = location
 
-    def draw(self, cr, states):
+    def draw(self, cr, ports, containers, admin=False):
         cr.save()
         cr.translate(self.cx, self.cy)
         cr.scale(self.WIDTH, self.WIDTH)
@@ -118,27 +117,27 @@ class Container(object):
             cr.set_source_rgba(0, 0, 0, 0.35)
             cr.stroke()
 
-        # draw pins
-        for i, pin in enumerate(self.NAMES):
-            px, py = self.COORDS[i]
-            port = '{}{}'.format(self.loc, pin)
+        # draw pins for owner or admin
+        if admin or self.loc in containers:
+            for i, pin in enumerate(self.NAMES):
+                px, py = self.COORDS[i]
+                port = '{}{}'.format(self.loc, pin)
 
-            state = states.get(port)
-            if state is None: continue
-            color = PortColors.get(state)
+                state = ports.get(port, Port.UNKNOWN)
+                color = PortColors.get(state)
 
-            cr.set_source_rgba(color['red'], color['green'], color['blue'], color['alpha'])
-            cr.arc(px, py, self.PIN / 2., 0, 2.0 * 3.14)
-            cr.fill()
-            cr.arc(px, py, self.PIN / 2., 0, 2.0 * 3.14)
-            cr.set_source_rgba(0.5, 0.5, 0.5, 0.5)
-            cr.stroke()
+                cr.set_source_rgba(color['red'], color['green'], color['blue'], color['alpha'])
+                cr.arc(px, py, self.PIN / 2., 0, 2.0 * 3.14)
+                cr.fill()
+                cr.arc(px, py, self.PIN / 2., 0, 2.0 * 3.14)
+                cr.set_source_rgba(0.5, 0.5, 0.5, 0.5)
+                cr.stroke()
 
-            xb, yb, w, h = cr.text_extents(pin)[:4]
-            cr.move_to(px - w / 2. - xb, py - h / 2. - yb)
-            cr.set_source_rgba(*text_color(color, color['alpha']))
-            cr.show_text(pin)
-            cr.stroke()
+                xb, yb, w, h = cr.text_extents(pin)[:4]
+                cr.move_to(px - w / 2. - xb, py - h / 2. - yb)
+                cr.set_source_rgba(*text_color(color, color['alpha']))
+                cr.show_text(pin)
+                cr.stroke()
 
         # draw labels
         cr.set_source_rgba(0.0, 0.375, 0.75, 1.0)

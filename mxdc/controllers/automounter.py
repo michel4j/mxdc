@@ -4,7 +4,7 @@ from datetime import datetime
 
 from gi.repository import Gdk, GObject
 from mxdc.beamlines.mx import IBeamline
-from mxdc.utils.automounter import Port, PortColors
+from mxdc.utils.automounter import Port
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
 logger = get_module_logger(__name__)
@@ -27,7 +27,6 @@ class DewarController(GObject.GObject):
         self.messages = []
 
         self.layout = {}
-        self.states = {}
 
         self.beamline.automounter.connect('notify::ports', self.on_port_state)
         self.beamline.automounter.connect('notify::layout', self.on_dewar_layout)
@@ -60,7 +59,7 @@ class DewarController(GObject.GObject):
         cr.scale(alloc.width, alloc.height)
         if self.layout:
             for loc, container in self.layout.items():
-                container.draw(cr, self.states)
+                container.draw(cr, self.store.ports, self.store.containers, self.beamline.is_admin())
         else:
             xscale, yscale = cr.device_to_user_distance(1, 1)
             cr.set_font_size(14*xscale)
@@ -78,26 +77,18 @@ class DewarController(GObject.GObject):
         for loc, container in self.layout.items():
             port = container.get_port(x, y)
             if port:
-                return port
+                return loc, port
+        return None, None
 
     def on_port_state(self, *args, **kwargs):
-        self.states = {
-            port: self.get_state(port) for port in self.beamline.automounter.ports.keys()
-        }
         self.widget.sample_dewar_area.queue_draw()
-
-    def get_state(self, port):
-        if port in self.store.ports or self.beamline.is_admin():
-            return self.beamline.automounter.ports.get(port, Port.UNKNOWN)
-        else:
-            return Port.FORBIDDEN
 
     def on_motion_notify(self, widget, event):
         alloc = widget.get_allocation()
         x = event.x/alloc.width
         y = event.y/alloc.height
-        port = self.find_port(x, y)
-        if port and self.states.get(port) not in [None, Port.BAD, Port.EMPTY, Port.FORBIDDEN]:
+        loc, port = self.find_port(x, y)
+        if self.allow_port(loc, port):
             label = self.store.get_name(port)
             event.window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.HAND2))
             self.widget.hover_sample_lbl.set_text(port)
@@ -105,14 +96,19 @@ class DewarController(GObject.GObject):
         else:
             event.window.set_cursor(None)
 
+    def allow_port(self, container, port):
+        if (container and port) and (container in self.store.containers or self.beamline.is_admin()):
+            if self.store.ports.get(port) not in [Port.BAD, Port.EMPTY]:
+                return True
+        return False
+
     def on_press_event(self, widget, event):
         alloc = widget.get_allocation()
         x = event.x/alloc.width
         y = event.y/alloc.height
-        port = self.find_port(x, y)
-        if port and self.states.get(port) not in [None, Port.BAD, Port.EMPTY, Port.FORBIDDEN]:
+        loc, port = self.find_port(x, y)
+        if self.allow_port(loc, port):
             self.emit('selected', port)
-
 
     def on_state_changed(self, obj, val):
         code, h_msg = self.beamline.automounter.health_state

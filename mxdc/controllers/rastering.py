@@ -111,8 +111,8 @@ class RasterController(GObject.GObject):
             'energy': (self.beamline.energy, self.widget.raster_energy_fbk, {'format': '{:0.3f} keV'}),
             'attenuation': (self.beamline.attenuator, self.widget.raster_attenuation_fbk, {'format': '{:0.0f} %'}),
             'aperture': (self.beamline.aperture, self.widget.raster_aperture_fbk, {'format': '{:0.0f} \xc2\xb5m'}),
-            'omega': (self.beamline.omega, self.widget.raster_angle_fbk, {'format': '{:0.2f} deg'}),
-            'maxres': (self.beamline.maxres, self.widget.raster_maxres_fbk, {'format': '{:0.2f} A'}),
+            'omega': (self.beamline.omega, self.widget.raster_angle_fbk, {'format': '{:0.2f}\xc2\xb0'}),
+            'maxres': (self.beamline.maxres, self.widget.raster_maxres_fbk, {'format': '{:0.2f} \xc3\x85'}),
         }
         self.monitors = {
             name: common.DeviceMonitor(dev, lbl, **kw)

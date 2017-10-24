@@ -23,9 +23,6 @@ class ISampleStore(Interface):
     def get_next(self):
         pass
 
-    def has_port(self, port):
-        pass
-
     def get_state(self, port):
         pass
 
@@ -65,9 +62,11 @@ class GroupItem(GObject.GObject):
             )
             if can_change:
                 self.items[sample[SampleStore.Data.UUID]] = self.props.selected
-                sample[SampleStore.Data.SELECTED] = self.props.selected
-                sample[SampleStore.Data.PROGRESS] = SampleStore.Progress.NONE
-                changed.add(sample[SampleStore.Data.DATA]['id'])
+                valid_ports = [Port.GOOD, Port.UNKNOWN, Port.MOUNTED]
+                if sample[SampleStore.Data.PORT] and sample[SampleStore.Data.STATE] in valid_ports:
+                    sample[SampleStore.Data.SELECTED] = self.props.selected
+                    sample[SampleStore.Data.PROGRESS] = SampleStore.Progress.NONE
+                    changed.add(sample[SampleStore.Data.DATA]['id'])
         self.props.changed = changed
 
     def __str__(self):
@@ -90,9 +89,6 @@ class SampleStore(GObject.GObject):
     class Progress(object):
         NONE, PENDING, ACTIVE, DONE = range(4)
 
-    class State(object):
-        EMPTY, GOOD, UNKNOWN, MOUNTED, JAMMED, NONE = range(6)
-
     Column = OrderedDict([
         (Data.SELECTED, ''),
         (Data.STATE, ''),
@@ -111,6 +107,7 @@ class SampleStore(GObject.GObject):
     current_sample = GObject.Property(type=object)
     next_sample = GObject.Property(type=object)
     ports = GObject.Property(type=object)
+    containers = GObject.Property(type=object)
 
     def __init__(self, view, widget):
         super(SampleStore, self).__init__()
@@ -120,9 +117,12 @@ class SampleStore(GObject.GObject):
         self.filter_model = Gtk.TreeModelSort(model=self.search_model)
         self.group_model = Gio.ListStore(item_type=GroupItem)
         self.group_registry = {}
+
+        # initialize properties
         self.props.next_sample = {}
         self.props.current_sample = {}
         self.props.ports = {}
+        self.props.containers = {}
 
         try:
             cache = load_cache('samples')
@@ -149,7 +149,7 @@ class SampleStore(GObject.GObject):
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
         self.widget.samples_dismount_btn.connect('clicked', lambda x: self.dismount_action())
         self.widget.samples_search_entry.connect('search-changed', self.on_search)
-        self.view.connect('realize', self.import_mxlive)
+        self.widget.mxdc_main.connect('realize', self.import_mxlive)
         self.connect('notify::cache', self.on_cache)
         self.connect('notify::current-sample', self.on_cur_changed)
         self.connect('notify::next-sample', self.on_next_changed)
@@ -219,6 +219,8 @@ class SampleStore(GObject.GObject):
 
     def add_item(self, item):
         item['uuid'] = str(uuid.uuid4())
+        state = self.beamline.automounter.ports.get(item.get('port'), Port.UNKNOWN)
+        state = state if state in [Port.BAD, Port.MOUNTED, Port.EMPTY] else Port.GOOD
         self.model.append([
             item['id'] in self.cache,
             item.get('name', 'unknown'),
@@ -229,14 +231,17 @@ class SampleStore(GObject.GObject):
             item.get('barcode', ''),
             item.get('priority', 0),
             item.get('comments', ''),
-            self.beamline.automounter.ports.get(item.get('port'), self.State.UNKNOWN),
+            state,
             item.get('container_type', ''),
             self.Progress.NONE,
             item['uuid'],
             item
         ])
+
         if item.get('port'):
-            self.props.ports[item['port']] = self.beamline.automounter.ports.get(item['port'], self.State.UNKNOWN)
+            self.props.ports[item['port']] = state
+            container_location = item.get('port', '').rsplit(item['location'], 1)[0]
+            self.containers[container_location] = item['container']
         return item['uuid']
 
     def create_group_selector(self, item):
@@ -305,7 +310,11 @@ class SampleStore(GObject.GObject):
         loaded = model[itr][self.Data.PORT]
         if not loaded:
             cell.set_property("text", u"")
-        elif value in [self.State.UNKNOWN, self.State.NONE]:
+        elif value in [Port.EMPTY]:
+            col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.5)
+            cell.set_property("foreground-rgba", col)
+            cell.set_property("text", u"\u2b24")
+        elif value in [Port.UNKNOWN]:
             col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=1.0)
             cell.set_property("foreground-rgba", col)
             cell.set_property("text", u"\u25ef")
@@ -316,27 +325,19 @@ class SampleStore(GObject.GObject):
 
     def format_progress(self, column, cell, model, itr, data):
         value = model.get_value(itr, self.Data.PROGRESS)
-        loaded = model[itr][self.Data.PORT]
         if value == self.Progress.DONE:
             cell.set_property("style", Pango.Style.ITALIC)
         else:
             cell.set_property("style", Pango.Style.NORMAL)
-        if not loaded:
-            cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.5))
-        else:
-            cell.set_property("foreground-rgba", None)
 
     def roll_next_sample(self):
         items = self.get_selected()
         if items:
             self.widget.samples_info1_lbl.set_markup('{} Selected'.format(len(items)))
-            self.widget.auto_queue_lbl.set_markup('{} Selected Samples'.format(len(items)))
             self.props.next_sample = items[0]
         else:
             self.widget.samples_info1_lbl.set_markup('')
-            self.widget.auto_queue_lbl.set_markup('0 Selected Samples')
             self.props.next_sample = {}
-
 
     def get_next(self):
         itr = self.filter_model.get_iter_first()
@@ -365,7 +366,7 @@ class SampleStore(GObject.GObject):
     def get_selected(self):
         return [
             row[self.Data.DATA] for row in self.model
-            if row[self.Data.SELECTED] and row[self.Data.STATE] not in [self.State.JAMMED, self.State.EMPTY]
+            if row[self.Data.SELECTED] and row[self.Data.STATE] not in [Port.BAD, Port.EMPTY]
         ]
 
     def select_all(self, option=True):
@@ -376,13 +377,15 @@ class SampleStore(GObject.GObject):
             for path in paths:
                 path = self.filter_model.convert_path_to_child_path(path)
                 row = self.search_model[path]
-                row[self.Data.SELECTED] = option
-                changed.add(row[self.Data.DATA]['id'])
+                if row[self.Data.STATE] not in [Port.EMPTY, Port.BAD]:
+                    row[self.Data.SELECTED] = option
+                    changed.add(row[self.Data.DATA]['id'])
         else:
             for item in self.filter_model:
                 row = self.search_model[self.filter_model.convert_iter_to_child_iter(item.iter)]
-                row[self.Data.SELECTED] = option
-                changed.add(row[self.Data.DATA]['id'])
+                if row[self.Data.STATE] not in [Port.EMPTY, Port.BAD]:
+                    row[self.Data.SELECTED] = option
+                    changed.add(row[self.Data.DATA]['id'])
 
         cache = self.props.cache
         if changed:
@@ -398,13 +401,10 @@ class SampleStore(GObject.GObject):
         self.group_registry = {}
         GObject.idle_add(self.emit, 'updated')
 
-    def has_port(self, port):
-        return (port in self.ports) or self.beamline.is_admin()
-
     def toggle_row(self, path):
         path = self.filter_model.convert_path_to_child_path(path)
         row = self.search_model[path]
-        if row[self.Data.STATE] not in [self.State.JAMMED, self.State.EMPTY]:
+        if row[self.Data.STATE] not in [Port.BAD, Port.EMPTY]:
             selected = not row[self.Data.SELECTED]
             row[self.Data.SELECTED] = selected
             cache = self.cache
@@ -419,9 +419,11 @@ class SampleStore(GObject.GObject):
         for row in self.model:
             port = row[self.Data.PORT]
             if port:
-                row[self.Data.STATE] = self.beamline.automounter.ports.get(port, Port.UNKNOWN)
+                state = self.beamline.automounter.ports.get(port, Port.UNKNOWN)
+                state = state if state in [Port.BAD, Port.MOUNTED, Port.EMPTY] else Port.GOOD
+                row[self.Data.STATE] = state
+                self.props.ports[port] = state
         self.props.ports = self.ports
-
 
     def on_sample_row_changed(self, model, path, itr):
         if self.group_registry:
@@ -571,10 +573,8 @@ class SampleQueue(GObject.GObject):
     def format_state(self, column, cell, model, itr, data):
         processed = model[itr][SampleStore.Data.PROGRESS]
         if processed == SampleStore.Progress.ACTIVE:
-            # cell.set_property("foreground-rgba", Gdk.RGBA(alpha=1.0, **DewarController.Color[value]))
             cell.set_property("icon-name", 'emblem-synchronizing-symbolic')
         elif processed == SampleStore.Progress.DONE:
-            # cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.5, blue=0.0, alpha=1.0))
             cell.set_property("icon-name", "object-select-symbolic")
         else:
             cell.set_property("icon-name", "content-loading-symbolic")

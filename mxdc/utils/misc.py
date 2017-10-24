@@ -166,7 +166,7 @@ def open_terminal(directory=None):
 
 def save_metadata(metadata, filename):
     try:
-        if os.path.exists(filename):
+        if os.path.exists(filename) and not metadata.get('id'):
             old_metadata = load_metadata(filename)
             metadata['id'] = old_metadata.get('id')
     except ValueError as e:

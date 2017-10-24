@@ -19,8 +19,7 @@ import os
 import code
 import threading
 
-from gi.repository import Gtk
-from gi.repository import GObject
+from gi.repository import Gtk, Gdk, GObject
 
 try:
     import readline
@@ -188,7 +187,7 @@ class BeamlineConsole(GTKInterpreter):
         # Code to execute in user's namespace
         push = self.shell.push
         lines = ["import os, sys",
-                 "from mxdc.beamline.mx import MXBeamline",
+                 "from mxdc.beamlines.mx import MXBeamline",
                  "from mxdc.engines.scripting import *",
                  "from mxdc.engines.scanning import *",
                  "from mxdc.engines.fitting import *",
