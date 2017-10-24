@@ -72,7 +72,7 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
 
         # Only show notification if state *changes* to bad
         if state != self.last_state and state == Diagnostic.State.BAD and self.diagnostic.props.message:
-            self.notifier.notify('{}: {}'.format(self.diagnostic.description, self.diagnostic.props.message), important=True)
+            self.notifier.notify('{}: {}'.format(self.diagnostic.description, self.diagnostic.props.message))
         self.last_state = state
 
 

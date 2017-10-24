@@ -175,5 +175,19 @@ class SimCryoJet(CryoJetBase):
             self.nozzle.open()
         return True
 
+    def stop_flow(self):
+        """
+        Stop the flow of the cold nitrogen stream. The current setting for
+        flow rate is saved.
+        """
+        self._previous_flow = self.sample_fbk.get()
+        self.sample_fbk.set(0.0)
+
+    def resume_flow(self):
+        """
+        Restores the flow rate to the previously saved setting.
+        """
+        self.sample_fbk.set(self._previous_flow)
+
 
 __all__ = ['CryoJet', 'CryoJet5', 'SimCryoJet']

@@ -67,9 +67,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.set_size_request(1290, 884)
         self.set_resizable(False)
         self.icon_file = os.path.join(conf.SHARE_DIR, 'icon.png')
-
         dialogs.MAIN_WINDOW = self
-
 
     def setup(self):
         self.analysis = analysis.AnalysisController(self.builder)
