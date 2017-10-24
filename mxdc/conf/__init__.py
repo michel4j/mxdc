@@ -1,6 +1,9 @@
 import glob
 import os
 import sys
+import gi
+
+gi.require_version('Gio', '2.0')
 
 import msgpack
 from gi.repository import Gio
@@ -85,8 +88,7 @@ def initialize(name=None):
         )
         schema = schema_source.lookup('org.mxdc', False)
         SettingKeys = {
-            setting: schema.get_key(setting)
-            for setting in schema.list_keys()
+            'directory-template': schema.get_key('directory-template')
         }
         Settings = Gio.Settings.new_full(schema, None, None)
 
