@@ -2,20 +2,28 @@ import common
 from mxdc.beamlines.mx import IBeamline
 from mxdc.utils.log import get_module_logger
 from twisted.python.components import globalRegistry
-from mxdc.utils import colors
+from gi.repository import GObject, GdkPixbuf, Gtk
+from mxdc.widgets import dialogs
 
 logger = get_module_logger(__name__)
 
 
-class CryoController(object):
+class CryoController(GObject.GObject):
+    anneal_active = GObject.Property(type=bool, default=False)
+    anneal_time = GObject.Property(type=float, default=0.0)
+
     def __init__(self, widget):
+        super(CryoController, self).__init__()
         self.widget = widget
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.cryojet = self.beamline.cryojet
+        self.stopped = True
         self.labels = {}
         self.limits = {}
         self.formats = {}
         self.setup()
+        self._animation = GdkPixbuf.PixbufAnimation.new_from_resource("/org/mxdc/data/active_stop.gif")
+
 
     def setup(self):
         self.labels = {
@@ -41,6 +49,22 @@ class CryoController(object):
             self.cryojet.nozzle, self.widget.cryo_nozzle_fbk,
             {True: 'OUT', False: 'IN'},
         )
+        self.connect('notify::anneal-time', self.on_anneal_time)
+        self.connect('notify::anneal-active', self.on_anneal_state)
+        self.widget.anneal_btn.connect('clicked', self.on_anneal_action)
+
+    def on_anneal_action(self, btn):
+        if self.anneal_active:
+            self.stop_annealing()
+        else:
+            val = self.widget.anneal_entry.get_text()
+            try:
+                t = float(val)
+            except ValueError:
+                pass
+            else:
+                self.props.anneal_time = t
+                self.start_annealing()
 
     def on_parameter_changed(self, obj, param):
         if param.name in self.labels:
@@ -54,3 +78,44 @@ class CryoController(object):
                     style.add_class(name)
                 else:
                     style.remove_class(name)
+
+    def on_anneal_state(self, *args, **kwargs):
+        if self.props.anneal_active:
+            self.widget.anneal_icon.set_from_animation(self._animation)
+            self.widget.anneal_entry.set_sensitive(False)
+        else:
+            self.widget.anneal_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
+            self.widget.anneal_entry.set_sensitive(True)
+
+    def on_anneal_time(self, *args, **kwargs):
+        self.widget.anneal_entry.set_text('{:0.0f}'.format(self.props.anneal_time))
+
+    def start_annealing(self):
+        if self.props.anneal_time > 0:
+            message = (
+                "This procedure will stop the cold cryogen "
+                "stream, \nwarming up your sample for {:0.0f} "
+                "seconds. Are you sure?"
+            ).format(self.props.anneal_time)
+            response = dialogs.warning('Annealing may damage your sample!', message,
+                                       buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Proceed', Gtk.ButtonsType.OK)))
+            if response == Gtk.ButtonsType.OK:
+                self.stopped = False
+                self.props.anneal_active = True
+                duration = 100
+                GObject.timeout_add(duration, self.monitor_annealing, duration)
+                self.cryojet.stop_flow()
+
+    def stop_annealing(self):
+        self.cryojet.resume_flow()
+        self.props.anneal_active = False
+        self.stopped = True
+
+    def monitor_annealing(self, dur):
+        self.props.anneal_time = max(self.props.anneal_time - dur/1000., 0)
+        if self.anneal_time <= 0.0 or self.stopped:
+            self.stop_annealing()
+            return False
+        return True
+
+

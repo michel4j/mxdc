@@ -310,7 +310,7 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <child>
-                                      <object class="GtkEntry" id="anneal_time">
+                                      <object class="GtkEntry" id="anneal_entry">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="width_chars">7</property>
@@ -331,7 +331,7 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkButton" id="action_btn">
+                                      <object class="GtkButton" id="anneal_btn">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="focus_on_click">False</property>
@@ -1873,9 +1873,6 @@
                           </packing>
                         </child>
                         <child>
-                          <placeholder/>
-                        </child>
-                        <child>
                           <object class="GtkFrame" id="datasets_viewer_box">
                             <property name="width_request">640</property>
                             <property name="visible">True</property>
@@ -1892,7 +1889,7 @@
                           <packing>
                             <property name="name">Detector</property>
                             <property name="title" translatable="yes">Detector</property>
-                            <property name="position">2</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
@@ -2280,7 +2277,7 @@
                           <packing>
                             <property name="name">Automounter</property>
                             <property name="title" translatable="yes">Automounter</property>
-                            <property name="position">3</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
@@ -2499,7 +2496,7 @@
                           <packing>
                             <property name="name">Humidity</property>
                             <property name="title" translatable="yes">Humidity</property>
-                            <property name="position">4</property>
+                            <property name="position">3</property>
                           </packing>
                         </child>
                       </object>
