@@ -60,7 +60,6 @@ class AppWindow(Gtk.ApplicationWindow):
         self.builder = AppBuilder()
         self.set_size_request(1290, 884)
         self.set_resizable(False)
-        self.icon_file = os.path.join(conf.SHARE_DIR, 'icon.png')
 
         dialogs.MAIN_WINDOW = self
         self.settings_active = False
@@ -74,7 +73,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.chat = chat.ChatController(self.builder)
 
         self.set_titlebar(self.builder.header_bar)
-        icon = GdkPixbuf.Pixbuf.new_from_file(self.icon_file)
+        icon = GdkPixbuf.Pixbuf.new_from_resource('/org/mxdc/data/icon.png')
         self.set_icon(icon)
         self.add(self.builder.mxdc_main)
         self.show_all()

@@ -1,4 +1,4 @@
-import json
+import msgpack
 import os
 import re
 import socket
@@ -177,7 +177,7 @@ class MxLIVEClient(BaseService):
         """
         try:
             data = misc.load_metadata(filename)
-            reply = self.post(path, data=data)
+            reply = self.post(path, data=msgpack.dumps(data))
         except (IOError, ValueError, requests.HTTPError) as e:
             logger.error('Unable upload to MxLIVE: \n {}'.format(e))
         else:
