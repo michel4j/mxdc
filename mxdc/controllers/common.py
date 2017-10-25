@@ -93,17 +93,20 @@ class ScaleMonitor(object):
         self.minimum = minimum
         self.maximum = maximum
         self.in_progress = False
+        self.adjustment = self.scale.get_adjustment()
+        self.adjustment.connect('value-changed', self.on_value_set)
+        self.device.connect('changed', self.on_update)
 
     def on_value_set(self, obj):
         if not self.in_progress:
             if hasattr(self.device, 'move_to'):
-                self.device.move_to(self.scale.props.value)
+                self.device.move_to(self.adjustment.props.value)
             elif hasattr(self.device, 'set'):
-                self.device.set(self.scale.props.value)
+                self.device.set(self.adjustment.props.value)
 
     def on_update(self, obj, val):
         self.in_progress = True
-        self.scale.props.value = val
+        self.adjustment.props.value = val
         self.in_progress = False
 
 
