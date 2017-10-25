@@ -117,10 +117,11 @@ class Microscope(GObject.GObject):
             scale = getattr(self.widget, 'microscope_{}_scale'.format(key), None)
             box = getattr(self.widget, '{}_box'.format(key), None)
             if all([light, scale, box]):
+                scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
                 self.monitors.append(
                     common.ScaleMonitor(scale, light),
                 )
-                scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
+
                 box.set_sensitive(True)
             else:
                 box.destroy()

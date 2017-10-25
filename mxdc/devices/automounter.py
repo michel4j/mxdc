@@ -597,6 +597,7 @@ class ISARAMounter(AutoMounter):
         self.tool_puck_fbk = self.add_pv('{}:stscom_puckNumOnTool:fbk'.format(root))
         self.tool_sample_fbk = self.add_pv('{}:stscom_sampleNumOnTool:fbk'.format(root))
 
+        self.path_busy_fbk = self.add_pv('{}:stscom_path_run:fbk'.format(root))
         self.message_fbk = self.add_pv('{}:message'.format(root))
         self.status_fbk = self.add_pv('{}:state'.format(root))
         self.puck_probe_fbk = self.add_pv('{}:dewar_puck_sts:fbk'.format(root))
@@ -610,7 +611,8 @@ class ISARAMounter(AutoMounter):
 
         self.puck_probe_fbk.connect('changed', self.on_pucks_changed)
         self.gonio_sample_fbk.connect('changed', self.on_sample_changed)
-        self.status_fbk.connect('changed', self.on_state_changed)
+        #self.status_fbk.connect('changed', self.on_state_changed)
+        self.path_busy_fbk.connect('changed', self.on_state_changed)
 
     def is_mountable(self, port):
         puck, sample = self._port2puck(port)

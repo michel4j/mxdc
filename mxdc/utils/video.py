@@ -12,7 +12,7 @@ def add_decorations(img, x, y, bw, bh):
     w, h = img.size
     hw = bw/2
     hh = bh/2
-    src = numpy.fromstring(img.tobytes('raw', 'BGRA', 0, 1))
+    src = numpy.fromstring(img.tobytes('raw', 'RGBA', 0, 1))
     surface = cairo.ImageSurface.create_for_data(src, cairo.FORMAT_ARGB32, w, h, w*4)
     cr = cairo.Context(surface)
     cr.set_source_rgba(0.2, 0.4, 1.0, 0.7)
