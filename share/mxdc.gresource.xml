@@ -14,7 +14,9 @@
         <file compressed="true">data/image_viewer.ui</file>
         <file compressed="true">data/mxdc_hutch.ui</file>
         <file compressed="true">data/mxdc_main.ui</file>
+        <file compressed="true">data/scanplot.ui</file>
         <file compressed="true">data/settings.ui</file>
+
         <file>data/active_stop.gif</file>
         <file>data/colormaps.data</file>
         <file>data/crystal.png</file>
@@ -23,6 +25,7 @@
         <file>data/periodic.png</file>
         <file>data/periodic.svg</file>
         <file>data/send.svg</file>
+        <file>data/icon.png</file>
         <file>data/splash.png</file>
         <file>data/units-ang.svg</file>
         <file>data/units-deg.svg</file>
@@ -33,5 +36,4 @@
         <file>data/units-%.svg</file>
         <file>data/folder-template.svg</file>
     </gresource>
-
 </gresources>

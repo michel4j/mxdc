@@ -60,8 +60,10 @@ class BasicScan(GObject.GObject):
     def configure(self, **kwargs):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.plotter = globalRegistry.lookup([], IScanPlotter)
+        if self.plotter:
+            self.plotter.link_scan(self)
         self.data = []
-        self.data_rows = []
+
 
     def extend(self, steps):
         self.append = True
@@ -142,6 +144,7 @@ class AbsScan(BasicScan):
         }
 
     def configure(self, mtr, start_pos, end_pos, steps, cntr, t, i0=None):
+        BasicScan.configure(self)
         self._motor = IMotor(mtr)
         self.units['position'] = self._motor.units
         self._counter = ICounter(cntr)
@@ -197,6 +200,7 @@ class AbsScan2(BasicScan):
         }
 
     def configure(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
+        BasicScan.configure(self)
         self._motor1 = IMotor(mtr1)
         self._motor2 = IMotor(mtr2)
         self.units['position1'] = self._motor1.units
@@ -260,6 +264,7 @@ class RelScan(AbsScan):
         }
 
     def configure(self, mtr, start_offset, end_offset, steps, cntr, t, i0=None):
+        BasicScan.configure(self)
         self._motor = IMotor(mtr)
         self.units['position'] = self._motor.units
         self._counter = ICounter(cntr)
@@ -288,6 +293,7 @@ class CntScan(BasicScan):
         }
 
     def configure(self, mtr, start_pos, end_pos, cntr, t, i0=None):
+        BasicScan.configure(self)
         self._motor = IMotor(mtr)
         self._counter = ICounter(cntr)
         self.units['position'] = self._motor.units
@@ -377,6 +383,7 @@ class RelScan2(AbsScan2):
         self.configure(mtr1, start_offset1, end_offset1, mtr2, start_offset2, end_offset2, steps, cntr, t, i0)
 
     def configure(self, mtr1, start_offset1, end_offset1, mtr2, start_offset2, end_offset2, steps, cntr, t, i0=None):
+        BasicScan.configure(self)
         self._motor1 = IMotor(mtr1)
         self._motor2 = IMotor(mtr2)
         self.units['position1'] = self._motor1.units
@@ -411,6 +418,7 @@ class GridScan(BasicScan):
         }
 
     def configure(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
+        BasicScan.configure(self)
         self._motor1 = IMotor(mtr1)
         self._motor2 = IMotor(mtr2)
         self.units['position1'] = self._motor1.units

@@ -6,11 +6,11 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from mxdc import conf
-conf.initialize()
+conf.initialize('SIM-1')
 
-from mxdc.utils.console import BeamlineConsole
+from mxdc.consoleapp import ConsoleApp
 
 if __name__ == "__main__":
-    app = BeamlineConsole()
-    app.mainloop()
+    app = ConsoleApp()
+    app.run()
 
