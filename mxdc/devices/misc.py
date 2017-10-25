@@ -89,7 +89,7 @@ class SimPositioner(PositionerBase):
         return self._fbk
 
     def _drive(self):
-        if abs(self._pos - self._fbk) > self._noise:
+        if abs(self._pos - self._fbk) >= self._noise:
             self._fbk += (self._pos - self._fbk)/3
         else:
             self._fbk = numpy.random.normal(self._pos, 0.5*self._noise/2.35)
