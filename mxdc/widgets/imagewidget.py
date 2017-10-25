@@ -106,7 +106,9 @@ def _lut(offset=0, scale=1.0, lo=0, hi=65536):
 def calc_histogram(data, lo=0.1, hi=95, bins='auto'):
     rmin, rmax = numpy.percentile(data, (lo, hi))
     hist, edges = numpy.histogram(data, bins=bins, range=(rmin, rmax))
-    return numpy.stack((edges[2:], hist[1:]), axis=1)
+    #v1 = numpy.stack((edges[2:], hist[1:]), axis=1)
+    return numpy.dstack((edges[2:], hist[1:]))[0]
+
 
 
 def open_image(filename, gamma=0):
