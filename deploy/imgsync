@@ -6,8 +6,9 @@
 # description:  This is a daemon for synchronizing diffraction images between the \
 #               detector data folder and user home directories.
 #
-# Source BCM parameters
-. /cmcf_apps/profile.d/bcm.sh
+# Source MXDC parameters
+. /cmcf_apps/profile.d/mxdc.sh
+
 # Source function library.
 . /etc/rc.d/init.d/functions
 

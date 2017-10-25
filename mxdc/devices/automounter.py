@@ -150,7 +150,16 @@ class AutoMounter(BaseDevice):
         @param port: str representation of the port
         @return: bool, True if it is mounted
         """
-        raise NotImplementedError('Sub-classes must implement dismount method')
+        raise NotImplementedError('Sub-classes must implement is_mountable method')
+
+    def is_valid(self, port):
+        """
+        Check if the specified port is a valid port designation for this automounter
+        @param port: str representation of the port
+        @return: bool, True if it is valid
+        """
+        raise NotImplementedError('Sub-classes must implement is_valid method')
+
 
     def is_mounted(self, port=None):
         """
@@ -235,11 +244,15 @@ class SAMAutoMounter(AutoMounter):
         for pv in status_pvs:
             pv.connect('changed', self.on_states_changed)
 
-    def is_mountable(self, port):
+    def is_valid(self, port):
         if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
             return False
-        return self.ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
+        return True
 
+    def is_mountable(self, port):
+        if self.is_valid(port):
+            return self.ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
+        return False
 
     def mount(self, port, wait=True):
         enabled = self.wait(states={State.IDLE, State.STANDBY})
@@ -435,10 +448,15 @@ class SimAutoMounter(AutoMounter):
         self.props.status = State.IDLE
         self.set_state(active=True, health=(0, ''), message='Ready')
 
-    def is_mountable(self, port):
+    def is_valid(self, port):
         if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
             return False
-        return self.ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
+        return True
+
+    def is_mountable(self, port):
+        if self.is_valid(port):
+            return self.ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
+        return False
 
     def mount(self, port, wait=False):
         enabled = self.wait(states={State.IDLE, State.STANDBY})
@@ -615,16 +633,19 @@ class ISARAMounter(AutoMounter):
         self.path_busy_fbk.connect('changed', self.on_state_changed)
 
     def is_mountable(self, port):
-        puck, sample = self._port2puck(port)
-        if puck > 0 and 1 <= sample <= 16:
+        if self.is_valid(port):
             return self.ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
         return False
 
+    def is_valid(self, port):
+        puck, sample = self._port2puck(port)
+        return 29 >= puck >= 1 and 1 <= sample <= 16
+
     def _port2puck(self, port):
-        if len(port) < 3:
-            position = (0,0)
-        else:
-            position = (self.PUCKS.index(port[:2]), int(port[2:]))
+        position = (0, 0)
+        if len(port) >= 3:
+            if port[:2] in self.PUCKS:
+                position = (self.PUCKS.index(port[:2]), int(port[2:]))
         return position
 
     def mount(self, port, wait=True):
@@ -682,7 +703,7 @@ class ISARAMounter(AutoMounter):
         self.abort_cmd.put(1)
 
     def on_pucks_changed(self, obj, states):
-        m = re.match('^di2\(([\d,]+)\)$', states)
+        m = re.match('^di2\(([\d,]+)\)?$', states)
         if m:
             sts = m.groups()[0].replace(',','')
             pucks = [
