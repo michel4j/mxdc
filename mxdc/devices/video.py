@@ -86,6 +86,7 @@ class VideoSrc(BaseDevice):
                             sink.display(img)
                 except Exception as e:
                     logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
+                    raise
             time.sleep(max(0, dur - (time.time() - t)))
 
     def get_frame(self):
