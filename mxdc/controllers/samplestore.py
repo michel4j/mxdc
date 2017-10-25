@@ -219,8 +219,12 @@ class SampleStore(GObject.GObject):
 
     def add_item(self, item):
         item['uuid'] = str(uuid.uuid4())
-        state = self.beamline.automounter.ports.get(item.get('port'), Port.UNKNOWN)
-        state = state if state in [Port.BAD, Port.MOUNTED, Port.EMPTY] else Port.GOOD
+        if not (item.get('port') and self.beamline.automounter.is_valid(item.get('port'))):
+            item['port'] = ''
+            state = Port.UNKNOWN
+        else:
+            state = self.beamline.automounter.ports.get(item['port'], Port.UNKNOWN)
+            state = state if state in [Port.BAD, Port.MOUNTED, Port.EMPTY] else Port.GOOD
         self.model.append([
             item['id'] in self.cache,
             item.get('name', 'unknown'),
