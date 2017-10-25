@@ -7,6 +7,7 @@
 #               detector data folder and user home directories.
 #
 # Source MXDC parameters
+. /cmcf_apps/profile.d/epics.sh
 . /cmcf_apps/profile.d/mxdc.sh
 
 # Source function library.
