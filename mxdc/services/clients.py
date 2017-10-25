@@ -1,19 +1,16 @@
+import json
 import os
 import re
 import socket
 
 import requests
-import rpyc
-from rpyc.utils.helpers import BgServingThread
-
-from gi.repository import GObject, GLib
+from gi.repository import GObject
 from mxdc.conf import settings
 from mxdc.devices.base import BaseDevice
 from mxdc.utils import mdns, signing, misc
 from mxdc.utils.log import get_module_logger
-from twisted.internet import reactor, error
+from twisted.internet import reactor
 from twisted.spread import pb
-from zope.interface import implements
 
 logger = get_module_logger(__name__)
 
@@ -65,7 +62,6 @@ class PBClient(BaseService):
         self.factory = ServerClientFactory()
         self.factory.getRootObject().addCallback(self.on_connect).addErrback(self.on_failure)
         reactor.connectTCP(self.service_data['address'], self.service_data['port'], self.factory)
-
 
     def service_removed(self, obj, data):
         if not self.service_found and self.service_data['host'] == data['host']:
@@ -230,6 +226,7 @@ class MxLIVEClient(BaseService):
         @param beamline: beamline acronym (str)
         @param filename: json-formatted file containing metadata
         """
+        logger.debug('Uploading meta-data to MxLIVE ...')
         return self.upload('/data/{}/'.format(beamline), filename)
 
     def upload_report(self, beamline, filename):
@@ -238,11 +235,13 @@ class MxLIVEClient(BaseService):
         @param beamline: beamline acronym (str)
         @param filename: json-formatted file containing metadata
         """
+        logger.debug('Uploading analysis report to MxLIVE ...')
         return self.upload('/report/{}/'.format(beamline), filename)
 
 
 class Referenceable(pb.Referenceable, object):
     pass
+
 
 class ChatClient(GObject.GObject, Referenceable):
     __gsignals__ = {
@@ -266,6 +265,7 @@ class ChatClient(GObject.GObject, Referenceable):
 
     def remote_show(self, *args, **kwargs):
         self.show(*args, **kwargs)
+
 
 messenger = ChatClient()
 

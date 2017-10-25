@@ -1,13 +1,7 @@
-"""
-A Plotting widget using matplotlib - several lines can be added to multiple axes
-points can be added to each line and the plot is automatically updated.
-"""
-
 import os
-import time
 
 import numpy
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk
 from matplotlib import rcParams
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
@@ -15,12 +9,6 @@ from matplotlib.colors import Normalize
 from matplotlib.dates import MinuteLocator, SecondLocator
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter
-from mpl_toolkits.mplot3d import axes3d
-from twisted.python.components import globalRegistry
-from zope.interface import implements
-
-from mxdc.engines.interfaces import IScanPlotter
-from mxdc.utils import fitting
 from mxdc.utils import misc
 from mxdc.widgets import dialogs
 
@@ -74,7 +62,6 @@ class Plotter(Gtk.Alignment):
         self.set(0.5, 0.5, 1, 1)
         rcParams['legend.loc'] = 'best'
         rcParams['legend.fontsize'] = 8.5
-        rcParams['legend.isaxes'] = False
         rcParams['figure.facecolor'] = 'white'
         rcParams['figure.edgecolor'] = 'white'
         self.fig = Figure(figsize=(10, 8), dpi=dpi, facecolor='w')
@@ -225,213 +212,3 @@ class Plotter(Gtk.Alignment):
     def redraw(self):
         self.axis[0].legend()
         self.canvas.draw_idle()
-
-
-class ScanPlotter(Gtk.Box):
-    implements(IScanPlotter)
-
-    def __init__(self):
-        super(ScanPlotter, self).__init__(orientation=Gtk.Orientation.VERTICAL)
-        self.plotter = Plotter(self)
-        self.plotter.set_size_request(577, 400)
-        self.pack_start(self.plotter, True, True, 0)
-        self.prog_bar = ActiveProgressBar()
-        self.prog_bar.set_fraction(0.0)
-        self.prog_bar.idle_text('0%')
-
-        self.pack_start(self.prog_bar, False, False, 0)
-        globalRegistry.register([], IScanPlotter, '', self)
-        self._sig_handlers = {}
-        self.show_all()
-        self.fit = {}
-        self.grid_scan = False
-
-    def connect_scanner(self, scan):
-        _sig_map = {
-            'started': self.on_start,
-            'progress': self.on_progress,
-            'new-point': self.on_new_point,
-            'error': self.on_error,
-            'done': self.on_done,
-            'stopped': self.on_stop
-        }
-
-        # connect signals.
-        scan.connect('started', self.on_start)
-        scan.connect('new-point', self.on_new_point)
-        scan.connect('progress', self.on_progress)
-        scan.connect('done', self.on_done)
-        scan.connect('error', self.on_error)
-        scan.connect('error', self.on_stop)
-
-    def on_start(self, scan, data=None):
-        """Clear Scan and setup based on contents of data dictionary."""
-        data = scan.get_specs()
-        if data.get('type', '').lower() == 'grid':
-            self.plotter.clear(grid=True)
-            self.plotter.set_grid(data)
-            self.grid_scan = True
-        else:
-            self.grid_scan = False
-            self.plotter.clear()
-        self._start_time = time.time()
-        self.plotter.set_labels(title=scan.__doc__,
-                                x_label=scan.data_names[0],
-                                y1_label=scan.data_names[1])
-
-    def on_progress(self, scan, fraction, msg):
-        """Progress handler."""
-        elapsed_time = time.time() - self._start_time
-        if fraction > 0:
-            time_unit = elapsed_time / fraction
-        else:
-            time_unit = 0.0
-
-        eta_time = time_unit * (1 - fraction)
-        # percent = fraction * 100
-        text = "ETA %s" % (time.strftime('%H:%M:%S', time.gmtime(eta_time)))
-        self.prog_bar.set_complete(fraction, text)
-
-    def on_new_point(self, scan, data):
-        """New point handler."""
-
-        if self.grid_scan:
-            self.plotter.add_grid_point(data[0], data[1], data[2])
-        else:
-            self.plotter.add_point(data[0], data[1])
-
-    def on_stop(self, scan):
-        """Stop handler."""
-        self.prog_bar.set_text('Scan Stopped!')
-
-    def on_error(self, scan, reason):
-        """Error handler."""
-        self.prog_bar.set_text('Scan Error: %s' % (reason,))
-
-    def on_done(self, scan):
-        """Done handler."""
-        filename = scan.save()
-        self.plot_file(filename)
-
-    def plot_file(self, filename):
-        """Do fitting and plot Fits"""
-        # image_filename = "%s.ps" % filename
-        info = self._get_scan_data(filename)
-        if info['scan_type'] == 'GridScan':
-            data = info['data']
-
-            xd = data[:, 0]
-            yd = data[:, 1]
-            zd = data[:, 4]
-
-            xlo = xd[0]
-            xhi = xd[-1]
-            ylo = yd[0]
-            yhi = yd[-1]
-
-            xmin = min(xd)
-            xmax = max(xd)
-            ymin = min(yd)
-            ymax = max(yd)
-
-            if info['dim'] != 0:
-                szx = info['dim']
-                szy = len(xd) / szx
-            else:
-                szx = int(numpy.sqrt(len(xd)))
-                szy = szx
-
-            x = numpy.linspace(xmin, xmax, szx)
-            y = numpy.linspace(ymin, ymax, szy)
-            z = zd.reshape(szy, szx)
-            X, Y = numpy.meshgrid(x, y)
-
-            if xlo > xhi:
-                z = z[:, ::-1]
-            if ylo > yhi:
-                z = z[::-1, :]
-
-            self.plotter.clear()
-            ax = axes3d.Axes3D(self.plotter.fig)
-            ax.set_title('%s\n%s' % (info['title'], info['subtitle']))
-            ax.set_xlabel(info['x_label'])
-            ax.set_ylabel(info['y_label'])
-            ax.contour3D(X, Y, z, 50)
-            self.plotter.canvas.draw()
-
-        else:
-            data = info['data']
-            # image_filename = "%s.ps" % filename
-            xo = data[:, 0]
-            yo = data[:, -1]
-
-            params, _ = fitting.peak_fit(xo, yo, 'gaussian')
-            yc = fitting.gauss(xo, params)
-
-            fwhm = params[1]
-            # fwxl = [params[1]-0.5*fwhm, params[1]+0.5*fwhm]
-            # fwyl = [0.5 * params[0] + params[3], 0.5 * params[0] + params[3]]
-            # pkyl = [params[3],params[0]+params[3]]
-            # pkxl = [params[1],params[1]]
-
-            # [ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema]
-            histo_pars, _ = fitting.histogram_fit(xo, yo)
-
-            self.plotter.clear()
-            ax = self.plotter.axis[0]
-            ax.set_title('%s\n%s' % (info['title'], info['subtitle']))
-            ax.set_xlabel(info['x_label'])
-            ax.set_ylabel(info['y_label'])
-            # ax.plot(xo,yo,'b-+')
-            # ax.plot(xo,yc,'r--')
-            self.plotter.add_line(xo, yo, pattern='b-+', redraw=False)
-            self.plotter.add_line(xo, yc, pattern='r--', redraw=False)
-            hh = 0.5 * (max(yo) - min(yo)) + min(yo)
-            ax.plot([histo_pars[2], histo_pars[2]], [min(yo), max(yo)], 'b:')
-            ax.plot([histo_pars[3], histo_pars[4]], [hh, hh], 'b:')
-            ax.set_xlim(min(xo), max(xo))
-
-            # set font parameters for the ouput table
-            fontpar = {}
-            fontpar["family"] = "monospace"
-            fontpar["size"] = 8
-            info = "YMAX-fit = %11.4e\n" % params[0]
-            info += "MIDP-fit = %11.4e\n" % params[2]
-            info += "FWHM-fit = %11.4e\n" % fwhm
-            print info
-            self.plotter.fig.text(0.65, 0.75, info, fontdict=fontpar, color='r')
-            info = "YMAX-his = %11.4e\n" % histo_pars[0]
-            info += "MIDP-his = %11.4e\n" % histo_pars[2]
-            info += "FWHM-his = %11.4e\n" % histo_pars[1]
-            info += "CEMA-his = %11.4e\n" % histo_pars[5]
-            self.plotter.fig.text(0.65, 0.60, info, fontdict=fontpar, color='b')
-            self.plotter.canvas.draw()
-            print info
-            self.fit['midp'] = params[2]
-            self.fit['fwhm'] = fwhm
-            self.fit['ymax'] = params[0]
-
-    def _get_scan_data(self, filename):
-        lines = file(filename).readlines()
-        title = lines[0].split(': ')[1][:-1]
-        x_title = lines[3].split(': ')[1][:-1]
-        y_title = lines[4].split(': ')[1][:-1]
-        scan_type = title.split(' -- ')[0]
-        data = numpy.loadtxt(filename, comments='#')
-        t = os.stat(filename).st_ctime
-        timestr = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime(t))
-        if scan_type == 'GridScan':
-            # dim = int(lines[6].split(': ')[1][:-1])
-            dim = 0
-        else:
-            dim = 0
-        return {'scan_type': scan_type, 'x_label': x_title, 'y_label': y_title,
-                'title': title, 'data': data, 'subtitle': timestr, 'dim': dim}
-
-
-class ScanPlotWindow(Gtk.Window):
-    def __init__(self):
-        GObject.GObject.__init__(self)
-        self.plot = ScanPlotter()
-        self.add(self.plot)
-        self.show_all()
