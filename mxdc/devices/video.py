@@ -5,6 +5,7 @@ import threading
 import time
 import zlib
 from StringIO import StringIO
+from io import BytesIO
 
 import numpy
 import redis
@@ -218,10 +219,12 @@ class JPGCamera(VideoSrc):
         return self.get_frame_raw()
 
     def get_frame_raw(self):
-        r = self.session.get(self.url, stream=True)
+        #r = self.session.get(self.url, stream=True)
+        r = self.session.get(self.url)
         if r.status_code == 200:
-            r.raw.decode_content = True
-            self._frame = Image.open(r.raw)
+            #r.raw.decode_content = True
+            #self._frame = Image.open(r.raw)
+            self._frame = Image.open(BytesIO(r.content))
             self.size = self._frame.size
         return self._frame
 
