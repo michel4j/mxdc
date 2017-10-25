@@ -12,6 +12,7 @@ Also borrows liberally from code.py in the Python standard library."""
 
 __author__ = "Fernando Perez, Michel Fodje"
 import warnings
+
 warnings.simplefilter("ignore")
 
 import sys
@@ -28,11 +29,12 @@ except ImportError:
 else:
     has_readline = True
 
+
 class MTConsole(code.InteractiveConsole):
     """Simple multi-threaded shell"""
 
-    def __init__(self,on_kill=None,*args,**kw):
-        code.InteractiveConsole.__init__(self,*args,**kw)
+    def __init__(self, on_kill=None, *args, **kw):
+        code.InteractiveConsole.__init__(self, *args, **kw)
         self.code_to_run = None
         self.ready = threading.Condition()
         self._kill = False
@@ -41,19 +43,19 @@ class MTConsole(code.InteractiveConsole):
         # Check that all things to kill are callable:
         for _ in on_kill:
             if not callable(_):
-                raise TypeError,'on_kill must be a list of callables'
+                raise TypeError('on_kill must be a list of callables')
         self.on_kill = on_kill
         # Set up tab-completer
         if has_readline:
             import rlcompleter
             try:  # this form only works with python 2.3
                 self.completer = rlcompleter.Completer(self.locals)
-            except: # simpler for py2.2
+            except:  # simpler for py2.2
                 self.completer = rlcompleter.Completer()
-                
+
             readline.set_completer(self.completer.complete)
             # Use tab for completions
-            #readline.parse_and_bind('tab: complete')
+            # readline.parse_and_bind('tab: complete')
             # This forces readline to automatically print the above list when tab
             # completion is set to 'complete'.
             readline.parse_and_bind('set show-all-if-ambiguous on')
@@ -114,25 +116,25 @@ class MTConsole(code.InteractiveConsole):
 
         self.ready.acquire()
         if self._kill:
-            print 'Closing threads...',
+            print('Closing threads...')
             sys.stdout.flush()
             for tokill in self.on_kill:
                 tokill()
-            print 'Done.'
 
         if self.code_to_run is not None:
             self.ready.notify()
-            code.InteractiveConsole.runcode(self,self.code_to_run)
+            code.InteractiveConsole.runcode(self, self.code_to_run)
 
         self.code_to_run = None
         self.ready.release()
         return True
 
-    def kill (self):
+    def kill(self):
         """Kill the thread, returning when it has been shut down."""
         self.ready.acquire()
         self._kill = True
         self.ready.release()
+
 
 class GTKInterpreter(threading.Thread):
     """Run a gtk mainloop() in a separate thread.
@@ -140,9 +142,9 @@ class GTKInterpreter(threading.Thread):
     This is implemented by periodically checking for passed code using a
     GTK timeout callback.
     """
-    TIMEOUT = 100 # Milisecond interval between timeouts.
-    
-    def __init__(self,banner=None):
+    TIMEOUT = 100  # Milisecond interval between timeouts.
+
+    def __init__(self, banner=None):
         threading.Thread.__init__(self)
         self.banner = banner
         self.shell = MTConsole(on_kill=[Gtk.main_quit])
@@ -157,7 +159,7 @@ class GTKInterpreter(threading.Thread):
         GObject.timeout_add(self.TIMEOUT, self.shell.runcode)
         try:
             if Gtk.gtk_version[0] >= 2:
-                Gdk.threads_init()          
+                Gdk.threads_init()
             if Gtk.gtk_version >= (2, 18):
                 Gtk.set_interactive(False)
         except AttributeError:
@@ -170,8 +172,9 @@ class GTKInterpreter(threading.Thread):
 
         It gets called right before interact(), but after the thread starts.
         Typically used to push initialization code into the interpreter"""
-        
+
         pass
+
 
 class BeamlineConsole(GTKInterpreter):
     def __init__(self, banner=None):
@@ -182,7 +185,7 @@ class BeamlineConsole(GTKInterpreter):
         ).format(sys.version.split('\n')[0], os.environ['MXDC_CONFIG'])
 
         GTKInterpreter.__init__(self, banner)
-    
+
     def pre_interact(self):
         # Code to execute in user's namespace
         push = self.shell.push
@@ -196,8 +199,7 @@ class BeamlineConsole(GTKInterpreter):
                  "bl = beamline",
                  "plot = ScanPlotWindow()",
                  ]
-        map(push,lines)
-        
+        map(push, lines)
 
 
 if __name__ == '__main__':
@@ -205,4 +207,3 @@ if __name__ == '__main__':
         BeamlineConsole().mainloop()
     finally:
         print 'Quitting...'
-
