@@ -76,7 +76,8 @@ class SimCCDImager(BaseDevice):
         logger.debug('(%s) CCD Initialization complete.' % (self.name,))
 
     def start(self, first=False):
-        self.initialize(True)
+        if first:
+            self.initialize(True)
         time.sleep(0.1)
 
     def stop(self):

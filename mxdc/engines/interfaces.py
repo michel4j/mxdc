@@ -8,10 +8,11 @@ Created on Feb 17, 2010
 
 from zope.interface import Interface, Attribute
 
+
 class IScanPlotter(Interface):
     """Scan TickerChart Object."""
     
-    def connect_scan(self, scanner):
+    def link_scan(self, scanner):
         """Connect handlers to scanner."""
         
     def on_start(scan, data):
