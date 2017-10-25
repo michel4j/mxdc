@@ -2,18 +2,13 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 from mxdc import conf
-from mxdc.beamlines.mx import IBeamline
-from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.controllers import common, status, chat
 from mxdc.controllers import setup, scans, datasets
 from mxdc.controllers import samples, analysis
-from mxdc.controllers.settings import SettingsDialog
 from mxdc.widgets import dialogs
-from mxdc.widgets.splash import Splash
-from twisted.python.components import globalRegistry
-from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
+from gi.repository import Gtk, Gdk, GdkPixbuf
 import os
 from datetime import datetime
 
@@ -54,6 +49,7 @@ class AppWindow(Gtk.ApplicationWindow):
         super(AppWindow, self).__init__(*args, **kwargs)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_wmclass('Mx Data Collector', 'Mx Data Collector')
+        self.set_title('Mx Data Collector')
         app_settings = self.get_settings()
         app_settings.props.gtk_enable_animations = True
         css = Gtk.CssProvider()
@@ -83,4 +79,3 @@ class AppWindow(Gtk.ApplicationWindow):
         self.set_icon(icon)
         self.add(self.builder.mxdc_main)
         self.show_all()
-

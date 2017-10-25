@@ -2,18 +2,13 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 from mxdc import conf
-from mxdc.beamlines.mx import IBeamline
-from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.controllers import common, status, chat
-from mxdc.controllers import setup, scans, datasets
-from mxdc.controllers import samples, analysis
-from mxdc.controllers.settings import SettingsDialog
+from mxdc.controllers import setup
+from mxdc.controllers import samples
 from mxdc.widgets import dialogs
-from mxdc.widgets.imageviewer import ImageViewer
-from twisted.python.components import globalRegistry
-from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
+from gi.repository import Gtk, Gdk, GdkPixbuf
 import os
 from datetime import datetime
 
@@ -28,7 +23,7 @@ COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reser
 class AppBuilder(gui.Builder):
     gui_roots = {
         'data/mxdc_hutch': [
-           'header_bar', 'mxdc_main',
+            'header_bar', 'mxdc_main',
         ]
     }
 
@@ -75,7 +70,6 @@ class AppWindow(Gtk.ApplicationWindow):
         self.hutch_manager = setup.SetupController(self.builder)
         self.status_panel = status.StatusPanel(self.builder)
 
-
         # Chat
         self.chat = chat.ChatController(self.builder)
 
@@ -84,6 +78,3 @@ class AppWindow(Gtk.ApplicationWindow):
         self.set_icon(icon)
         self.add(self.builder.mxdc_main)
         self.show_all()
-
-
-
