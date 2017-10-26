@@ -77,7 +77,13 @@ class HutchSamplesController(GObject.GObject):
 
     def get_name(self, port):
         return '<unknown>'
-    
+
+    def find_by_port(self, port):
+        return None
+
+    def find_by_id(self, port):
+        return None
+
     def on_sample_mounted(self, *args, **kwargs):
         if self.beamline.automounter.sample:
             self.widget.samples_dismount_btn.set_sensitive(True)
