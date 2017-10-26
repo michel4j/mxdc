@@ -724,7 +724,7 @@ class ISARAMounter(AutoMounter):
             port = '{}{}'.format(self.PUCKS[puck], pin)
             self.props.sample = {
                 'port': port,
-                'barcode': None
+                'barcode': ''
             }
         else:
             self.props.sample = None
