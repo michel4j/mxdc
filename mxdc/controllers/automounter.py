@@ -128,7 +128,7 @@ class DewarController(GObject.GObject):
         if not self.messages or message != self.messages[-1]:
             self.messages.append(message)
 
-        if status.name == 'IDLE' and code < 2 and not busy:
+        if status.name in ['IDLE', 'OFF'] and code < 2 and not busy:
             self.widget.automounter_command_box.set_sensitive(True)
         else:
             self.widget.automounter_command_box.set_sensitive(False)
