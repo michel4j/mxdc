@@ -30,6 +30,7 @@ class AutoMounter(BaseDevice):
     layout = GObject.Property(type=object)
     sample = GObject.Property(type=object)
     ports = GObject.Property(type=object)
+    containers = GObject.Property(type=object)
     status = GObject.Property(type=object)
 
     def __init__(self):
@@ -39,6 +40,7 @@ class AutoMounter(BaseDevice):
         self.props.layout = {}
         self.props.sample = {}
         self.props.ports = {}
+        self.props.containers = set()
         self.props.status = State.IDLE
         self.state_link = self.connect('notify::status', self._record_state)
         self.connect('notify::status', self._emit_state)
@@ -380,16 +382,16 @@ class SAMAutoMounter(AutoMounter):
             'cassette': ('ABCDEFGHIJKL', range(1, 9)),
             'calib': ('ABCDEFGHIJKL', range(1, 9)),
         }
-        containers = []
+        containers = set()
 
         for location, (type_code, port_states_str) in info.items():
             type_name = self.TypeCodes.get(type_code, 'puck')
             spec = container_spec.get(type_name)
 
             if type_name == 'puck':
-                containers += ['{}{}'.format(location, pos) for pos in spec[0]]
+                containers |= {'{}{}'.format(location, pos) for pos in spec[0]}
             elif type_name in ['cassette', 'calib']:
-                containers += [location]
+                containers |= {location}
 
             if spec:
                 ports = [
@@ -401,6 +403,7 @@ class SAMAutoMounter(AutoMounter):
                 port_states.update({port: state for port, state in zip(ports, states)})
 
         self.props.layout = {loc: SAM_DEWAR[loc] for loc in containers}
+        self.props.containers = containers
         self.props.ports = port_states
 
 
@@ -526,16 +529,16 @@ class SimAutoMounter(AutoMounter):
             'cassette': ('ABCDEFGHIJKL', range(1, 9)),
             'calib': ('ABCDEFGHIJKL', range(1, 9)),
         }
-        containers = []
+        containers = set()
 
         for location, (type_code, port_states_str) in info.items():
             type_name = self.TypeCodes.get(type_code, 'puck')
             spec = container_spec.get(type_name)
 
             if type_name == 'puck':
-                containers += ['{}{}'.format(location, pos) for pos in spec[0]]
+                containers |= {'{}{}'.format(location, pos) for pos in spec[0]}
             elif type_name in ['cassette', 'calib']:
-                containers += [location]
+                containers |= {location}
 
             if spec:
                 ports = [
@@ -547,6 +550,7 @@ class SimAutoMounter(AutoMounter):
                 port_states.update({port: state for port, state in zip(ports, states)})
 
         self.props.layout = {loc: SAM_DEWAR[loc] for loc in containers}
+        self.props.containers = containers
         self.props.ports = port_states
 
     def _sim_mount_start(self, message):
@@ -589,7 +593,6 @@ class SimAutoMounter(AutoMounter):
         self.set_state(busy=False, message="Sample mounted")
 
 
-
 class ISARAMounter(AutoMounter):
     PUCKS = [
         '',
@@ -604,8 +607,7 @@ class ISARAMounter(AutoMounter):
     def __init__(self, root):
         super(ISARAMounter, self).__init__()
         self.name = 'ISARA Auto Mounter'
-        self.command_fbk = self.add_pv('{}:last_cmnd_sts:fbk'.format(root))
-
+        self.props.layout = ISARA_DEWAR
         self.sample_number = self.add_pv('{}:trjarg_sampleNumber'.format(root))
         self.puck_number = self.add_pv('{}:trjarg_puckNumber'.format(root))
         self.tool_number = self.add_pv('{}:trjarg_toolNumber'.format(root))
@@ -615,11 +617,16 @@ class ISARAMounter(AutoMounter):
         self.tool_puck_fbk = self.add_pv('{}:stscom_puckNumOnTool:fbk'.format(root))
         self.tool_sample_fbk = self.add_pv('{}:stscom_sampleNumOnTool:fbk'.format(root))
         self.power_fbk = self.add_pv('{}:stscom_power:fbk'.format(root))
+        self.approach_fbk = self.add_pv('{}:out_5:fbk'.format(root))
+        self.running_fbk = self.add_pv('{}:out_6:fbk'.format(root))
+        self.drying_fbk = self.add_pv('{}:out_16:fbk'.format(root))
 
         self.path_busy_fbk = self.add_pv('{}:stscom_path_run:fbk'.format(root))
         self.message_fbk = self.add_pv('{}:message'.format(root))
         self.status_fbk = self.add_pv('{}:state'.format(root))
         self.puck_probe_fbk = self.add_pv('{}:dewar_puck_sts:fbk'.format(root))
+        self.command_fbk = self.add_pv('{}:cmnd_resp:fbk'.format(root))
+        self.trajectory_fbk = self.add_pv('{}:stscom_path_name:fbk'.format(root))
 
         self.abort_cmd = self.add_pv('{}:abort'.format(root))
 
@@ -631,9 +638,17 @@ class ISARAMounter(AutoMounter):
         self.on_cmd = self.add_pv('{}:message'.format(root))
         self.home_cmd = self.add_pv('{}:home'.format(root))
 
+
         self.puck_probe_fbk.connect('changed', self.on_pucks_changed)
         self.gonio_sample_fbk.connect('changed', self.on_sample_changed)
+        self.gonio_puck_fbk.connect('changed', self.on_sample_changed)
+
         self.path_busy_fbk.connect('changed', self.on_state_changed)
+        self.power_fbk.connect('changed', self.on_state_changed)
+        self.approach_fbk.connect('changed', self.on_state_changed)
+        self.running_fbk.connect('changed', self.on_state_changed)
+        self.command_fbk.connect('changed', self.on_message_changed)
+        self.trajectory_fbk.connect('changed', self.on_message_changed, 'Running')
 
     def is_mountable(self, port):
         if self.is_valid(port):
@@ -655,10 +670,9 @@ class ISARAMounter(AutoMounter):
         if self.power_fbk.get() == 0:
             self.power_cmd.put(1)
 
-
     def mount(self, port, wait=True):
         self.power_on()
-        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=10)
+        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=20)
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -670,27 +684,29 @@ class ISARAMounter(AutoMounter):
             return True
         else:
             puck, pin = self._port2puck(port)
-            print puck, pin
+            logger.info('{}: Mounting Sample: {}'.format(self.name, port))
             if self.is_mounted():
                 self.puck_number.put(puck)
                 self.sample_number.put(pin)
                 self.getput_cmd.put(1)
+                success = self.wait(states={State.BUSY}, timeout=5)
             else:
+                self.puck_number.put(puck)
+                self.sample_number.put(pin)
                 self.put_cmd.put(1)
+                success = self.wait(states={State.BUSY}, timeout=5)
 
-
-            logger.info('{}: Mounting Sample: {}'.format(self.name, port))
-            if wait:
+            if wait and success:
                 success = self.wait(states={State.IDLE}, timeout=240)
                 if not success:
                     self.set_state(message="Mounting timed out!")
                 return success
             else:
-                return True
+                return success
 
     def dismount(self, wait=False):
         self.power_on()
-        enabled = self.wait(states={State.IDLE, State.STANDBY})
+        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=20)
 
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
@@ -704,13 +720,14 @@ class ISARAMounter(AutoMounter):
         else:
             self.get_cmd.put(1)
             logger.info('{}: Dismounting sample.'.format(self.name, ))
-            if wait:
+            success = self.wait(states={State.BUSY}, timeout=5)
+            if wait and success:
                 success = self.wait(states={State.IDLE}, timeout=240)
                 if not success:
                     self.set_state(message="Dismount timed out!")
                 return success
             else:
-                return True
+                return success
 
     def abort(self):
         self.abort_cmd.put(1)
@@ -719,35 +736,46 @@ class ISARAMounter(AutoMounter):
         m = re.match('^di2\(([\d,]+)\)$', states)
         if m:
             sts = m.groups()[0].replace(',','')
-            pucks = [
-                self.PUCKS[i+1] for i, bit in enumerate(sts) if bit == '1'
-            ]
+            pucks = {self.PUCKS[i+1] for i, bit in enumerate(sts) if bit == '1'}
             states = {
                 '{}{}'.format(puck, 1+pin) : Port.UNKNOWN for pin in range(16) for puck in pucks
             }
             self.props.ports = states
-            self.props.layout = ISARA_DEWAR
+            self.props.containers = pucks
+
         else:
             self.props.ports = {}
+            self.props.containers = set()
 
     def on_sample_changed(self, obj, value):
-        pin = int(self.gonio_puck_fbk.get())
-        puck = int(self.gonio_sample_fbk.get())
+        puck = int(self.gonio_puck_fbk.get())
+        pin = int(self.gonio_sample_fbk.get())
 
-        if puck and pin:
+        if 1 <= puck <=29 and 1<= pin <= 16:
             port = '{}{}'.format(self.PUCKS[puck], pin)
             self.props.sample = {
                 'port': port,
                 'barcode': ''
             }
         else:
-            self.props.sample = None
+            self.props.sample = {}
 
     def on_state_changed(self, obj, value):
         power = self.power_fbk.get()
+        path_state = self.path_busy_fbk.get()
+        approach_state = self.approach_fbk.get()
+        running_state = self.running_fbk.get()
+        path_name = self.trajectory_fbk.get()
+        drying = self.drying_fbk.get()
+        logger.debug('Power: {}, Path: {}[{}], Approach: {}, Running: {}. Drying: {}'.format(
+            power, path_name, path_state, approach_state, running_state, drying)
+        )
         if power == 0:
             GObject.idle_add(self.switch_status, State.OFF)
-        elif value:
+        elif running_state:
             GObject.idle_add(self.switch_status, State.BUSY)
         else:
             GObject.idle_add(self.switch_status, State.IDLE)
+
+    def on_message_changed(self, obj, value, prefix='Status'):
+        self.set_state(message='{}: {}'.format(prefix, value))

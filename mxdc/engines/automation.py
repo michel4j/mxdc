@@ -102,6 +102,9 @@ class Automator(GObject.GObject):
                         if sample['barcode'] and barcode and barcode != sample['barcode']:
                             logger.error('Barcode mismatch: {} vs {}'.format(barcode, sample['barcode']))
                     else:
+                        logger.debug('Success: {}, Mounted: {}'.format(
+                            success, self.beamline.automounter.is_mounted(sample['port'])
+                        ))
                         self.stop(error='Mouting Failed. Unable to continue automation!')
                 elif task['type'] == self.Task.ACQUIRE:
                     if self.beamline.automounter.is_mounted(sample['port']):
