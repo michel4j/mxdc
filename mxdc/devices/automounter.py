@@ -22,7 +22,7 @@ logger = get_module_logger(__name__)
 
 
 class State(Enum):
-    IDLE, STANDBY, BUSY, NOT_READY, DISABLED, ERROR = range(6)
+    IDLE, STANDBY, BUSY, NOT_READY, DISABLED, ERROR, OFF = range(7)
 
 class AutoMounter(BaseDevice):
     implements(IAutomounter)
@@ -614,6 +614,7 @@ class ISARAMounter(AutoMounter):
         self.gonio_sample_fbk = self.add_pv('{}:stscom_sampleNumOnDiff:fbk'.format(root))
         self.tool_puck_fbk = self.add_pv('{}:stscom_puckNumOnTool:fbk'.format(root))
         self.tool_sample_fbk = self.add_pv('{}:stscom_sampleNumOnTool:fbk'.format(root))
+        self.power_fbk = self.add_pv('{}:stscom_power:fbk'.format(root))
 
         self.path_busy_fbk = self.add_pv('{}:stscom_path_run:fbk'.format(root))
         self.message_fbk = self.add_pv('{}:message'.format(root))
@@ -621,7 +622,10 @@ class ISARAMounter(AutoMounter):
         self.puck_probe_fbk = self.add_pv('{}:dewar_puck_sts:fbk'.format(root))
 
         self.abort_cmd = self.add_pv('{}:abort'.format(root))
+
         self.getput_cmd = self.add_pv('{}:getput'.format(root))
+        self.power_cmd = self.add_pv('{}:on'.format(root))
+
         self.get_cmd = self.add_pv('{}:get'.format(root))
         self.put_cmd = self.add_pv('{}:put'.format(root))
         self.on_cmd = self.add_pv('{}:message'.format(root))
@@ -647,8 +651,14 @@ class ISARAMounter(AutoMounter):
                 position = (self.PUCKS.index(port[:2]), int(port[2:]))
         return position
 
+    def power_on(self):
+        if self.power_fbk.get() == 0:
+            self.power_cmd.put(1)
+
+
     def mount(self, port, wait=True):
-        enabled = self.wait(states={State.IDLE, State.STANDBY})
+        self.power_on()
+        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=10)
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -660,12 +670,14 @@ class ISARAMounter(AutoMounter):
             return True
         else:
             puck, pin = self._port2puck(port)
+            print puck, pin
             if self.is_mounted():
                 self.puck_number.put(puck)
                 self.sample_number.put(pin)
                 self.getput_cmd.put(1)
             else:
                 self.put_cmd.put(1)
+
 
             logger.info('{}: Mounting Sample: {}'.format(self.name, port))
             if wait:
@@ -677,7 +689,9 @@ class ISARAMounter(AutoMounter):
                 return True
 
     def dismount(self, wait=False):
+        self.power_on()
         enabled = self.wait(states={State.IDLE, State.STANDBY})
+
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -730,7 +744,10 @@ class ISARAMounter(AutoMounter):
             self.props.sample = None
 
     def on_state_changed(self, obj, value):
-        if value:
+        power = self.power_fbk.get()
+        if power == 0:
+            GObject.idle_add(self.switch_status, State.OFF)
+        elif value:
             GObject.idle_add(self.switch_status, State.BUSY)
         else:
             GObject.idle_add(self.switch_status, State.IDLE)
