@@ -17,21 +17,26 @@ class DewarController(GObject.GObject):
                      (str,)),
     }
 
+    layout = GObject.Property(type=object)
+    ports = GObject.Property(type=object)
+    containers = GObject.Property(type=object)
+
     def __init__(self, widget, store):
         super(DewarController, self).__init__()
-
         self.widget = widget
         self.store = store
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.setup()
         self.messages = []
 
-        self.layout = {}
+        self.props.layout = {}
+        self.props.ports = {}
+        self.props.containers = []
 
-        self.beamline.automounter.connect('notify::ports', self.on_port_state)
-        self.beamline.automounter.connect('notify::layout', self.on_dewar_layout)
         self.beamline.automounter.connect('notify::status', self.on_state_changed)
-        self.store.connect('notify::ports', self.on_port_state)
+        self.beamline.automounter.connect('notify::ports', self.on_layout_changed)
+        self.beamline.automounter.connect('notify::layout', self.on_layout_changed)
+        self.beamline.automounter.connect('notify::containers', self.on_layout_changed)
 
         self.beamline.automounter.connect('active', self.on_state_changed)
         self.beamline.automounter.connect('busy', self.on_state_changed)
@@ -48,8 +53,24 @@ class DewarController(GObject.GObject):
         self.widget.sample_dewar_area.connect('motion-notify-event', self.on_motion_notify)
         self.widget.sample_dewar_area.connect('button-press-event', self.on_press_event)
 
-    def on_dewar_layout(self, obj, param):
-        self.layout = self.beamline.automounter.layout
+    def on_layout_changed(self, *args, **kwargs):
+        self.props.layout = self.beamline.automounter.layout
+
+        robot_ports = self.beamline.automounter.ports
+        robot_containers = self.beamline.automounter.containers
+        user_ports = self.store.ports
+        user_containers = self.store.containers
+
+        self.props.ports = {
+            port: state
+            for port, state in robot_ports.items()
+            if (port in user_ports or self.beamline.is_admin())
+        }
+        self.props.containers = {
+            container for container in robot_containers
+            if container in user_containers or self.beamline.is_admin()
+        }
+
         self.widget.sample_dewar_area.queue_draw()
 
     def draw_dewar(self, widget, cr):
@@ -60,7 +81,7 @@ class DewarController(GObject.GObject):
 
         if self.layout:
             for loc, container in self.layout.items():
-                container.draw(cr, self.beamline.automounter.ports, self.store.containers, self.beamline.is_admin())
+                container.draw(cr, self.ports, self.containers)
         else:
             xscale, yscale = cr.device_to_user_distance(1, 1)
             cr.set_font_size(14*xscale)
@@ -81,9 +102,6 @@ class DewarController(GObject.GObject):
                 return loc, port
         return None, None
 
-    def on_port_state(self, *args, **kwargs):
-        self.widget.sample_dewar_area.queue_draw()
-
     def on_motion_notify(self, widget, event):
         alloc = widget.get_allocation()
         x = event.x/alloc.width
@@ -98,9 +116,8 @@ class DewarController(GObject.GObject):
             event.window.set_cursor(None)
 
     def allow_port(self, container, port):
-        if (container and port) and (container in self.store.containers or self.beamline.is_admin()):
-            if self.store.ports.get(port) not in [Port.BAD, Port.EMPTY]:
-                return True
+        if (container and port) and (container in self.containers) and (port in self.ports):
+            return self.ports[port] not in [Port.EMPTY, Port.BAD]
         return False
 
     def on_press_event(self, widget, event):
