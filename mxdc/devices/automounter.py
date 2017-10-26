@@ -472,7 +472,7 @@ class SimAutoMounter(AutoMounter):
         else:
             if self.is_mounted():
                 command = self._sim_mountnext_done
-                self._sim_mount_start('Dismounting')
+                self._sim_mount_start('Mounting next Sample')
             else:
                 self._sim_mount_start('Mounting sample')
                 command = self._sim_mount_done
@@ -575,7 +575,7 @@ class SimAutoMounter(AutoMounter):
 
     def _sim_mountnext_done(self, port, dry=True):
         mounted_port = self.sample['port']
-        ports = copy.deepcopy(self.ports)
+        ports = copy.copy(self.props.ports)
         ports[mounted_port] = Port.GOOD
         self.props.sample = {}
         self.set_state(busy=False, message="Sample dismounted")
@@ -583,11 +583,11 @@ class SimAutoMounter(AutoMounter):
             'port': port,
             'barcode': '',
         }
-        ports = self.ports
         ports[port] = Port.MOUNTED
         self.props.ports = ports
-        self.set_state(busy=False, message="Sample mounted")
         GObject.idle_add(self.switch_status, State.IDLE)
+        self.set_state(busy=False, message="Sample mounted")
+
 
 
 class ISARAMounter(AutoMounter):
@@ -629,7 +629,6 @@ class ISARAMounter(AutoMounter):
 
         self.puck_probe_fbk.connect('changed', self.on_pucks_changed)
         self.gonio_sample_fbk.connect('changed', self.on_sample_changed)
-        #self.status_fbk.connect('changed', self.on_state_changed)
         self.path_busy_fbk.connect('changed', self.on_state_changed)
 
     def is_mountable(self, port):
