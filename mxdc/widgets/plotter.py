@@ -4,7 +4,7 @@ import numpy
 from gi.repository import Gtk
 from matplotlib import rcParams
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
-from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
+from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.colors import Normalize
 from matplotlib.dates import MinuteLocator, SecondLocator
 from matplotlib.figure import Figure
