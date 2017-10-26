@@ -15,7 +15,7 @@ CONFIG = {
     'type': 'mx',
     'subnet': '0.0.0.0/32',
 
-    'admin_groups': [], #[1000, 2000],
+    'admin_groups': [1000, 2000],
     'energy_range': (5.0, 19.0),
     'default_attenuation': 50.0,
     'default_exposure': 1.0,

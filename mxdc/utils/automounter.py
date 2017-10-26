@@ -123,7 +123,8 @@ class Container(object):
                 px, py = self.COORDS[i]
                 port = '{}{}'.format(self.loc, pin)
 
-                state = ports.get(port, Port.UNKNOWN)
+                state = ports.get(port)
+                if state is None: continue
                 color = PortColors.get(state)
 
                 cr.set_source_rgba(color['red'], color['green'], color['blue'], color['alpha'])
