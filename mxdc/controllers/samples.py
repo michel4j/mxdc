@@ -75,6 +75,9 @@ class HutchSamplesController(GObject.GObject):
         else:
             self.widget.samples_mount_btn.set_sensitive(False)
 
+    def get_name(self, port):
+        return '<unknown>'
+    
     def on_sample_mounted(self, *args, **kwargs):
         if self.beamline.automounter.sample:
             self.widget.samples_dismount_btn.set_sensitive(True)
