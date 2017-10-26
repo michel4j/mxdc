@@ -78,7 +78,7 @@ class SampleStore(GObject.GObject):
         (
             SELECTED, NAME, GROUP, CONTAINER, PORT, LOCATION, BARCODE, MISMATCHED,
             PRIORITY, COMMENTS, STATE, CONTAINER_TYPE, PROGRESS, UUID, DATA
-        ) = range(14)
+        ) = range(15)
         TYPES = (
             bool, str, str, str, str, str, str, bool,
             int, str, int, str, int, str, object
