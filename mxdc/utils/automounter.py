@@ -93,7 +93,7 @@ class Container(object):
         self.pin_size = self.PIN * self.WIDTH
         self.loc = location
 
-    def draw(self, cr, ports, containers, admin=False):
+    def draw(self, cr, ports, containers):
         cr.save()
         cr.translate(self.cx, self.cy)
         cr.scale(self.WIDTH, self.WIDTH)
@@ -118,7 +118,7 @@ class Container(object):
             cr.stroke()
 
         # draw pins for owner or admin
-        if admin or self.loc in containers:
+        if self.loc in containers:
             for i, pin in enumerate(self.NAMES):
                 px, py = self.COORDS[i]
                 port = '{}{}'.format(self.loc, pin)

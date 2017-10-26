@@ -119,8 +119,8 @@ class SampleStore(GObject.GObject):
         # initialize properties
         self.props.next_sample = {}
         self.props.current_sample = {}
-        self.props.ports = {}
-        self.props.containers = {}
+        self.props.ports = set()
+        self.props.containers = set()
 
         try:
             cache = load_cache('samples')
@@ -242,9 +242,9 @@ class SampleStore(GObject.GObject):
         ])
 
         if item.get('port'):
-            self.props.ports[item['port']] = state
-            container_location = item.get('port', '').rsplit(item['location'], 1)[0]
-            self.containers[container_location] = item['container']
+            self.props.ports.add(item['port'])
+            container_location = item['port'].rsplit(item['location'], 1)[0]
+            self.props.containers.add(container_location)
         return item['uuid']
 
     def create_group_selector(self, item):
@@ -317,7 +317,7 @@ class SampleStore(GObject.GObject):
         elif mismatched:
             col = Gdk.RGBA(red=0.5, green=0.5, blue=0.0, alpha=1.0)
             cell.set_property("foreground-rgba", col)
-            cell.set_property("text", u"\u26A0")
+            cell.set_property("text", u"\u2b24")
         elif value in [Port.EMPTY]:
             col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.5)
             cell.set_property("foreground-rgba", col)
@@ -404,6 +404,8 @@ class SampleStore(GObject.GObject):
             self.props.cache = cache
 
     def clear(self):
+        self.props.ports = set()
+        self.props.containers = set()
         self.model.clear()
         self.group_model.remove_all()
         self.group_registry = {}
@@ -430,8 +432,6 @@ class SampleStore(GObject.GObject):
                 state = self.beamline.automounter.ports.get(port, Port.UNKNOWN)
                 state = state if state in [Port.BAD, Port.MOUNTED, Port.EMPTY] else Port.GOOD
                 row[self.Data.STATE] = state
-                self.props.ports[port] = state
-        self.props.ports = self.ports
 
     def on_sample_row_changed(self, model, path, itr):
         if self.group_registry:
