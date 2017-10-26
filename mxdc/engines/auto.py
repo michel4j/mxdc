@@ -20,9 +20,6 @@ def auto_center(bl):
 
 
 def auto_mount_manual(bl, port, wash=False):
-    if not bl.automounter.is_ready():
-        logger.warning("Automounter is not ready.")
-        return False
     bl.automounter.standby()
     bl.goniometer.set_mode('MOUNTING', wait=True)
     bl.cryojet.nozzle.open()
@@ -40,10 +37,6 @@ def auto_mount_manual(bl, port, wash=False):
 
 
 def auto_dismount_manual(bl):
-    if not bl.automounter.is_ready():
-        logger.warning("Automounter is busy or inactive.")
-        return False
-
     bl.automounter.standby()
     bl.goniometer.set_mode('MOUNTING', wait=True)
     bl.cryojet.nozzle.open()

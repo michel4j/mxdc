@@ -2,6 +2,7 @@ import msgpack
 import os
 import re
 import socket
+import time
 
 import requests
 from gi.repository import GObject
@@ -120,7 +121,9 @@ class DSSClient(PBClient):
         return self.service.callRemote('configure', *args, **kwargs)
 
     def setup_folder(self, *args, **kwargs):
-        return self.service.callRemote('setup_folder', *args, **kwargs)
+        out = self.service.callRemote('setup_folder', *args, **kwargs)
+        time.sleep(2)
+        return out
 
 
 class MxLIVEClient(BaseService):
@@ -302,7 +305,7 @@ class LocalDSSClient(BaseService):
         self.set_state(active=True)
         self.params = []
 
-    def setup_folder(self, folder):
+    def setup_folder(self, folder, user_name):
         if not os.path.exists(folder):
             os.makedirs(folder)
         os.chmod(folder, 0o777)
