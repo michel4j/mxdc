@@ -702,7 +702,7 @@ class ISARAMounter(AutoMounter):
         self.abort_cmd.put(1)
 
     def on_pucks_changed(self, obj, states):
-        m = re.match('^di2\(([\d,]+)\)?$', states)
+        m = re.match('^di2\(([\d,]+)\)$', states)
         if m:
             sts = m.groups()[0].replace(',','')
             pucks = [

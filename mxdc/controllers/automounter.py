@@ -57,9 +57,10 @@ class DewarController(GObject.GObject):
         alloc = widget.get_allocation()
         cr.save()
         cr.scale(alloc.width, alloc.height)
+
         if self.layout:
             for loc, container in self.layout.items():
-                container.draw(cr, self.store.ports, self.store.containers, self.beamline.is_admin())
+                container.draw(cr, self.beamline.automounter.ports, self.store.containers, self.beamline.is_admin())
         else:
             xscale, yscale = cr.device_to_user_distance(1, 1)
             cr.set_font_size(14*xscale)
