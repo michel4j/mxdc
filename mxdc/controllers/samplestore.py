@@ -23,8 +23,6 @@ class ISampleStore(Interface):
     def get_next(self):
         pass
 
-    def get_state(self, port):
-        pass
 
 
 class GroupItem(GObject.GObject):
@@ -78,11 +76,11 @@ class SampleStore(GObject.GObject):
 
     class Data(object):
         (
-            SELECTED, NAME, GROUP, CONTAINER, PORT, LOCATION, BARCODE,
+            SELECTED, NAME, GROUP, CONTAINER, PORT, LOCATION, BARCODE, MISMATCHED,
             PRIORITY, COMMENTS, STATE, CONTAINER_TYPE, PROGRESS, UUID, DATA
         ) = range(14)
         TYPES = (
-            bool, str, str, str, str, str, str,
+            bool, str, str, str, str, str, str, bool,
             int, str, int, str, int, str, object
         )
 
@@ -233,6 +231,7 @@ class SampleStore(GObject.GObject):
             item.get('port', ''),
             '{} ({})'.format(item.get('container'), item.get('location')),
             item.get('barcode', ''),
+            False, # not mismatched
             item.get('priority', 0),
             item.get('comments', ''),
             state,
@@ -288,7 +287,6 @@ class SampleStore(GObject.GObject):
         port = self.current_sample.get('port', '...') or '<manual>'
         self.widget.samples_cur_port.set_text(port)
         self.widget.samples_dismount_btn.set_sensitive(bool(self.current_sample))
-
         GObject.idle_add(self.emit, 'updated')
 
     def search_data(self, model, itr, dat):
@@ -312,8 +310,14 @@ class SampleStore(GObject.GObject):
     def format_state(self, column, cell, model, itr, data):
         value = model[itr][self.Data.STATE]
         loaded = model[itr][self.Data.PORT]
+        mismatched = model[itr][self.Data.MISMATCHED]
+
         if not loaded:
             cell.set_property("text", u"")
+        elif mismatched:
+            col = Gdk.RGBA(red=0.5, green=0.5, blue=0.0, alpha=1.0)
+            cell.set_property("foreground-rgba", col)
+            cell.set_property("text", u"\u26A0")
         elif value in [Port.EMPTY]:
             col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.5)
             cell.set_property("foreground-rgba", col)
@@ -448,13 +452,18 @@ class SampleStore(GObject.GObject):
             self.props.next_sample = {}
 
     def on_sample_mounted(self, obj, param):
-        if self.beamline.automounter.sample:
-            port = self.beamline.automounter.sample.get('port', '')
+        sample = self.beamline.automounter.sample
+        if sample:
+            port = sample.get('port', '')
             row = self.find_by_port(port)
             if row:
                 self.props.current_sample = row[self.Data.DATA]
                 row[self.Data.SELECTED] = False
                 self.widget.samples_dismount_btn.set_sensitive(True)
+                if self.props.current_sample['barcode'] != sample.get('barcode'):
+                    row[self.Data.MISMATCHED] = True
+                else:
+                    row[self.Data.MISMATCHED] = False
             elif self.beamline.is_admin():
                 self.props.current_sample = {
                     'port': port,
