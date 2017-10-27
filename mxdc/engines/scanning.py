@@ -128,6 +128,7 @@ class BasicScan(GObject.GObject):
     def save(self, filename=None):
         if filename is None:
             filename = time.strftime('%d%a-%H:%M:%S') + '.xdi.gz'
+        logger.debug('Saving XDI: {}'.format(filename))
         xdi_data = self.prepare_xdi()
         xdi_data.save(filename)
 

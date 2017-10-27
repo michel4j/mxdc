@@ -454,7 +454,7 @@ class XASScanner(BasicScan):
                     data = self.set_data(self.data_rows)
                     self.results['data'].append(data)
                     self.config['end_time'] = datetime.now()
-                    filename = self.config['frame_template'].format(scan + 1)
+                    filename = os.path.join(self.config['directory'], self.config['frame_template'].format(scan + 1))
                     self.save(filename)
                     self.analyse()
                     GObject.idle_add(self.emit, 'new-scan', scan + 1)
@@ -526,6 +526,7 @@ class XASScanner(BasicScan):
         return xdi_data
 
     def save_metadata(self, upload=True):
+
         params = self.config
         frames, count = datatools.get_disk_frameset(params['directory'], params['frame_glob'])
         if count:
@@ -549,6 +550,7 @@ class XASScanner(BasicScan):
                 'beam_size': self.beamline.aperture.get_position(),
             }
             filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
+            logger.debug('Saving meta-data: {}'.format(filename))
             misc.save_metadata(metadata, filename)
 
             if upload:
