@@ -557,7 +557,7 @@ class SimShutter(BaseDevice):
     implements(IShutter)
 
     __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST,                    None,                    (object,)),
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
 
     def __init__(self, name):
@@ -669,3 +669,5 @@ class Enclosures(BaseDevice):
             self.set_state(health=(2, 'ready', self.get_messages()))
         else:
             self.set_state(health=(0, 'ready', self.get_messages()))
+
+

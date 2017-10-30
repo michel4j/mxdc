@@ -4,7 +4,7 @@ from PIL import Image
 from PIL import ImageChops
 from PIL import ImageFilter
 from mxdc.utils.scitools import find_peaks
-from scipy import ndimage
+from scipy import ndimage, signal
 
 THRESHOLD = 20
 BORDER = 10
@@ -81,7 +81,71 @@ def get_loop_center(orig, bkg, orientation=2):
     return xmid, len(y) - ymid, width
 
 
-def get_cap_center(orig, bkg, orientation=2):
+def get_loop_features(raw, offset=10, scale=0.5, orientation='left'):
+    frame = cv2.resize(raw[offset:-offset, offset:-offset], (0,0), fx=0.5, fy=0.5)
+    edges = cv2.Canny(frame, 100, 200)
+    avg = frame.mean()
+    std = frame.std()
+    info = {
+        'mean': avg,
+        'std': std,
+        'signal': avg/std
+    }
+
+    xprof = numpy.where(edges.max(axis=0) > 128)[0]
+    if numpy.any(xprof):
+        w = (xprof[-1] - xprof[0])
+        if orientation == 'left':
+            xt = xprof[-1]
+        elif orientation == 'right':
+            xt = xprof[0]
+        else:
+            xt = xprof[0] + w // 2
+
+        info.update({
+            'x': int(offset + xt / scale),
+            'width': int(w / scale),
+        })
+        tip_start = max(0, xt-4*offset)
+        tip_end = min(xt+4*offset, edges.shape[1]-1)
+
+        yprof = numpy.where(edges[:, tip_start:tip_end].max(axis=1) > 128)[0]
+        if numpy.any(yprof):
+            h = (yprof[-1] - yprof[0])
+            if orientation == 'top':
+                yt = yprof[-1]
+            elif orientation == 'bottom':
+                yt = yprof[0]
+            else:
+                yt = yprof[0] + h // 2
+            info.update({
+                'y': int(offset + yt/scale),
+                'height': int(h/scale),
+            })
+
+        h = h0 = 0
+        last_xt = xt
+        while xt > 0 and h >= h0:
+            h0 = h
+            last_xt = xt
+            xt -= offset
+            tip_start = max(0, xt - offset)
+            tip_end = min(xt + offset, edges.shape[1] - 1)
+            yprof = numpy.where(edges[:, tip_start:tip_end].max(axis=1) > 128)[0]
+            if numpy.any(yprof):
+                h = (yprof[-1] - yprof[0])
+        if xt > 0:
+            info['x-loop'] = int(offset + (last_xt + offset) / scale)
+
+    return info
+
+
+def get_loop_info(pil_img, orientation='left'):
+    raw = cv2.cvtColor(numpy.asarray(pil_img), cv2.COLOR_RGB2BGR)
+    return get_loop_features(raw, orientation=orientation)
+
+
+def get_cap_center(orig, bkg, orientation='left'):
     img = ImageChops.difference(orig, bkg).filter(ImageFilter.BLUR)
 
     if orientation == 3:
@@ -175,7 +239,6 @@ def get_bbox(pil_img):
 
 
 def find_profile(pil_img, scale=20):
-    from scipy import signal
     raw_img = numpy.asarray(pil_img.convert('L'))
 
     img = cv2.resize(raw_img, (0, 0), fx=1./scale, fy=1./scale, interpolation=cv2.INTER_LANCZOS4)
@@ -188,7 +251,6 @@ def find_profile(pil_img, scale=20):
         x = img[:, i]
         xd = numpy.abs(signal.savgol_filter(x, 3, 1, deriv=1))
         if xd.std() < 0.25*std: continue
-        print xd.std()
         xpin = xcoords[xd >= 0.25 * xd.max()]
         if len(xpin) > 1:
             verts_top.append((i, xpin[0]))

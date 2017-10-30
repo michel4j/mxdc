@@ -152,5 +152,5 @@ class DewarController(GObject.GObject):
         if len(self.messages) > 2:
             self.messages = self.messages[-2:]
 
-        self.widget.automounter_message_fbk.set_markup(' ...\n'.join(self.messages))
+        self.widget.automounter_message_fbk.set_markup('\n'.join(self.messages))
         self.widget.automounter_status_fbk.set_text(status.name)

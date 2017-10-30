@@ -1,7 +1,3 @@
-# ===============================================================================
-# Automounter Classes
-# ===============================================================================
-
 import copy
 import re
 import time
@@ -23,6 +19,7 @@ logger = get_module_logger(__name__)
 
 class State(Enum):
     IDLE, STANDBY, BUSY, NOT_READY, DISABLED, ERROR, OFF = range(7)
+
 
 class AutoMounter(BaseDevice):
     implements(IAutomounter)
@@ -190,6 +187,7 @@ class AutoMounter(BaseDevice):
         """
         return (self.status == State.STANDBY)
 
+
 class SAMAutoMounter(AutoMounter):
     StateCodes = {
         '0': Port.EMPTY,
@@ -316,29 +314,32 @@ class SAMAutoMounter(AutoMounter):
     def abort(self):
         self.abort_cmd.put(1)
 
-    def on_states_changed(self, *args, **kwargs):
-        is_normal = self.normal_fbk.get() == 0,
+    def on_states_changed(self, obj, *args, **kwargs):
+        is_normal = self.normal_fbk.get() == 0
         is_safe = self.mount_safe_fbk.get() == 1 and self.gonio_safe_fbk.get() == 1
-        is_enabled = self.disabled_fbk.get() == 1
+        is_disabled = self.disabled_fbk.get() == 0
         is_idle = self.robot_busy.get() == 0
         state_str = self.state_fbk.get().strip()
 
         health = 0
         diagnosis = []
 
-        if all([is_normal, is_safe, is_enabled]):
-            if is_idle or 'idle' in state_str:
+        if is_normal:
+            if is_disabled:
+                GObject.idle_add(self.switch_status, State.DISABLED)
+                health |= 16
+                diagnosis += ['Disabled by staff']
+            elif not is_safe:
+                GObject.idle_add(self.switch_status, State.NOT_READY)
+                diagnosis += ['End-station not safe']
+            elif is_idle or 'idle' in state_str:
                 GObject.idle_add(self.switch_status, State.IDLE)
+                diagnosis += ['Ready']
             elif 'standby' in state_str:
                 GObject.idle_add(self.switch_status, State.STANDBY)
+                diagnosis += ['Preparing ...']
             else:
                 GObject.idle_add(self.switch_status, State.BUSY)
-        elif is_normal and is_enabled:
-            health |= 16
-            diagnosis += 'Disabled by staff'
-            GObject.idle_add(self.switch_status, State.DISABLED)
-        elif is_normal and not is_safe:
-            GObject.idle_add(self.switch_status, State.NOT_READY)
         else:
             health |= 4
             diagnosis += ['Error! Staff Needed.']
@@ -346,14 +347,10 @@ class SAMAutoMounter(AutoMounter):
 
         text_warn = self.warning_fbk.get()
         warning = ", ".join([p.capitalize().strip() for p in text_warn.lower().split('. ')]).strip()
-        if (time.time() - self.warning_fbk.time_state) < 10:
-            self.set_state(health=(1, 'notices', warning))
-        else:
-            self.set_state(health=(0, 'notices'))
 
         text_msg = self.status_fbk.get()
         message = ", ".join([p.capitalize().strip() for p in text_msg.lower().split('. ')]).strip()
-        self.set_state(health=(health, ', '.join(diagnosis)), message=message)
+        self.set_state(health=(health, 'notices', ', '.join(diagnosis)), message=message)
 
     def on_sample_changed(self, obj, val):
         port_str = val.strip()
@@ -742,8 +739,9 @@ class ISARAMounter(AutoMounter):
             }
             self.props.ports = states
             self.props.containers = pucks
-
+            self.set_state(health=(0, 'pucks', ''))
         else:
+            self.set_state(health=(16, 'pucks', 'Puck detection problem!'), message='Could not read puck positions!')
             self.props.ports = {}
             self.props.containers = set()
 
@@ -767,15 +765,29 @@ class ISARAMounter(AutoMounter):
         running_state = self.running_fbk.get()
         path_name = self.trajectory_fbk.get()
         drying = self.drying_fbk.get()
+
+        health = 0
+        diagnosis = []
+
         logger.debug('Power: {}, Path: {}[{}], Approach: {}, Running: {}. Drying: {}'.format(
             power, path_name, path_state, approach_state, running_state, drying)
         )
         if power == 0:
             GObject.idle_add(self.switch_status, State.OFF)
+            diagnosis += ['Powered down']
+
         elif running_state:
             GObject.idle_add(self.switch_status, State.BUSY)
+            if approach_state:
+                diagnosis += ['Approaching gonio ...']
+            else:
+                diagnosis += ['{}ing ...'.format(path_name)]
         else:
             GObject.idle_add(self.switch_status, State.IDLE)
+            diagnosis += ['Ready']
+
+        message = ', '.join(diagnosis)
+        self.set_state(health=(health, 'notices', message), message=message)
 
     def on_message_changed(self, obj, value, prefix='Status'):
         self.set_state(message='{}: {}'.format(prefix, value))
