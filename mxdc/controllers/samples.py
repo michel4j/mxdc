@@ -66,7 +66,7 @@ class HutchSamplesController(GObject.GObject):
         row = self.find_by_port(port)
         if row:
             self.next_sample = row[self.Data.DATA]
-        elif self.beamline.is_admin():
+        else:
             self.next_sample = {
                 'port': port
             }
