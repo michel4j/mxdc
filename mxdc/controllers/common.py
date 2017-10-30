@@ -122,7 +122,7 @@ class ModeMonitor(object):
         self.device.connect(signal, self.on_signal)
 
     def on_signal(self, obj, state):
-        self.label.set_markup(self.markup.format(state))
+        self.label.set_markup(self.markup.format(state.name))
 
         color = Gdk.RGBA(alpha=1)
         color.parse(self.color_map.get(self.value_map.get(state, state), '#708090'))
@@ -195,35 +195,6 @@ class AppNotifier(object):
         if self.timer_shown:
             self.box.remove(self.timer)
             self.timer_shown = False
-
-
-class ScriptMonitor(object):
-    def __init__(self, btn, script, spinner=None, status=None, confirm=False, msg=""):
-        self.script = script
-        self.btn = btn
-        self.confirm = confirm
-        self.warning_text = msg
-        self.spinner = spinner
-
-        self.script.connect('enabled', self.do_enabled)
-        self.btn.connect('clicked', self.do_clicked)
-
-    def do_clicked(self, widget):
-        if not self.btn.get_active():
-            return
-        if self.confirm and not self.script.is_active():
-            response = dialogs.warning(self.script.description, self.warning_text,
-                                       buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Proceed', Gtk.ButtonsType.OK)))
-            if response == Gtk.ButtonsType.OK:
-                self.script.start()
-        elif not self.script.is_active():
-            self.script.start()
-
-    def do_enabled(self, obj, state):
-        if state:
-            self.btn.set_sensitive(True)
-        else:
-            self.btn.set_sensitive(False)
 
 
 class GUIHandler(logging.Handler):

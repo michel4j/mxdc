@@ -115,7 +115,7 @@ class BaseDevice(GObject.GObject):
         if not state and len(self.pending) > 0:
             inactive_devs = [dev.name for dev in self.pending]
             msg = '[{:d}] inactive children.'.format(len(inactive_devs))
-            logger.warning("(%s) %s" % (self.name, msg))
+            logger.debug("(%s) %s" % (self.name, msg))
 
     def is_active(self):
         return self.active_state
@@ -149,7 +149,7 @@ class BaseDevice(GObject.GObject):
             
         For example::
         
-            mydevice.set_state(active=True, busy=False, 
+            mydevice.set_state(active=True, busy=False,
                                health=(1, 'error','too hot'),
                                message="the devices is overheating")
         """
@@ -222,7 +222,7 @@ class BaseDevice(GObject.GObject):
         if len(self.pending) == 0:
             self.set_state(active=True, health=(0, 'active'))
         else:
-            self.set_state(active=False, health=(4, 'active', '[%d] inactive components.' % len(self.pending)))
+            self.set_state(active=False, health=(4, 'active', 'inactive components.'))
 
     def __getattr__(self, key):
         m = self.state_pattern.match(key)

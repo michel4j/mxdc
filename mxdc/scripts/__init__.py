@@ -21,22 +21,21 @@ class SetMountMode(Script):
     description = "Preparing for manual sample mounting."
 
     def run(self):
-        if not self.beamline.automounter.is_busy():
+        with self.beamline.lock:
             safe_distance = self.beamline.config['safe_distance']
             if self.beamline.detector_z.get_position() < safe_distance:
                 self.beamline.detector_z.move_to(safe_distance)
 
             self.beamline.goniometer.set_mode('MOUNTING', wait=True)
-            self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'])
+            self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=False)
             self.beamline.cryojet.nozzle.open()
-            self.beamline.beamstop_z.wait()
 
 
 class SetCenteringMode(Script):
     description = "Preparing for crystal centering."
 
     def run(self):
-        if not self.beamline.automounter.is_busy():
+        with self.beamline.lock:
             self.beamline.cryojet.nozzle.close()
             default_beamstop = self.beamline.config['default_beamstop']
 
@@ -60,7 +59,7 @@ class SetCollectMode(Script):
     description = "Preparing for data collection."
 
     def run(self):
-        if not self.beamline.automounter.is_busy():
+        with self.beamline.lock:
             self.beamline.goniometer.set_mode('COLLECT', wait=True)
             self.beamline.cryojet.nozzle.close()
 
@@ -69,7 +68,7 @@ class SetBeamMode(Script):
     description = "Switch to BEAM inspection mode."
 
     def run(self):
-        if not (self.beamline.automounter.is_busy() or self.beamline.automounter.is_preparing()):
+        with self.beamline.lock:
             self.beamline.goniometer.set_mode('BEAM', wait=True)
 
 
@@ -77,7 +76,7 @@ class SetFreezeMode(Script):
     description = "Re-Orienting gonio position for freezing."
 
     def run(self):
-        if not self.beamline.automounter.is_busy():
+        with self.beamline.lock:
             safe_distance = self.beamline.config['safe_distance']
             if self.beamline.detector_z.get_position() < safe_distance:
                 self.beamline.detector_z.move_to(safe_distance)
