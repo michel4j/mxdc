@@ -1,15 +1,18 @@
+from __future__ import print_function
+
 import commands
 import os
 import shutil
 import tempfile
 import time
-
+import threading
 import numpy
 from twisted.python.components import globalRegistry
-
+from gi.repository import GObject
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.snapshot import take_sample_snapshots
 from mxdc.utils import imgproc
+from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_short_uuid, logistic_score
 
@@ -17,10 +20,133 @@ from mxdc.utils.misc import get_short_uuid, logistic_score
 logger = get_module_logger(__name__)
 
 _SAMPLE_SHIFT_STEP = 0.2  # mm
-_CENTERING_ZOOM = 2
+CENTERING_ZOOM = 2
 _CENTERING_BLIGHT = 65.0
 _CENTERING_FLIGHT = 0
 _MAX_TRIES = 5
+
+
+class Centering(GObject.GObject):
+    __gsignals__ = {
+        'started': (GObject.SIGNAL_RUN_LAST, None, []),
+        'done': (GObject.SIGNAL_RUN_LAST, None, []),
+        'error': (GObject.SIGNAL_RUN_LAST, None, (str,))
+    }
+    complete = GObject.Property(type=bool, default=False)
+
+    def __init__(self):
+        super(Centering, self).__init__()
+        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.method = None
+        self.methods = {
+            'loop': self.run_loop,
+            'crystal': self.run_crystal,
+            'capillary': self.run_capillary,
+        }
+
+    def configure(self, method='loop'):
+        self.method = self.methods[method]
+
+    def start(self):
+        worker = threading.Thread(target=self.run)
+        worker.setDaemon(True)
+        worker.setName('Centering')
+        worker.start()
+
+    def screen_to_mm(self, x, y):
+        mm_scale = self.beamline.sample_video.resolution
+        cx, cy = numpy.array(self.beamline.sample_video.size) * 0.5
+        xmm = (cx - x) * mm_scale
+        ymm = (cy - y) * mm_scale
+        return xmm, ymm
+
+    def get_features(self):
+        angle = self.beamline.omega.get_position()
+        img = self.beamline.sample_video.get_frame()
+        info = imgproc.get_loop_info(img, orientation=self.beamline.config['orientation'])
+        return angle, info
+
+    def run(self):
+        ca.threads_init()
+        with self.beamline.lock:
+            GObject.idle_add(self.emit, 'started')
+            try:
+                self.method()
+            except Exception as e:
+                GObject.idle_add(self.emit, 'error')
+                print(e)
+            else:
+                GObject.idle_add(self.emit, 'done')
+
+    def run_loop(self):
+        start_time = time.time()
+        self.beamline.sample_frontlight.set_off()
+        self.beamline.sample_backlight.set(_CENTERING_BLIGHT)
+        self.beamline.sample_video.zoom(CENTERING_ZOOM)
+        angle, info =  self.get_features()
+        if not 'x' in info or not 'y' in info:
+            logger.warning('No sample found, homing centering stage!')
+            self.beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
+        widths = []
+        for j in range(2):
+            if j == 1:
+                self.beamline.sample_video.zoom(5)
+            for i in range(3):
+                self.beamline.sample_stage.wait()
+                self.beamline.omega.move_by(90, wait=True)
+                angle, info = self.get_features()
+
+                if 'x' in info and 'y' in info:
+                    xmm, ymm = self.screen_to_mm(info['x'], info['y'])
+                    if not self.beamline.sample_stage.is_busy():
+                        self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
+                    widths.append((angle, info['width'], info['height']))
+                logger.debug('Centering: {}'.format(info))
+        sizes = numpy.array(widths)
+        best_angle =  sizes[:,2][sizes[:,2].argmax()]
+        self.beamline.omega.move_to(best_angle, wait=True)
+
+        angle, info = self.get_features()
+
+        if 'x-loop' in info and 'y' in info:
+            xmm, ymm = self.screen_to_mm(info['x-loop'], info['y'])
+            if not self.beamline.sample_stage.is_busy():
+                self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
+        logger.info('Centering Done in {:0.1f} seconds'.format(time.time() - start_time))
+
+    def run_crystal(self):
+        self.run_loop()
+
+    def run_capillary(self):
+        start_time = time.time()
+        self.beamline.sample_frontlight.set_off()
+        self.beamline.sample_backlight.set(_CENTERING_BLIGHT)
+        self.beamline.sample_video.zoom(CENTERING_ZOOM)
+        angle, info = self.get_features()
+        if not 'x' in info or not 'y' in info:
+            logger.warning('No sample found, homing centering stage!')
+            self.beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
+
+        half_width = self.beamline.sample_video.size[0] // 2
+        for j in range(2):
+            if j == 1:
+                self.beamline.sample_video.zoom(5)
+            for i in range(3):
+                self.beamline.sample_stage.wait()
+                self.beamline.omega.move_by(90, wait=True)
+                angle, info = self.get_features()
+                if 'x' in info and 'y' in info:
+                    x = info['x'] - half_width
+                    xmm, ymm = self.screen_to_mm(x, info['y'])
+                    if not self.beamline.sample_stage.is_busy():
+                        self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
+                logger.debug('Centering: {}'.format(info))
+
+        # final shift
+        xmm, ymm = self.screen_to_mm(half_width, 0)
+        if not self.beamline.sample_stage.is_busy():
+            self.beamline.sample_stage.move_screen_by(xmm, 0.0, 0.0)
+        logger.info('Centering Done in {:0.1f} seconds'.format(time.time() - start_time))
 
 
 def get_current_bkg():
@@ -60,7 +186,7 @@ def get_current_bkg():
     return bkg
 
 
-def center_loop():
+def center_loop1():
     """Automatic centering of the sample pin using simple image processing."""
     beamline = globalRegistry.lookup([], IBeamline)
 
@@ -68,7 +194,7 @@ def center_loop():
     beamline.sample_frontlight.set_off()
     backlt = beamline.sample_backlight.get()
     frontlt = beamline.sample_frontlight.get()
-    beamline.sample_video.zoom(_CENTERING_ZOOM)
+    beamline.sample_video.zoom(CENTERING_ZOOM)
     beamline.sample_backlight.set(beamline.config.get('centering_backlight', _CENTERING_BLIGHT))
     # beamline.sample_frontlight.set(_CENTERING_FLIGHT)
 
@@ -144,6 +270,89 @@ def center_loop():
     return quality
 
 
+def center_loop():
+    """Automatic centering of the sample pin using simple image processing."""
+    beamline = globalRegistry.lookup([], IBeamline)
+
+    # set lighting and zoom
+    beamline.sample_frontlight.set_off()
+    backlt = beamline.sample_backlight.get()
+    frontlt = beamline.sample_frontlight.get()
+    beamline.sample_video.zoom(CENTERING_ZOOM)
+    beamline.sample_backlight.set(beamline.config.get('centering_backlight', _CENTERING_BLIGHT))
+    # beamline.sample_frontlight.set(_CENTERING_FLIGHT)
+
+    cx, cy = map(lambda x: 0.5*x, beamline.sample_video.size)
+
+    bkg_img = get_current_bkg()
+
+    # check if there is something on the screen
+    img1 = beamline.sample_video.get_frame()
+    dev = imgproc.image_deviation(bkg_img, img1)
+    if dev < 1.0:
+        # Nothing on screen, go to default start
+        beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
+
+    logger.debug('Attempting to center loop')
+
+    ANGLE_STEP = 90.0
+    count = 0
+    max_width = 0.0
+    adj_mm = []
+    avg_devs = []
+    converged = False
+    loop_w = 100
+    while count < _MAX_TRIES and not converged:
+        count += 1
+        img = beamline.sample_video.get_frame()
+        x, y, w = imgproc.get_loop_center(img, bkg_img, orientation=int(beamline.config['orientation']))
+
+        # calculate motor positions and move
+        # FIXME, keep array of valid loop widths and average as we progress
+        if w > 10:
+            loop_w = w * beamline.sample_video.resolution
+
+        if count > _MAX_TRIES // 2:
+            max_width = max(loop_w, max_width)
+
+        ymm = (cy - y) * beamline.sample_video.resolution
+        xmm = 0
+        if count <= _MAX_TRIES // 2 or loop_w > 0.6 * max_width or loop_w < 0:
+            xmm = (cx - x) * beamline.sample_video.resolution
+        beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
+        adj_mm.append((xmm, ymm))
+        beamline.omega.move_by(ANGLE_STEP, wait=True)
+
+        # check progress quality
+        if count > 2:
+            adj_a = numpy.array(adj_mm[-2:])
+        else:
+            adj_a = numpy.array(adj_mm)
+        _dev = numpy.array([adj_a[:, 0].mean(), adj_a[:, 1].mean()])
+        avg_devs.append(_dev)
+
+        # converges if last H/V adjustments are all less than 5 image pixels
+        if len(avg_devs) >= 2:
+            if numpy.abs(avg_devs[-1:]).mean() <= 5 * beamline.sample_video.resolution:
+                converged = True
+        logger.info("Centering ... [%d] (H): %0.3f, (V): %0.3f, Converged: %s" % (count, _dev[0], _dev[1], converged))
+
+    # calcualte score based on average and maximum of last two adjustments a
+    # an average of 20 pixels and a max of 20 pixels will give a score of 50%
+    # while an average of 2 pixel and a max of 2 pixel will score 100%
+    _dev = numpy.abs(avg_devs[-1:])
+    scores = numpy.array([
+        logistic_score(_dev.mean(), 0.05 * loop_w, 0.2 * loop_w),
+        logistic_score(_dev.max(), 0.05 * loop_w, 0.2 * loop_w),
+    ])
+    quality = 100 * scores.mean()
+
+    beamline.sample_frontlight.set_on()
+    beamline.sample_backlight.set(backlt)
+    beamline.sample_frontlight.set(frontlt)
+
+    return quality
+
 def center_capillary():
     """Automatic centering of capillary sample using simple image processing."""
     beamline = globalRegistry.lookup([], IBeamline)
@@ -152,7 +361,7 @@ def center_capillary():
     beamline.sample_frontlight.set_off()
     backlt = beamline.sample_backlight.get()
     frontlt = beamline.sample_frontlight.get()
-    beamline.sample_video.zoom(_CENTERING_ZOOM)
+    beamline.sample_video.zoom(CENTERING_ZOOM)
     beamline.sample_backlight.set(beamline.config.get('centering_backlight', _CENTERING_BLIGHT))
     # beamline.sample_frontlight.set(_CENTERING_FLIGHT)
 
@@ -250,7 +459,7 @@ def center_crystal():
     beamline.sample_frontlight.set_off()
     backlt = beamline.sample_backlight.get()
     frontlt = beamline.sample_frontlight.get()
-    beamline.sample_video.zoom(_CENTERING_ZOOM)
+    beamline.sample_video.zoom(CENTERING_ZOOM)
     beamline.sample_backlight.set(beamline.config.get('centering_backlight', _CENTERING_BLIGHT))
     # beamline.sample_frontlight.set(_CENTERING_FLIGHT)
 

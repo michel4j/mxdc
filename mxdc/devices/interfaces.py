@@ -311,3 +311,16 @@ class IImagingDetector(IDevice):
 
     def set_parameters():
         """Update the devices parameters."""
+
+
+class IModeManager(IDevice):
+    mode = Attribute("""Beamline Mode""")
+
+    def get_mode():
+        """Return the current mode"""
+
+    def set_mode(mode):
+        """Set the mode"""
+
+    def wait(modes=set(), timeout=30):
+        """Wait until the mode is one of the requested ones or until the mode switcher is idle"""
