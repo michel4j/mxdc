@@ -28,7 +28,7 @@ CONFIG = {
     'xrf_fwhm': 0.1,
     'xrf_energy_offset': 2.0,
     'shutter_sequence': ('ssh1', 'psh1', 'psh2'),
-    'orientation': 2,
+    'orientation': 'left',
     'centering_backlight': 50,
     'bug_report': ['michel.fodje@lightsource.ca']
 }
@@ -45,7 +45,7 @@ DEVICES = {
     'beam_tuner': boss.SimTuner('Simulated Beam Tuner'),
 
     # Goniometer/goniometer head devices
-    'goniometer': goniometer.SimGoniometer(),
+    'goniometer': goniometer.SimGonio(),
     'omega': motor.SimMotor('Omega', 0.0, 'deg', speed=120.0, precision=3),
     'sample_x': motor.SimMotor('Sample X', 0.0, units='mm', speed=0.2),
     'sample_y1': motor.SimMotor('Sample Y', 0.0, units='mm', speed=0.2),
@@ -96,8 +96,8 @@ DEVICES = {
     'i_2': counter.SimCounter('I_2', zero=65228),
 
     # Misc: Automounter, HC1 etc
-    #'automounter': automounter.SimAutoMounter(),
-    'automounter': automounter.ISARAMounter('BOT1608-I01'),
+    'automounter': automounter.SimAutoMounter(),
+    #'automounter': automounter.ISARAMounter('BOT1608-I01'),
     'humidifier': humidity.SimHumidifier(),
     'attenuator': misc.SimPositioner('Attenuator', 0.0, '%'),
     'mca': mca.SimMultiChannelAnalyzer('Simulated MCA', energy=tmp2),

@@ -26,7 +26,7 @@ CONFIG = {
     'xrf_fwhm': 0.1,
     'xrf_energy_offset': 2.0,
     'shutter_sequence': ('ssh1', 'psh1', 'psh2', 'ssh2'),
-    'orientation': 3,
+    'orientation': 'right',
     'centering_backlight': 37,
     'bug_report': ['michel.fodje@lightsource.ca']
 }
@@ -42,7 +42,7 @@ DEVICES = {
     'beam_tuner': boss.MOSTABTuner('MOS16082I1001', 'AH501-01:QEM', reference='LUT1608-ID-IONC:control'),
 
     # Goniometer/goniometer head devices
-    'goniometer': goniometer.Goniometer('GV6K1608-001', 'BL08ID1:mode'),
+    'goniometer': goniometer.ParkerGonio('GV6K1608-001', 'BL08ID1:mode', 'OAV1608-3-I10-02'),
     'omega': motor.VMEMotor('GV6K1608-001:deg'),
     'sample_x': motor.VMEMotor('SMTR16083I1008:mm'),
     'sample_y2': motor.VMEMotor('SMTR16083I1012:mm'),  # if no sample_y, it will be determined from

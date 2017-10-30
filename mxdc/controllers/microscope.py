@@ -13,6 +13,7 @@ from mxdc.utils import imgproc, colors
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
+from mxdc.engines import centering
 from mxdc.widgets.video import VideoWidget
 from twisted.python.components import globalRegistry
 from zope.interface import Interface, Attribute, implements
@@ -76,6 +77,7 @@ class Microscope(GObject.GObject):
         self.widget = widget
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.camera = self.beamline.sample_video
+        self.centering = centering.Centering()
         self.setup()
         self.video.set_overlay_func(self.overlay_function)
         globalRegistry.register([], IMicroscope, '', self)
@@ -93,9 +95,11 @@ class Microscope(GObject.GObject):
         self.widget.microscope_rot180_btn.connect('clicked', self.on_rotate, 180)
 
         # centering
-        self.widget.microscope_loop_btn.connect('clicked', self.on_center_loop)
-        self.widget.microscope_crystal_btn.connect('clicked', self.on_center_crystal)
-        self.widget.microscope_capillary_btn.connect('clicked', self.on_center_capillary)
+        self.widget.microscope_loop_btn.connect('clicked', self.on_auto_center, 'loop')
+        self.widget.microscope_crystal_btn.connect('clicked', self.on_auto_center, 'crystal')
+        self.widget.microscope_capillary_btn.connect('clicked', self.on_auto_center, 'capillary')
+        #self.widget.microscope_diff_btn.connect('clicked', self.on_auto_center, 'diffraction')
+
         self.beamline.goniometer.connect('mode', self.on_gonio_mode)
         self.beamline.sample_stage.connect('changed', self.update_grid)
         self.beamline.sample_zoom.connect('changed', self.update_grid)
@@ -331,20 +335,22 @@ class Microscope(GObject.GObject):
 
     def auto_grid(self, *args, **kwargs):
         img = self.camera.get_frame()
-        bbox = self.video.scale * imgproc.get_sample_bbox2(img)
-        self.props.grid = self.bbox_grid(bbox)
-        self.props.grid_params = {
-            'origin': self.beamline.sample_stage.get_xyz(),
-            'angle': self.beamline.omega.get_position(),
-            'scale': self.video.scale,
-        }
-        self.props.grid_state = self.GridState.PENDING
-        self.props.grid_scores = {}
-
+        pol = imgproc.find_profile(img, 2)
+        print pol
+        # bbox = self.video.scale * imgproc.get_sample_bbox2(img)
+        # self.props.grid = self.bbox_grid(bbox)
+        # self.props.grid_params = {
+        #     'origin': self.beamline.sample_stage.get_xyz(),
+        #     'angle': self.beamline.omega.get_position(),
+        #     'scale': self.video.scale,
+        # }
+        # self.props.grid_state = self.GridState.PENDING
+        # self.props.grid_scores = {}
 
 
     def add_point(self, *args, **kwargs):
         self.props.points = self.props.points + [self.beamline.sample_stage.get_xyz()]
+
 
     def add_polygon_point(self, x, y):
         radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
@@ -412,7 +418,7 @@ class Microscope(GObject.GObject):
 
     @async_call
     def center_pixel(self, x, y):
-        if self.beamline.goniometer.mode_state in ('CENTERING', 'BEAM', 'MOUNTING'):
+        if self.beamline.goniometer.mode.name  in ['CENTERING', 'BEAM']:
             ix, iy, xmm, ymm = self.video.screen_to_mm(x, y)
             if not self.beamline.sample_stage.is_busy():
                 self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
@@ -424,7 +430,6 @@ class Microscope(GObject.GObject):
         self.draw_grid(cr)
         self.draw_polygon(cr)
         self.draw_points(cr)
-
     # callbacks
 
     def update_grid(self, *args, **kwargs):
@@ -441,12 +446,7 @@ class Microscope(GObject.GObject):
             self.props.grid = None
 
     def on_gonio_mode(self, obj, mode):
-        if mode != 'CENTERING':
-            self.widget.microscope_loop_btn.set_sensitive(False)
-            self.widget.microscope_crystal_btn.set_sensitive(False)
-        else:
-            self.widget.microscope_loop_btn.set_sensitive(True)
-            self.widget.microscope_crystal_btn.set_sensitive(True)
+        self.widget.microscope_centering_box.set_sensitive(mode.name in ['CENTERING', 'BEAM'])
 
     def on_scripts_started(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(False)
@@ -463,19 +463,9 @@ class Microscope(GObject.GObject):
         if os.access(os.path.split(img_filename)[0], os.W_OK):
             self.save_image(img_filename)
 
-    def on_center_loop(self, widget):
-        script = self.scripts['CenterSample']
-        script.start(crystal=False)
-        return True
-
-    def on_center_crystal(self, widget):
-        script = self.scripts['CenterSample']
-        script.start(crystal=True)
-        return True
-
-    def on_center_capillary(self, widget):
-        script = self.scripts['CenterSample']
-        script.start(capillary=True)
+    def on_auto_center(self, widget, method='loop'):
+        self.centering.configure(method)
+        self.centering.start()
         return True
 
     def on_zoom(self, widget, position):

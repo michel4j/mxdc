@@ -24,7 +24,7 @@ CONFIG = {
     'xrf_fwhm': 0.1,
     'xrf_energy_offset': 2.0,
     'shutter_sequence': ('ssh1', 'psh1', 'psh2', 'ssh3'),
-    'orientation': 2,
+    'orientation': 'left',
     'centering_backlight': 65,
     'bug_report': ['michel.fodje@lightsource.ca']
 }
@@ -40,7 +40,7 @@ DEVICES = {
     'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl'),
     
     # Goniometer/goniometer head devices
-    'goniometer': goniometer.MD2Goniometer('BL08B1:MD2'),
+    'goniometer': goniometer.MD2Gonio('BL08B1:MD2'),
     'omega':    motor.PseudoMotor('PSMTR1608-5-B10-06:pm:deg'),
     'phi': motor.PseudoMotor('PSMTR1608-5-B10-12:pm:deg'),
     'chi': motor.PseudoMotor('PSMTR1608-5-B10-13:pm:deg'),
