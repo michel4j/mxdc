@@ -13,8 +13,7 @@ logger = get_module_logger(__name__)
 class DewarController(GObject.GObject):
 
     __gsignals__ = {
-        'selected': (GObject.SignalFlags.RUN_FIRST, None,
-                     (str,)),
+        'selected': (GObject.SignalFlags.RUN_FIRST, None, (str,)),
     }
 
     layout = GObject.Property(type=object)
@@ -53,6 +52,15 @@ class DewarController(GObject.GObject):
         self.widget.sample_dewar_area.connect('motion-notify-event', self.on_motion_notify)
         self.widget.sample_dewar_area.connect('button-press-event', self.on_press_event)
 
+    def get_port_state(self, port,):
+        robot_ports = self.beamline.automounter.ports
+        user_ports = self.store.ports
+        state = robot_ports.get(port, Port.UNKNOWN)
+        if port in user_ports:
+            if state not in [Port.BAD, Port.EMPTY, Port.MOUNTED]:
+                state = Port.GOOD
+        return state
+
     def on_layout_changed(self, *args, **kwargs):
         self.props.layout = self.beamline.automounter.layout
 
@@ -62,8 +70,8 @@ class DewarController(GObject.GObject):
         user_containers = self.store.containers
 
         self.props.ports = {
-            port: state
-            for port, state in robot_ports.items()
+            port: self.get_port_state(port)
+            for port in robot_ports.keys()
             if (port in user_ports or self.beamline.is_admin())
         }
         self.props.containers = {
@@ -116,8 +124,8 @@ class DewarController(GObject.GObject):
             event.window.set_cursor(None)
 
     def allow_port(self, container, port):
-        if (container and port) and (container in self.containers) and (port in self.ports):
-            return self.ports[port] not in [Port.EMPTY, Port.BAD]
+        if (container and port) and (container in self.containers or self.beamline.is_admin()):
+            return self.get_port_state(port) not in [Port.EMPTY, Port.BAD]
         return False
 
     def on_press_event(self, widget, event):

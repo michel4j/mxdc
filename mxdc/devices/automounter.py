@@ -605,6 +605,7 @@ class ISARAMounter(AutoMounter):
         super(ISARAMounter, self).__init__()
         self.name = 'ISARA Auto Mounter'
         self.props.layout = ISARA_DEWAR
+
         self.sample_number = self.add_pv('{}:trjarg_sampleNumber'.format(root))
         self.puck_number = self.add_pv('{}:trjarg_puckNumber'.format(root))
         self.tool_number = self.add_pv('{}:trjarg_toolNumber'.format(root))
@@ -614,7 +615,7 @@ class ISARAMounter(AutoMounter):
         self.tool_puck_fbk = self.add_pv('{}:stscom_puckNumOnTool:fbk'.format(root))
         self.tool_sample_fbk = self.add_pv('{}:stscom_sampleNumOnTool:fbk'.format(root))
         self.power_fbk = self.add_pv('{}:stscom_power:fbk'.format(root))
-        self.approach_fbk = self.add_pv('{}:out_5:fbk'.format(root))
+
         self.running_fbk = self.add_pv('{}:out_6:fbk'.format(root))
         self.drying_fbk = self.add_pv('{}:out_16:fbk'.format(root))
 
@@ -625,16 +626,30 @@ class ISARAMounter(AutoMounter):
         self.command_fbk = self.add_pv('{}:cmnd_resp:fbk'.format(root))
         self.trajectory_fbk = self.add_pv('{}:stscom_path_name:fbk'.format(root))
 
-        self.abort_cmd = self.add_pv('{}:abort'.format(root))
+        self.messages = {
+            'Approaching gonio': self.add_pv('{}:out_5:fbk'.format(root)),
+            'Heating': self.add_pv('{}:out_16:fbk'.format(root)),
+            'Lid opened': self.add_pv('{}:in_22:fbk'.format(root)),
+            'Lid closed': self.add_pv('{}:in_31:fbk'.format(root)),
+            'Ready for transfer': self.add_pv('{}:in_9:fbk'.format(root)),
+            'Sample on Magnet': self.add_pv('{}:in_9:fbk'.format(root)),
+        }
+        self.safety = {
+            'Air Pressure': self.add_pv('{}:in_2:fbk'.format(root)),
+            'Collision Sensor': self.add_pv('{}:in_3:fbk'.format(root)),
+            #'Cryo Hi-Level': self.add_pv('{}:in_4:fbk'.format(root)),
+            #'Cryo Lo-Level': self.add_pv('{}:in_7:fbk'.format(root)),
+            #'Cryo Liquid': self.add_pv('{}:in_8:fbk'.format(root)),
+            #'Connected': self.add_pv('{}:in_32:fbk'.format(root)),
+        }
 
+        self.abort_cmd = self.add_pv('{}:abort'.format(root))
         self.getput_cmd = self.add_pv('{}:getput'.format(root))
         self.power_cmd = self.add_pv('{}:on'.format(root))
-
         self.get_cmd = self.add_pv('{}:get'.format(root))
         self.put_cmd = self.add_pv('{}:put'.format(root))
         self.on_cmd = self.add_pv('{}:message'.format(root))
         self.home_cmd = self.add_pv('{}:home'.format(root))
-
 
         self.puck_probe_fbk.connect('changed', self.on_pucks_changed)
         self.gonio_sample_fbk.connect('changed', self.on_sample_changed)
@@ -642,10 +657,14 @@ class ISARAMounter(AutoMounter):
 
         self.path_busy_fbk.connect('changed', self.on_state_changed)
         self.power_fbk.connect('changed', self.on_state_changed)
-        self.approach_fbk.connect('changed', self.on_state_changed)
         self.running_fbk.connect('changed', self.on_state_changed)
-        self.command_fbk.connect('changed', self.on_message_changed)
-        self.trajectory_fbk.connect('changed', self.on_message_changed, 'Running')
+        self.trajectory_fbk.connect('changed', self.on_state_changed)
+
+        for txt, obj in self.messages.items():
+            obj.connect('changed', self.on_message_changed, txt)
+
+        for txt, obj in self.safety.items():
+            obj.connect('changed', self.on_safety_changed)
 
     def is_mountable(self, port):
         if self.is_valid(port):
@@ -761,33 +780,35 @@ class ISARAMounter(AutoMounter):
     def on_state_changed(self, obj, value):
         power = self.power_fbk.get()
         path_state = self.path_busy_fbk.get()
-        approach_state = self.approach_fbk.get()
         running_state = self.running_fbk.get()
         path_name = self.trajectory_fbk.get()
-        drying = self.drying_fbk.get()
 
         health = 0
         diagnosis = []
 
-        logger.debug('Power: {}, Path: {}[{}], Approach: {}, Running: {}. Drying: {}'.format(
-            power, path_name, path_state, approach_state, running_state, drying)
-        )
         if power == 0:
             GObject.idle_add(self.switch_status, State.OFF)
             diagnosis += ['Powered down']
 
-        elif running_state:
+        elif running_state or path_state:
             GObject.idle_add(self.switch_status, State.BUSY)
-            if approach_state:
-                diagnosis += ['Approaching gonio ...']
-            else:
-                diagnosis += ['{}ing ...'.format(path_name)]
+            diagnosis += ['{}ing ...'.format(path_name)]
         else:
             GObject.idle_add(self.switch_status, State.IDLE)
             diagnosis += ['Ready']
 
         message = ', '.join(diagnosis)
-        self.set_state(health=(health, 'notices', message), message=message)
+        self.set_state(health=(health, 'notices', 'Not ready'), message=message)
 
-    def on_message_changed(self, obj, value, prefix='Status'):
-        self.set_state(message='{}: {}'.format(prefix, value))
+    def on_message_changed(self, obj, value, text):
+        if value == 1:
+            self.set_state(message=text)
+
+    def on_safety_changed(self, obj, value):
+        messages = [
+            txt for txt, obj in self.safety.items() if obj.is_active() and obj.get() == 0
+        ]
+        if messages:
+            self.set_state(health=(4, 'safety', ', '.join(messages)))
+        else:
+            self.set_state(health=(0, 'safety', ''))

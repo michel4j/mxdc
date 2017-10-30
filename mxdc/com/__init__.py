@@ -22,6 +22,9 @@ class BasePV(GObject.GObject):
             self.state_info.update({st: val})
             GObject.idle_add(self.emit, st, val)
 
+    def is_active(self):
+        return self.state_info.get('active', False)
+
     def do_changed(self, arg):
         pass
     
