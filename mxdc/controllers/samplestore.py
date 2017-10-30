@@ -444,12 +444,10 @@ class SampleStore(GObject.GObject):
         row = self.find_by_port(port)
         if row:
             self.props.next_sample = row[self.Data.DATA]
-        elif self.beamline.is_admin():
+        else:
             self.props.next_sample = {
                 'port': port
             }
-        else:
-            self.props.next_sample = {}
 
     def on_sample_mounted(self, obj, param):
         sample = self.beamline.automounter.sample
