@@ -15,8 +15,8 @@ CONFIG = {
     'type': 'mx',
     'subnet': '0.0.0.0/32',
 
-    #'admin_groups': [1000, 2000],
-    'admin_groups': [],
+    'admin_groups': [1000, 2000],
+    #'admin_groups': [],
     'energy_range': (5.0, 19.0),
     'default_attenuation': 50.0,
     'default_exposure': 1.0,
@@ -71,8 +71,9 @@ DEVICES = {
     # 'sample_camera': AxisPTZCamera('ccd1608-301.clsi.ca'),
     # 'sample_camera': MJPGCamera('http://opi2051-002.clsi.ca:9999/video.mjpg', size=(1360, 1024)),
     # 'sample_camera': JPGCamera('http://opi2051-002.clsi.ca:9999/image.jpg', size=(1360, 1024)),
-    'sample_camera': video.AxisCamera('V2E1608-400', 1),
-    #'sample_camera': video.REDISCamera('opi1608-101.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
+    #'sample_camera': video.AxisCamera('V2E1608-400', 1),
+
+    'sample_camera': video.REDISCamera('10.52.31.215', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),
