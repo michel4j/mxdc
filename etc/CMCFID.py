@@ -45,8 +45,8 @@ DEVICES = {
     'goniometer': goniometer.ParkerGonio('GV6K1608-001', 'BL08ID1:mode', 'OAV1608-3-I10-02'),
     'omega': motor.VMEMotor('GV6K1608-001:deg'),
     'sample_x': motor.VMEMotor('SMTR16083I1008:mm'),
-    'sample_y2': motor.VMEMotor('SMTR16083I1012:mm'),  # if no sample_y, it will be determined from
-    'sample_y1': motor.VMEMotor('SMTR16083I1013:mm'),  # orthogonal sample_y1 AND sample_y2
+    'sample_y1': motor.VMEMotor('SMTR16083I1012:mm'),  # if no sample_y, it will be determined from
+    'sample_y2': motor.VMEMotor('SMTR16083I1013:mm'),  # orthogonal sample_y1 AND sample_y2
 
     # Beam position & Size
     'aperture': misc.SimChoicePositioner('Aperture', 50, choices=[50], units='um'),
