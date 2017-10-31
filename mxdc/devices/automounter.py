@@ -790,7 +790,7 @@ class ISARAMounter(AutoMounter):
             GObject.idle_add(self.switch_status, State.OFF)
             diagnosis += ['Powered down']
 
-        elif running_state or path_state:
+        elif running_state:
             GObject.idle_add(self.switch_status, State.BUSY)
             diagnosis += ['{}ing ...'.format(path_name)]
         else:
