@@ -59,7 +59,8 @@ DEVICES = {
     'distance': motor.PseudoMotor('BL08ID1:2Theta:D:mm'),
     'detector_z': motor.ENCMotor('SMTR16083I1018:mm'),
     'two_theta': motor.PseudoMotor('BL08ID1:2Theta:deg'),
-    'detector': detector.PIL6MImager('DEC1608-01:cam1'),
+    #'detector': detector.PIL6MImager('DEC1608-01:cam1'),
+    'detector': detector.SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
     'detector_cover': misc.Shutter('MSHD1608-3-I10-01'),
 
     # Sample environment, beam stop, cameras, zoom, lighting
