@@ -104,7 +104,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'dss': clients.DSSClient(),
+    'dss': clients.LocalDSSClient(),
     'lims': clients.MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
     'dps': clients.DPSClient(),
 }
