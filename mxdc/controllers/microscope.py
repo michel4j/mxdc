@@ -336,7 +336,6 @@ class Microscope(GObject.GObject):
     def auto_grid(self, *args, **kwargs):
         img = self.camera.get_frame()
         pol = imgproc.find_profile(img, 2)
-        print pol
         # bbox = self.video.scale * imgproc.get_sample_bbox2(img)
         # self.props.grid = self.bbox_grid(bbox)
         # self.props.grid_params = {
