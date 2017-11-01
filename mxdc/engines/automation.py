@@ -39,6 +39,7 @@ class Automator(GObject.GObject):
         self.total = 1
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.collector = globalRegistry.lookup([], IDataCollector)
+        self.centering = centering.Centering()
 
     def configure(self, samples, tasks):
         self.samples = samples
@@ -89,7 +90,9 @@ class Automator(GObject.GObject):
                 elif task['type'] == self.Task.CENTER:
                     if self.beamline.automounter.is_mounted(sample['port']):
                         method = task['options'].get('method')
-                        quality = centering.auto_center(method=method)
+                        self.centering.configure(method=method)
+                        self.centering.run()
+                        quality = 100
                         if quality < 70:
                             self.pause('Error attempting auto {} centering {}'.format(method, sample['name']))
                     else:
