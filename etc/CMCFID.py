@@ -75,10 +75,7 @@ DEVICES = {
     'hutch_video': video.AxisPTZCamera('CCD1608-301'),
 
     # Facility, storage-ring, shutters, etc
-    'ring_current': ca.PV('PCT1402-01:mA:fbk'),
-    'ring_mode': ca.PV('SYSTEM:mode:fbk'),
-    'ring_status': ca.PV('SRStatus:injecting'),
-    'synchrotron':  synchrotron.StorageRing('PCT1402-01:mA:fbk', 'SYSTEM:mode:fbk', 'SRStatus'),
+    'synchrotron': synchrotron.StorageRing('PCT1402-01:mA:fbk', 'SYSTEM:mode:fbk', 'SRStatus'),
     'psh1': misc.Shutter('PSH1408-I00-01'),
     'psh2': misc.Shutter('PSH1408-I00-02'),
     'ssh1': misc.Shutter('SSH1408-I00-01'),
