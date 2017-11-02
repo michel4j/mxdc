@@ -129,7 +129,7 @@ class Application(Gtk.Application):
             unique = 'SIM' not in self.beamline.name
             self.provider = mdns.Provider(
                 'MXDC Client ({})'.format(self.beamline.name),
-                self.service_type, MXDC_PORT, self.service_data, unique=False
+                self.service_type, MXDC_PORT, self.service_data, unique=unique
             )
         except mdns.mDNSError:
             self.remote_mxdc = clients.MxDCClientFactory(self.service_type)()
