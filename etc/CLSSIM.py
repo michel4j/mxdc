@@ -83,8 +83,8 @@ DEVICES = {
     'hutch_video': video.AxisPTZCamera('ccd1608-301.clsi.ca'),
 
     # Facility, storage-ring, shutters, etc
-    'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),
-    # 'synchrotron':  synchrotron.StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
+    #'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),
+     'synchrotron':  synchrotron.StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
     'psh1': misc.SimShutter('PSH1'),
     'ssh1': misc.SimShutter('SSH2'),
     'psh2': misc.SimShutter('PSH2'),

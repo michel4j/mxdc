@@ -9,7 +9,7 @@ logger = get_module_logger(__name__)
 
 @ca_thread_enable
 def auto_center(bl):
-    bl.cryojet.nozzle.close()
+    #bl.cryojet.nozzle.close()
     bl.goniometer.set_mode('CENTERING', wait=True)
     time.sleep(2)
     _out = centering.auto_center_loop()
@@ -22,11 +22,11 @@ def auto_center(bl):
 def auto_mount_manual(bl, port, wash=False):
     bl.automounter.standby()
     bl.goniometer.set_mode('MOUNTING', wait=True)
-    bl.cryojet.nozzle.open()
+    #bl.cryojet.nozzle.open()
     time.sleep(2)
     success = bl.automounter.mount(port, wait=True)
     if success:
-        bl.cryojet.nozzle.close()
+        #bl.cryojet.nozzle.close()
         logger.info('Sample mounting succeeded')
         time.sleep(0.5)
         bl.goniometer.set_mode('CENTERING', wait=False)
@@ -39,7 +39,7 @@ def auto_mount_manual(bl, port, wash=False):
 def auto_dismount_manual(bl):
     bl.automounter.standby()
     bl.goniometer.set_mode('MOUNTING', wait=True)
-    bl.cryojet.nozzle.open()
+    #bl.cryojet.nozzle.open()
     time.sleep(2)
     success = bl.automounter.dismount(wait=True)
     if success:
