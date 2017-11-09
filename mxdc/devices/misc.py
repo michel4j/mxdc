@@ -671,3 +671,4 @@ class Enclosures(BaseDevice):
             self.set_state(health=(0, 'ready', self.get_messages()))
 
 
+

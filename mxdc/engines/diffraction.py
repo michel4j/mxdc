@@ -14,6 +14,7 @@ from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import json, datatools, misc
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.datatools import StrategyType
+from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler

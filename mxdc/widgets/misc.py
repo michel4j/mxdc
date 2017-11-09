@@ -39,9 +39,11 @@ class ActiveMenu(Gtk.Box, gui.BuilderMixin):
         for r in self.entry.get_cells():
             r.set_alignment(0.5, 0.5)
         # signals and parameters
-        self.device.connect('changed', self.on_value_changed)
-        self.device.connect('active', self.on_active_changed)
-        self.device.connect('health', self.on_health_changed)
+        self.device.connect('enabled', self.on_status)
+        self.device.connect('changed', self.on_value)
+        self.device.connect('active', self.on_status)
+        self.device.connect('health', self.on_status)
+
         self.entry.connect('changed', self.on_activate)
         self.label.set_text(self.name)
 
@@ -56,23 +58,16 @@ class ActiveMenu(Gtk.Box, gui.BuilderMixin):
         elif hasattr(self.device, 'set'):
             self.device.set(target)
 
-    def on_health_changed(self, obj, health):
-        state, _ = health
-        if state == 0:
-            self.entry.set_sensitive(True)
-        else:
-            self.entry.set_sensitive(False)
-
-    def on_value_changed(self, obj, val):
+    def on_value(self, obj, val):
         if val in self.values:
             self.entry.set_active(self.values[val])
         return True
 
-    def on_active_changed(self, obj, state):
-        if state:
-            self.entry.set_sensitive(True)
-        else:
-            self.entry.set_sensitive(False)
+    def on_status(self, obj, state):
+        enabled = self.device.is_enabled()
+        active = self.device.is_active()
+        healthy = self.device.is_healthy()
+        self.set_sensitive(enabled and active and healthy)
 
 
 class ActiveEntry(Gtk.Box, gui.BuilderMixin):
@@ -96,7 +91,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.width = width
         self.number_format = fmt
         self.format = self.number_format
-        self.surface = None
+        self.state_icon = "media-playback-start-symbolic"
 
         self.setup_gui()
         self.build_gui()
@@ -106,12 +101,14 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.pack_start(self.active_entry, True, True, 0)
 
         # signals and parameters
-        self.device.connect('changed', self._on_value_changed)
-        self.device.connect('active', self._on_active_changed)
-        self.device.connect('health', self._on_health_changed)
-        self.action_btn.connect('clicked', self._on_activate)
-        self.entry.connect('icon-press', self._on_activate)
-        self.entry.connect('activate', self._on_activate)
+        self.device.connect('changed', self.on_value)
+        self.device.connect('active', self.on_status)
+        self.device.connect('enabled', self.on_status)
+        self.device.connect('health', self.on_status)
+
+        self.action_btn.connect('clicked', self.on_activate)
+        self.entry.connect('icon-press', self.on_activate)
+        self.entry.connect('activate', self.on_activate)
         self.label.set_text(self.name)
 
     def set_feedback(self, val):
@@ -145,25 +142,34 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.set_target(target)
         return target
 
-    def _on_icon_activate(self, widget, pos, event):
-        if pos == Gtk.EntryIconPosition.SECONDARY:
-            self._on_activate(widget)
+    def on_status(self, *args, **kwargs):
+        health, msg = self.device.health_state
+        active = self.device.is_active()
+        enabled = self.device.is_enabled()
+        healthy = self.device.is_healthy()
 
-    def _on_health_changed(self, obj, health):
-        state, _ = health
         style = self.fbk_label.get_style_context()
-        if state == 0:
-            self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
-            self._set_active(True)
+        if healthy:
             style.remove_class('dev-error')
             style.remove_class('dev-warning')
         else:
-            cls = "dev-warning" if (state | 16) == state else "dev-error"
-            self.action_icon.set_from_stock('gtk-dialog-warning', Gtk.IconSize.BUTTON)
-            self._set_active(False)
+            cls = "dev-warning" if (health | 16) == health else "dev-error"
             style.add_class(cls)
 
-    def _on_value_changed(self, obj, val):
+        if not active:
+            self.state_icon = "network-wired-disconnected-symbolic"
+        elif not enabled:
+            self.state_icon = "system-lock-screen-symbolic"
+        elif not healthy:
+            self.state_icon = "dialog-warning-symbolic"
+        else:
+            self.state_icon = "media-playback-start-symbolic"
+
+        self.action_icon.set_from_icon_name(self.state_icon, Gtk.IconSize.BUTTON)
+        self.entry.set_sensitive((active and enabled and healthy))
+        self.action_btn.set_sensitive((active and enabled and healthy))
+
+    def on_value(self, obj, val):
         if time.time() - self._last_signal > 0.1:
             self.set_feedback(val)
             self._last_signal = time.time()
@@ -171,7 +177,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
             self._first_change = False
         return True
 
-    def _on_activate(self, obj, data=None, event=None):
+    def on_activate(self, obj, data=None, event=None):
         if self.action_active:
             if self.running:
                 self.stop()
@@ -179,42 +185,21 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
                 self.apply()
         return True
 
-    def _set_active(self, state):
-        self.action_active = state
-        if state:
-            self.entry.set_sensitive(True)
-            # self._action_btn.set_sensitive(True)
-        else:
-            self.entry.set_sensitive(False)
-            # self._action_btn.set_sensitive(False)
-
-    def _on_active_changed(self, obj, state):
-        self._set_active(state)
-
 
 class MotorEntry(ActiveEntry):
     def __init__(self, mtr, label=None, fmt="%0.3f", width=8):
         super(MotorEntry, self).__init__(mtr, label=label, fmt=fmt, width=width)
-        self._set_active(False)
-        self.device.connect('busy', self._on_motion_changed)
-        self.device.connect('target', self._on_target_changed)
+        self.device.connect('busy', self.on_busy)
+        self.device.connect('target', self.on_target)
 
         self._animation = GdkPixbuf.PixbufAnimation.new_from_resource(
             "/org/mxdc/data/active_stop.gif"
         )
 
-    def get_fraction(self, val):
-        if hasattr(self, 'current') and hasattr(self, 'target'):
-            pct = 0.0 if self.target == self.current else float(val - self.current) / (self.target - self.current)
-        else:
-            pct = 0.0
-        return pct
-
     def stop(self):
         self.device.stop()
-        self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
 
-    def _on_motion_changed(self, obj, motion):
+    def on_busy(self, obj, motion):
         style = self.fbk_label.get_style_context()
         if motion:
             self.running = True
@@ -222,11 +207,11 @@ class MotorEntry(ActiveEntry):
             style.add_class('dev-active')
         else:
             self.running = False
-            self.action_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
+            self.action_icon.set_from_icon_name(self.state_icon, Gtk.IconSize.BUTTON)
             style.remove_class('dev-active')
         self.set_feedback(self.device.get_position())
         return True
 
-    def _on_target_changed(self, obj, targets):
+    def on_target(self, obj, targets):
         self.set_target(targets[-1])
         return True

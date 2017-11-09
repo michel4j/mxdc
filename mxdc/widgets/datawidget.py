@@ -369,14 +369,16 @@ class RunEditor(DataEditor):
     def add_point(self, name, point):
         if not len(self.points):
             self.points.append([None, None, 0])
-        self.points.append([name, point,  0])
+        names = self.get_point_names()
+        if not name in names:
+            self.points.append([name, point,  0])
 
     def set_points(self, points):
         if not points:
             self.clear_points()
-            return
-        for i in range(len(self.points), len(points)):
-            self.add_point('P{}'.format(i+1), points[i])
+        else:
+            for i, point in enumerate(points):
+                self.add_point('P{}'.format(i+1), points[i])
 
     def get_point(self, name):
         value = None
@@ -385,7 +387,11 @@ class RunEditor(DataEditor):
             for row in self.points:
                 if row[self.Column.NAME] == name:
                     value = (name, row[self.Column.COORDS])
+                    break
         return value
+
+    def get_point_names(self):
+        return {row[self.Column.NAME] for row in self.points}
 
     def sync_choices(self, obj, column):
         name = obj.get_active_id()
