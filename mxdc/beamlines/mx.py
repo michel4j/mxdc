@@ -97,6 +97,7 @@ class MXBeamline(object):
             'name': 'SIM-1',
             'admin_groups': [2000],
             'energy_range': (6.0, 18.0),
+            'zoom_levels': (1,4,6),
             'default_attenuation': 90.0,
             'default_exposure': 0.5,
             'default_delta': 0.5,
@@ -107,6 +108,7 @@ class MXBeamline(object):
             'xrf_fwhm': 0.1,
             'xrf_energy_offset': 2.0,
             'shutter_sequence': [],
+            'linked_sample_stage': True,
             'orientation': 1,
             'centering_backlight': 65,
         }
@@ -139,8 +141,10 @@ class MXBeamline(object):
         if 'sample_y' in self.registry:
             self.registry['sample_stage'] = stages.Sample2Stage(self.sample_x, self.sample_y, self.omega)
         else:
-            self.registry['sample_stage'] = stages.Sample3Stage(self.sample_x, self.sample_y1, self.sample_y2,
-                                                                self.omega)
+            self.registry['sample_stage'] = stages.Sample3Stage(
+                self.sample_x, self.sample_y1, self.sample_y2, self.omega,
+                linked=self.config.get('linked_sample_stage', True)
+            )
         self.registry['sample_video'] = video.ZoomableCamera(self.sample_camera, self.sample_zoom)
         self.mca.nozzle = self.registry.get('mca_nozzle', None)
 

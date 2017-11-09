@@ -85,9 +85,10 @@ class Microscope(GObject.GObject):
 
     def setup(self):
         # zoom
-        self.widget.microscope_zoomout_btn.connect('clicked', self.on_zoom, 2)
-        self.widget.microscope_zoomin_btn.connect('clicked', self.on_zoom, 8)
-        self.widget.microscope_zoom100_btn.connect('clicked', self.on_zoom, 5)
+        low, med, high = self.beamline.config['zoom_levels']
+        self.widget.microscope_zoomout_btn.connect('clicked', self.on_zoom, low)
+        self.widget.microscope_zoom100_btn.connect('clicked', self.on_zoom, med)
+        self.widget.microscope_zoomin_btn.connect('clicked', self.on_zoom, high)
 
         # rotate sample
         self.widget.microscope_ccw90_btn.connect('clicked', self.on_rotate, -90)
@@ -277,7 +278,7 @@ class Microscope(GObject.GObject):
         if self.props.points:
             cr.save()
             mm_scale = self.video.mm_scale()
-            radius = 0.5e-3 * self.beamline.aperture.get() / (8 * mm_scale)
+            radius = 0.5e-3 * self.beamline.aperture.get() / (16 * mm_scale)
             cur_point = numpy.array(self.beamline.sample_stage.get_xyz())
             center = numpy.array(self.video.get_size()) / 2
             points = numpy.array(self.props.points) - cur_point

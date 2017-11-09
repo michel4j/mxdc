@@ -112,7 +112,7 @@ class Application(Gtk.Application):
         self.hook = excepthook.ExceptHook(
             emails=self.beamline.config['bug_report'], exit_function=exit_main_loop
         )
-        self.hook.install()
+        #self.hook.install()
         self.broadcast_service()
         self.window.setup()
 

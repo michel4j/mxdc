@@ -95,14 +95,11 @@ class MotorBase(BaseDevice):
         if cal == self._calib_good_value:
             self.set_state(health=(0, 'calib'))
         else:
-            self.set_state(health=(2, 'calib', 'Device Not Calibrated!'))
+            self.set_state(health=(4, 'calib', 'Device Not Calibrated!'))
 
     def _signal_enable(self, obj, val):
-        if val == self._disabled_value:
-            if not self.is_busy():
-                self.set_state(health=(16, 'disabled', 'Device disabled!'))
-        else:
-            self.set_state(health=(0, 'disabled'))
+        self.set_state(enabled=(val != self._disabled_value))
+
 
     def configure(self, **kwargs):
         pass
@@ -183,7 +180,7 @@ class SimMotor(MotorBase):
         poll = 0.005
         timeout = 5.0
         _orig_to = timeout
-        if (start and self._command_sent and not self.busy_state):
+        if start and self._command_sent and not self.busy_state:
             while self._command_sent and not self.busy_state and timeout > 0:
                 timeout -= poll
                 time.sleep(poll)

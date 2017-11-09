@@ -14,6 +14,7 @@ CONFIG = {
     'subnet': '10.52.4.0/22',
     'admin_groups': [1000, 2000],
     'energy_range': (5.0, 18.0),
+    'zoom_levels': (1, 4, 6),
     'default_attenuation': 90.0,
     'default_exposure': 5.0,
     'default_delta': 0.5,
@@ -105,7 +106,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'dss': clients.DSSClient(),
+    'dss': clients.LocalDSSClient(),
     'lims': clients.MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
     'dps': clients.DPSClient(),
 }

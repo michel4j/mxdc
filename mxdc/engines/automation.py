@@ -92,9 +92,6 @@ class Automator(GObject.GObject):
                         method = task['options'].get('method')
                         self.centering.configure(method=method)
                         self.centering.run()
-                        quality = 100
-                        if quality < 70:
-                            self.pause('Error attempting auto {} centering {}'.format(method, sample['name']))
                     else:
                         self.stop(error='Sample not mounted. Unable to continue automation!')
 
@@ -118,7 +115,8 @@ class Automator(GObject.GObject):
                         logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
                             sample['name'], params['directory']
                         ))
-                        self.collector.configure(params, take_snapshots=True, analysis=params.get('analysis', 'native'))
+
+                        self.collector.configure(params, take_snapshots=True, analysis=params.get('analysis'))
                         sample['results'] = self.collector.run()
                         while not self.collector.complete:
                             time.sleep(1)  # wait until collector is stopped

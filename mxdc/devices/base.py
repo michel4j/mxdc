@@ -87,6 +87,7 @@ class BaseDevice(GObject.GObject):
     __gsignals__ = {
         "active": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         "busy": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        "enabled": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         "health": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
         "message": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
     }
@@ -95,7 +96,7 @@ class BaseDevice(GObject.GObject):
         GObject.GObject.__init__(self)
         self.pending = []  # inactive child devices or process variables
         self.health_manager = HealthManager()  # manages the health states
-        self.state_info = {'active': False, 'busy': False, 'health': (99, ''), 'message': ''}
+        self.state_info = {'active': False, 'enabled': True, 'busy': False, 'health': (99, ''), 'message': ''}
         self.name = self.__class__.__name__
         self.state_pattern = re.compile('^(\w+)_state$')
         self.bool_pattern = re.compile('^is_(\w+)$')
@@ -122,6 +123,10 @@ class BaseDevice(GObject.GObject):
 
     def is_busy(self):
         return self.busy_state
+
+    def is_healthy(self):
+        severity, message = self.health_state
+        return severity <= 1
 
     def get_state(self):
         """Obtain a copy of the devices state.
@@ -191,6 +196,7 @@ class BaseDevice(GObject.GObject):
 
         Returns:
             A reference to the created object.
+            @rtype: object
         """
 
         protocol = kwargs.pop('protocol', ca)

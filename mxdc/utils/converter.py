@@ -92,6 +92,9 @@ def dist_to_resol(distance, detector_size, energy, two_theta=0):
     
     """
 
+    if distance == 0.0:
+        return 0.0
+
     theta = 0.5 * math.atan(0.5 * detector_size / distance)
     theta = theta + two_theta
     return 0.5 * energy_to_wavelength(energy) / math.sin(theta)
@@ -107,6 +110,9 @@ def resol_to_dist(resolution, detector_size, energy, two_theta=0):
     energy          --  X-ray energy
     
     """
+
+    if resolution == 0.0:
+        return 0.0
 
     theta = math.asin(0.5 * energy_to_wavelength(energy) / resolution)
     theta = max(0, (theta - two_theta))
