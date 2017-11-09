@@ -3,7 +3,7 @@ import numpy
 from PIL import Image
 from PIL import ImageChops
 from PIL import ImageFilter
-from mxdc.utils.scitools import find_peaks
+from mxdc.utils.scitools import find_peaks, smooth_data
 from scipy import ndimage, signal
 
 THRESHOLD = 20
@@ -82,8 +82,13 @@ def get_loop_center(orig, bkg, orientation=2):
 
 
 def get_loop_features(raw, offset=10, scale=0.5, orientation='left'):
-    frame = cv2.resize(raw[offset:-offset, offset:-offset], (0,0), fx=0.5, fy=0.5)
-    edges = cv2.Canny(frame, 100, 200)
+    frame = cv2.resize(raw, (0,0), fx=scale, fy=scale)
+    raw_edges = cv2.Canny(frame, 25, 100)
+    edges = numpy.zeros_like(raw_edges)
+    edges[offset:-offset, offset:-offset] = raw_edges[offset:-offset, offset:-offset]
+
+    _ , contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(edges, contours, -1, (255, 255, 255), 48)
     avg = frame.mean()
     std = frame.std()
     info = {
@@ -95,19 +100,24 @@ def get_loop_features(raw, offset=10, scale=0.5, orientation='left'):
     xprof = numpy.where(edges.max(axis=0) > 128)[0]
     if numpy.any(xprof):
         w = (xprof[-1] - xprof[0])
+        search_width = frame.shape[1]/4
         if orientation == 'left':
-            xt = xprof[-1]
+            xt = xprof[-1] - 24
+            tip_start = max(0, xt - search_width)
+            tip_end = xt
         elif orientation == 'right':
-            xt = xprof[0]
+            xt = xprof[0] + 24
+            tip_start = xt
+            tip_end = min(frame.shape[1], xt + search_width)
         else:
-            xt = xprof[0] + w // 2
+            xt = (xprof[-1] - xprof[0])//2
+            tip_start = xprof[0]
+            tip_end = xprof[-1]
 
         info.update({
-            'x': int(offset + xt / scale),
+            'x': int(xt / scale),
             'width': int(w / scale),
         })
-        tip_start = max(0, xt-4*offset)
-        tip_end = min(xt+4*offset, edges.shape[1]-1)
 
         yprof = numpy.where(edges[:, tip_start:tip_end].max(axis=1) > 128)[0]
         if numpy.any(yprof):
@@ -119,23 +129,34 @@ def get_loop_features(raw, offset=10, scale=0.5, orientation='left'):
             else:
                 yt = yprof[0] + h // 2
             info.update({
-                'y': int(offset + yt/scale),
+                'y': int(yt/scale),
                 'height': int(h/scale),
             })
 
-        h = h0 = 0
-        last_xt = xt
-        while xt > 0 and h >= h0:
-            h0 = h
-            last_xt = xt
-            xt -= offset
-            tip_start = max(0, xt - offset)
-            tip_end = min(xt + offset, edges.shape[1] - 1)
-            yprof = numpy.where(edges[:, tip_start:tip_end].max(axis=1) > 128)[0]
-            if numpy.any(yprof):
-                h = (yprof[-1] - yprof[0])
-        if xt > 0:
-            info['x-loop'] = int(offset + (last_xt + offset) / scale)
+        # Find loop profile
+        limits = [(j, numpy.where(edges[:, j] > 128)[0]) for j in range(frame.shape[1])]
+        dimensions = [
+            (j, (x[-1] - x[0]), (x[0])) if numpy.any(x) else (j, 0.0, 0.0)
+            for j, x in limits
+        ]
+        xy = numpy.array(dimensions).astype(float)
+        peaks = find_peaks(xy[:,0], xy[:,1], width=11)
+        if peaks:
+            if orientation == 'left':
+                loop = peaks[-1]
+            else:
+                loop = peaks[0]
+
+            loop_x, loop_size = loop
+            loop_start = int(max(loop_x - loop_size, 0))
+            loop_end = int(min(loop_x + loop_size, frame.shape[1]))
+            loop_prof = numpy.where(edges[:, loop_start:loop_end].max(axis=1) > 128)[0]
+            if numpy.any(loop_prof):
+                loop_y = (loop_prof[0] + loop_prof[-1])*0.5
+                info['loop-y'] = int(loop_y/scale)
+
+            info['loop-x'] =int(loop_x/scale)
+            info['loop-size'] = int(loop_size/scale)
 
     return info
 

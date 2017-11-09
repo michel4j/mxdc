@@ -43,7 +43,6 @@ class Script(BaseDevice):
     implements(IScript)
     __gsignals__ = {
         'done': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        'enabled': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         'error': (GObject.SignalFlags.RUN_FIRST, None, []),
     }
 

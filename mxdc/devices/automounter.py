@@ -10,15 +10,14 @@ from interfaces import IAutomounter
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.automounter import Port, SAM_DEWAR, ISARA_DEWAR
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.state import StateMachine
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
 
-
-
 class State(Enum):
-    IDLE, STANDBY, BUSY, NOT_READY, DISABLED, ERROR, OFF = range(7)
+    IDLE, STANDBY, BUSY, STOPPING, DISABLED, WARNING, ERROR = range(7)
 
 
 class AutoMounter(BaseDevice):
@@ -188,6 +187,11 @@ class AutoMounter(BaseDevice):
         return (self.status == State.STANDBY)
 
 
+class SAMState(StateMachine):
+    class State(Enum):
+        HOME, SOAKING, APPROACHING, STOPPING = range(4)
+
+
 class SAMAutoMounter(AutoMounter):
     StateCodes = {
         '0': Port.EMPTY,
@@ -213,13 +217,12 @@ class SAMAutoMounter(AutoMounter):
         self.ports_fbk = self.add_pv('{}:cassette:fbk'.format(root))
         self.sample_fbk = self.add_pv('%s:status:mounted' % root)
 
-        self.status_fbk = self.add_pv('{}:sample:msg'.format(root))
+        self.message_fbk = self.add_pv('{}:sample:msg'.format(root))
         self.warning_fbk = self.add_pv('{}:status:warning'.format(root))
         self.state_fbk = self.add_pv('{}:status:state'.format(root))
-        self.normal_fbk = self.add_pv('%s:mod:normal' % root)
-        self.disabled_fbk = self.add_pv('%s:mnt:usrEnable' % root)
-        self.gonio_safe_fbk = self.add_pv('%s:goniPos:mntEn' % root)
-        self.mount_safe_fbk = self.add_pv('%s:mntEn' % root)
+        self.normal_fbk = self.add_pv('{}:mod:normal'.format(root))
+        self.disabled_fbk = self.add_pv('{}:mnt:usrEnable'.format(root))
+        self.safety_fbk = self.add_pv('{}:botSafety:state'.format(root))
 
         # commands
         self.mount_cmd = self.add_pv('%s:mntX:opr' % root)
@@ -236,10 +239,11 @@ class SAMAutoMounter(AutoMounter):
 
         self.ports_fbk.connect('changed', self.on_ports_changed)
         self.sample_fbk.connect('changed', self.on_sample_changed)
+        self.message_fbk.connect('changed', self.on_messages)
 
         status_pvs = [
-            self.status_fbk, self.warning_fbk, self.state_fbk, self.normal_fbk,
-            self.disabled_fbk, self.gonio_safe_fbk, self.mount_safe_fbk
+            self.warning_fbk, self.state_fbk, self.normal_fbk,
+            self.disabled_fbk, self.safety_fbk
         ]
         for pv in status_pvs:
             pv.connect('changed', self.on_states_changed)
@@ -255,7 +259,7 @@ class SAMAutoMounter(AutoMounter):
         return False
 
     def mount(self, port, wait=True):
-        enabled = self.wait(states={State.IDLE, State.STANDBY})
+        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=60)
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -273,22 +277,26 @@ class SAMAutoMounter(AutoMounter):
                 dismount_param = self.sample_fbk.get()
                 self.dismount_param.put(dismount_param)
                 self.mount_param.put(param)
+                self.wash_param.put(0)
                 self.mount_next_cmd.put(1)
             else:
                 self.mount_param.put(param)
+                self.wash_param.put(0)
                 self.mount_cmd.put(1)
 
             logger.info('{}: Mounting Sample: {}'.format(self.name, port))
             if wait:
-                success = self.wait(states={State.IDLE}, timeout=240)
+                success = self.wait(states={State.BUSY}, timeout=10)
+                if success:
+                    success = self.wait(states={State.STOPPING}, timeout=300)
                 if not success:
-                    self.set_state(message="Mounting timed out!")
+                    self.set_state(message="Mounting failed!")
                 return success
             else:
                 return True
 
     def dismount(self, wait=False):
-        enabled = self.wait(states={State.IDLE, State.STANDBY})
+        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=60)
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -301,12 +309,15 @@ class SAMAutoMounter(AutoMounter):
         else:
             dismount_param = self.sample_fbk.get()
             self.dismount_param.put(dismount_param)
+            self.wash_param.put(0)
             self.dismount_cmd.put(1)
             logger.info('{}: Dismounting sample.'.format(self.name, ))
             if wait:
-                success = self.wait(states={State.IDLE}, timeout=240)
+                success = self.wait(states={State.BUSY}, timeout=10)
+                if success:
+                    success = self.wait(states={State.STOPPING}, timeout=240)
                 if not success:
-                    self.set_state(message="Dismount timed out!")
+                    self.set_state(message="Dismounting failed!")
                 return success
             else:
                 return True
@@ -314,56 +325,58 @@ class SAMAutoMounter(AutoMounter):
     def abort(self):
         self.abort_cmd.put(1)
 
+    def on_messages(self, obj, *args, **kwargs):
+        text_msg = self.message_fbk.get()
+        text_warn = self.warning_fbk.get()
+        warnings = text_warn.strip().capitalize()
+        messages = text_msg.strip().capitalize()
+        self.set_state(message="{} {}".format(messages, warnings).strip())
+
     def on_states_changed(self, obj, *args, **kwargs):
         is_normal = self.normal_fbk.get() == 0
-        is_safe = self.mount_safe_fbk.get() == 1 and self.gonio_safe_fbk.get() == 1
         is_disabled = self.disabled_fbk.get() == 0
-        is_idle = self.robot_busy.get() == 0
-        state_str = self.state_fbk.get().strip()
+        is_busy = self.robot_busy.get() == 1
+        state = self.safety_fbk.get()
 
         health = 0
         diagnosis = []
 
         if is_normal:
             if is_disabled:
-                GObject.idle_add(self.switch_status, State.DISABLED)
+                status = State.DISABLED
                 health |= 16
                 diagnosis += ['Disabled by staff']
-            elif not is_safe:
-                GObject.idle_add(self.switch_status, State.NOT_READY)
-                diagnosis += ['End-station not safe']
-            elif is_idle or 'idle' in state_str:
-                GObject.idle_add(self.switch_status, State.IDLE)
+            elif state == 4:
+                status = State.STOPPING
+            elif state in [2, 3, 5] or is_busy:
+                status = State.BUSY
+            elif state == 1:
+                status = State.STANDBY if self.status == State.STANDBY else State.IDLE
                 diagnosis += ['Ready']
-            elif 'standby' in state_str:
-                GObject.idle_add(self.switch_status, State.STANDBY)
-                diagnosis += ['Preparing ...']
             else:
-                GObject.idle_add(self.switch_status, State.BUSY)
+                status = State.BUSY
         else:
             health |= 4
             diagnosis += ['Error! Staff Needed.']
-            GObject.idle_add(self.switch_status, State.ERROR)
+            status = State.ERROR
 
-        text_warn = self.warning_fbk.get()
-        warning = ", ".join([p.capitalize().strip() for p in text_warn.lower().split('. ')]).strip()
-
-        text_msg = self.status_fbk.get()
-        message = ", ".join([p.capitalize().strip() for p in text_msg.lower().split('. ')]).strip()
-        self.set_state(health=(health, 'notices', ', '.join(diagnosis)), message=message)
+        GObject.idle_add(self.switch_status, status)
+        self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
 
     def on_sample_changed(self, obj, val):
-        port_str = val.strip()
+        port_str = val.strip().split()
         if not port_str:
             self.sample = None
             logger.debug('Sample dismounted')
         else:
             port = '{}{}{}'.format(port_str[0], port_str[2], port_str[1])
-            self.props.sample = {
+            sample = {
                 'port': port.upper(),
                 'barcode': self.bar_code.get()
             }
-            logger.debug('Mounted:  port={port} barcode={barcode}'.format(**self.props.sample))
+            if sample != self.props.sample:
+                self.props.sample = sample
+                logger.debug('Mounted:  port={port} barcode={barcode}'.format(**self.props.sample))
 
     def on_ports_changed(self, obj, state_str):
         fbstr = ''.join(state_str.split())
@@ -380,9 +393,9 @@ class SAMAutoMounter(AutoMounter):
             'calib': ('ABCDEFGHIJKL', range(1, 9)),
         }
         containers = set()
-
         for location, (type_code, port_states_str) in info.items():
-            type_name = self.TypeCodes.get(type_code, 'puck')
+            type_name = self.TypeCodes.get(type_code)
+            if not type_name: continue
             spec = container_spec.get(type_name)
 
             if type_name == 'puck':
@@ -615,32 +628,38 @@ class ISARAMounter(AutoMounter):
         self.tool_puck_fbk = self.add_pv('{}:stscom_puckNumOnTool:fbk'.format(root))
         self.tool_sample_fbk = self.add_pv('{}:stscom_sampleNumOnTool:fbk'.format(root))
         self.power_fbk = self.add_pv('{}:stscom_power:fbk'.format(root))
+        self.puck_probe_fbk = self.add_pv('{}:dewar_puck_sts:fbk'.format(root))
 
-        self.running_fbk = self.add_pv('{}:out_6:fbk'.format(root))
-        self.drying_fbk = self.add_pv('{}:out_16:fbk'.format(root))
+        self.bot_busy_fbk = self.add_pv('{}:out_6:fbk'.format(root))
+        self.cmd_busy_fbk = self.add_pv('{}:stscom_path_run:fbk'.format(root))
+        self.mode_fbk = self.add_pv('{}:stscom_automode:fbk'.format(root))
+        self.sensor_fbk = self.add_pv('{}:in_3:fbk'.format(root))
+        self.air_fbk = self.add_pv('{}:in_2:fbk'.format(root))
+        self.ln2_fbk = self.add_pv('{}:stscom_ln2_reg:fbk'.format(root))
+        self.prog_fbk = self.add_pv('{}:out_9:fbk'.format(root))
 
-        self.path_busy_fbk = self.add_pv('{}:stscom_path_run:fbk'.format(root))
         self.message_fbk = self.add_pv('{}:message'.format(root))
         self.status_fbk = self.add_pv('{}:state'.format(root))
-        self.puck_probe_fbk = self.add_pv('{}:dewar_puck_sts:fbk'.format(root))
+        self.enabled_fbk = self.add_pv('{}:enabled'.format(root))
+
         self.command_fbk = self.add_pv('{}:cmnd_resp:fbk'.format(root))
         self.trajectory_fbk = self.add_pv('{}:stscom_path_name:fbk'.format(root))
 
         self.messages = {
             'Approaching gonio': self.add_pv('{}:out_5:fbk'.format(root)),
-            'Heating': self.add_pv('{}:out_16:fbk'.format(root)),
-            'Lid opened': self.add_pv('{}:in_22:fbk'.format(root)),
-            'Lid closed': self.add_pv('{}:in_31:fbk'.format(root)),
+            'Drying': self.add_pv('{}:out_16:fbk'.format(root)),
             'Ready for transfer': self.add_pv('{}:in_9:fbk'.format(root)),
             'Sample on Magnet': self.add_pv('{}:in_9:fbk'.format(root)),
         }
-        self.safety = {
-            'Air Pressure': self.add_pv('{}:in_2:fbk'.format(root)),
-            'Collision Sensor': self.add_pv('{}:in_3:fbk'.format(root)),
-            #'Cryo Hi-Level': self.add_pv('{}:in_4:fbk'.format(root)),
-            #'Cryo Lo-Level': self.add_pv('{}:in_7:fbk'.format(root)),
-            #'Cryo Liquid': self.add_pv('{}:in_8:fbk'.format(root)),
-            #'Connected': self.add_pv('{}:in_32:fbk'.format(root)),
+
+        self.errors = {
+            'Emergency/Air Pressure Fault': self.add_pv('{}:err_bit_0:fbk'.format(root)),
+            'Collision': self.add_pv('{}:err_bit_1:fbk'.format(root)),
+            'Comm Error': self.add_pv('{}:err_bit_2:fbk'.format(root)),
+            'Foot Collision': self.add_pv('{}:err_bit_9:fbk'.format(root)),
+            'Waiting for condition': self.add_pv('{}:err_bit_10:fbk'.format(root)),
+            'LN2 Error': self.add_pv('{}:err_bit_11:fbk'.format(root)),
+            'Dewar Fill Timeout': self.add_pv('{}:err_bit_12:fbk'.format(root)),
         }
 
         self.abort_cmd = self.add_pv('{}:abort'.format(root))
@@ -649,22 +668,23 @@ class ISARAMounter(AutoMounter):
         self.get_cmd = self.add_pv('{}:get'.format(root))
         self.put_cmd = self.add_pv('{}:put'.format(root))
         self.on_cmd = self.add_pv('{}:message'.format(root))
-        self.home_cmd = self.add_pv('{}:home'.format(root))
 
         self.puck_probe_fbk.connect('changed', self.on_pucks_changed)
         self.gonio_sample_fbk.connect('changed', self.on_sample_changed)
         self.gonio_puck_fbk.connect('changed', self.on_sample_changed)
 
-        self.path_busy_fbk.connect('changed', self.on_state_changed)
-        self.power_fbk.connect('changed', self.on_state_changed)
-        self.running_fbk.connect('changed', self.on_state_changed)
-        self.trajectory_fbk.connect('changed', self.on_state_changed)
+        state_variables = [
+            self.bot_busy_fbk, self.cmd_busy_fbk, self.mode_fbk, self.tool_number, self.air_fbk, self.prog_fbk,
+            self.sensor_fbk, self.prog_fbk, self.ln2_fbk, self.enabled_fbk
+        ] + self.errors.values()
+        for obj in state_variables:
+            obj.connect('changed', self.on_state_changed)
 
         for txt, obj in self.messages.items():
             obj.connect('changed', self.on_message_changed, txt)
 
-        for txt, obj in self.safety.items():
-            obj.connect('changed', self.on_safety_changed)
+        for obj in self.errors.values():
+            obj.connect('changed', self.on_error_changed)
 
     def is_mountable(self, port):
         if self.is_valid(port):
@@ -768,8 +788,13 @@ class ISARAMounter(AutoMounter):
         puck = int(self.gonio_puck_fbk.get())
         pin = int(self.gonio_sample_fbk.get())
 
+        # reset state
+        port = self.props.sample.get('port')
+        if port in self.props.ports:
+            self.props.ports[port] = Port.UNKNOWN
         if 1 <= puck <=29 and 1<= pin <= 16:
             port = '{}{}'.format(self.PUCKS[puck], pin)
+            self.props.ports[port] = Port.MOUNTED
             self.props.sample = {
                 'port': port,
                 'barcode': ''
@@ -778,37 +803,56 @@ class ISARAMounter(AutoMounter):
             self.props.sample = {}
 
     def on_state_changed(self, obj, value):
-        power = self.power_fbk.get()
-        path_state = self.path_busy_fbk.get()
-        running_state = self.running_fbk.get()
-        path_name = self.trajectory_fbk.get()
+        cmd_busy = self.cmd_busy_fbk.get() == 1
+        bot_busy = self.bot_busy_fbk.get() == 1
+        auto_mode = self.mode_fbk.get() == 1
+        gripper_good = self.tool_number.get() == 0
+        air_ok = self.air_fbk.get() == 1
+        ln2_ok = self.ln2_fbk.get() == 1
+        sensor_ok = self.sensor_fbk.get() == 1
+        prog_ok = self.prog_fbk.get() == 1
+        enabled = self.enabled_fbk.get() == 1
+
+        controller_good = (air_ok and ln2_ok and sensor_ok and prog_ok)
+        robot_ready = (gripper_good and auto_mode)
 
         health = 0
         diagnosis = []
 
-        if power == 0:
-            GObject.idle_add(self.switch_status, State.OFF)
-            diagnosis += ['Powered down']
-
-        elif running_state:
-            GObject.idle_add(self.switch_status, State.BUSY)
-            diagnosis += ['{}ing ...'.format(path_name)]
+        if controller_good and robot_ready and self.is_healthy():
+            if not enabled:
+                status = State.DISABLED
+                health |= 16
+                diagnosis += ['Disabled by staff']
+            elif bot_busy:
+                status = State.BUSY
+            elif cmd_busy:
+                status = State.STOPPING
+            else:
+                status = State.STANDBY if self.status == State.STANDBY else State.IDLE
+        elif not controller_good:
+            status = State.ERROR
+            self.set_state(message='Staff Needed! Check Controller.')
+        elif not robot_ready:
+            status = State.WARNING
+            self.set_state(message='Staff Needed! Wrong Mode/Tool.')
         else:
-            GObject.idle_add(self.switch_status, State.IDLE)
-            diagnosis += ['Ready']
+            health |= 4
+            diagnosis += ['Error! Staff Needed.']
+            status = State.ERROR
 
-        message = ', '.join(diagnosis)
-        self.set_state(health=(health, 'notices', 'Not ready'), message=message)
+        GObject.idle_add(self.switch_status, status)
+        self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
 
     def on_message_changed(self, obj, value, text):
         if value == 1:
             self.set_state(message=text)
 
-    def on_safety_changed(self, obj, value):
+    def on_error_changed(self, obj, value):
         messages = [
-            txt for txt, obj in self.safety.items() if obj.is_active() and obj.get() == 0
+            txt for txt, obj in self.errors.items() if obj.is_active() and obj.get() == 1
         ]
         if messages:
-            self.set_state(health=(4, 'safety', ', '.join(messages)))
+            self.set_state(health=(4, 'error', ', '.join(messages)))
         else:
-            self.set_state(health=(0, 'safety', ''))
+            self.set_state(health=(0, 'error', ''))
