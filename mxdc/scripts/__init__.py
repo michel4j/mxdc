@@ -1,20 +1,4 @@
-from mxdc.engines.centering import auto_center_loop, auto_center_crystal, auto_center_capillary
 from mxdc.engines.scripting import Script
-
-
-class CenterSample(Script):
-    description = "Centering automatically."
-
-    def run(self, crystal=False, loop=False, capillary=False):
-        if crystal:
-            results = auto_center_crystal()
-        elif loop:
-            results = auto_center_loop()
-        elif capillary:
-            results = auto_center_capillary()
-        else:
-            results = {}
-        return results
 
 
 class SetMountMode(Script):
@@ -22,9 +6,9 @@ class SetMountMode(Script):
 
     def run(self):
         with self.beamline.lock:
-            # safe_distance = self.beamline.config['safe_distance']
-            # if self.beamline.detector_z.get_position() < safe_distance:
-            #     self.beamline.detector_z.move_to(safe_distance)
+            safe_distance = self.beamline.config['safe_distance']
+            if self.beamline.detector_z.get_position() < safe_distance:
+                 self.beamline.detector_z.move_to(safe_distance)
 
             self.beamline.goniometer.set_mode('MOUNTING', wait=False)
             self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=False)

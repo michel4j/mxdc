@@ -143,6 +143,7 @@ class DSService(service.Service):
             args = ['mkdir', '-p', folder]
             try:
                 out = subprocess.check_output(args, preexec_fn=demote(user_name))
+                out = subprocess.check_output(['sync'], preexec_fn=demote(user_name))
             except subprocess.CalledProcessError as e:
                 logger.error('Error analysing frame: {}'.format(e))
             os.chmod(folder, self.FILE_MODE)

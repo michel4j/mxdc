@@ -41,7 +41,6 @@ class IBeamTuner(Interface):
 class BaseTuner(BaseDevice):
     implements(IBeamTuner)
     __gsignals__ = {
-        "enabled": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         "changed": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
         "percent": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
     }

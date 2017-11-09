@@ -1,10 +1,12 @@
 import numpy
+import time
 from gi.repository import GObject
 from zope.interface import implements
-
+from mxdc.utils.log import get_module_logger
 from interfaces import IDevice
 from mxdc.devices.base import BaseDevice
 
+logger = get_module_logger(__name__)
 
 class ISampleStage(IDevice):
     """A specialized stage for the goniometer sample alignment"""
@@ -70,18 +72,48 @@ class SampleStageBase(BaseDevice):
     def get_omega(self):
         return numpy.radians(self.omega.get_position() - self.offset)
 
+    def is_busy(self):
+        raise NotImplementedError('Sub classes must implement "is_busy"')
+
+    def wait(self, start=True, stop=True):
+        """Wait for the busy state to change.
+
+        Kwargs:
+            - `start` (bool): Wait for the motor to start moving.
+            - `stop` (bool): Wait for the motor to stop moving.
+        """
+        poll = 0.05
+        timeout = 5.0
+
+        # initialize precision
+        if start and not self.is_busy():
+            while self.is_busy() and timeout > 0:
+                timeout -= poll
+                time.sleep(poll)
+            if timeout <= 0:
+                logger.warning('%s timed out waiting for sample stage to start moving')
+                return False
+        timeout = 120
+        if stop and self.is_busy():
+            while self.is_busy() and timeout > 0:
+                time.sleep(poll)
+                timeout -= poll
+            if timeout <= 0:
+                logger.warning('%s timed out waiting for sample stage to stop moving')
+                return False
+
 
 class Sample3Stage(SampleStageBase):
     implements(ISampleStage)
 
-    def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, independent=False):
+    def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, linked=True):
         SampleStageBase.__init__(self)
         self.name = name
         self.x = x
         self.y1 = y1
         self.y2 = y2
         self.offset = offset
-        self.independent = independent
+        self.linked = linked
         self.omega = omega
         self.add_devices(x, y1, y2, omega)
         for dev in (self.x, self.y1, self.y2, self.omega):
@@ -100,31 +132,38 @@ class Sample3Stage(SampleStageBase):
         return self.x.get_position(), self.y1.get_position(), self.y2.get_position()
 
     def move_xyz(self, xl, yl, zl):
-        self.x.move_to(xl, wait=True)
-        self.y1.move_to(yl, wait=True)
-        self.y2.move_to(zl, wait=True)
+        self.wait(start=False)
+        self.x.move_to(xl, wait=self.linked)
+        self.y1.move_to(yl, wait=self.linked)
+        self.y2.move_to(zl, wait=self.linked)
+        if not self.linked:
+            self.wait()
 
     def move_xyz_by(self, xd, yd, zd):
-        self.x.move_by(xd, wait=True)
-        self.y1.move_by(yd, wait=True)
-        self.y2.move_by(zd, wait=True)
+        self.wait(start=False)
+        self.x.move_by(xd, wait=self.linked)
+        self.y1.move_by(yd, wait=self.linked)
+        self.y2.move_by(zd, wait=self.linked)
+        if not self.linked:
+            self.wait()
 
     def move_screen(self, xw, yw, zw):
+        self.wait(start=False)
         xl, yl, zl = self.screen_to_xyz(xw, yw, zw)
-        self.x.move_to(xl, wait=True)
-        self.y1.move_to(yl, wait=True)
-        self.y2.move_to(zl, wait=True)
+        self.x.move_to(xl, wait=self.linked)
+        self.y1.move_to(yl, wait=self.linked)
+        self.y2.move_to(zl, wait=self.linked)
+        if not self.linked:
+            self.wait()
 
     def move_screen_by(self, xwd, ywd, zwd):
+        self.wait(start=False)
         xld, yld, zld = self.screen_to_xyz(xwd, ywd, zwd)
-        self.x.move_by(xld, wait=True)
-        self.y1.move_by(yld, wait=True)
-        self.y2.move_by(zld, wait=True)
-
-    def wait(self):
-        self.x.wait()
-        self.y1.wait()
-        self.y2.wait()
+        self.x.move_by(xld, wait=self.linked)
+        self.y1.move_by(yld, wait=self.linked)
+        self.y2.move_by(zld, wait=self.linked)
+        if not self.linked:
+            self.wait()
 
     def stop(self):
         self.x.stop()
@@ -138,12 +177,12 @@ class Sample3Stage(SampleStageBase):
 class Sample2Stage(SampleStageBase):
     implements(ISampleStage)
 
-    def __init__(self, x, y, omega, name='Sample Stage', independent=False):
+    def __init__(self, x, y, omega, name='Sample Stage', linked=False):
         super(Sample2Stage, self).__init__()
         self.name = name
         self.x = x
         self.y = y
-        self.independent = independent
+        self.linked = linked
         self.omega = omega
         self.add_devices(x, y, omega)
 
@@ -170,10 +209,6 @@ class Sample2Stage(SampleStageBase):
     def move_world_by(self, xwd, ywd, zwd):
         self.x.move_by(xwd, wait=True)
         self.y.move_by(ywd, wait=True)
-
-    def wait(self):
-        self.x.wait()
-        self.y.wait()
 
     def stop(self):
         self.x.stop()
