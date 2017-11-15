@@ -21,7 +21,6 @@ html_sidebars = {
     '**': [
         'logo-text.html',
         'globaltoc.html',
-        'sourcelink.html',
         'searchbox.html',
     ],
 }

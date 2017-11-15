@@ -8,7 +8,7 @@ Samples
 
 The Samples View allows users to view their list of samples, select and mount samples, center samples in the beam,
 perform diffraction cartography (rastering) and also control the sample environment, such as sample temperature
-and humidity. The detailed feature available will depend on the specific capabilities of the beamline.
+and humidity. The features available will depend on specific capabilities of the beamline.
 
 .. figure:: samples.svg
     :align: center
@@ -21,8 +21,8 @@ Cryo Tool
 ---------
 The cryo parameters are shown on the top-left hand corner of the Samples View. Values shown include, *temperature*,
 *flow rates*, *cryogen fill level*. Where applicable, an annealing tool is also provided. To use the annealing tool,
-set the annealing duration using the entry, and click the button to start annealing. The annealing operation can be
-stopped at any time using the same button.
+set the annealing duration using the entry, and click the button to start annealing. The entry will countdown the number
+of seconds remain in the annealing operation.  The annealing operation can be stopped at any time using the same button.
 
 .. image:: cryo.png
     :align: center
@@ -42,8 +42,8 @@ The sample microscope provides a video display of the sample position.
     :alt: Sample Microscope
 
 
-At the top of the sample microscope
-area is a toolbar with buttons for zooming, moving the sample, automated loop, crystal and capillary centering,
+At the top of the sample microscope  area is a toolbar with buttons for automated centering, zooming, moving the sample,
+    automated loop, crystal and capillary centering,
 and finally buttons for defining rastering grids and saving points. Sample lighting adjustments can be made using
 the tools at the bottom of the tool.
 
