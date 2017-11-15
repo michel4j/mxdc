@@ -82,7 +82,6 @@ class ReportManager(TreeManager):
                 row[self.Data.STATE.value] = self.State.FAILED
             row[self.Data.TITLE.value] = title
 
-
     def row_activated(self, view, path, column):
         model = view.get_model()
         itr = model.get_iter(path)
@@ -252,11 +251,17 @@ class AnalysisController(GObject.GObject):
         strategy = self.reports.strategy
         dataset_controller = globalRegistry.lookup([], IDatasets)
         if strategy:
+            default_rate = self.beamline.config['default_delta']/self.beamline.config['default_exposure']
+            exposure_rate = strategy.get('exposure_rate', default_rate)
+            max_delta = strategy.get('max_delta', self.beamline.config['default_delta'])
+
             run = {
-                'attenuation': strategy.get('attenuation', 0),
+                'attenuation': strategy.get('attenuation', 0.0),
                 'start': strategy.get('start_angle', 0.0),
-                'range': strategy.get('tatal_angle', 180),
-                'resolution': strategy.get('exp_resolution'),
+                'range': strategy.get('total_angle', 180),
+                'resolution': strategy.get('resolution', 2.0),
+                'exposure': max_delta/exposure_rate,
+                'delta': max_delta,
                 'name': 'data',
             }
 

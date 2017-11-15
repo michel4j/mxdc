@@ -65,7 +65,7 @@ beamline staff if in doubt.
 
 Beam Tuner
 ----------
-The beam tuner shows the current beamline flux as a percentation of the current expected flux. On some beamlines, it
+The beam tuner shows the current beamline flux as a percentage of the current expected flux. On some beamlines, it
 also allows the beam tuning to be adjusted.
 
 .. image:: beam-tuner.png
