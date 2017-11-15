@@ -98,6 +98,7 @@ class MXBeamline(object):
             'admin_groups': [2000],
             'energy_range': (6.0, 18.0),
             'zoom_levels': (1,4,6),
+            'distance_limits': (100.0, 1000.0),
             'default_attenuation': 90.0,
             'default_exposure': 0.5,
             'default_delta': 0.5,

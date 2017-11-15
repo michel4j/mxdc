@@ -37,6 +37,7 @@ def calculate_skip(strategy, delta, first):
 
 
 class RunItem(GObject.GObject):
+
     class StateType:
         (ADD, DRAFT, ACTIVE, ERROR, COMPLETE) = range(5)
 
@@ -154,7 +155,6 @@ class DataEditor(gui.BuilderMixin):
         'frames': ['entry', '{}', int, ''],
         'name': ['entry', '{}', str, ''],
         'strategy': ['cbox', '{}', int, StrategyType.SINGLE],
-        #'inverse': ['check', '{}', bool, False],
         'point': ['pbox', '{}', tuple, None],
         'end_point': ['pbox', '{}', tuple, None],
         'vector_size': ['spin', '{}', int, 10],
@@ -172,6 +172,7 @@ class DataEditor(gui.BuilderMixin):
         self.item_links = []
         self.handlers = {}
         self.build_gui()
+        self.exposure_rate = 1.0
         self.dir_template_btn.connect('clicked', self.on_dir_template)
 
     def set_item(self, item):
@@ -222,6 +223,8 @@ class DataEditor(gui.BuilderMixin):
                 self.data_name_entry.get_style_context().remove_class('warning')
             else:
                 self.data_name_entry.get_style_context().add_class('warning')
+
+        self.exposure_rate = info['delta']/float(info['exposure'])
 
     def get_parameters(self):
         info = {}
@@ -304,10 +307,21 @@ class DataEditor(gui.BuilderMixin):
         if field_name == 'name':
             new_values['name'] = misc.slugify(new_values['name'])
         if field_name in ['resolution', 'energy']:
+            min_e, max_e = self.beamline.config['energy_range']
+            min_d, max_d = self.beamline.config['distance_limits']
+
+            # calculate resolution limits dynamically based on energy
+            min_res = converter.dist_to_resol(min_d, self.beamline.detector.mm_size, new_values['energy'])
+            max_res = converter.dist_to_resol(max_d, self.beamline.detector.mm_size, new_values['energy'])
+
+            print  (min_res, max_res), (min_d, max_d)
+
+            new_values['resolution'] = max(min_res, min(max_res, new_values['resolution']))
+            new_values['energy'] = max(min_e, min(max_e, new_values['energy']))
             new_values['distance'] = converter.resol_to_dist(
                 new_values['resolution'], self.beamline.detector.mm_size, new_values['energy']
             )
-            new_values[field_name] = round(new_values[field_name], 1)
+
         elif field_name == 'strategy':
             defaults = Strategy.get(new_values['strategy'])
             if new_values['strategy'] == StrategyType.FULL:
@@ -315,6 +329,16 @@ class DataEditor(gui.BuilderMixin):
             if new_values['strategy'] not in [StrategyType.SINGLE, StrategyType.POWDER]:
                 defaults['exposure'] = self.beamline.config['default_exposure']
             new_values.update(defaults)
+        elif field_name == 'delta':
+            new_values['delta'] = min(720.0, max(new_values['delta'], 0.01))
+            new_values['exposure'] = new_values['delta']/self.exposure_rate
+        elif field_name == 'range':
+            new_values['range'] = min(1440.0, max(new_values['range'], 0.01))
+        elif field_name == 'attenuation':
+            new_values['attenuation'] = min(100.0, max(new_values['attenuation'], 0.0))
+        elif field_name == 'first':
+            new_values['first']  = max(1, new_values['first'])
+
         self.configure(new_values)
 
     def update(self, *args, **kwargs):

@@ -15,6 +15,7 @@ CONFIG = {
     'subnet': '10.52.28.0/22',
 
     'admin_groups': [1000, 2000],
+    'distance_limits': (100.0, 1000.0),
     'energy_range': (6.0, 18.0),
     'default_attenuation': 90.0,
     'default_exposure': 0.2,
@@ -29,6 +30,7 @@ CONFIG = {
     'orientation': 'right',
     'linked_sample_stage': False,
     'centering_backlight': 37,
+    'zoom_levels': (1, 4, 6),
     'bug_report': ['michel.fodje@lightsource.ca']
 }
 

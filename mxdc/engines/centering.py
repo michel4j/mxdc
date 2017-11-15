@@ -39,9 +39,9 @@ class Centering(GObject.GObject):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.method = None
         self.methods = {
-            'loop': self.run_loop,
-            'crystal': self.run_crystal,
-            'capillary': self.run_capillary,
+            'loop': self.center_loop,
+            'crystal': self.center_crystal,
+            'capillary': self.center_capillary,
         }
 
     def configure(self, method='loop'):
@@ -78,7 +78,7 @@ class Centering(GObject.GObject):
             else:
                 GObject.idle_add(self.emit, 'done')
 
-    def run_loop(self):
+    def center_loop(self):
         start_time = time.time()
         self.beamline.sample_frontlight.set_off()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
@@ -118,10 +118,10 @@ class Centering(GObject.GObject):
                 self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
         logger.info('Centering Done in {:0.1f} seconds'.format(time.time() - start_time))
 
-    def run_crystal(self):
-        self.run_loop()
+    def center_crystal(self):
+        self.center_loop()
 
-    def run_capillary(self):
+    def center_capillary(self):
         start_time = time.time()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
         self.beamline.sample_frontlight.set_off()
