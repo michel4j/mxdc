@@ -93,7 +93,6 @@ DEVICES = {
     'i_0': counter.Counter('AH501-03:QEM:SumAll:MeanValue_RBV'),
     'i_1': counter.Counter('AH501-04:QEM:SumAll:MeanValue_RBV'),
     'i_2': counter.Counter('AH501-01:QEM:SumAll:MeanValue_RBV'),
-    'i_4': counter.Counter('A1608-3-06:A:fbk'),
 
     # Misc: Automounter, HC1 etc
     #'automounter': automounter.SAMRobot('ROB16083I', 'ROB1608-300'),
@@ -116,11 +115,9 @@ SERVICES = {
 # Devices only available in the console
 CONSOLE = {
     'vfm_bend': motor.PseudoMotor2('BL08ID1:VFM:Focus:foc'),
-    'vfm_y': motor.PseudoMotor2('BL08ID1:VFMHeight:mm'),
-    'vfm_yaw': motor.PseudoMotor2('BL08ID1:VFMTrans:yaw:mm'),
-    'vfm_pitch': motor.PseudoMotor2('BL08ID1:VFMPitch:mrad'),
-    'vfm_roll': motor.PseudoMotor2('BL08ID1:VFMRoll:mrad'),
-    'vfm_x': motor.PseudoMotor2('BL08ID1:VFMTrans:cm'),
+    'vfm_y': motor.PseudoMotor2('BL08ID1:VFM:Height:mm'),
+    'vfm_pitch': motor.PseudoMotor2('BL08ID1:VFM:Pitch:mrad'),
+    'vfm_roll': motor.PseudoMotor2('BL08ID1:VFM:Roll:mrad'),
     'dcm_roll1': motor.VMEMotor('SMTR16082I1007:deg'),
     'dcm_roll2': motor.VMEMotor('SMTR16082I1008:deg'),
     'dcm_pitch': motor.VMEMotor('SMTR16082I1010:deg'),
@@ -128,15 +125,12 @@ CONSOLE = {
     'dcm_y': motor.VMEMotor('SMTR16082I1006:mm'),
     'dcm_t1': motor.VMEMotor('SMTR16082I1011:mm'),
     'dcm_t2': motor.VMEMotor('SMTR16082I1012:mm'),
-    'dcm_bend': motor.VMEMotor('BL08ID1:C2NewBndRad:mm'),
     'wbs_hgap': motor.PseudoMotor2('PSL16082I1001:gap:mm'),
     'wbs_vgap': motor.PseudoMotor2('PSL16082I1002:gap:mm'),
     'wbs_x': motor.PseudoMotor2('PSL16082I1001:cntr:mm'),
     'wbs_y': motor.PseudoMotor2('PSL16082I1002:cntr:mm'),
     'mbs_top': motor.VMEMotor('SMTR16082I1017:mm'),
     'mbs_bot': motor.VMEMotor('SMTR16082I1018:mm'),
-    'es_vgap': motor.VMEMotor('SMTR16083I1001:mm'),
-    'es_hgap': motor.VMEMotor('SMTR16083I1003:mm'),
     'es_x': motor.VMEMotor('SMTR16083I1002:mm'),
     'es_y': motor.VMEMotor('SMTR16083I1004:mm'),
     'gonio_y': motor.VMEMotor('SMTR16083I1009:mm'),

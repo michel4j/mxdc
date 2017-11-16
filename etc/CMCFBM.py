@@ -109,7 +109,7 @@ DEVICES = {
 SERVICES = {
     'dss': clients.LocalDSSClient(),
     'lims': clients.MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
-    'dps': clients.DPSClient(),
+    'dps': clients.DPSClient('hpc1608-001.clsi.ca:9991'),
 }
 
 # Devices only available in the console

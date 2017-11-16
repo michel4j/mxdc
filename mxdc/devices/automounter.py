@@ -10,7 +10,6 @@ from interfaces import IAutomounter
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.automounter import Port, SAM_DEWAR, ISARA_DEWAR
 from mxdc.utils.log import get_module_logger
-from mxdc.utils.state import StateMachine
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -187,11 +186,6 @@ class AutoMounter(BaseDevice):
         return (self.status == State.STANDBY)
 
 
-class SAMState(StateMachine):
-    class State(Enum):
-        HOME, SOAKING, APPROACHING, STOPPING = range(4)
-
-
 class SAMAutoMounter(AutoMounter):
     StateCodes = {
         '0': Port.EMPTY,
@@ -288,7 +282,7 @@ class SAMAutoMounter(AutoMounter):
             if wait:
                 success = self.wait(states={State.BUSY}, timeout=10)
                 if success:
-                    success = self.wait(states={State.STOPPING}, timeout=300)
+                    success = self.wait(states={State.STOPPING, State.IDLE}, timeout=300)
                 if not success:
                     self.set_state(message="Mounting failed!")
                 return success
@@ -315,7 +309,7 @@ class SAMAutoMounter(AutoMounter):
             if wait:
                 success = self.wait(states={State.BUSY}, timeout=10)
                 if success:
-                    success = self.wait(states={State.STOPPING}, timeout=240)
+                    success = self.wait(states={State.STOPPING, State.IDLE}, timeout=240)
                 if not success:
                     self.set_state(message="Dismounting failed!")
                 return success
@@ -733,7 +727,7 @@ class ISARAMounter(AutoMounter):
                 success = self.wait(states={State.BUSY}, timeout=5)
 
             if wait and success:
-                success = self.wait(states={State.IDLE}, timeout=240)
+                success = self.wait(states={State.STOPPING, State.IDLE}, timeout=60)
                 if not success:
                     self.set_state(message="Mounting timed out!")
                 return success
@@ -758,7 +752,7 @@ class ISARAMounter(AutoMounter):
             logger.info('{}: Dismounting sample.'.format(self.name, ))
             success = self.wait(states={State.BUSY}, timeout=5)
             if wait and success:
-                success = self.wait(states={State.IDLE}, timeout=240)
+                success = self.wait(states={State.STOPPING, State.IDLE}, timeout=60)
                 if not success:
                     self.set_state(message="Dismount timed out!")
                 return success
