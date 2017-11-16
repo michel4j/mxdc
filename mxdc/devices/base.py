@@ -101,6 +101,7 @@ class BaseDevice(GObject.GObject):
         self.state_pattern = re.compile('^(\w+)_state$')
         self.bool_pattern = re.compile('^is_(\w+)$')
         self.signals = get_signal_properties(self)
+        GObject.timeout_add(10000, self._show_inactive)
 
     def __repr__(self):
         state_txts = []
@@ -110,12 +111,17 @@ class BaseDevice(GObject.GObject):
         txt = "<{}: {}\n{}\n>".format(self.__class__.__name__, self.name, '\n'.join(state_txts))
         return txt
 
+    def _show_inactive(self):
+        if self.pending:
+            inactive_devs = [dev.name for dev in self.pending]
+            logger.debug('[{}] inactive variables: {}'.format(self.name, inactive_devs))
+
     def do_active(self, state):
         desc = {True: 'active', False: 'inactive'}
         logger.info("({}) is now {}.".format(self.name, desc[state]))
         if not state and len(self.pending) > 0:
             inactive_devs = [dev.name for dev in self.pending]
-            msg = '[{:d}] inactive children.'.format(len(inactive_devs))
+            msg = '[{:d}] inactive variables.'.format(len(inactive_devs))
             logger.debug("(%s) %s" % (self.name, msg))
 
     def is_active(self):
