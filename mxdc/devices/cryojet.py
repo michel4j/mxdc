@@ -109,7 +109,7 @@ class CryoJet(CryoJetBase):
         self.temp_fbk = self.add_pv('{}:sensorTemp:get'.format(name))
         self.sample_fbk = self.add_pv('{}:SampleFlow:get'.format(name))
         self.shield_fbk = self.add_pv('{}:ShieldFlow:get'.format(name))
-        self.sample_sp = self.add_pv('{}:SampleFlow:set'.format(name))
+        self.sample_sp = self.add_pv('{}:sampleFlow:set'.format(name))
         self.level_fbk = self.add_pv('{}:ch1LVL:get'.format(level_name))
         self.fill_status = self.add_pv('{}:status:ch1:N.SVAL'.format(level_name))
         self.nozzle = CryoJetNozzle(nozzle_name)
