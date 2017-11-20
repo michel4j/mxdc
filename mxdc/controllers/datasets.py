@@ -422,7 +422,8 @@ class DatasetsController(GObject.GObject):
     def on_row_activated(self, list, row):
         position = row.get_index()
         item = self.run_store.get_item(position)
-        if position > 8:
+        num_items = self.run_store.get_n_items()
+        if num_items == 8:
             return
         self.editor_frame.set_row(row)
         if item.state == item.StateType.ADD:
