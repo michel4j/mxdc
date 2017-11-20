@@ -1,9 +1,11 @@
 import common
 import uuid
 from datetime import datetime
+import numpy
 
 from gi.repository import Gtk
 from mxdc.beamlines.mx import IBeamline
+from mxdc.devices.misc import SimPositioner
 from mxdc.widgets import misc
 from mxdc.widgets import ticker
 from mxdc.conf import load_cache, save_cache
@@ -28,6 +30,12 @@ class HumidityController(gui.Builder):
         'resolution': ['entry', '{:0.3g}', float, 3.0],
     }
     ConfigPrefix = 'hc'
+    PLOTS = {
+        'drop': 'Drop Size',
+        'cell': 'Maximum Cell Dimension',
+        'score': 'Diffraction Score',
+        'resolution': 'Diffraction Resolution'
+    }
 
     def __init__(self, widget):
         super(HumidityController, self).__init__()
@@ -41,6 +49,11 @@ class HumidityController(gui.Builder):
         self.limits = {}
         self.formats = {}
         self.entries = {}
+        self.diff_devices = {
+            'cell': SimPositioner('Max Cell Dimension', pos=numpy.nan, delay=False, noise=0),
+            'score': SimPositioner('Diffraction Score', pos=numpy.nan, delay=False, noise=0),
+            'resolution': SimPositioner('Diffraction Resolution', pos=numpy.nan, delay=False, noise=0),
+        }
         self.plotter = ticker.ChartManager(interval=500, view=240)
         self.setup()
         self.humidifier.connect('active', self.activate)
@@ -49,6 +62,15 @@ class HumidityController(gui.Builder):
         self.collector.connect('done', self.on_collector_done)
         self.collector.connect('result', self.on_collector_result)
         self.hc_diff_btn.connect('clicked', self.on_collect)
+
+        self.plot_options = {
+            'cell': self.hc_cell_option,
+            'drop': self.hc_drop_option,
+            'score': self.hc_score_option,
+            'resolution': self.hc_resolution_option
+        }
+        for key, option in self.plot_options.items():
+            option.connect('toggled', self.on_plot_option)
 
     def load_from_cache(self):
         cache = load_cache('humidity')
@@ -107,7 +129,7 @@ class HumidityController(gui.Builder):
         params['attenuation'] = self.beamline.attenuator.get()
         params['delta'] = 1.0
         params['uuid'] = str(uuid.uuid4())
-        params['name'] = datetime.now().strftime('%y%m%d-%H%M')
+        params['name'] = datetime.now().strftime('%y%m%d-%H%M%S')
         params['activity'] = 'humidity'
         params = datatools.update_for_sample(params, self.sample_store.get_current())
 
@@ -126,11 +148,32 @@ class HumidityController(gui.Builder):
         self.hc_diff_btn.set_sensitive(True)
 
     def on_collector_result(self, collector, result):
-        print collector, result
+        if result:
+            resolution = result['resolution']
+            cell = result['max_cell']
+            bragg = result['bragg_spots']
+            ice = 1 / (1.0 + result['ice_rings'])
+            saturation = result['saturation'][1]
+            sc_x = numpy.array([bragg, saturation, ice])
+            sc_w = numpy.array([5, 10, 0.2])
+            score = numpy.exp((sc_w * numpy.log(sc_x)).sum() / sc_w.sum())
+            self.diff_devices['cell'].set_position(cell)
+            self.diff_devices['resolution'].set_position(resolution)
+            self.diff_devices['score'].set_position(score)
+        else:
+            self.diff_devices['score'].set_position(0.0)
 
     def on_collect(self, button):
         button.set_sensitive(False)
         self.take_snapshot()
+
+    def on_plot_option(self, button):
+        active = 'drop'
+        for key, option in self.plot_options.items():
+            if option.get_active():
+                active = key
+                break
+        self.plotter.select_active(self.PLOTS[active])
 
     def setup(self):
         self.monitors = [
@@ -142,7 +185,9 @@ class HumidityController(gui.Builder):
             'temperature': misc.ActiveEntry(self.humidifier.temperature, 'Temperature', fmt="%0.2f"),
         }
         self.plotter.add_plot(self.humidifier.humidity, 'Relative Humidity', axis=0)
-        self.plotter.add_plot(self.humidifier.drop_size, 'Drop Size', axis=1)
+        for name, device in self.diff_devices.items():
+            self.plotter.add_plot(device, self.PLOTS[name], axis=1, alternate=True)
+        self.plotter.add_plot(self.humidifier.drop_size, self.PLOTS['drop'], axis=1, alternate=True)
 
         self.hc_control_grid.attach(self.entries['humidity'], 0, 0, 1, 1)
         self.hc_control_grid.attach(self.entries['temperature'], 1, 0, 1, 1)

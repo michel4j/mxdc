@@ -168,7 +168,7 @@ Repeating the process at angular intervals of 90 degrees a couple of times is us
 <p><em>Auto-centering</em> is only availble in Centering mode. There are Four types of auto-centering operations available:
 loop-centering, crystal-centering, diffraction based centering and capillary centering.</p>
 <p>The centered position can be saved by clicking on the <em>Save Point</em> icon on the toolbar.  Saved points are annotated on
-the video overlay and labeled P0, P1, P2, ...</p>
+the video overlay and labeled P1, P2, P3, ...</p>
 <p><em>Grids</em>: Arbitrary grids can be defined using the grid tool. To define a grid for rastering, click on the grid icon.
 Once activated, the cursor changes into a target crosshair. You can then define a polygon enclosing the area you want to
 scan. A valid polygon is a list of at least 3 points starting and ending at the same location. A line can be defined as
@@ -200,7 +200,8 @@ The selection buttons can be used to select/deselect all visible samples. The re
 sample information with MxLIVE.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">Only samples identified within the automounter, which are not empty or bad can be mounted using the automounter.</p>
+<p class="last">Only samples identified within the automounter, which have not been marked as empty or bad, can be mounted using the
+automounter.</p>
 </div>
 <p>To select a sample for mounting, double-click on the corresponding row. Then the <em>Next Sample</em> tool at the bottom of the list
 will be updated to reflect the current selection, if the sample meets all required criteria. Click the mount button to
@@ -239,9 +240,21 @@ Results for each point of the raster scan are then displayed on the table, and a
 </div>
 <div class="section" id="humidity-tool">
 <h2><a class="toc-backref" href="#id7">Humidity Tool</a><a class="headerlink" href="#humidity-tool" title="Permalink to this headline">¶</a></h2>
-<p>The Humidity control tool allows users to perform controlled dehydration experiments on their samples at room temperature.</p>
+<p>The Humidity control tool enables controlled dehydration experiments on samples at room temperature.</p>
 <img alt="Humidity Tool." class="align-center" src="_images/humidity.png" />
-<p>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The humidity tool is only available on beamlines equiped with a humidity control device. If the device is available
+but not properly setup, the controls will be disabled.</p>
+</div>
+<p>The <em>relative humidity</em> and <em>temperature</em> of the air stream can be changed using the controls at the top of the page. To
+collect and analyse a diffraction image at the current humidity, set the exposure time and highest expected resolution
+using the <em>Diffraction</em> controls, then click the start button of the <em>Diffraction</em> control. A single image will be
+collected, analysed and the results will be added to the plot. The <em>plot</em> controls allow you to select which value is
+plotted on the second Y-axis -- the options are <em>drop size</em>, <em>diffraction resolution</em>, <em>maximum unit cell</em> or <em>diffraction score</em>.</p>
+<p>Use the tools below the plot to pause, zoom, save or clear the plot.</p>
+<p>The freeze button can be used to move the goniometer into a convenient position for freezing the sample using a vial of
+liquid nitrogen.</p>
 </div>
 </div>
 
