@@ -1,20 +1,20 @@
+import os
 import threading
 import time
+from collections import defaultdict
 
 import numpy
-import os
-from mxdc.widgets import dialogs
-from mxdc.utils import misc
-from collections import defaultdict
 from gi.repository import Gtk, GObject
 from matplotlib import rcParams
 from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+from mxdc.utils import misc
+from mxdc.widgets import dialogs
 
 rcParams['font.family'] = 'Cantarell'
-rcParams['font.size'] = 9
+rcParams['font.size'] = 10
 
 COLORS = [
     '#1f77b4',
@@ -29,6 +29,7 @@ COLORS = [
     '#17becf'
 ]
 
+
 class TickerChart(Gtk.Box):
     __gsignals__ = {
         'cursor-time': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
@@ -36,26 +37,29 @@ class TickerChart(Gtk.Box):
 
     def __init__(self, interval=100, view=20, keep=None, linewidth=1):
         Gtk.Box.__init__(self)
-        self.fig = Figure(facecolor='w')
+        self.fig = Figure(facecolor='w', dpi=80)
         self.canvas = FigureCanvas(self.fig)
         self.pack_start(self.canvas, True, True, 0)
 
         self.data = {}
         self.plots = {}
         self.info = {}
+        self.alternates = set()
+        self.active = None
 
         self.axes = []
         self.axes.append(self.fig.add_subplot(111))
+        self.fig.subplots_adjust(left=0.12, right=0.88)
 
         self.axes[0].set_xlabel('seconds ago')
         self.interval = interval  # milliseconds
         self.view_range = view  # seconds
 
-        self.keep_range = keep or (view*4)  # seconds
+        self.keep_range = keep or (view * 4)  # seconds
         self.linewidth = linewidth
 
         self.keep_size = int(self.keep_range * 1000 / self.interval)
-        self.view_step = view//2
+        self.view_step = view // 2
         self.deviation = 10
 
         self.view_time = time.time()
@@ -91,7 +95,6 @@ class TickerChart(Gtk.Box):
         self.data[name] = numpy.empty(self.keep_size)
         self.data[name][:] = numpy.nan
 
-
     def resize_data(self):
         for name, data in self.data.items():
             self.data[name] = numpy.empty(self.keep_size)
@@ -100,20 +103,31 @@ class TickerChart(Gtk.Box):
             else:
                 self.data[name] = data[-self.keep_size:]
 
+    def select_active(self, name):
+        if name in self.alternates:
+            self.active = name
+            self.axes[1].set_ylabel(name)
+
+    def add_alternate(self, name):
+        self.alternates.add(name)
+
     def shift_data(self):
         for name, data in self.data.items():
             data[:-1] = data[1:]
 
-    def add_plot(self, name, color=None, linestyle='-', axis=0):
+    def add_plot(self, name, color=None, linestyle='-', axis=0, alternate=False):
         assert axis in [0, 1], 'axis must be 0 or 1'
         if axis == 1 and len(self.axes) == 1:
             self.axes.append(self.axes[0].twinx())
         if not color:
-            color=COLORS[len(self.plots)]
+            color = COLORS[len(self.plots)]
         self.plots[name] = Line2D([], [], color=color, linewidth=self.linewidth, linestyle=linestyle)
         self.axes[axis].add_line(self.plots[name])
         self.axes[axis].set_ylabel(name, color=color)
         self.info[name] = {'color': color, 'linestyle': linestyle, 'axis': axis}
+        if alternate:
+            self.add_alternate(name)
+            self.select_active(name)
         self.add_data(name)
 
     def clear(self):
@@ -131,6 +145,7 @@ class TickerChart(Gtk.Box):
         extrema = defaultdict(lambda: (numpy.nan, numpy.nan))
 
         for name, line in self.plots.items():
+            if name in self.alternates and name != self.active: continue
             axis = self.info[name]['axis']
             ymin, ymax = extrema[axis]
             y_data = self.data[name][selector]
@@ -152,7 +167,7 @@ class TickerChart(Gtk.Box):
 
     def save(self):
         dialog = Gtk.FileChooserDialog(
-            "Save Chart ...", dialogs.MAIN_WINDOW,  Gtk.FileChooserAction.SAVE,
+            "Save Chart ...", dialogs.MAIN_WINDOW, Gtk.FileChooserAction.SAVE,
             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
         )
         dialog.set_size_request(600, 300)
@@ -174,10 +189,13 @@ class ChartManager(GObject.GObject):
         self.animation = FuncAnimation(self.chart.fig, self.chart.animate, None, interval=interval, blit=False)
         self.start()
 
-    def add_plot(self, dev, name, signal='changed', color=None, linestyle='-', axis=0):
-        self.chart.add_plot(name, color=color, linestyle=linestyle, axis=axis)
+    def add_plot(self, dev, name, signal='changed', color=None, linestyle='-', axis=0, alternate=False):
+        self.chart.add_plot(name, color=color, linestyle=linestyle, axis=axis, alternate=alternate)
         self.values[name] = numpy.nan
         self.sources[name] = dev.connect(signal, self.collect_data, name)
+
+    def select_active(self, name):
+        self.chart.select_active(name)
 
     def zoom_in(self, *args, **kwargs):
         self.chart.zoom_in()

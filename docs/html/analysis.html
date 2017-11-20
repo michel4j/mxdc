@@ -76,9 +76,8 @@
 <li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scans.html">Scans</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Analysis</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#data-report-list">Data/Report List</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-report-table">Data/Report Table</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#report-viewer">Report Viewer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#initiating-analysis-requests">Initiating analysis Requests</a></li>
 </ul>
 </li>
 </ul>
@@ -119,25 +118,37 @@
 <div class="contents local topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#data-report-list" id="id2">Data/Report List</a></li>
+<li><a class="reference internal" href="#data-report-table" id="id2">Data/Report Table</a></li>
 <li><a class="reference internal" href="#report-viewer" id="id3">Report Viewer</a></li>
-<li><a class="reference internal" href="#initiating-analysis-requests" id="id4">Initiating analysis Requests</a></li>
 </ul>
 </div>
 <p>The Analysis View is the primary location for viewing data analysis reports and for initiating new data analyses
 for acquired datasets.</p>
 <div class="figure align-center" id="id1">
-<a class="reference internal image-reference" href="_images/analysis.svg"><img alt="MxDC Analysis View" src="_images/analysis.svg" width="100%" /></a>
+<a class="reference internal image-reference" href="_images/analysis.png"><img alt="MxDC Analysis View" src="_images/analysis.png" style="width: 100%;" /></a>
 <p class="caption"><span class="caption-text">Analysis View</span></p>
 </div>
-<div class="section" id="data-report-list">
-<h2><a class="toc-backref" href="#id2">Data/Report List</a><a class="headerlink" href="#data-report-list" title="Permalink to this headline">¶</a></h2>
+<p>The view is divided into two regions, the Data/Report Table on the left, and the Report Viewer on the right.</p>
+<div class="section" id="data-report-table">
+<h2><a class="toc-backref" href="#id2">Data/Report Table</a><a class="headerlink" href="#data-report-table" title="Permalink to this headline">¶</a></h2>
+<p>The Data/Report Table displays a Tree of datasets and corresponding analysis requests made against it. The analysis
+rows display the name and type of dataset, the type of analysis requested, the analysis score if available,
+and also the state of the analysis request, either pending, in-progress, completed or error.</p>
+<p>To perform a new analysis, select a row on the table, then configure the analysis type using the controls below the
+Data/Report Table. Finally, click the <em>Run</em> button to submit the request. For MAD and Merge data analysis types, it
+is necessary to select multiple rows. This can be acheived by holding down the Ctrl- or Shift- keys while clicking on the desired rows.</p>
+<p>Requests are submitted to the <em>Data Analysis Server</em> asynchronously, and the table is updated when the results are ready.</p>
+<p>To view the analysis report, click on a row corresponding to a completed analysis request. The report is displayed in
+the Report Viewer.</p>
+<p>If a sample is associated with the current row of the table, selecting the row activates the <em>Mount Sample</em> button to
+be used for mounting the given sample. Similarly, if a calculated data acquisition strategy is available, say as the result
+of a screening analysis, clicking the row activates the <em>Use Strategy</em> button. Clicking this button will add an interactive
+data  acquisition run on the Data page.</p>
 </div>
 <div class="section" id="report-viewer">
 <h2><a class="toc-backref" href="#id3">Report Viewer</a><a class="headerlink" href="#report-viewer" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="initiating-analysis-requests">
-<h2><a class="toc-backref" href="#id4">Initiating analysis Requests</a><a class="headerlink" href="#initiating-analysis-requests" title="Permalink to this headline">¶</a></h2>
+<p>The Report Viewer is a simple HTML browser used for displaying HTML reports. Right-click on the Viewer in order to access
+available controls such as forward, back, stop and reload.</p>
 </div>
 </div>
 
