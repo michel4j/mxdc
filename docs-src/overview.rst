@@ -6,6 +6,17 @@ Overview
     :depth: 1
     :local:
 
+About MxDC
+----------
+
+MxDC (Macromolecular Crystallography Data Collector) is a software package for acquisition of
+Macromolecular Crystallography data and related techniques at synchrotron beamlines. MxDC has
+been developed since 2006 and has been the primary software for data acquisition and experiment
+control at the Canadian Light Source, Macromolecular Crystallography beamlines.  It is also
+used at the Pohang Light Source in South-Korea.
+
+MxDC is developed in the Python Programming Language, and makes use of GTK Toolkit library and the Twisted Network
+Programming framework.
 
 User interface
 --------------
