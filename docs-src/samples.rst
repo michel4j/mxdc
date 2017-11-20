@@ -55,7 +55,7 @@ Repeating the process at angular intervals of 90 degrees a couple of times is us
 loop-centering, crystal-centering, diffraction based centering and capillary centering.
 
 The centered position can be saved by clicking on the *Save Point* icon on the toolbar.  Saved points are annotated on
-the video overlay and labeled P0, P1, P2, ...
+the video overlay and labeled P1, P2, P3, ...
 
 *Grids*: Arbitrary grids can be defined using the grid tool. To define a grid for rastering, click on the grid icon.
 Once activated, the cursor changes into a target crosshair. You can then define a polygon enclosing the area you want to
@@ -150,11 +150,24 @@ Results for each point of the raster scan are then displayed on the table, and a
 
 Humidity Tool
 -------------
-The Humidity control tool allows users to perform controlled dehydration experiments on their samples at room temperature.
+The Humidity control tool enables controlled dehydration experiments on samples at room temperature.
 
 .. image:: humidity.png
     :align: center
     :alt: Humidity Tool.
 
-.
+.. note::
+   The humidity tool is only available on beamlines equiped with a humidity control device. If the device is available
+   but not properly setup, the controls will be disabled.
 
+
+The *relative humidity* and *temperature* of the air stream can be changed using the controls at the top of the page. To
+collect and analyse a diffraction image at the current humidity, set the exposure time and highest expected resolution
+using the *Diffraction* controls, then click the start button of the *Diffraction* control. A single image will be
+collected, analysed and the results will be added to the plot. The *plot* controls allow you to select which value is
+plotted on the second Y-axis -- the options are *drop size*, *diffraction resolution*, *maximum unit cell* or *diffraction score*.
+
+Use the tools below the plot to pause, zoom, save or clear the plot.
+
+The freeze button can be used to move the goniometer into a convenient position for freezing the sample using a vial of
+liquid nitrogen.

@@ -138,27 +138,52 @@ and X-Ray Absorption spectroscopy Scans.</p>
 <a class="reference internal image-reference" href="_images/scans.svg"><img alt="MxDC Scans View" src="_images/scans.svg" width="100%" /></a>
 <p class="caption"><span class="caption-text">Scans View</span></p>
 </div>
+<p>It is divided in to two main regions. The Scan configuration region is on the left of the view, while the Scan plot is
+on the right. The configuration area is further divided into two several regions. From top to bottom, you have the
+Scan Mode selector, scan parameters and Control area, Scan results table and the feed back area.  The scan parameters
+and results area may vary depending on the selected scan mode.</p>
 <div class="section" id="edge-selector">
 <h2><a class="toc-backref" href="#id2">Edge Selector</a><a class="headerlink" href="#edge-selector" title="Permalink to this headline">¶</a></h2>
 <img alt="Edge Selector" class="align-center" src="_images/edge-selector.png" />
+<p>The Edge selector is popup dialog used for selecting absorption edges. It replaces the periodic table tool in previous
+MxDC versions. To activate the selector, click the button to the right of the Edge parameter, then click on
+the element of interest. Available edges for the selected element will be indicated at the top of the periodic table.
+Clicking on an available edge will select it and update the entry.</p>
 </div>
 <div class="section" id="scan-plot">
 <h2><a class="toc-backref" href="#id3">Scan Plot</a><a class="headerlink" href="#scan-plot" title="Permalink to this headline">¶</a></h2>
 <img alt="Scan Plot" class="align-center" src="_images/scan-plot.png" />
+<p>The Scan Plot displays a plot of the results from the most current scan. You can use the controls below the plot
+to adjust or manipulate the plot.  You can also use the save button to save an image of the scan.</p>
 </div>
 <div class="section" id="mad-scans">
 <h2><a class="toc-backref" href="#id4">MAD Scans</a><a class="headerlink" href="#mad-scans" title="Permalink to this headline">¶</a></h2>
 <img alt="MAD Scans" class="align-center" src="_images/mad-scans.png" />
+<p>To perform a MAD scan, select the MAD Scan mode, select the desired absorption edge using the Edge Selector, set
+the exposure time and attenuation as desired and click the start button to initiate the scan.  Once the scan is complete,
+it will be analyzed automatically using CHOOCH, and the results will be plotted and added to the results table.</p>
 <img alt="MAD Plots" class="align-center" src="_images/mad-plots.png" />
+<p>To acquire a MAD dataset according to the results of a MAD scan, select the appropriate scan on the results table, and
+then click the <em>Use Strategy</em> button below the results table.  This will add runs for each MAD energy to the interactive
+data acquisition tool on the Data page.</p>
 </div>
 <div class="section" id="xrf-scans">
 <h2><a class="toc-backref" href="#id5">XRF Scans</a><a class="headerlink" href="#xrf-scans" title="Permalink to this headline">¶</a></h2>
-<img alt="Sample Microscope" class="align-center" src="_images/xrf-scans.png" />
+<img alt="XRF Scans" class="align-center" src="_images/xrf-scans.png" />
+<p>To perform an XRF scan, select the XRF Scan mode, select the desired excition energy, the exposure time and the
+attenuation. The Excitation energy can also be set by selecting a desired absorption edge using the edge-selector; a
+suitable value for the excitation energy will then be calculated. Click the start button to initiate the scan.
+Once the scan is complete, it will be analyzed automatically and results will be plotted and added to the results table.</p>
 <img alt="XRF Plots" class="align-center" src="_images/xrf-plots.png" />
+<p>Elements which were identified with high confidence will be annotated on the plot. Use the toggle-buttons in the results
+table to toggle the annotations on the plot.</p>
 </div>
 <div class="section" id="xas-scans">
 <h2><a class="toc-backref" href="#id6">XAS Scans</a><a class="headerlink" href="#xas-scans" title="Permalink to this headline">¶</a></h2>
 <img alt="XAS Scan" class="align-center" src="_images/xas-scans.png" />
+<p>To perform an X-ray Absorption Spectroscopy scan, select the XAS Scan mode, then select the desired absorption edge using
+the Edge Selector. Set the exposure time, attenuation, number of scans and k-max as desired, then click the start button
+to initiate the scan.  The scans will be added to the results table as each scan is completed.</p>
 <img alt="XAS Plots" class="align-center" src="_images/xas-plots.png" />
 </div>
 </div>
