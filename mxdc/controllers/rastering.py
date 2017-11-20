@@ -1,26 +1,26 @@
+import copy
 import os
 import time
 import uuid
-import copy
-from collections import OrderedDict
 from datetime import datetime
-from enum import Enum
+
 import numpy
-from gi.repository import Gtk, GObject, Gdk
+from enum import Enum
+from gi.repository import Gtk, GObject
 from twisted.python.components import globalRegistry
 
+import common
 from microscope import IMicroscope
-from mxdc.conf import load_cache, save_cache
 from mxdc.beamlines.mx import IBeamline
+from mxdc.conf import load_cache, save_cache
 from mxdc.engines.rastering import RasterCollector
 from mxdc.utils import datatools, misc
-from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec
 from mxdc.utils.converter import resol_to_dist
+from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from mxdc.widgets.imageviewer import IImageViewer
 from samplestore import ISampleStore
-import common
 
 RASTER_DELTA = 0.5
 

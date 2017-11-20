@@ -93,13 +93,6 @@
     
   </div>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/samples.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div class="sidebar-block">
   <div class="sidebar-wrapper">
     <div id="main-search">
@@ -143,7 +136,7 @@
 </div>
 <p>The Samples View allows users to view their list of samples, select and mount samples, center samples in the beam,
 perform diffraction cartography (rastering) and also control the sample environment, such as sample temperature
-and humidity. The detailed feature available will depend on the specific capabilities of the beamline.</p>
+and humidity. The features available will depend on specific capabilities of the beamline.</p>
 <div class="figure align-center" id="id1">
 <a class="reference internal image-reference" href="_images/samples.svg"><img alt="MxDC Samples View" src="_images/samples.svg" width="100%" /></a>
 <p class="caption"><span class="caption-text">Screenshot of the Samples View</span></p>
@@ -152,8 +145,8 @@ and humidity. The detailed feature available will depend on the specific capabil
 <h2><a class="toc-backref" href="#id2">Cryo Tool</a><a class="headerlink" href="#cryo-tool" title="Permalink to this headline">¶</a></h2>
 <p>The cryo parameters are shown on the top-left hand corner of the Samples View. Values shown include, <em>temperature</em>,
 <em>flow rates</em>, <em>cryogen fill level</em>. Where applicable, an annealing tool is also provided. To use the annealing tool,
-set the annealing duration using the entry, and click the button to start annealing. The annealing operation can be
-stopped at any time using the same button.</p>
+set the annealing duration using the entry, and click the button to start annealing. The entry will countdown the number
+of seconds remain in the annealing operation.  The annealing operation can be stopped at any time using the same button.</p>
 <img alt="Cryo Tool" class="align-center" src="_images/cryo.png" />
 <p>Immediately to the right of the cryo tool are additional device controls such as <em>goniometer omega rotation</em> and <em>beam
 aperture</em>, which are often used in conjunction with the sample microscope.</p>
@@ -162,37 +155,86 @@ aperture</em>, which are often used in conjunction with the sample microscope.</
 <h2><a class="toc-backref" href="#id3">Sample Microscope</a><a class="headerlink" href="#sample-microscope" title="Permalink to this headline">¶</a></h2>
 <p>The sample microscope provides a video display of the sample position.</p>
 <img alt="Sample Microscope" class="align-center" src="_images/sample-microscope.png" />
-<p>At the top of the sample microscope
-area is a toolbar with buttons for zooming, moving the sample, automated loop, crystal and capillary centering,
-and finally buttons for defining rastering grids and saving points. Sample lighting adjustments can be made using
-the tools at the bottom of the tool.</p>
-<p>Single-click centering is available once the beamline is in the centering mode. In this mode, clicking on the image,
-will attempt to move the centering stage such that the selected position is brought into the beam circle shown as a
-red target overlaid on the video. The centered position can then be saved by clicking on the <em>Save Point</em>
-icon on the toolbar.  Saved points are annotated on the video overlay.</p>
-<p>To define a grid for rastering, click on the grid icon, and define a polygon enclosing the area you want to scan. A
-valid polygon is a list of at least 3 points starting and ending at the same location. A line can be defined as
+<p>At the top of the sample microscope  area is a toolbar with buttons for automated centering, zooming, moving the sample,
+and finally, buttons for defining raster grids and saving points. Sample lighting adjustments can be made using the
+sliders at the bottom of the video area.</p>
+<p><em>Single-click centering</em> is only available while in Centering or Beam mode. When available, the mouse cursor changes
+into a pointing finger. To center at a given point, click on the point and it will be moved to the beam position (the red circle).
+Repeating the process at angular intervals of 90 degrees a couple of times is usually sufficient to center the sample.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Single-click centering is not available while defining a grid.</p>
+</div>
+<p><em>Auto-centering</em> is only availble in Centering mode. There are Four types of auto-centering operations available:
+loop-centering, crystal-centering, diffraction based centering and capillary centering.</p>
+<p>The centered position can be saved by clicking on the <em>Save Point</em> icon on the toolbar.  Saved points are annotated on
+the video overlay and labeled P0, P1, P2, ...</p>
+<p><em>Grids</em>: Arbitrary grids can be defined using the grid tool. To define a grid for rastering, click on the grid icon.
+Once activated, the cursor changes into a target crosshair. You can then define a polygon enclosing the area you want to
+scan. A valid polygon is a list of at least 3 points starting and ending at the same location. A line can be defined as
 a polygon with 3 points only. Once the polygon is defined, a raster grid will be calculated for the specified region.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You must select the points either in a clockwise or counter-clockwise manner in order to obtain properly defined grids.</p>
+</div>
 <p>Points and grids can be cleared using the <em>Clear</em> icon on the toolbar.</p>
 </div>
 <div class="section" id="sample-list">
 <h2><a class="toc-backref" href="#id4">Sample List</a><a class="headerlink" href="#sample-list" title="Permalink to this headline">¶</a></h2>
-<p>The sample list shows all on-site samples for the current user, as defined in the MxLIVE database.</p>
+<p>The sample list shows all on-site samples for the current user, as defined in the MxLIVE database. It allows you to
+manage mounting and dismounting of samples by name, and also allows selection of samples for automated data acquisition.</p>
 <img alt="Sample List" class="align-center" src="_images/sample-list.png" />
+<p>This is the recommended view for selecting samples, since the focus is on the samples and groups as defined by you in MxLIVE,
+rather than the location of samples in the automounter which is not necessarily familiar to you. The sample list only
+shows samples defined by the current logged-in user.</p>
+<p>The columns of data shown are <em>Selected, State, Name, Group, Port, Container</em>, and <em>Priority</em>. Individual samples can be
+selected by activating the checkbox in the first column. The <em>state</em> column shows information about the state of the sample.
+The state allows you to distinguish between samples which are on-site but not available in the automounter, samples in the
+automounter, the currently mounted sample, or samples which have been marked as empty or bad within the automounter. The
+<em>port</em> identifies the automounter location of the sample, while the <em>container</em> column identifies the container name and location
+of the sample. Samples wich are not loaded into the automounter will have a blank <em>port</em>. These samples can only be used
+by <em>manual-mounting</em>.</p>
+<p>Samples which have been processed, will be indicated by italics text labels on the list.</p>
+<p>The search box at the top of the list can be used to filter the list to only samples containing the provided search terms.
+The selection buttons can be used to select/deselect all visible samples. The refresh button, is used to synchronize the
+sample information with MxLIVE.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Only samples identified within the automounter, which are not empty or bad can be mounted using the automounter.</p>
+</div>
+<p>To select a sample for mounting, double-click on the corresponding row. Then the <em>Next Sample</em> tool at the bottom of the list
+will be updated to reflect the current selection, if the sample meets all required criteria. Click the mount button to
+initiate the mount operation.</p>
+<p>If a sample is currently mounted, the <em>Current Sample</em> tool at the bottom of the list will be active, and contain the port of
+the mounted sample. Click the dismount button, to dismount the sample.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You can mount a sample if another sample is currently mounted. The automounter will first dismount the mounted sample
+before proceeding to mount the selected sample. In fact, the process will be faster than attempting to carry out
+dismount-then-mount cycle yourself. Therefore, it is recommended to only use the dismount tool when switching to manual
+mounting, or at the end of your session.</p>
+</div>
 </div>
 <div class="section" id="automounter-tool">
 <h2><a class="toc-backref" href="#id5">Automounter Tool</a><a class="headerlink" href="#automounter-tool" title="Permalink to this headline">¶</a></h2>
 <p>The automounter tool shows a physical layout of containers loaded into the automounter, to allow selecting and
-mounting samples by automounter location. This is not the recommended method of loading samples. Users should use the
-the Sample List tool to select and mount samples by name.</p>
+mounting samples by automounter location.</p>
 <img alt="Automounter Tool" class="align-center" src="_images/automounter.png" />
+<p>This is not the recommended method of loading samples. Users should use the
+the Sample List tool to select and mount samples by name. Only samples provided through MxLIVE, or ports within containers
+identified in MxLIVE as belonging to the current user, and loaded in the automounter can be selected for mounting.</p>
+<p>Hovering the mouse on an available port will display the identity of the sample at the bottom of the automounter layout.
+If the mouse pointer changes into a pointed finger, then clicking on the port activates the <em>Next Sample</em> tool, through
+which the sample can be mounted.</p>
 </div>
 <div class="section" id="rastering-tool">
 <h2><a class="toc-backref" href="#id6">Rastering Tool</a><a class="headerlink" href="#rastering-tool" title="Permalink to this headline">¶</a></h2>
 <p>The Rastering tool allow users to perform diffraction cartography on mounted samples, in order to identify locations
-where the best diffraction can be obtained.</p>
+where the best diffraction can be obtained. The rastering tool is available once a grid has been defined within the
+sample microscope. The number of grid points is displayed at the top of the rastering tool.</p>
 <img alt="Rastering Tool" class="align-center" src="_images/rastering.png" />
-<p>Results from the raster scan are also overlaid on the sample miscroscope.</p>
+<p>To perform a run, update the exposure time and resolution settings, and click the start button.
+Results for each point of the raster scan are then displayed on the table, and are also overlaid on the sample miscroscope.</p>
 <img alt="Rastering Tool" class="align-center" src="_images/rastering-scores.png" />
 </div>
 <div class="section" id="humidity-tool">
