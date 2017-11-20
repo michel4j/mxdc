@@ -97,8 +97,8 @@ DEVICES = {
     'i_2': counter.SimCounter('I_2', zero=65228),
 
     # Misc: Automounter, HC1 etc
-    #'automounter': automounter.SimAutoMounter(),
-    'automounter': automounter.ISARAMounter('BOT1608-I01'),
+    'automounter': automounter.SimAutoMounter(),
+    #'automounter': automounter.ISARAMounter('BOT1608-I01'),
     'humidifier': humidity.SimHumidifier(),
     'attenuator': misc.SimPositioner('Attenuator', 0.0, '%'),
     'mca': mca.SimMultiChannelAnalyzer('Simulated MCA', energy=tmp2),
@@ -112,6 +112,6 @@ DEVICES = {
 SERVICES = {
     #'dss': clients.DSSClient(),
     'dss': clients.LocalDSSClient(),
-    'lims': clients.MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
-    'dps': clients.DPSClient(),
+    'lims': clients.MxLIVEClient('https://cmcf.lightsource.ca'),
+    'dps': clients.DPSClient('hpc1608-001.clsi.ca:9991'),
 }

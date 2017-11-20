@@ -2,7 +2,7 @@
 
 from mxdc.com import ca
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
-from mxdc.devices import automounter, humidity, video, misc, mca, counter
+from mxdc.devices import automounter, video, misc, mca, counter
 from mxdc.services import clients
 
 CONFIG = {
@@ -95,9 +95,7 @@ DEVICES = {
     'i_2': counter.Counter('AH501-01:QEM:SumAll:MeanValue_RBV'),
 
     # Misc: Automounter, HC1 etc
-    #'automounter': automounter.SAMRobot('ROB16083I', 'ROB1608-300'),
     'automounter': automounter.ISARAMounter('BOT1608-I01'),
-    # 'humidifier': Humidifier('HC1608-01'),
     'attenuator': misc.Attenuator('PFIL1608-3-I10-01', 'BL08ID1:energy'),
     'mca': mca.XFlashMCA('XFD1608-101'),
 
@@ -108,7 +106,7 @@ DEVICES = {
 # lims, dpm, imagesync and other services
 SERVICES = {
     'dss': clients.LocalDSSClient(),
-    'lims': clients.MxLIVEClient('http://opi2051-003.clsi.ca:8000'),
+    'lims': clients.MxLIVEClient('https://cmcf.lightsource.ca'),
     'dps': clients.DPSClient(),
 }
 

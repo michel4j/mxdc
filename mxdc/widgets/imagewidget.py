@@ -110,7 +110,6 @@ def calc_histogram(data, lo=0.1, hi=95, bins='auto'):
     return numpy.dstack((edges[2:], hist[1:]))[0]
 
 
-
 def open_image(filename, gamma=0):
     image_info = {}
     image_obj = read_image(filename)

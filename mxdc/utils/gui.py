@@ -462,3 +462,4 @@ class FilteredTreeManager(TreeManager):
         self.view.props.activate_on_single_click = self.single_click
         self.view.connect('row-activated', self.row_activated)
         self.keys = [item.name.lower() for item in self.Data]
+
