@@ -657,6 +657,12 @@ class ScanManager(GObject.GObject):
             for name, (dev, lbl, kw) in labels.items()
         }
 
+        if hasattr(self.beamline, 'multi_mca'):
+            self.beamline.multi_mca.connect('active', self.enable_xas)
+
+    def enable_xas(self, dev, state):
+        self.widget.xas_control_box.set_sensitive(state)
+
     def open_terminal(self, button):
         directory = self.widget.scans_dir_fbk.get_text()
         misc.open_terminal(directory)

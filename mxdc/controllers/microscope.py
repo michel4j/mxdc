@@ -3,8 +3,7 @@ import os
 
 import common
 import numpy
-import cairo
-from gi.repository import Gtk, Pango, Gdk, GObject
+from gi.repository import Gtk, Gdk, GObject
 from matplotlib.path import Path
 from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import save_cache, load_cache
@@ -44,6 +43,9 @@ class Microscope(GObject.GObject):
     class GridState:
         PENDING, COMPLETE = range(2)
 
+    class ToolState(object):
+        DEFAULT, CENTERING, GRID, MEASUREMENT = range(4)
+
     grid = GObject.Property(type=object)
     grid_xyz = GObject.Property(type=object)
     grid_state = GObject.Property(type=int, default=GridState.PENDING)
@@ -52,6 +54,7 @@ class Microscope(GObject.GObject):
     grid_cmap = GObject.Property(type=object)
     points = GObject.Property(type=object)
     polygon = GObject.Property(type=object)
+    tool = GObject.Property(type=int, default=ToolState.DEFAULT)
 
     def __init__(self, widget):
         super(Microscope, self).__init__()
@@ -68,10 +71,16 @@ class Microscope(GObject.GObject):
         self.props.grid_params = {}
         self.props.grid_state = self.GridState.PENDING
         self.props.grid_cmap = colors.ColorMapper(min_val=0, max_val=100)
+        self.props.tool = self.ToolState.DEFAULT
+        self.prev_tool = self.tool
 
-        self.allow_centering = False
-        self.create_polygon = False
-        self.measuring = False
+        self.tool_cursors = {
+            self.ToolState.DEFAULT: None,
+            self.ToolState.CENTERING: Gdk.Cursor.new_from_name(Gdk.Display.get_default(), 'pointer'),
+            self.ToolState.GRID: Gdk.Cursor.new_from_name(Gdk.Display.get_default(), 'cell'),
+            self.ToolState.MEASUREMENT: Gdk.Cursor.new_from_name(Gdk.Display.get_default(), 'crosshair'),
+        }
+
         self.measurement = numpy.array([[0, 0], [0, 0]])
 
         self.widget = widget
@@ -84,6 +93,7 @@ class Microscope(GObject.GObject):
         self.load_from_cache()
 
     def setup(self):
+
         # zoom
         low, med, high = self.beamline.config['zoom_levels']
         self.widget.microscope_zoomout_btn.connect('clicked', self.on_zoom, low)
@@ -158,6 +168,13 @@ class Microscope(GObject.GObject):
 
         # Connect Grid signals
         self.connect('notify::grid-xyz', self.update_grid)
+        self.connect('notify::tool', self.on_tool_changed)
+
+    def change_tool(self, tool=None):
+        if tool is None:
+            self.props.tool, self.prev_tool = self.prev_tool, self.tool
+        else:
+            self.props.tool, self.prev_tool = tool, self.tool
 
     def setup_grid(self, *args, **kwargs):
         if not self.video_ready:
@@ -218,7 +235,7 @@ class Microscope(GObject.GObject):
         cr.stroke()
 
     def draw_measurement(self, cr):
-        if self.measuring:
+        if self.tool == self.ToolState.MEASUREMENT:
             (x1, y1), (x2, y2) = self.measurement
             dist = self.video.mm_scale() * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0)
             cr.set_source_rgba(0.0, 0.5, 0.5, 1.0)
@@ -303,17 +320,16 @@ class Microscope(GObject.GObject):
         self.props.grid_scores = {}
         self.props.points = []
         self.props.polygon = []
-        self.create_polygon = False
+        if self.tool == self.ToolState.GRID:
+            self.change_tool(self.ToolState.CENTERING)
         self.widget.microscope_grid_btn.set_active(False)
 
     def make_grid(self, *args, **kwargs):
         if self.widget.microscope_grid_btn.get_active():
-            self.create_polygon = True
-            self.widget.microscope_bkg.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.CROSSHAIR))
+            self.change_tool(self.ToolState.GRID)
             self.props.polygon = []
         else:
-            self.create_polygon = False
-            self.widget.microscope_bkg.get_window().set_cursor(None)
+            self.change_tool()
 
     def bbox_grid(self, bbox):
         step_size = 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
@@ -412,13 +428,9 @@ class Microscope(GObject.GObject):
         self.props.grid_state = self.GridState.COMPLETE
         self.props.grid_cmap.autoscale(self.props.grid_scores.values())
 
-    def lock_grid(self):
-        self.show_grid = True
-        self.edit_grid = False
-
     @async_call
     def center_pixel(self, x, y):
-        if self.beamline.goniometer.mode.name  in ['CENTERING', 'BEAM']:
+        if self.tool == self.ToolState.CENTERING:
             ix, iy, xmm, ymm = self.video.screen_to_mm(x, y)
             if not self.beamline.sample_stage.is_busy():
                 self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
@@ -445,8 +457,19 @@ class Microscope(GObject.GObject):
         else:
             self.props.grid = None
 
+    def on_tool_changed(self, *args, **kwargs):
+        window = self.widget.microscope_bkg.get_window()
+        if window:
+            window.set_cursor(self.tool_cursors[self.props.tool])
+
     def on_gonio_mode(self, obj, mode):
-        self.widget.microscope_centering_box.set_sensitive(mode.name in ['CENTERING', 'BEAM'])
+        centering_tool = mode.name in ['CENTERING', 'BEAM']
+        self.widget.microscope_centering_box.set_sensitive(centering_tool)
+        self.widget.microscope_grid_box.set_sensitive(centering_tool)
+        if centering_tool:
+            self.change_tool(self.ToolState.CENTERING)
+        else:
+            self.change_tool(self.ToolState.DEFAULT)
 
     def on_scripts_started(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(False)
@@ -488,16 +511,16 @@ class Microscope(GObject.GObject):
         )
         if 'GDK_BUTTON2_MASK' in event.get_state().value_names:
             self.measurement[1] = (x, y)
-        else:
-            self.measuring = False
+        elif self.tool == self.ToolState.MEASUREMENT:
+            self.change_tool()
 
     def on_image_click(self, widget, event):
         if event.button == 1:
-            if self.create_polygon:
+            if self.tool == self.ToolState.GRID:
                 self.add_polygon_point(event.x, event.y)
             else:
                 self.center_pixel(event.x, event.y)
         elif event.button == 2:
-            self.measuring = True
+            self.change_tool(self.ToolState.MEASUREMENT)
             self.measurement[0] = (event.x, event.y)
             self.measurement[1] = (event.x, event.y)
