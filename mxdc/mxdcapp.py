@@ -25,6 +25,7 @@ from mxdc.utils.misc import identifier_slug
 from mxdc.widgets.AppWindow import AppWindow
 from mxdc.widgets import dialogs
 from mxdc.controllers.settings import SettingsDialog
+from mxdc.controllers.browser import Browser
 from mxdc.utils import excepthook, misc
 from mxdc.services import clients
 from twisted.internet import reactor
@@ -71,7 +72,10 @@ class Application(Gtk.Application):
             self.window = AppWindow(application=self, title='MxDC')
             self.window.connect('destroy', lambda x: self.quit())
             self.start()
+
         self.window.present()
+        if settings.show_release_notes():
+            Browser(self.window)
 
     def on_about(self, action, param):
         authors = [
@@ -99,9 +103,10 @@ class Application(Gtk.Application):
             self.settings_active = False
 
     def on_help(self, action, param):
-        import webbrowser
-        url = os.path.join(conf.DOCS_DIR, 'index.html')
-        webbrowser.open(url, autoraise=True)
+        # import webbrowser
+        # url = os.path.join(conf.DOCS_DIR, 'index.html')
+        # webbrowser.open(url, autoraise=True)
+        Browser(self.window)
 
     def on_quit(self, action, param):
         self.quit()
