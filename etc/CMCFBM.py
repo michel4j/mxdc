@@ -107,7 +107,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'dss': clients.LocalDSSClient(),
+    'dss': clients.DSSClient(),
     'lims': clients.MxLIVEClient('https://cmcf.lightsource.ca'),
     'dps': clients.DPSClient('hpc1608-001.clsi.ca:9991'),
 }
