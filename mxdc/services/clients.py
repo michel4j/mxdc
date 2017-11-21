@@ -121,9 +121,13 @@ class DSSClient(PBClient):
     def configure(self, *args, **kwargs):
         return self.service.callRemote('configure', *args, **kwargs)
 
-    def setup_folder(self, *args, **kwargs):
-        out = self.service.callRemote('setup_folder', *args, **kwargs)
-        time.sleep(2)
+    def setup_folder(self, folder, user_name):
+        # create folder locally first, to avoid NFS delays
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        os.chmod(folder, 0o777)
+
+        out = self.service.callRemote('setup_folder', folder, user_name)
         return out
 
 
