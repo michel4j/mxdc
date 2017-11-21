@@ -2,6 +2,7 @@ import os
 import sys
 import threading
 import gi
+import time
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gio, GObject
@@ -23,16 +24,7 @@ class AppBuilder(gui.Builder):
 
 class ConsoleApp(object):
     def __init__(self):
-        self.resources = Gio.Resource.load(os.path.join(conf.SHARE_DIR, 'mxdc.gresource'))
-        Gio.resources_register(self.resources)
-
-        self.builder = AppBuilder()
-        self.window = self.builder.scan_window
-
-        dialogs.MAIN_WINDOW = self.window
-        self.window.connect("destroy", lambda x: Gtk.main_quit())
-        self.plot = scanplot.ScanPlotter(self.builder)
-        self.window.show_all()
+        self.start()
 
     def shell(self):
         from IPython import embed
@@ -48,15 +40,28 @@ class ConsoleApp(object):
         Gtk.main_quit()
         sys.exit()
 
-    def start(self, append=None):
-        worker_thread = threading.Thread(target=self.shell)
+    def start(self):
+        worker_thread = threading.Thread(target=self.run)
         worker_thread.setName(self.__class__.__name__)
         worker_thread.setDaemon(True)
         worker_thread.start()
+        time.sleep(1)
+        self.shell()
+        Gtk.main_quit()
 
     def run(self):
+        self.resources = Gio.Resource.load(os.path.join(conf.SHARE_DIR, 'mxdc.gresource'))
+        Gio.resources_register(self.resources)
+
+        self.builder = AppBuilder()
+        self.window = self.builder.scan_window
+
+        dialogs.MAIN_WINDOW = self.window
+        self.window.connect("destroy", lambda x: Gtk.main_quit())
+        self.plot = scanplot.ScanPlotter(self.builder)
+        self.window.show_all()
+
         try:
-            GObject.idle_add(self.start)
             Gtk.main()
         finally:
             logger.info('Stopping...')
