@@ -49,13 +49,15 @@ def get_keys():
                 serialization.PublicFormat.OpenSSH
             )
         }
-        with open(_KEY_FILE, 'wb') as handle:
-            msgpack.dump(data, handle)
     else:
         with open(_KEY_FILE, 'rb') as handle:
             data = msgpack.load(handle)
     return data
 
+def save_keys(keys):
+    if not keys_exist():
+        with open(_KEY_FILE, 'wb') as handle:
+            msgpack.dump(keys, handle)
 
 def get_session():
     realm = 'session'

@@ -1,4 +1,5 @@
 import msgpack
+import json
 import os
 import re
 import socket
@@ -136,13 +137,14 @@ class MxLIVEClient(BaseService):
         keys_existed = settings.keys_exist()
         self.keys = settings.get_keys()
         self.signer = signing.Signer(**self.keys)
+
         if not keys_existed:
             try:
-                res = self.register()
+                self.register()
                 logger.info('MxLIVE Service configured for {}'.format(address))
+                settings.save_keys(self.keys)
             except (IOError, ValueError, requests.HTTPError) as e:
                 logger.error('MxLIVE Service will not be available')
-                raise
 
     def is_ready(self):
         return self.active_state
@@ -162,7 +164,7 @@ class MxLIVEClient(BaseService):
         else:
             r.raise_for_status()
 
-    def post(self, path, *args, **kwargs):
+    def post(self, path, **kwargs):
         r = requests.post(self.url(path), verify=False, cookies=self.cookies, **kwargs)
         if r.status_code == requests.codes.ok:
             return r.json()
