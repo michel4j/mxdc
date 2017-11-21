@@ -18,7 +18,7 @@ came up with a more refined layout that makes more sense and allows you to focus
     :width: 100%
 
 The tabs in previous versions of MxDC have been replaced by Pages (or Views) which can be switched using the buttons
-in the title bar. The Pages now named *Setup* -- previously "Beamline Setup", *Samples*, *Data* -- previously "Data
+in the title bar. The Pages are now named *Setup* -- previously "Beamline Setup", *Samples*, *Data* -- previously "Data
 Collection", *Scans* -- previously "Fluorescence Scans", and *Analysis* -- previously "Processing Results". The
 "Screening" tab in previous MxDC versions has been removed since the functionality is now available through
 *Automated* Data Acquisition in the *Data* View, and through the *Rastering* tool of the *Sample* View.
@@ -89,7 +89,8 @@ And much more ...
 -----------------
 Additional features include, a new chat tool for quick communication between staff and users, support for the new
 ISARA Automounter, polygon based definition of rastering grids, diffraction screening during humidity control
-experiments, and many more. Please consult the detailed documentation for more information
+experiments, and many more. Please consult the detailed documentation for more information. You can access the
+documentation at any time through the *Help* sub-menu of the Application menu.
 
 
 Documentation

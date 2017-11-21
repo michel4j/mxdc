@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
     <gresource prefix="/org/mxdc">
-
         <file compressed="true">gtk/menus.ui</file>
         <file compressed="true">data/active_entry.ui</file>
         <file compressed="true">data/active_menu.ui</file>
@@ -18,6 +17,7 @@
         <file compressed="true">data/mxdc_main.ui</file>
         <file compressed="true">data/scanplot.ui</file>
         <file compressed="true">data/settings.ui</file>
+        <file compressed="true">data/browser.ui</file>
         <file>data/active_stop.gif</file>
         <file>data/colormaps.data</file>
         <file>data/crystal.png</file>
@@ -37,6 +37,5 @@
         <file>data/units-sec.svg</file>
         <file>data/units-%.svg</file>
         <file>data/folder-template.svg</file>
-
     </gresource>
 </gresources>
