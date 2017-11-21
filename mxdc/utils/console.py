@@ -158,10 +158,8 @@ class GTKInterpreter(threading.Thread):
         self.start()
         GObject.timeout_add(self.TIMEOUT, self.shell.runcode)
         try:
-            if Gtk.gtk_version[0] >= 2:
-                Gdk.threads_init()
-            if Gtk.gtk_version >= (2, 18):
-                Gtk.set_interactive(False)
+            Gdk.threads_init()
+            Gtk.set_interactive(False)
         except AttributeError:
             pass
         Gtk.main()
