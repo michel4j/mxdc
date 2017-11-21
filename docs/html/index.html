@@ -114,36 +114,67 @@
 <div class="section" id="welcome-to-the-new-mxdc">
 <h2>Welcome to the New MxDC<a class="headerlink" href="#welcome-to-the-new-mxdc" title="Permalink to this headline">¶</a></h2>
 <p>While you were away, MxDC grew up! Here is a summary of what is new.</p>
-<div class="section" id="simplified-interface">
-<h3>Simplified Interface<a class="headerlink" href="#simplified-interface" title="Permalink to this headline">¶</a></h3>
 </div>
-<div class="section" id="more-versatile-status-area">
-<h3>More versatile Status area<a class="headerlink" href="#more-versatile-status-area" title="Permalink to this headline">¶</a></h3>
-</div>
-<div class="section" id="duplicate-widgets-gone">
-<h3>Duplicate widgets gone<a class="headerlink" href="#duplicate-widgets-gone" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="revamped-interface">
+<h2>Revamped Interface<a class="headerlink" href="#revamped-interface" title="Permalink to this headline">¶</a></h2>
+<p>For this version of MxDC, we went back and re-evaluated the layout and position of every widget on the GUI, and
+came up with a more refined layout that makes more sense and allows you to focus on your experiment.</p>
+<a class="reference internal image-reference" href="_images/revamped-interface.png"><img alt="_images/revamped-interface.png" class="align-center" src="_images/revamped-interface.png" style="width: 100%;" /></a>
+<p>The tabs in previous versions of MxDC have been replaced by Pages (or Views) which can be switched using the buttons
+in the title bar. The Pages now named <em>Setup</em> -- previously &quot;Beamline Setup&quot;, <em>Samples</em>, <em>Data</em> -- previously &quot;Data
+Collection&quot;, <em>Scans</em> -- previously &quot;Fluorescence Scans&quot;, and <em>Analysis</em> -- previously &quot;Processing Results&quot;. The
+&quot;Screening&quot; tab in previous MxDC versions has been removed since the functionality is now available through
+<em>Automated</em> Data Acquisition in the <em>Data</em> View, and through the <em>Rastering</em> tool of the <em>Sample</em> View.</p>
+<p>The status bar is now more powerful and versatile:  All the mode change buttons and beam ON/OFF switches have been
+moved to the status bar, which is now available in every view. The status bar now also displays a spinner
+when an operation is in progress, together with descriptive text.  We also added an applications menu through which
+you can access preferences and documentation.</p>
+<p>As a result of the re-design, duplicated widgets on multiple pages have been removed. There is now just a single
+Hutch Video Widget, a single Sample Microscope Video widget, and a single Diffraction Image Viewer. This results
+in less memory usage and better responsiveness overall.</p>
 </div>
 <div class="section" id="improved-sample-microscope">
-<h3>Improved Sample Microscope<a class="headerlink" href="#improved-sample-microscope" title="Permalink to this headline">¶</a></h3>
+<h2>Improved Sample Microscope<a class="headerlink" href="#improved-sample-microscope" title="Permalink to this headline">¶</a></h2>
+<p>The Video Widgets were completely re-designed to provide a more space-efficient layout so that most of the are is
+used for displaying the actual video. The video displays have been made bigger and all the video controls are now
+in toolbars above and/or below the video display.</p>
+<img alt="_images/sample-microscope.png" class="align-center" src="_images/sample-microscope.png" />
 </div>
 <div class="section" id="multi-point-and-vector-data-collection">
-<h3>Multi-Point and Vector Data Collection<a class="headerlink" href="#multi-point-and-vector-data-collection" title="Permalink to this headline">¶</a></h3>
+<h2>Multi-Point and Vector Data Collection<a class="headerlink" href="#multi-point-and-vector-data-collection" title="Permalink to this headline">¶</a></h2>
+<p>It is now possible to save centered positions using the sample microscope widget which can later be used for multi-
+point data acquisition or Vector data acquisition. For example, with multiple micro-crystals in a loop, you can
+center each one, save the position each time and then setup multiple runs of data collection, one for each centered
+point. MxDC will translate the sample to the requested position before acquiring frames for the given run.</p>
+<img alt="_images/sample-microscope.png" class="align-center" src="_images/sample-microscope.png" />
+<p>A single dataset run can even be set up to translate from one point to another point during a single run acquisition
+to achieve what is commonly known as <em>Vector Data Acquisition</em>.</p>
 </div>
 <div class="section" id="full-automation-not-restricted-to-screening">
-<h3>Full Automation not restricted to screening<a class="headerlink" href="#full-automation-not-restricted-to-screening" title="Permalink to this headline">¶</a></h3>
+<h2>Full Automation not restricted to screening<a class="headerlink" href="#full-automation-not-restricted-to-screening" title="Permalink to this headline">¶</a></h2>
+<a class="reference internal image-reference" href="_images/full-automation.png"><img alt="_images/full-automation.png" class="align-center" src="_images/full-automation.png" style="width: 100%;" /></a>
+<p>Automated Screening in previous versions of MxDC has been updated to allow for automation of full data acquisition.
+Most of the dataset parameters available for interactive data acquisition are also now available for automation.</p>
+<p>Furthermore, automated data analysis is now started at the end of every interactive data acquisition run, based
+on the selected strategy. In previous versions, it could only be started manually or through automated screening.</p>
 </div>
 <div class="section" id="simplified-directory-structure-management">
-<h3>Simplified directory structure management<a class="headerlink" href="#simplified-directory-structure-management" title="Permalink to this headline">¶</a></h3>
-</div>
-<div class="section" id="new-chat-tool">
-<h3>New Chat tool<a class="headerlink" href="#new-chat-tool" title="Permalink to this headline">¶</a></h3>
-</div>
-<div class="section" id="isara-automounter-support">
-<h3>ISARA Automounter support<a class="headerlink" href="#isara-automounter-support" title="Permalink to this headline">¶</a></h3>
-</div>
+<h2>Simplified directory structure management<a class="headerlink" href="#simplified-directory-structure-management" title="Permalink to this headline">¶</a></h2>
+<p>No longer do you have to worry about creating directories for data acquisition. MxDC will now do this for you
+automatically. Simply tell MxDC how you want your data to be organized, by configuring a <em>Directory Template</em>
+through the preferences and MxDC will do the rest.</p>
+<img alt="_images/directory-template.png" class="align-center" src="_images/directory-template.png" />
+<p>Use the <em>Directory Terminal</em> button to open a terminal for inspecting the data files or running further analysis.</p>
+<a class="reference internal image-reference" href="_images/directory-terminal.png"><img alt="_images/directory-terminal.png" class="align-center" src="_images/directory-terminal.png" style="width: 100%;" /></a>
 </div>
 <div class="section" id="and-much-more">
 <h2>And much more ...<a class="headerlink" href="#and-much-more" title="Permalink to this headline">¶</a></h2>
+<p>Additional features include, a new chat tool for quick communication between staff and users, support for the new
+ISARA Automounter, polygon based definition of rastering grids, diffraction screening during humidity control
+experiments, and many more. Please consult the detailed documentation for more information</p>
+</div>
+<div class="section" id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>

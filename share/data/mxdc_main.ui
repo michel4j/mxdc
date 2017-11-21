@@ -4476,10 +4476,9 @@
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
-                                            <property name="tooltip_text" translatable="yes">Select sample groups</property>
+                                            <property name="tooltip_text" translatable="yes">Edit Dataset Parameters</property>
                                             <property name="halign">end</property>
                                             <property name="valign">center</property>
-                                            <property name="direction">left</property>
                                             <child>
                                               <object class="GtkImage">
                                                 <property name="visible">True</property>
