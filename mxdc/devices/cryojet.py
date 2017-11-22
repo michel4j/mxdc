@@ -128,7 +128,7 @@ class CryoJet(CryoJetBase):
             self.set_state(health=(2, 'cryo', 'Cryogen low!'))
         else:
             self.set_state(health=(0, 'cryo'))
-        self.set_property('level', val)
+        self.set_property('level', val/10.)
 
 
 class CryoJet5(CryoJetBase):
