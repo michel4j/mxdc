@@ -808,12 +808,12 @@ class ISARAMounter(AutoMounter):
         enabled = self.enabled_fbk.get() == 1
 
         controller_good = (air_ok and ln2_ok and sensor_ok and prog_ok)
-        robot_ready = (gripper_good and auto_mode)
+        robot_ready = auto_mode and gripper_good
 
         health = 0
         diagnosis = []
 
-        if controller_good and robot_ready and self.is_healthy():
+        if controller_good and robot_ready:
             if not enabled:
                 status = State.DISABLED
                 health |= 16
@@ -832,7 +832,7 @@ class ISARAMounter(AutoMounter):
             self.set_state(message='Staff Needed! Wrong Mode/Tool.')
         else:
             health |= 4
-            diagnosis += ['Error! Staff Needed.']
+            diagnosis += ['Unknown Error! Staff Needed.']
             status = State.ERROR
 
         GObject.idle_add(self.switch_status, status)
