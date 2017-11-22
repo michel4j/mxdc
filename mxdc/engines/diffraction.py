@@ -180,7 +180,7 @@ class DataCollector(GObject.GObject):
 
             # prepare goniometer for scan
             logger.info("Collecting {} images starting at: {}".format(
-                wedge['num_frames'], wedge['frame_template'].format(wedge['start_frame']))
+                wedge['num_frames'], wedge['frame_template'].format(wedge['first']))
             )
             self.beamline.goniometer.configure(
                 time=wedge['exposure'] * wedge['num_frames'],
