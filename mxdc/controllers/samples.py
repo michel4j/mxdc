@@ -34,13 +34,14 @@ class SamplesController(GObject.GObject):
 
 class HutchSamplesController(GObject.GObject):
     ports = GObject.Property(type=object)
+    containers = GObject.Property(type=object)
     def __init__(self, widget):
         super(HutchSamplesController, self).__init__()
         self.widget = widget
-        self.ports = {}
-        self.containers = {}
-
         self.props.ports = {}
+        self.props.containers = {}
+
+
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.microscope = microscope.Microscope(self.widget)
         self.cryo_tool = cryo.CryoController(self.widget)
