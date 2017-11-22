@@ -73,7 +73,7 @@ class Centering(GObject.GObject):
             try:
                 self.method()
             except Exception as e:
-                GObject.idle_add(self.emit, 'error')
+                GObject.idle_add(self.emit, 'error', str(e))
                 print(e)
             else:
                 GObject.idle_add(self.emit, 'done')
