@@ -198,7 +198,10 @@ class HumidityController(gui.Builder):
         self.hc_save_btn.connect('clicked', self.plotter.save)
         self.hc_pause_btn.connect('clicked', self.on_pause_btn)
         self.humidity_box.show_all()
-        self.widget.samples_stack.add_titled(self.humidity_box, 'humidity', 'Humidity')
+        if hasattr(self.widget, 'samples_stack'):
+            self.widget.samples_stack.add_titled(self.humidity_box, 'humidity', 'Humidity')
+        else:
+            self.widget.main_stack.add_titled(self.humidity_box, 'humidity', 'Humidity')
 
     def activate(self, dev, state):
         self.humidity_box.set_sensitive(state)
