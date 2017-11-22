@@ -214,6 +214,7 @@ class SampleStore(GObject.GObject):
             self.group_model.append(group_item)
             self.group_registry[name] = group_item
         GObject.idle_add(self.emit, 'updated')
+        self.props.containers = self.containers
 
     def add_item(self, item):
         item['uuid'] = str(uuid.uuid4())
