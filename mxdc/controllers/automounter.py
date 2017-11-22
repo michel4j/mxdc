@@ -36,6 +36,8 @@ class DewarController(GObject.GObject):
         self.beamline.automounter.connect('notify::ports', self.on_layout_changed)
         self.beamline.automounter.connect('notify::layout', self.on_layout_changed)
         self.beamline.automounter.connect('notify::containers', self.on_layout_changed)
+        self.store.connect('notify::ports', self.on_layout_changed)
+        self.store.connect('notify::containers', self.on_layout_changed)
 
         self.beamline.automounter.connect('active', self.on_state_changed)
         self.beamline.automounter.connect('busy', self.on_state_changed)
