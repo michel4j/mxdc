@@ -55,7 +55,7 @@ class ConfigDisplay(object):
         self.item = item
         self.widget = widget
         self.prefix = label_prefix
-        item.connect('notify::info', self.on_item_changed)
+        self.item.connect('notify::info', self.on_item_changed)
 
     def on_item_changed(self, item, param):
         for name, format in self.Formats.items():
@@ -138,7 +138,6 @@ class AutomationController(GObject.GObject):
             'analyse': self.widget.analyse_task_btn
         }
         self.setup()
-        self.import_from_cache()
 
     def import_from_cache(self):
         config = load_cache('auto')
@@ -212,6 +211,7 @@ class AutomationController(GObject.GObject):
             self.widget.auto_groups_btn.set_sensitive(True)
 
     def setup(self):
+        self.import_from_cache()
         self.widget.auto_edit_acq_btn.connect('clicked', self.on_edit_acquisition)
         self.run_dialog.data_save_btn.connect('clicked', self.on_save_acquisition)
 
