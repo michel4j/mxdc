@@ -314,8 +314,6 @@ class DataEditor(gui.BuilderMixin):
             min_res = converter.dist_to_resol(min_d, self.beamline.detector.mm_size, new_values['energy'])
             max_res = converter.dist_to_resol(max_d, self.beamline.detector.mm_size, new_values['energy'])
 
-            print  (min_res, max_res), (min_d, max_d)
-
             new_values['resolution'] = max(min_res, min(max_res, new_values['resolution']))
             new_values['energy'] = max(min_e, min(max_e, new_values['energy']))
             new_values['distance'] = converter.resol_to_dist(
