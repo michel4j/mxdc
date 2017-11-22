@@ -166,7 +166,6 @@ class SimCryoJet(CryoJetBase):
         self.shield_fbk.connect('changed', self.on_shield)
         self.nozzle.connect('changed', self.on_nozzle)
 
-        #GObject.timeout_add(3000, self._simulate_nozzle)
 
     def _simulate_nozzle(self, *args, **kwargs):
         if self.nozzle.is_open():
