@@ -702,7 +702,7 @@ class ISARAMounter(AutoMounter):
 
     def mount(self, port, wait=True):
         self.power_on()
-        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=20)
+        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=240)
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -727,7 +727,7 @@ class ISARAMounter(AutoMounter):
                 success = self.wait(states={State.BUSY}, timeout=5)
 
             if wait and success:
-                success = self.wait(states={State.STOPPING, State.IDLE}, timeout=60)
+                success = self.wait(states={State.STOPPING, State.IDLE}, timeout=240)
                 if not success:
                     self.set_state(message="Mounting timed out!")
                 return success
@@ -736,7 +736,7 @@ class ISARAMounter(AutoMounter):
 
     def dismount(self, wait=False):
         self.power_on()
-        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=20)
+        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=240)
 
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
@@ -752,7 +752,7 @@ class ISARAMounter(AutoMounter):
             logger.info('{}: Dismounting sample.'.format(self.name, ))
             success = self.wait(states={State.BUSY}, timeout=5)
             if wait and success:
-                success = self.wait(states={State.STOPPING, State.IDLE}, timeout=60)
+                success = self.wait(states={State.STOPPING, State.IDLE}, timeout=240)
                 if not success:
                     self.set_state(message="Dismount timed out!")
                 return success
