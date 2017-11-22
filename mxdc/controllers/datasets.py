@@ -214,6 +214,10 @@ class AutomationController(GObject.GObject):
     def setup(self):
         self.widget.auto_edit_acq_btn.connect('clicked', self.on_edit_acquisition)
         self.run_dialog.data_save_btn.connect('clicked', self.on_save_acquisition)
+
+        for btn in self.tasks.values():
+            btn.connect('toggled', self.on_save_acquisition)
+
         self.widget.auto_collect_btn.connect('clicked', self.on_start_automation)
         self.widget.auto_stop_btn.connect('clicked', self.on_stop_automation)
         self.widget.auto_clean_btn.connect('clicked', self.on_clean_automation)
