@@ -87,7 +87,7 @@ def get_loop_features(raw, offset=10, scale=0.5, orientation='left'):
     edges = numpy.zeros_like(raw_edges)
     edges[offset:-offset, offset:-offset] = raw_edges[offset:-offset, offset:-offset]
 
-    _ , contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
     cv2.drawContours(edges, contours, -1, (255, 255, 255), 48)
     avg = frame.mean()
     std = frame.std()
