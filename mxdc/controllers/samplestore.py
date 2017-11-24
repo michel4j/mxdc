@@ -204,8 +204,6 @@ class SampleStore(GObject.GObject):
 
     def load_data(self, data):
         self.clear()
-        import json
-        print json.dumps(data, indent=2)
         groups = defaultdict(list)
         for item in data:
             key = self.add_item(item)
