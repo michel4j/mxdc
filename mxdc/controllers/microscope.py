@@ -122,6 +122,7 @@ class Microscope(GObject.GObject):
         # status, save, etc
         self.widget.microscope_save_btn.connect('clicked', self.on_save)
         self.widget.microscope_grid_btn.connect('toggled', self.make_grid)
+        self.widget.microscope_colorize_tbtn.connect('toggled', self.colorize)
         self.widget.microscope_point_btn.connect('clicked', self.add_point)
         self.widget.microscope_clear_btn.connect('clicked', self.clear_objects)
 
@@ -456,6 +457,9 @@ class Microscope(GObject.GObject):
             self.props.grid = xyz
         else:
             self.props.grid = None
+
+    def colorize(self, button):
+        self.video.set_colorize(state=button.get_active())
 
     def on_tool_changed(self, *args, **kwargs):
         window = self.widget.microscope_bkg.get_window()

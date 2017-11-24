@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
     <gresource prefix="/org/mxdc">
-
         <file compressed="true">gtk/menus.ui</file>
         <file compressed="true">data/active_entry.ui</file>
         <file compressed="true">data/active_menu.ui</file>
@@ -38,6 +37,5 @@
         <file>data/units-sec.svg</file>
         <file>data/units-%.svg</file>
         <file>data/folder-template.svg</file>
-
     </gresource>
 </gresources>
