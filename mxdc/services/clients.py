@@ -192,7 +192,7 @@ class MxLIVEClient(BaseService):
         else:
             data.update(reply)
             misc.save_metadata(data, filename)
-            return data
+        return data
 
     def register(self):
         response = self.post('/project/', data={'public': self.keys['public']})
