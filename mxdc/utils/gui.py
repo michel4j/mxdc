@@ -3,6 +3,7 @@ from collections import OrderedDict
 from collections import namedtuple
 
 import gi
+import numpy
 from enum import Enum
 
 gi.require_version('Gtk', '3.0')
@@ -463,3 +464,8 @@ class FilteredTreeManager(TreeManager):
         self.view.connect('row-activated', self.row_activated)
         self.keys = [item.name.lower() for item in self.Data]
 
+
+def color_palette(colormap):
+    data = 255 * numpy.array(colormap.colors)
+    data[-1] = [255, 255, 255]
+    return data.ravel().astype(int)

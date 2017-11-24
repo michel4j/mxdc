@@ -14,12 +14,11 @@ from gi.repository import GdkPixbuf
 from gi.repository import Gtk
 from zope.interface import implements
 
-from mxdc import conf
+from mxdc.utils import cmaps
+from mxdc.utils.gui import color_palette
 from mxdc.devices.interfaces import IVideoSink
 from mxdc.utils.video import image_to_surface
 
-with open(os.path.join(conf.SHARE_DIR, 'data', 'colormaps.data'), 'r') as handle:
-    COLORMAPS = pickle.load(handle)
 
 class VideoWidget(Gtk.DrawingArea):
     implements(IVideoSink)
@@ -35,8 +34,8 @@ class VideoWidget(Gtk.DrawingArea):
         self.hoffset = 0
         self.surface = None
         self.stopped = False
-        self._colorize = False
-        self._palette = None
+        self.colorize = False
+        self.palette = color_palette(cmaps.viridis)
         self.display_width = 0
         self.display_height = 0
 
@@ -126,10 +125,10 @@ class VideoWidget(Gtk.DrawingArea):
 
     def display(self, img):
         img = img.resize((self.display_width, self.display_height), Image.BICUBIC)
-        if self._colorize:
+        if self.colorize:
             if img.mode != 'L':
                 img = img.convert('L')
-            img.putpalette(self._palette)
+            img.putpalette(self.palette)
         img = img.convert('RGB')
         self.surface = image_to_surface(img)
         GObject.idle_add(self.queue_draw)
@@ -137,12 +136,8 @@ class VideoWidget(Gtk.DrawingArea):
         if self.display_func is not None:
             self.display_func(img, scale=self.scale)
 
-    def set_colormap(self, colormap=None):
-        if colormap is not None:
-            self._colorize = True
-            self._palette = COLORMAPS[colormap]
-        else:
-            self._colorize = False
+    def set_colorize(self, state=True):
+        self.colorize = state
 
     def do_draw(self, cr):
         if self.surface is not None:
