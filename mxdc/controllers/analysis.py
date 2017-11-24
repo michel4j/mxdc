@@ -222,7 +222,6 @@ class AnalysisController(GObject.GObject):
         else:
             self.widget.proc_sample_fbk.set_text('...')
         self.widget.proc_revealer.set_reveal_child(bool(sample) or bool(strategy))
-        )
 
         directory = item['directory']
         home_dir = misc.get_project_home()
