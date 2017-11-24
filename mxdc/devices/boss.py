@@ -179,7 +179,7 @@ class MOSTABTuner(BaseTuner):
 
     def on_value_changed(self, obj, val):
         ref = self.reference_fbk.get()
-        perc = 0.0 if ref != 0 else 100.0 * val/ref
+        perc = 0.0 if ref == 0 else 100.0 * val/ref
         self.set_state(changed=val, percent=perc)
 
 
