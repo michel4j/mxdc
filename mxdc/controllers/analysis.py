@@ -210,6 +210,7 @@ class AnalysisController(GObject.GObject):
 
         sample = item.get('sample', {})
         strategy = report.get('strategy')
+
         self.widget.proc_mount_btn.set_sensitive(bool(sample) and bool(sample.get('port')) and item['state'] == self.reports.State.SUCCESS)
         self.widget.proc_strategy_btn.set_sensitive(bool(self.reports.strategy))
         if sample and sample.get('port'):
@@ -221,6 +222,7 @@ class AnalysisController(GObject.GObject):
         else:
             self.widget.proc_sample_fbk.set_text('...')
         self.widget.proc_revealer.set_reveal_child(bool(sample) or bool(strategy))
+        )
 
         directory = item['directory']
         home_dir = misc.get_project_home()
