@@ -4,7 +4,6 @@ import array
 import logging
 import math
 import os
-import sys
 import threading
 import time
 
@@ -21,18 +20,13 @@ from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 from mxdc.libs.imageio import read_image
 from mxdc.libs.imageio.utils import stretch
 from mxdc.utils import cmaps, colors
+from mxdc.utils.gui import color_palette
 from mxdc.utils.video import image_to_surface
 
 __log_section__ = 'mxdc.imagewidget'
 img_logger = logging.getLogger(__log_section__)
 
 GAMMA_SHIFT = 3.5
-
-
-def color_palette(colormap):
-    data = 255 * numpy.array(colormap.colors)
-    data[-1] = [255, 255, 255]
-    return data.ravel().astype(int)
 
 
 def _adjust_spines(ax, spines, color):
