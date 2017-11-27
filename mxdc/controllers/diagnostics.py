@@ -45,7 +45,7 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
         self.set(0.5, 0.5, 1, 1)
         self.setup_gui()
         self.diagnostic = diagnostic
-        self.label.set_markup("<span color='#444647'><b>%s</b></span>" % self.diagnostic.description)
+        self.label.set_markup("<span color='#444647'><b>{}</b></span>".format(self.diagnostic.description))
 
         color = Gdk.RGBA()
         color.parse(ICON_COLORS[Diagnostic.State.UNKNOWN])
@@ -62,6 +62,7 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
 
     def on_message_changed(self, *args, **kwargs):
         self.info.set_text(self.diagnostic.props.message)
+        self.info.set_tooltip_text(self.diagnostic.props.message)
 
     def on_state_changed(self, *args, **kwargs):
         state = self.diagnostic.props.state
@@ -84,6 +85,7 @@ class DiagnosticsController(object):
         self.box = Gtk.FlowBox(column_spacing=12, row_spacing=6)
         self.box.set_valign(Gtk.Align.START)
         self.box.set_max_children_per_line(2)
+        self.box.set_min_children_per_line(2)
         self.box.set_selection_mode(Gtk.SelectionMode.NONE)
         self.container.add(self.box)
 
