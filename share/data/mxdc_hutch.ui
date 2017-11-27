@@ -127,7 +127,7 @@
                                 <child>
                                   <object class="GtkEntry" id="cryo_level_fbk">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
+                                    <property name="can_focus">False</property>
                                     <property name="editable">False</property>
                                     <property name="width_chars">10</property>
                                     <property name="text" translatable="yes">0.0 %</property>
@@ -172,7 +172,7 @@
                                 <child>
                                   <object class="GtkEntry" id="cryo_temp_fbk">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
+                                    <property name="can_focus">False</property>
                                     <property name="editable">False</property>
                                     <property name="width_chars">10</property>
                                     <property name="text" translatable="yes">0.0 K</property>
@@ -217,7 +217,7 @@
                                 <child>
                                   <object class="GtkEntry" id="cryo_sample_fbk">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
+                                    <property name="can_focus">False</property>
                                     <property name="editable">False</property>
                                     <property name="width_chars">10</property>
                                     <property name="text" translatable="yes">0.0 L/min</property>
@@ -262,7 +262,7 @@
                                 <child>
                                   <object class="GtkEntry" id="cryo_shield_fbk">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
+                                    <property name="can_focus">False</property>
                                     <property name="editable">False</property>
                                     <property name="width_chars">10</property>
                                     <property name="text" translatable="yes">0.0 L/min</property>
