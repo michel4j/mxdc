@@ -15,6 +15,8 @@ from mxdc.utils import imgproc
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_short_uuid, logistic_score
+from mxdc.controllers.microscope import IMicroscope
+
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -38,10 +40,12 @@ class Centering(GObject.GObject):
         super(Centering, self).__init__()
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.method = None
+        self.score = 0.0
         self.methods = {
             'loop': self.center_loop,
             'crystal': self.center_crystal,
             'capillary': self.center_capillary,
+            'diffraction': self.center_diffraction,
         }
 
     def configure(self, method='loop'):
@@ -68,6 +72,8 @@ class Centering(GObject.GObject):
 
     def run(self):
         ca.threads_init()
+        self.score = 0.0
+        start_time = time.time()
         with self.beamline.lock:
             GObject.idle_add(self.emit, 'started')
             try:
@@ -76,19 +82,20 @@ class Centering(GObject.GObject):
                 GObject.idle_add(self.emit, 'error', str(e))
             else:
                 GObject.idle_add(self.emit, 'done')
+        logger.info('Centering Done in {:0.1f} seconds'.format(time.time() - start_time))
 
     def center_loop(self):
-        start_time = time.time()
         self.beamline.sample_frontlight.set_off()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
         self.beamline.sample_backlight.set(100)
         self.beamline.sample_video.zoom(low_zoom)
         time.sleep(1)
-        angle, info =  self.get_features()
+        angle, info = self.get_features()
         if not 'x' in info or not 'y' in info:
             logger.warning('No sample found, homing centering stage!')
             self.beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
         widths = []
+        scores = []
         for j in range(2):
             if j == 1:
                 self.beamline.sample_video.zoom(med_zoom)
@@ -103,6 +110,9 @@ class Centering(GObject.GObject):
                     if not self.beamline.sample_stage.is_busy():
                         self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
                     widths.append((angle, info['width'], info['height']))
+                    scores.append(1.0)
+                else:
+                    scores.append(0.5 if 'x' in info or 'y' in info else 0.0)
                 logger.debug('Centering: {}'.format(info))
         sizes = numpy.array(widths)
         best_angle =  sizes[:,2][sizes[:,2].argmax()]
@@ -115,18 +125,37 @@ class Centering(GObject.GObject):
             xmm, ymm = self.screen_to_mm(loop_x, loop_y)
             if not self.beamline.sample_stage.is_busy():
                 self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
-        logger.info('Centering Done in {:0.1f} seconds'.format(time.time() - start_time))
+        self.score = numpy.mean(scores)
 
     def center_crystal(self):
         self.center_loop()
+        loop_score = self.score
+
+        def auto_grid(self, *args, **kwargs):
+            img = self.camera.get_frame()
+            pol = imgproc.find_profile(img, 2)
+            # bbox = self.video.scale * imgproc.get_sample_bbox2(img)
+            # self.props.grid = self.bbox_grid(bbox)
+            # self.props.grid_params = {
+            #     'origin': self.beamline.sample_stage.get_xyz(),
+            #     'angle': self.beamline.omega.get_position(),
+            #     'scale': self.video.scale,
+            # }
+            # self.props.grid_state = self.GridState.PENDING
+            # self.props.grid_scores = {}
+
+    def center_diffraction(self):
+        self.center_loop()
+        loop_score = self.score
+        microscope = globalRegistry.lookup([], IMicroscope)
 
     def center_capillary(self):
-        start_time = time.time()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
         self.beamline.sample_frontlight.set_off()
         self.beamline.sample_backlight.set(100)
         self.beamline.sample_video.zoom(low_zoom)
         time.sleep(1)
+        scores = []
         angle, info = self.get_features()
         if not 'x' in info or not 'y' in info:
             logger.warning('No sample found, homing centering stage!')
@@ -146,13 +175,15 @@ class Centering(GObject.GObject):
                     xmm, ymm = self.screen_to_mm(x, info['y'])
                     if not self.beamline.sample_stage.is_busy():
                         self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
+                    scores.append(1.0)
+                else:
+                    scores.append(0.5 if 'x' in info or 'y' in info else 0.0)
                 logger.debug('Centering: {}'.format(info))
 
         # final shift
         xmm, ymm = self.screen_to_mm(half_width, 0)
         if not self.beamline.sample_stage.is_busy():
             self.beamline.sample_stage.move_screen_by(xmm, 0.0, 0.0)
-        logger.info('Centering Done in {:0.1f} seconds'.format(time.time() - start_time))
 
 
 def get_current_bkg():

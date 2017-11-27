@@ -584,9 +584,9 @@ class SimShutter(BaseDevice):
 
 class Shutter(BasicShutter):
     def __init__(self, name):
-        open_name = "%s:opr:open" % name
-        close_name = "%s:opr:close" % name
-        state_name = "%s:state" % name
+        open_name = "{}:opr:open".format(name)
+        close_name = "{}:opr:close".format(name)
+        state_name = "{}:state".format(name)
         super(Shutter, self).__init__(open_name, close_name, state_name)
 
 
@@ -622,7 +622,7 @@ class DiskSpaceMonitor(BaseDevice):
         base_sz[1:] = 1 << (numpy.arange(len(symbols) - 1) + 1) * 10
         idx = numpy.where(base_sz <= sz)[0][-1]
         value = float(sz) / base_sz[idx]
-        return "%0.2f %sB" % (value, symbols[idx])
+        return "{:0.2f} {}B".format(value, symbols[idx])
 
     def _check_space(self):
         try:
@@ -633,7 +633,7 @@ class DiskSpaceMonitor(BaseDevice):
             total = float(fs_stat.f_frsize * fs_stat.f_blocks)
             avail = float(fs_stat.f_frsize * fs_stat.f_bavail)
             fraction = avail / total
-            msg = '%s (%0.1f %%) available.' % (self._humanize(avail), fraction * 100)
+            msg = '{} ({:0.1f} %) available.'.format(self._humanize(avail), fraction * 100)
             if fraction < self.error_threshold:
                 self.set_state(health=(4, 'usage', msg))
                 logger.error(msg)
@@ -657,11 +657,11 @@ class Enclosures(BaseDevice):
             p.connect('changed', self.handle_change)
 
     def get_messages(self):
-        if self.ready_state:
-            return "All enclosures secure"
+        if self.ready:
+            return "All secure"
         else:
             msg = ", ".join([k.upper() for k, v in self.hutches.items() if v.get() == 0])
-            return "%s not secure" % msg
+            return "{} not secure".format(msg)
 
     def handle_change(self, obj, val):
         self.ready = all([p.get() == 1 for p in self.hutches.values()])
