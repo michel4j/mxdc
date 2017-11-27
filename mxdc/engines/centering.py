@@ -15,7 +15,6 @@ from mxdc.utils import imgproc
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_short_uuid, logistic_score
-from mxdc.controllers.microscope import IMicroscope
 
 
 # setup module logger with a default do-nothing handler
@@ -131,23 +130,9 @@ class Centering(GObject.GObject):
         self.center_loop()
         loop_score = self.score
 
-        def auto_grid(self, *args, **kwargs):
-            img = self.camera.get_frame()
-            pol = imgproc.find_profile(img, 2)
-            # bbox = self.video.scale * imgproc.get_sample_bbox2(img)
-            # self.props.grid = self.bbox_grid(bbox)
-            # self.props.grid_params = {
-            #     'origin': self.beamline.sample_stage.get_xyz(),
-            #     'angle': self.beamline.omega.get_position(),
-            #     'scale': self.video.scale,
-            # }
-            # self.props.grid_state = self.GridState.PENDING
-            # self.props.grid_scores = {}
-
     def center_diffraction(self):
         self.center_loop()
         loop_score = self.score
-        microscope = globalRegistry.lookup([], IMicroscope)
 
     def center_capillary(self):
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
