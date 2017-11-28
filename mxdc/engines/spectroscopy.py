@@ -93,7 +93,7 @@ class XRFScanner(BasicScan):
     def stop(self, error=''):
         pass
 
-    def pause(self, reason):
+    def pause(self, reason=''):
         pass
 
     def analyse(self):
