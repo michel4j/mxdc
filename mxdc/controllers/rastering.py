@@ -26,20 +26,6 @@ RASTER_DELTA = 0.5
 
 logger = get_module_logger(__name__)
 
-
-def frame_score(info):
-    if info:
-        bragg = info['bragg_spots']
-        ice = 1 / (1.0 + info['ice_rings'])
-        saturation = info['saturation'][1]
-        sc_x = numpy.array([bragg, saturation, ice])
-        sc_w = numpy.array([5, 10, 0.2])
-        score = numpy.exp((sc_w * numpy.log(sc_x)).sum() / sc_w.sum())
-    else:
-        score = 0.0
-    return score
-
-
 class RasterResultsManager(TreeManager):
     class Data(Enum):
         NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID, FILENAME = range(10)
@@ -240,18 +226,18 @@ class RasterController(GObject.GObject):
             self.widget.raster_stop_btn.set_sensitive(False)
             self.view.set_sensitive(True)
 
-    def on_started(self, obj):
+    def on_started(self, collector):
         self.start_time = time.time()
         self.props.state = self.StateType.ACTIVE
         logger.info("Rastering Started.")
-
-        self.results[self.props.config['uuid']] = {
-            'config': copy.deepcopy(self.props.config),
+        config = collector.config['params']
+        self.results[config['uuid']] = {
+            'config': copy.deepcopy(config),
             'grid': self.microscope.grid_xyz,
             'scores': {}
         }
 
-        directory = self.props.config['directory']
+        directory = config['directory']
         home_dir = misc.get_project_home()
         current_dir = directory.replace(home_dir, '~')
         self.widget.raster_dir_fbk.set_text(current_dir)
@@ -307,13 +293,14 @@ class RasterController(GObject.GObject):
         image_viewer.queue_frame(file_path)
         logger.info('Frame acquired: {}'.format(frame))
 
-    def on_results(self, obj, cell, results):
-        score = frame_score(results)
+    def on_results(self, collector, cell, results):
+        config = collector.config['params']
+        score = misc.frame_score(results)
         self.microscope.add_grid_score(cell, score)
         x, y, z = self.microscope.props.grid_xyz[cell]
         parent, child = self.manager.add_item({
-            'name': self.props.config['name'],
-            'angle': self.props.config['angle'],
+            'name': config['name'],
+            'angle': config['angle'],
             'cell': cell,
             'x_pos': x,
             'y_pos': y,
@@ -321,9 +308,9 @@ class RasterController(GObject.GObject):
             'score': score,
             'color': score,
             'filename': results['filename'],
-            'uuid': self.props.config['uuid'],
+            'uuid': config['uuid'],
         })
-        self.results[self.props.config['uuid']]['scores'][cell] = score
+        self.results[config['uuid']]['scores'][cell] = score
         if parent:
             self.view.expand_row(parent, False)
         self.view.scroll_to_cell(child, None, True, 0.5, 0.5)
