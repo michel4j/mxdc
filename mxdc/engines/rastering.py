@@ -16,11 +16,23 @@ from mxdc.utils import datatools,  misc
 from mxdc.utils.converter import energy_to_wavelength
 from mxdc.utils.log import get_module_logger
 
+from zope.interface import Interface, implements, Attribute
 
 logger = get_module_logger(__name__)
 
 
+class IRasterCollector(Interface):
+    """Raster Collector."""
+
+    def configure(grid, parameters):
+        """Configure the collector"""
+
+    def start():
+        """Run the acquisition asynchronously"""
+
+
 class RasterCollector(GObject.GObject):
+    implements(IRasterCollector)
     __gsignals__ = {
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
         'result': (GObject.SIGNAL_RUN_LAST, None, (int, object)),
@@ -48,6 +60,7 @@ class RasterCollector(GObject.GObject):
         self.analyst = globalRegistry.lookup([], IAnalyst)
         self.frame_link = self.beamline.detector.connect('new-image', self.on_new_image)
         self.unwatch_frames()
+        globalRegistry.register([], IRasterCollector, '', self)
 
     def configure(self, grid, parameters):
         self.config['grid'] = grid
@@ -61,6 +74,11 @@ class RasterCollector(GObject.GObject):
         worker_thread.start()
 
     def prepare(self, params):
+        self.beamline.detector_cover.open(wait=True)
+        self.total_frames = len(self.config['frames'])
+        self.pending_results = set()
+        self.results = {}
+
         # setup folder for
         self.beamline.dss.setup_folder(params['directory'], misc.get_project_name())
 
@@ -74,36 +92,45 @@ class RasterCollector(GObject.GObject):
         self.beamline.goniometer.set_mode('COLLECT', wait=True)
 
     def run(self):
-        self.paused = False
-        self.stopped = False
         ca.threads_init()
-        self.collecting = True
-        self.beamline.detector_cover.open(wait=True)
-        self.total_frames = len(self.config['frames'])
-        self.pending_results = set()
-        self.results = {}
         current_attenuation = self.beamline.attenuator.get()
 
         with self.beamline.lock:
             GObject.idle_add(self.emit, 'started')
             try:
                 self.acquire()
+                self.beamline.sample_stage.move_xyz(*self.config['params']['origin'])
+                self.beamline.omega.move_to(self.config['params']['angle'], wait=True)
+
+                # take snapshot
+                self.beamline.goniometer.set_mode('CENTERING', wait=True)
+                logger.info('Taking snapshot ...')
+                img = self.beamline.sample_camera.get_frame()
+                img.save(
+                    os.path.join(self.config['params']['directory'], '{}.png'.format(self.config['params']['name']))
+                )
             finally:
                 self.beamline.fast_shutter.close()
 
-        if not self.stopped:
-            GObject.idle_add(self.emit, 'done')
-        else:
+        if self.stopped:
             GObject.idle_add(self.emit, 'stopped')
+        else:
+            GObject.idle_add(self.emit, 'done')
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
-        self.collecting = False
+
         self.beamline.detector_cover.close()
 
     def acquire(self):
+        self.paused = False
+        self.stopped = False
+
+        self.collecting = True
         is_first_frame = True
         self.count = 0
         self.prepare(self.config['params'])
+
         self.watch_frames()
+        logger.debug('Acquiring {} rastering frames ... '.format(len(self.config['frames'])))
         for frame in self.config['frames']:
             if self.paused:
                 GObject.idle_add(self.emit, 'paused', True, '')
@@ -127,6 +154,7 @@ class RasterCollector(GObject.GObject):
                 'delta_angle': frame['delta'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
             }
+
             # move to grid point
             self.beamline.sample_stage.move_xyz(*frame['point'])
 
@@ -147,20 +175,12 @@ class RasterCollector(GObject.GObject):
             is_first_frame = False
             time.sleep(0)
 
-        self.beamline.sample_stage.move_xyz(*self.config['params']['origin'])
-        self.beamline.omega.move_to(self.config['params']['angle'], wait=True)
-
-        # take snapshot
-        self.beamline.goniometer.set_mode('CENTERING', wait=True)
-        logger.info('Taking snapshot ...')
-        img = self.beamline.sample_camera.get_frame()
-        img.save(os.path.join(self.config['params']['directory'], '{}.png'.format(self.config['params']['name'])))
-
         GObject.timeout_add(5000, self.unwatch_frames)
 
         while self.pending_results:
-            time.sleep(1)
+            time.sleep(0.5)
         self.save_metadata()
+        self.collecting = False
 
     def watch_frames(self):
         self.beamline.detector.handler_unblock(self.frame_link)
@@ -219,15 +239,15 @@ class RasterCollector(GObject.GObject):
 
     def result_ready(self, result, index=None, path=None):
         info = result
-        self.pending_results.remove(path)
         info['filename'] = path
-        GObject.idle_add(self.emit, 'result', index, info)
         self.results[index] = info
+        GObject.idle_add(self.emit, 'result', index, info)
+        self.pending_results.remove(path)
 
     def result_fail(self, error, cell, file_path):
-        self.pending_results.remove(file_path)
         self.results[cell] = error
         logger.error("Unable to process data for cell {}".format(cell))
+        self.pending_results.remove(file_path)
 
     def save_metadata(self, upload=True):
         params = self.config['params']
@@ -264,7 +284,6 @@ class RasterCollector(GObject.GObject):
                 'inverse_beam': params.get('inverse', False),
                 'grid_origin': params['origin'],
                 'grid_points': self.config['grid'].tolist(),
-                'scale': params['origin'],
             }
             filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
             misc.save_metadata(metadata, filename)

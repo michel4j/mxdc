@@ -364,10 +364,8 @@ class Microscope(GObject.GObject):
         # self.props.grid_state = self.GridState.PENDING
         # self.props.grid_scores = {}
 
-
     def add_point(self, *args, **kwargs):
         self.props.points = self.props.points + [self.beamline.sample_stage.get_xyz()]
-
 
     def add_polygon_point(self, x, y):
         radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
@@ -491,7 +489,7 @@ class Microscope(GObject.GObject):
             self.save_image(img_filename)
 
     def on_auto_center(self, widget, method='loop'):
-        self.centering.configure(method)
+        self.centering.configure(method=method)
         self.centering.start()
         return True
 
