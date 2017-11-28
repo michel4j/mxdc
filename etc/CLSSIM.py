@@ -16,8 +16,9 @@ CONFIG = {
     'subnet': '0.0.0.0/32',
 
     'admin_groups': [1000, 2000],
-    #'admin_groups': [],
+
     'energy_range': (5.0, 19.0),
+    'zoom_levels': (2, 4, 6),
     'default_attenuation': 50.0,
     'default_exposure': 1.0,
     'default_delta': 0.5,
@@ -52,7 +53,7 @@ DEVICES = {
     'sample_y2': motor.SimMotor('Sample Y', 0.0, units='mm', speed=0.2),
 
     # Beam position & Size
-    'aperture': misc.SimChoicePositioner('Beam Size', 50, choices=[200, 150, 100, 50, 25], units='um'),
+    'aperture': misc.SimChoicePositioner('Beam Size', 100, choices=[200, 150, 100, 50, 25], units='um'),
 
     # Detector, distance & two_theta
     'distance': tmp1,
@@ -71,9 +72,9 @@ DEVICES = {
     # 'sample_camera': AxisPTZCamera('ccd1608-301.clsi.ca'),
     # 'sample_camera': MJPGCamera('http://opi2051-002.clsi.ca:9999/video.mjpg', size=(1360, 1024)),
     # 'sample_camera': JPGCamera('http://opi2051-002.clsi.ca:9999/image.jpg', size=(1360, 1024)),
-    #'sample_camera': video.AxisCamera('V2E1608-400', 1),
+    'sample_camera': video.AxisCamera('V2E1608-400', 1),
 
-    'sample_camera': video.REDISCamera('10.52.31.215', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
+    #'sample_camera': video.REDISCamera('10.52.31.215', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),

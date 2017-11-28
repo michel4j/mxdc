@@ -210,3 +210,12 @@ def get_free_tcp_port():
     addr, port = tcp.getsockname()
     tcp.close()
     return port
+
+def frame_score(info):
+    bragg = info['bragg_spots']
+    ice = 1 / (1.0 + info['ice_rings'])
+    saturation = info['saturation'][1]
+    sc_x = numpy.array([bragg, saturation, ice])
+    sc_w = numpy.array([5, 10, 0.2])
+    score = numpy.exp((sc_w * numpy.log(sc_x)).sum() / sc_w.sum())
+    return score

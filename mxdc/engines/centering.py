@@ -1,25 +1,29 @@
 from __future__ import print_function
 
-import commands
 import os
 import shutil
 import tempfile
 import time
 import threading
 import numpy
+import uuid
+import traceback
+from datetime import datetime
+
+
 from twisted.python.components import globalRegistry
 from gi.repository import GObject
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.snapshot import take_sample_snapshots
-from mxdc.utils import imgproc
+from mxdc.utils import imgproc, datatools, misc
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
-from mxdc.utils.misc import get_short_uuid, logistic_score
+from mxdc.utils.misc import get_short_uuid
 
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
-
+RASTER_DELTA = 0.5
 _SAMPLE_SHIFT_STEP = 0.2  # mm
 CENTERING_ZOOM = 2
 _CENTERING_BLIGHT = 65.0
@@ -78,6 +82,7 @@ class Centering(GObject.GObject):
             try:
                 self.method()
             except Exception as e:
+                traceback.print_exc()
                 GObject.idle_add(self.emit, 'error', str(e))
             else:
                 GObject.idle_add(self.emit, 'done')
@@ -124,6 +129,7 @@ class Centering(GObject.GObject):
             xmm, ymm = self.screen_to_mm(loop_x, loop_y)
             if not self.beamline.sample_stage.is_busy():
                 self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
+
         self.score = numpy.mean(scores)
 
     def center_crystal(self):
@@ -131,8 +137,81 @@ class Centering(GObject.GObject):
         loop_score = self.score
 
     def center_diffraction(self):
-        self.center_loop()
-        loop_score = self.score
+
+        from mxdc.controllers.microscope import IMicroscope
+        from mxdc.controllers.samplestore import ISampleStore
+        from mxdc.engines.rastering import IRasterCollector
+
+        current =  str(uuid.uuid4())
+
+        microscope = globalRegistry.lookup([], IMicroscope)
+        sample_store = globalRegistry.lookup([], ISampleStore)
+        collector = globalRegistry.lookup([], IRasterCollector)
+
+        #self.center_loop()
+        #loop_score = self.score
+
+        angle, info = self.get_features()
+        if 'loop-x' in info and 'loop-y' in info:
+            half_height = info['height']/(2*numpy.sqrt(2))
+            xmm_s, ymm_s = self.screen_to_mm(info['loop-x'], info['loop-y'] - half_height)
+            xmm_e, ymm_e = self.screen_to_mm(info['loop-x'], info['loop-y'] + half_height)
+
+            step_size = (self.beamline.aperture.get()*1e-3)*2**-0.5
+            nY = (ymm_s - ymm_e)/step_size
+            xmm = numpy.linspace(xmm_s, xmm_e, nY)
+            ymm = numpy.linspace(ymm_s, ymm_e, nY)
+
+            origin = self.beamline.sample_stage.get_xyz()
+            ox, oy, oz = origin
+            angle = self.beamline.omega.get_position()
+            gx, gy, gz = self.beamline.sample_stage.xvw_to_xyz(-xmm, -ymm, numpy.radians(angle))
+            grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
+
+            if nY <=1:
+                logger.warning('No sample found, diffraction centering not done!')
+                return
+
+            params = {
+                "origin": origin,
+                "angle": angle,
+                "scale": 1,
+                "exposure": 1.0,
+                "resolution": self.beamline.maxres.get_position(),
+                "energy": self.beamline.energy.get_position(),
+                "distance": self.beamline.distance.get_position(),
+                "attenuation": self.beamline.attenuator.get(),
+                "delta": RASTER_DELTA,
+                "uuid":  current,
+                "name": datetime.now().strftime('%y%m%d-%H%M'),
+                "activity": "centering",
+            }
+            params = datatools.update_for_sample(params, sample_store.get_current())
+            microscope.props.grid_params = params
+            microscope.props.grid_xyz = grid_xyz
+
+            collector.configure(grid_xyz, params)
+
+            GObject.idle_add(collector.emit, 'started')
+            collector.acquire()
+            GObject.idle_add(collector.emit, 'done')
+
+            self.beamline.fast_shutter.close()
+            self.beamline.detector_cover.close()
+
+            scores = numpy.array([
+                (index, misc.frame_score(info)) for index, info in sorted(collector.results.items())
+            ])
+
+            best = scores[:,1].argmax()
+            index = int(scores[best,0])
+            point = grid_xyz[index]
+
+            self.beamline.sample_stage.move_xyz(point[0], point[1], point[2])
+            self.score = scores[best, 1]
+        else:
+            logger.warning('No sample found, diffraction centering not done!')
+
 
     def center_capillary(self):
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']

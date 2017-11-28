@@ -92,7 +92,7 @@ class BasicScan(GObject.GObject):
         self.busy = False
         GObject.idle_add(self.emit, 'busy', False)
 
-    def pause(self, state):
+    def pause(self, state=True):
         self.paused = state
 
     def stop(self):
@@ -104,7 +104,7 @@ class BasicScan(GObject.GObject):
     def on_beam_change(self, obj, beam_available):
         self.send_notification = not beam_available
         if self.send_notification and (not self.paused) and (not self.stopped):
-            self.pause(True)
+            self.pause()
 
     def set_data(self, raw_data):
         self.data = numpy.array(raw_data, dtype=self.data_types)
