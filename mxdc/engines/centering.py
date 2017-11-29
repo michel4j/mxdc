@@ -86,7 +86,7 @@ class Centering(GObject.GObject):
                 GObject.idle_add(self.emit, 'error', str(e))
             else:
                 GObject.idle_add(self.emit, 'done')
-        logger.info('Centering Done in {:0.1f} seconds [{:0.2f}]'.format(time.time() - start_time), self.score)
+        logger.info('Centering Done in {:0.1f} seconds [{:0.2f}]'.format(time.time() - start_time, self.score))
 
     def center_loop(self):
         self.beamline.sample_frontlight.set_off()
