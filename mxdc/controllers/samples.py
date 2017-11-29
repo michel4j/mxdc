@@ -61,7 +61,7 @@ class HutchSamplesController(GObject.GObject):
             self.beamline.detector.connect('new-image', self.on_new_image)
 
     def on_new_image(self, object, file_path):
-        self.image_viewer.open_image(file_path)
+        self.image_viewer.queue_frame(file_path)
 
     def on_dewar_selected(self, obj, port):
         row = self.find_by_port(port)
