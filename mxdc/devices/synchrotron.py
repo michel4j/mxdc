@@ -55,12 +55,10 @@ class StorageRing(BaseStorageRing):
         self._last_current = 0.0
 
     def check_ready(self, *args, **kwargs):
-        if self.props.current > 5.0 and self.props.state == 1 and self.props.mode == 4:
+        if self.props.current > 5.0 and self.props.mode == 4:
             self.set_state(ready=True, health=(0, 'mode'))
-        elif self.props.current > 5.0 and self.props.state == 1:
-            self.set_state(ready=True, health=(1, 'mode', 'Mainenance beam'))
-        elif self.props.current > 5.0 and self.props.state != 1:
-            self.set_state(ready=False, health=(1, 'mode', 'Beamlines disabled'))
+        elif self.props.current > 5.0:
+            self.set_state(ready=True, health=(2, 'mode', 'Mainenance beam'))
         else:
             self.set_state(ready=False, health=(4, 'mode', self.props.message or 'Beam not available'))
 
