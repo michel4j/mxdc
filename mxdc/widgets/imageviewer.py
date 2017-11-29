@@ -8,17 +8,14 @@ import re
 import numpy
 from gi.repository import GObject
 from gi.repository import Gtk
-from twisted.python.components import globalRegistry
-from zope.interface import Interface
-
 from mxdc.utils import gui
 from mxdc.widgets import dialogs
 from mxdc.widgets.imagewidget import ImageWidget, image_loadable
+from twisted.python.components import globalRegistry
+from zope.interface import Interface
 
-__log_section__ = 'mxdc.imageviewer'
-img_logger = logging.getLogger(__log_section__)
+logger = logging.getLogger(__name__)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 FILE_PATTERN = re.compile('^(?P<base>[\w-]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.?[\w.]+)?$')
 
 
@@ -103,13 +100,13 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.show_all()
 
     def log(self, msg):
-        img_logger.info(msg)
+        logger.info(msg)
 
     def _load_spots(self, filename):
         try:
             self.all_spots = numpy.loadtxt(filename)
         except:
-            img_logger.error('Could not load spots from %s' % filename)
+            logger.error('Could not load spots from %s' % filename)
 
     def _select_spots(self, spots):
         def _zeros(a):
@@ -159,7 +156,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                 extension = ''
             self.frame_number = int(fm.group('num'))
             self.file_template = os.path.join(self.directory,
-                                              "%s*%s" % (fm.group('base'), extension))
+                                              "{}*{}".format(fm.group('base'), extension))
 
         self._rescan_dataset()
         self.back_btn.set_sensitive(True)
@@ -172,12 +169,13 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     def open_image(self, filename):
         # select spots and display for current image
         self._set_file_specs(filename)
+
         if len(self.all_spots) > 0:
             image_spots = self._select_image_spots(self.all_spots)
             indexed, unindexed = self._select_spots(image_spots)
             self.image_canvas.set_spots(indexed, unindexed)
 
-        img_logger.info("Loading image %s" % (filename))
+        logger.info("Loading image {}".format(filename))
         self.image_canvas.load_frame(filename)
 
     def set_collect_mode(self, state=True):
