@@ -35,7 +35,7 @@ class VideoWidget(Gtk.DrawingArea):
         self.surface = None
         self.stopped = False
         self.colorize = False
-        self.palette = color_palette(cmaps.viridis)
+        self.palette = color_palette(cmaps.gist_ncar)
         self.display_width = 0
         self.display_height = 0
 
