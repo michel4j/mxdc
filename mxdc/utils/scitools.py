@@ -183,7 +183,7 @@ def find_peaks(x, y, width=9, sensitivity=0.01, smooth=True):
     hw = max(width // 3, 2)
     width += (width%2) + 1
     ys = smooth_data(y, times=4, window=width) if smooth else y
-    yfunc = interpolate.interp1d(x, ys)
+    yfunc = interpolate.interp1d(x, ys, bounds_error=False, fill_value=0.0)
     yp = signal.savgol_filter(ys, width, 1, deriv=1)
     peak_str = numpy.array([True]*hw + [False]*hw).tostring()
     data_str = (yp > 0.0).tostring()
@@ -344,7 +344,7 @@ def interprete_xrf(xo, yo, energy, speedup=4):
         err[sel] = err[sel] * 5
         return err
 
-    peaks = find_peaks(xo, yo, width=21, sensitivity=0.005)
+    peaks = find_peaks_orig(xo, yo, width=21, sensitivity=0.005)
     yo = smooth_data(yo, times=3, window=11)
     elements, lonly = get_peak_elements(energy, peaks, prec=0.1)
 
