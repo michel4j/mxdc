@@ -105,6 +105,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         self.device.connect('active', self.on_status)
         self.device.connect('enabled', self.on_status)
         self.device.connect('health', self.on_status)
+        self.device.connect('busy', self.on_status)
 
         self.action_btn.connect('clicked', self.on_activate)
         self.entry.connect('icon-press', self.on_activate)
@@ -144,6 +145,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
 
     def on_status(self, *args, **kwargs):
         health, msg = self.device.health_state
+        busy = self.device.is_healthy()
         active = self.device.is_active()
         enabled = self.device.is_enabled()
         healthy = self.device.is_healthy()
@@ -165,9 +167,10 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         else:
             self.state_icon = "media-playback-start-symbolic"
 
-        self.action_icon.set_from_icon_name(self.state_icon, Gtk.IconSize.BUTTON)
-        self.entry.set_sensitive((active and enabled and healthy))
-        self.action_btn.set_sensitive((active and enabled and healthy))
+        if not busy:
+            self.action_icon.set_from_icon_name(self.state_icon, Gtk.IconSize.BUTTON)
+            self.action_btn.set_sensitive((active and enabled and healthy))
+            self.entry.set_sensitive((active and enabled and healthy))
 
     def on_value(self, obj, val):
         if time.time() - self._last_signal > 0.1:
