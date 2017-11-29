@@ -12,6 +12,8 @@
 # You should have received a copy of the CC0 legalcode along with this
 # work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+import numpy
+
 __all__ = ['magma', 'inferno', 'plasma', 'viridis']
 
 _magma_data = [[0.001462, 0.000466, 0.013866],
@@ -1045,6 +1047,7 @@ _viridis_data = [[0.267004, 0.004874, 0.329415],
 from matplotlib.colors import ListedColormap
 from matplotlib import cm
 
+
 cmaps = {}
 for (name, data) in (('magma', _magma_data),
                      ('inferno', _inferno_data),
@@ -1053,8 +1056,19 @@ for (name, data) in (('magma', _magma_data),
 
     cmaps[name] = ListedColormap(data, name=name)
 
+
+values = numpy.linspace(0, 1, 256)
+for name in ['jet', 'rainbow', 'gist_ncar']:
+    cmap = cm.get_cmap(name)
+    data = cmap(values)[:,:3].tolist()
+    cmaps[name] = ListedColormap(data, name=name)
+
 magma = cmaps['magma']
 inferno = cmaps['inferno']
 plasma = cmaps['plasma']
 viridis = cmaps['viridis']
+
+jet = cmaps['jet']
+rainbow = cmaps['rainbow']
+gist_ncar = cmaps['gist_ncar']
 
