@@ -1,11 +1,11 @@
-from gi.repository import GObject
-from twisted.python.components import globalRegistry
-
 import cryo
+from gi.repository import GObject
 from mxdc.beamlines.mx import IBeamline
 from mxdc.controllers import microscope, samplestore, humidity, rastering, automounter
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc, imageviewer
+from twisted.python.components import globalRegistry
+
 logger = get_module_logger(__name__)
 
 
@@ -35,12 +35,12 @@ class SamplesController(GObject.GObject):
 class HutchSamplesController(GObject.GObject):
     ports = GObject.Property(type=object)
     containers = GObject.Property(type=object)
+
     def __init__(self, widget):
         super(HutchSamplesController, self).__init__()
         self.widget = widget
         self.props.ports = {}
         self.props.containers = {}
-
 
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.microscope = microscope.Microscope(self.widget)
@@ -60,8 +60,8 @@ class HutchSamplesController(GObject.GObject):
         if self.beamline.is_admin():
             self.beamline.detector.connect('new-image', self.on_new_image)
 
-    def on_new_image(self, widget, file_path):
-        self.image_viewer.add_frame(file_path)
+    def on_new_image(self, object, file_path):
+        self.image_viewer.open_image(file_path)
 
     def on_dewar_selected(self, obj, port):
         row = self.find_by_port(port)
