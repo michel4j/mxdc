@@ -87,7 +87,7 @@ class BOSSTuner(BaseTuner):
         if reference:
             self.reference_fbk = self.add_pv(reference)
         else:
-            self.reference_fbk = self.value_fbk
+            self.reference_fbk = None
         self._off_value = off_value
         self._pause_value = pause_value
 
@@ -124,7 +124,10 @@ class BOSSTuner(BaseTuner):
         self.set_state(enabled=(val==1))
 
     def on_value_changed(self, obj, val):
-        ref = self.reference_fbk.get()
+        if self.reference_fbk:
+            ref = self.reference_fbk.get()
+        else:
+            ref = 1.0
         perc = 0.0 if ref == 0 else 100.0 * val/ref
         self.set_state(changed=val, percent=perc)
 
