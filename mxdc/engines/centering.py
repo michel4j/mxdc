@@ -86,7 +86,7 @@ class Centering(GObject.GObject):
                 GObject.idle_add(self.emit, 'error', str(e))
             else:
                 GObject.idle_add(self.emit, 'done')
-        logger.info('Centering Done in {:0.1f} seconds'.format(time.time() - start_time))
+        logger.info('Centering Done in {:0.1f} seconds [{:0.2f}]'.format(time.time() - start_time), self.score)
 
     def center_loop(self):
         self.beamline.sample_frontlight.set_off()
@@ -118,9 +118,10 @@ class Centering(GObject.GObject):
                 else:
                     scores.append(0.5 if 'x' in info or 'y' in info else 0.0)
                 logger.debug('Centering: {}'.format(info))
-        sizes = numpy.array(widths)
-        best_angle =  sizes[:,2][sizes[:,2].argmax()]
-        self.beamline.omega.move_to(best_angle, wait=True)
+        if widths:
+            sizes = numpy.array(widths)
+            best_angle =  sizes[:,2][sizes[:,2].argmax()]
+            self.beamline.omega.move_to(best_angle, wait=True)
 
         angle, info = self.get_features()
         loop_x = info.get('loop-x', info.get('x'))
@@ -148,8 +149,7 @@ class Centering(GObject.GObject):
         sample_store = globalRegistry.lookup([], ISampleStore)
         collector = globalRegistry.lookup([], IRasterCollector)
 
-        #self.center_loop()
-        #loop_score = self.score
+        self.center_loop()
 
         angle, info = self.get_features()
         if 'loop-x' in info and 'loop-y' in info:
@@ -211,7 +211,6 @@ class Centering(GObject.GObject):
             self.score = scores[best, 1]
         else:
             logger.warning('No sample found, diffraction centering not done!')
-
 
     def center_capillary(self):
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
