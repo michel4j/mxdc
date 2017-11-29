@@ -70,13 +70,21 @@ class ShutterSwitcher(object):
         self.switch = switch
         self.reverse = reverse
         self.openonly = openonly
-        self.device.connect('changed', self.on_state_change)
-        self.switch.connect('notify::active', self.on_shutter_activated)
+        self.dev_link = self.device.connect('changed', self.on_state_change)
+        self.sw_link = self.switch.connect('notify::active', self.on_shutter_activated)
 
+    def watch(self):
+        self.switch.handler_unblock(self.sw_link)
+
+    def unwatch(self):
+        self.switch.handler_block(self.sw_link)
+        
     def on_state_change(self, obj, state):
+        self.unwatch()
         self.switch.set_state(operator.xor(state, self.reverse))
         if self.openonly:
             self.switch.set_sensitive(not state)
+        self.watch()
 
     def on_shutter_activated(self, obj, param):
         state = self.switch.get_active()
