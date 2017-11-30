@@ -151,7 +151,7 @@ class FileLoader(GObject.GObject):
 
     def __init__(self):
         GObject.GObject.__init__(self)
-        self.inbox = Queue.Queue(1000)
+        self.next_file = None
         self.outbox = Queue.Queue(1000)
         self.stopped = False
         self.paused = False
@@ -159,7 +159,7 @@ class FileLoader(GObject.GObject):
 
     def queue_file(self, filename):
         if not self.paused and not self.stopped:
-            self.inbox.put(filename)
+            self.next_file = filename
             img_logger.debug('Queuing for display: %s' % filename)
         else:
             self.load_file(filename)
@@ -170,8 +170,7 @@ class FileLoader(GObject.GObject):
             GObject.idle_add(self.emit, 'new-image')
 
     def reset(self):
-        while not self.inbox.empty():
-            _junk = self.inbox.get()
+        self.next_file = None
 
     def start(self):
         self.stopped = False
@@ -195,10 +194,11 @@ class FileLoader(GObject.GObject):
             time.sleep(0.5)
             if self.paused:
                 continue
-            elif filename is None:
-                filename = self.inbox.get(block=True)
+            if filename is None:
+                filename = self.next_file
+                self.next_file = None
                 search_start = time.time()
-            elif image_loadable(filename):
+            if filename and image_loadable(filename):
                 try:
                     img_info = open_image(filename, gamma=self.gamma)
                 except:
@@ -208,7 +208,7 @@ class FileLoader(GObject.GObject):
                     img_logger.debug('Loading image: %s' % filename)
                     GObject.idle_add(self.emit, 'new-image')
                     filename = None
-            elif (time.time() - search_start > 10.0) and self.inbox.qsize() > 0:
+            if filename and (time.time()- search_start > 10.0):
                 img_logger.debug('Error loading image: %s' % filename)
                 filename = None
 
