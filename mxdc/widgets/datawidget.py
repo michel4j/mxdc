@@ -66,7 +66,10 @@ class RunItem(GObject.GObject):
         if self.props.info:
             self.frames = datatools.generate_frame_names(self.props.info)
             self.props.size = len(self.frames)
-            self.props.title = '{},...'.format(self.frames[0])
+            if len(self.frames):
+                self.props.title = '{},...'.format(self.frames[0])
+            else:
+                self.props.title = '...'
             self.props.subtitle = '{} \xc3\x97 {:0.4g}\xc2\xb0/{:0.2g}s  @ {:0.5g} keV'.format(
                 self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
                 self.props.info.get('energy')
