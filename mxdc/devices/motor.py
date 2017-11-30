@@ -523,7 +523,8 @@ class EnergyMotor(Motor):
         self.CALIB = self.add_pv("%s:calibDone" % pv2_root)
         self.STAT = self.add_pv("%s:status" % pv2_root)
         self.LOG = self.add_pv("%s:stsLog" % pv1)
-        self.ENAB = self.CALIB
+        self.ENAB = self.add_pv('{}:enBraggChg'.format(pv1)) #self.CALIB
+
 
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
