@@ -193,7 +193,7 @@ class SampleStore(GObject.GObject):
         self.view.set_search_column(self.Data.NAME)
         self.view.set_tooltip_column(self.Data.COMMENTS)
         self.view.set_search_column(self.Data.NAME)
-        self.model.set_sort_column_id(self.Data.PRIORITY, Gtk.SortType.DESCENDING)
+        self.model.set_sort_column_id(self.Data.PRIORITY, Gtk.SortType.ASCENDING)
         self.model.connect('sort-column-changed', lambda x: self.roll_next_sample())
         self.roll_next_sample()
 
@@ -563,7 +563,7 @@ class SampleQueue(GObject.GObject):
             column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
             self.view.append_column(column)
         self.view.set_tooltip_column(SampleStore.Data.COMMENTS)
-        self.model.set_sort_column_id(SampleStore.Data.PRIORITY, Gtk.SortType.DESCENDING)
+        self.model.set_sort_column_id(SampleStore.Data.PRIORITY, Gtk.SortType.ASCENDING)
 
     def mark_progress(self, uuid, state):
         for item in self.auto_queue:

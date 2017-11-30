@@ -79,6 +79,9 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         super(ActiveEntry, self).__init__(orientation=Gtk.Orientation.HORIZONTAL)
 
         # initialize housekeeping
+        self._animation = GdkPixbuf.PixbufAnimation.new_from_resource(
+            "/org/mxdc/data/active_stop.gif"
+        )
         self.device = device
         self.name = label or self.device.name
         self.name = self.name if not self.device.units else '{} ({})'.format(self.name, self.device.units)
@@ -145,32 +148,41 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
 
     def on_status(self, *args, **kwargs):
         health, msg = self.device.health_state
-        busy = self.device.is_healthy()
-        active = self.device.is_active()
-        enabled = self.device.is_enabled()
-        healthy = self.device.is_healthy()
 
         style = self.fbk_label.get_style_context()
-        if healthy:
+        if self.device.is_healthy():
             style.remove_class('dev-error')
             style.remove_class('dev-warning')
         else:
             cls = "dev-warning" if (health | 16) == health else "dev-error"
             style.add_class(cls)
 
-        if not active:
+        if not self.device.is_active():
             self.state_icon = "network-wired-disconnected-symbolic"
-        elif not enabled:
-            self.state_icon = "system-lock-screen-symbolic"
-        elif not healthy:
+            self.entry.set_sensitive(False)
+            self.action_btn.set_sensitive(False)
+        elif not self.device.is_healthy():
             self.state_icon = "dialog-warning-symbolic"
+            self.entry.set_sensitive(False)
+            self.action_btn.set_sensitive(False)
+        elif not self.device.is_enabled():
+            self.state_icon = "system-lock-screen-symbolic"
+            self.entry.set_sensitive(False)
+            self.action_btn.set_sensitive(False)
         else:
             self.state_icon = "media-playback-start-symbolic"
+            self.entry.set_sensitive(True)
+            self.action_btn.set_sensitive(True)
 
-        if not busy:
+        if self.device.is_busy():
+            self.action_btn.set_sensitive(True)
+            self.action_icon.set_from_animation(self._animation)
+            style.add_class('dev-active')
+            self.running = True
+        else:
             self.action_icon.set_from_icon_name(self.state_icon, Gtk.IconSize.BUTTON)
-            self.action_btn.set_sensitive((active and enabled and healthy))
-            self.entry.set_sensitive((active and enabled and healthy))
+            style.remove_class('dev-active')
+            self.running = False
 
     def on_value(self, obj, val):
         if time.time() - self._last_signal > 0.1:
@@ -195,23 +207,10 @@ class MotorEntry(ActiveEntry):
         self.device.connect('busy', self.on_busy)
         self.device.connect('target', self.on_target)
 
-        self._animation = GdkPixbuf.PixbufAnimation.new_from_resource(
-            "/org/mxdc/data/active_stop.gif"
-        )
-
     def stop(self):
         self.device.stop()
 
     def on_busy(self, obj, motion):
-        style = self.fbk_label.get_style_context()
-        if motion:
-            self.running = True
-            self.action_icon.set_from_animation(self._animation)
-            style.add_class('dev-active')
-        else:
-            self.running = False
-            self.action_icon.set_from_icon_name(self.state_icon, Gtk.IconSize.BUTTON)
-            style.remove_class('dev-active')
         self.set_feedback(self.device.get_position())
         return True
 
