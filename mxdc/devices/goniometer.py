@@ -151,7 +151,7 @@ class ParkerGonio(Goniometer):
         Goniometer.__init__(self, 'Parker Goniometer')
 
         # initialize process variables
-        self.scan_cmd = self.add_pv("{}:scanFrame.PROC".format(root), monitor=False)
+        self.scan_cmd = self.add_pv("{}:scanFrame.PROC".format(root))
         self.stop_cmd = self.add_pv("{}:stop".format(root))
 
         self.scan_fbk = self.add_pv("{}:scanFrame:status".format(root))
@@ -238,7 +238,7 @@ class ParkerGonio(Goniometer):
             self.wait_for_modes({target_mode})
 
     def scan(self, wait=True, timeout=None):
-        self.set_state(message='Scanning ...', busy=True)
+        self.set_state(message='Scanning ...')
         self.wait(start=False, stop=True, timeout=timeout)
         self.scan_cmd.put(1)
         self.wait(start=True, stop=wait, timeout=timeout)
