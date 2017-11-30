@@ -133,7 +133,7 @@ class BOSSTuner(BaseTuner):
 
 
 class MOSTABTuner(BaseTuner):
-    def __init__(self, name, picoameter, reference=None, tune_step=50):
+    def __init__(self, name, picoameter, current, reference=None, tune_step=50):
         BaseTuner.__init__(self)
         self.name = name
         self.tunable = True
@@ -141,6 +141,7 @@ class MOSTABTuner(BaseTuner):
         self.reset_cmd = self.add_pv('{}:Reset.PROC'.format(picoameter))
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(picoameter))
         self.value_fbk = self.add_pv('{}:SumAll:MeanValue_RBV'.format(picoameter))
+        self.current_fbk = self.add_pv(current)
         self.value_fbk.connect('changed', self.on_value_changed)
         if reference:
             self.reference_fbk = self.add_pv(reference)
@@ -182,7 +183,9 @@ class MOSTABTuner(BaseTuner):
 
     def on_value_changed(self, obj, val):
         ref = self.reference_fbk.get()
-        perc = 0.0 if ref == 0 else 100.0 * val/ref
+        cur = self.current_fbk.get()
+        tgt = 0.0 if cur == 0 else val/cur
+        perc = 0.0 if ref == 0 else 100.0 * tgt/ref
         self.set_state(changed=val, percent=perc)
 
 
