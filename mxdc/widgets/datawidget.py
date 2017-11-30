@@ -179,8 +179,9 @@ class DataEditor(gui.BuilderMixin):
         self.dir_template_btn.connect('clicked', self.on_dir_template)
 
     def set_item(self, item):
-        for link in self.item_links:
-            self.item.handler_disconnect(link)
+        if self.item:
+            for link in self.item_links:
+                self.item.handler_disconnect(link)
         self.item = item
         self.update()
 
