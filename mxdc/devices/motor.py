@@ -100,7 +100,6 @@ class MotorBase(BaseDevice):
     def _signal_enable(self, obj, val):
         self.set_state(enabled=(val != self._disabled_value))
 
-
     def configure(self, **kwargs):
         pass
 

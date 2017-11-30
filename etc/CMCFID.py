@@ -42,7 +42,7 @@ DEVICES = {
         'SMTR16082I1005:deg', motor_type="vme", mono_unit_cell=CONFIG['mono_unit_cell']
     ),
     'dcm_pitch': motor.VMEMotor('SMTR16082I1010:deg'),
-    'beam_tuner': boss.MOSTABTuner('MOS16082I1001', 'AH501-01:QEM', reference='LUT1608-ID-IONC:control'),
+    'beam_tuner': boss.MOSTABTuner('MOS16082I1001',  'AH501-01:QEM', 'PCT1402-01:mA:fbk', reference='LUT1608-ID-IONC:target'),
 
     # Goniometer/goniometer head devices
     'goniometer': goniometer.ParkerGonio('GV6K1608-001', 'BL08ID1:mode', 'OAV1608-3-I10-02'),
