@@ -64,6 +64,7 @@ class HutchSamplesController(GObject.GObject):
         self.image_viewer.queue_frame(file_path)
 
     def on_dewar_selected(self, obj, port):
+        logger.info('Sample Selected: {}'format(port))
         row = self.find_by_port(port)
         if row:
             self.next_sample = row[self.Data.DATA]
