@@ -126,7 +126,7 @@ class DewarController(GObject.GObject):
             event.window.set_cursor(None)
 
     def allow_port(self, container, port):
-        if (container and port) and (container in self.containers):
+        if self.beamline.is_admin() or ((container and port) and (container in self.containers)):
             return self.get_port_state(port) not in [Port.EMPTY, Port.BAD]
         return False
 
@@ -155,7 +155,7 @@ class DewarController(GObject.GObject):
         if not self.messages or message != self.messages[-1]:
             self.messages.append(message)
 
-        if status.name in ['IDLE', 'OFF'] and code < 2 and not busy:
+        if status.name in ['IDLE', ] and code < 2:
             self.widget.automounter_command_box.set_sensitive(True)
         else:
             self.widget.automounter_command_box.set_sensitive(False)
