@@ -72,10 +72,14 @@ class HutchSamplesController(GObject.GObject):
             self.next_sample = {
                 'port': port
             }
+
         if self.next_sample:
             self.widget.samples_mount_btn.set_sensitive(True)
+            self.widget.samples_next_port.set_text(port)
         else:
             self.widget.samples_mount_btn.set_sensitive(False)
+            self.widget.samples_next_port.set_text("...")
+        self.widget.samples_next_sample.set_text('...')
 
     def get_name(self, port):
         return '<unknown>'
@@ -88,4 +92,7 @@ class HutchSamplesController(GObject.GObject):
 
     def on_sample_mounted(self, *args, **kwargs):
         if self.beamline.automounter.sample:
+            self.widget.samples_cur_sample.set_text('...')
+            port =  self.beamline.automounter.sample.get('port', '...') or '<manual>'
+            self.widget.samples_cur_port.set_text(port)
             self.widget.samples_dismount_btn.set_sensitive(True)
