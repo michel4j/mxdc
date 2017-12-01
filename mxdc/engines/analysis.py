@@ -50,7 +50,7 @@ class Analyst(GObject.GObject):
             'activity': 'proc-{}'.format(suffix),
             'type': metadata['type'],
         }
-        params = datatools.update_for_sample(params, sample)
+        params = datatools.update_for_sample(params, sample, overwrite=False)
         parent, child = self.manager.add_item(params, False)
         try:
             report = yield self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
@@ -92,7 +92,7 @@ class Analyst(GObject.GObject):
             'activity': 'proc-{}'.format(suffix),
             'type': metadata['type'],
         }
-        params = datatools.update_for_sample(params, sample)
+        params = datatools.update_for_sample(params, sample, overwrite=False)
         parent, child = self.manager.add_item(params, False)
 
         try:
@@ -126,7 +126,7 @@ class Analyst(GObject.GObject):
             'activity': 'proc-screen',
             'type': metadata['type'],
         }
-        params = datatools.update_for_sample(params, sample)
+        params = datatools.update_for_sample(params, sample, overwrite=False)
         parent, child = self.manager.add_item(params, False)
 
         try:
@@ -147,7 +147,7 @@ class Analyst(GObject.GObject):
             'uuid': str(uuid.uuid4()),
             'activity': 'proc-raster',
         })
-        params = datatools.update_for_sample(params, sample)
+        params = datatools.update_for_sample(params, sample, overwrite=False)
 
         try:
             report = yield self.beamline.dps.analyse_frame(params['filename'], misc.get_project_name())
@@ -180,7 +180,7 @@ class Analyst(GObject.GObject):
             'activity': 'proc-xrd',
             'type': metadata['type'],
         }
-        params = datatools.update_for_sample(params, sample)
+        params = datatools.update_for_sample(params, sample, overwrite=False)
         parent, child = self.manager.add_item(params, False)
 
         try:

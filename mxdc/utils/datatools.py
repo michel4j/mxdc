@@ -77,7 +77,7 @@ class AnalysisType:
     MX_NATIVE, MX_ANOM, MX_SCREEN, RASTER, XRD = range(5)
 
 
-def update_for_sample(info, sample=None):
+def update_for_sample(info, sample=None, overwrite=True):
     # Add directory and related auxillary information to dictionary
     # provides values for {session} {sample}, {group}, {container}, {port}, {date}, {activity}
 
@@ -99,6 +99,12 @@ def update_for_sample(info, sample=None):
     activity_template = activity_template[:-1] if activity_template[-1] == os.sep else activity_template
     dir_template = os.path.join(misc.get_project_home(), '{session}', activity_template)
     params['directory'] = dir_template.format(**params).replace('//', '/').replace('//', '/')
+    if not overwrite and os.path.exists(params['directory']):
+        for i in range(99):
+            new_directory = '{}-{}'.format(params['directory'], i+1)
+            if not os.path.exists(new_directory):
+                params['directory'] = new_directory
+                break
     params['sample'] = sample
     return params
 
