@@ -75,10 +75,10 @@ class SimStorageRing(BaseStorageRing):
         self.name = name
         self.props.message = 'SR Testing!'
         self.set_state(ready=True, active=True, health=(0, ''))
-        #GObject.timeout_add(60000, self.update)
+        GObject.timeout_add(10000, self.update)
 
     def update(self, *args, **kwargs):
-        if numpy.random.normal() > 0.95:
+        if numpy.random.normal() > 0.5:
             self.props.current = numpy.random.rand() * 250
             self.props.mode = random.choice(range(5))
             self.props.state = random.choice([0, 1, 1, 1, 1])
