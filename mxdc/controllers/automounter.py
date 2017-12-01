@@ -117,11 +117,12 @@ class DewarController(GObject.GObject):
         x = event.x/alloc.width
         y = event.y/alloc.height
         loc, port = self.find_port(x, y)
-        if self.allow_port(loc, port):
+        if loc and port and self.allow_port(loc, port):
             label = self.store.get_name(port)
             event.window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.HAND2))
             self.widget.hover_sample_lbl.set_text(port)
-            self.widget.hover_state_lbl.set_text(label)
+            if label:
+                self.widget.hover_state_lbl.set_text(label)
         else:
             event.window.set_cursor(None)
 
