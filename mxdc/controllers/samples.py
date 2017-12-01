@@ -91,7 +91,7 @@ class HutchSamplesController(GObject.GObject):
         return None
 
     def on_sample_mounted(self, *args, **kwargs):
-        if self.beamline.automounter.sample:
+        if self.beamline.automounter.sample and self.beamline.is_admin():
             self.widget.samples_cur_sample.set_text('...')
             port =  self.beamline.automounter.sample.get('port', '...') or '<manual>'
             self.widget.samples_cur_port.set_text(port)
