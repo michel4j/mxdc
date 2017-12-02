@@ -86,10 +86,7 @@ DEVICES = {
     
     # Intensity monitors,
     'i_0': counter.Counter('BPM08B1-05:I0:fbk'),
-    #'i_1': Counter('BPM08B1-04:I0:fbk'),
     'i_1': counter.Counter('BPM08B1-02:I0:fbk'),
-    'i_bst':  counter.Counter('BL08B1:MD2:G:ExternalPhotoDiode'),
-    'i_scn':  counter.Counter('BL08B1:MD2:G:InternalPhotoDiode'),
     
     # Misc: Automounter, HC1 etc
     'automounter':  automounter.SAMAutoMounter('ROB16085B'),
