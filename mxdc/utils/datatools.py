@@ -33,8 +33,8 @@ Strategy = {
         'activity': 'data',
     },
     StrategyType.SCREEN_4: {
-        'delta': 1.0, 'range': 182, 'start': 0.0, 'inverse': False,
-        'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0',
+        'delta': 1.0, 'range': 272, 'start': 0.0, 'inverse': False,
+        'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0, 270\xc2\xb0',
         'activity': 'screen'
     },
     StrategyType.SCREEN_3: {

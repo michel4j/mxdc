@@ -55,6 +55,7 @@ class Microscope(GObject.GObject):
     points = GObject.Property(type=object)
     polygon = GObject.Property(type=object)
     tool = GObject.Property(type=int, default=ToolState.DEFAULT)
+    mode = GObject.Property(type=object)
 
     def __init__(self, widget):
         super(Microscope, self).__init__()
@@ -146,6 +147,7 @@ class Microscope(GObject.GObject):
                 box.override_color(Gtk.StateFlags.NORMAL, color)
 
         self.video.connect('motion-notify-event', self.on_mouse_motion)
+        self.video.connect('scroll-event', self.on_mouse_scroll)
         self.video.connect('button-press-event', self.on_image_click)
         self.video.set_overlay_func(self.overlay_function)
         self.video.connect('configure-event', self.setup_grid)
@@ -174,7 +176,7 @@ class Microscope(GObject.GObject):
     def change_tool(self, tool=None):
         if tool is None:
             self.props.tool, self.prev_tool = self.prev_tool, self.tool
-        else:
+        elif self.props.tool != tool:
             self.props.tool, self.prev_tool = tool, self.tool
 
     def setup_grid(self, *args, **kwargs):
@@ -237,6 +239,7 @@ class Microscope(GObject.GObject):
 
     def draw_measurement(self, cr):
         if self.tool == self.ToolState.MEASUREMENT:
+            cr.set_font_size(12)
             (x1, y1), (x2, y2) = self.measurement
             dist = self.video.mm_scale() * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0)
             cr.set_source_rgba(0.0, 0.5, 0.5, 1.0)
@@ -245,9 +248,8 @@ class Microscope(GObject.GObject):
             cr.line_to(x2, y2)
             cr.stroke()
             label = '{:0.3f} mm'.format(dist)
-            lx, ly = (x1 + x2) * 0.5, (y1 + y2) * 0.5
             xb, yb, w, h = cr.text_extents(label)[:4]
-            cr.move_to(lx + h, ly + h)
+            cr.move_to(x2 + 2*h, y2 + 2*h)
             cr.show_text(label)
             cr.stroke()
 
@@ -465,7 +467,8 @@ class Microscope(GObject.GObject):
             window.set_cursor(self.tool_cursors[self.props.tool])
 
     def on_gonio_mode(self, obj, mode):
-        centering_tool = mode.name in ['CENTERING', 'BEAM']
+        self.props.mode = mode
+        centering_tool = self.mode.name in ['CENTERING', 'BEAM']
         self.widget.microscope_centering_box.set_sensitive(centering_tool)
         self.widget.microscope_grid_box.set_sensitive(centering_tool)
         if centering_tool:
@@ -502,6 +505,13 @@ class Microscope(GObject.GObject):
         target = (target > 360) and (target % 360) or target
         self.beamline.omega.move_to(target)
 
+    def on_mouse_scroll(self, widget, event):
+        if 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['CENTERING', 'BEAM']:
+            if event.direction == Gdk.ScrollDirection.UP:
+                self.on_rotate(widget, 10)
+            elif event.direction == Gdk.ScrollDirection.DOWN:
+                self.on_rotate(widget, -10)
+
     def on_mouse_motion(self, widget, event):
         if event.is_hint:
             _, x, y, state = event.window.get_pointer()
@@ -513,8 +523,13 @@ class Microscope(GObject.GObject):
         )
         if 'GDK_BUTTON2_MASK' in event.get_state().value_names:
             self.measurement[1] = (x, y)
+        elif 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name not in ['CENTERING', 'BEAM']:
+            self.change_tool(tool=self.ToolState.CENTERING)
         elif self.tool == self.ToolState.MEASUREMENT:
             self.change_tool()
+        elif self.tool == self.ToolState.CENTERING and self.mode.name not in ['CENTERING', 'BEAM']:
+            self.change_tool()
+
 
     def on_image_click(self, widget, event):
         if event.button == 1:
