@@ -275,3 +275,29 @@ CATS_DEWAR = {
     '3B': Basket('3B', 0.75, 0.2292),
     '3C': Basket('3C', 0.9167, 0.2292),
 }
+
+
+class ISARAMessages(object):
+    @staticmethod
+    def trajectory(message):
+        return {
+            'getput': 'Switching sample ...',
+            'get': 'Dismounting sample ...',
+            'put': 'Mounting sample ...',
+            'dry': 'Drying gripper ...',
+            'soak': 'Soaking ...',
+            'home': 'Going home ...'
+
+        }.get(message.lower().strip())
+
+    @staticmethod
+    def errors(message):
+        replacements = {
+            'high level alarm Dew1': 'Dewar LN2 topped up',
+            'WAIT for RdTrsf condition / 9 not TRUE': 'Waiting for endstation-ready ...',
+            'WAIT for SplOn condition / not TRUE / 1': 'Checking sample on gonio ...'
+        }
+        for old, new in replacements.items():
+            message = message.replace(old, new)
+        if message:
+            return message

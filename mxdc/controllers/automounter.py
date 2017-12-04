@@ -26,7 +26,7 @@ class DewarController(GObject.GObject):
         self.store = store
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.setup()
-        self.messages = []
+        self.messages = [(None, "")]
 
         self.props.layout = {}
         self.props.ports = {}
@@ -42,7 +42,7 @@ class DewarController(GObject.GObject):
         self.beamline.automounter.connect('active', self.on_state_changed)
         self.beamline.automounter.connect('busy', self.on_state_changed)
         self.beamline.automounter.connect('health', self.on_state_changed)
-        self.beamline.automounter.connect('message', self.on_state_changed)
+        self.beamline.automounter.connect('message', self.on_messages)
 
     def setup(self):
         self.widget.sample_dewar_area.connect('draw', self.draw_dewar)
@@ -141,27 +141,28 @@ class DewarController(GObject.GObject):
 
     def on_state_changed(self, obj, val):
         code, h_msg = self.beamline.automounter.health_state
-        message = self.beamline.automounter.message_state
-        busy = self.beamline.automounter.busy_state
-        enabled = self.beamline.automounter.enabled_state
-        active = self.beamline.automounter.active_state
         status = self.beamline.automounter.status
-
-        # Do nothing if the state has not really changed
-        _new_state = [code, h_msg, status, message, busy, enabled, active]
-        if message.strip() == "":
-            message = h_msg
-
-        message = "<tt>{} - </tt>{}".format(datetime.now().strftime('%H:%M:%S'), message.strip())
-        if not self.messages or message != self.messages[-1]:
-            self.messages.append(message)
 
         if status.name in ['IDLE', ] and code < 2:
             self.widget.automounter_command_box.set_sensitive(True)
         else:
             self.widget.automounter_command_box.set_sensitive(False)
-        if len(self.messages) > 2:
-            self.messages = self.messages[-2:]
 
-        self.widget.automounter_message_fbk.set_markup('\n'.join(self.messages))
         self.widget.automounter_status_fbk.set_text(status.name)
+
+    def on_messages(self, obj, message):
+        if message:
+            prev_time, prev_msg = self.messages[-1]
+            if message == prev_msg:
+                return
+            self.messages.append((datetime.now(), message))
+
+            if len(self.messages) > 3:
+                self.messages = self.messages[-3:]
+
+            text = '\n'.join([
+                "<small><tt>{} - </tt>{}</small>".format(dt.now().strftime('%H:%M:%S'), msg.strip())
+                for dt, msg in self.messages if dt
+            ])
+
+            self.widget.automounter_message_fbk.set_markup(text)
