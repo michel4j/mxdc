@@ -2,9 +2,9 @@ import os
 import numpy
 import gi
 
-gi.require_version('WebKit', '3.0')
+gi.require_version('WebKit2', '4.0')
 from enum import Enum
-from gi.repository import GObject, WebKit, Gtk, Gdk
+from gi.repository import GObject, WebKit2, Gtk, Gdk
 from mxdc.conf import settings
 from mxdc.beamlines.mx import IBeamline
 from mxdc.utils import colors, misc
@@ -116,14 +116,14 @@ class AnalysisController(GObject.GObject):
         self.sample_store = None
         self.reports = ReportManager(self.widget.proc_reports_view)
         self.analyst = Analyst(self.reports)
-        self.browser = WebKit.WebView()
+        self.browser = WebKit2.WebView()
         self.options = {}
         self.setup()
 
     def setup(self):
         self.widget.proc_browser_box.add(self.browser)
-        browser_settings = WebKit.WebSettings()
-        browser_settings.set_property("enable-file-access-from-file-uris", True)
+        browser_settings = WebKit2.Settings()
+        browser_settings.set_property("allow-universal-access-from-file-urls", True)
         browser_settings.set_property("enable-plugins", False)
         browser_settings.set_property("default-font-size", 11)
         self.browser.set_settings(browser_settings)
