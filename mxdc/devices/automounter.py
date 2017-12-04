@@ -8,7 +8,7 @@ from zope.interface import implements
 
 from interfaces import IAutomounter
 from mxdc.devices.base import BaseDevice
-from mxdc.utils.automounter import Port, SAM_DEWAR, ISARA_DEWAR
+from mxdc.utils.automounter import Port, SAM_DEWAR, ISARA_DEWAR, ISARAMessages
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -632,18 +632,12 @@ class ISARAMounter(AutoMounter):
         self.prog_fbk = self.add_pv('{}:out_9:fbk'.format(root))
 
         self.message_fbk = self.add_pv('{}:message'.format(root))
+        self.error_fbk = self.add_pv('{}:last_err:fbk'.format(root))
         self.status_fbk = self.add_pv('{}:state'.format(root))
         self.enabled_fbk = self.add_pv('{}:enabled'.format(root))
 
         self.command_fbk = self.add_pv('{}:cmnd_resp:fbk'.format(root))
         self.trajectory_fbk = self.add_pv('{}:stscom_path_name:fbk'.format(root))
-
-        self.messages = {
-            'Approaching gonio': self.add_pv('{}:out_5:fbk'.format(root)),
-            'Drying': self.add_pv('{}:out_16:fbk'.format(root)),
-            'Ready for transfer': self.add_pv('{}:in_9:fbk'.format(root)),
-        }
-
 
         self.errors = {
             'Emergency/Air Pressure Fault': self.add_pv('{}:err_bit_0:fbk'.format(root)),
@@ -654,6 +648,10 @@ class ISARAMounter(AutoMounter):
             'LN2 Error': self.add_pv('{}:err_bit_11:fbk'.format(root)),
             'Dewar Fill Timeout': self.add_pv('{}:err_bit_12:fbk'.format(root)),
         }
+
+        self.trajectory_fbk.connect('changed', self.on_message, ISARAMessages.trajectory)
+        self.error_fbk.connect('changed', self.on_message, ISARAMessages.errors)
+
 
         self.abort_cmd = self.add_pv('{}:abort'.format(root))
         self.getput_cmd = self.add_pv('{}:getput'.format(root))
@@ -672,9 +670,6 @@ class ISARAMounter(AutoMounter):
         ] + self.errors.values()
         for obj in state_variables:
             obj.connect('changed', self.on_state_changed)
-
-        for txt, obj in self.messages.items():
-            obj.connect('changed', self.on_message_changed, txt)
 
         for obj in self.errors.values():
             obj.connect('changed', self.on_error_changed)
@@ -837,15 +832,17 @@ class ISARAMounter(AutoMounter):
         GObject.idle_add(self.switch_status, status)
         self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
 
-    def on_message_changed(self, obj, value, text):
-        if value == 1:
-            self.set_state(message=text)
+    def on_message(self, obj, value, transform):
+        message = transform(value)
+        if message:
+            self.set_state(message=message)
 
     def on_error_changed(self, obj, value):
-        messages = [
+        messages = ', '.join([
             txt for txt, obj in self.errors.items() if obj.is_active() and obj.get() == 1
-        ]
+        ])
+        self.set_state(message=messages)
         if messages:
-            self.set_state(health=(4, 'error', ', '.join(messages)))
+            self.set_state(health=(4, 'error', 'Staff attention needed'))
         else:
             self.set_state(health=(0, 'error', ''))
