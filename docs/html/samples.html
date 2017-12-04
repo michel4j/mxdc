@@ -1,11 +1,10 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
   
   <!-- Licensed under the Apache 2.0 License -->
   <link rel="stylesheet" type="text/css" href="_static/fonts/open-sans/stylesheet.css" />
@@ -16,10 +15,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
     <title>Samples &#8212; MxDC  documentation</title>
-    
     <link rel="stylesheet" href="_static/guzzle.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
@@ -41,7 +38,7 @@
    
 
   </head>
-  <body role="document">
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -158,9 +155,13 @@ aperture</em>, which are often used in conjunction with the sample microscope.</
 <p>At the top of the sample microscope  area is a toolbar with buttons for automated centering, zooming, moving the sample,
 and finally, buttons for defining raster grids and saving points. Sample lighting adjustments can be made using the
 sliders at the bottom of the video area.</p>
-<p><em>Single-click centering</em> is only available while in Centering or Beam mode. When available, the mouse cursor changes
+<p><em>Single-click centering</em> is always available while in Centering or Beam mode. When available, the mouse cursor changes
 into a pointing finger. To center at a given point, click on the point and it will be moved to the beam position (the red circle).
 Repeating the process at angular intervals of 90 degrees a couple of times is usually sufficient to center the sample.</p>
+<p>The centering behaviour can be modified by holding down the Ctrl-key on the keyboard. In Centering or Beam mode, holding
+down the Ctrl-key will enable rotation of the goniometer with the scroll-button of the mouse, in increments of 10 degrees.
+However, in other modes, the Ctrl-key will temporary enable click-centering to allow re-centering the crystal. Rotation
+of the goniometer with the mouse scroll key is only allowed in Centerin mode.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">Single-click centering is not available while defining a grid.</p>
@@ -168,7 +169,7 @@ Repeating the process at angular intervals of 90 degrees a couple of times is us
 <p><em>Auto-centering</em> is only availble in Centering mode. There are Four types of auto-centering operations available:
 loop-centering, crystal-centering, diffraction based centering and capillary centering.</p>
 <p>The centered position can be saved by clicking on the <em>Save Point</em> icon on the toolbar.  Saved points are annotated on
-the video overlay and labeled P1, P2, P3, ...</p>
+the video overlay and labeled P1, P2, P3, …</p>
 <p><em>Grids</em>: Arbitrary grids can be defined using the grid tool. To define a grid for rastering, click on the grid icon.
 Once activated, the cursor changes into a target crosshair. You can then define a polygon enclosing the area you want to
 scan. A valid polygon is a list of at least 3 points starting and ending at the same location. A line can be defined as
@@ -251,7 +252,7 @@ but not properly setup, the controls will be disabled.</p>
 collect and analyse a diffraction image at the current humidity, set the exposure time and highest expected resolution
 using the <em>Diffraction</em> controls, then click the start button of the <em>Diffraction</em> control. A single image will be
 collected, analysed and the results will be added to the plot. The <em>plot</em> controls allow you to select which value is
-plotted on the second Y-axis -- the options are <em>drop size</em>, <em>diffraction resolution</em>, <em>maximum unit cell</em> or <em>diffraction score</em>.</p>
+plotted on the second Y-axis – the options are <em>drop size</em>, <em>diffraction resolution</em>, <em>maximum unit cell</em> or <em>diffraction score</em>.</p>
 <p>Use the tools below the plot to pause, zoom, save or clear the plot.</p>
 <p>The freeze button can be used to move the goniometer into a convenient position for freezing the sample using a vial of
 liquid nitrogen.</p>
