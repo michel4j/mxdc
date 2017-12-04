@@ -1,11 +1,10 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
   
   <!-- Licensed under the Apache 2.0 License -->
   <link rel="stylesheet" type="text/css" href="_static/fonts/open-sans/stylesheet.css" />
@@ -16,10 +15,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
     <title>Getting Started &#8212; MxDC  documentation</title>
-    
     <link rel="stylesheet" href="_static/guzzle.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
@@ -41,7 +38,7 @@
    
 
   </head>
-  <body role="document">
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -132,7 +129,7 @@
 </div>
 <div class="section" id="starting-mxdc">
 <h2><a class="toc-backref" href="#id1">Starting MxDC</a><a class="headerlink" href="#starting-mxdc" title="Permalink to this headline">¶</a></h2>
-<p>MxDC can be started either by double-clicking the application icon on the desktop titled &quot;MX Data Collector&quot;, or by
+<p>MxDC can be started either by double-clicking the application icon on the desktop titled “MX Data Collector”, or by
 typing <cite>mxdc</cite> in a terminal.</p>
 <p>If started from the desktop, a new terminal will be opened for printing console log messages.</p>
 <div class="admonition note">
@@ -179,7 +176,7 @@ but there is no limit on how often it can be changed.</p>
 <p>All directories will be created within the top-level session directory
 according to the specified template. You can use variables for substituting context-specific values.</p>
 <p>Available variables: <em>{sample}, {group}, {container}, {port}, {date}, {activity}</em>.</p>
-<p>The default template is <em>&quot;/{group}/{sample}/{activity}/&quot;</em> which will produce the following directories structure
+<p>The default template is <em>“/{group}/{sample}/{activity}/”</em> which will produce the following directories structure
 for a sample named <strong>bchi-1</strong> in a group named <strong>bchi</strong>:</p>
 <dl class="glossary docutils">
 <dt id="term-mad-scan-output-files">MAD Scan output files</dt>
@@ -192,7 +189,7 @@ for a sample named <strong>bchi-1</strong> in a group named <strong>bchi</strong
 <dd>/users/fodje/CMCFBM-20171018/bchi/bchi-1/test/</dd>
 </dl>
 <p>Note that additional strings can be used in the template as well, and the sequence of template variables
-is arbitrary. For example, the template <em>&quot;/CONFIDENTIAL/{activity}/{group}/{sample}/&quot;</em> will produce a
+is arbitrary. For example, the template <em>“/CONFIDENTIAL/{activity}/{group}/{sample}/”</em> will produce a
 directory <em>/users/fodje/CMCFBM-20171018/CONFIDENTIAL/data/bchi/bchi-1/</em> for the data activity.</p>
 </div>
 </div>

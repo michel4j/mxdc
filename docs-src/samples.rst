@@ -44,9 +44,14 @@ At the top of the sample microscope  area is a toolbar with buttons for automate
 and finally, buttons for defining raster grids and saving points. Sample lighting adjustments can be made using the
 sliders at the bottom of the video area.
 
-*Single-click centering* is only available while in Centering or Beam mode. When available, the mouse cursor changes
+*Single-click centering* is always available while in Centering or Beam mode. When available, the mouse cursor changes
 into a pointing finger. To center at a given point, click on the point and it will be moved to the beam position (the red circle).
 Repeating the process at angular intervals of 90 degrees a couple of times is usually sufficient to center the sample.
+
+The centering behaviour can be modified by holding down the Ctrl-key on the keyboard. In Centering or Beam mode, holding
+down the Ctrl-key will enable rotation of the goniometer with the scroll-button of the mouse, in increments of 10 degrees.
+However, in other modes, the Ctrl-key will temporary enable click-centering to allow re-centering the crystal. Rotation
+of the goniometer with the mouse scroll key is only allowed in Centerin mode.
 
 .. note::
    Single-click centering is not available while defining a grid.
