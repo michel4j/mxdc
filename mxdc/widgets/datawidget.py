@@ -15,11 +15,11 @@ def calculate_skip(strategy, delta, first):
     elif strategy == StrategyType.SCREEN_4:
         return '{}-{},{}-{},{}-{}'.format(
             first + int(2 / delta),
-            first + int(45 / delta) - 1,
-            first + int(47 / delta),
             first + int(90 / delta) - 1,
             first + int(92 / delta),
-            first + int(180 / delta) - 1
+            first + int(180 / delta) - 1,
+            first + int(182 / delta),
+            first + int(270 / delta) - 1,
         )
 
     elif strategy == StrategyType.SCREEN_3:

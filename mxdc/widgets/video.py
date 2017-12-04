@@ -45,13 +45,16 @@ class VideoWidget(Gtk.DrawingArea):
 
         self.overlay_func = None
         self.display_func = None
-        self.set_events(Gdk.EventMask.EXPOSURE_MASK |
-                        Gdk.EventMask.LEAVE_NOTIFY_MASK |
-                        Gdk.EventMask.BUTTON_PRESS_MASK |
-                        Gdk.EventMask.POINTER_MOTION_MASK |
-                        Gdk.EventMask.POINTER_MOTION_HINT_MASK |
-                        Gdk.EventMask.VISIBILITY_NOTIFY_MASK |
-                        Gdk.EventMask.BUTTON_RELEASE_MASK)
+        self.set_events(
+            Gdk.EventMask.EXPOSURE_MASK |
+            Gdk.EventMask.LEAVE_NOTIFY_MASK |
+            Gdk.EventMask.BUTTON_PRESS_MASK |
+            Gdk.EventMask.POINTER_MOTION_MASK |
+            Gdk.EventMask.POINTER_MOTION_HINT_MASK |
+            Gdk.EventMask.VISIBILITY_NOTIFY_MASK |
+            Gdk.EventMask.BUTTON_RELEASE_MASK |
+            Gdk.EventMask.SCROLL_MASK
+        )
 
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
