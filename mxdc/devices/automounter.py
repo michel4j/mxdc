@@ -787,8 +787,11 @@ class ISARAMounter(AutoMounter):
                 'port': port,
                 'barcode': ''
             }
+            self.set_state(message='Sample mounted')
         else:
             self.props.sample = {}
+            if port:
+                self.set_state(message='Sample dismounted')
 
     def on_state_changed(self, obj, value):
         cmd_busy = self.cmd_busy_fbk.get() == 1
