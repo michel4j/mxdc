@@ -68,10 +68,12 @@ class HutchSamplesController(GObject.GObject):
         row = self.find_by_port(port)
         if row:
             self.next_sample = row[self.Data.DATA]
-        else:
+        elif port:
             self.next_sample = {
                 'port': port
             }
+        else:
+            self.next_sample = None
 
         if self.next_sample:
             self.widget.samples_mount_btn.set_sensitive(True)
