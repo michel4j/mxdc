@@ -127,7 +127,7 @@ class DewarController(GObject.GObject):
             event.window.set_cursor(None)
 
     def allow_port(self, container, port):
-        if self.beamline.is_admin() or ((container and port) and (container in self.containers)):
+        if self.beamline.is_admin() or ((container and port) and (port in self.ports)):
             return self.get_port_state(port) not in [Port.EMPTY, Port.BAD]
         return False
 
