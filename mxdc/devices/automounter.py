@@ -70,7 +70,6 @@ class AutoMounter(BaseDevice):
         """
         self.props.status = state
 
-
     def standby(self):
         """
         Get ready to start
@@ -643,8 +642,8 @@ class ISARAMounter(AutoMounter):
             'Approaching gonio': self.add_pv('{}:out_5:fbk'.format(root)),
             'Drying': self.add_pv('{}:out_16:fbk'.format(root)),
             'Ready for transfer': self.add_pv('{}:in_9:fbk'.format(root)),
-            'Sample on Magnet': self.add_pv('{}:in_9:fbk'.format(root)),
         }
+
 
         self.errors = {
             'Emergency/Air Pressure Fault': self.add_pv('{}:err_bit_0:fbk'.format(root)),
