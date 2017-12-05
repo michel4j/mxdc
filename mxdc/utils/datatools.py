@@ -23,7 +23,7 @@ class StrategyType(object):
 
 Strategy = {
     StrategyType.SINGLE: {
-        'range': 1.0, 'delta': 1.0, 'exposure': 1.0, 'start': 0.0, 'inverse': False,
+        'range': 1.0, 'delta': 1.0, 'start': 0.0, 'inverse': False,
         'desc': 'Single Frame',
         'activity': 'test',
     },
@@ -33,12 +33,12 @@ Strategy = {
         'activity': 'data',
     },
     StrategyType.SCREEN_4: {
-        'delta': 1.0, 'exposure': 1.0, 'range': 272, 'start': 0.0, 'inverse': False,
+        'delta': 1.0, 'range': 272, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0, 270\xc2\xb0',
         'activity': 'screen'
     },
     StrategyType.SCREEN_3: {
-        'delta': 1.0, 'exposure': 1.0, 'range': 92, 'start': 0.0, 'inverse': False,
+        'delta': 1.0, 'range': 92, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0',
         'activity': 'screen'
     },
@@ -273,6 +273,16 @@ def generate_frame_names(run):
         names += [template.format(index + inverse_start) for index in sorted(valid_numbers)]
     return names
 
+
+def count_frames(run):
+    if not (run.get('delta') and run.get('range')):
+        return 1
+    else:
+        num_frames = max(1, int(run.get('range', 180.0) / run.get('delta', 1.0)))
+        frame_numbers = set(range(run.get('first', 1), num_frames + 1))
+        excluded = set(frameset_to_list(merge_framesets(run.get('skip', ''), run.get('existing', ''))))
+        valid_numbers = frame_numbers - excluded
+        return len(valid_numbers)
 
 def generate_frame_sets(run, show_number=True):
 

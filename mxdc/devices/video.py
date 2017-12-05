@@ -137,7 +137,7 @@ class SimZoomableCamera(SimCamera):
         Args:
             `value` (float): the target zoom value.
         """
-        self._zoom.move_to(value)
+        self._zoom.move_to(value, wait=True)
 
     def _on_zoom_change(self, obj, val):
         self.resolution = 5.34e-6 * numpy.exp(-0.18 * val)
