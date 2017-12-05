@@ -7,23 +7,14 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
-@ca_thread_enable
-def auto_center(bl):
-    bl.goniometer.set_mode('CENTERING', wait=True)
-    time.sleep(2)
-    _out = centering.auto_center_loop()
-    if _out is None:
-        raise Exception('Loop centering failed')
-    else:
-        return _out
-
-
 def auto_mount_manual(bl, port, wash=False):
     bl.automounter.standby()
     bl.goniometer.set_mode('MOUNTING', wait=False)
     success = bl.automounter.mount(port, wait=True)
     if success:
         logger.info('Sample mounting succeeded')
+        low_zoom, med_zoom, high_zoom = bl.config['zoom_levels']
+        bl.sample_video.zoom(low_zoom)
         bl.goniometer.set_mode('CENTERING', wait=False)
         return True
     else:
