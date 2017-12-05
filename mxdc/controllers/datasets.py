@@ -98,14 +98,11 @@ class AutomationController(GObject.GObject):
         self.connect('notify::state', self.on_state_changed)
 
         # default
-        params = datawidget.DataDialog.get_default(
-            strategy_type=datawidget.StrategyType.SINGLE, delta=self.beamline.config['default_delta']
-        )
+        params = self.run_dialog.get_default(strategy_type=datawidget.StrategyType.SINGLE)
         params.update({
             'resolution': converter.dist_to_resol(
                 250, self.beamline.detector.mm_size, self.beamline.energy.get_position()
             ),
-            'exposure': self.beamline.config['default_exposure'],
         })
         self.run_dialog.configure(params)
         self.config.props.info = self.run_dialog.get_parameters()
@@ -437,13 +434,12 @@ class DatasetsController(GObject.GObject):
             resolution = converter.dist_to_resol(
                 distance, self.beamline.detector.mm_size, energy
             )
-            config = datawidget.DataDialog.get_default()
+            config = self.run_editor.get_default()
             config.update({
                 'resolution': round(resolution, 1),
                 'strategy': datawidget.StrategyType.SINGLE,
                 'energy': energy,
                 'distance': round(distance, 1),
-                'exposure': self.beamline.config['default_exposure'],
                 'name': sample.get('name', 'test'),
             })
             item.props.info = config
@@ -548,7 +544,7 @@ class DatasetsController(GObject.GObject):
         if num_items > 7:
             return
 
-        default = datawidget.DataDialog.get_default(strategy_type=datawidget.StrategyType.FULL)
+        default = self.run_editor.get_default(strategy_type=datawidget.StrategyType.FULL)
         dist = self.beamline.distance.get_position()
         for run in runs:
             energy = run.get('energy', self.beamline.energy.get_position())
@@ -561,7 +557,6 @@ class DatasetsController(GObject.GObject):
                 'resolution': round(resolution, 1),
                 'strategy': datawidget.StrategyType.FULL,
                 'energy': energy,
-                'exposure': self.beamline.config['default_exposure'],
                 'name': run['name'],
             })
             new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.DRAFT)
