@@ -146,13 +146,13 @@ class DataEditor(gui.BuilderMixin):
     Specs = {
         # field: ['field_type', format, type, default]
         'resolution': ['entry', '{:0.1f}', float, 2.0],
-        'delta': ['entry', '{:0.3g}', float, 1.0],
+        'delta': ['entry', '{:0.3g}', float, None],
         'range': ['entry', '{:0.4g}', float, 1.],
         'start': ['entry', '{:0.4g}', float, 0.],
         'wedge': ['entry', '{:0.4g}', float, 360.],
         'energy': ['entry', '{:0.3f}', float, 12.658],
         'distance': ['entry', '{:0.1f}', float, 200],
-        'exposure': ['entry', '{:0.3g}', float, 1.0],
+        'exposure': ['entry', '{:0.3g}', float, None],
         'attenuation': ['entry', '{:0.3g}', float, 0.0],
         'first': ['entry', '{}', int, 1],
         'frames': ['entry', '{}', int, ''],
@@ -191,15 +191,17 @@ class DataEditor(gui.BuilderMixin):
         ]
 
     def configure(self, info):
-        frames = datatools.generate_frame_names(info)
-        info['frames'] = len(frames)
+        info['frames'] = datatools.count_frames(info)
         info['distance'] = round(
             converter.resol_to_dist(info['resolution'], self.beamline.detector.mm_size, info['energy']), 1
         )
+        defaults = self.get_default(info['strategy'])
 
         for name, details in self.Specs.items():
             field_type, fmt, conv, default = details
             field_name = 'data_{}_{}'.format(name, field_type)
+            if default is None:
+                default = defaults.get(field_name)
             value = info.get(name, default)
             field = getattr(self, field_name, None)
             if not field: continue
@@ -255,6 +257,12 @@ class DataEditor(gui.BuilderMixin):
                 value = default
             info[name] = value
 
+        # Fill in defaults
+        defaults = self.get_default(info.get('strategy', 1))
+        for k,v in info.items():
+            if v is None:
+                info[k] = defaults.get(k)
+
         # Calculate skip,
         info.update({
             'skip': calculate_skip(info['strategy'], info['delta'], info['first']),
@@ -268,15 +276,18 @@ class DataEditor(gui.BuilderMixin):
 
         return info
 
-    @classmethod
-    def get_default(cls, strategy_type=StrategyType.SINGLE, delta=None):
+    def get_default(self, strategy_type=StrategyType.SINGLE):
         default = {
-            name: details[-1] for name, details in cls.Specs.items()
+            name: details[-1] for name, details in self.Specs.items()
         }
         info = Strategy[strategy_type]
+        delta, exposure = self.beamline.config['default_delta'], self.beamline.config['default_delta']
+        rate = delta/float(exposure)
+        if 'delta' not in info:
+            info['delta'] = delta
+        if 'exposure' not in info:
+            info['exposure'] = info['delta']/rate
         default.update(info)
-        if delta:
-            default['delta'] = delta
         default['skip'] = calculate_skip(strategy_type, default['delta'], default['first'])
         default.update(Strategy[strategy_type])
         default['strategy_desc'] = default.pop('desc')
@@ -326,10 +337,11 @@ class DataEditor(gui.BuilderMixin):
 
         elif field_name == 'strategy':
             defaults = Strategy.get(new_values['strategy'])
-            if new_values['strategy'] == StrategyType.FULL:
-                defaults['delta'] = self.beamline.config['default_delta']
-            if new_values['strategy'] not in [StrategyType.SINGLE, StrategyType.POWDER]:
-                defaults['exposure'] = self.beamline.config['default_exposure']
+            default_rate = self.beamline.config['default_delta']/float(self.beamline.config['default_exposure'])
+            if 'delta' in defaults and 'exposure' not in defaults:
+                defaults['exposure'] = defaults['delta']/default_rate
+            elif 'exposure' in defaults and 'delta' not in defaults:
+                defaults['delta'] = default_rate/defaults['exposure']
             new_values.update(defaults)
         elif field_name == 'delta':
             new_values['delta'] = min(720.0, max(new_values['delta'], 0.01))
