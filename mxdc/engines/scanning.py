@@ -25,6 +25,7 @@ class ScanError(Exception):
 
 class BasicScan(GObject.GObject):
     implements(IScan)
+    name = 'Basic Scan'
     __gsignals__ = {}
     __gsignals__['new-point'] = (GObject.SignalFlags.RUN_FIRST, None, (object,))
     __gsignals__['progress'] = (GObject.SignalFlags.RUN_FIRST, None, (float, str,))
@@ -63,7 +64,6 @@ class BasicScan(GObject.GObject):
         if self.plotter:
             self.plotter.link_scan(self)
         self.data = []
-
 
     def extend(self, steps):
         self.append = True

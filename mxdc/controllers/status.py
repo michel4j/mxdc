@@ -73,15 +73,13 @@ class StatusPanel(object):
         self.beamline.goniometer.connect('mode', self.on_mode_change)
 
         # connect gonio and automounter to status bar
-        self.status_monitor = common.StatusMonitor(
-            self.widget.status_lbl, self.widget.spinner, devices=(self.beamline.goniometer, self.beamline.automounter)
-        )
+        self.widget.status_monitor.add(self.beamline.goniometer, self.beamline.automounter)
 
         # Some scripts need to reactivate settings frame on completion
         for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam', 'SetBeamMode']:
             self.scripts[sc].connect('busy', self.on_scripts_busy)
             self.scripts[sc].connect('error', self.on_scripts_busy, False)
-            self.status_monitor.add(self.scripts[sc])
+            #self.widget.status_monitor.add(self.scripts[sc])
 
     def on_restore_beam(self, obj):
         script = self.scripts['RestoreBeam']

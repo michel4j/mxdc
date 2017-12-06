@@ -219,3 +219,19 @@ def frame_score(info):
     sc_w = numpy.array([5, 10, 0.2])
     score = numpy.exp((sc_w * numpy.log(sc_x)).sum() / sc_w.sum())
     return score
+
+
+class ContextMessenger(object):
+    def __init__(self, device, msg1, msg2):
+        self.device = device
+        self.enter_message = msg1
+        self.exit_message = msg2
+
+    def __enter__(self):
+        GObject.idle_add(self.device.emit, 'message', self.enter_message)
+        return self
+
+    def __exit__(self ,type, value, traceback):
+        GObject.idle_add(self.device.emit, 'message', self.exit_message)
+        print self.exit_message
+        return False

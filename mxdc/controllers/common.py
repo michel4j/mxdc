@@ -1,6 +1,6 @@
 import logging
 import operator
-
+from collections import OrderedDict
 from gi.repository import Gtk, Gdk, Pango, GObject
 
 from mxdc.widgets import dialogs, timer
@@ -215,34 +215,36 @@ class GUIHandler(logging.Handler):
 
 
 class StatusMonitor(object):
-    def __init__(self, label, spinner, devices=()):
-        self.devices = []
-        self.label = label
-        self.spinner = spinner
-        self.message = ''
+    def __init__(self, widget, devices=()):
+        self.devices = set()
+        self.title = widget.status_context_lbl
+        self.spinner = widget.spinner
+        self.text = widget.status_lbl
+        self.messages = OrderedDict()
         for dev in devices:
             self.add(dev)
 
-    def add(self, device):
-        self.devices.append(device)
-        device.connect('busy', self.on_state)
-        device.connect('message', self.on_message)
+    def add(self, *args):
+        for device in args:
+            self.devices.add(device)
+            device.connect('message', self.on_message)
+            device.connect('busy', self.check_busy)
 
-    def on_message(self, dev, message):
+    def on_message(self, device, message):
         """ Set the message directly if spinner is busy otherwise set to blank"""
-        self.message = message
-        if self.spinner.props.active:
-            self.label.set_markup('{}'.format(message))
+        if message:
+            self.title.set_text(device.name)
+            self.text.set_text(message)
         else:
-            self.label.set_text('')
+            self.title.set_text('')
+            self.text.set_text('')
+        self.check_busy()
 
-    def on_state(self, dev, state):
+    def check_busy(self, *args, **kwargs):
         if any(dev.is_busy() for dev in self.devices):
             self.spinner.start()
-            self.label.set_markup('{}'.format(self.message))
         else:
             self.spinner.stop()
-            self.label.set_text('')
 
 
 class LogMonitor(object):

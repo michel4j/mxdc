@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.0 -->
+<!-- Generated with glade 3.20.1 -->
 <interface>
-  <requires lib="gtk+" version="3.14"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkWindow">
     <property name="height_request">25</property>
     <property name="can_focus">False</property>
@@ -28,6 +28,9 @@
           </object>
         </child>
       </object>
+    </child>
+    <child type="titlebar">
+      <placeholder/>
     </child>
   </object>
   <object class="GtkApplicationWindow" id="app_window">
@@ -2370,7 +2373,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkBox" id="status_box">
+              <object class="GtkBox" id="status_ribbon">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="border_width">12</property>
@@ -2395,8 +2398,11 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Status:&lt;/small&gt;&lt;/b&gt;</property>
+                        <property name="label" translatable="yes">Status</property>
                         <property name="use_markup">True</property>
+                        <style>
+                          <class name="device-label"/>
+                        </style>
                       </object>
                     </child>
                   </object>
@@ -2416,9 +2422,9 @@
                       <object class="GtkEntry" id="status_current_fbk">
                         <property name="visible">True</property>
                         <property name="app_paintable">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can_focus">True</property>
                         <property name="editable">False</property>
-                        <property name="width_chars">12</property>
+                        <property name="width_chars">10</property>
                         <property name="text" translatable="yes">0.0</property>
                         <property name="xalign">0.5</property>
                         <style>
@@ -2430,8 +2436,11 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Ring Current&lt;/small&gt;&lt;/b&gt;</property>
+                        <property name="label" translatable="yes">Ring Current</property>
                         <property name="use_markup">True</property>
+                        <style>
+                          <class name="device-label"/>
+                        </style>
                       </object>
                     </child>
                   </object>
@@ -2450,9 +2459,9 @@
                     <child>
                       <object class="GtkEntry" id="status_i1_fbk">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can_focus">True</property>
                         <property name="editable">False</property>
-                        <property name="width_chars">12</property>
+                        <property name="width_chars">10</property>
                         <property name="text" translatable="yes">0.0</property>
                         <property name="xalign">0.5</property>
                         <style>
@@ -2464,8 +2473,11 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;I₁ Flux:&lt;/small&gt;&lt;/b&gt;</property>
+                        <property name="label" translatable="yes">I₁ Flux</property>
                         <property name="use_markup">True</property>
+                        <style>
+                          <class name="device-label"/>
+                        </style>
                       </object>
                     </child>
                   </object>
@@ -2484,9 +2496,9 @@
                     <child>
                       <object class="GtkEntry" id="status_i0_fbk">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can_focus">True</property>
                         <property name="editable">False</property>
-                        <property name="width_chars">12</property>
+                        <property name="width_chars">10</property>
                         <property name="text" translatable="yes">0.0</property>
                         <property name="xalign">0.5</property>
                         <style>
@@ -2498,8 +2510,11 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;I₀ Flux:&lt;/small&gt;&lt;/b&gt;</property>
+                        <property name="label" translatable="yes">I₀ Flux</property>
                         <property name="use_markup">True</property>
+                        <style>
+                          <class name="device-label"/>
+                        </style>
                       </object>
                     </child>
                   </object>
@@ -2518,7 +2533,7 @@
                     <child>
                       <object class="GtkSwitch" id="beam_switch">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can_focus">True</property>
                         <property name="tooltip_text" translatable="yes">Restore Beam</property>
                       </object>
                     </child>
@@ -2526,8 +2541,11 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Beam:&lt;/small&gt;&lt;/b&gt;</property>
+                        <property name="label" translatable="yes">Beam</property>
                         <property name="use_markup">True</property>
+                        <style>
+                          <class name="device-label"/>
+                        </style>
                       </object>
                     </child>
                   </object>
@@ -2552,7 +2570,7 @@
                           <object class="GtkToggleButton" id="mode_mount_btn">
                             <property name="label" translatable="yes">Mount</property>
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                            <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Sample Mounting Mode</property>
                           </object>
@@ -2566,7 +2584,7 @@
                           <object class="GtkToggleButton" id="mode_center_btn">
                             <property name="label" translatable="yes">Center</property>
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                            <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Centering Mode</property>
                           </object>
@@ -2580,7 +2598,7 @@
                           <object class="GtkToggleButton" id="mode_beam_btn">
                             <property name="label" translatable="yes">Beam</property>
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                            <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Beam Viewing Mode</property>
                           </object>
@@ -2599,8 +2617,11 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Beamline Mode:&lt;/small&gt;&lt;/b&gt;</property>
+                        <property name="label" translatable="yes">Beamline Mode</property>
                         <property name="use_markup">True</property>
+                        <style>
+                          <class name="device-label"/>
+                        </style>
                       </object>
                     </child>
                   </object>
@@ -2627,8 +2648,11 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;&lt;small&gt;Fast Shutter&lt;/small&gt;&lt;/b&gt;</property>
+                        <property name="label" translatable="yes">Fast Shutter</property>
                         <property name="use_markup">True</property>
+                        <style>
+                          <class name="device-label"/>
+                        </style>
                       </object>
                     </child>
                   </object>
@@ -2645,45 +2669,83 @@
                     <property name="orientation">vertical</property>
                     <property name="baseline_position">bottom</property>
                     <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <object class="GtkBox">
+                      <object class="GtkLabel" id="status_context_lbl">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="margin_top">12</property>
-                        <property name="spacing">6</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Status</property>
+                        <property name="use_markup">True</property>
+                        <style>
+                          <class name="device-label"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEventBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <child>
-                          <object class="GtkLabel" id="status_lbl">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="halign">start</property>
-                            <property name="wrap">True</property>
-                            <property name="max_width_chars">30</property>
-                            <property name="track_visited_links">False</property>
-                            <attributes>
-                              <attribute name="scale" value="0.90000000000000002"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="pack_type">end</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinner" id="spinner">
-                            <property name="width_request">24</property>
+                          <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkSpinner" id="spinner">
+                                <property name="width_request">24</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="margin_left">3</property>
+                                <property name="margin_right">3</property>
+                                <property name="margin_top">3</property>
+                                <property name="margin_bottom">3</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSeparator">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="margin_top">3</property>
+                                <property name="margin_bottom">3</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="status_lbl">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="margin_left">6</property>
+                                <property name="wrap">True</property>
+                                <property name="ellipsize">end</property>
+                                <property name="max_width_chars">30</property>
+                                <property name="track_visited_links">False</property>
+                                <property name="lines">2</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="pack_type">end</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
                           </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
                         </child>
+                        <style>
+                          <class name="status-box"/>
+                        </style>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -2708,9 +2770,9 @@
                       <object class="GtkEntry" id="status_beamline_fbk">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
-                        <property name="can_focus">False</property>
+                        <property name="can_focus">True</property>
                         <property name="editable">False</property>
-                        <property name="width_chars">12</property>
+                        <property name="width_chars">10</property>
                         <property name="text" translatable="yes">SIM-1</property>
                         <property name="xalign">0.5</property>
                         <style>
@@ -2722,7 +2784,7 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Beamline:</property>
+                        <property name="label" translatable="yes">Beamline</property>
                         <property name="use_markup">True</property>
                         <style>
                           <class name="device-label"/>
@@ -2886,6 +2948,9 @@
           <placeholder/>
         </child>
       </object>
+    </child>
+    <child type="titlebar">
+      <placeholder/>
     </child>
   </object>
   <object class="GtkPopover" id="auto_groups_pop">
