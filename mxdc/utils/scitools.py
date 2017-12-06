@@ -333,7 +333,7 @@ def interprete_xrf(xo, yo, energy, speedup=4):
         yt = yfunc(xt)
 
         if fixed is not None and fixed_pars is not None:
-            pars[fixed] = fixed_pars[fixed]
+            pars[fixed] = fixed_pars[:-1][fixed]
 
         full_template = template * pars
         yo = full_template.sum(1)
@@ -367,7 +367,7 @@ def interprete_xrf(xo, yo, energy, speedup=4):
 
     # Fit L peaks keeping K-coefficients constant
     new_coeffs, _ = optimize.leastsq(
-        model_err, k_coeffs[:], args=(xc, yfunc, template, lonly == 0.0, k_coeffs), maxfev=25000
+        model_err, k_coeffs[:], args=(xc, yfunc, template, lonly==0.0, k_coeffs), maxfev=25000
     )
     final_template = calc_template(xo, elements) * new_coeffs[:-1]
     return elements, final_template, new_coeffs

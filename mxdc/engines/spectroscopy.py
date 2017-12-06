@@ -26,6 +26,7 @@ class XRFScanner(BasicScan):
     spectrum of all emission peaks for elements absorbing at or below the beam
     energy is acquired for a fixed amount of time.
     """
+    name = 'XRF Scan'
     def __init__(self):
         super(XRFScanner, self).__init__()
         
@@ -42,6 +43,7 @@ class XRFScanner(BasicScan):
     def notify_progress(self, pos, message):
         fraction = float(pos)/self.total
         GObject.idle_add(self.emit, "progress", fraction, message)
+        GObject.idle_add(self.emit, "message", message)
 
     def prepare_for_scan(self):
         self.notify_progress(0.01, "Preparing devices ...")
@@ -177,6 +179,8 @@ class MADScanner(BasicScan):
     Multi-Wavelength Anomalous Dispersion (MAD) Scan. Monochromator is scanned around a specific  absorption-edge
     in a stepwise manner and the total emission for the selected absorption-edge is recorded for a fixed amount of time.
     """
+    name = 'MAD Scan'
+
     def __init__(self):
         super(MADScanner, self).__init__()
         self.emissions = get_energy_database()
@@ -197,6 +201,7 @@ class MADScanner(BasicScan):
     def notify_progress(self, pos, message):
         fraction = float(pos) / self.total
         GObject.idle_add(self.emit, "progress", fraction, message)
+        GObject.idle_add(self.emit, "message", message)
 
     def prepare_for_scan(self):
         self.notify_progress(0.01, "Preparing devices ...")
@@ -248,7 +253,9 @@ class MADScanner(BasicScan):
 
                     self.data_rows.append((x, y*scale, y, i0))
                     GObject.idle_add(self.emit, "new-point", (x, y*scale, y, i0))
-                    self.notify_progress(i+1, "Scanning {} of {} ...".format(i, self.total))
+
+                    msg = "Scanning {} of {} ...".format(i, self.total)
+                    self.notify_progress(i + 1, msg)
                     time.sleep(0)
 
                 self.set_data(self.data_rows)
@@ -349,7 +356,7 @@ class XASScanner(BasicScan):
     in a stepwise manner and the total emission for the selected absorption-edge is recorded.
     """
     __gsignals__ = {'new-scan' : (GObject.SignalFlags.RUN_FIRST, None, (int,)) }
-
+    name = 'XAS Scan'
     def __init__(self):
         super(XASScanner, self).__init__()
         self.emissions = get_energy_database()
@@ -371,6 +378,7 @@ class XASScanner(BasicScan):
     def notify_progress(self, used_time, message):
         fraction = float(used_time) / max(abs(self.total_time), 1)
         GObject.idle_add(self.emit, "progress", fraction, message)
+        GObject.idle_add(self.emit, "message", message)
 
     def prepare_for_scan(self):
         self.notify_progress(0.001, "Preparing devices ...")
@@ -445,11 +453,8 @@ class XASScanner(BasicScan):
                         self.data_rows.append(tuple(data_point))
                         used_time += t
                         GObject.idle_add(self.emit, "new-point", (x, y * scale, y, i0))
-                        self.notify_progress(
-                            used_time, "Scan {}/{}:  Point {}/{}...".format(
-                                scan + 1, self.config['scans'], i, scan_length
-                            )
-                        )
+                        msg = "Scan {}/{}:  Point {}/{}...".format(scan + 1, self.config['scans'], i, scan_length)
+                        self.notify_progress(used_time, msg)
                         time.sleep(0)
                     data = self.set_data(self.data_rows)
                     self.results['data'].append(data)

@@ -14,6 +14,7 @@ from twisted.python.components import globalRegistry
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.decorators import async_call
+from mxdc.utils import misc
 from mxdc.devices.base import BaseDevice
 
 # setup module logger with a default handler
@@ -227,15 +228,16 @@ class ParkerGonio(Goniometer):
         if self.is_busy():
             self.wait(start=False, stop=True)
 
-        message = 'Switching mode to: {}'.format(mode.name.title())
-        self.set_state(message=message)
-
         target_mode = mode if mode != self.ModeType.SCANNING else self.ModeType.COLLECT
         self.mode_cmds[target_mode].put(1)
         self.requested_mode = mode
 
+        message = 'Switching to {}'.format(mode.name)
         if wait:
-            self.wait_for_modes({target_mode})
+            with misc.ContextMessenger(self,  message, ''):
+                self.wait_for_modes({target_mode})
+        else:
+            self.set_state(message=message)
 
     def scan(self, wait=True, timeout=None):
         self.set_state(message='Scanning ...')
@@ -298,15 +300,18 @@ class MD2Gonio(Goniometer):
         if self.is_busy():
             self.wait(start=False, stop=True)
 
-        message = 'Switching mode to: {}'.format(mode.name.title())
-        self.set_state(message=message)
 
         target_mode = mode if mode != self.ModeType.SCANNING else self.ModeType.COLLECT
         self.mode_cmd.put(target_mode.value)
         self.requested_mode = mode
 
+        message = 'Switching to {}'.format(mode.name)
         if wait:
-            self.wait_for_modes({target_mode})
+            with misc.ContextMessenger(self,  message, ''):
+                self.wait_for_modes({target_mode})
+        else:
+            self.set_state(message=message)
+
 
         if mode == self.ModeType.SCANNING:
             self.fluor_cmd.put(1)
@@ -356,7 +361,7 @@ class MD2Gonio(Goniometer):
 
 class SimGonio(Goniometer):
     def __init__(self):
-        Goniometer.__init__(self, 'Simulated Goniometer')
+        Goniometer.__init__(self, 'Goniometer')
         self._scanning = False
         self._lock = Lock()
         self.props.mode = self.ModeType.MOUNTING
@@ -371,13 +376,13 @@ class SimGonio(Goniometer):
         if self.is_busy():
             self.wait(start=False, stop=True)
 
-        message = 'Switching mode to: {}'.format(mode.name.title())
+        message = 'Switching to {}'.format(mode.name)
         self.set_state(message=message, busy=True)
         GObject.timeout_add(3000, self._sim_mode, mode)
 
     def _sim_mode(self, mode):
         self.props.mode = mode
-        self.set_state(mode=mode, busy=False)
+        self.set_state(mode=mode, busy=False, message='')
 
     @async_call
     def _scan_async(self):

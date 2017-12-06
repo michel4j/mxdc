@@ -35,6 +35,7 @@ class AppBuilder(gui.Builder):
             self.notification_revealer,
             self.notification_btn
         )
+        self.status_monitor = common.StatusMonitor(self)
 
         self.page_switcher.set_stack(self.main_stack)
         for stack in [self.main_stack, self.setup_status_stack, self.samples_stack]:
