@@ -35,12 +35,14 @@ class Centering(GObject.GObject):
     __gsignals__ = {
         'started': (GObject.SIGNAL_RUN_LAST, None, []),
         'done': (GObject.SIGNAL_RUN_LAST, None, []),
-        'error': (GObject.SIGNAL_RUN_LAST, None, (str,))
+        'error': (GObject.SIGNAL_RUN_LAST, None, (str,)),
+        'message': (GObject.SIGNAL_RUN_LAST, None, (str,)),
     }
     complete = GObject.Property(type=bool, default=False)
 
     def __init__(self):
         super(Centering, self).__init__()
+        self.name = 'Auto Centering'
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.method = None
         self.score = 0.0

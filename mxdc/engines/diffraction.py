@@ -30,10 +30,11 @@ class DataCollector(GObject.GObject):
         'paused': (GObject.SIGNAL_RUN_LAST, None, (bool, str)),
         'started': (GObject.SIGNAL_RUN_LAST, None, []),
         'stopped': (GObject.SIGNAL_RUN_LAST, None, []),
-        'error': (GObject.SIGNAL_RUN_LAST, None, (str,))
+        'error': (GObject.SIGNAL_RUN_LAST, None, (str,)),
+        'message': (GObject.SIGNAL_RUN_LAST, None, (str,))
     }
-
     complete = GObject.Property(type=bool, default=False)
+    name = 'Data Collector'
 
     def __init__(self):
         super(DataCollector, self).__init__()
@@ -72,6 +73,9 @@ class DataCollector(GObject.GObject):
         worker.setDaemon(True)
         worker.setName('Data Collector')
         worker.start()
+
+    def is_busy(self):
+        return self.collecting
 
     def run(self):
         self.props.complete = False
@@ -207,6 +211,7 @@ class DataCollector(GObject.GObject):
             self.beamline.dss.setup_folder(wedge['directory'], misc.get_project_name())
             if not os.path.exists(os.path.join(wedge['directory'], '{}_{:0.0f}.png'.format(prefix, wedge['start']))):
                 logger.info('Taking snapshots of sample at {:0.0f}'.format(wedge['start']))
+
                 snapshot.take_sample_snapshots(
                     prefix, os.path.join(wedge['directory']), [wedge['start']], decorate=True
                 )
@@ -294,6 +299,8 @@ class DataCollector(GObject.GObject):
         if not (self.paused or self.stopped):
             GObject.idle_add(self.emit, 'progress', fraction)
 
+        GObject.idle_add(self.emit, "message", "Acquired frame {}/{}".format(self.count, self.total_frames))
+
     def on_beam_change(self, obj, available):
         if not (self.stopped or self.paused) and self.collecting and not available:
             message = (
@@ -347,6 +354,9 @@ class DataCollector(GObject.GObject):
         while self.collecting:
             time.sleep(0.1)
         GObject.idle_add(self.emit, 'stopped')
+
+    def message(self, text):
+        GObject.idle_add(self.emit, 'message', text)
 
     def watch_frames(self):
         self.beamline.detector.handler_unblock(self.frame_link)

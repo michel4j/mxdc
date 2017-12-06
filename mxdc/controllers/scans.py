@@ -633,8 +633,7 @@ class ScanManager(GObject.GObject):
 
         # connect scanners
         self.status_monitor = common.StatusMonitor(
-            self.widget.status_lbl, self.widget.spinner,
-            devices=(self.mad_scanner.scanner, self.xas_scanner.scanner, self.xrf_scanner.scanner)
+            self.widget, devices=(self.mad_scanner.scanner, self.xas_scanner.scanner, self.xrf_scanner.scanner)
         )
         self.setup()
 
