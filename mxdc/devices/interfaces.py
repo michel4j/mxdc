@@ -39,6 +39,9 @@ class IAutomounter(IDevice):
 
     def mount(port):
         """Pick up a sample and mount in on the goniometer."""
+
+    def recover(failure):
+        """Recover from the specified failure type"""
             
     def dismount():
         """Dismount currently mounted port."""
