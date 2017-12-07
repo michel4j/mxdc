@@ -69,7 +69,7 @@ class Goniometer(BaseDevice):
 
     mode = GObject.property(type=object)
 
-    def __init__(self, name):
+    def __init__(self, name='Diffractometer'):
         BaseDevice.__init__(self)
         self.name = name
         self.mode = self.ModeType.INIT
@@ -149,7 +149,7 @@ class ParkerGonio(Goniometer):
             - `name` (str): PV name of goniometer EPICS record.
             - `blname` (str): PV name for Beamline PV.
         """
-        Goniometer.__init__(self, 'Parker Goniometer')
+        Goniometer.__init__(self)
 
         # initialize process variables
         self.scan_cmd = self.add_pv("{}:scanFrame.PROC".format(root))
@@ -260,7 +260,7 @@ class MD2Gonio(Goniometer):
     """
 
     def __init__(self, root):
-        Goniometer.__init__(self, 'MD2 Goniometer')
+        Goniometer.__init__(self, 'MD2 Diffractometer')
         self.requested_mode = None
         # initialize process variables
         self.mode_cmd = self.add_pv('{}:S:MDPhasePosition'.format(root))
@@ -361,7 +361,7 @@ class MD2Gonio(Goniometer):
 
 class SimGonio(Goniometer):
     def __init__(self):
-        Goniometer.__init__(self, 'Goniometer')
+        Goniometer.__init__(self, 'SIM Diffractometer')
         self._scanning = False
         self._lock = Lock()
         self.props.mode = self.ModeType.MOUNTING
