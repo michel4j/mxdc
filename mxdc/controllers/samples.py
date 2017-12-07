@@ -84,7 +84,7 @@ class HutchSamplesController(GObject.GObject):
         self.widget.samples_next_sample.set_text('...')
 
     def get_name(self, port):
-        return '<unknown>'
+        return '...'
 
     def find_by_port(self, port):
         return None

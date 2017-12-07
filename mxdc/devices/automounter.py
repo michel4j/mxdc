@@ -451,6 +451,7 @@ class SimAutoMounter(AutoMounter):
 
     def _initialize(self):
         self.on_ports_changed(None, self.TEST_STATE3)
+        self.props.sample = {'port': 'MA14'}
         self.props.status = State.IDLE
         self.set_state(active=True, health=(0, ''), message='Ready')
 

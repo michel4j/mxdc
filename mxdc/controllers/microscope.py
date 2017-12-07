@@ -508,9 +508,9 @@ class Microscope(GObject.GObject):
     def on_mouse_scroll(self, widget, event):
         if 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['CENTERING', 'BEAM']:
             if event.direction == Gdk.ScrollDirection.UP:
-                self.on_rotate(widget, 10)
+                self.on_rotate(widget, 45)
             elif event.direction == Gdk.ScrollDirection.DOWN:
-                self.on_rotate(widget, -10)
+                self.on_rotate(widget, -45)
 
     def on_mouse_motion(self, widget, event):
         if event.is_hint:
@@ -523,13 +523,12 @@ class Microscope(GObject.GObject):
         )
         if 'GDK_BUTTON2_MASK' in event.get_state().value_names:
             self.measurement[1] = (x, y)
-        elif 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name not in ['CENTERING', 'BEAM']:
+        elif 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['COLLECT', 'SCANNING']:
             self.change_tool(tool=self.ToolState.CENTERING)
         elif self.tool == self.ToolState.MEASUREMENT:
             self.change_tool()
-        elif self.tool == self.ToolState.CENTERING and self.mode.name not in ['CENTERING', 'BEAM']:
+        elif self.tool == self.ToolState.CENTERING and self.mode.name in ['COLLECT', 'SCANNING']:
             self.change_tool()
-
 
     def on_image_click(self, widget, event):
         if event.button == 1:
