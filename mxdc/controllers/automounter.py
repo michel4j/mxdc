@@ -2,10 +2,11 @@ from __future__ import division
 
 from datetime import datetime
 
-from gi.repository import Gdk, GObject
+from gi.repository import Gdk, GObject, Gtk
 from mxdc.beamlines.mx import IBeamline
 from mxdc.utils.automounter import Port
 from mxdc.utils.log import get_module_logger
+from mxdc.widgets import dialogs
 from twisted.python.components import globalRegistry
 logger = get_module_logger(__name__)
 
@@ -37,6 +38,7 @@ class DewarController(GObject.GObject):
         self.beamline.automounter.connect('notify::layout', self.on_layout_changed)
         self.beamline.automounter.connect('notify::containers', self.on_layout_changed)
         self.beamline.automounter.connect('notify::sample', self.on_layout_changed)
+        self.beamline.automounter.connect('notify::failure', self.on_failure_changed)
 
         self.store.connect('notify::ports', self.on_layout_changed)
         self.store.connect('notify::containers', self.on_layout_changed)
@@ -129,7 +131,6 @@ class DewarController(GObject.GObject):
             widget.get_window().set_cursor(None)
             return False
 
-
     def allow_port(self, container, port):
         if self.beamline.is_admin() or ((container and port) and (port in self.ports)):
             return self.get_port_state(port) not in [Port.EMPTY, Port.BAD]
@@ -153,6 +154,17 @@ class DewarController(GObject.GObject):
             self.widget.automounter_command_box.set_sensitive(False)
 
         self.widget.automounter_status_fbk.set_text(status.name)
+
+    def on_failure_changed(self, *args, **kwargs):
+        failure = self.beamline.automounter.failure
+        if failure:
+            context, message = failure
+            response = dialogs.warning(
+                '{} Failed: {}'.format(self.beamline.automounter.name, context), message,
+                buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Recover', Gtk.ButtonsType.OK))
+            )
+            if response == Gtk.ButtonsType.OK:
+                self.beamline.automounter.recover(context)
 
     def on_messages(self, obj, message):
         if message:
