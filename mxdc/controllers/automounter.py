@@ -36,6 +36,8 @@ class DewarController(GObject.GObject):
         self.beamline.automounter.connect('notify::ports', self.on_layout_changed)
         self.beamline.automounter.connect('notify::layout', self.on_layout_changed)
         self.beamline.automounter.connect('notify::containers', self.on_layout_changed)
+        self.beamline.automounter.connect('notify::sample', self.on_layout_changed)
+
         self.store.connect('notify::ports', self.on_layout_changed)
         self.store.connect('notify::containers', self.on_layout_changed)
 
@@ -48,13 +50,12 @@ class DewarController(GObject.GObject):
         self.widget.sample_dewar_area.connect('draw', self.draw_dewar)
         self.widget.sample_dewar_area.set_events(
             Gdk.EventMask.EXPOSURE_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK |
-            Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.POINTER_MOTION_MASK |
-            Gdk.EventMask.POINTER_MOTION_HINT_MASK | Gdk.EventMask.VISIBILITY_NOTIFY_MASK
+            Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.VISIBILITY_NOTIFY_MASK
         )
-        self.widget.sample_dewar_area.connect('motion-notify-event', self.on_motion_notify)
+        self.widget.sample_dewar_area.connect('query-tooltip', self.on_query_tooltip)
         self.widget.sample_dewar_area.connect('button-press-event', self.on_press_event)
 
-    def get_port_state(self, port,):
+    def get_port_state(self, port):
         robot_ports = self.beamline.automounter.ports
         user_ports = self.store.ports
         state = robot_ports.get(port, Port.UNKNOWN)
@@ -112,19 +113,22 @@ class DewarController(GObject.GObject):
                 return loc, port
         return None, None
 
-    def on_motion_notify(self, widget, event):
+    def on_query_tooltip(self, widget, x, y, keyboard, tooltip):
+        if keyboard:
+            return False
         alloc = widget.get_allocation()
-        x = event.x/alloc.width
-        y = event.y/alloc.height
-        loc, port = self.find_port(x, y)
+        xp = x / alloc.width
+        yp = y / alloc.height
+        loc, port = self.find_port(xp, yp)
         if loc and port and self.allow_port(loc, port):
             label = self.store.get_name(port)
-            event.window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.HAND2))
-            self.widget.hover_sample_lbl.set_text(port)
-            if label:
-                self.widget.hover_state_lbl.set_text(label)
+            widget.get_window().set_cursor(Gdk.Cursor.new(Gdk.CursorType.HAND2))
+            tooltip.set_markup('<small><b>{}</b>\n{}</small>'.format(port, label))
+            return True
         else:
-            event.window.set_cursor(None)
+            widget.get_window().set_cursor(None)
+            return False
+
 
     def allow_port(self, container, port):
         if self.beamline.is_admin() or ((container and port) and (port in self.ports)):
