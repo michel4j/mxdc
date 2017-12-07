@@ -1,7 +1,7 @@
 import copy
 import re
 import time
-
+import random
 from enum import Enum
 from gi.repository import GObject
 from zope.interface import implements
@@ -16,7 +16,7 @@ logger = get_module_logger(__name__)
 
 
 class State(Enum):
-    IDLE, STANDBY, BUSY, STOPPING, DISABLED, WARNING, ERROR = range(7)
+    IDLE, STANDBY, BUSY, STOPPING, DISABLED, WARNING, FAILURE, ERROR = range(8)
 
 
 class AutoMounter(BaseDevice):
@@ -27,6 +27,7 @@ class AutoMounter(BaseDevice):
     ports = GObject.Property(type=object)
     containers = GObject.Property(type=object)
     status = GObject.Property(type=object)
+    failure = GObject.Property(type=object)
 
     def __init__(self):
         super(AutoMounter, self).__init__()
@@ -69,6 +70,15 @@ class AutoMounter(BaseDevice):
         @return:
         """
         self.props.status = state
+
+    def recover(self, failure):
+        """
+        Recover from a specific failure type
+
+        @param failure:
+        @return:
+        """
+        logger.error('Recovery procedure {} not implemented'.format(failure))
 
     def standby(self):
         """
@@ -133,11 +143,15 @@ class AutoMounter(BaseDevice):
             while time_remaining > 0 and not self.status in states:
                 time_remaining -= poll
                 time.sleep(poll)
+                if self.status == State.FAILURE:
+                    break
 
             if time_remaining <= 0:
                 logger.warning('Timed out waiting for {}:{}'.format(self.name, states))
                 return False
-
+            elif self.status == State.FAILURE:
+                logger.warning('{} operation failed.'.format(self.name))
+                return False
         return True
 
     def is_mountable(self, port):
@@ -156,7 +170,6 @@ class AutoMounter(BaseDevice):
         """
         raise NotImplementedError('Sub-classes must implement is_valid method')
 
-
     def is_mounted(self, port=None):
         """
         Check if the specified port is mounted
@@ -165,8 +178,8 @@ class AutoMounter(BaseDevice):
         """
 
         return (
-            (port is None and bool(self.sample)) or
-            ((port is not None) and self.sample and self.sample.get('port') == port)
+                (port is None and bool(self.sample)) or
+                ((port is not None) and self.sample and self.sample.get('port') == port)
         )
 
     def is_ready(self):
@@ -175,7 +188,6 @@ class AutoMounter(BaseDevice):
         @return:
         """
         return (self.status in [State.IDLE, State.STANDBY] and self.is_active() and not self.is_busy())
-
 
     def in_standby(self):
         """
@@ -427,7 +439,6 @@ class SimAutoMounter(AutoMounter):
         '3': 'puck',
     }
 
-
     TEST_STATE1 = (
         '31uuuuuuuuuujuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu--------------------------------'
         '01uuuuuuuuuuuumuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu0uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu'
@@ -485,12 +496,12 @@ class SimAutoMounter(AutoMounter):
                 command = self._sim_mount_done
 
             logger.info('{}: Mounting Sample: {}'.format(self.name, port))
+            GObject.timeout_add(8000, command, port)
             if wait:
                 time.sleep(8)
-                command(port)
                 return True
             else:
-                GObject.timeout_add(8000, command, port)
+
                 return True
 
     def dismount(self, wait=False):
@@ -559,7 +570,7 @@ class SimAutoMounter(AutoMounter):
 
     def _sim_mount_start(self, message):
         GObject.idle_add(self.switch_status, State.BUSY)
-        self.set_state( message=message)
+        self.set_state(message=message)
 
     def _sim_mount_done(self, port, dry=True):
         self.props.sample = {
@@ -582,6 +593,7 @@ class SimAutoMounter(AutoMounter):
         GObject.idle_add(self.switch_status, State.IDLE)
 
     def _sim_mountnext_done(self, port, dry=True):
+        self.props.failure = ('collision', 'Test message for testing failures')
         mounted_port = self.sample['port']
         ports = copy.copy(self.props.ports)
         ports[mounted_port] = Port.GOOD
@@ -653,7 +665,6 @@ class ISARAMounter(AutoMounter):
         self.trajectory_fbk.connect('changed', self.on_message, ISARAMessages.trajectory)
         self.error_fbk.connect('changed', self.on_message, ISARAMessages.errors)
 
-
         self.abort_cmd = self.add_pv('{}:abort'.format(root))
         self.getput_cmd = self.add_pv('{}:getput'.format(root))
         self.power_cmd = self.add_pv('{}:on'.format(root))
@@ -666,9 +677,10 @@ class ISARAMounter(AutoMounter):
         self.gonio_puck_fbk.connect('changed', self.on_sample_changed)
 
         state_variables = [
-            self.bot_busy_fbk, self.cmd_busy_fbk, self.mode_fbk, self.tool_number, self.air_fbk, self.prog_fbk,
-            self.sensor_fbk, self.prog_fbk, self.ln2_fbk, self.enabled_fbk
-        ] + self.errors.values()
+                              self.bot_busy_fbk, self.cmd_busy_fbk, self.mode_fbk, self.tool_number, self.air_fbk,
+                              self.prog_fbk,
+                              self.sensor_fbk, self.prog_fbk, self.ln2_fbk, self.enabled_fbk
+                          ] + self.errors.values()
         for obj in state_variables:
             obj.connect('changed', self.on_state_changed)
 
@@ -760,10 +772,10 @@ class ISARAMounter(AutoMounter):
     def on_pucks_changed(self, obj, states):
         m = re.match('^di2\(([\d,]+)\)$', states)
         if m:
-            sts = m.groups()[0].replace(',','')
-            pucks = {self.PUCKS[i+1] for i, bit in enumerate(sts) if bit == '1'}
+            sts = m.groups()[0].replace(',', '')
+            pucks = {self.PUCKS[i + 1] for i, bit in enumerate(sts) if bit == '1'}
             states = {
-                '{}{}'.format(puck, 1+pin) : Port.UNKNOWN for pin in range(16) for puck in pucks
+                '{}{}'.format(puck, 1 + pin): Port.UNKNOWN for pin in range(16) for puck in pucks
             }
             self.props.ports = states
             self.props.containers = pucks
@@ -781,7 +793,7 @@ class ISARAMounter(AutoMounter):
         port = self.props.sample.get('port')
         if port in self.props.ports:
             self.props.ports[port] = Port.UNKNOWN
-        if 1 <= puck <=29 and 1<= pin <= 16:
+        if 1 <= puck <= 29 and 1 <= pin <= 16:
             port = '{}{}'.format(self.PUCKS[puck], pin)
             self.props.ports[port] = Port.MOUNTED
             self.props.sample = {
@@ -838,6 +850,9 @@ class ISARAMounter(AutoMounter):
 
     def on_message(self, obj, value, transform):
         message = transform(value)
+        if message == 'collision in dewar':
+            self.props.failure = ('collision', message)
+            self.switch_status(State.FAILURE)
         if message:
             self.set_state(message=message)
 
