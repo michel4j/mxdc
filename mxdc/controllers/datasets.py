@@ -598,16 +598,15 @@ class DatasetsController(GObject.GObject):
         self.check_run_store()
 
     def on_clean_runs(self, obj):
-        done = 0
         count = 0
         item = self.run_store.get_item(count)
-        while item:
-            if item.state in [item.StateType.COMPLETE, item.StateType.ERROR]:
-                done += 1
+        while item.state in [item.StateType.COMPLETE, item.StateType.ERROR]:
             count += 1
             item = self.run_store.get_item(count)
-        if done > 0:
-            self.run_store.splice(count - done, done, [])
+        if count > 0:
+            self.run_store.splice(0, count, [])
+            self.check_run_store()
+
 
     def on_copy_run(self, obj):
         num_items = self.run_store.get_n_items()
