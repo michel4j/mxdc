@@ -75,7 +75,7 @@ class BaseTuner(BaseDevice):
 
 
 class BOSSTuner(BaseTuner):
-    def __init__(self, name, reference=None, off_value=5000, pause_value=1e8):
+    def __init__(self, name, reference=None, control=None, off_value=5000, pause_value=1e8):
         BaseTuner.__init__(self)
         self.name = name
         self.enable_cmd = self.add_pv('{}:EnableDacOUT'.format(name))
@@ -88,6 +88,10 @@ class BOSSTuner(BaseTuner):
             self.reference_fbk = self.add_pv(reference)
         else:
             self.reference_fbk = None
+
+        if control:
+            self.control = self.add_pv(control)
+            self.control.connect('changed', self.check_enable)
         self._off_value = off_value
         self._pause_value = pause_value
 
@@ -119,6 +123,12 @@ class BOSSTuner(BaseTuner):
         logger.debug('Disabling Beam Stabilization')
         if self.active_state:
             self.enable_cmd.put(0)
+
+    def check_enable(self, obj, val):
+        if val:
+            self.resume()
+        else:
+            self.pause()
 
     def on_state_changed(self, obj, val):
         self.set_state(enabled=(val==1))
