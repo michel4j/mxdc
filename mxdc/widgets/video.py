@@ -10,14 +10,17 @@ gi.require_version('Gtk', '3.0')
 
 from gi.repository import GObject
 from gi.repository import Gdk
-from gi.repository import GdkPixbuf
 from gi.repository import Gtk
 from zope.interface import implements
+import cairo
 
 from mxdc.utils import cmaps
 from mxdc.utils.gui import color_palette
 from mxdc.devices.interfaces import IVideoSink
 from mxdc.utils.video import image_to_surface
+from mxdc.utils.log import get_module_logger
+
+logger = get_module_logger(__name__)
 
 
 class VideoWidget(Gtk.DrawingArea):
@@ -33,6 +36,7 @@ class VideoWidget(Gtk.DrawingArea):
         self.voffset = 0
         self.hoffset = 0
         self.surface = None
+        self.save_file = None
         self.stopped = False
         self.colorize = False
         self.palette = color_palette(cmaps.gist_ncar)
@@ -58,7 +62,6 @@ class VideoWidget(Gtk.DrawingArea):
 
         self.connect('visibility-notify-event', self.on_visibility_notify)
         self.connect('unmap', self.on_unmap)
-        #self.connect('draw', self.on_draw)
         self.connect('realize', self.on_realized)
         self.connect("unrealize", self.on_destroy)
         self.connect('configure-event', self.on_configure_event)
@@ -144,10 +147,16 @@ class VideoWidget(Gtk.DrawingArea):
 
     def do_draw(self, cr):
         if self.surface is not None:
+            if self.overlay_func is not None:
+                ctx = cairo.Context(self.surface)
+                self.overlay_func(ctx)
             cr.set_source_surface(self.surface, 0, 0)
             cr.paint()
-            if self.overlay_func is not None:
-                self.overlay_func(cr)
+
+            if self.save_file:
+                self.surface.write_to_png(self.save_file)
+                logger.info('{} saved'.format(self.save_file))
+                self.save_file = None
 
     def on_realized(self, obj):
         self.camera.add_sink(self)
@@ -164,14 +173,4 @@ class VideoWidget(Gtk.DrawingArea):
         self.stopped = True
 
     def save_image(self, filename):
-        window = self.get_window()
-        colormap = window.get_colormap()
-        pixbuf = GdkPixbuf.Pixbuf(GdkPixbuf.Colorspace.RGB, 0, 8, *window.get_size())
-        pixbuf = pixbuf.get_from_drawable(window, colormap, 0, 0, 0, 0, *window.get_size())
-        ftype = os.path.splitext(filename)[-1]
-        ftype = ftype.lower()
-        if ftype in ['.jpg', '.jpeg']:
-            ftype = 'jpeg'
-        else:
-            ftype = 'png'
-        pixbuf.save(filename, ftype)
+        self.save_file = filename
