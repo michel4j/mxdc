@@ -607,7 +607,6 @@ class DatasetsController(GObject.GObject):
             self.run_store.splice(0, count, [])
             self.check_run_store()
 
-
     def on_copy_run(self, obj):
         num_items = self.run_store.get_n_items()
         if num_items > 7:
