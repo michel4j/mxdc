@@ -54,7 +54,7 @@ class DataCollector(GObject.GObject):
         self.beamline.synchrotron.connect('ready', self.on_beam_change)
         globalRegistry.register([], IDataCollector, '', self)
 
-    def configure(self, run_data, take_snapshots=True, existing=0, analysis='native'):
+    def configure(self, run_data, take_snapshots=True, existing=0, analysis=None):
         self.config['analysis'] = analysis
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
@@ -279,17 +279,18 @@ class DataCollector(GObject.GObject):
         return reply
 
     def analyse(self, metadata, sample):
-        flags = ()
 
-        if 'anomalous' in self.config['analysis']:
+        if self.config['analysis'] is None:
+            return
+
+        flags = ()
+        if self.config['analysis'] == 'anomalous':
             flags = ('anomalous', )
-        if metadata['type'] == 'XRD_DATA':
-            self.analyst.process_powder(metadata, flags=flags, sample=sample)
-        elif self.config['analysis'] == 'screen':
+        if (self.config['analysis'] == 'screen') or (self.config['analysis'] == 'default' and metadata['type'] == 'MX_SCREEN'):
             self.analyst.screen_dataset(metadata, flags=flags, sample=sample)
-        elif self.config['analysis'] in ['anomalous', 'native']:
+        elif (self.config['analysis'] in ['anomalous', 'native']) or (self.config['analysis'] == 'default' and metadata['type'] == 'MX_DATA'):
             self.analyst.process_dataset(metadata, flags=flags, sample=sample)
-        elif self.config['analysis'] == 'powder':
+        elif (self.config['analysis'] == 'powder') or (self.config['analysis'] == 'default' and metadata['type'] == 'XRD_DATA'):
             self.analyst.process_powder(metadata, flags=flags, sample=sample)
 
     def on_new_image(self, obj, file_path):
