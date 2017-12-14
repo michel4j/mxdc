@@ -51,16 +51,15 @@ class StorageRing(BaseStorageRing):
 
         self.mode_pv.connect('changed', self.update)
         self.current_pv.connect('changed', self.update)
-        self.state_pv.connect('changed', self.update)
         self._last_current = 0.0
 
     def check_ready(self, *args, **kwargs):
         if self.props.current > 5.0 and self.props.mode == 4:
             self.set_state(ready=True, health=(0, 'mode'))
         elif self.props.current > 5.0:
-            self.set_state(ready=True, health=(2, 'mode', 'Mainenance beam'))
+            self.set_state(ready=False, health=(2, 'mode', 'Maintenance'))
         else:
-            self.set_state(ready=False, health=(4, 'mode', self.props.message or 'Beam not available'))
+            self.set_state(ready=False, health=(4, 'mode', self.props.message or 'No beam!'))
 
     def update(self, *args, **kwargs):
         self.props.current = self.current_pv.get()
@@ -88,7 +87,7 @@ class SimStorageRing(BaseStorageRing):
         if self.props.current > 5.0 and self.props.state == 1 and self.props.mode == 4:
             self.set_state(ready=True, health=(0, 'mode'))
         elif self.props.current > 5.0 and self.props.state == 1:
-            self.set_state(ready=True, health=(1, 'mode', 'Mainenance'))
+            self.set_state(ready=False, health=(1, 'mode', 'Maintenance'))
         elif self.props.current > 5.0 and self.props.state != 1:
             self.set_state(ready=False, health=(1, 'mode', 'Disabled'))
         else:
