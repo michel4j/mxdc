@@ -593,7 +593,7 @@ class SimAutoMounter(AutoMounter):
         GObject.idle_add(self.switch_status, State.IDLE)
 
     def _sim_mountnext_done(self, port, dry=True):
-        self.props.failure = ('collision', 'Test message for testing failures')
+        #self.props.failure = ('collision', 'Test message for testing failures')
         mounted_port = self.sample['port']
         ports = copy.copy(self.props.ports)
         ports[mounted_port] = Port.GOOD
