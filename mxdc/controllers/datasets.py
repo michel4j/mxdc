@@ -421,13 +421,11 @@ class DatasetsController(GObject.GObject):
         return config.get_widget()
 
     def on_row_activated(self, list, row):
+        self.editor_frame.set_row(row)
         position = row.get_index()
         item = self.run_store.get_item(position)
         num_items = self.run_store.get_n_items()
-        if num_items == 8:
-            return
-        self.editor_frame.set_row(row)
-        if item.state == item.StateType.ADD:
+        if item.state == item.StateType.ADD and num_items < 8:
             sample = self.sample_store.get_current()
             energy = self.beamline.bragg_energy.get_position()
             distance = self.beamline.distance.get_position()
@@ -447,6 +445,7 @@ class DatasetsController(GObject.GObject):
             new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
             self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
             self.check_run_store()
+
         self.run_editor.set_item(item)
 
     def on_runs_changed(self, model, position, removed, added):
@@ -703,6 +702,6 @@ class DatasetsController(GObject.GObject):
                                                                 Gtk.IconSize.LARGE_TOOLBAR)
                 self.widget.collect_progress_lbl.set_text("Starting acquisition ...")
                 self.widget.collect_pbar.set_fraction(0)
-                self.collector.configure(checked_runs, existing=existing)
+                self.collector.configure(checked_runs, existing=existing, analysis='default')
                 self.collector.start()
                 self.image_viewer.set_collect_mode(True)

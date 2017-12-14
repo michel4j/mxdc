@@ -116,6 +116,7 @@ class Automator(GObject.GObject):
                             sample['name'], params['directory']
                         ))
 
+
                         self.collector.configure(params, take_snapshots=True, analysis=params.get('analysis'))
                         sample['results'] = self.collector.run()
                         while not self.collector.complete:
