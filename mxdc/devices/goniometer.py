@@ -300,7 +300,6 @@ class MD2Gonio(Goniometer):
         if self.is_busy():
             self.wait(start=False, stop=True)
 
-
         target_mode = mode if mode != self.ModeType.SCANNING else self.ModeType.COLLECT
         self.mode_cmd.put(target_mode.value)
         self.requested_mode = mode
