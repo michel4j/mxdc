@@ -426,26 +426,29 @@ class DatasetsController(GObject.GObject):
         item = self.run_store.get_item(position)
         num_items = self.run_store.get_n_items()
         if item.state == item.StateType.ADD and num_items < 8:
+            if position > 0:
+                prev = self.run_store.get_item(position-1)
+                config = prev.info
+            else:
+                config = self.run_editor.get_default()
+                energy = self.beamline.bragg_energy.get_position()
+                distance = self.beamline.distance.get_position()
+                resolution = converter.dist_to_resol(
+                    distance, self.beamline.detector.mm_size, energy
+                )
+                config.update({
+                    'resolution': round(resolution, 1),
+                    'strategy': datawidget.StrategyType.SINGLE,
+                    'energy': energy,
+                    'distance': round(distance, 1),
+                })
             sample = self.sample_store.get_current()
-            energy = self.beamline.bragg_energy.get_position()
-            distance = self.beamline.distance.get_position()
-            resolution = converter.dist_to_resol(
-                distance, self.beamline.detector.mm_size, energy
-            )
-            config = self.run_editor.get_default()
-            config.update({
-                'resolution': round(resolution, 1),
-                'strategy': datawidget.StrategyType.SINGLE,
-                'energy': energy,
-                'distance': round(distance, 1),
-                'name': sample.get('name', 'test'),
-            })
+            config['name'] = sample.get('name', 'test')
             item.props.info = config
             item.props.state = datawidget.RunItem.StateType.DRAFT
             new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
             self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
             self.check_run_store()
-
         self.run_editor.set_item(item)
 
     def on_runs_changed(self, model, position, removed, added):
@@ -519,13 +522,25 @@ class DatasetsController(GObject.GObject):
         count = 0
         item = self.run_store.get_item(count)
         names = set()
-        cache = []
         while item:
             if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
                 item.info['name'] = datatools.fix_name(item.info['name'], names)
                 item.props.info = item.info
                 item.props.position = count
                 names.add(item.info['name'])
+            count += 1
+            item = self.run_store.get_item(count)
+        self.widget.datasets_collect_btn.set_sensitive(count > 1)
+        self.update_cache()
+
+    def update_cache(self):
+        count = 0
+        item = self.run_store.get_item(count)
+        cache = []
+        while item:
+            if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
+                item.props.info = item.info
+                item.props.position = count
                 cache.append({
                     'state': item.state,
                     'created': item.created,
@@ -535,7 +550,6 @@ class DatasetsController(GObject.GObject):
                 })
             count += 1
             item = self.run_store.get_item(count)
-        self.widget.datasets_collect_btn.set_sensitive(count > 1)
         save_cache(cache, 'runs')
 
     def add_runs(self, runs):
@@ -670,7 +684,10 @@ class DatasetsController(GObject.GObject):
         self.image_viewer.add_frame(file_path)
         run_item = self.frame_manager.get(frame)
         if run_item:
-            run_item.set_collected(frame)
+
+            changed = run_item.set_collected(frame)
+            if changed:
+                self.update_cache()
             if self.collecting:
                 action = 'Acquiring' if not self.stopping else 'Stopping'
                 self.widget.collect_progress_lbl.set_text(
