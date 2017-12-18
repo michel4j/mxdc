@@ -4,7 +4,7 @@ from mxdc.utils import gui
 import re
 
 
-TEMPLATE_VARIABLES = {'sample', 'group', 'container' 'port', 'date', 'activity'}
+TEMPLATE_VARIABLES = {'sample', 'group', 'container', 'port', 'date', 'activity'}
 
 
 class Setting(GObject.GObject):
