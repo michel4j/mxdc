@@ -76,6 +76,7 @@ class RunItem(GObject.GObject):
             )
 
     def set_collected(self, frame):
+        state = self.props.state
         self.collected.add(frame)
         prog = (100.0 * len(self.collected)) / len(self.frames)
         self.props.progress = prog
@@ -83,6 +84,8 @@ class RunItem(GObject.GObject):
             self.props.state = RunItem.StateType.ACTIVE
         elif prog == 100.0:
             self.props.state = RunItem.StateType.COMPLETE
+
+        return state != self.props.state  # return True if state changed
 
     @staticmethod
     def sorter(a_pointer, b_pointer):
