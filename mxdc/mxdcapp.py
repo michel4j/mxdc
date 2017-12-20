@@ -1,5 +1,6 @@
 import logging
 import os
+import signal
 import sys
 import time
 import warnings
@@ -10,7 +11,7 @@ import gi
 warnings.simplefilter("ignore")
 gi.require_version('Gtk', '3.0')
 
-from gi.repository import Gtk, Gio
+from gi.repository import Gtk, Gio, GLib
 from twisted.internet import gtk3reactor
 
 gtk3reactor.install()
@@ -46,6 +47,7 @@ class Application(Gtk.Application):
         self.settings_active = False
         self.resources = Gio.Resource.load(os.path.join(conf.SHARE_DIR, 'mxdc.gresource'))
         Gio.resources_register(self.resources)
+        self.connect('shutdown', self.on_shutdown)
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -65,13 +67,23 @@ class Application(Gtk.Application):
         action.connect("activate", self.on_help)
         self.add_action(action)
 
+        # initialize beamline
+        self.beamline = MXBeamline()
+        logger.info('Starting MxDC ({})... '.format(self.beamline.name))
+        self.hook = excepthook.ExceptHook(
+            name='MxDC',
+            emails=self.beamline.config['bug_report'], exit_function=self.quit
+        )
+        self.hook.install()
+        self.broadcast_service()
+
     def do_activate(self):
         # We only allow a single window and raise any existing ones
         if not self.window:
             # Windows are associated with the application
             self.window = AppWindow(application=self, title='MxDC')
-            self.window.connect('destroy', lambda x: self.quit())
-            self.start()
+            self.window.connect('destroy', self.on_quit)
+            self.window.setup()
 
         self.window.present()
         if settings.show_release_notes():
@@ -103,23 +115,10 @@ class Application(Gtk.Application):
             self.settings_active = False
 
     def on_help(self, action, param):
-        # import webbrowser
-        # url = os.path.join(conf.DOCS_DIR, 'index.html')
-        # webbrowser.open(url, autoraise=True)
         Browser(self.window)
 
-    def on_quit(self, action, param):
+    def on_quit(self, *args, **kwargs):
         self.quit()
-
-    def start(self):
-        self.session_active = False
-        self.beamline = MXBeamline()
-        self.hook = excepthook.ExceptHook(
-            emails=self.beamline.config['bug_report'], exit_function=exit_main_loop
-        )
-        self.hook.install()
-        self.broadcast_service()
-        self.window.setup()
 
     def broadcast_service(self):
         self.remote_mxdc = None
@@ -165,25 +164,19 @@ class Application(Gtk.Application):
                 self.quit()
 
     def start_server(self, *args, **kwargs):
-        self.service = server.MXDCService(clients.messenger)
+        self.service = server.MXDCService()
         logger.info(
             'Local MXDC instance {}@{} started {}'.format(
                 self.service_data['user'], self.beamline.name, self.service_data['started']
             )
         )
-        self.session_active = True
         self.beamline.lims.open_session(self.beamline.name, settings.get_session())
         reactor.listenTCP(MXDC_PORT, pb.PBServerFactory(server.IPerspectiveMXDC(self.service)))
 
-    def quit(self):
-        if self.session_active:
-            logger.info('Closing MxLIVE Session...')
-            self.beamline.lims.close_session(self.beamline.name, settings.get_session())
+    def on_shutdown(self, *args):
         logger.info('Stopping ...')
-        if self.remote_mxdc:
-            self.remote_mxdc.leave()
+        self.beamline.cleanup()
         clear_loggers()
-        super(Application, self).quit()
 
 
 def clear_loggers():
@@ -193,19 +186,12 @@ def clear_loggers():
         logger.removeHandler(h)
 
 
-def exit_main_loop():
-    clear_loggers()
-    if USE_TWISTED:
-        reactor.stop()
-    else:
-        Gtk.main_quit()
-
-
 class MxDCApp(object):
     def __init__(self):
         self.application = Application()
 
     def run(self):
+        GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT, self.application.quit)
         if USE_TWISTED:
             reactor.registerGApplication(self.application)
             reactor.run()

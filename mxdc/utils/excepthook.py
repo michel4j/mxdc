@@ -13,12 +13,13 @@ logger = get_module_logger(__name__)
 
 
 class ExceptHook(object):
-    def __init__(self, exit_function=sys.exit, emails=None, prefix='MXDC Bug Report', ignore=[]):
+    def __init__(self, name='MxDC', exit_function=sys.exit, emails=None, prefix='Bug Report', ignore=[]):
         self.exit_function = exit_function
         self.system_hook = sys.excepthook
         self.emails = emails
-        self.prefix = prefix
+        self.prefix = '{} {}'.format(name, prefix)
         self.ignore = ignore
+        self.name = name
         self.lock = threading.Lock()
 
     def send_mail(self, subject, message):
@@ -62,7 +63,7 @@ class ExceptHook(object):
                     logger.error(trace)
                     return
 
-                title = "MxDC has stopped"
+                title = "{} has stopped".format(self.name)
                 message = (
                     "An unexpected problem has been detected. The developers will be notified. "
                     "You can either ignore the problem and attempt to continue or quit the program."
@@ -76,7 +77,7 @@ class ExceptHook(object):
                 response = dialog.run()
                 dialog.destroy()
                 if response == Gtk.ResponseType.CANCEL:
-                    logger.warning("MxDC will attempt to continue.")
+                    logger.warning("{} will attempt to continue.".format(self.name))
                     self.send_mail(exctyp.__name__, trace)
                 elif response == Gtk.ResponseType.CLOSE:
                     self.send_mail(exctyp.__name__, trace)

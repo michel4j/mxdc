@@ -11,6 +11,7 @@ from mxdc.utils.misc import get_project_id
 from twisted.python.components import globalRegistry
 from zope.interface import implements
 
+logger = get_module_logger(__name__)
 
 class MXBeamline(object):
     """MX Beamline(Macromolecular Crystallography Beamline) objects
@@ -47,7 +48,6 @@ class MXBeamline(object):
         self.lock = threading.RLock()
         self.setup()
         globalRegistry.register([], IBeamline, '', self)
-        self.logger.info('Beamline Registered.')
 
     def __getitem__(self, key):
         try:
@@ -180,6 +180,11 @@ class MXBeamline(object):
             self.diagnostics.append(diagnostics.ServiceDiag(self.registry[name]))
 
         self.diagnostics.append(diagnostics.DeviceDiag(self.registry['disk_space']))
+
+    def cleanup(self):
+        for name, device in self.registry.items():
+            if hasattr(device, 'cleanup'):
+                device.cleanup()
 
 
 __all__ = ['MXBeamline']

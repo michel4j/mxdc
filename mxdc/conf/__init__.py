@@ -105,8 +105,6 @@ def initialize(name=None):
         logger.error('Please make sure MXDC is properly installed and configured.')
         logger.error(e)
         sys.exit()
-    else:
-        logger.info('Starting MXDC ({})... '.format(PROPERTIES['name']))
 
 
 def load_cache(realm):

@@ -2,6 +2,7 @@ import os
 import threading
 import time
 from collections import defaultdict
+import atexit
 
 import numpy
 from gi.repository import Gtk, GObject
@@ -188,6 +189,7 @@ class ChartManager(GObject.GObject):
         self.interval = interval / 1000.  # convert from milliseconds to seconds
         self.animation = FuncAnimation(self.chart.fig, self.chart.animate, None, interval=interval, blit=False)
         self.start()
+        atexit.register(self.stop)
 
     def add_plot(self, dev, name, signal='changed', color=None, linestyle='-', axis=0, alternate=False):
         self.chart.add_plot(name, color=color, linestyle=linestyle, axis=axis, alternate=alternate)
@@ -219,6 +221,9 @@ class ChartManager(GObject.GObject):
         worker_thread.setDaemon(True)
         worker_thread.start()
 
+    def stop(self):
+        self._stopped = True
+
     def pause(self, *args, **kwargs):
         self.chart.pause()
 
@@ -239,3 +244,6 @@ class ChartManager(GObject.GObject):
             self.chart.data['time'][-1] = time.time()
             self.chart.view_time = time.time()
             time.sleep(self.interval)
+
+    def cleanup(self):
+        self.stop()

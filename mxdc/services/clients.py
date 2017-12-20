@@ -1,11 +1,12 @@
-import msgpack
-import json
 import os
 import re
 import socket
-import time
 
+import msgpack
+import redis
 import requests
+import atexit
+
 from gi.repository import GObject
 from mxdc.conf import settings
 from mxdc.devices.base import BaseDevice
@@ -141,6 +142,7 @@ class MxLIVEClient(BaseService):
         keys_existed = settings.keys_exist()
         self.keys = settings.get_keys()
         self.signer = signing.Signer(**self.keys)
+        self.session_active = None
 
         if not keys_existed:
             try:
@@ -189,6 +191,7 @@ class MxLIVEClient(BaseService):
             reply = self.post(path, data=msgpack.dumps(data))
         except (IOError, ValueError, requests.HTTPError) as e:
             logger.error('Unable upload to MxLIVE: \n {}'.format(e))
+            data = None
         else:
             data.update(reply)
             misc.save_metadata(data, filename)
@@ -217,6 +220,7 @@ class MxLIVEClient(BaseService):
             logger.error('Unable to Open MxLIVE Session: \n {}'.format(e))
             reply = {'error': 'Unable to Open MxLIVE Session'}
         else:
+            self.session_active = (beamline, session)
             logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
 
     def close_session(self, beamline, session):
@@ -227,7 +231,9 @@ class MxLIVEClient(BaseService):
         except (IOError, ValueError, requests.HTTPError) as e:
             logger.error('Unable to close MxLIVE Session: \n {}'.format(e))
         else:
+            self.session_active = None
             logger.info('Leaving session {session} after {duration}.'.format(**reply))
+
 
     def upload_data(self, beamline, filename):
         """
@@ -247,36 +253,43 @@ class MxLIVEClient(BaseService):
         logger.debug('Uploading analysis report to MxLIVE ...')
         return self.upload('/report/{}/'.format(beamline), filename)
 
+    def cleanup(self):
+        if self.session_active:
+            self.close_session(*self.session_active)
 
 class Referenceable(pb.Referenceable, object):
     pass
 
 
-class ChatClient(GObject.GObject, Referenceable):
+class Messenger(GObject.GObject):
     __gsignals__ = {
         'message': (GObject.SignalFlags.RUN_FIRST, None, [str, str]),
     }
 
-    def __init__(self):
-        super(ChatClient, self).__init__()
-        self.service = None
+    def __init__(self, host, realm=None):
+        super(Messenger, self).__init__()
+        self.realm = realm or 'SIM-1'
+        self.channel = '{}:MESSAGES:{{}}'.format(self.realm)
+        self.key = self.channel.format(misc.get_project_name())
+        self.pool = redis.ConnectionPool(host=host)
+        self.sender = redis.Redis(connection_pool=self.pool)
+        self.receiver = redis.Redis(connection_pool=self.pool)
+        self.watcher = self.receiver.pubsub()
+        self.watcher.psubscribe(**{self.channel.format('*'): self.get_message})
+        self.watch_thread = self.watcher.run_in_thread(sleep_time=0.001)
 
-    def set_root(self, service):
-        self.service = service
+    def cleanup(self):
+        logger.debug('Closing messenger ...')
+        self.watcher.punsubscribe()
+        self.watch_thread.stop()
 
-    def show(self, user, message):
-        GObject.idle_add(self.emit, 'message', user, message)
+    def get_message(self, message):
+        user = message['channel'].split(':')[-1]
+        text = message['data']
+        GObject.idle_add(self.emit, 'message', user, text)
 
     def send(self, message):
-        if self.service:
-            user = misc.get_project_name()
-            self.service.send_message(user, message)
-
-    def remote_show(self, *args, **kwargs):
-        self.show(*args, **kwargs)
-
-
-messenger = ChatClient()
+        self.sender.publish(self.key, message)
 
 
 def MxDCClientFactory(code):
@@ -284,22 +297,8 @@ def MxDCClientFactory(code):
         NAME = 'Remote MxDC'
         CODE = code
 
-        def join(self, *args, **kwargs):
-            self.service.callRemote('join', messenger)
-
-        def leave(self, *args, **kwargs):
-            self.service.callRemote('leave', messenger)
-
-        def send_message(self, user, message):
-            self.service.callRemote('send_message', user, message)
-
         def shutdown(self, *args, **kwargs):
             return self.service.callRemote('shutdown', *args, **kwargs)
-
-        def on_connect(self, perspective):
-            super(Client, self).on_connect(perspective)
-            messenger.set_root(self)
-            GObject.timeout_add(1000, self.join)
 
     return Client
 
@@ -318,4 +317,4 @@ class LocalDSSClient(BaseService):
         return True
 
 
-__all__ = ['DPSClient', 'MxDCClientFactory', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient']
+__all__ = ['DPSClient', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient', 'Messenger']

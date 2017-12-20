@@ -112,7 +112,7 @@ DEVICES = {
 # lims, dpm, imagesync and other services
 SERVICES = {
     'dss': clients.DSSClient(),
-    #'dss': clients.LocalDSSClient(),
     'lims': clients.MxLIVEClient('https://cmcf.lightsource.ca'),
     'dps': clients.DPSClient('hpc1608-001.clsi.ca:9991'),
+    'messenger': clients.Messenger('cmcf.lightsource.ca', realm=CONFIG['name'])
 }

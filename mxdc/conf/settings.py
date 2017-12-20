@@ -65,7 +65,7 @@ def get_session():
     today = date.today()
     prev_date_string = config.get('session-start', '19900101')
     prev_date = datetime.strptime(prev_date_string, '%Y%m%d').date()
-    if (today - prev_date).days > 6 or not 'session-key' in config:
+    if (today - prev_date).days > 5 or not 'session-key' in config:
         date_string = today.strftime('%Y%m%d')
         config['session-key'] = '{}-{}'.format(PROPERTIES['name'].replace('-', ''), date_string)
         config['session-start'] = date_string
