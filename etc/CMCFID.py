@@ -70,8 +70,7 @@ DEVICES = {
     'beamstop_z': motor.VMEMotor('SMTR16083I1016:mm'),
     'sample_zoom': motor.VMEMotor('SMTR16083I1025:mm'),
     'cryojet': cryojet.CryoJet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
-    #'sample_camera': video.REDISCamera('opi1608-101.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
-    'sample_camera': video.REDISCamera('10.52.31.215', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
+    'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
 
     'sample_backlight': misc.SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk', 'ILC1608-3-I10-02:on', 100.0),
     'sample_frontlight': misc.SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk', 'ILC1608-3-I10-01:on', 100.0),
