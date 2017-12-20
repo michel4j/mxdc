@@ -74,7 +74,7 @@ DEVICES = {
     # 'sample_camera': JPGCamera('http://opi2051-002.clsi.ca:9999/image.jpg', size=(1360, 1024)),
     'sample_camera': video.AxisCamera('V2E1608-400', 1),
 
-    #'sample_camera': video.REDISCamera('10.52.31.215', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
+    #'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),
