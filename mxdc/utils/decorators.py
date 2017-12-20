@@ -37,7 +37,7 @@ def async_call(f):
     def _f(*args, **kwargs):
         worker = threading.Thread(target=new_f, args=args, kwargs=kwargs)
         worker.setDaemon(True)
-        worker.setName(f.__name__)
+        worker.setName('Async Call: {}'.format(f.__name__))
         worker.start()
 
     _f.__name__ = f.__name__

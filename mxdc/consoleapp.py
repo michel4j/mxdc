@@ -43,7 +43,6 @@ class ConsoleApp(object):
     def start(self):
         worker_thread = threading.Thread(target=self.run)
         worker_thread.setName(self.__class__.__name__)
-        worker_thread.setDaemon(True)
         worker_thread.start()
         time.sleep(1)
         self.shell()

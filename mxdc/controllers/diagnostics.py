@@ -8,15 +8,6 @@ from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
-try:
-    gi.require_version('Notify', '0.7')
-    from gi.repository import Notify
-
-    Notify.init('MxDC')
-    _NOTIFY_AVAILABLE = True
-except:
-    _NOTIFY_AVAILABLE = False
-    logger.warn('System notifications will not be available.')
 
 ICON_COLORS = {
     Diagnostic.State.BAD: '#d9534f',

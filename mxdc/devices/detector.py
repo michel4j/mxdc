@@ -57,13 +57,16 @@ class SimCCDImager(BaseDevice):
         self._select_dir()
         self._state = 'idle'
         self._bg_taken = False
+        self._stopped = False
         self.prepare_datasets()
 
     @decorators.async_call
     def prepare_datasets(self):
         self._datasets = {}
         for root, dir, files in os.walk('/archive/staff/school'):
+            if self._stopped: break
             for file in fnmatch.filter(files, '*_001.img'):
+                if self._stopped: break
                 key = os.path.join(root, file.replace('_001.', '_{:03d}.'))
                 data_root = file.replace('_001.', '_???.')
                 data_files = fnmatch.filter(files, data_root)
@@ -130,6 +133,9 @@ class SimCCDImager(BaseDevice):
     def set_parameters(self, data):
         self.parameters = copy.deepcopy(data)
         self._select_dir(name=self.parameters['file_prefix'])
+
+    def cleanup(self):
+        self._stopped = True
 
 
 class PIL6MImager(BaseDevice):

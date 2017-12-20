@@ -11,12 +11,11 @@ import numpy
 import redis
 import requests
 from PIL import Image
-from scipy import misc
-from zope.interface import implements
-
 from interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor, IVideoSink
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.log import get_module_logger
+from scipy import misc
+from zope.interface import implements
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -98,6 +97,9 @@ class VideoSrc(BaseDevice):
         """
         pass
 
+    def cleanup(self):
+        self.stop()
+
 
 class SimCamera(VideoSrc):
     implements(ICamera)
@@ -163,7 +165,6 @@ class SimPTZCamera(SimCamera):
         return presets
 
 
-
 class MJPGCamera(VideoSrc):
     implements(ICamera)
 
@@ -219,11 +220,11 @@ class JPGCamera(VideoSrc):
         return self.get_frame_raw()
 
     def get_frame_raw(self):
-        #r = self.session.get(self.url, stream=True)
+        # r = self.session.get(self.url, stream=True)
         r = self.session.get(self.url)
         if r.status_code == 200:
-            #r.raw.decode_content = True
-            #self._frame = Image.open(r.raw)
+            # r.raw.decode_content = True
+            # self._frame = Image.open(r.raw)
             self._frame = Image.open(BytesIO(r.content))
             self.size = self._frame.size
         return self._frame
@@ -279,7 +280,6 @@ class ZoomableCamera(object):
         self._zoom.connect('changed', self.update_resolution)
         self._zoom.connect('active', self.update_resolution)
 
-
     def zoom(self, value):
         """Set the zoom position of the camera
         Args:
@@ -288,7 +288,7 @@ class ZoomableCamera(object):
         self._zoom.move_to(value)
 
     def update_resolution(self, *args, **kwar):
-        scale = 768.0/self._camera.size[0]
+        scale = 768.0 / self._camera.size[0]
         self._camera.resolution = scale * 3.6875e-3 * numpy.exp(-0.2527 * self._zoom.get_position())
 
     def __getattr__(self, key):

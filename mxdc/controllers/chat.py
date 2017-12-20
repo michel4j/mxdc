@@ -1,3 +1,5 @@
+from mxdc.beamlines.mx import IBeamline
+from twisted.python.components import globalRegistry
 from datetime import datetime
 from gi.repository  import GObject, Gtk, Gio, Gdk
 
@@ -64,13 +66,14 @@ class ChatMessageRTL(ChatMessageLTR):
 class ChatController(object):
     def __init__(self, widget):
         self.widget = widget
+        self.beamline = globalRegistry.lookup([], IBeamline)
         self.messages = Gio.ListStore(item_type=Message)
         self.widget.chat_messages.bind_model(self.messages, self.create_message)
         self.widget.chat_user_fbk.set_text(misc.get_project_name())
         self.widget.chat_send_btn.connect('clicked', self.send_message)
         self.widget.chat_msg_entry.connect('activate', self.send_message)
         self.widget.chat_messages.connect('size-allocate', self.adjust_view)
-        clients.messenger.connect('message', self.show_message)
+        self.beamline.messenger.connect('message', self.show_message)
 
     def create_message(self, item):
         if item.user == misc.get_project_name():
@@ -103,6 +106,6 @@ class ChatController(object):
     def send_message(self, *args, **kwargs):
         msg = self.widget.chat_msg_entry.get_text()
         if msg:
-            clients.messenger.send(msg)
+            self.beamline.messenger.send(msg)
             self.widget.chat_msg_entry.set_text('')
 
