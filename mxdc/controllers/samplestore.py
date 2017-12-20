@@ -201,7 +201,6 @@ class SampleStore(GObject.GObject):
         self.sample_dewar = DewarController(self.widget, self)
         self.sample_dewar.connect('selected', self.on_dewar_selected)
 
-
     def load_data(self, data):
         self.clear()
         groups = defaultdict(list)

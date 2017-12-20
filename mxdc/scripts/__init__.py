@@ -39,8 +39,6 @@ class SetCenteringMode(Script):
         default_beamstop = self.beamline.config['default_beamstop']
         self.beamline.goniometer.wait(start=False, stop=True, timeout=20)
         self.beamline.beamstop_z.move_to(default_beamstop, wait=True)
-        low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
-        self.beamline.sample_video.zoom(low_zoom)
 
 
 class SetCollectMode(Script):
