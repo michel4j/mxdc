@@ -9,8 +9,6 @@ logger = get_module_logger(__name__)
 
 def auto_mount_manual(bl, port, wash=False):
     bl.automounter.standby()
-    low_zoom, med_zoom, high_zoom = bl.config['zoom_levels']
-    bl.sample_video.zoom(low_zoom)
     bl.goniometer.set_mode('MOUNTING', wait=False)
     success = bl.automounter.mount(port, wait=True)
     if success:

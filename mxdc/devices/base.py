@@ -236,6 +236,9 @@ class BaseDevice(GObject.GObject):
         else:
             self.set_state(active=False, health=(4, 'active', 'inactive components.'))
 
+    def cleanup(self):
+        """Clean up before shutdown """
+
     def __getattr__(self, key):
         m = self.state_pattern.match(key)
         n = self.bool_pattern.match(key)

@@ -106,6 +106,7 @@ SERVICES = {
     'dss': clients.DSSClient(),
     'lims': clients.MxLIVEClient('https://cmcf.lightsource.ca'),
     'dps': clients.DPSClient('hpc1608-001.clsi.ca:9991'),
+    'messenger': clients.Messenger('cmcf.lightsource.ca', realm=CONFIG['name'])
 }
 
 # Devices only available in the console
