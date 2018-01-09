@@ -12,7 +12,6 @@ from mxdc.utils import misc, ipaddress
 from mxdc.utils.log import get_module_logger, log_to_console
 
 logger = get_module_logger(__name__)
-log_to_console()
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SHARE_DIR = os.path.join(APP_DIR, 'share')
@@ -24,7 +23,6 @@ CONFIGS = ''
 Settings = None
 SettingKeys = None
 PROPERTIES = None
-
 
 
 def _extract_variable(mod_path, variable, default=None):
@@ -74,10 +72,13 @@ def get_config_modules(config_dir, name=None):
     return None, {}
 
 
-def initialize(name=None):
+
+def initialize(name=None, verbose=True):
     global CONFIGS, Settings, SettingKeys, APP_CACHE_DIR, PROPERTIES
 
     app_config_dir = os.path.join(misc.get_project_home(), '.config', 'mxdc')
+    if verbose:
+        log_to_console()
     try:
         # initiallize users settings
         if not os.path.exists(app_config_dir):
