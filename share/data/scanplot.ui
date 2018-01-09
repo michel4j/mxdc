@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.0 -->
+<!-- Generated with glade 3.20.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkApplicationWindow" id="scan_window">
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Beamline Console</property>
-    <property name="default_width">650</property>
-    <property name="default_height">500</property>
+    <property name="default_width">750</property>
+    <property name="default_height">650</property>
     <property name="icon">icon.png</property>
+    <property name="deletable">False</property>
+    <property name="show_menubar">False</property>
     <child>
       <object class="GtkBox" id="scan_box">
         <property name="visible">True</property>
@@ -66,6 +67,28 @@
         </child>
         <child>
           <placeholder/>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow" id="scan_log">
+            <property name="height_request">100</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">never</property>
+            <property name="vscrollbar_policy">always</property>
+            <property name="shadow_type">in</property>
+            <child>
+              <object class="GtkTextView">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack_type">end</property>
+            <property name="position">2</property>
+          </packing>
         </child>
         <child>
           <object class="GtkBox">
@@ -147,6 +170,9 @@
           </packing>
         </child>
       </object>
+    </child>
+    <child type="titlebar">
+      <placeholder/>
     </child>
   </object>
 </interface>

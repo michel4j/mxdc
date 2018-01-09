@@ -94,7 +94,7 @@ class SimCounter(BaseDevice):
     SIM_COUNTER_DATA = numpy.loadtxt(os.path.join(os.path.dirname(__file__),'data','simcounter.dat'))
     implements(ICounter)
     
-    def __init__(self, name, zero=12345, real=True):
+    def __init__(self, name, zero=12345):
         """        
         Args:
             name (str): Device Name.
@@ -112,7 +112,6 @@ class SimCounter(BaseDevice):
         from mxdc.devices.misc import SimPositioner
         self.zero = float(zero)
         self.name = name
-        self.real = int(real)
         self.value = SimPositioner('PV', self.zero, '', noise=50)
         self.set_state(active=True, health=(0,''))
         self.value.connect('changed', self.on_change)
@@ -137,10 +136,7 @@ class SimCounter(BaseDevice):
         time.sleep(t)
         i,j = divmod(self._counter_position, self.SIM_COUNTER_DATA.shape[0])
         self._counter_position += 1
-        if self.real == 1:
-            return self.zero
-        else:
-            return self.SIM_COUNTER_DATA[i,j]
+        return self.SIM_COUNTER_DATA[i,j]
 
     def on_change(self, obj, val):
         self.set_state(changed=val)

@@ -227,7 +227,7 @@ class XDIData(object):
         self.version = version
 
     def get_names(self):
-        if self.data:
+        if self.data is not None:
             return self.data.dtype.names
 
     def __getitem__(self, key):
@@ -285,7 +285,7 @@ class XDIData(object):
         with saver(filename, 'wb') as handle:
             handle.write('\n# '.join(header_lines) + '\n' + '\n'.join(data_lines))
 
-    def parse(self, filename):
+    def parse(self, filename, permissive=False):
         opener = gzip.open if filename.endswith('.gz') else open
         with opener(filename, 'rb') as handle:
             raw = XDI_PATTERN.match(handle.read()).groupdict()
@@ -335,7 +335,7 @@ class XDIData(object):
             field: field.split('.')[1] not in self.header.get(field.split('.')[0], {})
             for field in REQUIRED_FIELDS
         }
-        if any(missing.values()):
+        if not permissive and any(missing.values()):
             sys.stderr.write('Required fields missing: {}\n'.format([key for key, value in missing.items() if value]))
 
         self.data = numpy.genfromtxt(StringIO(u'{}'.format(raw['data_text'])), dtype=None, names=data_columns)
