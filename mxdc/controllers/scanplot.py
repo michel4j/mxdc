@@ -133,8 +133,8 @@ class ScanPlotter(object):
             xcol = columns[0]
             ycol = columns[1]
 
-            x_label = '{} {}'.format(xcol[1].value.title(), '({})'.format(xcol[1].units) if xcol[1].units else '')
-            y_label = '{} {}'.format(ycol[1].value.title(), '({})'.format(ycol[1].units) if ycol[1].units else '')
+            x_label = '{} ({})'.format(xcol[1].value.title(), xcol[1].units) if xcol[1].units else xcol[1].value.title()
+            y_label = '{} ({})'.format(ycol[1].value.title(), ycol[1].units) if ycol[1].units else ycol[1].value.title()
 
             xo = data[xcol[1].value]
             yo = data[ycol[1].value]

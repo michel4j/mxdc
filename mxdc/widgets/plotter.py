@@ -163,7 +163,7 @@ class Plotter(Gtk.Alignment):
         self.grid_plot = self.axis[0].imshow(self.grid_data, interpolation='bicubic',
                                              origin='lower', extent=bounds, aspect="auto")
 
-    def add_grid_point(self, xv, yv, z, redraw=True):
+    def add_grid_point(self, xv, yv, z, redraw=True, resize=False):
         if self.grid_data is not None and self.grid_specs is not None:
             xl = numpy.linspace(self.grid_specs['start_1'], self.grid_specs['end_1'], self.grid_specs['steps'])
             yl = numpy.linspace(self.grid_specs['start_2'], self.grid_specs['end_2'], self.grid_specs['steps'])
