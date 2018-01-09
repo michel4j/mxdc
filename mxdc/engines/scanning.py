@@ -44,7 +44,7 @@ class BasicScan(GObject.GObject):
         self.busy = False
         self.send_notification = False
         self.append = False
-        self.config = {}
+        self.config = misc.DotDict({})
         self.data_types = {}
         self.units = {}
         self.data = []
@@ -58,12 +58,13 @@ class BasicScan(GObject.GObject):
     def is_busy(self):
         return self.busy
 
-    def configure(self, **kwargs):
+    def configure(self, *args, **kwargs):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.plotter = globalRegistry.lookup([], IScanPlotter)
         if self.plotter:
             self.plotter.link_scan(self)
         self.data = []
+        self.config = misc.DotDict(kwargs)
 
     def extend(self, steps):
         self.append = True
@@ -127,129 +128,59 @@ class BasicScan(GObject.GObject):
 
     def save(self, filename=None):
         if filename is None:
-            filename = time.strftime('%d%a-%H:%M:%S') + '.xdi.gz'
+            filename = time.strftime('%y%m%dT%H%M%S') + '.xdi.gz'
         logger.debug('Saving XDI: {}'.format(filename))
         xdi_data = self.prepare_xdi()
         xdi_data.save(filename)
+        return filename
 
 
 class AbsScan(BasicScan):
     """An absolute scan of a single motor."""
 
-    def __init__(self, mtr, start_pos, end_pos, steps, cntr, t, i0=None):
+    def __init__(self, m1, p1, p2, steps, counter, t, i0=None):
         super(AbsScan, self).__init__()
-        self.configure(mtr, start_pos, end_pos, steps, cntr, t, i0)
+        self.configure(m1=IMotor(m1), p1=p1, p2=p2, steps=steps, counter=ICounter(counter), t=t, i0=i0)
+
+    def configure(self, *args, **kwargs):
+        super(AbsScan, self).configure(self, *args, **kwargs)
+
+        counter_name = misc.slugify(self.config.counter.name)
         self.data_types = {
-            'names': ['position', 'normcounts', 'counts', 'i0'],
+            'names': [misc.slugify(self.config.m1.name), 'norm{}'.format(counter_name), counter_name, 'i0'],
             'formats': [float, float, float, float]
         }
+        self.units[misc.slugify(self.config.m1.name)] = self.config.m1.units
 
-    def configure(self, mtr, start_pos, end_pos, steps, cntr, t, i0=None):
-        BasicScan.configure(self)
-        self._motor = IMotor(mtr)
-        self.units['position'] = self._motor.units
-        self._counter = ICounter(cntr)
-        if i0 is not None:
-            self._i0 = ICounter(i0)
-        else:
-            self._i0 = None
-        self._duration = t
-        self._steps = steps
-        self._start_pos = start_pos
-        self._end_pos = end_pos
-        self._step_size = (self._end_pos - self._start_pos) / float(self._steps)
-        self._start_step = 0
+        self.config.i0 = None if not self.config.i0 else ICounter(self.config.i0)
+        self.config.step_size = (self.config.p2 - self.config.p1) / float(self.config.steps)
+        self.config.position = 0
 
     def extend(self, steps):
         self.append = True
-        self._start_step = self._steps
-        self._steps += steps
+        self.config.position = self.config.steps
+        self.config.steps += steps
 
     def run(self):
         if not self.append:
             GObject.idle_add(self.emit, "started")
             self.data_rows = []
 
-        for i in range(self._start_step, self._steps):
+        for i in range(self.config.position, self.config.steps):
             if self.stopped:
                 logger.info("Scan stopped!")
                 break
-            x = self._start_pos + (i * self._step_size)
-            self._motor.move_to(x, wait=True)
-            if self._i0 is not None:
-                y, i0 = misc.multi_count(self._counter, self._i0, self._duration)
+            x = self.config.p1 + (i * self.config.step_size)
+            self.config.m1.move_to(x, wait=True)
+            if self.config.i0:
+                y, i0 = misc.multi_count(self.config.counter, self.config.i0, self.config.t)
             else:
-                y = self._counter.count(self._duration)
+                y = self.config.counter.count(self.config.t)
                 i0 = 1.0
-            x = self._motor.get_position()
+            #x = self.config.m1.get_position()
             self.data_rows.append((x, y / i0, y, i0))
             GObject.idle_add(self.emit, "new-point", [x, y / i0, y, i0])
-            GObject.idle_add(self.emit, "progress", (i + 1.0) / (self._steps), "")
-        self.set_data(self.data_rows)
-        GObject.idle_add(self.emit, "done")
-
-
-class AbsScan2(BasicScan):
-    """An Absolute scan of two motors."""
-
-    def __init__(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
-        super(AbsScan2, self).__init__()
-        self.configure(mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0)
-        self.data_types = {
-            'names': ['position1', 'position2', 'normcounts', 'counts', 'i0'],
-            'formats': [float, float, float, float, float]
-        }
-
-    def configure(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
-        BasicScan.configure(self)
-        self._motor1 = IMotor(mtr1)
-        self._motor2 = IMotor(mtr2)
-        self.units['position1'] = self._motor1.units
-        self.units['position2'] = self._motor2.units
-        self._counter = ICounter(cntr)
-        if i0 is not None:
-            self._i0 = ICounter(i0)
-        else:
-            self._i0 = None
-        self._duration = t
-        self._steps = steps
-        self._start_pos1 = start_pos1
-        self._end_pos1 = end_pos1
-        self._start_pos2 = start_pos2
-        self._end_pos2 = end_pos2
-        self._step_size1 = (self._end_pos1 - self._start_pos1) / float(self._steps)
-        self._step_size2 = (self._end_pos2 - self._start_pos2) / float(self._steps)
-        self._start_step = 0
-
-    def extend(self, steps):
-        self.append = True
-        self._start_step = self._steps
-        self._steps += steps
-
-    def run(self):
-        if not self.append:
-            GObject.idle_add(self.emit, "started")
-            self.data_rows = []
-        for i in range(self._start_step, self._steps):
-            if self.stopped:
-                logger.info("Scan stopped!")
-                break
-            x1 = self._start_pos1 + (i * self._step_size1)
-            x2 = self._start_pos2 + (i * self._step_size2)
-            self._motor1.move_to(x1)
-            self._motor2.move_to(x2)
-            self._motor1.wait()
-            self._motor2.wait()
-            if self._i0 is not None:
-                y, i0 = misc.multi_count(self._counter, self._i0, self._duration)
-            else:
-                y = self._counter.count(self._duration)
-                i0 = 1.0
-            x1 = self._motor1.get_position()
-            x2 = self._motor2.get_position()
-            self.data_rows.append((x1, x2, y / i0, y, i0))
-            GObject.idle_add(self.emit, "new-point", [x1, x2, y / i0, y, i0])
-            GObject.idle_add(self.emit, "progress", (i + 1.0) / (self._steps), "")
+            GObject.idle_add(self.emit, "progress", (i + 1.0) / (self.config.steps), "")
         self.set_data(self.data_rows)
         GObject.idle_add(self.emit, "done")
 
@@ -257,54 +188,16 @@ class AbsScan2(BasicScan):
 class RelScan(AbsScan):
     """A relative scan of a single motor."""
 
-    def __init__(self, mtr, start_offset, end_offset, steps, cntr, t, i0=None):
-        super(RelScan, self).__init__(mtr, start_offset, end_offset, steps, cntr, t, i0=None)
-        self.data_types = {
-            'names': ['position', 'normcounts', 'counts', 'i0'],
-            'formats': [float, float, float, float, float]
-        }
-
-    def configure(self, mtr, start_offset, end_offset, steps, cntr, t, i0=None):
-        BasicScan.configure(self)
-        self._motor = IMotor(mtr)
-        self.units['position'] = self._motor.units
-        self._counter = ICounter(cntr)
-        if i0 is not None:
-            self._i0 = ICounter(i0)
-        else:
-            self._i0 = None
-        self._duration = t
-        self._steps = steps
-        cur_pos = self._motor.get_position()
-        self._start_pos = cur_pos + start_offset
-        self._end_pos = cur_pos + end_offset
-        self._step_size = (self._end_pos - self._start_pos) / float(self._steps)
-        self._start_step = 0
+    def __init__(self, m1, p1, p2, steps, counter, t, i0=None):
+        cur = IMotor(m1).get_position()
+        super(RelScan, self).__init__(m1, cur+p1, cur+p2, steps, counter, t, i0)
 
 
-class CntScan(BasicScan):
+class CntScan(AbsScan):
     """A Continuous scan of a single motor."""
 
-    def __init__(self, mtr, start_pos, end_pos, cntr, t, i0=None):
-        super(CntScan, self).__init__()
-        self.configure(mtr, start_pos, end_pos, cntr, t, i0)
-        self.data_types = {
-            'names': ['position', 'normcounts', 'counts', 'i0'],
-            'formats': [float, float, float, float, float]
-        }
-
-    def configure(self, mtr, start_pos, end_pos, cntr, t, i0=None):
-        BasicScan.configure(self)
-        self._motor = IMotor(mtr)
-        self._counter = ICounter(cntr)
-        self.units['position'] = self._motor.units
-        if i0 is not None:
-            self._i0 = ICounter(i0)
-        else:
-            self._i0 = None
-        self._duration = t
-        self._start_pos = start_pos
-        self._end_pos = end_pos
+    def __init__(self, m1, p1, p2, counter, t, i0=None):
+        super(CntScan, self).__init__(m1, p1, p2, 1, counter, t, i0)
 
     def run(self):
         if not self.append:
@@ -317,22 +210,22 @@ class CntScan(BasicScan):
         def _chg_cb(obj, dat):
             x_ot.append(dat)
 
-        self._motor.move_to(self._start_pos, wait=True)
-        self._motor.move_to(self._end_pos, wait=False)
+        self.config.m1.move_to(self.config.p1, wait=True)
+        self.config.m1.move_to(self.config.p2, wait=False)
         src_id = self._motor.connect('change', lambda x, y: x_ot.append((x.time_state, y)))
-        self._motor.wait(start=True, stop=False)
+        self.config.m1.wait(start=True, stop=False)
 
-        while self._motor.busy_state:
+        while self.m1.is_busy():
             if self.stopped:
                 logger.info("Scan stopped!")
                 break
             ts = time.time()
-            y = self._counter.count(self._duration)
+            y = self.config.counter.count(self.config.t)
             t = (ts + time.time() / 2.0)
 
-            if self._i0 is not None:
+            if self.config.i0:
                 ts = time.time()
-                i0 = self._i0.count(self._duration)
+                i0 = self.config.i0.count(self.config.t)
                 ti = (ts + time.time() / 2.0)
             else:
                 ti = time.time()
@@ -343,10 +236,10 @@ class CntScan(BasicScan):
             if len(x_ot) > 0:
                 x = x_ot[-1][0]  # x should be the last value, only rough estimate for now
                 GObject.idle_add(self.emit, "new-point", (x, yi, i0, y))
-                GObject.idle_add(self.emit, "progress", (x - self._start_pos) / (self._end_pos - self._start_pos), "")
+                GObject.idle_add(self.emit, "progress", (x - self.config.p1) / (self.config.p2 - self.config.p1), "")
             time.sleep(0.01)
 
-        self._motor.disconnect(src_id)
+        self.config.m1.disconnect(src_id)
         # Perform interpolation
         xi, tx = zip(*x_ot)
         yi, ty = zip(*y_ot)
@@ -372,103 +265,104 @@ class CntScan(BasicScan):
         GObject.idle_add(self.emit, "done")
 
 
-class RelScan2(AbsScan2):
-    """A relative scan of a two motors."""
-    data_types = {
-        'names': ['position1', 'position2', 'normcounts', 'counts', 'i0'],
-        'formats': [float, float, float, float, float]
-    }
+class AbsScan2(BasicScan):
+    """An Absolute scan of two motors."""
 
-    def __init__(self, mtr1, start_offset1, end_offset1, mtr2, start_offset2, end_offset2, steps, cntr, t, i0=None):
-        BasicScan.__init__(self)
-        self.configure(mtr1, start_offset1, end_offset1, mtr2, start_offset2, end_offset2, steps, cntr, t, i0)
+    def __init__(self, m1, p11, p12, m2, p21, p22, steps, counter, t, i0=None):
+        super(AbsScan2, self).__init__()
+        self.configure(
+            m1=IMotor(m1), p11=p11, p12=p12, m2=IMotor(m2), p21=p21, p22=p22, steps=steps,
+            counter=ICounter(counter), t=t, i0=i0
+        )
 
-    def configure(self, mtr1, start_offset1, end_offset1, mtr2, start_offset2, end_offset2, steps, cntr, t, i0=None):
-        BasicScan.configure(self)
-        self._motor1 = IMotor(mtr1)
-        self._motor2 = IMotor(mtr2)
-        self.units['position1'] = self._motor1.units
-        self.units['position2'] = self._motor2.units
-        self._counter = ICounter(cntr)
-        if i0 is not None:
-            self._i0 = ICounter(i0)
-        else:
-            self._i0 = None
-        self._duration = t
-        self._steps = steps
-        cur_pos1 = self._motor1.get_position()
-        cur_pos2 = self._motor2.get_position()
-        self._start_pos1 = cur_pos1 + start_offset1
-        self._end_pos1 = cur_pos1 + end_offset1
-        self._start_pos2 = cur_pos2 + start_offset2
-        self._end_pos2 = cur_pos2 + end_offset2
-        self._step_size1 = (self._end_pos1 - self._start_pos1) / float(self._steps)
-        self._step_size2 = (self._end_pos2 - self._start_pos2) / float(self._steps)
-        self._start_step = 0
-
-
-class GridScan(BasicScan):
-    """A absolute scan of two motors in a grid."""
-
-    def __init__(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
-        super(GridScan, self).__init__()
-        self.configure(mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0)
+    def configure(self, *args, **kwargs):
+        super(AbsScan2, self).configure(*args, **kwargs)
+        self.units[misc.slugify(self.config.m1.name)] = self.config.m1.units
+        self.units[misc.slugify(self.config.m1.name)] = self.config.m2.units
+        counter_name = misc.slugify(self.config.counter.name)
         self.data_types = {
-            'names': ['position1', 'position2', 'normcounts', 'counts', 'i0'],
+            'names': [misc.slugify(self.config.m1.name), misc.slugify(self.config.m2.name), 'norm{}'.format(counter_name), counter_name, 'i0'],
             'formats': [float, float, float, float, float]
         }
-
-    def configure(self, mtr1, start_pos1, end_pos1, mtr2, start_pos2, end_pos2, steps, cntr, t, i0=None):
-        BasicScan.configure(self)
-        self._motor1 = IMotor(mtr1)
-        self._motor2 = IMotor(mtr2)
-        self.units['position1'] = self._motor1.units
-        self.units['position2'] = self._motor2.units
-        self._counter = ICounter(cntr)
-        if i0 is not None:
-            self._i0 = ICounter(i0)
-        else:
-            self._i0 = None
-        self._duration = t
-        self._steps = steps
-        self._start_pos1 = start_pos1
-        self._end_pos1 = end_pos1
-        self._start_pos2 = start_pos2
-        self._end_pos2 = end_pos2
-        self._points1 = numpy.linspace(self._start_pos1, self._end_pos1, self._steps)
-        self._points2 = numpy.linspace(self._start_pos2, self._end_pos2, self._steps)
+        self.config.i0 = None if not self.config.i0 else ICounter(self.config.i0)
+        self.config.step_size = (self.config.p2 - self.config.p1) / float(self.config.steps)
+        self.config.position = 0
+        self.config.step_size1 = (self.config.p12 - self.config.p11) / float(self.config.steps)
+        self.config.step_size2 = (self.config.p22 - self.config.p21) / float(self.config.steps)
 
     def extend(self, steps):
-        print 'Grid Scan can not be extended'
+        self.append = True
+        self.config.position = self.config.steps
+        self.config.steps += steps
 
-    def get_specs(self):
-        return {
-            'type': 'GRID',
-            'steps': self._steps,
-            'start_1': self._start_pos1,
-            'start_2': self._start_pos2,
-            'end_1': self._end_pos1,
-            'end_2': self._end_pos2,
-        }
+    def run(self):
+        if not self.append:
+            GObject.idle_add(self.emit, "started")
+            self.data_rows = []
+        for i in range(self.config.position, self.config.steps):
+            if self.stopped:
+                logger.info("Scan stopped!")
+                break
+            x1 = self.config.p11 + (i * self.config.step_size1)
+            x2 = self.config.p21 + (i * self.config.step_size2)
+            self.config.m1.move_to(x1)
+            self.config.m2.move_to(x2)
+            self.config.m1.wait()
+            self.config.m2.wait()
+            if self.config.i0 is not None:
+                y, i0 = misc.multi_count(self.config.counter, self.config.i0, self.config.t)
+            else:
+                y = self.config.counter.count(self.config.t)
+                i0 = 1.0
+            x1 = self.config.m1.get_position()
+            x2 = self.config.m2.get_position()
+            self.data_rows.append((x1, x2, y / i0, y, i0))
+            GObject.idle_add(self.emit, "new-point", [x1, x2, y / i0, y, i0])
+            GObject.idle_add(self.emit, "progress", (i + 1.0) / (self.config.steps), "")
+        self.set_data(self.data_rows)
+        GObject.idle_add(self.emit, "done")
+
+
+class RelScan2(AbsScan2):
+    """A relative scan of a two motors."""
+
+    def __init__(self, m1, p11, p12, m2, p21, p22, steps, counter, t, i0=None):
+        cur1 = IMotor(m1).get_position()
+        cur2 = IMotor(m2).get_position()
+        super(RelScan2, self).__init__(m1, cur1+p11, cur1+p12, m2, cur2+p21, cur2+p22, steps, counter, t, i0)
+
+
+class GridScan(AbsScan2):
+    """A absolute scan of two motors in a grid."""
+
+    def configure(self, *args, **kwargs):
+        super(GridScan, self).configure(*args, **kwargs)
+
+        self.config.points1 = numpy.linspace(self.config.p12, self.config.p11, self.config.steps)
+        self.config.points2 = numpy.linspace(self.config.p22, self.config.p21, self.config.steps)
+
+    def extend(self, steps):
+        logger.error('Grid Scan can not be extended')
 
     def run(self):
         GObject.idle_add(self.emit, "started")
-        total_points = len(self._points1) * len(self._points2)
+        total_points = len(self.config.points1) * len(self.config.points2)
         pos = 0
-        for x2 in self._points2:
-            for x1 in self._points1:
+        for x2 in self.config.points2:
+            if self.stopped:
+                logger.info("Scan stopped!")
+                break
+            self.config.m2.move_to(x2, wait=True)
+            for x1 in self.config.points1:
                 if self.stopped:
                     logger.info("Scan stopped!")
                     break
-                self._motor2.move_to(x2)
-                self._motor2.wait()
-                self._motor1.move_to(x1)
-                self._motor1.wait()
+                self.config.m1.move_to(x1, wait=True)
 
-                if self._i0 is not None:
-                    y, i0 = misc.multi_count(self._counter, self._i0, self._duration)
+                if self.config.i0 is not None:
+                    y, i0 = misc.multi_count(self.config.counter, self.config.i0, self.config.t)
                 else:
-                    y = self._counter.count(self._duration)
+                    y = self.config.counter.count(self.config.t)
                     i0 = 1.0
                 self.data.append([x1, x2, y / i0, i0, y])
                 logger.info("%4d %15g %15g %15g %15g %15g" % (pos, x1, x2, y / i0, i0, y))
