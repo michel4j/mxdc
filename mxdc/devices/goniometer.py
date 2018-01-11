@@ -169,7 +169,7 @@ class ParkerGonio(Goniometer):
             self.ModeType.MOUNTING: self.add_pv("{}:mounting.PROC".format(mode_root)),
             self.ModeType.CENTERING: self.add_pv("{}:centering.PROC".format(mode_root)),
             self.ModeType.COLLECT: self.add_pv("{}:collect.PROC".format(mode_root)),
-            self.ModeType.BEAM: self.add_pv("{}:opr:ctl".format(beam_root)),
+            self.ModeType.BEAM: self.add_pv("{}:opr:open".format(beam_root)),
         }
 
         # mode change feedback
