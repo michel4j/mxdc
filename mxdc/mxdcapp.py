@@ -151,7 +151,7 @@ class Application(Gtk.Application):
                 msg += '\n\nDo you want to shut it down?'
                 response = dialogs.yesno('MXDC Already Running', msg)
                 if response == Gtk.ResponseType.YES:
-                    self.remote_mxdc.send_message('Hello earth! All your bases are belong to us.')
+                    self.beamline.messenger.send('Hello earth! All your bases are belong to us.')
                     d = self.remote_mxdc.shutdown()
                     d.addCallback(self.start_server)
                 else:
