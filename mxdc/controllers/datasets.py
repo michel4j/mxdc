@@ -34,7 +34,7 @@ class IDatasets(Interface):
 
 class ConfigDisplay(object):
     Formats = {
-        'resolution': '{:0.1f} \xc3\x85',
+        'resolution': '{:0.3g} \xc3\x85',
         'delta': '{:0.2f}\xc2\xb0',
         'range': '{:0.1f}\xc2\xb0',
         'start': '{:0.1f}\xc2\xb0',
@@ -437,10 +437,10 @@ class DatasetsController(GObject.GObject):
                     distance, self.beamline.detector.mm_size, energy
                 )
                 config.update({
-                    'resolution': round(resolution, 1),
+                    'resolution': round(resolution, 4),
                     'strategy': datawidget.StrategyType.SINGLE,
                     'energy': energy,
-                    'distance': round(distance, 1),
+                    'distance': distance,
                 })
             sample = self.sample_store.get_current()
             config['name'] = sample.get('name', 'test')
@@ -567,7 +567,7 @@ class DatasetsController(GObject.GObject):
             resolution = run.get('resolution', res)
             info = copy.copy(default)
             info.update({
-                'resolution': round(resolution, 1),
+                'resolution': round(resolution, 4),
                 'strategy': datawidget.StrategyType.FULL,
                 'energy': energy,
                 'name': run['name'],
