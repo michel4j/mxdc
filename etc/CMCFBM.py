@@ -15,7 +15,7 @@ CONFIG = {
     'admin_groups': [1000, 2000],
     'distance_limits': (110.0, 800.0),
     'energy_range': (5.0, 18.0),
-    'zoom_levels': (1, 4, 6),
+    'zoom_levels': (2, 4, 6),
     'default_attenuation': 90.0,
     'default_exposure': 2.5,
     'default_delta': 0.5,
