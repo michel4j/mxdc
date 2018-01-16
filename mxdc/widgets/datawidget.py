@@ -148,7 +148,7 @@ class DataEditor(gui.BuilderMixin):
     }
     Specs = {
         # field: ['field_type', format, type, default]
-        'resolution': ['entry', '{:0.1f}', float, 2.0],
+        'resolution': ['entry', '{:0.3g}', float, 2.0],
         'delta': ['entry', '{:0.3g}', float, None],
         'range': ['entry', '{:0.4g}', float, 1.],
         'start': ['entry', '{:0.4g}', float, 0.],
