@@ -8,7 +8,7 @@
                 All directories will be created within the top-level session directory
                 according to the specified template. You can use variables for substituting context-specific values.
 
-                Available variables: {sample}, {group}, {container}, {port}, {date}, {activity}.
+                Available variables: {sample}, {group}, {container}, {position}, {port}, {date}, {activity}.
             </description>
         </key>
     </schema>
