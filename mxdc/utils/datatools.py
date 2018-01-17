@@ -90,10 +90,12 @@ def update_for_sample(info, sample=None, overwrite=True):
         'group': misc.slugify(sample.get('group', '')),
         'container': misc.slugify(sample.get('container', '')),
         'port': sample.get('port', ''),
+        'position': '' if not sample.get('location', '') else sample['location'].zfill(2),
         'date': date.today().strftime('%Y%m%d'),
         'activity': params.get('activity', ''),
         'sample_id': sample.get('id'),
     })
+
     template = settings.get_string('directory-template')
     activity_template = template[1:] if template[0] == os.sep else template
     activity_template = activity_template[:-1] if activity_template[-1] == os.sep else activity_template
