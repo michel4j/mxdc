@@ -9,29 +9,29 @@ from mxdc.utils import gui, converter, datatools, glibref, misc
 from mxdc.utils.datatools import StrategyType, Strategy
 
 
-def calculate_skip(strategy, delta, first):
+def calculate_skip(strategy, total_range, delta, first):
     if strategy in [StrategyType.FULL, StrategyType.SINGLE, StrategyType.POWDER]:
         return ''
     elif strategy == StrategyType.SCREEN_4:
         return '{}-{},{}-{},{}-{}'.format(
-            first + int(2 / delta),
+            first + int(total_range / delta),
             first + int(90 / delta) - 1,
-            first + int(92 / delta),
+            first + int((90+total_range) / delta),
             first + int(180 / delta) - 1,
-            first + int(182 / delta),
+            first + int((180+total_range) / delta),
             first + int(270 / delta) - 1,
         )
 
     elif strategy == StrategyType.SCREEN_3:
         return '{}-{},{}-{}'.format(
-            first + int(2 / delta),
+            first + int(total_range / delta),
             first + int(45 / delta) - 1,
-            first + int(47 / delta),
+            first + int((45+total_range) / delta),
             first + int(90 / delta) - 1,
         )
     elif strategy == StrategyType.SCREEN_2:
         return '{}-{}'.format(
-            first + int(2 / delta),
+            first + int(total_range / delta),
             first + int(90 / delta) - 1,
         )
 
@@ -268,7 +268,7 @@ class DataEditor(gui.BuilderMixin):
 
         # Calculate skip,
         info.update({
-            'skip': calculate_skip(info['strategy'], info['delta'], info['first']),
+            'skip': calculate_skip(info['strategy'], info['range'], info['delta'], info['first']),
             'strategy_desc': Strategy[info['strategy']]['desc'],
             'activity': Strategy[info['strategy']]['activity'],
         })
@@ -291,7 +291,7 @@ class DataEditor(gui.BuilderMixin):
         if 'exposure' not in info:
             info['exposure'] = info['delta']/rate
         default.update(info)
-        default['skip'] = calculate_skip(strategy_type, default['delta'], default['first'])
+        default['skip'] = calculate_skip(strategy_type, default['range'], default['delta'], default['first'])
         default.update(Strategy[strategy_type])
         default['strategy_desc'] = default.pop('desc')
         return default

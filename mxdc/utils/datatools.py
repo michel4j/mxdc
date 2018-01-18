@@ -1,16 +1,15 @@
 import copy
 import fnmatch
-import glob
 import itertools
 import os
 import re
 from collections import defaultdict
 from datetime import date
 
-from mxdc.conf import settings
 import numpy
 from mxdc.libs.imageio import read_header
 
+from mxdc.conf import settings
 from mxdc.utils import misc
 
 FRAME_NUMBER_DIGITS = 4
@@ -33,17 +32,17 @@ Strategy = {
         'activity': 'data',
     },
     StrategyType.SCREEN_4: {
-        'delta': 1.0, 'range': 272, 'start': 0.0, 'inverse': False,
+        'delta': 1.0, 'range': 2, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0, 270\xc2\xb0',
         'activity': 'screen'
     },
     StrategyType.SCREEN_3: {
-        'delta': 1.0, 'range': 92, 'start': 0.0, 'inverse': False,
+        'delta': 1.0, 'range': 2, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0',
         'activity': 'screen'
     },
     StrategyType.SCREEN_2: {
-        'delta': 1.0, 'range': 92, 'start': 0.0, 'inverse': False,
+        'delta': 1.0, 'range': 2, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0',
         'activity': 'screen'
     },
@@ -64,12 +63,18 @@ StrategyDataType = {
 }
 
 StrategyProcType = {
-    StrategyType.SINGLE:   '',
-    StrategyType.FULL:     'proc-native',
+    StrategyType.SINGLE: '',
+    StrategyType.FULL: 'proc-native',
     StrategyType.SCREEN_4: 'proc-screen',
     StrategyType.SCREEN_3: 'proc-screen',
     StrategyType.SCREEN_2: 'proc-screen',
-    StrategyType.POWDER:   'proc-powder'
+    StrategyType.POWDER: 'proc-powder'
+}
+
+ScreeningRange = {
+    StrategyType.SCREEN_4: 270,
+    StrategyType.SCREEN_3: 90,
+    StrategyType.SCREEN_2: 90,
 }
 
 
@@ -103,7 +108,7 @@ def update_for_sample(info, sample=None, overwrite=True):
     params['directory'] = dir_template.format(**params).replace('//', '/').replace('//', '/')
     if not overwrite and os.path.exists(params['directory']):
         for i in range(99):
-            new_directory = '{}-{}'.format(params['directory'], i+1)
+            new_directory = '{}-{}'.format(params['directory'], i + 1)
             if not os.path.exists(new_directory):
                 params['directory'] = new_directory
                 break
@@ -262,16 +267,43 @@ def generate_collection_list(run, frame_set):
     return collection_list
 
 
+def calc_range(run):
+    """
+    Calculate the total range for the given strategy. For normal runs simply return the defined range. For
+    screening runs, the defined range is used just for a given slice of data, the full range for the dataset
+    is calculated from this by adding the slice in degrees to the total range spanning the frames, defined
+    in the the ScreeningRange dictionary.
+    @param run: Run parameters (dict)
+    @return: a floating point angle in degrees
+    """
+    if run.get('strategy') in [StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
+        size = max(1, int(float(run['range'])/run['delta']))
+        return ScreeningRange.get(run['strategy'], run.get('range', 180.)) + size * run['delta']
+    else:
+        return run['range']
+
+
+def get_frame_numbers(run):
+    """
+    Generate the set of frame numbers for a given run.
+    @param run: Run parameters (dict)
+    @return: a set of integers
+    """
+    total_range = calc_range(run)
+    num_frames = max(1, int(total_range / run.get('delta', 1.0)))
+    first = run.get('first', 1)
+    frame_numbers = set(range(first, num_frames + first))
+    excluded = set(frameset_to_list(merge_framesets(run.get('skip', ''), run.get('existing', ''))))
+    return frame_numbers - excluded
+
+
 def generate_frame_names(run):
     # get the list of frame names for the given run
-    num_frames = int(run.get('range', 180.0) / run.get('delta', 1.0))
-    frame_numbers = set(range(run.get('first', 1), num_frames + 1))
-    excluded = set(frameset_to_list(merge_framesets(run.get('skip', ''), run.get('existing', ''))))
-    valid_numbers = frame_numbers - excluded
+    valid_numbers = get_frame_numbers(run)
     template = make_file_template(run['name'])
     names = [template.format(index) for index in sorted(valid_numbers)]
     if run.get('inverse', False):
-        inverse_start = int(180.0/run.get('delta', 1.0)) + run.get('first', 1)
+        inverse_start = int(180.0 / run.get('delta', 1.0)) + run.get('first', 1)
         names += [template.format(index + inverse_start) for index in sorted(valid_numbers)]
     return names
 
@@ -280,20 +312,16 @@ def count_frames(run):
     if not (run.get('delta') and run.get('range')):
         return 1
     else:
-        num_frames = max(1, int(run.get('range', 180.0) / run.get('delta', 1.0)))
-        frame_numbers = set(range(run.get('first', 1), num_frames + 1))
-        excluded = set(frameset_to_list(merge_framesets(run.get('skip', ''), run.get('existing', ''))))
-        valid_numbers = frame_numbers - excluded
-        return len(valid_numbers)
+        return len(get_frame_numbers(run))
+
 
 def generate_frame_sets(run, show_number=True):
-
     make_wedges(run)
     frame_sets = []
 
     # initialize general parameters
     delta_angle = run.get('delta', 1.0)
-    total_angle = run.get('range', 180.0)
+    total_angle = calc_range(run)
     first_frame = run.get('first', 1)
     start_angle = run.get('start', 0.0)
 
@@ -450,37 +478,37 @@ def generate_grid_frames(grid, params):
 
 
 def _split_wedge(a):
-    return numpy.split(a, numpy.where(numpy.diff(a) > 1)[0]+1)
+    return numpy.split(a, numpy.where(numpy.diff(a) > 1)[0] + 1)
 
 
 def _calc_points(start, end, steps):
     if not start:
-        return numpy.array([None]*steps)
+        return numpy.array([None] * steps)
     elif not end:
         end = start
     points = numpy.zeros((steps, 3))
     for i in range(3):
-        points[:,i] = numpy.linspace(start[i], end[i], steps)
+        points[:, i] = numpy.linspace(start[i], end[i], steps)
     return points
 
 
 def make_wedges(run):
     delta = run.get('delta', 1.0)
-    total = run.get('range', 180.0)
+    total = calc_range(run)
     first = run.get('first', 1)
     if run.get('vector_size') and run.get('end_point'):
-        wedge = total//run['vector_size']
+        wedge = total // run['vector_size']
     else:
         wedge = min(run.get('wedge', 180), total)
 
     num_wedges = int(total / wedge)
     points = _calc_points(run.get('point'), run.get('end_point'), num_wedges)
 
-    wedge_frames = int(wedge/delta)
+    wedge_frames = int(wedge / delta)
     wedge_numbers = numpy.arange(wedge_frames)
 
     full_wedges = [
-        (points[i], (first + i*wedge_frames + wedge_numbers).tolist())
+        (points[i], (first + i * wedge_frames + wedge_numbers).tolist())
         for i in range(num_wedges)
     ]
     excluded = frameset_to_list(merge_framesets(run.get('skip', ''), run.get('existing', '')))
@@ -500,7 +528,7 @@ def make_wedges(run):
             'dataset': run['name'],
             'name': run['name'],
             'frame_template': make_file_template(run['name']),
-            'start': run['start'] + (frames[0] - run['first'])*run['delta'],
+            'start': run['start'] + (frames[0] - run['first']) * run['delta'],
             'first': frames[0],
             'num_frames': len(frames),
             'delta': run['delta'],
