@@ -65,7 +65,7 @@ but there is no limit on how often it can be changed.
     All directories will be created within the top-level session directory
     according to the specified template. You can use variables for substituting context-specific values.
 
-    Available variables: *{sample}, {group}, {container}, {port}, {date}, {activity}*.
+    Available variables: *{sample}, {group}, {container}, {position}, {port}, {date}, {activity}*.
 
     The default template is *"/{group}/{sample}/{activity}/"* which will produce the following directories structure
     for a sample named **bchi-1** in a group named **bchi**:

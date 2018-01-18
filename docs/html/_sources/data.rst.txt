@@ -141,7 +141,8 @@ The set of available parameters are described below:
         The angular starting position for data acquisition
 
     Total Angle
-        The total angle range to acquire
+        The total angle range to acquire. For screening datasets, the total angle determines the number of frames
+        acquired for each contiguous slice within the screen.
 
     Wedge
         The wedge angle determines how much of a given run will be collected before proceeding to the next run when
