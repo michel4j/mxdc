@@ -135,11 +135,15 @@ class Application(Gtk.Application):
                 'MXDC Client ({})'.format(self.beamline.name),
                 self.service_type, MXDC_PORT, self.service_data, unique=unique
             )
-        except mdns.mDNSError:
-            self.remote_mxdc = clients.MxDCClientFactory(self.service_type)()
-            self.remote_mxdc.connect('active', self.service_found)
+            self.provider.connect('collision', self.on_collision)
+        except mdns.mDNSError as e:
+            self.on_collision(None)
         else:
             self.start_server()
+
+    def on_collision(self, obj):
+        self.remote_mxdc = clients.MxDCClientFactory(self.service_type)()
+        self.remote_mxdc.connect('active', self.service_found)
 
     def service_found(self, obj, state):
         if state and not settings.DEBUG:
