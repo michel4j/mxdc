@@ -12,7 +12,7 @@ CONFIG = {
     'source': 'Bend Magnet',
     'type': 'mx',
     'subnet': '10.52.4.0/22',
-    'admin_groups': [1000, 2000],
+    'admin_groups': [1000, 1046, 2000],
     'distance_limits': (110.0, 800.0),
     'energy_range': (5.0, 18.0),
     'zoom_levels': (2, 4, 6),
