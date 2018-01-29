@@ -6,7 +6,7 @@ from twisted.python.components import globalRegistry
 
 from mxdc.beamlines.mx import IBeamline
 from mxdc.utils import gui, converter, datatools, glibref, misc
-from mxdc.utils.datatools import StrategyType, Strategy
+from mxdc.utils.datatools import StrategyType, Strategy, Validator
 
 
 def calculate_skip(strategy, total_range, delta, first):
@@ -147,23 +147,23 @@ class DataEditor(gui.BuilderMixin):
         'data/data_form': ['data_form']
     }
     Specs = {
-        # field: ['field_type', format, type, default]
-        'resolution': ['entry', '{:0.3g}', float, 2.0],
-        'delta': ['entry', '{:0.3g}', float, None],
-        'range': ['entry', '{:0.4g}', float, 1.],
-        'start': ['entry', '{:0.4g}', float, 0.],
-        'wedge': ['entry', '{:0.4g}', float, 360.],
-        'energy': ['entry', '{:0.3f}', float, 12.658],
-        'distance': ['entry', '{:0.1f}', float, 200],
-        'exposure': ['entry', '{:0.3g}', float, None],
-        'attenuation': ['entry', '{:0.3g}', float, 0.0],
-        'first': ['entry', '{}', int, 1],
-        'frames': ['entry', '{}', int, ''],
-        'name': ['entry', '{}', str, ''],
-        'strategy': ['cbox', '{}', int, StrategyType.SINGLE],
-        'point': ['pbox', '{}', tuple, None],
-        'end_point': ['pbox', '{}', tuple, None],
-        'vector_size': ['spin', '{}', int, 10],
+        # field: ['field_type', format, type, range, default]
+        'resolution':   ['entry', '{:0.3g}', Validator.Clip(float, 0.5, 50), 2.0],
+        'delta':        ['entry', '{:0.3g}', Validator.Clip(float, 0.05, 720), None],
+        'range':        ['entry', '{:0.4g}', Validator.Clip(float, 0.05, 10000), 1.],
+        'start':        ['entry', '{:0.4g}', Validator.Clip(float, -360., 360.), 0.],
+        'wedge':        ['entry', '{:0.4g}', Validator.Clip(float, 0.05, 360.), 360.],
+        'energy':       ['entry', '{:0.3f}', Validator.Clip(float, 1.0, 25.0), 12.658],
+        'distance':     ['entry', '{:0.1f}', float, 200],
+        'exposure':     ['entry', '{:0.3g}', Validator.Clip(float, 0.05, 360.), None],
+        'attenuation':  ['entry', '{:0.3g}', Validator.Clip(float, 0, 100), 0.0],
+        'first':        ['entry', '{}', Validator.Clip(int, 1, 10000), 1],
+        'frames':       ['entry', '{}', int, ''],
+        'name':         ['entry', '{}', Validator.Length(str, 30), ''],
+        'strategy':     ['cbox', '{}', int, StrategyType.SINGLE],
+        'point':        ['pbox', '{}', tuple, None],
+        'end_point':    ['pbox', '{}', tuple, None],
+        'vector_size':  ['spin', '{}', Validator.Clip(int, 2, 100), 10],
     }
     disabled = []
     use_dialog = False
@@ -347,16 +347,16 @@ class DataEditor(gui.BuilderMixin):
                 defaults['delta'] = default_rate/defaults['exposure']
             new_values.update(defaults)
         elif field_name == 'delta':
-            new_values['delta'] = min(720.0, max(new_values['delta'], 0.01))
+            #new_values['delta'] = min(720.0, max(new_values['delta'], 0.01))
             new_values['exposure'] = new_values['delta']/self.exposure_rate
-        elif field_name == 'range':
-            new_values['range'] = min(1440.0, max(new_values['range'], 0.01))
-        elif field_name == 'attenuation':
-            new_values['attenuation'] = min(100.0, max(new_values['attenuation'], 0.0))
-        elif field_name == 'first':
-            new_values['first']  = max(1, new_values['first'])
-        elif field_name == 'wedge':
-            new_values['wedge'] = max(new_values['wedge'], new_values['delta'])
+        # elif field_name == 'range':
+        #     new_values['range'] = min(1440.0, max(new_values['range'], 0.01))
+        # elif field_name == 'attenuation':
+        #     new_values['attenuation'] = min(100.0, max(new_values['attenuation'], 0.0))
+        # elif field_name == 'first':
+        #     new_values['first']  = max(1, new_values['first'])
+        # elif field_name == 'wedge':
+        #     new_values['wedge'] = max(new_values['wedge'], new_values['delta'])
 
         self.configure(new_values)
 

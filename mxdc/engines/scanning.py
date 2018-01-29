@@ -96,6 +96,9 @@ class BasicScan(GObject.GObject):
     def pause(self, state=True):
         self.paused = state
 
+    def resume(self):
+        self.paused = False
+
     def stop(self):
         self.stopped = True
 

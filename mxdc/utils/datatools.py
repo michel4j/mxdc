@@ -542,3 +542,22 @@ def make_wedges(run):
         }
         for point, frames in wedges
     ]
+
+
+class Validator(object):
+    class Clip(object):
+        def __init__(self, dtype, lo, hi):
+            self.dtype = dtype
+            self.lo = lo
+            self.hi = hi
+
+        def __call__(self, val):
+            return min(max(self.lo, self.dtype(val)), self.hi)
+
+    class Length(object):
+        def __init__(self, dtype, max_length):
+            self.dtype = dtype
+            self.max_length = max_length
+
+        def __call__(self, val):
+            return val[:self.max_length]
