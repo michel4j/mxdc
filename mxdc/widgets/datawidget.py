@@ -355,6 +355,8 @@ class DataEditor(gui.BuilderMixin):
             new_values['attenuation'] = min(100.0, max(new_values['attenuation'], 0.0))
         elif field_name == 'first':
             new_values['first']  = max(1, new_values['first'])
+        elif field_name == 'wedge':
+            new_values['wedge'] = max(new_values['wedge'], new_values['delta'])
 
         self.configure(new_values)
 
