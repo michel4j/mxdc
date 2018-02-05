@@ -141,8 +141,8 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         feedback = self.fbk_label.get_text()
         try:
             target = float(self.entry.get_text())
-        except ValueError:
-            target = feedback
+        except (ValueError, TypeError):
+            target = float(feedback)
         self.set_target(target)
         return target
 
