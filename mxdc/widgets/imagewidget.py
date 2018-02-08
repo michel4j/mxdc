@@ -544,7 +544,10 @@ class ImageWidget(Gtk.DrawingArea):
 
     def _res(self, x, y):
         displacement = self.pixel_size * math.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
-        angle = 0.5 * math.atan(displacement / self.distance)
+        if self.distance == 0.0:
+            angle = math.pi/2
+        else:
+            angle = 0.5 * math.atan(displacement / self.distance)
         if angle < 1e-3:
             angle = 1e-3
         return self.wavelength / (2.0 * math.sin(angle))
