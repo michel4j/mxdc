@@ -152,7 +152,7 @@ class DataEditor(gui.BuilderMixin):
         'delta':        ['entry', '{:0.3g}', Validator.Clip(float, 0.05, 720), None],
         'range':        ['entry', '{:0.4g}', Validator.Clip(float, 0.05, 10000), 1.],
         'start':        ['entry', '{:0.4g}', Validator.Clip(float, -360., 360.), 0.],
-        'wedge':        ['entry', '{:0.4g}', Validator.Clip(float, 0.05, 360.), 360.],
+        'wedge':        ['entry', '{:0.4g}', Validator.Clip(float, 0.05, 720.), 360.],
         'energy':       ['entry', '{:0.3f}', Validator.Clip(float, 1.0, 25.0), 12.658],
         'distance':     ['entry', '{:0.1f}', float, 200],
         'exposure':     ['entry', '{:0.3g}', Validator.Clip(float, 0.05, 360.), None],
