@@ -1,17 +1,15 @@
-import math
-
 import numpy
 
 # Physical Constats
 _h = 4.135667516e-15  # eV.s
 _c = 299792458e10  # A/s
 _m = 5.685629904369271e-32  # eV.A^-2 , calculated using
-_hb = _h / (2 * math.pi)
+_hb = _h / (2 * numpy.pi)
 
 
 def energy_to_d(energy, unit_cell):
-    bragg = radians(energy_to_bragg(energy, unit_cell=unit_cell))
-    return energy_to_wavelength(energy) / (2 * math.sin(bragg))
+    bragg = numpy.radians(energy_to_bragg(energy, unit_cell=unit_cell))
+    return energy_to_wavelength(energy) / (2 * numpy.sin(bragg))
 
 
 def energy_to_wavelength(energy):
@@ -40,18 +38,6 @@ def wavelength_to_energy(wavelength):
     return (_h * _c) / (wavelength * 1000.0)
 
 
-def radians(angle):
-    """Convert angle from degrees to radians."""
-
-    return math.pi * angle / 180.0
-
-
-def degrees(angle):
-    """Convert angle from radians to degrees."""
-
-    return 180 * angle / math.pi
-
-
 def bragg_to_energy(bragg, unit_cell=5.4310209):
     """Convert bragg angle in degrees to energy in keV.
     
@@ -59,8 +45,8 @@ def bragg_to_energy(bragg, unit_cell=5.4310209):
     bragg       --  bragg angle in degrees to convert to energy
     """
 
-    d = unit_cell / math.sqrt(3.0)
-    wavelength = 2.0 * d * math.sin(radians(bragg))
+    d = unit_cell / numpy.sqrt(3.0)
+    wavelength = 2.0 * d * numpy.sin(numpy.radians(bragg))
     return wavelength_to_energy(wavelength)
 
 
@@ -71,9 +57,8 @@ def energy_to_bragg(energy, unit_cell=5.4310209):
     energy      --  energy value to convert to bragg angle
     """
 
-    d = unit_cell / math.sqrt(3.0)
-    bragg = math.asin(energy_to_wavelength(energy) / (2.0 * d))
-    return degrees(bragg)
+    d = unit_cell / numpy.sqrt(3.0)
+    bragg = numpy.degrees(numpy.arcsin(energy_to_wavelength(energy) / (2.0 * d)))
 
 
 def dec_to_bin(x):
@@ -95,9 +80,9 @@ def dist_to_resol(distance, detector_size, energy, two_theta=0):
     if distance == 0.0:
         return 0.0
 
-    theta = 0.5 * math.atan(0.5 * detector_size / distance)
+    theta = 0.5 * numpy.arctan(0.5 * detector_size / distance)
     theta = theta + two_theta
-    return 0.5 * energy_to_wavelength(energy) / math.sin(theta)
+    return 0.5 * energy_to_wavelength(energy) / numpy.sin(theta)
 
 
 def resol_to_dist(resolution, detector_size, energy, two_theta=0):
@@ -114,6 +99,6 @@ def resol_to_dist(resolution, detector_size, energy, two_theta=0):
     if resolution == 0.0:
         return 0.0
 
-    theta = math.asin(0.5 * energy_to_wavelength(energy) / resolution)
+    theta = numpy.arcsin(0.5 * energy_to_wavelength(energy) / resolution)
     theta = max(0, (theta - two_theta))
-    return 0.5 * detector_size / math.tan(2 * theta)
+    return 0.5 * detector_size / numpy.tan(2 * theta)

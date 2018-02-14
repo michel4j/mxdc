@@ -232,6 +232,8 @@ class BasicMCA(BaseDevice):
 
     def _calc_deadtime(self, obj, val):
         req_time = self._count_time.get()
+        if not req_time:
+            return
         pct = 100.0 * val / req_time
         self.set_state(deadtime=pct)
 

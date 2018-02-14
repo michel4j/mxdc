@@ -338,6 +338,7 @@ class DatasetsController(GObject.GObject):
         self.collecting = False
         self.stopping = False
         self.pause_info = False
+        self.start_time = 0
         self.monitors = {}
         self.frame_manager = {}
         self.image_viewer = ImageViewer()
