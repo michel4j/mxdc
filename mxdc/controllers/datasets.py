@@ -591,6 +591,7 @@ class DatasetsController(GObject.GObject):
 
     def on_save_run(self, obj):
         item = self.run_editor.item
+        if not item: return
         if item.props.state == datawidget.RunItem.StateType.ADD:
             new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
             self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
