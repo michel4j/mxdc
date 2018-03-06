@@ -1,6 +1,7 @@
 import os
 from datetime import date, datetime
-
+import numpy
+import string
 import msgpack
 from mxdc.conf import CONFIGS, APP_CACHE_DIR, Settings, SettingKeys, PROPERTIES
 from mxdc.conf import load_cache, save_cache, clear_cache
@@ -67,7 +68,8 @@ def get_session():
     prev_date = datetime.strptime(prev_date_string, '%Y%m%d').date()
     if (today - prev_date).days > 5 or not 'session-key' in config:
         date_string = today.strftime('%Y%m%d')
-        config['session-key'] = '{}-{}'.format(PROPERTIES['name'].replace('-', ''), date_string)
+        token = ''.join(numpy.random.choice(list(string.ascii_letters+string.digits),size=4))
+        config['session-key'] = '{}-{}{}'.format(PROPERTIES['name'].replace('-', ''), date_string, token)
         config['session-start'] = date_string
         clear_cache(False)  # clear the cache if new session
         save_cache(config, realm)
