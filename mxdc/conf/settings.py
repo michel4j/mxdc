@@ -68,8 +68,8 @@ def get_session():
     prev_date = datetime.strptime(prev_date_string, '%Y%m%d').date()
     if (today - prev_date).days > 5 or not 'session-key' in config:
         date_string = today.strftime('%Y%m%d')
-        token = ''.join(numpy.random.choice(list(string.ascii_letters),size=4))
-        config['session-key'] = '{}-{}{}'.format(PROPERTIES['name'].replace('-', ''), date_string, token)
+        token = ''.join(numpy.random.choice(list(string.digits+string.ascii_letters), size=8))
+        config['session-key'] = '{}-{}-{}'.format(PROPERTIES['name'].replace('-', ''), date_string, token)
         config['session-start'] = date_string
         clear_cache(False)  # clear the cache if new session
         save_cache(config, realm)
