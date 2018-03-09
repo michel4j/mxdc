@@ -75,19 +75,20 @@ class BaseTuner(BaseDevice):
 
 
 class BOSSTuner(BaseTuner):
-    def __init__(self, name, reference=None, control=None, off_value=5000, pause_value=1e8):
+    def __init__(self, name,  picoameter, current, reference=None, control=None, off_value=5e3, pause_value=1e8):
         BaseTuner.__init__(self)
         self.name = name
         self.enable_cmd = self.add_pv('{}:EnableDacOUT'.format(name))
         self.enabled_fbk = self.add_pv('{}:EnableDacIN'.format(name))
         self.beam_threshold = self.add_pv('{}:OffIntOUT'.format(name))
-        self.value_fbk = self.add_pv('{}:PA_IntRAW'.format(name))
+        self.value_fbk = self.add_pv('{}'.format(picoameter))        
+        self.current_fbk = self.add_pv(current)
         self.enabled_fbk.connect('changed', self.on_state_changed)
         self.value_fbk.connect('changed', self.on_value_changed)
         if reference:
             self.reference_fbk = self.add_pv(reference)
         else:
-            self.reference_fbk = None
+            self.reference_fbk = self.value_fbk
 
         if control:
             self.control = self.add_pv(control)
@@ -134,11 +135,10 @@ class BOSSTuner(BaseTuner):
         self.set_state(enabled=(val==1))
 
     def on_value_changed(self, obj, val):
-        if self.reference_fbk:
-            ref = self.reference_fbk.get()
-        else:
-            ref = 1.0
-        perc = 0.0 if ref == 0 else 100.0 * val/ref
+        ref = self.reference_fbk.get()
+        cur = self.current_fbk.get()
+        tgt = 0.0 if cur == 0 else val/cur
+        perc = 0.0 if ref == 0 else 100.0 * tgt/ref
         self.set_state(changed=val, percent=perc)
 
 
