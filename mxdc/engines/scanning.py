@@ -150,7 +150,7 @@ class AbsScan(BasicScan):
 
         counter_name = misc.slugify(self.config.counter.name)
         self.data_types = {
-            'names': [misc.slugify(self.config.m1.name), 'norm{}'.format(counter_name), counter_name, 'i0'],
+            'names': [misc.slugify(self.config.m1.name), 'norm_{}'.format(counter_name), counter_name, 'i0'],
             'formats': [float, float, float, float]
         }
         self.units[misc.slugify(self.config.m1.name)] = self.config.m1.units
@@ -284,7 +284,7 @@ class AbsScan2(BasicScan):
         self.units[misc.slugify(self.config.m1.name)] = self.config.m2.units
         counter_name = misc.slugify(self.config.counter.name)
         self.data_types = {
-            'names': [misc.slugify(self.config.m1.name), misc.slugify(self.config.m2.name), 'norm{}'.format(counter_name), counter_name, 'i0'],
+            'names': [misc.slugify(self.config.m1.name), misc.slugify(self.config.m2.name), 'norm_{}'.format(counter_name), counter_name, 'i0'],
             'formats': [float, float, float, float, float]
         }
         self.config.i0 = None if not self.config.i0 else ICounter(self.config.i0)

@@ -338,7 +338,7 @@ class XDIData(object):
         if not permissive and any(missing.values()):
             sys.stderr.write('Required fields missing: {}\n'.format([key for key, value in missing.items() if value]))
 
-        self.data = numpy.genfromtxt(StringIO(u'{}'.format(raw['data_text'])), dtype=None, names=data_columns)
+        self.data = numpy.genfromtxt(StringIO(u'{}'.format(raw['data_text'])), dtype=None, names=data_columns, deletechars='')
 
 
 def read_xdi(filename):
