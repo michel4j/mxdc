@@ -39,7 +39,7 @@ DEVICES = {
         'SMTR1608-4-B10-17:deg', motor_type="vmeenc", mono_unit_cell=CONFIG['mono_unit_cell']
     ),
     'dcm_pitch':  motor.ENCMotor('SMTR1608-4-B10-15:deg'),
-    'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl', control='DCM1608-4-B10-01:energy:enabled'),
+    'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl', 'BPM08B1-05:I0:fbk', 'PCT1402-01:mA:fbk', reference='LUT1608-BM-IONC:target', control='DCM1608-4-B10-01:energy:enabled'),
     
     # Goniometer/goniometer head devices
     'goniometer': goniometer.MD2Gonio('BL08B1:MD2'),
