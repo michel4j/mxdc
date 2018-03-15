@@ -150,7 +150,7 @@ class AutomationController(GObject.GObject):
     def get_options(self, task_type):
         if task_type == Automator.Task.CENTER:
             for name in ['loop', 'crystal', 'raster', 'capillary']:
-                if self.options[name].get_active():
+                if name in self.options and self.options[name].get_active():
                     return {'method': name}
         elif task_type == Automator.Task.ACQUIRE:
             options = {}
