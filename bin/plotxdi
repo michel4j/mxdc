@@ -32,7 +32,7 @@ if __name__ == '__main__':
     names = XDI.get_names()
     
     xaxis = args.x or names[0]
-    yaxis = args.y or names[1]
+    yaxis = args.y or names[-1]
     
     print('Columns: {}'.format(names))
     fields = {f.value:f for f in XDI['Column'].values()}

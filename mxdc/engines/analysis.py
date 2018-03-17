@@ -176,7 +176,7 @@ class Analyst(GObject.GObject):
             'sample_id': metadata['sample_id'],
             'name': metadata['name'],
             'file_names': file_names,
-            'calibrate': 'calibrate' in flags,
+            'calib': 'calibrate' in flags,
             'activity': 'proc-xrd',
             'type': metadata['type'],
         }
