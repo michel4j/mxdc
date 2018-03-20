@@ -23,8 +23,9 @@ BUTTON_TYPES = {
 
 
 def make_dialog(dialog_type, title, sub_header=None, details=None, buttons=Gtk.ButtonsType.OK, default=-1,
-                extra_widgets=None, parent=None):
+                extra_widgets=None, parent=None, modal=True):
     msg_dialog = Gtk.MessageDialog(MAIN_WINDOW, 0, dialog_type, Gtk.ButtonsType.NONE, title)
+    msg_dialog.set_modal(modal)
     if isinstance(buttons, tuple):
         for button in buttons:
             msg_dialog.add_buttons(*button)
@@ -67,37 +68,26 @@ def simple_dialog(*args, **kwargs):
     return result
 
 
-def error(header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK, default=-1,
-          extra_widgets=None):
-    return simple_dialog(Gtk.MessageType.ERROR, header, sub_header, details, parent=parent,
-                         buttons=buttons, default=default, extra_widgets=extra_widgets)
+def error(*args, **kwargs):
+    return simple_dialog(Gtk.MessageType.ERROR, *args, **kwargs)
 
 
-def info(header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK, default=-1,
-         extra_widgets=None):
-    return simple_dialog(Gtk.MessageType.INFO, header, sub_header, details, parent=parent,
-                         buttons=buttons, default=default, extra_widgets=extra_widgets)
+def info(*args, **kwargs):
+    return simple_dialog(Gtk.MessageType.INFO, *args, **kwargs)
 
 
-def warning(header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK, default=-1,
-            extra_widgets=None):
-    return simple_dialog(Gtk.MessageType.WARNING, header, sub_header, details, parent=parent,
-                         buttons=buttons, default=default, extra_widgets=extra_widgets)
+def warning(*args, **kwargs):
+    return simple_dialog(Gtk.MessageType.WARNING, *args, **kwargs)
 
 
-def question(header, sub_header=None, details=None, parent=None, buttons=Gtk.ButtonsType.OK, default=-1,
-             extra_widgets=None):
-    return simple_dialog(Gtk.MessageType.QUESTION, header, sub_header, details, parent=parent,
-                         buttons=buttons, default=default, extra_widgets=extra_widgets)
+def question(*args, **kwargs):
+    return simple_dialog(Gtk.MessageType.QUESTION, *args, **kwargs)
 
 
-def yesno(header, sub_header=None, details=None, parent=None, default=Gtk.ResponseType.YES):
-    buttons = (
-        ('Yes', Gtk.ResponseType.YES),
-        ('No', Gtk.ResponseType.NO),
-    )
-    return simple_dialog(Gtk.MessageType.QUESTION, header, sub_header, details, parent=parent,
-                         buttons=buttons, default=default, extra_widgets=None)
+def yesno(*args, **kwargs):
+    kwargs['buttons'] = kwargs.get('buttons') or (('Yes', Gtk.ResponseType.YES), ('No', Gtk.ResponseType.NO))
+    kwargs['default'] = kwargs.get('default') or Gtk.ResponseType.YES
+    return simple_dialog(Gtk.MessageType.QUESTION, *args, **kwargs)
 
 
 def check_folder(directory, parent=None, warn=True):
