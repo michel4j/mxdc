@@ -781,7 +781,7 @@ class ISARAMounter(AutoMounter):
 
     def recover(self, context):
         failure_type, message = context
-        if failure_type == 'blank-mount':
+        if failure_type == 'blank-mounted':
             logger.warning('Recovering from: {}'.format(failure_type))
             Chain(1000, (self.abort_cmd.put, 1), (self.reset_cmd.put, 1), (self.clear_cmd.put, 1))
             port = self.props.sample['port']
