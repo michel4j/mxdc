@@ -13,7 +13,7 @@ PortColors = {
     Port.GOOD: {'red': 0.5, 'green': 0.75, 'blue': 0.8, 'alpha': 0.8},
     Port.UNKNOWN: {'red': 1.0, 'green': 1.0, 'blue': 1.0, 'alpha': 0.8},
     Port.MOUNTED: {'red': 1.0, 'green': 0.0, 'blue': 1.0, 'alpha': 0.8},
-    Port.BAD: {'red': 0.9, 'green': 0.7, 'blue': 0.7, 'alpha': 0.8},
+    Port.BAD: {'red': 0.9, 'green': 0.5, 'blue': 0.5, 'alpha': 0.6},
 }
 
 

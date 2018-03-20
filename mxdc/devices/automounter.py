@@ -606,9 +606,10 @@ class SimAutoMounter(AutoMounter):
             logger.warning('Recovering from: {}'.format(failure_type))
             port = self.props.sample['port']
             self.dismount()
-            self.props.ports[port] = Port.BAD
+            ports = self.ports
+            ports[port] = Port.BAD
             if self.props.failure and self.props.failure[0] == failure_type:
-                self.configure(status=State.IDLE, ports=self.ports, failure=None)
+                self.configure(status=State.IDLE, ports=ports, failure=None)
             else:
                 self.configure(status=State.FAILURE)
         else:
@@ -783,15 +784,13 @@ class ISARAMounter(AutoMounter):
         failure_type, message = context
         if failure_type == 'blank-mounted':
             self.set_state(message='Recovering from: {}'.format(failure_type))
-            port = self.props.sample['port']
             chn = Chain(1000, (self.abort_cmd.put, 1), (self.reset_cmd.put, 1), (self.clear_cmd.put, 1))
-            self.props.ports[port] = Port.BAD
             if self.props.failure and self.props.failure[0] == failure_type:
                 new_failure = None
                 self.on_state_changed()
             else:
                 new_failure = self.props.failure
-            self.configure(ports=self.ports, failure=new_failure)
+            self.configure(failure=new_failure)
         else:
             logger.warning('Recovering from: {} not available.'.format(failure_type))
 
@@ -817,8 +816,6 @@ class ISARAMounter(AutoMounter):
 
         # reset state
         port = self.props.sample.get('port')
-        if port in self.props.ports:
-            self.props.ports[port] = Port.UNKNOWN
         if 1 <= puck <= 29 and 1 <= pin <= 16:
             GObject.timeout_add(2000, self.check_blank)
             port = '{}{}'.format(self.PUCKS[puck], pin)
@@ -828,9 +825,11 @@ class ISARAMounter(AutoMounter):
                 'barcode': ''
             }
         elif puck == -1 or pin == -1:
-            self.props.sample = {}
-            if port:
+            if self.props.ports.get(port) == Port.MOUNTED:
+                self.props.ports[port] = Port.UNKNOWN
                 self.set_state(message='Sample dismounted')
+            self.props.sample = {}
+
 
     def check_blank(self):
         failure_state = all([
@@ -839,13 +838,17 @@ class ISARAMounter(AutoMounter):
             self.cmd_busy_fbk.get() == 1,
             self.props.status != State.FAILURE
         ])
+
         if failure_state:
+            port = self.props.sample['port']
+            ports = self.ports
+            ports[port] = Port.BAD
             message = (
                 "Automounter either failed to pick the sample at {0}, \n"
                 "or there was no sample at {0}. Make sure there \n"
                 "really is no sample mounted, then proceed to recover."
             ).format(self.props.sample['port'])
-            self.configure(status=State.FAILURE, failure=('blank-mounted', message))
+            self.configure(status=State.FAILURE, failure=('blank-mounted', message), ports=ports)
         else:
             self.set_state(message='Sample mounted')
 
