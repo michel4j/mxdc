@@ -261,6 +261,13 @@ class Chain(object):
 
     def run(self):
         if self.calls:
-            call = self.calls.pop()
+            call = self.calls.pop(0)
             call()
             return True
+
+    def wait(self, timeout=3):
+        poll = 0.05
+        time_left = timeout
+        while len(self.calls) and time_left > 0:
+            time.sleep(poll)
+            time_left -= poll

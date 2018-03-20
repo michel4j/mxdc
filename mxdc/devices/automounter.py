@@ -782,9 +782,9 @@ class ISARAMounter(AutoMounter):
     def recover(self, context):
         failure_type, message = context
         if failure_type == 'blank-mounted':
-            logger.warning('Recovering from: {}'.format(failure_type))
-            Chain(1000, (self.abort_cmd.put, 1), (self.reset_cmd.put, 1), (self.clear_cmd.put, 1))
+            self.set_state(message='Recovering from: {}'.format(failure_type))
             port = self.props.sample['port']
+            chn = Chain(1000, (self.abort_cmd.put, 1), (self.reset_cmd.put, 1), (self.clear_cmd.put, 1))
             self.props.ports[port] = Port.BAD
             if self.props.failure and self.props.failure[0] == failure_type:
                 new_failure = None
@@ -820,28 +820,34 @@ class ISARAMounter(AutoMounter):
         if port in self.props.ports:
             self.props.ports[port] = Port.UNKNOWN
         if 1 <= puck <= 29 and 1 <= pin <= 16:
+            GObject.timeout_add(2000, self.check_blank)
             port = '{}{}'.format(self.PUCKS[puck], pin)
             self.props.ports[port] = Port.MOUNTED
             self.props.sample = {
                 'port': port,
                 'barcode': ''
             }
-            self.set_state(message='Sample mounted')
-            GObject.timeout_add(2000, self.check_blank)
-        else:
+        elif puck == -1 or pin == -1:
             self.props.sample = {}
             if port:
                 self.set_state(message='Sample dismounted')
 
     def check_blank(self):
-        self.on_sample_changed()
-        if self.sample_detected.get() == 1 and self.props.sample.get('port') and self.cmd_busy_fbk.get() == 1:
+        failure_state = all([
+            self.sample_detected.get() == 1,
+            bool(self.props.sample.get('port')),
+            self.cmd_busy_fbk.get() == 1,
+            self.props.status != State.FAILURE
+        ])
+        if failure_state:
             message = (
-                "Automounter either failed to pick the sample at {1}, \\"
-                "or there was no sample at {1}. Make sure there \\"
+                "Automounter either failed to pick the sample at {0}, \n"
+                "or there was no sample at {0}. Make sure there \n"
                 "really is no sample mounted, then proceed to recover."
             ).format(self.props.sample['port'])
             self.configure(status=State.FAILURE, failure=('blank-mounted', message))
+        else:
+            self.set_state(message='Sample mounted')
 
     def on_state_changed(self, *args):
         cmd_busy = self.cmd_busy_fbk.get() == 1
