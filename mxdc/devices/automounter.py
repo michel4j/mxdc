@@ -1,7 +1,7 @@
 import copy
 import re
 import time
-import random
+
 from enum import Enum
 from gi.repository import GObject
 from zope.interface import implements
@@ -10,6 +10,7 @@ from interfaces import IAutomounter
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.automounter import Port, SAM_DEWAR, ISARA_DEWAR, ISARAMessages
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.misc import Chain
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -17,6 +18,11 @@ logger = get_module_logger(__name__)
 
 class State(Enum):
     IDLE, STANDBY, BUSY, STOPPING, DISABLED, WARNING, FAILURE, ERROR = range(8)
+
+
+def set_object_properties(obj, kwargs):
+    for k,v in kwargs.items():
+        obj.set_property(k,v)
 
 
 class AutoMounter(BaseDevice):
@@ -41,6 +47,9 @@ class AutoMounter(BaseDevice):
         self.state_link = self.connect('notify::status', self._record_state)
         self.connect('notify::status', self._emit_state)
 
+    def configure(self,**kwargs):
+        GObject.idle_add(set_object_properties, self, kwargs)
+
     def _emit_state(self, *args, **kwargs):
         self.set_state(busy=(self.props.status == State.BUSY))
 
@@ -63,14 +72,6 @@ class AutoMounter(BaseDevice):
         """
         self.state_history.add(self.props.status)
 
-    def switch_status(self, state):
-        """
-        Switch to a different state
-        @param state: state to switch to
-        @return:
-        """
-        self.props.status = state
-
     def recover(self, failure):
         """
         Recover from a specific failure type
@@ -86,7 +87,7 @@ class AutoMounter(BaseDevice):
         @return:
         """
         if self.is_ready() or self.in_standby():
-            GObject.idle_add(self.switch_status, State.STANDBY)
+            self.configure(status=State.STANDBY)
             return True
         else:
             return False
@@ -97,7 +98,7 @@ class AutoMounter(BaseDevice):
         @return:
         """
         if self.in_standby():
-            GObject.idle_add(self.switch_status, State.IDLE)
+            self.configure(status=State.IDLE)
             return True
         else:
             return False
@@ -365,7 +366,7 @@ class SAMAutoMounter(AutoMounter):
             diagnosis += ['Error! Staff Needed.']
             status = State.ERROR
 
-        GObject.idle_add(self.switch_status, status)
+        self.configure(status=status)
         self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
 
     def on_sample_changed(self, obj, val):
@@ -569,44 +570,49 @@ class SimAutoMounter(AutoMounter):
         self.props.ports = port_states
 
     def _sim_mount_start(self, message):
-        GObject.idle_add(self.switch_status, State.BUSY)
+        self.configure(status=State.BUSY)
         self.set_state(message=message)
 
     def _sim_mount_done(self, port, dry=True):
-        self.props.sample = {
-            'port': port,
-            'barcode': '',
-        }
         ports = copy.deepcopy(self.ports)
         ports[port] = Port.MOUNTED
-        self.props.ports = ports
+        self.configure(sample={'port': port, 'barcode': ''}, ports=ports, status=State.IDLE)
         self.set_state(busy=False, message="Sample mounted")
-        GObject.idle_add(self.switch_status, State.IDLE)
+        #self.configure(status=State.FAILURE, failure=('testing', 'Testing Failure recovery'))
+
 
     def _sim_dismount_done(self, dry=True):
         port = self.sample['port']
         ports = self.ports
         ports[port] = Port.GOOD
-        self.props.ports = ports
-        self.props.sample = {}
+        self.configure(sample={'port': port, 'barcode': ''}, ports=ports, status=State.IDLE)
         self.set_state(busy=False, message="Sample dismounted")
-        GObject.idle_add(self.switch_status, State.IDLE)
+        #self.configure(status=State.FAILURE, failure=('testing', 'Testing Failure recovery'))
 
     def _sim_mountnext_done(self, port, dry=True):
-        #self.props.failure = ('collision', 'Test message for testing failures')
         mounted_port = self.sample['port']
         ports = copy.copy(self.props.ports)
         ports[mounted_port] = Port.GOOD
-        self.props.sample = {}
-        self.set_state(busy=False, message="Sample dismounted")
-        self.props.sample = {
-            'port': port,
-            'barcode': '',
-        }
+        self.configure(sample={}, ports=ports)
+        self.set_state(message="Sample dismounted")
         ports[port] = Port.MOUNTED
-        self.props.ports = ports
-        GObject.idle_add(self.switch_status, State.IDLE)
+        self.configure(sample={'port': port, 'barcode': ''}, ports=ports, status=State.IDLE)
         self.set_state(busy=False, message="Sample mounted")
+        #self.configure(status=State.FAILURE, failure=('testing', 'Testing Failure recovery'))
+
+    def recover(self, context):
+        failure_type, message = context
+        if failure_type == 'testing':
+            logger.warning('Recovering from: {}'.format(failure_type))
+            port = self.props.sample['port']
+            self.dismount()
+            self.props.ports[port] = Port.BAD
+            if self.props.failure and self.props.failure[0] == failure_type:
+                self.configure(status=State.IDLE, ports=self.ports, failure=None)
+            else:
+                self.configure(status=State.FAILURE)
+        else:
+            logger.warning('Recovering from: {} not available.'.format(failure_type))
 
 
 class ISARAMounter(AutoMounter):
@@ -623,7 +629,7 @@ class ISARAMounter(AutoMounter):
     def __init__(self, root):
         super(ISARAMounter, self).__init__()
         self.name = 'ISARA Auto Mounter'
-        self.props.layout = ISARA_DEWAR
+        self.configure(layout=ISARA_DEWAR)
 
         self.sample_number = self.add_pv('{}:trjarg_sampleNumber'.format(root))
         self.puck_number = self.add_pv('{}:trjarg_puckNumber'.format(root))
@@ -631,6 +637,7 @@ class ISARAMounter(AutoMounter):
 
         self.gonio_puck_fbk = self.add_pv('{}:stscom_puckNumOnDiff:fbk'.format(root))
         self.gonio_sample_fbk = self.add_pv('{}:stscom_sampleNumOnDiff:fbk'.format(root))
+        self.sample_detected = self.add_pv('{}:in_10:fbk'.format(root))
         self.tool_puck_fbk = self.add_pv('{}:stscom_puckNumOnTool:fbk'.format(root))
         self.tool_sample_fbk = self.add_pv('{}:stscom_sampleNumOnTool:fbk'.format(root))
         self.power_fbk = self.add_pv('{}:stscom_power:fbk'.format(root))
@@ -666,6 +673,9 @@ class ISARAMounter(AutoMounter):
         self.error_fbk.connect('changed', self.on_message, ISARAMessages.errors)
 
         self.abort_cmd = self.add_pv('{}:abort'.format(root))
+        self.reset_cmd = self.add_pv('{}:reset'.format(root))
+        self.clear_cmd = self.add_pv('{}:clear_memory'.format(root))
+
         self.getput_cmd = self.add_pv('{}:getput'.format(root))
         self.power_cmd = self.add_pv('{}:on'.format(root))
         self.get_cmd = self.add_pv('{}:get'.format(root))
@@ -677,10 +687,10 @@ class ISARAMounter(AutoMounter):
         self.gonio_puck_fbk.connect('changed', self.on_sample_changed)
 
         state_variables = [
-                              self.bot_busy_fbk, self.cmd_busy_fbk, self.mode_fbk, self.tool_number, self.air_fbk,
-                              self.prog_fbk,
-                              self.sensor_fbk, self.prog_fbk, self.ln2_fbk, self.enabled_fbk
-                          ] + self.errors.values()
+           self.bot_busy_fbk, self.cmd_busy_fbk, self.mode_fbk, self.tool_number, self.air_fbk,
+           self.prog_fbk,
+           self.sensor_fbk, self.prog_fbk, self.ln2_fbk, self.enabled_fbk
+        ] + self.errors.values()
         for obj in state_variables:
             obj.connect('changed', self.on_state_changed)
 
@@ -767,7 +777,23 @@ class ISARAMounter(AutoMounter):
                 return success
 
     def abort(self):
-        self.abort_cmd.put(1)
+        Chain(1000, (self.abort_cmd.put, 1), (self.abort_reset.put, 1))
+
+    def recover(self, context):
+        failure_type, message = context
+        if failure_type == 'blank-mount':
+            logger.warning('Recovering from: {}'.format(failure_type))
+            Chain(1000, (self.abort_cmd.put, 1), (self.reset_cmd.put, 1), (self.clear_cmd.put, 1))
+            port = self.props.sample['port']
+            self.props.ports[port] = Port.BAD
+            if self.props.failure and self.props.failure[0] == failure_type:
+                new_failure = None
+                self.on_state_changed()
+            else:
+                new_failure = self.props.failure
+            self.configure(ports=self.ports, failure=new_failure)
+        else:
+            logger.warning('Recovering from: {} not available.'.format(failure_type))
 
     def on_pucks_changed(self, obj, states):
         m = re.match('^di2\(([\d,]+)\)$', states)
@@ -785,7 +811,7 @@ class ISARAMounter(AutoMounter):
             self.props.ports = {}
             self.props.containers = set()
 
-    def on_sample_changed(self, obj, value):
+    def on_sample_changed(self, *args):
         puck = int(self.gonio_puck_fbk.get())
         pin = int(self.gonio_sample_fbk.get())
 
@@ -801,12 +827,22 @@ class ISARAMounter(AutoMounter):
                 'barcode': ''
             }
             self.set_state(message='Sample mounted')
+            GObject.timeout_add(2000, self.check_blank)
         else:
             self.props.sample = {}
             if port:
                 self.set_state(message='Sample dismounted')
 
-    def on_state_changed(self, obj, value):
+    def check_blank(self):
+        if self.sample_detected.get() == 0 and self.props.sample.get('port') and self.cmd_busy_fbk.get() == 1:
+            message = (
+                "Automounter either failed to pick the sample at {1}, \\"
+                "or there was no sample at {1}. Make sure there \\"
+                "really is no sample mounted, then proceed to recover."
+            ).format(self.props.sample['port'])
+            self.configure(status=State.FAILURE, failure=('blank-mounted', message))
+
+    def on_state_changed(self, *args):
         cmd_busy = self.cmd_busy_fbk.get() == 1
         bot_busy = self.bot_busy_fbk.get() == 1
         auto_mode = self.mode_fbk.get() == 1
@@ -845,18 +881,17 @@ class ISARAMounter(AutoMounter):
             diagnosis += ['Unknown Error! Staff Needed.']
             status = State.ERROR
 
-        GObject.idle_add(self.switch_status, status)
+        self.configure(status=status)
         self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
 
     def on_message(self, obj, value, transform):
         message = transform(value)
         if message == 'collision in dewar':
-            self.props.failure = ('collision', message)
-            self.switch_status(State.FAILURE)
+            self.configure(status=State.FAILURE, failure=('collision', message))
         if message:
             self.set_state(message=message)
 
-    def on_error_changed(self, obj, value):
+    def on_error_changed(self, *args):
         messages = ', '.join([
             txt for txt, obj in self.errors.items() if obj.is_active() and obj.get() == 1
         ])
