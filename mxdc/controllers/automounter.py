@@ -160,7 +160,7 @@ class DewarController(GObject.GObject):
             failure_type, message = failure_context
 
             dialog = dialogs.make_dialog(
-                Gtk.MessageType.QUESTION, '{} Failed: {}'.format(self.beamline.automounter.name, failure_type), message,
+                Gtk.MessageType.QUESTION, 'Automounter Failed: {}'.format(failure_type.replace('-', ' ').title()), message,
                 buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Recover', Gtk.ButtonsType.OK)), modal=False
             )
             def _resp_cb(dialog, response):
