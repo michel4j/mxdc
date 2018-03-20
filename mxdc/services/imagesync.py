@@ -149,9 +149,12 @@ class DSService(service.Service):
             os.chmod(folder, self.FILE_MODE)
 
         backup_dir = self.ARCHIVE_ROOT + folder
-        os.chmod(folder, self.FILE_MODE)
+        archive_home = os.path.join(self.ARCHIVE_ROOT + os.sep.join(folder.split(os.sep)[:3]))
+        subprocess.check_output(['mkdir', '-p', archive_home], preexec_fn=demote(user_name))
+        os.chmod(archive_home, 0o701)
         if not os.path.exists(backup_dir):
-            os.makedirs(backup_dir, 0o700)
+            subprocess.check_output(['mkdir', '-p', backup_dir], preexec_fn=demote(user_name))
+            os.chmod(backup_dir, 0o701)
 
         if folder not in self.backups:
             self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE)
