@@ -834,7 +834,7 @@ class ISARAMounter(AutoMounter):
                 self.set_state(message='Sample dismounted')
 
     def check_blank(self):
-        if self.sample_detected.get() == 0 and self.props.sample.get('port') and self.cmd_busy_fbk.get() == 1:
+        if self.sample_detected.get() == 1 and self.props.sample.get('port') and self.cmd_busy_fbk.get() == 1:
             message = (
                 "Automounter either failed to pick the sample at {1}, \\"
                 "or there was no sample at {1}. Make sure there \\"
