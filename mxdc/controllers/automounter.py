@@ -73,7 +73,6 @@ class DewarController(GObject.GObject):
         robot_containers = self.beamline.automounter.containers
         user_ports = self.store.ports
         user_containers = self.store.containers
-
         self.props.ports = {
             port: self.get_port_state(port)
             for port in robot_ports.keys()
@@ -156,15 +155,15 @@ class DewarController(GObject.GObject):
         self.widget.automounter_status_fbk.set_text(status.name)
 
     def on_failure_changed(self, *args, **kwargs):
-        failure = self.beamline.automounter.failure
-        if failure:
-            context, message = failure
+        failure_context = self.beamline.automounter.failure
+        if failure_context:
+            failure_type, message = failure_context
             response = dialogs.warning(
-                '{} Failed: {}'.format(self.beamline.automounter.name, context), message,
+                '{} Failed: {}'.format(self.beamline.automounter.name, failure_type), message,
                 buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Recover', Gtk.ButtonsType.OK))
             )
             if response == Gtk.ButtonsType.OK:
-                self.beamline.automounter.recover(context)
+                self.beamline.automounter.recover(failure_context)
 
     def on_messages(self, obj, message):
         if message:

@@ -242,3 +242,25 @@ class DotDict(dict):
     __getattr__ = dict.get
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+
+
+class Call(object):
+    def __init__(self, func, *args):
+        self.func = func
+        self.args = args
+
+    def __call__(self):
+        self.func(*self.args)
+
+
+class Chain(object):
+    def __init__(self, timeout, *calls):
+        self.timeout = timeout
+        self.calls = [Call(*call) for call in calls]
+        GObject.timeout_add(self.timeout, self.run)
+
+    def run(self):
+        if self.calls:
+            call = self.calls.pop()
+            call()
+            return True
