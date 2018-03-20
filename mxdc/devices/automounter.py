@@ -816,20 +816,21 @@ class ISARAMounter(AutoMounter):
 
         # reset state
         port = self.props.sample.get('port')
+        ports = self.ports
         if 1 <= puck <= 29 and 1 <= pin <= 16:
             GObject.timeout_add(2000, self.check_blank)
             port = '{}{}'.format(self.PUCKS[puck], pin)
-            self.props.ports[port] = Port.MOUNTED
+            ports[port] = Port.MOUNTED
             self.props.sample = {
                 'port': port,
                 'barcode': ''
             }
         elif puck == -1 or pin == -1:
-            if self.props.ports.get(port) == Port.MOUNTED:
-                self.props.ports[port] = Port.UNKNOWN
+            if ports.get(port) == Port.MOUNTED:
+                ports[port] = Port.UNKNOWN
                 self.set_state(message='Sample dismounted')
             self.props.sample = {}
-
+        self.configure(ports=ports)
 
     def check_blank(self):
         failure_state = all([
