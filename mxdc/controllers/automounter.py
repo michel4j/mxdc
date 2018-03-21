@@ -27,6 +27,7 @@ class DewarController(GObject.GObject):
         self.store = store
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.setup()
+        self.failure_dialog = None
         self.messages = [(None, "")]
 
         self.props.layout = {}
@@ -159,17 +160,22 @@ class DewarController(GObject.GObject):
         if failure_context:
             failure_type, message = failure_context
 
-            dialog = dialogs.make_dialog(
+            self.failure_dialog = dialogs.make_dialog(
                 Gtk.MessageType.QUESTION, 'Automounter Failed: {}'.format(failure_type.replace('-', ' ').title()), message,
                 buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Recover', Gtk.ButtonsType.OK)), modal=False
             )
             def _resp_cb(dialog, response):
-                dialog.destroy()
+                self.failure_dialog.destroy()
+                self.failure_dialog = None
                 if response == Gtk.ButtonsType.OK:
                     self.beamline.automounter.recover(failure_context)
 
-            dialog.connect('response', _resp_cb)
-            dialog.show_all()
+            self.failure_dialog.connect('response', _resp_cb)
+            self.failure_dialog.show_all()
+        elif self.failure_dialog:
+            self.failure_dialog.destroy()
+            self.failure_dialog = None
+
 
     def on_messages(self, obj, message):
         if message:
