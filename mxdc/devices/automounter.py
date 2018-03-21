@@ -826,8 +826,6 @@ class ISARAMounter(AutoMounter):
                 'barcode': ''
             }
         elif puck == -1 or pin == -1:
-            if self.failure and self.failure[0] == 'blank-mounted':
-                self.configure(failure=None)
             if ports.get(port) == Port.MOUNTED:
                 ports[port] = Port.UNKNOWN
                 self.set_state(message='Sample dismounted')

@@ -155,6 +155,10 @@ class DewarController(GObject.GObject):
 
         self.widget.automounter_status_fbk.set_text(status.name)
 
+        if status.name == 'IDLE' and self.beamline.automounter.failure and self.failure_dialog:
+            self.failure_dialog.destroy()
+            self.failure_dialog = None
+
     def on_failure_changed(self, *args, **kwargs):
         failure_context = self.beamline.automounter.failure
         if failure_context:
@@ -173,9 +177,7 @@ class DewarController(GObject.GObject):
 
             self.failure_dialog.connect('response', _resp_cb)
             self.failure_dialog.show_all()
-        elif self.failure_dialog:
-            self.failure_dialog.destroy()
-            self.failure_dialog = None
+
 
 
     def on_messages(self, obj, message):
