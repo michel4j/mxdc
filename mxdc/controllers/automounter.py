@@ -165,8 +165,9 @@ class DewarController(GObject.GObject):
                 buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Recover', Gtk.ButtonsType.OK)), modal=False
             )
             def _resp_cb(dialog, response):
-                self.failure_dialog.destroy()
-                self.failure_dialog = None
+                if self.failure_dialog:
+                    self.failure_dialog.destroy()
+                    self.failure_dialog = None
                 if response == Gtk.ButtonsType.OK:
                     self.beamline.automounter.recover(failure_context)
 
