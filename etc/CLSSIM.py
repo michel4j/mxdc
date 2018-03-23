@@ -113,6 +113,6 @@ DEVICES = {
 SERVICES = {
     'dss': clients.DSSClient(),
     'lims': clients.MxLIVEClient('https://mxlive.lightsource.ca'),
-    'dps': clients.DPSClient('hpc1608-001.clsi.ca:9991'),
+    'dps': clients.DPSClient('srv-cmcf-dp1.clsi.ca:9991'),
     'messenger': clients.Messenger('cmcf.lightsource.ca', realm=CONFIG['name'])
 }
