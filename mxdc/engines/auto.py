@@ -8,28 +8,28 @@ logger = get_module_logger(__name__)
 
 
 def auto_mount_manual(bl, port, wash=False):
-    bl.automounter.standby()
-    bl.goniometer.set_mode('MOUNTING', wait=False)
-    success = bl.automounter.mount(port, wait=True)
-    if success:
-        logger.info('Sample mounting succeeded')
-        bl.goniometer.set_mode('CENTERING', wait=False)
-        return True
-    else:
-        logger.warning('Sample mounting failed')
-        return False
+    with bl.lock:
+        bl.automounter.standby()
+        bl.goniometer.set_mode('MOUNTING', wait=False)
+        success = bl.automounter.mount(port, wait=True)
+        if success:
+            logger.info('Sample mounting succeeded')
+            bl.goniometer.set_mode('CENTERING', wait=False)
+        else:
+            logger.warning('Sample mounting failed')
+    return success
 
 
 def auto_dismount_manual(bl):
-    bl.automounter.standby()
-    bl.goniometer.set_mode('MOUNTING', wait=False)
-    success = bl.automounter.dismount(wait=True)
-    if success:
-        logger.info('Sample dismounting succeeded')
-        return True
-    else:
-        logger.warning('Sample dismounting failed')
-        return False
+    with bl.lock:
+        bl.automounter.standby()
+        bl.goniometer.set_mode('MOUNTING', wait=False)
+        success = bl.automounter.dismount(wait=True)
+        if success:
+            logger.info('Sample dismounting succeeded')
+        else:
+            logger.warning('Sample dismounting failed')
+    return success
 
 
 @async_call

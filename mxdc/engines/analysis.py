@@ -182,7 +182,6 @@ class Analyst(GObject.GObject):
         }
         params = datatools.update_for_sample(params, sample, overwrite=False)
         parent, child = self.manager.add_item(params, False)
-
         try:
             report = yield self.beamline.dps.process_xrd(params, params['directory'], misc.get_project_name())
         except Exception as e:

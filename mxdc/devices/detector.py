@@ -51,8 +51,7 @@ class SimCCDImager(BaseDevice):
             '/archive/staff/michel/powder/LaB6-128_{:04d}.img': 2,
             '/archive/staff/michel/powder/LaB6-129_{:04d}.img': 2,
             '/archive/staff/michel/powder/LaB6-130_{:04d}.img': 2,
-            '/archive/staff/michel/powder/LaB6-134_{:04d}.img': 6,
-            '/archive/staff/michel/powder/LaB6-17700_{:04d}.img': 1,
+            '/archive/staff/michel/powder/LaB6-136_{:04d}.img': 2,
         }
         self._select_dir()
         self._state = 'idle'
