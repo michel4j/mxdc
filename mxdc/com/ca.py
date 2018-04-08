@@ -591,26 +591,10 @@ def flush():
 
 
 def ca_exception_handler(event):
-    if event.chid != 0:
-        name = libca.ca_name(event.chid)
-    else:
-        name = '?'
-    msg = ("Channel Access Exception:\n"
-           "    MESSAGE: {}\n"
-           "    CHANNEL: {}\n"
-           "    TYPE:    {}\n"
-           "    WHILE:   {}\n"
-           "    FILE:    {} \n"
-           "    LINE:    {}\n"
-           "    TIME:    {}\n"
-           "    CONTEXT: {}").format(libca.ca_message(event.stat),
-                                     name,
-                                     event.type,
-                                     OP_messages.get(event.op, 'UNKNOWN'),
-                                     event.pFile,
-                                     event.lineNo,
-                                     time.strftime("%X %Z %a, %d %b %Y"),
-                                     event.ctx, )
+    name = '?' if not event.chid else libca.ca_name(event.chid)
+    msg = "Channel Access Exception: `{}:{}` ({}: {})".format(
+        name, libca.ca_message(event.stat),  event.pFile, event.lineNo,
+    )
     logger.error(msg)
     return 0
 
@@ -632,7 +616,7 @@ try:
     # libca_file = 'libca.so'
     libca = cdll.LoadLibrary(libca_file)
 except:
-    print "EPICS run-time libraries could not be loaded!"
+    print("EPICS run-time libraries could not be loaded!")
     sys.exit(1)
 
 libca.last_heart_beat = time.time()
