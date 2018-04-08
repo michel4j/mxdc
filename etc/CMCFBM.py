@@ -39,7 +39,7 @@ DEVICES = {
         'SMTR1608-4-B10-17:deg', motor_type="vmeenc", mono_unit_cell=CONFIG['mono_unit_cell']
     ),
     'dcm_pitch':  motor.ENCMotor('SMTR1608-4-B10-15:deg'),
-    'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl', 'BPM08B1-05:I0:fbk', 'PCT1402-01:mA:fbk', reference='LUT1608-BM-IONC:target', control='DCM1608-4-B10-01:energy:enabled'),
+    'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl', 'AH1608-05:QEM:SumAll:MeanValue_RBV', 'PCT1402-01:mA:fbk', reference='LUT1608-BM-IONC:target', control='DCM1608-4-B10-01:energy:enabled'),
     
     # Goniometer/goniometer head devices
     'goniometer': goniometer.MD2Gonio('BL08B1:MD2'),
@@ -85,8 +85,8 @@ DEVICES = {
     'fast_shutter': misc.BasicShutter('BL08B1:MD2:S:OpenFastShutter','BL08B1:MD2:S:CloseFastShutter','BL08B1:MD2:G:ShutterIsOpen'),
     
     # Intensity monitors,
-    'i_0': counter.Counter('BPM08B1-05:I0:fbk'),
-    'i_1': counter.Counter('BPM08B1-02:I0:fbk'),
+    'i_0': counter.Counter('AH1608-05:QEM:SumAll:MeanValue_RBV'),
+    'i_1': counter.Counter('AH1608-02:QEM:SumAll:MeanValue_RBV'),
     
     # Misc: Automounter, HC1 etc
     'automounter':  automounter.SAMAutoMounter('ROB16085B'),
