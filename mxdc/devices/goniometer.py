@@ -20,42 +20,6 @@ from mxdc.devices.base import BaseDevice
 # setup module logger with a default handler
 logger = get_module_logger(__name__)
 
-# Goniometer state constants
-(GONIO_IDLE, GONIO_ACTIVE) = range(2)
-
-GONIO_MODE_INVALID = -1
-GONIO_MODE_INIT = 0
-GONIO_MODE_MOUNT = 1
-GONIO_MODE_CENTER = 2
-GONIO_MODE_BEAM = 3
-GONIO_MODE_ALIGN = 4
-GONIO_MODE_COLLECT = 5
-GONIO_MODE_UNKNOWN = 6
-
-_MODE_MAP = {
-    'MOUNTING': GONIO_MODE_MOUNT,
-    'CENTERING': GONIO_MODE_CENTER,
-    'COLLECT': GONIO_MODE_COLLECT,
-    'SCANNING': GONIO_MODE_COLLECT,
-    'BEAM': GONIO_MODE_BEAM,
-}
-_MODE_MAP_REV = {
-    GONIO_MODE_INIT: ['INIT'],
-    GONIO_MODE_ALIGN: ['ALIGNMENT'],
-    GONIO_MODE_MOUNT: ['MOUNTING'],
-    GONIO_MODE_CENTER: ['CENTERING'],
-    GONIO_MODE_COLLECT: ['COLLECT', 'SCANNING'],
-    GONIO_MODE_BEAM: ['BEAM'],
-    GONIO_MODE_UNKNOWN: ['MOVING'],
-}
-
-_STATE_PATTERNS = {
-    'MOUNTING': re.compile('^Waiting sample transfer\s.+$'),
-    'CENTERING': re.compile('^Click one of the Centring\s.+$'),
-    'COLLECT': re.compile('^Waiting for scan\s.+$'),
-    'BEAM': re.compile('^Drag the beam mark\s.+$'),
-}
-
 
 class Goniometer(BaseDevice):
     """Base class for goniometer."""
@@ -258,36 +222,38 @@ class MD2Gonio(Goniometer):
     """
     MD2-type Goniometer at the CLS 08B1-1.
     """
+    MODE_TO_PHASE = {
+        "MOUNTING": 1,
+        "CENTERING": 2,
+        "BEAM": 3,
+        "COLLECTION": 5,
+        "SCANNING": 5,
+    }
 
     def __init__(self, root):
         Goniometer.__init__(self, 'MD2 Diffractometer')
         self.requested_mode = None
         # initialize process variables
-        self.mode_cmd = self.add_pv('{}:S:MDPhasePosition'.format(root))
-        self.scan_cmd = self.add_pv("{}:S:StartScan".format(root))
-        self.abort_cmd = self.add_pv("{}:S:AbortScan".format(root))
-        self.fluor_cmd = self.add_pv("{}:S:MoveFluoDetFront".format(root))
+        self.mode_cmd = self.add_pv('{}:startSetPhase'.format(root))
+        self.scan_cmd = self.add_pv("{}:startScan".format(root))
+        self.abort_cmd = self.add_pv("{}:abort".format(root))
+        self.fluor_cmd = self.add_pv("{}:FluoDetectorIsBack".format(root))
 
-        self.mode_fbk = self.add_pv("{}:G:MDPhasePosition".format(root))
-        self.state_fbk = self.add_pv("{}:G:MachAppState".format(root))
-        self.connected_fbk = self.add_pv("{}:G:MachAppState:asyn.CNCT".format(root))
-        self.enabled_fbk = self.add_pv("{}:usrEnable".format(root))
-
-        self.log_fbk = self.add_pv('%s:G:StatusMsg' % root)
+        self.mode_fbk = self.add_pv("{}:CurrentPhase".format(root))
+        self.state_fbk = self.add_pv("{}:State".format(root))
+        self.log_fbk = self.add_pv('{}:Status'.format(root))
 
         # parameters
         self.settings = {
-            'time': self.add_pv("{}:S:ScanExposureTime".format(root)),
-            'delta': self.add_pv("{}:S:ScanRange".format(root)),
-            'angle': self.add_pv("{}:S:ScanStartAngle".format(root)),
-            'passes': self.add_pv("{}:S:ScanNumOfPasses".format(root)),
+            'time': self.add_pv("{}:ScanExposureTime".format(root)),
+            'delta': self.add_pv("{}:ScanRange".format(root)),
+            'angle': self.add_pv("{}:ScanStartAngle".format(root)),
+            'passes': self.add_pv("{}:ScanNumOfPasses".format(root)),
         }
 
         # signal handlers
         self.mode_fbk.connect('changed', self.on_mode_changed)
         self.state_fbk.connect('changed', self.on_state_changed)
-        self.connected_fbk.connect('changed', self.on_connection)
-        self.enabled_fbk.connect('changed', self.on_enabled)
 
     def configure(self, **kwargs):
         for key in kwargs.keys():
@@ -331,18 +297,6 @@ class MD2Gonio(Goniometer):
             mode = self.requested_mode
         self.set_state(mode=mode)
         self.props.mode = mode
-
-    def on_connection(self, pv, val):
-        if val == 0:
-            self.set_state(health=(4, 'connection', 'Connection to server lost!'))
-        else:
-            self.set_state(health=(0, 'connection'))
-
-    def on_enabled(self, pv, val):
-        if val == 0:
-            self.set_state(health=(16, 'enable', 'Disabled by staff.'))
-        else:
-            self.set_state(health=(0, 'enable'))
 
     def scan(self, wait=True, timeout=None):
         self.set_state(message='Scanning ...')
