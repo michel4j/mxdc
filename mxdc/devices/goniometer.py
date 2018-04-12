@@ -29,7 +29,7 @@ class Goniometer(BaseDevice):
     }
 
     class ModeType(Enum):
-        INIT, MOUNTING, CENTERING, BEAM, ALIGNMENT, COLLECT, UNKNOWN, SCANNING = range(8)
+        CENTERING, BEAM, COLLECT, MOUNTING, UNKNOWN, INIT, ALIGNMENT, SCANNING = range(8)
 
     mode = GObject.property(type=object)
 
@@ -222,22 +222,16 @@ class MD2Gonio(Goniometer):
     """
     MD2-type Goniometer at the CLS 08B1-1.
     """
-    MODE_TO_PHASE = {
-        "MOUNTING": 1,
-        "CENTERING": 2,
-        "BEAM": 3,
-        "COLLECTION": 5,
-        "SCANNING": 5,
-    }
 
     def __init__(self, root):
         Goniometer.__init__(self, 'MD2 Diffractometer')
         self.requested_mode = None
         # initialize process variables
-        self.mode_cmd = self.add_pv('{}:startSetPhase'.format(root))
+        self.mode_cmd = self.add_pv('{}:CurrentPhase'.format(root))
         self.scan_cmd = self.add_pv("{}:startScan".format(root))
         self.abort_cmd = self.add_pv("{}:abort".format(root))
         self.fluor_cmd = self.add_pv("{}:FluoDetectorIsBack".format(root))
+        self.save_pos_cmd = self.add_pv("{}:SaveCenteringPositions".format(root))
 
         self.mode_fbk = self.add_pv("{}:CurrentPhase".format(root))
         self.state_fbk = self.add_pv("{}:State".format(root))
@@ -248,7 +242,7 @@ class MD2Gonio(Goniometer):
             'time': self.add_pv("{}:ScanExposureTime".format(root)),
             'delta': self.add_pv("{}:ScanRange".format(root)),
             'angle': self.add_pv("{}:ScanStartAngle".format(root)),
-            'passes': self.add_pv("{}:ScanNumOfPasses".format(root)),
+            'passes': self.add_pv("{}:ScanNumberOfPasses".format(root)),
         }
 
         # signal handlers
@@ -267,6 +261,11 @@ class MD2Gonio(Goniometer):
             self.wait(start=False, stop=True)
 
         target_mode = mode if mode != self.ModeType.SCANNING else self.ModeType.COLLECT
+
+        # if going from centering to collect, save centering position
+        if target_mode == self.ModeType.COLLECT and self.mode == self.ModeType.CENTERING:
+            self.save_pos_cmd.put(1)
+
         self.mode_cmd.put(target_mode.value)
         self.requested_mode = mode
 
@@ -277,16 +276,15 @@ class MD2Gonio(Goniometer):
         else:
             self.set_state(message=message)
 
-
         if mode == self.ModeType.SCANNING:
             self.fluor_cmd.put(1)
 
     def on_state_changed(self, *args, **kwargs):
         state = self.state_fbk.get()
-        if state in [4, 5, 6]:
+        if state in [5, 6, 7, 8]:
             self.set_state(health=(0, 'faults'), busy=True)
-        elif state in [0, 1, 7]:
-            msg = self.log_fbk.get().split('.')[0]
+        elif state in [11, 12, 13, 14]:
+            msg = self.log_fbk.get()
             self.set_state(health=(2, 'faults', msg), busy=False)
         else:
             self.set_state(busy=False, health=(0, 'faults'))

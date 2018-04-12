@@ -15,7 +15,7 @@ CONFIG = {
     'admin_groups': [1000, 1046, 2000],
     'distance_limits': (110.0, 800.0),
     'energy_range': (5.0, 18.0),
-    'zoom_levels': (2, 4, 6),
+    'zoom_levels': (2, 5, 8),
     'default_attenuation': 90.0,
     'default_exposure': 2.5,
     'default_delta': 0.5,
@@ -42,18 +42,17 @@ DEVICES = {
     'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl', 'AH1608-05:QEM:SumAll:MeanValue_RBV', 'PCT1402-01:mA:fbk', reference='LUT1608-BM-IONC:target', control='DCM1608-4-B10-01:energy:enabled'),
     
     # Goniometer/goniometer head devices
-    'goniometer': goniometer.MD2Gonio('BL08B1:MD2'),
-    'omega':    motor.PseudoMotor('PSMTR1608-5-B10-06:pm:deg'),
-    'phi': motor.PseudoMotor('PSMTR1608-5-B10-12:pm:deg'),
-    'chi': motor.PseudoMotor('PSMTR1608-5-B10-13:pm:deg'),
-    'kappa': motor.PseudoMotor('PSMTR1608-5-B10-11:pm:deg'),
-    'sample_x':  motor.PseudoMotor('PSMTR1608-5-B10-02:pm:mm', precision=3),
-    #'sample_y':  motor.PseudoMotor('PSMTR1608-5-B10-07:pm:mm', precision=3),
-    'sample_y1':  motor.PseudoMotor('PSMTR1608-5-B10-05:pm:mm', precision=3),
-    'sample_y2':  motor.PseudoMotor('PSMTR1608-5-B10-04:pm:mm', precision=3),
+    'goniometer': goniometer.MD2Gonio('MD1608-05'),
+    'omega':    motor.PseudoMotor('PMTR1608-001:omega:deg'),
+    'phi': motor.PseudoMotor('PMTR1608-001:phi:deg'),
+    'chi': motor.PseudoMotor('PMTR1608-001:chi:deg'),
+    'kappa': motor.PseudoMotor('PMTR1608-001:kappa:deg'),
+    'sample_x':  motor.PseudoMotor('PMTR1608-001:gonY:mm', precision=3),
+    'sample_y1':  motor.PseudoMotor('PMTR1608-001:smplY:mm', precision=3),
+    'sample_y2':  motor.PseudoMotor('PMTR1608-001:smplX:mm', precision=3),
     
     # Beam position & Size
-    'aperture': misc.ChoicePositioner('BL08B1:MD2:S:SelectedAperture', choices=[200, 150, 100, 50, 20], units='um'),
+    'aperture': misc.ChoicePositioner('MD1608-05:CurrentApertureDiameterIndex', choices=[200, 150, 100, 50, 20], units='um'),
     'beam_x':   motor.VMEMotor('SMTR1608-5-B10-08:mm'),
     'beam_y':   motor.VMEMotor('SMTR1608-5-B10-06:mm'),
     'beam_w':   motor.VMEMotor('SMTR1608-5-B10-07:mm'),
@@ -65,14 +64,14 @@ DEVICES = {
     'two_theta':  motor.PseudoMotor('BL08B1:det:2theta:deg'),
     'detector': detector.ADRayonixImager('CCDC1608-B1-01:cam1', 4096, 'MX300HE'),
 
-    
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  motor.PseudoMotor('PSMTR1608-5-B10-08:pm:mm'),  
-    'sample_zoom':  misc.Positioner('BL08B1:MD2:S:ZoomLevel', 'BL08B1:MD2:G:ZoomLevel'),
+    'sample_zoom':  misc.Positioner('MD1608-05:CoaxialCameraZoomValue', 'MD1608-05:CoaxialCameraZoomValue'),
     'cryojet':  cryojet.CryoJet5('CSC1608-5-03', 'CSC1608-5-B10-01'),
-    'sample_camera': video.AxisCamera('V2E1608-400', 1),
-    'sample_backlight': misc.SampleLight('BL08B1:MD2:S:BlightLevel', 'BL08B1:MD2:G:BlightLevel', 'BL08B1:MD2:S:BlightOnOff', 100.0),
-    'sample_frontlight': misc.SampleLight('BL08B1:MD2:S:FlightLevel', 'BL08B1:MD2:G:FlightLevel', 'BL08B1:MD2:S:FlightOnOff',100.0),
+    #'sample_camera': video.AxisCamera('V2E1608-400', 1),
+    'sample_camera': video.REDISCamera('10.52.7.208', size=(659, 493), key='CAM1608:000F31030CAA:JPG'),
+    'sample_backlight': misc.SampleLight('MD1608-05:BackLightLevel', 'MD1608-05:BackLightLevel', 'MD1608-05:BackLightIsOn', 100.0),
+    'sample_frontlight': misc.SampleLight('MD1608-05:FrontLightLevel', 'MD1608-05:FrontLightLevel', 'MD1608-05:FrontLightIsOn',100.0),
     'hutch_video':  video.AxisPTZCamera('ccd1608-500'),
     
     # Facility, storage-ring, shutters, etc
@@ -82,7 +81,7 @@ DEVICES = {
     'ssh1': misc.Shutter('SSH1408-B10-01'),
     'ssh3': misc.Shutter('SSH1608-4-B10-01'),
     'enclosures': misc.Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
-    'fast_shutter': misc.BasicShutter('BL08B1:MD2:S:OpenFastShutter','BL08B1:MD2:S:CloseFastShutter','BL08B1:MD2:G:ShutterIsOpen'),
+    'fast_shutter': misc.BasicShutter('MD1608-05:FastShutterIsOpen','MD1608-05:FastShutterIsOpen','MD1608-05:FastShutterIsOpen'),
     
     # Intensity monitors,
     'i_0': counter.Counter('AH1608-05:QEM:SumAll:MeanValue_RBV'),
@@ -92,7 +91,7 @@ DEVICES = {
     'automounter':  automounter.SAMAutoMounter('ROB16085B'),
     'humidifier': humidity.Humidifier('HC1608-01'),
     'attenuator': misc.Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
-    'mca_nozzle': misc.Positioner('BL08B1:MD2:S:MoveFluoDetFront'),
+    'mca_nozzle': misc.Positioner('MD1608-05:FluoDetectorIsBack'),
     'mca': mca.XFlashMCA('XFD1608-501'),
     'multi_mca': mca.VortexMCA('dxp1608-004'),
     'deicer': misc.OnOffToggle('DIC1608-5-B10-01:spray:on'),
