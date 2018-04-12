@@ -222,16 +222,17 @@ class MD2Gonio(Goniometer):
     """
     MD2-type Goniometer at the CLS 08B1-1.
     """
+    NULL_VALUE = '__EMPTY__'
 
     def __init__(self, root):
         Goniometer.__init__(self, 'MD2 Diffractometer')
         self.requested_mode = None
         # initialize process variables
         self.mode_cmd = self.add_pv('{}:CurrentPhase'.format(root))
-        self.scan_cmd = self.add_pv("{}:startScan".format(root))
-        self.abort_cmd = self.add_pv("{}:abort".format(root))
-        self.fluor_cmd = self.add_pv("{}:FluoDetectorIsBack".format(root))
-        self.save_pos_cmd = self.add_pv("{}:saveCentringPositions".format(root))
+        self.scan_cmd = self.add_pv("{}:startScan".format(root), monitor=False)
+        self.abort_cmd = self.add_pv("{}:abort".format(root), monitor=False)
+        self.fluor_cmd = self.add_pv("{}:FluoDetectorIsBack".format(root), monitor=False)
+        self.save_pos_cmd = self.add_pv("{}:saveCentringPositions".format(root), monitor=False)
 
         self.mode_fbk = self.add_pv("{}:CurrentPhase".format(root))
         self.state_fbk = self.add_pv("{}:State".format(root))
@@ -264,7 +265,7 @@ class MD2Gonio(Goniometer):
 
         # if going from centering to collect, save centering position
         if target_mode == self.ModeType.COLLECT and self.mode == self.ModeType.CENTERING:
-            self.save_pos_cmd.put(1)
+            self.save_pos_cmd.put(self.NULL_VALUE)
 
         self.mode_cmd.put(target_mode.value)
         self.requested_mode = mode
@@ -299,7 +300,7 @@ class MD2Gonio(Goniometer):
     def scan(self, wait=True, timeout=None):
         self.set_state(message='Scanning ...')
         self.wait(stop=True, start=False, timeout=timeout)
-        self.scan_cmd.put(1)
+        self.scan_cmd.put(self.NULL_VALUE)
         self.wait(start=True, stop=wait, timeout=timeout)
         if wait:
             self.set_state(message='Scan complete!')
@@ -307,7 +308,7 @@ class MD2Gonio(Goniometer):
     def stop(self):
         """Stop and abort the current scan if any."""
         self.stopped = True
-        self.abort_cmd.put(1)
+        self.abort_cmd.put(self.NULL_VALUE)
 
 
 class SimGonio(Goniometer):
