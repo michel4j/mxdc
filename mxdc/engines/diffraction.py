@@ -156,7 +156,7 @@ class DataCollector(GObject.GObject):
                 if self.stopped or self.paused: break
                 self.beamline.detector.set_parameters(detector_parameters)
                 self.beamline.detector.start(first=is_first_frame)
-                self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 4)
+                self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 10)
                 self.beamline.detector.save()
 
                 is_first_frame = False
