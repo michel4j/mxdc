@@ -146,7 +146,10 @@ class MXBeamline(object):
                 self.sample_x, self.sample_y1, self.sample_y2, self.omega,
                 linked=self.config.get('linked_sample_stage', True)
             )
-        self.registry['sample_video'] = video.ZoomableCamera(self.sample_camera, self.sample_zoom)
+        if 'camera_scale' in self.registry:
+            self.registry['sample_video'] = video.ZoomableCamera(self.sample_camera, self.sample_zoom, self.camera_scale)
+        else:
+            self.registry['sample_video'] = video.ZoomableCamera(self.sample_camera, self.sample_zoom)
         self.mca.nozzle = self.registry.get('mca_nozzle', None)
 
         # Setup Bealine shutters
