@@ -39,7 +39,9 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
             img = beamline.sample_video.get_frame()
             if img:
                 if decorate:
-                    img = add_decorations(img, x, y, w, h)
+                    #img = add_decorations(img, x, y, w, h)
+                    #FIXME
+                    pass
                 imgname = os.path.join(directory, '%s_%0.0f.png' % (prefix, angle))
                 img.save(imgname)
                 results.append((angle, imgname))
