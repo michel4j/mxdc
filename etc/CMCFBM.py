@@ -67,6 +67,7 @@ DEVICES = {
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  motor.PseudoMotor('PSMTR1608-5-B10-08:pm:mm'),  
     'sample_zoom':  misc.Positioner('MD1608-05:CoaxialCameraZoomValue', 'MD1608-05:CoaxialCameraZoomValue'),
+    'camera_scale': misc.Positioner('MD1608-05:CoaxCamScaleX', 'MD1608-05:CoaxCamScaleX'),
     'cryojet':  cryojet.CryoJet5('CSC1608-5-03', 'CSC1608-5-B10-01'),
     #'sample_camera': video.AxisCamera('V2E1608-400', 1),
     'sample_camera': video.REDISCamera('10.52.7.208', size=(659, 493), key='CAM1608:000F31030CAA:JPG'),
