@@ -47,9 +47,9 @@ DEVICES = {
     'phi': motor.PseudoMotor('PMTR1608-001:phi:deg'),
     'chi': motor.PseudoMotor('PMTR1608-001:chi:deg'),
     'kappa': motor.PseudoMotor('PMTR1608-001:kappa:deg'),
-    'sample_x':  motor.PseudoMotor('PMTR1608-001:gonY:mm', precision=3),
-    'sample_y1':  motor.PseudoMotor('PMTR1608-001:smplY:mm', precision=3),
-    'sample_y2':  motor.PseudoMotor('PMTR1608-001:smplX:mm', precision=3),
+    'sample_x':  motor.PseudoMotor('PMTR1608-001:gonX:mm'),
+    'sample_y1':  motor.PseudoMotor('PMTR1608-001:smplY:mm'),
+    'sample_y2':  motor.PseudoMotor('PMTR1608-001:smplX:mm'),
     
     # Beam position & Size
     'aperture': misc.ChoicePositioner('MD1608-05:CurrentApertureDiameterIndex', choices=[200, 150, 100, 50, 20], units='um'),
