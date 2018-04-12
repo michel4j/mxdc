@@ -231,7 +231,7 @@ class MD2Gonio(Goniometer):
         self.scan_cmd = self.add_pv("{}:startScan".format(root))
         self.abort_cmd = self.add_pv("{}:abort".format(root))
         self.fluor_cmd = self.add_pv("{}:FluoDetectorIsBack".format(root))
-        self.save_pos_cmd = self.add_pv("{}:SaveCenteringPositions".format(root))
+        self.save_pos_cmd = self.add_pv("{}:saveCentringPositions".format(root))
 
         self.mode_fbk = self.add_pv("{}:CurrentPhase".format(root))
         self.state_fbk = self.add_pv("{}:State".format(root))
