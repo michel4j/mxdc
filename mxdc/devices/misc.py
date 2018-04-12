@@ -164,10 +164,12 @@ class ChoicePositioner(PositionerBase):
 
     def get(self):
         val = self.dev.get()
-        if not val in self.choices:
+        if val in self.choices:
+            return val
+        elif val is not None:
             return self.choices[val]
         else:
-            return val
+            return self.choices[0]
 
     def set(self, value, wait=False):
         if value in self.choices:
