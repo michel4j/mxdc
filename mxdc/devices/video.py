@@ -293,7 +293,7 @@ class ZoomableCamera(object):
         self._zoom.move_to(value)
 
     def update_resolution(self, *args, **kwar):
-        self._camera.resolution = self._scale.get()
+        self._camera.resolution = self._scale.get() or 0.0028
 
     def update_zoom(self, *args, **kwar):
         scale = 768.0 / self._camera.size[0]
