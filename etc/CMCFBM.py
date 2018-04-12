@@ -65,7 +65,7 @@ DEVICES = {
     'detector': detector.ADRayonixImager('CCDC1608-B1-01:cam1', 4096, 'MX300HE'),
 
     # Sample environment, beam stop, cameras, zoom, lighting
-    'beamstop_z':  motor.PseudoMotor('PSMTR1608-5-B10-08:pm:mm'),  
+    'beamstop_z':  motor.PseudoMotor('PMTR1608-001:bstZ:mm'),
     'sample_zoom':  misc.Positioner('MD1608-05:CoaxialCameraZoomValue', 'MD1608-05:CoaxialCameraZoomValue'),
     'camera_scale': misc.Positioner('MD1608-05:CoaxCamScaleX', 'MD1608-05:CoaxCamScaleX'),
     'cryojet':  cryojet.CryoJet5('CSC1608-5-03', 'CSC1608-5-B10-01'),
