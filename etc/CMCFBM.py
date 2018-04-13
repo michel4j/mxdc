@@ -49,7 +49,7 @@ DEVICES = {
     'kappa': motor.PseudoMotor('PMTR1608-001:kappa:deg'),
     'sample_x':  motor.PseudoMotor('PMTR1608-001:gonX:mm'),
     'sample_y1':  motor.PseudoMotor('PMTR1608-001:smplY:mm'),
-    'sample_y2':  motor.PseudoMotor('PMTR1608-001:smplX:mm'),
+    'sample_y2':  motor.PseudoMotor('PMTR1608-001:smplZ:mm'),
     
     # Beam position & Size
     'aperture': misc.ChoicePositioner('MD1608-05:CurrentApertureDiameterIndex', choices=[200, 150, 100, 50, 20], units='um'),
@@ -82,7 +82,7 @@ DEVICES = {
     'ssh1': misc.Shutter('SSH1408-B10-01'),
     'ssh3': misc.Shutter('SSH1608-4-B10-01'),
     'enclosures': misc.Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
-    'fast_shutter': misc.BasicShutter('MD1608-05:FastShutterIsOpen','MD1608-05:FastShutterIsOpen','MD1608-05:FastShutterIsOpen'),
+    'fast_shutter': misc.ToggleShutter('MD1608-05:FastShutterIsOpen'),
     
     # Intensity monitors,
     'i_0': counter.Counter('AH1608-05:QEM:SumAll:MeanValue_RBV'),
@@ -92,7 +92,7 @@ DEVICES = {
     'automounter':  automounter.SAMAutoMounter('ROB16085B'),
     'humidifier': humidity.Humidifier('HC1608-01'),
     'attenuator': misc.Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
-    'mca_nozzle': misc.Positioner('MD1608-05:FluoDetectorIsBack'),
+    'mca_nozzle': misc.ToggleShutter('MD1608-05:FluoDetectorIsBack'),
     'mca': mca.XFlashMCA('XFD1608-501'),
     'multi_mca': mca.VortexMCA('dxp1608-004'),
     'deicer': misc.OnOffToggle('DIC1608-5-B10-01:spray:on'),
