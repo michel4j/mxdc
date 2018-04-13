@@ -60,7 +60,7 @@ class Application(Gtk.Application):
         self.beamline = MXBeamline()
         logger.info('Starting HutchViewer ({})... '.format(self.beamline.name))
         self.hook = excepthook.ExceptHook(
-            name='HutViewer',
+            name='HutchViewer',
             emails=self.beamline.config['bug_report'], exit_function=self.quit
         )
         self.hook.install()

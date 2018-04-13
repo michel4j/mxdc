@@ -205,8 +205,8 @@ class BaseDevice(GObject.GObject):
             @rtype: object
         """
 
-        protocol = kwargs.pop('protocol', ca)
-        dev = protocol.PV(*args, **kwargs)
+        #protocol = kwargs.pop('protocol', ca)
+        dev = ca.PV(*args, **kwargs)
         self.pending.append(dev)
         dev.connect('active', self.on_device_active)
         return dev

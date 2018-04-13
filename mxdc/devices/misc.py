@@ -150,7 +150,7 @@ class Positioner(PositionerBase):
         if self.scale is None:
             return self.fbk_pv.get()
         else:
-            val = 100 * (self.fbk_pv.get() / self.scale)
+            val = 100 * (self.fbk_pv.get() or 0.0) / self.scale
             return val
 
 
@@ -483,9 +483,7 @@ class StateLessShutter(BaseDevice):
     implements(IShutter)
 
     __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST,
-                    None,
-                    (bool,)),
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
     }
 
     def __init__(self, open_name, close_name):
@@ -506,6 +504,52 @@ class StateLessShutter(BaseDevice):
 
     def wait(self, state=True, timeout=5.0):
         logger.warning('Stateless Shutter wont wait (%s).' % (self.name))
+
+
+class ToggleShutter(BaseDevice):
+    implements(IShutter)
+
+    __gsignals__ = {
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+    }
+
+    def __init__(self, name, reversed=False):
+        super(ToggleShutter, self).__init__()
+        self.cmd = self.add_pv(name)
+        self.reversed = reversed
+        self.cmd.connect('changed', self._signal_change)
+        self._messages = ['Opening', 'Closing']
+        self.name = name
+
+    def is_open(self):
+        """Convenience function for open state"""
+        return self.changed_state
+
+    def open(self, wait=False):
+        logger.debug(' '.join([self._messages[0], self.name]))
+        self.cmd.put(1 if not self.reversed else 0)
+        if wait:
+            self.wait(state=True)
+
+    def close(self, wait=False):
+        logger.debug(' '.join([self._messages[1], self.name]))
+        self.cmd.put(0 if not self.reversed else 1)
+        if wait:
+            self.wait(state=False)
+
+    def wait(self, state=True, timeout=5.0):
+        while self.changed_state != state and timeout > 0:
+            time.sleep(0.1)
+            timeout -= 0.1
+        if timeout <= 0:
+            logger.warning('Timed-out waiting for %s.' % (self.name))
+
+    def _signal_change(self, obj, value):
+        if value == 1:
+            self.set_state(changed=(not self.reversed))
+        else:
+            self.set_state(changed=self.reversed)
+
 
 
 class ShutterGroup(BaseDevice):
