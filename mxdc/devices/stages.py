@@ -106,7 +106,7 @@ class SampleStageBase(BaseDevice):
 class Sample3Stage(SampleStageBase):
     implements(ISampleStage)
 
-    def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, linked=True):
+    def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, linked=False):
         SampleStageBase.__init__(self)
         self.name = name
         self.x = x
