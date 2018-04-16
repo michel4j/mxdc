@@ -24,18 +24,19 @@ beyond getting and setting a pv's value, a pv includes  these features:
 See the documentation for the PV class for a more complete description.
 """
 
-from ctypes import *
-from gi.repository import GObject
-from mxdc.com import BasePV
 import array
 import atexit
 import logging
-import numpy
 import os
 import re
 import sys
 import threading
 import time
+from ctypes import *
+
+import numpy
+
+from mxdc.com import BasePV
 
 # setup module logger with a default do-nothing handler
 module_name = __name__.split('.')[-1]
@@ -188,7 +189,7 @@ TypeMap = {
     DBR_TIME_LONG: (c_int32, 'DBR_TIME_LONG'),
     DBR_TIME_FLOAT: (c_float, 'DBR_TIME_FLOAT'),
     DBR_TIME_DOUBLE: (c_double, 'DBR_TIME_DOUBLE'),
-    DBR_CTRL_STRING: (c_char * MAX_STRING_SIZE, 'DBR_CTRL_STRING'),
+    DBR_CTRL_STRING: (c_char_p * MAX_STRING_SIZE, 'DBR_CTRL_STRING'),
     DBR_CTRL_CHAR: (c_char, 'DBR_CTRL_CHAR'),
     DBR_CTRL_ENUM: (c_uint16, 'DBR_CTRL_ENUM'),
     DBR_CTRL_SHORT: (c_int16, 'DBR_CTRL_SHORT'),
@@ -224,7 +225,6 @@ class PV(BasePV):
     Additional important attributes include:
     
       >>> p.name             # name of pv
-      >>> p.value            # pv value 
       >>> p.count            # number of elements in array pvs
       >>> p.type             # EPICS data type
  
@@ -257,51 +257,52 @@ class PV(BasePV):
 
         self.state_info = {'active': False, 'changed': 0, 'time': 0, 'alarm': (0, 0)}
         self._dev_state_patt = re.compile('^(\w+)_state$')
-        self._name = name
-        self._monitor = monitor
-        self._time_changes = timed
-        self._connected = CA_OP_CONN_DOWN
-        self._val = None
-        self._time = 0.0
-        self._count = None
-        self._host = None
-        self._access = None
-        self._alarm = 0
-        self._severity = 0
-        self._type = None
-        self._ttype = None
-        self._vtype = None
-        self._ctype = None
-        self._dtype = None
-        self._chid = c_ulong()
-        self._params = {}
-        self._callbacks = {}
-        self._lock = threading.RLock()
+        self.name = name
+        self.monitor = monitor
+        self.time_changes = timed
+        self.connected = CA_OP_CONN_DOWN
+        self.value = None
+        self.time = 0.0
+        self.count = None
+        self.host = None
+        self.access = None
+        self.alarm = 0
+        self.severity = 0
+        self.type = None
+        self.ttype = None
+        self.vtype = None
+        self.ctype = None
+        self.dtype = None
+        self.chid = c_ulong()
+        self.params = {}
+        self.monitors = {}
+        self.lock = threading.RLock()
+        self.connections = []
 
         if connect:
-            self._create_connection()
+            self.create_connection()
         else:
-            self._defer_connection()
+            self.defer_connection()
 
     def __repr__(self):
-        if self._type is not None:
-            _t = TypeMap[self._type][1]
+        if self.type is not None:
+            _t = TypeMap[self.type][1]
         else:
             _t = 'UNKNOWN'
         s = _PV_REPR_FMT % (
-            self._name,
+            self.name,
             _t,
-            self._count,
-            self._host,
-            self._access,
-            ALARM_NAMES[self._alarm], SEVERITY_NAMES[self._severity],
-            self._time,
-            OP_messages[self._connected])
+            self.count,
+            self.host,
+            self.access,
+            ALARM_NAMES[self.alarm], SEVERITY_NAMES[self.severity],
+            self.time,
+            OP_messages[self.connected])
         return s
 
     def __del__(self):
-        for key, val in self._callbacks:
-            self._del_handler(val[2])
+        for key, val in self.monitors.items():
+            self.del_monitor(key)
 
     def get(self):
         """Get the value of a Process Variable.
@@ -314,42 +315,31 @@ class PV(BasePV):
             - All other array types will return a numpy.ndarray
         
         """
-        if self._connected != CA_OP_CONN_UP:
-            logger.error('(%s) PV not connected' % (self._name,))
-            return
-            # raise ChannelAccessError('(%s) PV not connected' % (self._name,))
-        if self._monitor == True and self._val is not None:
-            return self._val
+        if not self.is_connected():
+            logger.error('(%s) PV not connected' % (self.name,))
+            return self.value
+        elif self.monitor == True and self.value is not None:
+            return self.value
         else:
-            libca.ca_array_get(self._type, self._count, self._chid, byref(self.data))
+            libca.ca_array_get(self.type, self.count, self.chid, byref(self.data))
             libca.ca_pend_io(1.0)
-
-            if self._type == DBR_STRING:
-                self._val = c_char_p(self.data.raw).value
-            elif self._type == DBR_CHAR:
-                self._val = self.data.value
-            else:
-                if self._count > 1:
-                    self._val = numpy.frombuffer(self.data, TypeMap[self._type][0])
-                else:
-                    self._val = self.data.value
-            return self._val
+            self.value = self.to_python(self.data, self.type)
+            return self.value
 
     def get_parameters(self):
         """Get control parameters of a Process Variable.
         """
-        if self._connected != CA_OP_CONN_UP:
-            logger.error('(%s) PV not connected' % (self._name,))
+        if not self.is_connected():
+            logger.error('(%s) PV not connected' % (self.name,))
             return
-            # raise ChannelAccessError('(%s) PV not connected' % (self._name,))
         else:
             count = 1  # use count of 1 for control parameters
-            _vtype = TypeMap[self._type][0] * count
-            _dtype = type("DBR_%02d_%02d" % (self._ctype, count),
+            _vtype = TypeMap[self.type][0] * count
+            _dtype = type("DBR_%02d_%02d" % (self.ctype, count),
                           (Structure,),
-                          {'_fields_': BaseFieldMap[self._ctype] + [('value', self._vtype)]})
+                          {'_fields_': BaseFieldMap[self.ctype] + [('value', _vtype)]})
             data = _dtype()
-            libca.ca_array_get(self._ctype, self._count, self._chid, byref(data))
+            libca.ca_array_get(self.ctype, self.count, self.chid, byref(data))
             libca.ca_pend_io(1.0)
 
             for _k, _t in _dtype._fields_:
@@ -358,11 +348,10 @@ class PV(BasePV):
                     continue
                 if _k == 'strs':
                     strs = [v[i].value for i in range(data.no_str)]
-                    self._params[_k] = strs
+                    self.params[_k] = strs
                 else:
-                    self._params[_k] = v
-
-            return self._params
+                    self.params[_k] = v
+            return self.params
 
     def set(self, val, flush=False):
         """
@@ -378,37 +367,17 @@ class PV(BasePV):
               sequence smaller than the element count is given, the rest of the values
               will be set to zero.
         """
-        if self._connected != CA_OP_CONN_UP:
-            logger.error('(%s) PV not connected' % (self._name,))
+        if not self.is_connected():
+            logger.error('(%s) PV not connected' % (self.name,))
             return
-            # raise ChannelAccessError('(%s) PV not connected' % (self._name,))
-        if self._type == DBR_STRING:
-            val = str(val)
-            if len(val) > MAX_STRING_SIZE:
-                val = val[:MAX_STRING_SIZE]  # truncate
-            data = create_string_buffer(val, MAX_STRING_SIZE)
-        elif self._count > 1:
-            if self._type == DBR_CHAR:
-                if len(val) > self._count:
-                    val = val[:self._count]  # truncate
-                data = create_string_buffer(val, self._count)
-            elif type(val) in [list, tuple, array.array, numpy.ndarray]:
-                if len(val) > self._count:
-                    val = val[:self._count]  # truncate
-                data = self._vtype(*val)
-            else:
-                data = self._vtype(val)
-        elif self._type == DBR_CHAR and isinstance(val, int):
-            data = self._vtype(chr(val))
-        else:
-            data = self._vtype(val)
-        libca.ca_array_put(self._type, self._count, self._chid, byref(data))
+
+        data = self.from_python(val)
+        libca.ca_array_put(self.type, self.count, self.chid, byref(data))
         libca.ca_pend_io(1.0)
         libca.ca_flush_io()
         libca.ca_pend_event(0.05)
 
-    # provide a put method for those used to EPICS terminology even though
-    # set makes more sense
+    # provide a put method for those used to EPICS terminology
     put = set
 
     def toggle(self, val1, val2, delay=0.001):
@@ -417,104 +386,126 @@ class PV(BasePV):
         libca.ca_pend_event(delay)
         self.set(val2)
 
-    def _on_change(self, event):
-        if self._chid != event.chid or event.type != self._ttype:
-            return 0
-        # self._lock.acquire()
-        dbr = cast(event.dbr, POINTER(self._dtype))
-        self._event = event
-        self._dbr = dbr
-        if event.type == DBR_TIME_STRING:
-            self._val = (cast(dbr.contents.value, c_char_p)).value
-        elif event.type == DBR_TIME_CHAR:
-            self._val = dbr.contents.value
-        else:
-            if self._count > 1:
-                self._val = numpy.frombuffer(dbr.contents.value, TypeMap[event.type][0])
+    def from_python(self, val):
+        if self.count > 1 and isinstance(val, (list, tuple, array.array, numpy.ndarray)):
+            if self.type == DBR_CHAR:
+                data = create_string_buffer(str(val)[:self.count], self.count)
             else:
-                self._val = dbr.contents.value
+                if self.type == DBR_STRING:
+                    data = self.vtype(*[
+                        create_string_buffer(val[i][:MAX_STRING_SIZE], MAX_STRING_SIZE) for i in range(self.count)
+                    ])
+                else:
+                    data = self.vtype(*[self.etype(val[i][:MAX_STRING_SIZE]) for i in range(self.count)])
+        else:
+            if self.type == DBR_STRING:
+                data = create_string_buffer(str(val)[:MAX_STRING_SIZE], MAX_STRING_SIZE)
+            else:
+                data = self.vtype(val)
+        return data
 
+    def to_python(self, ca_value, ca_type):
+        """
+        Convert EPICS value to python representation
+        @param raw: Channel Access data from Get and Monitor
+        @param ca_type: Channel Type
+        @return: python friendly value
+        """
+        if ca_type in [DBR_STRING, DBR_TIME_STRING, DBR_CTRL_STRING]:
+            if self.count > 1:
+                val = [(cast(x.value, c_char_p)).value for x in ca_value.value]
+            else:
+                val = c_char_p(ca_value.value).value
+        elif ca_type in [DBR_CHAR, DBR_CTRL_CHAR, DBR_TIME_CHAR]:
+            val = ca_value.value
+        else:
+            if self.count > 1:
+                val = numpy.frombuffer(ca_value, TypeMap[ca_type][0])
+            else:
+                val = ca_value.value
+        return val
 
-        self._time = epics_to_posixtime(dbr.contents.stamp)
-        self.set_state(time=self._time)
-        self.set_state(changed=self._val)
+    def on_change(self, event):
+        if self.chid != event.chid or event.type != self.ttype:
+            return 0
+
+        dbr = cast(event.dbr, POINTER(self.dtype))
+        self.event = event
+        self.dbr = dbr
+        self.value = self.to_python(dbr.contents, event.type)
+        self.time = epics_to_posixtime(dbr.contents.stamp)
+        self.set_state(time=self.time)
+        self.set_state(changed=self.value)
+
         _alm, _sev = dbr.contents.status, dbr.contents.severity
-        if (_alm, _sev) != (self._alarm, self._severity):
-            self._alarm, self._severity = _alm, _sev
-            self.set_state(alarm=(self._alarm, self._severity))
-        # self._lock.release()
+        if (_alm, _sev) != (self.alarm, self.severity):
+            self.alarm, self.severity = _alm, _sev
+            self.set_state(alarm=(self.alarm, self.severity))
+
         return 0
 
-    def connected(self):
+    def is_connected(self):
         """Returns True if the channel is active"""
-        return self._connected == CA_OP_CONN_UP
+        return self.connected == CA_OP_CONN_UP
 
-    def _create_connection(self):
-        libca.ca_create_channel(self._name, None, None, 10, byref(self._chid))
+    def create_connection(self):
+        libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
         libca.ca_pend_io(1.0)
-        stat = libca.ca_state(self._chid)
+        stat = libca.ca_state(self.chid)
         if stat != NEVER_CONNECTED:
-            self._set_properties()
-            self._connected = CA_OP_CONN_UP
-            libca.channel_registry.append(self._chid)
-            if self._monitor == True:
-                self._add_handler(self._on_change)
+            self.set_properties()
+            self.connected = CA_OP_CONN_UP
+            libca.channel_registry.append(self.chid)
+            if self.monitor == True:
+                self.add_monitor(self.on_change)
         else:
-            self._defer_connection()
+            self.defer_connection()
 
-    def _defer_connection(self):
-        if self._connected != CA_OP_CONN_UP:
+    def defer_connection(self):
+        if not self.is_connected():
             cb_factory = CFUNCTYPE(c_int, ConnectionHandlerArgs)
-            cb_function = cb_factory(self._on_connect)
-            self.connect_args = ConnectionHandlerArgs()
-            libca.ca_create_channel(
-                self._name,
-                cb_function,
-                None,
-                50,
-                byref(self._chid)
-            )
-            self._connection_callbacks = [cb_factory, cb_function]
+            cb_function = cb_factory(self.on_connect)
+            libca.ca_create_channel(self.name, cb_function, None, 50, byref(self.chid))
+            self.connections.extend([cb_factory, cb_function])
 
-    def _set_properties(self):
-        self._count = libca.ca_element_count(self._chid)
-        self._type = libca.ca_field_type(self._chid)
-        self._host = libca.ca_host_name(self._chid)
-        _r = libca.ca_read_access(self._chid)
-        _w = libca.ca_write_access(self._chid)
-        self._access = ('none', 'read', 'write', 'read+write')[_r + 2 * _w]
+    def set_properties(self):
+        self.count = libca.ca_element_count(self.chid)
+        self.type = libca.ca_field_type(self.chid)
+        self.host = libca.ca_host_name(self.chid)
+        _r = libca.ca_read_access(self.chid)
+        _w = libca.ca_write_access(self.chid)
+        self.access = ('none', 'read', 'write', 'read+write')[_r + 2 * _w]
 
         # get DBR_TIME_XXXX and DBR_CTRL_XXXX value from DBR_XXXX
-        self._ttype = self._type + 14
-        self._ctype = self._type + 28
+        self.ttype = self.type + 14
+        self.ctype = self.type + 28
+        self.vtype = TypeMap[self.type][0] if self.count == 1 else TypeMap[self.type][0] * self.count
+        self.etype = TypeMap[self.type][0]
 
-        if self._count == 1:
-            self._vtype = TypeMap[self._type][0]
-        else:
-            self._vtype = TypeMap[self._type][0] * self._count
+        self.dtype = type(
+            "DBR_{:02d}_{:02d}".format(self.ttype, self.count),
+            (Structure,),
+            {'_fields_': BaseFieldMap[self.ttype] + [('value', self.vtype)]}
+        )
+        self.data = self.vtype()
 
-        self._dtype = type("DBR_%02d_%02d" % (self._ttype, self._count),
-                           (Structure,),
-                           {'_fields_': BaseFieldMap[self._ttype] + [('value', self._vtype)]})
-        self.data = self._vtype()
-
-    def _on_connect(self, event):
-        self._connected = event.op
-        if self._connected == CA_OP_CONN_UP:
-            self._chid = event.chid
-            if self._chid not in libca.channel_registry:
-                libca.channel_registry.append(self._chid)
-                self._set_properties()
-                if self._monitor == True:
-                    self._add_handler(self._on_change)
+    def on_connect(self, event):
+        self.connected = event.op
+        if self.is_connected():
+            self.chid = event.chid
+            if self.chid not in libca.channel_registry:
+                libca.channel_registry.append(self.chid)
+                self.set_properties()
+                if self.monitor == True:
+                    self.add_monitor(self.on_change)
             self.set_state(active=True)
         else:
             self.set_state(active=False)
         return 0
 
-    def _add_handler(self, callback):
-        if self._connected != CA_OP_CONN_UP:
-            logger.error('(%s) PV not connected.' % (self._name,))
+    def add_monitor(self, callback):
+        if not self.is_connected():
+            logger.error('(%s) PV not connected.' % (self.name,))
             return
             # raise ChannelAccessError('PV not connected')
         event_id = c_ulong()
@@ -523,48 +514,26 @@ class PV(BasePV):
         key = repr(callback)
         user_arg = c_void_p()
         libca.ca_create_subscription(
-            self._ttype,
-            self._count,
-            self._chid,
-            DBE_VALUE | DBE_ALARM,
-            cb_function,
-            user_arg,
-            event_id
+            self.ttype, self.count, self.chid, DBE_VALUE | DBE_ALARM, cb_function, user_arg, event_id
         )
         libca.ca_pend_io(1.0)
-        self._callbacks[key] = [cb_factory, cb_function, event_id]
-        return event_id
+        self.monitors[event_id.value] = [cb_factory, cb_function, event_id.value]
+        return event_id.value
 
-    def _del_handler(self, event_id):
+    def del_monitor(self, event_id):
         libca.ca_clear_subscription(event_id)
         libca.ca_pend_io(0.1)
+        del self.monitors[event_id]
 
     def __getattr__(self, attr):
-
-        if attr == 'name':
-            return self._name
-        # elif attr == 'value':  return self._val
-        elif attr == 'count':
-            return self._count
-        elif attr == 'severity':
-            return self._severity
-        elif attr == 'host':
-            return self._host
-        elif attr == 'access':
-            return self._access
-        elif attr == 'type':
-            return TypeMap[self._type][1]
+        m = self._dev_state_patt.match(attr)
+        if m:
+            attr = m.group(1)
+            return self.state_info.get(attr, None)
+        elif attr in self.state_info:
+            return self.state_info[attr]
         else:
-            m = self._dev_state_patt.match(attr)
-            if m:
-                attr = m.group(1)
-                return self.state_info.get(attr, None)
-            elif attr in self.state_info:
-                return self.state_info[attr]
-            else:
-                raise AttributeError("%s has no attribute '%s'" % (self.__class__.__name__, attr))
-
-    value = property(fset=put, fget=get)
+            raise AttributeError("%s has no attribute '%s'" % (self.__class__.__name__, attr))
 
 
 def epics_to_posixtime(time_stamp):
@@ -572,9 +541,7 @@ def epics_to_posixtime(time_stamp):
     Convert EPICS time-stamp to float representing the seconds sinceUNIX epoch.
     EPICS time is the number of seconds since 0000 Jan 1, 1990 and NOT 1970!
     """
-    return float(time_stamp.secs) + \
-           POSIX_TIME_AT_EPICS_EPOCH + \
-           (float(time_stamp.nsec) * 1e-9)
+    return float(time_stamp.secs) + POSIX_TIME_AT_EPICS_EPOCH + (float(time_stamp.nsec) * 1e-9)
 
 
 def threads_init():
@@ -593,7 +560,7 @@ def flush():
 def ca_exception_handler(event):
     name = '?' if not event.chid else libca.ca_name(event.chid)
     msg = "Channel Access Exception: `{}:{}` ({}: {})".format(
-        name, libca.ca_message(event.stat),  event.pFile, event.lineNo,
+        name, libca.ca_message(event.stat), event.pFile, event.lineNo,
     )
     logger.error(msg)
     return 0
@@ -693,7 +660,7 @@ def ca_cleanup():
 __all__ = ['PV', 'threads_init', 'flush', ]
 
 # Make sure you get the events on time.
-#GObject.timeout_add(10, _heart_beat, 0.001)
+# GObject.timeout_add(10, _heart_beat, 0.001)
 # _ca_heartbeat_thread = threading.Thread(target=_heart_beat_loop)
 # _ca_heartbeat_thread.setDaemon(True)
 # _ca_heartbeat_thread.setName('ca.heartbeat')

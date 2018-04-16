@@ -323,13 +323,13 @@ class Attenuator(PositionerBase):
         self._energy.connect('changed', self._signal_change)
 
     def get(self):
-        if self._energy.connected():
+        if self._energy.is_connected():
             e = self._energy.get()
         else:
             return 999.0
         bitmap = ''
         for f in self._filters:
-            if f.connected():
+            if f.is_connected():
                 bitmap += '%d' % f.get()
             else:
                 return 999.0
