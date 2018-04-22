@@ -100,3 +100,4 @@ class HutchSamplesController(GObject.GObject):
                 self.widget.samples_cur_port.set_text(port)
                 self.widget.samples_dismount_btn.set_sensitive(True)
 
+

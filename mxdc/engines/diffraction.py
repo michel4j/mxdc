@@ -235,7 +235,7 @@ class DataCollector(GObject.GObject):
 
         if wedge.get('point') is not None:
             x, y, z  = wedge['point']
-            self.beamline.sample_stage.move_xyz(x, y, z)
+            self.beamline.sample_stage.move_xyz(x, y, z, wait=True)
 
     def save(self, params):
         frames, count = datatools.get_disk_frameset(

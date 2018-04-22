@@ -178,8 +178,6 @@ class DewarController(GObject.GObject):
             self.failure_dialog.connect('response', _resp_cb)
             self.failure_dialog.show_all()
 
-
-
     def on_messages(self, obj, message):
         if message:
             prev_time, prev_msg = self.messages[-1]

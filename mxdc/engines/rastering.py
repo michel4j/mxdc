@@ -99,7 +99,7 @@ class RasterCollector(GObject.GObject):
             GObject.idle_add(self.emit, 'started')
             try:
                 self.acquire()
-                self.beamline.sample_stage.move_xyz(*self.config['params']['origin'])
+                self.beamline.sample_stage.move_xyz(*self.config['params']['origin'], wait=True)
                 self.beamline.omega.move_to(self.config['params']['angle'], wait=True)
 
                 # take snapshot
@@ -166,7 +166,7 @@ class RasterCollector(GObject.GObject):
             if self.stopped or self.paused: break
             self.beamline.detector.set_parameters(detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
-            self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 4)
+            self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 10)
             self.beamline.detector.save()
 
             self.count += 1

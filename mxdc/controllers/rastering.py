@@ -327,7 +327,7 @@ class RasterController(GObject.GObject):
                 {'origin': grid['config']['origin'], 'angle': grid['config']['angle']},
                 grid['scores']
             )
-            self.beamline.sample_stage.move_xyz(*grid['config']['origin'])
+            #self.beamline.sample_stage.move_xyz(*grid['config']['origin'])
             self.widget.raster_dir_fbk.set_text(grid['config']['directory'])
         else:
             image_viewer = globalRegistry.lookup([], IImageViewer)

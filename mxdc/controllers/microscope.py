@@ -127,6 +127,10 @@ class Microscope(GObject.GObject):
         self.widget.microscope_point_btn.connect('clicked', self.add_point)
         self.widget.microscope_clear_btn.connect('clicked', self.clear_objects)
 
+        # disable centering buttons on click
+        self.centering.connect('started', self.on_scripts_started)
+        self.centering.connect('done', self.on_scripts_done)
+
         # lighting monitors
         self.monitors = []
         for key in ['backlight', 'frontlight', 'uvlight']:
@@ -355,19 +359,17 @@ class Microscope(GObject.GObject):
 
     def auto_grid(self, *args, **kwargs):
         img = self.camera.get_frame()
-        pol = imgproc.find_profile(img, 2)
-        # bbox = self.video.scale * imgproc.get_sample_bbox2(img)
-        # self.props.grid = self.bbox_grid(bbox)
-        # self.props.grid_params = {
-        #     'origin': self.beamline.sample_stage.get_xyz(),
-        #     'angle': self.beamline.omega.get_position(),
-        #     'scale': self.video.scale,
-        # }
-        # self.props.grid_state = self.GridState.PENDING
-        # self.props.grid_scores = {}
+        pol = imgproc.find_profile(img, scale=0.25)
+        for point in pol:
+            self.add_polygon_point(point[0], point[1])
+        self.add_polygon_point(pol[0][0], pol[0][1])
 
     def add_point(self, *args, **kwargs):
         self.props.points = self.props.points + [self.beamline.sample_stage.get_xyz()]
+
+    def configure_grid(self, params):
+        for k,v in params.items():
+            self.set_property(k, v)
 
     def add_polygon_point(self, x, y):
         radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
@@ -382,10 +384,11 @@ class Microscope(GObject.GObject):
                 self.make_polygon_grid()
                 self.widget.microscope_grid_btn.set_active(False)
 
-    def make_polygon_grid(self):
+    def calc_polygon_grid(self, polygon, grow=1, scaled=True):
         step_size = 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
-        if len(self.props.polygon) == 3:
-            points = numpy.array(self.props.polygon[:-1])
+        factor = 1.0 if scaled else self.video.scale
+        if len(polygon) == 3:
+            points = numpy.array(polygon[:-1]) * factor
             grid_size = points[1] - points[0]
             shape = 1 + grid_size / step_size
             n = numpy.ceil(numpy.sqrt((shape ** 2).sum()))
@@ -394,12 +397,12 @@ class Microscope(GObject.GObject):
             grid = numpy.dstack((x, y, numpy.zeros_like(y)))[0]
 
         else:
-            points = numpy.array(self.props.polygon)
+            points = numpy.array(polygon) * factor
             bbox = numpy.array([points.min(axis=0), points.max(axis=0)])
             full_grid = self.bbox_grid(bbox)
             poly = Path(points)
             radius = orientation(poly) * step_size
-            grid = full_grid[poly.contains_points(full_grid[:, :2], radius=radius)]
+            grid = full_grid[poly.contains_points(full_grid[:, :2], radius=radius * grow)]
 
         xmm, ymm = self.video.screen_to_mm(grid[:, 0], grid[:, 1])[2:]
         ox, oy, oz = self.beamline.sample_stage.get_xyz()
@@ -407,14 +410,20 @@ class Microscope(GObject.GObject):
         gx, gy, gz = self.beamline.sample_stage.xvw_to_xyz(-xmm, -ymm, numpy.radians(angle))
         grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
 
-        self.props.grid_state = self.GridState.PENDING
-        self.props.grid_xyz = grid_xyz
-        self.props.grid_params = {
-            'origin': (ox, oy, oz),
-            'angle': angle,
-            'scale': self.video.scale,
+        return {
+            'grid_state': self.GridState.PENDING,
+            'grid_xyz' : grid_xyz,
+            'grid_params': {
+                'origin': (ox, oy, oz),
+                'angle': angle,
+                'scale': self.video.scale,
+            },
+            'grid_scores': {}
         }
-        self.props.grid_scores = {}
+
+    def make_polygon_grid(self, grow=1):
+        info = self.calc_polygon_grid(self.props.polygon, grow=grow)
+        self.configure_grid(info)
         self.props.polygon = []  # delete polygon after making grid
 
     def add_grid_score(self, position, score):
@@ -481,6 +490,7 @@ class Microscope(GObject.GObject):
 
     def on_scripts_done(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(True)
+
 
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(

@@ -26,6 +26,7 @@ See the documentation for the PV class for a more complete description.
 
 import array
 import atexit
+import collections
 import logging
 import os
 import re
@@ -329,9 +330,10 @@ class PV(BasePV):
     def get_parameters(self):
         """Get control parameters of a Process Variable.
         """
+        params = {}
         if not self.is_connected():
             logger.error('(%s) PV not connected' % (self.name,))
-            return
+            return params
         else:
             count = 1  # use count of 1 for control parameters
             _vtype = TypeMap[self.type][0] * count
@@ -348,10 +350,10 @@ class PV(BasePV):
                     continue
                 if _k == 'strs':
                     strs = [v[i].value for i in range(data.no_str)]
-                    self.params[_k] = strs
+                    params[_k] = strs
                 else:
-                    self.params[_k] = v
-            return self.params
+                    params[_k] = v
+            return params
 
     def set(self, val, flush=False):
         """
@@ -387,21 +389,29 @@ class PV(BasePV):
         self.set(val2)
 
     def from_python(self, val):
-        if self.count > 1 and isinstance(val, (list, tuple, array.array, numpy.ndarray)):
+        #convert enums if string is provided instead of short
+
+        if isinstance(val, str) and self.type == DBR_ENUM:
+            if not self.params:
+                self.params = self.get_parameters()
+            if val in self.params.get('strs', []):
+               val = self.params['strs'].index(val)
+
+        if self.count > 1 and isinstance(val, collections.Iterable):
             if self.type == DBR_CHAR:
-                data = create_string_buffer(str(val)[:self.count], self.count)
+                val_str = str(''.join([v for v in val[:self.count]]))
+                data = create_string_buffer(val_str, self.count)
+            elif self.type == DBR_STRING:
+                data = self.vtype(*[
+                    create_string_buffer(val[i][:MAX_STRING_SIZE], MAX_STRING_SIZE) for i in range(self.count)
+                ])
             else:
-                if self.type == DBR_STRING:
-                    data = self.vtype(*[
-                        create_string_buffer(val[i][:MAX_STRING_SIZE], MAX_STRING_SIZE) for i in range(self.count)
-                    ])
-                else:
-                    data = self.vtype(*[self.etype(val[i][:MAX_STRING_SIZE]) for i in range(self.count)])
+                data = self.vtype(*[self.etype(val[i][:MAX_STRING_SIZE]) for i in range(self.count)])
+        elif self.type == DBR_STRING:
+            data = create_string_buffer(str(val)[:MAX_STRING_SIZE], MAX_STRING_SIZE)
         else:
-            if self.type == DBR_STRING:
-                data = create_string_buffer(str(val)[:MAX_STRING_SIZE], MAX_STRING_SIZE)
-            else:
-                data = self.vtype(val)
+            data = self.vtype(val)
+
         return data
 
     def to_python(self, ca_value, ca_type):
@@ -411,6 +421,7 @@ class PV(BasePV):
         @param ca_type: Channel Type
         @return: python friendly value
         """
+
         if ca_type in [DBR_STRING, DBR_TIME_STRING, DBR_CTRL_STRING]:
             if self.count > 1:
                 val = [(cast(x.value, c_char_p)).value for x in ca_value.value]
@@ -488,6 +499,7 @@ class PV(BasePV):
             {'_fields_': BaseFieldMap[self.ttype] + [('value', self.vtype)]}
         )
         self.data = self.vtype()
+        #self.params = self.get_parameters()
 
     def on_connect(self, event):
         self.connected = event.op

@@ -3,8 +3,9 @@ import numpy
 from PIL import Image
 from PIL import ImageChops
 from PIL import ImageFilter
-from mxdc.utils.scitools import find_peaks, smooth_data
-from scipy import ndimage, signal
+from scipy import signal
+
+from mxdc.utils.scitools import find_peaks
 
 THRESHOLD = 20
 BORDER = 10
@@ -37,133 +38,101 @@ def _get_object(a):
     return mid, max(span, 1)
 
 
-def get_loop_center(orig, bkg, orientation=2):
-    img = ImageChops.difference(orig, bkg).filter(ImageFilter.BLUR)
-    if orientation == 3:
-        img = img.transpose(Image.FLIP_LEFT_RIGHT)
-    ab = numpy.asarray(img.convert('L'))
-
-    x = numpy.max(ab, 0)
-    y = numpy.max(ab, 1)[::-1]
-    quality = 0
-    xp = list(x > THRESHOLD)
-    if True in xp:
-        xtip = len(xp) - xp[::-1].index(True) - 1
+def xconv(x, max_x, dir='left'):
+    if dir == 'left':
+        return x
     else:
-        xtip = 0
-        quality -= 1
-    ymid = _centroid(y)
-
-    spans = numpy.zeros(x.shape)
-    mids = numpy.zeros(x.shape)
-    for i in range(xtip):
-        yl = ab[:, i][::-1]
-        mid, span = _get_object(yl)
-        spans[i] = span
-        mids[i] = mid
-    peaks = find_peaks(range(len(spans)), 255 - spans, sensitivity=0.05)
-    if len(peaks) > 1:
-        ls = peaks[-2][0]
-        le = peaks[-1][0]
-        loop = spans[ls:le]
-        lx = 1 + numpy.array(range(len(loop)))
-        xmid = le - int(numpy.exp(numpy.log(lx).mean()))
-        width = loop.mean()
-        if xmid > 0:
-            ymid = mids[xmid]
-    else:
-        xmid = xtip
-        width = -1
-
-    if orientation == 3:
-        xmid = len(x) - xmid
-
-    return xmid, len(y) - ymid, width
+        return max_x - x
 
 
-def get_loop_features(raw, offset=10, scale=0.5, orientation='left'):
-    frame = cv2.resize(raw, (0,0), fx=scale, fy=scale)
-    raw_edges = cv2.Canny(frame, 25, 100)
+def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
+    raw = cv2.flip(orig, 1) if orientation != 'left' else orig
+    frame = cv2.resize(raw, (0, 0), fx=scale, fy=scale)
+    raw_edges = cv2.Canny(frame, 50, 150)
     edges = numpy.zeros_like(raw_edges)
     edges[offset:-offset, offset:-offset] = raw_edges[offset:-offset, offset:-offset]
 
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
-    cv2.drawContours(edges, contours, -1, (255, 255, 255), 48)
+    cv2.drawContours(edges, contours, -1, (255, 255, 255), int(10 * scale))
     avg = frame.mean()
     std = frame.std()
+    y_size, x_size = edges.shape
+    tip_x, tip_y = x_size // 2, y_size // 2
+
     info = {
         'mean': avg,
         'std': std,
-        'signal': avg/std
+        'signal': avg / std,
+        'score': 0.0,
+        'center-x': tip_x / scale,
+        'center-y': tip_y / scale,
     }
 
-    xprof = numpy.where(edges.max(axis=0) > 128)[0]
-    if numpy.any(xprof):
-        w = (xprof[-1] - xprof[0])
-        search_width = frame.shape[1]/4
-        if orientation == 'left':
-            xt = xprof[-1] - 24
-            tip_start = max(0, xt - search_width)
-            tip_end = xt
-        elif orientation == 'right':
-            xt = xprof[0] + 24
-            tip_start = xt
-            tip_end = min(frame.shape[1], xt + search_width)
-        else:
-            xt = (xprof[-1] - xprof[0])//2
-            tip_start = xprof[0]
-            tip_end = xprof[-1]
+    if contours:
+        info['score'] += 0.5
+        top_vertices = []
+        bottom_vertices = []
+        vertical_spans = []
+        vertical_midpoints = []
 
-        info.update({
-            'x': int(xt / scale),
-            'width': int(w / scale),
-        })
 
-        yprof = numpy.where(edges[:, tip_start:tip_end].max(axis=1) > 128)[0]
-        if numpy.any(yprof):
-            h = (yprof[-1] - yprof[0])
-            if orientation == 'top':
-                yt = yprof[-1]
-            elif orientation == 'bottom':
-                yt = yprof[0]
+        for i in range(x_size):
+            column = numpy.where(edges[:, i] > 128)[0]
+            if numpy.any(column):
+                top_vertices.append((i, column[0]))
+                bottom_vertices.append((i, column[-1]))
+                vertical_spans.append((i, column[-1] - column[0]))
+                vertical_midpoints.append((i, (column[-1] + column[0]) // 2))
+                tip_x = i
+                tip_y = (column[0] + column[-1]) // 2
             else:
-                yt = yprof[0] + h // 2
-            info.update({
-                'y': int(yt/scale),
-                'height': int(h/scale),
-            })
+                vertical_spans.append((i, 0))
+                vertical_midpoints.append((i, y_size // 2))
 
-        # Find loop profile
-        limits = [(j, numpy.where(edges[:, j] > 128)[0]) for j in range(frame.shape[1])]
-        dimensions = [
-            (j, (x[-1] - x[0]), (x[0])) if numpy.any(x) else (j, 0.0, 0.0)
-            for j, x in limits
-        ]
-        xy = numpy.array(dimensions).astype(float)
-        peaks = find_peaks(xy[:,0], xy[:,1], width=11)
-        if peaks:
-            if orientation == 'left':
-                loop = peaks[-1]
-            else:
-                loop = peaks[0]
+        info['x'] = tip_x / scale - 10
+        info['y'] = tip_y / scale
 
-            loop_x, loop_size = loop
-            loop_start = int(max(loop_x - loop_size, 0))
-            loop_end = int(min(loop_x + loop_size, frame.shape[1]))
-            loop_prof = numpy.where(edges[:, loop_start:loop_end].max(axis=1) > 128)[0]
-            if numpy.any(loop_prof):
-                loop_y = (loop_prof[0] + loop_prof[-1])*0.5
-                info['loop-y'] = int(loop_y/scale)
+        if len(vertical_spans):
+            info['score'] += 0.5
+            sizes = numpy.array(vertical_spans)
+            sizes[:, 1] = signal.savgol_filter(sizes[:, 1], 15, 1)
+            peaks = find_peaks(sizes[:, 0], sizes[:, 1], width=15)
 
-            info['loop-x'] =int(loop_x/scale)
-            info['loop-size'] = int(loop_size/scale)
+            x_center = int(peaks[-1][0]) if peaks else (tip_x - x_size // 16)
+            y_center = vertical_midpoints[x_center][1]
+            search_width = tip_x - x_center
+            search_start = x_center - search_width
+            search_end = tip_x
+
+            vertices = [v for i, v in enumerate(top_vertices[search_start:search_end])]
+            vertices += [v for i, v in enumerate(bottom_vertices[search_start:search_end])][::-1]
+            ellipse_vertices = [v for v in vertices if v[0] > x_center + search_width//3]
+
+            info['loop-size'] = int(sizes[x_center][1] / scale)
+            info['loop-x'] = int(x_center / scale)
+            info['loop-y'] = int(y_center / scale)
+
+            points = (numpy.array(vertices[::5])).astype(int)
+            if len(ellipse_vertices) > 10:
+                ellipse = cv2.fitEllipse(numpy.array(ellipse_vertices).astype(int))
+                info['ellipse'] = (
+                    tuple(map(lambda x: int(x / scale), ellipse[0])),
+                    tuple(map(lambda x: int(0.75 * x / scale), ellipse[1])),
+                    ellipse[2],
+                )
+                ellipse_x, ellipse_y = info['ellipse'][0]
+                info['loop-x'] = int(ellipse_x)
+                info['loop-y'] = int(ellipse_y)
+                info['loop-size'] = max(ellipse[1])
+                info['loop-angle'] = 90 - ellipse[2]
+
+            info['loop-start'] = int(search_start / scale)
+            info['loop-end'] = int(search_end / scale)
+            info['peaks'] = peaks
+            info['sizes'] = (sizes / scale).astype(int)
+            info['points'] = [(int(x / scale), int(y / scale)) for x, y in points]
 
     return info
-
-
-def get_loop_info(pil_img, orientation='left'):
-    raw = cv2.cvtColor(numpy.asarray(pil_img), cv2.COLOR_RGB2BGR)
-    return get_loop_features(raw, orientation=orientation)
 
 
 def get_cap_center(orig, bkg, orientation='left'):
@@ -208,72 +177,67 @@ def _normalize(data):
 EDGE_TOLERANCE = 5
 
 
-def get_sample_bbox(img):
-    img_arr = numpy.asarray(img.convert('L'))
-    full = numpy.array([[0, 0], img_arr.shape[::-1]])
-    full[1] -= EDGE_TOLERANCE
-    bbox = numpy.copy(full)
-    for i in range(2):
-        profile = numpy.min(img_arr[EDGE_TOLERANCE:-EDGE_TOLERANCE, EDGE_TOLERANCE:-EDGE_TOLERANCE], i) * -1
-        profile -= profile.min()
-        envelope = numpy.where(profile > profile.max() / 2)[0]
-        if len(envelope):
-            bbox[0][i] = max(envelope[0], bbox[0][i])
-            bbox[1][i] = min(envelope[-1], bbox[1][i])
-
-    # check the boxes and adjust if one horizontal side on edge:
-    if bbox[0][0] > 2 * EDGE_TOLERANCE and full[1][0] - bbox[1][0] < 2 * EDGE_TOLERANCE:
-        bbox[1][0] = full[1][0] - bbox[0][0] // 2
-    elif bbox[0][0] < 2 * EDGE_TOLERANCE and full[1][0] - bbox[1][0] > 2 * EDGE_TOLERANCE:
-        bbox[0][0] = (full[1][0] - bbox[1][0]) // 2
-
-    return bbox + EDGE_TOLERANCE
+def dist(p1, p2):
+    return numpy.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
 
 
-def get_sample_bbox2(img):
-    img_arr = ndimage.morphological_gradient(numpy.asarray(img.convert('L')), size=(10, 10))
-    full = numpy.array([[0, 0], img_arr.shape[::-1]])
-    full[1] -= EDGE_TOLERANCE
-    bbox = numpy.copy(full)
-    for i in range(2):
-        profile = numpy.max(img_arr[EDGE_TOLERANCE:-EDGE_TOLERANCE, EDGE_TOLERANCE:-EDGE_TOLERANCE], i)
-        profile -= profile.min()
-        envelope = numpy.where(profile > profile.max() / 2)[0]
-        if len(envelope):
-            bbox[0][i] = max(envelope[0], bbox[0][i])
-            bbox[1][i] = min(envelope[-1], bbox[1][i])
+def find_profile(pil_img, scale=0.25, offset=2):
+    # Determine the bounding polygon around the loop
+    raw = numpy.asarray(pil_img.convert('L'))
+    frame = cv2.resize(raw, (0, 0), fx=scale, fy=scale)
+    raw_edges = cv2.Canny(frame, 50, 150)
+    edges = numpy.zeros_like(raw_edges)
+    edges[offset:-offset, offset:-offset] = raw_edges[offset:-offset, offset:-offset]
 
-    # check the boxes and adjust if one horizontal side on edge:
-    if bbox[0][0] > 2 * EDGE_TOLERANCE and full[1][0] - bbox[1][0] < 2 * EDGE_TOLERANCE:
-        bbox[1][0] = full[1][0] - bbox[0][0] // 2
-    elif bbox[0][0] < 2 * EDGE_TOLERANCE and full[1][0] - bbox[1][0] > 2 * EDGE_TOLERANCE:
-        bbox[0][0] = (full[1][0] - bbox[1][0]) // 2
+    contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
+    cv2.drawContours(edges, contours, -1, (255, 255, 255), 5)
 
-    return bbox
-
-
-def get_bbox(pil_img):
-    img = cv2.cvtColor(numpy.asarray(pil_img), cv2.COLOR_RGB2BGR)
-    edges = cv2.Canny(img, 100, 200)
-    im2, contours, hierarchy = cv2.findContours(edges)
-    return
-
-
-def find_profile(pil_img, scale=20):
-    raw_img = numpy.asarray(pil_img.convert('L'))
-
-    img = cv2.resize(raw_img, (0, 0), fx=1./scale, fy=1./scale, interpolation=cv2.INTER_LANCZOS4)
-    std = img.std()
     verts_top = []
     verts_bot = []
-    nX, nY = img.shape
-    xcoords = numpy.arange(nX)
-    for i in range(nY):
-        x = img[:, i]
-        xd = numpy.abs(signal.savgol_filter(x, 3, 1, deriv=1))
-        if xd.std() < 0.25*std: continue
-        xpin = xcoords[xd >= 0.25 * xd.max()]
-        if len(xpin) > 1:
-            verts_top.append((i, xpin[0]))
-            verts_bot.append((i, xpin[-1]))
-    return scale * numpy.array(verts_top + verts_bot[::-1])
+    verts_size = []
+    nY, nX = edges.shape
+
+    for i in range(nX):
+        silhoutte = numpy.where(edges[:, i] > 128)[0]
+        if numpy.any(silhoutte):
+            verts_top.append((i, silhoutte[0]))
+            verts_bot.append((i, silhoutte[-1] - 10))
+            verts_size.append(silhoutte[-1] - silhoutte[0])
+
+    if len(verts_size):
+        sizes = numpy.abs(signal.savgol_filter(verts_size, 21, 1, deriv=0))
+        hw = len(sizes) // 2
+        ll = numpy.argmin(sizes[:hw])
+        rr = numpy.argmin(sizes[hw:]) + hw
+        verts = [v for i, v in enumerate(verts_top[ll:rr])] + [v for i, v in enumerate(verts_bot[ll:rr])][::-1]
+
+        # simplify verts
+        new_verts = [verts[0]]
+        for i in range(len(verts)):
+            if dist(verts[i], new_verts[-1]) > 30:
+                new_verts.append(verts[i])
+
+        points = (numpy.array(new_verts) / scale)
+        return points
+
+
+def mid_height(pil_img, offset=2):
+    # Calculate the height of the pin at the center of the video profile
+    raw = numpy.asarray(pil_img.convert('L'))
+    scale = 256. / raw.shape[1]
+    frame = cv2.resize(raw, (0, 0), fx=scale, fy=scale)
+    raw_edges = cv2.Canny(frame, 50, 150)
+    edges = numpy.zeros_like(raw_edges)
+    edges[offset:-offset, offset:-offset] = raw_edges[offset:-offset, offset:-offset]
+
+    contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
+    cv2.drawContours(edges, contours, -1, (255, 255, 255), int(10 * scale))
+
+    y_size, x_size = edges.shape
+    x_center = x_size // 2
+
+    column = numpy.where(edges[:, x_center] > 128)[0]
+    if numpy.any(column):
+        return ((column[-1] - column[0]) / scale)
+    else:
+        return 0.0

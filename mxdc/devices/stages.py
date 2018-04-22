@@ -17,16 +17,16 @@ class ISampleStage(IDevice):
     def stop():
         """Terminate all operations."""
 
-    def move_world(x, y, z):
+    def move_xyz(x, y, z, wait=False):
         """Move to absolute position in world coordinages"""
 
-    def move_local(x, y, z):
+    def move_screen(x, y, z, wait=False):
         """Move to absolute position in local coordinages"""
 
-    def move_world_by(xd, yd, zd):
+    def move_xyz_by(xd, yd, zd, wait=False):
         """Move to relative position in world coordinages"""
 
-    def move_local_by(xd, yd, zd):
+    def move_screen_by(xd, yd, zd, wait=False):
         """Move to relative position in local coordinages"""
 
     def get_local_xyz():
@@ -75,7 +75,7 @@ class SampleStageBase(BaseDevice):
     def is_busy(self):
         raise NotImplementedError('Sub classes must implement "is_busy"')
 
-    def wait(self, start=True, stop=True):
+    def wait(self, start=False, stop=True):
         """Wait for the busy state to change.
 
         Kwargs:
@@ -103,7 +103,7 @@ class SampleStageBase(BaseDevice):
                 return False
 
 
-class Sample3Stage(SampleStageBase):
+class SampleStage(SampleStageBase):
     implements(ISampleStage)
 
     def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, linked=False):
@@ -131,39 +131,35 @@ class Sample3Stage(SampleStageBase):
     def get_xyz(self):
         return self.x.get_position(), self.y1.get_position(), self.y2.get_position()
 
-    def move_xyz(self, xl, yl, zl):
+    def move_xyz(self, xl, yl, zl, wait=False):
         self.wait(start=False)
-        self.x.move_to(xl, wait=self.linked)
         self.y1.move_to(yl, wait=self.linked)
         self.y2.move_to(zl, wait=self.linked)
-        if not self.linked:
-            self.wait()
+        self.x.move_to(xl, wait=self.linked)
+        self.wait(start=(not self.linked), stop=wait)
 
-    def move_xyz_by(self, xd, yd, zd):
+    def move_xyz_by(self, xd, yd, zd, wait=False):
         self.wait(start=False)
-        self.x.move_by(xd, wait=self.linked)
         self.y1.move_by(yd, wait=self.linked)
         self.y2.move_by(zd, wait=self.linked)
-        if not self.linked:
-            self.wait()
+        self.x.move_by(xd, wait=self.linked)
+        self.wait(start=(not self.linked), stop=wait)
 
-    def move_screen(self, xw, yw, zw):
+    def move_screen(self, xw, yw, zw, wait=False):
         self.wait(start=False)
         xl, yl, zl = self.screen_to_xyz(xw, yw, zw)
-        self.x.move_to(xl, wait=self.linked)
         self.y1.move_to(yl, wait=self.linked)
         self.y2.move_to(zl, wait=self.linked)
-        if not self.linked:
-            self.wait()
+        self.x.move_to(xl, wait=self.linked)
+        self.wait(start=(not self.linked), stop=wait)
 
-    def move_screen_by(self, xwd, ywd, zwd):
+    def move_screen_by(self, xwd, ywd, zwd, wait=False):
         self.wait(start=False)
         xld, yld, zld = self.screen_to_xyz(xwd, ywd, zwd)
-        self.x.move_by(xld, wait=self.linked)
         self.y1.move_by(yld, wait=self.linked)
         self.y2.move_by(zld, wait=self.linked)
-        if not self.linked:
-            self.wait()
+        self.x.move_by(xld, wait=self.linked)
+        self.wait(start=(not self.linked), stop=wait)
 
     def stop(self):
         self.x.stop()
@@ -172,49 +168,5 @@ class Sample3Stage(SampleStageBase):
 
     def is_busy(self):
         return any((self.x.is_busy(), self.y1.is_busy(), self.y2.is_busy()))
-
-
-class Sample2Stage(SampleStageBase):
-    implements(ISampleStage)
-
-    def __init__(self, x, y, omega, name='Sample Stage', linked=False):
-        super(Sample2Stage, self).__init__()
-        self.name = name
-        self.x = x
-        self.y = y
-        self.linked = linked
-        self.omega = omega
-        self.add_devices(x, y, omega)
-
-    def get_local_xyz(self):
-        return self.xvw_to_xyz(*self.get_world_xyz())
-
-    def get_world_xyz(self):
-        return self.x.get_position(), self.y.get_position(), 0.0
-
-    def move_local(self, xl, yl, zl):
-        xw, yw, zw = self.xyz_to_xvw(xl, yl, zl)
-        self.x.move_to(xw, wait=True)
-        self.y.move_to(yw, wait=True)
-
-    def move_local_by(self, xld, yld, zld):
-        xwd, ywd, zwd = self.xyz_to_xvw(xld, yld, zld)
-        self.x.move_by(xwd, wait=True)
-        self.y.move_by(ywd, wait=True)
-
-    def move_world(self, xw, yw, zw):
-        self.x.move_to(xw, wait=True)
-        self.y.move_to(yw, wait=True)
-
-    def move_world_by(self, xwd, ywd, zwd):
-        self.x.move_by(xwd, wait=True)
-        self.y.move_by(ywd, wait=True)
-
-    def stop(self):
-        self.x.stop()
-        self.y.stop()
-
-    def is_busy(self):
-        return any((self.x.is_busy(), self.y.is_busy()))
 
 
