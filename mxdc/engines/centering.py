@@ -9,7 +9,8 @@ import numpy
 import uuid
 import traceback
 from datetime import datetime
-
+from scipy import signal
+import cv2
 
 from twisted.python.components import globalRegistry
 from gi.repository import GObject
@@ -54,6 +55,14 @@ class Centering(GObject.GObject):
         }
 
     def configure(self, method='loop'):
+        from mxdc.controllers.microscope import IMicroscope
+        from mxdc.controllers.samplestore import ISampleStore
+        from mxdc.engines.rastering import IRasterCollector
+
+        self.microscope = globalRegistry.lookup([], IMicroscope)
+        self.sample_store = globalRegistry.lookup([], ISampleStore)
+        self.collector = globalRegistry.lookup([], IRasterCollector)
+
         self.method = self.methods[method]
 
     def start(self):
@@ -69,10 +78,32 @@ class Centering(GObject.GObject):
         ymm = (cy - y) * mm_scale
         return xmm, ymm
 
+    def loop_face(self, down=False):
+        heights = []
+        self.beamline.goniometer.wait(start=False, stop=True)
+        cur = self.beamline.omega.get_position()
+        self.beamline.omega.wait(start=True, stop=False)
+        for angle in numpy.arange(0, 80, 20):
+            self.beamline.omega.move_to(angle+cur, wait=True)
+            img = self.beamline.sample_video.get_frame()
+            height = imgproc.mid_height(img)
+            heights.append((angle+cur, height))
+        values = numpy.array(heights)
+        best = values[numpy.argmax(values[:,1]), 0]
+        if down:
+            best -= 90.0
+        self.beamline.omega.move_to(best, wait=True)
+
+    def get_video_frame(self):
+        self.beamline.goniometer.wait(start=False, stop=True)
+        raw = self.beamline.sample_video.get_frame()
+        return cv2.cvtColor(numpy.asarray(raw), cv2.COLOR_RGB2BGR)
+
     def get_features(self):
         angle = self.beamline.omega.get_position()
-        img = self.beamline.sample_video.get_frame()
-        info = imgproc.get_loop_info(img, orientation=self.beamline.config['orientation'])
+        frame = self.get_video_frame()
+        scale = 256. / frame.shape[1]
+        info = imgproc.get_loop_features(frame, scale=scale, orientation=self.beamline.config['orientation'])
         return angle, info
 
     def run(self):
@@ -88,131 +119,118 @@ class Centering(GObject.GObject):
                 GObject.idle_add(self.emit, 'error', str(e))
             else:
                 GObject.idle_add(self.emit, 'done')
-        logger.info('Centering Done in {:0.1f} seconds [{:0.2f}]'.format(time.time() - start_time, self.score))
+        logger.info('Centering Done in {:0.1f} seconds [Reliability={:0.0f}%]'.format(time.time() - start_time, 100*self.score))
 
     def center_loop(self):
         self.beamline.sample_frontlight.set_off()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
-        self.beamline.sample_backlight.set(100)
-        self.beamline.sample_video.zoom(low_zoom)
-        time.sleep(1)
-        angle, info = self.get_features()
-        if not 'x' in info or not 'y' in info:
-            logger.warning('No sample found, homing centering stage!')
-            self.beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
-        widths = []
+        self.beamline.sample_backlight.set(15)
+
         scores = []
-        for j in range(2):
-            if j == 1:
-                self.beamline.sample_video.zoom(med_zoom)
-                time.sleep(1)
-            for i in range(3):
-                self.beamline.sample_stage.wait()
-                self.beamline.omega.move_by(90, wait=True)
+        # Find tip of loop at low and high zoom
+        low_trials, med_trials = 3, 2
+        max_trials = low_trials + med_trials
+        trial_count = 0
+        for zoom_level, trials in [(low_zoom, low_trials), (med_zoom, med_trials)]:
+            self.beamline.sample_video.zoom(zoom_level)
+            self.beamline.goniometer.wait(start=False, stop=True)
+            for i in range(trials):
+                trial_count += 1
                 angle, info = self.get_features()
-
-                if 'x' in info and 'y' in info:
-                    xmm, ymm = self.screen_to_mm(info['x'], info['y'])
-                    if not self.beamline.sample_stage.is_busy():
-                        self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
-                    widths.append((angle, info['width'], info['height']))
-                    scores.append(1.0)
+                scores.append(info.get('score', 0.0))
+                if info['score'] == 0.0:
+                    logger.warning('Loop not found in field-of-view')
                 else:
-                    scores.append(0.5 if 'x' in info or 'y' in info else 0.0)
-                logger.debug('Centering: {}'.format(info))
-        if widths:
-            sizes = numpy.array(widths)
-            best_angle =  sizes[:,2][sizes[:,2].argmax()]
-            self.beamline.omega.move_to(best_angle, wait=True)
+                    x, y = info['x'], info['y']
+                    logger.debug('... tip found at {}, {}'.format(x, y))
+                    xmm, ymm = self.screen_to_mm(x, y)
+                    self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                    logger.warning('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
+                # final 90 rotation not needed
+                if trial_count < max_trials:
+                    self.beamline.omega.move_by(90, wait=True)
+
+        # Center in loop on loop face
+        self.loop_face()
         angle, info = self.get_features()
-        loop_x = info.get('loop-x', info.get('x'))
-        loop_y = info.get('loop-y', info.get('y'))
-        if loop_x and loop_y:
-            xmm, ymm = self.screen_to_mm(loop_x, loop_y)
-            if not self.beamline.sample_stage.is_busy():
-                self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
-
+        if info['score'] == 0.0:
+            logger.error('Sample not found in field-of-view')
+        else:
+            xmm, ymm = self.screen_to_mm(info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y')))
+            self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+            logger.warning('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+        scores.append(info.get('score', 0.0))
         self.score = numpy.mean(scores)
 
     def center_crystal(self):
         self.center_loop()
-        loop_score = self.score
 
     def center_diffraction(self):
-
-        from mxdc.controllers.microscope import IMicroscope
-        from mxdc.controllers.samplestore import ISampleStore
-        from mxdc.engines.rastering import IRasterCollector
-
-        current =  str(uuid.uuid4())
-
-        microscope = globalRegistry.lookup([], IMicroscope)
-        sample_store = globalRegistry.lookup([], ISampleStore)
-        collector = globalRegistry.lookup([], IRasterCollector)
-
         self.center_loop()
+        scores = []
+        if self.score < 0.5:
+            logger.error('Loop-centering failed, aborting!')
+            return
 
-        angle, info = self.get_features()
-        if 'loop-x' in info and 'loop-y' in info:
-            half_height = info['height']/(2*numpy.sqrt(2))
-            xmm_s, ymm_s = self.screen_to_mm(info['loop-x'], info['loop-y'] - half_height)
-            xmm_e, ymm_e = self.screen_to_mm(info['loop-x'], info['loop-y'] + half_height)
+        scores.append(self.score)
 
-            step_size = (self.beamline.aperture.get()*1e-3)*2**-0.5
-            nY = (ymm_s - ymm_e)/step_size
-            xmm = numpy.linspace(xmm_s, xmm_e, nY)
-            ymm = numpy.linspace(ymm_s, ymm_e, nY)
+        for step in ['face', 'edge']:
+            logger.info('Performing raster scan on {}'.format(step))
+            raster_params = {}
+            self.beamline.goniometer.wait(start=False)
+            if step == 'edge':
+                self.beamline.omega.move_by(90, wait=True)
 
-            origin = self.beamline.sample_stage.get_xyz()
-            ox, oy, oz = origin
-            angle = self.beamline.omega.get_position()
-            gx, gy, gz = self.beamline.sample_stage.xvw_to_xyz(-xmm, -ymm, numpy.radians(angle))
-            grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
-
-            if nY <=1:
-                logger.warning('No sample found, diffraction centering not done!')
-                return
-
-            params = {
-                "origin": origin,
-                "angle": angle,
-                "scale": 1,
-                "exposure": 1.0,
+            angle, info = self.get_features()
+            if step == 'face':
+                # close polygon
+                if info['points'][0] != info['points'][-1]:
+                    info['points'].append(info['points'][0])
+                points = info['points']
+            else:
+                # no horizontal centering for edge, use camera center
+                points = [
+                    (info['center-x'], info['loop-y'] - info['loop-size']),
+                    (info['center-x'], info['loop-y'] + info['loop-size']),
+                    (info['center-x'], info['loop-y'] - info['loop-size']),
+                ]
+            grid_info = self.microscope.calc_polygon_grid(points, grow=0.25, scaled=False)
+            GObject.idle_add(self.microscope.configure_grid, grid_info)
+            raster_params.update(grid_info['grid_params'])
+            raster_params.update({
+                "exposure": 0.5,
                 "resolution": self.beamline.maxres.get_position(),
                 "energy": self.beamline.energy.get_position(),
                 "distance": self.beamline.distance.get_position(),
                 "attenuation": self.beamline.attenuator.get(),
                 "delta": RASTER_DELTA,
-                "uuid":  current,
+                "uuid": str(uuid.uuid4()),
                 "name": datetime.now().strftime('%y%m%d-%H%M'),
-                "activity": "centering",
-            }
-            params = datatools.update_for_sample(params, sample_store.get_current())
-            microscope.props.grid_params = params
-            microscope.props.grid_xyz = grid_xyz
+                "activity": "raster",
+            })
+            # 2D grid on face
+            logger.info('Finding best diffraction spot in grid')
+            print(raster_params)
 
-            collector.configure(grid_xyz, params)
+            raster_params = datatools.update_for_sample(raster_params, self.sample_store.get_current())
+            grid = grid_info['grid_xyz']
+            self.collector.configure(grid, raster_params)
+            self.collector.run()
 
-            GObject.idle_add(collector.emit, 'started')
-            collector.acquire()
-            GObject.idle_add(collector.emit, 'done')
-
-            self.beamline.fast_shutter.close()
-            self.beamline.detector_cover.close()
-
-            scores = numpy.array([
-                (index, misc.frame_score(info)) for index, info in sorted(collector.results.items())
+            grid_scores = numpy.array([
+                (index, misc.frame_score(report)) for index, report in sorted(self.collector.results.items())
             ])
 
-            best = scores[:,1].argmax()
-            index = int(scores[best,0])
-            point = grid_xyz[index]
+            best = grid_scores[:,1].argmax()
+            index = int(grid_scores[best,0])
+            point = grid[index]
 
-            self.beamline.sample_stage.move_xyz(point[0], point[1], point[2])
-            self.score = scores[best, 1]
-        else:
-            logger.warning('No sample found, diffraction centering not done!')
+            self.beamline.sample_stage.move_xyz(point[0], point[1], point[2], wait=True)
+            scores.append(grid_scores[best, 1])
+
+
+        self.score = numpy.mean(scores)
 
     def center_capillary(self):
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
@@ -287,124 +305,3 @@ def get_current_bkg():
     beamline.sample_stage.move_xyz(start_x, start_y, start_z)
     return bkg
 
-
-
-def center_crystal():
-    """More precise auto-centering of the crystal using the XREC package.
-
-    Kwargs:
-        - `pre_align` (bool): Activates fast loop alignment. Default True.
-
-    Returns:
-        A dictionary. With fields TARGET_ANGLE, RADIUS, Y_CENTRE, X_CENTRE,
-        PRECENTRING, RELIABILITY, corresponding to the XREC output. All fields are
-        integers. If XREC fails,  only the RELIABILITY field will be present,
-        with a value of -99. (See the XREC 3.0 Manual).
-    """
-    try:
-        beamline = globalRegistry.lookup([], IBeamline)
-    except:
-        logger.warning('No registered beamline found')
-        return {'RELIABILITY': -99}
-
-    # set lighting and zoom
-    beamline.sample_frontlight.set_off()
-    backlt = beamline.sample_backlight.get()
-    frontlt = beamline.sample_frontlight.get()
-    beamline.sample_video.zoom(CENTERING_ZOOM)
-    beamline.sample_backlight.set(beamline.config.get('centering_backlight', _CENTERING_BLIGHT))
-    # beamline.sample_frontlight.set(_CENTERING_FLIGHT)
-
-    # get images
-    # determine direction based on current omega
-    bkg_img = get_current_bkg()
-    angle = beamline.omega.get_position()
-    if angle > 270:
-        direction = -1.0
-    else:
-        direction = 1.0
-
-    prefix = get_short_uuid()
-    directory = tempfile.mkdtemp(prefix='centering')
-    angles = [angle]
-    STEPS = _MAX_TRIES
-    ANGLE_STEP = 360.0 / STEPS
-    count = 1
-    while count < STEPS:
-        count += 1
-        angle = (angle + (direction * ANGLE_STEP)) % 360
-        angles.append(angle)
-    imglist = take_sample_snapshots(prefix, directory, angles, decorate=False)
-
-    # determine zoom level to select appropriate background image
-    back_filename = os.path.join(directory, "%s-bg.png" % prefix)
-    bkg_img.save(back_filename)
-
-    cx, cy = map(lambda x: x//2, beamline.sample_video.size)
-
-    # create XREC input
-    infile_name = os.path.join(directory, '%s.inp' % prefix)
-    outfile_name = os.path.join(directory, '%s.out' % prefix)
-    infile = open(infile_name, 'w')
-    in_data = 'LOOP_POSITION  %s\n' % beamline.config['orientation']
-    in_data += 'NUMBER_OF_IMAGES 8 \n'
-    in_data += 'CENTER_COORD %d\n' % (cy)
-    in_data += 'BORDER 4\n'
-    if os.path.exists(back_filename):
-        in_data += 'BACK %s\n' % (back_filename)
-        # in_data+= 'PREALIGN\n'
-    in_data += 'DATA_START\n'
-    for angle, img in imglist:
-        in_data += '%d  %s \n' % (angle, img)
-    in_data += 'DATA_END\n'
-    infile.write(in_data)
-    infile.close()
-
-    # execute XREC
-    try:
-        sts, _ = commands.getstatusoutput('xrec %s %s' % (infile_name, outfile_name))
-        if sts != 0:
-            return {'RELIABILITY': -99}
-        # read results and analyze it
-        outfile = open(outfile_name)
-        data = outfile.readlines()
-        outfile.close()
-    except:
-        logger.error('XREC cound not be executed')
-        return {'RELIABILITY': -99}
-
-    results = {'RELIABILITY': -99}
-
-    for line in data:
-        vals = line.split()
-        results[vals[0]] = int(vals[1])
-
-    # verify integrity of results
-    for key in ['TARGET_ANGLE', 'Y_CENTRE', 'X_CENTRE', 'RADIUS']:
-        if key not in results:
-            logger.info('Centering failed.')
-            return results
-
-    # calculate motor positions and move
-    cx, cy = map(lambda x:x*0.5, beamline.sample_video.size)
-    beamline.omega.move_to(results['TARGET_ANGLE'] % 360.0, wait=True)
-    xmm = ymm = 0.0
-    if results['Y_CENTRE'] != -1:
-        x = results['Y_CENTRE']
-        xmm = (cx - x) * beamline.sample_video.resolution
-    if results['X_CENTRE'] != -1:
-        y = results['X_CENTRE'] - results['RADIUS']
-        ymm = (cy - y) * beamline.sample_video.resolution
-        if int(beamline.config['orientation']) != 2:
-            ymm = -ymm
-    beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
-
-    beamline.sample_frontlight.set_on()
-    beamline.sample_backlight.set(backlt)
-    beamline.sample_frontlight.set(frontlt)
-
-    # cleanup
-    shutil.rmtree(directory)
-
-    logger.info('Centering reliability is %d%%.' % results['RELIABILITY'])
-    return results

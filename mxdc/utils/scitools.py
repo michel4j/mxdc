@@ -198,6 +198,25 @@ def find_peaks(x, y, width=9, sensitivity=0.01, smooth=True):
     return peaks
 
 
+def find_valleys(x, y, width=9, sensitivity=0.01, smooth=True):
+    hw = max(width // 3, 2)
+    width += (width%2) + 1
+    ys = smooth_data(y, times=4, window=width) if smooth else y
+    yfunc = interpolate.interp1d(x, ys, bounds_error=False, fill_value=0.0)
+    yp = signal.savgol_filter(ys, width, 1, deriv=1)
+    peak_str = numpy.array([False]*hw + [True]*hw).tostring()
+    data_str = (yp > 0.0).tostring()
+    offset = hw - 1
+
+    def get_peak(pos):
+        return x[pos], yfunc(pos)
+
+    peak_positions = [get_peak(m.start() + offset) for m in re.finditer(peak_str, data_str)]
+    ymax = max(ys)
+    peaks = [v for v in peak_positions]
+    return peaks
+
+
 def find_peaks_y(y, width=11, sensitivity=0.01, smooth=True):
     ys = smooth_data(y, times=4, window=width) if smooth else y
     yfunc = interpolate.interp1d(numpy.arange(len(ys)), ys)

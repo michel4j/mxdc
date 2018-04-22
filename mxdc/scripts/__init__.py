@@ -8,12 +8,11 @@ class SetMountMode(Script):
         with self.beamline.lock:
             safe_distance = self.beamline.config['safe_distance']
             if self.beamline.detector_z.get_position() < safe_distance:
-                 self.beamline.detector_z.move_to(safe_distance)
+                self.beamline.detector_z.move_to(safe_distance)
 
             self.beamline.goniometer.set_mode('MOUNTING', wait=True)
             self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=False)
             self.beamline.cryojet.nozzle.open()
-
 
 
 class SetCenteringMode(Script):
@@ -26,19 +25,13 @@ class SetCenteringMode(Script):
 
             # needed by 08ID
             if self.beamline.beamstop_z.get_position() < default_beamstop:
-                self.beamline.beamstop_z.move_to(default_beamstop, wait=True)
-
+                self.beamline.beamstop_z.move_to(default_beamstop)
 
             if self.beamline.distance.target_state:
                 restore_distance = self.beamline.distance.target_state[1]
                 if restore_distance and restore_distance < self.beamline.detector_z.get_position():
                     self.beamline.detector_z.move_to(restore_distance, wait=False)
             self.beamline.goniometer.set_mode('CENTERING', wait=True)
-
-    def on_complete(self, *args, **kwargs):
-        default_beamstop = self.beamline.config['default_beamstop']
-        self.beamline.goniometer.wait(start=False, stop=True, timeout=20)
-        self.beamline.beamstop_z.move_to(default_beamstop, wait=True)
 
 
 class SetCollectMode(Script):
@@ -107,6 +100,7 @@ class DeiceGonio(Script):
             self.beamline.deicer.off()
             self.beamline.goniometer.set_mode('MOUNTING', wait=True)
         return
+
 
 __all__ = [
     'RestoreBeam', 'OptimizeBeam', 'SetFreezeMode', 'SetBeamMode',

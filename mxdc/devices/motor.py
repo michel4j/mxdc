@@ -47,12 +47,12 @@ class MotorBase(BaseDevice):
     def __init__(self, name):
         super(MotorBase, self).__init__()
         self.name = name
-        self._moving = False
-        self._command_sent = False
-        self._starting_flag = False
-        self._target_pos = 0
-        self._prev_target = None
-        self._motor_type = 'basic'
+        self.moving = False
+        self.command_active = False
+        self.starting = False
+        self.target_position = 0
+        self.previous_position = None
+        self.motor_type = 'basic'
         self.units = ''
         self._move_active_value = 1
         self._disabled_value = 0
@@ -60,13 +60,13 @@ class MotorBase(BaseDevice):
         self.default_precision = 2
 
     def do_starting(self):
-        self._starting_flag = True
+        self.starting = True
 
     def do_done(self):
-        self._starting_flag = False
+        self.starting = False
 
     def do_busy(self, state):
-        if self._starting_flag and not state:
+        if self.starting and not state:
             self.set_state(done=None)
 
     def _signal_change(self, obj, value):
@@ -75,20 +75,20 @@ class MotorBase(BaseDevice):
         self.set_state(changed=self.get_position())
 
     def _signal_target(self, obj, value):
-        self.set_state(target=(self._prev_target, value))
-        self._prev_target = value
+        self.set_state(target=(self.previous_position, value))
+        self.previous_position = value
 
     def _signal_move(self, obj, state):
         if state == self._move_active_value:
-            self._moving = True
-            if self._command_sent:
+            self.moving = True
+            if self.command_active:
                 self.set_state(starting=None)
-                self._command_sent = False
+                self.command_active = False
         else:
-            self._moving = False
+            self.moving = False
 
-        self.set_state(busy=self._moving)
-        if not self._moving:
+        self.set_state(busy=self.moving)
+        if not self.moving:
             logger.debug("(%s) stopped at %f" % (self.name, self.get_position()))
 
     def _on_calib_changed(self, obj, cal):
@@ -100,8 +100,70 @@ class MotorBase(BaseDevice):
     def _signal_enable(self, obj, val):
         self.set_state(enabled=(val != self._disabled_value))
 
-    def configure(self, **kwargs):
-        pass
+    def get_precision(self):
+        return self.default_precision
+
+    def has_reached(self, value):
+        current = self.get_position()
+        precision = self.get_precision()
+        if self.units == 'deg':
+            value = value % 360.0
+            current = current % 360.0
+        return abs(round(current - value, precision)) <= 10 ** -precision
+
+    def wait_start(self, timeout=10, poll=0.01):
+        if self.command_active and not self.busy_state:
+            logger.debug('Waiting for {} to start '.format(self.name))
+            while self.command_active and not self.busy_state and timeout > 0:
+                timeout -= poll
+                time.sleep(poll)
+                if self.has_reached(self.target_position):
+                    self.command_active = False
+                    logger.debug('{} already at {:g}'.format(self.name, self.target_position))
+            if timeout <= 0:
+                logger.warning('({}) Timed out. Did not move after {:g} sec.'.format(self.name, timeout))
+                return False
+        return True
+
+    def wait_stop(self, target=None, timeout=120, poll=0.01):
+        if target is not None:
+            logger.debug('Waiting for {} to reach {:g}.'.format(self.name, target))
+            while (self.busy_state or not self.has_reached(target)) and timeout > 0:
+                timeout -= poll
+                time.sleep(poll)
+
+            if timeout <= 0:
+                logger.warning(
+                    '({}) Timed-out. Did not reach {:g} after {:g} sec.'.format(
+                        self.name, self.target_position, timeout)
+                )
+                return False
+        else:
+            logger.debug('Waiting for {} to stop '.format(self.name))
+            while self.busy_state and timeout > 0:
+                timeout -= poll
+                time.sleep(poll)
+            if timeout <= 0:
+                logger.warning(
+                    '({}) Timed-out. Did not stop moving after {:d} sec.'.format(self.name, timeout)
+                )
+                return False
+        return True
+
+    def wait(self, start=True, stop=True):
+        """Wait for the motor busy state to change.
+
+        Kwargs:
+            - `start` (bool): Wait for the motor to start moving.
+            - `stop` (bool): Wait for the motor to stop moving.
+        """
+        success = True
+        target = self.target_position if self.command_active else None
+        if start:
+            success &= self.wait_start()
+        if stop:
+            success &= self.wait_stop()
+        return success
 
 
 class SimMotor(MotorBase):
@@ -116,7 +178,7 @@ class SimMotor(MotorBase):
         self._step_time = .001  # 1000 steps per second
         self._stopped = False
         self._enabled = True
-        self._command_sent = False
+        self.command_active = False
         self._lock = Lock()
         self._active = active
         self._health = health
@@ -145,7 +207,7 @@ class SimMotor(MotorBase):
     @async_call
     def _move_action(self, target):
         self._stopped = False
-        self._command_sent = True
+        self.command_active = True
         with self._lock:
             self.set_state(busy=True)
             self.set_state(target=(self._target, target))
@@ -153,7 +215,7 @@ class SimMotor(MotorBase):
             _num_steps = int(abs(self._position - target) / self._step_size)
             targets = numpy.linspace(self._position, target, _num_steps)
 
-            self._command_sent = False
+            self.command_active = False
             for pos in targets:
                 self._position = pos
                 self.set_state(changed=self._position, time=time.time())
@@ -174,21 +236,6 @@ class SimMotor(MotorBase):
     def move_by(self, pos, wait=False, **kwargs):
         self.configure(**kwargs)
         self.move_to(self._position + pos, wait)
-
-    def wait(self, start=True, stop=True):
-        poll = 0.005
-        timeout = 5.0
-        _orig_to = timeout
-        if start and self._command_sent and not self.busy_state:
-            while self._command_sent and not self.busy_state and timeout > 0:
-                timeout -= poll
-                time.sleep(poll)
-            if timeout <= 0:
-                logger.warning('(%s) Timed out. Did not move after %d sec.' % (self.name, _orig_to))
-                return False
-        if (stop and self.busy_state):
-            while self.busy_state:
-                time.sleep(poll)
 
     def stop(self):
         self._stopped = True
@@ -246,13 +293,13 @@ class Motor(MotorBase):
         self.units = pv_parts[-1]
         pv_root = ':'.join(pv_parts[:-1])
         self.pv_root = pv_root
-        self._motor_type = motor_type
+        self.motor_type = motor_type
 
         # initialize process variables based on motor dialog_type
-        if self._motor_type in ['vme', 'vmeenc']:
+        if self.motor_type in ['vme', 'vmeenc']:
             self.VAL = self.add_pv("%s" % (pv_name))
             self.DESC = self.add_pv("%s:desc" % (pv_root))
-            if self._motor_type == 'vme':
+            if self.motor_type == 'vme':
                 self.RBV = self.add_pv("%s:sp" % (pv_name), timed=True)
                 self.PREC = self.add_pv("%s:sp.PREC" % (pv_name))
             else:
@@ -267,7 +314,7 @@ class Motor(MotorBase):
             self.ENAB = self.CALIB
             self.CCW_LIM = self.add_pv("%s:ccw" % (pv_root))
             self.CW_LIM = self.add_pv("%s:cw" % (pv_root))
-        elif self._motor_type == 'cls':
+        elif self.motor_type == 'cls':
             self.VAL = self.add_pv("%s" % (pv_name))
             self.DESC = self.add_pv("%s:desc" % (pv_root))
             self.PREC = self.add_pv("%s:fbk.PREC" % (pv_name))
@@ -277,7 +324,7 @@ class Motor(MotorBase):
             self.STOP = self.add_pv("%s:emergStop" % pv_root)
             self.CALIB = self.add_pv("%s:isCalib" % (pv_root))
             self.ENAB = self.CALIB
-        elif self._motor_type == 'pseudo':
+        elif self.motor_type == 'pseudo':
             self.VAL = self.add_pv("%s" % (pv_name))
             self.DESC = self.add_pv("%s:desc" % (pv_root))
             self._move_active_value = 1
@@ -290,7 +337,7 @@ class Motor(MotorBase):
             self.LOG = self.add_pv("%s:log" % pv_root)
             self.LOG.connect('changed', self._on_log)
             self.ENAB = self.add_pv("%s:enabled" % (pv_root))
-        elif self._motor_type == 'oldpseudo':
+        elif self.motor_type == 'oldpseudo':
             self.VAL = self.add_pv("%s" % (pv_name))
             self.DESC = self.add_pv("%s:desc" % (pv_root))
             self._move_active_value = 0
@@ -303,7 +350,7 @@ class Motor(MotorBase):
             self.LOG = self.add_pv("%s:log" % pv_root)
             self.LOG.connect('changed', self._on_log)
             self.ENAB = self.add_pv("%s:enabled" % (pv_root))
-        elif self._motor_type == 'aps':
+        elif self.motor_type == 'aps':
             self.DESC = self.add_pv("%s.DESC" % pv_name)
             self.VAL = self.add_pv('%s.VAL' % pv_name)
             self.PREC = self.add_pv("%s.PREC" % pv_name)
@@ -331,19 +378,15 @@ class Motor(MotorBase):
         self.name = val
 
     def _on_log(self, obj, message):
-        msg = "(%s) %s" % (self.name, message)
+        msg = "({}) {}".format(self.name, message)
         logger.debug(msg)
 
+    def get_precision(self):
+        return self.PREC.get() or self.default_precision
+
     def get_position(self):
-        """Obtain the current position of the motor in devices units.
-        
-        Returns:
-            float.
-        """
-        try:
-            val = self.RBV.get()
-        except ca.ChannelAccessError:
-            val = 0.0001
+        val = self.RBV.get()
+        val = 0.0001 if val is None else val
         return val
 
     def move_to(self, pos, wait=False, force=False, **kwargs):
@@ -365,24 +408,21 @@ class Motor(MotorBase):
         # Do not move if motor state is not sane.
         sanity, msg = self.health_state
         if sanity != 0:
-            logger.warning("(%s) not sane. Reason: '%s'. Move canceled!" % (self.name, msg))
+            logger.warning("({}) not sane. Reason: '{}'. Move cancelled!".format(self.name, msg))
             return
 
         # Do not move if requested position is within precision error
         # from current position.
-        prec = self.PREC.get()
-        if prec == 0: prec = self.default_precision
-        _pos_format = "%%0.%df" % prec
-        _pos_to = _pos_format % pos
-        if misc.same_value(pos, self.get_position(), prec, self.units == 'deg') and not force:
-            logger.debug("(%s) is already at %s" % (self.name, _pos_to))
+        if self.has_reached(pos):
+            logger.debug("({}) is already at {:g}. Move Cancelled!".format(self.name, pos))
             return
 
-        self._command_sent = True
-        self._target_pos = pos
-        self.VAL.set(pos)
-        _pos_from = _pos_format % self.get_position()
-        logger.debug("(%s) moving from %s to %s" % (self.name, _pos_from, _pos_to))
+        self.command_active = True
+        self.target_position = pos
+        current_position = self.get_position()
+        self.VAL.put(self.target_position)
+
+        logger.debug("({}) moving from {:g} to {:g}".format(self.name, current_position, self.target_position))
 
         if wait:
             self.wait()
@@ -407,38 +447,7 @@ class Motor(MotorBase):
 
     def stop(self):
         """Stop the motor from moving."""
-        self.STOP.set(1)
-
-    def wait(self, start=True, stop=True):
-        """Wait for the motor busy state to change. 
-        
-        Kwargs:
-            - `start` (bool): Wait for the motor to start moving.
-            - `stop` (bool): Wait for the motor to stop moving.       
-        """
-        poll = 0.05
-        timeout = 5.0
-
-        # initialize precision
-        prec = self.PREC.get()
-        if prec == 0: prec = self.default_precision
-        _pos_format = "%%0.%df" % prec
-
-        if (start and self._command_sent and not self._moving):
-            while self._command_sent and not self._moving and timeout > 0:
-                timeout -= poll
-                time.sleep(poll)
-                if misc.same_value(self.get_position(), self._target_pos, prec, self.units == 'deg'):
-                    self._command_sent = False
-                    logger.debug('%s already at %g' % (self.name, self._target_pos))
-            if timeout <= 0:
-                tgt = _pos_format % self._target_pos
-                cur = _pos_format % self.get_position()
-                logger.warning('%s timed out moving to %s [currently %s].' % (self.name, tgt, cur))
-                return False
-        if (stop and self._moving):
-            while self._moving:
-                time.sleep(poll)
+        self.STOP.put(1)
 
     # Added for Save/Restore                             
     def get_settings(self):
@@ -524,7 +533,6 @@ class EnergyMotor(Motor):
         self.LOG = self.add_pv("%s:stsLog" % pv1)
         self.ENAB = self.add_pv('{}:enBraggChg'.format(pv1)) #self.CALIB
 
-
         # connect monitors
         self._rbid = self.RBV.connect('changed', self._signal_change)
         self._vid = self.VAL.connect('changed', self._signal_target)
@@ -570,6 +578,7 @@ class BraggEnergyMotor(Motor):
             self.RBV.connect('changed', self._signal_change)
         GObject.source_remove(self._vid)  # Not needed for Bragg
         self.name = 'Bragg Energy'
+        self.units = 'KeV'
         self._motor_type = 'vmeenc'
         self.mono_unit_cell = mono_unit_cell
 
@@ -588,25 +597,23 @@ class BraggEnergyMotor(Motor):
         # Do not move if motor state is not sane.
         sanity, msg = self.health_state
         if sanity != 0:
-            logger.warning("(%s) not sane. Reason: '%s'. Move canceled!" % (self.name, msg))
+            logger.warning("({}) not sane. Reason: '{}'. Move cancelled!".format(self.name, msg))
             return
 
         # Do not move if requested position is within precision error
         # from current position.
-        prec = self.PREC.get()
-        if prec == 0: prec = self.default_precision
-        _pos_format = "%%0.%df" % prec
-        _pos_to = _pos_format % pos
-        if misc.same_value(pos, self.get_position(), prec, self.units == 'deg') and not force:
-            logger.debug("(%s) is already at %s" % (self.name, _pos_to))
+        if self.has_reached(pos):
+            logger.debug("({}) is already at {:g}. Move Cancelled!".format(self.name, pos))
             return
 
-        deg_target = converter.energy_to_bragg(pos, unit_cell=self.mono_unit_cell)
-        self._command_sent = True
-        self._target_pos = pos
-        self.VAL.put(deg_target)
-        self._signal_target(None, pos)
-        logger.info("(%s) moving to %f" % (self.name, pos))
+        self.command_active = True
+        self.target_position = pos
+        bragg_target = converter.energy_to_bragg(self.target_position, unit_cell=self.mono_unit_cell)
+        current_position = self.get_position()
+        self.VAL.put(bragg_target)
+        self._signal_target(None, self.target_position)
+
+        logger.debug("({}) moving from {:g} to {:g}".format(self.name, current_position, self.target_position))
 
         if wait:
             self.wait()

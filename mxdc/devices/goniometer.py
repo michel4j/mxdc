@@ -263,8 +263,9 @@ class MD2Gonio(Goniometer):
 
         target_mode = mode if mode != self.ModeType.SCANNING else self.ModeType.COLLECT
 
-        # if going from centering to collect, save centering position
-        if target_mode == self.ModeType.COLLECT and self.mode == self.ModeType.CENTERING:
+        # if going from centering/transfer to any other mode , save centering position
+        save_modes = [self.ModeType.CENTERING, self.ModeType.MOUNTING]
+        if self.mode in save_modes and target_mode not in save_modes:
             self.save_pos_cmd.put(self.NULL_VALUE)
 
         self.mode_cmd.put(target_mode.value)

@@ -139,13 +139,10 @@ class MXBeamline(object):
                 self.logger.debug('Setting up services: %s' % (srv_name))
 
         # Create and register other/compound devices
-        if 'sample_y' in self.registry:
-            self.registry['sample_stage'] = stages.Sample2Stage(self.sample_x, self.sample_y, self.omega)
-        else:
-            self.registry['sample_stage'] = stages.Sample3Stage(
-                self.sample_x, self.sample_y1, self.sample_y2, self.omega,
-                linked=self.config.get('linked_sample_stage', False)
-            )
+        self.registry['sample_stage'] = stages.SampleStage(
+            self.sample_x, self.sample_y1, self.sample_y2, self.omega,
+            linked=False
+        )
         if 'camera_scale' in self.registry:
             self.registry['sample_video'] = video.ZoomableCamera(self.sample_camera, self.sample_zoom, self.camera_scale)
         else:
