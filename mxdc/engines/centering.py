@@ -195,7 +195,7 @@ class Centering(GObject.GObject):
                     (info['center-x'], info['loop-y'] + info['loop-size']),
                     (info['center-x'], info['loop-y'] - info['loop-size']),
                 ]
-            grid_info = self.microscope.calc_polygon_grid(points, grow=0.25, scaled=False)
+            grid_info = self.microscope.calc_polygon_grid(points, grow=0.5, scaled=False)
             GObject.idle_add(self.microscope.configure_grid, grid_info)
             raster_params.update(grid_info['grid_params'])
             raster_params.update({
@@ -211,8 +211,6 @@ class Centering(GObject.GObject):
             })
             # 2D grid on face
             logger.info('Finding best diffraction spot in grid')
-            print(raster_params)
-
             raster_params = datatools.update_for_sample(raster_params, self.sample_store.get_current())
             grid = grid_info['grid_xyz']
             self.collector.configure(grid, raster_params)

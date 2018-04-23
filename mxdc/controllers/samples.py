@@ -20,7 +20,11 @@ class SamplesController(GObject.GObject):
         if hasattr(self.beamline, 'humidifier'):
             self.humidity_controller = humidity.HumidityController(self.widget)
         self.raster_tool = rastering.RasterController(self.widget.raster_list, self.widget)
+        self.beamline.automounter.connect('notify::sample', self.on_sample_mounted)
         self.setup()
+
+    def on_sample_mounted(self, *args, **kwargs):
+        self.microscope.clear_objects()
 
     def setup(self):
         # create and pack devices into settings frame
@@ -93,6 +97,7 @@ class HutchSamplesController(GObject.GObject):
         return None
 
     def on_sample_mounted(self, *args, **kwargs):
+        self.microscope.clear_objects()
         if self.beamline.automounter.sample and self.beamline.is_admin():
             self.widget.samples_cur_sample.set_text('...')
             port =  self.beamline.automounter.sample.get('port')
