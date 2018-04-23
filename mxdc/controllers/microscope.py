@@ -339,12 +339,12 @@ class Microscope(GObject.GObject):
             self.change_tool()
 
     def bbox_grid(self, bbox):
-        step_size = 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
+        step_size = 0.75*1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
         grid_size = bbox[1] - bbox[0]
 
         nX, nY = grid_size / step_size
-        nX = numpy.ceil(nX)
-        nY = numpy.ceil(numpy.sqrt(2) * nY)
+        nX = max(3, numpy.ceil(nX))
+        nY = max(3, numpy.ceil(numpy.sqrt(2) * nY))
 
         xi = numpy.linspace(bbox[0][0], bbox[1][0], nX)
         yi = numpy.linspace(bbox[0][1], bbox[1][1], nY)
@@ -385,13 +385,13 @@ class Microscope(GObject.GObject):
                 self.widget.microscope_grid_btn.set_active(False)
 
     def calc_polygon_grid(self, polygon, grow=1, scaled=True):
-        step_size = 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
+        step_size = 0.75*1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
         factor = 1.0 if scaled else self.video.scale
         if len(polygon) == 3:
             points = numpy.array(polygon[:-1]) * factor
             grid_size = points[1] - points[0]
             shape = 1 + grid_size / step_size
-            n = numpy.ceil(numpy.sqrt((shape ** 2).sum()))
+            n = max(3, numpy.ceil(numpy.sqrt((shape ** 2).sum())))
             x = numpy.linspace(points[0][0], points[1][0], n)
             y = numpy.linspace(points[0][1], points[1][1], n)
             grid = numpy.dstack((x, y, numpy.zeros_like(y)))[0]

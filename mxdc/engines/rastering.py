@@ -166,7 +166,7 @@ class RasterCollector(GObject.GObject):
             if self.stopped or self.paused: break
             self.beamline.detector.set_parameters(detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
-            self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 10)
+            self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 20)
             self.beamline.detector.save()
 
             self.count += 1
