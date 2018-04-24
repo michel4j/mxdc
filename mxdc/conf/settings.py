@@ -1,9 +1,11 @@
 import os
-from datetime import date, datetime
-import numpy
 import string
+from datetime import date, datetime
+
 import msgpack
-from mxdc.conf import CONFIGS, APP_CACHE_DIR, Settings, SettingKeys, PROPERTIES
+import numpy
+
+from mxdc.conf import CONFIGS, APP_CACHE_DIR, Settings, SettingSchema, PROPERTIES
 from mxdc.conf import load_cache, save_cache, clear_cache
 
 if not CONFIGS:
@@ -26,12 +28,15 @@ def get_configs():
 def keys_exist():
     return os.path.exists(_KEY_FILE)
 
+
 def show_release_notes():
     return not os.path.exists(_NOTES_VIEWED)
+
 
 def disable_release_notes():
     with open(_NOTES_VIEWED, 'w') as handle:
         handle.write(datetime.now().isoformat())
+
 
 def get_keys():
     from cryptography.hazmat.backends import default_backend
@@ -55,10 +60,12 @@ def get_keys():
             data = msgpack.load(handle)
     return data
 
+
 def save_keys(keys):
     if not keys_exist():
         with open(_KEY_FILE, 'wb') as handle:
             msgpack.dump(keys, handle)
+
 
 def get_session():
     realm = 'session'
@@ -68,7 +75,7 @@ def get_session():
     prev_date = datetime.strptime(prev_date_string, '%Y%m%d').date()
     if (today - prev_date).days > 5 or not 'session-key' in config:
         date_string = today.strftime('%Y%m%d')
-        token = ''.join(numpy.random.choice(list(string.digits+string.ascii_letters), size=8))
+        token = ''.join(numpy.random.choice(list(string.digits + string.ascii_letters), size=8))
         config['session-key'] = '{}-{}-{}'.format(PROPERTIES['name'].replace('-', ''), date_string, token)
         config['session-start'] = date_string
         clear_cache(False)  # clear the cache if new session
@@ -77,7 +84,7 @@ def get_session():
 
 
 def get_setting_properties(key):
-    setting = SettingKeys.get(key)
+    setting = SettingSchema.get_key(key)
     if not setting:
         return {}
     else:

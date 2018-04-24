@@ -3,6 +3,7 @@ import re
 import socket
 import threading
 import time
+import pickle
 import zlib
 from StringIO import StringIO
 from io import BytesIO
@@ -233,17 +234,20 @@ class JPGCamera(VideoSrc):
 class REDISCamera(VideoSrc):
     implements(ICamera)
 
-    def __init__(self, server, key, size=(768, 576), name='REDIS Camera'):
+    def __init__(self, server, mac, name='REDIS Camera'):
         VideoSrc.__init__(self, name, maxfps=15.0)
-        self.size = size
-        self._read_size = 48 * 1024
+
         self.store = redis.Redis(host=server, port=6379, db=0)
-        self.key = key
+        self.key = mac
         self.server = server
-        self._last_frame = time.time()
+        self.size = pickle.loads(self.store.get('{}:SIZE'.format(mac)))
         self.stream = None
         self.data = ''
+
         self._frame = None
+        self._last_frame = time.time()
+        self._read_size = 48 * 1024
+
         self.set_state(active=True)
         self.lock = threading.Lock()
 
@@ -252,7 +256,14 @@ class REDISCamera(VideoSrc):
 
     def get_frame_raw(self):
         with self.lock:
-            data = self.store.get(self.key)
+            data = self.store.get('{}:RAW'.format(self.key))
+            img = Image.frombytes('RGB', self.size, data, 'raw')
+            self._frame = img.transpose(Image.FLIP_LEFT_RIGHT)
+        return self._frame
+
+    def get_frame_jpg(self):
+        with self.lock:
+            data = self.store.get('{}:JPG'.format(self.key))
             self._frame = Image.open(StringIO(data))
             self.size = self._frame.size
         return self._frame
