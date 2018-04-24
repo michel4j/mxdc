@@ -22,6 +22,7 @@ APP_CACHE_DIR = ''
 CONFIGS = ''
 Settings = None
 SettingKeys = None
+SettingSchema = None
 PROPERTIES = None
 
 
@@ -72,9 +73,8 @@ def get_config_modules(config_dir, name=None):
     return None, {}
 
 
-
 def initialize(name=None, verbose=True):
-    global CONFIGS, Settings, SettingKeys, APP_CACHE_DIR, PROPERTIES
+    global CONFIGS, Settings, SettingSchema, SettingKeys, APP_CACHE_DIR, PROPERTIES
 
     app_config_dir = os.path.join(misc.get_project_home(), '.config', 'mxdc')
     if verbose:
@@ -88,10 +88,9 @@ def initialize(name=None, verbose=True):
             SHARE_DIR, Gio.SettingsSchemaSource.get_default(), False
         )
         schema = schema_source.lookup('org.mxdc', False)
-        SettingKeys = {
-            'directory-template': schema.get_key('directory-template')
-        }
-        Settings = Gio.Settings.new_full(schema, None, None)
+
+        SettingSchema = schema
+        Settings = Gio.Settings.new_full(SettingSchema, None, None)
 
         # get config modules
         CONFIGS, PROPERTIES = get_config_modules(CONFIG_DIR, name=name)

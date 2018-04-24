@@ -11,5 +11,14 @@
                 Available variables: {sample}, {group}, {container}, {position}, {port}, {date}, {activity}.
             </description>
         </key>
+        <key name='screening-method' type='s'>
+            <default>"AutoProcess"</default>
+            <summary>Screening Method</summary>
+            <description>
+                Analysis method for screening images. The default is 'AutoProcess'.
+
+                Allowed:   'AutoProcess', 'MOSFLM'.
+            </description>
+        </key>
     </schema>
 </schemalist>

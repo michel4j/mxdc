@@ -5,7 +5,7 @@ import re
 
 
 TEMPLATE_VARIABLES = {'sample', 'group', 'container', 'position', 'port', 'date', 'activity'}
-
+SCREENING_VARIABLES = {'autoprocess', 'mosflm'}
 
 class Setting(GObject.GObject):
     name = GObject.Property(type=str, default='')
@@ -14,13 +14,15 @@ class Setting(GObject.GObject):
     info = GObject.Property(type=object)
     value = GObject.Property(type=str, default='')
 
-    def __init__(self, key, icon, validator):
+    def __init__(self, key, icon, validator, kind='string'):
         super(Setting, self).__init__()
         self.props.icon = icon
         self.props.key = key
+        self.kind = kind
         self.props.name = key.replace('-', ' ').title()
         self.props.info = settings.get_setting_properties(key)
         self.validator = validator
+
         self.props.value = settings.get_string(key)
         settings.Settings.bind(key, self, 'value', 0)
 
@@ -59,13 +61,18 @@ def valid_template(txt):
     return bool(valid)
 
 
+def valid_screening(txt):
+    return txt.strip().lower() in SCREENING_VARIABLES
+
+
 class SettingsDialog(gui.BuilderMixin):
     gui_roots = {
         'data/settings': ['settings_dialog']
     }
 
     OPTIONS = [
-        ('directory-template', 'folder-template', valid_template)
+        ('directory-template', 'folder-template', valid_template),
+        ('screening-method', 'screening-method', valid_screening)
     ]
 
     def __init__(self, parent):

@@ -68,13 +68,7 @@ DEVICES = {
     'sample_zoom': motor.SimMotor('Sample Zoom', 2.0, speed=8),
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
     # 'sample_camera': SimCamera(),
-    # 'sample_camera': AxisCamera('V2E1608-400.clsi.ca', 1),
-    # 'sample_camera': AxisPTZCamera('ccd1608-301.clsi.ca'),
-    # 'sample_camera': MJPGCamera('http://opi2051-002.clsi.ca:9999/video.mjpg', size=(1360, 1024)),
-    # 'sample_camera': JPGCamera('http://opi2051-002.clsi.ca:9999/image.jpg', size=(1360, 1024)),
-    'sample_camera': video.AxisCamera('V2E1608-400', 1),
-
-    #'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', size=(1360, 1024), key='CAM1608:000F31031D82:JPG'),
+    'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82'),
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),

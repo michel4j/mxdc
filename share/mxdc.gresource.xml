@@ -37,5 +37,6 @@
         <file>data/units-sec.svg</file>
         <file>data/units-%.svg</file>
         <file>data/folder-template.svg</file>
+        <file>data/screening-method.svg</file>
     </gresource>
 </gresources>
