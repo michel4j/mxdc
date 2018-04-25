@@ -89,7 +89,7 @@ class Microscope(GObject.GObject):
         self.camera = self.beamline.sample_video
         self.centering = centering.Centering()
         self.setup()
-        self.video.set_overlay_func(self.overlay_function)
+
         globalRegistry.register([], IMicroscope, '', self)
         self.load_from_cache()
 
