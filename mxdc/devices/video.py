@@ -257,6 +257,9 @@ class REDISCamera(VideoSrc):
     def get_frame_raw(self):
         with self.lock:
             data = self.store.get('{}:RAW'.format(self.key))
+            while len(data) < self.size[0]*self.size[1]*3:
+                data = self.store.get('{}:RAW'.format(self.key))
+                time.sleep(0.002)
             img = Image.frombytes('RGB', self.size, data, 'raw')
             self._frame = img.transpose(Image.FLIP_LEFT_RIGHT)
         return self._frame
