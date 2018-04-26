@@ -252,7 +252,7 @@ class REDISCamera(VideoSrc):
         self.lock = threading.Lock()
 
     def get_frame(self):
-        return self.get_frame_raw()
+        return self.get_frame_jpg()
 
     def get_frame_raw(self):
         with self.lock:
@@ -310,8 +310,8 @@ class ZoomableCamera(object):
         self._camera.resolution = self._scale.get() or 0.0028
 
     def update_zoom(self, *args, **kwar):
-        scale = 768.0 / self._camera.size[0]
-        self._camera.resolution = scale * 3.6875e-3 * numpy.exp(-0.2527 * self._zoom.get_position())
+        scale = 1360. / self._camera.size[0]
+        self._camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
 
 
     def __getattr__(self, key):
