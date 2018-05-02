@@ -42,6 +42,10 @@ class VideoSrc(BaseDevice):
         self._stopped = True
         self._active = True
 
+    def configure(self, **kwargs):
+        """Set the Video Gain"""
+        pass
+
     def add_sink(self, sink):
         """Add a video sink.
 
@@ -234,6 +238,12 @@ class JPGCamera(VideoSrc):
 class REDISCamera(VideoSrc):
     implements(ICamera)
 
+    # Camera Attributes
+    ATTRS = {
+        'gain': 'GainRaw',
+        'exposure': 'ExposureTimeAbs'
+    }
+
     def __init__(self, server, mac, name='REDIS Camera'):
         VideoSrc.__init__(self, name, maxfps=15.0)
 
@@ -250,6 +260,12 @@ class REDISCamera(VideoSrc):
 
         self.set_state(active=True)
         self.lock = threading.Lock()
+
+    def configure(self, **kwargs):
+        for k, v in kwargs.items():
+            attr = self.ATTRS.get(k)
+            if not attr: continue
+            self.store.publish('{}:CFG:{}'.format(self.key, attr), pickle.dumps(v))
 
     def get_frame(self):
         return self.get_frame_jpg()
@@ -289,7 +305,7 @@ class ZoomableCamera(object):
     implements(IZoomableCamera)
 
     def __init__(self, camera, zoom_device, scale_device=None):
-        self._camera = camera
+        self.camera = camera
         self._zoom = IMotor(zoom_device)
         if scale_device:
             self._scale = scale_device
@@ -307,16 +323,15 @@ class ZoomableCamera(object):
         self._zoom.move_to(value)
 
     def update_resolution(self, *args, **kwar):
-        self._camera.resolution = self._scale.get() or 0.0028
+        self.camera.resolution = self._scale.get() or 0.0028
 
     def update_zoom(self, *args, **kwar):
-        scale = 1360. / self._camera.size[0]
-        self._camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
-
+        scale = 1360. / self.camera.size[0]
+        self.camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
 
     def __getattr__(self, key):
         try:
-            return getattr(self._camera, key)
+            return getattr(self.camera, key)
         except AttributeError:
             raise
 

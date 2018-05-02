@@ -485,6 +485,14 @@ class Microscope(GObject.GObject):
         else:
             self.change_tool(self.ToolState.DEFAULT)
 
+        if self.mode.name == 'BEAM':
+            self.widget.microscope_colorize_tbtn.set_active(True)
+            self.camera.configure(gain=17)
+        else:
+            self.widget.microscope_colorize_tbtn.set_active(False)
+            self.camera.configure(gain=3)
+
+
     def on_scripts_started(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(False)
 
