@@ -77,7 +77,7 @@ class SetupController(object):
         self.tuner_monitors = [
             common.DeviceMonitor(self.beamline.beam_tuner, self.widget.tuner_left_lbl),
             common.DeviceMonitor(
-                self.beamline.beam_tuner, self.widget.tuner_right_lbl, format='{:0.1f} %',
+                self.beamline.beam_tuner, self.widget.tuner_right_lbl, format='{:5.0f} %',
                 signal='percent', warning=90.0, error=80.0
             ),
             common.Tuner(
