@@ -99,16 +99,17 @@ class VideoWidget(Gtk.DrawingArea):
 
         if frame_ratio < video_ratio:
             width = frame_width
+            self.scale = float(width) / video_width
             height = int(round(width / video_ratio))
             self.voffset = (frame_height - height) // 2
             self.hoffset = 0
         else:
             height = frame_height
+            self.scale = float(height) / video_height
             width = int(round(video_ratio * height))
             self.hoffset = (frame_width - width) // 2
             self.voffset = 0
 
-        self.scale = float(width) / video_width
         self.display_width, self.display_height = width, height
         if event.width > 12:
             self.props.parent.set(0.5, 0.5, video_ratio, False)
