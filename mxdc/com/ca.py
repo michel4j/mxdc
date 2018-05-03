@@ -390,7 +390,6 @@ class PV(BasePV):
 
     def from_python(self, val):
         #convert enums if string is provided instead of short
-
         if isinstance(val, str) and self.type == DBR_ENUM:
             if not self.params:
                 self.params = self.get_parameters()
@@ -409,9 +408,10 @@ class PV(BasePV):
                 data = self.vtype(*[self.etype(val[i][:MAX_STRING_SIZE]) for i in range(self.count)])
         elif self.type == DBR_STRING:
             data = create_string_buffer(str(val)[:MAX_STRING_SIZE], MAX_STRING_SIZE)
+        elif self.type == DBR_CHAR and isinstance(val, int):
+            data = self.vtype(chr(val))
         else:
             data = self.vtype(val)
-
         return data
 
     def to_python(self, ca_value, ca_type):
@@ -465,10 +465,10 @@ class PV(BasePV):
         stat = libca.ca_state(self.chid)
         if stat != NEVER_CONNECTED:
             self.set_properties()
-            self.connected = CA_OP_CONN_UP
             libca.channel_registry.append(self.chid)
             if self.monitor == True:
                 self.add_monitor(self.on_change)
+            self.connected = CA_OP_CONN_UP
         else:
             self.defer_connection()
 
@@ -513,6 +513,7 @@ class PV(BasePV):
             self.set_state(active=True)
         else:
             self.set_state(active=False)
+
         return 0
 
     def add_monitor(self, callback):
