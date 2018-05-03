@@ -279,7 +279,7 @@ class MD2Gonio(Goniometer):
             self.set_state(message=message)
 
         if mode == self.ModeType.SCANNING:
-            self.fluor_cmd.put(1)
+            self.fluor_cmd.put(0)
 
     def on_state_changed(self, *args, **kwargs):
         state = self.state_fbk.get()
