@@ -92,7 +92,7 @@ DEVICES = {
     'automounter':  automounter.SAMAutoMounter('ROB16085B'),
     'humidifier': humidity.Humidifier('HC1608-01'),
     'attenuator': misc.Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
-    'mca_nozzle': misc.ToggleShutter('MD1608-05:FluoDetectorIsBack'),
+    'mca_nozzle': misc.ToggleShutter('MD1608-05:FluoDetectorIsBack', reversed=True),
     'mca': mca.XFlashMCA('XFD1608-501'),
     'multi_mca': mca.VortexMCA('dxp1608-004'),
     'deicer': misc.OnOffToggle('DIC1608-5-B10-01:spray:on'),
