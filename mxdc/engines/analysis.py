@@ -184,7 +184,7 @@ class Analyst(GObject.GObject):
         params = datatools.update_for_sample(params, sample, overwrite=False)
 
         try:
-            report = yield self.beamline.dps.analyse_frame(params['filename'], misc.get_project_name())
+            report = yield self.beamline.dps.analyse_frame(params['filename'], misc.get_project_name(), rastering=True)
         except Exception as e:
             logger.error('Raster analysis failed: {}'.format(str(e)))
             self.failed(e, params['uuid'], self.ResultType.RASTER)
