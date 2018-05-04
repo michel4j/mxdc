@@ -575,7 +575,7 @@ def ca_exception_handler(event):
     msg = "Channel Access Exception: `{}:{}` ({}: {})".format(
         name, libca.ca_message(event.stat), event.pFile, event.lineNo,
     )
-    logger.error(msg)
+    logger.debug(msg)
     return 0
 
 
