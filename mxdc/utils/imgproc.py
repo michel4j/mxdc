@@ -46,7 +46,7 @@ def xconv(x, max_x, dir='left'):
 
 def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
     raw = cv2.flip(orig, 1) if orientation != 'left' else orig
-    y_max, x_max = orig.shape
+    y_max, x_max = orig.shape[:2]
     frame = cv2.resize(raw, (0, 0), fx=scale, fy=scale)
     raw_edges = cv2.Canny(frame, 50, 150)
     edges = numpy.zeros_like(raw_edges)

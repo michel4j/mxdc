@@ -174,6 +174,8 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
             self.entry.set_sensitive(True)
             self.action_btn.set_sensitive(True)
 
+        #print self.device.is_busy(), self.state_icon, self.running
+
         if self.device.is_busy():
             self.action_btn.set_sensitive(True)
             self.action_icon.set_from_animation(self._animation)
@@ -183,6 +185,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
             self.action_icon.set_from_icon_name(self.state_icon, Gtk.IconSize.BUTTON)
             style.remove_class('dev-active')
             self.running = False
+
 
     def on_value(self, obj, val):
         if time.time() - self._last_signal > 0.1:
