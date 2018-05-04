@@ -126,8 +126,7 @@ class Centering(GObject.GObject):
         max_trials = low_trials + med_trials
         trial_count = 0
         for zoom_level, trials in [(low_zoom, low_trials), (med_zoom, med_trials)]:
-            self.beamline.sample_video.zoom(zoom_level)
-            self.beamline.goniometer.wait(start=False, stop=True)
+            self.beamline.sample_video.zoom(zoom_level, wait=True)
             for i in range(trials):
                 trial_count += 1
                 angle, info = self.get_features()
@@ -226,8 +225,8 @@ class Centering(GObject.GObject):
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
         self.beamline.sample_frontlight.set_off()
         self.beamline.sample_backlight.set(self.beamline.config['centering_backlight'])
-        self.beamline.sample_video.zoom(low_zoom)
-        time.sleep(1)
+        self.beamline.sample_video.zoom(low_zoom, wait=True)
+
         scores = []
         angle, info = self.get_features()
         if not 'x' in info or not 'y' in info:
@@ -237,7 +236,7 @@ class Centering(GObject.GObject):
         half_width = self.beamline.sample_video.size[0] // 2
         for j in range(2):
             if j == 1:
-                self.beamline.sample_video.zoom(med_zoom)
+                self.beamline.sample_video.zoom(med_zoom, wait=True)
                 time.sleep(1)
             for i in range(3):
                 self.beamline.sample_stage.wait()

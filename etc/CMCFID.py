@@ -29,7 +29,7 @@ CONFIG = {
     'shutter_sequence': ('ssh1', 'psh1', 'psh2', 'ssh2'),
     'orientation': 'right',
     'linked_sample_stage': False,
-    'centering_backlight': 37,
+    'centering_backlight': 60,
     'zoom_levels': (2, 6, 9),
     'bug_report': ['michel.fodje@lightsource.ca']
 }
@@ -69,8 +69,9 @@ DEVICES = {
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z': motor.VMEMotor('SMTR16083I1016:mm'),
     'sample_zoom': motor.VMEMotor('SMTR16083I1025:mm'),
+
     'cryojet': cryojet.CryoJet('cryoCtlr', 'cryoLVM', 'CSC1608-3-I10-01'),
-    'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82'),
+    'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82', zoom_slave=True),
 
     'sample_backlight': misc.SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk', 'ILC1608-3-I10-02:on', 100.0),
     'sample_frontlight': misc.SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk', 'ILC1608-3-I10-01:on', 100.0),

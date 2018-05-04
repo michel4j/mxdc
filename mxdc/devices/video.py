@@ -38,6 +38,7 @@ class VideoSrc(BaseDevice):
         self.name = name
         self.maxfps = max(1.0, maxfps)
         self.resolution = 1.0e-3
+        self.zoom_save = False
         self.sinks = []
         self._stopped = True
         self._active = True
@@ -244,11 +245,11 @@ class REDISCamera(VideoSrc):
         'exposure': 'ExposureTimeAbs'
     }
 
-    def __init__(self, server, mac, name='REDIS Camera'):
+    def __init__(self, server, mac, zoom_slave=False, name='REDIS Camera'):
         VideoSrc.__init__(self, name, maxfps=15.0)
-
         self.store = redis.Redis(host=server, port=6379, db=0)
         self.key = mac
+        self.zoom_slave=zoom_slave
         self.server = server
         self.size = pickle.loads(self.store.get('{}:SIZE'.format(mac)))
         self.stream = None
@@ -304,9 +305,9 @@ class AxisCamera(JPGCamera):
 class ZoomableCamera(object):
     implements(IZoomableCamera)
 
-    def __init__(self, camera, zoom_device, scale_device=None):
+    def __init__(self, camera, zoom_motor, scale_device=None):
         self.camera = camera
-        self._zoom = IMotor(zoom_device)
+        self._zoom = zoom_motor
         if scale_device:
             self._scale = scale_device
             self._scale.connect('changed', self.update_resolution)
@@ -315,15 +316,20 @@ class ZoomableCamera(object):
             self._zoom.connect('changed', self.update_zoom)
             self._zoom.connect('active', self.update_zoom)
 
-    def zoom(self, value):
+    def zoom(self, value, wait=False):
         """Set the zoom position of the camera
         Args:
             `value` (float): the target zoom value.
         """
-        self._zoom.move_to(value)
+        self._zoom.move_to(value, wait=wait)
+        if self.camera.zoom_slave:
+            #self.camera.configure(gain=max(1, min(19, int(1.5*value))))
+            pass
 
     def update_resolution(self, *args, **kwar):
         self.camera.resolution = self._scale.get() or 0.0028
+
+
 
     def update_zoom(self, *args, **kwar):
         scale = 1360. / self.camera.size[0]
@@ -346,7 +352,7 @@ class AxisPTZCamera(AxisCamera):
         self.presets = []
         self.fetch_presets()
 
-    def zoom(self, value):
+    def zoom(self, value, wait=False):
         """Set the zoom position of the PTZ camera
 
         Args:
