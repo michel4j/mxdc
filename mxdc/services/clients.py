@@ -42,8 +42,14 @@ class PBClient(BaseService):
         self.name = self.NAME
         self.code = self.CODE
         self.connection = None
-        self.service_found = False
+        self.factory = None
         self.service_data = {}
+
+        self.retry_delay = 5000
+        self.retry_count = 0
+        self.max_retries = 8640
+        self.retrying = False
+
         if address is not None:
             m = re.match('([\w.\-_]+):(\d+)', address)
             if m:
@@ -57,21 +63,24 @@ class PBClient(BaseService):
         else:
             GObject.idle_add(self.setup)
 
+    def reset_retries(self):
+        self.retry_count = 0
+
+    def retry(self):
+        if not self.is_active():
+            logger.info('Re-trying connection to {} [{host}:{port}]'.format(self.name, **self.service_data))
+            self.service_added(None, self.service_data)
+            self.retry_count += 1
+            self.retrying = self.retry_count < self.max_retries
+            return self.retrying
+        self.retrying = False
+
     def service_added(self, obj, data):
-        if self.service_found: return
-        self.service_found = True
         self.service_data = data
-
-        self.factory = ServerClientFactory()
-        self.factory.getRootObject().addCallback(self.on_connect).addErrback(self.on_failure)
-        reactor.connectTCP(self.service_data['address'], self.service_data['port'], self.factory)
-
-    def service_removed(self, obj, data):
-        if not self.service_found and self.service_data['host'] == data['host']:
-            return
-        self.service_found = False
-        logger.info('{} {host}:{port} disconnected.'.format(self.name, **data))
-        self.set_state(active=False)
+        if not self.is_active():
+            self.factory = ServerClientFactory()
+            self.factory.getRootObject().addCallback(self.on_connect).addErrback(self.on_failure)
+            reactor.connectTCP(self.service_data['address'], self.service_data['port'], self.factory)
 
     def setup(self):
         """
@@ -80,7 +89,6 @@ class PBClient(BaseService):
         """
         self.browser = mdns.Browser(self.code)
         self.browser.connect('added', self.service_added)
-        self.browser.connect('removed', self.service_removed)
 
     def on_connect(self, perspective):
         """
@@ -92,13 +100,18 @@ class PBClient(BaseService):
         self.service = perspective
         self.service.notifyOnDisconnect(self.on_disconnect)
         self.set_state(active=True)
+        self.reset_retries()
 
     def on_disconnect(self, obj):
         """Used to detect disconnections if MDNS is not being used."""
         self.set_state(active=False)
+        if not self.retrying:
+            GObject.timeout_add(self.retry_delay, self.retry)
 
     def on_failure(self, reason):
         logger.error('Connection to {} Failed'.format(self.name))
+        if not self.retrying:
+            GObject.timeout_add(self.retry_delay, self.retry)
 
 
 class DPSClient(PBClient):

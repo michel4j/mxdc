@@ -327,7 +327,6 @@ class RasterController(GObject.GObject):
                 {'origin': grid['config']['origin'], 'angle': grid['config']['angle']},
                 grid['scores']
             )
-            #self.beamline.sample_stage.move_xyz(*grid['config']['origin'])
             self.widget.raster_dir_fbk.set_text(grid['config']['directory'])
         else:
             image_viewer = globalRegistry.lookup([], IImageViewer)
@@ -341,8 +340,8 @@ class RasterController(GObject.GObject):
         if grid is not None and state == self.microscope.GridState.PENDING:
             self.widget.raster_grid_info.set_text('Defined grid has {} points'.format(len(grid)))
             self.widget.raster_command_box.set_sensitive(True)
-            #self.widget.samples_stack.set_visible_child_name('rastering')
-            self.widget.samples_stack.child_set(raster_page, needs_attention=True)
+            self.widget.samples_stack.set_visible_child_name('rastering')
+            #self.widget.samples_stack.child_set(raster_page, needs_attention=True)
         else:
             msg = 'Please define a new grid using the sample viewer!'
             self.widget.raster_grid_info.set_text(msg)

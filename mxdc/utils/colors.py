@@ -84,7 +84,8 @@ class ColorMapper(object):
         self.norm = colors.Normalize(vmin=min_val, vmax=max_val)
 
     def autoscale(self, values):
-        self.norm.autoscale(values)
+        if len(values):
+            self.norm.autoscale(values)
          
     def rgb_values(self, val):
         return self.rgba_values(val)[:3]
