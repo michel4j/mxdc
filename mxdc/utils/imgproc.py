@@ -3,9 +3,8 @@ import numpy
 from PIL import Image
 from PIL import ImageChops
 from PIL import ImageFilter
-from scipy import signal
-
 from mxdc.utils.scitools import find_peaks
+from scipy import signal
 
 THRESHOLD = 20
 BORDER = 10
@@ -47,6 +46,7 @@ def xconv(x, max_x, dir='left'):
 
 def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
     raw = cv2.flip(orig, 1) if orientation != 'left' else orig
+    y_max, x_max = orig.shape
     frame = cv2.resize(raw, (0, 0), fx=scale, fy=scale)
     raw_edges = cv2.Canny(frame, 50, 150)
     edges = numpy.zeros_like(raw_edges)
@@ -74,7 +74,6 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
         bottom_vertices = []
         vertical_spans = []
         vertical_midpoints = []
-
 
         for i in range(x_size):
             column = numpy.where(edges[:, i] > 128)[0]
@@ -106,7 +105,7 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
 
             vertices = [v for i, v in enumerate(top_vertices[search_start:search_end])]
             vertices += [v for i, v in enumerate(bottom_vertices[search_start:search_end])][::-1]
-            ellipse_vertices = [v for v in vertices if v[0] > x_center + search_width//3]
+            ellipse_vertices = [v for v in vertices if v[0] > x_center + search_width // 3]
 
             info['loop-size'] = int(sizes[x_center][1] / scale)
             info['loop-x'] = int(x_center / scale)
@@ -132,6 +131,14 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
             info['sizes'] = (sizes / scale).astype(int)
             info['points'] = [(int(x / scale), int(y / scale)) for x, y in points]
 
+    if orientation == 'right':
+        for k in ['loop-x', 'loop-start', 'loop-end', 'x']:
+            if k in info:
+                info[k] = x_max - info[k]
+        if 'points' in info:
+            info['points'] = [(x_max - x, y) for x,y in info['points']]
+        if 'peaks' in info:
+            info['peaks'] = [(x_max - x, y) for x, y in info['peaks']]
     return info
 
 
