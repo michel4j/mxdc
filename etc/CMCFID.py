@@ -30,7 +30,7 @@ CONFIG = {
     'orientation': 'right',
     'linked_sample_stage': False,
     'centering_backlight': 37,
-    'zoom_levels': (1, 4, 6),
+    'zoom_levels': (2, 6, 9),
     'bug_report': ['michel.fodje@lightsource.ca']
 }
 

@@ -27,7 +27,7 @@ CONFIG = {
     'xrf_energy_offset': 2.0,
     'shutter_sequence': ('ssh1', 'psh1', 'psh2', 'ssh3'),
     'orientation': 'left',
-    'centering_backlight': 65,
+    'centering_backlight': 15,
     'bug_report': ['michel.fodje@lightsource.ca']
 }
 

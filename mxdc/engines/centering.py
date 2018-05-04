@@ -1,26 +1,19 @@
 from __future__ import print_function
 
-import os
-import shutil
-import tempfile
-import time
 import threading
-import numpy
-import uuid
+import time
 import traceback
+import uuid
 from datetime import datetime
-from scipy import signal
-import cv2
 
-from twisted.python.components import globalRegistry
+import cv2
+import numpy
 from gi.repository import GObject
 from mxdc.beamlines.interfaces import IBeamline
-from mxdc.engines.snapshot import take_sample_snapshots
-from mxdc.utils import imgproc, datatools, misc
 from mxdc.com import ca
+from mxdc.utils import imgproc, datatools, misc
 from mxdc.utils.log import get_module_logger
-from mxdc.utils.misc import get_short_uuid
-
+from twisted.python.components import globalRegistry
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -84,12 +77,12 @@ class Centering(GObject.GObject):
         cur = self.beamline.omega.get_position()
         self.beamline.omega.wait(start=True, stop=False)
         for angle in numpy.arange(0, 80, 20):
-            self.beamline.omega.move_to(angle+cur, wait=True)
+            self.beamline.omega.move_to(angle + cur, wait=True)
             img = self.beamline.sample_video.get_frame()
             height = imgproc.mid_height(img)
-            heights.append((angle+cur, height))
+            heights.append((angle + cur, height))
         values = numpy.array(heights)
-        best = values[numpy.argmax(values[:,1]), 0]
+        best = values[numpy.argmax(values[:, 1]), 0]
         if down:
             best -= 90.0
         self.beamline.omega.move_to(best, wait=True)
@@ -119,12 +112,13 @@ class Centering(GObject.GObject):
                 GObject.idle_add(self.emit, 'error', str(e))
             else:
                 GObject.idle_add(self.emit, 'done')
-        logger.info('Centering Done in {:0.1f} seconds [Reliability={:0.0f}%]'.format(time.time() - start_time, 100*self.score))
+        logger.info('Centering Done in {:0.1f} seconds [Reliability={:0.0f}%]'.format(time.time() - start_time,
+                                                                                      100 * self.score))
 
     def center_loop(self):
         self.beamline.sample_frontlight.set_off()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
-        self.beamline.sample_backlight.set(15)
+        self.beamline.sample_backlight.set(self.beamline.config['centering_backlight'])
 
         scores = []
         # Find tip of loop at low and high zoom
@@ -220,20 +214,18 @@ class Centering(GObject.GObject):
                 (index, misc.frame_score(report)) for index, report in sorted(self.collector.results.items())
             ])
 
-            best = grid_scores[:,1].argmax()
-            index = int(grid_scores[best,0])
+            best = grid_scores[:, 1].argmax()
+            index = int(grid_scores[best, 0])
             point = grid[index]
 
             self.beamline.sample_stage.move_xyz(point[0], point[1], point[2], wait=True)
             scores.append(grid_scores[best, 1])
-
-
         self.score = numpy.mean(scores)
 
     def center_capillary(self):
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
         self.beamline.sample_frontlight.set_off()
-        self.beamline.sample_backlight.set(100)
+        self.beamline.sample_backlight.set(self.beamline.config['centering_backlight'])
         self.beamline.sample_video.zoom(low_zoom)
         time.sleep(1)
         scores = []
@@ -302,4 +294,3 @@ def get_current_bkg():
     bkg = beamline.sample_video.get_frame()
     beamline.sample_stage.move_xyz(start_x, start_y, start_z)
     return bkg
-
