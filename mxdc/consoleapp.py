@@ -40,6 +40,7 @@ class ConsoleApp(object):
         import numpy
         bl = MXBeamline(console=True)
         plot = self.plot
+        fit = self.plot.fit
         GObject.idle_add(self.builder.scan_beamline_lbl.set_text, bl.name)
         embed()
         GObject.timeout_add(1000, self.quit)
@@ -51,7 +52,6 @@ class ConsoleApp(object):
         worker_thread.start()
         GObject.idle_add(self.setup)
         self.shell()
-        time.sleep(2)
         sys.exit()
 
     def setup(self):
@@ -60,6 +60,9 @@ class ConsoleApp(object):
 
         self.builder = AppBuilder()
         self.window = self.builder.scan_window
+        self.window.set_deletable(False)
+
+
 
         self.log_viewer = common.LogMonitor(self.builder.scan_log, 'Candara 7')
         log_handler = textviewer.GUIHandler(self.log_viewer)

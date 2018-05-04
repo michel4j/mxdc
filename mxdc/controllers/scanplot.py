@@ -12,6 +12,10 @@ from twisted.python.components import globalRegistry
 from zope.interface import implements
 
 
+class Fit(object):
+    pass
+
+
 class ScanPlotter(object):
     implements(IScanPlotter)
 
@@ -20,8 +24,8 @@ class ScanPlotter(object):
         self.widget = widget
         self.widget.scan_box.pack_start(self.plotter, True, True, 0)
         self._sig_handlers = {}
-
-        self.fit = {}
+        self.fit = Fit()
+        self.axis = self.plotter.axis[0]
         self.grid_scan = False
         self.start_time = 0
         globalRegistry.register([], IScanPlotter, '', self)
@@ -87,6 +91,7 @@ class ScanPlotter(object):
         info = xdi.read_xdi(filename)
         columns = info['Column'].items()
         data = info.data
+        self.fit.data = data
         if info['CMCF.scan_type'] == 'GridScan':
             xcol = columns[0]
             ycol = columns[1]
@@ -140,39 +145,47 @@ class ScanPlotter(object):
             yo = data[ycol[1].value]
 
             params, _ = fitting.peak_fit(xo, yo, 'gaussian')
-            yc = fitting.gauss(xo, params)
+            xc = numpy.linspace(xo.min(), xo.max(), 1000)
+            yc = fitting.gauss(xc, params)
 
-            fwhm = params[1]
+            ymax, fwhm, midp  = params[:3]
             histo_pars, _ = fitting.histogram_fit(xo, yo)
+            ymax_his, fwhm_his, midp_his, fwhm_left_his, fwhm_right_his, cema = histo_pars
 
             self.plotter.clear()
             ax = self.plotter.axis[0]
 
             ax.set_xlabel(x_label)
             ax.set_ylabel(y_label)
-            self.plotter.add_line(xo, yo, '-')
-            self.plotter.add_line(xo, yc, '-')
-            hh = 0.5 * (max(yo) - min(yo)) + min(yo)
-            ax.plot([histo_pars[2], histo_pars[2]], [min(yo), max(yo)], 'b:')
-            ax.plot([histo_pars[3], histo_pars[4]], [hh, hh], 'b:')
+            self.plotter.add_line(xo, yo, '-', markevery=1)
+            self.plotter.add_line(xc, yc, '-', alpha=0.5)
+            hh = 0.5*(ymax_his - yo.min())
+            ax.plot([midp_his, midp_his], [yo.min(), yo.max()], c='b', ls='--', lw=0.5)
+            ax.plot([fwhm_left_his, fwhm_right_his], [hh, hh], c='b', ls='--', lw=0.5)
             ax.set_xlim(min(xo), max(xo))
 
             # set font parameters for the ouput table
             fontpar = {}
             fontpar["family"] = "monospace"
             fontpar["size"] = 8
-            info = "YMAX-fit = %11.4e\n" % params[0]
-            info += "MIDP-fit = %11.4e\n" % params[2]
-            info += "FWHM-fit = %11.4e\n" % fwhm
+            info = "YMAX-fit = {:11.4e}\n".format(ymax)
+            info += "MIDP-fit = {:11.4e}\n".format(midp)
+            info += "FWHM-fit = {:11.4e}\n".format(fwhm)
             print(info)
             self.plotter.fig.text(0.65, 0.75, info, fontdict=fontpar, color='r')
-            info = "YMAX-his = %11.4e\n" % histo_pars[0]
-            info += "MIDP-his = %11.4e\n" % histo_pars[2]
-            info += "FWHM-his = %11.4e\n" % histo_pars[1]
-            info += "CEMA-his = %11.4e\n" % histo_pars[5]
+            info = "YMAX-his = {:11.4e}\n".format(ymax_his)
+            info += "MIDP-his = {:11.4e}\n".format(midp_his)
+            info += "FWHM-his = {:11.4e}\n".format(fwhm_his)
+            info += "CEMA-his = {:11.4e}\n".format(cema)
             self.plotter.fig.text(0.65, 0.60, info, fontdict=fontpar, color='b')
             self.plotter.canvas.draw()
             print(info)
-            self.fit['midp'] = params[2]
-            self.fit['fwhm'] = fwhm
-            self.fit['ymax'] = params[0]
+            self.fit.midp = midp
+            self.fit.midp_his = midp_his
+            self.fit.fwhm = fwhm
+            self.fit.fwhm_his = fwhm_his
+            self.fit.ymax = ymax
+            self.fit.ymax_his = ymax_his
+            self.fit.cema = cema
+
+

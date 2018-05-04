@@ -169,53 +169,43 @@ def peak_fit(x, y, target='gaussian'):
     return new_coeffs, success
 
 
-def histogram_fit(x, y):
+def histogram_fit(xo, yo):
     """
     calcfwhm(x,y) - with input x,y vector this function calculates fwhm and returns
     (fwhm,xpeak,ymax, fwhm_x_left, fwhm_x_right)
     x - input independent variable
     y - input dependent variable
-    return ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema
+    return ymax, fwhm, xpeak, fwhm_left, fwhm_right, cema
     cema is center of mass
     
     success boolean
     """
 
+    yfunc = interpolate.interp1d(xo, yo, bounds_error=False, fill_value=0.0)
+    x = numpy.linspace(min(xo), max(xo), 1000)
+    y = yfunc(x)
+
     ymin, ymax = min(y), max(y)
     y_hpeak = ymin + .5 * (ymax - ymin)
-    x_hpeak = []
-    NPT = len(x)
-    i1 = 0
-    i2 = NPT
-    i = 0
-    while (y[i] < y_hpeak) and i < NPT:
-        i += 1
-    i1 = i
-    i = NPT - 1
-    while (y[i] < y_hpeak) and i > 0:
-        i -= 1
-    i2 = i
+    yhm = numpy.where(y > y_hpeak)[0]
 
-    if y[i1] == y_hpeak:
-        x_hpeak_l = x[i1]
+    i_max = numpy.argmax(y)
+    if numpy.any(yhm):
+        i_start = yhm[0]
+        i_end = yhm[-1]
+        fwhm = max(x[i_end] - x[i_start], 2*(x[i_end] - x[i_max]), 2*(x[i_max] - x[i_start]))
     else:
-        x_hpeak_l = (y_hpeak - y[i1 - 1]) / (y[i1] - y[i1 - 1]) * (x[i1] - x[i1 - 1]) + x[i1 - 1]
-    if y[i2] == y_hpeak:
-        x_hpeak_r = x[i2]
-    else:
-        x_hpeak_r = (y_hpeak - y[i2 - 1]) / (y[i2] - y[i2 - 1]) * (x[i2] - x[i2 - 1]) + x[i2 - 1]
-    if i1 == 0: x_hpeak_l = x[0]
-    if i2 == 0: x_hpeak_r = x[0]
-    x_hpeak = [x_hpeak_l, x_hpeak_r]
-    fwhm = abs(x_hpeak[1] - x_hpeak[0])
-    for i in range(NPT):
-        if y[i] == ymax:
-            jmax = i
-            break
-    # xpeak = x[jmax]
-    xpeak = (x_hpeak_r + x_hpeak_l) / 2.0
+        i_start = 0
+        i_end = len(x)-1
+        i_max = i_end//2
+        fwhm = x[i_end] - x[i_start]
+
+    xpeak = x[i_max]
+    fwhm_x_left = x[i_start]
+    fwhm_x_right = x[i_end]
     cema = sum(x * y) / sum(y)
-    return [ymax, fwhm, xpeak, x_hpeak[0], x_hpeak[1], cema], True
+
+    return [ymax, fwhm, xpeak, fwhm_x_left, fwhm_x_right, cema], True
 
 
 class SplineRep(object):
