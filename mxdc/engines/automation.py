@@ -116,8 +116,7 @@ class Automator(GObject.GObject):
                             sample['name'], params['directory']
                         ))
 
-
-                        self.collector.configure(params, take_snapshots=True, analysis=params.get('analysis'))
+                        self.collector.configure(params, take_snapshots=True, analysis=params.get('analysis'), anomalous=params.get('anomalous', False))
                         sample['results'] = self.collector.run()
                         while not self.collector.complete:
                             time.sleep(1)  # wait until collector is stopped
