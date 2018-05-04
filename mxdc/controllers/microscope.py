@@ -108,7 +108,6 @@ class Microscope(GObject.GObject):
 
         # centering
         self.widget.microscope_loop_btn.connect('clicked', self.on_auto_center, 'loop')
-        self.widget.microscope_crystal_btn.connect('clicked', self.on_auto_center, 'crystal')
         self.widget.microscope_capillary_btn.connect('clicked', self.on_auto_center, 'capillary')
         self.widget.microscope_diff_btn.connect('clicked', self.on_auto_center, 'diffraction')
 

@@ -127,9 +127,8 @@ class AutomationController(GObject.GObject):
         self.options = {
             'capillary': self.widget.center_cap_option,
             'loop': self.widget.center_loop_option,
-            'crystal': self.widget.center_xtal_option,
             'screen': self.widget.analyse_screen_option,
-            'native': self.widget.analyse_native_option,
+            'process': self.widget.analyse_process_option,
             'anomalous': self.widget.analyse_anom_option,
             'powder': self.widget.analyse_powder_option,
             'analyse': self.widget.analyse_task_btn
@@ -155,9 +154,9 @@ class AutomationController(GObject.GObject):
         elif task_type == Automator.Task.ACQUIRE:
             options = {}
             if self.options['analyse'].get_active():
-                for name in ['screen', 'native', 'anomalous', 'powder']:
+                for name in ['screen', 'process', 'powder']:
                     if self.options[name].get_active():
-                        options = {'analysis': name}
+                        options = {'analysis': name, 'anomalous': self.options['anomalous'].get_active()}
                         break
             options.update(self.config.props.info)
             return options

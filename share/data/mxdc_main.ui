@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.1 -->
+<!-- Generated with glade 3.20.4 -->
 <interface>
   <requires lib="gtk+" version="3.16"/>
   <object class="GtkWindow">
@@ -1689,28 +1689,6 @@
                                                 <property name="expand">True</property>
                                                 <property name="fill">True</property>
                                                 <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkButton" id="microscope_crystal_btn">
-                                                <property name="visible">True</property>
-                                                <property name="can_focus">True</property>
-                                                <property name="receives_default">False</property>
-                                                <property name="tooltip_text" translatable="yes">Find Crystal</property>
-                                                <property name="use_underline">True</property>
-                                                <child>
-                                                  <object class="GtkImage">
-                                                    <property name="visible">True</property>
-                                                    <property name="can_focus">False</property>
-                                                    <property name="halign">center</property>
-                                                    <property name="pixbuf">crystal.png</property>
-                                                  </object>
-                                                </child>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">True</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">1</property>
                                               </packing>
                                             </child>
                                             <child>
@@ -4046,6 +4024,7 @@
                                             <property name="receives_default">False</property>
                                             <property name="active">True</property>
                                             <property name="draw_indicator">True</property>
+                                            <property name="group">analyse_process_option</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -4054,8 +4033,8 @@
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkRadioButton" id="analyse_native_option">
-                                            <property name="label" translatable="yes">Native</property>
+                                          <object class="GtkRadioButton" id="analyse_process_option">
+                                            <property name="label" translatable="yes">Process</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">False</property>
@@ -4066,20 +4045,6 @@
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
                                             <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkCheckButton" id="analyse_anom_option">
-                                            <property name="label" translatable="yes">Anomalous</property>
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="receives_default">False</property>
-                                            <property name="draw_indicator">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">2</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -4094,6 +4059,21 @@
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="analyse_anom_option">
+                                            <property name="label" translatable="yes">Anomalous</property>
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="receives_default">False</property>
+                                            <property name="draw_indicator">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="pack_type">end</property>
                                             <property name="position">3</property>
                                           </packing>
                                         </child>
@@ -4195,21 +4175,6 @@
                                             <property name="expand">False</property>
                                             <property name="fill">True</property>
                                             <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkRadioButton" id="center_xtal_option">
-                                            <property name="label" translatable="yes">Crystal</property>
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">True</property>
-                                            <property name="receives_default">False</property>
-                                            <property name="draw_indicator">True</property>
-                                            <property name="group">center_loop_option</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">2</property>
                                           </packing>
                                         </child>
                                         <child>

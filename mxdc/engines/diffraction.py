@@ -54,8 +54,9 @@ class DataCollector(GObject.GObject):
         self.beamline.synchrotron.connect('ready', self.on_beam_change)
         globalRegistry.register([], IDataCollector, '', self)
 
-    def configure(self, run_data, take_snapshots=True, existing=0, analysis=None):
+    def configure(self, run_data, take_snapshots=True, existing=0, analysis=None, anomalous=False):
         self.config['analysis'] = analysis
+        self.config['anomalous'] = anomalous
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
         datasets, wedges = datatools.generate_wedges(self.config['runs'])
@@ -283,12 +284,10 @@ class DataCollector(GObject.GObject):
         if self.config['analysis'] is None:
             return
 
-        flags = ()
-        if self.config['analysis'] == 'anomalous':
-            flags = ('anomalous', )
+        flags = () if not self.config.get('anomalous') else ('anomalous',)
         if (self.config['analysis'] == 'screen') or (self.config['analysis'] == 'default' and metadata['type'] == 'MX_SCREEN'):
             self.analyst.screen_dataset(metadata, flags=flags, sample=sample)
-        elif (self.config['analysis'] in ['anomalous', 'native']) or (self.config['analysis'] == 'default' and metadata['type'] == 'MX_DATA'):
+        elif (self.config['analysis'] == 'process') or (self.config['analysis'] == 'default' and metadata['type'] == 'MX_DATA'):
             self.analyst.process_dataset(metadata, flags=flags, sample=sample)
         elif (self.config['analysis'] == 'powder') or (self.config['analysis'] == 'default' and metadata['type'] == 'XRD_DATA'):
             self.analyst.process_powder(metadata, flags=flags, sample=sample)
