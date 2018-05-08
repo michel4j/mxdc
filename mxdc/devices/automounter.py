@@ -386,7 +386,7 @@ class SAMAutoMounter(AutoMounter):
 
     def on_ports_changed(self, obj, state_str):
         fbstr = ''.join(state_str.split())
-        if len(fbstr) < 581:
+        if len(fbstr) < 291:
             return
         info = {
             'L': (fbstr[0], fbstr[1:97]),
