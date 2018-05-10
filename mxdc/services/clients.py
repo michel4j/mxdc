@@ -124,6 +124,9 @@ class DPSClient(PBClient):
     def process_xrd(self, *args, **kwargs):
         return self.service.callRemote('process_xrd', *args, **kwargs)
 
+    def process_misc(self, *args, **kwargs):
+        return self.service.callRemote('process_misc', *args, **kwargs)
+
     def analyse_frame(self, *args, **kwargs):
         return self.service.callRemote('analyse_frame', *args, **kwargs)
 
