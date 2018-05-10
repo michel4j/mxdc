@@ -264,3 +264,12 @@ class Chain(object):
         while len(self.calls) and time_left > 0:
             time.sleep(poll)
             time_left -= poll
+
+
+def wait_for_file(file_path, timeout=10):
+    poll=0.05
+    time_left = timeout
+    while not os.path.exists(file_path) and time_left > 0:
+        time.sleep(poll)
+        timeout -= poll
+    return time_left > 0

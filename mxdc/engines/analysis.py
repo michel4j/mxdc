@@ -201,8 +201,11 @@ class Analyst(GObject.GObject):
     def save_report(self, report):
         if 'filename' in report:
             report_file = os.path.join(report['directory'], report['filename'])
-            misc.save_metadata(report, report_file)
-            self.beamline.lims.upload_report(self.beamline.name, report_file)
+            if misc.wait_for_file(report_file, timeout=5):
+                misc.save_metadata(report, report_file)
+                self.beamline.lims.upload_report(self.beamline.name, report_file)
+            else:
+                logger.error('Report file not found, therefore not uploaded to MxLIVE ({})!'.format(report_file))
 
     def succeeded(self, report, uid, restype):
         if restype == self.ResultType.MX:
