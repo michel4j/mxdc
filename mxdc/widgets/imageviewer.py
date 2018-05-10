@@ -56,6 +56,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.set(0.5, 0.5, 1, 1)
         self._canvas_size = size
         self._brightness = 1.0
+        self.file_template = None
         self._following = False
         self._collecting = False
         self._br_hide_id = None
