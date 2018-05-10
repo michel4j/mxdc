@@ -26,6 +26,7 @@ RASTER_DELTA = 0.5
 
 logger = get_module_logger(__name__)
 
+
 class RasterResultsManager(TreeManager):
     class Data(Enum):
         NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID, FILENAME = range(10)
