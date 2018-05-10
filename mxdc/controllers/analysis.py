@@ -290,11 +290,7 @@ class AnalysisController(GObject.GObject):
             if len(metas) > 1:
                 self.analyst.process_multiple(*metas, flags=options, sample=sample)
             elif 'screen' in options:
-                method = settings.get_string('screening-method').lower()
-                if method == 'autoprocess':
-                    self.analyst.screen_dataset(metas[0], flags=options, sample=sample)
-                else:
-                    self.analyst.screen_alternate(metas[0], flags=options, sample=sample)
+                self.analyst.screen_dataset(metas[0], flags=options, sample=sample)
             else:
                 self.analyst.process_dataset(metas[0], flags=options, sample=sample)
         elif data_type == 'XRD_DATA':

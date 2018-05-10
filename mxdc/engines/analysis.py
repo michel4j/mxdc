@@ -10,6 +10,7 @@ from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import misc, datatools
 from mxdc.utils.log import get_module_logger
+from mxdc.conf import settings
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -128,43 +129,13 @@ class Analyst(GObject.GObject):
         }
         params = datatools.update_for_sample(params, sample, overwrite=False)
         parent, child = self.manager.add_item(params, False)
+        method = settings.get_string('screening-method').lower()
 
         try:
-            report = yield self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
-        except Exception as e:
-            logger.error('MX analysis failed: {}'.format(str(e)))
-            self.failed(e, params['uuid'], self.ResultType.MX)
-            returnValue({})
-        else:
-            report['data_id'] = filter(None, [metadata.get('id')])
-            self.save_report(report)
-            self.succeeded(report, params['uuid'], self.ResultType.MX)
-            returnValue(report)
-
-    @inlineCallbacks
-    def screen_alternate(self, metadata, flags=(), sample=None):
-        numbers = datatools.frameset_to_list(metadata['frames'])
-        filename = os.path.join(metadata['directory'], metadata['filename'].format(numbers[0]))
-
-        params = {
-            'uuid': str(uuid.uuid4()),
-            'title': 'MX screening in progress ...',
-            'state': self.manager.State.ACTIVE,
-            'data': metadata,
-
-            'sample_id': metadata['sample_id'],
-            'name': metadata['name'],
-            'file_names': [filename],
-            'anomalous': 'anomalous' in flags,
-            'screen': True,
-            'activity': 'proc-screen',
-            'type': metadata['type'],
-        }
-        params = datatools.update_for_sample(params, sample, overwrite=False)
-        parent, child = self.manager.add_item(params, False)
-
-        try:
-            report = yield self.beamline.dps.process_misc(params, params['directory'], misc.get_project_name())
+            if method == 'autoprocess':
+                report = yield self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
+            else:
+                report = yield self.beamline.dps.process_misc(params, params['directory'], misc.get_project_name())
         except Exception as e:
             logger.error('MX analysis failed: {}'.format(str(e)))
             self.failed(e, params['uuid'], self.ResultType.MX)
