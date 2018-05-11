@@ -364,12 +364,9 @@ class ADRayonixImager(BaseDevice):
         self.initialized = True
         self.frame_type.put(1)
         self.trigger_mode.put(0)
-        for i in range(2):
-            time.sleep(0.05)
-            self.start()
-            self.wait('readout')
 
-        self.wait('idle')
+        self.start()
+        time.sleep(5)
         self.frame_type.put(0)
         self.trigger_mode.put(1)
 
