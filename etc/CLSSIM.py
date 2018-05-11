@@ -15,7 +15,7 @@ CONFIG = {
     'type': 'mx',
     'subnet': '0.0.0.0/32',
 
-    'admin_groups': [1000, 1046, 2000],
+    'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000],
 
     'energy_range': (5.0, 19.0),
     'zoom_levels': (2, 4, 6),
