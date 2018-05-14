@@ -68,7 +68,7 @@ class PBClient(BaseService):
 
     def retry(self):
         if not self.is_active():
-            logger.info('Re-trying connection to {} [{host}:{port}]'.format(self.name, **self.service_data))
+            logger.debug('Re-trying connection to {} [{host}:{port}]'.format(self.name, **self.service_data))
             self.service_added(None, self.service_data)
             self.retry_count += 1
             self.retrying = self.retry_count < self.max_retries
@@ -106,11 +106,12 @@ class PBClient(BaseService):
         """Used to detect disconnections if MDNS is not being used."""
         self.set_state(active=False)
         if not self.retrying:
+            logger.warning('Connection to {} disconnected'.format(self.name))
             GObject.timeout_add(self.retry_delay, self.retry)
 
     def on_failure(self, reason):
-        logger.error('Connection to {} Failed'.format(self.name))
         if not self.retrying:
+            logger.error('Connection to {} failed'.format(self.name))
             GObject.timeout_add(self.retry_delay, self.retry)
 
 

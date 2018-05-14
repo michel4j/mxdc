@@ -125,7 +125,10 @@ class Centering(GObject.GObject):
         low_trials, med_trials = 3, 2
         max_trials = low_trials + med_trials
         trial_count = 0
+        failed = False
         for zoom_level, trials in [(low_zoom, low_trials), (med_zoom, med_trials)]:
+            if failed:
+                break
             self.beamline.sample_video.zoom(zoom_level, wait=True)
             for i in range(trials):
                 trial_count += 1
@@ -133,27 +136,38 @@ class Centering(GObject.GObject):
                 scores.append(info.get('score', 0.0))
                 if info['score'] == 0.0:
                     logger.warning('Loop not found in field-of-view')
+                    if (zoom_level, i) == (low_zoom, 0):
+                        logger.warning('Attempting to translate into view')
+                        x, y = info['x'], info['y']
+                        xmm, ymm = self.screen_to_mm(x, y)
+                        self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                    else:
+                        failed = True
+                        break
                 else:
                     x, y = info['x'], info['y']
                     logger.debug('... tip found at {}, {}'.format(x, y))
                     xmm, ymm = self.screen_to_mm(x, y)
                     self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
-                    logger.warning('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+                    logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
                 # final 90 rotation not needed
                 if trial_count < max_trials:
                     self.beamline.omega.move_by(90, wait=True)
 
         # Center in loop on loop face
-        self.loop_face()
-        angle, info = self.get_features()
-        if info['score'] == 0.0:
-            logger.error('Sample not found in field-of-view')
+        if not failed:
+            self.loop_face()
+            angle, info = self.get_features()
+            if info['score'] == 0.0:
+                logger.warning('Sample not found in field-of-view')
+            else:
+                xmm, ymm = self.screen_to_mm(info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y')))
+                self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+            scores.append(info.get('score', 0.0))
         else:
-            xmm, ymm = self.screen_to_mm(info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y')))
-            self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
-            logger.warning('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
-        scores.append(info.get('score', 0.0))
+            logger.error('Sample not found. Centering Failed!')
         self.score = numpy.mean(scores)
 
     def center_crystal(self):
