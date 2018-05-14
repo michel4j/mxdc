@@ -79,13 +79,14 @@ class Category:
 
 
 class ColorMapper(object):
-    def __init__(self, color_map=cmaps.viridis, min_val=-0.5, max_val=1.0):
+    def __init__(self, color_map=cmaps.viridis, min_val=0, max_val=1.0):
         self.cmap =  cm.get_cmap(color_map)
         self.norm = colors.Normalize(vmin=min_val, vmax=max_val)
 
     def autoscale(self, values):
-        if len(values):
-            self.norm.autoscale(values)
+        if len(values) > 1:
+            self.norm = colors.Normalize(vmin=min(values), vmax=max(values))
+            #self.norm.autoscale(values)
          
     def rgb_values(self, val):
         return self.rgba_values(val)[:3]
