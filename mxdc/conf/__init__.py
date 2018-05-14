@@ -109,11 +109,14 @@ def initialize(name=None, verbose=True):
 
 def load_cache(realm):
     cache_file = os.path.join(APP_CACHE_DIR, realm)
+    data = {}
     if os.path.exists(cache_file):
-        with open(cache_file, 'r') as handle:
-            data = msgpack.load(handle)
-        return data
-    return {}
+        try:
+            with open(cache_file, 'r') as handle:
+                data = msgpack.load(handle)
+        except (IOError, msgpack.UnpackValueError):
+            os.remove(cache_file)
+    return data
 
 
 def save_cache(data, realm):
