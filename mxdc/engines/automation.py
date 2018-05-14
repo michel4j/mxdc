@@ -84,7 +84,7 @@ class Automator(GObject.GObject):
 
                 if task['type'] == self.Task.PAUSE:
                     self.pause(
-                        'As requested, automation has been paused for manual intervention. '
+                        'As requested, automation has been paused for manual intervention. \n'
                         'Please resume after intervening to continue the sequence. '
                     )
                 elif task['type'] == self.Task.CENTER:
@@ -92,8 +92,13 @@ class Automator(GObject.GObject):
                         method = task['options'].get('method')
                         self.centering.configure(method=method)
                         self.centering.run()
+                        if self.centering.score < 0.5:
+                            self.pause(
+                                'Not confident about the centering, automation has been paused\n'
+                                'Please resume after manual centering. '
+                            )
                     else:
-                        self.stop(error='Sample not mounted. Unable to continue automation!')
+                        self.stop(error='Sample not mounted. Aborting!')
 
                 elif task['type'] == self.Task.MOUNT:
                     success = auto.auto_mount_manual(self.beamline, sample['port'])

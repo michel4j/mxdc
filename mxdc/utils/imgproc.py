@@ -125,11 +125,15 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
                 info['loop-size'] = max(ellipse[1])
                 info['loop-angle'] = 90 - ellipse[2]
 
-            info['loop-start'] = int(search_start / scale)
-            info['loop-end'] = int(search_end / scale)
+            info['loop-start'] = search_start / scale
+            info['loop-end'] = search_end / scale
             info['peaks'] = peaks
             info['sizes'] = (sizes / scale).astype(int)
             info['points'] = [(int(x / scale), int(y / scale)) for x, y in points]
+
+    else:
+        info['x'] = 0
+        info['y'] = info['center-x']
 
     if orientation == 'right':
         for k in ['loop-x', 'loop-start', 'loop-end', 'x']:
