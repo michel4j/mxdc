@@ -69,11 +69,7 @@ class Automator(GObject.GObject):
             GObject.idle_add(self.emit, 'sample-started', sample['uuid'])
             for task in self.tasks:
                 if self.paused:
-                    GObject.idle_add(self.emit, 'paused', True, self.pause_message)
-                    while self.paused and not self.stopped:
-                        time.sleep(0.1)
-                    GObject.idle_add(self.emit, 'paused', False, '')
-
+                    self.intervene()
                 if self.stopped: break
                 pos += 1
                 self.notify_progress(pos, task, sample)
@@ -83,7 +79,7 @@ class Automator(GObject.GObject):
                 time.sleep(5)
 
                 if task['type'] == self.Task.PAUSE:
-                    self.pause(
+                    self.intervene(
                         'As requested, automation has been paused for manual intervention. \n'
                         'Please resume after intervening to continue the sequence. '
                     )
@@ -93,7 +89,7 @@ class Automator(GObject.GObject):
                         self.centering.configure(method=method)
                         self.centering.run()
                         if self.centering.score < 0.5:
-                            self.pause(
+                            self.intervene(
                                 'Not confident about the centering, automation has been paused\n'
                                 'Please resume after manual centering. '
                             )
@@ -144,6 +140,14 @@ class Automator(GObject.GObject):
             logger.warn(message)
         self.pause_message = message
         self.paused = True
+
+    def intervene(self, message=''):
+        self.pause(message)
+        GObject.idle_add(self.emit, 'paused', True, self.pause_message)
+        while self.paused and not self.stopped:
+            time.sleep(0.1)
+        GObject.idle_add(self.emit, 'paused', False, '')
+        self.paused = False
 
     def resume(self):
         self.paused = False
