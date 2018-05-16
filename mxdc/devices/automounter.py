@@ -177,8 +177,7 @@ class AutoMounter(BaseDevice):
         @param port: str representation of the port or None if checking for any
         @return: bool, True if it is mounted
         """
-
-        return (
+        return bool(
                 (port is None and bool(self.sample)) or
                 ((port is not None) and self.sample and self.sample.get('port') == port)
         )
@@ -501,7 +500,7 @@ class SimAutoMounter(AutoMounter):
             logger.info('{}: Mounting Sample: {}'.format(self.name, port))
             GObject.timeout_add(8000, command, port)
             if wait:
-                time.sleep(8)
+                time.sleep(9)
                 return True
             else:
 
