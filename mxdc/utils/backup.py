@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import os, sys, time
-try:
-    import json
-except:
-    import simplejson as json
+import json
+
         
 import logging
 import logging.handlers
