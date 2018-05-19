@@ -92,6 +92,7 @@ class ColorMapper(object):
         return self.rgba_values(val)[:3]
 
     def rgba_values(self, val, alpha=1.0):
+        val = 0.0 if val is None else val
         values = self.cmap(self.norm(val))
         return values[0], values[1], values[2], values[3]*alpha
 
