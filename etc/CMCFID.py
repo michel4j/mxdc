@@ -14,7 +14,7 @@ CONFIG = {
     'type': 'mx',
     'subnet': '10.52.28.0/22',
 
-    'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000],
+    'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000, 4054, 33670],
     'distance_limits': (100.0, 1000.0),
     'energy_range': (6.0, 18.0),
     'default_attenuation': 90.0,
