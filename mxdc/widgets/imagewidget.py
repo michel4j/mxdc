@@ -15,6 +15,7 @@ from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import Gtk
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
+from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 from mxdc.libs.imageio import read_image
@@ -381,7 +382,7 @@ class ImageWidget(Gtk.DrawingArea):
     def make_histogram(self, data, show_axis=None, distance=True):
         color = colors.Category.CAT20C[0]
         matplotlib.rcParams.update({'font.size': 9.5})
-        figure = matplotlib.figure.Figure(frameon=False, figsize=(4, 2), dpi=72, edgecolor=color)
+        figure = Figure(frameon=False, figsize=(4, 2), dpi=72, edgecolor=color)
         plot = figure.add_subplot(111)
         plot.patch.set_alpha(1.0)
         _adjust_spines(plot, ['left'], color)
@@ -414,7 +415,7 @@ class ImageWidget(Gtk.DrawingArea):
         dpi = 80
         color = colors.Category.CAT20C[0]
         matplotlib.rcParams.update({'font.size': 9.5})
-        figure = matplotlib.figure.Figure(frameon=False, figsize=(hw/dpi, hh/dpi), dpi=dpi, edgecolor=color)
+        figure = Figure(frameon=False, figsize=(hw/dpi, hh/dpi), dpi=dpi, edgecolor=color)
         plot = figure.add_subplot(111)
         plot.patch.set_alpha(1.0)
         _adjust_spines(plot, ['bottom'], color)

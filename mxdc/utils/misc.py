@@ -11,9 +11,9 @@ import time
 import uuid
 import hashlib
 
-import decorators
-import ipaddress
-import log
+from . import decorators
+from . import ipaddress
+from . import log
 import numpy
 from gi.repository import GObject
 from mxdc.com import ca
