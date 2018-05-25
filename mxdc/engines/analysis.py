@@ -195,6 +195,7 @@ class Analyst(GObject.GObject):
             returnValue({})
         else:
             report['data_id'] = filter(None, [metadata.get('id')])
+            self.save_report(report)
             self.succeeded(report, params['uuid'], self.ResultType.XRD)
             returnValue(report)
 
