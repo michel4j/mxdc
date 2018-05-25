@@ -54,8 +54,9 @@ class DataCollector(GObject.GObject):
         self.beamline.synchrotron.connect('ready', self.on_beam_change)
         globalRegistry.register([], IDataCollector, '', self)
 
-    def configure(self, run_data, take_snapshots=True, existing=0, analysis=None, anomalous=False):
+    def configure(self, run_data, take_snapshots=True, existing=0, analysis=None, anomalous=False, first=False):
         self.config['analysis'] = analysis
+        self.config['first'] = first
         self.config['anomalous'] = anomalous
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
@@ -63,6 +64,7 @@ class DataCollector(GObject.GObject):
         self.config['wedges'] = wedges
         self.config['datasets'] = datasets
         self.config['existing'] = existing
+
 
         # delete existing frames
         for wedge in wedges:
@@ -111,7 +113,7 @@ class DataCollector(GObject.GObject):
             metadata = self.save(dataset)
             self.results.append(metadata)
             if metadata and self.config['analysis']:
-                self.analyse(metadata, dataset['sample'])
+                self.analyse(metadata, dataset['sample'], first=self.config.get('first', False))
 
         if not (self.stopped or self.paused):
             GObject.idle_add(self.emit, 'done')
@@ -279,7 +281,7 @@ class DataCollector(GObject.GObject):
         reply = self.beamline.lims.upload_data(self.beamline.name, filename)
         return reply
 
-    def analyse(self, metadata, sample):
+    def analyse(self, metadata, sample, first=False):
 
         if self.config['analysis'] is None:
             return
@@ -290,6 +292,7 @@ class DataCollector(GObject.GObject):
         elif (self.config['analysis'] == 'process') or (self.config['analysis'] == 'default' and metadata['type'] == 'MX_DATA'):
             self.analyst.process_dataset(metadata, flags=flags, sample=sample)
         elif (self.config['analysis'] == 'powder') or (self.config['analysis'] == 'default' and metadata['type'] == 'XRD_DATA'):
+            flags = ('calibrate',) if first else ()
             self.analyst.process_powder(metadata, flags=flags, sample=sample)
 
     def on_new_image(self, obj, file_path):

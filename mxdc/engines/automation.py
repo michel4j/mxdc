@@ -64,6 +64,7 @@ class Automator(GObject.GObject):
         GObject.idle_add(self.emit, 'started')
         pos = 0
         self.pause_message = ''
+        first = True
         for sample in self.samples:
             if self.stopped: break
             GObject.idle_add(self.emit, 'sample-started', sample['uuid'])
@@ -117,7 +118,7 @@ class Automator(GObject.GObject):
                             sample['name'], params['directory']
                         ))
 
-                        self.collector.configure(params, take_snapshots=True, analysis=params.get('analysis'), anomalous=params.get('anomalous', False))
+                        self.collector.configure(params, take_snapshots=True, analysis=params.get('analysis'), anomalous=params.get('anomalous', False), first=first)
                         sample['results'] = self.collector.run()
                         while not self.collector.complete:
                             time.sleep(1)  # wait until collector is stopped
@@ -125,6 +126,7 @@ class Automator(GObject.GObject):
                         self.stop(error='Sample not mounted. Unable to continue automation!')
 
             GObject.idle_add(self.emit, 'sample-done', sample['uuid'])
+            first = False
 
         if self.stopped:
             GObject.idle_add(self.emit, 'stopped')
