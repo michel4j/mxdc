@@ -159,24 +159,27 @@ class DewarController(GObject.GObject):
             self.failure_dialog.destroy()
             self.failure_dialog = None
 
+    def failure_callback(self, dialog, response, context):
+        if self.failure_dialog:
+            self.failure_dialog.destroy()
+            self.failure_dialog = None
+        if response == Gtk.ButtonsType.OK:
+            self.beamline.automounter.recover(context)
+
     def on_failure_changed(self, *args, **kwargs):
         failure_context = self.beamline.automounter.failure
         if failure_context:
             failure_type, message = failure_context
-
             self.failure_dialog = dialogs.make_dialog(
-                Gtk.MessageType.QUESTION, 'Automounter Failed: {}'.format(failure_type.replace('-', ' ').title()), message,
-                buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Recover', Gtk.ButtonsType.OK)), modal=False
+                Gtk.MessageType.QUESTION, 'Automounter Failed: {}'.format(failure_type.replace('-', ' ').title()),
+                message, buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Recover', Gtk.ButtonsType.OK)), modal=False
             )
-
-            def _resp_cb(dialog, response):
+            self.failure_dialog.connect('response', self.failure_callback, failure_context)
+            self.failure_dialog.show_all()
+        else:
+            if self.failure_dialog:
                 self.failure_dialog.destroy()
                 self.failure_dialog = None
-                if response == Gtk.ButtonsType.OK:
-                    self.beamline.automounter.recover(failure_context)
-
-            self.failure_dialog.connect('response', _resp_cb)
-            self.failure_dialog.show_all()
 
     def on_messages(self, obj, message):
         if message:

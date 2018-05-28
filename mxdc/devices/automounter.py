@@ -687,6 +687,7 @@ class ISARAMounter(AutoMounter):
         self.puck_probe_fbk.connect('changed', self.on_pucks_changed)
         self.gonio_sample_fbk.connect('changed', self.on_sample_changed)
         self.gonio_puck_fbk.connect('changed', self.on_sample_changed)
+        self.reset_cmd.connect('changed', self.on_reset)
 
         state_variables = [
            self.bot_busy_fbk, self.cmd_busy_fbk, self.mode_fbk, self.tool_number, self.air_fbk,
@@ -786,12 +787,6 @@ class ISARAMounter(AutoMounter):
         if failure_type == 'blank-mounted':
             self.set_state(message='Recovering from: {}'.format(failure_type))
             chn = Chain(1000, (self.abort_cmd.put, 1), (self.reset_cmd.put, 1), (self.clear_cmd.put, 1))
-            if self.props.failure and self.props.failure[0] == failure_type:
-                new_failure = None
-                self.on_state_changed()
-            else:
-                new_failure = self.props.failure
-            self.configure(failure=new_failure)
         else:
             logger.warning('Recovering from: {} not available.'.format(failure_type))
 
@@ -899,9 +894,13 @@ class ISARAMounter(AutoMounter):
     def on_message(self, obj, value, transform):
         message = transform(value)
         if message == 'collision in dewar':
-            self.configure(status=State.FAILURE, failure=('collision', message))
+            self.configure(status=State.FAILURE)
         if message:
             self.set_state(message=message)
+
+    def on_reset(self, obj, value):
+        if value == 1:
+            self.configure(failure=None)
 
     def on_error_changed(self, *args):
         messages = ', '.join([
