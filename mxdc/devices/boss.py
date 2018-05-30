@@ -96,7 +96,6 @@ class BOSSTuner(BaseTuner):
         self._off_value = off_value
         self._pause_value = pause_value
 
-
     def reset(self):
         self.stop()
         self.start()
