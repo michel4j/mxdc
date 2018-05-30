@@ -248,23 +248,19 @@ class Centering(GObject.GObject):
             self.beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
 
         half_width = self.beamline.sample_video.size[0] // 2
-        for j in range(2):
-            if j == 1:
-                self.beamline.sample_video.zoom(med_zoom, wait=True)
-                time.sleep(1)
-            for i in range(3):
-                self.beamline.sample_stage.wait()
-                self.beamline.omega.move_by(90, wait=True)
-                angle, info = self.get_features()
-                if 'x' in info and 'y' in info:
-                    x = info['x'] - half_width
-                    xmm, ymm = self.screen_to_mm(x, info['y'])
-                    if not self.beamline.sample_stage.is_busy():
-                        self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
-                    scores.append(1.0)
-                else:
-                    scores.append(0.5 if 'x' in info or 'y' in info else 0.0)
-                logger.debug('Centering: {}'.format(info))
+        for j in range(4):
+            self.beamline.sample_stage.wait()
+            self.beamline.omega.move_by(90, wait=True)
+            angle, info = self.get_features()
+            if 'x' in info and 'y' in info:
+                x = info['x'] - half_width
+                xmm, ymm = self.screen_to_mm(x, info['y'])
+                if not self.beamline.sample_stage.is_busy():
+                    self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
+                scores.append(1.0)
+            else:
+                scores.append(0.5 if 'x' in info or 'y' in info else 0.0)
+            logger.debug('Centering: {}'.format(info))
 
         # final shift
         xmm, ymm = self.screen_to_mm(half_width, 0)
