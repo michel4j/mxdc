@@ -242,19 +242,18 @@ class Centering(GObject.GObject):
         self.beamline.sample_video.zoom(low_zoom, wait=True)
 
         scores = []
-        angle, info = self.get_features()
-        if not 'x' in info or not 'y' in info:
-            logger.warning('No sample found, homing centering stage!')
-            self.beamline.sample_stage.move_xyz(0.0, 0.0, 0.0)
-
         half_width = self.beamline.sample_video.size[0] // 2
-        for j in range(4):
+        for j in range(8):
             self.beamline.sample_stage.wait()
             self.beamline.omega.move_by(90, wait=True)
             angle, info = self.get_features()
             if 'x' in info and 'y' in info:
                 x = info['x'] - half_width
-                xmm, ymm = self.screen_to_mm(x, info['y'])
+                ypix = info['capillary-y'] if 'capillary-y' in info else info['y']
+                xmm, ymm = self.screen_to_mm(x, ypix)
+                if j > 4:
+                    xmm = 0.0
+
                 if not self.beamline.sample_stage.is_busy():
                     self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
                 scores.append(1.0)
@@ -262,11 +261,11 @@ class Centering(GObject.GObject):
                 scores.append(0.5 if 'x' in info or 'y' in info else 0.0)
             logger.debug('Centering: {}'.format(info))
 
-        # final shift
-        xmm, ymm = self.screen_to_mm(half_width, 0)
-        if not self.beamline.sample_stage.is_busy():
-            self.beamline.sample_stage.move_screen_by(xmm, 0.0, 0.0)
-
+        # # final shift
+        # xmm, ymm = self.screen_to_mm(half_width, 0)
+        # if not self.beamline.sample_stage.is_busy():
+        #     self.beamline.sample_stage.move_screen_by(xmm, 0.0, 0.0)
+        self.score = numpy.mean(scores)
 
 def get_current_bkg():
     """Move Sample back and capture background image

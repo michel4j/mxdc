@@ -84,6 +84,8 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
                 vertical_midpoints.append((i, (column[-1] + column[0]) // 2))
                 tip_x = i
                 tip_y = (column[0] + column[-1]) // 2
+                if i == x_size // 2:
+                    info['capillary-y'] = tip_y/scale
             else:
                 vertical_spans.append((i, 0))
                 vertical_midpoints.append((i, y_size // 2))
@@ -145,39 +147,6 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
             info['peaks'] = [(x_max - x, y) for x, y in info['peaks']]
     return info
 
-
-def get_cap_center(orig, bkg, orientation='left'):
-    img = ImageChops.difference(orig, bkg).filter(ImageFilter.BLUR)
-
-    if orientation == 3:
-        img = img.transpose(Image.FLIP_LEFT_RIGHT)
-    ab = numpy.asarray(img.convert('L'))
-
-    x = numpy.max(ab, 0)
-    y = numpy.max(ab, 1)[::-1]
-    quality = 0
-    xp = list(x > THRESHOLD)
-
-    if True in xp:
-        xtip = len(xp) - xp[::-1].index(True) - 1
-    else:
-        xtip = 0
-        quality -= 1
-
-    ymid = _centroid(y)
-
-    # get the width
-    spans = numpy.zeros(x.shape)
-    mids = numpy.zeros(x.shape)
-    for i in range(xtip):  # for each index in True positions.
-        yl = ab[:, i][::-1]  # yl is a vertical slice of ab, listed backwards. 'bottom to top'
-        mid, span = _get_object(yl)
-        spans[i] = span
-        mids[i] = mid
-
-    width = spans.mean()
-
-    return xtip, (len(y) - ymid), width
 
 
 def _normalize(data):
