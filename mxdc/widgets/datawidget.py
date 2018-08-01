@@ -463,7 +463,7 @@ class DataDialog(DataEditor):
         'data/data_dialog': ['data_dialog'],
         'data/data_form': ['data_form_fields'],
     }
-    disabled = ['name', 'inverse']
+    disabled = ['name', 'inverse', 'energy']
     use_dialog = True
 
     def build_gui(self):
