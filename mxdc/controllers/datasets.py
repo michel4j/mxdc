@@ -103,6 +103,7 @@ class AutomationController(GObject.GObject):
             'resolution': converter.dist_to_resol(
                 250, self.beamline.detector.mm_size, self.beamline.energy.get_position()
             ),
+            'energy': self.beamline.energy.get_position(),
         })
         self.run_dialog.configure(params)
         self.config.props.info = self.run_dialog.get_parameters()
@@ -159,6 +160,7 @@ class AutomationController(GObject.GObject):
                         options = {'analysis': name, 'anomalous': self.options['anomalous'].get_active()}
                         break
             options.update(self.config.props.info)
+            options['energy'] = self.beamline.energy.get_position()  # use current beamline energy
             return options
         return {}
 
@@ -223,7 +225,9 @@ class AutomationController(GObject.GObject):
         self.widget.acquire_task_btn.bind_property('active', self.widget.acquire_options_box, 'sensitive')
 
     def on_edit_acquisition(self, obj):
-        self.run_dialog.configure(self.config.info)
+        info = self.config.info
+        info['energy'] = self.beamline.energy.get_position()
+        self.run_dialog.configure(info)
 
     def on_save_acquisition(self, obj):
         self.config.props.info = self.run_dialog.get_parameters()

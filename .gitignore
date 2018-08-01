@@ -14,3 +14,4 @@ mxdc/VERSION
 docs-src/_build/latex
 docs-src/_build/doctrees
 fakegir
+venv
