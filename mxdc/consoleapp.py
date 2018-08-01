@@ -6,13 +6,13 @@ import time
 import logging
 from twisted.internet import gtk3reactor
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gio, GObject
+from gi.repository import Gtk, Gio, GLib, GObject
 
 gtk3reactor.install()
 
 from mxdc import conf
 from mxdc.utils.log import get_module_logger
-from mxdc.utils import gui
+from mxdc.utils import gui, misc
 from mxdc.widgets import dialogs, textviewer
 from mxdc.controllers import scanplot, common
 from mxdc.beamlines.mx import MXBeamline
@@ -55,7 +55,8 @@ class ConsoleApp(object):
         sys.exit()
 
     def setup(self):
-        self.resources = Gio.Resource.load(os.path.join(conf.SHARE_DIR, 'mxdc.gresource'))
+        self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
+        self.resources = Gio.Resource.new_from_data(self.resource_data)
         Gio.resources_register(self.resources)
 
         self.builder = AppBuilder()

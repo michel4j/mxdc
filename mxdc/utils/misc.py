@@ -273,3 +273,9 @@ def wait_for_file(file_path, timeout=10):
         time.sleep(poll)
         timeout -= poll
     return time_left > 0
+
+
+def load_binary_data(filename):
+    with open(filename, 'rb') as handle:
+        data = handle.read()
+    return data

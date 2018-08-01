@@ -38,7 +38,8 @@ class Application(Gtk.Application):
         super(Application, self).__init__(application_id="org.mxdc.hutch", **kwargs)
         self.window = None
         self.settings_active = False
-        self.resources = Gio.Resource.load(os.path.join(conf.SHARE_DIR, 'mxdc.gresource'))
+        self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
+        self.resources = Gio.Resource.new_from_data(self.resource_data)
         Gio.resources_register(self.resources)
         self.connect('shutdown', self.on_shutdown)
 
