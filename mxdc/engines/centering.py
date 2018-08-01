@@ -182,7 +182,7 @@ class Centering(GObject.GObject):
 
         scores.append(self.score)
 
-        for step in ['face', 'edge']:
+        for step in ['edge', 'face']:
             logger.info('Performing raster scan on {}'.format(step))
             raster_params = {}
             self.beamline.goniometer.wait(start=False)
@@ -190,13 +190,13 @@ class Centering(GObject.GObject):
                 self.beamline.omega.move_by(90, wait=True)
 
             angle, info = self.get_features()
-            if step == 'face':
+            if step == 'edge':
                 # close polygon
                 if info['points'][0] != info['points'][-1]:
                     info['points'].append(info['points'][0])
                 points = info['points']
             else:
-                # no horizontal centering for edge, use camera center
+                # no horizontal centering for face, use camera center
                 points = [
                     (info['center-x'], info['loop-y'] - info['loop-size']),
                     (info['center-x'], info['loop-y'] + info['loop-size']),
