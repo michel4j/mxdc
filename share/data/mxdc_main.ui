@@ -7084,7 +7084,7 @@
                                         <property name="can_focus">False</property>
                                         <child>
                                           <object class="GtkRadioButton" id="proc_calib_option">
-                                            <property name="label" translatable="yes">Calibrate (LaB6)</property>
+                                            <property name="label" translatable="yes">Calibrate</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">False</property>

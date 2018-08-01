@@ -18,7 +18,6 @@
         <file compressed="true">data/scanplot.ui</file>
         <file compressed="true">data/settings.ui</file>
         <file compressed="true">data/browser.ui</file>
-        <file>data/active_stop.gif</file>
         <file>data/colormaps.data</file>
         <file>data/crystal.png</file>
         <file>data/crystal.svg</file>
@@ -38,5 +37,6 @@
         <file>data/units-%.svg</file>
         <file>data/folder-template.svg</file>
         <file>data/screening-method.svg</file>
+        <file>data/active_stop.gif</file>
     </gresource>
 </gresources>
