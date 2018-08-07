@@ -145,17 +145,19 @@ class DSService(service.Service):
                 out = subprocess.check_output(args, preexec_fn=demote(user_name))
                 out = subprocess.check_output(['sync'], preexec_fn=demote(user_name))
             except subprocess.CalledProcessError as e:
-                logger.error('Error analysing frame: {}'.format(e))
+                logger.error('Error setting up folder: {}'.format(e))
             os.chmod(folder, self.FILE_MODE)
 
         backup_dir = self.ARCHIVE_ROOT + folder
         archive_home = os.path.join(self.ARCHIVE_ROOT + os.sep.join(folder.split(os.sep)[:3]))
-        if not os.path.exists(archive_home):
-            subprocess.check_output(['mkdir', '-p', archive_home], preexec_fn=demote(user_name))
-        os.chmod(archive_home, 0o701)
-        if not os.path.exists(backup_dir):
-            subprocess.check_output(['mkdir', '-p', backup_dir], preexec_fn=demote(user_name))
-
+        try:
+            if not os.path.exists(archive_home):
+                subprocess.check_output(['mkdir', '-p', archive_home], preexec_fn=demote(user_name))
+            os.chmod(archive_home, 0o701)
+            if not os.path.exists(backup_dir):
+                subprocess.check_output(['mkdir', '-p', backup_dir], preexec_fn=demote(user_name))
+        except subprocess.CalledProcessError as e:
+            logger.error('Error setting up folder: {}'.format(e))
         if folder not in self.backups:
             self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE)
         return self.backups[folder].start()
