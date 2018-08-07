@@ -48,16 +48,13 @@ def log_to_twisted(level=logging.DEBUG):
     logging.getLogger('').addHandler(console)
 
 
-def demote(user_name):
-    """Pass the function 'set_user' to preexec_fn, rather than just calling
-    setuid and setgid. This will change the ids for that subprocess only"""
+class Demoter(object):
+    def __init__(self, user_name):
+        self.user = pwd.getpwnam(user_name)
 
-    def set_user():
-        pwdb = pwd.getpwnam(user_name)
-        os.setgid(pwdb.pw_gid)
-        os.setuid(pwdb.pw_uid)
-
-    return set_user
+    def __call__(self):
+        os.setgid(self.user.pw_gid)
+        os.setuid(self.user.pw_uid)
 
 
 class IDSService(Interface):
@@ -138,12 +135,13 @@ class DSService(service.Service):
 
     @log.log_call
     def setup_folder(self, folder, user_name):
+        demote = Demoter(user_name)
         folder = folder.strip()
         if not os.path.exists(folder):
             args = ['mkdir', '-p', folder]
             try:
-                out = subprocess.check_output(args, preexec_fn=demote(user_name))
-                out = subprocess.check_output(['sync'], preexec_fn=demote(user_name))
+                out = subprocess.check_output(args, preexec_fn=demote)
+                out = subprocess.check_output(['sync'], preexec_fn=demote)
             except subprocess.CalledProcessError as e:
                 logger.error('Error setting up folder: {}'.format(e))
             os.chmod(folder, self.FILE_MODE)
@@ -152,10 +150,10 @@ class DSService(service.Service):
         archive_home = os.path.join(self.ARCHIVE_ROOT + os.sep.join(folder.split(os.sep)[:3]))
         try:
             if not os.path.exists(archive_home):
-                subprocess.check_output(['mkdir', '-p', archive_home], preexec_fn=demote(user_name))
+                subprocess.check_output(['mkdir', '-p', archive_home], preexec_fn=demote)
             os.chmod(archive_home, 0o701)
             if not os.path.exists(backup_dir):
-                subprocess.check_output(['mkdir', '-p', backup_dir], preexec_fn=demote(user_name))
+                subprocess.check_output(['mkdir', '-p', backup_dir], preexec_fn=demote)
         except subprocess.CalledProcessError as e:
             logger.error('Error setting up folder: {}'.format(e))
         if folder not in self.backups:
