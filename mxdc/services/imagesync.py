@@ -184,7 +184,8 @@ class DSService(service.Service):
         if folder not in self.backups:
             logger.info('Archiving folder: {}'.format(folder))
             self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE)
-        return self.backups[folder].start()
+            self.backups[folder].start()
+        return defer.succeed([])
 
     @log.log_call
     def configure(self, include=(), mode=0o701, archive_root='/archive'):
