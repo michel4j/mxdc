@@ -235,8 +235,10 @@ class PIL6MImager(BaseDevice):
 
     def on_new_frame(self, obj, frame_number):
         template = self.file_format.get()
+        directory = self.settings['directory'].get()
+        directory += os.sep if not directory.endswith(os.sep) else ''
         file_path = template % (
-            self.settings['directory'].get(),
+            directory,
             self.settings['file_prefix'].get(),
             frame_number
         )
