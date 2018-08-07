@@ -134,8 +134,10 @@ class Archiver(object):
                 m = re.search("Number of regular files transferred: (?P<files>\d+)", output)
                 if m and int(m.groupdict()['files']):
                     self.time = time.time()
+                    logger.info('Archival of folder {}: copied {} files'.format(self.src, int(m.groupdict()['files'])))
                 elif time.time() - self.time > self.timeout:
                     self.complete = True
+                    logger.info('Archival of folder {} complete'.format(self.src))
             time.sleep(30)
         self.processing = False
 
@@ -172,6 +174,7 @@ class DSService(service.Service):
         os.chmod(archive_home, 0o701)
         subprocess.check_output(['sync'])
         if folder not in self.backups:
+            logger.info('Archiving folder: {}'.format(folder))
             self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE)
         return self.backups[folder].start()
 
