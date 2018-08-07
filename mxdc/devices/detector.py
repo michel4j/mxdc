@@ -168,11 +168,11 @@ class PIL6MImager(BaseDevice):
         self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
         self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
-        self.file_format = self.add_pv("{}:FileTemplate".format(name)),
+        self.file_format = self.add_pv("{}:FileTemplate".format(name))
 
         root_name = name.split(':')[0]
-        self.saved_filename = self.add_pv('{}:saveData_fullPathName'.format(root_name))
-        self.saved_filename.connect('changed', self.on_new_frame)
+        self.saved_frame_num = self.add_pv('{}:ArrayCounter_RBV'.format(root_name))
+        self.saved_frame_num.connect('changed', self.on_new_frame)
 
         # Data Parameters
         self.settings = {
@@ -234,8 +234,13 @@ class PIL6MImager(BaseDevice):
                 except OSError:
                     logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
-    def on_new_frame(self, obj, frame_name):
-        file_path = os.path.join(self.settings['directory'].get(), frame_name)
+    def on_new_frame(self, obj, frame_number):
+        template = self.file_format.get()
+        file_path = template % (
+            self.settings['directory'].get(),
+            self.settings['file_prefix'].get(),
+            frame_number
+        )
         GObject.idle_add(self.emit, 'new-image', file_path)
 
     def wait(self, state='idle'):
