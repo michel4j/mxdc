@@ -170,8 +170,7 @@ class PIL6MImager(BaseDevice):
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
         self.file_format = self.add_pv("{}:FileTemplate".format(name))
 
-        root_name = name.split(':')[0]
-        self.saved_frame_num = self.add_pv('{}:ArrayCounter_RBV'.format(root_name))
+        self.saved_frame_num = self.add_pv('{}:ArrayCounter_RBV'.format(name))
         self.saved_frame_num.connect('changed', self.on_new_frame)
 
         # Data Parameters
