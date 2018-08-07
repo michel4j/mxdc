@@ -114,6 +114,7 @@ class Archiver(object):
         self.complete = False
         self.time = 0
         self.timeout = 60 * 5
+        self.zero_count = 0
         self.includes = ['--include={0}'.format(i) for i in include]
 
     def start(self):
@@ -124,6 +125,8 @@ class Archiver(object):
     def run(self):
         self.processing = True
         self.complete = False
+        self.zero_count = 0
+        self.time = time.time()
         args = ['rsync', '-a', '--stats', '--modify-window=2'] + self.includes + ['--exclude=*', self.src, self.dest]
         while not self.complete:
             try:
@@ -132,9 +135,14 @@ class Archiver(object):
                 logger.error('RSYNC Failed: {}'.format(e))
             else:
                 m = re.search("Number of regular files transferred: (?P<files>\d+)", output)
-                if m and int(m.groupdict()['files']):
+                if m:
+                    num_files = int(m.groupdict()['files'])
                     self.time = time.time()
-                    logger.info('Archival of folder {}: copied {} files'.format(self.src, int(m.groupdict()['files'])))
+                else:
+                    num_files = 0
+
+                if num_files > 0:
+                    logger.info('Archival of folder {}: copied {} files'.format(self.src, num_files))
                 elif time.time() - self.time > self.timeout:
                     self.complete = True
                     logger.info('Archival of folder {} complete'.format(self.src))
