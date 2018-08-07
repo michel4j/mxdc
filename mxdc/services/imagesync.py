@@ -111,7 +111,7 @@ class Archiver(object):
     def run(self):
         self.processing = True
         self.complete = False
-        args = ['rsync', '-rt', '--stats', '--modify-window=2'] + self.includes + ['--exclude=*', self.src, self.dest]
+        args = ['rsync', '-a', '--stats', '--modify-window=2'] + self.includes + ['--exclude=*', self.src, self.dest]
         while not self.complete:
             try:
                 output = subprocess.check_output(args)
@@ -154,14 +154,13 @@ class DSService(service.Service):
         os.chmod(archive_home, 0o701)
         if not os.path.exists(backup_dir):
             subprocess.check_output(['mkdir', '-p', backup_dir], preexec_fn=demote(user_name))
-            os.chmod(backup_dir, 0o701)
 
         if folder not in self.backups:
             self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE)
         return self.backups[folder].start()
 
     @log.log_call
-    def configure(self, include=(), mode=0o700, archive_root='/archive'):
+    def configure(self, include=(), mode=0o701, archive_root='/archive'):
         self.INCLUDE = include
         self.FILE_MODE = mode
         self.ARCHIVE_ROOT = archive_root
