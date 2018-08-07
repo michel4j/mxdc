@@ -150,7 +150,8 @@ class DSService(service.Service):
 
         backup_dir = self.ARCHIVE_ROOT + folder
         archive_home = os.path.join(self.ARCHIVE_ROOT + os.sep.join(folder.split(os.sep)[:3]))
-        subprocess.check_output(['mkdir', '-p', archive_home], preexec_fn=demote(user_name))
+        if not os.path.exists(archive_home):
+            subprocess.check_output(['mkdir', '-p', archive_home], preexec_fn=demote(user_name))
         os.chmod(archive_home, 0o701)
         if not os.path.exists(backup_dir):
             subprocess.check_output(['mkdir', '-p', backup_dir], preexec_fn=demote(user_name))
