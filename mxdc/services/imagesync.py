@@ -117,6 +117,9 @@ class Archiver(object):
         self.zero_count = 0
         self.includes = ['--include={0}'.format(i) for i in include]
 
+    def is_complete(self):
+        return self.complete
+
     def start(self):
         if self.processing:
             return defer.Deferred({})
@@ -181,7 +184,7 @@ class DSService(service.Service):
             logger.error('Error setting up folder: {}'.format(e))
         os.chmod(archive_home, 0o701)
         subprocess.check_output(['sync'])
-        if folder not in self.backups:
+        if folder not in self.backups or self.backups[folder].is_complete():
             logger.info('Archiving folder: {}'.format(folder))
             self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE)
             self.backups[folder].start()
