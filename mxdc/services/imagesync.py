@@ -48,6 +48,22 @@ def log_to_twisted(level=logging.DEBUG):
     logging.getLogger('').addHandler(console)
 
 
+class Impersonator(object):
+    def __init__(self, user_name):
+        self.user_name = user_name
+        self.userdb = pwd.getpwnam(user_name)
+        self.gid = os.getgid()
+        self.uid = os.getuid()
+
+    def __enter__(self):
+        os.setegid(self.userdb.pw_gid)
+        os.seteuid(self.userdb.pw_uid)
+
+    def __exit__(self, *args):
+        os.setegid(self.gid)
+        os.seteuid(self.uid)
+
+
 class Demoter(object):
     def __init__(self, user_name):
         self.user = pwd.getpwnam(user_name)
@@ -135,27 +151,26 @@ class DSService(service.Service):
 
     @log.log_call
     def setup_folder(self, folder, user_name):
-        demote = Demoter(user_name)
         folder = folder.strip()
-        if not os.path.exists(folder):
-            args = ['mkdir', '-p', folder]
-            try:
-                out = subprocess.check_output(args, preexec_fn=demote)
-                out = subprocess.check_output(['sync'], preexec_fn=demote)
-            except subprocess.CalledProcessError as e:
-                logger.error('Error setting up folder: {}'.format(e))
-            os.chmod(folder, self.FILE_MODE)
+        try:
+            with Impersonator(user_name):
+                if not os.path.exists(folder):
+                    subprocess.check_output(['mkdir', '-p', folder])
+        except subprocess.CalledProcessError as e:
+            logger.error('Error setting up folder: {}'.format(e))
+        os.chmod(folder, self.FILE_MODE)
 
         backup_dir = self.ARCHIVE_ROOT + folder
         archive_home = os.path.join(self.ARCHIVE_ROOT + os.sep.join(folder.split(os.sep)[:3]))
         try:
-            if not os.path.exists(archive_home):
-                subprocess.check_output(['mkdir', '-p', archive_home], preexec_fn=demote)
-            os.chmod(archive_home, 0o701)
-            if not os.path.exists(backup_dir):
-                subprocess.check_output(['mkdir', '-p', backup_dir], preexec_fn=demote)
+            with Impersonator(user_name):
+                for path in [archive_home, backup_dir]:
+                    if not os.path.exists(path):
+                        subprocess.check_output(['mkdir', '-p', path])
         except subprocess.CalledProcessError as e:
             logger.error('Error setting up folder: {}'.format(e))
+        os.chmod(archive_home, 0o701)
+        subprocess.check_output(['sync'])
         if folder not in self.backups:
             self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE)
         return self.backups[folder].start()
