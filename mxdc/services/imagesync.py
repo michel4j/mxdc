@@ -64,15 +64,6 @@ class Impersonator(object):
         os.seteuid(self.uid)
 
 
-class Demoter(object):
-    def __init__(self, user_name):
-        self.user = pwd.getpwnam(user_name)
-
-    def __call__(self):
-        os.setgid(self.user.pw_gid)
-        os.setuid(self.user.pw_uid)
-
-
 class IDSService(Interface):
     def setup_folder(path, user_name):
         """
@@ -107,9 +98,10 @@ class DSSPerspective2Service(pb.Root):
 
 
 class Archiver(object):
-    def __init__(self, src, dest, include):
+    def __init__(self, src, dest, include, user_name):
         self.src = os.path.join(src, '')
         self.dest = os.path.join(dest, '')
+        self.user_name = user_name
         self.processing = False
         self.complete = False
         self.time = 0
@@ -130,10 +122,11 @@ class Archiver(object):
         self.complete = False
         self.zero_count = 0
         self.time = time.time()
-        args = ['rsync', '-a', '--stats', '--modify-window=2'] + self.includes + ['--exclude=*', self.src, self.dest]
+        args = ['rsync', '-rt', '--stats', '--modify-window=2'] + self.includes + ['--exclude=*', self.src, self.dest]
         while not self.complete:
             try:
-                output = subprocess.check_output(args)
+                with Impersonator(self.user_name):
+                    output = subprocess.check_output(args)
             except subprocess.CalledProcessError as e:
                 logger.error('RSYNC Failed: {}'.format(e))
             else:
@@ -186,7 +179,7 @@ class DSService(service.Service):
         subprocess.check_output(['sync'])
         if folder not in self.backups or self.backups[folder].is_complete():
             logger.info('Archiving folder: {}'.format(folder))
-            self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE)
+            self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE, user_name=user_name)
             self.backups[folder].start()
         return defer.succeed([])
 
