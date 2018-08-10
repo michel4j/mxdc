@@ -350,7 +350,7 @@ class SimGonio(Goniometer):
             logger.debug('Starting scan at: %s' % datetime.now().isoformat())
             logger.debug('Moving to scan starting position')
             bl.fast_shutter.open()
-            bl.omega.move_to(self.settings['angle'] - 0.05, wait=True, speed=bl.omega.default_speed)
+            bl.omega.move_to(self.settings['angle'] - 0.05, wait=True, speed=90.0)
             scan_speed = float(self.settings['delta']) / self.settings['time']
             if wait:
                 logger.debug('Waiting for scan to complete ...')
