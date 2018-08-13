@@ -110,7 +110,7 @@ class Plotter(Gtk.Alignment):
         xmin, xmax = misc.get_min_max(self.x_data[-1], ldev=0, rdev=0)
         ymin, ymax = misc.get_min_max(self.y_data[-1], ldev=1, rdev=1)
 
-        ymin, ymax = min(ymin, ymin_current), max(ymax, ymax_current)
+        #ymin, ymax = min(ymin, ymin_current), max(ymax, ymax_current)
         xmin, xmax = min(xmin, xmin_current), max(xmax, xmax_current)
 
         self.line[-1].axes.set_xlim(xmin, xmax)
@@ -196,14 +196,14 @@ class Plotter(Gtk.Alignment):
             # adjust axes limits as necessary
             ymin_current, ymax_current = self.line[lin].axes.get_ylim()
 
-            ymin, ymax = misc.get_min_max(self.y_data[lin], ldev=1, rdev=1)
+            ymin, ymax = misc.get_min_max(self.y_data[lin], ldev=0.5, rdev=0.5)
             xmin, xmax = misc.get_min_max(self.x_data[lin], ldev=0, rdev=0)
             if len(self.line) > 1:
                 xmin_current, xmax_current = self.axis[0].get_xlim()
                 self.axis[0].set_xlim(min(xmin, xmin_current), max(xmax, xmax_current))
             else:
                 self.line[lin].axes.set_xlim(xmin, xmax)
-            self.line[lin].axes.set_ylim(min(ymin, ymin_current), max(ymax, ymax_current))
+            self.line[lin].axes.set_ylim(ymin, ymax)
             self.axis[0].xaxis.set_major_formatter(self.format_x)
 
             if redraw:

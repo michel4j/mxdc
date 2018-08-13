@@ -137,13 +137,14 @@ class DataCollector(GObject.GObject):
             for frame in datatools.generate_frames(wedge):
                 if self.stopped or self.paused: break
                 # Prepare image header
+                energy = self.beamline.energy.get_position()
                 detector_parameters = {
                     'file_prefix': frame['dataset'],
                     'start_frame': frame['first'],
                     'directory': frame['directory'],
-                    'wavelength': energy_to_wavelength(frame['energy']),
-                    'energy': frame['energy'],
-                    'distance': frame['distance'],
+                    'wavelength': energy_to_wavelength(energy),
+                    'energy': energy,
+                    'distance': round(self.beamline.distance.get_position(), 1),
                     'exposure_time': frame['exposure'],
                     'num_frames': 1,
                     'start_angle': frame['start'],
@@ -170,13 +171,14 @@ class DataCollector(GObject.GObject):
         for wedge in self.config['wedges']:
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
+            energy = self.beamline.energy.get_position()
             detector_parameters = {
                 'file_prefix': wedge['dataset'],
                 'start_frame': wedge['first'],
                 'directory': wedge['directory'],
-                'wavelength': energy_to_wavelength(wedge['energy']),
-                'energy': wedge['energy'],
-                'distance': wedge['distance'],
+                'wavelength': energy_to_wavelength(energy),
+                'energy': energy,
+                'distance': round(self.beamline.distance.get_position(), 1),
                 'two_theta': wedge['two_theta'],
                 'exposure_time': wedge['exposure'],
                 'num_frames': wedge['num_frames'],
