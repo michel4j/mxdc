@@ -1,3 +1,4 @@
+
 import uuid
 from collections import OrderedDict
 from collections import defaultdict
@@ -12,6 +13,7 @@ from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines import auto
 from mxdc.utils.automounter import Port, PortColors
+from mxdc.utils.decorators import async_call
 
 
 class ISampleStore(Interface):
@@ -114,6 +116,7 @@ class SampleStore(GObject.GObject):
         self.filter_model = Gtk.TreeModelSort(model=self.search_model)
         self.group_model = Gio.ListStore(item_type=GroupItem)
         self.group_registry = {}
+        self.prefetch_pending = False
 
         # initialize properties
         self.props.next_sample = {}
@@ -142,6 +145,7 @@ class SampleStore(GObject.GObject):
         self.view.connect('key-press-event', self.on_key_press)
         self.widget.samples_reload_btn.connect('clicked', lambda x: self.import_mxlive())
         self.beamline.automounter.connect('notify::sample', self.on_sample_mounted)
+        self.beamline.automounter.connect('notify::next-port', self.on_prefetched)
         self.beamline.automounter.connect('notify::ports', self.update_states)
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
         self.widget.samples_dismount_btn.connect('clicked', lambda x: self.dismount_action())
@@ -254,6 +258,15 @@ class SampleStore(GObject.GObject):
         item.connect('notify::selected', self.on_group_item_toggled, btn)
         return btn
 
+    @async_call
+    def schedule_prefetch(self):
+        port = self.next_sample.get('port')
+        if port and not self.prefetch_pending:
+            self.prefetch_pending = True
+            ready = self.beamline.automounter.wait()
+            self.beamline.automounter.prefetch(port)
+            self.prefetch_pending = False
+
     def on_group_btn_toggled(self, btn, item):
         if item.props.selected != btn.get_active():
             item.props.selected = btn.get_active()
@@ -281,6 +294,27 @@ class SampleStore(GObject.GObject):
         port = self.next_sample.get('port', '...') or '<manual>'
         self.widget.samples_next_port.set_text(port)
         self.widget.samples_mount_btn.set_sensitive(bool(self.next_sample))
+
+        # Only prefetch if there is a sample currently mounted
+        if port not in ['...', '<manual>', None] and self.beamline.automounter.is_mounted():
+            self.schedule_prefetch()
+
+    def on_prefetched(self, *args, **kwargs):
+        port = self.beamline.automounter.next_port
+        name_style = self.widget.samples_next_sample.get_style_context()
+        port_style = self.widget.samples_next_port.get_style_context()
+        if port:
+            name_style.add_class('prefetched')
+            port_style.add_class('prefetched')
+            row = self.find_by_port(port)
+            if row:
+                self.props.next_sample = row[self.Data.DATA]
+            else:
+                self.props.next_sample = {'port': port }
+        else:
+            name_style.remove_class('prefetched')
+            port_style.remove_class('prefetched')
+
 
     def on_cur_changed(self, *args, **kwargs):
         self.widget.samples_cur_sample.set_text(self.current_sample.get('name', '...'))

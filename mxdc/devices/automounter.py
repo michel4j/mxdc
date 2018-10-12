@@ -30,6 +30,7 @@ class AutoMounter(BaseDevice):
 
     layout = GObject.Property(type=object)
     sample = GObject.Property(type=object)
+    next_port = GObject.Property(type=str)
     ports = GObject.Property(type=object)
     containers = GObject.Property(type=object)
     status = GObject.Property(type=object)
@@ -457,6 +458,7 @@ class UncleSAMRobot(AutoMounter):
         # Status
         self.ports_fbk = self.add_pv('{}:PORTS'.format(root))
         self.sample_fbk = self.add_pv('{}:STATE:PORT'.format(root))
+        self.prefetched_fbk = self.add_pv('{}:STATE:PREFETCHED'.format(root))
 
         self.message_fbk = self.add_pv('{}:MESSAGE'.format(root))
         self.warning_fbk = self.add_pv('{}:STATE:WRN'.format(root))
@@ -467,14 +469,16 @@ class UncleSAMRobot(AutoMounter):
 
         # commands
         self.mount_cmd = self.add_pv('{}:CMD:mount'.format(root))
-        self.next_port = self.add_pv('{}:PARAM:NEXTPORT'.format(root))
+        self.port_param = self.add_pv('{}:PARAM:NEXTPORT'.format(root))
         self.dismount_cmd = self.add_pv('{}:CMD:dismount'.format(root))
         self.prefetch_cmd = self.add_pv('{}:CMD:prefetch'.format(root))
         self.abort_cmd = self.add_pv('{}:CMD:abort'.format(root))
 
         self.ports_fbk.connect('changed', self.on_ports_changed)
         self.sample_fbk.connect('changed', self.on_sample_changed)
+        self.prefetched_fbk.connect('changed', self.on_prefetch_changed)
         self.message_fbk.connect('changed', self.on_messages)
+
 
         status_pvs = [self.warning_fbk, self.status_fbk, self.health_fbk, self.enabled_fbk]
         for pv in status_pvs:
@@ -501,8 +505,12 @@ class UncleSAMRobot(AutoMounter):
             logger.info('{}: Sample {} already mounted.'.format(self.name, port))
             self.set_state(message="Sample already mounted!")
             return True
+        elif not self.is_mountable(port):
+            logger.info('{}: Sample {} cannot be mounted!'.format(self.name, port))
+            self.set_state(message="Port cannot be mounted!")
+            return False
         else:
-            self.next_port.put(port)
+            self.port_param.put(port)
             self.mount_cmd.put(1)
 
             logger.info('{}: Mounting Sample: {}'.format(self.name, port))
@@ -542,6 +550,8 @@ class UncleSAMRobot(AutoMounter):
 
     def prefetch(self, port, wait=True):
         enabled = self.wait(states={State.IDLE, State.PREPARING}, timeout=60)
+        if self.prefetched_fbk.get():
+            return False  # no prefetching if already prefetched
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -551,8 +561,12 @@ class UncleSAMRobot(AutoMounter):
             logger.info('{}: Sample {} already mounted.'.format(self.name, port))
             self.set_state(message="Sample already mounted!")
             return True
+        elif not self.is_mountable(port):
+            logger.info('{}: Sample {} cannot be prefetched!'.format(self.name, port))
+            self.set_state(message="Port cannot be prefetched!")
+            return False
         else:
-            self.next_port.put(port)
+            self.port_param.put(port)
             self.prefetch_cmd.put(1)
 
             logger.info('{}: Prefetch Sample: {}'.format(self.name, port))
@@ -621,6 +635,15 @@ class UncleSAMRobot(AutoMounter):
             if sample != self.props.sample:
                 self.props.sample = sample
                 logger.debug('Mounted:  port={port} barcode={barcode}'.format(**self.props.sample))
+
+    def on_prefetch_changed(self, obj, port):
+        if not port:
+            self.props.next_port = ''
+            logger.debug('Sample De-fetched')
+        else:
+            self.props.next_port = port
+            logger.debug('Prefetched:  port={}'.format(port))
+            self.set_state(message='{} Prefetched'.format(port))
 
     def on_ports_changed(self, obj, state_str):
         if len(state_str) < 291:
