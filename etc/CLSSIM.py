@@ -92,7 +92,8 @@ DEVICES = {
     'i_2': counter.SimCounter('I_2', zero=65228),
 
     # Misc: Automounter, HC1 etc
-    'automounter': automounter.SimAutoMounter(),
+    #'automounter': automounter.SimAutoMounter(),
+    'automounter': automounter.UncleSAMRobot('SAM1608-001'),
     #'automounter': automounter.ISARAMounter('BOT1608-I01'),
     'humidifier': humidity.SimHumidifier(),
     'attenuator': misc.SimPositioner('Attenuator', 0.0, '%'),
